@@ -442,11 +442,6 @@ void _vte_terminal_beep(VteTerminal *terminal);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
-/* vteseq.c: */
-void _vte_terminal_handle_sequence(VteTerminal *terminal,
-				   const char *match_s,
-				   GQuark match,
-				   GValueArray *params);
 gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,
                                   long x,
                                   long y,
@@ -492,6 +487,10 @@ void _vte_buffer_emit_resize_window(VteBuffer *buffer, guint w, guint h);
 void _vte_buffer_emit_move_window(VteBuffer *buffer, guint x, guint y);
 void _vte_buffer_emit_text_deleted(VteBuffer *buffer);
 void _vte_buffer_emit_text_inserted(VteBuffer *buffer);
+void _vte_terminal_handle_sequence(VteBuffer *buffer,
+                                   const char *match_s,
+                                   GQuark match,
+                                   GValueArray *params);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
