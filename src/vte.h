@@ -117,9 +117,8 @@ void vte_terminal_paste_clipboard(VteTerminal *terminal);
 void vte_terminal_copy_primary(VteTerminal *terminal);
 void vte_terminal_paste_primary(VteTerminal *terminal);
 
-/* simple manipulation of selection */
 void vte_terminal_select_all(VteTerminal *terminal);
-void vte_terminal_select_none(VteTerminal *terminal);
+void vte_terminal_unselect_all(VteTerminal *terminal);
 
 void vte_terminal_set_font_scale(VteTerminal *terminal,
                                  gdouble scale);
