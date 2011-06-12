@@ -88,6 +88,16 @@ typedef enum {
 
 
 /**
+ * VteBell:
+ * @VTE_BELL_AUDIBLE:
+ * @VTE_BELL_VISUAL:
+ */
+typedef enum {
+        VTE_BELL_AUDIBLE,
+        VTE_BELL_VISUAL
+} VteBellType;
+
+/**
  * VteWriteFlags:
  * @VTE_TERMINAL_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
  *

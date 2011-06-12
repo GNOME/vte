@@ -183,6 +183,7 @@ enum {
         BUFFER_TEXT_MODIFIED,
         BUFFER_TEXT_INSERTED,
         BUFFER_TEXT_DELETED,
+        BUFFER_BELL,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -1027,6 +1028,14 @@ vte_buffer_emit_text_modified(VteBuffer *buffer)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-modified'.\n");
         g_signal_emit(buffer, buffer_signals[BUFFER_TEXT_MODIFIED], 0);
+}
+
+void
+_vte_buffer_emit_bell(VteBuffer *buffer, VteBellType bell_type)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `bell'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_BELL], 0, bell_type);
 }
 
 /* Emit a "text-scrolled" signal. */
@@ -4479,8 +4488,8 @@ _vte_check_cursor_blink(VteTerminal *terminal)
 		remove_cursor_timeout(terminal);
 }
 
-void
-_vte_terminal_audible_beep(VteTerminal *terminal)
+static void
+vte_terminal_audible_beep(VteTerminal *terminal)
 {
 	GdkDisplay *display;
 
@@ -4489,8 +4498,8 @@ _vte_terminal_audible_beep(VteTerminal *terminal)
 	gdk_display_beep(display);
 }
 
-void
-_vte_terminal_visible_beep(VteTerminal *terminal)
+static void
+vte_terminal_visible_beep(VteTerminal *terminal)
 {
 	GtkWidget *widget = &terminal->widget;
 	GtkAllocation allocation;
@@ -4521,17 +4530,17 @@ _vte_terminal_visible_beep(VteTerminal *terminal)
 	}
 }
 
-void
-_vte_terminal_beep(VteTerminal *terminal)
+static void
+vte_terminal_beep(VteTerminal *terminal,
+                   VteBellType bell_type)
 {
-	if (terminal->pvt->audible_bell) {
-		_vte_terminal_audible_beep (terminal);
+	if (bell_type == VTE_BELL_AUDIBLE && terminal->pvt->audible_bell) {
+		vte_terminal_audible_beep (terminal);
 	}
-	if (terminal->pvt->visible_bell) {
-		_vte_terminal_visible_beep (terminal);
+	if (bell_type == VTE_BELL_VISUAL && terminal->pvt->visible_bell) {
+		vte_terminal_visible_beep (terminal);
 	}
 }
-
 
 static guint
 vte_translate_ctrlkey (GdkEventKey *event)
@@ -4622,7 +4631,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			if ((terminal->pvt->screen->cursor_current.col +
 			     (glong) terminal->pvt->bell_margin) ==
 			     terminal->pvt->column_count) {
-				_vte_terminal_beep (terminal);
+				_vte_buffer_emit_bell(terminal->term_pvt->buffer, VTE_BELL_AUDIBLE);
 			}
 		}
 
@@ -7746,6 +7755,11 @@ vte_terminal_init(VteTerminal *terminal)
 
         pvt = terminal->pvt = term_pvt->buffer_pvt;
         pvt->terminal = terminal;
+
+        /* buffer signals */
+        g_signal_connect_swapped(buffer, "bell", G_CALLBACK(vte_terminal_beep), terminal);
+
+        /* --- */
 
 	gtk_widget_set_can_focus(&terminal->widget, TRUE);
 
@@ -10943,8 +10957,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
 	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
 
-        klass->beep = NULL;
-
         /* GtkScrollable interface properties */
         g_object_class_override_property (gobject_class, PROP_HADJUSTMENT, "hadjustment");
         g_object_class_override_property (gobject_class, PROP_VADJUSTMENT, "vadjustment");
@@ -11077,22 +11089,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
 			     G_STRUCT_OFFSET(VteTerminalClass, paste_clipboard),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::beep:
-         * @vteterminal: the object which received the signal
-         *
-         * This signal is emitted when the a child sends a beep request to the
-         * terminal.
-         */
-        g_signal_new(I_("beep"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, beep),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
@@ -13477,6 +13473,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->text_modified = NULL;
         klass->text_inserted = NULL;
         klass->text_deleted = NULL;
+        klass->bell = NULL;
 
         /**
          * VteBuffer::child-exited:
@@ -13838,6 +13835,24 @@ vte_buffer_class_init(VteBufferClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::bell:
+         * @vtebuffer: the object which received the signal
+         *
+         * This signal is emitted when the a child sends a bell request to the
+         * buffer.
+         */
+        buffer_signals[BUFFER_BELL] =
+                g_signal_new(I_("bell"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, bell),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__ENUM,
+                             G_TYPE_NONE,
+                             1, VTE_TYPE_BELL_TYPE);
 
         /* Properties */
 

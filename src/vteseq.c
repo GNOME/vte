@@ -881,8 +881,8 @@ vte_sequence_handler_as (VteBuffer *buffer, GValueArray *params)
 static void
 vte_sequence_handler_bl (VteBuffer *buffer, GValueArray *params)
 {
-	_vte_terminal_beep (buffer->pvt->terminal);
-        g_signal_emit_by_name(buffer->pvt->terminal, "beep");
+        _vte_buffer_emit_bell(buffer, VTE_BELL_AUDIBLE);
+        /* FIXMEchpe: also emit visual bell here?? */
 }
 
 /* Backtab. */
@@ -2127,7 +2127,7 @@ vte_sequence_handler_us (VteBuffer *buffer, GValueArray *params)
 static void
 vte_sequence_handler_vb (VteBuffer *buffer, GValueArray *params)
 {
-	_vte_terminal_visible_beep (buffer->pvt->terminal);
+        _vte_buffer_emit_bell(buffer, VTE_BELL_VISUAL);
 }
 
 /* Cursor visible. */

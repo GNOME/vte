@@ -72,6 +72,8 @@ struct _VteBufferClass {
   void (*text_modified)        (VteBuffer* buffer);
   void (*text_inserted)        (VteBuffer* buffer);
   void (*text_deleted)         (VteBuffer* buffer);
+  void (*bell)                 (VteBuffer* buffer,
+                                VteBellType bell_type);
 
   /*< private >*/
   VteBufferClassPrivate *priv;
