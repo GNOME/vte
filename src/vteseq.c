@@ -323,15 +323,15 @@ _vte_buffer_scroll_text (VteBuffer *buffer,
 }
 
 static gboolean
-vte_terminal_termcap_string_same_as_for (VteTerminal *terminal,
+vte_buffer_termcap_string_same_as_for (VteBuffer *buffer,
 					 const char  *cap_str,
 					 const char  *cap_other)
 {
 	char *other_str;
 	gboolean ret;
 
-	other_str = _vte_termcap_find_string(terminal->pvt->termcap,
-					     terminal->pvt->emulation,
+	other_str = _vte_termcap_find_string(buffer->pvt->termcap,
+					     buffer->pvt->emulation,
 					     cap_other);
 
 	ret = other_str && (g_ascii_strcasecmp(cap_str, other_str) == 0);
@@ -1811,6 +1811,7 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	char *standout;
 
 	/* Standout may be mapped to another attribute, so attempt to do
@@ -1819,21 +1820,21 @@ vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
 	 * If the standout sequence is the same as another sequence, do what
 	 * we'd do for that other sequence instead. */
 
-	standout = _vte_termcap_find_string(terminal->pvt->termcap,
-					    terminal->pvt->emulation,
+	standout = _vte_termcap_find_string(buffer->pvt->termcap,
+					    buffer->pvt->emulation,
 					    "so");
 	g_assert(standout != NULL);
 
-	if (vte_terminal_termcap_string_same_as_for (terminal, standout, "mb") /* blink */   ||
-	    vte_terminal_termcap_string_same_as_for (terminal, standout, "md") /* bold */    ||
-	    vte_terminal_termcap_string_same_as_for (terminal, standout, "mh") /* half */    ||
-	    vte_terminal_termcap_string_same_as_for (terminal, standout, "mr") /* reverse */ ||
-	    vte_terminal_termcap_string_same_as_for (terminal, standout, "us") /* underline */)
+	if (vte_buffer_termcap_string_same_as_for (buffer, standout, "mb") /* blink */   ||
+	    vte_buffer_termcap_string_same_as_for (buffer, standout, "md") /* bold */    ||
+	    vte_buffer_termcap_string_same_as_for (buffer, standout, "mh") /* half */    ||
+	    vte_buffer_termcap_string_same_as_for (buffer, standout, "mr") /* reverse */ ||
+	    vte_buffer_termcap_string_same_as_for (buffer, standout, "us") /* underline */)
 	{
 		vte_sequence_handler_me (terminal, params);
 	} else {
 		/* Otherwise just set standout mode. */
-		terminal->pvt->screen->defaults.attr.standout = 0;
+		buffer->pvt->screen->defaults.attr.standout = 0;
 	}
 
 	g_free(standout);
@@ -1858,6 +1859,7 @@ vte_sequence_handler_SF (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_so (VteTerminal *terminal, GValueArray *params)
 {
+        VteBuffer *buffer = terminal->term_pvt->buffer;
 	char *standout;
 
 	/* Standout may be mapped to another attribute, so attempt to do
@@ -1866,24 +1868,24 @@ vte_sequence_handler_so (VteTerminal *terminal, GValueArray *params)
 	 * If the standout sequence is the same as another sequence, do what
 	 * we'd do for that other sequence instead. */
 
-	standout = _vte_termcap_find_string(terminal->pvt->termcap,
-					    terminal->pvt->emulation,
+	standout = _vte_termcap_find_string(buffer->pvt->termcap,
+					    buffer->pvt->emulation,
 					    "so");
 	g_assert(standout != NULL);
 
-	if (vte_terminal_termcap_string_same_as_for (terminal, standout, "mb") /* blink */)
+	if (vte_buffer_termcap_string_same_as_for (buffer, standout, "mb") /* blink */)
 		vte_sequence_handler_mb (terminal, params);
-	else if (vte_terminal_termcap_string_same_as_for (terminal, standout, "md") /* bold */)
+	else if (vte_buffer_termcap_string_same_as_for (buffer, standout, "md") /* bold */)
 		vte_sequence_handler_md (terminal, params);
-	else if (vte_terminal_termcap_string_same_as_for (terminal, standout, "mh") /* half */)
+	else if (vte_buffer_termcap_string_same_as_for (buffer, standout, "mh") /* half */)
 		vte_sequence_handler_mh (terminal, params);
-	else if (vte_terminal_termcap_string_same_as_for (terminal, standout, "mr") /* reverse */)
+	else if (vte_buffer_termcap_string_same_as_for (buffer, standout, "mr") /* reverse */)
 		vte_sequence_handler_mr (terminal, params);
-	else if (vte_terminal_termcap_string_same_as_for (terminal, standout, "us") /* underline */)
+	else if (vte_buffer_termcap_string_same_as_for (buffer, standout, "us") /* underline */)
 		vte_sequence_handler_us (terminal, params);
 	else {
 		/* Otherwise just set standout mode. */
-		terminal->pvt->screen->defaults.attr.standout = 1;
+		buffer->pvt->screen->defaults.attr.standout = 1;
 	}
 
 	g_free(standout);
