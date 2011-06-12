@@ -81,14 +81,17 @@ display_control_sequence(const char *name, GValueArray *params)
 /* A couple are duplicated from vte.c, to keep them static... */
 
 /* Find the character an the given position in the backscroll buffer. */
+/* FIXMEchpe: unify this with vte_buffer_find_charcell in vte.c */
 static VteCell *
-vte_terminal_find_charcell (VteTerminal *terminal, glong col, glong row)
+vte_buffer_find_charcell_writable(VteBuffer *buffer,
+                                  glong col,
+                                  glong row)
 {
 	VteRowData *rowdata;
 	VteCell *ret = NULL;
 	VteScreen *screen;
-	g_assert(VTE_IS_TERMINAL(terminal));
-	screen = terminal->pvt->screen;
+
+	screen = buffer->pvt->screen;
 	if (_vte_ring_contains (screen->row_data, row)) {
 		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		ret = _vte_row_data_get_writable (rowdata, col);
@@ -2092,10 +2095,10 @@ vte_sequence_handler_uc (VteTerminal *terminal, GValueArray *params)
 
 	screen = terminal->pvt->screen;
 	column = screen->cursor_current.col;
-	cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
+	cell = vte_buffer_find_charcell_writable(terminal->term_pvt->buffer, column, screen->cursor_current.row);
 	while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
 		column--;
-		cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
+                cell = vte_buffer_find_charcell_writable(terminal->term_pvt->buffer, column, screen->cursor_current.row);
 	}
 	if (cell != NULL) {
 		/* Set this character to be underlined. */
