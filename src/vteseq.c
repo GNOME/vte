@@ -219,12 +219,12 @@ _vte_buffer_clear_screen (VteBuffer *buffer)
 
 /* Clear the current line. */
 static void
-_vte_terminal_clear_current_line (VteTerminal *terminal)
+_vte_buffer_clear_current_line (VteBuffer *buffer)
 {
 	VteRowData *rowdata;
 	VteScreen *screen;
 
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
@@ -235,16 +235,16 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
 		/* Remove it. */
 		_vte_row_data_shrink (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the row. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
+		_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		_vte_invalidate_cells(terminal,
-				      0, terminal->pvt->column_count,
+		_vte_invalidate_cells(buffer->pvt->terminal,
+				      0, buffer->pvt->column_count,
 				      screen->cursor_current.row, 1);
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+	buffer->pvt->text_deleted_flag = TRUE;
 }
 
 /* Clear above the current line. */
@@ -2680,7 +2680,7 @@ vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 		break;
 	case 2:
 		/* Clear the entire line. */
-		_vte_terminal_clear_current_line (terminal);
+		_vte_buffer_clear_current_line (terminal->term_pvt->buffer);
 		break;
 	default:
 		break;
