@@ -3581,23 +3581,26 @@ next_match:
 }
 
 static inline void
-_vte_terminal_enable_input_source (VteTerminal *terminal)
+_vte_buffer_enable_input_source (VteBuffer *buffer)
 {
-	if (terminal->pvt->pty_channel == NULL) {
+        VteBufferPrivate *pvt = buffer->pvt;
+
+	if (pvt->pty_channel == NULL) {
 		return;
 	}
 
-	if (terminal->pvt->pty_input_source == 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
-		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_channel,
+	if (pvt->pty_input_source == 0) {
+		_vte_debug_print (VTE_DEBUG_IO, "polling vte_buffer_io_read\n");
+		pvt->pty_input_source =
+			g_io_add_watch_full(buffer->pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
 					    (GIOFunc) vte_buffer_io_read,
-					    terminal->term_pvt->buffer,
+					    buffer,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
 }
+
 static void
 _vte_buffer_feed_chunks (VteBuffer *buffer,
                          struct _vte_incoming_chunk *chunks)
@@ -12695,7 +12698,7 @@ process_timeout (gpointer data)
 				vte_buffer_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal->term_pvt->buffer);
 			}
-			_vte_terminal_enable_input_source (terminal);
+			_vte_buffer_enable_input_source (terminal->term_pvt->buffer);
 		}
 		if (need_processing (terminal)) {
 			active = TRUE;
@@ -12821,7 +12824,7 @@ update_repeat_timeout (gpointer data)
 				vte_buffer_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal->term_pvt->buffer);
 			}
-			_vte_terminal_enable_input_source (terminal);
+			_vte_buffer_enable_input_source (terminal->term_pvt->buffer);
 		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
@@ -12925,7 +12928,7 @@ update_timeout (gpointer data)
 				vte_buffer_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal->term_pvt->buffer);
 			}
-			_vte_terminal_enable_input_source (terminal);
+			_vte_buffer_enable_input_source (terminal->term_pvt->buffer);
 		}
 		if (terminal->pvt->bg_update_pending) {
 			vte_terminal_background_update (terminal);
