@@ -15,8 +15,6 @@ vte_terminal_select_all
 vte_terminal_unselect_all
 vte_terminal_copy_clipboard
 vte_terminal_paste_clipboard
-vte_terminal_copy_primary
-vte_terminal_paste_primary
 vte_terminal_set_font_scale
 vte_terminal_get_font_scale
 vte_terminal_set_audible_bell

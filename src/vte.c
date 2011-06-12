@@ -71,12 +71,13 @@ typedef gunichar wint_t;
 
 #define CAIRO_GOBJECT_TYPE_PATTERN (g_type_from_name("CairoPattern"))
 
+static void vte_terminal_emit_copy_clipboard(VteTerminal *terminal);
+static void vte_terminal_emit_paste_clipboard(VteTerminal *terminal);
+static void vte_terminal_emit_copy_primary(VteTerminal *terminal);
+static void vte_terminal_emit_paste_primary(VteTerminal *terminal);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_buffer_set_termcap(VteBuffer *buffer, const char *path,
 				     gboolean reset);
-static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
-static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
-static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
 static gboolean vte_buffer_io_read(GIOChannel *channel,
 				     GIOCondition condition,
 				     VteBuffer *buffer);
@@ -127,11 +128,13 @@ static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
 
 enum {
-    COPY_CLIPBOARD,
-    PASTE_CLIPBOARD,
-    LAST_SIGNAL
+        TERMINAL_COPY_CLIPBOARD,
+        TERMINAL_PASTE_CLIPBOARD,
+        TERMINAL_COPY_PRIMARY,
+        TERMINAL_PASTE_PRIMARY,
+        LAST_TERMINAL_SIGNAL
 };
-static guint signals[LAST_SIGNAL];
+static guint signals[LAST_TERMINAL_SIGNAL];
 
 enum {
         PROP_0,
@@ -1131,6 +1134,66 @@ _vte_buffer_emit_resize_window(VteBuffer *buffer,
                         "Emitting `resize-window'.\n");
         g_signal_emit(buffer, buffer_signals[BUFFER_RESIZE_WINDOW], 0,
                       width, height);
+}
+
+static void
+vte_terminal_emit_copy_clipboard(VteTerminal *terminal)
+{
+  g_signal_emit (terminal, signals[TERMINAL_COPY_CLIPBOARD], 0);
+}
+
+static void
+vte_terminal_emit_paste_clipboard(VteTerminal *terminal)
+{
+  g_signal_emit (terminal, signals[TERMINAL_PASTE_CLIPBOARD], 0);
+}
+
+static void
+vte_terminal_emit_copy_primary(VteTerminal *terminal)
+{
+  g_signal_emit (terminal, signals[TERMINAL_COPY_PRIMARY], 0);
+}
+
+static void
+vte_terminal_emit_paste_primary(VteTerminal *terminal)
+{
+  g_signal_emit (terminal, signals[TERMINAL_PASTE_PRIMARY], 0);
+}
+
+static void
+vte_terminal_real_copy_clipboard(VteTerminal *terminal)
+{
+        _vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
+        vte_terminal_copy_clipboard(terminal,
+                                    gtk_widget_get_clipboard(&terminal->widget,
+                                                             GDK_SELECTION_CLIPBOARD));
+}
+
+static void
+vte_terminal_real_paste_clipboard(VteTerminal *terminal)
+{
+        _vte_debug_print(VTE_DEBUG_SELECTION, "Pasting CLIPBOARD.\n");
+        vte_terminal_paste_clipboard(terminal,
+                                     gtk_widget_get_clipboard(&terminal->widget,
+                                                              GDK_SELECTION_CLIPBOARD));
+}
+
+static void
+vte_terminal_real_copy_primary(VteTerminal *terminal)
+{
+        _vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
+        vte_terminal_copy_clipboard(terminal,
+                                    gtk_widget_get_clipboard(&terminal->widget,
+                                                             GDK_SELECTION_PRIMARY));
+}
+
+static void
+vte_terminal_real_paste_primary(VteTerminal *terminal)
+{
+        _vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
+        vte_terminal_paste_clipboard(terminal,
+                                     gtk_widget_get_clipboard(&terminal->widget,
+                                                              GDK_SELECTION_PRIMARY));
 }
 
 /* Deselect anything which is selected and refresh the screen if needed. */
@@ -4800,16 +4863,16 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		case GDK_KEY_Insert:
 			if (modifiers & GDK_SHIFT_MASK) {
 				if (modifiers & GDK_CONTROL_MASK) {
-					vte_terminal_paste_clipboard(terminal);
+					vte_terminal_emit_paste_clipboard(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				} else {
-					vte_terminal_paste_primary(terminal);
+					vte_terminal_emit_paste_primary(terminal);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				}
 			} else if (modifiers & GDK_CONTROL_MASK) {
-				vte_terminal_copy_clipboard(terminal);
+				vte_terminal_emit_copy_clipboard(terminal);
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
 			}
@@ -5999,24 +6062,22 @@ vte_buffer_get_cursor_position(VteBuffer *buffer,
 	}
 }
 
-static GtkClipboard *
-vte_terminal_clipboard_get(VteTerminal *terminal, GdkAtom board)
+/**
+ * vte_terminal_copy_clipboard:
+ * @terminal: a #VteTerminal
+ * @clipboard: a #GtkClipboard
+ *
+ * Copies the selected text in @terminal to @clipboard.
+ */
+void
+vte_terminal_copy_clipboard(VteTerminal *terminal,
+                            GtkClipboard *clipboard)
 {
-	GdkDisplay *display;
-	display = gtk_widget_get_display(&terminal->widget);
-	return gtk_clipboard_get_for_display(display, board);
-}
+        static GtkTargetEntry *targets = NULL;
+        static gint n_targets = 0;
 
-/* Place the selected text onto the clipboard.  Do this asynchronously so that
- * we get notified when the selection we placed on the clipboard is replaced. */
-static void
-vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
-{
-	GtkClipboard *clipboard;
-	static GtkTargetEntry *targets = NULL;
-	static gint n_targets = 0;
-
-	clipboard = vte_terminal_clipboard_get(terminal, board);
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(GTK_IS_CLIPBOARD(clipboard));
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(terminal->pvt->selection);
@@ -6051,21 +6112,6 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 					     vte_terminal_clear_cb,
 					     G_OBJECT(terminal));
 		gtk_clipboard_set_can_store(clipboard, NULL, 0);
-	}
-}
-
-/* Paste from the given clipboard. */
-static void
-vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
-{
-	GtkClipboard *clipboard;
-	clipboard = vte_terminal_clipboard_get(terminal, board);
-	if (clipboard != NULL) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Requesting clipboard contents.\n");
-		gtk_clipboard_request_text(clipboard,
-					   vte_terminal_paste_cb,
-					   terminal);
 	}
 }
 
@@ -6140,7 +6186,7 @@ _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 		if (terminal->pvt->has_selection &&
 		    !terminal->pvt->selecting_restart &&
 		    terminal->pvt->selecting_had_delta) {
-			vte_terminal_copy_primary(terminal);
+			vte_terminal_emit_copy_primary(terminal);
 			vte_terminal_emit_selection_changed(terminal);
 		}
 		terminal->pvt->selecting = FALSE;
@@ -6633,7 +6679,7 @@ vte_terminal_select_all (VteTerminal *terminal)
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-	vte_terminal_copy_primary(terminal);
+	vte_terminal_emit_copy_primary(terminal);
 	vte_terminal_emit_selection_changed (terminal);
 	_vte_invalidate_all (terminal);
 }
@@ -6895,7 +6941,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !terminal->pvt->mouse_tracking_mode) {
-				vte_terminal_paste_primary(terminal);
+				vte_terminal_emit_paste_primary(terminal);
 				handled = TRUE;
 			}
 			break;
@@ -8267,8 +8313,8 @@ vte_terminal_finalize(GObject *object)
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
 	if (terminal->pvt->selection != NULL) {
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_PRIMARY);
+		clipboard = gtk_clipboard_get_for_display(gtk_widget_get_display(&terminal->widget),
+                                                          GDK_SELECTION_PRIMARY);
 		if (gtk_clipboard_get_owner(clipboard) == object) {
 			gtk_clipboard_set_text(clipboard,
 					       terminal->pvt->selection,
@@ -10968,6 +11014,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
 	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
+        klass->copy_primary = vte_terminal_real_copy_primary;
+        klass->paste_primary = vte_terminal_real_paste_primary;
 
         /* GtkScrollable interface properties */
         g_object_class_override_property (gobject_class, PROP_HADJUSTMENT, "hadjustment");
@@ -11078,9 +11126,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::copy-clipboard:
          * @vteterminal: the object which received the signal
          *
-         * Emitted whenever vte_terminal_copy_clipboard() is called.
+         * A keybinding signal that is emitted to copy the selection to the
+         * %GDK_SELECTION_CLIPBOARD clipboard.
          */
-	signals[COPY_CLIPBOARD] =
+	signals[TERMINAL_COPY_CLIPBOARD] =
                 g_signal_new(I_("copy-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
@@ -11094,9 +11143,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::paste-clipboard:
          * @vteterminal: the object which received the signal
          *
-         * Emitted whenever vte_terminal_paste_clipboard() is called.
+         * A keybinding signal that is emitted to paste the data from the
+         * %GDK_SELECTION_CLIPBOARD clipboard.
          */
-	signals[PASTE_CLIPBOARD] =
+        signals[TERMINAL_PASTE_CLIPBOARD] =
                 g_signal_new(I_("paste-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
@@ -11105,6 +11155,40 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::copy-primary:
+         * @vteterminal: the object which received the signal
+         *
+         * A keybinding signal that is emitted to copy the selection to the
+         * %GDK_SELECTION_PRIMARY clipboard.
+         */
+        signals[TERMINAL_COPY_PRIMARY] =
+                g_signal_new(I_("copy-primary"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+                             G_STRUCT_OFFSET(VteTerminalClass, copy_primary),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::paste-primary:
+         * @vteterminal: the object which received the signal
+         *
+         * A keybinding signal that is emitted to paste the data from the
+         * %GDK_SELECTION_PRIMARY clipboard.
+         */
+        signals[TERMINAL_PASTE_PRIMARY] =
+                g_signal_new(I_("paste-primary"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+                             G_STRUCT_OFFSET(VteTerminalClass, paste_primary),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal:buffer:
@@ -11555,86 +11639,28 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
         g_object_notify (G_OBJECT (terminal), "scroll-on-keystroke");
 }
 
-static void
-vte_terminal_real_copy_clipboard(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
-	if (terminal->pvt->selection != NULL) {
-		GtkClipboard *clipboard;
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_CLIPBOARD);
-		gtk_clipboard_set_text(clipboard, terminal->pvt->selection, -1);
-	}
-}
-
-/**
- * vte_terminal_copy_clipboard:
- * @terminal: a #VteTerminal
- *
- * Places the selected text in the terminal in the #GDK_SELECTION_CLIPBOARD
- * selection.
- */
-void
-vte_terminal_copy_clipboard(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_signal_emit (terminal, signals[COPY_CLIPBOARD], 0);
-}
-
-static void
-vte_terminal_real_paste_clipboard(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting CLIPBOARD.\n");
-	vte_terminal_paste(terminal, GDK_SELECTION_CLIPBOARD);
-}
-
 /**
  * vte_terminal_paste_clipboard:
  * @terminal: a #VteTerminal
+ * @clipboard: a #GtkClipboard
  *
- * Sends the contents of the #GDK_SELECTION_CLIPBOARD selection to the
- * terminal's child.  If necessary, the data is converted from UTF-8 to the
- * terminal's current encoding. It's called on paste menu item, or when
- * user presses Shift+Insert.
+ * Sends the contents of @clipboard to the terminal's child.
+ * If necessary, the data is converted from UTF-8 to the
+ * terminal's current encoding.
  */
 void
-vte_terminal_paste_clipboard(VteTerminal *terminal)
+vte_terminal_paste_clipboard(VteTerminal *terminal,
+                             GtkClipboard *clipboard)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_signal_emit (terminal, signals[PASTE_CLIPBOARD], 0);
-}
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(GTK_IS_CLIPBOARD(clipboard));
 
-/**
- * vte_terminal_copy_primary:
- * @terminal: a #VteTerminal
- *
- * Places the selected text in the terminal in the #GDK_SELECTION_PRIMARY
- * selection.
- */
-void
-vte_terminal_copy_primary(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
-}
-
-/**
- * vte_terminal_paste_primary:
- * @terminal: a #VteTerminal
- *
- * Sends the contents of the #GDK_SELECTION_PRIMARY selection to the terminal's
- * child.  If necessary, the data is converted from UTF-8 to the terminal's
- * current encoding.  The terminal will call also paste the
- * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
- * mouse button.
- */
-void
-vte_terminal_paste_primary(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
-	vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
+        _vte_debug_print(VTE_DEBUG_SELECTION,
+                         "Requesting clipboard contents.\n");
+        gtk_clipboard_request_text(clipboard,
+                                   vte_terminal_paste_cb,
+                                   terminal);
+        /* FIXMEchpe! this crashes if the terminal is destroyed before the paste is received! */
 }
 
 /**
@@ -12449,7 +12475,7 @@ _vte_terminal_select_text(VteTerminal *terminal,
 	terminal->pvt->selection_start.row = start_row;
 	terminal->pvt->selection_end.col = end_col;
 	terminal->pvt->selection_end.row = end_row;
-	vte_terminal_copy_primary(terminal);
+	vte_terminal_emit_copy_primary(terminal);
 	vte_terminal_emit_selection_changed(terminal);
 
 	_vte_invalidate_region (terminal,

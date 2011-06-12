@@ -85,8 +85,11 @@ struct _VteTerminalClass {
 	void (*decrease_font_size)(VteTerminal* terminal);
 
 	void (*text_scrolled)(VteTerminal* terminal, gint delta);
+
 	void (*copy_clipboard)(VteTerminal* terminal);
 	void (*paste_clipboard)(VteTerminal* terminal);
+        void (*copy_primary)(VteTerminal* terminal);
+        void (*paste_primary)(VteTerminal* terminal);
 
         /* Padding for future expansion. */
         gpointer padding[16];
@@ -112,10 +115,8 @@ VteBuffer *vte_terminal_get_buffer(VteTerminal *terminal);
 
 /* Copy currently-selected text to the clipboard, or from the clipboard to
  * the terminal. */
-void vte_terminal_copy_clipboard(VteTerminal *terminal);
-void vte_terminal_paste_clipboard(VteTerminal *terminal);
-void vte_terminal_copy_primary(VteTerminal *terminal);
-void vte_terminal_paste_primary(VteTerminal *terminal);
+void vte_terminal_copy_clipboard(VteTerminal *terminal, GtkClipboard *clipboard);
+void vte_terminal_paste_clipboard(VteTerminal *terminal, GtkClipboard *clipboard);
 
 void vte_terminal_select_all(VteTerminal *terminal);
 void vte_terminal_unselect_all(VteTerminal *terminal);
