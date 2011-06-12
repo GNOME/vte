@@ -185,10 +185,10 @@ vte_parse_color (const char *spec, GdkRGBA *rgba)
 /* Some common functions */
 
 static void
-_vte_terminal_home_cursor (VteTerminal *terminal)
+_vte_buffer_home_cursor (VteBuffer *buffer)
 {
 	VteScreen *screen;
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 	screen->cursor_current.row = screen->insert_delta;
 	screen->cursor_current.col = 0;
 }
@@ -777,7 +777,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 * to it, and home the cursor. */
 		if (set) {
 			_vte_terminal_clear_screen (terminal);
-			_vte_terminal_home_cursor (terminal);
+			_vte_buffer_home_cursor (terminal->term_pvt->buffer);
 		}
 		/* Reset scrollbars and repaint everything. */
 		gtk_adjustment_set_value(terminal->pvt->vadjustment,
@@ -1084,7 +1084,7 @@ static void
 vte_sequence_handler_cl (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_terminal_clear_screen (terminal);
-	_vte_terminal_home_cursor (terminal);
+        _vte_buffer_home_cursor (terminal->term_pvt->buffer);
 
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_flag = TRUE;
@@ -1144,7 +1144,7 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 	GValue *value;
 	VteScreen *screen;
 
-	_vte_terminal_home_cursor (terminal);
+        _vte_buffer_home_cursor (terminal->term_pvt->buffer);
 
 	/* We require two parameters.  Anything less is a reset. */
 	screen = terminal->pvt->screen;
@@ -1487,7 +1487,7 @@ vte_sequence_handler_fs (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_ho (VteTerminal *terminal, GValueArray *params)
 {
-	_vte_terminal_home_cursor (terminal);
+	_vte_buffer_home_cursor (terminal->term_pvt->buffer);
 }
 
 /* Move the cursor to a specified position. */
