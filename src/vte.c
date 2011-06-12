@@ -77,12 +77,12 @@ static void vte_buffer_set_termcap(VteBuffer *buffer, const char *path,
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
-static gboolean vte_terminal_io_read(GIOChannel *channel,
+static gboolean vte_buffer_io_read(GIOChannel *channel,
 				     GIOCondition condition,
-				     VteTerminal *terminal);
-static gboolean vte_terminal_io_write(GIOChannel *channel,
+				     VteBuffer *buffer);
+static gboolean vte_buffer_io_write(GIOChannel *channel,
 				      GIOCondition condition,
-				      VteTerminal *terminal);
+				      VteBuffer *buffer);
 static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
 static void vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y);
@@ -2828,8 +2828,8 @@ _vte_buffer_connect_pty_read(VteBuffer *buffer)
 			g_io_add_watch_full(pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
-					    (GIOFunc) vte_terminal_io_read,
-					    buffer->pvt->terminal,
+					    (GIOFunc) vte_buffer_io_read,
+					    buffer,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
 }
@@ -2852,17 +2852,17 @@ _vte_buffer_connect_pty_write(VteBuffer *buffer)
 	}
 
 	if (pvt->pty_output_source == 0) {
-		if (vte_terminal_io_write (pvt->pty_channel,
+		if (vte_buffer_io_write (pvt->pty_channel,
 					     G_IO_OUT,
-					     buffer->pvt->terminal))
+					     buffer))
 		{
 			_vte_debug_print (VTE_DEBUG_IO, "polling vte_buffer_io_write\n");
 			pvt->pty_output_source =
 				g_io_add_watch_full(pvt->pty_channel,
 						    VTE_CHILD_OUTPUT_PRIORITY,
 						    G_IO_OUT,
-						    (GIOFunc) vte_terminal_io_write,
-						    buffer->pvt->terminal,
+						    (GIOFunc) vte_buffer_io_write,
+						    buffer,
 						    (GDestroyNotify) mark_output_source_invalid);
 		}
 	}
@@ -3593,8 +3593,8 @@ _vte_terminal_enable_input_source (VteTerminal *terminal)
 			g_io_add_watch_full(terminal->pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    G_IO_IN | G_IO_HUP,
-					    (GIOFunc) vte_terminal_io_read,
-					    terminal,
+					    (GIOFunc) vte_buffer_io_read,
+					    terminal->term_pvt->buffer,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
 }
@@ -3614,10 +3614,11 @@ _vte_buffer_feed_chunks (VteBuffer *buffer,
 }
 /* Read and handle data from the child. */
 static gboolean
-vte_terminal_io_read(GIOChannel *channel,
+vte_buffer_io_read(GIOChannel *channel,
 		     GIOCondition condition,
-		     VteTerminal *terminal)
+		     VteBuffer *buffer)
 {
+        VteTerminal *terminal = buffer->pvt->terminal;
 	int err = 0;
 	gboolean eof, again = TRUE;
 
@@ -3793,10 +3794,11 @@ vte_buffer_feed(VteBuffer *buffer,
 
 /* Send locally-encoded characters to the child. */
 static gboolean
-vte_terminal_io_write(GIOChannel *channel,
+vte_buffer_io_write(GIOChannel *channel,
 		      GIOCondition condition,
-		      VteTerminal *terminal)
+		      VteBuffer *buffer)
 {
+        VteTerminal *terminal = buffer->pvt->terminal;
 	gssize count;
 	int fd;
 	gboolean leave_open;
@@ -12690,8 +12692,8 @@ process_timeout (gpointer data)
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_channel,
-						G_IO_IN, terminal);
+				vte_buffer_io_read (terminal->pvt->pty_channel,
+						G_IO_IN, terminal->term_pvt->buffer);
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
@@ -12816,8 +12818,8 @@ update_repeat_timeout (gpointer data)
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_channel,
-						G_IO_IN, terminal);
+				vte_buffer_io_read (terminal->pvt->pty_channel,
+						G_IO_IN, terminal->term_pvt->buffer);
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
@@ -12920,8 +12922,8 @@ update_timeout (gpointer data)
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_channel,
-						G_IO_IN, terminal);
+				vte_buffer_io_read (terminal->pvt->pty_channel,
+						G_IO_IN, terminal->term_pvt->buffer);
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
