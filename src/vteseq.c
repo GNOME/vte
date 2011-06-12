@@ -250,12 +250,12 @@ _vte_buffer_clear_current_line (VteBuffer *buffer)
 
 /* Clear above the current line. */
 static void
-_vte_terminal_clear_above_current (VteTerminal *terminal)
+_vte_buffer_clear_above_current (VteBuffer *buffer)
 {
 	VteRowData *rowdata;
 	long i;
 	VteScreen *screen;
-	screen = terminal->pvt->screen;
+	screen = buffer->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
 	for (i = screen->insert_delta; i < screen->cursor_current.row; i++) {
@@ -266,15 +266,15 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
 			/* Remove it. */
 			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
-			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
-			_vte_invalidate_cells(terminal,
-					0, terminal->pvt->column_count, i, 1);
+			_vte_invalidate_cells(buffer->pvt->terminal,
+					0, buffer->pvt->column_count, i, 1);
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+	buffer->pvt->text_deleted_flag = TRUE;
 }
 
 /* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
@@ -2619,7 +2619,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		break;
 	case 1:
 		/* Clear above the current line. */
-		_vte_terminal_clear_above_current (terminal);
+		_vte_buffer_clear_above_current (terminal->term_pvt->buffer);
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
 		vte_sequence_handler_cb (terminal, NULL);
