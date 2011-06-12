@@ -4018,16 +4018,17 @@ vte_buffer_feed_child_binary(VteBuffer *buffer,
 }
 
 static void
-vte_terminal_feed_child_using_modes(VteTerminal *terminal,
-				    const char *data, glong length)
+vte_buffer_feed_child_using_modes(VteBuffer *buffer,
+				  const char *data,
+                                  gssize length)
 {
-	if (length == ((gssize)-1)) {
+	if (length < 0) {
 		length = strlen(data);
 	}
 	if (length > 0) {
-		vte_buffer_send(terminal->term_pvt->buffer, "UTF-8", data, length,
-				  !terminal->pvt->screen->sendrecv_mode,
-				  terminal->pvt->screen->linefeed_mode);
+		vte_buffer_send(buffer, "UTF-8", data, length,
+				  !buffer->pvt->screen->sendrecv_mode,
+				  buffer->pvt->screen->linefeed_mode);
 	}
 }
 
@@ -4037,7 +4038,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, VteTerminal *termi
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method committed `%s'.\n", text);
-	vte_terminal_feed_child_using_modes(terminal, text, -1);
+	vte_buffer_feed_child_using_modes(terminal->term_pvt->buffer, text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
@@ -4958,7 +4959,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							1);
 			}
 			if (normal_length > 0) {
-				vte_terminal_feed_child_using_modes(terminal,
+				vte_buffer_feed_child_using_modes(terminal->term_pvt->buffer,
 								    normal,
 								    normal_length);
 			}
@@ -4982,7 +4983,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							  &normal,
 							  &normal_length);
 			output = g_strdup_printf(normal, 1);
-			vte_terminal_feed_child_using_modes(terminal,
+			vte_buffer_feed_child_using_modes(terminal->term_pvt->buffer,
 							    output, -1);
 			g_free(output);
 			g_free(normal);
@@ -10698,7 +10699,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
-			vte_terminal_feed_child_using_modes (terminal,
+			vte_buffer_feed_child_using_modes (terminal->term_pvt->buffer,
 					normal, normal_length);
 		}
 		g_free (normal);
