@@ -202,9 +202,9 @@ _vte_buffer_clear_screen (VteBuffer *buffer)
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
 	screen->cursor_current.row = row + screen->insert_delta;
-	_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+	_vte_buffer_view_adjust_adjustments(buffer);
 	/* Redraw everything. */
-	_vte_invalidate_all(buffer->pvt->terminal);
+	_vte_buffer_view_invalidate_all(buffer);
 	/* We've modified the display.  Make a note of it. */
 	buffer->pvt->text_deleted_flag = TRUE;
 }
@@ -230,7 +230,7 @@ _vte_buffer_clear_current_line (VteBuffer *buffer)
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		_vte_invalidate_cells(buffer->pvt->terminal,
+		_vte_buffer_view_invalidate_cells(buffer,
 				      0, buffer->pvt->column_count,
 				      screen->cursor_current.row, 1);
 	}
@@ -260,7 +260,7 @@ _vte_buffer_clear_above_current (VteBuffer *buffer)
 			_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
-			_vte_invalidate_cells(buffer->pvt->terminal,
+			_vte_buffer_view_invalidate_cells(buffer,
 					0, buffer->pvt->column_count, i, 1);
 		}
 	}
@@ -302,11 +302,11 @@ _vte_buffer_scroll_text (VteBuffer *buffer,
 	}
 
 	/* Update the display. */
-	_vte_terminal_scroll_region(buffer->pvt->terminal, start, end - start + 1,
+	_vte_buffer_view_scroll_region(buffer, start, end - start + 1,
 				   scroll_amount);
 
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+	_vte_buffer_view_adjust_adjustments(buffer);
 
 	/* We've modified the display.  Make a note of it. */
 	buffer->pvt->text_inserted_flag = TRUE;
@@ -733,12 +733,12 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 						buffer->pvt->padding.top +
                                                 buffer->pvt->padding.bottom);
 		/* Request a resize and redraw. */
-		_vte_invalidate_all(buffer->pvt->terminal);
+		_vte_buffer_view_invalidate_all(buffer);
 		break;
 #endif
 	case 5:
 		/* Repaint everything in reverse mode. */
-                _vte_invalidate_all(buffer->pvt->terminal);
+                _vte_buffer_view_invalidate_all(buffer);
 		break;
 	case 6:
 		/* Reposition the cursor in its new home position. */
@@ -761,7 +761,7 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 		vte_buffer_set_scrollback_lines(buffer,
 				buffer->pvt->scrollback_lines);
                 _vte_terminal_queue_contents_changed(buffer->pvt->terminal);
-                _vte_invalidate_all (buffer->pvt->terminal);
+                _vte_buffer_view_invalidate_all(buffer);
 		break;
 	case 9:
 	case 1000:
@@ -853,11 +853,11 @@ vte_sequence_handler_al (VteBuffer *buffer, GValueArray *params)
 		_vte_buffer_ring_remove (buffer, end);
                 _vte_buffer_ring_insert (buffer, start, TRUE);
 		/* Adjust the scrollbars if necessary. */
-                _vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+                _vte_buffer_view_adjust_adjustments(buffer);
 	}
 
 	/* Update the display. */
-        _vte_terminal_scroll_region(buffer->pvt->terminal, start, end - start + 1, param);
+        _vte_buffer_view_scroll_region(buffer, start, end - start + 1, param);
 
 	/* We've modified the display.  Make a note of it. */
 	buffer->pvt->text_deleted_flag = TRUE;
@@ -937,7 +937,7 @@ vte_sequence_handler_cb (VteBuffer *buffer, GValueArray *params)
 		}
 	}
 	/* Repaint this row. */
-        _vte_invalidate_cells(buffer->pvt->terminal,
+        _vte_buffer_view_invalidate_cells(buffer,
 			      0, screen->cursor_current.col+1,
 			      screen->cursor_current.row, 1);
 
@@ -989,7 +989,7 @@ vte_sequence_handler_cd (VteBuffer *buffer, GValueArray *params)
 		_vte_row_data_fill (rowdata, &screen->fill_defaults, buffer->pvt->column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-                _vte_invalidate_cells(buffer->pvt->terminal,
+                _vte_buffer_view_invalidate_cells(buffer,
 				      0, buffer->pvt->column_count,
 				      i, 1);
 	}
@@ -1022,7 +1022,7 @@ vte_sequence_handler_ce (VteBuffer *buffer, GValueArray *params)
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
-        _vte_invalidate_cells(buffer->pvt->terminal,
+        _vte_buffer_view_invalidate_cells(buffer,
 			      screen->cursor_current.col,
 			      buffer->pvt->column_count -
 			      screen->cursor_current.col,
@@ -1279,7 +1279,7 @@ vte_sequence_handler_dc (VteBuffer *buffer, GValueArray *params)
 				len = buffer->pvt->column_count;
 			}
 			/* Repaint this row. */
-			_vte_invalidate_cells(buffer->pvt->terminal,
+			_vte_buffer_view_invalidate_cells(buffer,
 					col, len - col,
 					screen->cursor_current.row, 1);
 		}
@@ -1329,11 +1329,11 @@ vte_sequence_handler_dl (VteBuffer *buffer, GValueArray *params)
 		_vte_buffer_ring_remove (buffer, start);
 		_vte_buffer_ring_insert (buffer, end, TRUE);
 		/* Adjust the scrollbars if necessary. */
-                _vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+                _vte_buffer_view_adjust_adjustments(buffer);
 	}
 
 	/* Update the display. */
-        _vte_terminal_scroll_region(buffer->pvt->terminal, start, end - start + 1, -param);
+        _vte_buffer_view_scroll_region(buffer, start, end - start + 1, -param);
 
 	/* We've modified the display.  Make a note of it. */
 	buffer->pvt->text_deleted_flag = TRUE;
@@ -1424,7 +1424,7 @@ vte_sequence_handler_ec (VteBuffer *buffer, GValueArray *params)
 			}
 		}
 		/* Repaint this row. */
-		_vte_invalidate_cells(buffer->pvt->terminal,
+		_vte_buffer_view_invalidate_cells(buffer,
 				      screen->cursor_current.col, count,
 				      screen->cursor_current.row, 1);
 	}
@@ -1897,8 +1897,8 @@ vte_sequence_handler_sr (VteBuffer *buffer, GValueArray *params)
 		_vte_buffer_ring_remove (buffer, end);
 		_vte_buffer_ring_insert (buffer, start, TRUE);
 		/* Update the display. */
-                _vte_terminal_scroll_region(buffer->pvt->terminal, start, end - start + 1, 1);
-                _vte_invalidate_cells(buffer->pvt->terminal,
+                _vte_buffer_view_scroll_region(buffer, start, end - start + 1, 1);
+                _vte_buffer_view_invalidate_cells(buffer,
 				      0, buffer->pvt->column_count,
 				      start, 2);
 	} else {
@@ -1906,7 +1906,7 @@ vte_sequence_handler_sr (VteBuffer *buffer, GValueArray *params)
 		screen->cursor_current.row--;
 	}
 	/* Adjust the scrollbars if necessary. */
-        _vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+        _vte_buffer_view_adjust_adjustments(buffer);
 	/* We modified the display, so make a note of it. */
 	buffer->pvt->text_modified_flag = TRUE;
 }
@@ -2012,7 +2012,7 @@ vte_sequence_handler_ta (VteBuffer *buffer, GValueArray *params)
 			}
 		}
 
-		_vte_invalidate_cells (buffer->pvt->terminal,
+		_vte_buffer_view_invalidate_cells(buffer,
 				screen->cursor_current.col,
 				newcol - screen->cursor_current.col,
 				screen->cursor_current.row, 1);
@@ -2070,7 +2070,7 @@ vte_sequence_handler_uc (VteBuffer *buffer, GValueArray *params)
 		/* Set this character to be underlined. */
 		cell->attr.underline = 1;
 		/* Cause the character to be repainted. */
-                _vte_invalidate_cells(buffer->pvt->terminal,
+                _vte_buffer_view_invalidate_cells(buffer,
 				      column, cell->attr.columns,
 				      screen->cursor_current.row, 1);
 		/* Move the cursor right. */
@@ -2701,9 +2701,9 @@ vte_sequence_handler_insert_lines (VteBuffer *buffer, GValueArray *params)
 		_vte_buffer_ring_insert (buffer, row, TRUE);
 	}
 	/* Update the display. */
-        _vte_terminal_scroll_region(buffer->pvt->terminal, row, end - row + 1, param);
+        _vte_buffer_view_scroll_region(buffer, row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
-        _vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+        _vte_buffer_view_adjust_adjustments(buffer);
 	/* We've modified the display.  Make a note of it. */
 	buffer->pvt->text_inserted_flag = TRUE;
 }
@@ -2742,9 +2742,9 @@ vte_sequence_handler_delete_lines (VteBuffer *buffer, GValueArray *params)
 		_vte_buffer_ring_insert (buffer, end, TRUE);
 	}
 	/* Update the display. */
-        _vte_terminal_scroll_region(buffer->pvt->terminal, row, end - row + 1, -param);
+        _vte_buffer_view_scroll_region(buffer, row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
-        _vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+        _vte_buffer_view_adjust_adjustments(buffer);
 	/* We've modified the display.  Make a note of it. */
 	buffer->pvt->text_deleted_flag = TRUE;
 }
@@ -2906,7 +2906,7 @@ vte_sequence_handler_screen_alignment_test (VteBuffer *buffer, GValueArray *para
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row)
 			_vte_buffer_ring_append (buffer, FALSE);
-                _vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+                _vte_buffer_view_adjust_adjustments(buffer);
 		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
@@ -2920,7 +2920,7 @@ vte_sequence_handler_screen_alignment_test (VteBuffer *buffer, GValueArray *para
 		_vte_row_data_fill (rowdata, &cell, buffer->pvt->column_count);
 		_vte_buffer_emit_text_inserted(buffer);
 	}
-	_vte_invalidate_all(buffer->pvt->terminal);
+	_vte_buffer_view_invalidate_all(buffer);
 
 	/* We modified the display, so make a note of it for completeness. */
 	buffer->pvt->text_modified_flag = TRUE;
@@ -3019,7 +3019,7 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 		case 7:
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Refreshing window.\n");
-                        _vte_invalidate_all(buffer->pvt->terminal);
+                        _vte_buffer_view_invalidate_all(buffer);
 			_vte_buffer_emit_refresh_window(buffer);
 			break;
 		case 8:

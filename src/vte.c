@@ -13377,6 +13377,57 @@ vte_terminal_search_find_next (VteTerminal *terminal)
  * Since: 0.30
  */
 
+void
+_vte_buffer_view_adjust_adjustments(VteBuffer *buffer)
+{
+        VteBufferPrivate *pvt = buffer->pvt;
+
+        if (pvt->terminal == NULL)
+                return;
+
+        _vte_terminal_adjust_adjustments(pvt->terminal);
+}
+
+void
+_vte_buffer_view_invalidate_all(VteBuffer *buffer)
+{
+        VteBufferPrivate *pvt = buffer->pvt;
+
+        if (pvt->terminal == NULL)
+                return;
+
+        _vte_invalidate_all(pvt->terminal);
+}
+
+void
+_vte_buffer_view_invalidate_cells(VteBuffer *buffer,
+                                  glong column_start,
+                                  gint column_count,
+                                  glong row_start,
+                                  gint row_count)
+{
+        VteBufferPrivate *pvt = buffer->pvt;
+
+        if (pvt->terminal == NULL)
+                return;
+
+        _vte_invalidate_cells(pvt->terminal, column_start, column_count, row_start, row_count);
+}
+
+void
+_vte_buffer_view_scroll_region(VteBuffer *buffer,
+                               glong row,
+                               glong count,
+                               glong delta)
+{
+        VteBufferPrivate *pvt = buffer->pvt;
+
+        if (pvt->terminal == NULL)
+                return;
+
+        _vte_terminal_scroll_region(pvt->terminal, row, count, delta);
+}
+
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteBuffer, vte_buffer, G_TYPE_OBJECT,
                         g_type_add_class_private (g_define_type_id, sizeof (VteBufferClassPrivate));

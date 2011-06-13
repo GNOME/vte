@@ -496,6 +496,13 @@ void _vte_terminal_handle_sequence(VteBuffer *buffer,
                                    const char *match_s,
                                    GQuark match,
                                    GValueArray *params);
+void _vte_buffer_view_adjust_adjustments(VteBuffer *buffer);
+void _vte_buffer_view_invalidate_all(VteBuffer *buffer);
+void _vte_buffer_view_invalidate_cells(VteBuffer *buffer,
+                                       glong column_start, gint column_count,
+                                       glong row_start, gint row_count);
+void _vte_buffer_view_scroll_region(VteBuffer *buffer,
+                                    glong row, glong count, glong delta);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
