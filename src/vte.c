@@ -7421,9 +7421,9 @@ vte_terminal_get_font_scale(VteTerminal *terminal)
 
 /* Read and refresh our perception of the size of the PTY. */
 static void
-vte_terminal_refresh_size(VteTerminal *terminal)
+vte_buffer_refresh_size(VteBuffer *buffer)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        VteBufferPrivate *pvt = buffer->pvt;
 	int rows, columns;
         GError *error = NULL;
 
@@ -7431,11 +7431,13 @@ vte_terminal_refresh_size(VteTerminal *terminal)
                 return;
 
         if (vte_pty_get_size(pvt->pty, &rows, &columns, &error)) {
-                terminal->pvt->row_count = rows;
-                terminal->pvt->column_count = columns;
+                buffer->pvt->row_count = rows;
+                buffer->pvt->column_count = columns;
         } else {
                 g_warning(_("Error reading PTY size, using defaults: %s\n"), error->message);
                 g_error_free(error);
+                buffer->pvt->row_count = buffer->pvt->default_row_count;
+                buffer->pvt->column_count = buffer->pvt->default_column_count;
 	}
 }
 
@@ -7475,7 +7477,7 @@ vte_buffer_set_size(VteBuffer *buffer, glong columns, glong rows)
 			g_warning("%s\n", error->message);
                         g_error_free(error);
 		}
-		vte_terminal_refresh_size(terminal);
+		vte_buffer_refresh_size(buffer);
 	} else {
 		buffer->pvt->row_count = rows;
 		buffer->pvt->column_count = columns;
@@ -7951,17 +7953,24 @@ vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *minimum_width,
 				 int       *natural_width)
 {
-	VteTerminal *terminal;
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteBuffer *buffer;
+        glong column_count;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_width()\n");
 
-	terminal = VTE_TERMINAL(widget);
-
 	vte_terminal_ensure_font (terminal);
 
-        vte_terminal_refresh_size(terminal);
+        buffer = terminal->term_pvt->buffer;
+        if (buffer) {
+                vte_buffer_refresh_size(buffer);
+                column_count = vte_buffer_get_column_count(buffer);
+        } else {
+                column_count = VTE_COLUMNS;
+        }
+
 	*minimum_width = terminal->pvt->char_width * 1;
-        *natural_width = terminal->pvt->char_width * terminal->pvt->column_count;
+        *natural_width = terminal->pvt->char_width * column_count;
 
 	*minimum_width += terminal->pvt->padding.left +
                           terminal->pvt->padding.right;
@@ -7969,11 +7978,10 @@ vte_terminal_get_preferred_width(GtkWidget *widget,
                           terminal->pvt->padding.right;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells.\n",
+			"[Terminal %p] minimum_width=%d, natural_width=%d for %ld cells.\n",
                         terminal,
 			*minimum_width, *natural_width,
-			terminal->pvt->column_count,
-			terminal->pvt->row_count);
+			column_count);
 }
 
 static void
@@ -7981,17 +7989,24 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 				  int       *minimum_height,
 				  int       *natural_height)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        VteBuffer *buffer;
+        glong row_count;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_height()\n");
 
-	terminal = VTE_TERMINAL(widget);
-
 	vte_terminal_ensure_font (terminal);
 
-        vte_terminal_refresh_size(terminal);
+        buffer = terminal->term_pvt->buffer;
+        if (buffer) {
+                vte_buffer_refresh_size(buffer);
+                row_count = vte_buffer_get_row_count(buffer);
+        } else {
+                row_count = VTE_ROWS;
+        }
+
 	*minimum_height = terminal->pvt->char_height * 1;
-        *natural_height = terminal->pvt->char_height * terminal->pvt->row_count;
+        *natural_height = terminal->pvt->char_height * row_count;
 
 	*minimum_height += terminal->pvt->padding.left +
 			   terminal->pvt->padding.right;
@@ -7999,11 +8014,10 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 			   terminal->pvt->padding.right;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells.\n",
+			"[Terminal %p] minimum_height=%d, natural_height=%d for %ld cells.\n",
                         terminal,
 			*minimum_height, *natural_height,
-			terminal->pvt->column_count,
-			terminal->pvt->row_count);
+			row_count);
 }
 
 /* Accept a given size from GTK+. */
