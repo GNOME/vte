@@ -8024,7 +8024,7 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 static void
 vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
         VteBuffer *buffer;
 	glong width, height;
 	GtkAllocation current_allocation;
@@ -8032,9 +8032,6 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
-
-	terminal = VTE_TERMINAL(widget);
-        buffer = terminal->term_pvt->buffer;
 
 	width = (allocation->width - (terminal->pvt->padding.left + terminal->pvt->padding.right)) /
 		terminal->pvt->char_width;
@@ -8058,6 +8055,10 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set our allocation to match the structure. */
 	gtk_widget_set_allocation (widget, allocation);
 
+        buffer = terminal->term_pvt->buffer;
+        if (buffer == NULL)
+                goto done_buffer;
+
 	if (width != terminal->pvt->column_count
 			|| height != terminal->pvt->row_count
 			|| update_scrollback)
@@ -8072,15 +8073,14 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		if (screen->scrolling_restricted) {
 			screen->scrolling_region.start =
 				MIN(screen->scrolling_region.start,
-						terminal->pvt->row_count - 1);
+						buffer->pvt->row_count - 1);
 			screen->scrolling_region.end =
 				MIN(screen->scrolling_region.end,
-						terminal->pvt->row_count - 1);
+						buffer->pvt->row_count - 1);
 		}
 
 		/* Ensure scrollback buffers cover the screen. */
-		vte_buffer_set_scrollback_lines(terminal->term_pvt->buffer,
-				terminal->pvt->scrollback_lines);
+		vte_buffer_set_scrollback_lines(buffer, buffer->pvt->scrollback_lines);
 		/* Ensure the cursor is valid */
 		screen->cursor_current.row = CLAMP (screen->cursor_current.row,
 				_vte_ring_delta (screen->row_data),
@@ -8089,6 +8089,8 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_queue_contents_changed(terminal);
 	}
+
+    done_buffer:
 
 	/* Resize the GDK window. */
 	if (gtk_widget_get_realized (widget)) {
