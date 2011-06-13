@@ -8112,7 +8112,7 @@ static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
 	GdkWindow *window;
-        VteTerminal *terminal = VTE_TERMINAL(widget);;
+        VteTerminal *terminal = VTE_TERMINAL(widget);
         VteTerminalRealPrivate *pvt = terminal->term_pvt;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
