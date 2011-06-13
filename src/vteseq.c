@@ -2839,7 +2839,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_local_charset (VteTerminal *terminal, GValueArray *params)
 {
-	G_CONST_RETURN char *locale_encoding;
+	const char *locale_encoding;
 	g_get_charset(&locale_encoding);
 	vte_terminal_set_encoding(terminal, locale_encoding);
 }
