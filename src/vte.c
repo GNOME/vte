@@ -2277,7 +2277,7 @@ _vte_buffer_ensure_row (VteBuffer *buffer)
 	delta = v - _vte_ring_next(screen->row_data) + 1;
 	if (delta > 0) {
 		row = vte_buffer_insert_rows (buffer, delta);
-		_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+		_vte_buffer_view_adjust_adjustments(buffer);
 	} else {
 		/* Find the row the cursor is in. */
 		row = _vte_ring_index_writable (screen->row_data, v);
@@ -2329,7 +2329,7 @@ vte_buffer_update_insert_delta(VteBuffer *buffer)
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
 		screen->insert_delta = delta;
-		_vte_terminal_adjust_adjustments(buffer->pvt->terminal);
+		_vte_buffer_view_adjust_adjustments(buffer);
 	}
 }
 
@@ -2527,7 +2527,6 @@ _vte_buffer_cleanup_tab_fragments_at_cursor (VteBuffer *buffer)
 void
 _vte_buffer_cursor_down (VteBuffer *buffer)
 {
-        VteTerminal *terminal = buffer->pvt->terminal;
 	long start, end;
 	VteScreen *screen;
 
@@ -2538,7 +2537,7 @@ _vte_buffer_cursor_down (VteBuffer *buffer)
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		start = screen->insert_delta;
-		end = start + terminal->pvt->row_count - 1;
+		end = start + buffer->pvt->row_count - 1;
 	}
 	if (screen->cursor_current.row == end) {
 		/* Match xterm and fill to the end of row when scrolling. */
@@ -2563,10 +2562,10 @@ _vte_buffer_cursor_down (VteBuffer *buffer)
 				_vte_buffer_ring_insert (buffer, screen->cursor_current.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
-				_vte_terminal_scroll_region(terminal, start,
+				_vte_buffer_view_scroll_region(buffer, start,
 							    end - start + 1, 1);
 				/* Force scroll. */
-				_vte_terminal_adjust_adjustments(terminal);
+				_vte_buffer_view_adjust_adjustments(buffer);
 			} else {
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
@@ -2574,10 +2573,10 @@ _vte_buffer_cursor_down (VteBuffer *buffer)
 				_vte_buffer_ring_remove (buffer, start);
 				_vte_buffer_ring_insert (buffer, end, TRUE);
 				/* Update the display. */
-				_vte_terminal_scroll_region(terminal, start,
+				_vte_buffer_view_scroll_region(buffer, start,
 							   end - start + 1, -1);
-				_vte_invalidate_cells(terminal,
-						      0, terminal->pvt->column_count,
+				_vte_buffer_view_invalidate_cells(buffer,
+						      0, buffer->pvt->column_count,
 						      end - 2, 2);
 			}
 		} else {
@@ -2731,7 +2730,7 @@ _vte_buffer_insert_char(VteBuffer *buffer,
 
 		/* Always invalidate since we put the mark on the *previous* cell
 		 * and the higher level code doesn't know this. */
-		_vte_invalidate_cells(buffer->pvt->terminal,
+		_vte_buffer_view_invalidate_cells(buffer,
 				      col - columns,
 				      columns,
 				      row_num, 1);
@@ -2807,7 +2806,7 @@ _vte_buffer_insert_char(VteBuffer *buffer,
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {
-		_vte_invalidate_cells(buffer->pvt->terminal,
+		_vte_buffer_view_invalidate_cells(buffer,
 				col - columns,
 				insert ? buffer->pvt->column_count : columns,
 				screen->cursor_current.row, 1);
