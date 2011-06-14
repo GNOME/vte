@@ -1,3 +1,9 @@
+0.28.1
+======
+- Bugs fixed:
+   * Bug 652124 - malicious escape sequence causes gnome-terminal to exhaust memory
+- Translation updates
+
 0.28.0
 ======
 - Bugs fixed:
