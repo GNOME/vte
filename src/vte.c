@@ -13251,6 +13251,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 			  gboolean backward)
 {
         VteTerminalPrivate *pvt;
+        VteBuffer *buffer;
 	char *row_text;
 	GMatchInfo *match_info;
 	GError *error = NULL;
@@ -13262,8 +13263,9 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	gdouble value, page_size;
 
 	pvt = terminal->pvt;
+        buffer = terminal->term_pvt->buffer;
 
-	row_text = vte_buffer_get_text_range (terminal->term_pvt->buffer, start_row, 0, end_row, -1, NULL, NULL, NULL);
+	row_text = vte_buffer_get_text_range (buffer, start_row, 0, end_row, -1, NULL, NULL, NULL);
 
 	g_regex_match_full (pvt->search_regex, row_text, -1, 0, G_REGEX_MATCH_NOTEMPTY, &match_info, &error);
 	if (error) {
@@ -13287,7 +13289,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	if (!pvt->search_attrs)
 		pvt->search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
 	attrs = pvt->search_attrs;
-	row_text = vte_buffer_get_text_range (terminal->term_pvt->buffer, start_row, 0, end_row, -1, NULL, NULL, attrs);
+	row_text = vte_buffer_get_text_range (buffer, start_row, 0, end_row, -1, NULL, NULL, attrs);
 
 	/* This gives us the offset in the buffer */
 	g_match_info_fetch_pos (match_info, 0, &start, &end);
@@ -13363,28 +13365,34 @@ vte_terminal_search_find (VteTerminal *terminal,
 			  gboolean     backward)
 {
         VteTerminalPrivate *pvt;
+        VteBuffer *buffer;
 	long buffer_start_row, buffer_end_row;
 	long last_start_row, last_end_row;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-	pvt = terminal->pvt;
+        buffer = terminal->term_pvt->buffer;
+        if (buffer == NULL)
+                return FALSE;
+
+        pvt = terminal->pvt;
 	if (!pvt->search_regex)
 		return FALSE;
+
 
 	/* TODO
 	 * Currently We only find one result per extended line, and ignore columns
 	 * Moreover, the whole search thing is implemented very inefficiently.
 	 */
 
-	buffer_start_row = _vte_ring_delta (terminal->pvt->screen->row_data);
-	buffer_end_row = _vte_ring_next (terminal->pvt->screen->row_data);
+	buffer_start_row = _vte_ring_delta (buffer->pvt->screen->row_data);
+	buffer_end_row = _vte_ring_next (buffer->pvt->screen->row_data);
 
 	if (pvt->has_selection) {
 		last_start_row = pvt->selection_start.row;
 		last_end_row = pvt->selection_end.row + 1;
 	} else {
-		last_start_row = pvt->screen->scroll_delta + terminal->pvt->row_count;
+		last_start_row = pvt->screen->scroll_delta + buffer->pvt->row_count;
 		last_end_row = pvt->screen->scroll_delta;
 	}
 	last_start_row = MAX (buffer_start_row, last_start_row);
