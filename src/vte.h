@@ -74,6 +74,7 @@ struct _VteTerminalClass {
 	GtkWidgetClass parent_class;
 
 	/*< protected > */
+        void (*buffer_changed)(VteTerminal *terminal, VteBuffer *previous_buffer);
 	void (*char_size_changed)(VteTerminal* terminal, guint char_width, guint char_height);
 	void (*selection_changed)(VteTerminal* terminal);
 	void (*contents_changed)(VteTerminal* terminal);
@@ -111,6 +112,7 @@ GType vte_terminal_get_type(void);
 
 GtkWidget *vte_terminal_new(void);
 
+void vte_terminal_set_buffer(VteTerminal *terminal, VteBuffer *buffer);
 VteBuffer *vte_terminal_get_buffer(VteTerminal *terminal);
 
 /* Copy currently-selected text to the clipboard, or from the clipboard to

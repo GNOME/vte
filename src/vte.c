@@ -132,6 +132,7 @@ enum {
         TERMINAL_PASTE_CLIPBOARD,
         TERMINAL_COPY_PRIMARY,
         TERMINAL_PASTE_PRIMARY,
+        TERMINAL_BUFFER_CHANGED,
         LAST_TERMINAL_SIGNAL
 };
 static guint signals[LAST_TERMINAL_SIGNAL];
@@ -2381,6 +2382,52 @@ GtkWidget *
 vte_terminal_new(void)
 {
 	return g_object_new(VTE_TYPE_TERMINAL, NULL);
+}
+
+/**
+ * vte_terminal_set_buffer:
+ * @terminal: a #VteTerminal
+ * @buffer: (allow-none): a #VteBuffer, or %NULL
+ *
+ * Sets @buffer as @terminal's buffer.
+ */
+void
+vte_terminal_set_buffer(VteTerminal *terminal,
+                        VteBuffer *buffer)
+{
+        VteTerminalRealPrivate *pvt;
+        VteBuffer *old_buffer;
+        GObject *object;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(buffer == NULL || VTE_IS_BUFFER(buffer));
+
+        pvt = terminal->term_pvt;
+        if (pvt->buffer == buffer)
+                return;
+
+        object = G_OBJECT(terminal);
+
+        g_object_freeze_notify(object);
+
+        old_buffer = pvt->buffer;
+        if (old_buffer) {
+                /* defer unref until after "buffer-changed" signal emission */
+        }
+
+        pvt->buffer = buffer;
+        if (buffer) {
+                g_object_ref(buffer);
+        }
+
+        g_object_notify(object, "buffer");
+
+        g_signal_emit(terminal, signals[TERMINAL_BUFFER_CHANGED], 0, old_buffer);
+        if (old_buffer) {
+              g_object_unref(old_buffer);
+        }
+
+        g_object_thaw_notify(object);
 }
 
 /**
@@ -7793,7 +7840,9 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize private data. */
 	term_pvt = terminal->term_pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalRealPrivate);
 
-        buffer = term_pvt->buffer = vte_buffer_new();
+        buffer = vte_buffer_new();
+        vte_terminal_set_buffer(terminal, buffer);
+        g_object_unref(buffer);
         term_pvt->buffer_pvt = term_pvt->buffer->pvt;
 
         pvt = terminal->pvt = term_pvt->buffer_pvt;
@@ -11039,6 +11088,24 @@ vte_terminal_class_init(VteTerminalClass *klass)
         g_object_class_override_property (gobject_class, PROP_VSCROLL_POLICY, "vscroll-policy");
 
 	/* Register some signals of our own. */
+
+        /**
+         * VteTerminal::buffer-changed:
+         * @terminal: the object which received the signal
+         * @previous_buffer: the previous buffer, or %NULL if there was none
+         *
+         * Emitted whenever the #VteBuffer of @terminal changes.
+         */
+        signals[TERMINAL_BUFFER_CHANGED] =
+                g_signal_new(I_("buffer-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, buffer_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__OBJECT,
+                             G_TYPE_NONE,
+                             1, G_TYPE_OBJECT);
 
         /**
          * VteTerminal::char-size-changed:
