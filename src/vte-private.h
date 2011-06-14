@@ -323,6 +323,7 @@ struct _VteBufferPrivate {
 
 	/* Search data. */
 	GRegex *search_regex;
+        GRegexMatchFlags search_match_flags;
 	gboolean search_wrap_around;
 	GArray *search_attrs; /* Cache attrs */
 

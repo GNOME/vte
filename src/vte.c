@@ -13168,6 +13168,7 @@ vte_buffer_write_contents_sync (VteBuffer *buffer,
  * vte_terminal_search_set_gregex:
  * @terminal: a #VteTerminal
  * @regex: (allow-none): a #GRegex, or %NULL
+ * @flags: flags from #GRegexMatchFlags
  *
  * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
  *
@@ -13175,7 +13176,8 @@ vte_buffer_write_contents_sync (VteBuffer *buffer,
  */
 void
 vte_terminal_search_set_gregex (VteTerminal *terminal,
-				GRegex      *regex)
+				GRegex      *regex,
+                                GRegexMatchFlags flags)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -13189,6 +13191,8 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
 
 	if (regex)
 		terminal->pvt->search_regex = g_regex_ref (regex);
+
+        terminal->pvt->search_match_flags = flags;
 
 	_vte_invalidate_all (terminal);
 }
@@ -13267,7 +13271,9 @@ vte_terminal_search_rows (VteTerminal *terminal,
 
 	row_text = vte_buffer_get_text_range (buffer, start_row, 0, end_row, -1, NULL, NULL, NULL);
 
-	g_regex_match_full (pvt->search_regex, row_text, -1, 0, G_REGEX_MATCH_NOTEMPTY, &match_info, &error);
+	g_regex_match_full (pvt->search_regex, row_text, -1, 0,
+                            pvt->search_match_flags | G_REGEX_MATCH_NOTEMPTY,
+                            &match_info, &error);
 	if (error) {
 		g_printerr ("Error while matching: %s\n", error->message);
 		g_error_free (error);
