@@ -11810,6 +11810,48 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
 	return terminal->pvt->has_selection;
 }
 
+/**
+ * vte_terminal_get_selection_bounds:
+ * @terminal: a #VteTerminal
+ * @start: (allow-none): a #VteBufferIter, or %NULL
+ * @end: (allow-none): a #VteBufferIter, or %NULL
+ *
+ * Returns whether text is selected in a @terminal. If @start or @end
+ * are non-%NULL, they are filled in with the start resp. end of the selection.
+ *
+ * Returns: %TRUE if there is text selected in @terminal
+ */ 
+gboolean
+vte_terminal_get_selection_bounds(VteTerminal *terminal,
+                                  VteBufferIter *start,
+                                  VteBufferIter *end)
+{
+        VteTerminalRealPrivate *pvt;
+        VteBufferIterReal *real_start, *real_end;
+
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        pvt = terminal->term_pvt;
+        if (pvt->buffer == NULL)
+                return FALSE;
+
+        if (!terminal->pvt->has_selection)
+                return FALSE;
+
+        if (start) {
+                real_start = (VteBufferIterReal *) start;
+                _vte_buffer_iter_init(real_start, pvt->buffer);
+                real_start->position = terminal->pvt->selection_start;
+        }
+        if (end) {
+                real_end = (VteBufferIterReal *) end;
+                _vte_buffer_iter_init(real_end, pvt->buffer);
+                real_end->position = terminal->pvt->selection_end;
+        }
+
+        return TRUE;
+}
+
 static void
 vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 {
@@ -14156,6 +14198,31 @@ vte_buffer_new(void)
 G_DEFINE_BOXED_TYPE(VteBufferIter, vte_buffer_iter,
                     vte_buffer_iter_copy,
                     vte_buffer_iter_free);
+
+void
+_vte_buffer_iter_init(VteBufferIterReal *real_iter,
+                      VteBuffer *buffer)
+{
+        g_return_if_fail(real_iter != NULL);
+
+        real_iter->buffer = buffer;
+        memset(&real_iter->position, 0, sizeof(real_iter->position));
+}
+
+void
+_vte_buffer_iter_get_position(VteBufferIter *iter,
+                              glong *row,
+                              glong *column)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+
+        g_return_if_fail(iter != NULL);
+
+        if (row)
+                *row = real_iter->position.row;
+        if (column)
+                *column = real_iter->position.col;
+}
 
 /**
  * vte_buffer_iter_copy:

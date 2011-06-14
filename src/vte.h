@@ -142,6 +142,9 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 
 /* Check if the terminal is the current selection owner. */
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
+gboolean vte_terminal_get_selection_bounds(VteTerminal *terminal,
+                                           VteBufferIter *start,
+                                           VteBufferIter *end);
 
 /* Set the list of word chars, optionally using hyphens to specify ranges
  * (to get a hyphen, place it first), and check if a character is in the

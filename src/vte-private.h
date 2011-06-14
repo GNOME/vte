@@ -149,7 +149,7 @@ typedef struct _VteVisualPosition {
 
 typedef struct _VteBufferIterReal VteBufferIterReal;
 struct _VteBufferIterReal {
-        VteVisualPosition pos;
+        VteVisualPosition position;
         VteBuffer *buffer;
 };
 G_STATIC_ASSERT(sizeof(VteBufferIterReal) <= sizeof(VteBufferIter));
@@ -503,6 +503,10 @@ void _vte_buffer_view_invalidate_cells(VteBuffer *buffer,
                                        glong row_start, gint row_count);
 void _vte_buffer_view_scroll_region(VteBuffer *buffer,
                                     glong row, glong count, glong delta);
+
+/* private VteBufferIter methods */
+void _vte_buffer_iter_init(VteBufferIterReal *iter, VteBuffer *buffer);
+void _vte_buffer_iter_get_position(VteBufferIter *iter, glong *row, glong *column);
 
 /* private VteScreen methods */
 void _vte_screen_set_default_attributes(VteScreen *screen);
