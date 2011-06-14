@@ -2125,20 +2125,6 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 			"Snapping to bottom of screen\n");
 }
 
-static void
-_vte_buffer_setup_utf8 (VteBuffer *buffer)
-{
-        VteBufferPrivate *pvt = buffer->pvt;
-        GError *error = NULL;
-
-        if (!vte_pty_set_utf8(pvt->pty,
-                              g_strcmp0(vte_buffer_get_encoding(buffer), "UTF-8") == 0,
-                              &error)) {
-                g_warning ("Failed to set UTF8 mode: %s\n", error->message);
-                g_error_free (error);
-        }
-}
-
 /**
  * vte_buffer_set_encoding:
  * @buffer: a #VteBuffer
@@ -12395,6 +12381,7 @@ vte_buffer_set_pty(VteBuffer *buffer,
         GObject *object;
         long flags;
         int pty_master;
+        GError *error = NULL;
 
         g_return_if_fail(VTE_IS_BUFFER(buffer));
         g_return_if_fail(pty == NULL || VTE_IS_PTY(pty));
@@ -12461,7 +12448,12 @@ vte_buffer_set_pty(VteBuffer *buffer,
 
         vte_buffer_set_size(buffer, pvt->column_count, pvt->row_count);
 
-        _vte_buffer_setup_utf8 (buffer);
+        if (!vte_pty_set_utf8(pvt->pty,
+                              g_strcmp0(vte_buffer_get_encoding(buffer), "UTF-8") == 0,
+                              &error)) {
+                g_warning ("Failed to set UTF8 mode: %s\n", error->message);
+                g_error_free (error);
+        }
 
         /* Open channels to listen for input on. */
         _vte_buffer_connect_pty_read (buffer);
