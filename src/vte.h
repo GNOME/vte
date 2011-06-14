@@ -342,7 +342,8 @@ char *vte_terminal_match_check(VteTerminal *terminal,
 			       int *tag);
 
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
-					       GRegex      *regex);
+					       GRegex      *regex,
+                                               GRegexMatchFlags flags);
 GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal);
 void      vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 					       gboolean     wrap_around);
