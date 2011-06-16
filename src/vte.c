@@ -4241,7 +4241,7 @@ void
 _vte_terminal_set_effect_color(VteTerminal *terminal,
                                int entry,
                                const GdkRGBA *rgba,
-                               VteTerminalEffect effect,
+                               VteEffect effect,
                                gboolean override)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
@@ -4259,7 +4259,7 @@ _vte_terminal_set_effect_color(VteTerminal *terminal,
 
         vte_terminal_set_color_internal(terminal, entry, rgba, override);
 
-        color_set = (effect == VTE_TERMINAL_EFFECT_COLOR);
+        color_set = (effect == VTE_EFFECT_COLOR);
         switch (entry) {
         case VTE_CUR_BG:
                 pvt->cursor_color_set = color_set;
@@ -4442,10 +4442,10 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
                              "cursor-aspect-ratio", &aspect,
                              NULL);
 
-        if ((VteTerminalCursorBlinkMode)blink_mode != term_pvt->cursor_blink_mode) {
-                term_pvt->cursor_blink_mode = (VteTerminalCursorBlinkMode)blink_mode;
+        if ((VteCursorBlinkMode)blink_mode != term_pvt->cursor_blink_mode) {
+                term_pvt->cursor_blink_mode = (VteCursorBlinkMode)blink_mode;
 
-                switch ((VteTerminalCursorBlinkMode)blink_mode) {
+                switch ((VteCursorBlinkMode)blink_mode) {
                 case VTE_CURSOR_BLINK_SYSTEM:
                         g_object_get(gtk_widget_get_settings(GTK_WIDGET(terminal)),
                                                              "gtk-cursor-blink", &blinks,
@@ -4462,8 +4462,8 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
                 vte_terminal_set_cursor_blinks_internal(terminal, blinks);
         }
 
-        if ((VteTerminalCursorShape)cursor_shape != term_pvt->cursor_shape) {
-                term_pvt->cursor_shape = (VteTerminalCursorShape)cursor_shape;
+        if ((VteCursorShape)cursor_shape != term_pvt->cursor_shape) {
+                term_pvt->cursor_shape = (VteCursorShape)cursor_shape;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }
 
@@ -11428,7 +11428,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
+                                    VTE_TYPE_CURSOR_BLINK_MODE,
                                     VTE_CURSOR_BLINK_SYSTEM,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -11442,7 +11442,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_enum ("cursor-shape", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_CURSOR_SHAPE,
+                                    VTE_TYPE_CURSOR_SHAPE,
                                     VTE_CURSOR_SHAPE_BLOCK,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -11503,7 +11503,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls how the terminal will draw the cursor.
          *
-         * If set to %VTE_TERMINAL_EFFECT_COLOR, the cursor is drawn
+         * If set to %VTE_EFFECT_COLOR, the cursor is drawn
          * with the background color from the #VteTerminal:cursor-background-color
          * style property.
          *
@@ -11512,8 +11512,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_enum ("cursor-effect", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_EFFECT,
-                                    VTE_TERMINAL_EFFECT_REVERSE,
+                                    VTE_TYPE_EFFECT,
+                                    VTE_EFFECT_REVERSE,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
@@ -11521,7 +11521,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls how the terminal will draw reversed text.
          *
-         * If set to %VTE_TERMINAL_EFFECT_COLOR, reversed text is drawn
+         * If set to %VTE_EFFECT_COLOR, reversed text is drawn
          * with the background color from the #VteTerminal:reverse-background-color
          * style property.
          *
@@ -11530,8 +11530,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_enum ("reverse-effect", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_EFFECT,
-                                    VTE_TERMINAL_EFFECT_REVERSE,
+                                    VTE_TYPE_EFFECT,
+                                    VTE_EFFECT_REVERSE,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
@@ -11539,7 +11539,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls how the terminal will draw selected text.
          *
-         * If set to %VTE_TERMINAL_EFFECT_COLOR, selected text is drawn
+         * If set to %VTE_EFFECT_COLOR, selected text is drawn
          * with the background color from the #VteTerminal:selection-background-color
          * style property.
          *
@@ -11548,8 +11548,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_widget_class_install_style_property
                 (widget_class,
                  g_param_spec_enum ("selection-effect", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_EFFECT,
-                                    VTE_TERMINAL_EFFECT_REVERSE,
+                                    VTE_TYPE_EFFECT,
+                                    VTE_EFFECT_REVERSE,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /* Keybindings */

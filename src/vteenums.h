@@ -46,7 +46,7 @@ typedef enum {
 } VteEraseBinding;
 
 /**
- * VteTerminalCursorBlinkMode:
+ * VteCursorBlinkMode:
  * @VTE_CURSOR_BLINK_SYSTEM: Follow GTK+ settings for cursor blinking.
  * @VTE_CURSOR_BLINK_ON: Cursor blinks.
  * @VTE_CURSOR_BLINK_OFF: Cursor does not blink.
@@ -58,10 +58,10 @@ typedef enum {
         VTE_CURSOR_BLINK_SYSTEM,
         VTE_CURSOR_BLINK_ON,
         VTE_CURSOR_BLINK_OFF
-} VteTerminalCursorBlinkMode;
+} VteCursorBlinkMode;
 
 /**
- * VteTerminalCursorShape:
+ * VteCursorShape:
  * @VTE_CURSOR_SHAPE_BLOCK: Draw a block cursor.  This is the default.
  * @VTE_CURSOR_SHAPE_IBEAM: Draw a vertical bar on the left side of character.
  * This is similar to the default cursor for other GTK+ widgets.
@@ -74,17 +74,17 @@ typedef enum {
         VTE_CURSOR_SHAPE_BLOCK,
         VTE_CURSOR_SHAPE_IBEAM,
         VTE_CURSOR_SHAPE_UNDERLINE
-} VteTerminalCursorShape;
+} VteCursorShape;
 
 /**
- * VteTerminalEffect:
- * @VTE_TERMINAL_EFFECT_REVERSE: Text is draw with foreground and background color reversed.
- * @VTE_TERMINAL_EFFECT_COLOR: Text is drawn with the background color from the corresponding style property.
+ * VteEffect:
+ * @VTE_EFFECT_REVERSE: Text is draw with foreground and background color reversed.
+ * @VTE_EFFECT_COLOR: Text is drawn with the background color from the corresponding style property.
  */
 typedef enum {
-        VTE_TERMINAL_EFFECT_REVERSE,
-        VTE_TERMINAL_EFFECT_COLOR
-} VteTerminalEffect;
+        VTE_EFFECT_REVERSE,
+        VTE_EFFECT_COLOR
+} VteEffect;
 
 
 /**
@@ -99,7 +99,7 @@ typedef enum {
 
 /**
  * VteWriteFlags:
- * @VTE_TERMINAL_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
+ * @VTE_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
  *
  * A flag type to determine how terminal contents should be written
  * to an output stream.

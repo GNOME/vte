@@ -2,9 +2,9 @@
 <FILE>vte-terminal</FILE>
 <TITLE>VteTerminal</TITLE>
 VteTerminal
-VteTerminalCursorBlinkMode
-VteTerminalCursorShape
-VteTerminalEffect
+VteCursorBlinkMode
+VteCursorShape
+VteEffect
 VteEraseBinding
 VteWriteFlags
 VteSelectionFunc
@@ -51,12 +51,12 @@ vte_get_default_emulation
 vte_get_user_shell
 
 <SUBSECTION Standard>
-VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE
-vte_terminal_cursor_blink_mode_get_type
-VTE_TYPE_TERMINAL_CURSOR_SHAPE
-vte_terminal_cursor_shape_get_type
-VTE_TYPE_TERMINAL_EFFECT
-vte_terminal_effect_get_type
+VTE_TYPE_CURSOR_BLINK_MODE
+vte_cursor_blink_mode_get_type
+VTE_TYPE_CURSOR_SHAPE
+vte_cursor_shape_get_type
+VTE_TYPE_EFFECT
+vte_effect_get_type
 VTE_TYPE_ERASE_BINDING
 vte_erase_binding_get_type
 VTE_TYPE_WRITE_FLAGS

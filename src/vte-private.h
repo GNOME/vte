@@ -409,8 +409,8 @@ struct _VteTerminalRealPrivate {
         gboolean invalidated_all;       /* pending refresh of entire terminal */
 
         /* Cursor */
-        VteTerminalCursorShape cursor_shape;
-        VteTerminalCursorBlinkMode cursor_blink_mode;
+        VteCursorShape cursor_shape;
+        VteCursorBlinkMode cursor_blink_mode;
         float cursor_aspect_ratio;
         gboolean cursor_blink_state;
         guint cursor_blink_tag;           /* cursor blinking timeout ID */
@@ -461,7 +461,7 @@ gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
 void _vte_terminal_set_effect_color(VteTerminal *terminal,
                                     int entry,
                                     const GdkRGBA *rgba,
-                                    VteTerminalEffect effect,
+                                    VteEffect effect,
                                     gboolean override);
 
 gboolean _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
