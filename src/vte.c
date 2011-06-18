@@ -123,6 +123,7 @@ static void reset_update_regions (VteTerminal *terminal);
 static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink);
 static void _vte_check_cursor_blink(VteTerminal *terminal);
 static void vte_terminal_set_font(VteTerminal *terminal, PangoFontDescription *desc /* adopted */);
+static void vte_terminal_beep(VteTerminal *terminal, VteBellType bell_type);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -387,11 +388,11 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		return;
 	}
 
-	if (terminal->term_pvt->invalidated_all) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"Invalidating cells at (%ld,%ld+%ld)x(%d,%d).\n",
@@ -458,8 +459,8 @@ _vte_invalidate_cells(VteTerminal *terminal,
 			rect.x, rect.y, rect.width, rect.height);
 
 	if (terminal->pvt->active != NULL) {
-		terminal->term_pvt->update_regions = g_slist_prepend (
-				terminal->term_pvt->update_regions,
+		terminal->pvt->update_regions = g_slist_prepend (
+				terminal->pvt->update_regions,
 				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
@@ -482,7 +483,7 @@ _vte_invalidate_region (VteTerminal *terminal,
 				scolumn, ecolumn - scolumn + 1,
 				srow, erow - srow + 1);
 	} else {
-                VteBuffer *buffer = terminal->term_pvt->buffer;
+                VteBuffer *buffer = terminal->pvt->buffer;
 
 		_vte_invalidate_cells(terminal,
 				scolumn,
@@ -510,7 +511,7 @@ _vte_invalidate_all(VteTerminal *terminal)
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
         }
-	if (terminal->term_pvt->invalidated_all) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
@@ -524,10 +525,10 @@ _vte_invalidate_all(VteTerminal *terminal)
 	rect.x = rect.y = 0;
 	rect.width = allocation.width;
 	rect.height = allocation.height;
-	terminal->term_pvt->invalidated_all = TRUE;
+	terminal->pvt->invalidated_all = TRUE;
 
 	if (terminal->pvt->active != NULL) {
-		terminal->term_pvt->update_regions = g_slist_prepend (NULL,
+		terminal->pvt->update_regions = g_slist_prepend (NULL,
 				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
@@ -550,7 +551,7 @@ _vte_terminal_scroll_region (VteTerminal *terminal,
 		return;
 	}
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	if (terminal->pvt->scroll_background ||
             count >= buffer->pvt->row_count) {
@@ -660,8 +661,8 @@ vte_buffer_find_end_column(VteBuffer *buffer,
 static gssize
 vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 {
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteTerminalPrivate *pvt = terminal->pvt;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	gunichar c;
 	int i;
 	gssize ret = 0;
@@ -688,7 +689,7 @@ vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 static gssize
 vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 {
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 	int i = 0;
 	const char *preedit = NULL;
 
@@ -717,11 +718,11 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
         }
-	if (terminal->term_pvt->invalidated_all) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	columns = 1;
 	row_data = _vte_screen_find_row_data(buffer->pvt->screen, row);
@@ -766,19 +767,19 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
         }
-	if (terminal->term_pvt->invalidated_all) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
 	if (periodic) {
-		if (!terminal->term_pvt->cursor_blinks) {
+		if (!terminal->pvt->cursor_blinks) {
 			return;
 		}
 	}
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
-	if (terminal->pvt->cursor_visible) {
+	if (buffer->pvt->cursor_visible) {
 		preedit_width = vte_terminal_preedit_width(terminal, FALSE);
 
 		screen = buffer->pvt->screen;
@@ -816,24 +817,24 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 static gboolean
 vte_invalidate_cursor_periodic (VteTerminal *terminal)
 {
-        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
-	term_pvt->cursor_blink_state = !term_pvt->cursor_blink_state;
-	term_pvt->cursor_blink_time += term_pvt->cursor_blink_cycle;
+	pvt->cursor_blink_state = !pvt->cursor_blink_state;
+	pvt->cursor_blink_time += pvt->cursor_blink_cycle;
 
 	_vte_invalidate_cursor_once(terminal, TRUE);
 
 	/* only disable the blink if the cursor is currently shown.
 	 * else, wait until next time.
 	 */
-	if (term_pvt->cursor_blink_time / 1000 >= term_pvt->cursor_blink_timeout &&
-	    term_pvt->cursor_blink_state) {
-                term_pvt->cursor_blink_tag = 0;
+	if (pvt->cursor_blink_time / 1000 >= pvt->cursor_blink_timeout &&
+	    pvt->cursor_blink_state) {
+                pvt->cursor_blink_tag = 0;
 		return FALSE;
         }
 
-	term_pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-						   terminal->term_pvt->cursor_blink_cycle,
+	pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+						   terminal->pvt->cursor_blink_cycle,
 						   (GSourceFunc)vte_invalidate_cursor_periodic,
 						   terminal,
 						   NULL);
@@ -947,9 +948,13 @@ vte_buffer_emit_cursor_moved(VteBuffer *buffer)
 static void
 vte_terminal_queue_cursor_moved(VteTerminal *terminal)
 {
+        VteBuffer *buffer;
+
+        buffer = terminal->pvt->buffer;
+
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `cursor-moved'.\n");
-	terminal->pvt->cursor_moved_pending = TRUE;
+	buffer->pvt->cursor_moved_pending = TRUE;
 }
 
 /* FIXMEchpe: why is this doing GDK threads? */
@@ -1063,7 +1068,9 @@ _vte_buffer_emit_bell(VteBuffer *buffer, VteBellType bell_type)
 static void
 vte_terminal_emit_text_scrolled(VteTerminal *terminal, gint delta)
 {
-	if (!terminal->pvt->accessible_emit) {
+        VteBuffer *buffer = terminal->pvt->buffer;
+
+	if (!buffer->pvt->accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -1344,7 +1351,7 @@ vte_terminal_match_contents_refresh(VteTerminal *terminal)
 	GArray *array;
 	vte_terminal_match_contents_clear(terminal);
 	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-	terminal->pvt->match_contents = vte_buffer_get_text(terminal->term_pvt->buffer,
+	terminal->pvt->match_contents = vte_buffer_get_text(terminal->pvt->buffer,
 							      always_selected,
 							      NULL,
 							      array);
@@ -1908,7 +1915,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	char *ret;
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return NULL;
 
@@ -1938,7 +1945,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 static void
 vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
         VteScreen *screen = buffer->pvt->screen;
 
 	if (terminal->pvt->adjustment_changed_pending) {
@@ -2008,7 +2015,7 @@ vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 static void
 vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
         VteScreen *screen = buffer->pvt->screen;
 
 	if (v != screen->scroll_delta) {
@@ -2027,7 +2034,7 @@ vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, glong
 	lower = gtk_adjustment_get_lower(terminal->pvt->vadjustment);
 	upper = gtk_adjustment_get_upper(terminal->pvt->vadjustment);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 	v = CLAMP(v, lower, MAX (lower, upper - buffer->pvt->row_count));
 
 	vte_terminal_queue_adjustment_value_changed (terminal, v);
@@ -2037,7 +2044,7 @@ vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, glong
 void
 _vte_terminal_adjust_adjustments(VteTerminal *terminal)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
         VteScreen *screen = buffer->pvt->screen;
 	long delta;
 
@@ -2071,7 +2078,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	gboolean changed = FALSE;
 	gdouble v;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         screen = buffer->pvt->screen;
 
 	g_assert(screen != NULL);
@@ -2127,7 +2134,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 static void
 vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	glong destination;
 	_vte_debug_print(VTE_DEBUG_ADJ, "Scrolling %d lines.\n", lines);
 	/* Calculate the ideal position where we want to be before clamping. */
@@ -2143,7 +2150,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 {
         VteBuffer *buffer;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 	vte_terminal_scroll_lines(terminal, pages * buffer->pvt->row_count);
 }
 
@@ -2153,7 +2160,7 @@ vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 {
         VteBuffer *buffer;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 	vte_terminal_queue_adjustment_value_changed (terminal,
 			_vte_ring_delta(buffer->pvt->screen->row_data));
 }
@@ -2161,7 +2168,7 @@ vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 static void
 vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	glong delta;
 	delta = buffer->pvt->screen->insert_delta;
 	vte_terminal_queue_adjustment_value_changed (terminal, delta);
@@ -2425,14 +2432,14 @@ void
 vte_terminal_set_buffer(VteTerminal *terminal,
                         VteBuffer *buffer)
 {
-        VteTerminalRealPrivate *pvt;
+        VteTerminalPrivate *pvt;
         VteBuffer *old_buffer;
         GObject *object;
 
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(buffer == NULL || VTE_IS_BUFFER(buffer));
 
-        pvt = terminal->term_pvt;
+        pvt = terminal->pvt;
         if (pvt->buffer == buffer)
                 return;
 
@@ -2442,12 +2449,16 @@ vte_terminal_set_buffer(VteTerminal *terminal,
 
         old_buffer = pvt->buffer;
         if (old_buffer) {
+                g_signal_handlers_disconnect_by_func(old_buffer, G_CALLBACK(vte_terminal_beep), terminal);
+
                 /* defer unref until after "buffer-changed" signal emission */
         }
 
         pvt->buffer = buffer;
         if (buffer) {
                 g_object_ref(buffer);
+
+                g_signal_connect_swapped(buffer, "bell", G_CALLBACK(vte_terminal_beep), terminal);
         }
 
         g_object_notify(object, "buffer");
@@ -2473,7 +2484,7 @@ vte_terminal_get_buffer(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return terminal->term_pvt->buffer;
+        return terminal->pvt->buffer;
 }
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
@@ -3240,10 +3251,10 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 
         g_object_freeze_notify(object);
 
-        vte_buffer_set_pty(terminal->term_pvt->buffer, NULL);
+        vte_buffer_set_pty(terminal->pvt->buffer, NULL);
 
 	/* Emit a signal that we read an EOF. */
-	vte_buffer_queue_eof(terminal->term_pvt->buffer);
+	vte_buffer_queue_eof(terminal->pvt->buffer);
 
         g_object_thaw_notify(object);
 }
@@ -3252,7 +3263,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 static void
 vte_terminal_im_reset(VteTerminal *terminal)
 {
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	if (gtk_widget_get_realized (&terminal->widget)) {
 		gtk_im_context_reset(pvt->im_context);
@@ -3335,7 +3346,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	GArray *unichars;
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Handler processing %"G_GSIZE_FORMAT" bytes over %"G_GSIZE_FORMAT" chunks + %d bytes pending.\n",
@@ -3351,7 +3362,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	/* Save the current cursor position. */
 	cursor = screen->cursor_current;
-	cursor_visible = terminal->pvt->cursor_visible;
+	cursor_visible = buffer->pvt->cursor_visible;
 
 	/* We should only be called when there's data to process. */
 	g_assert(buffer->pvt->incoming ||
@@ -3705,7 +3716,7 @@ next_match:
 		_vte_check_cursor_blink(terminal);
 		/* Signal that the cursor moved. */
 		vte_terminal_queue_cursor_moved(terminal);
-	} else if (cursor_visible != terminal->pvt->cursor_visible) {
+	} else if (cursor_visible != buffer->pvt->cursor_visible) {
 		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_check_cursor_blink(terminal);
 	}
@@ -3719,7 +3730,7 @@ next_match:
 		rect.y = (screen->cursor_current.row - delta) *
 			 terminal->pvt->char_height + terminal->pvt->padding.top;
 		rect.height = terminal->pvt->char_height;
-		gtk_im_context_set_cursor_location(terminal->term_pvt->im_context,
+		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
 						   &rect);
 	}
 
@@ -4189,7 +4200,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, VteTerminal *termi
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method committed `%s'.\n", text);
-	vte_buffer_feed_child_using_modes(terminal->term_pvt->buffer, text, -1);
+	vte_buffer_feed_child_using_modes(terminal->pvt->buffer, text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
@@ -4203,7 +4214,7 @@ vte_terminal_im_preedit_start(GtkIMContext *im_context, VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit started.\n");
-	terminal->term_pvt->im_preedit_active = TRUE;
+	terminal->pvt->im_preedit_active = TRUE;
 }
 
 /* We've stopped pre-editing. */
@@ -4212,14 +4223,14 @@ vte_terminal_im_preedit_end(GtkIMContext *im_context, VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit ended.\n");
-	terminal->term_pvt->im_preedit_active = FALSE;
+	terminal->pvt->im_preedit_active = FALSE;
 }
 
 /* The pre-edit string changed. */
 static void
 vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 {
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 	gchar *str;
 	PangoAttrList *attrs;
 	gint cursor;
@@ -4477,7 +4488,7 @@ vte_terminal_update_style_colors(VteTerminal *terminal,
 static void
 vte_terminal_update_cursor_style(VteTerminal *terminal)
 {
-        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
         float aspect;
         int cursor_shape, blink_mode;
@@ -4489,8 +4500,8 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
                              "cursor-aspect-ratio", &aspect,
                              NULL);
 
-        if ((VteCursorBlinkMode)blink_mode != term_pvt->cursor_blink_mode) {
-                term_pvt->cursor_blink_mode = (VteCursorBlinkMode)blink_mode;
+        if ((VteCursorBlinkMode)blink_mode != pvt->cursor_blink_mode) {
+                pvt->cursor_blink_mode = (VteCursorBlinkMode)blink_mode;
 
                 switch ((VteCursorBlinkMode)blink_mode) {
                 case VTE_CURSOR_BLINK_SYSTEM:
@@ -4509,13 +4520,13 @@ vte_terminal_update_cursor_style(VteTerminal *terminal)
                 vte_terminal_set_cursor_blinks_internal(terminal, blinks);
         }
 
-        if ((VteCursorShape)cursor_shape != term_pvt->cursor_shape) {
-                term_pvt->cursor_shape = (VteCursorShape)cursor_shape;
+        if ((VteCursorShape)cursor_shape != pvt->cursor_shape) {
+                pvt->cursor_shape = (VteCursorShape)cursor_shape;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }
 
-        if (aspect != term_pvt->cursor_aspect_ratio) {
-                term_pvt->cursor_aspect_ratio = aspect;
+        if (aspect != pvt->cursor_aspect_ratio) {
+                pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }
 }
@@ -4597,12 +4608,12 @@ vte_terminal_style_updated(GtkWidget *widget)
 static void
 add_cursor_timeout (VteTerminal *terminal)
 {
-	if (terminal->term_pvt->cursor_blink_tag)
+	if (terminal->pvt->cursor_blink_tag)
 		return; /* already added */
 
-	terminal->term_pvt->cursor_blink_time = 0;
-	terminal->term_pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     terminal->term_pvt->cursor_blink_cycle,
+	terminal->pvt->cursor_blink_time = 0;
+	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+							     terminal->pvt->cursor_blink_cycle,
 							     (GSourceFunc)vte_invalidate_cursor_periodic,
 							     terminal,
 							     NULL);
@@ -4611,20 +4622,22 @@ add_cursor_timeout (VteTerminal *terminal)
 static void
 remove_cursor_timeout (VteTerminal *terminal)
 {
-	if (terminal->term_pvt->cursor_blink_tag == 0)
+	if (terminal->pvt->cursor_blink_tag == 0)
 		return; /* already removed */
 
-	g_source_remove (terminal->term_pvt->cursor_blink_tag);
-	terminal->term_pvt->cursor_blink_tag = 0;
+	g_source_remove (terminal->pvt->cursor_blink_tag);
+	terminal->pvt->cursor_blink_tag = 0;
 }
 
 /* Activates / disactivates the cursor blink timer to reduce wakeups */
 static void
 _vte_check_cursor_blink(VteTerminal *terminal)
 {
-	if (terminal->term_pvt->has_focus &&
-	    terminal->term_pvt->cursor_blinks &&
-	    terminal->pvt->cursor_visible)
+        VteBuffer *buffer = terminal->pvt->buffer;
+
+	if (terminal->pvt->has_focus &&
+	    terminal->pvt->cursor_blinks &&
+	    buffer->pvt->cursor_visible)
 		add_cursor_timeout(terminal);
 	else
 		remove_cursor_timeout(terminal);
@@ -4760,7 +4773,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 	}
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
@@ -4773,7 +4786,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		/* If we're in margin bell mode and on the border of the
 		 * margin, bell. */
-		if (terminal->pvt->margin_bell) {
+		if (buffer->pvt->margin_bell) {
 			if ((buffer->pvt->screen->cursor_current.col +
 			     (glong) terminal->pvt->bell_margin) ==
 			     buffer->pvt->column_count) {
@@ -4781,10 +4794,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			}
 		}
 
-		if (terminal->term_pvt->cursor_blink_tag != 0)
+		if (terminal->pvt->cursor_blink_tag != 0)
 		{
 			remove_cursor_timeout (terminal);
-			terminal->term_pvt->cursor_blink_state = TRUE;
+			terminal->pvt->cursor_blink_state = TRUE;
 			add_cursor_timeout (terminal);
 		}
 
@@ -4803,7 +4816,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				keyval, event->string);
 
 		/* We steal many keypad keys here. */
-		if (!terminal->term_pvt->im_preedit_active) {
+		if (!terminal->pvt->im_preedit_active) {
 			switch (keyval) {
 			case GDK_KEY_KP_Add:
 			case GDK_KEY_KP_Subtract:
@@ -4853,7 +4866,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	/* Let the input method at this one first. */
 	if (!steal) {
 		if (gtk_widget_get_realized (&terminal->widget)
-				&& gtk_im_context_filter_keypress (terminal->term_pvt->im_context, event)) {
+				&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Keypress taken by IM.\n");
 			return TRUE;
@@ -5105,7 +5118,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
-			if (terminal->pvt->meta_sends_escape &&
+			if (buffer->pvt->meta_sends_escape &&
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
 			    (modifiers & VTE_META_MASK)) {
@@ -5161,12 +5174,12 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
 	return gtk_widget_get_realized (&terminal->widget)
-			&& gtk_im_context_filter_keypress (terminal->term_pvt->im_context, event);
+			&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event);
 }
 
 /*
@@ -5213,7 +5226,7 @@ static gboolean
 vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	       glong bcol, glong brow)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	const VteCell *pcell = NULL;
 	gboolean word_char;
 	if ((pcell = vte_screen_find_charcell(buffer->pvt->screen, acol, arow)) != NULL && pcell->c != 0) {
@@ -5344,7 +5357,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	gchar *paste, *p;
 	long length;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	if (text != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
@@ -5398,7 +5411,7 @@ _vte_terminal_xy_to_grid(VteTerminal *terminal,
         VteTerminalPrivate *pvt = terminal->pvt;
         long c, r;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
@@ -5460,7 +5473,7 @@ vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
         VteBuffer *buffer;
 	unsigned char cb = 0, cx = 0, cy = 0;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -5534,7 +5547,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 
 	/* Send event direct to the child, this is binary not text data */
 	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_buffer_feed_child_binary(terminal->term_pvt->buffer, buf, len);
+	vte_buffer_feed_child_binary(terminal->pvt->buffer, buf, len);
 }
 
 /* Send a mouse button click/release notification. */
@@ -5607,7 +5620,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 
 	/* Send event direct to the child, this is binary not text data */
 	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_buffer_feed_child_binary(terminal->term_pvt->buffer, buf, len);
+	vte_buffer_feed_child_binary(terminal->pvt->buffer, buf, len);
 }
 
 /* Clear all match hilites. */
@@ -5641,7 +5654,7 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 static gboolean
 cursor_inside_match (VteTerminal *terminal, long x, long y)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	gint width = terminal->pvt->char_width;
 	gint height = terminal->pvt->char_height;
 	glong col = x / width;
@@ -5708,7 +5721,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	/* Check for matches. */
 	screen = buffer->pvt->screen;
@@ -5922,6 +5935,7 @@ vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 					  GArray *attributes,
 					  gboolean include_trailing_spaces)
 {
+        VteTerminal *terminal;
 	glong col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
 	VteScreen *screen;
 	const VteCell *pcell = NULL;
@@ -5932,6 +5946,7 @@ vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 	if (!is_selected)
 		is_selected = always_selected;
 
+        terminal = buffer->pvt->terminal;
 	screen = buffer->pvt->screen;
 
 	if (attributes)
@@ -6029,7 +6044,7 @@ vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 		attr.column = MAX(buffer->pvt->column_count, attr.column + 1);
 
 		/* Add a newline in block mode. */
-		if (buffer->pvt->selection_block_mode) {
+		if (terminal->pvt->selection_block_mode) {
 			string = g_string_append_c(string, '\n');
 		}
 		/* Else, if the last visible column on this line was selected and
@@ -6179,14 +6194,14 @@ vte_terminal_copy_clipboard(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(GTK_IS_CLIPBOARD(clipboard));
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return;
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(terminal->pvt->selection);
 	terminal->pvt->selection =
-		vte_buffer_get_text_range(terminal->term_pvt->buffer,
+		vte_buffer_get_text_range(terminal->pvt->buffer,
 					    terminal->pvt->selection_start.row,
 					    0,
 					    terminal->pvt->selection_end.row,
@@ -6239,7 +6254,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
         VteBuffer *buffer;
 	long delta;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	terminal->pvt->selection_block_mode = !!(terminal->pvt->modifiers & GDK_CONTROL_MASK);
 
@@ -6282,7 +6297,7 @@ vte_terminal_start_selection(VteTerminal *terminal, GdkEventButton *event,
 			terminal->pvt->selection_start.row);
 
 	/* Temporarily stop caring about input from the child. */
-	_vte_buffer_disconnect_pty_read(terminal->term_pvt->buffer);
+	_vte_buffer_disconnect_pty_read(terminal->pvt->buffer);
 }
 
 static gboolean
@@ -6299,7 +6314,7 @@ _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 		terminal->pvt->selecting = FALSE;
 
 		/* Reconnect to input from the child if we paused it. */
-		_vte_buffer_connect_pty_read(terminal->term_pvt->buffer);
+		_vte_buffer_connect_pty_read(terminal->pvt->buffer);
 
 		return TRUE;
 	}
@@ -6329,7 +6344,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 	if (terminal->pvt->selection_block_mode)
 		return;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 	screen = buffer->pvt->screen;
 	sc = &terminal->pvt->selection_start;
 	ec = &terminal->pvt->selection_end;
@@ -6533,7 +6548,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	height = terminal->pvt->char_height;
 	width = terminal->pvt->char_width;
@@ -6779,7 +6794,7 @@ vte_terminal_select_all (VteTerminal *terminal)
         VteBuffer *buffer;
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return;
 
@@ -6826,7 +6841,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 	long x, y, xmax, ymax;
 	glong adj;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	/* Provide an immediate effect for mouse wigglers. */
 	if (terminal->pvt->mouse_last_y < 0) {
@@ -6878,7 +6893,7 @@ vte_terminal_start_autoscroll(VteTerminal *terminal)
 {
         VteBuffer *buffer;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	if (terminal->pvt->mouse_autoscroll_tag == 0) {
 		terminal->pvt->mouse_autoscroll_tag =
@@ -6912,7 +6927,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
         long cell_x, cell_y;
 	gboolean handled = FALSE;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
@@ -6993,7 +7008,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	long cellx, celly;
 	long x,y;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
@@ -7158,7 +7173,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
         long cell_x, cell_y;
 	int x, y;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
@@ -7221,7 +7236,7 @@ static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
@@ -7233,8 +7248,8 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
 	if (gtk_widget_get_realized (widget)) {
-		terminal->term_pvt->cursor_blink_state = TRUE;
-		terminal->term_pvt->has_focus = TRUE;
+		terminal->pvt->cursor_blink_state = TRUE;
+		terminal->pvt->has_focus = TRUE;
 
 		_vte_check_cursor_blink (terminal);
 
@@ -7250,7 +7265,7 @@ static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
 
@@ -7343,7 +7358,7 @@ vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		/* set invalidated_all false, since we didn't really mean it
 		 * when we set it to TRUE when becoming obscured */
-		terminal->term_pvt->invalidated_all = FALSE;
+		terminal->pvt->invalidated_all = FALSE;
 
 		/* if all unobscured now, invalidate all, otherwise, wait
 		 * for the expose event */
@@ -7359,7 +7374,7 @@ vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
 		remove_update_timeout (terminal);
 		/* if fully obscured, just act like we have invalidated all,
 		 * so no updates are accumulated. */
-		terminal->term_pvt->invalidated_all = TRUE;
+		terminal->pvt->invalidated_all = TRUE;
 	}
 }
 
@@ -7621,7 +7636,9 @@ vte_buffer_set_size(VteBuffer *buffer, glong columns, glong rows)
 		buffer->pvt->row_count = rows;
 		buffer->pvt->column_count = columns;
 	}
-	if (old_rows != buffer->pvt->row_count || old_columns != buffer->pvt->column_count) {
+
+	if (buffer->pvt->terminal != NULL &&
+	    (old_rows != buffer->pvt->row_count || old_columns != buffer->pvt->column_count)) {
 		VteScreen *screen = buffer->pvt->screen;
 		glong visible_rows = MIN (old_rows, _vte_ring_length (screen->row_data));
 		if (buffer->pvt->row_count < visible_rows) {
@@ -7645,7 +7662,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	long dy, adj;
 	VteScreen *screen;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 	screen = buffer->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
@@ -7926,25 +7943,13 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
-        VteTerminalRealPrivate *term_pvt;
         GtkStyleContext *context;
         VteBuffer *buffer;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
 	/* Initialize private data. */
-	term_pvt = terminal->term_pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalRealPrivate);
-
-        buffer = vte_buffer_new();
-        vte_terminal_set_buffer(terminal, buffer);
-        g_object_unref(buffer);
-        term_pvt->buffer_pvt = term_pvt->buffer->pvt;
-
-        pvt = terminal->pvt = term_pvt->buffer_pvt;
-        pvt->terminal = terminal;
-
-        /* buffer signals */
-        g_signal_connect_swapped(buffer, "bell", G_CALLBACK(vte_terminal_beep), terminal);
+	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
 
         /* --- */
 
@@ -7974,81 +7979,27 @@ vte_terminal_init(VteTerminal *terminal)
 	terminal->pvt->underline_position = 1;
 	terminal->pvt->strikethrough_position = 1;
 
-	/* We allocated zeroed memory, just fill in non-zero stuff. */
-
-	/* Initialize the screens and histories. */
-	_vte_ring_init (pvt->alternate_screen.row_data, buffer->pvt->row_count);
-	pvt->alternate_screen.sendrecv_mode = TRUE;
-	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
-	_vte_screen_set_default_attributes(&pvt->alternate_screen);
-
-	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
-	pvt->normal_screen.sendrecv_mode = TRUE;
-	pvt->normal_screen.status_line_contents = g_string_new(NULL);
-	_vte_screen_set_default_attributes(&pvt->normal_screen);
-
-        pvt->screen = &pvt->normal_screen;
-
-	/* Set up I/O encodings. */
-	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
-					      &_vte_terminal_codeset_changed_cb,
-					      buffer);
-	pvt->incoming = NULL;
-	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
-	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
-	term_pvt->cursor_blink_tag = 0;
-	pvt->outgoing = _vte_byte_array_new();
-	pvt->outgoing_conv = VTE_INVALID_CONV;
-	pvt->conv_buffer = _vte_byte_array_new();
-	vte_buffer_set_encoding(buffer, NULL);
-	g_assert(buffer->pvt->encoding != NULL);
-
-	/* Load the termcap data and set up the emulation. */
-	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
-	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
-	pvt->dec_saved = g_hash_table_new(NULL, NULL);
-	pvt->default_column_count = VTE_COLUMNS;
-	pvt->default_row_count = VTE_ROWS;
-
-	/* Setting the terminal type and size requires the PTY master to
-	 * be set up properly first. */
-        pvt->pty = NULL;
-	vte_buffer_set_emulation(buffer, NULL);
-	vte_buffer_set_size(buffer,
-			      pvt->default_column_count,
-			      pvt->default_row_count);
-	pvt->pty_input_source = 0;
-	pvt->pty_output_source = 0;
-	pvt->pty_pid = -1;
-
 	/* Scrolling options. */
         pvt->scroll_background = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
-        pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
-	vte_buffer_set_scrollback_lines(buffer, VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
 	vte_terminal_set_word_chars(terminal, NULL);
 
 	/* Miscellaneous options. */
-	vte_buffer_set_backspace_binding(buffer, VTE_ERASE_AUTO);
-	vte_buffer_set_delete_binding(buffer, VTE_ERASE_AUTO);
-	pvt->meta_sends_escape = TRUE;
 	pvt->audible_bell = TRUE;
 	pvt->bell_margin = 10;
 	pvt->allow_bold = TRUE;
-	pvt->nrc_mode = TRUE;
-	vte_buffer_set_default_tabstops(buffer);
 
 	/* Cursor shape. */
-	term_pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
-        term_pvt->cursor_aspect_ratio = 0.04;
+	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+        pvt->cursor_aspect_ratio = 0.04;
 
 	/* Cursor blinking. */
-	pvt->cursor_visible = TRUE;
-	term_pvt->cursor_blink_timeout = 500;
-        term_pvt->cursor_blinks = FALSE;
-        term_pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
+	pvt->cursor_blink_timeout = 500;
+        pvt->cursor_blinks = FALSE;
+        pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
+        pvt->cursor_blink_tag = 0;
 
         /* Style properties */
         pvt->reverse = FALSE;
@@ -8088,6 +8039,11 @@ vte_terminal_init(VteTerminal *terminal)
         gtk_style_context_add_class (context, VTE_STYLE_CLASS_TERMINAL);
 
         vte_terminal_update_style (terminal);
+
+        buffer = vte_buffer_new();
+        vte_terminal_set_buffer(terminal, buffer);
+        buffer->pvt->terminal = terminal;
+        g_object_unref(buffer);
 }
 
 /* Tell GTK+ how much space we need. */
@@ -8104,7 +8060,7 @@ vte_terminal_get_preferred_width(GtkWidget *widget,
 
 	vte_terminal_ensure_font (terminal);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer) {
                 vte_buffer_refresh_size(buffer);
                 column_count = vte_buffer_get_column_count(buffer);
@@ -8140,7 +8096,7 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 
 	vte_terminal_ensure_font (terminal);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer) {
                 vte_buffer_refresh_size(buffer);
                 row_count = vte_buffer_get_row_count(buffer);
@@ -8198,7 +8154,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	/* Set our allocation to match the structure. */
 	gtk_widget_set_allocation (widget, allocation);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 goto done_buffer;
 
@@ -8257,11 +8213,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 	GdkWindow *window;
         VteTerminal *terminal = VTE_TERMINAL(widget);
         VteBuffer *buffer;
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	window = gtk_widget_get_window (widget);
 
@@ -8325,9 +8281,10 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Cancel any pending signals */
 	terminal->pvt->contents_changed_pending = FALSE;
-	terminal->pvt->cursor_moved_pending = FALSE;
 
         if (buffer) {
+                buffer->pvt->cursor_moved_pending = FALSE;
+
                 buffer->pvt->text_modified_flag = FALSE;
                 buffer->pvt->text_inserted_flag = FALSE;
                 buffer->pvt->text_deleted_flag = FALSE;
@@ -8345,7 +8302,7 @@ vte_terminal_sync_settings (GtkSettings *settings,
                             GParamSpec *pspec,
                             VteTerminal *terminal)
 {
-        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
         gboolean blink;
         int blink_time = 1000;
         int blink_timeout = G_MAXINT;
@@ -8360,10 +8317,10 @@ vte_terminal_sync_settings (GtkSettings *settings,
                          "Cursor blinking settings setting: blink=%d time=%d timeout=%d\n",
                          blink, blink_time, blink_timeout);
 
-        term_pvt->cursor_blink_cycle = blink_time / 2;
-        term_pvt->cursor_blink_timeout = blink_timeout;
+        pvt->cursor_blink_cycle = blink_time / 2;
+        pvt->cursor_blink_timeout = blink_timeout;
 
-        if (term_pvt->cursor_blink_mode == VTE_CURSOR_BLINK_SYSTEM)
+        if (pvt->cursor_blink_mode == VTE_CURSOR_BLINK_SYSTEM)
                 vte_terminal_set_cursor_blinks_internal(terminal, blink);
 }
 
@@ -8405,12 +8362,11 @@ vte_terminal_screen_changed (GtkWidget *widget,
 static void
 vte_terminal_finalize(GObject *object)
 {
-    	GtkWidget *widget = GTK_WIDGET (object);
     	VteTerminal *terminal = VTE_TERMINAL (object);
-        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
         VteTerminalPrivate *pvt = terminal->pvt;
-        VteBuffer *buffer = term_pvt->buffer;
-	GtkClipboard *clipboard;
+        VteBuffer *buffer = pvt->buffer;
+        GtkWidget *widget = &terminal->widget;
+        GtkClipboard *clipboard;
         GtkSettings *settings;
 	struct vte_match_regex *regex;
 	guint i;
@@ -8468,11 +8424,6 @@ vte_terminal_finalize(GObject *object)
 	/* Cancel pending adjustment change notifications. */
 	terminal->pvt->adjustment_changed_pending = FALSE;
 
-	/* Tabstop information. */
-	if (buffer->pvt->tabstops != NULL) {
-		g_hash_table_destroy(buffer->pvt->tabstops);
-	}
-
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
@@ -8490,78 +8441,10 @@ vte_terminal_finalize(GObject *object)
 		g_array_free(terminal->pvt->word_chars, TRUE);
 	}
 
-	/* Clear the output histories. */
-	_vte_ring_fini(buffer->pvt->normal_screen.row_data);
-	_vte_ring_fini(buffer->pvt->alternate_screen.row_data);
-
-	/* Clear the status lines. */
-	g_string_free(buffer->pvt->normal_screen.status_line_contents,
-		      TRUE);
-	g_string_free(buffer->pvt->alternate_screen.status_line_contents,
-		      TRUE);
-
-	/* Free conversion descriptors. */
-	if (buffer->pvt->outgoing_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(buffer->pvt->outgoing_conv);
-		buffer->pvt->outgoing_conv = VTE_INVALID_CONV;
-	}
-
-	/* Stop listening for child-exited signals. */
-        if (buffer->pvt->child_watch_source != 0) {
-                g_source_remove (buffer->pvt->child_watch_source);
-                buffer->pvt->child_watch_source = 0;
-        }
-
 	/* Stop processing input. */
 	vte_terminal_stop_processing (terminal);
 
-	/* Discard any pending data. */
-	_vte_incoming_chunks_release (buffer->pvt->incoming);
-	_vte_byte_array_free(buffer->pvt->outgoing);
-	g_array_free(buffer->pvt->pending, TRUE);
-	_vte_byte_array_free(buffer->pvt->conv_buffer);
-
-	/* Stop the child and stop watching for input from the child. */
-	if (buffer->pvt->pty_pid != -1) {
-#ifdef HAVE_GETPGID
-		pid_t pgrp;
-		pgrp = getpgid(buffer->pvt->pty_pid);
-		if (pgrp != -1) {
-			kill(-pgrp, SIGHUP);
-		}
-#endif
-		kill(buffer->pvt->pty_pid, SIGHUP);
-	}
-	_vte_buffer_disconnect_pty_read(buffer);
-	_vte_buffer_disconnect_pty_write(buffer);
-        if (buffer->pvt->pty_channel != NULL) {
-		g_io_channel_unref (buffer->pvt->pty_channel);
-	}
-	if (buffer->pvt->pty != NULL) {
-                vte_pty_close(buffer->pvt->pty);
-                g_object_unref(buffer->pvt->pty);
-	}
-
-	/* Remove hash tables. */
-	if (buffer->pvt->dec_saved != NULL) {
-		g_hash_table_destroy(buffer->pvt->dec_saved);
-	}
-
-	/* Clean up emulation structures. */
-	if (buffer->pvt->matcher != NULL) {
-		_vte_matcher_free(buffer->pvt->matcher);
-	}
-	if (buffer->pvt->termcap != NULL) {
-		_vte_termcap_free(buffer->pvt->termcap);
-	}
-
 	remove_update_timeout (terminal);
-
-	/* discard title updates */
-        g_free(buffer->pvt->window_title);
-        g_free(buffer->pvt->icon_title);
-        g_free(buffer->pvt->window_title_changed);
-	g_free(buffer->pvt->icon_title_changed);
 
 	/* Free public-facing data. */
 	if (terminal->pvt->vadjustment != NULL) {
@@ -8573,10 +8456,7 @@ vte_terminal_finalize(GObject *object)
                                               0, 0, NULL, NULL,
                                               terminal);
 
-        if (term_pvt->buffer != NULL) {
-                g_object_unref(term_pvt->buffer);
-                term_pvt->buffer = NULL;
-        }
+        vte_terminal_set_buffer(terminal, NULL);
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
@@ -8587,7 +8467,7 @@ static void
 vte_terminal_realize(GtkWidget *widget)
 {
         VteTerminal *terminal = VTE_TERMINAL(widget);
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 	GdkWindow *window;
 	GdkWindowAttr attributes;
 	GtkAllocation allocation;
@@ -8704,7 +8584,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	back = cell->attr.back;
 
 	/* Reverse-mode switches default fore and back colors */
-	if (G_UNLIKELY (terminal->term_pvt->buffer->pvt->screen->reverse_mode ^ terminal->pvt->reverse)) {
+	if (G_UNLIKELY (terminal->pvt->buffer->pvt->screen->reverse_mode ^ terminal->pvt->reverse)) {
 		if (fore == VTE_DEF_FG)
 			fore = VTE_DEF_BG;
 		if (back == VTE_DEF_BG)
@@ -9818,7 +9698,7 @@ static void
 _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 				 VteCell *cells, gssize n)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	int i, sumlen = 0;
 	struct _fudge_cell_props{
 		gboolean saw_fg, saw_bg;
@@ -9957,7 +9837,7 @@ static void
 _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
 				    VteCell *cells, guint n_cells)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	PangoAttribute *attr;
 	PangoAttrIterator *attriter;
 	GSList *list, *listiter;
@@ -10086,7 +9966,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				/* Get the character cell's contents. */
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
-				selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, i, row, terminal);
+				selected = vte_terminal_cell_is_selected(terminal->pvt->buffer, i, row, terminal);
 				vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
 
 				bold = cell && cell->attr.bold;
@@ -10105,7 +9985,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, j, row, terminal);
+					selected = vte_terminal_cell_is_selected(terminal->pvt->buffer, j, row, terminal);
 					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
 					if (nback != back) {
 						break;
@@ -10128,10 +10008,10 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			} while (i < end_column);
 		} else {
 			do {
-				selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, i, row, terminal);
+				selected = vte_terminal_cell_is_selected(terminal->pvt->buffer, i, row, terminal);
 				j = i + 1;
 				while (j < end_column){
-					nselected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, j, row, terminal);
+					nselected = vte_terminal_cell_is_selected(terminal->pvt->buffer, j, row, terminal);
 					if (nselected != selected) {
 						break;
 					}
@@ -10195,7 +10075,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 			}
 			/* Find the colors for this cell. */
-			selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, i, row, terminal);
+			selected = vte_terminal_cell_is_selected(terminal->pvt->buffer, i, row, terminal);
 			vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
@@ -10264,7 +10144,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_terminal_cell_is_selected(terminal->term_pvt->buffer, j, row, terminal);
+					selected = vte_terminal_cell_is_selected(terminal->pvt->buffer, j, row, terminal);
 					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
 					/* Graphic characters must be drawn individually. */
 					if (vte_terminal_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
@@ -10382,7 +10262,7 @@ vte_terminal_expand_region (VteTerminal *terminal, cairo_region_t *region, const
 	int row, col, row_stop, col_stop;
 	cairo_rectangle_int_t rect;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	screen = buffer->pvt->screen;
 
@@ -10431,7 +10311,7 @@ vte_terminal_paint_area (VteTerminal *terminal, const cairo_rectangle_int_t *are
 	int width, height, delta;
 	int row, col, row_stop, col_stop;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         g_assert(buffer != NULL);
 
 	screen = buffer->pvt->screen;
@@ -10489,11 +10369,11 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	int x, y;
 	gboolean blink, selected, focus;
 
-	if (!terminal->pvt->cursor_visible)
-		return;
-
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         g_assert(buffer != NULL);
+
+	if (!buffer->pvt->cursor_visible)
+		return;
 
 	screen = buffer->pvt->screen;
 	delta = screen->scroll_delta;
@@ -10507,8 +10387,8 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	    (CLAMP(row, 0, buffer->pvt->row_count    - 1) != row))
 		return;
 
-	focus = terminal->term_pvt->has_focus;
-	blink = terminal->term_pvt->cursor_blink_state;
+	focus = terminal->pvt->has_focus;
+	blink = terminal->pvt->cursor_blink_state;
 
 	if (focus && !blink)
 		return;
@@ -10539,12 +10419,12 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	x = item.x;
 	y = item.y;
 
-	switch (terminal->term_pvt->cursor_shape) {
+	switch (terminal->pvt->cursor_shape) {
 
 		case VTE_CURSOR_SHAPE_IBEAM: {
                         int stem_width;
 
-                        stem_width = (int) (((float) height) * terminal->term_pvt->cursor_aspect_ratio + 0.5);
+                        stem_width = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
 		 	
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
@@ -10555,7 +10435,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		case VTE_CURSOR_SHAPE_UNDERLINE: {
                         int line_height;
 
-                        line_height = (int) (((float) width) * terminal->term_pvt->cursor_aspect_ratio + 0.5);
+                        line_height = (int) (((float) width) * terminal->pvt->cursor_aspect_ratio + 0.5);
                         line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
@@ -10625,7 +10505,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 static void
 vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 {
-        VteTerminalRealPrivate *pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
         VteBuffer *buffer;
 	VteScreen *screen;
 	int row, drow, col, columns;
@@ -10636,7 +10516,7 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	if (!pvt->im_preedit)
 		return;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	/* Get going. */
 	screen = buffer->pvt->screen;
@@ -10781,7 +10661,7 @@ vte_terminal_draw(GtkWidget *widget,
         allocated_width = gtk_widget_get_allocated_width(widget);
         allocated_height = gtk_widget_get_allocated_height(widget);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
         /* Designate the start of the drawing operation and clear the area. */
         {
@@ -10849,7 +10729,7 @@ vte_terminal_draw(GtkWidget *widget,
 
         cairo_region_destroy (region);
 
-        terminal->term_pvt->invalidated_all = FALSE;
+        terminal->pvt->invalidated_all = FALSE;
 
         return FALSE;
 }
@@ -10864,7 +10744,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	gdouble v;
 	int button;
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
@@ -10928,7 +10808,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 		_vte_keymap_map (
 				cnt > 0 ? GDK_KEY_Down : GDK_KEY_Up,
-				buffer->pvt->modifiers,
+				terminal->pvt->modifiers,
 				buffer->pvt->sun_fkey_mode,
 				buffer->pvt->hp_fkey_mode,
 				buffer->pvt->legacy_fkey_mode,
@@ -11870,7 +11750,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail (gtk_widget_get_realized (&terminal->widget));
         g_return_if_fail(GTK_IS_MENU_SHELL(menushell));
-	context = GTK_IM_MULTICONTEXT(terminal->term_pvt->im_context);
+	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
 	gtk_im_multicontext_append_menuitems(context, menushell);
 }
 
@@ -11949,12 +11829,12 @@ vte_terminal_get_selection_bounds(VteTerminal *terminal,
                                   VteBufferIter *start,
                                   VteBufferIter *end)
 {
-        VteTerminalRealPrivate *pvt;
+        VteTerminalPrivate *pvt;
         VteBufferIterReal *real_start, *real_end;
 
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-        pvt = terminal->term_pvt;
+        pvt = terminal->pvt;
         if (pvt->buffer == NULL)
                 return FALSE;
 
@@ -11978,13 +11858,13 @@ vte_terminal_get_selection_bounds(VteTerminal *terminal,
 static void
 vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 {
-        VteTerminalRealPrivate *term_pvt = terminal->term_pvt;
+        VteTerminalPrivate *pvt = terminal->pvt;
 
 	blink = !!blink;
-	if (term_pvt->cursor_blinks == blink)
+	if (pvt->cursor_blinks == blink)
 		return;
 
-	term_pvt->cursor_blinks = blink;
+	pvt->cursor_blinks = blink;
 	_vte_check_cursor_blink (terminal);
 }
 
@@ -12063,8 +11943,10 @@ vte_buffer_set_scrollback_lines(VteBuffer *buffer,
 	}
 
 	/* Adjust the scrollbars to the new locations. */
-	vte_terminal_queue_adjustment_value_changed (buffer->pvt->terminal, scroll_delta);
-	_vte_terminal_adjust_adjustments_full (buffer->pvt->terminal);
+        if (buffer->pvt->terminal) {
+                vte_terminal_queue_adjustment_value_changed (buffer->pvt->terminal, scroll_delta);
+                _vte_terminal_adjust_adjustments_full (buffer->pvt->terminal);
+        }
 
         g_object_notify(object, "scrollback-lines");
 
@@ -12097,7 +11979,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	/* Allocate a new range array. */
 	if (terminal->pvt->word_chars != NULL) {
@@ -12277,7 +12159,7 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 }
 
 /**
- * vte_buffer:
+ * vte_buffer_reset:
  * @buffer: a #VteBuffer
  * @clear_tabstops: whether to reset tabstops
  * @clear_history: whether to empty the terminal's scrollback buffer
@@ -12409,31 +12291,31 @@ vte_buffer_reset(VteBuffer *buffer,
 	g_assert(pvt->encoding != NULL);
 	/* Reset selection. */
 	vte_terminal_deselect_all(terminal);
-	pvt->has_selection = FALSE;
-	pvt->selecting = FALSE;
-	pvt->selecting_restart = FALSE;
-	pvt->selecting_had_delta = FALSE;
-	if (pvt->selection != NULL) {
-		g_free(pvt->selection);
-		pvt->selection = NULL;
-		memset(&pvt->selection_origin, 0,
-		       sizeof(&pvt->selection_origin));
-		memset(&pvt->selection_last, 0,
-		       sizeof(&pvt->selection_last));
-		memset(&pvt->selection_start, 0,
-		       sizeof(&pvt->selection_start));
-		memset(&pvt->selection_end, 0,
-		       sizeof(&pvt->selection_end));
+	terminal->pvt->has_selection = FALSE;
+        terminal->pvt->selecting = FALSE;
+        terminal->pvt->selecting_restart = FALSE;
+        terminal->pvt->selecting_had_delta = FALSE;
+        if (terminal->pvt->selection != NULL) {
+		g_free(terminal->pvt->selection);
+                terminal->pvt->selection = NULL;
+                memset(&terminal->pvt->selection_origin, 0,
+                       sizeof(&terminal->pvt->selection_origin));
+                memset(&terminal->pvt->selection_last, 0,
+                       sizeof(&terminal->pvt->selection_last));
+                memset(&terminal->pvt->selection_start, 0,
+                       sizeof(&terminal->pvt->selection_start));
+                memset(&terminal->pvt->selection_end, 0,
+                       sizeof(&terminal->pvt->selection_end));
 	}
 	/* Reset mouse motion events. */
-	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
-	pvt->mouse_last_button = 0;
-	pvt->mouse_last_x = 0;
-	pvt->mouse_last_y = 0;
-        pvt->mouse_last_cell_x = 0;
-        pvt->mouse_last_cell_y = 0;
+        terminal->pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
+        terminal->pvt->mouse_last_button = 0;
+        terminal->pvt->mouse_last_x = 0;
+        terminal->pvt->mouse_last_y = 0;
+        terminal->pvt->mouse_last_cell_x = 0;
+        terminal->pvt->mouse_last_cell_y = 0;
 	/* Clear modifiers. */
-	pvt->modifiers = 0;
+        terminal->pvt->modifiers = 0;
 	/* Cause everything to be redrawn (or cleared). */
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	_vte_invalidate_all(terminal);
@@ -12661,8 +12543,15 @@ vte_buffer_get_pty(VteBuffer *buffer)
 void
 _vte_terminal_accessible_ref(VteTerminal *terminal)
 {
+        VteBuffer *buffer;
+
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->accessible_emit = TRUE;
+
+        buffer = terminal->pvt->buffer;
+        if (buffer == NULL)
+                return;
+
+	buffer->pvt->accessible_emit = TRUE;
 }
 
 char *
@@ -12778,15 +12667,15 @@ add_update_timeout (VteTerminal *terminal)
 static void
 reset_update_regions (VteTerminal *terminal)
 {
-	if (terminal->term_pvt->update_regions != NULL) {
-		g_slist_foreach (terminal->term_pvt->update_regions,
+	if (terminal->pvt->update_regions != NULL) {
+		g_slist_foreach (terminal->pvt->update_regions,
 				(GFunc)cairo_region_destroy, NULL);
-		g_slist_free (terminal->term_pvt->update_regions);
-		terminal->term_pvt->update_regions = NULL;
+		g_slist_free (terminal->pvt->update_regions);
+		terminal->pvt->update_regions = NULL;
 	}
 	/* the invalidated_all flag also marks whether to skip processing
 	 * due to the widget being invisible */
-	terminal->term_pvt->invalidated_all =
+	terminal->pvt->invalidated_all =
 		terminal->pvt->visibility_state==GDK_VISIBILITY_FULLY_OBSCURED;
 }
 
@@ -12794,7 +12683,7 @@ static void
 remove_from_active_list (VteTerminal *terminal)
 {
 	if (terminal->pvt->active != NULL
-			&& terminal->term_pvt->update_regions == NULL) {
+			&& terminal->pvt->update_regions == NULL) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 			"Removing terminal from active list\n");
 		active_terminals = g_list_delete_link (active_terminals,
@@ -12864,7 +12753,7 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 static inline gboolean
 need_processing (VteTerminal *terminal)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	return _vte_incoming_chunks_length (buffer->pvt->incoming) != 0;
 }
 
@@ -12896,7 +12785,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	object = G_OBJECT (terminal);
 	window = gtk_widget_get_window (&terminal->widget);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         buffer_object = G_OBJECT(buffer);
 
         g_object_freeze_notify(object);
@@ -12942,7 +12831,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 
 static void time_process_incoming (VteTerminal *terminal)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	gdouble elapsed;
 	glong target;
 	g_timer_reset (process_timer);
@@ -12974,7 +12863,7 @@ process_timeout (gpointer data)
 
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
-                VteBuffer *buffer = terminal->term_pvt->buffer;
+                VteBuffer *buffer = terminal->pvt->buffer;
 		gboolean active = FALSE;
 
 		next = g_list_next (l);
@@ -13001,7 +12890,7 @@ process_timeout (gpointer data)
 			buffer->pvt->input_bytes = 0;
 		} else
 			vte_terminal_emit_pending_signals (terminal);
-		if (!active && terminal->term_pvt->update_regions == NULL) {
+		if (!active && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
 						"Removing terminal from active list [process]\n");
@@ -13055,11 +12944,11 @@ update_regions (VteTerminal *terminal)
 		return FALSE;
 	}
 
-	if (G_UNLIKELY (!terminal->term_pvt->update_regions))
+	if (G_UNLIKELY (!terminal->pvt->update_regions))
 		return FALSE;
 
 
-	l = terminal->term_pvt->update_regions;
+	l = terminal->pvt->update_regions;
 	if (g_slist_next (l) != NULL) {
 		/* amalgamate into one super-region */
 		region = cairo_region_create ();
@@ -13070,9 +12959,9 @@ update_regions (VteTerminal *terminal)
 	} else {
 		region = l->data;
 	}
-	g_slist_free (terminal->term_pvt->update_regions);
-	terminal->term_pvt->update_regions = NULL;
-	terminal->term_pvt->invalidated_all = FALSE;
+	g_slist_free (terminal->pvt->update_regions);
+	terminal->pvt->update_regions = NULL;
+	terminal->pvt->invalidated_all = FALSE;
 
 	/* and perform the merge with the window visible area */
 	window = gtk_widget_get_window (&terminal->widget);
@@ -13102,7 +12991,7 @@ update_repeat_timeout (gpointer data)
 
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
-                VteBuffer *buffer = terminal->term_pvt->buffer;
+                VteBuffer *buffer = terminal->pvt->buffer;
 
 		next = g_list_next (l);
 
@@ -13207,7 +13096,7 @@ update_timeout (gpointer data)
 
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = l->data;
-                VteBuffer *buffer = terminal->term_pvt->buffer;
+                VteBuffer *buffer = terminal->pvt->buffer;
 
 		next = g_list_next (l);
 
@@ -13409,7 +13298,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	gdouble value, page_size;
 
 	pvt = terminal->pvt;
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
 
 	row_text = vte_buffer_get_text_range (buffer, start_row, 0, end_row, -1, NULL, NULL, NULL);
 
@@ -13474,7 +13363,7 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 			       long end_row,
 			       gboolean backward)
 {
-        VteBuffer *buffer = terminal->term_pvt->buffer;
+        VteBuffer *buffer = terminal->pvt->buffer;
 	const VteRowData *row;
 	long iter_start_row, iter_end_row;
 
@@ -13515,12 +13404,13 @@ vte_terminal_search_find (VteTerminal *terminal,
 {
         VteTerminalPrivate *pvt;
         VteBuffer *buffer;
+        VteScreen *screen;
 	long buffer_start_row, buffer_end_row;
 	long last_start_row, last_end_row;
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-        buffer = terminal->term_pvt->buffer;
+        buffer = terminal->pvt->buffer;
         if (buffer == NULL)
                 return FALSE;
 
@@ -13528,21 +13418,22 @@ vte_terminal_search_find (VteTerminal *terminal,
 	if (!pvt->search_regex)
 		return FALSE;
 
+        screen = buffer->pvt->screen;
 
 	/* TODO
 	 * Currently We only find one result per extended line, and ignore columns
 	 * Moreover, the whole search thing is implemented very inefficiently.
 	 */
 
-	buffer_start_row = _vte_ring_delta (buffer->pvt->screen->row_data);
-	buffer_end_row = _vte_ring_next (buffer->pvt->screen->row_data);
+	buffer_start_row = _vte_ring_delta (screen->row_data);
+	buffer_end_row = _vte_ring_next (screen->row_data);
 
 	if (pvt->has_selection) {
 		last_start_row = pvt->selection_start.row;
 		last_end_row = pvt->selection_end.row + 1;
 	} else {
-		last_start_row = pvt->screen->scroll_delta + buffer->pvt->row_count;
-		last_end_row = pvt->screen->scroll_delta;
+		last_start_row = screen->scroll_delta + buffer->pvt->row_count;
+		last_end_row = screen->scroll_delta;
 	}
 	last_start_row = MAX (buffer_start_row, last_start_row);
 	last_end_row = MIN (buffer_end_row, last_end_row);
@@ -13704,6 +13595,67 @@ vte_buffer_init(VteBuffer *buffer)
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_init()\n");
 
         pvt = buffer->pvt = G_TYPE_INSTANCE_GET_PRIVATE (buffer, VTE_TYPE_BUFFER, VteBufferPrivate);
+
+        /* We allocated zeroed memory, just fill in non-zero stuff. */
+
+        /* Initialize the screens and histories. */
+        _vte_ring_init (pvt->alternate_screen.row_data, buffer->pvt->row_count);
+        pvt->alternate_screen.sendrecv_mode = TRUE;
+        pvt->alternate_screen.status_line_contents = g_string_new(NULL);
+        _vte_screen_set_default_attributes(&pvt->alternate_screen);
+
+        _vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
+        pvt->normal_screen.sendrecv_mode = TRUE;
+        pvt->normal_screen.status_line_contents = g_string_new(NULL);
+        _vte_screen_set_default_attributes(&pvt->normal_screen);
+
+        pvt->screen = &pvt->normal_screen;
+
+        /* Set up I/O encodings. */
+        pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
+                                              &_vte_terminal_codeset_changed_cb,
+                                              buffer);
+        pvt->incoming = NULL;
+        pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
+        pvt->max_input_bytes = VTE_MAX_INPUT_READ;
+        pvt->outgoing = _vte_byte_array_new();
+        pvt->outgoing_conv = VTE_INVALID_CONV;
+        pvt->conv_buffer = _vte_byte_array_new();
+        vte_buffer_set_encoding(buffer, NULL);
+        g_assert(buffer->pvt->encoding != NULL);
+
+        /* Load the termcap data and set up the emulation. */
+        pvt->keypad_mode = VTE_KEYMODE_NORMAL;
+        pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+        pvt->dec_saved = g_hash_table_new(NULL, NULL);
+        pvt->default_column_count = VTE_COLUMNS;
+        pvt->default_row_count = VTE_ROWS;
+
+        /* Setting the terminal type and size requires the PTY master to
+         * be set up properly first. */
+        pvt->pty = NULL;
+        vte_buffer_set_emulation(buffer, NULL);
+        vte_buffer_set_size(buffer,
+                              pvt->default_column_count,
+                              pvt->default_row_count);
+        pvt->pty_input_source = 0;
+        pvt->pty_output_source = 0;
+        pvt->pty_pid = -1;
+
+        pvt->cursor_visible = TRUE;
+        pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
+        vte_buffer_set_scrollback_lines(buffer, VTE_SCROLLBACK_INIT);
+
+        /* Miscellaneous options. */
+        vte_buffer_set_backspace_binding(buffer, VTE_ERASE_AUTO);
+        vte_buffer_set_delete_binding(buffer, VTE_ERASE_AUTO);
+        pvt->meta_sends_escape = TRUE;
+        pvt->nrc_mode = TRUE;
+        vte_buffer_set_default_tabstops(buffer);
+
+        /* Cursor */
+        pvt->cursor_visible = TRUE;
+
 }
 
 static void
@@ -13717,7 +13669,87 @@ vte_buffer_dispose(GObject *object)
 static void
 vte_buffer_finalize(GObject *object)
 {
+        VteBuffer *buffer = VTE_BUFFER(object);
+
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_finalize()\n");
+
+        /* Tabstop information. */
+        if (buffer->pvt->tabstops != NULL) {
+                g_hash_table_destroy(buffer->pvt->tabstops);
+        }
+
+        /* Clear the output histories. */
+        _vte_ring_fini(buffer->pvt->normal_screen.row_data);
+        _vte_ring_fini(buffer->pvt->alternate_screen.row_data);
+
+        /* Clear the status lines. */
+        g_string_free(buffer->pvt->normal_screen.status_line_contents,
+                      TRUE);
+        g_string_free(buffer->pvt->alternate_screen.status_line_contents,
+                      TRUE);
+
+        /* Free conversion descriptors. */
+        if (buffer->pvt->outgoing_conv != VTE_INVALID_CONV) {
+                _vte_conv_close(buffer->pvt->outgoing_conv);
+                buffer->pvt->outgoing_conv = VTE_INVALID_CONV;
+        }
+
+        /* Stop listening for child-exited signals. */
+        if (buffer->pvt->child_watch_source != 0) {
+                g_source_remove (buffer->pvt->child_watch_source);
+                buffer->pvt->child_watch_source = 0;
+        }
+
+        /* Stop processing input. */
+        // vte_terminal_stop_processing (terminal);
+
+        /* Discard any pending data. */
+        _vte_incoming_chunks_release (buffer->pvt->incoming);
+        _vte_byte_array_free(buffer->pvt->outgoing);
+        g_array_free(buffer->pvt->pending, TRUE);
+        _vte_byte_array_free(buffer->pvt->conv_buffer);
+
+        /* Stop the child and stop watching for input from the child. */
+        if (buffer->pvt->pty_pid != -1) {
+#ifdef HAVE_GETPGID
+                pid_t pgrp;
+                pgrp = getpgid(buffer->pvt->pty_pid);
+                if (pgrp != -1) {
+                        kill(-pgrp, SIGHUP);
+                }
+#endif
+                kill(buffer->pvt->pty_pid, SIGHUP);
+        }
+        _vte_buffer_disconnect_pty_read(buffer);
+        _vte_buffer_disconnect_pty_write(buffer);
+        if (buffer->pvt->pty_channel != NULL) {
+                g_io_channel_unref (buffer->pvt->pty_channel);
+        }
+        if (buffer->pvt->pty != NULL) {
+                vte_pty_close(buffer->pvt->pty);
+                g_object_unref(buffer->pvt->pty);
+        }
+
+        /* Remove hash tables. */
+        if (buffer->pvt->dec_saved != NULL) {
+                g_hash_table_destroy(buffer->pvt->dec_saved);
+        }
+
+        /* Clean up emulation structures. */
+        if (buffer->pvt->matcher != NULL) {
+                _vte_matcher_free(buffer->pvt->matcher);
+        }
+        if (buffer->pvt->termcap != NULL) {
+                _vte_termcap_free(buffer->pvt->termcap);
+        }
+
+        // remove_update_timeout (terminal);
+
+        /* discard title updates */
+        g_free(buffer->pvt->window_title);
+        g_free(buffer->pvt->icon_title);
+        g_free(buffer->pvt->window_title_changed);
+        g_free(buffer->pvt->icon_title_changed);
 
         G_OBJECT_CLASS(vte_buffer_parent_class)->finalize(object);
 }

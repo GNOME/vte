@@ -56,11 +56,9 @@ typedef struct _VteTerminalRealPrivate VteTerminalRealPrivate;
  */
 struct _VteTerminal {
 	GtkWidget widget;
-        /*< private >*/
-	VteTerminalRealPrivate *term_pvt;
 
-        /* temporary hack! FIXMEchpe */
-        VteBufferPrivate *pvt;
+        /*< private >*/
+        VteTerminalPrivate *pvt;
 };
 
 /**

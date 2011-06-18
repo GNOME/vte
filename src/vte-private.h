@@ -158,10 +158,7 @@ struct _VteBufferClassPrivate {
         gpointer dummy;
 };
 
-/* Terminal private data. */
 struct _VteBufferPrivate {
-//  struct _VteTerminalPrivate {
-
         /* The VteTerminal that's displaying this buffer */
         VteTerminal *terminal;
 
@@ -211,7 +208,7 @@ struct _VteBufferPrivate {
 			- 2 * sizeof(void *)];
 	} *incoming;			/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	GList *active;                  /* is the terminal processing data */
+//	GList *active;                  /* is the terminal processing data */
 	glong input_bytes;
 	glong max_input_bytes;
 
@@ -259,32 +256,13 @@ struct _VteBufferPrivate {
 		gboolean status_line_changed;
 	} normal_screen, alternate_screen, *screen;
 
-	/* Selection information. */
-	GArray *word_chars;
-	gboolean has_selection;
-	gboolean selecting;
-	gboolean selecting_restart;
-	gboolean selecting_had_delta;
-	gboolean selection_block_mode;
-	char *selection;
-	enum vte_selection_type {
-		selection_type_char,
-		selection_type_word,
-		selection_type_line
-	} selection_type;
-	struct selection_event_coords {
-		long x, y;
-	} selection_origin, selection_last;
-	VteVisualPosition selection_start, selection_end;
+        /* Scrolling options. */
+        glong scrollback_lines;
 
 	/* Miscellaneous options. */
 	VteEraseBinding backspace_binding, delete_binding;
 	gboolean meta_sends_escape;
-	gboolean audible_bell;
-	gboolean visible_bell;
 	gboolean margin_bell;
-	guint bell_margin;
-	gboolean allow_bold;
 	gboolean nrc_mode;
 	gboolean smooth_scroll;
 	GHashTable *tabstops;
@@ -292,79 +270,12 @@ struct _VteBufferPrivate {
 	gboolean text_inserted_flag;
 	gboolean text_deleted_flag;
 
-	/* Scrolling options. */
-	gboolean scroll_background;
-	gboolean scroll_on_output;
-	gboolean scroll_on_keystroke;
-	long scrollback_lines;
-
-        /* Cursor */
-        gboolean cursor_visible;
-
-	/* Input device options. */
-	time_t last_keypress_time;
-
-	int mouse_tracking_mode; /* this is of type MouseTrackingMode,
-				    but we need to guarantee its type. */
-	guint mouse_last_button;
-	long mouse_last_x, mouse_last_y;
-        long mouse_last_cell_x, mouse_last_cell_y;
-	gboolean mouse_autohide;
-	guint mouse_autoscroll_tag;
-
-	/* State variables for handling match checks. */
-	char *match_contents;
-	GArray *match_attributes;
-	GArray *match_regexes;
-	char *match;
-	int match_tag;
-	VteVisualPosition match_start, match_end;
-	gboolean show_match;
-
-	/* Search data. */
-	GRegex *search_regex;
-        GRegexMatchFlags search_match_flags;
-	gboolean search_wrap_around;
-	GArray *search_attrs; /* Cache attrs */
-
-	/* Data used when rendering the text which does not require server
-	 * resources and which can be kept after unrealizing. */
-        PangoFontDescription *unscaled_font_desc;
-	PangoFontDescription *fontdesc;
-        gdouble font_scale;
-	gboolean fontdirty;
-        glong char_ascent;
-        glong char_descent;
-        /* dimensions of character cells */
-        glong char_width;
-        glong char_height;
-
-	/* Data used when rendering the text which reflects server resources
-	 * and data, which should be dropped when unrealizing and (re)created
-	 * when realizing. */
-	struct _vte_draw *draw;
-
-        gboolean reverse;
-	gboolean highlight_color_set;
-	gboolean cursor_color_set;
-        gboolean reverse_color_set;
 	GdkRGBA palette[VTE_PALETTE_SIZE];
         guint32 palette_set[(VTE_PALETTE_SIZE + 31) / 32];
 
-	/* Mouse cursors. */
-	gboolean mouse_cursor_visible;
-	GdkCursor *mouse_default_cursor,
-		  *mouse_mousing_cursor,
-		  *mouse_inviso_cursor;
-
-	gboolean accessible_emit;
-
 	/* Adjustment updates pending. */
-	gboolean adjustment_changed_pending;
-	gboolean adjustment_value_changed_pending;
-
-	gboolean cursor_moved_pending;
-	gboolean contents_changed_pending;
+        gboolean accessible_emit;
+        gboolean cursor_moved_pending;
 
 	/* window name changes */
         gchar *window_title;
@@ -372,35 +283,19 @@ struct _VteBufferPrivate {
         gchar *icon_title;
 	gchar *icon_title_changed;
 
-        /* Background pattern */
-        cairo_pattern_t *bg_pattern;
-        gboolean bg_update_pending;
+        /* Cursor */
+        gboolean cursor_visible;
 
-	/* Key modifiers. */
-	GdkModifierType modifiers;
-
-	/* Obscured? state. */
-	GdkVisibilityState visibility_state;
-
-	/* Font stuff. */
-	gboolean has_fonts;
-	glong line_thickness;
-	glong underline_position;
-	glong strikethrough_position;
-
-        /* Style stuff */
-        GtkBorder padding;
-
-        /* GtkScrollable impl */
-        GtkAdjustment *hadjustment; /* unused */
-        GtkAdjustment *vadjustment;
-        guint hscroll_policy : 1; /* unused */
-        guint vscroll_policy : 1;
+        /* FIXMEchpe: this is duplicated wiht VteBufferPrivate; keep just one
+         * and update the other! (Not sure if this belongs in the view or the
+         * buffer, although it _is_ set from vteseq.c.)
+         */
+        int mouse_tracking_mode; /* this is of type MouseTrackingMode,
+                                    but we need to guarantee its type. */
+        
 };
 
-#define VteTerminalPrivate VteBufferPrivate
-
-struct _VteTerminalRealPrivate {
+struct _VteTerminalPrivate {
         VteBuffer *buffer;
         VteBufferPrivate *buffer_pvt;
 
@@ -427,6 +322,124 @@ struct _VteTerminalRealPrivate {
         PangoAttrList *im_preedit_attrs;
         int im_preedit_cursor;
 
+        /* Selection information. */
+        GArray *word_chars;
+        gboolean has_selection;
+        gboolean selecting;
+        gboolean selecting_restart;
+        gboolean selecting_had_delta;
+        gboolean selection_block_mode;
+        char *selection;
+        enum vte_selection_type {
+                selection_type_char,
+                selection_type_word,
+                selection_type_line
+        } selection_type;
+        struct selection_event_coords {
+                long x, y;
+        } selection_origin, selection_last;
+        VteVisualPosition selection_start, selection_end;
+
+        /* Miscellaneous options. */
+        gboolean audible_bell;
+        gboolean visible_bell;
+        guint bell_margin;
+        gboolean allow_bold;
+
+        /* Scrolling options. */
+        gboolean scroll_background;
+        gboolean scroll_on_output;
+        gboolean scroll_on_keystroke;
+
+        /* Input device options. */
+        time_t last_keypress_time;
+
+        int mouse_tracking_mode; /* this is of type MouseTrackingMode,
+                                    but we need to guarantee its type. */
+        guint mouse_last_button;
+        long mouse_last_x, mouse_last_y;
+        long mouse_last_cell_x, mouse_last_cell_y;
+        gboolean mouse_autohide;
+        guint mouse_autoscroll_tag;
+
+        /* State variables for handling match checks. */
+        char *match_contents;
+        GArray *match_attributes;
+        GArray *match_regexes;
+        char *match;
+        int match_tag;
+        VteVisualPosition match_start, match_end;
+        gboolean show_match;
+
+        /* Search data. */
+        GRegex *search_regex;
+        GRegexMatchFlags search_match_flags;
+        gboolean search_wrap_around;
+        GArray *search_attrs; /* Cache attrs */
+
+        /* Data used when rendering the text which does not require server
+         * resources and which can be kept after unrealizing. */
+        PangoFontDescription *unscaled_font_desc;
+        PangoFontDescription *fontdesc;
+        gdouble font_scale;
+        gboolean fontdirty;
+        glong char_ascent;
+        glong char_descent;
+        /* dimensions of character cells */
+        glong char_width;
+        glong char_height;
+
+        /* Data used when rendering the text which reflects server resources
+         * and data, which should be dropped when unrealizing and (re)created
+         * when realizing. */
+        struct _vte_draw *draw;
+
+        gboolean reverse;
+        gboolean highlight_color_set;
+        gboolean cursor_color_set;
+        gboolean reverse_color_set;
+        GdkRGBA palette[VTE_PALETTE_SIZE];
+        guint32 palette_set[(VTE_PALETTE_SIZE + 31) / 32];
+
+        /* Mouse cursors. */
+        gboolean mouse_cursor_visible;
+        GdkCursor *mouse_default_cursor,
+                  *mouse_mousing_cursor,
+                  *mouse_inviso_cursor;
+
+        /* Adjustment updates pending. */
+        gboolean adjustment_changed_pending;
+        gboolean adjustment_value_changed_pending;
+        gboolean contents_changed_pending;
+
+        /* Background pattern */
+        cairo_pattern_t *bg_pattern;
+        gboolean bg_update_pending;
+
+        /* Key modifiers. */
+        GdkModifierType modifiers;
+
+        /* Obscured? state. */
+        GdkVisibilityState visibility_state;
+
+        /* Font stuff. */
+        gboolean has_fonts;
+        glong line_thickness;
+        glong underline_position;
+        glong strikethrough_position;
+
+        /* Style stuff */
+        GtkBorder padding;
+
+        /* GtkScrollable impl */
+        GtkAdjustment *hadjustment; /* unused */
+        GtkAdjustment *vadjustment;
+        guint hscroll_policy : 1; /* unused */
+        guint vscroll_policy : 1;
+
+        /* FIXMEchpe move this to buffer! */
+        GList *active;                  /* is the terminal processing data */
+
 };
 
 struct _VteTerminalClassPrivate {
@@ -444,8 +457,6 @@ void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
 void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
-
-void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
 gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,
                                   long x,
