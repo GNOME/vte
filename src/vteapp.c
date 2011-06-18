@@ -622,6 +622,7 @@ main(int argc, char **argv)
         char *css_file = NULL;
         char *selection_background_color_string = NULL;
         char **dingus = NULL;
+        char *word_chars = NULL;
 	const GOptionEntry options[]={
 		{
 			"background", 'B', 0,
@@ -783,6 +784,11 @@ main(int argc, char **argv)
                         "css-file", 0, 0,
                         G_OPTION_ARG_FILENAME, &css_file,
                         "CSS File", "FILE"
+                },
+                {
+                        "word-chars", 0, 0,
+                        G_OPTION_ARG_STRING, &word_chars,
+                        "Word chars", "CHARS"
                 },
 		{ NULL }
 	};
@@ -1029,6 +1035,10 @@ main(int argc, char **argv)
 	if (dingus) {
                 add_dingus (terminal, dingus);
                 g_strfreev (dingus);
+        }
+        if (word_chars) {
+                vte_terminal_set_word_chars(terminal, word_chars);
+                g_free(word_chars);
         }
 
 	if (console) {
