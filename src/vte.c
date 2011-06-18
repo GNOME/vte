@@ -11970,12 +11970,9 @@ void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 {
         VteBuffer *buffer;
-	VteConv conv;
 	gunichar *wbuf;
-	guchar *ibuf, *ibufptr, *obuf, *obufptr;
-	gsize ilen, olen;
+        glong len, i;
 	VteWordCharRange range;
-	guint i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -11992,29 +11989,10 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
                 g_object_notify(G_OBJECT(terminal), "word-chars");
 		return;
 	}
+
 	/* Convert the spec from UTF-8 to a string of gunichars . */
-        /* FIXME: why not just directly use g_utf8_to_ucs4 here? It'll never fail */
-	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
-	if (conv == VTE_INVALID_CONV) {
-		/* Aaargh.  We're screwed. */
-		g_warning(_("_vte_conv_open() failed setting word characters"));
-		return;
-	}
-	ilen = strlen(spec);
-	ibuf = ibufptr = (guchar *)g_strdup(spec);
-	olen = (ilen + 1) * sizeof(gunichar);
-
-        /* FIXMEchpe: move/copy this to vte_terminal_set_buffer */
-        if (buffer == NULL)
-                goto done;
-
-	_vte_byte_array_set_minimum_size(buffer->pvt->conv_buffer, olen);
-	obuf = obufptr = buffer->pvt->conv_buffer->data;
-	wbuf = (gunichar*) obuf;
-	wbuf[ilen] = '\0';
-	_vte_conv(conv, (const guchar **)&ibuf, &ilen, &obuf, &olen);
-	_vte_conv_close(conv);
-	for (i = 0; i < ((obuf - obufptr) / sizeof(gunichar)); i++) {
+        wbuf = g_utf8_to_ucs4_fast(spec, -1, &len);
+	for (i = 0; i < len; i++) {
 		/* The hyphen character. */
 		if (wbuf[i] == '-') {
 			range.start = wbuf[i];
@@ -12051,8 +12029,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 		}
 	}
 
-    done:
-	g_free(ibufptr);
+	g_free(wbuf);
 
         g_object_notify(G_OBJECT(terminal), "word-chars");
 }
