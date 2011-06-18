@@ -782,7 +782,7 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 					 buffer->pvt->screen->scroll_delta);
 		vte_buffer_set_scrollback_lines(buffer,
 				buffer->pvt->scrollback_lines);
-                _vte_terminal_queue_contents_changed(buffer->pvt->terminal);
+                _vte_buffer_queue_contents_changed(buffer);
                 _vte_buffer_view_invalidate_all(buffer);
 		break;
 	case 9:

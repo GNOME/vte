@@ -124,6 +124,8 @@ static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gbool
 static void _vte_check_cursor_blink(VteTerminal *terminal);
 static void vte_terminal_set_font(VteTerminal *terminal, PangoFontDescription *desc /* adopted */);
 static void vte_terminal_beep(VteTerminal *terminal, VteBellType bell_type);
+static void vte_terminal_buffer_contents_changed(VteTerminal *terminal);
+static void vte_terminal_process_incoming(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -188,6 +190,7 @@ enum {
         BUFFER_TEXT_MODIFIED,
         BUFFER_TEXT_INSERTED,
         BUFFER_TEXT_DELETED,
+        BUFFER_CONTENTS_CHANGED,
         BUFFER_BELL,
         LAST_BUFFER_SIGNAL,
 };
@@ -841,6 +844,18 @@ vte_invalidate_cursor_periodic (VteTerminal *terminal)
 	return FALSE;
 }
 
+static void
+vte_terminal_buffer_contents_changed(VteTerminal *terminal)
+{
+        /* Update dingus match set. */
+        vte_terminal_match_contents_clear(terminal);
+        if (terminal->pvt->mouse_cursor_visible) {
+                vte_terminal_match_hilite_update(terminal,
+                                terminal->pvt->mouse_last_x,
+                                terminal->pvt->mouse_last_y);
+        }
+}
+
 /* Emit a "selection_changed" signal. */
 static void
 vte_terminal_emit_selection_changed(VteTerminal *terminal)
@@ -908,29 +923,22 @@ vte_buffer_emit_child_exited(VteBuffer *buffer,
 
 /* Emit a "contents_changed" signal. */
 static void
-vte_terminal_emit_contents_changed(VteTerminal *terminal)
+vte_buffer_emit_contents_changed(VteBuffer *buffer)
 {
-	if (terminal->pvt->contents_changed_pending) {
-		/* Update dingus match set. */
-		vte_terminal_match_contents_clear(terminal);
-		if (terminal->pvt->mouse_cursor_visible) {
-			vte_terminal_match_hilite_update(terminal,
-					terminal->pvt->mouse_last_x,
-					terminal->pvt->mouse_last_y);
-		}
-
+	if (buffer->pvt->contents_changed_pending) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting `contents-changed'.\n");
-		g_signal_emit_by_name(terminal, "contents-changed");
-		terminal->pvt->contents_changed_pending = FALSE;
+		g_signal_emit(buffer, buffer_signals[BUFFER_CONTENTS_CHANGED], 0);
+		buffer->pvt->contents_changed_pending = FALSE;
 	}
 }
+
 void
-_vte_terminal_queue_contents_changed(VteTerminal *terminal)
+_vte_buffer_queue_contents_changed(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `contents-changed'.\n");
-	terminal->pvt->contents_changed_pending = TRUE;
+	buffer->pvt->contents_changed_pending = TRUE;
 }
 
 /* Emit a "cursor_moved" signal. */
@@ -2450,6 +2458,7 @@ vte_terminal_set_buffer(VteTerminal *terminal,
         old_buffer = pvt->buffer;
         if (old_buffer) {
                 g_signal_handlers_disconnect_by_func(old_buffer, G_CALLBACK(vte_terminal_beep), terminal);
+                g_signal_handlers_disconnect_by_func(old_buffer, G_CALLBACK(vte_terminal_buffer_contents_changed), terminal);
 
                 /* defer unref until after "buffer-changed" signal emission */
         }
@@ -2459,6 +2468,7 @@ vte_terminal_set_buffer(VteTerminal *terminal,
                 g_object_ref(buffer);
 
                 g_signal_connect_swapped(buffer, "bell", G_CALLBACK(vte_terminal_beep), terminal);
+                g_signal_connect_swapped(buffer, "contents-changed", G_CALLBACK(vte_terminal_buffer_contents_changed), terminal);
         }
 
         g_object_notify(object, "buffer");
@@ -3684,7 +3694,7 @@ next_match:
 
 	if (modified || (screen != buffer->pvt->screen)) {
 		/* Signal that the visible contents changed. */
-		_vte_terminal_queue_contents_changed(terminal);
+		_vte_buffer_queue_contents_changed(buffer);
 	}
 
 	vte_terminal_emit_pending_signals (terminal);
@@ -7663,6 +7673,9 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	VteScreen *screen;
 
         buffer = terminal->pvt->buffer;
+        if (buffer == NULL)
+                return;
+
 	screen = buffer->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
@@ -7684,7 +7697,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 		_vte_terminal_scroll_region(terminal, screen->scroll_delta,
 					    buffer->pvt->row_count, -dy);
 		vte_terminal_emit_text_scrolled(terminal, dy);
-		_vte_terminal_queue_contents_changed(terminal);
+		_vte_buffer_queue_contents_changed(buffer);
 	} else {
 		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
 	}
@@ -8186,7 +8199,7 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 				MAX (_vte_ring_delta (screen->row_data),
 					_vte_ring_next (screen->row_data) - 1));
 		/* Notify viewers that the contents have changed. */
-		_vte_terminal_queue_contents_changed(terminal);
+		_vte_buffer_queue_contents_changed(buffer);
 	}
 
     done_buffer:
@@ -8280,11 +8293,9 @@ vte_terminal_unrealize(GtkWidget *widget)
 	remove_update_timeout (terminal);
 
 	/* Cancel any pending signals */
-	terminal->pvt->contents_changed_pending = FALSE;
-
         if (buffer) {
+                buffer->pvt->contents_changed_pending = FALSE;
                 buffer->pvt->cursor_moved_pending = FALSE;
-
                 buffer->pvt->text_modified_flag = FALSE;
                 buffer->pvt->text_inserted_flag = FALSE;
                 buffer->pvt->text_deleted_flag = FALSE;
@@ -11058,7 +11069,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	/* Initialize default handlers. */
 	klass->char_size_changed = NULL;
 	klass->selection_changed = NULL;
-	klass->contents_changed = NULL;
 
 	klass->increase_font_size = NULL;
 	klass->decrease_font_size = NULL;
@@ -11128,22 +11138,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			      NULL,
                               g_cclosure_marshal_VOID__VOID,
 			      G_TYPE_NONE, 0);
-
-        /**
-         * VteTerminal::contents-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the visible appearance of the terminal has changed.
-         * Used primarily by #VteTerminalAccessible.
-         */
-                g_signal_new(I_("contents-changed"),
-			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, contents_changed),
-			     NULL,
-			     NULL,
-                             g_cclosure_marshal_VOID__VOID,
-			     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::increase-font-size:
@@ -12800,7 +12794,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 	/* Flush any pending "inserted" signals. */
 	vte_buffer_emit_cursor_moved(buffer);
 	vte_buffer_emit_pending_text_signals(buffer, 0);
-	vte_terminal_emit_contents_changed (terminal);
+	vte_buffer_emit_contents_changed(buffer);
 
         g_object_thaw_notify(buffer_object);
         g_object_thaw_notify(object);
@@ -13844,6 +13838,7 @@ vte_buffer_class_init(VteBufferClass *klass)
         klass->text_modified = NULL;
         klass->text_inserted = NULL;
         klass->text_deleted = NULL;
+        klass->contents_changed = NULL;
         klass->bell = NULL;
 
         /**
@@ -14202,6 +14197,22 @@ vte_buffer_class_init(VteBufferClass *klass)
                              G_OBJECT_CLASS_TYPE(klass),
                              G_SIGNAL_RUN_LAST,
                              G_STRUCT_OFFSET(VteBufferClass, text_deleted),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteBuffer::contents-changed:
+         * @buffer: the object which received the signal
+         *
+         * Emitted whenever the visible appearance of the buffer has changed.
+         */
+        buffer_signals[BUFFER_CONTENTS_CHANGED] =
+                g_signal_new(I_("contents-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, contents_changed),
                              NULL,
                              NULL,
                              g_cclosure_marshal_VOID__VOID,

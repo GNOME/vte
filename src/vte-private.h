@@ -269,6 +269,7 @@ struct _VteBufferPrivate {
 	gboolean text_modified_flag;
 	gboolean text_inserted_flag;
 	gboolean text_deleted_flag;
+        gboolean contents_changed_pending;
 
 	GdkRGBA palette[VTE_PALETTE_SIZE];
         guint32 palette_set[(VTE_PALETTE_SIZE + 31) / 32];
@@ -410,7 +411,6 @@ struct _VteTerminalPrivate {
         /* Adjustment updates pending. */
         gboolean adjustment_changed_pending;
         gboolean adjustment_value_changed_pending;
-        gboolean contents_changed_pending;
 
         /* Background pattern */
         cairo_pattern_t *bg_pattern;
@@ -454,7 +454,6 @@ void _vte_invalidate_cells(VteTerminal *terminal,
 void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
 void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
 void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
-void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 
@@ -504,6 +503,7 @@ void _vte_buffer_emit_move_window(VteBuffer *buffer, guint x, guint y);
 void _vte_buffer_emit_text_deleted(VteBuffer *buffer);
 void _vte_buffer_emit_text_inserted(VteBuffer *buffer);
 void _vte_buffer_emit_bell(VteBuffer *buffer, VteBellType bell_type);
+void _vte_buffer_queue_contents_changed(VteBuffer *buffer);
 void _vte_terminal_handle_sequence(VteBuffer *buffer,
                                    const char *match_s,
                                    GQuark match,
