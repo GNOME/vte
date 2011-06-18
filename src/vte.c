@@ -91,7 +91,6 @@ static void vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long
 static void vte_terminal_match_contents_clear(VteTerminal *terminal);
 static gboolean vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_queue_background_update(VteTerminal *terminal);
-static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static gboolean vte_terminal_cell_is_selected(VteBuffer *buffer,
                                               glong col, glong row,
@@ -125,7 +124,7 @@ static void _vte_check_cursor_blink(VteTerminal *terminal);
 static void vte_terminal_set_font(VteTerminal *terminal, PangoFontDescription *desc /* adopted */);
 static void vte_terminal_beep(VteTerminal *terminal, VteBellType bell_type);
 static void vte_terminal_buffer_contents_changed(VteTerminal *terminal);
-static void vte_terminal_process_incoming(VteTerminal *terminal);
+static void vte_buffer_process_incoming(VteBuffer *buffer);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -3342,9 +3341,9 @@ vte_buffer_emit_pending_text_signals(VteBuffer *buffer, GQuark quark)
 /* Process incoming data, first converting it to unicode characters, and then
  * processing control sequences. */
 static void
-vte_terminal_process_incoming(VteTerminal *terminal)
+vte_buffer_process_incoming(VteBuffer *buffer)
 {
-        VteBuffer *buffer;
+        VteTerminal *terminal;
 	VteScreen *screen;
 	VteVisualPosition cursor;
 	gboolean cursor_visible;
@@ -3356,8 +3355,6 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	GArray *unichars;
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
-        buffer = terminal->pvt->buffer;
-
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Handler processing %"G_GSIZE_FORMAT" bytes over %"G_GSIZE_FORMAT" chunks + %d bytes pending.\n",
 			_vte_incoming_chunks_length(buffer->pvt->incoming),
@@ -3366,6 +3363,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
         screen = buffer->pvt->screen;
+        terminal = buffer->pvt->terminal; /* FIXMEchpe cope with NULL here! */
 
 	delta = screen->scroll_delta;
 	bottom = screen->insert_delta == delta;
@@ -3497,7 +3495,7 @@ skip_chunk:
 				bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
 						delta + buffer->pvt->row_count);
 
-				_vte_invalidate_cells(terminal,
+				_vte_buffer_view_invalidate_cells(buffer,
 						bbox_topleft.x,
 						bbox_bottomright.x - bbox_topleft.x,
 						bbox_topleft.y,
@@ -3590,7 +3588,7 @@ skip_chunk:
 					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
 							delta + buffer->pvt->row_count);
 
-					_vte_invalidate_cells(terminal,
+					_vte_buffer_view_invalidate_cells(buffer,
 							bbox_topleft.x,
 							bbox_bottomright.x - bbox_topleft.x,
 							bbox_topleft.y,
@@ -3709,13 +3707,12 @@ next_match:
 		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
 				delta + buffer->pvt->row_count);
 
-		_vte_invalidate_cells(terminal,
+		_vte_buffer_view_invalidate_cells(buffer,
 				bbox_topleft.x,
 				bbox_bottomright.x - bbox_topleft.x,
 				bbox_topleft.y,
 				bbox_bottomright.y - bbox_topleft.y);
 	}
-
 
 	if ((cursor.col != buffer->pvt->screen->cursor_current.col) ||
 	    (cursor.row != buffer->pvt->screen->cursor_current.row)) {
@@ -12438,7 +12435,7 @@ vte_buffer_set_pty(VteBuffer *buffer,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
 		if (pvt->incoming != NULL) {
-			vte_terminal_process_incoming(terminal);
+			vte_buffer_process_incoming(buffer);
 			_vte_incoming_chunks_release (pvt->incoming);
 			pvt->incoming = NULL;
 			pvt->input_bytes = 0;
@@ -12806,7 +12803,7 @@ static void time_process_incoming (VteTerminal *terminal)
 	gdouble elapsed;
 	glong target;
 	g_timer_reset (process_timer);
-	vte_terminal_process_incoming (terminal);
+	vte_buffer_process_incoming(buffer);
 	elapsed = g_timer_elapsed (process_timer, NULL) * 1000;
 	target = VTE_MAX_PROCESS_TIME / elapsed * buffer->pvt->input_bytes;
 	buffer->pvt->max_input_bytes =
@@ -12856,7 +12853,7 @@ process_timeout (gpointer data)
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
-				vte_terminal_process_incoming(terminal);
+				vte_buffer_process_incoming(buffer);
 			}
 			buffer->pvt->input_bytes = 0;
 		} else
@@ -12986,7 +12983,7 @@ update_repeat_timeout (gpointer data)
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
-				vte_terminal_process_incoming (terminal);
+				vte_buffer_process_incoming(buffer);
 			}
 			buffer->pvt->input_bytes = 0;
 		} else
@@ -13091,7 +13088,7 @@ update_timeout (gpointer data)
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
-				vte_terminal_process_incoming (terminal);
+				vte_buffer_process_incoming(buffer);
 			}
 			buffer->pvt->input_bytes = 0;
 		} else
