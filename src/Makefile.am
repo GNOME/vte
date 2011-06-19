@@ -7,9 +7,9 @@ EXTRA_DIST = iso2022.txt palette.c
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
 header_HEADERS = vte.h vtebuffer.h vteenums.h vtepty.h vtetypebuiltins.h vteversion.h vteview.h
 
-lib_LTLIBRARIES = libvte@VTE_LIBRARY_SUFFIX_U@.la
+lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 
-EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
+EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	genkeysyms.py \
 	keysyms.c \
 	marshal.list \
@@ -30,7 +30,7 @@ EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vtetypebuiltins.h.template \
 	$(NULL)
 
-libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -85,7 +85,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vteversion.h
 	$(NULL)
 
-libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"Vte-$(VTE_API_VERSION)\" \
  	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
@@ -94,9 +94,9 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
 	-DVTE_COMPILATION \
 	$(AM_CPPFLAGS)
 
-libvte@VTE_LIBRARY_SUFFIX_U@_la_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
-libvte@VTE_LIBRARY_SUFFIX_U@_la_LIBADD = $(VTE_LIBS)
-libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = $(VTE_LIBS)
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
   $(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
 	-export-symbols-regex "^vte_.*" \
@@ -147,11 +147,19 @@ vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
 
 # vte the application
 
-bin_PROGRAMS = vte@VTE_LIBRARY_SUFFIX_U@
+bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
 
-vte@VTE_LIBRARY_SUFFIX_U@_SOURCES = vteapp.c debug.c debug.h
-vte@VTE_LIBRARY_SUFFIX_U@_CFLAGS = $(VTE_CFLAGS)
-vte@VTE_LIBRARY_SUFFIX_U@_LDADD = libvte@VTE_LIBRARY_SUFFIX_U@.la $(VTE_LIBS)
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
+	vteapp.c \
+	debug.c \
+	debug.h \
+	$(NULL)
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CFLAGS = \
+	$(VTE_CFLAGS) \
+	$(AM_CFLAGS)
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
+	libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la \
+	$(VTE_LIBS)
 
 # introspection
 
@@ -161,10 +169,10 @@ INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
 if HAVE_INTROSPECTION
 
-Vte-@VTE_API_VERSION@.gir: libvte@VTE_LIBRARY_SUFFIX_U@.la
+Vte-@VTE_API_VERSION@.gir: libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@.la
 Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(top_srcdir)
-Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte@VTE_LIBRARY_SUFFIX_U@.la
+Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@.la
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.c \
 	vte.h \
@@ -209,7 +217,7 @@ reflect_text_view_LDADD = $(VTE_LIBS)
 reflect_vte_CPPFLAGS = -DUSE_VTE
 reflect_vte_CFLAGS = $(VTE_CFLAGS)
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte@VTE_LIBRARY_SUFFIX_U@.la $(VTE_LIBS)
+reflect_vte_LDADD = libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@.la $(VTE_LIBS)
 
 interpret_SOURCES = \
 	buffer.h \

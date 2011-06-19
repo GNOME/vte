@@ -3,8 +3,6 @@ m4_define([version_minor],29)
 m4_define([version_micro],0)
 m4_define([version_triplet],version_major.version_minor.version_micro)
 
-m4_define([so_major_adjust],9) dnl Don't change!
-
 AC_PREREQ([2.63])
 AC_INIT([vte],
         [version_triplet],
@@ -28,7 +26,7 @@ AM_MAINTAINER_MODE([enable])
 ################################################################################
 m4_define([lt_revision], m4_if(m4_eval(version_minor%2),1,0,version_micro))
 m4_define([lt_age], m4_eval(version_minor*100+version_micro-lt_revision))
-m4_define([lt_current], m4_eval(so_major_adjust+version_major+lt_age))
+m4_define([lt_current], m4_eval(version_major+lt_age))
 m4_define([lt_triplet],lt_current:lt_revision:lt_age)
 
 LT_VERSION_INFO="lt_triplet()"

@@ -121,7 +121,7 @@ GTKDOC_CFLAGS = \
 	$(VTE_CFLAGS)
 
 GTKDOC_LIBS = \
-	$(top_builddir)/src/libvte@VTE_LIBRARY_SUFFIX_U@.la \
+	$(top_builddir)/src/libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la \
 	$(VTE_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
