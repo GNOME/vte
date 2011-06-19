@@ -13474,6 +13474,74 @@ vte_view_search_find_next (VteView *terminal)
 	return vte_view_search_find (terminal, FALSE);
 }
 
+#define MIN_COLUMNS (8)
+#define MIN_ROWS    (1)
+
+/**
+ * vte_view_get_geometry_hints:
+ * @view: a #VteView
+ * @hints: a #GdkGeometry
+ * @min_rows: the minimum number of rows to request
+ * @min_columns: the minimum number of columns to request
+ *
+ * Fills in some @hints from @view's geometry. The hints
+ * filled are those covered by the %GDK_HINT_RESIZE_INC,
+ * %GDK_HINT_MIN_SIZE and %GDK_HINT_BASE_SIZE flags.
+ *
+ * See gtk_window_set_geometry_hints() for more information.
+ *
+ * @view must be realized (see gtk_widget_get_realized()).
+ */
+void
+vte_view_get_geometry_hints(VteView *view,
+                            GdkGeometry *hints,
+                            int min_rows,
+                            int min_columns)
+{
+        VteViewPrivate *pvt;
+
+        g_return_if_fail(VTE_IS_VIEW(view));
+        g_return_if_fail(hints != NULL);
+        g_return_if_fail(gtk_widget_get_realized(&view->widget));
+
+        pvt = view->pvt;
+
+        hints->base_width  = pvt->padding.left + pvt->padding.right;
+        hints->base_height = pvt->padding.top  + pvt->padding.bottom;
+        hints->width_inc   = pvt->char_width;
+        hints->height_inc  = pvt->char_height;
+        hints->min_width   = hints->base_width  + hints->width_inc  * min_columns;
+        hints->min_height  = hints->base_height + hints->height_inc * min_rows;
+}
+
+/**
+ * vte_view_set_window_geometry_hints:
+ * @view: a #VteView
+ * @window: a #GtkWindow
+ *
+ * Sets @view as @window's geometry widget. See
+ * gtk_window_set_geometry_hints() for more information.
+ *
+ * @view must be realized (see gtk_widget_get_realized()).
+ */
+void
+vte_view_set_window_geometry_hints(VteView *view,
+                                   GtkWindow *window)
+{
+        GdkGeometry hints;
+
+        g_return_if_fail(VTE_IS_VIEW(view));
+        g_return_if_fail(gtk_widget_get_realized(&view->widget));
+
+        vte_view_get_geometry_hints(view, &hints, MIN_ROWS, MIN_COLUMNS);
+        gtk_window_set_geometry_hints(window,
+                                      &view->widget,
+                                      &hints,
+                                      GDK_HINT_RESIZE_INC |
+                                      GDK_HINT_MIN_SIZE |
+                                      GDK_HINT_BASE_SIZE);
+}
+
 /* *********
  * VteBuffer
  * *********

@@ -174,6 +174,13 @@ gboolean  vte_view_search_find_next       (VteView *terminal);
 glong vte_view_get_char_width(VteView *terminal);
 glong vte_view_get_char_height(VteView *terminal);
 
+void vte_view_get_geometry_hints(VteView *view,
+                                 GdkGeometry *hints,
+                                 int min_rows,
+                                 int min_columns);
+void vte_view_set_window_geometry_hints(VteView *view,
+                                        GtkWindow *window);
+
 G_END_DECLS
 
 #endif /* __VTE_VIEW_H__ */

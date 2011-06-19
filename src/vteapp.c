@@ -60,70 +60,26 @@ icon_title_changed(VteBuffer *buffer, GtkWindow *window)
 static void
 char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 {
-	VteView *terminal;
-	GtkWindow *window;
-	GdkGeometry geometry;
-	GtkBorder padding;
+	VteView *view = VTE_VIEW(widget);
+	GtkWindow *window = GTK_WINDOW(data);
 
-	g_assert(GTK_IS_WINDOW(data));
-	g_assert(VTE_IS_VIEW(widget));
-
-	terminal = VTE_VIEW(widget);
-	window = GTK_WINDOW(data);
-	if (!gtk_widget_get_realized (GTK_WIDGET (window)))
+	if (!gtk_widget_get_realized(widget))
 		return;
 
-        gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                      gtk_widget_get_state_flags(widget),
-                                      &padding);
-        geometry.width_inc = width;
-	geometry.height_inc = height;
-	geometry.base_width = padding.left + padding.right;
-	geometry.base_height = padding.top + padding.bottom;
-	geometry.min_width = geometry.base_width + width * 2;
-	geometry.min_height = geometry.base_height + height * 2;
-
-	gtk_window_set_geometry_hints(window, widget, &geometry,
-				      GDK_HINT_RESIZE_INC |
-				      GDK_HINT_BASE_SIZE |
-				      GDK_HINT_MIN_SIZE);
+        vte_view_set_window_geometry_hints(view, window);
 }
 
 static void
 char_size_realized(GtkWidget *widget, gpointer data)
 {
-	VteView *terminal;
-	GtkWindow *window;
-	GdkGeometry geometry;
-	guint width, height;
-	GtkBorder padding;
+	VteView *view = VTE_VIEW(widget);
+	GtkWindow *window = GTK_WINDOW(data);
 
-	g_assert(GTK_IS_WINDOW(data));
-	g_assert(VTE_IS_VIEW(widget));
-
-	terminal = VTE_VIEW(widget);
-	window = GTK_WINDOW(data);
-	if (!gtk_widget_get_realized (GTK_WIDGET(window)))
+	if (!gtk_widget_get_realized(widget))
 		return;
 
-        gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                      gtk_widget_get_state_flags(widget),
-                                      &padding);
-        width = vte_view_get_char_width (terminal);
-	height = vte_view_get_char_height (terminal);
-	geometry.width_inc = width;
-	geometry.height_inc = height;
-	geometry.base_width = padding.left + padding.right;
-	geometry.base_height = padding.top + padding.bottom;
-	geometry.min_width = geometry.base_width + width * 2;
-	geometry.min_height = geometry.base_height + height * 2;
-
-	gtk_window_set_geometry_hints(window, widget, &geometry,
-				      GDK_HINT_RESIZE_INC |
-				      GDK_HINT_BASE_SIZE |
-				      GDK_HINT_MIN_SIZE);
+        vte_view_set_window_geometry_hints(view, window);
 }
-
 
 static void
 destroy_and_quit(VteView *terminal, GtkWidget *window)

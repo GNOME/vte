@@ -44,6 +44,10 @@ vte_view_search_set_gregex
 vte_view_search_set_wrap_around
 
 <SUBSECTION>
+vte_view_get_geometry_hints
+vte_view_set_window_geometry_hints
+
+<SUBSECTION>
 VTE_STYLE_CLASS_TERMINAL
 
 <SUBSECTION>
