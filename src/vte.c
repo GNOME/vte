@@ -2459,12 +2459,14 @@ vte_view_set_buffer(VteView *terminal,
                 g_signal_handlers_disconnect_by_func(old_buffer, G_CALLBACK(vte_view_beep), terminal);
                 g_signal_handlers_disconnect_by_func(old_buffer, G_CALLBACK(vte_view_buffer_contents_changed), terminal);
 
+                old_buffer->pvt->terminal = NULL;
                 /* defer unref until after "buffer-changed" signal emission */
         }
 
         pvt->buffer = buffer;
         if (buffer) {
                 g_object_ref(buffer);
+                buffer->pvt->terminal = terminal;
 
                 g_signal_connect_swapped(buffer, "bell", G_CALLBACK(vte_view_beep), terminal);
                 g_signal_connect_swapped(buffer, "contents-changed", G_CALLBACK(vte_view_buffer_contents_changed), terminal);
@@ -8049,11 +8051,6 @@ vte_view_init(VteView *terminal)
         gtk_style_context_add_class (context, VTE_STYLE_CLASS_TERMINAL);
 
         vte_view_update_style (terminal);
-
-        buffer = vte_buffer_new();
-        vte_view_set_buffer(terminal, buffer);
-        buffer->pvt->terminal = terminal;
-        g_object_unref(buffer);
 }
 
 /* Tell GTK+ how much space we need. */

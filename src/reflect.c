@@ -61,11 +61,13 @@ terminal_init_vte(GtkWidget **terminal)
         VteBuffer *buffer;
 
 	*terminal = vte_view_new();
-        buffer = vte_view_get_buffer(VTE_VIEW(*terminal));
+        buffer = vte_buffer_new();
+        vte_view_set_buffer(VTE_VIEW(*terminal), buffer);
 	g_signal_connect(buffer, "eof",
 			 G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(buffer, "child-exited",
 			 G_CALLBACK(gtk_main_quit), NULL);
+        g_object_unref(buffer);
 }
 static void
 terminal_shell_vte(GtkWidget *terminal)

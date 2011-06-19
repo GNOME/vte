@@ -945,7 +945,10 @@ main(int argc, char **argv)
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vteapp_terminal_new();
 	terminal = VTE_VIEW (widget);
-        buffer = vte_view_get_buffer(terminal);
+        buffer = vte_buffer_new();
+        vte_view_set_buffer(terminal, buffer);
+        g_object_unref(buffer);
+
         if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
