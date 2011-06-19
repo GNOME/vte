@@ -60,15 +60,15 @@ icon_title_changed(VteBuffer *buffer, GtkWindow *window)
 static void
 char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 {
-	VteTerminal *terminal;
+	VteView *terminal;
 	GtkWindow *window;
 	GdkGeometry geometry;
 	GtkBorder padding;
 
 	g_assert(GTK_IS_WINDOW(data));
-	g_assert(VTE_IS_TERMINAL(widget));
+	g_assert(VTE_IS_VIEW(widget));
 
-	terminal = VTE_TERMINAL(widget);
+	terminal = VTE_VIEW(widget);
 	window = GTK_WINDOW(data);
 	if (!gtk_widget_get_realized (GTK_WIDGET (window)))
 		return;
@@ -92,16 +92,16 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 static void
 char_size_realized(GtkWidget *widget, gpointer data)
 {
-	VteTerminal *terminal;
+	VteView *terminal;
 	GtkWindow *window;
 	GdkGeometry geometry;
 	guint width, height;
 	GtkBorder padding;
 
 	g_assert(GTK_IS_WINDOW(data));
-	g_assert(VTE_IS_TERMINAL(widget));
+	g_assert(VTE_IS_VIEW(widget));
 
-	terminal = VTE_TERMINAL(widget);
+	terminal = VTE_VIEW(widget);
 	window = GTK_WINDOW(data);
 	if (!gtk_widget_get_realized (GTK_WIDGET(window)))
 		return;
@@ -109,8 +109,8 @@ char_size_realized(GtkWidget *widget, gpointer data)
         gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
                                       gtk_widget_get_state_flags(widget),
                                       &padding);
-        width = vte_terminal_get_char_width (terminal);
-	height = vte_terminal_get_char_height (terminal);
+        width = vte_view_get_char_width (terminal);
+	height = vte_view_get_char_height (terminal);
 	geometry.width_inc = width;
 	geometry.height_inc = height;
 	geometry.base_width = padding.left + padding.right;
@@ -126,7 +126,7 @@ char_size_realized(GtkWidget *widget, gpointer data)
 
 
 static void
-destroy_and_quit(VteTerminal *terminal, GtkWidget *window)
+destroy_and_quit(VteView *terminal, GtkWidget *window)
 {
 	const char *output_file = g_object_get_data (G_OBJECT (terminal), "output_file");
 
@@ -139,7 +139,7 @@ destroy_and_quit(VteTerminal *terminal, GtkWidget *window)
 		stream = G_OUTPUT_STREAM (g_file_replace (file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error));
 
 		if (stream) {
-			vte_buffer_write_contents_sync(vte_terminal_get_buffer(terminal), stream,
+			vte_buffer_write_contents_sync(vte_view_get_buffer(terminal), stream,
                                                        VTE_WRITE_FLAG_DEFAULT,
                                                        NULL, &error);
 			g_object_unref (stream);
@@ -159,13 +159,13 @@ destroy_and_quit(VteTerminal *terminal, GtkWidget *window)
 static void
 delete_event(GtkWidget *window, GdkEvent *event, gpointer terminal)
 {
-	destroy_and_quit(VTE_TERMINAL (terminal), window);
+	destroy_and_quit(VTE_VIEW (terminal), window);
 }
 static void
 child_exited(VteBuffer *buffer, int status, gpointer terminal)
 {
 	_vte_debug_print(VTE_DEBUG_MISC, "Child exited with status %x\n", status);
-	destroy_and_quit(VTE_TERMINAL (terminal), gtk_widget_get_toplevel(terminal));
+	destroy_and_quit(VTE_VIEW (terminal), gtk_widget_get_toplevel(terminal));
 }
 
 static void
@@ -178,7 +178,7 @@ status_line_changed(VteBuffer *buffer, gpointer data)
 static int
 button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	VteTerminal *terminal;
+	VteView *terminal;
 	char *match;
 	int tag;
 	GtkBorder padding;
@@ -186,14 +186,14 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 
 	switch (event->button) {
 	case 3:
-		terminal = VTE_TERMINAL(widget);
+		terminal = VTE_VIEW(widget);
 
                 gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
                                               gtk_widget_get_state_flags(widget),
                                               &padding);
-                char_width = vte_terminal_get_char_width (terminal);
-		char_height = vte_terminal_get_char_height (terminal);
-		match = vte_terminal_match_check(terminal,
+                char_width = vte_view_get_char_width (terminal);
+		char_height = vte_view_get_char_height (terminal);
+		match = vte_view_match_check(terminal,
 						 (event->x - padding.left) / char_width,
 						 (event->y - padding.top) / char_height,
 						 &tag);
@@ -201,7 +201,7 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 			g_print("Matched `%s' (%d).\n", match, tag);
 			g_free(match);
 			if (GPOINTER_TO_INT(data) != 0) {
-				vte_terminal_match_remove(terminal, tag);
+				vte_view_match_remove(terminal, tag);
 			}
 		}
 		break;
@@ -284,7 +284,7 @@ refresh_window(VteBuffer *buffer, gpointer data)
 	GtkAllocation allocation;
 	cairo_rectangle_int_t rect;
 
-        /* FIXMEchpe: VteTerminal already does invalidate-all here! */
+        /* FIXMEchpe: VteView already does invalidate-all here! */
 	if (GTK_IS_WIDGET(data)) {
 		window = gtk_widget_get_window(GTK_WIDGET(data));
 		if (window) {
@@ -298,7 +298,7 @@ refresh_window(VteBuffer *buffer, gpointer data)
 }
 
 static void
-resize_window(VteBuffer *buffer, guint width, guint height, VteTerminal *terminal)
+resize_window(VteBuffer *buffer, guint width, guint height, VteView *terminal)
 {
         GtkWidget *widget = &terminal->widget;
         GtkWidget *window;
@@ -311,8 +311,8 @@ resize_window(VteBuffer *buffer, guint width, guint height, VteTerminal *termina
 		gtk_window_get_size(GTK_WINDOW(window), &owidth, &oheight);
 
 		/* Take into account border overhead. */
-		char_width = vte_terminal_get_char_width (terminal);
-		char_height = vte_terminal_get_char_height (terminal);
+		char_width = vte_view_get_char_width (terminal);
+		char_height = vte_view_get_char_height (terminal);
 		column_count = vte_buffer_get_column_count (buffer);
 		row_count = vte_buffer_get_row_count (buffer);
                 gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
@@ -342,34 +342,34 @@ move_window(VteBuffer *buffer, guint x, guint y, gpointer data)
 static void
 adjust_font_size(GtkWidget *widget, gpointer data, gdouble factor)
 {
-	VteTerminal *terminal;
+	VteView *terminal;
         VteBuffer *buffer;
         gdouble scale;
         glong char_width, char_height;
 	gint columns, rows, owidth, oheight;
 
 	/* Read the screen dimensions in cells. */
-	terminal = VTE_TERMINAL(widget);
-        buffer = vte_terminal_get_buffer(terminal);
+	terminal = VTE_VIEW(widget);
+        buffer = vte_view_get_buffer(terminal);
 	columns = vte_buffer_get_column_count(buffer);
 	rows = vte_buffer_get_row_count(buffer);
 
 	/* Take into account padding and border overhead. */
 	gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
-        char_width = vte_terminal_get_char_width (terminal);
-        char_height = vte_terminal_get_char_height (terminal);
+        char_width = vte_view_get_char_width (terminal);
+        char_height = vte_view_get_char_height (terminal);
 	owidth -= char_width * columns;
 	oheight -= char_height * rows;
 
-	scale = vte_terminal_get_font_scale(terminal);
-        vte_terminal_set_font_scale(terminal, scale * factor);
+	scale = vte_view_get_font_scale(terminal);
+        vte_view_set_font_scale(terminal, scale * factor);
 
 	/* Change the font, then resize the window so that we have the same
 	 * number of rows and columns. */
 
         /* This above call will have changed the char size! */
-        char_width = vte_terminal_get_char_width (terminal);
-        char_height = vte_terminal_get_char_height (terminal);
+        char_width = vte_view_get_char_width (terminal);
+        char_height = vte_view_get_char_height (terminal);
 
 	gtk_window_resize(GTK_WINDOW(data),
 			  columns * char_width + owidth,
@@ -394,11 +394,11 @@ read_and_feed(GIOChannel *source, GIOCondition condition, gpointer data)
 	char buf[2048];
 	gsize size;
 	GIOStatus status;
-	g_assert(VTE_IS_TERMINAL(data));
+	g_assert(VTE_IS_VIEW(data));
 	status = g_io_channel_read_chars(source, buf, sizeof(buf),
 					 &size, NULL);
 	if ((status == G_IO_STATUS_NORMAL) && (size > 0)) {
-		vte_buffer_feed(vte_terminal_get_buffer(VTE_TERMINAL(data)), buf, size);
+		vte_buffer_feed(vte_view_get_buffer(VTE_VIEW(data)), buf, size);
 		return TRUE;
 	}
 	return FALSE;
@@ -465,7 +465,7 @@ terminal_notify_cb(GObject *object,
   char *value_string;
 
   if (!pspec ||
-      pspec->owner_type != VTE_TYPE_TERMINAL)
+      pspec->owner_type != VTE_TYPE_VIEW)
     return;
 
 
@@ -483,15 +483,15 @@ typedef struct _VteappTerminal      VteappTerminal;
 typedef struct _VteappTerminalClass VteappTerminalClass;
 
 struct _VteappTerminalClass {
-        VteTerminalClass parent_class;
+        VteViewClass parent_class;
 };
 struct _VteappTerminal {
-        VteTerminal parent_instance;
+        VteView parent_instance;
 };
 
 static GType vteapp_terminal_get_type(void);
 
-G_DEFINE_TYPE(VteappTerminal, vteapp_terminal, VTE_TYPE_TERMINAL)
+G_DEFINE_TYPE(VteappTerminal, vteapp_terminal, VTE_TYPE_VIEW)
 
 static void
 vteapp_terminal_class_init(VteappTerminalClass *klass)
@@ -559,7 +559,7 @@ parse_flags(GType type,
 }
 
 static void
-add_dingus (VteTerminal *terminal,
+add_dingus (VteView *terminal,
             char **dingus)
 {
         const GdkCursorType cursors[] = { GDK_GUMBY, GDK_HAND1 };
@@ -576,9 +576,9 @@ add_dingus (VteTerminal *terminal,
                         continue;
                 }
 
-                id = vte_terminal_match_add_gregex(terminal, regex, 0);
+                id = vte_view_match_add_gregex(terminal, regex, 0);
                 g_regex_unref (regex);
-                vte_terminal_match_set_cursor_type(terminal, id,
+                vte_view_match_set_cursor_type(terminal, id,
                                                    cursors[i % G_N_ELEMENTS(cursors)]);
         }
 }
@@ -589,7 +589,7 @@ main(int argc, char **argv)
 	GdkScreen *screen;
 	GdkVisual *visual;
 	GtkWidget *window, *widget,*hbox = NULL, *scrollbar, *scrolled_window = NULL;
-	VteTerminal *terminal;
+	VteView *terminal;
         VteBuffer *buffer;
 	char *env_add[] = {
 #ifdef VTE_DEBUG
@@ -757,7 +757,7 @@ main(int argc, char **argv)
 		{
 			"object-notifications", 'N', 0,
 			G_OPTION_ARG_NONE, &show_object_notifications,
-			"Print VteTerminal object notifications",
+			"Print VteView object notifications",
 			NULL
 		},
 		{
@@ -850,44 +850,44 @@ main(int argc, char **argv)
                 g_string_append_c (css_string, '\n');
         }
 
-        g_string_append (css_string, "VteTerminal {\n");
+        g_string_append (css_string, "VteView {\n");
         if (background) {
                 g_string_append_printf (css_string, "background-image: url(\"%s\");\n",
                                         background);
                 g_free(background);
         }
         if (cursor_color_string) {
-                g_string_append_printf (css_string, "-VteTerminal-cursor-background-color: %s;\n"
-                                                    "-VteTerminal-cursor-effect: color;\n",
+                g_string_append_printf (css_string, "-VteView-cursor-background-color: %s;\n"
+                                                    "-VteView-cursor-effect: color;\n",
                                         cursor_color_string);
                 g_free(cursor_color_string);
         }
         if (selection_background_color_string) {
-                g_string_append_printf (css_string, "-VteTerminal-selection-background-color: %s;\n"
-                                                    "-VteTerminal-selection-effect: color;\n",
+                g_string_append_printf (css_string, "-VteView-selection-background-color: %s;\n"
+                                                    "-VteView-selection-effect: color;\n",
                                         selection_background_color_string);
                 g_free(selection_background_color_string);
         }
         if (cursor_blink_mode_string) {
-                g_string_append_printf (css_string, "-VteTerminal-cursor-blink-mode: %s;\n",
+                g_string_append_printf (css_string, "-VteView-cursor-blink-mode: %s;\n",
                                         cursor_blink_mode_string);
                 g_free(cursor_blink_mode_string);
         }
         if (cursor_shape_string) {
-                g_string_append_printf (css_string, "-VteTerminal-cursor-shape: %s;\n",
+                g_string_append_printf (css_string, "-VteView-cursor-shape: %s;\n",
                                         cursor_shape_string);
                 g_free(cursor_shape_string);
         }
         if (font) {
-                g_string_append_printf (css_string, "-VteTerminal-font: %s;\n",
+                g_string_append_printf (css_string, "-VteView-font: %s;\n",
                                         font);
                 g_free(font);
         }
         if (scroll) {
-                g_string_append (css_string, "-VteTerminal-scroll-background: true;\n");
+                g_string_append (css_string, "-VteView-scroll-background: true;\n");
         }
         if (reverse) {
-                g_string_append (css_string, "-VteTerminal-reverse: true;\n");
+                g_string_append (css_string, "-VteView-reverse: true;\n");
         }
         g_string_append (css_string, "}\n");
 
@@ -944,8 +944,8 @@ main(int argc, char **argv)
 
 	/* Create the terminal widget and add it to the scrolling shell. */
 	widget = vteapp_terminal_new();
-	terminal = VTE_TERMINAL (widget);
-        buffer = vte_terminal_get_buffer(terminal);
+	terminal = VTE_VIEW (widget);
+        buffer = vte_view_get_buffer(terminal);
         if (!dbuffer) {
 		gtk_widget_set_double_buffered(widget, dbuffer);
 	}
@@ -1017,15 +1017,15 @@ main(int argc, char **argv)
 	}
 
 	/* Set some defaults. */
-	vte_terminal_set_audible_bell(terminal, audible);
-	vte_terminal_set_visible_bell(terminal, !audible);
-	vte_terminal_set_scroll_on_output(terminal, FALSE);
-	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
-	vte_buffer_set_scrollback_lines(vte_terminal_get_buffer(terminal), lines);
-	vte_terminal_set_mouse_autohide(terminal, TRUE);
+	vte_view_set_audible_bell(terminal, audible);
+	vte_view_set_visible_bell(terminal, !audible);
+	vte_view_set_scroll_on_output(terminal, FALSE);
+	vte_view_set_scroll_on_keystroke(terminal, TRUE);
+	vte_buffer_set_scrollback_lines(vte_view_get_buffer(terminal), lines);
+	vte_view_set_mouse_autohide(terminal, TRUE);
 
 	if (termcap != NULL) {
-		vte_buffer_set_emulation(vte_terminal_get_buffer(terminal), termcap);
+		vte_buffer_set_emulation(vte_view_get_buffer(terminal), termcap);
 	}
 
 	/* Match "abcdefg". */
@@ -1037,7 +1037,7 @@ main(int argc, char **argv)
                 g_strfreev (dingus);
         }
         if (word_chars) {
-                vte_terminal_set_word_chars(terminal, word_chars);
+                vte_view_set_word_chars(terminal, word_chars);
                 g_free(word_chars);
         }
 
@@ -1070,7 +1070,7 @@ main(int argc, char **argv)
 						 G_CALLBACK(take_xconsole_ownership),
 						 NULL);
 #ifdef VTE_DEBUG
-				vte_buffer_feed(vte_terminal_get_buffer(terminal),
+				vte_buffer_feed(vte_view_get_buffer(terminal),
 						  "Console log for ...\r\n",
 						  -1);
 #endif
@@ -1094,7 +1094,7 @@ main(int argc, char **argv)
 			GPid pid = -1;
 
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
-				vte_buffer_feed(vte_terminal_get_buffer(terminal), message, -1);
+				vte_buffer_feed(vte_view_get_buffer(terminal), message, -1);
 
                         if (command == NULL || *command == '\0')
                                 command = vte_get_user_shell ();

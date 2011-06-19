@@ -5,7 +5,7 @@ EXTRA_DIST = iso2022.txt palette.c
 # The library
 
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
-header_HEADERS = vte.h vtebuffer.h vteenums.h vtepty.h vtetypebuiltins.h vteversion.h
+header_HEADERS = vte.h vtebuffer.h vteenums.h vtepty.h vtetypebuiltins.h vteversion.h vteview.h
 
 lib_LTLIBRARIES = libvte@VTE_LIBRARY_SUFFIX_U@.la
 

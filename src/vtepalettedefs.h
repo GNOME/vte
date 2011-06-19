@@ -3,7 +3,7 @@
  */
 
 /**
- * VteTerminal:black-color:
+ * VteView:black-color:
  *
  * The black color in the palette.
  *
@@ -14,7 +14,7 @@
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("black-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:red-color:
+ * VteView:red-color:
  *
  * The red color in the palette.
  *
@@ -25,7 +25,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("black
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("red-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:green-color:
+ * VteView:green-color:
  *
  * The green color in the palette.
  *
@@ -36,7 +36,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("red-c
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("green-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:yellow-color:
+ * VteView:yellow-color:
  *
  * The yellow color in the palette.
  *
@@ -47,7 +47,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("green
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("yellow-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:blue-color:
+ * VteView:blue-color:
  *
  * The blue color in the palette.
  *
@@ -58,7 +58,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("yello
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("blue-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:magenta-color:
+ * VteView:magenta-color:
  *
  * The magenta color in the palette.
  *
@@ -69,7 +69,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("blue-
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("magenta-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:cyan-color:
+ * VteView:cyan-color:
  *
  * The cyan color in the palette.
  *
@@ -80,7 +80,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("magen
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("cyan-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:white-color:
+ * VteView:white-color:
  *
  * The white color in the palette.
  *
@@ -91,7 +91,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("cyan-
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("white-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-black-color:
+ * VteView:bright-black-color:
  *
  * The bright black color in the palette.
  *
@@ -102,7 +102,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("white
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-black-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-red-color:
+ * VteView:bright-red-color:
  *
  * The bright red color in the palette.
  *
@@ -113,7 +113,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-red-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-green-color:
+ * VteView:bright-green-color:
  *
  * The bright green color in the palette.
  *
@@ -124,7 +124,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-green-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-yellow-color:
+ * VteView:bright-yellow-color:
  *
  * The bright yellow color in the palette.
  *
@@ -135,7 +135,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-yellow-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-blue-color:
+ * VteView:bright-blue-color:
  *
  * The bright blue color in the palette.
  *
@@ -146,7 +146,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-blue-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-magenta-color:
+ * VteView:bright-magenta-color:
  *
  * The bright magenta color in the palette.
  *
@@ -157,7 +157,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-magenta-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-cyan-color:
+ * VteView:bright-cyan-color:
  *
  * The bright cyan color in the palette.
  *
@@ -168,7 +168,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-cyan-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bright-white-color:
+ * VteView:bright-white-color:
  *
  * The bright white color in the palette.
  *
@@ -179,7 +179,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bright-white-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-1-1-color:
+ * VteView:color-6-cube-1-1-1-color:
  *
  * The (1, 1, 1) color in the 6x6x6 color cube.
  *
@@ -190,7 +190,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("brigh
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-1-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-1-2-color:
+ * VteView:color-6-cube-1-1-2-color:
  *
  * The (1, 1, 2) color in the 6x6x6 color cube.
  *
@@ -201,7 +201,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-1-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-1-3-color:
+ * VteView:color-6-cube-1-1-3-color:
  *
  * The (1, 1, 3) color in the 6x6x6 color cube.
  *
@@ -212,7 +212,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-1-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-1-4-color:
+ * VteView:color-6-cube-1-1-4-color:
  *
  * The (1, 1, 4) color in the 6x6x6 color cube.
  *
@@ -223,7 +223,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-1-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-1-5-color:
+ * VteView:color-6-cube-1-1-5-color:
  *
  * The (1, 1, 5) color in the 6x6x6 color cube.
  *
@@ -234,7 +234,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-1-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-1-6-color:
+ * VteView:color-6-cube-1-1-6-color:
  *
  * The (1, 1, 6) color in the 6x6x6 color cube.
  *
@@ -245,7 +245,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-1-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-2-1-color:
+ * VteView:color-6-cube-1-2-1-color:
  *
  * The (1, 2, 1) color in the 6x6x6 color cube.
  *
@@ -256,7 +256,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-2-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-2-2-color:
+ * VteView:color-6-cube-1-2-2-color:
  *
  * The (1, 2, 2) color in the 6x6x6 color cube.
  *
@@ -267,7 +267,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-2-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-2-3-color:
+ * VteView:color-6-cube-1-2-3-color:
  *
  * The (1, 2, 3) color in the 6x6x6 color cube.
  *
@@ -278,7 +278,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-2-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-2-4-color:
+ * VteView:color-6-cube-1-2-4-color:
  *
  * The (1, 2, 4) color in the 6x6x6 color cube.
  *
@@ -289,7 +289,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-2-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-2-5-color:
+ * VteView:color-6-cube-1-2-5-color:
  *
  * The (1, 2, 5) color in the 6x6x6 color cube.
  *
@@ -300,7 +300,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-2-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-2-6-color:
+ * VteView:color-6-cube-1-2-6-color:
  *
  * The (1, 2, 6) color in the 6x6x6 color cube.
  *
@@ -311,7 +311,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-2-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-3-1-color:
+ * VteView:color-6-cube-1-3-1-color:
  *
  * The (1, 3, 1) color in the 6x6x6 color cube.
  *
@@ -322,7 +322,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-3-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-3-2-color:
+ * VteView:color-6-cube-1-3-2-color:
  *
  * The (1, 3, 2) color in the 6x6x6 color cube.
  *
@@ -333,7 +333,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-3-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-3-3-color:
+ * VteView:color-6-cube-1-3-3-color:
  *
  * The (1, 3, 3) color in the 6x6x6 color cube.
  *
@@ -344,7 +344,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-3-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-3-4-color:
+ * VteView:color-6-cube-1-3-4-color:
  *
  * The (1, 3, 4) color in the 6x6x6 color cube.
  *
@@ -355,7 +355,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-3-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-3-5-color:
+ * VteView:color-6-cube-1-3-5-color:
  *
  * The (1, 3, 5) color in the 6x6x6 color cube.
  *
@@ -366,7 +366,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-3-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-3-6-color:
+ * VteView:color-6-cube-1-3-6-color:
  *
  * The (1, 3, 6) color in the 6x6x6 color cube.
  *
@@ -377,7 +377,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-3-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-4-1-color:
+ * VteView:color-6-cube-1-4-1-color:
  *
  * The (1, 4, 1) color in the 6x6x6 color cube.
  *
@@ -388,7 +388,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-4-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-4-2-color:
+ * VteView:color-6-cube-1-4-2-color:
  *
  * The (1, 4, 2) color in the 6x6x6 color cube.
  *
@@ -399,7 +399,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-4-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-4-3-color:
+ * VteView:color-6-cube-1-4-3-color:
  *
  * The (1, 4, 3) color in the 6x6x6 color cube.
  *
@@ -410,7 +410,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-4-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-4-4-color:
+ * VteView:color-6-cube-1-4-4-color:
  *
  * The (1, 4, 4) color in the 6x6x6 color cube.
  *
@@ -421,7 +421,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-4-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-4-5-color:
+ * VteView:color-6-cube-1-4-5-color:
  *
  * The (1, 4, 5) color in the 6x6x6 color cube.
  *
@@ -432,7 +432,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-4-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-4-6-color:
+ * VteView:color-6-cube-1-4-6-color:
  *
  * The (1, 4, 6) color in the 6x6x6 color cube.
  *
@@ -443,7 +443,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-4-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-5-1-color:
+ * VteView:color-6-cube-1-5-1-color:
  *
  * The (1, 5, 1) color in the 6x6x6 color cube.
  *
@@ -454,7 +454,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-5-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-5-2-color:
+ * VteView:color-6-cube-1-5-2-color:
  *
  * The (1, 5, 2) color in the 6x6x6 color cube.
  *
@@ -465,7 +465,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-5-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-5-3-color:
+ * VteView:color-6-cube-1-5-3-color:
  *
  * The (1, 5, 3) color in the 6x6x6 color cube.
  *
@@ -476,7 +476,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-5-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-5-4-color:
+ * VteView:color-6-cube-1-5-4-color:
  *
  * The (1, 5, 4) color in the 6x6x6 color cube.
  *
@@ -487,7 +487,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-5-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-5-5-color:
+ * VteView:color-6-cube-1-5-5-color:
  *
  * The (1, 5, 5) color in the 6x6x6 color cube.
  *
@@ -498,7 +498,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-5-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-5-6-color:
+ * VteView:color-6-cube-1-5-6-color:
  *
  * The (1, 5, 6) color in the 6x6x6 color cube.
  *
@@ -509,7 +509,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-5-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-6-1-color:
+ * VteView:color-6-cube-1-6-1-color:
  *
  * The (1, 6, 1) color in the 6x6x6 color cube.
  *
@@ -520,7 +520,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-6-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-6-2-color:
+ * VteView:color-6-cube-1-6-2-color:
  *
  * The (1, 6, 2) color in the 6x6x6 color cube.
  *
@@ -531,7 +531,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-6-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-6-3-color:
+ * VteView:color-6-cube-1-6-3-color:
  *
  * The (1, 6, 3) color in the 6x6x6 color cube.
  *
@@ -542,7 +542,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-6-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-6-4-color:
+ * VteView:color-6-cube-1-6-4-color:
  *
  * The (1, 6, 4) color in the 6x6x6 color cube.
  *
@@ -553,7 +553,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-6-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-6-5-color:
+ * VteView:color-6-cube-1-6-5-color:
  *
  * The (1, 6, 5) color in the 6x6x6 color cube.
  *
@@ -564,7 +564,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-6-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-1-6-6-color:
+ * VteView:color-6-cube-1-6-6-color:
  *
  * The (1, 6, 6) color in the 6x6x6 color cube.
  *
@@ -575,7 +575,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-1-6-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-1-1-color:
+ * VteView:color-6-cube-2-1-1-color:
  *
  * The (2, 1, 1) color in the 6x6x6 color cube.
  *
@@ -586,7 +586,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-1-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-1-2-color:
+ * VteView:color-6-cube-2-1-2-color:
  *
  * The (2, 1, 2) color in the 6x6x6 color cube.
  *
@@ -597,7 +597,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-1-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-1-3-color:
+ * VteView:color-6-cube-2-1-3-color:
  *
  * The (2, 1, 3) color in the 6x6x6 color cube.
  *
@@ -608,7 +608,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-1-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-1-4-color:
+ * VteView:color-6-cube-2-1-4-color:
  *
  * The (2, 1, 4) color in the 6x6x6 color cube.
  *
@@ -619,7 +619,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-1-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-1-5-color:
+ * VteView:color-6-cube-2-1-5-color:
  *
  * The (2, 1, 5) color in the 6x6x6 color cube.
  *
@@ -630,7 +630,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-1-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-1-6-color:
+ * VteView:color-6-cube-2-1-6-color:
  *
  * The (2, 1, 6) color in the 6x6x6 color cube.
  *
@@ -641,7 +641,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-1-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-2-1-color:
+ * VteView:color-6-cube-2-2-1-color:
  *
  * The (2, 2, 1) color in the 6x6x6 color cube.
  *
@@ -652,7 +652,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-2-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-2-2-color:
+ * VteView:color-6-cube-2-2-2-color:
  *
  * The (2, 2, 2) color in the 6x6x6 color cube.
  *
@@ -663,7 +663,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-2-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-2-3-color:
+ * VteView:color-6-cube-2-2-3-color:
  *
  * The (2, 2, 3) color in the 6x6x6 color cube.
  *
@@ -674,7 +674,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-2-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-2-4-color:
+ * VteView:color-6-cube-2-2-4-color:
  *
  * The (2, 2, 4) color in the 6x6x6 color cube.
  *
@@ -685,7 +685,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-2-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-2-5-color:
+ * VteView:color-6-cube-2-2-5-color:
  *
  * The (2, 2, 5) color in the 6x6x6 color cube.
  *
@@ -696,7 +696,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-2-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-2-6-color:
+ * VteView:color-6-cube-2-2-6-color:
  *
  * The (2, 2, 6) color in the 6x6x6 color cube.
  *
@@ -707,7 +707,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-2-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-3-1-color:
+ * VteView:color-6-cube-2-3-1-color:
  *
  * The (2, 3, 1) color in the 6x6x6 color cube.
  *
@@ -718,7 +718,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-3-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-3-2-color:
+ * VteView:color-6-cube-2-3-2-color:
  *
  * The (2, 3, 2) color in the 6x6x6 color cube.
  *
@@ -729,7 +729,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-3-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-3-3-color:
+ * VteView:color-6-cube-2-3-3-color:
  *
  * The (2, 3, 3) color in the 6x6x6 color cube.
  *
@@ -740,7 +740,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-3-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-3-4-color:
+ * VteView:color-6-cube-2-3-4-color:
  *
  * The (2, 3, 4) color in the 6x6x6 color cube.
  *
@@ -751,7 +751,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-3-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-3-5-color:
+ * VteView:color-6-cube-2-3-5-color:
  *
  * The (2, 3, 5) color in the 6x6x6 color cube.
  *
@@ -762,7 +762,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-3-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-3-6-color:
+ * VteView:color-6-cube-2-3-6-color:
  *
  * The (2, 3, 6) color in the 6x6x6 color cube.
  *
@@ -773,7 +773,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-3-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-4-1-color:
+ * VteView:color-6-cube-2-4-1-color:
  *
  * The (2, 4, 1) color in the 6x6x6 color cube.
  *
@@ -784,7 +784,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-4-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-4-2-color:
+ * VteView:color-6-cube-2-4-2-color:
  *
  * The (2, 4, 2) color in the 6x6x6 color cube.
  *
@@ -795,7 +795,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-4-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-4-3-color:
+ * VteView:color-6-cube-2-4-3-color:
  *
  * The (2, 4, 3) color in the 6x6x6 color cube.
  *
@@ -806,7 +806,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-4-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-4-4-color:
+ * VteView:color-6-cube-2-4-4-color:
  *
  * The (2, 4, 4) color in the 6x6x6 color cube.
  *
@@ -817,7 +817,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-4-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-4-5-color:
+ * VteView:color-6-cube-2-4-5-color:
  *
  * The (2, 4, 5) color in the 6x6x6 color cube.
  *
@@ -828,7 +828,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-4-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-4-6-color:
+ * VteView:color-6-cube-2-4-6-color:
  *
  * The (2, 4, 6) color in the 6x6x6 color cube.
  *
@@ -839,7 +839,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-4-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-5-1-color:
+ * VteView:color-6-cube-2-5-1-color:
  *
  * The (2, 5, 1) color in the 6x6x6 color cube.
  *
@@ -850,7 +850,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-5-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-5-2-color:
+ * VteView:color-6-cube-2-5-2-color:
  *
  * The (2, 5, 2) color in the 6x6x6 color cube.
  *
@@ -861,7 +861,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-5-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-5-3-color:
+ * VteView:color-6-cube-2-5-3-color:
  *
  * The (2, 5, 3) color in the 6x6x6 color cube.
  *
@@ -872,7 +872,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-5-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-5-4-color:
+ * VteView:color-6-cube-2-5-4-color:
  *
  * The (2, 5, 4) color in the 6x6x6 color cube.
  *
@@ -883,7 +883,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-5-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-5-5-color:
+ * VteView:color-6-cube-2-5-5-color:
  *
  * The (2, 5, 5) color in the 6x6x6 color cube.
  *
@@ -894,7 +894,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-5-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-5-6-color:
+ * VteView:color-6-cube-2-5-6-color:
  *
  * The (2, 5, 6) color in the 6x6x6 color cube.
  *
@@ -905,7 +905,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-5-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-6-1-color:
+ * VteView:color-6-cube-2-6-1-color:
  *
  * The (2, 6, 1) color in the 6x6x6 color cube.
  *
@@ -916,7 +916,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-6-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-6-2-color:
+ * VteView:color-6-cube-2-6-2-color:
  *
  * The (2, 6, 2) color in the 6x6x6 color cube.
  *
@@ -927,7 +927,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-6-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-6-3-color:
+ * VteView:color-6-cube-2-6-3-color:
  *
  * The (2, 6, 3) color in the 6x6x6 color cube.
  *
@@ -938,7 +938,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-6-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-6-4-color:
+ * VteView:color-6-cube-2-6-4-color:
  *
  * The (2, 6, 4) color in the 6x6x6 color cube.
  *
@@ -949,7 +949,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-6-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-6-5-color:
+ * VteView:color-6-cube-2-6-5-color:
  *
  * The (2, 6, 5) color in the 6x6x6 color cube.
  *
@@ -960,7 +960,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-6-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-2-6-6-color:
+ * VteView:color-6-cube-2-6-6-color:
  *
  * The (2, 6, 6) color in the 6x6x6 color cube.
  *
@@ -971,7 +971,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-2-6-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-1-1-color:
+ * VteView:color-6-cube-3-1-1-color:
  *
  * The (3, 1, 1) color in the 6x6x6 color cube.
  *
@@ -982,7 +982,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-1-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-1-2-color:
+ * VteView:color-6-cube-3-1-2-color:
  *
  * The (3, 1, 2) color in the 6x6x6 color cube.
  *
@@ -993,7 +993,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-1-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-1-3-color:
+ * VteView:color-6-cube-3-1-3-color:
  *
  * The (3, 1, 3) color in the 6x6x6 color cube.
  *
@@ -1004,7 +1004,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-1-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-1-4-color:
+ * VteView:color-6-cube-3-1-4-color:
  *
  * The (3, 1, 4) color in the 6x6x6 color cube.
  *
@@ -1015,7 +1015,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-1-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-1-5-color:
+ * VteView:color-6-cube-3-1-5-color:
  *
  * The (3, 1, 5) color in the 6x6x6 color cube.
  *
@@ -1026,7 +1026,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-1-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-1-6-color:
+ * VteView:color-6-cube-3-1-6-color:
  *
  * The (3, 1, 6) color in the 6x6x6 color cube.
  *
@@ -1037,7 +1037,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-1-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-2-1-color:
+ * VteView:color-6-cube-3-2-1-color:
  *
  * The (3, 2, 1) color in the 6x6x6 color cube.
  *
@@ -1048,7 +1048,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-2-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-2-2-color:
+ * VteView:color-6-cube-3-2-2-color:
  *
  * The (3, 2, 2) color in the 6x6x6 color cube.
  *
@@ -1059,7 +1059,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-2-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-2-3-color:
+ * VteView:color-6-cube-3-2-3-color:
  *
  * The (3, 2, 3) color in the 6x6x6 color cube.
  *
@@ -1070,7 +1070,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-2-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-2-4-color:
+ * VteView:color-6-cube-3-2-4-color:
  *
  * The (3, 2, 4) color in the 6x6x6 color cube.
  *
@@ -1081,7 +1081,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-2-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-2-5-color:
+ * VteView:color-6-cube-3-2-5-color:
  *
  * The (3, 2, 5) color in the 6x6x6 color cube.
  *
@@ -1092,7 +1092,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-2-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-2-6-color:
+ * VteView:color-6-cube-3-2-6-color:
  *
  * The (3, 2, 6) color in the 6x6x6 color cube.
  *
@@ -1103,7 +1103,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-2-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-3-1-color:
+ * VteView:color-6-cube-3-3-1-color:
  *
  * The (3, 3, 1) color in the 6x6x6 color cube.
  *
@@ -1114,7 +1114,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-3-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-3-2-color:
+ * VteView:color-6-cube-3-3-2-color:
  *
  * The (3, 3, 2) color in the 6x6x6 color cube.
  *
@@ -1125,7 +1125,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-3-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-3-3-color:
+ * VteView:color-6-cube-3-3-3-color:
  *
  * The (3, 3, 3) color in the 6x6x6 color cube.
  *
@@ -1136,7 +1136,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-3-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-3-4-color:
+ * VteView:color-6-cube-3-3-4-color:
  *
  * The (3, 3, 4) color in the 6x6x6 color cube.
  *
@@ -1147,7 +1147,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-3-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-3-5-color:
+ * VteView:color-6-cube-3-3-5-color:
  *
  * The (3, 3, 5) color in the 6x6x6 color cube.
  *
@@ -1158,7 +1158,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-3-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-3-6-color:
+ * VteView:color-6-cube-3-3-6-color:
  *
  * The (3, 3, 6) color in the 6x6x6 color cube.
  *
@@ -1169,7 +1169,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-3-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-4-1-color:
+ * VteView:color-6-cube-3-4-1-color:
  *
  * The (3, 4, 1) color in the 6x6x6 color cube.
  *
@@ -1180,7 +1180,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-4-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-4-2-color:
+ * VteView:color-6-cube-3-4-2-color:
  *
  * The (3, 4, 2) color in the 6x6x6 color cube.
  *
@@ -1191,7 +1191,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-4-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-4-3-color:
+ * VteView:color-6-cube-3-4-3-color:
  *
  * The (3, 4, 3) color in the 6x6x6 color cube.
  *
@@ -1202,7 +1202,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-4-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-4-4-color:
+ * VteView:color-6-cube-3-4-4-color:
  *
  * The (3, 4, 4) color in the 6x6x6 color cube.
  *
@@ -1213,7 +1213,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-4-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-4-5-color:
+ * VteView:color-6-cube-3-4-5-color:
  *
  * The (3, 4, 5) color in the 6x6x6 color cube.
  *
@@ -1224,7 +1224,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-4-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-4-6-color:
+ * VteView:color-6-cube-3-4-6-color:
  *
  * The (3, 4, 6) color in the 6x6x6 color cube.
  *
@@ -1235,7 +1235,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-4-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-5-1-color:
+ * VteView:color-6-cube-3-5-1-color:
  *
  * The (3, 5, 1) color in the 6x6x6 color cube.
  *
@@ -1246,7 +1246,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-5-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-5-2-color:
+ * VteView:color-6-cube-3-5-2-color:
  *
  * The (3, 5, 2) color in the 6x6x6 color cube.
  *
@@ -1257,7 +1257,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-5-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-5-3-color:
+ * VteView:color-6-cube-3-5-3-color:
  *
  * The (3, 5, 3) color in the 6x6x6 color cube.
  *
@@ -1268,7 +1268,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-5-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-5-4-color:
+ * VteView:color-6-cube-3-5-4-color:
  *
  * The (3, 5, 4) color in the 6x6x6 color cube.
  *
@@ -1279,7 +1279,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-5-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-5-5-color:
+ * VteView:color-6-cube-3-5-5-color:
  *
  * The (3, 5, 5) color in the 6x6x6 color cube.
  *
@@ -1290,7 +1290,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-5-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-5-6-color:
+ * VteView:color-6-cube-3-5-6-color:
  *
  * The (3, 5, 6) color in the 6x6x6 color cube.
  *
@@ -1301,7 +1301,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-5-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-6-1-color:
+ * VteView:color-6-cube-3-6-1-color:
  *
  * The (3, 6, 1) color in the 6x6x6 color cube.
  *
@@ -1312,7 +1312,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-6-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-6-2-color:
+ * VteView:color-6-cube-3-6-2-color:
  *
  * The (3, 6, 2) color in the 6x6x6 color cube.
  *
@@ -1323,7 +1323,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-6-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-6-3-color:
+ * VteView:color-6-cube-3-6-3-color:
  *
  * The (3, 6, 3) color in the 6x6x6 color cube.
  *
@@ -1334,7 +1334,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-6-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-6-4-color:
+ * VteView:color-6-cube-3-6-4-color:
  *
  * The (3, 6, 4) color in the 6x6x6 color cube.
  *
@@ -1345,7 +1345,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-6-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-6-5-color:
+ * VteView:color-6-cube-3-6-5-color:
  *
  * The (3, 6, 5) color in the 6x6x6 color cube.
  *
@@ -1356,7 +1356,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-6-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-3-6-6-color:
+ * VteView:color-6-cube-3-6-6-color:
  *
  * The (3, 6, 6) color in the 6x6x6 color cube.
  *
@@ -1367,7 +1367,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-3-6-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-1-1-color:
+ * VteView:color-6-cube-4-1-1-color:
  *
  * The (4, 1, 1) color in the 6x6x6 color cube.
  *
@@ -1378,7 +1378,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-1-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-1-2-color:
+ * VteView:color-6-cube-4-1-2-color:
  *
  * The (4, 1, 2) color in the 6x6x6 color cube.
  *
@@ -1389,7 +1389,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-1-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-1-3-color:
+ * VteView:color-6-cube-4-1-3-color:
  *
  * The (4, 1, 3) color in the 6x6x6 color cube.
  *
@@ -1400,7 +1400,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-1-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-1-4-color:
+ * VteView:color-6-cube-4-1-4-color:
  *
  * The (4, 1, 4) color in the 6x6x6 color cube.
  *
@@ -1411,7 +1411,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-1-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-1-5-color:
+ * VteView:color-6-cube-4-1-5-color:
  *
  * The (4, 1, 5) color in the 6x6x6 color cube.
  *
@@ -1422,7 +1422,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-1-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-1-6-color:
+ * VteView:color-6-cube-4-1-6-color:
  *
  * The (4, 1, 6) color in the 6x6x6 color cube.
  *
@@ -1433,7 +1433,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-1-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-2-1-color:
+ * VteView:color-6-cube-4-2-1-color:
  *
  * The (4, 2, 1) color in the 6x6x6 color cube.
  *
@@ -1444,7 +1444,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-2-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-2-2-color:
+ * VteView:color-6-cube-4-2-2-color:
  *
  * The (4, 2, 2) color in the 6x6x6 color cube.
  *
@@ -1455,7 +1455,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-2-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-2-3-color:
+ * VteView:color-6-cube-4-2-3-color:
  *
  * The (4, 2, 3) color in the 6x6x6 color cube.
  *
@@ -1466,7 +1466,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-2-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-2-4-color:
+ * VteView:color-6-cube-4-2-4-color:
  *
  * The (4, 2, 4) color in the 6x6x6 color cube.
  *
@@ -1477,7 +1477,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-2-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-2-5-color:
+ * VteView:color-6-cube-4-2-5-color:
  *
  * The (4, 2, 5) color in the 6x6x6 color cube.
  *
@@ -1488,7 +1488,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-2-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-2-6-color:
+ * VteView:color-6-cube-4-2-6-color:
  *
  * The (4, 2, 6) color in the 6x6x6 color cube.
  *
@@ -1499,7 +1499,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-2-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-3-1-color:
+ * VteView:color-6-cube-4-3-1-color:
  *
  * The (4, 3, 1) color in the 6x6x6 color cube.
  *
@@ -1510,7 +1510,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-3-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-3-2-color:
+ * VteView:color-6-cube-4-3-2-color:
  *
  * The (4, 3, 2) color in the 6x6x6 color cube.
  *
@@ -1521,7 +1521,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-3-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-3-3-color:
+ * VteView:color-6-cube-4-3-3-color:
  *
  * The (4, 3, 3) color in the 6x6x6 color cube.
  *
@@ -1532,7 +1532,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-3-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-3-4-color:
+ * VteView:color-6-cube-4-3-4-color:
  *
  * The (4, 3, 4) color in the 6x6x6 color cube.
  *
@@ -1543,7 +1543,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-3-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-3-5-color:
+ * VteView:color-6-cube-4-3-5-color:
  *
  * The (4, 3, 5) color in the 6x6x6 color cube.
  *
@@ -1554,7 +1554,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-3-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-3-6-color:
+ * VteView:color-6-cube-4-3-6-color:
  *
  * The (4, 3, 6) color in the 6x6x6 color cube.
  *
@@ -1565,7 +1565,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-3-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-4-1-color:
+ * VteView:color-6-cube-4-4-1-color:
  *
  * The (4, 4, 1) color in the 6x6x6 color cube.
  *
@@ -1576,7 +1576,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-4-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-4-2-color:
+ * VteView:color-6-cube-4-4-2-color:
  *
  * The (4, 4, 2) color in the 6x6x6 color cube.
  *
@@ -1587,7 +1587,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-4-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-4-3-color:
+ * VteView:color-6-cube-4-4-3-color:
  *
  * The (4, 4, 3) color in the 6x6x6 color cube.
  *
@@ -1598,7 +1598,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-4-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-4-4-color:
+ * VteView:color-6-cube-4-4-4-color:
  *
  * The (4, 4, 4) color in the 6x6x6 color cube.
  *
@@ -1609,7 +1609,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-4-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-4-5-color:
+ * VteView:color-6-cube-4-4-5-color:
  *
  * The (4, 4, 5) color in the 6x6x6 color cube.
  *
@@ -1620,7 +1620,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-4-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-4-6-color:
+ * VteView:color-6-cube-4-4-6-color:
  *
  * The (4, 4, 6) color in the 6x6x6 color cube.
  *
@@ -1631,7 +1631,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-4-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-5-1-color:
+ * VteView:color-6-cube-4-5-1-color:
  *
  * The (4, 5, 1) color in the 6x6x6 color cube.
  *
@@ -1642,7 +1642,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-5-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-5-2-color:
+ * VteView:color-6-cube-4-5-2-color:
  *
  * The (4, 5, 2) color in the 6x6x6 color cube.
  *
@@ -1653,7 +1653,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-5-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-5-3-color:
+ * VteView:color-6-cube-4-5-3-color:
  *
  * The (4, 5, 3) color in the 6x6x6 color cube.
  *
@@ -1664,7 +1664,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-5-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-5-4-color:
+ * VteView:color-6-cube-4-5-4-color:
  *
  * The (4, 5, 4) color in the 6x6x6 color cube.
  *
@@ -1675,7 +1675,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-5-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-5-5-color:
+ * VteView:color-6-cube-4-5-5-color:
  *
  * The (4, 5, 5) color in the 6x6x6 color cube.
  *
@@ -1686,7 +1686,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-5-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-5-6-color:
+ * VteView:color-6-cube-4-5-6-color:
  *
  * The (4, 5, 6) color in the 6x6x6 color cube.
  *
@@ -1697,7 +1697,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-5-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-6-1-color:
+ * VteView:color-6-cube-4-6-1-color:
  *
  * The (4, 6, 1) color in the 6x6x6 color cube.
  *
@@ -1708,7 +1708,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-6-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-6-2-color:
+ * VteView:color-6-cube-4-6-2-color:
  *
  * The (4, 6, 2) color in the 6x6x6 color cube.
  *
@@ -1719,7 +1719,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-6-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-6-3-color:
+ * VteView:color-6-cube-4-6-3-color:
  *
  * The (4, 6, 3) color in the 6x6x6 color cube.
  *
@@ -1730,7 +1730,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-6-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-6-4-color:
+ * VteView:color-6-cube-4-6-4-color:
  *
  * The (4, 6, 4) color in the 6x6x6 color cube.
  *
@@ -1741,7 +1741,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-6-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-6-5-color:
+ * VteView:color-6-cube-4-6-5-color:
  *
  * The (4, 6, 5) color in the 6x6x6 color cube.
  *
@@ -1752,7 +1752,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-6-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-4-6-6-color:
+ * VteView:color-6-cube-4-6-6-color:
  *
  * The (4, 6, 6) color in the 6x6x6 color cube.
  *
@@ -1763,7 +1763,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-4-6-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-1-1-color:
+ * VteView:color-6-cube-5-1-1-color:
  *
  * The (5, 1, 1) color in the 6x6x6 color cube.
  *
@@ -1774,7 +1774,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-1-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-1-2-color:
+ * VteView:color-6-cube-5-1-2-color:
  *
  * The (5, 1, 2) color in the 6x6x6 color cube.
  *
@@ -1785,7 +1785,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-1-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-1-3-color:
+ * VteView:color-6-cube-5-1-3-color:
  *
  * The (5, 1, 3) color in the 6x6x6 color cube.
  *
@@ -1796,7 +1796,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-1-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-1-4-color:
+ * VteView:color-6-cube-5-1-4-color:
  *
  * The (5, 1, 4) color in the 6x6x6 color cube.
  *
@@ -1807,7 +1807,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-1-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-1-5-color:
+ * VteView:color-6-cube-5-1-5-color:
  *
  * The (5, 1, 5) color in the 6x6x6 color cube.
  *
@@ -1818,7 +1818,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-1-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-1-6-color:
+ * VteView:color-6-cube-5-1-6-color:
  *
  * The (5, 1, 6) color in the 6x6x6 color cube.
  *
@@ -1829,7 +1829,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-1-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-2-1-color:
+ * VteView:color-6-cube-5-2-1-color:
  *
  * The (5, 2, 1) color in the 6x6x6 color cube.
  *
@@ -1840,7 +1840,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-2-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-2-2-color:
+ * VteView:color-6-cube-5-2-2-color:
  *
  * The (5, 2, 2) color in the 6x6x6 color cube.
  *
@@ -1851,7 +1851,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-2-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-2-3-color:
+ * VteView:color-6-cube-5-2-3-color:
  *
  * The (5, 2, 3) color in the 6x6x6 color cube.
  *
@@ -1862,7 +1862,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-2-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-2-4-color:
+ * VteView:color-6-cube-5-2-4-color:
  *
  * The (5, 2, 4) color in the 6x6x6 color cube.
  *
@@ -1873,7 +1873,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-2-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-2-5-color:
+ * VteView:color-6-cube-5-2-5-color:
  *
  * The (5, 2, 5) color in the 6x6x6 color cube.
  *
@@ -1884,7 +1884,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-2-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-2-6-color:
+ * VteView:color-6-cube-5-2-6-color:
  *
  * The (5, 2, 6) color in the 6x6x6 color cube.
  *
@@ -1895,7 +1895,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-2-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-3-1-color:
+ * VteView:color-6-cube-5-3-1-color:
  *
  * The (5, 3, 1) color in the 6x6x6 color cube.
  *
@@ -1906,7 +1906,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-3-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-3-2-color:
+ * VteView:color-6-cube-5-3-2-color:
  *
  * The (5, 3, 2) color in the 6x6x6 color cube.
  *
@@ -1917,7 +1917,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-3-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-3-3-color:
+ * VteView:color-6-cube-5-3-3-color:
  *
  * The (5, 3, 3) color in the 6x6x6 color cube.
  *
@@ -1928,7 +1928,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-3-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-3-4-color:
+ * VteView:color-6-cube-5-3-4-color:
  *
  * The (5, 3, 4) color in the 6x6x6 color cube.
  *
@@ -1939,7 +1939,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-3-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-3-5-color:
+ * VteView:color-6-cube-5-3-5-color:
  *
  * The (5, 3, 5) color in the 6x6x6 color cube.
  *
@@ -1950,7 +1950,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-3-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-3-6-color:
+ * VteView:color-6-cube-5-3-6-color:
  *
  * The (5, 3, 6) color in the 6x6x6 color cube.
  *
@@ -1961,7 +1961,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-3-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-4-1-color:
+ * VteView:color-6-cube-5-4-1-color:
  *
  * The (5, 4, 1) color in the 6x6x6 color cube.
  *
@@ -1972,7 +1972,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-4-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-4-2-color:
+ * VteView:color-6-cube-5-4-2-color:
  *
  * The (5, 4, 2) color in the 6x6x6 color cube.
  *
@@ -1983,7 +1983,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-4-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-4-3-color:
+ * VteView:color-6-cube-5-4-3-color:
  *
  * The (5, 4, 3) color in the 6x6x6 color cube.
  *
@@ -1994,7 +1994,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-4-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-4-4-color:
+ * VteView:color-6-cube-5-4-4-color:
  *
  * The (5, 4, 4) color in the 6x6x6 color cube.
  *
@@ -2005,7 +2005,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-4-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-4-5-color:
+ * VteView:color-6-cube-5-4-5-color:
  *
  * The (5, 4, 5) color in the 6x6x6 color cube.
  *
@@ -2016,7 +2016,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-4-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-4-6-color:
+ * VteView:color-6-cube-5-4-6-color:
  *
  * The (5, 4, 6) color in the 6x6x6 color cube.
  *
@@ -2027,7 +2027,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-4-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-5-1-color:
+ * VteView:color-6-cube-5-5-1-color:
  *
  * The (5, 5, 1) color in the 6x6x6 color cube.
  *
@@ -2038,7 +2038,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-5-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-5-2-color:
+ * VteView:color-6-cube-5-5-2-color:
  *
  * The (5, 5, 2) color in the 6x6x6 color cube.
  *
@@ -2049,7 +2049,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-5-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-5-3-color:
+ * VteView:color-6-cube-5-5-3-color:
  *
  * The (5, 5, 3) color in the 6x6x6 color cube.
  *
@@ -2060,7 +2060,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-5-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-5-4-color:
+ * VteView:color-6-cube-5-5-4-color:
  *
  * The (5, 5, 4) color in the 6x6x6 color cube.
  *
@@ -2071,7 +2071,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-5-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-5-5-color:
+ * VteView:color-6-cube-5-5-5-color:
  *
  * The (5, 5, 5) color in the 6x6x6 color cube.
  *
@@ -2082,7 +2082,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-5-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-5-6-color:
+ * VteView:color-6-cube-5-5-6-color:
  *
  * The (5, 5, 6) color in the 6x6x6 color cube.
  *
@@ -2093,7 +2093,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-5-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-6-1-color:
+ * VteView:color-6-cube-5-6-1-color:
  *
  * The (5, 6, 1) color in the 6x6x6 color cube.
  *
@@ -2104,7 +2104,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-6-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-6-2-color:
+ * VteView:color-6-cube-5-6-2-color:
  *
  * The (5, 6, 2) color in the 6x6x6 color cube.
  *
@@ -2115,7 +2115,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-6-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-6-3-color:
+ * VteView:color-6-cube-5-6-3-color:
  *
  * The (5, 6, 3) color in the 6x6x6 color cube.
  *
@@ -2126,7 +2126,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-6-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-6-4-color:
+ * VteView:color-6-cube-5-6-4-color:
  *
  * The (5, 6, 4) color in the 6x6x6 color cube.
  *
@@ -2137,7 +2137,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-6-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-6-5-color:
+ * VteView:color-6-cube-5-6-5-color:
  *
  * The (5, 6, 5) color in the 6x6x6 color cube.
  *
@@ -2148,7 +2148,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-6-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-5-6-6-color:
+ * VteView:color-6-cube-5-6-6-color:
  *
  * The (5, 6, 6) color in the 6x6x6 color cube.
  *
@@ -2159,7 +2159,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-5-6-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-1-1-color:
+ * VteView:color-6-cube-6-1-1-color:
  *
  * The (6, 1, 1) color in the 6x6x6 color cube.
  *
@@ -2170,7 +2170,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-1-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-1-2-color:
+ * VteView:color-6-cube-6-1-2-color:
  *
  * The (6, 1, 2) color in the 6x6x6 color cube.
  *
@@ -2181,7 +2181,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-1-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-1-3-color:
+ * VteView:color-6-cube-6-1-3-color:
  *
  * The (6, 1, 3) color in the 6x6x6 color cube.
  *
@@ -2192,7 +2192,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-1-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-1-4-color:
+ * VteView:color-6-cube-6-1-4-color:
  *
  * The (6, 1, 4) color in the 6x6x6 color cube.
  *
@@ -2203,7 +2203,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-1-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-1-5-color:
+ * VteView:color-6-cube-6-1-5-color:
  *
  * The (6, 1, 5) color in the 6x6x6 color cube.
  *
@@ -2214,7 +2214,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-1-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-1-6-color:
+ * VteView:color-6-cube-6-1-6-color:
  *
  * The (6, 1, 6) color in the 6x6x6 color cube.
  *
@@ -2225,7 +2225,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-1-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-2-1-color:
+ * VteView:color-6-cube-6-2-1-color:
  *
  * The (6, 2, 1) color in the 6x6x6 color cube.
  *
@@ -2236,7 +2236,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-2-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-2-2-color:
+ * VteView:color-6-cube-6-2-2-color:
  *
  * The (6, 2, 2) color in the 6x6x6 color cube.
  *
@@ -2247,7 +2247,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-2-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-2-3-color:
+ * VteView:color-6-cube-6-2-3-color:
  *
  * The (6, 2, 3) color in the 6x6x6 color cube.
  *
@@ -2258,7 +2258,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-2-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-2-4-color:
+ * VteView:color-6-cube-6-2-4-color:
  *
  * The (6, 2, 4) color in the 6x6x6 color cube.
  *
@@ -2269,7 +2269,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-2-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-2-5-color:
+ * VteView:color-6-cube-6-2-5-color:
  *
  * The (6, 2, 5) color in the 6x6x6 color cube.
  *
@@ -2280,7 +2280,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-2-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-2-6-color:
+ * VteView:color-6-cube-6-2-6-color:
  *
  * The (6, 2, 6) color in the 6x6x6 color cube.
  *
@@ -2291,7 +2291,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-2-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-3-1-color:
+ * VteView:color-6-cube-6-3-1-color:
  *
  * The (6, 3, 1) color in the 6x6x6 color cube.
  *
@@ -2302,7 +2302,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-3-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-3-2-color:
+ * VteView:color-6-cube-6-3-2-color:
  *
  * The (6, 3, 2) color in the 6x6x6 color cube.
  *
@@ -2313,7 +2313,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-3-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-3-3-color:
+ * VteView:color-6-cube-6-3-3-color:
  *
  * The (6, 3, 3) color in the 6x6x6 color cube.
  *
@@ -2324,7 +2324,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-3-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-3-4-color:
+ * VteView:color-6-cube-6-3-4-color:
  *
  * The (6, 3, 4) color in the 6x6x6 color cube.
  *
@@ -2335,7 +2335,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-3-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-3-5-color:
+ * VteView:color-6-cube-6-3-5-color:
  *
  * The (6, 3, 5) color in the 6x6x6 color cube.
  *
@@ -2346,7 +2346,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-3-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-3-6-color:
+ * VteView:color-6-cube-6-3-6-color:
  *
  * The (6, 3, 6) color in the 6x6x6 color cube.
  *
@@ -2357,7 +2357,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-3-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-4-1-color:
+ * VteView:color-6-cube-6-4-1-color:
  *
  * The (6, 4, 1) color in the 6x6x6 color cube.
  *
@@ -2368,7 +2368,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-4-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-4-2-color:
+ * VteView:color-6-cube-6-4-2-color:
  *
  * The (6, 4, 2) color in the 6x6x6 color cube.
  *
@@ -2379,7 +2379,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-4-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-4-3-color:
+ * VteView:color-6-cube-6-4-3-color:
  *
  * The (6, 4, 3) color in the 6x6x6 color cube.
  *
@@ -2390,7 +2390,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-4-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-4-4-color:
+ * VteView:color-6-cube-6-4-4-color:
  *
  * The (6, 4, 4) color in the 6x6x6 color cube.
  *
@@ -2401,7 +2401,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-4-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-4-5-color:
+ * VteView:color-6-cube-6-4-5-color:
  *
  * The (6, 4, 5) color in the 6x6x6 color cube.
  *
@@ -2412,7 +2412,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-4-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-4-6-color:
+ * VteView:color-6-cube-6-4-6-color:
  *
  * The (6, 4, 6) color in the 6x6x6 color cube.
  *
@@ -2423,7 +2423,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-4-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-5-1-color:
+ * VteView:color-6-cube-6-5-1-color:
  *
  * The (6, 5, 1) color in the 6x6x6 color cube.
  *
@@ -2434,7 +2434,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-5-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-5-2-color:
+ * VteView:color-6-cube-6-5-2-color:
  *
  * The (6, 5, 2) color in the 6x6x6 color cube.
  *
@@ -2445,7 +2445,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-5-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-5-3-color:
+ * VteView:color-6-cube-6-5-3-color:
  *
  * The (6, 5, 3) color in the 6x6x6 color cube.
  *
@@ -2456,7 +2456,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-5-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-5-4-color:
+ * VteView:color-6-cube-6-5-4-color:
  *
  * The (6, 5, 4) color in the 6x6x6 color cube.
  *
@@ -2467,7 +2467,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-5-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-5-5-color:
+ * VteView:color-6-cube-6-5-5-color:
  *
  * The (6, 5, 5) color in the 6x6x6 color cube.
  *
@@ -2478,7 +2478,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-5-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-5-6-color:
+ * VteView:color-6-cube-6-5-6-color:
  *
  * The (6, 5, 6) color in the 6x6x6 color cube.
  *
@@ -2489,7 +2489,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-5-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-6-1-color:
+ * VteView:color-6-cube-6-6-1-color:
  *
  * The (6, 6, 1) color in the 6x6x6 color cube.
  *
@@ -2500,7 +2500,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-6-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-6-2-color:
+ * VteView:color-6-cube-6-6-2-color:
  *
  * The (6, 6, 2) color in the 6x6x6 color cube.
  *
@@ -2511,7 +2511,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-6-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-6-3-color:
+ * VteView:color-6-cube-6-6-3-color:
  *
  * The (6, 6, 3) color in the 6x6x6 color cube.
  *
@@ -2522,7 +2522,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-6-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-6-4-color:
+ * VteView:color-6-cube-6-6-4-color:
  *
  * The (6, 6, 4) color in the 6x6x6 color cube.
  *
@@ -2533,7 +2533,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-6-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-6-5-color:
+ * VteView:color-6-cube-6-6-5-color:
  *
  * The (6, 6, 5) color in the 6x6x6 color cube.
  *
@@ -2544,7 +2544,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-6-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:color-6-cube-6-6-6-color:
+ * VteView:color-6-cube-6-6-6-color:
  *
  * The (6, 6, 6) color in the 6x6x6 color cube.
  *
@@ -2555,7 +2555,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color-6-cube-6-6-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-1-color:
+ * VteView:shade-24-shades-1-color:
  *
  * The 1th shade in the palette's shade ramp.
  *
@@ -2566,7 +2566,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("color
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-1-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-2-color:
+ * VteView:shade-24-shades-2-color:
  *
  * The 2th shade in the palette's shade ramp.
  *
@@ -2577,7 +2577,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-2-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-3-color:
+ * VteView:shade-24-shades-3-color:
  *
  * The 3th shade in the palette's shade ramp.
  *
@@ -2588,7 +2588,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-3-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-4-color:
+ * VteView:shade-24-shades-4-color:
  *
  * The 4th shade in the palette's shade ramp.
  *
@@ -2599,7 +2599,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-4-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-5-color:
+ * VteView:shade-24-shades-5-color:
  *
  * The 5th shade in the palette's shade ramp.
  *
@@ -2610,7 +2610,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-5-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-6-color:
+ * VteView:shade-24-shades-6-color:
  *
  * The 6th shade in the palette's shade ramp.
  *
@@ -2621,7 +2621,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-6-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-7-color:
+ * VteView:shade-24-shades-7-color:
  *
  * The 7th shade in the palette's shade ramp.
  *
@@ -2632,7 +2632,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-7-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-8-color:
+ * VteView:shade-24-shades-8-color:
  *
  * The 8th shade in the palette's shade ramp.
  *
@@ -2643,7 +2643,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-8-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-9-color:
+ * VteView:shade-24-shades-9-color:
  *
  * The 9th shade in the palette's shade ramp.
  *
@@ -2654,7 +2654,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-9-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-10-color:
+ * VteView:shade-24-shades-10-color:
  *
  * The 10th shade in the palette's shade ramp.
  *
@@ -2665,7 +2665,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-10-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-11-color:
+ * VteView:shade-24-shades-11-color:
  *
  * The 11th shade in the palette's shade ramp.
  *
@@ -2676,7 +2676,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-11-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-12-color:
+ * VteView:shade-24-shades-12-color:
  *
  * The 12th shade in the palette's shade ramp.
  *
@@ -2687,7 +2687,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-12-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-13-color:
+ * VteView:shade-24-shades-13-color:
  *
  * The 13th shade in the palette's shade ramp.
  *
@@ -2698,7 +2698,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-13-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-14-color:
+ * VteView:shade-24-shades-14-color:
  *
  * The 14th shade in the palette's shade ramp.
  *
@@ -2709,7 +2709,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-14-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-15-color:
+ * VteView:shade-24-shades-15-color:
  *
  * The 15th shade in the palette's shade ramp.
  *
@@ -2720,7 +2720,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-15-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-16-color:
+ * VteView:shade-24-shades-16-color:
  *
  * The 16th shade in the palette's shade ramp.
  *
@@ -2731,7 +2731,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-16-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-17-color:
+ * VteView:shade-24-shades-17-color:
  *
  * The 17th shade in the palette's shade ramp.
  *
@@ -2742,7 +2742,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-17-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-18-color:
+ * VteView:shade-24-shades-18-color:
  *
  * The 18th shade in the palette's shade ramp.
  *
@@ -2753,7 +2753,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-18-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-19-color:
+ * VteView:shade-24-shades-19-color:
  *
  * The 19th shade in the palette's shade ramp.
  *
@@ -2764,7 +2764,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-19-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-20-color:
+ * VteView:shade-24-shades-20-color:
  *
  * The 20th shade in the palette's shade ramp.
  *
@@ -2775,7 +2775,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-20-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-21-color:
+ * VteView:shade-24-shades-21-color:
  *
  * The 21th shade in the palette's shade ramp.
  *
@@ -2786,7 +2786,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-21-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-22-color:
+ * VteView:shade-24-shades-22-color:
  *
  * The 22th shade in the palette's shade ramp.
  *
@@ -2797,7 +2797,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-22-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-23-color:
+ * VteView:shade-24-shades-23-color:
  *
  * The 23th shade in the palette's shade ramp.
  *
@@ -2808,7 +2808,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-23-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:shade-24-shades-24-color:
+ * VteView:shade-24-shades-24-color:
  *
  * The 24th shade in the palette's shade ramp.
  *
@@ -2819,7 +2819,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade-24-shades-24-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:foreground-color:
+ * VteView:foreground-color:
  *
  * The foreground color.
  *
@@ -2830,7 +2830,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("shade
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("foreground-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:background-color:
+ * VteView:background-color:
  *
  * The background color.
  *
@@ -2841,7 +2841,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("foreg
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("background-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:bold-foreground-color:
+ * VteView:bold-foreground-color:
  *
  * The color used for bold text. If unset, the terminal will use a suitable combination of the foreground and background color.
  *
@@ -2852,7 +2852,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("backg
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bold-foreground-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:dim-foreground-color:
+ * VteView:dim-foreground-color:
  *
  * The color used for dim text. If unset, the terminal will use a suitable combination of the foreground and background color.
  *
@@ -2863,7 +2863,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("bold-
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("dim-foreground-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:selection-background-color:
+ * VteView:selection-background-color:
  *
  * The selection background color. If unset, the terminal will show selected text with reversed foreground and background.
  *
@@ -2874,7 +2874,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("dim-f
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("selection-background-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:cursor-background-color:
+ * VteView:cursor-background-color:
  *
  * The cursor background color. If unset, the terminal will show the cursor with reversed foreground and background.
  *
@@ -2885,7 +2885,7 @@ gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("selec
 gtk_widget_class_install_style_property(widget_class, g_param_spec_boxed ("cursor-background-color", NULL, NULL, GDK_TYPE_RGBA, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 /**
- * VteTerminal:reverse-background-color:
+ * VteView:reverse-background-color:
  *
  * The background color used for reversed text. If unset, the terminal will show reversed text with reversed foreground and background.
  *

@@ -159,8 +159,8 @@ struct _VteBufferClassPrivate {
 };
 
 struct _VteBufferPrivate {
-        /* The VteTerminal that's displaying this buffer */
-        VteTerminal *terminal;
+        /* The VteView that's displaying this buffer */
+        VteView *terminal;
 
         /* Metric and sizing data: dimensions of the window */
         glong row_count;
@@ -171,7 +171,7 @@ struct _VteBufferPrivate {
 	struct _vte_matcher *matcher;	/* control sequence matcher */
 	const char *termcap_path;	/* path to termcap file */
 	const char *emulation;		/* terminal type to emulate */
-	struct vte_terminal_flags {	/* boolean termcap flags */
+	struct vte_view_flags {	/* boolean termcap flags */
 		gboolean am;
 		gboolean bw;
 		gboolean LP;
@@ -296,7 +296,7 @@ struct _VteBufferPrivate {
         
 };
 
-struct _VteTerminalPrivate {
+struct _VteViewPrivate {
         VteBuffer *buffer;
         VteBufferPrivate *buffer_pvt;
 
@@ -442,39 +442,39 @@ struct _VteTerminalPrivate {
 
 };
 
-struct _VteTerminalClassPrivate {
+struct _VteViewClassPrivate {
         GtkStyleProvider *style_provider;
 };
 
-void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
-void _vte_invalidate_all(VteTerminal *terminal);
-void _vte_invalidate_cells(VteTerminal *terminal,
+void _vte_view_set_pointer_visible(VteView *terminal, gboolean visible);
+void _vte_invalidate_all(VteView *terminal);
+void _vte_invalidate_cells(VteView *terminal,
 			   glong column_start, gint column_count,
 			   glong row_start, gint row_count);
-void _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row);
-void _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic);
-void _vte_terminal_adjust_adjustments(VteTerminal *terminal);
-void _vte_terminal_scroll_region(VteTerminal *terminal,
+void _vte_invalidate_cell(VteView *terminal, glong col, glong row);
+void _vte_invalidate_cursor_once(VteView *terminal, gboolean periodic);
+void _vte_view_adjust_adjustments(VteView *terminal);
+void _vte_view_scroll_region(VteView *terminal,
 				 long row, glong count, glong delta);
 
-gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,
+gboolean _vte_view_xy_to_grid(VteView *terminal,
                                   long x,
                                   long y,
                                   long *col,
                                   long *row);
-gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
+gboolean _vte_view_size_to_grid_size(VteView *terminal,
                                          long w,
                                          long h,
                                          long *cols,
                                          long *rows);
 
-void _vte_terminal_set_effect_color(VteTerminal *terminal,
+void _vte_view_set_effect_color(VteView *terminal,
                                     int entry,
                                     const GdkRGBA *rgba,
                                     VteEffect effect,
                                     gboolean override);
 
-gboolean _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
+gboolean _vte_view_is_word_char(VteView *terminal, gunichar c);
 
 /* private VteBuffer methods */
 

@@ -590,7 +590,7 @@ _vte_ring_write_row (VteRing *ring,
  * _vte_ring_write_contents_sync:
  * @ring: a #VteRing
  * @stream: a #GOutputStream to write to
- * @flags: a set of #VteTerminalWriteFlags
+ * @flags: a set of #VteViewWriteFlags
  * @cancellable: optional #GCancellable object, %NULL to ignore
  * @error: a #GError location to store the error occuring, or %NULL to ignore
  *

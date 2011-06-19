@@ -26,60 +26,60 @@
 
 G_BEGIN_DECLS
 
-#define VTE_TYPE_TERMINAL_ACCESSIBLE            (_vte_terminal_accessible_get_type ())
-#define VTE_TERMINAL_ACCESSIBLE(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), VTE_TYPE_TERMINAL_ACCESSIBLE, VteTerminalAccessible))
-#define VTE_TERMINAL_ACCESSIBLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), VTE_TYPE_TERMINAL_ACCESSIBLE, VteTerminalAccessibleClass))
-#define VTE_IS_TERMINAL_ACCESSIBLE(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), VTE_TYPE_TERMINAL_ACCESSIBLE))
-#define VTE_IS_TERMINAL_ACCESSIBLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), VTE_TYPE_TERMINAL_ACCESSIBLE))
-#define VTE_TERMINAL_ACCESSIBLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL_ACCESSIBLE, VteTerminalAccessibleClass))
+#define VTE_TYPE_VIEW_ACCESSIBLE            (_vte_view_accessible_get_type ())
+#define VTE_VIEW_ACCESSIBLE(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), VTE_TYPE_VIEW_ACCESSIBLE, VteViewAccessible))
+#define VTE_VIEW_ACCESSIBLE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), VTE_TYPE_VIEW_ACCESSIBLE, VteViewAccessibleClass))
+#define VTE_IS_VIEW_ACCESSIBLE(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), VTE_TYPE_VIEW_ACCESSIBLE))
+#define VTE_IS_VIEW_ACCESSIBLE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), VTE_TYPE_VIEW_ACCESSIBLE))
+#define VTE_VIEW_ACCESSIBLE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_VIEW_ACCESSIBLE, VteViewAccessibleClass))
 
-typedef struct _VteTerminalAccessible VteTerminalAccessible;
-typedef struct _VteTerminalAccessibleClass VteTerminalAccessibleClass;
+typedef struct _VteViewAccessible VteViewAccessible;
+typedef struct _VteViewAccessibleClass VteViewAccessibleClass;
 
 /**
- * VteTerminalAccessible:
+ * VteViewAccessible:
  *
- * The accessible peer for #VteTerminal.
+ * The accessible peer for #VteView.
  */
-struct _VteTerminalAccessible {
+struct _VteViewAccessible {
 	GtkAccessible parent;
 	/*< private > */
 	/* Unknown GailWidget implementation stuffs, exact size of which is
 	 * worked out at run-time. */
 };
 
-struct _VteTerminalAccessibleClass {
+struct _VteViewAccessibleClass {
 	GtkAccessibleClass parent_class;
 	/*< private > */
 	/* Unknown GailWidgetClass implementation stuffs, exact size of which
 	 * is worked out at run-time. */
 };
 
-GType _vte_terminal_accessible_get_type(void);
+GType _vte_view_accessible_get_type(void);
 
-AtkObject *_vte_terminal_accessible_new(VteTerminal *terminal);
+AtkObject *_vte_view_accessible_new(VteView *terminal);
 
-#define VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY            (_vte_terminal_accessible_factory_get_type ())
-#define VTE_TERMINAL_ACCESSIBLE_FACTORY(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, VteTerminalAccessibleFactory))
-#define VTE_TERMINAL_ACCESSIBLE_FACTORY_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, VteTerminalAccessibleFactoryClass))
-#define VTE_IS_TERMINAL_ACCESSIBLE_FACTORY(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY))
-#define VTE_IS_TERMINAL_ACCESSIBLE_FACTORY_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY))
-#define VTE_TERMINAL_ACCESSIBLE_FACTORY_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY, VteTerminalAccessibleFactoryClass))
+#define VTE_TYPE_VIEW_ACCESSIBLE_FACTORY            (_vte_view_accessible_factory_get_type ())
+#define VTE_VIEW_ACCESSIBLE_FACTORY(object)         (G_TYPE_CHECK_INSTANCE_CAST ((object), VTE_TYPE_VIEW_ACCESSIBLE_FACTORY, VteViewAccessibleFactory))
+#define VTE_VIEW_ACCESSIBLE_FACTORY_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), VTE_TYPE_VIEW_ACCESSIBLE_FACTORY, VteViewAccessibleFactoryClass))
+#define VTE_IS_VIEW_ACCESSIBLE_FACTORY(object)      (G_TYPE_CHECK_INSTANCE_TYPE ((object), VTE_TYPE_VIEW_ACCESSIBLE_FACTORY))
+#define VTE_IS_VIEW_ACCESSIBLE_FACTORY_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), VTE_TYPE_VIEW_ACCESSIBLE_FACTORY))
+#define VTE_VIEW_ACCESSIBLE_FACTORY_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), VTE_TYPE_VIEW_ACCESSIBLE_FACTORY, VteViewAccessibleFactoryClass))
 
-typedef struct _VteTerminalAccessibleFactory VteTerminalAccessibleFactory;
-typedef struct _VteTerminalAccessibleFactoryClass VteTerminalAccessibleFactoryClass;
+typedef struct _VteViewAccessibleFactory VteViewAccessibleFactory;
+typedef struct _VteViewAccessibleFactoryClass VteViewAccessibleFactoryClass;
 
-struct _VteTerminalAccessibleFactory {
+struct _VteViewAccessibleFactory {
 	AtkObjectFactory parent;
 };
 
-struct _VteTerminalAccessibleFactoryClass {
+struct _VteViewAccessibleFactoryClass {
 	AtkObjectFactoryClass parent;
 };
 
-GType _vte_terminal_accessible_factory_get_type(void);
+GType _vte_view_accessible_factory_get_type(void);
 
-AtkObjectFactory *_vte_terminal_accessible_factory_new(void);
+AtkObjectFactory *_vte_view_accessible_factory_new(void);
 
 G_END_DECLS
 

@@ -418,7 +418,7 @@ __vte_pty_merge_environ (char **envp, const char *term_value)
  * Uses g_spawn_async() to spawn the command in @argv. The child's environment will
  * be the parent environment with the variables in @envv set afterwards.
  *
- * Enforces the vte_terminal_watch_child() requirements by adding
+ * Enforces the vte_view_watch_child() requirements by adding
  * %G_SPAWN_DO_NOT_REAP_CHILD to @spawn_flags.
  *
  * Note that the %G_SPAWN_LEAVE_DESCRIPTORS_OPEN flag is not supported;
@@ -732,7 +732,7 @@ _vte_pty_getpt(GError **error)
         }
 
 	/* Set it to blocking. */
-        /* FIXMEchpe: why?? vte_terminal_set_pty does the inverse... */
+        /* FIXMEchpe: why?? vte_view_set_pty does the inverse... */
         flags = rv & ~(O_NONBLOCK);
         rv = fcntl(fd, F_SETFL, flags);
         if (rv < 0) {

@@ -95,7 +95,7 @@ write_style_property (const char *property_name,
         color_string = gdk_rgba_to_string (color);
 
         g_print ("/**\n"
-                 " * VteTerminal:%s:\n"
+                 " * VteView:%s:\n"
                  " *\n"
                  " * %s\n"
                  " *\n"
@@ -126,7 +126,7 @@ write_css_property (const char *property_name,
                 return;
 
         color_string = gdk_rgba_to_string (color);
-        g_print ("\"-VteTerminal-%s: %s;\\n\"\n",
+        g_print ("\"-VteView-%s: %s;\\n\"\n",
                  property_name,
                  color_string);
         g_free (color_string);

@@ -53,15 +53,15 @@ terminal_adjustment_text_view(GtkWidget *terminal)
 #endif
 #ifdef USE_VTE
 /*
- * Implementation for a VteTerminal widget.
+ * Implementation for a VteView widget.
  */
 static void
 terminal_init_vte(GtkWidget **terminal)
 {
         VteBuffer *buffer;
 
-	*terminal = vte_terminal_new();
-        buffer = vte_terminal_get_buffer(VTE_TERMINAL(*terminal));
+	*terminal = vte_view_new();
+        buffer = vte_view_get_buffer(VTE_VIEW(*terminal));
 	g_signal_connect(buffer, "eof",
 			 G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(buffer, "child-exited",
@@ -74,7 +74,7 @@ terminal_shell_vte(GtkWidget *terminal)
 
         argv[0] = vte_get_user_shell ();
         argv[1] = NULL;
-	vte_terminal_fork_command_full(VTE_TERMINAL(terminal),
+	vte_view_fork_command_full(VTE_VIEW(terminal),
                                        VTE_PTY_DEFAULT,
                                        g_get_home_dir() ? g_get_home_dir() : NULL,
                                        argv,

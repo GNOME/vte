@@ -56,7 +56,7 @@
       <xi:include href="xml/vte-buffer.xml"/>
     </chapter>
     <chapter>
-      <xi:include href="xml/vte-terminal.xml"/>
+      <xi:include href="xml/vte-view.xml"/>
     </chapter>
     <chapter>
       <xi:include href="xml/vte-pty.xml"/>

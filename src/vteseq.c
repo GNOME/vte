@@ -664,7 +664,7 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 		 NULL, NULL,},
 	};
 
-        VteTerminal *terminal;
+        VteView *terminal;
 
         terminal = buffer->pvt->terminal;
         /* FIXMEchpe cope with NULL here !!! */
@@ -791,7 +791,7 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 	case 1002:
 	case 1003:
 		/* Make the pointer visible. */
-                _vte_terminal_set_pointer_visible(buffer->pvt->terminal, TRUE);
+                _vte_view_set_pointer_visible(buffer->pvt->terminal, TRUE);
 		break;
 	case 66:
 		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
@@ -1857,7 +1857,7 @@ vte_sequence_handler_sf (VteBuffer *buffer, GValueArray *params)
 static void
 vte_sequence_handler_SF (VteBuffer *buffer, GValueArray *params)
 {
-	/* XXX implement this directly in _vte_terminal_cursor_down */
+	/* XXX implement this directly in _vte_view_cursor_down */
 	vte_sequence_handler_multiple(buffer, params, vte_sequence_handler_sf);
 }
 
@@ -2961,7 +2961,7 @@ vte_sequence_handler_soft_reset (VteBuffer *buffer, GValueArray *params)
 static void
 vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params)
 {
-        VteTerminal *terminal;
+        VteView *terminal;
 	GdkScreen *gscreen;
 	VteScreen *screen;
 	GValue *value;
@@ -3212,7 +3212,7 @@ vte_sequence_handler_change_cursor_color (VteBuffer *buffer, GValueArray *params
 			return;
 
 		if (vte_parse_color (name, &color))
-			_vte_terminal_set_effect_color(buffer->pvt->terminal, VTE_CUR_BG, &color,
+			_vte_view_set_effect_color(buffer->pvt->terminal, VTE_CUR_BG, &color,
                                                        VTE_EFFECT_COLOR, TRUE);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
