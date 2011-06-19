@@ -10517,7 +10517,7 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
         VteBuffer *buffer;
 	VteScreen *screen;
 	int row, drow, col, columns;
-	long width, height, ascent, descent, delta;
+	long width, height, delta;
 	int i, len;
 	guint fore, back;
 
@@ -10532,8 +10532,6 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	/* Keep local copies of rendering information. */
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
-	ascent = terminal->pvt->char_ascent;
-	descent = terminal->pvt->char_descent;
 	delta = screen->scroll_delta;
 
 	drow = screen->cursor_current.row;
