@@ -3264,10 +3264,10 @@ _vte_sequence_get_handler (const char *name)
 
 /* Handle a terminal control sequence and its parameters. */
 void
-_vte_terminal_handle_sequence(VteBuffer *buffer,
-			      const char *match_s,
-			      GQuark match G_GNUC_UNUSED,
-			      GValueArray *params)
+_vte_buffer_handle_sequence(VteBuffer *buffer,
+                            const char *match_s,
+                            GQuark match G_GNUC_UNUSED,
+                            GValueArray *params)
 {
 	VteSequenceHandler handler;
 

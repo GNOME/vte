@@ -504,10 +504,10 @@ void _vte_buffer_emit_text_deleted(VteBuffer *buffer);
 void _vte_buffer_emit_text_inserted(VteBuffer *buffer);
 void _vte_buffer_emit_bell(VteBuffer *buffer, VteBellType bell_type);
 void _vte_buffer_queue_contents_changed(VteBuffer *buffer);
-void _vte_terminal_handle_sequence(VteBuffer *buffer,
-                                   const char *match_s,
-                                   GQuark match,
-                                   GValueArray *params);
+void _vte_buffer_handle_sequence(VteBuffer *buffer,
+                                 const char *match_s,
+                                 GQuark match,
+                                 GValueArray *params);
 void _vte_buffer_view_adjust_adjustments(VteBuffer *buffer);
 void _vte_buffer_view_invalidate_all(VteBuffer *buffer);
 void _vte_buffer_view_invalidate_cells(VteBuffer *buffer,

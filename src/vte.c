@@ -3472,7 +3472,7 @@ skip_chunk:
 		if ((match != NULL) && (match[0] != '\0')) {
 			/* Call the right sequence handler for the requested
 			 * behavior. */
-			_vte_terminal_handle_sequence(buffer,
+			_vte_buffer_handle_sequence(buffer,
 						      match,
 						      quark,
 						      params);
