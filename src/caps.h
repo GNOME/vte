@@ -49,7 +49,7 @@ struct _vte_capability_string {
 };
 
 /* The known capability strings in termcap entries, terminated by NULLs. */
-extern struct _vte_capability_quark _vte_terminal_capability_strings[];
+extern struct _vte_capability_quark _vte_capability_strings[];
 
 /* The xterm-specific terminal control strings, terminated by NULLs. */
 extern struct _vte_capability_string _vte_xterm_capability_strings[];

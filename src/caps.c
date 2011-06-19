@@ -41,7 +41,7 @@
 
 /* This list combined from the Linux termcap(5) man page, and
  * termcap_&_terminfo by Strang, Mui, and O'Reilly. */
-struct _vte_capability_quark _vte_terminal_capability_strings[] = {
+struct _vte_capability_quark _vte_capability_strings[] = {
 	{"!1", TRUE, 0},
 	{"!2", TRUE, 0},
 	{"!3", TRUE, 0},
@@ -568,7 +568,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 /**
  * vte_capability_init:
  *
- * Initializes the vte_terminal_capability_strings and
+ * Initializes the vte_capability_strings and
  * vte_xterm_capability_strings structures used by the terminal.  Can
  * be called multiple times without ill effect.
  *
@@ -579,12 +579,12 @@ void
 _vte_capability_init(void)
 {
 	unsigned int i;
-	for (i = 0; _vte_terminal_capability_strings[i].capability[0]; i++) {
+	for (i = 0; _vte_capability_strings[i].capability[0]; i++) {
 		const char *tmp;
 		GQuark quark;
-		tmp = _vte_terminal_capability_strings[i].capability;
+		tmp = _vte_capability_strings[i].capability;
 		quark = g_quark_from_static_string(tmp);
-		_vte_terminal_capability_strings[i].quark = quark;
+		_vte_capability_strings[i].quark = quark;
 	}
 	for (i = 0; i < G_N_ELEMENTS(_vte_xterm_capability_strings); i++) {
 		const char *tmp;

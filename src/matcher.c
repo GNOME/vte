@@ -68,12 +68,12 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 		/* Load the known capability strings from the termcap
 		 * structure into the table for recognition. */
 		for (i = 0;
-				_vte_terminal_capability_strings[i].capability[0];
+				_vte_capability_strings[i].capability[0];
 				i++) {
-			if (_vte_terminal_capability_strings[i].key) {
+			if (_vte_capability_strings[i].key) {
 				continue;
 			}
-			code = _vte_terminal_capability_strings[i].capability;
+			code = _vte_capability_strings[i].capability;
 			stripped = _vte_termcap_find_string_length(termcap,
 					emulation,
 					code,
