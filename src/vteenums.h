@@ -23,6 +23,8 @@
 #ifndef VTE_ENUMS_H
 #define VTE_ENUMS_H
 
+#include <glib.h>
+
 G_BEGIN_DECLS
 
 /**

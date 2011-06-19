@@ -19,11 +19,6 @@
 #ifndef __VTE_H__
 #define __VTE_H__
 
-#include <glib.h>
-#include <gio/gio.h>
-#include <pango/pango.h>
-#include <gtk/gtk.h>
-
 #define __VTE_VTE_H_INSIDE__ 1
 
 #include "vteenums.h"
