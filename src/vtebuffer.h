@@ -39,9 +39,8 @@ typedef struct _VteBufferIter VteBufferIter;
  * FIXMEchpe
  */
 struct _VteBufferIter {
-        glong dummy1;
-        glong dummy2;
-        gpointer dummy3;
+        glong dummy0[2];
+        gpointer dummy1[2];
 };
 
 /* VteBuffer object */

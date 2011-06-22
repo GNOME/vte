@@ -13559,6 +13559,9 @@ vte_view_iter_is_visible(VteView *view,
         if (vte_buffer_iter_is_valid(iter, buffer))
                 return FALSE;
 
+        if (real_iter->screen != buffer->pvt->screen)
+                return FALSE;
+
         row = real_iter->position.row - buffer->pvt->screen->scroll_delta;
 
         return row >= 0 && row < buffer->pvt->row_count;
@@ -14465,6 +14468,7 @@ _vte_buffer_iter_init(VteBufferIterReal *real_iter,
         g_return_if_fail(real_iter != NULL);
 
         real_iter->buffer = buffer;
+        real_iter->screen = buffer->pvt->screen;
         memset(&real_iter->position, 0, sizeof(real_iter->position));
 }
 

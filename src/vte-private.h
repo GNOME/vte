@@ -151,6 +151,7 @@ typedef struct _VteBufferIterReal VteBufferIterReal;
 struct _VteBufferIterReal {
         VteVisualPosition position;
         VteBuffer *buffer;
+        VteScreen *screen;
 };
 G_STATIC_ASSERT(sizeof(VteBufferIterReal) <= sizeof(VteBufferIter));
 
