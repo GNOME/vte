@@ -32,6 +32,10 @@
 
 #define BEL "\007"
 
+/* A fake char cell size */
+#define CHAR_WIDTH (8)
+#define CHAR_HEIGHT (16)
+
 /* FUNCTIONS WE USE */
 
 static void
@@ -746,14 +750,8 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 #if 0		/* 3: disallowed, window size is set by user. */
 	case 3:
 		_vte_buffer_emit_resize_window(buffer,
-						(set ? 132 : 80) *
-						terminal->pvt->char_width +
-						terminal->pvt->padding.left +
-                                                terminal->pvt->padding.right,
-						buffer->pvt->row_count *
-						terminal->pvt->char_height +
-						terminal->pvt->padding.top +
-                                                terminal->pvt->padding.bottom);
+						set ? 132 : 80,
+						buffer->pvt->row_count);
 		/* Request a resize and redraw. */
 		_vte_buffer_view_invalidate_all(buffer);
 		break;
@@ -2970,7 +2968,6 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 	long param, arg1, arg2;
 	gint width, height;
 	guint i;
-	GtkAllocation allocation;
 
         terminal = buffer->pvt->terminal;
         /* FIXMEchpe cope with NULL terminal */
@@ -3025,12 +3022,8 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 						"(to %ldx%ld pixels).\n",
 						arg2, arg1);
 				_vte_buffer_emit_resize_window(buffer,
-								arg2 +
-								terminal->pvt->padding.left +
-								terminal->pvt->padding.right,
-								arg1 +
-								terminal->pvt->padding.top +
-								terminal->pvt->padding.bottom);
+								arg2 / CHAR_WIDTH,
+								arg1 / CHAR_HEIGHT);
 				i += 2;
 			}
 			break;
@@ -3055,12 +3048,8 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 						"(to %ld columns, %ld rows).\n",
 						arg2, arg1);
 				_vte_buffer_emit_resize_window(buffer,
-								arg2 * terminal->pvt->char_width +
-								terminal->pvt->padding.left +
-								terminal->pvt->padding.right,
-								arg1 * terminal->pvt->char_height +
-								terminal->pvt->padding.top +
-								terminal->pvt->padding.bottom);
+								arg2,
+								arg1);
 				i += 2;
 			}
 			break;
@@ -3108,21 +3097,16 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 			break;
 		case 14:
 			/* Send window size, in pixels. */
-			gtk_widget_get_allocation(widget, &allocation);
 			g_snprintf(buf, sizeof(buf),
-				   _VTE_CAP_CSI "4;%d;%dt",
-				   allocation.height -
-                                       (terminal->pvt->padding.top +
-                                        terminal->pvt->padding.bottom),
-				   allocation.width -
-                                       (terminal->pvt->padding.left +
-                                        terminal->pvt->padding.right));
+				   _VTE_CAP_CSI "4;%ld;%ldt",
+				   buffer->pvt->row_count * CHAR_HEIGHT,
+                                   buffer->pvt->column_count * CHAR_WIDTH);
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window size "
-					"(%dx%dn",
-					width - (terminal->pvt->padding.left + terminal->pvt->padding.right),
-					height - (terminal->pvt->padding.top + terminal->pvt->padding.bottom));
-			vte_buffer_feed_child(buffer, buf, -1);
+					"(%ldx%ldn",
+                                         buffer->pvt->row_count * CHAR_HEIGHT,
+                                         buffer->pvt->column_count * CHAR_WIDTH);
+                        vte_buffer_feed_child(buffer, buf, -1);
 			break;
 		case 18:
 			/* Send widget size, in cells. */
@@ -3142,8 +3126,8 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 			width = gdk_screen_get_width(gscreen);
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "9;%ld;%ldt",
-				   height / terminal->pvt->char_height,
-				   width / terminal->pvt->char_width);
+				   (glong)height / CHAR_HEIGHT,
+				   (glong)width / CHAR_WIDTH);
 			vte_buffer_feed_child(buffer, buf, -1);
 			break;
 		case 20:
@@ -3180,12 +3164,8 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 				/* Resize to the specified number of
 				 * rows. */
 				_vte_buffer_emit_resize_window(buffer,
-								buffer->pvt->column_count * terminal->pvt->char_width +
-                                                                terminal->pvt->padding.left +
-                                                                terminal->pvt->padding.right,
-								param * terminal->pvt->char_height +
-								terminal->pvt->padding.top +
-                                                                terminal->pvt->padding.bottom);
+								buffer->pvt->column_count,
+								param);
 			}
 			break;
 		}

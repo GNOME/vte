@@ -244,15 +244,14 @@ refresh_window(VteBuffer *buffer, gpointer data)
 }
 
 static void
-resize_window(VteBuffer *buffer, guint width, guint height, VteView *terminal)
+resize_window(VteBuffer *buffer, guint columns, guint rows, VteView *terminal)
 {
         GtkWidget *widget = &terminal->widget;
         GtkWidget *window;
 
         window = gtk_widget_get_toplevel(GTK_WIDGET(terminal));
-	if (gtk_widget_is_toplevel(window) && (width >= 2) && (height >= 2)) {
+	if (gtk_widget_is_toplevel(window) && (columns >= 2) && (rows >= 2)) {
 		gint owidth, oheight, char_width, char_height, column_count, row_count;
-		GtkBorder padding;
 
 		gtk_window_get_size(GTK_WINDOW(window), &owidth, &oheight);
 
@@ -261,14 +260,12 @@ resize_window(VteBuffer *buffer, guint width, guint height, VteView *terminal)
 		char_height = vte_view_get_char_height (terminal);
 		column_count = vte_buffer_get_column_count (buffer);
 		row_count = vte_buffer_get_row_count (buffer);
-                gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                              gtk_widget_get_state_flags(widget),
-                                              &padding);
 
-                owidth -= char_width * column_count + padding.left + padding.right;
-                oheight -= char_height * row_count + padding.top + padding.bottom;
+                owidth += char_width * (columns - column_count);
+                oheight += char_height * (rows - row_count);
+
 		gtk_window_resize(GTK_WINDOW(window),
-				  width + owidth, height + oheight);
+				  owidth, oheight);
 	}
 }
 

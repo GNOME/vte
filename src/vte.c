@@ -1152,15 +1152,16 @@ _vte_buffer_emit_move_window(VteBuffer *buffer, guint x, guint y)
         g_signal_emit(buffer, buffer_signals[BUFFER_MOVE_WINDOW], 0, x, y);
 }
 
-/* Emit a "resize-window" signal.  (Pixels.) */
+/* Emit a "resize-window" signal.  (cells.) */
 void
 _vte_buffer_emit_resize_window(VteBuffer *buffer,
-                                guint width, guint height)
+                               guint cols,
+                               guint rows)
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS,
                         "Emitting `resize-window'.\n");
         g_signal_emit(buffer, buffer_signals[BUFFER_RESIZE_WINDOW], 0,
-                      width, height);
+                      cols, rows);
 }
 
 static void
@@ -14196,8 +14197,8 @@ vte_buffer_class_init(VteBufferClass *klass)
         /**
          * VteBuffer::resize-window:
          * @vtebuffer: the object which received the signal
-         * @width: the desired width in pixels, including padding
-         * @height: the desired height in pixels, including padding
+         * @width: the desired number of columns
+         * @height: the desired number of rows
          *
          * Emitted at the child application's request.
          */
