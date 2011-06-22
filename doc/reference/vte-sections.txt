@@ -79,10 +79,6 @@ VTE_VIEW_GET_CLASS
 VTE_IS_VIEW_CLASS
 VTE_VIEW_CLASS
 
-<SUBSECTION Binding Accessors>
-vte_view_get_char_height
-vte_view_get_char_width
-
 <SUBSECTION Private>
 VteCharAttributes
 VteViewPrivate

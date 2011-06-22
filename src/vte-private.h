@@ -470,6 +470,8 @@ void _vte_view_set_effect_color(VteView *terminal,
                                     gboolean override);
 
 gboolean _vte_view_is_word_char(VteView *terminal, gunichar c);
+glong _vte_view_get_char_width(VteView *view);
+glong _vte_view_get_char_height(VteView *view);
 
 /* private VteBuffer methods */
 

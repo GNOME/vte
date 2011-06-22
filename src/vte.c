@@ -12258,28 +12258,28 @@ vte_buffer_get_status_line(VteBuffer *buffer)
 	return buffer->pvt->screen->status_line_contents->str;
 }
 
-/**
- * vte_view_get_char_width:
+/*
+ * _vte_view_get_char_width:
  * @terminal: a #VteView
  *
  * Returns: the width of a character cell
  */
 glong
-vte_view_get_char_width(VteView *terminal)
+_vte_view_get_char_width(VteView *terminal)
 {
 	g_return_val_if_fail(VTE_IS_VIEW(terminal), -1);
 	vte_view_ensure_font (terminal);
 	return terminal->pvt->char_width;
 }
 
-/**
- * vte_view_get_char_height:
+/*
+ * _vte_view_get_char_height:
  * @terminal: a #VteView
  *
  * Returns: the height of a character cell
  */
 glong
-vte_view_get_char_height(VteView *terminal)
+_vte_view_get_char_height(VteView *terminal)
 {
 	g_return_val_if_fail(VTE_IS_VIEW(terminal), -1);
 	vte_view_ensure_font (terminal);

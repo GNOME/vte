@@ -1442,8 +1442,8 @@ vte_view_accessible_get_character_extents(AtkText *text, gint offset,
 
 	atk_component_get_position (ATK_COMPONENT (text), &base_x, &base_y, coords);
 	xy_from_offset (priv, offset, x, y);
-	char_width = vte_view_get_char_width (terminal);
-	char_height = vte_view_get_char_height (terminal);
+	char_width = _vte_view_get_char_width (terminal);
+	char_height = _vte_view_get_char_height (terminal);
 	*x *= char_width;
 	*y *= char_height;
 	*width = char_width;
@@ -1485,8 +1485,8 @@ vte_view_accessible_get_offset_at_point(AtkText *text,
 	terminal = VTE_VIEW (gtk_accessible_get_widget (GTK_ACCESSIBLE (text)));
 
 	atk_component_get_position (ATK_COMPONENT (text), &base_x, &base_y, coords);
-	char_width = vte_view_get_char_width (terminal);
-	char_height = vte_view_get_char_height (terminal);
+	char_width = _vte_view_get_char_width (terminal);
+	char_height = _vte_view_get_char_height (terminal);
 	x -= base_x;
 	y -= base_y;
 	x /= char_width;

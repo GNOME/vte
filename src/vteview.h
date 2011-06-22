@@ -177,9 +177,6 @@ gboolean  vte_view_search_get_wrap_around (VteView *terminal);
 gboolean  vte_view_search_find_previous   (VteView *terminal);
 gboolean  vte_view_search_find_next       (VteView *terminal);
 
-glong vte_view_get_char_width(VteView *terminal);
-glong vte_view_get_char_height(VteView *terminal);
-
 void vte_view_get_geometry_hints(VteView *view,
                                  GdkGeometry *hints,
                                  int min_rows,
