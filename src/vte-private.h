@@ -411,9 +411,6 @@ struct _VteViewPrivate {
         gboolean adjustment_changed_pending;
         gboolean adjustment_value_changed_pending;
 
-        /* Background pattern */
-        gboolean bg_update_pending;
-
         /* Key modifiers. */
         GdkModifierType modifiers;
 

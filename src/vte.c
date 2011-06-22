@@ -87,8 +87,6 @@ static void vte_view_match_hilite_hide(VteView *terminal);
 static void vte_view_match_hilite_show(VteView *terminal, long x, long y);
 static void vte_view_match_hilite_update(VteView *terminal, long x, long y);
 static void vte_view_match_contents_clear(VteView *terminal);
-static gboolean vte_view_background_update(VteView *data);
-static void vte_view_queue_background_update(VteView *terminal);
 static void vte_view_emit_pending_signals(VteView *terminal);
 static gboolean vte_view_cell_is_selected(VteBuffer *buffer,
                                               glong col, glong row,
@@ -2524,12 +2522,6 @@ vte_view_set_color_internal(VteView *terminal,
 	/* If we're not realized yet, there's nothing else to do. */
 	if (! gtk_widget_get_realized (&terminal->widget)) {
 		return;
-	}
-
-	/* If we're setting the background color, set the background color
-	 * on the widget as well. */
-	if (entry == VTE_DEF_BG) {
-		vte_view_queue_background_update(terminal);
 	}
 
 	/* and redraw */
@@ -8514,9 +8506,6 @@ vte_view_realize(GtkWidget *widget)
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
 
 	vte_view_ensure_font (terminal);
-
-	/* Set up the background, *now*. */
-	vte_view_background_update(terminal);
 }
 
 static inline void
@@ -11653,45 +11642,6 @@ vte_view_im_append_menuitems(VteView *terminal, GtkMenuShell *menushell)
 	gtk_im_multicontext_append_menuitems(context, menushell);
 }
 
-/* Set up whatever background we wanted. */
-static gboolean
-vte_view_background_update(VteView *terminal)
-{
-	/* If we're not realized yet, don't worry about it, because we get
-	 * called when we realize. */
-	if (! gtk_widget_get_realized (&terminal->widget)) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Can not set background image without "
-				"window.\n");
-		return TRUE;
-	}
-
-	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
-			"Updating background image.\n");
-
-	/* Note that the update has finished. */
-	terminal->pvt->bg_update_pending = FALSE;
-
-	/* Force a redraw for everything. */
-	_vte_invalidate_all (terminal);
-
-	return FALSE;
-}
-
-/* Queue an update of the background image, to be done as soon as we can
- * get to it.  Just bail if there's already an update pending, so that if
- * opaque move tables to screw us, we don't end up with an insane backlog
- * of updates after the user finishes moving us. */
-static void
-vte_view_queue_background_update(VteView *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Queued background update.\n");
-	terminal->pvt->bg_update_pending = TRUE;
-	/* force a redraw when convenient */
-	add_update_timeout (terminal);
-}
-
 /**
  * vte_view_get_has_selection:
  * @terminal: a #VteView
@@ -12880,9 +12830,6 @@ update_repeat_timeout (gpointer data)
 			}
 			_vte_buffer_enable_input_source (buffer);
 		}
-		if (terminal->pvt->bg_update_pending) {
-			vte_view_background_update (terminal);
-		}
 		vte_view_emit_adjustment_changed (terminal);
 		if (need_processing (terminal)) {
 			if (VTE_MAX_PROCESS_TIME) {
@@ -12984,9 +12931,6 @@ update_timeout (gpointer data)
 						G_IO_IN, buffer);
 			}
 			_vte_buffer_enable_input_source (buffer);
-		}
-		if (terminal->pvt->bg_update_pending) {
-			vte_view_background_update (terminal);
 		}
 		vte_view_emit_adjustment_changed (terminal);
 		if (need_processing (terminal)) {
