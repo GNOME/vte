@@ -3961,7 +3961,6 @@ vte_buffer_io_write(GIOChannel *channel,
 		      GIOCondition condition,
 		      VteBuffer *buffer)
 {
-        VteView *terminal = buffer->pvt->terminal;
 	gssize count;
 	int fd;
 	gboolean leave_open;
@@ -7911,7 +7910,6 @@ vte_view_init(VteView *terminal)
 {
 	VteViewPrivate *pvt;
         GtkStyleContext *context;
-        VteBuffer *buffer;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_view_init()\n");
 
