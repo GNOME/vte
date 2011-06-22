@@ -553,8 +553,7 @@ _vte_view_scroll_region (VteView *terminal,
 
         buffer = terminal->pvt->buffer;
 
-	if (terminal->pvt->scroll_background ||
-            count >= buffer->pvt->row_count) {
+	if (count >= buffer->pvt->row_count) {
 		/* We have to repaint the entire window. */
 		_vte_invalidate_all(terminal);
 	} else {
@@ -4543,7 +4542,7 @@ vte_view_update_style(VteView *terminal)
 {
         VteViewPrivate *pvt = terminal->pvt;
         GtkWidget *widget = &terminal->widget;
-        gboolean allow_bold, scroll_background, reverse;
+        gboolean allow_bold, reverse;
         PangoFontDescription *font_desc;
 
         vte_view_set_padding(terminal);
@@ -4552,7 +4551,6 @@ vte_view_update_style(VteView *terminal)
 
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
-                             "scroll-background", &scroll_background,
                              "font", &font_desc,
                              "reverse", &reverse,
                              NULL);
@@ -4568,11 +4566,6 @@ vte_view_update_style(VteView *terminal)
                 pvt->reverse = reverse;
 
                 _vte_invalidate_all(terminal);
-        }
-
-        if (scroll_background != pvt->scroll_background) {
-                  pvt->scroll_background = scroll_background;
-                  vte_view_queue_background_update(terminal);
         }
 }
 
@@ -7962,7 +7955,6 @@ vte_view_init(VteView *terminal)
 	terminal->pvt->strikethrough_position = 1;
 
 	/* Scrolling options. */
-        pvt->scroll_background = FALSE;
 	pvt->scroll_on_keystroke = TRUE;
 
 	/* Selection info. */
@@ -10629,17 +10621,6 @@ vte_view_draw(GtkWidget *widget,
         buffer = terminal->pvt->buffer;
 
         /* Designate the start of the drawing operation and clear the area. */
-        {
-                if (terminal->pvt->scroll_background && buffer != NULL) {
-                        _vte_draw_set_background_scroll(terminal->pvt->draw,
-                                                        0,
-                                                        buffer->pvt->screen->scroll_delta *
-                                                        terminal->pvt->char_height);
-                } else {
-                        _vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
-                }
-        }
-
         _vte_draw_clear (terminal->pvt->draw, 0, 0,
                          allocated_width, allocated_height,
                          &terminal->pvt->palette[VTE_DEF_BG]);
@@ -11398,21 +11379,6 @@ vte_view_class_init(VteViewClass *klass)
                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteView:scroll-background:
-         *
-         * Controls whether or not the terminal will scroll the background image (if
-         * one is set) when the text in the window must be scrolled.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boolean ("scroll-background", NULL, NULL,
-                                       FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-
-        /**
          * VteView:reverse:
          *
          * In reverse mode, the terminal draws everything with foreground and
@@ -11509,7 +11475,6 @@ vte_view_class_init(VteViewClass *klass)
                                            "-VteView-cursor-blink-mode: system;\n"
                                            "-VteView-cursor-shape: block;\n"
                                            "-VteView-font: Monospace 10;\n"
-                                           "-VteView-scroll-background: false;\n"
 #include "vtepalettecss.h"
                                            "}\n",
                                          -1, NULL);

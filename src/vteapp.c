@@ -554,7 +554,7 @@ main(int argc, char **argv)
 		NULL};
 	gboolean audible = TRUE,
 		 debug = FALSE, use_builtin_dingus = FALSE, dbuffer = TRUE,
-		 console = FALSE, scroll = FALSE, keep = FALSE,
+		 console = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
 		 use_scrolled_window = FALSE,
@@ -664,11 +664,6 @@ main(int argc, char **argv)
 			"cursor-shape", 0, 0,
 			G_OPTION_ARG_STRING, &cursor_shape_string,
 			"Set cursor shape (block|underline|ibeam)", NULL
-		},
-		{
-			"scroll-background", 's', 0,
-			G_OPTION_ARG_NONE, &scroll,
-			"Enable a scrolling background", NULL
 		},
 		{
 			"termcap", 't', 0,
@@ -827,9 +822,6 @@ main(int argc, char **argv)
                 g_string_append_printf (css_string, "-VteView-font: %s;\n",
                                         font);
                 g_free(font);
-        }
-        if (scroll) {
-                g_string_append (css_string, "-VteView-scroll-background: true;\n");
         }
         if (reverse) {
                 g_string_append (css_string, "-VteView-reverse: true;\n");

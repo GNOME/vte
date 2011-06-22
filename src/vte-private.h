@@ -348,7 +348,6 @@ struct _VteViewPrivate {
         gboolean allow_bold;
 
         /* Scrolling options. */
-        gboolean scroll_background;
         gboolean scroll_on_output;
         gboolean scroll_on_keystroke;
 

@@ -64,9 +64,6 @@ void _vte_draw_free(struct _vte_draw *draw);
 void _vte_draw_set_cairo(struct _vte_draw *draw,
                          cairo_t *cr);
 
-void _vte_draw_set_background_scroll(struct _vte_draw *draw,
-				     gint x, gint y);
-
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height,
                      const GdkRGBA *background);

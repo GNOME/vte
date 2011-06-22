@@ -768,15 +768,6 @@ _vte_draw_set_cairo(struct _vte_draw *draw,
 }
 
 void
-_vte_draw_set_background_scroll (struct _vte_draw *draw,
-				 gint x, gint y)
-{
-	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_set_scroll (%d, %d)\n",
-			x, y);
-}
-
-void
 _vte_draw_clear (struct _vte_draw *draw,
                  gint x,
                  gint y,
