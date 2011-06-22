@@ -246,26 +246,11 @@ refresh_window(VteBuffer *buffer, gpointer data)
 static void
 resize_window(VteBuffer *buffer, guint columns, guint rows, VteView *terminal)
 {
-        GtkWidget *widget = &terminal->widget;
         GtkWidget *window;
 
         window = gtk_widget_get_toplevel(GTK_WIDGET(terminal));
 	if (gtk_widget_is_toplevel(window) && (columns >= 2) && (rows >= 2)) {
-		gint owidth, oheight, char_width, char_height, column_count, row_count;
-
-		gtk_window_get_size(GTK_WINDOW(window), &owidth, &oheight);
-
-		/* Take into account border overhead. */
-		char_width = vte_view_get_char_width (terminal);
-		char_height = vte_view_get_char_height (terminal);
-		column_count = vte_buffer_get_column_count (buffer);
-		row_count = vte_buffer_get_row_count (buffer);
-
-                owidth += char_width * (columns - column_count);
-                oheight += char_height * (rows - row_count);
-
-		gtk_window_resize(GTK_WINDOW(window),
-				  owidth, oheight);
+                gtk_window_resize_to_geometry(GTK_WINDOW(window), columns, rows);
 	}
 }
 
@@ -288,8 +273,7 @@ adjust_font_size(GtkWidget *widget, gpointer data, gdouble factor)
 	VteView *terminal;
         VteBuffer *buffer;
         gdouble scale;
-        glong char_width, char_height;
-	gint columns, rows, owidth, oheight;
+	glong columns, rows;
 
 	/* Read the screen dimensions in cells. */
 	terminal = VTE_VIEW(widget);
@@ -297,26 +281,11 @@ adjust_font_size(GtkWidget *widget, gpointer data, gdouble factor)
 	columns = vte_buffer_get_column_count(buffer);
 	rows = vte_buffer_get_row_count(buffer);
 
-	/* Take into account padding and border overhead. */
-	gtk_window_get_size(GTK_WINDOW(data), &owidth, &oheight);
-        char_width = vte_view_get_char_width (terminal);
-        char_height = vte_view_get_char_height (terminal);
-	owidth -= char_width * columns;
-	oheight -= char_height * rows;
-
 	scale = vte_view_get_font_scale(terminal);
         vte_view_set_font_scale(terminal, scale * factor);
 
-	/* Change the font, then resize the window so that we have the same
-	 * number of rows and columns. */
-
-        /* This above call will have changed the char size! */
-        char_width = vte_view_get_char_width (terminal);
-        char_height = vte_view_get_char_height (terminal);
-
-	gtk_window_resize(GTK_WINDOW(data),
-			  columns * char_width + owidth,
-			  rows * char_height + oheight);
+        vte_view_set_window_geometry_hints(terminal, GTK_WINDOW(data));
+        gtk_window_resize_to_geometry(GTK_WINDOW(data), columns, rows);
 }
 
 static void
