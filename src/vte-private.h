@@ -413,7 +413,6 @@ struct _VteViewPrivate {
         gboolean adjustment_value_changed_pending;
 
         /* Background pattern */
-        cairo_pattern_t *bg_pattern;
         gboolean bg_update_pending;
 
         /* Key modifiers. */

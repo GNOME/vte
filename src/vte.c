@@ -69,8 +69,6 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
-#define CAIRO_GOBJECT_TYPE_PATTERN (g_type_from_name("CairoPattern"))
-
 static void vte_view_emit_copy_clipboard(VteView *terminal);
 static void vte_view_emit_paste_clipboard(VteView *terminal);
 static void vte_view_emit_copy_primary(VteView *terminal);
@@ -4541,33 +4539,6 @@ vte_view_update_cursor_style(VteView *terminal)
 }
 
 static void
-vte_view_update_background_style(VteView *terminal)
-{
-        VteViewPrivate *pvt = terminal->pvt;
-        cairo_pattern_t *pattern;
-
-        gtk_widget_style_get(&terminal->widget, "background-pattern", &pattern, NULL);
-        g_return_if_fail (pattern == NULL || cairo_pattern_get_extend(pattern) != CAIRO_EXTEND_NONE);
-
-        _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_STYLE,
-                         "%s background pattern.\n",
-                         pattern ? "Setting" : "Clearing");
-
-        if (pattern == pvt->bg_pattern) {
-                if (pattern)
-                        cairo_pattern_destroy(pattern);
-                return;
-        }
-
-        if (pvt->bg_pattern) {
-                cairo_pattern_destroy (pvt->bg_pattern);
-        }
-        pvt->bg_pattern = pattern /* adopted */;
-
-        vte_view_queue_background_update(terminal);
-}
-
-static void
 vte_view_update_style(VteView *terminal)
 {
         VteViewPrivate *pvt = terminal->pvt;
@@ -4578,7 +4549,6 @@ vte_view_update_style(VteView *terminal)
         vte_view_set_padding(terminal);
         vte_view_update_style_colors(terminal, FALSE);
         vte_view_update_cursor_style(terminal);
-        vte_view_update_background_style(terminal);
 
         gtk_widget_style_get(widget,
                              "allow-bold", &allow_bold,
@@ -8025,9 +7995,6 @@ vte_view_init(VteView *terminal)
 	/* Rendering data.  Try everything. */
 	pvt->draw = _vte_draw_new();
 
-	/* Set up background information. */
-        pvt->bg_pattern = NULL;
-
 	pvt->selection_block_mode = FALSE;
         pvt->unscaled_font_desc = pvt->fontdesc = NULL;
         pvt->font_scale = 1.;
@@ -8385,11 +8352,6 @@ vte_view_finalize(GObject *object)
 
 	/* The NLS maps. */
 	_vte_iso2022_state_free(buffer->pvt->iso2022);
-
-	/* Free background info. */
-        if (pvt->bg_pattern) {
-                cairo_pattern_destroy (pvt->bg_pattern);
-        }
 
 	/* Free the font description. */
         if (pvt->unscaled_font_desc != NULL) {
@@ -11393,20 +11355,6 @@ vte_view_class_init(VteViewClass *klass)
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteView:background-pattern:
-         *
-         * A #cairo_pattern_t to use as background.
-         * Must not have extends %CAIRO_EXTEND_NONE.
-         *
-         * Since: 0.30
-         */
-        gtk_widget_class_install_style_property
-                (widget_class,
-                 g_param_spec_boxed ("background-pattern", NULL, NULL,
-                                     CAIRO_GOBJECT_TYPE_PATTERN,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
          * VteView:cursor-blink-mode:
          *
          * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
@@ -11755,9 +11703,6 @@ vte_view_background_update(VteView *terminal)
 
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background image.\n");
-
-        _vte_draw_set_background_pattern(terminal->pvt->draw,
-                                         terminal->pvt->bg_pattern);
 
 	/* Note that the update has finished. */
 	terminal->pvt->bg_update_pending = FALSE;

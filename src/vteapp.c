@@ -552,7 +552,6 @@ main(int argc, char **argv)
 		(char *) "FOO=BAR", (char *) "BOO=BIZ",
 #endif
 		NULL};
-	char *background = NULL;
 	gboolean audible = TRUE,
 		 debug = FALSE, use_builtin_dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
@@ -580,11 +579,6 @@ main(int argc, char **argv)
         char **dingus = NULL;
         char *word_chars = NULL;
 	const GOptionEntry options[]={
-		{
-			"background", 'B', 0,
-			G_OPTION_ARG_FILENAME, &background,
-			"Specify a background image", NULL
-		},
 		{
 			"console", 'C', 0,
 			G_OPTION_ARG_NONE, &console,
@@ -807,11 +801,6 @@ main(int argc, char **argv)
         }
 
         g_string_append (css_string, "VteView {\n");
-        if (background) {
-                g_string_append_printf (css_string, "background-image: url(\"%s\");\n",
-                                        background);
-                g_free(background);
-        }
         if (cursor_color_string) {
                 g_string_append_printf (css_string, "-VteView-cursor-background-color: %s;\n"
                                                     "-VteView-cursor-effect: color;\n",

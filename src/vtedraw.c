@@ -722,7 +722,6 @@ font_info_get_unistr_info (struct font_info *info,
 struct _vte_draw {
 	struct font_info *font;
 	struct font_info *font_bold;
-	cairo_pattern_t *bg_pattern;
 
 	cairo_t *cr;
 };
@@ -744,11 +743,6 @@ void
 _vte_draw_free (struct _vte_draw *draw)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_free\n");
-
-	if (draw->bg_pattern != NULL) {
-		cairo_pattern_destroy (draw->bg_pattern);
-		draw->bg_pattern = NULL;
-	}
 
 	if (draw->font != NULL) {
 		font_info_destroy (draw->font);
@@ -774,31 +768,12 @@ _vte_draw_set_cairo(struct _vte_draw *draw,
 }
 
 void
-_vte_draw_set_background_pattern (struct _vte_draw *draw,
-                                  cairo_pattern_t *pattern)
-{
-        if (draw->bg_pattern)
-                cairo_pattern_destroy (draw->bg_pattern);
-        if (pattern)
-                cairo_pattern_reference (pattern);
-        draw->bg_pattern = pattern;
-}
-
-void
 _vte_draw_set_background_scroll (struct _vte_draw *draw,
 				 gint x, gint y)
 {
-	cairo_matrix_t matrix;
-
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_set_scroll (%d, %d)\n",
 			x, y);
-
-        if (draw->bg_pattern == NULL)
-                return;
-
-	cairo_matrix_init_translate (&matrix, x, y);
-	cairo_pattern_set_matrix (draw->bg_pattern, &matrix);
 }
 
 void
@@ -816,20 +791,10 @@ _vte_draw_clear (struct _vte_draw *draw,
 
         cairo_save (draw->cr);
 
-        if (draw->bg_pattern != NULL) {
-                cairo_rectangle (draw->cr, x, y, width, height);
-
-                cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
-                cairo_set_source (draw->cr, draw->bg_pattern);
-                cairo_fill (draw->cr);
-        }
-
         if (background) {
                 cairo_rectangle (draw->cr, x, y, width, height);
 
-                cairo_set_operator (draw->cr,
-                                    draw->bg_pattern ? CAIRO_OPERATOR_OVER
-                                                     : CAIRO_OPERATOR_SOURCE);
+                cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
                 gdk_cairo_set_source_rgba (draw->cr, background);
                 cairo_fill (draw->cr);
         }
