@@ -161,7 +161,7 @@ char *vte_view_match_check_event(VteView *view,
                                  GdkEvent *event,
                                  int *tag);
 char *vte_view_match_check_iter(VteView *view,
-                                VteBufferIter *iter,
+                                const VteBufferIter *iter,
                                 int *tag);
 
 void      vte_view_search_set_gregex      (VteView *terminal,
@@ -185,7 +185,7 @@ gboolean vte_view_iter_from_event(VteView *view,
                                   GdkEvent *event,
                                   VteBufferIter *iter);
 gboolean vte_view_iter_is_visible(VteView *view,
-                                  VteBufferIter *iter);
+                                  const VteBufferIter *iter);
 
 G_END_DECLS
 

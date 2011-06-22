@@ -1982,7 +1982,7 @@ vte_view_match_check_event(VteView *view,
  */
 char *
 vte_view_match_check_iter(VteView *view,
-                          VteBufferIter *iter,
+                          const VteBufferIter *iter,
                           int *tag)
 {
         VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
@@ -13476,7 +13476,7 @@ vte_view_iter_from_event(VteView *view,
  */
 gboolean
 vte_view_iter_is_visible(VteView *view,
-                         VteBufferIter *iter)
+                         const VteBufferIter *iter)
 {
         VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
         VteBuffer *buffer;
@@ -14456,7 +14456,7 @@ vte_buffer_iter_free (VteBufferIter *iter)
  */
 gboolean
 vte_buffer_iter_is_valid (VteBufferIter *iter,
-                          VteBuffer *buffer)
+                          const VteBuffer *buffer)
 {
         VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
 
