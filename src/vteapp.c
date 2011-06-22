@@ -132,27 +132,17 @@ status_line_changed(VteBuffer *buffer, gpointer data)
 }
 
 static int
-button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
+button_pressed(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
 	VteView *terminal;
 	char *match;
 	int tag;
-	GtkBorder padding;
-	int char_width, char_height;
 
-	switch (event->button) {
+	switch (event->button.button) {
 	case 3:
 		terminal = VTE_VIEW(widget);
 
-                gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                              gtk_widget_get_state_flags(widget),
-                                              &padding);
-                char_width = vte_view_get_char_width (terminal);
-		char_height = vte_view_get_char_height (terminal);
-		match = vte_view_match_check(terminal,
-						 (event->x - padding.left) / char_width,
-						 (event->y - padding.top) / char_height,
-						 &tag);
+                match = vte_view_match_check_event(terminal, event, &tag);
 		if (match != NULL) {
 			g_print("Matched `%s' (%d).\n", match, tag);
 			g_free(match);

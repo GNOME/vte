@@ -33,6 +33,8 @@ vte_view_match_add_gregex
 vte_view_match_remove
 vte_view_match_remove_all
 vte_view_match_check
+vte_view_match_check_event
+vte_view_match_check_iter
 vte_view_match_set_cursor
 vte_view_match_set_cursor_type
 vte_view_match_set_cursor_name
@@ -46,6 +48,10 @@ vte_view_search_set_wrap_around
 <SUBSECTION>
 vte_view_get_geometry_hints
 vte_view_set_window_geometry_hints
+
+<SUBSECTION>
+vte_view_iter_from_event
+vte_view_iter_is_visible
 
 <SUBSECTION>
 VTE_STYLE_CLASS_TERMINAL

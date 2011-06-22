@@ -1943,6 +1943,100 @@ vte_view_match_check(VteView *terminal, glong column, glong row,
 	return ret;
 }
 
+/**
+ * vte_view_match_check_event:
+ * @terminal: a #VteView
+ * @event: a #GdkEvent
+ * @tag: (out) (allow-none): a location to store the tag, or %NULL
+ *
+ * Checks if the text in and around the coordinates of @event matches any of the
+ * regular expressions previously set using vte_view_match_add_gregex().  If a
+ * match exists, the text string is returned and if @tag is not %NULL, the number
+ * associated with the matched regular expression will be stored in @tag.
+ *
+ * If more than one regular expression has been set with
+ * vte_view_match_add_gregex(), then expressions are checked in the order in
+ * which they were added.
+ *
+ * Returns: (transfer full): a newly allocated string which matches one of the previously
+ *   set regular expressions
+ */
+char *
+vte_view_match_check_event(VteView *view,
+                           GdkEvent *event,
+                           int *tag)
+{
+        VteBufferIter iter;
+
+        if (!vte_view_iter_from_event(view, event, &iter))
+                return NULL;
+
+        return vte_view_match_check_iter(view, &iter, tag);
+}
+
+/**
+ * vte_view_match_check_iter:
+ * @terminal: a #VteView
+ * @event: a #VteBufferIter
+ * @tag: (out) (allow-none): a location to store the tag, or %NULL
+ *
+ * Checks if the text in and around the coordinates of @iter matches any of the
+ * regular expressions previously set using vte_view_match_add_gregex().  If a
+ * match exists, the text string is returned and if @tag is not %NULL, the number
+ * associated with the matched regular expression will be stored in @tag.
+ *
+ * If more than one regular expression has been set with
+ * vte_view_match_add_gregex(), then expressions are checked in the order in
+ * which they were added.
+ *
+ * Returns: (transfer full): a newly allocated string which matches one of the previously
+ *   set regular expressions
+ */
+char *
+vte_view_match_check_iter(VteView *view,
+                          VteBufferIter *iter,
+                          int *tag)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+        VteBuffer *buffer;
+        glong row, col;
+        char *ret;
+
+        g_return_val_if_fail(VTE_IS_VIEW(view), NULL);
+
+        buffer = view->pvt->buffer;
+        if (buffer == NULL)
+                return NULL;
+
+        if (!vte_buffer_iter_is_valid(iter, view->pvt->buffer))
+                return NULL;
+
+        row = real_iter->position.row;
+        col = real_iter->position.col;
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                        "Checking for match at (%ld,%ld).\n",
+                        row, col);
+
+        if (rowcol_inside_match (view, row, col)) {
+                if (tag) {
+                        *tag = view->pvt->match_tag;
+                }
+                ret = view->pvt->match != NULL ?
+                        g_strdup (view->pvt->match) :
+                        NULL;
+        } else {
+                ret = vte_view_match_check_internal(view,
+                                                    col, row,
+                                                    tag, NULL, NULL);
+        }
+        _VTE_DEBUG_IF(VTE_DEBUG_EVENTS) {
+                if (ret != NULL)
+                        g_printerr("Matched `%s'.\n", ret);
+        }
+
+        return ret;
+}
+
 /* Emit an adjustment changed signal on our adjustment object. */
 static void
 vte_view_emit_adjustment_changed(VteView *terminal)
@@ -13392,6 +13486,81 @@ vte_view_set_window_geometry_hints(VteView *view,
                                       GDK_HINT_RESIZE_INC |
                                       GDK_HINT_MIN_SIZE |
                                       GDK_HINT_BASE_SIZE);
+}
+
+/**
+ * vte_view_iter_from_event:
+ * @view: a #VteView
+ * @event: a #GdkEvent
+ * @iter: (out) (allow-none): a location to store a #VteBufferIter
+ *
+ * Converts the event coordinates in @event to a #VteBufferIter
+ * on @view's buffer.
+ *
+ * If @event does not have coordinates, or @view has no buffer,
+ * or the event coordinates are outside the visible grid,
+ * returns %FALSE.
+ *
+ * Returns: %TRUE iff @iter was filled in
+ */
+gboolean
+vte_view_iter_from_event(VteView *view,
+                         GdkEvent *event,
+                         VteBufferIter *iter)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+        VteBuffer *buffer;
+        gdouble x, y;
+        glong row, col;
+
+        g_return_val_if_fail(VTE_IS_VIEW(view), FALSE);
+        g_return_val_if_fail(event != NULL, FALSE);
+
+        buffer = view->pvt->buffer;
+        if (buffer == NULL)
+                return FALSE;
+
+        if (!gdk_event_get_coords(event, &x, &y))
+                return FALSE;
+
+        if (!_vte_view_xy_to_grid(view, x, y, &col, &row))
+                return FALSE;
+
+        if (iter) {
+                _vte_buffer_iter_init(real_iter, buffer);
+
+                real_iter->position.col = col;
+                real_iter->position.row = row + buffer->pvt->screen->scroll_delta;
+        }
+
+        return TRUE;
+}
+
+/**
+ * vte_view_iter_is_visible:
+ * @view: a #VteView
+ * @iter: a valid #VteBufferIter for @view's buffer
+ *
+ * Returns: %TRUE iff the grid coordinates in @iter are within
+ *   the visible grid of @view
+ */
+gboolean
+vte_view_iter_is_visible(VteView *view,
+                         VteBufferIter *iter)
+{
+        VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
+        VteBuffer *buffer;
+        glong row;
+
+        g_return_val_if_fail(VTE_IS_VIEW(view), FALSE);
+
+        buffer = view->pvt->buffer;
+        if (vte_buffer_iter_is_valid(iter, buffer))
+                return FALSE;
+
+        row = real_iter->position.row - buffer->pvt->screen->scroll_delta;
+
+        return row >= 0 && row < buffer->pvt->row_count;
 }
 
 /* *********
