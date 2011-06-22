@@ -56,7 +56,6 @@ struct _VteView {
  */
 struct _VteViewClass {
 	/*< public > */
-	/* Inherited parent class. */
 	GtkWidgetClass parent_class;
 
         /*< private >*/

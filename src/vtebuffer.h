@@ -61,6 +61,10 @@ typedef struct _VteBufferClassPrivate VteBufferClassPrivate;
 struct _VteBufferClass {
   GObjectClass object_class;
 
+  /*< private >*/
+  VteBufferClassPrivate *priv;
+
+  /*< protected >*/
   void (*commit)               (VteBuffer *buffer,
                                 const gchar *text,
                                 guint size);
@@ -93,8 +97,8 @@ struct _VteBufferClass {
   void (*bell)                 (VteBuffer* buffer,
                                 VteBellType bell_type);
 
-  /*< private >*/
-  VteBufferClassPrivate *priv;
+  /* padding */
+  gpointer padding[24];
 };
 
 struct _VteBuffer {
