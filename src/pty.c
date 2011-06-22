@@ -24,8 +24,6 @@
  *
  * The terminal widget uses these functions to start commands with new controlling
  * pseudo-terminals and to resize pseudo-terminals.
- *
- * Since: 0.26
  */
 
 #include <config.h>
@@ -196,8 +194,6 @@ typedef struct {
 
 /**
  * VtePty:
- *
- * Since: 0.26
  */
 struct _VtePty {
         GObject parent_instance;
@@ -229,8 +225,6 @@ struct _VtePtyClass {
  * @pty: a #VtePty
  *
  * FIXMEchpe
- *
- * Since: 0.26
  */
 void
 vte_pty_child_setup (VtePty *pty)
@@ -515,8 +509,6 @@ __vte_pty_spawn (VtePty *pty,
  * If setting the window size failed, @error will be set to a #GIOError.
  *
  * Returns: %TRUE on success, %FALSE on failure with @error filled in
- *
- * Since: 0.26
  */
 gboolean
 vte_pty_set_size(VtePty *pty,
@@ -574,8 +566,6 @@ vte_pty_set_size(VtePty *pty,
  * If getting the window size failed, @error will be set to a #GIOError.
  *
  * Returns: %TRUE on success, %FALSE on failure with @error filled in
- *
- * Since: 0.26
  */
 gboolean
 vte_pty_get_size(VtePty *pty,
@@ -1254,8 +1244,6 @@ _vte_pty_open_with_helper(VtePty *pty,
  * discipline do multibyte backspace correctly.
  *
  * Returns: %TRUE on success, %FALSE on failure with @error filled in
- *
- * Since: 0.26
  */
 gboolean
 vte_pty_set_utf8(VtePty *pty,
@@ -1307,8 +1295,6 @@ vte_pty_set_utf8(VtePty *pty,
  *
  * Cleans up the PTY, specifically any logging performed for the session.
  * The file descriptor to the PTY master remains open.
- *
- * Since: 0.26
  */
 void
 vte_pty_close (VtePty *pty)
@@ -1541,8 +1527,6 @@ vte_pty_class_init (VtePtyClass *klass)
          *
          * Controls how the session is recorded in lastlog, utmp, and wtmp,
          * and whether to use the GNOME PTY helper.
-         *
-         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1558,8 +1542,6 @@ vte_pty_class_init (VtePtyClass *klass)
          * VtePty:fd:
          *
          * The file descriptor of the PTY master.
-         *
-         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1575,8 +1557,6 @@ vte_pty_class_init (VtePtyClass *klass)
          *
          * The value to set for the TERM environment variable just after
          * forking.
-         *
-         * Since: 0.26
          */
         g_object_class_install_property
                 (object_class,
@@ -1596,8 +1576,6 @@ vte_pty_class_init (VtePtyClass *klass)
  * enumeration. See #GError for more information on error domains.
  *
  * Returns: the error domain for VTE PTY errors
- *
- * Since: 0.26
  */
 GQuark
 vte_pty_error_quark(void)
@@ -1640,8 +1618,6 @@ vte_pty_error_quark(void)
  * be no fallback to allocate a PTY using Unix98 PTY functions.
  *
  * Returns: (transfer full): a new #VtePty, or %NULL on error with @error filled in
- *
- * Since: 0.26
  */
 VtePty *
 vte_pty_new_sync (VtePtyFlags flags,
@@ -1669,8 +1645,6 @@ vte_pty_new_sync (VtePtyFlags flags,
  * and close it on finalize.
  *
  * Returns: (transfer full): a new #VtePty for @fd, or %NULL on error with @error filled in
- *
- * Since: 0.26
  */
 VtePty *
 vte_pty_new_foreign_sync (int fd,
@@ -1712,8 +1686,6 @@ vte_pty_get_fd (VtePty *pty)
  * @emulation: (allow-none): the name of a terminal description, or %NULL
  *
  * Sets what value of the TERM environment variable to set just after forking.
- *
- * Since: 0.26
  */
 void
 vte_pty_set_term (VtePty *pty,

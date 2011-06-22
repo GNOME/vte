@@ -1431,8 +1431,6 @@ vte_view_set_cursor_from_regex_match(VteView *terminal, struct vte_match_regex *
  *
  * Clears the list of regular expressions the terminal uses to highlight text
  * when the user moves the mouse cursor.
- *
- * Since: 0.30
  */
 void
 vte_view_match_remove_all(VteView *terminal)
@@ -1504,8 +1502,6 @@ vte_view_cursor_new(VteView *terminal, GdkCursorType cursor_type)
  * this expression, the text will be highlighted.
  *
  * Returns: an integer associated with this expression
- *
- * Since: 0.17.1
  */
 int
 vte_view_match_add_gregex(VteView *terminal, GRegex *regex, GRegexMatchFlags flags)
@@ -1558,9 +1554,6 @@ vte_view_match_add_gregex(VteView *terminal, GRegex *regex, GRegexMatchFlags fla
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  The terminal keeps a reference to @cursor.
- *
- * Since: 0.11
- *
  */
 void
 vte_view_match_set_cursor(VteView *terminal, int tag, GdkCursor *cursor)
@@ -1585,9 +1578,6 @@ vte_view_match_set_cursor(VteView *terminal, int tag, GdkCursor *cursor)
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.
- *
- * Since: 0.11.9
- *
  */
 void
 vte_view_match_set_cursor_type(VteView *terminal,
@@ -1613,9 +1603,6 @@ vte_view_match_set_cursor_type(VteView *terminal,
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.
- *
- * Since: 0.17.1
- *
  */
 void
 vte_view_match_set_cursor_name(VteView *terminal,
@@ -2577,8 +2564,6 @@ vte_view_set_buffer(VteView *terminal,
  * @terminal: a #VteView
  *
  * Returns: (transfer none): the terminal's buffer
- *
- * Since: 0.30
  */
 VteBuffer *
 vte_view_get_buffer(VteView *terminal)
@@ -3241,8 +3226,6 @@ vte_buffer_watch_child (VteBuffer *buffer,
  *
  * Returns: (tranfer full) (type filename): a newly allocated string with the
  *   user's shell, or %NULL
- *
- * Since: 0.28
  */
 char *
 vte_get_user_shell (void)
@@ -6194,8 +6177,6 @@ vte_buffer_get_text(VteBuffer *buffer,
  * lines are included.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
- *
- * Since: 0.11.11
  */
 char *
 vte_buffer_get_text_include_trailing_spaces(VteBuffer *buffer,
@@ -6843,8 +6824,6 @@ vte_view_extend_selection(VteView *terminal, long x, long y,
  * @terminal: a #VteView
  *
  * Selects all text within the terminal (including the scrollback buffer).
- *
- * Since: 0.16
  */
 void
 vte_view_select_all (VteView *terminal)
@@ -7599,8 +7578,6 @@ vte_view_set_font(VteView *terminal,
  * @scale: the font scale
  *
  * Sets the terminal's font scale to @scale.
- *
- * Since: 0.30
  */
 void
 vte_view_set_font_scale(VteView *terminal,
@@ -7620,8 +7597,6 @@ vte_view_set_font_scale(VteView *terminal,
  * @terminal: a #VteView
  *
  * Returns: the terminal's font scale
- *
- * Since: 0.30
  */
 gdouble
 vte_view_get_font_scale(VteView *terminal)
@@ -7890,8 +7865,6 @@ vte_buffer_set_emulation(VteBuffer *buffer, const char *emulation)
  *
  * Returns: (transfer none) (type utf8): an interned string containing the name
  *   of the default terminal type the widget attempts to emulate
- *
- * Since: 0.30
  */
 const char *
 vte_get_default_emulation(void)
@@ -11276,8 +11249,6 @@ vte_view_class_init(VteViewClass *klass)
          * VteView:buffer:
          *
          * The terminal's buffer.
-         *
-         * Since: 0.30
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11291,8 +11262,6 @@ vte_view_class_init(VteViewClass *klass)
          *
          * Controls whether or not the terminal will beep when the child outputs the
          * "bl" sequence.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11305,8 +11274,6 @@ vte_view_class_init(VteViewClass *klass)
          * VteView:font-scale:
          *
          * The terminal's font scale.
-         *
-         * Since: 0.30
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11323,8 +11290,6 @@ vte_view_class_init(VteViewClass *klass)
          * Controls the value of the terminal's mouse autohide setting.  When autohiding
          * is enabled, the mouse cursor will be hidden when the user presses a key and
          * shown when the user moves the mouse.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11339,8 +11304,6 @@ vte_view_class_init(VteViewClass *klass)
          * Controls whether or not the terminal will forcibly scroll to the bottom of
          * the viewable history when the user presses a key.  Modifier keys do not
          * trigger this behavior.
-         *
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11354,8 +11317,6 @@ vte_view_class_init(VteViewClass *klass)
          *
          * Controls whether or not the terminal will forcibly scroll to the bottom of
          * the viewable history when the new data is received from the child.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11374,8 +11335,6 @@ vte_view_class_init(VteViewClass *klass)
          *
          * As a special case, when setting this to %NULL or the empty string, the terminal will
          * treat all graphic non-punctuation non-space characters as word characters.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11390,8 +11349,6 @@ vte_view_class_init(VteViewClass *klass)
          * Controls whether the terminal will present a visible bell to the
          * user when the child outputs the "bl" sequence.  The terminal
          * will clear itself to the default foreground color and then repaint itself.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11408,8 +11365,6 @@ vte_view_class_init(VteViewClass *klass)
          * Controls whether or not the terminal will attempt to draw bold text.
          * This may happen either by using a bold font variant, or by
          * repainting text with a different offset.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11422,8 +11377,6 @@ vte_view_class_init(VteViewClass *klass)
          *
          * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
          * will use the #GtkSettings::gtk-cursor-blink setting.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11436,8 +11389,6 @@ vte_view_class_init(VteViewClass *klass)
          * VteView:cursor-shape:
          *
          * Controls the shape of the cursor.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11451,8 +11402,6 @@ vte_view_class_init(VteViewClass *klass)
          *
          * Specifies the font used for rendering all text displayed by the terminal.
          * Must be a monospaced font!
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11470,8 +11419,6 @@ vte_view_class_init(VteViewClass *klass)
          * set reverse mode explicitly. In case both this style property and
          * the application select reverse mode, the terminal draws in
          * non-reverse mode.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11491,8 +11438,6 @@ vte_view_class_init(VteViewClass *klass)
          * If set to %VTE_EFFECT_COLOR, the cursor is drawn
          * with the background color from the #VteView:cursor-background-color
          * style property.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11509,8 +11454,6 @@ vte_view_class_init(VteViewClass *klass)
          * If set to %VTE_EFFECT_COLOR, reversed text is drawn
          * with the background color from the #VteView:reverse-background-color
          * style property.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -11527,8 +11470,6 @@ vte_view_class_init(VteViewClass *klass)
          * If set to %VTE_EFFECT_COLOR, selected text is drawn
          * with the background color from the #VteView:selection-background-color
          * style property.
-         *
-         * Since: 0.30
          */
         gtk_widget_class_install_style_property
                 (widget_class,
@@ -13112,8 +13053,6 @@ vte_buffer_write_contents_sync (VteBuffer *buffer,
  * @flags: flags from #GRegexMatchFlags
  *
  * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
- *
- * Since: 0.26
  */
 void
 vte_view_search_set_gregex (VteView *terminal,
@@ -13143,8 +13082,6 @@ vte_view_search_set_gregex (VteView *terminal,
  * @terminal: a #VteView
  *
  * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
- *
- * Since: 0.26
  */
 GRegex *
 vte_view_search_get_gregex (VteView *terminal)
@@ -13161,8 +13098,6 @@ vte_view_search_get_gregex (VteView *terminal)
  *
  * Sets whether search should wrap around to the beginning of the
  * terminal content when reaching its end.
- * 
- * Since: 0.26
  */
 void
 vte_view_search_set_wrap_around (VteView *terminal,
@@ -13178,8 +13113,6 @@ vte_view_search_set_wrap_around (VteView *terminal,
  * @terminal: a #VteView
  *
  * Returns: whether searching will wrap around
- *
- * Since: 0.26
  */
 gboolean
 vte_view_search_get_wrap_around (VteView *terminal)
@@ -13395,8 +13328,6 @@ vte_view_search_find (VteView *terminal,
  * vte_view_search_set_gregex().
  *
  * Returns: %TRUE if a match was found
- *
- * Since: 0.26
  */
 gboolean
 vte_view_search_find_previous (VteView *terminal)
@@ -13412,8 +13343,6 @@ vte_view_search_find_previous (VteView *terminal)
  * vte_view_search_set_gregex().
  *
  * Returns: %TRUE if a match was found
- *
- * Since: 0.26
  */
 gboolean
 vte_view_search_find_next (VteView *terminal)
@@ -13577,8 +13506,6 @@ vte_view_iter_is_visible(VteView *view,
  * @short_description: FIXME
  *
  * Long description FIXME.
- *
- * Since: 0.30
  */
 
 void
@@ -14358,8 +14285,6 @@ vte_buffer_class_init(VteBufferClass *klass)
          * Sets what type of buffer the widget attempts to emulate by scanning for
          * control sequences defined in the system's termcap file.  Unless you
          * are interested in this feature, always use the default which is "xterm".
-         *
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -14375,8 +14300,6 @@ vte_buffer_class_init(VteBufferClass *klass)
          * be encoded with.  For certain buffer types, applications executing in the
          * buffer can change the encoding.  The default is defined by the
          * application's locale settings.
-         *
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -14446,8 +14369,6 @@ vte_buffer_class_init(VteBufferClass *klass)
  * vte_buffer_new:
  *
  * Returns: (transfer full): a new #VteBuffer
- *
- * Since: 0.30
  */
 VteBuffer *
 vte_buffer_new(void)

@@ -100,8 +100,6 @@ write_style_property (const char *property_name,
                  " * %s\n"
                  " *\n"
                  " * The default color is <literal>%s</literal>.\n"
-                 " *\n"
-                 " * Since: 0.30\n"
                  " */\n"
                  "gtk_widget_class_install_style_property(widget_class,"
                  " g_param_spec_boxed (\"%s\", NULL, NULL, GDK_TYPE_RGBA,"

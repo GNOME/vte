@@ -87,8 +87,6 @@ struct _VteViewClass {
  * VTE_STYLE_CLASS_TERMINAL:
  *
  * A CSS class to match terminals.
- *
- * Since: 0.30
  */
 #define VTE_STYLE_CLASS_TERMINAL "terminal"
 
