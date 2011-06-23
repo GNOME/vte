@@ -14455,8 +14455,8 @@ vte_buffer_iter_free (VteBufferIter *iter)
  * Returns: %TRUE iff @iter is a valid iter on @buffer
  */
 gboolean
-vte_buffer_iter_is_valid (VteBufferIter *iter,
-                          const VteBuffer *buffer)
+vte_buffer_iter_is_valid (const VteBufferIter *iter,
+                          VteBuffer *buffer)
 {
         VteBufferIterReal *real_iter = (VteBufferIterReal *) iter;
 

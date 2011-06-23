@@ -227,8 +227,8 @@ VteBufferIter *vte_buffer_iter_copy     (VteBufferIter *iter);
 
 void           vte_buffer_iter_free     (VteBufferIter *iter);
 
-gboolean       vte_buffer_iter_is_valid (VteBufferIter *iter,
-                                         const VteBuffer *buffer);
+gboolean       vte_buffer_iter_is_valid (const VteBufferIter *iter,
+                                         VteBuffer *buffer);
 
 G_END_DECLS
 
