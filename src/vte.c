@@ -6287,8 +6287,10 @@ vte_view_invalidate_selection (VteView *terminal)
 
 /* Start selection at the location of the event. */
 static void
-vte_view_start_selection(VteView *terminal, GdkEventButton *event,
-			     enum vte_selection_type selection_type)
+vte_view_start_selection(VteView *terminal, 
+                         gdouble x,
+                         gdouble y,
+                         enum vte_selection_type selection_type)
 {
         VteBuffer *buffer;
 	long delta;
@@ -6303,8 +6305,8 @@ vte_view_start_selection(VteView *terminal, GdkEventButton *event,
 	/* Record that we have the selection, and where it started. */
 	delta = buffer->pvt->screen->scroll_delta;
 	terminal->pvt->has_selection = TRUE;
-	terminal->pvt->selection_last.x = event->x - terminal->pvt->padding.left;
-	terminal->pvt->selection_last.y = event->y - terminal->pvt->padding.top +
+	terminal->pvt->selection_last.x = x - terminal->pvt->padding.left;
+	terminal->pvt->selection_last.y = y - terminal->pvt->padding.top +
 					  (terminal->pvt->char_height * delta);
 
 	/* Decide whether or not to restart on the next drag. */
@@ -6329,6 +6331,7 @@ vte_view_start_selection(VteView *terminal, GdkEventButton *event,
 	/* Record the selection type. */
 	terminal->pvt->selection_type = selection_type;
 	terminal->pvt->selecting = TRUE;
+        terminal->pvt->selecting_after_threshold = FALSE;
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,
 			"Selection started at (%ld,%ld).\n",
@@ -6992,6 +6995,19 @@ vte_view_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
+                if (terminal->pvt->selecting_after_threshold) {
+                        if (!gtk_drag_check_threshold (widget,
+                                                       terminal->pvt->mouse_last_x,
+                                                       terminal->pvt->mouse_last_y,
+                                                       x, y))
+                                return TRUE;
+
+                        vte_view_start_selection(terminal,
+                                                 terminal->pvt->mouse_last_x,
+                                                 terminal->pvt->mouse_last_y,
+                                                 selection_type_char);
+                }
+
 		if (terminal->pvt->selecting &&
 		    ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 		      !terminal->pvt->mouse_tracking_mode))
@@ -7106,9 +7122,7 @@ vte_view_button_press(GtkWidget *widget, GdkEventButton *event)
 			}
 			if (start_selecting) {
 				vte_view_deselect_all(terminal);
-				vte_view_start_selection(terminal,
-							     event,
-							     selection_type_char);
+                                 terminal->pvt->selecting_after_threshold = TRUE;
 				handled = TRUE;
 			}
 			if (extend_selecting) {
@@ -7149,10 +7163,15 @@ vte_view_button_press(GtkWidget *widget, GdkEventButton *event)
 				x, y + (terminal->pvt->char_height * delta));
 		switch (event->button) {
 		case 1:
+                        if (terminal->pvt->selecting_after_threshold) {
+                                vte_view_start_selection(terminal,
+                                                         x, y,
+                                                         selection_type_char);
+                        }
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !terminal->pvt->mouse_tracking_mode) {
 				vte_view_start_selection(terminal,
-							     event,
+							x, y,
 							     selection_type_word);
 				vte_view_extend_selection(terminal,
 							      x, y, FALSE, TRUE);
@@ -7174,8 +7193,8 @@ vte_view_button_press(GtkWidget *widget, GdkEventButton *event)
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !terminal->pvt->mouse_tracking_mode) {
 				vte_view_start_selection(terminal,
-							     event,
-							     selection_type_line);
+							x, y,
+                                                         selection_type_line);
 				vte_view_extend_selection(terminal,
 							      x, y, FALSE, TRUE);
 			}
@@ -7262,6 +7281,7 @@ vte_view_button_release(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_button = 0;
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        terminal->pvt->selecting_after_threshold = FALSE;
         pvt->mouse_last_cell_x = cell_x;
         pvt->mouse_last_cell_y = cell_y;
 

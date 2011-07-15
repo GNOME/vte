@@ -328,6 +328,7 @@ struct _VteViewPrivate {
         GArray *word_chars;
         gboolean has_selection;
         gboolean selecting;
+        gboolean selecting_after_threshold;
         gboolean selecting_restart;
         gboolean selecting_had_delta;
         gboolean selection_block_mode;
