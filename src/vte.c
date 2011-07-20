@@ -6224,16 +6224,14 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 				gtk_selection_data_set_text(data, terminal->pvt->selection_text[sel], -1);
 			} else {
 				gsize len;
-				gchar *selection, *text;
+				gchar *selection;
 
 				g_assert(info == VTE_TARGET_HTML);
 
-				text = g_markup_printf_escaped("<pre>%s</pre>",
-					terminal->pvt->selection_text[sel]);
 				/* Mozilla asks that we start our text/html with the Unicode byte order mark */
 				/* (Comment found in gtkimhtml.c of pidgin fame) */
-				selection = g_convert(text, -1, "UTF-16", "UTF-8", NULL, &len, NULL);
-				g_free(text);
+				selection = g_convert(terminal->pvt->selection_html[sel],
+					-1, "UTF-16", "UTF-8", NULL, &len, NULL);
 				gtk_selection_data_set(data,
 					gdk_atom_intern("text/html", FALSE),
 					16,
@@ -6526,6 +6524,23 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_attributes_to_html:
+ * @terminal: a #VteTerminal
+ * @text: A string as returned by the vte_terminal_get_* family of functions.
+ * @attributes: (array) (element-type Vte.CharAttributes): text attributes, as created by vte_terminal_get_*
+ *
+ * Marks the given text up according to the given attributes, using HTML <span>
+ * commands, and wraps the string in a <pre> element.
+ *
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
+ */
+char *
+vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray *attributes) {
+	g_assert(strlen(text) == attributes->len);
+	return g_markup_printf_escaped("<pre>%s</pre>", text);
+}
+
+/**
  * vte_terminal_get_cursor_position:
  * @terminal: a #VteTerminal
  * @column: (out) (allow-none): a location to store the column, or %NULL
@@ -6555,11 +6570,15 @@ vte_terminal_copy(VteTerminal *terminal, VteSelection sel)
 	GtkClipboard *clipboard;
 	static GtkTargetEntry *targets = NULL;
 	static gint n_targets = 0;
+	GArray *attributes;
 
 	clipboard = terminal->pvt->clipboard[sel];
 
+	attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
+
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(terminal->pvt->selection_text[sel]);
+	g_free(terminal->pvt->selection_html[sel]);
 	terminal->pvt->selection_text[sel] =
 		vte_terminal_get_text_range(terminal,
 					    terminal->pvt->selection_start.row,
@@ -6568,7 +6587,13 @@ vte_terminal_copy(VteTerminal *terminal, VteSelection sel)
 					    terminal->column_count,
 					    vte_cell_is_selected,
 					    NULL,
-					    NULL);
+					    attributes);
+	terminal->pvt->selection_html[sel] =
+		vte_terminal_attributes_to_html(terminal,
+						terminal->pvt->selection_text[sel],
+						attributes);
+	g_array_free (attributes, TRUE);
+
 	if (sel == VTE_SELECTION_PRIMARY)					    
 		terminal->pvt->has_selection = TRUE;
 
@@ -8962,6 +8987,7 @@ vte_terminal_finalize(GObject *object)
 						       -1);
 			}
 			g_free(terminal->pvt->selection_text[sel]);
+			g_free(terminal->pvt->selection_html[sel]);
 		}
 	}
 	if (terminal->pvt->word_chars != NULL) {
@@ -14118,7 +14144,9 @@ vte_terminal_reset(VteTerminal *terminal,
 	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
 		if (pvt->selection_text[sel] != NULL) {
 			g_free(pvt->selection_text[sel]);
+			g_free(pvt->selection_html[sel]);
 			pvt->selection_text[sel] = NULL;
+			pvt->selection_html[sel] = NULL;
 		}
 	}
 	memset(&pvt->selection_origin, 0,

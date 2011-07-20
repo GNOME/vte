@@ -276,6 +276,7 @@ struct _VteTerminalPrivate {
 
 	/* Clipboard data information. */
 	char *selection_text[LAST_VTE_SELECTION];
+	char *selection_html[LAST_VTE_SELECTION];
 	GtkClipboard *clipboard[LAST_VTE_SELECTION];
 
 	/* Miscellaneous options. */
