@@ -111,6 +111,13 @@ typedef enum {
 	MOUSE_TRACKING_ALL_MOTION_TRACKING
 } MouseTrackingMode;
 
+/* For unified handling of PRIMARY and CLIPBOARD selection */
+typedef enum {
+	VTE_SELECTION_PRIMARY,
+	VTE_SELECTION_CLIPBOARD,
+	LAST_VTE_SELECTION
+} VteSelection;
+
 /* A match regex, with a tag. */
 struct vte_match_regex {
 	gint tag;
@@ -249,7 +256,6 @@ struct _VteTerminalPrivate {
 	gboolean selecting_restart;
 	gboolean selecting_had_delta;
 	gboolean selection_block_mode;
-	char *selection;
 	enum vte_selection_type {
 		selection_type_char,
 		selection_type_word,
@@ -261,7 +267,8 @@ struct _VteTerminalPrivate {
 	VteVisualPosition selection_start, selection_end;
 
 	/* Clipboard data information. */
-	char *clipboard_text;
+	char *selection_text[LAST_VTE_SELECTION];
+	GtkClipboard *clipboard[LAST_VTE_SELECTION];
 
 	/* Miscellaneous options. */
 	VteTerminalEraseBinding backspace_binding, delete_binding;

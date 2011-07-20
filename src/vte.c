@@ -4384,8 +4384,9 @@ next_match:
 						    vte_cell_is_selected,
 						    NULL,
 						    NULL);
-			if ((selection == NULL) || (terminal->pvt->selection == NULL) ||
-			    (strcmp(selection, terminal->pvt->selection) != 0)) {
+			if ((selection == NULL) ||
+			    (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
+			    (strcmp(selection, terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
 				vte_terminal_deselect_all(terminal);
 			}
 			g_free(selection);
@@ -6204,33 +6205,23 @@ static void
 vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 		     guint info, gpointer owner)
 {
+	VteSelection sel;
 	VteTerminal *terminal;
 	terminal = owner;
-	if (clipboard == vte_terminal_clipboard_get(terminal, GDK_SELECTION_PRIMARY)) {
-		if (terminal->pvt->selection != NULL) {
-			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
-				int i;
-				g_printerr("Setting primary selection (%"G_GSIZE_FORMAT" UTF-8 bytes.)\n",
-					strlen(terminal->pvt->selection));
-				for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
-					g_printerr("0x%04x\n",
-						terminal->pvt->selection[i]);
+	for (sel = 0; sel < LAST_VTE_SELECTION; sel ++) {
+		if (clipboard == terminal->pvt->clipboard[sel]) {
+			if (terminal->pvt->selection_text[sel] != NULL) {
+				_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
+					int i;
+					g_printerr("Setting selection %d (%"G_GSIZE_FORMAT" UTF-8 bytes.)\n",
+						sel,
+						strlen(terminal->pvt->selection_text[sel]));
+					for (i = 0; terminal->pvt->selection_text[sel][i] != '\0'; i++) {
+						g_printerr("0x%04x\n",
+							terminal->pvt->selection_text[sel][i]);
+					}
 				}
-			}
-			gtk_selection_data_set_text(data, terminal->pvt->selection, -1);
-		}
-	} else if (clipboard == vte_terminal_clipboard_get(terminal, GDK_SELECTION_CLIPBOARD)) {
-		if (terminal->pvt->clipboard_text != NULL) {
-			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
-				int i;
-				g_printerr("Setting clipboard selection (%"G_GSIZE_FORMAT" UTF-8 bytes.)\n",
-					strlen(terminal->pvt->selection));
-				for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
-					g_printerr("0x%04x\n",
-						terminal->pvt->selection[i]);
-				}
-			}
-			gtk_selection_data_set_text(data, terminal->pvt->clipboard_text, -1);
+				gtk_selection_data_set_text(data, terminal->pvt->selection_text[sel], -1);		}
 		}
 	} 
 }
@@ -6540,17 +6531,17 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
 static void
-vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+vte_terminal_copy(VteTerminal *terminal, VteSelection sel)
 {
 	GtkClipboard *clipboard;
 	static GtkTargetEntry *targets = NULL;
 	static gint n_targets = 0;
 
-	clipboard = vte_terminal_clipboard_get(terminal, board);
+	clipboard = terminal->pvt->clipboard[sel];
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
-	g_free(terminal->pvt->selection);
-	terminal->pvt->selection =
+	g_free(terminal->pvt->selection_text[sel]);
+	terminal->pvt->selection_text[sel] =
 		vte_terminal_get_text_range(terminal,
 					    terminal->pvt->selection_start.row,
 					    0,
@@ -6559,10 +6550,11 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 					    vte_cell_is_selected,
 					    NULL,
 					    NULL);
-	terminal->pvt->has_selection = TRUE;
+	if (sel == VTE_SELECTION_PRIMARY)					    
+		terminal->pvt->has_selection = TRUE;
 
 	/* Place the text on the clipboard. */
-	if (terminal->pvt->selection != NULL) {
+	if (terminal->pvt->selection_text[sel] != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Assuming ownership of selection.\n");
 		if (!targets) {
@@ -6589,46 +6581,7 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
-	GtkClipboard *clipboard;
-	static GtkTargetEntry *targets = NULL;
-	static gint n_targets = 0;
-
-	clipboard = vte_terminal_clipboard_get(terminal, GDK_SELECTION_CLIPBOARD);
-
-	/* Chuck old selected text and retrieve the newly-selected text. */
-	g_free(terminal->pvt->clipboard_text);
-	terminal->pvt->clipboard_text =
-		vte_terminal_get_text_range(terminal,
-					    terminal->pvt->selection_start.row,
-					    0,
-					    terminal->pvt->selection_end.row,
-					    terminal->column_count,
-					    vte_cell_is_selected,
-					    NULL,
-					    NULL);
-
-	/* Place the text on the clipboard. */
-	if (terminal->pvt->clipboard_text != NULL) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Assuming ownership of selection.\n");
-		if (!targets) {
-			GtkTargetList *list;
-
-			list = gtk_target_list_new (NULL, 0);
-			gtk_target_list_add_text_targets (list, 0);
-                        targets = gtk_target_table_new_from_list (list, &n_targets);
-			gtk_target_list_unref (list);
-		}
-
-		gtk_clipboard_set_with_owner(clipboard,
-					     targets,
-					     n_targets,
-					     vte_terminal_copy_cb,
-					     vte_terminal_clear_cb,
-					     G_OBJECT(terminal));
-		gtk_clipboard_set_can_store(clipboard, NULL, 0);
-	}
+	vte_terminal_copy(terminal, VTE_SELECTION_CLIPBOARD);
 }
 
 /* Paste from the given clipboard. */
@@ -8387,6 +8340,7 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
+	GdkDisplay *display;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
@@ -8478,6 +8432,9 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Selection info. */
 	vte_terminal_set_word_chars(terminal, NULL);
+	display = gtk_widget_get_display(&terminal->widget);
+	pvt->clipboard[VTE_SELECTION_PRIMARY] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
+	pvt->clipboard[VTE_SELECTION_CLIPBOARD] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
 
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
@@ -8904,6 +8861,7 @@ vte_terminal_finalize(GObject *object)
 	GtkWidget *toplevel;
 	GtkClipboard *clipboard;
         GtkSettings *settings;
+	VteSelection sel;
 	struct vte_match_regex *regex;
 	guint i;
 
@@ -8972,15 +8930,16 @@ vte_terminal_finalize(GObject *object)
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
-	if (terminal->pvt->selection != NULL) {
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_PRIMARY);
-		if (gtk_clipboard_get_owner(clipboard) == object) {
-			gtk_clipboard_set_text(clipboard,
-					       terminal->pvt->selection,
-					       -1);
+	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
+		if (terminal->pvt->selection_text[sel] != NULL) {
+			clipboard = terminal->pvt->clipboard[sel];
+			if (gtk_clipboard_get_owner(clipboard) == object) {
+				gtk_clipboard_set_text(clipboard,
+						       terminal->pvt->selection_text[sel],
+						       -1);
+			}
+			g_free(terminal->pvt->selection_text[sel]);
 		}
-		g_free(terminal->pvt->selection);
 	}
 	if (terminal->pvt->word_chars != NULL) {
 		g_array_free(terminal->pvt->word_chars, TRUE);
@@ -13173,7 +13132,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
+	vte_terminal_copy(terminal, VTE_SELECTION_PRIMARY);
 }
 
 /**
@@ -14014,6 +13973,7 @@ vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_history)
 {
         VteTerminalPrivate *pvt;
+	VteSelection sel;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -14132,18 +14092,20 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->selecting = FALSE;
 	pvt->selecting_restart = FALSE;
 	pvt->selecting_had_delta = FALSE;
-	if (pvt->selection != NULL) {
-		g_free(pvt->selection);
-		pvt->selection = NULL;
-		memset(&pvt->selection_origin, 0,
-		       sizeof(&pvt->selection_origin));
-		memset(&pvt->selection_last, 0,
-		       sizeof(&pvt->selection_last));
-		memset(&pvt->selection_start, 0,
-		       sizeof(&pvt->selection_start));
-		memset(&pvt->selection_end, 0,
-		       sizeof(&pvt->selection_end));
+	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
+		if (pvt->selection_text[sel] != NULL) {
+			g_free(pvt->selection_text[sel]);
+			pvt->selection_text[sel] = NULL;
+		}
 	}
+	memset(&pvt->selection_origin, 0,
+	       sizeof(&pvt->selection_origin));
+	memset(&pvt->selection_last, 0,
+	       sizeof(&pvt->selection_last));
+	memset(&pvt->selection_start, 0,
+	       sizeof(&pvt->selection_start));
+	memset(&pvt->selection_end, 0,
+	       sizeof(&pvt->selection_end));
 	/* Reset mouse motion events. */
 	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
 	pvt->mouse_last_button = 0;
@@ -14544,7 +14506,7 @@ _vte_terminal_get_selection(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-	return g_strdup (terminal->pvt->selection);
+	return g_strdup (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]);
 }
 
 void
