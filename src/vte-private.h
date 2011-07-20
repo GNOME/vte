@@ -260,6 +260,9 @@ struct _VteTerminalPrivate {
 	} selection_origin, selection_last;
 	VteVisualPosition selection_start, selection_end;
 
+	/* Clipboard data information. */
+	char *clipboard_text;
+
 	/* Miscellaneous options. */
 	VteTerminalEraseBinding backspace_binding, delete_binding;
 	gboolean meta_sends_escape;
