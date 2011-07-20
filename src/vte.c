@@ -6543,22 +6543,35 @@ vte_terminal_cellattr_equal(const VteCellAttr *attr1, const VteCellAttr *attr2) 
 }
 
 /*
- * Converts a VteCellAttr to a CSS style string.
+ * Wraps a given string according to the VteCellAttr in HTML tags. Used
+ * old-style HTML (and not CSS) for better compatibility with, for example,
+ * evolution's mail editor component.
  */
-static gboolean
-vte_terminal_cellattr_to_css(const VteCellAttr *attr) {
+static guchar *
+vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, guchar *text) {
 	GString *string;
 
-	string = g_string_new(NULL);
+	string = g_string_new(text);
 
-	if (attr->bold)          g_string_append(string, "font-weight:bold;");
+	if (attr->bold) {
+		g_string_prepend(string, "<b>");
+		g_string_append(string, "</b>");
+	}
 	// fore, back, standout
-	if (attr->underline)     g_string_append(string, "text-decoration:underline");
-	if (attr->strikethrough) g_string_append(string, "text-decoration:line-through");
+	if (attr->underline) {
+		g_string_prepend(string, "<u>");
+		g_string_append(string, "</u>");
+	}
+	if (attr->strikethrough) {
+		g_string_prepend(string, "<strike>");
+		g_string_append(string, "</strike>");
+	}
 	// reverse
-	if (attr->blink)         g_string_append(string, "text-decoration:blink");
-	// half
-	if (attr->invisible)     g_string_append(string, "visibility:hidden");
+	if (attr->blink) {
+		g_string_prepend(string, "<blink>");
+		g_string_append(string, "</blink>");
+	}
+	// half, invisible
 
 	return g_string_free(string, FALSE);
 }
@@ -6597,7 +6610,7 @@ vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray
 	GString *string;
 	guint from,to;
 	const VteCellAttr *attr;
-	char *escaped, *style;
+	char *escaped, *marked;
 
 	g_assert(strlen(text) == attrs->len);
 
@@ -6625,18 +6638,10 @@ vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray
 				to++;
 			}
 			escaped = g_markup_escape_text(text + from, to - from);
-			style = vte_terminal_cellattr_to_css(attr);
-			if (style[0] != '\0') {
-				g_string_append_printf(string,
-					"<span style=\"%s\">%s</span>", 
-					style,
-					escaped
-					);
-			} else {
-				g_string_append(string, escaped);
-			}
-			g_free(style);
+			marked = vte_terminal_cellattr_to_html(terminal, attr, escaped);
+			g_string_append(string, marked);
 			g_free(escaped);
+			g_free(marked);
 			from = to;
 		}
 	}
