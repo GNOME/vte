@@ -6523,11 +6523,19 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						   TRUE);
 }
 
+static gboolean
+vte_terminal_attributes_equal(const VteCharAttributes *attr1, const VteCharAttributes *attr2) {
+	return (gdk_color_equal(&attr1->fore, &attr2->fore) &&
+	        gdk_color_equal(&attr1->back, &attr2->back) &&
+	        attr1->underline     == attr2->underline  &&
+	        attr1->strikethrough == attr2->strikethrough);
+}
+
 /**
  * vte_terminal_attributes_to_html:
  * @terminal: a #VteTerminal
  * @text: A string as returned by the vte_terminal_get_* family of functions.
- * @attributes: (array) (element-type Vte.CharAttributes): text attributes, as created by vte_terminal_get_*
+ * @attrs: (array) (element-type Vte.CharAttributes): text attributes, as created by vte_terminal_get_*
  *
  * Marks the given text up according to the given attributes, using HTML <span>
  * commands, and wraps the string in a <pre> element.
@@ -6535,9 +6543,45 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
-vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray *attributes) {
-	g_assert(strlen(text) == attributes->len);
-	return g_markup_printf_escaped("<pre>%s</pre>", text);
+vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray *attrs) {
+	GString *string;
+	guint from,to;
+	VteCharAttributes attr;
+	char *escaped;
+
+	g_assert(strlen(text) == attrs->len);
+
+	// Initial size fits perfectly if the text has no attributes and no
+	// characters that need to be escaped
+	string = g_string_sized_new (strlen(text) + 11);
+	
+	g_string_append(string, "<pre>");
+	// Find streches with equal attributes. Newlines are treated specially,
+	// so that the <span> do not cover multiple lines.
+	from = to = 0;
+	while (text[from] != '\0') {
+		g_assert(from == to);
+		if (text[from] == '\n') {
+			g_string_append_c(string, '\n');
+			from = ++to;
+		} else {
+			attr = g_array_index (attrs, VteCharAttributes, from);
+			while (text[to] != '\0' && text[to] != '\n' &&
+			       vte_terminal_attributes_equal(&attr,
+					&g_array_index(attrs, VteCharAttributes, to))) {
+				to++;
+			}
+			escaped = g_markup_escape_text(text + from, to - from);
+			g_string_append(string, "<span>");
+			g_string_append(string, escaped);
+			g_string_append(string, "</span>");
+			g_free(escaped);
+			from = to;
+		}
+	}
+	g_string_append(string, "</pre>");
+
+	return g_string_free(string, FALSE);
 }
 
 /**
