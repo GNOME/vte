@@ -6523,13 +6523,40 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						   TRUE);
 }
 
+/*
+ * Compares the visual attributes of a VteCellAttr for equality, but ignores
+ * attributes that tend to change from character to character or are otherwise
+ * strange (in particular: fragment, columns).
+ */
 static gboolean
-vte_terminal_attributes_equal(const VteCharAttributes *attr1, const VteCharAttributes *attr2) {
-	return (gdk_color_equal(&attr1->fore, &attr2->fore) &&
-	        gdk_color_equal(&attr1->back, &attr2->back) &&
-	        attr1->underline     == attr2->underline  &&
-	        attr1->strikethrough == attr2->strikethrough);
+vte_terminal_cellattr_equal(const VteCellAttr *attr1, const VteCellAttr *attr2) {
+	return (attr1->bold          == attr2->bold      &&
+	        attr1->fore          == attr2->fore      &&
+	        attr1->back          == attr2->back      &&
+	        attr1->standout      == attr2->standout  &&
+	        attr1->underline     == attr2->underline &&
+	        attr1->strikethrough == attr2->strikethrough &&
+	        attr1->reverse       == attr2->reverse   &&
+	        attr1->blink         == attr2->blink     &&
+	        attr1->half          == attr2->half      &&
+	        attr1->invisible     == attr2->invisible);
 }
+
+/*
+ * Similar to vte_terminal_find_charcell, but takes a VteCharAttribute for
+ * indexing and returns the VteCellAttr.
+ */
+static const VteCellAttr *
+vte_terminal_char_to_cell_attr(VteTerminal *terminal, VteCharAttributes *attr)
+{
+	VteCell *cell;
+
+	cell = vte_terminal_find_charcell(terminal, attr->column, attr->row);
+	if (cell)
+		return &cell->attr;
+	return NULL;
+}
+
 
 /**
  * vte_terminal_attributes_to_html:
@@ -6538,7 +6565,9 @@ vte_terminal_attributes_equal(const VteCharAttributes *attr1, const VteCharAttri
  * @attrs: (array) (element-type Vte.CharAttributes): text attributes, as created by vte_terminal_get_*
  *
  * Marks the given text up according to the given attributes, using HTML <span>
- * commands, and wraps the string in a <pre> element.
+ * commands, and wraps the string in a <pre> element. The attributes have to be
+ * "fresh" in the sense that the terminal must not have changed since they were
+ * obtained using the vte_terminal_get* function.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
@@ -6546,7 +6575,7 @@ char *
 vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray *attrs) {
 	GString *string;
 	guint from,to;
-	VteCharAttributes attr;
+	VteCellAttr *attr;
 	char *escaped;
 
 	g_assert(strlen(text) == attrs->len);
@@ -6565,10 +6594,13 @@ vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray
 			g_string_append_c(string, '\n');
 			from = ++to;
 		} else {
-			attr = g_array_index (attrs, VteCharAttributes, from);
+			attr = vte_terminal_char_to_cell_attr(terminal,
+				&g_array_index(attrs, VteCharAttributes, from));
 			while (text[to] != '\0' && text[to] != '\n' &&
-			       vte_terminal_attributes_equal(&attr,
-					&g_array_index(attrs, VteCharAttributes, to))) {
+			       vte_terminal_cellattr_equal(attr,
+					vte_terminal_char_to_cell_attr(terminal,
+						&g_array_index(attrs, VteCharAttributes, to))))
+			{
 				to++;
 			}
 			escaped = g_markup_escape_text(text + from, to - from);
