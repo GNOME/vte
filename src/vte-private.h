@@ -118,6 +118,14 @@ typedef enum {
 	LAST_VTE_SELECTION
 } VteSelection;
 
+/* Used in the GtkClipboard API, to distinguish requests for HTML and TEXT
+ * contents of a clipboard */
+typedef enum {
+	VTE_TARGET_TEXT,
+	VTE_TARGET_HTML,
+	LAST_VTE_TARGET
+} VteSelectionTarget;
+
 /* A match regex, with a tag. */
 struct vte_match_regex {
 	gint tag;
