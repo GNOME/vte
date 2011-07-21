@@ -6547,17 +6547,50 @@ vte_terminal_cellattr_equal(const VteCellAttr *attr1, const VteCellAttr *attr2) 
  * old-style HTML (and not CSS) for better compatibility with, for example,
  * evolution's mail editor component.
  */
-static guchar *
-vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, guchar *text) {
+static gchar *
+vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, const gchar *text) {
 	GString *string;
+
+	g_assert (terminal->pvt->palette_initialized);
 
 	string = g_string_new(text);
 
-	if (attr->bold) {
+	if (attr->bold || attr->standout) {
 		g_string_prepend(string, "<b>");
 		g_string_append(string, "</b>");
 	}
-	// fore, back, standout
+	if (attr->fore != VTE_DEF_FG) {
+		PangoColor *color = &terminal->pvt->palette[attr->fore];
+		gchar *tag = g_strdup_printf(
+			"<font color=\"#%02X%02X%02X\">",
+			color->red >> 8,
+			color->green >> 8,
+			color->blue >> 8);
+		_vte_debug_print(VTE_DEBUG_SELECTION,
+				"Generating color tag for %d, %s as %s.\n",
+				attr->fore,
+				pango_color_to_string(color),
+				tag);
+		g_string_prepend(string, tag);
+		g_free(tag);
+		g_string_append(string, "</font>");
+	}
+	if (attr->back != VTE_DEF_BG) {
+		PangoColor *color = &terminal->pvt->palette[attr->back];
+		gchar *tag = g_strdup_printf(
+			"<span style=\"background-color:#%02X%02X%02X\">",
+			color->red >> 8,
+			color->green >> 8,
+			color->blue >> 8);
+		_vte_debug_print(VTE_DEBUG_SELECTION,
+				"Generating color tag for %s as %s.\n",
+				pango_color_to_string(color),
+				tag);
+		g_string_prepend(string, tag);
+		g_free(tag);
+		g_string_append(string, "</span>");
+	}
+	// fore, back
 	if (attr->underline) {
 		g_string_prepend(string, "<u>");
 		g_string_append(string, "</u>");
@@ -6583,7 +6616,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, gu
 static const VteCellAttr *
 vte_terminal_char_to_cell_attr(VteTerminal *terminal, VteCharAttributes *attr)
 {
-	VteCell *cell;
+	const VteCell *cell;
 
 	cell = vte_terminal_find_charcell(terminal, attr->column, attr->row);
 	if (cell)
