@@ -6532,19 +6532,18 @@ swap (guint *a, guint *b)
 
 static void
 vte_terminal_determine_colors_internal(VteTerminal *terminal,
-				       const VteCell *cell,
+				       const VteCellAttr *attr,
 				       gboolean selected,
 				       gboolean cursor,
 				       guint *pfore, guint *pback)
 {
 	guint fore, back;
 
-	if (!cell)
-		cell = &basic_cell.cell;
+	g_assert(attr);
 
 	/* Start with cell colors */
-	fore = cell->attr.fore;
-	back = cell->attr.back;
+	fore = attr->fore;
+	back = attr->back;
 
 	/* Reverse-mode switches default fore and back colors */
 	if (G_UNLIKELY (terminal->pvt->screen->reverse_mode)) {
@@ -6555,7 +6554,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* Handle bold by using set bold color or brightening */
-	if (cell->attr.bold) {
+	if (attr->bold) {
 		if (fore == VTE_DEF_FG)
 			fore = VTE_BOLD_FG;
 		else if (fore < VTE_LEGACY_COLOR_SET_SIZE) {
@@ -6564,7 +6563,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* Handle half similarly */
-	if (cell->attr.half) {
+	if (attr->half) {
 		if (fore == VTE_DEF_FG)
 			fore = VTE_DIM_FG;
 		else if ((fore < VTE_LEGACY_COLOR_SET_SIZE))
@@ -6572,13 +6571,13 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* And standout */
-	if (cell->attr.standout) {
+	if (attr->standout) {
 		if (back < VTE_LEGACY_COLOR_SET_SIZE)
 			back += VTE_COLOR_BRIGHT_OFFSET;
 	}
 
 	/* Reverse cell? */
-	if (cell->attr.reverse) {
+	if (attr->reverse) {
 		swap (&fore, &back);
 	}
 
@@ -6601,7 +6600,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* Invisible? */
-	if (cell && cell->attr.invisible) {
+	if (attr->invisible) {
 		fore = back;
 	}
 
@@ -6615,7 +6614,8 @@ vte_terminal_determine_colors (VteTerminal *terminal,
 			       gboolean highlight,
 			       guint *fore, guint *back)
 {
-	return vte_terminal_determine_colors_internal (terminal, cell,
+	return vte_terminal_determine_colors_internal (terminal,
+						       cell ? &cell->attr : &basic_cell.cell.attr,
 						       highlight, FALSE,
 						       fore, back);
 }
@@ -6626,7 +6626,8 @@ vte_terminal_determine_cursor_colors (VteTerminal *terminal,
 				      gboolean highlight,
 				      guint *fore, guint *back)
 {
-	return vte_terminal_determine_colors_internal (terminal, cell,
+	return vte_terminal_determine_colors_internal (terminal,
+						       cell ? &cell->attr : &basic_cell.cell.attr,
 						       highlight, TRUE,
 						       fore, back);
 }
@@ -6665,25 +6666,9 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, co
 
 	string = g_string_new(text);
 
-	// This reimplements some of the logic of
-	// vte_terminal_determine_colors_internal. If the latter worked on
-	// VteCellAttr instead of VteCell, tihs could be used here.
-	fore = attr->fore;
-	back = attr->back;
-	/* Handle bold by using set bold color or brightening */
-	if (attr->bold && fore < VTE_LEGACY_COLOR_SET_SIZE) {
-		fore += VTE_COLOR_BRIGHT_OFFSET;
-	}
-
-	/* Handle half similarly */
-	if (attr->half && fore < VTE_LEGACY_COLOR_SET_SIZE) {
-		fore = corresponding_dim_index[fore];
-	}
-
-	/* And standout */
-	if (attr->standout && back < VTE_LEGACY_COLOR_SET_SIZE) {
-		back += VTE_COLOR_BRIGHT_OFFSET;
-	}
+	vte_terminal_determine_colors_internal (terminal, attr,
+					        FALSE, FALSE,
+						&fore, &back);
 
 	if (attr->bold || attr->standout) {
 		g_string_prepend(string, "<b>");
