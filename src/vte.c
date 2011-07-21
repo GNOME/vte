@@ -6550,47 +6550,58 @@ vte_terminal_cellattr_equal(const VteCellAttr *attr1, const VteCellAttr *attr2) 
 static gchar *
 vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, const gchar *text) {
 	GString *string;
+	guint fore, back;
 
 	g_assert (terminal->pvt->palette_initialized);
 
 	string = g_string_new(text);
+
+	// This reimplements some of the logic of
+	// vte_terminal_determine_colors_internal. If the latter worked on
+	// VteCellAttr instead of VteCell, tihs could be used here.
+	fore = attr->fore;
+	back = attr->back;
+	/* Handle bold by using set bold color or brightening */
+	if (attr->bold && fore < VTE_LEGACY_COLOR_SET_SIZE) {
+		fore += VTE_COLOR_BRIGHT_OFFSET;
+	}
+
+	/* Handle half similarly */
+	if (attr->half && fore < VTE_LEGACY_COLOR_SET_SIZE) {
+		fore = corresponding_dim_index[fore];
+	}
+
+	/* And standout */
+	if (attr->standout && back < VTE_LEGACY_COLOR_SET_SIZE) {
+		back += VTE_COLOR_BRIGHT_OFFSET;
+	}
 
 	if (attr->bold || attr->standout) {
 		g_string_prepend(string, "<b>");
 		g_string_append(string, "</b>");
 	}
 	if (attr->fore != VTE_DEF_FG) {
-		PangoColor *color = &terminal->pvt->palette[attr->fore];
+		PangoColor *color = &terminal->pvt->palette[fore];
 		gchar *tag = g_strdup_printf(
 			"<font color=\"#%02X%02X%02X\">",
 			color->red >> 8,
 			color->green >> 8,
 			color->blue >> 8);
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Generating color tag for %d, %s as %s.\n",
-				attr->fore,
-				pango_color_to_string(color),
-				tag);
 		g_string_prepend(string, tag);
 		g_free(tag);
 		g_string_append(string, "</font>");
 	}
 	if (attr->back != VTE_DEF_BG) {
-		PangoColor *color = &terminal->pvt->palette[attr->back];
+		PangoColor *color = &terminal->pvt->palette[back];
 		gchar *tag = g_strdup_printf(
 			"<span style=\"background-color:#%02X%02X%02X\">",
 			color->red >> 8,
 			color->green >> 8,
 			color->blue >> 8);
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Generating color tag for %s as %s.\n",
-				pango_color_to_string(color),
-				tag);
 		g_string_prepend(string, tag);
 		g_free(tag);
 		g_string_append(string, "</span>");
 	}
-	// fore, back
 	if (attr->underline) {
 		g_string_prepend(string, "<u>");
 		g_string_append(string, "</u>");
@@ -6599,12 +6610,11 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, co
 		g_string_prepend(string, "<strike>");
 		g_string_append(string, "</strike>");
 	}
-	// reverse
 	if (attr->blink) {
 		g_string_prepend(string, "<blink>");
 		g_string_append(string, "</blink>");
 	}
-	// half, invisible
+	// reverse and invisible are not supported
 
 	return g_string_free(string, FALSE);
 }
