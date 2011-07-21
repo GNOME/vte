@@ -6674,7 +6674,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, co
 		g_string_prepend(string, "<b>");
 		g_string_append(string, "</b>");
 	}
-	if (attr->fore != VTE_DEF_FG) {
+	if (attr->fore != VTE_DEF_FG || attr->reverse) {
 		PangoColor *color = &terminal->pvt->palette[fore];
 		gchar *tag = g_strdup_printf(
 			"<font color=\"#%02X%02X%02X\">",
@@ -6685,7 +6685,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, co
 		g_free(tag);
 		g_string_append(string, "</font>");
 	}
-	if (attr->back != VTE_DEF_BG) {
+	if (attr->back != VTE_DEF_BG || attr->reverse) {
 		PangoColor *color = &terminal->pvt->palette[back];
 		gchar *tag = g_strdup_printf(
 			"<span style=\"background-color:#%02X%02X%02X\">",
