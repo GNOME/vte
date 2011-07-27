@@ -6217,7 +6217,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @terminal: terminal in which the cell is.
  * @column: column in which the cell is.
  * @row: row in which the cell is.
- * @data: user data.
+ * @data: (closure): user data.
  *
  * Specifies the type of a selection function used to check whether
  * a cell has to be selected or not.
