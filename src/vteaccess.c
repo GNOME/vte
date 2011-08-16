@@ -28,6 +28,9 @@
 
 #include <atk/atk.h>
 #include <gtk/gtk.h>
+#ifdef GDK_WINDOWING_X11
+#include <gdk/gdkx.h>
+#endif
 #include <string.h>
 #include "debug.h"
 #include "vte.h"
@@ -772,12 +775,93 @@ vte_terminal_accessible_selection_changed (VteTerminal *terminal,
 }
 
 static void
+vte_terminal_accessible_destroyed (GtkWidget     *widget,
+                                 GtkAccessible *accessible)
+{
+  gtk_accessible_set_widget (accessible, NULL);
+  atk_object_notify_state_change (ATK_OBJECT (accessible), ATK_STATE_DEFUNCT, TRUE);
+}
+
+static gboolean
+focus_cb (GtkWidget     *widget,
+	        GdkEventFocus *event)
+{
+	AtkObject* accessible;
+	gboolean return_val;
+	return_val = FALSE;
+
+	accessible = gtk_widget_get_accessible (widget);
+
+	atk_object_notify_state_change (accessible, ATK_STATE_FOCUSED, event->in);
+	return FALSE;
+}
+
+static void
+notify_cb (GObject    *obj,
+	         GParamSpec *pspec)
+{
+	GtkWidget* widget = GTK_WIDGET (obj);
+	AtkObject* atk_obj = gtk_widget_get_accessible (widget);
+	AtkState state;
+	gboolean value;
+
+	if (strcmp (pspec->name, "has-focus") == 0)
+		/*
+		 * We use focus-in-event and focus-out-event signals to catch
+		 * focus changes so we ignore this.
+	 */
+		return;
+	else if (strcmp (pspec->name, "visible") == 0) {
+		state = ATK_STATE_VISIBLE;
+		value = gtk_widget_get_visible (widget);
+	  } else if (strcmp (pspec->name, "sensitive") == 0) {
+		state = ATK_STATE_SENSITIVE;
+		value = gtk_widget_get_sensitive (widget);
+	  } else
+		return;
+
+	atk_object_notify_state_change (atk_obj, state, value);
+	if (state == ATK_STATE_SENSITIVE)
+		atk_object_notify_state_change (atk_obj, ATK_STATE_ENABLED, value);
+}
+
+/* Translate GtkWidget::size-allocate to AtkComponent::bounds-changed */
+static void
+size_allocate_cb (GtkWidget     *widget,
+	                GtkAllocation *allocation)
+{
+	AtkObject* accessible;
+	AtkRectangle rect;
+
+	accessible = gtk_widget_get_accessible (widget);
+	rect.x = allocation->x;
+	rect.y = allocation->y;
+	rect.width = allocation->width;
+	rect.height = allocation->height;
+	g_signal_emit_by_name (accessible, "bounds_changed", &rect);
+}
+
+/* Translate GtkWidget mapped state into AtkObject showing */
+static gint
+map_cb (GtkWidget *widget)
+{
+	AtkObject *accessible;
+
+	accessible = gtk_widget_get_accessible (widget);
+	atk_object_notify_state_change (accessible, ATK_STATE_SHOWING,
+	                                gtk_widget_get_mapped (widget));
+	return 1;
+}
+
+static void
 vte_terminal_initialize (AtkObject *obj, gpointer data)
 {
 	VteTerminal *terminal;
 	AtkObject *parent;
 
 	ATK_OBJECT_CLASS (vte_terminal_accessible_parent_class)->initialize (obj, data);
+
+	gtk_accessible_set_widget (GTK_ACCESSIBLE (obj), GTK_WIDGET (data));
 
 	terminal = VTE_TERMINAL (data);
 
@@ -805,18 +889,17 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 	g_signal_connect(terminal, "window-title-changed",
 			 G_CALLBACK(vte_terminal_accessible_title_changed),
 			 obj);
+
+	/* everything below copied from gtkwidgetaccessible.c */
 	g_signal_connect(terminal, "focus-in-event",
 			 G_CALLBACK(vte_terminal_accessible_focus_in),
 			 obj);
 	g_signal_connect(terminal, "focus-out-event",
-			 G_CALLBACK(vte_terminal_accessible_focus_out),
-			 obj);
+		G_CALLBACK(vte_terminal_accessible_focus_out), obj);
 	g_signal_connect(terminal, "visibility-notify-event",
-			 G_CALLBACK(vte_terminal_accessible_visibility_notify),
-			 obj);
+		G_CALLBACK(vte_terminal_accessible_visibility_notify), obj);
 	g_signal_connect(terminal, "selection-changed",
-			 G_CALLBACK(vte_terminal_accessible_selection_changed),
-			 obj);
+		G_CALLBACK(vte_terminal_accessible_selection_changed), obj);
 
 	if (GTK_IS_WIDGET(gtk_widget_get_parent(GTK_WIDGET(terminal)))) {
 		parent = gtk_widget_get_accessible(gtk_widget_get_parent ((GTK_WIDGET(terminal))));
@@ -838,6 +921,16 @@ vte_terminal_initialize (AtkObject *obj, gpointer data)
 	atk_object_notify_state_change(obj,
 				       ATK_STATE_RESIZABLE, TRUE);
 	obj->role = ATK_ROLE_TERMINAL;
+
+	g_signal_connect_after (terminal, "destroy",
+				G_CALLBACK (vte_terminal_accessible_destroyed), obj);
+	g_signal_connect_after (terminal, "focus-in-event", G_CALLBACK (focus_cb), NULL);
+	g_signal_connect_after (terminal, "focus-out-event", G_CALLBACK (focus_cb), NULL);
+	g_signal_connect (terminal, "notify", G_CALLBACK (notify_cb), NULL);
+	g_signal_connect (terminal, "size-allocate",
+		G_CALLBACK (size_allocate_cb), NULL);
+  g_signal_connect (terminal, "map", G_CALLBACK (map_cb), NULL);
+  g_signal_connect (terminal, "unmap", G_CALLBACK (map_cb), NULL);
 }
 
 /**
@@ -1746,14 +1839,10 @@ vte_terminal_accessible_get_size(AtkComponent *component,
 		return;
 	}
 	window = gtk_widget_get_window (widget);
-#if GTK_CHECK_VERSION (2, 90, 8)
 	if (width)
 		*width = gdk_window_get_width (window);
 	if (height)
 		*height = gdk_window_get_height (window);
-#else
-	gdk_drawable_get_size(window, width, height);
-#endif
 }
 
 static gboolean
@@ -1842,6 +1931,32 @@ vte_terminal_accessible_remove_focus_handler(AtkComponent *component,
 	g_signal_handler_disconnect(component, handler_id);
 }
 
+static gboolean
+vte_terminal_accessible_grab_focus (AtkComponent *component)
+{
+	GtkWidget *widget;
+	GtkWidget *toplevel;
+
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (component));
+	if (!widget)
+		return FALSE;
+
+	if (!gtk_widget_get_can_focus (widget))
+		return FALSE;
+
+	gtk_widget_grab_focus (widget);
+	toplevel = gtk_widget_get_toplevel (widget);
+	if (gtk_widget_is_toplevel (toplevel)) {
+#ifdef GDK_WINDOWING_X11
+		gtk_window_present_with_time (GTK_WINDOW (toplevel),
+					      gdk_x11_get_server_time (gtk_widget_get_window (widget)));
+#else
+		gtk_window_present (GTK_WINDOW (toplevel));
+#endif
+	}
+	return TRUE;
+}
+
 static void
 vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 {
@@ -1865,6 +1980,8 @@ vte_terminal_accessible_component_init(gpointer iface, gpointer data)
 	component->set_size = vte_terminal_accessible_set_size;
 	component->get_layer = vte_terminal_accessible_get_layer;
 	component->get_mdi_zorder = vte_terminal_accessible_get_mdi_zorder;
+	/* everything below copied from gtkwidgetaccessible.c */
+	component->grab_focus = vte_terminal_accessible_grab_focus;
 }
 
 /* AtkAction interface */
@@ -1978,8 +2095,261 @@ vte_terminal_accessible_action_init(gpointer iface, gpointer data)
 	action->get_keybinding = vte_terminal_accessible_action_get_keybinding;
 	action->set_description = vte_terminal_accessible_action_set_description;
 }
+
+static const gchar *
+vte_terminal_accessible_get_description (AtkObject *accessible)
+{
+	GtkWidget *widget;
+
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (accessible));
+	if (widget == NULL)
+		return NULL;
+
+	if (accessible->description)
+		return accessible->description;
+
+	return gtk_widget_get_tooltip_text (widget);
+}
+
+static AtkObject *
+vte_terminal_accessible_get_parent (AtkObject *accessible)
+{
+	AtkObject *parent;
+	GtkWidget *widget, *parent_widget;
+
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (accessible));
+	if (widget == NULL)
+		return NULL;
+
+	parent = accessible->accessible_parent;
+	if (parent != NULL)
+		return parent;
+
+	parent_widget = gtk_widget_get_parent (widget);
+	if (parent_widget == NULL)
+		return NULL;
+
+	/* For a widget whose parent is a GtkNoteBook, we return the
+	 * accessible object corresponding the GtkNotebookPage containing
+	 * the widget as the accessible parent.
+	 */
+	if (GTK_IS_NOTEBOOK (parent_widget)) {
+		gint page_num;
+		GtkWidget *child;
+		GtkNotebook *notebook;
+
+		page_num = 0;
+		notebook = GTK_NOTEBOOK (parent_widget);
+		while (TRUE) {
+			child = gtk_notebook_get_nth_page (notebook, page_num);
+			if (!child)
+				break;
+			if (child == widget) {
+				parent = gtk_widget_get_accessible (parent_widget);
+				parent = atk_object_ref_accessible_child (parent, page_num);
+				g_object_unref (parent);
+				return parent;
+			}
+			page_num++;
+		}
+	}
+	parent = gtk_widget_get_accessible (parent_widget);
+	return parent;
+}
+
+static gboolean
+vte_terminal_accessible_all_parents_visible (GtkWidget *widget)
+{
+	GtkWidget *iter_parent = NULL;
+	gboolean result = TRUE;
+
+	for (iter_parent = gtk_widget_get_parent (widget); iter_parent;
+	     iter_parent = gtk_widget_get_parent (iter_parent)) {
+		if (!gtk_widget_get_visible (iter_parent)) {
+			result = FALSE;
+			break;
+		}
+	}
+
+	return result;
+}
+
+static gboolean
+vte_terminal_accessible_on_screen (GtkWidget *widget)
+{
+	GtkAllocation allocation;
+	GtkWidget *viewport;
+	gboolean return_value;
+
+	gtk_widget_get_allocation (widget, &allocation);
+
+	viewport = gtk_widget_get_ancestor (widget, GTK_TYPE_VIEWPORT);
+	if (viewport) {
+		GtkAllocation viewport_allocation;
+		GtkAdjustment *adjustment;
+		GdkRectangle visible_rect;
+
+		gtk_widget_get_allocation (viewport, &viewport_allocation);
+
+		adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (viewport));
+		visible_rect.y = gtk_adjustment_get_value (adjustment);
+		adjustment = gtk_scrollable_get_hadjustment (GTK_SCROLLABLE (viewport));
+		visible_rect.x = gtk_adjustment_get_value (adjustment);
+		visible_rect.width = viewport_allocation.width;
+		visible_rect.height = viewport_allocation.height;
+
+		if (((allocation.x + allocation.width) < visible_rect.x) ||
+		    ((allocation.y + allocation.height) < visible_rect.y) ||
+		    (allocation.x > (visible_rect.x + visible_rect.width)) ||
+		    (allocation.y > (visible_rect.y + visible_rect.height)))
+			return_value = FALSE;
+		else
+			return_value = TRUE;
+	} else {
+		/* Check whether the widget has been placed off the screen.
+		 * The widget may be MAPPED as when toolbar items do not
+		 * fit on the toolbar.
+		 */
+		if (allocation.x + allocation.width <= 0 &&
+		    allocation.y + allocation.height <= 0)
+			return_value = FALSE;
+		else
+			return_value = TRUE;
+	}
+
+	return return_value;
+}
+
+static AtkStateSet *
+vte_terminal_accessible_ref_state_set (AtkObject *accessible)
+{
+	GtkWidget *widget;
+	AtkStateSet *state_set;
+
+	state_set = ATK_OBJECT_CLASS (vte_terminal_accessible_parent_class)->ref_state_set (accessible);
+
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (accessible));
+	if (widget == NULL)
+		atk_state_set_add_state (state_set, ATK_STATE_DEFUNCT);
+	else {
+		if (gtk_widget_is_sensitive (widget)) {
+			atk_state_set_add_state (state_set, ATK_STATE_SENSITIVE);
+			atk_state_set_add_state (state_set, ATK_STATE_ENABLED);
+		}
+
+		if (gtk_widget_get_can_focus (widget)) {
+			atk_state_set_add_state (state_set, ATK_STATE_FOCUSABLE);
+		}
+		/*
+		 * We do not currently generate notifications when an ATK object
+		 * corresponding to a GtkWidget changes visibility by being scrolled
+		 * on or off the screen.  The testcase for this is the main window
+		 * of the testgtk application in which a set of buttons in a GtkVBox
+		 * is in a scrolled window with a viewport.
+		 *
+		 * To generate the notifications we would need to do the following:
+		 * 1) Find the GtkViewport among the ancestors of the objects
+		 * 2) Create an accessible for the viewport
+		 * 3) Connect to the value-changed signal on the viewport
+		 * 4) When the signal is received we need to traverse the children
+		 *    of the viewport and check whether the children are visible or not
+		 *    visible; we may want to restrict this to the widgets for which
+		 *    accessible objects have been created.
+		 * 5) We probably need to store a variable on_screen in the
+		 *    GtkWidgetAccessible data structure so we can determine whether
+		 *    the value has changed.
+		 */
+		if (gtk_widget_get_visible (widget)) {
+			atk_state_set_add_state (state_set, ATK_STATE_VISIBLE);
+			if (vte_terminal_accessible_on_screen (widget) &&
+			    gtk_widget_get_mapped (widget) &&
+			    vte_terminal_accessible_all_parents_visible (widget))
+				atk_state_set_add_state (state_set, ATK_STATE_SHOWING);
+		}
+
+		if (gtk_widget_has_focus (widget)) {
+			AtkObject *focus_obj;
+
+			focus_obj = g_object_get_data (G_OBJECT (accessible), "gail-focus-object");
+			if (focus_obj == NULL)
+				atk_state_set_add_state (state_set, ATK_STATE_FOCUSED);
+		}
+
+		if (gtk_widget_has_default (widget))
+			atk_state_set_add_state (state_set, ATK_STATE_DEFAULT);
+	}
+	return state_set;
+}
+
+static gint
+vte_terminal_accessible_get_index_in_parent (AtkObject *accessible)
+{
+	GtkWidget *widget;
+	GtkWidget *parent_widget;
+	gint index;
+	GList *children;
+
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (accessible));
+
+	if (widget == NULL)
+		return -1;
+
+	if (accessible->accessible_parent) {
+		AtkObject *parent;
+
+		parent = accessible->accessible_parent;
+
+		if (atk_object_get_role (parent) == ATK_ROLE_PAGE_TAB)
+			return 0;
+		else {
+			gint n_children, i;
+			gboolean found = FALSE;
+
+			n_children = atk_object_get_n_accessible_children (parent);
+			for (i = 0; i < n_children; i++) {
+				AtkObject *child;
+
+				child = atk_object_ref_accessible_child (parent, i);
+				if (child == accessible)
+					found = TRUE;
+
+				g_object_unref (child);
+				if (found)
+					return i;
+			}
+		}
+	}
+
+	if (!GTK_IS_WIDGET (widget))
+		return -1;
+	parent_widget = gtk_widget_get_parent (widget);
+	if (!GTK_IS_CONTAINER (parent_widget))
+		return -1;
+
+	children = gtk_container_get_children (GTK_CONTAINER (parent_widget));
+
+	index = g_list_index (children, widget);
+	g_list_free (children);
+	return index;
+}
+
+static AtkAttributeSet *
+vte_terminal_accessible_get_attributes (AtkObject *obj)
+{
+	AtkAttributeSet *attributes;
+	AtkAttribute *toolkit;
+
+	toolkit = g_new (AtkAttribute, 1);
+	toolkit->name = g_strdup ("toolkit");
+	toolkit->value = g_strdup ("gtk");
+
+	attributes = g_slist_append (NULL, toolkit);
+
+	return attributes;
+}
+
 static void
-vte_terminal_accessible_class_init(gpointer *klass)
+vte_terminal_accessible_class_init(VteTerminalAccessibleClass *klass)
 {
 	GObjectClass *gobject_class;
 	AtkObjectClass *class = ATK_OBJECT_CLASS (klass);
@@ -1991,101 +2361,24 @@ vte_terminal_accessible_class_init(gpointer *klass)
 	class->initialize = vte_terminal_initialize;
 	/* Override the finalize method. */
 	gobject_class->finalize = vte_terminal_accessible_finalize;
+
+	/* everything below copied from gtkwidgetaccessible.c */
+	class->get_description = vte_terminal_accessible_get_description;
+	class->get_parent = vte_terminal_accessible_get_parent;
+	class->ref_state_set = vte_terminal_accessible_ref_state_set;
+	class->get_index_in_parent = vte_terminal_accessible_get_index_in_parent;
+	class->get_attributes = vte_terminal_accessible_get_attributes;
 }
 
-GType
-vte_terminal_accessible_get_type(void)
+static void
+vte_terminal_accessible_init (VteTerminalAccessible *terminal)
 {
-	static GType terminal_accessible_type = 0;
-
-	if (G_UNLIKELY (terminal_accessible_type == 0)) {
-		AtkRegistry *registry;
-		AtkObjectFactory *factory;
-		GType parent_type, parent_accessible_type;
-		GTypeQuery type_info;
-
-		GInterfaceInfo text = {
-			vte_terminal_accessible_text_init,
-			NULL,
-			NULL,
-		};
-		GInterfaceInfo component = {
-			vte_terminal_accessible_component_init,
-			NULL,
-			NULL,
-		};
-		GInterfaceInfo action = {
-			vte_terminal_accessible_action_init,
-			NULL,
-			NULL,
-		};
-		GTypeInfo terminal_accessible_info = {
-			0,
-			(GBaseInitFunc)NULL,
-			(GBaseFinalizeFunc)NULL,
-
-			(GClassInitFunc)vte_terminal_accessible_class_init,
-			(GClassFinalizeFunc)NULL,
-			(gconstpointer)NULL,
-
-			0,
-			0,
-			(GInstanceInitFunc) NULL,
-
-			(GTypeValueTable*)NULL,
-		};
-
-		/* Find the Atk object used for the parent (GtkWidget) type. */
-		parent_type = g_type_parent(VTE_TYPE_TERMINAL);
-		factory = atk_registry_get_factory(atk_get_default_registry(),
-				parent_type);
-		parent_accessible_type = atk_object_factory_get_accessible_type(factory);
-		if (!g_type_is_a(parent_accessible_type, GTK_TYPE_ACCESSIBLE)) {
-#ifdef VTE_DEBUG
-			g_warning("Accessibility (%s) is not derived from "
-					"%s (GTK_MODULES=gail not set?), "
-					"deriving from %s instead.\n",
-					g_type_name(parent_accessible_type),
-					g_type_name(GTK_TYPE_ACCESSIBLE),
-					g_type_name(GTK_TYPE_ACCESSIBLE));
-#endif
-			/* Fudge it. */
-			parent_accessible_type = GTK_TYPE_ACCESSIBLE;
-		}
-
-		/* Find the size of the parent type's objects. */
-		g_type_query(parent_accessible_type, &type_info);
-		terminal_accessible_info.class_size = type_info.class_size;
-		terminal_accessible_info.instance_size = type_info.instance_size;
-		/* Register the class with the GObject type system. */
-		terminal_accessible_type = g_type_register_static(parent_accessible_type,
-				"VteTerminalAccessible",
-				&terminal_accessible_info,
-				0);
-
-		/* Add a text interface to this object class. */
-		g_type_add_interface_static(terminal_accessible_type,
-				ATK_TYPE_TEXT,
-				&text);
-		/* Add a component interface to this object class. */
-		g_type_add_interface_static(terminal_accessible_type,
-				ATK_TYPE_COMPONENT,
-				&component);
-		/* Add an action interface to this object class. */
-		g_type_add_interface_static(terminal_accessible_type,
-				ATK_TYPE_ACTION,
-				&action);
-
-		/* Associate the terminal and its peer factory in the
-		 * Atk type registry. */
-		registry = atk_get_default_registry();
-		atk_registry_set_factory_type(registry,
-				VTE_TYPE_TERMINAL,
-				VTE_TYPE_TERMINAL_ACCESSIBLE_FACTORY);
-	}
-
-	return terminal_accessible_type;
 }
+
+G_DEFINE_TYPE_WITH_CODE (VteTerminalAccessible, vte_terminal_accessible, GTK_TYPE_ACCESSIBLE,
+                         G_IMPLEMENT_INTERFACE (ATK_TYPE_TEXT, vte_terminal_accessible_text_init)
+                         G_IMPLEMENT_INTERFACE (ATK_TYPE_COMPONENT, vte_terminal_accessible_component_init)
+                         G_IMPLEMENT_INTERFACE (ATK_TYPE_ACTION, vte_terminal_accessible_action_init))
 
 /* Create an accessible peer for the object. */
 static AtkObject *
