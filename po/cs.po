@@ -15,8 +15,10 @@ msgstr ""
 "Last-Translator: Marek Černocký <marek@manet.cz>\n"
 "Language-Team: Czech <gnome-cs-list@gnome.org>\n"
 "MIME-Version: 1.0\n"
+"Language: cs\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
 #: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
 #: ../src/vte.c:2239
@@ -83,27 +85,3 @@ msgstr "Chyba při čtení velikosti PTY, použije se výchozí: %s\n"
 #: ../src/vte.c:13232
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() selhal při nastavování znaků slova"
-
-#~ msgid "can not run %s"
-#~ msgstr "nelze spustit %s"
-
-#~ msgid "Error creating signal pipe."
-#~ msgstr "Chyba při vytváření signálové roury."
-
-#~ msgid "No handler for control sequence `%s' defined."
-#~ msgstr "Nedefinována žádná obsluha pro řídicí sekvenci `%s'."
-
-#~ msgid "Error setting PTY size: %s."
-#~ msgstr "Chyba při nastavování velikosti PTY: %s."
-
-#~ msgid "Got unexpected (key?) sequence `%s'."
-#~ msgstr "Dostal jsem neočekávanou sekvenci (kláves?) `%s'."
-
-#~ msgid "Unknown pixel mode %d.\n"
-#~ msgstr "Neznámý režim pixelu %d.\n"
-
-#~ msgid "Error adding `%s' to environment, continuing."
-#~ msgstr "Chyba při přidávání `%s' do prostředí, pokračuji."
-
-#~ msgid "Can not draw character U+%04x.\n"
-#~ msgstr "Nemohu vykreslit znak U+%04x.\n"
