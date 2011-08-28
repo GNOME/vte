@@ -13565,7 +13565,7 @@ G_DEFINE_TYPE_WITH_CODE(VteBuffer, vte_buffer, G_TYPE_OBJECT,
                         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_buffer_get_type()\n");
                         )
 #else
-G_DEFINE_TYPE_WITH_CODE(VteBuffer, vte_buffer, VTE_TYPE_VIEW,
+G_DEFINE_TYPE_WITH_CODE(VteBuffer, vte_buffer, G_TYPE_OBJECT,
                         g_type_add_class_private (g_define_type_id, sizeof (VteBufferClassPrivate));
                         )
 #endif
