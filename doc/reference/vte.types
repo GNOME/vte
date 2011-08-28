@@ -12,7 +12,7 @@ vte_view_get_type
 
 vte_pty_error_get_type
 vte_pty_flags_get_type
-vte_view_cursor_blink_mode_get_type
-vte_view_cursor_shape_get_type
-vte_view_erase_binding_get_type
-vte_view_write_flags_get_type
+vte_cursor_blink_mode_get_type
+vte_cursor_shape_get_type
+vte_erase_binding_get_type
+vte_write_flags_get_type
