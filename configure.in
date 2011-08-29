@@ -378,13 +378,15 @@ esac
 # Search for the required modules.
 
 # We have a direct dependency on X11 on gdk-x11, see bug #613525
-AC_MSG_CHECKING([for GDK target])
-GDK_TARGET="$($PKG_CONFIG --variable target gdk-$GTK_API_VERSION)"
-AC_MSG_RESULT([$GDK_TARGET])
-case "$GDK_TARGET" in
-  x11) PLATFORM_PKGS="x11 cairo-xlib" ;;
-  *) PLATFORM_PKGS="" ;;
-esac
+AC_MSG_CHECKING([for GDK targets])
+GDK_TARGETS="$($PKG_CONFIG --variable targets gdk-$GTK_API_VERSION)"
+AC_MSG_RESULT([$GDK_TARGETS])
+PLATFORM_PKGS=
+for i in $GDK_TARGETS; do
+  if test "$i" = "x11"; then
+    PLATFORM_PKGS="$PLATFORM_PKGS x11 cairo-xlib"
+  fi
+done
 
 VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 $PLATFORM_PKGS"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
