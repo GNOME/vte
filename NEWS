@@ -1,3 +1,9 @@
+0.29.1
+======
+- Bugs fixed:
+  - Bug 657581 - gdk-3.0 supports multiple targets; the "target" variable is gone
+  - Bug 657584 - vte needs to properly set VTE_API_VERSION
+
 0.29.0
 ======
 - Drop GTK 2 support
