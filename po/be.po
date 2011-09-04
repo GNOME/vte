@@ -4,44 +4,36 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.master\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&component=general\n"
-"POT-Creation-Date: 2010-03-17 17:23+0000\n"
-"PO-Revision-Date: 2011-07-25 11:18+0300\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-09-04 19:28+0300\n"
+"PO-Revision-Date: 2011-09-04 19:28+0300\n"
 "Last-Translator: Ihar Hrachyshka <ihar.hrachyshka@gmail.com>\n"
 "Language-Team: Belarusian <i18n-bel-googlegroups.com>\n"
+"Language: be\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2232
+#: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
+#: ../src/vte.c:2277
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Не ўдалося пераўтварыць знакі з %s у %s."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1472
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Спроба ўжыць хібную NRC-карту \"%c\"."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1502
 msgid "Unrecognized identified coding system."
 msgstr "Неапазнаная ідэнтыфікаваная сістэма кадавання."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1561 ../src/iso2022.c:1588
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Спроба ўжыць хібную шырокафарматную NRC-карту \"%c\"."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:1073 ../src/pty.c:1076
-#, c-format
-msgid "can not run %s"
-msgstr "не ўдалося запусціць %s"
 
 #: ../src/trie.c:409
 #, c-format
@@ -49,42 +41,44 @@ msgid "Duplicate (%s/%s)!"
 msgstr "Дублікат (%s/%s)."
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:876
+#: ../src/vteapp.c:981
 msgid "Could not open console.\n"
-msgstr "Не ўдалося адчыніць кансоль.\n"
+msgstr "Не ўдалося адкрыць кансоль.\n"
 
-#: ../src/vteapp.c:967
+#: ../src/vteapp.c:1077
 msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Не ўдалося разабраць спецыфікацыю памераў акна, пададзеных для опцыі --geometry"
+msgstr ""
+"Не ўдалося разабраць спецыфікацыю памераў акна, пададзеных для опцыі --"
+"geometry"
 
-#: ../src/vte.c:1279
+#: ../src/vte.c:1303
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Памылка кампіляцыі рэгулярнага выразу \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4344
+#: ../src/vte.c:4591
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Памылка чытання даных ад нашчадка: %s."
 
-#: ../src/vte.c:4472
+#: ../src/vte.c:4718
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
 "Не ўдалося паслаць даныя нашчадку: хібны модуль пераўтварэння знаказбору"
 
-#: ../src/vte.c:4483 ../src/vte.c:5505
+#: ../src/vte.c:4729 ../src/vte.c:5791
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Памылка (%s) пераўтварэння даных ад нашчадка: ігнаруецца."
 
-#: ../src/vte.c:7726
+#: ../src/vte.c:7976
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
 msgstr "Памылка чытання памеру PTY: выкарыстоўваецца прадвызначаны: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13281
+#: ../src/vte.c:13794
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() не здолеў настроіць знакі, якія ўжываюцца ў словах"
 
