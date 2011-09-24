@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: as\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2011-08-17 17:10+0000\n"
+"POT-Creation-Date: 2011-08-17 06:08+0000\n"
 "PO-Revision-Date: 2011-03-14 18:17+0000\n"
 "Last-Translator: Nilamdyuti Goswami <ngoswami@redhat.com>\n"
 "Language-Team: Assamese <kde-i18n-doc@kde.org>\n"
@@ -79,7 +79,7 @@ msgid "Error reading PTY size, using defaults: %s\n"
 msgstr "PTY -ৰ আকাৰ পঢ়োতে ত্ৰুটি, অবিকল্পিত মান ব্যবহাৰ কৰা হৈছে: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13807
+#: ../src/vte.c:13796
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() শব্দৰ আখৰ নিৰ্ধাৰণ কৰিবলৈ ব্যৰ্থ হল"
 
