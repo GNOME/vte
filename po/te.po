@@ -1,21 +1,24 @@
 # Telugu translation of vte.
 # Copyright (C) 2007,2011 Swecha Telugu Localisation Team <localization@swecha.net>.
 # This file is distributed under the same license as the vte package.
-# Matapathi Pramod <pramod@swecha.net>, 2007
-# Hari Krishna <hari@swecha.net>, 2011
+# Matapathi Pramod <pramod@swecha.net>, 2007.
+# Hari Krishna <hari@swecha.net>, 2011.
+# Krishnababu Krothapalli <kkrothap@redhat.com>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&keywords=I18N+L10N&component=general\n"
 "POT-Creation-Date: 2011-08-17 06:08+0000\n"
-"PO-Revision-Date: 2007-11-19 12:22+0530\n"
-"Last-Translator: Hari Krishna <hari@swecha.net>\n"
+"PO-Revision-Date: 2011-10-10 17:19+0530\n"
+"Last-Translator: Krishnababu Krothapalli <kkrothap@redhat.com>\n"
 "Language-Team: Telugu <indlinux-telugu@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"Language: te\n"
+"X-Generator: Lokalize 1.2\n"
 
 #: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
 #: ../src/vte.c:2279
@@ -50,7 +53,8 @@ msgstr "ఓదార్పు తెరుచుటకు వీలుకాద�
 
 #: ../src/vteapp.c:1077
 msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "క్షేత్రగణితం పార్స్ కు వీలుకాదు --క్షేత్రగణితం వెళ్ళుటకు నిర్థేశింపబడినది"
+msgstr ""
+"క్షేత్రగణితం పార్స్ కు వీలుకాదు --క్షేత్రగణితం వెళ్ళుటకు నిర్థేశింపబడినది"
 
 #: ../src/vte.c:1305
 #, c-format
@@ -74,7 +78,7 @@ msgstr "(%s) దోషము శిశువు నుండి దత్తం�
 
 #: ../src/vte.c:7978
 msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "పిటివై పరిమాణం చదువుటలో దోషము, అప్రమేయములు వాడుచున్నది: %s\n."
+msgstr "పిటివై పరిమాణం చదువుటలో దోషము, అప్రమేయములు వాడుచున్నది: %s\n"
 
 #. Aaargh.  We're screwed.
 #: ../src/vte.c:13796
