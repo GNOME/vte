@@ -5014,16 +5014,15 @@ vte_terminal_set_inner_border(VteTerminal *terminal)
 }
 
 static void
-vte_terminal_style_set (GtkWidget      *widget,
-			GtkStyle       *prev_style)
+vte_terminal_style_updated (GtkWidget *widget)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         float aspect;
+        void (* style_updated) (GtkWidget *) =
+          GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated;
 
-        GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_set (widget, prev_style);
-
-        if (gtk_widget_get_style(widget) == prev_style)
-                return;
+        if (style_updated)
+          style_updated (widget);
 
         vte_terminal_set_font_full_internal(terminal, terminal->pvt->fontdesc,
                                             terminal->pvt->fontantialias);
@@ -11787,7 +11786,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
-	widget_class->style_set = vte_terminal_style_set;
+	widget_class->style_updated = vte_terminal_style_updated;
 #if GTK_CHECK_VERSION (2, 91, 0)
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
@@ -13182,7 +13181,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 {
 	double saturation;
 	const PangoColor *entry;
-	GdkColor color;
+	GdkRGBA color;
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
@@ -13204,16 +13203,14 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	/* Set the terminal widget background color since otherwise we
 	 * won't draw it for VTE_BG_SOURCE_NONE. */
-	color.red = entry->red;
-	color.green = entry->green;
-	color.blue = entry->blue;
-	gtk_widget_modify_bg (&terminal->widget, GTK_STATE_NORMAL, &color);
+	color.red = entry->red / 65535.;
+	color.green = entry->green / 65535.;
+	color.blue = entry->blue / 65535.;
+	color.alpha = terminal->pvt->bg_opacity / 65535.;
+	gtk_widget_override_background_color (&terminal->widget, GTK_STATE_FLAG_NORMAL, &color);
 
 	_vte_draw_set_background_solid (terminal->pvt->draw, 
-					entry->red / 65535.,
-					entry->green / 65535.,
-					entry->blue / 65535.,
-					terminal->pvt->bg_opacity / 65535.);
+					color.red, color.green, color.blue, color.alpha);
 
 	/* If we're transparent, and either have no root image or are being
 	 * told to update it, get a new copy of the root window. */
