@@ -13201,13 +13201,10 @@ vte_terminal_background_update(VteTerminal *terminal)
 			 entry->red, entry->green, entry->blue,
 			 terminal->pvt->bg_opacity);
 
-	/* Set the terminal widget background color since otherwise we
-	 * won't draw it for VTE_BG_SOURCE_NONE. */
 	color.red = entry->red / 65535.;
 	color.green = entry->green / 65535.;
 	color.blue = entry->blue / 65535.;
 	color.alpha = terminal->pvt->bg_opacity / 65535.;
-	gtk_widget_override_background_color (&terminal->widget, GTK_STATE_FLAG_NORMAL, &color);
 
 	_vte_draw_set_background_solid (terminal->pvt->draw, 
 					color.red, color.green, color.blue, color.alpha);
