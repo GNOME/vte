@@ -234,6 +234,7 @@ vte_bg_get_for_screen(GdkScreen *screen)
                 pvt = bg->pvt;
 		pvt->screen = screen;
 #ifdef GDK_WINDOWING_X11
+            if (GDK_IS_X11_DISPLAY(gdk_screen_get_display(screen)))
             {
                 GdkEventMask events;
                 GdkWindow   *window;
