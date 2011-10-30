@@ -9263,7 +9263,7 @@ vte_terminal_determine_colors (VteTerminal *terminal,
 			       gboolean highlight,
 			       guint *fore, guint *back)
 {
-	return vte_terminal_determine_colors_internal (terminal, cell,
+	vte_terminal_determine_colors_internal (terminal, cell,
 						       highlight, FALSE,
 						       fore, back);
 }
@@ -9274,7 +9274,7 @@ vte_terminal_determine_cursor_colors (VteTerminal *terminal,
 				      gboolean highlight,
 				      guint *fore, guint *back)
 {
-	return vte_terminal_determine_colors_internal (terminal, cell,
+	vte_terminal_determine_colors_internal (terminal, cell,
 						       highlight, TRUE,
 						       fore, back);
 }
