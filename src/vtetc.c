@@ -17,6 +17,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+
+#include "config.h"
+
+/* GCache is deprecated */
+#define GLIB_DISABLE_DEPRECATION_WARNINGS
+
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>

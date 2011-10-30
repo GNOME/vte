@@ -18,6 +18,10 @@
 
 
 #include <config.h>
+
+/* GCache is deprecated */
+#define GLIB_DISABLE_DEPRECATION_WARNINGS
+
 #include <sys/types.h>
 #include <string.h>
 #include <glib-object.h>
