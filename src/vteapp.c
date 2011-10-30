@@ -831,7 +831,7 @@ main(int argc, char **argv)
 		gtk_container_add(GTK_CONTAINER(window), scrolled_window);
 	} else {
 		/* Create a box to hold everything. */
-		hbox = gtk_hbox_new(0, FALSE);
+		hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_container_add(GTK_CONTAINER(window), hbox);
 	}
 
