@@ -62,8 +62,7 @@ catfile(const char *pathname, long delay, long chunksize)
 			}
 		}
 		if (i > 0) {
-			int bytes;
-			bytes = write(STDOUT_FILENO, buf, i);
+			(void) write(STDOUT_FILENO, buf, i);
 			fsync(STDOUT_FILENO);
 		}
 	}

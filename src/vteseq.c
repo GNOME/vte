@@ -2961,7 +2961,6 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
 {
         VteView *terminal;
 	GdkScreen *gscreen;
-	VteScreen *screen;
 	GValue *value;
 	GtkWidget *widget;
 	char buf[128];
@@ -2973,7 +2972,6 @@ vte_sequence_handler_window_manipulation (VteBuffer *buffer, GValueArray *params
         /* FIXMEchpe cope with NULL terminal */
 
 	widget = &terminal->widget;
-	screen = buffer->pvt->screen;
 
 	for (i = 0; ((params != NULL) && (i < params->n_values)); i++) {
 		arg1 = arg2 = -1;

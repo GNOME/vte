@@ -3152,12 +3152,9 @@ vte_buffer_pty_new_sync(VteBuffer *buffer,
                           GCancellable *cancellable,
                           GError **error)
 {
-        VteBufferPrivate *pvt;
         VtePty *pty;
 
         g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
-
-        pvt = buffer->pvt;
 
         pty = vte_pty_new_sync(flags, cancellable, error);
         if (pty == NULL)
@@ -5978,7 +5975,6 @@ vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 {
         VteView *terminal;
 	glong col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
-	VteScreen *screen;
 	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
@@ -5988,7 +5984,6 @@ vte_buffer_get_text_range_maybe_wrapped(VteBuffer *buffer,
 		is_selected = always_selected;
 
         terminal = buffer->pvt->terminal;
-	screen = buffer->pvt->screen;
 
 	if (attributes)
 		g_array_set_size (attributes, 0);
@@ -6962,7 +6957,7 @@ vte_view_motion_notify(GtkWidget *widget, GdkEventMotion *event)
         VteView *terminal = VTE_VIEW(widget);
         VteViewPrivate *pvt = terminal->pvt;
         VteBuffer *buffer;
-	int width, height;
+	int height;
 	long x, y;
         long cell_x, cell_y;
 	gboolean handled = FALSE;
@@ -6974,7 +6969,6 @@ vte_view_motion_notify(GtkWidget *widget, GdkEventMotion *event)
         (void) _vte_view_xy_to_grid(terminal, event->x, event->y, &cell_x, &cell_y);
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
-	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
@@ -7808,14 +7802,12 @@ vte_view_set_vadjustment(VteView *terminal,
 void
 vte_buffer_set_emulation(VteBuffer *buffer, const char *emulation)
 {
-        VteBufferPrivate *pvt;
         GObject *object;
 	int columns, rows;
 
 	g_return_if_fail(VTE_IS_BUFFER(buffer));
 
         object = G_OBJECT(buffer);
-        pvt = buffer->pvt;
 
         g_object_freeze_notify(object);
 
@@ -9576,7 +9568,7 @@ vte_view_draw_cells(VteView *terminal,
 			gboolean strikethrough, gboolean hilite, gboolean boxed,
 			gint column_width, gint row_height)
 {
-	int i, x, y, ascent;
+	int i, x, y;
 	gint columns = 0;
 	const GdkRGBA *fg, *bg, *defbg;
 
@@ -9599,7 +9591,6 @@ vte_view_draw_cells(VteView *terminal,
 	fg = &terminal->pvt->palette[fore];
 	bg = &terminal->pvt->palette[back];
 	defbg = &terminal->pvt->palette[VTE_DEF_BG];
-	ascent = terminal->pvt->char_ascent;
 
 	i = 0;
 	do {
@@ -9966,7 +9957,6 @@ vte_view_draw_rows(VteView *terminal,
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	gint i, j, row, rows, x, y, end_column;
 	guint fore, nfore, back, nback;
-	glong delta;
 	gboolean underline, nunderline, bold, nbold, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
@@ -9978,7 +9968,6 @@ vte_view_draw_rows(VteView *terminal,
 	end_column = start_column + column_count;
 
 	/* clear the background */
-	delta = screen->scroll_delta;
 	x = start_x + terminal->pvt->padding.left;
 	y = start_y + terminal->pvt->padding.top;
 	row = start_row;
@@ -10291,14 +10280,11 @@ static void
 vte_view_expand_region (VteView *terminal, cairo_region_t *region, const cairo_rectangle_int_t *area)
 {
         VteBuffer *buffer;
-	VteScreen *screen;
 	int width, height;
 	int row, col, row_stop, col_stop;
 	cairo_rectangle_int_t rect;
 
         buffer = terminal->pvt->buffer;
-
-	screen = buffer->pvt->screen;
 
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
@@ -10542,7 +10528,7 @@ vte_view_paint_im_preedit_string(VteView *terminal)
         VteViewPrivate *pvt = terminal->pvt;
         VteBuffer *buffer;
 	VteScreen *screen;
-	int row, drow, col, columns;
+	int row, col, columns;
 	long width, height, delta;
 	int i, len;
 	guint fore, back;
@@ -10560,7 +10546,6 @@ vte_view_paint_im_preedit_string(VteView *terminal)
 	height = terminal->pvt->char_height;
 	delta = screen->scroll_delta;
 
-	drow = screen->cursor_current.row;
 	row = screen->cursor_current.row - delta;
 
 	/* Find out how many columns the pre-edit string takes up. */
@@ -10863,10 +10848,7 @@ vte_view_scroll(GtkWidget *widget, GdkEventScroll *event)
 static AtkObject *
 vte_view_get_accessible(GtkWidget *widget)
 {
-	VteView *terminal;
 	static gboolean first_time = TRUE;
-
-	terminal = VTE_VIEW(widget);
 
 	if (first_time) {
 		AtkObjectFactory *factory;
@@ -11869,14 +11851,11 @@ vte_buffer_set_scrollback_lines(VteBuffer *buffer,
 void
 vte_view_set_word_chars(VteView *terminal, const char *spec)
 {
-        VteBuffer *buffer;
 	gunichar *wbuf;
         glong len, i;
 	VteWordCharRange range;
 
 	g_return_if_fail(VTE_IS_VIEW(terminal));
-
-        buffer = terminal->pvt->buffer;
 
 	/* Allocate a new range array. */
 	if (terminal->pvt->word_chars != NULL) {
