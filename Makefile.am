@@ -1,4 +1,4 @@
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
+ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I .
 
 SUBDIRS = src termcaps po doc perf
 
