@@ -187,15 +187,15 @@ Vte_@VTE_API_VERSION_U@_gir_FILES = \
 
 INTROSPECTION_GIRS += Vte-$(VTE_API_VERSION).gir
 
-girdir = $(INTROSPECTION_GIRDIR)
+girdir = $(datadir)/gir-1.0
 nodist_gir_DATA = $(INTROSPECTION_GIRS)
 
-typelibdir = $(INTROSPECTION_TYPELIBDIR)
+typelibdir = $(libdir)/girepository-1.0
 nodist_typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(nodist_gir_DATA) $(nodist_typelib_DATA)
-endif
 
+endif # HAVE_INTROSPECTION
 
 # Misc unit tests and utilities
 
