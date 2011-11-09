@@ -5505,11 +5505,12 @@ vte_view_get_mouse_tracking_info (VteView   *terminal,
 				      long           col,
 				      long           row,
 				      unsigned char *pb,
-				      unsigned char *px,
-				      unsigned char *py)
+                                       long          *px,
+				      long          *py)
 {
         VteBuffer *buffer;
-	unsigned char cb = 0, cx = 0, cy = 0;
+	unsigned char cb = 0;
+        long cx, cy;
 
         buffer = terminal->pvt->buffer;
 
@@ -5547,15 +5548,34 @@ vte_view_get_mouse_tracking_info (VteView   *terminal,
 		cb |= 16;
 	}
 
-	/* Encode the cursor coordinates. */
-	cx = 32 + CLAMP(1 + col,
-			1, buffer->pvt->column_count);
-	cy = 32 + CLAMP(1 + row,
-			1, buffer->pvt->row_count);;
+       /* Cursor coordinates */
+       cx = CLAMP(1 + col, 1, buffer->pvt->column_count);
+       cy = CLAMP(1 + row, 1, buffer->pvt->row_count);
 
 	*pb = cb;
 	*px = cx;
 	*py = cy;
+}
+
+static void
+vte_buffer_feed_mouse_event(VteBuffer *buffer,
+                            int        cb,
+                            long       cx,
+                            long       cy)
+{
+        char buf[LINE_MAX];
+        gint len = 0;
+
+        if (buffer->pvt->mouse_urxvt_extension) {
+                /* urxvt's extended mode (1015) */
+                len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", cb, cx, cy);
+        } else if (cx <= 231 && cy <= 231) {
+                /* legacy mode */
+                len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, 32 + (guchar)cx, 32 + (guchar)cy);
+        }
+
+        /* Send event direct to the child, this is binary not text data */
+        vte_buffer_feed_child_binary(buffer, buf, len);
 }
 
 /*
@@ -5571,10 +5591,14 @@ vte_view_send_mouse_button_internal(VteView *terminal,
 					long         x,
 					long         y)
 {
-	unsigned char cb, cx, cy;
-	char buf[LINE_MAX];
-	gint len;
+        VteBuffer *buffer;
+	unsigned char cb;
+        long cx, cy;
         long col, row;
+
+        buffer = terminal->pvt->buffer;
+        if (buffer == NULL)
+                return;
 
         if (!_vte_view_xy_to_grid(terminal, x, y, &col, &row))
                 return;
@@ -5583,9 +5607,7 @@ vte_view_send_mouse_button_internal(VteView *terminal,
 					      button, col, row,
 					      &cb, &cx, &cy);
 
-	/* Send event direct to the child, this is binary not text data */
-	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_buffer_feed_child_binary(terminal->pvt->buffer, buf, len);
+        vte_buffer_feed_mouse_event(buffer, cb, cx, cy);
 }
 
 /* Send a mouse button click/release notification. */
@@ -5621,10 +5643,14 @@ vte_view_maybe_send_mouse_button(VteView *terminal,
 static void
 vte_view_maybe_send_mouse_drag(VteView *terminal, GdkEventMotion *event)
 {
-	unsigned char cb, cx, cy;
-	char buf[LINE_MAX];
-	gint len;
+        VteBuffer *buffer;
+	unsigned char cb;
+        long cx, cy;
         long col, row;
+
+        buffer = terminal->pvt->buffer;
+        if (buffer == NULL)
+                return;
 
         (void) _vte_view_xy_to_grid(terminal, event->x, event->y, &col, &row);
 
@@ -5656,9 +5682,7 @@ vte_view_maybe_send_mouse_drag(VteView *terminal, GdkEventMotion *event)
 					      &cb, &cx, &cy);
 	cb += 32; /* for movement */
 
-	/* Send event direct to the child, this is binary not text data */
-	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_buffer_feed_child_binary(terminal->pvt->buffer, buf, len);
+        vte_buffer_feed_mouse_event(buffer, cb, cx, cy);
 }
 
 /* Clear all match hilites. */
@@ -12165,6 +12189,7 @@ vte_buffer_reset(VteBuffer *buffer,
 	}
 	/* Reset mouse motion events. */
         terminal->pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
+        pvt->mouse_urxvt_extension = FALSE;
         terminal->pvt->mouse_last_button = 0;
         terminal->pvt->mouse_last_x = 0;
         terminal->pvt->mouse_last_y = 0;

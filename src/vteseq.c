@@ -614,6 +614,11 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */
 		{1011, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+                /* 1015/urxvt: Extended mouse coordinates. */
+                {1015, &buffer->pvt->mouse_urxvt_extension, NULL, NULL,
+                 GINT_TO_POINTER(FALSE),
+                 GINT_TO_POINTER(TRUE),
+                 NULL, NULL,},
 		/* 1035: disallowed, don't know what to do with it. */
 		{1035, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1036: Meta-sends-escape. */

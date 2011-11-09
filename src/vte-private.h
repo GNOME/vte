@@ -288,6 +288,9 @@ struct _VteBufferPrivate {
         /* Cursor */
         gboolean cursor_visible;
 
+        /* Mouse tracking */
+        gboolean mouse_urxvt_extension;
+
         /* FIXMEchpe: this is duplicated wiht VteBufferPrivate; keep just one
          * and update the other! (Not sure if this belongs in the view or the
          * buffer, although it _is_ set from vteseq.c.)
