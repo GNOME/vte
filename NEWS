@@ -1,3 +1,13 @@
+0.31.0
+======
+- Don't override the widget background colour
+- Add missing (closure) annotation on VteSelectionFunc (#655405, Evan Nemerson)
+- use gtk_drag_check_threshold() (#654691, Dan Winship)
+- Add urxvt extended mouse tracking mode support (#662423, Egmont Koblinger)
+- Add runtime check for X11 display (#660151, Young-Ho Cha)
+- Build fixes (#661121, #616001)
+- Translation updates
+
 0.30.1
 ======
 - Translation updates
