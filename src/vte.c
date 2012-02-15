@@ -82,8 +82,7 @@ typedef gunichar wint_t;
 
 
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
-static void vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
-				     gboolean reset);
+static void vte_terminal_set_termcap(VteTerminal *terminal);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
@@ -8192,7 +8191,7 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting emulation to `%s'...\n", emulation);
 	/* Find and read the right termcap file. */
-	vte_terminal_set_termcap(terminal, NULL, FALSE);
+	vte_terminal_set_termcap(terminal);
 
 	/* Create a table to hold the control sequences. */
 	if (terminal->pvt->matcher != NULL) {
@@ -8296,50 +8295,27 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 
 /* Set the path to the termcap file we read, and read it in. */
 static void
-vte_terminal_set_termcap(VteTerminal *terminal, const char *path,
-			 gboolean reset)
+vte_terminal_set_termcap(VteTerminal *terminal)
 {
         GObject *object = G_OBJECT(terminal);
-	struct stat st;
-	char *wpath;
-
-	if (path == NULL) {
-		wpath = g_build_filename(TERMCAPDIR,
-					 terminal->pvt->emulation ?
-					 terminal->pvt->emulation :
-					 vte_terminal_get_default_emulation(terminal),
-					 NULL);
-		if (g_stat(wpath, &st) != 0) {
-			g_free(wpath);
-			wpath = g_strdup("/etc/termcap");
-		}
-		path = g_intern_string (wpath);
-		g_free(wpath);
-	} else {
-		path = g_intern_string (path);
-	}
-	if (path == terminal->pvt->termcap_path) {
-		return;
-	}
+        const char *emulation;
 
         g_object_freeze_notify(object);
 
-	terminal->pvt->termcap_path = path;
+        emulation = terminal->pvt->emulation ? terminal->pvt->emulation
+                                             : vte_terminal_get_default_emulation(terminal);
 
 	_vte_debug_print(VTE_DEBUG_MISC, "Loading termcap `%s'...",
-			terminal->pvt->termcap_path);
+			 emulation);
 	if (terminal->pvt->termcap != NULL) {
 		_vte_termcap_free(terminal->pvt->termcap);
 	}
-	terminal->pvt->termcap = _vte_termcap_new(terminal->pvt->termcap_path);
+	terminal->pvt->termcap = _vte_termcap_new(emulation);
 	_vte_debug_print(VTE_DEBUG_MISC, "\n");
 	if (terminal->pvt->termcap == NULL) {
 		_vte_terminal_inline_error_message(terminal,
-				"Failed to load terminal capabilities from '%s'",
-				terminal->pvt->termcap_path);
-	}
-	if (reset) {
-		vte_terminal_set_emulation(terminal, terminal->pvt->emulation);
+				"Failed to load terminal capabilities for '%s'",
+				emulation);
 	}
 
         g_object_thaw_notify(object);

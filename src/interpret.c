@@ -72,10 +72,12 @@ main(int argc, char **argv)
 
 	g_type_init();
 	terminal = argv[1];
-	termcap = _vte_termcap_new(g_build_filename(TERMCAPDIR, terminal, NULL));
-	if (termcap == NULL) {
-		termcap = _vte_termcap_new("/etc/termcap");
-	}
+	termcap = _vte_termcap_new(terminal);
+        if (termcap == NULL) {
+                g_printerr ("No termcap entry for '%s'\n", terminal);
+                return 1;
+        }
+
 	array = g_array_new(FALSE, FALSE, sizeof(gunichar));
 
 	matcher = _vte_matcher_new(terminal, termcap);

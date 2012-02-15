@@ -72,6 +72,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vtepty-private.h \
 	vteregex.c \
 	vteregex.h \
+	vteresources.c \
 	vterowdata.c \
 	vterowdata.h \
 	vteseq.c \
@@ -93,10 +94,10 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 
 libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"Vte-$(VTE_API_VERSION)\" \
+	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
  	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
 	-DLOCALEDIR='"$(localedir)"' \
-	-DTERMCAPDIR='"$(pkgdatadir)/termcap-$(VTE_API_VERSION)"' \
 	-DVTE_COMPILATION \
 	$(AM_CPPFLAGS)
 
@@ -113,10 +114,10 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
 # Generated sources
 
 VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-2.c vteseq-n.c
-BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h $(VTESEQ_BUILTSOURCES)
+BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
 MAINTAINERCLEANFILES = $(VTESEQ_BUILTSOURCES)
 EXTRA_DIST += $(VTESEQ_BUILTSOURCES)
-CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h
+CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
 
 marshal.c: marshal.list
 	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $< > $@
@@ -150,6 +151,8 @@ vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
 	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
 	mv -f $@.tmp $@
 
+vteresources.c: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
+	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate --c-name vte $<
 
 # vte the application
 
@@ -233,14 +236,16 @@ interpret_SOURCES = \
 	trie.h \
 	vteconv.c \
 	vteconv.h \
+	vteresources.c \
 	vtetc.c \
 	vtetc.h \
 	vtetree.c \
 	vtetree.h \
 	interpret.c
 interpret_CPPFLAGS = \
- 	-DINTERPRET_MAIN \
- 	-DTERMCAPDIR='"$(pkgdatadir)/termcap-$(VTE_API_VERSION)"'
+	-DINTERPRET_MAIN \
+	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
+	$(AM_CPPFLAGS)
 interpret_CFLAGS = $(GTK_CFLAGS)
 interpret_LDADD = $(GTK_LIBS)
 

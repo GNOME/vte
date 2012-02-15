@@ -152,7 +152,6 @@ struct _VteTerminalPrivate {
 	/* Emulation setup data. */
 	struct _vte_termcap *termcap;	/* termcap storage */
 	struct _vte_matcher *matcher;	/* control sequence matcher */
-	const char *termcap_path;	/* path to termcap file */
 	const char *emulation;		/* terminal type to emulate */
 	struct vte_terminal_flags {	/* boolean termcap flags */
 		gboolean am;
