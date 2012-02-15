@@ -499,8 +499,8 @@ _vte_termcap_new_from_file (const char *path)
 
   data = g_bytes_new_with_free_func (g_mapped_file_get_contents (file),
                                      g_mapped_file_get_length (file),
-                                     file,
-                                     (GDestroyNotify) g_mapped_file_unref);
+                                     (GDestroyNotify) g_mapped_file_unref,
+                                     file);
 
   return _vte_termcap_new_take_bytes (data);
 }
