@@ -203,23 +203,24 @@ case $host in
 	;;
 esac
 
-GLIB_REQUIRED=2.26.0
+GLIB_REQUIRED=2.31.13
+GIO_REQUIRED=2.31.13
 PANGO_REQUIRED=1.22.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK's multihead-safe APIs.])
-PKG_CHECK_MODULES(GLIB,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0])
-PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
+PKG_CHECK_MODULES(GLIB,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gio-2.0 >= $GIO_REQUIRED])
+PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gio-2.0 >= $GIO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
 
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
-# Let the user specify the default terminal emulation.
-AC_ARG_WITH(default-emulation,
-AS_HELP_STRING(--with-default-emulation=xterm,default terminal type to be emulated),
-emulation=$withval,emulation=xterm)
-AC_DEFINE_UNQUOTED(VTE_DEFAULT_EMULATION,"$emulation",[The default terminal type to be emulated.])
-VTE_DEFAULT_EMULATION=$emulation
-AC_SUBST(VTE_DEFAULT_EMULATION)
-AM_CONDITIONAL(VTE_DEFAULT_EMULATION, [test "$emulation" != xterm])
+AC_ARG_VAR([GLIB_COMPILE_RESOURCES],[the glib-compile-resources programme])
+AC_PATH_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[])
+if test -z "$GLIB_COMPILE_RESOURCES"; then
+  AC_MSG_ERROR([glib-compile-resources not found])
+fi
+
+VTE_DEFAULT_EMULATION=xterm
+AC_DEFINE_UNQUOTED(VTE_DEFAULT_EMULATION,"$VTE_DEFAULT_EMULATION",[The default terminal type to be emulated.])
 
 # Check for headers.
 AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h wchar.h)
@@ -376,6 +377,7 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/vteversion.h
+src/vte.gresource.xml
 termcaps/Makefile
 perf/Makefile
 po/Makefile.in

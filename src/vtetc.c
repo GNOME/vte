@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib.h>
+#include <gio/gio.h>
 
 #include "vtetc.h"
 
@@ -34,7 +35,7 @@
  */
 typedef struct _vte_termcap
 {
-  GMappedFile *file;
+  GBytes *data;
   GTree *tree;
   const char *end;
 } VteTermcap;
@@ -476,26 +477,62 @@ _vte_termcap_parse_file (const char *contents, int length)
 }
 
 static VteTermcap *
-_vte_termcap_create (const char *filename)
+_vte_termcap_new_take_bytes (GBytes *data)
 {
-  const char *contents;
   VteTermcap *termcap;
-  GMappedFile *file;
-  int length;
+  const char *contents;
+  gsize length;
 
-  file = g_mapped_file_new (filename, FALSE, NULL);
-  if (file == NULL)
-    return NULL;
-
-  contents = g_mapped_file_get_contents (file);
-  length = g_mapped_file_get_length (file);
+  contents = g_bytes_get_data (data, &length);
 
   termcap = g_slice_new (VteTermcap);
-  termcap->file = file;
+  termcap->data = data; /* adopted */
   termcap->tree = _vte_termcap_parse_file (contents, length);
   termcap->end = contents + length;
 
   return termcap;
+}
+
+static VteTermcap *
+_vte_termcap_new_from_file (const char *path)
+{
+  GMappedFile *file;
+  GBytes *data;
+
+  file = g_mapped_file_new (path, FALSE, NULL);
+  if (file == NULL)
+    return NULL;
+
+  data = g_bytes_new_with_free_func (g_mapped_file_get_contents (file),
+                                     g_mapped_file_get_length (file),
+                                     (GDestroyNotify) g_mapped_file_unref,
+                                     file);
+
+  return _vte_termcap_new_take_bytes (data);
+}
+
+static VteTermcap *
+_vte_termcap_create (const char *name)
+{
+#ifdef VTE_API_VERSION
+  char *path;
+  GBytes *data;
+
+  /* First try the builtin termcaps */
+  path = g_build_path ("/",
+                       "/org/gnome/vte",
+                       VTE_API_VERSION,
+                       "termcap",
+                       name,
+                       NULL);
+  data = g_resources_lookup_data (path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL);
+  g_free(path);
+  if (data != NULL)
+    return _vte_termcap_new_take_bytes (data);
+#endif /* VTE_API_VERSION */
+
+  /* Try /etc/termcap */
+  return _vte_termcap_new_from_file ("/etc/termcap");
 }
 
 static void
@@ -504,7 +541,7 @@ _vte_termcap_destroy (VteTermcap *termcap)
   if (!termcap)
     return;
   g_tree_destroy (termcap->tree);
-  g_mapped_file_unref (termcap->file);
+  g_bytes_unref (termcap->data);
   g_slice_free (VteTermcap, termcap);
 }
 
@@ -515,7 +552,7 @@ static GStaticMutex _vte_termcap_mutex = G_STATIC_MUTEX_INIT;
 static GCache *_vte_termcap_cache = NULL;
 
 VteTermcap *
-_vte_termcap_new(const char *filename)
+_vte_termcap_new(const char *name)
 {
   VteTermcap *result;
 
@@ -528,7 +565,7 @@ _vte_termcap_new(const char *filename)
                                      (GCacheDestroyFunc) g_free,
                                      g_str_hash, g_direct_hash, g_str_equal);
 
-  result = g_cache_insert (_vte_termcap_cache, (gpointer) filename);
+  result = g_cache_insert (_vte_termcap_cache, (gpointer) name);
 
   g_static_mutex_unlock (&_vte_termcap_mutex);
 
@@ -565,7 +602,7 @@ main (int argc, char **argv)
     return 1;
   }
 
-  tc = _vte_termcap_new (argv[1]);
+  tc = _vte_termcap_new_from_file (argv[1]);
 
   if (tc == NULL)
   {

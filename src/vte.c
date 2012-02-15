@@ -74,8 +74,7 @@ static void vte_view_emit_paste_clipboard(VteView *terminal);
 static void vte_view_emit_copy_primary(VteView *terminal);
 static void vte_view_emit_paste_primary(VteView *terminal);
 static void vte_view_set_visibility (VteView *terminal, GdkVisibilityState state);
-static void vte_buffer_set_termcap(VteBuffer *buffer, const char *path,
-				     gboolean reset);
+static void vte_buffer_set_termcap(VteBuffer *buffer);
 static gboolean vte_buffer_io_read(GIOChannel *channel,
 				     GIOCondition condition,
 				     VteBuffer *buffer);
@@ -7843,7 +7842,7 @@ vte_buffer_set_emulation(VteBuffer *buffer, const char *emulation)
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting emulation to `%s'...\n", emulation);
 	/* Find and read the right termcap file. */
-	vte_buffer_set_termcap(buffer, NULL, FALSE);
+	vte_buffer_set_termcap(buffer);
 
 	/* Create a table to hold the control sequences. */
 	if (buffer->pvt->matcher != NULL) {
@@ -7950,51 +7949,27 @@ vte_buffer_inline_error_message(VteBuffer *buffer,
 
 /* Set the path to the termcap file we read, and read it in. */
 static void
-vte_buffer_set_termcap(VteBuffer *buffer,
-                       const char *path,
-                       gboolean reset)
+vte_buffer_set_termcap(VteBuffer *buffer)
 {
         GObject *object = G_OBJECT(buffer);
-	struct stat st;
-	char *wpath;
-
-	if (path == NULL) {
-		wpath = g_build_filename(TERMCAPDIR,
-					 buffer->pvt->emulation ?
-					 buffer->pvt->emulation :
-					 vte_get_default_emulation(),
-					 NULL);
-		if (g_stat(wpath, &st) != 0) {
-			g_free(wpath);
-			wpath = g_strdup("/etc/termcap");
-		}
-		path = g_intern_string (wpath);
-		g_free(wpath);
-	} else {
-		path = g_intern_string (path);
-	}
-	if (path == buffer->pvt->termcap_path) {
-		return;
-	}
+        const char *emulation;
 
         g_object_freeze_notify(object);
 
-	buffer->pvt->termcap_path = path;
+        emulation = buffer->pvt->emulation ? buffer->pvt->emulation
+                                            : vte_get_default_emulation();
 
 	_vte_debug_print(VTE_DEBUG_MISC, "Loading termcap `%s'...",
-			buffer->pvt->termcap_path);
+			 emulation);
 	if (buffer->pvt->termcap != NULL) {
 		_vte_termcap_free(buffer->pvt->termcap);
 	}
-	buffer->pvt->termcap = _vte_termcap_new(buffer->pvt->termcap_path);
+	buffer->pvt->termcap = _vte_termcap_new(emulation);
 	_vte_debug_print(VTE_DEBUG_MISC, "\n");
 	if (buffer->pvt->termcap == NULL) {
 		vte_buffer_inline_error_message(buffer,
-				"Failed to load buffer capabilities from '%s'",
-				buffer->pvt->termcap_path);
-	}
-	if (reset) {
-		vte_buffer_set_emulation(buffer, buffer->pvt->emulation);
+				"Failed to load buffer capabilities for '%s'",
+				emulation);
 	}
 
         g_object_thaw_notify(object);
