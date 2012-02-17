@@ -1444,7 +1444,7 @@ vte_sequence_handler_ec (VteBuffer *buffer, GValueArray *params)
 					*cell = screen->color_defaults;
 				} else {
 					/* Add new cells until we have one here. */
-					_vte_row_data_fill (rowdata, &screen->color_defaults, col);
+					_vte_row_data_fill (rowdata, &screen->color_defaults, col + 1);
 				}
 			}
 		}
