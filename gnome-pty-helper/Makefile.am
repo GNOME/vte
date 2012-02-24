@@ -7,6 +7,9 @@ gnome_pty_helper_SOURCES = \
 	gnome-pty-helper.c \
 	gnome-utmp.c
 
+gnome_pty_helper_CFLAGS = $(SUID_CFLAGS) $(AM_CFLAGS)
+gnome_pty_helper_LDFLAGS = $(SUID_LDFLAGS) $(AM_LDFLAGS)
+
 install-exec-hook:
 	chown root.utmp $(DESTDIR)$(libexecdir)/gnome-pty-helper || true
 	chmod g+s       $(DESTDIR)$(libexecdir)/gnome-pty-helper || true
