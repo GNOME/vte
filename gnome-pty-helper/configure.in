@@ -45,6 +45,11 @@ case $host in
 	;;
 esac
 
+AC_ARG_VAR([SUID_CFLAGS],
+	   [CFLAGS used for binaries which are usually with the suid bit])
+AC_ARG_VAR([SUID_LDFLAGS],
+	   [LDFLAGS used for binaries which are usually with the suid bit])
+
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
