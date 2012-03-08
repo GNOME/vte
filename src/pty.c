@@ -52,6 +52,9 @@
 #include <termios.h>
 #endif
 #include <unistd.h>
+#ifdef HAVE_UTIL_H
+#include <util.h>
+#endif
 #ifdef HAVE_STROPTS_H
 #include <stropts.h>
 #endif
@@ -77,6 +80,12 @@
 static gboolean _vte_pty_helper_started = FALSE;
 static pid_t _vte_pty_helper_pid = -1;
 static int _vte_pty_helper_tunnel = -1;
+#endif
+
+#if defined(HAVE_PTSNAME_R) || defined(HAVE_PTSNAME) || defined(TIOCGPTN)
+#define HAVE_UNIX98_PTY
+#else
+#undef HAVE_UNIX98_PTY
 #endif
 
 /* Reset the handlers for all known signals to their defaults.  The parent
@@ -609,6 +618,8 @@ vte_pty_get_size(VtePty *pty,
 	}
 }
 
+#if defined(HAVE_UNIX98_PTY)
+
 /*
  * _vte_pty_ptsname:
  * @master: file descriptor to the PTY master
@@ -825,6 +836,44 @@ _vte_pty_open_unix98(VtePty *pty,
 
         return TRUE;
 }
+
+#elif defined(HAVE_OPENPTY)
+
+/*
+ * _vte_pty_open_bsd:
+ * @pty: a #VtePty
+ * @error: a location to store a #GError, or %NULL
+ *
+ * Opens new file descriptors to a new PTY master and slave.
+ *
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ */
+static gboolean
+_vte_pty_open_bsd(VtePty *pty,
+                  GError **error)
+{
+	VtePtyPrivate *priv = pty->priv;
+	int parentfd, childfd;
+
+	if (openpty(&parentfd, &childfd, NULL, NULL, NULL) != 0) {
+		int errsv = errno;
+		g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+			    "%s failed: %s", "openpty", g_strerror(errsv));
+		errno = errsv;
+		return FALSE;
+	}
+
+	priv->pty_fd = parentfd;
+	priv->child_setup_data.mode = TTY_OPEN_BY_FD;
+	priv->child_setup_data.tty.fd = childfd;
+	priv->using_helper = FALSE;
+
+	return TRUE;
+}
+
+#else
+#error Have neither UNIX98 PTY nor BSD openpty!
+#endif /* HAVE_UNIX98_PTY */
 
 #ifdef VTE_USE_GNOME_PTY_HELPER
 #ifdef HAVE_RECVMSG
@@ -1382,7 +1431,7 @@ vte_pty_initable_init (GInitable *initable,
                 }
 
                 g_error_free(err);
-                /* Fall back to unix98 PTY */
+                /* Fall back to unix98 or bsd PTY */
         }
 #else
         if (priv->flags & VTE_PTY_NO_FALLBACK) {
@@ -1392,7 +1441,13 @@ vte_pty_initable_init (GInitable *initable,
         }
 #endif /* VTE_USE_GNOME_PTY_HELPER */
 
+#if defined(HAVE_UNIX98_PTY)
         ret = _vte_pty_open_unix98(pty, error);
+#elif defined(HAVE_OPENPTY)
+        ret = _vte_pty_open_bsd(pty, error);
+#else
+#error Have neither UNIX98 PTY nor BSD openpty!
+#endif
 
   out:
 	_vte_debug_print(VTE_DEBUG_PTY,
