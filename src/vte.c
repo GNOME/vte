@@ -61,6 +61,16 @@
 #include <locale.h>
 #endif
 
+#ifndef HAVE_ROUND
+static inline double round(double x) {
+	if(x - floor(x) < 0.5) {
+		return floor(x);
+	} else {
+		return ceil(x);
+	}
+}
+#endif
+
 #ifndef HAVE_WINT_T
 typedef gunichar wint_t;
 #endif
