@@ -3981,7 +3981,7 @@ out:
  * vte_buffer_feed:
  * @buffer: a #VteBuffer
  * @data: (allow-none): a string in the buffer's current encoding
- * @length: the length of the string, or <literal>-1</literal>
+ * @length: (array length=data) (element-type guint8): the length of the string, or <literal>-1</literal>
  *
  * Interprets @data as if it were data received from a child process.  This
  * can either be used to drive the buffer without a child process, or just
