@@ -63,6 +63,16 @@
 #include <locale.h>
 #endif
 
+#ifndef HAVE_ROUND
+static inline double round(double x) {
+	if(x - floor(x) < 0.5) {
+		return floor(x);
+	} else {
+		return ceil(x);
+	}
+}
+#endif
+
 #if GTK_CHECK_VERSION (2, 90, 7)
 #define GDK_KEY(symbol) GDK_KEY_##symbol
 #else
