@@ -179,6 +179,8 @@ Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(top_srcdir) -I$(top_builddir)
 Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@.la
+Vte_@VTE_API_VERSION_U@_gir_EXPORT_PACKAGES = vte-$(VTE_API_VERSION)
+Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.c \
 	vte.h \
