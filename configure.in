@@ -215,7 +215,7 @@ VTE_DEFAULT_EMULATION=xterm
 AC_DEFINE_UNQUOTED(VTE_DEFAULT_EMULATION,"$VTE_DEFAULT_EMULATION",[The default terminal type to be emulated.])
 
 # Check for headers.
-AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h wchar.h)
+AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h util.h wchar.h)
 AC_HEADER_TIOCGWINSZ
 
 # Check for PTY handling functions.
@@ -226,6 +226,7 @@ AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid getpt grantpt unlockpt pts
 AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
 AC_CHECK_FUNC(recvmsg,[have_recvmsg=1],AC_CHECK_LIB(socket,recvmsg,[have_recvmsg=1; LIBS="$LIBS -lsocket -lnsl"]))
+AC_CHECK_FUNC(openpty,[have_openpty=1],AC_CHECK_LIB(util,openpty,[have_openpty=1; LIBS="$LIBS -lutil"]))
 if test x$have_socket = x1 ; then
 	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the socket function.])
 fi
@@ -234,6 +235,9 @@ if test x$have_socketpair = x1 ; then
 fi
 if test x$have_recvmsg = x1 ; then
 	AC_DEFINE(HAVE_RECVMSG,1,[Define if you have the recvmsg function.])
+fi
+if test x$have_openpty = x1 ; then
+	AC_DEFINE(HAVE_OPENPTY,1,[Define if you have the openpty function.])
 fi
 AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
 AC_CHECK_FUNCS([ceil floor round])
