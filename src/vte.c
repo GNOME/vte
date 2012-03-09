@@ -4624,8 +4624,8 @@ out:
 /**
  * vte_terminal_feed:
  * @terminal: a #VteTerminal
- * @data: a string in the terminal's current encoding
- * @length: (array length=data) (element-type guint8): the length of the string
+ * @data: (array length=length) (element-type guint8): a string in the terminal's current encoding
+ * @length: the length of the string
  *
  * Interprets @data as if it were data received from a child process.  This
  * can either be used to drive the terminal without a child process, or just
