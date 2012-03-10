@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<glade-catalog name="vte" library="vte@VTE_LIBRARY_SUFFIX_U@" domain="vte" depends="gtk+" book="vte" supports="gtkbuilder">
+<glade-catalog name="vte" library="vte@VTE_LIBRARY_SUFFIX_U@" domain="vte-@VTE_API_VERSION@" depends="gtk+" book="vte" supports="gtkbuilder">
   <glade-widget-classes>
     <glade-widget-class title="VTE Terminal" name="VteTerminal" generic-name="terminal">
       <properties>
