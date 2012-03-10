@@ -1,8 +1,8 @@
 NULL =
 
 cataloguedir = $(GLADE_CATALOGUE_DIR)
-catalogue_in_files = vte.xml.in
-catalogue_DATA = $(catalogue_in_files:.xml.in=.xml)
+catalogue_in_files = vte.xml.in.in
+catalogue_DATA = $(catalogue_in_files:.xml.in.in=.xml)
 
 icons = \
 	hicolor_actions_16x16_widget-vte-terminal.png \
@@ -10,7 +10,6 @@ icons = \
 	$(NULL)
 
 EXTRA_DIST = \
-	$(catalogue_DATA) \
 	$(icons) \
 	$(NULL)
 
