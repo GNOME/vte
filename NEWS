@@ -1,3 +1,13 @@
+0.32.0
+======
+- Use GResource for our default termcap
+- build fixes for interix (#652290)
+- Allocate PTYs with openpty on BSD (#670758)
+- Introspection fixes (#648183, #655402, #661716)
+- Fix mouse whell scrolling with gtk+ 3.4 (#671305)
+- Use correct library name for glade integration (#671760)
+- gnome-pty-helper: Respect SUID_CFLAGS and SUID_LDFLAGS (#670732)
+
 0.31.0
 ======
 - Don't override the widget background colour

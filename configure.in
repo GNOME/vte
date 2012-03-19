@@ -1,5 +1,5 @@
 m4_define([version_major],0)
-m4_define([version_minor],31)
+m4_define([version_minor],32)
 m4_define([version_micro],0)
 m4_define([version_triplet],version_major.version_minor.version_micro)
 
@@ -417,5 +417,4 @@ cat <<EOF | tee -a config.log
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
-	Disallow deprecated features: $enable_deprecation
 EOF
