@@ -199,6 +199,9 @@ typedef struct {
 		const char *name;
 		int fd;
 	} tty;
+
+	GSpawnChildSetupFunc extra_child_setup;
+	gpointer extra_child_setup_data;
 } VtePtyChildSetupData;
 
 /**
@@ -343,6 +346,11 @@ vte_pty_child_setup (VtePty *pty)
         if (priv->term != NULL) {
                 g_setenv("TERM", priv->term, TRUE);
         }
+
+	/* Finally call an extra child setup */
+	if (data->extra_child_setup) {
+		data->extra_child_setup (data->extra_child_setup_data);
+	}
 }
 
 /* TODO: clean up the spawning
@@ -444,6 +452,8 @@ __vte_pty_spawn (VtePty *pty,
                  GPid *child_pid /* out */,
                  GError **error)
 {
+	VtePtyPrivate *priv = pty->priv;
+        VtePtyChildSetupData *data = &priv->child_setup_data;
 	gboolean ret = TRUE;
         char **envp2;
         gint i;
@@ -471,12 +481,14 @@ __vte_pty_spawn (VtePty *pty,
                             directory ? directory : "(none)");
         }
 
+	data->extra_child_setup = child_setup;
+	data->extra_child_setup_data = child_setup_data;
+
         ret = g_spawn_async_with_pipes(directory,
                                        argv, envp2,
                                        spawn_flags,
-                                       child_setup ? child_setup
-                                                   : (GSpawnChildSetupFunc) vte_pty_child_setup,
-                                       child_setup ? child_setup_data : pty,
+                                       (GSpawnChildSetupFunc) vte_pty_child_setup,
+                                       pty,
                                        child_pid,
                                        NULL, NULL, NULL,
                                        &err);
@@ -488,15 +500,17 @@ __vte_pty_spawn (VtePty *pty,
                 ret = g_spawn_async_with_pipes(NULL,
                                                argv, envp2,
                                                spawn_flags,
-                                               child_setup ? child_setup
-                                                           : (GSpawnChildSetupFunc) vte_pty_child_setup,
-                                               child_setup ? child_setup_data : pty,
+                                               (GSpawnChildSetupFunc) vte_pty_child_setup,
+                                               pty,
                                                child_pid,
                                                NULL, NULL, NULL,
                                                &err);
         }
 
         g_strfreev (envp2);
+
+	data->extra_child_setup = NULL;
+	data->extra_child_setup_data = NULL;
 
         if (ret)
                 return TRUE;
@@ -1653,6 +1667,11 @@ vte_pty_error_quark(void)
  * If using g_spawn_async() and friends, you MUST either use
  * vte_pty_child_setup() directly as the child setup function, or call
  * vte_pty_child_setup() from your own child setup function supplied.
+ *
+ * When using vte_terminal_fork_command_full() with a custom child setup
+ * function, vte_pty_child_setup() will be called before the supplied
+ * function; you must not call it again.
+ *
  * Also, you MUST pass the %G_SPAWN_DO_NOT_REAP_CHILD flag.
  *
  * If GNOME PTY Helper is available and

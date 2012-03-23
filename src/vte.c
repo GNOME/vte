@@ -3255,7 +3255,7 @@ vte_get_user_shell (void)
  * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
  *   variables to be added to the environment before starting the process, or %NULL
  * @spawn_flags: flags from #GSpawnFlags
- * @child_setup: (allow-none) (scope call): function to run in the child just before exec(), or %NULL
+ * @child_setup: (allow-none) (scope call): an extra child setup function to run in the child just before exec(), or %NULL
  * @child_setup_data: user data for @child_setup
  * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
  * @cancellable: (allow-none): a #GCancellable, or %NULL
