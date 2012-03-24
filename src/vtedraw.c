@@ -569,12 +569,12 @@ font_info_find_for_context (PangoContext *context)
 		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 				  "vtepangocairo: %p found font_info in cache\n",
 				  info);
-		return font_info_reference (info);
+		info = font_info_reference (info);
+	} else {
+		info = font_info_allocate (context);
+		info->ref_count = 1;
+		font_info_register (info);
 	}
-
-	info = font_info_allocate (context);
-	info->ref_count = 1;
-	font_info_register (info);
 
 	g_object_unref (context);
 
