@@ -20,7 +20,9 @@
 #include <config.h>
 
 /* GCache is deprecated */
+#ifndef GLIB_DISABLE_DEPRECATION_WARNINGS
 #define GLIB_DISABLE_DEPRECATION_WARNINGS
+#endif
 
 #include <sys/types.h>
 #include <string.h>

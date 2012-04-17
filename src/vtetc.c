@@ -21,7 +21,9 @@
 #include "config.h"
 
 /* GCache is deprecated */
+#ifndef GLIB_DISABLE_DEPRECATION_WARNINGS
 #define GLIB_DISABLE_DEPRECATION_WARNINGS
+#endif
 
 #include <string.h>
 #include <stdlib.h>
