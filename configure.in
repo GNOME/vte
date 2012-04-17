@@ -397,7 +397,6 @@ glade/Makefile
 ])
 
 AC_CONFIG_FILES([vte-${VTE_API_VERSION}.pc:vte.pc.in],[VTE_API_VERSION=${VTE_API_VERSION}])
-AC_CONFIG_FILES([vte-${VTE_API_VERSION}-uninstalled.pc:vte-uninstalled.pc.in],[VTE_API_VERSION=${VTE_API_VERSION}])
 
 AC_OUTPUT
 
