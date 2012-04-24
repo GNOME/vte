@@ -3230,7 +3230,7 @@ vte_buffer_watch_child (VteBuffer *buffer,
  * Gets the user's shell, or %NULL. In the latter case, the
  * system default (usually "/bin/sh") should be used.
  *
- * Returns: (tranfer full) (type filename): a newly allocated string with the
+ * Returns: (transfer full) (type filename): a newly allocated string with the
  *   user's shell, or %NULL
  */
 char *
@@ -4229,7 +4229,7 @@ vte_buffer_feed_child(VteBuffer *buffer,
 /**
  * vte_buffer_feed_child_binary:
  * @buffer: a #VteBuffer
- * @data: (allow-none) (array zero-terminated=0 lenght=@length) (element-type uint8): data to send to the child
+ * @data: (allow-none) (array zero-terminated=0 length=@length) (element-type uint8): data to send to the child
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
