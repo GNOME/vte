@@ -339,9 +339,9 @@ fi
   
 AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"])
 
-# *************
-# Introspection
-# *************
+# ********
+# Bindings
+# ********
 
 # No automagic please!
 if test -z "$enable_introspection"; then
@@ -349,6 +349,13 @@ if test -z "$enable_introspection"; then
 fi
 
 GOBJECT_INTROSPECTION_CHECK([0.9.0])
+
+# No automagic please!
+if test -z "$enable_vala"; then
+  enable_vala=no
+fi
+
+VAPIGEN_CHECK([0.16])
 
 ################################################################################
 
@@ -401,4 +408,6 @@ cat <<EOF | tee -a config.log
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
+	Introspection: $enable_introspection
+        Vala bindings: $enable_vala
 EOF

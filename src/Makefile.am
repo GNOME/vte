@@ -181,6 +181,7 @@ INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir) --warn-all
 INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
 if HAVE_INTROSPECTION
+include $(INTROSPECTION_MAKEFILE)
 
 Vte-@VTE_API_VERSION@.gir: libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
@@ -206,7 +207,31 @@ typelibdir = $(libdir)/girepository-1.0
 nodist_typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(nodist_gir_DATA) $(nodist_typelib_DATA)
-endif
+
+if ENABLE_VAPIGEN
+include $(VAPIGEN_MAKEFILE)
+
+VAPIGEN_VAPIS = Vte-$(VTE_API_VERSION).vapi
+
+Vte-@VTE_API_VERSION@.vapi: Vte-$(VTE_API_VERSION).gir
+Vte_@VTE_API_VERSION_U@_vapi_DEPS = \
+	glib-2.0 \
+	gio-2.0 \
+	pango \
+	gdk-$(GTK_API_VERSION) \
+	gtk+-$(GTK_API_VERSION) \
+	$(NULL)
+Vte_@VTE_API_VERSION_U@_vapi_METADATADIRS = $(srcdir)
+Vte_@VTE_API_VERSION_U@_vapi_FILES = Vte-$(VTE_API_VERSION).gir
+
+vapidir = $(datadir)/vala/vapi
+nodist_vapi_DATA = $(VAPIGEN_VAPIS)
+
+CLEANFILES += $(nodist_vapi_DATA)
+
+endif # ENABLE_VAPIGEN
+
+endif # HAVE_INTROSPECTION
 
 # Misc unit tests and utilities
 
@@ -353,4 +378,3 @@ dist_profile_DATA = vte.sh
 .DELETE_ON_ERROR:
 
 -include $(top_srcdir)/git.mk
--include $(INTROSPECTION_MAKEFILE)

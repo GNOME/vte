@@ -24,6 +24,7 @@ pkgconfig_DATA = vte-$(VTE_API_VERSION).pc
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \
 	--disable-introspection \
+	--disable-vala \
 	--disable-silent-rules \
 	--with-gtk=3.0
 
