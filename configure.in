@@ -351,9 +351,9 @@ fi
   
 AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"])
 
-# *************
-# Introspection
-# *************
+# ********
+# Bindings
+# ********
 
 # No automagic please!
 if test -z "$enable_introspection"; then
@@ -361,6 +361,23 @@ if test -z "$enable_introspection"; then
 fi
 
 GOBJECT_INTROSPECTION_CHECK([0.9.0])
+
+# No automagic please!
+if test -z "$enable_vala"; then
+  enable_vala=no
+fi
+m4_ifdef([VAPIGEN_CHECK],[VAPIGEN_CHECK([0.16],[0.18])],[AM_CONDITIONAL([ENABLE_VAPIGEN],[false])])
+
+case "$with_gtk" in
+  3.0) VTE_GIR_VERSION=$VTE_API_VERSION
+       VTE_VAPI_VERSION=$VTE_API_VERSION
+       ;;
+esac
+
+AC_SUBST([VTE_GIR_VERSION])
+AC_SUBST([VTE_GIR_VERSION_U],[AS_TR_SH([$VTE_GIR_VERSION])])
+AC_SUBST([VTE_VAPI_VERSION])
+AC_SUBST([VTE_VAPI_VERSION_U],[AS_TR_SH([$VTE_VAPI_VERSION])])
 
 ################################################################################
 
@@ -412,5 +429,6 @@ cat <<EOF | tee -a config.log
 Configuration for libvte-$VTE_API_VERSION $VERSION for gtk+-$GTK_API_VERSION
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
-	Disallow deprecated features: $enable_deprecation
+	Introspection: $enable_introspection
+        Vala bindings: $enable_vala
 EOF
