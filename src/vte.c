@@ -5170,19 +5170,24 @@ static void
 vte_terminal_read_modifiers (VteTerminal *terminal,
 			     GdkEvent *event)
 {
+        GdkKeymap *keymap;
 	GdkModifierType modifiers;
 
 	/* Read the modifiers. */
-	if (gdk_event_get_state((GdkEvent*)event, &modifiers)) {
-		GdkKeymap *keymap;
-#if GTK_CHECK_VERSION (2, 90, 8)
-                keymap = gdk_keymap_get_for_display(gdk_window_get_display(((GdkEventAny*)event)->window));
-#else
-                keymap = gdk_keymap_get_for_display(gdk_drawable_get_display(((GdkEventAny*)event)->window));
+	if (!gdk_event_get_state((GdkEvent*)event, &modifiers))
+                return;
+
+        keymap = gdk_keymap_get_for_display(gdk_window_get_display(((GdkEventAny*)event)->window));
+
+        gdk_keymap_add_virtual_modifiers (keymap, &modifiers);
+
+#if 1
+        /* HACK! Treat ALT as META; see bug #663779. */
+        if (modifiers & GDK_MOD1_MASK)
+                modifiers |= VTE_META_MASK;
 #endif
-                gdk_keymap_add_virtual_modifiers (keymap, &modifiers);
-		terminal->pvt->modifiers = modifiers;
-	}
+
+        terminal->pvt->modifiers = modifiers;
 }
 
 /* Read and handle a keypress event. */
