@@ -482,7 +482,7 @@ vte_sequence_handler_multiple(VteBuffer *buffer,
                               GValueArray *params,
                               VteSequenceHandler handler)
 {
-        vte_sequence_handler_multiple_limited(buffer, params, handler, G_MAXLONG);
+        vte_sequence_handler_multiple_limited(buffer, params, handler, G_MAXUSHORT);
 }
 
 static void

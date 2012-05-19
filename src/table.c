@@ -550,7 +550,7 @@ _vte_table_extract_numbers(GValueArray **array,
 		if (G_UNLIKELY (*array == NULL)) {
 			*array = g_value_array_new(1);
 		}
-		g_value_set_long(&value, total);
+		g_value_set_long(&value, CLAMP (total, 0, G_MAXUSHORT));
 		g_value_array_append(*array, &value);
 	} while (i++ < arginfo->length);
 	g_value_unset(&value);
