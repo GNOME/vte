@@ -1397,7 +1397,7 @@ vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_DC (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_dc);
+	vte_sequence_handler_multiple_r(terminal, params, vte_sequence_handler_dc);
 }
 
 /* Delete a line at the current cursor position. */
@@ -1790,7 +1790,7 @@ vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_RI (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_nd);
+	vte_sequence_handler_multiple_r(terminal, params, vte_sequence_handler_nd);
 }
 
 /* Save cursor (position). */
@@ -2782,8 +2782,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *value;
 	VteScreen *screen;
-	long param, end, row;
-	int i;
+	long param, end, row, i, limit;
 	screen = terminal->pvt->screen;
 	/* The default is one. */
 	param = 1;
@@ -2801,7 +2800,13 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
-	/* Insert the new lines at the cursor. */
+
+	/* Only allow to insert as many lines as there are between this row
+         * and the end of the scrolling region. See bug #676090.
+         */
+        limit = end - row + 1;
+        param = MIN (param, limit);
+
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
@@ -2822,8 +2827,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *value;
 	VteScreen *screen;
-	long param, end, row;
-	int i;
+	long param, end, row, i, limit;
 
 	screen = terminal->pvt->screen;
 	/* The default is one. */
@@ -2842,6 +2846,13 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	} else {
 		end = screen->insert_delta + terminal->row_count - 1;
 	}
+
+        /* Only allow to delete as many lines as there are between this row
+         * and the end of the scrolling region. See bug #676090.
+         */
+        limit = end - row + 1;
+        param = MIN (param, limit);
+
 	/* Clear them from below the current cursor. */
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
