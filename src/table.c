@@ -538,6 +538,10 @@ _vte_table_extract_numbers(GValueArray **array,
 	GValue value = {0,};
 	gssize i;
 
+        if (G_UNLIKELY (*array == NULL)) {
+                *array = g_value_array_new(1);
+        }
+
 	g_value_init(&value, G_TYPE_LONG);
 	i = 0;
 	do {
@@ -546,9 +550,6 @@ _vte_table_extract_numbers(GValueArray **array,
 			gint v = g_unichar_digit_value (arginfo->start[i]);
 			total *= 10;
 			total += v == -1 ?  0 : v;
-		}
-		if (G_UNLIKELY (*array == NULL)) {
-			*array = g_value_array_new(1);
 		}
 		g_value_set_long(&value, CLAMP (total, 0, G_MAXUSHORT));
 		g_value_array_append(*array, &value);
