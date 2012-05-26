@@ -1649,7 +1649,9 @@ vte_view_match_check_internal_gregex(VteView *terminal,
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Checking for gregex match at (%ld,%ld).\n", row, column);
-	*tag = -1;
+	if (tag != NULL) {
+		*tag = -1;
+	}
 	if (start != NULL) {
 		*start = 0;
 	}
