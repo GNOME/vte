@@ -1,3 +1,9 @@
+0.32.2
+======
+- emulation: Fix DoS by malicious escape sequences (#676090)
+- widget: Fix crash with NULL tag in match_check (#676886)
+- keymap: Treat ALT as META (#663779)
+ 
 0.32.1
 ======
 - pty: Fix custom child setup function (#672649)
