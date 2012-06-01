@@ -174,6 +174,8 @@ enum {
         PROP_BACKSPACE_BINDING,
         PROP_CURSOR_BLINK_MODE,
         PROP_CURSOR_SHAPE,
+        PROP_CURRENT_DIRECTORY_URI,
+        PROP_CURRENT_FILE_URI,
         PROP_DELETE_BINDING,
         PROP_EMULATION,
         PROP_ENCODING,
@@ -9022,6 +9024,10 @@ vte_terminal_finalize(GObject *object)
 	/* discard title updates */
 	g_free(terminal->pvt->window_title_changed);
 	g_free(terminal->pvt->icon_title_changed);
+        g_free(terminal->pvt->current_directory_uri_changed);
+        g_free(terminal->pvt->current_directory_uri);
+        g_free(terminal->pvt->current_file_uri_changed);
+        g_free(terminal->pvt->current_file_uri);
 
 	/* Free public-facing data. */
 	g_free(terminal->window_title);
@@ -11581,6 +11587,12 @@ vte_terminal_get_property (GObject *object,
                 case PROP_CURSOR_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
                         break;
+                case PROP_CURRENT_DIRECTORY_URI:
+                        g_value_set_string (value, vte_terminal_get_current_directory_uri (terminal));
+                        break;
+                case PROP_CURRENT_FILE_URI:
+                        g_value_set_string (value, vte_terminal_get_current_file_uri (terminal));
+                        break;
                 case PROP_CURSOR_SHAPE:
                         g_value_set_enum (value, vte_terminal_get_cursor_shape (terminal));
                         break;
@@ -11737,6 +11749,8 @@ vte_terminal_set_property (GObject *object,
                         break;
 
                 /* Not writable */
+                case PROP_CURRENT_DIRECTORY_URI:
+                case PROP_CURRENT_FILE_URI:
                 case PROP_ICON_TITLE:
                 case PROP_WINDOW_TITLE:
                         g_assert_not_reached ();
@@ -11970,6 +11984,41 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+
+
+        /**
+         * VteTerminal::current-directory-uri-changed:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted when the current directory URI is modified.
+         *
+         * Since: 0.34
+         */
+                g_signal_new(I_("current-directory-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             0,
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::current-file-uri-changed:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted when the current file URI is modified.
+         *
+         * Since: 0.34
+         */
+                g_signal_new(I_("current-file-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             0,
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::encoding-changed:
@@ -12812,7 +12861,35 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_string ("window-title", NULL, NULL,
                                       NULL,
                                       G_PARAM_READABLE | STATIC_PARAMS));
-     
+
+        /**
+         * VteTerminal:current-directory-uri:
+         *
+         * The current directory URI, or %NULL if unset.
+         *
+         * Since: 0.34
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_CURRENT_DIRECTORY_URI,
+                 g_param_spec_string ("current-directory-uri", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | STATIC_PARAMS));
+
+        /**
+         * VteTerminal:current-file-uri:
+         *
+         * The current file URI, or %NULL if unset.
+         *
+         * Since: 0.34
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_CURRENT_FILE_URI,
+                 g_param_spec_string ("current-file-uri", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | STATIC_PARAMS));
+
         /**
          * VteTerminal:word-chars:
          *
@@ -14324,6 +14401,39 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_get_current_directory_uri:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the URI of the current directory of the
+ *   process running in the terminal, or %NULL
+ *
+ * Since: 0.34
+ */
+const char *
+vte_terminal_get_current_directory_uri(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        return terminal->pvt->current_directory_uri;
+}
+
+/**
+ * vte_terminal_get_current_file_uri:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the URI of the current file the
+ *   process running in the terminal is operating on, or %NULL if
+ *   not set
+ *
+ * Since: 0.34
+ */
+const char *
+vte_terminal_get_current_file_uri(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        return terminal->pvt->current_file_uri;
+}
+
+/**
  * vte_terminal_set_pty:
  * @terminal: a #VteTerminal
  * @pty_master: a file descriptor of the master end of a PTY, or %-1
@@ -14744,6 +14854,22 @@ vte_terminal_emit_window_title_changed(VteTerminal *terminal)
 }
 
 static void
+vte_terminal_emit_current_directory_uri_changed(VteTerminal *terminal)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `current-directory-uri-changed'.\n");
+        g_signal_emit_by_name(terminal, "current-directory-uri-changed");
+}
+
+static void
+vte_terminal_emit_current_file_uri_changed(VteTerminal *terminal)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `current-file-uri-changed'.\n");
+        g_signal_emit_by_name(terminal, "current-file-uri-changed");
+}
+
+static void
 vte_terminal_emit_pending_signals(VteTerminal *terminal)
 {
         GObject *object;
@@ -14782,6 +14908,24 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 		vte_terminal_emit_icon_title_changed(terminal);
                 g_object_notify(object, "icon-title");
 	}
+
+	if (terminal->pvt->current_directory_uri_changed) {
+                g_free (terminal->pvt->current_directory_uri);
+                terminal->pvt->current_directory_uri = terminal->pvt->current_directory_uri_changed;
+                terminal->pvt->current_directory_uri_changed = NULL;
+
+                vte_terminal_emit_current_directory_uri_changed(terminal);
+                g_object_notify(object, "current-directory-uri");
+        }
+
+        if (terminal->pvt->current_file_uri_changed) {
+                g_free (terminal->pvt->current_file_uri);
+                terminal->pvt->current_file_uri = terminal->pvt->current_file_uri_changed;
+                terminal->pvt->current_file_uri_changed = NULL;
+
+                vte_terminal_emit_current_file_uri_changed(terminal);
+                g_object_notify(object, "current-file-uri");
+        }
 
 	/* Flush any pending "inserted" signals. */
 	vte_terminal_emit_cursor_moved(terminal);

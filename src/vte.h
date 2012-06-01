@@ -496,6 +496,8 @@ glong vte_terminal_get_row_count(VteTerminal *terminal);
 glong vte_terminal_get_column_count(VteTerminal *terminal);
 const char *vte_terminal_get_window_title(VteTerminal *terminal);
 const char *vte_terminal_get_icon_title(VteTerminal *terminal);
+const char *vte_terminal_get_current_directory_uri(VteTerminal *terminal);
+const char *vte_terminal_get_current_file_uri(VteTerminal *terminal);
 
 int vte_terminal_get_child_exit_status(VteTerminal *terminal);
 

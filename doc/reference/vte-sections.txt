@@ -141,6 +141,8 @@ vte_terminal_get_column_count
 vte_terminal_get_icon_title
 vte_terminal_get_row_count
 vte_terminal_get_window_title
+vte_terminal_get_current_directory_uri
+vte_terminal_get_current_file_uri
 
 <SUBSECTION Private>
 VTE_IS_TERMINAL_ANTI_ALIAS

@@ -363,6 +363,10 @@ struct _VteTerminalPrivate {
 	/* window name changes */
 	gchar *window_title_changed;
 	gchar *icon_title_changed;
+        gchar *current_directory_uri;
+        gchar *current_directory_uri_changed;
+        gchar *current_file_uri;
+        gchar *current_file_uri_changed;
 
 	/* Background images/"transparency". */
 	guint root_pixmap_changed_tag;
