@@ -129,3 +129,5 @@ struct vteseq_n_struct {
 "send-secondary-device-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_send_secondary_device_attributes)
 #"change-mouse-cursor-background-colors", VTE_SEQUENCE_HANDLER_NULL
 #"change-mouse-cursor-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+"set-current-directory-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_directory_uri)
+"set-current-file-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_file_uri)

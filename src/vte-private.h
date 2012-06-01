@@ -283,6 +283,10 @@ struct _VteBufferPrivate {
 	gchar *window_title_changed;
         gchar *icon_title;
 	gchar *icon_title_changed;
+        gchar *current_directory_uri;
+        gchar *current_directory_uri_changed;
+        gchar *current_file_uri;
+        gchar *current_file_uri_changed;
 
         /* Cursor */
         gboolean cursor_visible;

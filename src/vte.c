@@ -170,6 +170,8 @@ enum {
         BUFFER_PROP_ICON_TITLE,
         BUFFER_PROP_WINDOW_TITLE,
         BUFFER_PROP_PTY,
+        BUFFER_PROP_CURRENT_DIRECTORY_URI,
+        BUFFER_PROP_CURRENT_FILE_URI,
 };
 
 enum {
@@ -196,6 +198,8 @@ enum {
         BUFFER_TEXT_DELETED,
         BUFFER_CONTENTS_CHANGED,
         BUFFER_BELL,
+        BUFFER_CURRENT_DIRECTORY_URI_CHANGED,
+        BUFFER_CURRENT_FILE_URI_CHANGED,
         LAST_BUFFER_SIGNAL,
 };
 
@@ -11182,6 +11186,7 @@ vte_view_class_init(VteViewClass *klass)
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
 
+
         /**
          * VteView::text-scrolled:
          * @vteterminal: the object which received the signal
@@ -12301,6 +12306,35 @@ vte_buffer_get_icon_title(VteBuffer *buffer)
 }
 
 /**
+ * vte_buffer_get_current_directory_uri:
+ * @buffer: a #VteBuffer
+ *
+ * Returns: (transfer none): the URI of the current directory of the
+ *   process running in the buffer, or %NULL
+ */
+const char *
+vte_buffer_get_current_directory_uri(VteBuffer *buffer)
+{
+        g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+        return buffer->pvt->current_directory_uri;
+}
+
+/**
+ * vte_buffer_get_current_file_uri:
+ * @buffer: a #VteBuffer
+ *
+ * Returns: (transfer none): the URI of the current file the
+ *   process running in the buffer is operating on, or %NULL if
+ *   not set
+ */
+const char *
+vte_buffer_get_current_file_uri(VteBuffer *buffer)
+{
+        g_return_val_if_fail(VTE_IS_BUFFER(buffer), NULL);
+        return buffer->pvt->current_file_uri;
+}
+
+/**
  * vte_buffer_set_pty:
  * @terminal: a #VteView
  * @pty: (allow-none): a #VtePty, or %NULL
@@ -12654,6 +12688,22 @@ vte_buffer_emit_window_title_changed(VteBuffer *buffer)
 }
 
 static void
+vte_buffer_emit_current_directory_uri_changed(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `current-directory-uri-changed'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_CURRENT_DIRECTORY_URI_CHANGED], 0);
+}
+
+static void
+vte_buffer_emit_current_file_uri_changed(VteBuffer *buffer)
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                        "Emitting `current-file-uri-changed'.\n");
+        g_signal_emit(buffer, buffer_signals[BUFFER_CURRENT_FILE_URI_CHANGED], 0);
+}
+
+static void
 vte_view_emit_pending_signals(VteView *terminal)
 {
         VteBuffer *buffer;
@@ -12697,6 +12747,24 @@ vte_view_emit_pending_signals(VteView *terminal)
 		vte_buffer_emit_icon_title_changed(buffer);
                 g_object_notify(buffer_object, "icon-title");
 	}
+
+        if (buffer->pvt->current_directory_uri_changed) {
+                g_free (buffer->pvt->current_directory_uri);
+                buffer->pvt->current_directory_uri = buffer->pvt->current_directory_uri_changed;
+                buffer->pvt->current_directory_uri_changed = NULL;
+
+                vte_buffer_emit_current_directory_uri_changed(buffer);
+                g_object_notify(buffer_object, "current-directory-uri");
+        }
+
+        if (buffer->pvt->current_file_uri_changed) {
+                g_free (buffer->pvt->current_file_uri);
+                buffer->pvt->current_file_uri = buffer->pvt->current_file_uri_changed;
+                buffer->pvt->current_file_uri_changed = NULL;
+
+                vte_buffer_emit_current_file_uri_changed(buffer);
+                g_object_notify(buffer_object, "current-file-uri");
+        }
 
 	/* Flush any pending "inserted" signals. */
 	vte_buffer_emit_cursor_moved(buffer);
@@ -13659,7 +13727,6 @@ vte_buffer_init(VteBuffer *buffer)
 
         /* Cursor */
         pvt->cursor_visible = TRUE;
-
 }
 
 static void
@@ -13754,6 +13821,10 @@ vte_buffer_finalize(GObject *object)
         g_free(buffer->pvt->icon_title);
         g_free(buffer->pvt->window_title_changed);
         g_free(buffer->pvt->icon_title_changed);
+        g_free(buffer->pvt->current_directory_uri_changed);
+        g_free(buffer->pvt->current_directory_uri);
+        g_free(buffer->pvt->current_file_uri_changed);
+        g_free(buffer->pvt->current_file_uri);
 
         G_OBJECT_CLASS(vte_buffer_parent_class)->finalize(object);
 }
@@ -13769,6 +13840,12 @@ vte_buffer_get_property (GObject *object,
         switch (prop_id) {
         case BUFFER_PROP_BACKSPACE_BINDING:
                 g_value_set_enum(value, buffer->pvt->backspace_binding);
+                break;
+        case BUFFER_PROP_CURRENT_DIRECTORY_URI:
+                g_value_set_string (value, vte_buffer_get_current_directory_uri (buffer));
+                break;
+        case BUFFER_PROP_CURRENT_FILE_URI:
+                g_value_set_string (value, vte_buffer_get_current_file_uri (buffer));
                 break;
         case BUFFER_PROP_DELETE_BINDING:
                 g_value_set_enum(value, buffer->pvt->delete_binding);
@@ -13825,6 +13902,8 @@ vte_buffer_set_property (GObject *object,
                 vte_buffer_set_pty(buffer, g_value_get_object (value));
                 break;
         /* Not writable */
+        case BUFFER_PROP_CURRENT_DIRECTORY_URI:
+        case BUFFER_PROP_CURRENT_FILE_URI:
         case BUFFER_PROP_ICON_TITLE:
         case BUFFER_PROP_WINDOW_TITLE:
                 g_assert_not_reached ();
@@ -13913,6 +13992,38 @@ vte_buffer_class_init(VteBufferClass *klass)
                              _vte_marshal_VOID__STRING_UINT,
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, G_TYPE_UINT);
+
+        /**
+          * VteBuffer::current-directory-uri-changed:
+          * @buffer: the object which received the signal
+          *
+          * Emitted when the current directory URI is modified.
+          */
+        buffer_signals[BUFFER_CURRENT_DIRECTORY_URI_CHANGED] =
+                g_signal_new(I_("current-directory-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, current_directory_uri_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+
+        /**
+          * VteBuffer::current-file-uri-changed:
+          * @buffer: the object which received the signal
+          *
+          * Emitted when the current file URI is modified.
+          */
+        buffer_signals[BUFFER_CURRENT_FILE_URI_CHANGED] =
+                g_signal_new(I_("current-file-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteBufferClass, current_file_uri_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteView::emulation-changed:
@@ -14284,6 +14395,30 @@ vte_buffer_class_init(VteBufferClass *klass)
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
+          * VteBuffer:current-directory-uri:
+          *
+          * The current directory URI, or %NULL if unset.
+          */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_CURRENT_DIRECTORY_URI,
+                 g_param_spec_string ("current-directory-uri", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+        /**
+          * VteBuffer:current-file-uri:
+          *
+          * The current file URI, or %NULL if unset.
+          */
+        g_object_class_install_property
+                (gobject_class,
+                 BUFFER_PROP_CURRENT_FILE_URI,
+                 g_param_spec_string ("current-file-uri", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteBuffer:delete-binding:

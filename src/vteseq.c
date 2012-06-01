@@ -2451,6 +2451,70 @@ vte_sequence_handler_set_icon_and_window_title (VteBuffer *buffer, GValueArray *
 	vte_sequence_handler_set_title_internal(buffer, params, TRUE, TRUE);
 }
 
+static void
+vte_sequence_handler_set_current_directory_uri (VteBuffer *buffer, GValueArray *params)
+{
+        GValue *value;
+        char *uri, *filename;
+
+        uri = NULL;
+        if (params != NULL && params->n_values > 0) {
+                value = g_value_array_get_nth(params, 0);
+
+                if (G_VALUE_HOLDS_POINTER(value)) {
+                        uri = vte_buffer_ucs4_to_utf8 (buffer, g_value_get_pointer (value));
+                } else if (G_VALUE_HOLDS_STRING(value)) {
+                        /* Copy the string into the buffer. */
+                        uri = g_value_dup_string(value);
+                }
+        }
+
+        /* Validate URI */
+        filename = g_filename_from_uri (uri, NULL, NULL);
+        if (filename == NULL) {
+                /* invalid URI */
+                g_free (uri);
+                uri = NULL;
+        } else {
+                g_free (filename);
+        }
+
+        g_free(buffer->pvt->current_directory_uri_changed);
+        buffer->pvt->current_directory_uri_changed = uri;
+}
+
+static void
+vte_sequence_handler_set_current_file_uri (VteBuffer *buffer, GValueArray *params)
+{
+        GValue *value;
+        char *uri, *filename;
+
+        uri = NULL;
+        if (params != NULL && params->n_values > 0) {
+                value = g_value_array_get_nth(params, 0);
+
+                if (G_VALUE_HOLDS_POINTER(value)) {
+                        uri = vte_buffer_ucs4_to_utf8 (buffer, g_value_get_pointer (value));
+                } else if (G_VALUE_HOLDS_STRING(value)) {
+                        /* Copy the string into the buffer. */
+                        uri = g_value_dup_string(value);
+                }
+        }
+
+        /* Validate URI */
+        filename = g_filename_from_uri (uri, NULL, NULL);
+        if (filename == NULL) {
+                /* invalid URI */
+                g_free (uri);
+                uri = NULL;
+        } else {
+                g_free (filename);
+        }
+
+        g_free(buffer->pvt->current_file_uri_changed);
+        buffer->pvt->current_file_uri_changed = uri;
+}
+
 /* Restrict the scrolling region. */
 static void
 vte_sequence_handler_set_scrolling_region (VteBuffer *buffer, GValueArray *params)

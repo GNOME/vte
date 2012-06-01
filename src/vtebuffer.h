@@ -71,6 +71,8 @@ struct _VteBufferClass {
   void (*encoding_changed)     (VteBuffer *buffer);
   void (*icon_title_changed)   (VteBuffer* buffer);
   void (*window_title_changed) (VteBuffer* buffer);
+  void (*current_directory_uri_changed) (VteBuffer* buffer);
+  void (*current_file_uri_changed)      (VteBuffer* buffer);
   void (*status_line_changed)  (VteBuffer* buffer);
   void (*eof)                  (VteBuffer* buffer);
   void (*child_exited)         (VteBuffer *buffer,
@@ -157,6 +159,10 @@ void vte_buffer_reset                   (VteBuffer *buffer,
 const char *vte_buffer_get_window_title (VteBuffer *buffer);
 
 const char *vte_buffer_get_icon_title   (VteBuffer *buffer);
+
+const char *vte_buffer_get_current_directory_uri  (VteBuffer *buffer);
+
+const char *vte_buffer_get_current_file_uri       (VteBuffer *buffer);
 
 const char *vte_buffer_get_status_line  (VteBuffer *buffer);
 
