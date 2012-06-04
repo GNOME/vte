@@ -359,6 +359,9 @@ mev_SOURCES = mev.c
 ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
 
-#
+# Shell
+
+profiledir = $(sysconfdir)/profile.d
+dist_profile_DATA = vte.sh
 
 -include $(top_srcdir)/git.mk
