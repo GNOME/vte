@@ -401,7 +401,6 @@ glade/vte.xml.in
 ])
 
 AC_CONFIG_FILES([vte${VTE_PC_VERSION}.pc:vte.pc.in],[VTE_PC_VERSION=${VTE_PC_VERSION}])
-AC_CONFIG_FILES([vte${VTE_PC_VERSION}-uninstalled.pc:vte-uninstalled.pc.in],[VTE_PC_VERSION=${VTE_PC_VERSION}])
 
 AC_OUTPUT
 
