@@ -3,8 +3,6 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-defaultemulation=@VTE_DEFAULT_EMULATION@
-
 Name: vte
 Description: Vte terminal widget.
 Version: @VERSION@
