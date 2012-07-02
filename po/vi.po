@@ -2,14 +2,14 @@
 # Copyright (C) 2002 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # T.M.Thanh <tmthanh@yahoo.com>, 2002.
-#
+# Nguyễn Thái Ngọc Duy <pclouds@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.vi\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&component=general\n"
 "POT-Creation-Date: 2010-03-17 17:23+0000\n"
-"PO-Revision-Date: 2012-07-02 14:48+0700\n"
+"PO-Revision-Date: 2012-07-02 14:50+0700\n"
 "Last-Translator: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>\n"
 "Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -82,10 +82,10 @@ msgid "Error (%s) converting data for child, dropping."
 msgstr "Lỗi (%s) khi chuyển đổi dữ liệu cho child, bỏ."
 
 #: ../src/vte.c:7726
-#, fuzzy, c-format
+#, c-format
 #| msgid "Error reading PTY size, using defaults: %s."
 msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Lỗi khi đọc kích thước PTY, sử dụng mặc định: %s."
+msgstr "Lỗi khi đọc kích thước PTY, sử dụng mặc định: %s\n"
 
 #. Aaargh.  We're screwed.
 #: ../src/vte.c:13281
