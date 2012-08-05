@@ -916,9 +916,9 @@ vte_terminal_emit_eof(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `eof'.\n");
-	GDK_THREADS_ENTER ();
+	gdk_threads_enter ();
 	g_signal_emit_by_name(terminal, "eof");
-	GDK_THREADS_LEAVE ();
+	gdk_threads_leave ();
 
 	return FALSE;
 }
@@ -4577,9 +4577,9 @@ out:
 			_vte_terminal_feed_chunks (terminal, chunks);
 		}
 		if (!vte_terminal_is_processing (terminal)) {
-			GDK_THREADS_ENTER ();
+			gdk_threads_enter ();
 			vte_terminal_add_process_timeout (terminal);
-			GDK_THREADS_LEAVE ();
+			gdk_threads_leave ();
 		}
 		terminal->pvt->pty_input_active = len != 0;
 		terminal->pvt->input_bytes = bytes;
@@ -4612,9 +4612,9 @@ out:
 	if (eof) {
 		/* potential deadlock ... */
 		if (!vte_terminal_is_processing (terminal)) {
-			GDK_THREADS_ENTER ();
+			gdk_threads_enter ();
 			vte_terminal_eof (channel, terminal);
-			GDK_THREADS_LEAVE ();
+			gdk_threads_leave ();
 		} else {
 			vte_terminal_eof (channel, terminal);
 		}
@@ -14869,7 +14869,7 @@ process_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
-	GDK_THREADS_ENTER();
+	gdk_threads_enter();
 
 	in_process_timeout = TRUE;
 
@@ -14931,7 +14931,7 @@ process_timeout (gpointer data)
 
 	in_process_timeout = FALSE;
 
-	GDK_THREADS_LEAVE();
+	gdk_threads_leave();
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -14996,7 +14996,7 @@ update_repeat_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
-	GDK_THREADS_ENTER();
+	gdk_threads_enter();
 
 	in_update_timeout = TRUE;
 
@@ -15072,7 +15072,7 @@ update_repeat_timeout (gpointer data)
 
 	in_update_timeout = FALSE;
 
-	GDK_THREADS_LEAVE();
+	gdk_threads_leave();
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -15093,7 +15093,7 @@ update_timeout (gpointer data)
 	GList *l, *next;
 	gboolean redraw = FALSE;
 
-	GDK_THREADS_ENTER();
+	gdk_threads_enter();
 
 	in_update_timeout = TRUE;
 
@@ -15161,7 +15161,7 @@ update_timeout (gpointer data)
 				    NULL);
 	in_update_timeout = FALSE;
 
-	GDK_THREADS_LEAVE();
+	gdk_threads_leave();
 
 	return FALSE;
 }
