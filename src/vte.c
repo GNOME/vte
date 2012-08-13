@@ -2487,7 +2487,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
  *
  * Creates a new terminal widget.
  *
- * Returns: (transfer full) (type Vte.Terminal): a new #VteTerminal object
+ * Returns: (transfer none) (type Vte.Terminal): a new #VteTerminal object
  */
 GtkWidget *
 vte_terminal_new(void)
