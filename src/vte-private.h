@@ -292,6 +292,7 @@ struct _VteBufferPrivate {
         gboolean cursor_visible;
 
         /* Mouse tracking */
+        gboolean mouse_xterm_extension;
         gboolean mouse_urxvt_extension;
 
         /* FIXMEchpe: this is duplicated wiht VteBufferPrivate; keep just one

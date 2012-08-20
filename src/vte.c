@@ -5521,25 +5521,21 @@ _vte_view_size_to_grid_size(VteView *terminal,
 }
 
 static void
-vte_view_get_mouse_tracking_info (VteView   *terminal,
-				      int            button,
-				      long           col,
-				      long           row,
-				      unsigned char *pb,
-                                       long          *px,
-				      long          *py)
+vte_buffer_feed_mouse_event(VteBuffer *buffer,
+                            int          button,
+                            GdkModifierType modifiers,
+                            gboolean     is_drag,
+                            gboolean     is_release,
+                            long         col,
+                            long         row)
 {
-        VteBuffer *buffer;
 	unsigned char cb = 0;
-        long cx, cy;
-
-        buffer = terminal->pvt->buffer;
+	long cx, cy;
+	char buf[LINE_MAX];
+	gint len = 0;
 
 	/* Encode the button information in cb. */
 	switch (button) {
-	case 0:			/* Release/no buttons. */
-		cb = 3;
-		break;
 	case 1:			/* Left. */
 		cb = 0;
 		break;
@@ -5556,44 +5552,44 @@ vte_view_get_mouse_tracking_info (VteView   *terminal,
 		cb = 65;	/* Scroll down. */
 		break;
 	}
-	cb += 32; /* 32 for normal */
+
+	/* With the exception of the 1006 mode, button release is also encoded here. */
+	/* Note that if multiple extensions are enabled, the 1006 is used, so it's okay to check for only that. */
+	if (is_release && !buffer->pvt->mouse_xterm_extension) {
+		cb = 3;
+	}
 
 	/* Encode the modifiers. */
-	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+	if (modifiers & GDK_SHIFT_MASK) {
 		cb |= 4;
 	}
-	if (terminal->pvt->modifiers & VTE_META_MASK) {
+	if (modifiers & VTE_META_MASK) {
 		cb |= 8;
 	}
-	if (terminal->pvt->modifiers & GDK_CONTROL_MASK) {
+	if (modifiers & GDK_CONTROL_MASK) {
 		cb |= 16;
 	}
 
-       /* Cursor coordinates */
-       cx = CLAMP(1 + col, 1, buffer->pvt->column_count);
-       cy = CLAMP(1 + row, 1, buffer->pvt->row_count);
+        /* Encode a drag event. */
+	if (is_drag) {
+		cb |= 32;
+	}
 
-	*pb = cb;
-	*px = cx;
-	*py = cy;
-}
+	/* Clamp the cursor coordinates. Make them 1-based. */
+        cx = CLAMP(1 + col, 1, buffer->pvt->column_count);
+        cy = CLAMP(1 + row, 1, buffer->pvt->row_count);
 
-static void
-vte_buffer_feed_mouse_event(VteBuffer *buffer,
-                            int        cb,
-                            long       cx,
-                            long       cy)
-{
-        char buf[LINE_MAX];
-        gint len = 0;
-
-        if (buffer->pvt->mouse_urxvt_extension) {
-                /* urxvt's extended mode (1015) */
-                len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", cb, cx, cy);
-        } else if (cx <= 231 && cy <= 231) {
-                /* legacy mode */
-                len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, 32 + (guchar)cx, 32 + (guchar)cy);
-        }
+	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
+	if (buffer->pvt->mouse_xterm_extension) {
+		/* xterm's extended mode (1006) */
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "<%d;%ld;%ld%c", cb, cx, cy, is_release ? 'm' : 'M');
+	} else if (buffer->pvt->mouse_urxvt_extension) {
+		/* urxvt's extended mode (1015) */
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", 32 + cb, cx, cy);
+	} else if (cx <= 231 && cy <= 231) {
+		/* legacy mode */
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
+	}
 
         /* Send event direct to the child, this is binary not text data */
         vte_buffer_feed_child_binary(buffer, buf, len);
@@ -5609,12 +5605,11 @@ vte_buffer_feed_mouse_event(VteBuffer *buffer,
 static void
 vte_view_send_mouse_button_internal(VteView *terminal,
 					int          button,
+					gboolean     is_release,
 					long         x,
 					long         y)
 {
         VteBuffer *buffer;
-	unsigned char cb;
-        long cx, cy;
         long col, row;
 
         buffer = terminal->pvt->buffer;
@@ -5624,11 +5619,8 @@ vte_view_send_mouse_button_internal(VteView *terminal,
         if (!_vte_view_xy_to_grid(terminal, x, y, &col, &row))
                 return;
 
-	vte_view_get_mouse_tracking_info (terminal,
-					      button, col, row,
-					      &cb, &cx, &cy);
-
-        vte_buffer_feed_mouse_event(buffer, cb, cx, cy);
+	vte_buffer_feed_mouse_event(buffer, button, terminal->pvt->modifiers, 
+                                    FALSE /* not drag */, is_release, col, row);
 }
 
 /* Send a mouse button click/release notification. */
@@ -5656,7 +5648,8 @@ vte_view_maybe_send_mouse_button(VteView *terminal,
 	}
 
 	vte_view_send_mouse_button_internal(terminal,
-					        (event->type == GDK_BUTTON_PRESS) ? event->button : 0,
+                                            event->button,
+                                            event->type == GDK_BUTTON_RELEASE,
 						event->x, event->y);
 }
 
@@ -5665,8 +5658,6 @@ static void
 vte_view_maybe_send_mouse_drag(VteView *terminal, GdkEventMotion *event)
 {
         VteBuffer *buffer;
-	unsigned char cb;
-        long cx, cy;
         long col, row;
 
         buffer = terminal->pvt->buffer;
@@ -5698,12 +5689,11 @@ vte_view_maybe_send_mouse_drag(VteView *terminal, GdkEventMotion *event)
 		break;
 	}
 
-	vte_view_get_mouse_tracking_info (terminal,
-					      terminal->pvt->mouse_last_button, col, row,
-					      &cb, &cx, &cy);
-	cb += 32; /* for movement */
-
-        vte_buffer_feed_mouse_event(buffer, cb, cx, cy);
+	vte_buffer_feed_mouse_event(buffer,
+                                    terminal->pvt->mouse_last_button,
+                                    terminal->pvt->modifiers,
+                                    TRUE /* drag */, FALSE /* not release */,
+                                    col, row);
 }
 
 /* Clear all match hilites. */
@@ -10754,6 +10744,7 @@ vte_view_scroll(GtkWidget *widget, GdkEventScroll *event)
 			/* Encode the parameters and send them to the app. */
 			vte_view_send_mouse_button_internal(terminal,
 								button,
+								FALSE /* not release */,
 								event->x,
 								event->y);
 		}
@@ -12136,6 +12127,7 @@ vte_buffer_reset(VteBuffer *buffer,
 	}
 	/* Reset mouse motion events. */
         terminal->pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
+        pvt->mouse_xterm_extension = FALSE;
         pvt->mouse_urxvt_extension = FALSE;
         terminal->pvt->mouse_last_button = 0;
         terminal->pvt->mouse_last_x = 0;
@@ -12519,7 +12511,6 @@ add_update_timeout (VteView *terminal)
 		terminal->pvt->active = active_terminals =
 			g_list_prepend (active_terminals, terminal);
 	}
-
 }
 static void
 reset_update_regions (VteView *terminal)

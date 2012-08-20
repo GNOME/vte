@@ -42,7 +42,9 @@ static enum {
 	tracking_mouse = 1000,
 	tracking_hilite = 1001,
 	tracking_cell_motion = 1002,
-	tracking_all_motion = 1003
+	tracking_all_motion = 1003,
+        tracking_xterm_ext = 1006,
+        tracking_urxvt = 1015
 } tracking_mode = 0;
 
 static void
@@ -59,6 +61,8 @@ reset(void)
 	decset(tracking_hilite, FALSE);
 	decset(tracking_cell_motion, FALSE);
 	decset(tracking_all_motion, FALSE);
+	decset(tracking_xterm_ext, FALSE);
+	decset(tracking_urxvt, FALSE);
 	fflush(stdout);
 }
 
@@ -93,6 +97,14 @@ clear(void)
 		fprintf(stdout, "All motion tracking enabled.\r\n");
 		decset(tracking_all_motion, TRUE);
 		break;
+	case tracking_xterm_ext:
+		fprintf(stdout, "Xterm 1006 mouse tracking extension enabled.\r\n");
+		decset(tracking_xterm_ext, TRUE);
+		break;
+	case tracking_urxvt:
+		fprintf(stdout, "rxvt-unicode 1015 mouse tracking extension enabled.\r\n");
+		decset(tracking_urxvt, TRUE);
+		break;
 	default:
 		fprintf(stdout, "Tracking disabled.\r\n");
 		break;
@@ -102,6 +114,8 @@ clear(void)
 	fprintf(stdout, "C - Hilite tracking [FIXME: NOT IMPLEMENTED].\r\n");
 	fprintf(stdout, "D - Cell motion tracking.\r\n");
 	fprintf(stdout, "E - All motion tracking.\r\n");
+	fprintf(stdout, "F - Xterm 1006 extension.\r\n");
+	fprintf(stdout, "G - rxvt-unicode extension.\r\n");
 	fprintf(stdout, "%s", _VTE_CAP_ESC "8");
 	fflush(stdout);
 }
@@ -151,6 +165,18 @@ parse(void)
 		case 'e':
 			tracking_mode = (tracking_mode == tracking_all_motion) ?
 					0 : tracking_all_motion;
+			i++;
+			break;
+		case 'F':
+		case 'f':
+			tracking_mode = (tracking_mode == tracking_xterm_ext) ?
+					0 : tracking_xterm_ext;
+			i++;
+			break;
+		case 'G':
+		case 'g':
+			tracking_mode = (tracking_mode == tracking_urxvt) ?
+					0 : tracking_urxvt;
 			i++;
 			break;
 		case 'Q':
