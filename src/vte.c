@@ -5817,22 +5817,20 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 }
 
 static void
-vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
-				      int            button,
-				      long           col,
-				      long           row,
-				      unsigned char *pb,
-				      long          *px,
-				      long          *py)
+vte_terminal_feed_mouse_event(VteTerminal *terminal,
+			      int          button,
+			      gboolean     is_drag,
+			      gboolean     is_release,
+			      long         col,
+			      long         row)
 {
 	unsigned char cb = 0;
 	long cx, cy;
+	char buf[LINE_MAX];
+	gint len = 0;
 
 	/* Encode the button information in cb. */
 	switch (button) {
-	case 0:			/* Release/no buttons. */
-		cb = 3;
-		break;
 	case 1:			/* Left. */
 		cb = 0;
 		break;
@@ -5849,7 +5847,12 @@ vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
 		cb = 65;	/* Scroll down. */
 		break;
 	}
-	cb += 32; /* 32 for normal */
+
+	/* With the exception of the 1006 mode, button release is also encoded here. */
+	/* Note that if multiple extensions are enabled, the 1006 is used, so it's okay to check for only that. */
+	if (is_release && !terminal->pvt->mouse_xterm_extension) {
+		cb = 3;
+	}
 
 	/* Encode the modifiers. */
 	if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
@@ -5862,32 +5865,27 @@ vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
 		cb |= 16;
 	}
 
-	/* Clamp the cursor coordinates. */
+	/* Encode a drag event. */
+	if (is_drag) {
+		cb |= 32;
+	}
+
+	/* Clamp the cursor coordinates. Make them 1-based. */
 	cx = CLAMP(1 + col,
 		   1, terminal->column_count);
 	cy = CLAMP(1 + row,
 		   1, terminal->row_count);
 
-	*pb = cb;
-	*px = cx;
-	*py = cy;
-}
-
-static void
-vte_terminal_feed_mouse_event(VteTerminal *terminal,
-                              int          cb,
-                              long         cx,
-                              long         cy)
-{
-	char buf[LINE_MAX];
-	gint len = 0;
-
-	if (terminal->pvt->mouse_urxvt_extension) {
+	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
+	if (terminal->pvt->mouse_xterm_extension) {
+		/* xterm's extended mode (1006) */
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "<%d;%ld;%ld%c", cb, cx, cy, is_release ? 'm' : 'M');
+	} else if (terminal->pvt->mouse_urxvt_extension) {
 		/* urxvt's extended mode (1015) */
-		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", cb, cx, cy);
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", 32 + cb, cx, cy);
 	} else if (cx <= 231 && cy <= 231) {
 		/* legacy mode */
-		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, 32 + (guchar)cx, 32 + (guchar)cy);
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
 	}
 
 	/* Send event direct to the child, this is binary not text data */
@@ -5897,20 +5895,16 @@ vte_terminal_feed_mouse_event(VteTerminal *terminal,
 static void
 vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 					int          button,
+					gboolean     is_release,
 					long         x,
 					long         y)
 {
-	unsigned char cb;
-	long cx, cy;
 	int width = terminal->char_width;
 	int height = terminal->char_height;
 	long col = (x - terminal->pvt->inner_border.left) / width;
 	long row = (y - terminal->pvt->inner_border.top) / height;
 
-	vte_terminal_get_mouse_tracking_info (terminal,
-					      button, col, row,
-					      &cb, &cx, &cy);
-	vte_terminal_feed_mouse_event(terminal, cb, cx, cy);
+	vte_terminal_feed_mouse_event(terminal, button, FALSE /* not drag */, is_release, col, row);
 }
 
 /* Send a mouse button click/release notification. */
@@ -5938,7 +5932,8 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 	}
 
 	vte_terminal_send_mouse_button_internal(terminal,
-					        (event->type == GDK_BUTTON_PRESS) ? event->button : 0,
+						event->button,
+						event->type == GDK_BUTTON_RELEASE,
 						event->x, event->y);
 }
 
@@ -5946,8 +5941,6 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 static void
 vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
-	unsigned char cb;
-	long cx, cy;
 	int width = terminal->char_width;
 	int height = terminal->char_height;
 	long col = ((long) event->x - terminal->pvt->inner_border.left) / width;
@@ -5976,12 +5969,9 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		break;
 	}
 
-	vte_terminal_get_mouse_tracking_info (terminal,
-					      terminal->pvt->mouse_last_button, col, row,
-					      &cb, &cx, &cy);
-	cb += 32; /* for movement */
-
-	vte_terminal_feed_mouse_event(terminal, cb, cx, cy);
+	vte_terminal_feed_mouse_event(terminal, terminal->pvt->mouse_last_button,
+				      TRUE /* drag */, FALSE /* not release */,
+				      col, row);
 }
 
 /* Clear all match hilites. */
@@ -11346,6 +11336,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 			/* Encode the parameters and send them to the app. */
 			vte_terminal_send_mouse_button_internal(terminal,
 								button,
+								FALSE /* not release */,
 								event->x,
 								event->y);
 		}
@@ -14132,6 +14123,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_last_button = 0;
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
+	pvt->mouse_xterm_extension = FALSE;
 	pvt->mouse_urxvt_extension = FALSE;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
