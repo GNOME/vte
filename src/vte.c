@@ -5838,10 +5838,11 @@ vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
 				      long           col,
 				      long           row,
 				      unsigned char *pb,
-				      unsigned char *px,
-				      unsigned char *py)
+				      long          *px,
+				      long          *py)
 {
-	unsigned char cb = 0, cx = 0, cy = 0;
+	unsigned char cb = 0;
+	long cx, cy;
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -5877,15 +5878,36 @@ vte_terminal_get_mouse_tracking_info (VteTerminal   *terminal,
 		cb |= 16;
 	}
 
-	/* Encode the cursor coordinates. */
-	cx = 32 + CLAMP(1 + col,
-			1, terminal->column_count);
-	cy = 32 + CLAMP(1 + row,
-			1, terminal->row_count);;
+	/* Clamp the cursor coordinates. */
+	cx = CLAMP(1 + col,
+		   1, terminal->column_count);
+	cy = CLAMP(1 + row,
+		   1, terminal->row_count);
 
 	*pb = cb;
 	*px = cx;
 	*py = cy;
+}
+
+static void
+vte_terminal_feed_mouse_event(VteTerminal *terminal,
+                              int          cb,
+                              long         cx,
+                              long         cy)
+{
+	char buf[LINE_MAX];
+	gint len = 0;
+
+	if (terminal->pvt->mouse_urxvt_extension) {
+		/* urxvt's extended mode (1015) */
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", cb, cx, cy);
+	} else if (cx <= 231 && cy <= 231) {
+		/* legacy mode */
+		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, 32 + (guchar)cx, 32 + (guchar)cy);
+	}
+
+	/* Send event direct to the child, this is binary not text data */
+	vte_terminal_feed_child_binary(terminal, buf, len);
 }
 
 static void
@@ -5894,9 +5916,8 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 					long         x,
 					long         y)
 {
-	unsigned char cb, cx, cy;
-	char buf[LINE_MAX];
-	gint len;
+	unsigned char cb;
+	long cx, cy;
 	int width = terminal->char_width;
 	int height = terminal->char_height;
 	long col = (x - terminal->pvt->inner_border.left) / width;
@@ -5905,10 +5926,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	vte_terminal_get_mouse_tracking_info (terminal,
 					      button, col, row,
 					      &cb, &cx, &cy);
-
-	/* Send event direct to the child, this is binary not text data */
-	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_terminal_feed_child_binary(terminal, buf, len);
+	vte_terminal_feed_mouse_event(terminal, cb, cx, cy);
 }
 
 /* Send a mouse button click/release notification. */
@@ -5944,9 +5962,8 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 static void
 vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
-	unsigned char cb, cx, cy;
-	char buf[LINE_MAX];
-	gint len;
+	unsigned char cb;
+	long cx, cy;
 	int width = terminal->char_width;
 	int height = terminal->char_height;
 	long col = ((long) event->x - terminal->pvt->inner_border.left) / width;
@@ -5980,9 +5997,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 					      &cb, &cx, &cy);
 	cb += 32; /* for movement */
 
-	/* Send event direct to the child, this is binary not text data */
-	len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", cb, cx, cy);
-	vte_terminal_feed_child_binary(terminal, buf, len);
+	vte_terminal_feed_mouse_event(terminal, cb, cx, cy);
 }
 
 /* Clear all match hilites. */
@@ -14194,6 +14209,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_last_button = 0;
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
+	pvt->mouse_urxvt_extension = FALSE;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
 	/* Cause everything to be redrawn (or cleared). */
