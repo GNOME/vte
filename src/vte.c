@@ -5098,28 +5098,9 @@ _vte_terminal_audible_beep(VteTerminal *terminal)
 void
 _vte_terminal_visible_beep(VteTerminal *terminal)
 {
-	GtkWidget *widget;
-	GtkAllocation allocation;
-	GtkStyle *style;
-	PangoColor color;
-
-	widget = &terminal->widget;
+	GtkWidget *widget = &terminal->widget;
 
 	if (gtk_widget_get_realized (widget)) {
-
-		style = gtk_widget_get_style (widget);
-		gtk_widget_get_allocation (widget, &allocation);
-		color.red = style->fg[gtk_widget_get_state (widget)].red;
-		color.green = style->fg[gtk_widget_get_state (widget)].green;
-		color.blue = style->fg[gtk_widget_get_state (widget)].blue;
-
-		_vte_draw_start(terminal->pvt->draw);
-		_vte_draw_fill_rectangle(terminal->pvt->draw,
-					 0, 0,
-					 allocation.width, allocation.height,
-					 &color, VTE_DRAW_OPAQUE);
-		_vte_draw_end(terminal->pvt->draw);
-
 		/* Force the repaint, max delay of UPDATE_REPEAT_TIMEOUT */
 		_vte_invalidate_all (terminal);
 	}
