@@ -9331,13 +9331,11 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 			    gint width,
 			    gint height)
 {
-	_vte_draw_start(terminal->pvt->draw);
 	_vte_draw_fill_rectangle(terminal->pvt->draw,
 				 x + terminal->pvt->inner_border.left,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
 				 color, VTE_DRAW_OPAQUE);
-	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
@@ -9361,13 +9359,11 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 			    gint width,
 			    gint height)
 {
-	_vte_draw_start(terminal->pvt->draw);
 	_vte_draw_draw_rectangle(terminal->pvt->draw,
 				 x + terminal->pvt->inner_border.left,
                                  y + terminal->pvt->inner_border.top,
 				 width, height,
 				 color, VTE_DRAW_OPAQUE);
-	_vte_draw_end(terminal->pvt->draw);
 }
 
 static void
