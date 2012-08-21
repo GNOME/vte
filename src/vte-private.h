@@ -305,7 +305,6 @@ struct _VteTerminalPrivate {
 	long mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
 	guint mouse_autoscroll_tag;
-	gboolean mouse_xterm_extension;
 
 	/* State variables for handling match checks. */
 	char *match_contents;

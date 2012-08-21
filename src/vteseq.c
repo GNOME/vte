@@ -685,17 +685,10 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(0),
 		 GINT_TO_POINTER(MOUSE_TRACKING_ALL_MOTION_TRACKING),
 		 NULL, NULL,},
-		/* 1006: Extended mouse coordinates. */
-		{1006, &terminal->pvt->mouse_xterm_extension, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
-		 NULL, NULL,},
 		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
 		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */
 		{1011, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* 1015/urxvt: Extended mouse coordinates. Not supported. */
-		{1015,  NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1035: disallowed, don't know what to do with it. */
 		{1035, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1036: Meta-sends-escape. */
