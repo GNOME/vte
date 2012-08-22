@@ -24,6 +24,7 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <cairo.h>
 #include "vte.h"
 #include "vteunistr.h"
 
@@ -60,6 +61,8 @@ struct _vte_draw_text_request {
 /* Create and destroy a draw structure. */
 struct _vte_draw *_vte_draw_new(void);
 void _vte_draw_free(struct _vte_draw *draw);
+
+cairo_t *_vte_draw_get_context (struct _vte_draw *draw);
 
 void _vte_draw_set_cairo(struct _vte_draw *draw,
                          cairo_t *cr);

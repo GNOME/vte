@@ -8727,47 +8727,14 @@ vte_view_determine_cursor_colors (VteView *terminal,
 static gboolean
 vte_unichar_is_local_graphic(vteunistr c)
 {
-	if ((c >= 0x2500) && (c <= 0x257f)) {
-		return TRUE;
-	}
-	switch (c) {
-	case 0x00a3: /* british pound */
-	case 0x00b0: /* degree */
-	case 0x00b1: /* plus/minus */
-	case 0x00b7: /* bullet */
-	case 0x03c0: /* pi */
-	case 0x2190: /* left arrow */
-	case 0x2191: /* up arrow */
-	case 0x2192: /* right arrow */
-	case 0x2193: /* down arrow */
-	case 0x2260: /* != */
-	case 0x2264: /* <= */
-	case 0x2265: /* >= */
-	case 0x23ba: /* scanline 1/9 */
-	case 0x23bb: /* scanline 3/9 */
-	case 0x23bc: /* scanline 7/9 */
-	case 0x23bd: /* scanline 9/9 */
-	case 0x2409: /* HT symbol */
-	case 0x240a: /* LF symbol */
-	case 0x240b: /* VT symbol */
-	case 0x240c: /* FF symbol */
-	case 0x240d: /* CR symbol */
-	case 0x2424: /* NL symbol */
-	case 0x2592: /* checkerboard */
-	case 0x25ae: /* solid rectangle */
-	case 0x25c6: /* diamond */
-		return TRUE;
-		break;
-	default:
-		break;
-	}
-	return FALSE;
+        /* Box Drawing & Block Elements */
+        return (c >= 0x2500) && (c <= 0x259f);
 }
+
 static gboolean
 vte_view_unichar_is_local_graphic(VteView *terminal, vteunistr c, gboolean bold)
 {
-	return vte_unichar_is_local_graphic (c) &&
-		!_vte_draw_has_char (terminal->pvt->draw, c, bold);
+        return vte_unichar_is_local_graphic (c);
 }
 
 static void
@@ -8813,774 +8780,746 @@ vte_view_draw_rectangle(VteView *terminal,
 				 color);
 }
 
-static void
-vte_view_draw_point(VteView *terminal,
-			const GdkRGBA *color,
-			gint x,
-			gint y)
-{
-	vte_view_fill_rectangle(terminal, color, x, y, 1, 1);
-}
-
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static gboolean
-vte_view_draw_graphic(VteView *terminal, vteunistr c,
-			  guint fore, guint back, gboolean draw_default_bg,
-			  gint x, gint y,
-			  gint column_width, gint columns, gint row_height,
-			  gboolean bold)
+vte_view_draw_graphic(VteView *view,
+                      vteunistr c,
+                      guint fore,
+                      guint back,
+                      gboolean draw_default_bg,
+                      gint x,
+                      gint y,
+                      gint column_width,
+                      gint columns,
+                      gint row_height,
+                      gboolean bold)
 {
-	gboolean ret;
-	gint xcenter, xright, ycenter, ybottom, i;
-	struct _vte_draw_text_request request;
+        VteViewPrivate *pvt = view->pvt;
+        gint width, xcenter, xright, ycenter, ybottom;
+        int upper_half, lower_half, left_half, right_half;
+        int light_line_width, heavy_line_width;
+        double adjust;
+        cairo_t *cr = _vte_draw_get_context (pvt->draw);
 
-	request.c = c;
-	request.x = x + terminal->pvt->padding.left;
-	request.y = y + terminal->pvt->padding.top;
-	request.columns = columns;
+        width = column_width * columns;
 
-	xright = x + column_width * columns;
-	ybottom = y + row_height;
-	xcenter = (x + xright) / 2;
-	ycenter = (y + ybottom) / 2;
+        if ((back != VTE_DEF_BG) || draw_default_bg) {
+                vte_view_fill_rectangle(view,
+                                        &pvt->palette[back],
+                                        x, y, width, row_height);
+        }
 
-	if ((back != VTE_DEF_BG) || draw_default_bg) {
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[back],
-					    x, y,
-					    column_width * columns, row_height);
-	}
+        cairo_save (cr);
 
-	if (_vte_draw_char(terminal->pvt->draw, &request,
-			   &terminal->pvt->palette[fore], bold)) {
-		/* We were able to draw with actual fonts. */
-		return TRUE;
-	}
+        cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+        gdk_cairo_set_source_rgba(cr, &pvt->palette[fore]);
 
-	ret = TRUE;
+        // FIXME wtf!?
+        x += pvt->padding.left;
+        y += pvt->padding.top;
 
-	switch (c) {
-	case 124:
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* != */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2 - 1, ycenter,
-				       (xright + xcenter) / 2 + 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2 - 1,
-				       (ybottom + ycenter) / 2,
-				       (xright + xcenter) / 2 + 1,
-				       (ybottom + ycenter) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, y + 1,
-				       x + 1, ybottom - 1);
-		break;
-	case 127:
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* A "delete" symbol I saw somewhere. */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, ycenter,
-				       xcenter, y);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, y,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, ycenter,
-				       xright - 1, ybottom - 1);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, ybottom - 1,
-				       x, ybottom - 1);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, ybottom - 1,
-				       x, ycenter);
-		break;
-	case 0x00a3:
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* British pound.  An "L" with a hyphen. */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2,
-				       (y + ycenter) / 2,
-				       (x + xcenter) / 2,
-				       (ycenter + ybottom) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2,
-				       (ycenter + ybottom) / 2,
-				       (xcenter + xright) / 2,
-				       (ycenter + ybottom) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, ycenter,
-				       xcenter + 1, ycenter);
-		break;
-	case 0x00b0: /* f */
-		/* litle circle */
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter - 1, ycenter);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter + 1, ycenter);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter, ycenter - 1);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter, ycenter + 1);
-		break;
-	case 0x00b1: /* g */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* +/- */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter,
-				       (y + ycenter) / 2,
-				       xcenter,
-				       (ycenter + ybottom) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2,
-				       ycenter,
-				       (xcenter + xright) / 2,
-				       ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2,
-				       (ycenter + ybottom) / 2,
-				       (xcenter + xright) / 2,
-				       (ycenter + ybottom) / 2);
-		break;
-	case 0x00b7:
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* short hyphen? */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter - 1, ycenter,
-				       xcenter + 1, ycenter);
-		break;
-	case 0x3c0: /* pi */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2 - 1,
-				       (y + ycenter) / 2,
-				       (xright + xcenter) / 2 + 1,
-				       (y + ycenter) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2,
-				       (y + ycenter) / 2,
-				       (x + xcenter) / 2,
-				       (ybottom + ycenter) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (xright + xcenter) / 2,
-				       (y + ycenter) / 2,
-				       (xright + xcenter) / 2,
-				       (ybottom + ycenter) / 2);
-		break;
-	/* case 0x2190: FIXME */
-	/* case 0x2191: FIXME */
-	/* case 0x2192: FIXME */
-	/* case 0x2193: FIXME */
-	/* case 0x2260: FIXME */
-	case 0x2264: /* y */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* <= */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, y,
-				       x, (y + ycenter) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, (y + ycenter) / 2,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, ycenter,
-				       xright - 1, (ycenter + ybottom) / 2);
-		break;
-	case 0x2265: /* z */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* >= */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       xright - 1, (y + ycenter) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, (y + ycenter) / 2,
-				       x, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, ycenter,
-				       x, (ycenter + ybottom) / 2);
-		break;
-	case 0x23ba: /* o */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x, y,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x23bb: /* p */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x, (y + ycenter) / 2,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x23bc: /* r */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    (ycenter + ybottom) / 2,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x23bd: /* s */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ybottom - 1,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x2409:  /* b */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* H */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       x, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, y,
-				       xcenter, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, (y + ycenter) / 2,
-				       xcenter, (y + ycenter) / 2);
-		/* T */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (xcenter + xright) / 2, ycenter,
-				       (xcenter + xright) / 2, ybottom - 1);
-		break;
-	case 0x240a: /* e */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* L */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       x, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, ycenter,
-				       xcenter, ycenter);
-		/* F */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xcenter, ybottom - 1);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, (ycenter + ybottom) / 2,
-				       xright - 1, (ycenter + ybottom) / 2);
-		break;
-	case 0x240b: /* i */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* V */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       (x + xcenter) / 2, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (x + xcenter) / 2, ycenter,
-				       xcenter, y);
-		/* T */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       (xcenter + xright) / 2, ycenter,
-				       (xcenter + xright) / 2, ybottom - 1);
-		break;
-	case 0x240c:  /* c */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* F */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       x, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       xcenter, y);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, (y + ycenter) / 2,
-				       xcenter, (y + ycenter) / 2);
-		/* F */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xcenter, ybottom - 1);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, (ycenter + ybottom) / 2,
-				       xright - 1, (ycenter + ybottom) / 2);
-		break;
-	case 0x240d: /* d */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* C */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       x, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       xcenter, y);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, ycenter,
-				       xcenter, ycenter);
-		/* R */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xcenter, ybottom - 1);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xright - 1, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, ycenter,
-				       xright - 1, (ycenter + ybottom) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xright - 1, (ycenter + ybottom) / 2,
-				       xcenter, (ycenter + ybottom) / 2);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, (ycenter + ybottom) / 2,
-				       xright - 1, ybottom - 1);
-		break;
-	case 0x2424: /* h */
-		xcenter--;
-		ycenter--;
-		xright--;
-		ybottom--;
-		/* N */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       x, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       x, y,
-				       xcenter, ycenter);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, y,
-				       xcenter, ycenter);
-		/* L */
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ycenter,
-				       xcenter, ybottom - 1);
-		vte_view_draw_line(terminal,
-				       &terminal->pvt->palette[fore],
-				       xcenter, ybottom - 1,
-				       xright - 1, ybottom - 1);
-		break;
-	case 0x2500: /* q */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x2501:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH * 2);
-		break;
-	case 0x2502: /* x */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    row_height);
-		break;
-	case 0x2503:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH * 2,
-					    row_height);
-		break;
-	case 0x250c: /* l */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    xright - xcenter,
-					    VTE_LINE_WIDTH);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    VTE_LINE_WIDTH,
-					    ybottom - ycenter);
-		break;
-	case 0x250f:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    xright - xcenter,
-					    VTE_LINE_WIDTH * 2);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    VTE_LINE_WIDTH * 2,
-					    ybottom - ycenter);
-		break;
-	case 0x2510: /* k */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    xcenter - x + VTE_LINE_WIDTH,
-					    VTE_LINE_WIDTH);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    VTE_LINE_WIDTH,
-					    ybottom - ycenter);
-		break;
-	case 0x2513:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    xcenter - x + VTE_LINE_WIDTH * 2,
-					    VTE_LINE_WIDTH * 2);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    VTE_LINE_WIDTH * 2,
-					    ybottom - ycenter);
-		break;
-	case 0x2514: /* m */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    xright - xcenter,
-					    VTE_LINE_WIDTH);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    ycenter - y + VTE_LINE_WIDTH);
-		break;
-	case 0x2517:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    xright - xcenter,
-					    VTE_LINE_WIDTH * 2);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH * 2,
-					    ycenter - y + VTE_LINE_WIDTH * 2);
-		break;
-	case 0x2518: /* j */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    xcenter - x + VTE_LINE_WIDTH,
-					    VTE_LINE_WIDTH);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    ycenter - y + VTE_LINE_WIDTH);
-		break;
-	case 0x251b:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    xcenter - x + VTE_LINE_WIDTH * 2,
-					    VTE_LINE_WIDTH * 2);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH * 2,
-					    ycenter - y + VTE_LINE_WIDTH * 2);
-		break;
-	case 0x251c: /* t */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    row_height);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    xright - xcenter,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x2523:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH * 2,
-					    row_height);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    xright - xcenter,
-					    VTE_LINE_WIDTH * 2);
-		break;
-	case 0x2524: /* u */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    row_height);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    xcenter - x + VTE_LINE_WIDTH,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x252b:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH * 2,
-					    row_height);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    xcenter - x + VTE_LINE_WIDTH * 2,
-					    VTE_LINE_WIDTH * 2);
-		break;
-	case 0x252c: /* w */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    VTE_LINE_WIDTH,
-					    ybottom - ycenter);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x2533:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    ycenter,
-					    VTE_LINE_WIDTH * 2,
-					    ybottom - ycenter);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH * 2);
-		break;
-	case 0x2534: /* v */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    ycenter - y + VTE_LINE_WIDTH);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x253c: /* n */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH,
-					    row_height);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH);
-		break;
-	case 0x254b:
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    xcenter,
-					    y,
-					    VTE_LINE_WIDTH * 2,
-					    row_height);
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x,
-					    ycenter,
-					    column_width * columns,
-					    VTE_LINE_WIDTH * 2);
-		break;
-	case 0x2592:  /* a */
-		for (i = x; i < xright + 1; i++) {
-			gint j, draw = ((i - x) & 1) == 0;
-			for (j = y; j < ybottom; j++) {
-				if (draw) {
-					vte_view_draw_point(terminal,
-								&terminal->pvt->palette[fore],
-								i, j);
-				}
-				draw = !draw;
-			}
-		}
-		break;
-	case 0x25ae: /* solid rectangle */
-		vte_view_fill_rectangle(terminal,
-					    &terminal->pvt->palette[fore],
-					    x, y,
-					    xright - x, ybottom - y);
-		break;
-	case 0x25c6:
-		/* diamond */
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter - 2, ycenter);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter + 2, ycenter);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter, ycenter - 2);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter, ycenter + 2);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter - 1, ycenter - 1);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter - 1, ycenter + 1);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter + 1, ycenter - 1);
-		vte_view_draw_point(terminal,
-					&terminal->pvt->palette[fore],
-					xcenter + 1, ycenter + 1);
-		break;
-	default:
-		ret = FALSE;
-		break;
-	}
-	return ret;
+        upper_half = row_height / 2;
+        lower_half = row_height - upper_half;
+        left_half = width / 2;
+        right_half = width - left_half;
+
+        light_line_width = (pvt->char_width + 4) / 5;
+        light_line_width = MAX (light_line_width, 1);
+
+        heavy_line_width = light_line_width + 2;
+
+        xcenter = x + left_half;
+        ycenter = y + upper_half;
+        xright = x + width;
+        ybottom = y + row_height;
+
+        switch (c) {
+
+        /* Box Drawing */
+        case 0x2500: /* box drawings light horizontal */
+        case 0x2501: /* box drawings heavy horizontal */
+        case 0x2502: /* box drawings light vertical */
+        case 0x2503: /* box drawings heavy vertical */
+        case 0x2504: /* box drawings light triple dash horizontal */
+        case 0x2505: /* box drawings heavy triple dash horizontal */
+        case 0x2506: /* box drawings light triple dash vertical */
+        case 0x2507: /* box drawings heavy triple dash vertical */
+        case 0x2508: /* box drawings light quadruple dash horizontal */
+        case 0x2509: /* box drawings heavy quadruple dash horizontal */
+        case 0x250a: /* box drawings light quadruple dash vertical */
+        case 0x250b: /* box drawings heavy quadruple dash vertical */
+        case 0x254c: /* box drawings light double dash horizontal */
+        case 0x254d: /* box drawings heavy double dash horizontal */
+        case 0x254e: /* box drawings light double dash vertical */
+        case 0x254f: /* box drawings heavy double dash vertical */
+        {
+                const guint v = c - 0x2500;
+                int size, line_width;
+
+                size = (v & 2) ? row_height : width;
+
+                switch (v >> 2) {
+                case 0: /* no dashes */
+                        break;
+                case 1: /* triple dash */
+                {
+                        double segment = size / 8.;
+                        double dashes[2] = { segment * 2., segment };
+                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
+                        break;
+                }
+                case 2: /* quadruple dash */
+                {
+                        double segment = size / 11.;
+                        double dashes[2] = { segment * 2., segment };
+                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
+                        break;
+                }
+                case 19: /* double dash */
+                {
+                        double segment = size / 5.;
+                        double dashes[2] = { segment * 2., segment };
+                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
+                        break;
+                }
+                }
+
+                line_width = (v & 1) ? heavy_line_width : light_line_width;
+                adjust = (line_width & 1) ? .5 : 0.;
+
+                cairo_set_line_width(cr, line_width);
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+                if (v & 2) {
+                        cairo_move_to(cr, xcenter + adjust, y);
+                        cairo_line_to(cr, xcenter + adjust, y + row_height);
+                } else {
+                        cairo_move_to(cr, x, ycenter + adjust);
+                        cairo_line_to(cr, x + width, ycenter + adjust);
+                }
+                cairo_stroke(cr);
+                break;
+        }
+
+        case 0x250c: /* box drawings light down and right */
+        case 0x250d: /* box drawings down light and right heavy */
+        case 0x250e: /* box drawings down heavy and right light */
+        case 0x250f: /* box drawings heavy down and right */
+        case 0x2510: /* box drawings light down and left */
+        case 0x2511: /* box drawings down light and left heavy */
+        case 0x2512: /* box drawings down heavy and left light */
+        case 0x2513: /* box drawings heavy down and left */
+        case 0x2514: /* box drawings light up and right */
+        case 0x2515: /* box drawings up light and right heavy */
+        case 0x2516: /* box drawings up heavy and right light */
+        case 0x2517: /* box drawings heavy up and right */
+        case 0x2518: /* box drawings light up and left */
+        case 0x2519: /* box drawings up light and left heavy */
+        case 0x251a: /* box drawings up heavy and left light */
+        case 0x251b: /* box drawings heavy up and left */
+        case 0x251c: /* box drawings light vertical and right */
+        case 0x251d: /* box drawings vertical light and right heavy */
+        case 0x251e: /* box drawings up heavy and right down light */
+        case 0x251f: /* box drawings down heavy and right up light */
+        case 0x2520: /* box drawings vertical heavy and right light */
+        case 0x2521: /* box drawings down light and right up heavy */
+        case 0x2522: /* box drawings up light and right down heavy */
+        case 0x2523: /* box drawings heavy vertical and right */
+        case 0x2524: /* box drawings light vertical and left */
+        case 0x2525: /* box drawings vertical light and left heavy */
+        case 0x2526: /* box drawings up heavy and left down light */
+        case 0x2527: /* box drawings down heavy and left up light */
+        case 0x2528: /* box drawings vertical heavy and left light */
+        case 0x2529: /* box drawings down light and left up heavy */
+        case 0x252a: /* box drawings up light and left down heavy */
+        case 0x252b: /* box drawings heavy vertical and left */
+        case 0x252c: /* box drawings light down and horizontal */
+        case 0x252d: /* box drawings left heavy and right down light */
+        case 0x252e: /* box drawings right heavy and left down light */
+        case 0x252f: /* box drawings down light and horizontal heavy */
+        case 0x2530: /* box drawings down heavy and horizontal light */
+        case 0x2531: /* box drawings right light and left down heavy */
+        case 0x2532: /* box drawings left light and right down heavy */
+        case 0x2533: /* box drawings heavy down and horizontal */
+        case 0x2534: /* box drawings light up and horizontal */
+        case 0x2535: /* box drawings left heavy and right up light */
+        case 0x2536: /* box drawings right heavy and left up light */
+        case 0x2537: /* box drawings up light and horizontal heavy */
+        case 0x2538: /* box drawings up heavy and horizontal light */
+        case 0x2539: /* box drawings right light and left up heavy */
+        case 0x253a: /* box drawings left light and right up heavy */
+        case 0x253b: /* box drawings heavy up and horizontal */
+        case 0x253c: /* box drawings light vertical and horizontal */
+        case 0x253d: /* box drawings left heavy and right vertical light */
+        case 0x253e: /* box drawings right heavy and left vertical light */
+        case 0x253f: /* box drawings vertical light and horizontal heavy */
+        case 0x2540: /* box drawings up heavy and down horizontal light */
+        case 0x2541: /* box drawings down heavy and up horizontal light */
+        case 0x2542: /* box drawings vertical heavy and horizontal light */
+        case 0x2543: /* box drawings left up heavy and right down light */
+        case 0x2544: /* box drawings right up heavy and left down light */
+        case 0x2545: /* box drawings left down heavy and right up light */
+        case 0x2546: /* box drawings right down heavy and left up light */
+        case 0x2547: /* box drawings down light and up horizontal heavy */
+        case 0x2548: /* box drawings up light and down horizontal heavy */
+        case 0x2549: /* box drawings right light and left vertical heavy */
+        case 0x254a: /* box drawings left light and right vertical heavy */
+        case 0x254b: /* box drawings heavy vertical and horizontal */
+        case 0x2574: /* box drawings light left */
+        case 0x2575: /* box drawings light up */
+        case 0x2576: /* box drawings light right */
+        case 0x2577: /* box drawings light down */
+        case 0x2578: /* box drawings heavy left */
+        case 0x2579: /* box drawings heavy up */
+        case 0x257a: /* box drawings heavy right */
+        case 0x257b: /* box drawings heavy down */
+        case 0x257c: /* box drawings light left and heavy right */
+        case 0x257d: /* box drawings light up and heavy down */
+        case 0x257e: /* box drawings heavy left and light right */
+        case 0x257f: /* box drawings heavy up and light down */
+        {
+                enum { BOX_LEFT_LIGHT       = 1 << 0,
+                       BOX_LEFT_HEAVY       = 1 << 1,
+                       BOX_RIGHT_LIGHT      = 1 << 2,
+                       BOX_RIGHT_HEAVY      = 1 << 3,
+                       BOX_TOP_LIGHT        = 1 << 4,
+                       BOX_TOP_HEAVY        = 1 << 5,
+                       BOX_BOTTOM_LIGHT     = 1 << 6,
+                       BOX_BOTTOM_HEAVY     = 1 << 7,
+                       BOX_HORIZONTAL_LIGHT = BOX_LEFT_LIGHT | BOX_RIGHT_LIGHT,
+                       BOX_HORIZONTAL_HEAVY = BOX_LEFT_HEAVY | BOX_RIGHT_HEAVY,
+                       BOX_VERTICAL_LIGHT   = BOX_TOP_LIGHT  | BOX_BOTTOM_LIGHT,
+                       BOX_VERTICAL_HEAVY   = BOX_TOP_HEAVY  | BOX_BOTTOM_HEAVY,
+                       BOX_LEFT             = BOX_LEFT_LIGHT | BOX_LEFT_HEAVY,
+                       BOX_RIGHT            = BOX_RIGHT_LIGHT | BOX_RIGHT_HEAVY,
+                       BOX_TOP              = BOX_TOP_LIGHT | BOX_TOP_HEAVY,
+                       BOX_BOTTOM           = BOX_BOTTOM_LIGHT | BOX_BOTTOM_HEAVY,
+                       BOX_HORIZONTAL       = BOX_HORIZONTAL_LIGHT | BOX_HORIZONTAL_HEAVY,
+                       BOX_VERTICAL         = BOX_VERTICAL_LIGHT | BOX_VERTICAL_HEAVY,
+                       BOX_LIGHT            = BOX_HORIZONTAL_LIGHT | BOX_VERTICAL_LIGHT,
+                       BOX_HEAVY            = BOX_HORIZONTAL_HEAVY | BOX_VERTICAL_HEAVY
+                };
+                static const guint8 const map[] = {
+                        BOX_BOTTOM_LIGHT | BOX_RIGHT_LIGHT,
+                        BOX_BOTTOM_LIGHT | BOX_RIGHT_HEAVY,
+                        BOX_BOTTOM_HEAVY | BOX_RIGHT_LIGHT,
+                        BOX_BOTTOM_HEAVY | BOX_RIGHT_HEAVY,
+                        BOX_BOTTOM_LIGHT | BOX_LEFT_LIGHT,
+                        BOX_BOTTOM_LIGHT | BOX_LEFT_HEAVY,
+                        BOX_BOTTOM_HEAVY | BOX_LEFT_LIGHT,
+                        BOX_BOTTOM_HEAVY | BOX_LEFT_HEAVY,
+                        BOX_TOP_LIGHT | BOX_RIGHT_LIGHT,
+                        BOX_TOP_LIGHT | BOX_RIGHT_HEAVY,
+                        BOX_TOP_HEAVY | BOX_RIGHT_LIGHT,
+                        BOX_TOP_HEAVY | BOX_RIGHT_HEAVY,
+                        BOX_TOP_LIGHT | BOX_LEFT_LIGHT,
+                        BOX_TOP_LIGHT | BOX_LEFT_HEAVY,
+                        BOX_TOP_HEAVY | BOX_LEFT_LIGHT,
+                        BOX_TOP_HEAVY | BOX_LEFT_HEAVY,
+                        BOX_VERTICAL_LIGHT | BOX_RIGHT_LIGHT,
+                        BOX_VERTICAL_LIGHT | BOX_RIGHT_HEAVY,
+                        BOX_TOP_HEAVY | BOX_RIGHT_LIGHT | BOX_BOTTOM_LIGHT,
+                        BOX_BOTTOM_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_LIGHT,
+                        BOX_VERTICAL_HEAVY | BOX_RIGHT_LIGHT,
+                        BOX_BOTTOM_LIGHT | BOX_RIGHT_HEAVY | BOX_TOP_HEAVY,
+                        BOX_TOP_LIGHT | BOX_RIGHT_HEAVY | BOX_BOTTOM_HEAVY,
+                        BOX_VERTICAL_HEAVY | BOX_RIGHT_HEAVY,
+                        BOX_VERTICAL_LIGHT | BOX_LEFT_LIGHT,
+                        BOX_VERTICAL_LIGHT | BOX_LEFT_HEAVY,
+                        BOX_TOP_HEAVY | BOX_LEFT_LIGHT | BOX_BOTTOM_LIGHT,
+                        BOX_BOTTOM_HEAVY | BOX_LEFT_LIGHT | BOX_TOP_LIGHT,
+                        BOX_VERTICAL_HEAVY | BOX_LEFT_LIGHT,
+                        BOX_BOTTOM_LIGHT | BOX_LEFT_HEAVY | BOX_TOP_HEAVY,
+                        BOX_TOP_LIGHT | BOX_LEFT_HEAVY | BOX_BOTTOM_HEAVY,
+                        BOX_VERTICAL_HEAVY | BOX_LEFT_HEAVY,
+                        BOX_BOTTOM_LIGHT | BOX_HORIZONTAL_LIGHT,
+                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_BOTTOM_LIGHT,
+                        BOX_RIGHT_HEAVY | BOX_LEFT_LIGHT | BOX_BOTTOM_LIGHT,
+                        BOX_BOTTOM_LIGHT | BOX_HORIZONTAL_HEAVY,
+                        BOX_BOTTOM_HEAVY | BOX_HORIZONTAL_LIGHT,
+                        BOX_RIGHT_LIGHT | BOX_LEFT_HEAVY | BOX_BOTTOM_HEAVY,
+                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY | BOX_BOTTOM_HEAVY,
+                        BOX_BOTTOM_HEAVY| BOX_HORIZONTAL_HEAVY,
+                        BOX_TOP_LIGHT | BOX_HORIZONTAL_LIGHT,
+                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_LIGHT,
+                        BOX_RIGHT_HEAVY | BOX_LEFT_LIGHT | BOX_TOP_LIGHT,
+                        BOX_TOP_LIGHT | BOX_HORIZONTAL_HEAVY,
+                        BOX_TOP_HEAVY | BOX_HORIZONTAL_LIGHT,
+                        BOX_RIGHT_LIGHT | BOX_LEFT_HEAVY | BOX_TOP_HEAVY,
+                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY | BOX_TOP_HEAVY,
+                        BOX_TOP_HEAVY | BOX_HORIZONTAL_HEAVY,
+                        BOX_VERTICAL_LIGHT | BOX_HORIZONTAL_LIGHT,
+                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_VERTICAL_LIGHT,
+                        BOX_RIGHT_HEAVY | BOX_LEFT_LIGHT | BOX_VERTICAL_LIGHT,
+                        BOX_VERTICAL_LIGHT | BOX_HORIZONTAL_HEAVY,
+                        BOX_TOP_HEAVY | BOX_BOTTOM_LIGHT | BOX_HORIZONTAL_LIGHT,
+                        BOX_BOTTOM_HEAVY| BOX_TOP_LIGHT | BOX_HORIZONTAL_LIGHT,
+                        BOX_VERTICAL_HEAVY | BOX_HORIZONTAL_LIGHT,
+                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_HEAVY | BOX_BOTTOM_LIGHT,
+                        BOX_RIGHT_HEAVY | BOX_TOP_HEAVY | BOX_LEFT_LIGHT | BOX_BOTTOM_LIGHT,
+                        BOX_LEFT_HEAVY | BOX_BOTTOM_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_LIGHT,
+                        BOX_RIGHT_HEAVY | BOX_BOTTOM_HEAVY | BOX_LEFT_LIGHT | BOX_TOP_LIGHT,
+                        BOX_BOTTOM_LIGHT | BOX_TOP_HEAVY | BOX_HORIZONTAL_HEAVY,
+                        BOX_TOP_LIGHT | BOX_BOTTOM_HEAVY | BOX_HORIZONTAL_HEAVY,
+                        BOX_RIGHT_LIGHT | BOX_LEFT_HEAVY | BOX_VERTICAL_HEAVY,
+                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY | BOX_VERTICAL_HEAVY,
+                        BOX_VERTICAL_HEAVY | BOX_HORIZONTAL_HEAVY,
+
+                        /* U+254C - U+2573 are handled elsewhere */
+                        0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0,
+
+                        BOX_LEFT_LIGHT,
+                        BOX_TOP_LIGHT,
+                        BOX_RIGHT_LIGHT,
+                        BOX_BOTTOM_LIGHT,
+                        BOX_LEFT_HEAVY,
+                        BOX_TOP_HEAVY,
+                        BOX_RIGHT_HEAVY,
+                        BOX_BOTTOM_HEAVY,
+                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY,
+                        BOX_TOP_LIGHT | BOX_BOTTOM_HEAVY,
+                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT,
+                        BOX_TOP_HEAVY | BOX_BOTTOM_LIGHT
+                };
+                G_STATIC_ASSERT(G_N_ELEMENTS(map) == (0x257f - 0x250c + 1));
+                const guint v = c - 0x250c;
+                const guint8 m = map[v];
+                int line_width;
+
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+
+                if (m & BOX_LEFT) {
+                        line_width = (m & BOX_LEFT_HEAVY) ? heavy_line_width : light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr, x, ycenter + adjust);
+                        cairo_line_to(cr, xcenter, ycenter + adjust);
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_RIGHT) {
+                        line_width = (m & BOX_RIGHT_HEAVY) ? heavy_line_width : light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr, xcenter, ycenter + adjust);
+                        cairo_line_to(cr, xright, ycenter + adjust);
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_TOP) {
+                        line_width = (m & BOX_TOP_HEAVY) ? heavy_line_width : light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr, xcenter + adjust, y);
+                        cairo_line_to(cr, xcenter + adjust, ycenter);
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_BOTTOM) {
+                        line_width = (m & BOX_BOTTOM_HEAVY) ? heavy_line_width : light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr, xcenter + adjust, ycenter);
+                        cairo_line_to(cr, xcenter + adjust, ybottom);
+                        cairo_stroke(cr);
+                }
+
+                /* Make the join not look jagged */
+                if ((m & BOX_HORIZONTAL) && (m & BOX_VERTICAL)) {
+                        int xs, ys, w, h;
+
+                        if (m & BOX_HORIZONTAL_HEAVY) {
+                                ys = ycenter - heavy_line_width / 2;
+                                h = heavy_line_width;
+                        } else {
+                                ys = ycenter - light_line_width / 2;
+                                h = light_line_width;
+                        }
+                        if (m & BOX_VERTICAL_HEAVY) {
+                                xs = xcenter - heavy_line_width / 2;
+                                w = heavy_line_width;
+                        } else {
+                                xs = xcenter - light_line_width / 2;
+                                w = light_line_width;
+                        }
+                        cairo_rectangle(cr, xs, ys, w, h);
+                        cairo_fill(cr);
+                }
+
+                break;
+        }
+
+        case 0x2550: /* box drawings double horizontal */
+        case 0x2551: /* box drawings double vertical */
+        case 0x2552: /* box drawings down single and right double */
+        case 0x2553: /* box drawings down double and right single */
+        case 0x2554: /* box drawings double down and right */
+        case 0x2555: /* box drawings down single and left double */
+        case 0x2556: /* box drawings down double and left single */
+        case 0x2557: /* box drawings double down and left */
+        case 0x2558: /* box drawings up single and right double */
+        case 0x2559: /* box drawings up double and right single */
+        case 0x255a: /* box drawings double up and right */
+        case 0x255b: /* box drawings up single and left double */
+        case 0x255c: /* box drawings up double and left single */
+        case 0x255d: /* box drawings double up and left */
+        case 0x255e: /* box drawings vertical single and right double */
+        case 0x255f: /* box drawings vertical double and right single */
+        case 0x2560: /* box drawings double vertical and right */
+        case 0x2561: /* box drawings vertical single and left double */
+        case 0x2562: /* box drawings vertical double and left single */
+        case 0x2563: /* box drawings double vertical and left */
+        case 0x2564: /* box drawings down single and horizontal double */
+        case 0x2565: /* box drawings down double and horizontal single */
+        case 0x2566: /* box drawings double down and horizontal */
+        case 0x2567: /* box drawings up single and horizontal double */
+        case 0x2568: /* box drawings up double and horizontal single */
+        case 0x2569: /* box drawings double up and horizontal */
+        case 0x256a: /* box drawings vertical single and horizontal double */
+        case 0x256b: /* box drawings vertical double and horizontal single */
+        case 0x256c: /* box drawings double vertical and horizontal */
+        {
+                enum { BOX_LEFT_SINGLE       = 1 << 0,
+                       BOX_LEFT_DOUBLE       = 1 << 1,
+                       BOX_RIGHT_SINGLE      = 1 << 2,
+                       BOX_RIGHT_DOUBLE      = 1 << 3,
+                       BOX_TOP_SINGLE        = 1 << 4,
+                       BOX_TOP_DOUBLE        = 1 << 5,
+                       BOX_BOTTOM_SINGLE     = 1 << 6,
+                       BOX_BOTTOM_DOUBLE     = 1 << 7,
+                       BOX_LEFT              = BOX_LEFT_SINGLE | BOX_LEFT_DOUBLE,
+                       BOX_RIGHT             = BOX_RIGHT_SINGLE | BOX_RIGHT_DOUBLE,
+                       BOX_TOP               = BOX_TOP_SINGLE | BOX_TOP_DOUBLE,
+                       BOX_BOTTOM            = BOX_BOTTOM_SINGLE | BOX_BOTTOM_DOUBLE,
+                       BOX_SINGLE            = BOX_LEFT_SINGLE | BOX_RIGHT_SINGLE | BOX_TOP_SINGLE | BOX_BOTTOM_SINGLE,
+                       BOX_DOUBLE            = BOX_LEFT_DOUBLE | BOX_RIGHT_DOUBLE | BOX_TOP_DOUBLE | BOX_BOTTOM_DOUBLE,
+                       BOX_HORIZONTAL_SINGLE = BOX_LEFT_SINGLE | BOX_RIGHT_SINGLE,
+                       BOX_HORIZONTAL_DOUBLE = BOX_LEFT_DOUBLE | BOX_RIGHT_DOUBLE,
+                       BOX_VERTICAL_SINGLE   = BOX_TOP_SINGLE  | BOX_BOTTOM_SINGLE,
+                       BOX_VERTICAL_DOUBLE   = BOX_TOP_DOUBLE  | BOX_BOTTOM_DOUBLE
+                };
+                static const guint8 const map[] = {
+                        BOX_HORIZONTAL_DOUBLE,
+                        BOX_VERTICAL_DOUBLE,
+                        BOX_BOTTOM_SINGLE | BOX_RIGHT_DOUBLE,
+                        BOX_BOTTOM_DOUBLE | BOX_RIGHT_SINGLE,
+                        BOX_BOTTOM_DOUBLE | BOX_RIGHT_DOUBLE,
+                        BOX_BOTTOM_SINGLE | BOX_LEFT_DOUBLE,
+                        BOX_BOTTOM_DOUBLE | BOX_LEFT_SINGLE,
+                        BOX_BOTTOM_DOUBLE | BOX_LEFT_DOUBLE,
+                        BOX_TOP_SINGLE | BOX_RIGHT_DOUBLE,
+                        BOX_TOP_DOUBLE | BOX_RIGHT_SINGLE,
+                        BOX_TOP_DOUBLE | BOX_RIGHT_DOUBLE,
+                        BOX_TOP_SINGLE | BOX_LEFT_DOUBLE,
+                        BOX_TOP_DOUBLE | BOX_LEFT_SINGLE,
+                        BOX_TOP_DOUBLE | BOX_LEFT_DOUBLE,
+                        BOX_VERTICAL_SINGLE | BOX_RIGHT_DOUBLE,
+                        BOX_VERTICAL_DOUBLE | BOX_RIGHT_SINGLE,
+                        BOX_VERTICAL_DOUBLE | BOX_RIGHT_DOUBLE,
+                        BOX_VERTICAL_SINGLE | BOX_LEFT_DOUBLE,
+                        BOX_VERTICAL_DOUBLE | BOX_LEFT_SINGLE,
+                        BOX_VERTICAL_DOUBLE | BOX_LEFT_DOUBLE,
+                        BOX_BOTTOM_SINGLE | BOX_HORIZONTAL_DOUBLE,
+                        BOX_BOTTOM_DOUBLE | BOX_HORIZONTAL_SINGLE,
+                        BOX_BOTTOM_DOUBLE | BOX_HORIZONTAL_DOUBLE,
+                        BOX_TOP_SINGLE | BOX_HORIZONTAL_DOUBLE,
+                        BOX_TOP_DOUBLE | BOX_HORIZONTAL_SINGLE,
+                        BOX_TOP_DOUBLE | BOX_HORIZONTAL_DOUBLE,
+                        BOX_VERTICAL_SINGLE | BOX_HORIZONTAL_DOUBLE,
+                        BOX_VERTICAL_DOUBLE | BOX_HORIZONTAL_SINGLE,
+                        BOX_VERTICAL_DOUBLE | BOX_HORIZONTAL_DOUBLE
+                };
+                G_STATIC_ASSERT(G_N_ELEMENTS(map) == (0x256c - 0x2550 + 1));
+                const guint v = c - 0x2550;
+                const guint8 m = map[v];
+                int line_width;
+                int double_line_width, half_double_line_width, half_double_line_width_plus_1;
+                int inner_line_width;
+
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+
+                double_line_width = MAX (heavy_line_width, 3);
+                half_double_line_width = double_line_width / 2;
+                half_double_line_width_plus_1 = (double_line_width + 1) / 2;
+                inner_line_width = double_line_width / 3;
+                adjust = (inner_line_width & 1) ? .5 : 0.;
+
+                if (m & BOX_LEFT) {
+                        line_width = (m & BOX_LEFT_DOUBLE) ? double_line_width: light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr, x, ycenter + adjust);
+                        cairo_line_to(cr,
+                                      (m & BOX_VERTICAL_DOUBLE) ? xcenter + half_double_line_width_plus_1: xcenter,
+                                      ycenter + adjust);
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_RIGHT) {
+                        line_width = (m & BOX_RIGHT_DOUBLE) ? double_line_width: light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr,
+                                      (m & BOX_VERTICAL_DOUBLE) ? xcenter - half_double_line_width: xcenter,
+                                      ycenter + adjust);
+                        cairo_line_to(cr, xright, ycenter + adjust);
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_TOP) {
+                        line_width = (m & BOX_TOP_DOUBLE) ? double_line_width: light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr, xcenter + adjust, y);
+                        cairo_line_to(cr,
+                                      xcenter + adjust,
+                                      (m & BOX_HORIZONTAL_DOUBLE) ? ycenter + half_double_line_width_plus_1 : ycenter);
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_BOTTOM) {
+                        line_width = (m & BOX_BOTTOM_DOUBLE) ? double_line_width: light_line_width;
+                        adjust = (line_width & 1) ? .5 : 0.;
+                        cairo_set_line_width(cr, line_width);
+                        cairo_move_to(cr,
+                                      xcenter + adjust,
+                                      (m & BOX_HORIZONTAL_DOUBLE) ? ycenter - half_double_line_width : ycenter);
+                        cairo_line_to(cr, xcenter + adjust, ybottom);
+                        cairo_stroke(cr);
+                }
+
+                /* Now take the inside out */
+                gdk_cairo_set_source_rgba(cr, &pvt->palette[back]);
+                cairo_set_line_width(cr, inner_line_width);
+                cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+
+                if (m & BOX_VERTICAL_DOUBLE) {
+                        if (m & BOX_TOP) {
+                                cairo_move_to(cr, xcenter + adjust, y);
+                                cairo_line_to(cr, xcenter + adjust, ycenter);
+                        } else {
+                                cairo_move_to(cr, xcenter + adjust, ycenter);
+                        }
+                        if (m & BOX_BOTTOM) {
+                                cairo_line_to(cr, xcenter + adjust, ybottom);
+                        }
+                        cairo_stroke(cr);
+                }
+                if (m & BOX_HORIZONTAL_DOUBLE) {
+                        if (m & BOX_LEFT) {
+                                cairo_move_to(cr, x, ycenter + adjust);
+                                cairo_line_to(cr, xcenter, ycenter + adjust);
+                        } else {
+                                cairo_move_to(cr, xcenter, ycenter + adjust);
+                        }
+                        if (m & BOX_RIGHT) {
+                                cairo_line_to(cr, xright, ycenter + adjust);
+                        }
+                        cairo_stroke(cr);
+                }
+
+                break;
+        }
+
+        case 0x256d: /* box drawings light arc down and right */
+        case 0x256e: /* box drawings light arc down and left */
+        case 0x256f: /* box drawings light arc up and left */
+        case 0x2570: /* box drawings light arc up and right */
+        {
+                const guint v = c - 0x256d;
+                int line_width;
+
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+
+                line_width = light_line_width;
+                adjust = (line_width & 1) ? .5 : 0.;
+                cairo_set_line_width(cr, line_width);
+
+                cairo_move_to(cr, xcenter + adjust, (v & 2) ? y : ybottom);
+                cairo_curve_to(cr, 
+                               xcenter + adjust, ycenter + adjust,
+                               xcenter + adjust, ycenter + adjust,
+                               (v == 1 || v == 2) ? x : xright, ycenter + adjust);
+                cairo_stroke(cr);
+
+                break;
+        }
+
+        case 0x2571: /* box drawings light diagonal upper right to lower left */
+        case 0x2572: /* box drawings light diagonal upper left to lower right */
+        case 0x2573: /* box drawings light diagonal cross */
+        {
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                cairo_set_line_width(cr, light_line_width);
+                adjust = light_line_width / 2.;
+                if (c != 0x2571) {
+                        cairo_move_to(cr, x + adjust, y + adjust);
+                        cairo_line_to(cr, xright - adjust, ybottom - adjust);
+                        cairo_stroke(cr);
+                }
+                if (c != 0x2572) {
+                        cairo_move_to(cr, xright - adjust, y + adjust);
+                        cairo_line_to(cr, x + adjust, ybottom - adjust);
+                        cairo_stroke(cr);
+                }
+                break;
+        }
+
+        /* Block Elements */
+        case 0x2580: /* upper half block */
+                cairo_rectangle(cr, x, y, width, upper_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x2581: /* lower one eighth block */
+        case 0x2582: /* lower one quarter block */
+        case 0x2583: /* lower three eighths block */
+        case 0x2584: /* lower half block */
+        case 0x2585: /* lower five eighths block */
+        case 0x2586: /* lower three quarters block */
+        case 0x2587: /* lower seven eighths block */
+        {
+                const guint v = c - 0x2580;
+                int h, half;
+
+                if (v & 4) {
+                        half = upper_half;
+                        h = lower_half;
+                } else {
+                        half = lower_half;
+                        h = 0;
+                }
+
+                half /= 2;
+                if (v & 2) h += half;
+                half /= 2;
+                if (v & 1) h += half;
+
+                cairo_rectangle(cr, x, y + row_height - h, width, h);
+                cairo_fill (cr);
+                break;
+        }
+
+        case 0x2588: /* full block */
+        case 0x2589: /* left seven eighths block */
+        case 0x258a: /* left three quarters block */
+        case 0x258b: /* left five eighths block */
+        case 0x258c: /* left half block */
+        case 0x258d: /* left three eighths block */
+        case 0x258e: /* left one quarter block */
+        case 0x258f: /* left one eighth block */
+        {
+                const guint v = c - 0x2588;
+                int w, half;
+
+                if (v & 4) {
+                        w = half = left_half;
+                } else {
+                        w = width;
+                        half = right_half;
+                }
+
+                half /= 2;
+                if (v & 2) w -= half;
+                half /= 2;
+                if (v & 1) w -= half;
+
+                cairo_rectangle(cr, x, y, w, row_height);
+                cairo_fill (cr);
+                break;
+        }
+
+        case 0x2590: /* right half block */
+                cairo_rectangle(cr, x + left_half, y, right_half, row_height);
+                cairo_fill (cr);
+                break;
+
+        case 0x2591: /* light shade */
+        case 0x2592: /* medium shade */
+        case 0x2593: /* dark shade */
+                cairo_set_source_rgba (cr,
+                                       pvt->palette[fore].red,
+                                       pvt->palette[fore].green,
+                                       pvt->palette[fore].blue,
+                                       (c - 0x2590) / 4.);
+                cairo_rectangle(cr, x, y, width, row_height);
+                cairo_fill (cr);
+                break;
+
+        case 0x2594: /* upper one eighth block */
+                cairo_rectangle(cr, x, y, width, upper_half / 4);
+                cairo_fill (cr);
+                break;
+
+        case 0x2595: /* right one eighth block */
+                cairo_rectangle(cr, x + width - right_half / 4, y, right_half / 4, row_height);
+                cairo_fill (cr);
+                break;
+
+        case 0x2596: /* quadrant lower left */
+                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x2597: /* quadrant lower right */
+                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x2598: /* quadrant upper left */
+                cairo_rectangle(cr, x, y, left_half, upper_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x2599: /* quadrant upper left and lower left and lower right */
+                cairo_rectangle(cr, x, y, left_half, upper_half);
+                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
+                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x259a: /* quadrant upper left and lower right */
+                cairo_rectangle(cr, x, y, left_half, upper_half);
+                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x259b: /* quadrant upper left and upper right and lower left */
+                cairo_rectangle(cr, x, y, left_half, upper_half);
+                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
+                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x259c: /* quadrant upper left and upper right and lower right */
+                cairo_rectangle(cr, x, y, left_half, upper_half);
+                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
+                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x259d: /* quadrant upper right */
+                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x259e: /* quadrant upper right and lower left */
+                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
+                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        case 0x259f: /* quadrant upper right and lower left and lower right */
+                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
+                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
+                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
+                cairo_fill (cr);
+                break;
+
+        default:
+                g_assert_not_reached();
+        }
+
+        cairo_restore(cr);
+
+        return TRUE;
 }
 
 /* Draw a string of characters with similar attributes. */

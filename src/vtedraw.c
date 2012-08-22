@@ -738,6 +738,12 @@ _vte_draw_new (void)
 
 	return draw;
 }
+ 
+cairo_t *
+_vte_draw_get_context (struct _vte_draw *draw)
+{
+  return draw->cr;
+}
 
 void
 _vte_draw_free (struct _vte_draw *draw)
