@@ -24,6 +24,7 @@
 
 #include <glib.h>
 #include <gtk/gtk.h>
+#include <cairo.h>
 #include "vtebg.h"
 #include "vte.h"
 #include "vteunistr.h"
@@ -63,6 +64,8 @@ struct _vte_draw_text_request {
 /* Create and destroy a draw structure. */
 struct _vte_draw *_vte_draw_new(GtkWidget *widget);
 void _vte_draw_free(struct _vte_draw *draw);
+
+cairo_t *_vte_draw_get_context (struct _vte_draw *draw);
 
 /* Begin and end a drawing operation.  If anything is buffered locally, it is
    flushed to the window system when _end() is called. */
@@ -110,6 +113,9 @@ void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      const PangoColor *color, guchar alpha);
+void _vte_draw_set_source_color_alpha (struct _vte_draw *draw,
+                                       const PangoColor *color,
+                                       guchar            alpha);
 
 G_END_DECLS
 

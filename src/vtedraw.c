@@ -770,6 +770,12 @@ _vte_draw_new (GtkWidget *widget)
 	return draw;
 }
 
+cairo_t *
+_vte_draw_get_context (struct _vte_draw *draw)
+{
+  return draw->cr;
+}
+
 void
 _vte_draw_free (struct _vte_draw *draw)
 {
@@ -974,12 +980,12 @@ _vte_draw_has_bold (struct _vte_draw *draw)
 	return (draw->font != draw->font_bold);
 }
 
-static void
-set_source_color_alpha (cairo_t        *cr,
-			const PangoColor *color,
-			guchar alpha)
+void
+_vte_draw_set_source_color_alpha (struct _vte_draw *draw,
+                                  const PangoColor *color,
+                                  guchar            alpha)
 {
-	cairo_set_source_rgba (cr,
+	cairo_set_source_rgba (draw->cr,
 			      color->red / 65535.,
 			      color->green / 65535.,
 			      color->blue / 65535.,
@@ -999,7 +1005,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
 	g_return_if_fail (font != NULL);
 
-	set_source_color_alpha (draw->cr, color, alpha);
+	_vte_draw_set_source_color_alpha (draw, color, alpha);
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 
 	for (i = 0; i < n_requests; i++) {
@@ -1141,7 +1147,7 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (draw->cr, x+VTE_LINE_WIDTH/2., y+VTE_LINE_WIDTH/2., width-VTE_LINE_WIDTH, height-VTE_LINE_WIDTH);
-	set_source_color_alpha (draw->cr, color, alpha);
+	_vte_draw_set_source_color_alpha (draw, color, alpha);
 	cairo_set_line_width (draw->cr, VTE_LINE_WIDTH);
 	cairo_stroke (draw->cr);
 }
@@ -1161,6 +1167,6 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
 	cairo_rectangle (draw->cr, x, y, width, height);
-	set_source_color_alpha (draw->cr, color, alpha);
+	_vte_draw_set_source_color_alpha (draw, color, alpha);
 	cairo_fill (draw->cr);
 }
