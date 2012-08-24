@@ -3693,7 +3693,7 @@ vte_terminal_watch_child (VteTerminal *terminal,
  * Gets the user's shell, or %NULL. In the latter case, the
  * system default (usually "/bin/sh") should be used.
  *
- * Returns: (tranfer full) (type filename): a newly allocated string with the
+ * Returns: (transfer full) (type filename): a newly allocated string with the
  *   user's shell, or %NULL
  *
  * Since: 0.28
@@ -6246,7 +6246,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @start_col: first column to search for data
  * @end_row: last row to search for data
  * @end_col: last column to search for data
- * @is_selected: a #VteSelectionFunc callback
+ * @is_selected: (scope call): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6445,7 +6445,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 /**
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
- * @is_selected: a #VteSelectionFunc callback
+ * @is_selected: (scope call): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6475,7 +6475,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 /**
  * vte_terminal_get_text_include_trailing_spaces:
  * @terminal: a #VteTerminal
- * @is_selected: a #VteSelectionFunc callback
+ * @is_selected: (scope call): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6510,7 +6510,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * vte_terminal_get_cursor_position:
  * @terminal: a #VteTerminal
  * @column: (out) (allow-none): a location to store the column, or %NULL
- * @row : (out) (allow-none): a location to store the row, or %NULL
+ * @row: (out) (allow-none): a location to store the row, or %NULL
  *
  * Reads the location of the insertion cursor and returns it.  The row
  * coordinate is absolute.
