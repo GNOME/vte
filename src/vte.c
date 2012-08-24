@@ -11460,7 +11460,7 @@ vte_view_class_init(VteViewClass *klass)
         klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteView {\n"
-                                           "padding: 1 1 1 1;\n"
+                                           "padding: 1px 1px 1px 1px;\n"
                                            "-VteView-allow-bold: true;\n"
                                            "-VteView-cursor-blink-mode: system;\n"
                                            "-VteView-cursor-shape: block;\n"
