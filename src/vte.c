@@ -2512,7 +2512,7 @@ _vte_view_set_pointer_visible(VteView *terminal, gboolean visible)
  *
  * Creates a new terminal widget.
  *
- * Returns: (transfer full) (type Vte.Terminal): a new #VteView object
+ * Returns: (transfer none) (type Vte.Terminal): a new #VteView object
  */
 GtkWidget *
 vte_view_new(void)
@@ -5490,8 +5490,8 @@ _vte_view_xy_to_grid(VteView *terminal,
         return TRUE;
 }
 
-/**
- * _vte_view_size_to_grid_size
+/*
+ * _vte_view_size_to_grid_size:
  * @w: the width in px
  * @h: the height in px
  * @col: return location to store the column count
@@ -5978,7 +5978,7 @@ vte_view_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @start_col: first column to search for data
  * @end_row: last row to search for data
  * @end_col: last column to search for data
- * @is_selected: a #VteSelectionFunc callback
+ * @is_selected: (scope call): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6177,7 +6177,7 @@ vte_buffer_get_text_maybe_wrapped(VteBuffer *buffer,
 /**
  * vte_buffer_get_text:
  * @buffer: a #VteBuffer
- * @is_selected: a #VteSelectionFunc callback
+ * @is_selected: (scope call): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6207,7 +6207,7 @@ vte_buffer_get_text(VteBuffer *buffer,
 /**
  * vte_buffer_get_text_include_trailing_spaces:
  * @buffer: a #VteBuffer
- * @is_selected: a #VteSelectionFunc callback
+ * @is_selected: (scope call): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6240,7 +6240,7 @@ vte_buffer_get_text_include_trailing_spaces(VteBuffer *buffer,
  * vte_buffer_get_cursor_position:
  * @buffer: a #VteBuffer
  * @column: (out) (allow-none): a location to store the column, or %NULL
- * @row : (out) (allow-none): a location to store the row, or %NULL
+ * @row: (out) (allow-none): a location to store the row, or %NULL
  *
  * Reads the location of the insertion cursor and returns it.  The row
  * coordinate is absolute.
