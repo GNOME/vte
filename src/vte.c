@@ -978,9 +978,7 @@ vte_buffer_emit_eof(VteBuffer *buffer)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `eof'.\n");
-	gdk_threads_enter ();
 	g_signal_emit(buffer, buffer_signals[BUFFER_EOF], 0);
-	gdk_threads_leave ();
 
 	return FALSE;
 }
@@ -3945,9 +3943,7 @@ out:
 			_vte_buffer_feed_chunks (buffer, chunks);
 		}
 		if (!vte_view_is_processing (terminal)) {
-			gdk_threads_enter ();
 			vte_view_add_process_timeout (terminal);
-			gdk_threads_leave ();
 		}
 		buffer->pvt->pty_input_active = len != 0;
 		buffer->pvt->input_bytes = bytes;
@@ -3980,9 +3976,7 @@ out:
 	if (eof) {
 		/* potential deadlock ... */
 		if (!vte_view_is_processing (terminal)) {
-			gdk_threads_enter ();
 			vte_view_eof (channel, terminal);
-			gdk_threads_leave ();
 		} else {
 			vte_view_eof (channel, terminal);
 		}
@@ -12737,7 +12731,6 @@ process_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
-	gdk_threads_enter();
 
 	in_process_timeout = TRUE;
 
@@ -12800,7 +12793,6 @@ process_timeout (gpointer data)
 
 	in_process_timeout = FALSE;
 
-	gdk_threads_leave();
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -12865,7 +12857,6 @@ update_repeat_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
-	gdk_threads_enter();
 
 	in_update_timeout = TRUE;
 
@@ -12939,7 +12930,6 @@ update_repeat_timeout (gpointer data)
 
 	in_update_timeout = FALSE;
 
-	gdk_threads_leave();
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -12960,7 +12950,6 @@ update_timeout (gpointer data)
 	GList *l, *next;
 	gboolean redraw = FALSE;
 
-	gdk_threads_enter();
 
 	in_update_timeout = TRUE;
 
@@ -13026,7 +13015,6 @@ update_timeout (gpointer data)
 				    NULL);
 	in_update_timeout = FALSE;
 
-	gdk_threads_leave();
 
 	return FALSE;
 }
