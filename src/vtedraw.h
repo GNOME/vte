@@ -97,6 +97,7 @@ void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
 int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
 			     gboolean bold);
+gboolean _vte_draw_has_bold (struct _vte_draw *draw);
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,

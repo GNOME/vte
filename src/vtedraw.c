@@ -974,7 +974,7 @@ _vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
 	return uinfo->width;
 }
 
-static gboolean
+gboolean
 _vte_draw_has_bold (struct _vte_draw *draw)
 {
 	return (draw->font != draw->font_bold);

@@ -10121,7 +10121,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
 					x + terminal->pvt->inner_border.left,
                                         y + terminal->pvt->inner_border.top,
-					columns * column_width + bold,
+					columns * column_width + (_vte_draw_has_bold(terminal->pvt->draw) ? 0 : bold),
 					row_height,
 					bg, VTE_DRAW_OPAQUE);
 		}
@@ -10524,7 +10524,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 							terminal->pvt->draw,
 							x + i * column_width,
 							y,
-							(j - i) * column_width + bold,
+							(j - i) * column_width + (_vte_draw_has_bold(terminal->pvt->draw) ? 0 : bold),
 							row_height,
 							&terminal->pvt->palette[back], VTE_DRAW_OPAQUE);
 				}
