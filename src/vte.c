@@ -9565,7 +9565,7 @@ vte_view_draw_cells(VteView *terminal,
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
 					x + terminal->pvt->padding.left,
                                         y + terminal->pvt->padding.top,
-					columns * column_width + bold,
+					columns * column_width + (_vte_draw_has_bold(terminal->pvt->draw) ? 0 : bold),
 					row_height,
 					bg);
 		}
@@ -9979,7 +9979,7 @@ vte_view_draw_rows(VteView *terminal,
 							terminal->pvt->draw,
 							x + i * column_width,
 							y,
-							(j - i) * column_width + bold,
+							(j - i) * column_width + (_vte_draw_has_bold(terminal->pvt->draw) ? 0 : bold),
 							row_height,
 							&terminal->pvt->palette[back]);
 				}
