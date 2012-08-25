@@ -347,6 +347,22 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	return 1;
 }
 
+static gboolean
+_vte_unichar_iswide_cjk(gunichar c)
+{
+        /* U+254C..U+254F and U+2574..U+257F have East Asian Width property
+         * N (neutral) while all the other line drawing characters are
+         * A (ambigous). This makes those characters not match up with those
+         * other line drawing characters from the Box Drawing (U+2500..U+257F)
+         * block; so we treat them as ambigous too.
+         *
+         * And we also do the same for the Terminal Graphic Characters
+         * (U+2596..U+259F) as well as U+2590 and U+2591 from the Block Elements 
+         * (U+2580..U+259F) block.
+         */
+        return G_UNLIKELY(c >= 0x2500 && c <= 0x259f);
+}
+
 static inline gboolean
 _vte_iso2022_is_ambiguous(gunichar c)
 {
@@ -354,7 +370,7 @@ _vte_iso2022_is_ambiguous(gunichar c)
 		return FALSE;
 	if (G_UNLIKELY (g_unichar_iszerowidth (c)))
 		return FALSE;
-	return G_UNLIKELY (!g_unichar_iswide (c) && g_unichar_iswide_cjk (c));
+	return G_UNLIKELY (!g_unichar_iswide (c) && (g_unichar_iswide_cjk (c) || _vte_unichar_iswide_cjk (c)));
 }
 
 int
