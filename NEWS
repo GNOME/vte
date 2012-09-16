@@ -1,3 +1,10 @@
+0.34.0
+======
+* Support escape sequences to set the current directory (#675987)
+* Fixed drawing of Box Drawing and Block Elements characters (#682692)
+* Introspection fixes (#679805, #681714)
+* Build fixes
+
 0.32.2
 ======
 - emulation: Fix DoS by malicious escape sequences (#676090)
@@ -1112,4 +1119,3 @@ prehistory
 Local Variables:
 coding: utf-8
 End:
-vim: encoding=utf-8:
