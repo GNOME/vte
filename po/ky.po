@@ -1,25 +1,27 @@
 # translation of ky.po to Kirghiz
 # This file is distributed under the same license as the vte package.
 # Copyright (C) 2002, 2003 Free Software Foundation, Inc.
-# Timur Jamakeev <ztimur@gmail.com>, 2005.
 #
+# Timur Jamakeev <ztimur@gmail.com>, 2005, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: ky\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2006-03-13 00:22-0500\n"
-"PO-Revision-Date: 2005-11-16 18:43+0500\n"
-"Last-Translator: Timur Jamakeev <ztimur@gmail.com>\n"
-"Language-Team: Kirghiz\n"
+"PO-Revision-Date: 2012-09-24 18:57+0600\n"
+"Last-Translator: Timur Zhamakeev <ztimur@gmail.com>\n"
+"Language-Team: Kirghiz <gnome-i18n@gnome.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.9.1\n"
+"X-Generator: Lokalize 1.4\n"
+"Language: ky\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Символдорду \"%s\" көптүгүнөн \"%s\" көптүгүнө өтк0рүүгө болбоду."
+msgstr "Символдорду \"%s\" көптүгүнөн \"%s\" көптүгүнө которууга болбоду."
 
 #: src/iso2022.c:1582
 #, c-format
