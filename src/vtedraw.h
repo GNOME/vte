@@ -50,6 +50,10 @@ G_BEGIN_DECLS
 #define VTE_DRAW_OPAQUE 0xff
 #define VTE_DRAW_MAX_LENGTH 1024
 
+#define VTE_DRAW_NORMAL 0
+#define VTE_DRAW_BOLD   1
+#define VTE_DRAW_ITALIC 2
+
 struct _vte_draw;
 
 /* A request to draw a particular character spanning a given number of columns
@@ -60,6 +64,8 @@ struct _vte_draw_text_request {
 	vteunistr c;
 	gshort x, y, columns;
 };
+
+guint _vte_draw_get_style(gboolean bold, gboolean italic);
 
 /* Create and destroy a draw structure. */
 struct _vte_draw *_vte_draw_new(GtkWidget *widget);
@@ -96,17 +102,16 @@ void _vte_draw_set_text_font(struct _vte_draw *draw,
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
 				gint *width, gint *height, gint *ascent);
 int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
-			     gboolean bold);
-gboolean _vte_draw_has_bold (struct _vte_draw *draw);
+			     guint style);
+gboolean _vte_draw_has_bold (struct _vte_draw *draw, guint style);
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    const PangoColor *color, guchar alpha, gboolean);
+		    const PangoColor *color, guchar alpha, guint style);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
-			const PangoColor *color, guchar alpha, gboolean bold);
-gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, gboolean bold);
-
+			const PangoColor *color, guchar alpha, guint style);
+gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, guint style);
 
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,

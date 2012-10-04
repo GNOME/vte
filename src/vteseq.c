@@ -2296,6 +2296,9 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 			terminal->pvt->screen->defaults.attr.half = 1;
 			terminal->pvt->screen->defaults.attr.bold = 0;
 			break;
+		case 3:
+			terminal->pvt->screen->defaults.attr.italic = 1;
+			break;
 		case 4:
 			terminal->pvt->screen->defaults.attr.underline = 1;
 			break;
@@ -2315,6 +2318,9 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 22: /* ECMA 48. */
 			terminal->pvt->screen->defaults.attr.bold = 0;
 			terminal->pvt->screen->defaults.attr.half = 0;
+			break;
+		case 23:
+			terminal->pvt->screen->defaults.attr.italic = 0;
 			break;
 		case 24:
 			terminal->pvt->screen->defaults.attr.underline = 0;
