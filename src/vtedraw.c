@@ -719,9 +719,17 @@ font_info_get_unistr_info (struct font_info *info,
 	return uinfo;
 }
 
+guint _vte_draw_get_style(gboolean bold, gboolean italic) {
+	guint style = 0;
+	if (bold)
+		style |= VTE_DRAW_BOLD;
+	if (italic)
+		style |= VTE_DRAW_ITALIC;
+	return style;
+}
+
 struct _vte_draw {
-	struct font_info *font;
-	struct font_info *font_bold;
+	struct font_info *fonts[4];
 
 	cairo_t *cr;
 };
@@ -748,11 +756,16 @@ _vte_draw_get_context (struct _vte_draw *draw)
 void
 _vte_draw_free (struct _vte_draw *draw)
 {
+	gint style;
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_free\n");
 
-	if (draw->font != NULL) {
-		font_info_destroy (draw->font);
-		draw->font = NULL;
+	/* Free all fonts (make sure to destroy every font only once)*/
+	for (style = 3; style >= 0; style--) {
+		if (draw->fonts[style] != NULL &&
+			(style == 0 || draw->fonts[style] != draw->fonts[style-1])) {
+			font_info_destroy (draw->fonts[style]);
+			draw->fonts[style] = NULL;
+		}
 	}
 
 	g_slice_free (struct _vte_draw, draw);
@@ -804,28 +817,66 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
                          GtkWidget *widget,
                          const PangoFontDescription *fontdesc)
 {
-	PangoFontDescription *bolddesc = NULL;
+	PangoFontDescription *bolddesc   = NULL;
+	PangoFontDescription *italicdesc = NULL;
+	PangoFontDescription *bolditalicdesc = NULL;
+	gint style, normal, bold, ratio;
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_set_text_font\n");
 
-	if (draw->font_bold != draw->font)
-		font_info_destroy (draw->font_bold);
-	font_info_destroy (draw->font);
-	draw->font = font_info_create_for_widget (widget, fontdesc);
+	/* Free all fonts (make sure to destroy every font only once)*/
+	for (style = 3; style >= 0; style--) {
+		if (draw->fonts[style] != NULL &&
+			(style == 0 || draw->fonts[style] != draw->fonts[style-1])) {
+			font_info_destroy (draw->fonts[style]);
+			draw->fonts[style] = NULL;
+		}
+	}
 
 	/* calculate bold font desc */
 	bolddesc = pango_font_description_copy (fontdesc);
 	pango_font_description_set_weight (bolddesc, PANGO_WEIGHT_BOLD);
 
-	draw->font_bold = font_info_create_for_widget (widget, bolddesc);
+	/* calculate italic font desc */
+	italicdesc = pango_font_description_copy (fontdesc);
+	pango_font_description_set_style (italicdesc, PANGO_STYLE_ITALIC);
+
+	/* calculate bold italic font desc */
+	bolditalicdesc = pango_font_description_copy (bolddesc);
+	pango_font_description_set_style (bolditalicdesc, PANGO_STYLE_ITALIC);
+
+	draw->fonts[VTE_DRAW_NORMAL] =
+                font_info_create_for_widget (widget, fontdesc);
+	draw->fonts[VTE_DRAW_BOLD]  = 
+                font_info_create_for_widget (widget, bolddesc);
+	draw->fonts[VTE_DRAW_ITALIC] =
+                font_info_create_for_widget (widget, italicdesc);
+	draw->fonts[VTE_DRAW_ITALIC | VTE_DRAW_BOLD] =
+                font_info_create_for_widget (widget, bolditalicdesc);
 	pango_font_description_free (bolddesc);
+	pango_font_description_free (italicdesc);
+	pango_font_description_free (bolditalicdesc);
 
 	/* Decide if we should keep this bold font face, per bug 54926:
 	 *  - reject bold font if it is not within 10% of normal font width
 	 */
-	if ( abs((draw->font_bold->width * 100 / draw->font->width) - 100) > 10 ) {
-		font_info_destroy (draw->font_bold);
-		draw->font_bold = draw->font;
+	normal = VTE_DRAW_NORMAL;
+	bold   = normal | VTE_DRAW_BOLD;
+	ratio = draw->fonts[bold]->width * 100 / draw->fonts[normal]->width;
+	if (abs(ratio - 100) > 10) {
+		_vte_debug_print (VTE_DEBUG_DRAW,
+			"Rejecting bold font (%i%%).\n", ratio);
+		font_info_destroy (draw->fonts[bold]);
+		draw->fonts[bold] = draw->fonts[normal];
+	}
+	normal = VTE_DRAW_ITALIC;
+	bold   = normal | VTE_DRAW_BOLD;
+	ratio = draw->fonts[bold]->width * 100 / draw->fonts[normal]->width;
+	if (abs(ratio - 100) > 10) {
+		_vte_debug_print (VTE_DEBUG_DRAW,
+			"Rejecting italic bold font (%i%%).\n", ratio);
+		font_info_destroy (draw->fonts[bold]);
+		draw->fonts[bold] = draw->fonts[normal];
 	}
 }
 
@@ -833,45 +884,45 @@ void
 _vte_draw_get_text_metrics(struct _vte_draw *draw,
 			   gint *width, gint *height, gint *ascent)
 {
-	g_return_if_fail (draw->font != NULL);
+	g_return_if_fail (draw->fonts[VTE_DRAW_NORMAL] != NULL);
 
 	if (width)
-		*width  = draw->font->width;
+		*width  = draw->fonts[VTE_DRAW_NORMAL]->width;
 	if (height)
-		*height = draw->font->height;
+		*height = draw->fonts[VTE_DRAW_NORMAL]->height;
 	if (ascent)
-		*ascent = draw->font->ascent;
+		*ascent = draw->fonts[VTE_DRAW_NORMAL]->ascent;
 }
 
 
 int
 _vte_draw_get_char_width (struct _vte_draw *draw, vteunistr c, int columns,
-			  gboolean bold)
+						  guint style)
 {
 	struct unistr_info *uinfo;
 
-	g_return_val_if_fail (draw->font != NULL, 0);
+	g_return_val_if_fail (draw->fonts[VTE_DRAW_NORMAL] != NULL, 0);
 
-	uinfo = font_info_get_unistr_info (bold ? draw->font_bold : draw->font, c);
+	uinfo = font_info_get_unistr_info (draw->fonts[style], c);
 	return uinfo->width;
 }
 
 gboolean
-_vte_draw_has_bold (struct _vte_draw *draw)
+_vte_draw_has_bold (struct _vte_draw *draw, guint style)
 {
-	return (draw->font != draw->font_bold);
+	return (draw->fonts[style ^ VTE_DRAW_BOLD] != draw->fonts[style]);
 }
 
 static void
 _vte_draw_text_internal (struct _vte_draw *draw,
 			 struct _vte_draw_text_request *requests, gsize n_requests,
-			 const GdkRGBA *color, gboolean bold)
+			 const GdkRGBA *color, guint style)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
 	int n_cr_glyphs = 0;
 	cairo_glyph_t cr_glyphs[MAX_RUN_LENGTH];
-	struct font_info *font = bold ? draw->font_bold : draw->font;
+	struct font_info *font = draw->fonts[style];
 
 	g_return_if_fail (font != NULL);
 
@@ -932,7 +983,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       const GdkRGBA *color, gboolean bold)
+               const GdkRGBA *color, guint style)
 {
 	g_assert(draw->cr);
 
@@ -944,17 +995,17 @@ _vte_draw_text (struct _vte_draw *draw,
 			g_string_append_unichar (string, requests[n].c);
 		}
 		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%.3f,%.3f,%.3f,%.3f), %s)\n",
-				str, n_requests,
-                                color->red, color->green, color->blue, color->alpha,
-				bold ? "bold" : "normal");
+		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%.3f,%.3f,%.3f,%.3f), %s - %s)\n",
+                            str, n_requests, color->red, color->green, color->blue, color->alpha,
+				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
+				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
 		g_free (str);
 	}
 
-	_vte_draw_text_internal (draw, requests, n_requests, color, bold);
+	_vte_draw_text_internal (draw, requests, n_requests, color, style);
 
 	/* handle fonts that lack a bold face by double-striking */
-	if (bold && !_vte_draw_has_bold (draw)) {
+	if ((style & VTE_DRAW_BOLD) && !_vte_draw_has_bold (draw, style)) {
 		gsize i;
 
 		/* Take a step to the right. */
@@ -962,7 +1013,7 @@ _vte_draw_text (struct _vte_draw *draw,
 			requests[i].x++;
 		}
 		_vte_draw_text_internal (draw, requests,
-					   n_requests, color, FALSE);
+					   n_requests, color, style);
 		/* Now take a step back. */
 		for (i = 0; i < n_requests; i++) {
 			requests[i].x--;
@@ -971,35 +1022,37 @@ _vte_draw_text (struct _vte_draw *draw,
 }
 
 gboolean
-_vte_draw_has_char (struct _vte_draw *draw, vteunistr c, gboolean bold)
+_vte_draw_has_char (struct _vte_draw *draw, vteunistr c, guint style)
 {
 	struct unistr_info *uinfo;
 
-	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s)\n", c,
-			  bold ? "bold" : "normal");
+	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s - %s)\n", c,
+				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
+				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
 
-	g_return_val_if_fail (draw->font != NULL, FALSE);
+	g_return_val_if_fail (draw->fonts[VTE_DRAW_NORMAL] != NULL, FALSE);
 
-	uinfo = font_info_get_unistr_info (bold ? draw->font_bold : draw->font, c);
+	uinfo = font_info_get_unistr_info (draw->fonts[style], c);
 	return !uinfo->has_unknown_chars;
 }
 
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       const GdkRGBA *color, gboolean bold)
+	       const GdkRGBA *color, guint style)
 {
 	gboolean has_char;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color=(%.3f,%.3f,%.3f,%.3f), %s)\n",
+			"draw_char ('%c', color=(%.3f,%.3f,%.3f,%.3f), %s, %s)\n",
 			request->c,
-			color->red, color->green, color->blue, color->alpha,
-			bold ? "bold" : "normal");
+                          color->red, color->green, color->blue, color->alpha,
+			(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
+			(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
 
-	has_char =_vte_draw_has_char (draw, request->c, bold);
+	has_char =_vte_draw_has_char (draw, request->c, style);
 	if (has_char)
-		_vte_draw_text (draw, request, 1, color, bold);
+		_vte_draw_text (draw, request, 1, color, style);
 
 	return has_char;
 }

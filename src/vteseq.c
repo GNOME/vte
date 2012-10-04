@@ -2213,6 +2213,9 @@ vte_sequence_handler_character_attributes (VteBuffer *buffer, GValueArray *param
 			buffer->pvt->screen->defaults.attr.half = 1;
 			buffer->pvt->screen->defaults.attr.bold = 0;
 			break;
+		case 3:
+			buffer->pvt->screen->defaults.attr.italic = 1;
+			break;
 		case 4:
 			buffer->pvt->screen->defaults.attr.underline = 1;
 			break;
@@ -2232,6 +2235,9 @@ vte_sequence_handler_character_attributes (VteBuffer *buffer, GValueArray *param
 		case 22: /* ECMA 48. */
 			buffer->pvt->screen->defaults.attr.bold = 0;
 			buffer->pvt->screen->defaults.attr.half = 0;
+			break;
+		case 23:
+			buffer->pvt->screen->defaults.attr.italic = 0;
 			break;
 		case 24:
 			buffer->pvt->screen->defaults.attr.underline = 0;

@@ -40,6 +40,8 @@ G_BEGIN_DECLS
  *
  * Ordered by most commonly changed attributes, to
  * optimize the compact representation.
+ *
+ * When adding new attributes, remember to update basic_cell below too.
  */
 
 typedef struct _VteCellAttr {
@@ -50,6 +52,7 @@ typedef struct _VteCellAttr {
 				   Keep at least 4 for tabs to work
 				   */
 	guint32 bold: 1;
+	guint32 italic: 1;
 	guint32 fore: 9;	/* Index into color palette */
 	guint32 back: 9;	/* Index into color palette. */
 
@@ -62,11 +65,6 @@ typedef struct _VteCellAttr {
 	guint32 half: 1;
 
 	guint32 invisible: 1;
-	/* unused; bug 499893
-	guint32 protect: 1;
-	 */
-
-	/* 30 bits */
 } VteCellAttr;
 G_STATIC_ASSERT (sizeof (VteCellAttr) == 4);
 
@@ -102,6 +100,7 @@ static const VteIntCell basic_cell = {
 			0, /* fragment */
 			1, /* columns */
 			0, /* bold */
+			0, /* italic */
 			VTE_DEF_FG, /* fore */
 			VTE_DEF_BG, /* back */
 

@@ -724,6 +724,7 @@ _vte_invalidate_cell(VteView *terminal, glong col, glong row)
         VteBuffer *buffer;
 	const VteRowData *row_data;
 	int columns;
+	guint style;
 
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
@@ -744,11 +745,11 @@ _vte_invalidate_cell(VteView *terminal, glong col, glong row)
 				cell = _vte_row_data_get (row_data, --col);
 			}
 			columns = cell->attr.columns;
+			style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
 			if (cell->c != 0 &&
 					_vte_draw_get_char_width (
 						terminal->pvt->draw,
-						cell->c,
-						columns, cell->attr.bold) >
+						cell->c, columns, style) >
 					terminal->pvt->char_width * columns) {
 				columns++;
 			}
@@ -773,6 +774,7 @@ _vte_invalidate_cursor_once(VteView *terminal, gboolean periodic)
 	gssize preedit_width;
 	glong column, row;
 	gint columns;
+	guint style;
 
         if (!gtk_widget_get_realized(&terminal->widget)) {
                 return;
@@ -800,11 +802,12 @@ _vte_invalidate_cursor_once(VteView *terminal, gboolean periodic)
 		cell = vte_screen_find_charcell(screen, column, row);
 		if (cell != NULL) {
 			columns = cell->attr.columns;
+			style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
 			if (cell->c != 0 &&
 					_vte_draw_get_char_width (
 						terminal->pvt->draw,
 						cell->c,
-						columns, cell->attr.bold) >
+						columns, style) >
 			    terminal->pvt->char_width * columns) {
 				columns++;
 			}
@@ -8725,12 +8728,6 @@ vte_unichar_is_local_graphic(vteunistr c)
         return (c >= 0x2500) && (c <= 0x259f);
 }
 
-static gboolean
-vte_view_unichar_is_local_graphic(VteView *terminal, vteunistr c, gboolean bold)
-{
-        return vte_unichar_is_local_graphic (c);
-}
-
 static void
 vte_view_fill_rectangle(VteView *terminal,
 			    const GdkRGBA *color,
@@ -8786,8 +8783,7 @@ vte_view_draw_graphic(VteView *view,
                       gint y,
                       gint column_width,
                       gint columns,
-                      gint row_height,
-                      gboolean bold)
+                      gint row_height)
 {
         VteViewPrivate *pvt = view->pvt;
         gint width, xcenter, xright, ycenter, ybottom;
@@ -9522,7 +9518,7 @@ vte_view_draw_cells(VteView *terminal,
 			struct _vte_draw_text_request *items, gssize n,
 			guint fore, guint back, gboolean clear,
 			gboolean draw_default_bg,
-			gboolean bold, gboolean underline,
+			gboolean bold, gboolean italic, gboolean underline,
 			gboolean strikethrough, gboolean hilite, gboolean boxed,
 			gint column_width, gint row_height)
 {
@@ -9562,17 +9558,22 @@ vte_view_draw_cells(VteView *terminal,
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || bg != defbg)) {
+			gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
+									VTE_DRAW_BOLD) ? 0 : bold;
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
 					x + terminal->pvt->padding.left,
                                         y + terminal->pvt->padding.top,
-					columns * column_width + (_vte_draw_has_bold(terminal->pvt->draw) ? 0 : bold),
+					columns * column_width + bold_offset,
 					row_height,
 					bg);
 		}
 	} while (i < n);
+
 	_vte_draw_text(terminal->pvt->draw,
 			items, n,
-			fg, bold);
+			fg,
+			_vte_draw_get_style(bold, italic));
+
 	for (i = 0; i < n; i++) {
 		/* Deadjust for the border. */
 		items[i].x -= terminal->pvt->padding.left;
@@ -9892,6 +9893,7 @@ vte_view_draw_cells_with_attributes(VteView *terminal,
 					back,
 					TRUE, draw_default_bg,
 					cells[j].attr.bold,
+					cells[j].attr.italic,
 					cells[j].attr.underline,
 					cells[j].attr.strikethrough,
 					FALSE, FALSE, column_width, height);
@@ -9915,7 +9917,8 @@ vte_view_draw_rows(VteView *terminal,
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	gint i, j, row, rows, x, y, end_column;
 	guint fore, nfore, back, nback;
-	gboolean underline, nunderline, bold, nbold, hilite, nhilite,
+	glong delta;
+	gboolean underline, nunderline, bold, nbold, italic, nitalic, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
 	const VteCell *cell;
@@ -9975,11 +9978,13 @@ vte_view_draw_rows(VteView *terminal,
 					j += cell ? cell->attr.columns : 1;
 				}
 				if (back != VTE_DEF_BG) {
+					gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
+											VTE_DRAW_BOLD) ? 0 : bold;
 					_vte_draw_fill_rectangle (
 							terminal->pvt->draw,
 							x + i * column_width,
 							y,
-							(j - i) * column_width + (_vte_draw_has_bold(terminal->pvt->draw) ? 0 : bold),
+							(j - i) * column_width + bold_offset,
 							row_height,
 							&terminal->pvt->palette[back]);
 				}
@@ -10061,6 +10066,7 @@ vte_view_draw_rows(VteView *terminal,
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
 			bold = cell->attr.bold;
+			italic = cell->attr.italic;
 			if (terminal->pvt->show_match) {
 				hilite = vte_cell_is_between(i, row,
 						terminal->pvt->match_start.col,
@@ -10079,7 +10085,7 @@ vte_view_draw_rows(VteView *terminal,
 			j = i + items[0].columns;
 
 			/* If this is a graphics character, draw it locally. */
-			if (vte_view_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
+			if (vte_unichar_is_local_graphic(cell->c)) {
 				if (vte_view_draw_graphic(terminal,
 							items[0].c,
 							fore, back,
@@ -10088,8 +10094,7 @@ vte_view_draw_rows(VteView *terminal,
 							items[0].y,
 							column_width,
 							items[0].columns,
-							row_height,
-							cell->attr.bold)) {
+							row_height)) {
 					i = j;
 					continue;
 				}
@@ -10128,7 +10133,7 @@ vte_view_draw_rows(VteView *terminal,
 					selected = vte_view_cell_is_selected(terminal->pvt->buffer, j, row, terminal);
 					vte_view_determine_colors(terminal, cell, selected, &nfore, &nback);
 					/* Graphic characters must be drawn individually. */
-					if (vte_view_unichar_is_local_graphic(terminal, cell->c, cell->attr.bold)) {
+					if (vte_unichar_is_local_graphic(cell->c)) {
 						if (vte_view_draw_graphic(terminal,
 									cell->c,
 									nfore, nback,
@@ -10137,8 +10142,7 @@ vte_view_draw_rows(VteView *terminal,
 									y,
 									column_width,
 									cell->attr.columns,
-									row_height,
-									cell->attr.bold)) {
+									row_height)) {
 
 							j += cell->attr.columns;
 							continue;
@@ -10149,6 +10153,10 @@ vte_view_draw_rows(VteView *terminal,
 					}
 					nbold = cell->attr.bold;
 					if (nbold != bold) {
+						break;
+					}
+					nitalic = cell->attr.italic;
+					if (nitalic != italic) {
 						break;
 					}
 					/* Break up underlined/not-underlined text. */
@@ -10215,7 +10223,7 @@ fg_draw:
 					items,
 					item_count,
 					fore, back, FALSE, FALSE,
-					bold, underline,
+					bold, italic, underline,
 					strikethrough, hilite, FALSE,
 					column_width, row_height);
 			item_count = 1;
@@ -10385,8 +10393,11 @@ vte_view_paint_cursor(VteView *terminal)
 	item.y = row * height;
 	cursor_width = item.columns * width;
 	if (cell && cell->c != 0) {
-		gint cw = _vte_draw_get_char_width (terminal->pvt->draw,
-				cell->c, cell->attr.columns, cell->attr.bold);
+		guint style;
+		gint cw;
+		style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
+		cw = _vte_draw_get_char_width (terminal->pvt->draw, cell->c,
+					cell->attr.columns, style);
 		cursor_width = MAX(cursor_width, cw);
 	}
 
@@ -10431,7 +10442,7 @@ vte_view_paint_cursor(VteView *terminal)
 							     x, y,
 							     cursor_width, height);
 
-				if (!vte_view_unichar_is_local_graphic(terminal, item.c, cell ? cell->attr.bold : FALSE) ||
+				if (!vte_unichar_is_local_graphic(item.c) ||
 				    !vte_view_draw_graphic(terminal,
 							       item.c,
 							       fore, back,
@@ -10440,8 +10451,7 @@ vte_view_paint_cursor(VteView *terminal)
 							       item.y,
 							       width,
 							       item.columns,
-							       height,
-							       cell ? cell->attr.bold : FALSE)) {
+							       height)) {
 					gboolean hilite = FALSE;
 					if (cell && terminal->pvt->show_match) {
 						hilite = vte_cell_is_between(col, row,
@@ -10456,6 +10466,7 @@ vte_view_paint_cursor(VteView *terminal)
 								&item, 1,
 								fore, back, TRUE, FALSE,
 								cell->attr.bold,
+								cell->attr.italic,
 								cell->attr.underline,
 								cell->attr.strikethrough,
 								hilite,
@@ -10552,6 +10563,7 @@ vte_view_paint_im_preedit_string(VteView *terminal)
 			vte_view_draw_cells(terminal,
 						&items[preedit_cursor], 1,
 						back, fore, TRUE, TRUE,
+						FALSE,
 						FALSE,
 						FALSE,
 						FALSE,
