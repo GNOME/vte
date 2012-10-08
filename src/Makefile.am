@@ -10,8 +10,6 @@ header_HEADERS = vte.h vtebuffer.h vteenums.h vtepty.h vtetypebuiltins.h vtevers
 lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 
 EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
-	genkeysyms.py \
-	keysyms.c \
 	marshal.list \
 	mkunitables.sh \
 	unitable.CNS11643 \
