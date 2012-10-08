@@ -1,3 +1,4 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 8; tab-width: 8 -*- */
 /*
  * Copyright (C) 2002,2003 Red Hat, Inc.
  *
@@ -16,7 +17,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <config.h>
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -54,16 +56,6 @@
 #endif
 
 #ifdef VTE_DEBUG
-static const char *
-_vte_keysym_name(guint keyval)
-{
-	switch (keyval) {
-#include "keysyms.c"
-		default:
-			break;
-	}
-	return "(unknown)";
-}
 static void
 _vte_keysym_print(guint keyval,
 		GdkModifierType modifiers,
@@ -85,7 +77,7 @@ _vte_keysym_print(guint keyval,
 	if (modifiers & GDK_SHIFT_MASK) {
 		g_printerr("Shift+");
 	}
-	g_printerr("%s" , _vte_keysym_name(keyval));
+	g_printerr("%s" , gdk_keyval_name(keyval));
 	if (sun_mode|hp_mode|legacy_mode|vt220_mode) {
 		gboolean first = TRUE;
 		g_printerr("(");

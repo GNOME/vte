@@ -10,8 +10,6 @@ header_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vte
 lib_LTLIBRARIES = libvte@VTE_LIBRARY_SUFFIX_U@.la
 
 EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
-	genkeysyms.py \
-	keysyms.c \
 	marshal.list \
 	mkunitables.sh \
 	unitable.CNS11643 \
