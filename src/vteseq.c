@@ -611,7 +611,7 @@ vte_sequence_handler_decset_internal(VteBuffer *buffer,
 		 GINT_TO_POINTER(MOUSE_TRACKING_ALL_MOTION_TRACKING),
 		 NULL, NULL,},
 		/* 1006: Extended mouse coordinates. */
-		{1006, &terminal->pvt->mouse_xterm_extension, NULL, NULL,
+		{1006, &buffer->pvt->mouse_xterm_extension, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},

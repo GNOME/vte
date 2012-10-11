@@ -5575,7 +5575,7 @@ vte_buffer_feed_mouse_event(VteBuffer *buffer,
 		cb |= 32;
 	}
 
-	/* Clamp the cursor coordinates. Make them 1-based. */
+        /* Clamp the cursor coordinates. Make them 1-based. */
         cx = CLAMP(1 + col, 1, buffer->pvt->column_count);
         cy = CLAMP(1 + row, 1, buffer->pvt->row_count);
 
