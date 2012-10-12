@@ -7541,17 +7541,10 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				event->button, x, y);
 		switch (event->button) {
 		case 1:
-			/* If Shift is held down, or we're not in events mode,
-			 * copy the selected text. */
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_tracking_mode)
-				handled = _vte_terminal_maybe_end_selection (terminal);
+			handled = _vte_terminal_maybe_end_selection (terminal);
 			break;
 		case 2:
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_tracking_mode) {
-				handled = TRUE;
-			}
+			handled = TRUE;
 			break;
 		case 3:
 		default:
