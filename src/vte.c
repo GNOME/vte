@@ -1,3 +1,4 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 8; tab-width: 8 -*- */
 /*
  * Copyright (C) 2001-2004,2009,2010 Red Hat, Inc.
  * Copyright © 2008, 2009, 2010 Christian Persch
@@ -6673,7 +6674,11 @@ _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 
 		return TRUE;
 	}
-	return FALSE;
+
+        if (terminal->pvt->selecting_after_threshold)
+                return TRUE;
+
+        return FALSE;
 }
 
 static long
