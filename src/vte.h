@@ -57,6 +57,7 @@ typedef struct _VteTerminal             VteTerminal;
 typedef struct _VteTerminalPrivate      VteTerminalPrivate;
 typedef struct _VteTerminalClass        VteTerminalClass;
 typedef struct _VteTerminalClassPrivate VteTerminalClassPrivate;
+typedef struct _VteCharAttributes       VteCharAttributes;
 
 /**
  * VteTerminal:
@@ -242,7 +243,6 @@ struct _VteCharAttributes {
 	GdkColor fore, back;
 	guint underline:1, strikethrough:1;
 };
-typedef struct _VteCharAttributes VteCharAttributes;
 
 /* The name of the same structure in the 0.10 series, for API compatibility. */
 struct vte_char_attributes {
