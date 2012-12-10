@@ -6240,7 +6240,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @start_col: first column to search for data
  * @end_row: last row to search for data
  * @end_col: last column to search for data
- * @is_selected: (scope call): a #VteSelectionFunc callback
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6439,7 +6439,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 /**
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
- * @is_selected: (scope call): a #VteSelectionFunc callback
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
@@ -6469,7 +6469,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 /**
  * vte_terminal_get_text_include_trailing_spaces:
  * @terminal: a #VteTerminal
- * @is_selected: (scope call): a #VteSelectionFunc callback
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
