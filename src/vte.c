@@ -6242,7 +6242,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
  * @end_col: last column to search for data
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -6441,7 +6441,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -6471,7 +6471,7 @@ vte_terminal_get_text(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
