@@ -340,29 +340,43 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Cursor at (%ld, " "%ld).\n", ccol, crow);
 
-	/* Get the offsets to the beginnings of each line. */
 	caret = -1;
-	for (i = 0; i < priv->snapshot_characters->len; i++) {
-		/* Get the attributes for the current cell. */
-		offset = g_array_index(priv->snapshot_characters,
-				       int, i);
-		attrs = g_array_index(priv->snapshot_attributes,
-				      struct _VteCharAttributes,
-				      offset);
-		/* If this cell is "before" the cursor, move the
-		 * caret to be "here". */
-		if ((attrs.row < crow) ||
-		    ((attrs.row == crow) && (attrs.column < ccol))) {
-			caret = i + 1;
-		}
+	if (priv->snapshot_characters->len) {
+	  /* If the cursor is at the top left of the screen, move the
+	   * caret there. */
+	  /* Get the attributes of the first character in the buffer. */
+	  attrs = g_array_index(priv->snapshot_attributes,
+				struct _VteCharAttributes,
+				0);
+	  if ((crow == attrs.row) &&
+	      (ccol == 0)) {
+	    caret = 0;
+	  }
 	}
 
-	/* If no cells are before the caret, then the caret must be
-	 * at the end of the buffer. */
 	if (caret == -1) {
-		caret = priv->snapshot_characters->len;
-	}
+	  /* Get the offsets to the beginnings of each line. */
+	  for (i = 0; i < priv->snapshot_characters->len; i++) {
+	    /* Get the attributes for the current cell. */
+	    offset = g_array_index(priv->snapshot_characters,
+				   int, i);
+	    attrs = g_array_index(priv->snapshot_attributes,
+				  struct _VteCharAttributes,
+				  offset);
+	    /* If this cell is "before" the cursor, move the
+	     * caret to be "here". */
+	    if ((attrs.row < crow) ||
+		((attrs.row == crow) && (attrs.column < ccol))) {
+	      caret = i + 1;
+	    }
+	  }
 
+	  /* If no cells are before the caret, then the caret must be
+	   * at the end of the buffer. */
+	  if (caret == -1) {
+	    caret = priv->snapshot_characters->len;
+	  }
+	}
 	/* Notify observers if the caret moved. */
 	if (caret != priv->snapshot_caret) {
 		priv->snapshot_caret = caret;
