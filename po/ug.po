@@ -7,16 +7,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2011-03-29 18:41+0000\n"
-"PO-Revision-Date: 2004-02-05 00:10+0100\n"
-"Last-Translator:  Abduxukur Abdurixit <abduxukur.abdurixit@t-systems.ch>\n"
+"POT-Creation-Date: 2012-12-30 01:30+0000\n"
+"PO-Revision-Date: 2013-01-27 13:20+0900\n"
+"Last-Translator: Gheyret Kenji <gheyret@gmail.com>\n"
 "Language-Team:  GNOME Uighur Translation Project <gnome-uighur@yahoogroups.com>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: ../src/iso2022.c:779 ../src/iso2022.c:787 ../src/iso2022.c:818
-#: ../src/vte.c:2279
+#: ../src/vte.c:2277
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "%s ھەرپىنى %s ھەرپىگە ئايلاندۇرالمىدى"
@@ -50,33 +51,33 @@ msgstr "كونترول سۇپىسىنى ئاچالمىدى.\n"
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "--geometry غا يوللايدىغان گېئومېتىرىيىلىك پارامېتىرنى يېشەلمىدى"
 
-#: ../src/vte.c:1305
+#: ../src/vte.c:1303
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
-msgstr "مۇنتىزىم ئىپادە \"%s\" نى ھېسابلاشتا خاتالىق يۈز بەردى."
+msgstr "مۇنتىزىم ئىپادە «%s» نى ھېسابلاشتا خاتالىق يۈز بەردى."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4593
+#: ../src/vte.c:4591
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "تارماق پروگراممىدىن سانلىق-مەلۇمات ئوقۇش خاتالىقى: %s ."
 
-#: ../src/vte.c:4720
+#: ../src/vte.c:4718
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "تارماق جەريانغا سانلىق-مەلۇمات يوللىيالمىدى، ھەرپ-بەلگە ئايلاندۇرغۇچ ئىناۋەتسىز"
 
-#: ../src/vte.c:4731 ../src/vte.c:5793
+#: ../src/vte.c:4729 ../src/vte.c:5791
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "تارماق پروگرامما سانلىق-ئاساسىنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگىنىنى ئۈچۈن تاشلىۋېتىلدى(%s) ."
+msgstr "تارماق پروگرامما سانلىق-مەلۇماتىنى ئۆزگەرتىش جەريانىدا خاتالىق كۆرۈلگىنىنى ئۈچۈن تاشلىۋېتىلدى(%s) ."
 
-#: ../src/vte.c:7978
+#: ../src/vte.c:7976
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
 msgstr "PTY چوڭلۇقىنى ئوقۇشتا خاتالىق كۆرۈلدى، كۆڭۈلدىكى چوڭلۇق ئىشلىتىلىدۇ: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13796
+#: ../src/vte.c:13794
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() سۆزدىكى ھەرپ تىزمىسىنى بەلگىلەش مەغلۇپ بولدى."
 
