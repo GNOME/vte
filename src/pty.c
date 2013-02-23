@@ -837,7 +837,9 @@ static int
 _vte_pty_getpt(GError **error)
 {
 	int fd, flags, rv;
-#ifdef HAVE_GETPT
+#if defined(HAVE_POSIX_OPENPT)
+	fd = posix_openpt(O_RDWR | O_NOCTTY);
+#elif defined(HAVE_GETPT)
 	/* Call the system's function for allocating a pty. */
 	fd = getpt();
 #else
