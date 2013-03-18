@@ -2,14 +2,14 @@
 # This file is distributed under the same license as the vte package.
 #
 # Nam SungHyun <namsh@kldp.org>, 2003
-# Changwoo Ryu <cwryu@debian.org>, 2007, 2009, 2010.
+# Changwoo Ryu <cwryu@debian.org>, 2007, 2009, 2010, 2013.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&component=general\n"
 "POT-Creation-Date: 2010-10-09 08:32+0900\n"
-"PO-Revision-Date: 2010-10-09 08:32+0900\n"
+"PO-Revision-Date: 2013-03-19 02:26+0900\n"
 "Last-Translator: Changwoo Ryu <cwryu@debian.org>\n"
 "Language-Team: GNOME Korea <gnome-kr@googlegroups.com>\n"
 "Language: Korean\n"
@@ -82,4 +82,4 @@ msgstr "PTY 크기 읽기 오류, 기본값 사용: %s\n"
 #. Aaargh.  We're screwed.
 #: ../src/vte.c:13392
 msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_iconv_open()이 단어 문자들을 설정하는 데 실패했습니다"
+msgstr "_vte_iconv_open()이 단어 문자를 설정하는 데 실패했습니다"
