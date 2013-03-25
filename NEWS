@@ -1,3 +1,10 @@
+0.34.3
+======
+- Introspection fixes (#676999, #690003)
+- Build fixes (#690554)
+- Portability fixes (#694494)
+- Translation updates
+
 0.34.2
 ======
 - Translation updates
