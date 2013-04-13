@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright © 2006 Shaun McCance <shaunm@gnome.org>
-#
+# Copyright © 2013 Peter De Wachter <pdewacht@gmail.com>
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -19,22 +19,20 @@ __vte_urlencode() (
   # This is important to make sure string manipulation is handled
   # byte-by-byte.
   LANG=C
-  arg="$1"
-  i="0"
-  while [ "$i" -lt ${#arg} ]; do
-    c=${arg:$i:1}
-    if echo "$c" | grep -q '[a-zA-Z/:_\.\-]'; then
-      echo -n "$c"
-    else
-      echo -n "%"
-      printf "%X" "'$c'"
+  str="$1"
+  while [ -n "$str" ]; do
+    safe="${str%%[!a-zA-Z0-9/:_\.\-\!\'\(\)~]*}"
+    printf "%s" "$safe"
+    str="${str#"$safe"}"
+    if [ -n "$str" ]; then
+      printf "%%%02X" "'$str"
+      str="${str#?}"
     fi
-    i=$((i+1))
   done
 )
 
 __vte_ps1() {
-  printf "\e]7;file://%s" $HOSTNAME
+  printf "\033]7;file://%s" ${HOSTNAME:-$(hostname)}
   __vte_urlencode "$PWD"
   printf "\a"
 }

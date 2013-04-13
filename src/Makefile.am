@@ -229,7 +229,10 @@ noinst_PROGRAMS = interpret slowcat
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
-TEST_SH = check-doc-syntax.sh
+TEST_SH = \
+	check-doc-syntax.sh \
+	test-vte-sh.sh \
+	$(NULL)
 EXTRA_DIST += $(TEST_SH)
 
 check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev ssfe table trie xticker vteconv vtetc
