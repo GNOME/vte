@@ -1,3 +1,7 @@
+0.34.4
+======
+- Improved vte.sh script (#697225)
+
 0.34.3
 ======
 - Introspection fixes (#676999, #690003)
