@@ -17,7 +17,7 @@
 
 set -e
 
-source ./vte.sh
+source $srcdir/vte.sh
 
 check_urlencode() (
   input=$(echo -ne "$1")
