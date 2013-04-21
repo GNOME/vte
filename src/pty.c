@@ -33,6 +33,7 @@
 #include "vtepty.h"
 #include "vtepty-private.h"
 #include "vte.h"
+#include "vteversion.h"
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -89,6 +90,8 @@ static int _vte_pty_helper_tunnel = -1;
 #else
 #undef HAVE_UNIX98_PTY
 #endif
+
+#define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
 
 /* Reset the handlers for all known signals to their defaults.  The parent
  * (or one of the libraries it links to) may have changed one to be ignored. */
@@ -251,6 +254,7 @@ vte_pty_child_setup (VtePty *pty)
 	VtePtyChildSetupData *data = &priv->child_setup_data;
 	int fd = -1;
 	const char *tty = NULL;
+        char version[7];
 
         if (priv->foreign) {
                 fd = priv->pty_fd;
@@ -353,6 +357,9 @@ vte_pty_child_setup (VtePty *pty)
                 g_setenv("TERM", priv->term, TRUE);
         }
 
+        g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
+        g_setenv ("VTE", version, TRUE);
+
 	/* Finally call an extra child setup */
 	if (data->extra_child_setup) {
 		data->extra_child_setup (data->extra_child_setup_data);
@@ -444,6 +451,8 @@ __vte_pty_merge_environ (char **envp, const char *term_value)
 
         if (term_value != NULL)
                 g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (term_value));
+
+        g_hash_table_replace (table, g_strdup ("VTE"), g_strdup_printf ("%u", VTE_VERSION_NUMERIC));
 
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
         g_hash_table_iter_init(&iter, table);
