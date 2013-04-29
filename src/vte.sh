@@ -31,8 +31,11 @@ __vte_urlencode() (
   done
 )
 
-__vte_ps1() {
+__vte_ps1() (
+  # Only print anything if running in an interactive shell under vte >= 0.34.5
+  [ -n "$PS1" -a "${VTE:-0}" -ge 3405 ] || return
+
   printf "\033]7;file://%s" ${HOSTNAME:-$(hostname)}
   __vte_urlencode "$PWD"
   printf "\a"
-}
+)
