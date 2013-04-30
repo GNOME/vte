@@ -15,6 +15,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
+# Not bash?
+[ -n "$BASH_VERSION" ] || return
+
+# Not an interactive shell, or not running under vte?
+[ -n "$PS1" -a "${VTE:-0}" -ge 3405 ] || return
+
 __vte_urlencode() (
   # This is important to make sure string manipulation is handled
   # byte-by-byte.
@@ -31,11 +37,22 @@ __vte_urlencode() (
   done
 )
 
-__vte_ps1() (
-  # Only print anything if running in an interactive shell under vte >= 0.34.5
-  [ -n "$PS1" -a "${VTE:-0}" -ge 3405 ] || return
+# Print a warning so that anyone who's added this manually to his PS1 can adapt.
+# The function will be removed in a later version.
+__vte_ps1() {
+  echo -n "(__vte_ps1 is obsolete)"
+}
 
-  printf "\033]7;file://%s" ${HOSTNAME:-$(hostname)}
-  __vte_urlencode "$PWD"
-  printf "\a"
-)
+__vte_osc7 () {
+  printf "\033]7;file://%s%s\a" "$2" "$(__vte_urlencode "$1")"
+}
+
+__vte_prompt_command() {
+  printf "\033]0;%s@%s:%s\007%s" "${USER}" "${HOSTNAME%%.*}" "${PWD/#$HOME/~}" "$(__vte_osc7 "${PWD}" "${HOSTNAME:-}")"
+}
+
+case "$TERM" in
+  xterm*|vte*)
+    PROMPT_COMMAND="__vte_prompt_command" 
+    ;;
+esac
