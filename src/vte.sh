@@ -1,6 +1,6 @@
-#!/bin/sh
 # Copyright © 2006 Shaun McCance <shaunm@gnome.org>
 # Copyright © 2013 Peter De Wachter <pdewacht@gmail.com>
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -15,10 +15,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-# Not bash?
-[ -n "$BASH_VERSION" ] || return
+# Not bash or zsh?
+[ -n "$BASH_VERSION" -o -n "$ZSH_VERSION" ] || return
 
-# Not an interactive shell, or not running under vte?
+# Not an interactive shell?
+[[ $- == *i* ]] || return
+
+# Not running under vte?
 [ -n "$PS1" -a "${VTE:-0}" -ge 3405 ] || return
 
 __vte_urlencode() (
@@ -44,15 +47,16 @@ __vte_ps1() {
 }
 
 __vte_osc7 () {
-  printf "\033]7;file://%s%s\a" "$2" "$(__vte_urlencode "$1")"
+  printf "\033]7;file://%s%s\a" "${HOSTNAME:-}" "$(__vte_urlencode "${PWD}")"
 }
 
 __vte_prompt_command() {
-  printf "\033]0;%s@%s:%s\007%s" "${USER}" "${HOSTNAME%%.*}" "${PWD/#$HOME/~}" "$(__vte_osc7 "${PWD}" "${HOSTNAME:-}")"
+  printf "\033]0;%s@%s:%s\007%s" "${USER}" "${HOSTNAME%%.*}" "${PWD/#$HOME/~}" "$(__vte_osc7)"
 }
 
 case "$TERM" in
   xterm*|vte*)
-    PROMPT_COMMAND="__vte_prompt_command" 
+    [ -n "$BASH_VERSION" ] && PROMPT_COMMAND="__vte_prompt_command" 
+    [ -n "$ZSH_VERSION"  ] && chpwd_functions+=(__vte_osc7)
     ;;
 esac
