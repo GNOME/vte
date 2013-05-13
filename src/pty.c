@@ -358,7 +358,7 @@ vte_pty_child_setup (VtePty *pty)
         }
 
         g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
-        g_setenv ("VTE", version, TRUE);
+        g_setenv ("VTE_VERSION", version, TRUE);
 
 	/* Finally call an extra child setup */
 	if (data->extra_child_setup) {
@@ -452,7 +452,7 @@ __vte_pty_merge_environ (char **envp, const char *term_value)
         if (term_value != NULL)
                 g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (term_value));
 
-        g_hash_table_replace (table, g_strdup ("VTE"), g_strdup_printf ("%u", VTE_VERSION_NUMERIC));
+        g_hash_table_replace (table, g_strdup ("VTE_VERSION"), g_strdup_printf ("%u", VTE_VERSION_NUMERIC));
 
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
         g_hash_table_iter_init(&iter, table);
