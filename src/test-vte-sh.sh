@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -i
 # Copyright © 2013 Christian Persch
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,6 +16,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 set -e
+
+export VTE_VERSION=9999
 
 source $srcdir/vte.sh
 
