@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -i
 # Copyright © 2013 Christian Persch
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,9 @@
 
 set -e
 
-source ./vte.sh
+export VTE_VERSION=9999
+
+source $srcdir/vte.sh
 
 check_urlencode() (
   input=$(echo -ne "$1")

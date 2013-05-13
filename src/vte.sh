@@ -60,3 +60,5 @@ case "$TERM" in
     [ -n "$ZSH_VERSION"  ] && chpwd_functions+=(__vte_osc7)
     ;;
 esac
+
+true
