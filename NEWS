@@ -1,3 +1,12 @@
+0.34.5
+======
+- Improved vte.sh script (#697475): It is now not necessary anymore
+  to manually change PS1. On distributions that automatically source
+  /etc/profile.d/*.sh scripts for all interactive shells (ie Fedora),
+  no manual intervention is needed at all; for others the only change
+  required is to source the vte.sh script.
+  Also, the script now works for both bash and zsh shells.
+
 0.34.4
 ======
 - Improved vte.sh script (#697225)
