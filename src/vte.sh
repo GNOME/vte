@@ -22,7 +22,7 @@
 [[ $- == *i* ]] || return
 
 # Not running under vte?
-[ -n "$PS1" -a "${VTE_VERSION:-0}" -ge 3405 ] || return
+[ "${VTE_VERSION:-0}" -ge 3405 ] || return
 
 __vte_urlencode() (
   # This is important to make sure string manipulation is handled
