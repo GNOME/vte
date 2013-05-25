@@ -367,13 +367,17 @@ vte_pty_child_setup (VtePty *pty)
 /*
  * __vte_pty_merge_environ:
  * @envp: environment vector
+ * @term_value: the value for the TERM env variable, or %NULL
+ * @inherit: whether to use the parent environment
  *
  * Merges @envp to the parent environment, and returns a new environment vector.
  *
  * Returns: a newly allocated string array. Free using g_strfreev()
  */
 static gchar **
-__vte_pty_merge_environ (char **envp, const char *term_value)
+__vte_pty_merge_environ (char **envp,
+                         const char *term_value,
+                         gboolean inherit)
 {
 	GHashTable *table;
         GHashTableIter iter;
@@ -384,13 +388,15 @@ __vte_pty_merge_environ (char **envp, const char *term_value)
 
 	table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
-	parent_environ = g_listenv ();
-	for (i = 0; parent_environ[i] != NULL; i++) {
-		g_hash_table_replace (table,
-			              g_strdup (parent_environ[i]),
-				      g_strdup (g_getenv (parent_environ[i])));
+	if (inherit) {
+		parent_environ = g_listenv ();
+		for (i = 0; parent_environ[i] != NULL; i++) {
+			g_hash_table_replace (table,
+				              g_strdup (parent_environ[i]),
+					      g_strdup (g_getenv (parent_environ[i])));
+		}
+		g_strfreev (parent_environ);
 	}
-	g_strfreev (parent_environ);
 
 	if (envp != NULL) {
 		for (i = 0; envp[i] != NULL; i++) {
@@ -464,6 +470,7 @@ __vte_pty_spawn (VtePty *pty,
 	VtePtyPrivate *priv = pty->priv;
         VtePtyChildSetupData *data = &priv->child_setup_data;
 	gboolean ret = TRUE;
+        gboolean inherit_envv;
         char **envp2;
         gint i;
         GError *err = NULL;
@@ -475,8 +482,11 @@ __vte_pty_spawn (VtePty *pty,
          */
         spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
 
+        inherit_envv = (spawn_flags & VTE_SPAWN_NO_PARENT_ENVV) == 0;
+        spawn_flags &= ~VTE_SPAWN_NO_PARENT_ENVV;
+
         /* add the given environment to the childs */
-        envp2 = __vte_pty_merge_environ (envv, pty->priv->term);
+        envp2 = __vte_pty_merge_environ (envv, pty->priv->term, inherit_envv);
 
         _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
                 g_printerr ("Spawing command:\n");

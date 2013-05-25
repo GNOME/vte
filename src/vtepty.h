@@ -57,6 +57,8 @@ typedef enum {
   VTE_PTY_ERROR_PTY98_FAILED
 } VtePtyError;
 
+#define VTE_SPAWN_NO_PARENT_ENVV (1 << 25)
+
 GQuark vte_pty_error_quark (void);
 
 /**
