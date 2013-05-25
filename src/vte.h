@@ -269,6 +269,8 @@ VtePty *vte_terminal_pty_new (VteTerminal *terminal,
 void vte_terminal_watch_child (VteTerminal *terminal,
                                GPid child_pid);
 
+#define VTE_SPAWN_NO_PARENT_ENVV (1 << 25)
+
 gboolean vte_terminal_fork_command_full(VteTerminal *terminal,
                                         VtePtyFlags pty_flags,
                                         const char *working_directory,
