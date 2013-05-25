@@ -16,13 +16,13 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 # Not bash or zsh?
-[ -n "$BASH_VERSION" -o -n "$ZSH_VERSION" ] || return
+[ -n "$BASH_VERSION" -o -n "$ZSH_VERSION" ] || return 0
 
 # Not an interactive shell?
-[[ $- == *i* ]] || return
+[[ $- == *i* ]] || return 0
 
 # Not running under vte?
-[ "${VTE_VERSION:-0}" -ge 3405 ] || return
+[ "${VTE_VERSION:-0}" -ge 3405 ] || return 0
 
 __vte_urlencode() (
   # This is important to make sure string manipulation is handled
