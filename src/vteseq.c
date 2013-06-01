@@ -2564,13 +2564,15 @@ vte_sequence_handler_set_current_directory_uri (VteTerminal *terminal, GValueArr
         }
 
         /* Validate URI */
-        filename = g_filename_from_uri (uri, NULL, NULL);
-        if (filename == NULL) {
-                /* invalid URI */
-                g_free (uri);
-                uri = NULL;
-        } else {
-                g_free (filename);
+        if (uri && uri[0]) {
+                filename = g_filename_from_uri (uri, NULL, NULL);
+                if (filename == NULL) {
+                        /* invalid URI */
+                        g_free (uri);
+                        uri = NULL;
+                } else {
+                        g_free (filename);
+                }
         }
 
         g_free(terminal->pvt->current_directory_uri_changed);
@@ -2596,13 +2598,15 @@ vte_sequence_handler_set_current_file_uri (VteTerminal *terminal, GValueArray *p
         }
 
         /* Validate URI */
-        filename = g_filename_from_uri (uri, NULL, NULL);
-        if (filename == NULL) {
-                /* invalid URI */
-                g_free (uri);
-                uri = NULL;
-        } else {
-                g_free (filename);
+        if (uri && uri[0]) {
+                filename = g_filename_from_uri (uri, NULL, NULL);
+                if (filename == NULL) {
+                        /* invalid URI */
+                        g_free (uri);
+                        uri = NULL;
+                } else {
+                        g_free (filename);
+                }
         }
 
         g_free(terminal->pvt->current_file_uri_changed);
