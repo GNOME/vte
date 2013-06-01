@@ -1,3 +1,11 @@
+0.34.6
+======
+- vte.sh bugfix
+- Add new flag for vte_terminal_fork_command_full() to not copy the 
+  parent  environment
+- Allow the empty string to OSC 6 and OSC 7 to unset a previously
+  set value
+
 0.34.5
 ======
 - Improved vte.sh script (#697475): It is now not necessary anymore
