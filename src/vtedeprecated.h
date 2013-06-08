@@ -94,6 +94,9 @@ void vte_terminal_get_padding(VteTerminal *terminal, int *xpad, int *ypad) G_GNU
 void vte_terminal_set_pty(VteTerminal *terminal, int pty_master);
 int vte_terminal_get_pty(VteTerminal *terminal);
 
+void vte_terminal_im_append_menuitems(VteTerminal *terminal,
+				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
+
 #if GTK_CHECK_VERSION (2, 91, 2)
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
 #endif

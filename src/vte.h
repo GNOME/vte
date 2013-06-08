@@ -379,10 +379,6 @@ VteTerminalCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal);
 /* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
 
-/* Append the input method menu items to a given shell. */
-void vte_terminal_im_append_menuitems(VteTerminal *terminal,
-				      GtkMenuShell *menushell);
-
 /* Set or retrieve the current font. */
 void vte_terminal_set_font(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc);
