@@ -11619,26 +11619,6 @@ vte_view_paste_clipboard(VteView *terminal,
 }
 
 /**
- * vte_view_im_append_menuitems:
- * @terminal: a #VteView
- * @menushell: a GtkMenuShell
- *
- * Appends menu items for various input methods to the given menu.  The
- * user can select one of these items to modify the input method used by
- * the terminal.
- */
-void
-vte_view_im_append_menuitems(VteView *terminal, GtkMenuShell *menushell)
-{
-	GtkIMMulticontext *context;
-	g_return_if_fail(VTE_IS_VIEW(terminal));
-	g_return_if_fail (gtk_widget_get_realized (&terminal->widget));
-        g_return_if_fail(GTK_IS_MENU_SHELL(menushell));
-	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
-	gtk_im_multicontext_append_menuitems(context, menushell);
-}
-
-/**
  * vte_view_get_has_selection:
  * @terminal: a #VteView
  *

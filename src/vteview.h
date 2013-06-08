@@ -119,10 +119,6 @@ void vte_view_set_scroll_on_output(VteView *terminal, gboolean scroll);
 void vte_view_set_scroll_on_keystroke(VteView *terminal,
 					  gboolean scroll);
 
-/* Append the input method menu items to a given shell. */
-void vte_view_im_append_menuitems(VteView *terminal,
-				      GtkMenuShell *menushell);
-
 /* Check if the terminal is the current selection owner. */
 gboolean vte_view_get_has_selection(VteView *terminal);
 gboolean vte_view_get_selection_bounds(VteView *terminal,

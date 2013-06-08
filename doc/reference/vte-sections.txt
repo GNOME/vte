@@ -11,7 +11,6 @@ VteSelectionFunc
 vte_view_new
 vte_view_set_buffer
 vte_view_get_buffer
-vte_view_im_append_menuitems
 vte_view_select_all
 vte_view_unselect_all
 vte_view_copy_clipboard
