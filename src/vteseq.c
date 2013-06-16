@@ -1861,9 +1861,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 				continue;
 
 			if (vte_parse_color (pairs[i + 1], &color)) {
-				terminal->pvt->palette[idx].red = color.red;
-				terminal->pvt->palette[idx].green = color.green;
-				terminal->pvt->palette[idx].blue = color.blue;
+                                _vte_terminal_set_color_internal(terminal, idx, &color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
 				g_snprintf (buf, sizeof (buf),

@@ -2500,9 +2500,10 @@ vte_terminal_new(void)
 }
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
-static void
-vte_terminal_set_color_internal(VteTerminal *terminal, int entry,
-				const GdkColor *proposed)
+void
+_vte_terminal_set_color_internal(VteTerminal *terminal,
+                                 int entry,
+                                 const GdkColor *proposed)
 {
 	PangoColor *color;
 
@@ -2604,7 +2605,7 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set bold color to (%04x,%04x,%04x).\n",
 			bold->red, bold->green, bold->blue);
-	vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, bold);
+	_vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, bold);
 }
 
 /**
@@ -2623,7 +2624,7 @@ vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set dim color to (%04x,%04x,%04x).\n",
 			dim->red, dim->green, dim->blue);
-	vte_terminal_set_color_internal(terminal, VTE_DIM_FG, dim);
+	_vte_terminal_set_color_internal(terminal, VTE_DIM_FG, dim);
 }
 
 /**
@@ -2643,7 +2644,7 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set foreground color to (%04x,%04x,%04x).\n",
 			foreground->red, foreground->green, foreground->blue);
-	vte_terminal_set_color_internal(terminal, VTE_DEF_FG, foreground);
+	_vte_terminal_set_color_internal(terminal, VTE_DEF_FG, foreground);
 }
 
 /**
@@ -2665,7 +2666,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set background color to (%04x,%04x,%04x).\n",
 			background->red, background->green, background->blue);
-	vte_terminal_set_color_internal(terminal, VTE_DEF_BG, background);
+	_vte_terminal_set_color_internal(terminal, VTE_DEF_BG, background);
 }
 
 /**
@@ -2691,7 +2692,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 				cursor_background->red,
 				cursor_background->green,
 				cursor_background->blue);
-		vte_terminal_set_color_internal(terminal, VTE_CUR_BG,
+		_vte_terminal_set_color_internal(terminal, VTE_CUR_BG,
 						cursor_background);
 		terminal->pvt->cursor_color_set = TRUE;
 	} else {
@@ -2724,7 +2725,7 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 				highlight_background->red,
 				highlight_background->green,
 				highlight_background->blue);
-		vte_terminal_set_color_internal(terminal, VTE_DEF_HL,
+		_vte_terminal_set_color_internal(terminal, VTE_DEF_HL,
 						highlight_background);
 		terminal->pvt->highlight_color_set = TRUE;
 	} else {
@@ -2865,7 +2866,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Set up the color entry. */
-		vte_terminal_set_color_internal(terminal, i, &color);
+		_vte_terminal_set_color_internal(terminal, i, &color);
 	}
 
 	/* Track that we had a color palette set. */
@@ -9099,7 +9100,7 @@ vte_terminal_realize(GtkWidget *widget)
 		color.green = terminal->pvt->palette[i].green;
 		color.blue = terminal->pvt->palette[i].blue;
 		color.pixel = 0;
-		vte_terminal_set_color_internal(terminal, i, &color);
+		_vte_terminal_set_color_internal(terminal, i, &color);
 	}
 
 	/* Set up input method support.  FIXME: do we need to handle the

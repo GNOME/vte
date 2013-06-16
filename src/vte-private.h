@@ -437,6 +437,9 @@ void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
 void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);
+void _vte_terminal_set_color_internal(VteTerminal *terminal,
+                                      int idx,
+                                      const GdkColor *color);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
