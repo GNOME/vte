@@ -7175,8 +7175,14 @@ vte_view_button_press(GtkWidget *widget, GdkEventButton *event)
 		case 2:
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !terminal->pvt->mouse_tracking_mode) {
-				vte_view_emit_paste_primary(terminal);
-				handled = TRUE;
+                                gboolean do_paste;
+
+                                g_object_get (gtk_widget_get_settings(widget),
+                                              "gtk-enable-primary-paste",
+                                              &do_paste, NULL);
+                                if (do_paste)
+                                        vte_view_emit_paste_primary(terminal);
+				handled = do_paste;
 			}
 			break;
 		case 3:
