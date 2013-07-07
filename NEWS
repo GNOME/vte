@@ -1,3 +1,8 @@
+0.34.7
+======
+- Honour gtk-enable-primary-paste setting
+- Redraw when changing colours (#702415)
+
 0.34.6
 ======
 - vte.sh bugfix
