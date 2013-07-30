@@ -1,18 +1,23 @@
 # git.mk
 #
 # Copyright 2009, Red Hat, Inc.
+# Copyright 2010,2011,2012,2013 Behdad Esfahbod
 # Written by Behdad Esfahbod
 #
 # Copying and distribution of this file, with or without modification,
-# are permitted in any medium without royalty provided the copyright
+# is permitted in any medium without royalty provided the copyright
 # notice and this notice are preserved.
 #
-# The canonical source for this file is pango/git.mk, or whereever the
-# header of pango/git.mk suggests in the future.
+# The latest version of this file can be downloaded from:
+#   https://raw.github.com/behdad/git.mk/master/git.mk
+# Bugs, etc, should be reported upstream at:
+#   https://github.com/behdad/git.mk
 #
 # To use in your project, import this file in your git repo's toplevel,
 # then do "make -f git.mk".  This modifies all Makefile.am files in
-# your project to include git.mk.
+# your project to -include git.mk.  Remember to add that line to new
+# Makefile.am files you create in your project, or just rerun the
+# "make -f git.mk".
 #
 # This enables automatic .gitignore generation.  If you need to ignore
 # more files, add them to the GITIGNOREFILES variable in your Makefile.am.
@@ -22,7 +27,7 @@
 #
 # The only case that you need to manually add a file to GITIGNOREFILES is
 # when remove files in one of mostlyclean-local, clean-local, distclean-local,
-# or maintainer-clean-local.
+# or maintainer-clean-local make targets.
 #
 # Note that for files like editor backup, etc, there are better places to
 # ignore them.  See "man gitignore".
@@ -30,18 +35,24 @@
 # If "make maintainer-clean" removes the files but they are not recognized
 # by this script (that is, if "git status" shows untracked files still), send
 # me the output of "git status" as well as your Makefile.am and Makefile for
-# the directories involved.
+# the directories involved and I'll diagnose.
 #
 # For a list of toplevel files that should be in MAINTAINERCLEANFILES, see
-# pango/Makefile.am.
+# Makefile.am.sample in the git.mk git repo.
 #
 # Don't EXTRA_DIST this file.  It is supposed to only live in git clones,
 # not tarballs.  It serves no useful purpose in tarballs and clutters the
 # build dir.
 #
 # This file knows how to handle autoconf, automake, libtool, gtk-doc,
-# gnome-doc-utils, intltool.
+# gnome-doc-utils, yelp.m4, mallard, intltool, gsettings, dejagnu.
 #
+# This makefile provides the following targets:
+#
+# - all: "make all" will build all gitignore files.
+# - gitignore: makes all gitignore files in the current dir and subdirs.
+# - .gitignore: make gitignore file for the current dir.
+# - gitignore-recurse: makes all gitignore files in the subdirs.
 #
 # KNOWN ISSUES:
 #
@@ -53,13 +64,65 @@
 #   example.
 #
 
+
+
+###############################################################################
+# Variables user modules may want to add to toplevel MAINTAINERCLEANFILES:
+###############################################################################
+
+#
+# Most autotools-using modules should be fine including this variable in their
+# toplevel MAINTAINERCLEANFILES:
+GITIGNORE_MAINTAINERCLEANFILES_TOPLEVEL = \
+	$(srcdir)/aclocal.m4 \
+	$(srcdir)/autoscan.log \
+	$(srcdir)/configure.scan \
+	`AUX_DIR=$(srcdir)/$$($(AUTOCONF) --trace 'AC_CONFIG_AUX_DIR:$$1'); for x in \
+		ar-lib \
+		compile \
+		config.guess \
+		config.sub \
+		depcomp \
+		install-sh \
+		ltmain.sh \
+		missing \
+		mkinstalldirs \
+	 ; do echo "$$AUX_DIR/$$x"; done` \
+	`$(AUTOCONF) --trace 'AC_CONFIG_HEADERS:$$1' $(srcdir)/configure.ac | \
+	head -n 1 | while read f; do echo "$(srcdir)/$$f.in"; done`
+#
+# All modules should also be fine including the following variable, which
+# removes automake-generated Makefile.in files:
+GITIGNORE_MAINTAINERCLEANFILES_MAKEFILE_IN = \
+	`$(AUTOCONF) --trace 'AC_CONFIG_FILES:$$1' $(srcdir)/configure.ac | \
+	while read f; do \
+	  case $$f in Makefile|*/Makefile) \
+	    test -f "$(srcdir)/$$f.am" && echo "$(srcdir)/$$f.in";; esac; \
+	done`
+#
+# Modules that use libtool /and/ use  AC_CONFIG_MACRO_DIR([m4]) may also
+# include this:
+GITIGNORE_MAINTAINERCLEANFILES_M4_LIBTOOL = \
+	$(srcdir)/m4/libtool.m4 \
+	$(srcdir)/m4/ltoptions.m4 \
+	$(srcdir)/m4/ltsugar.m4 \
+	$(srcdir)/m4/ltversion.m4 \
+	$(srcdir)/m4/lt~obsolete.m4
+
+
+
+###############################################################################
+# Default rule is to install ourselves in all Makefile.am files:
+###############################################################################
+
 git-all: git-mk-install
 
 git-mk-install:
-	@echo Installing git makefile
-	@any_failed=; find $(top_srcdir) -name Makefile.am | while read x; do \
+	@echo "Installing git makefile"
+	@any_failed=; \
+		find "`test -z "$(top_srcdir)" && echo . || echo "$(top_srcdir)"`" -name Makefile.am | while read x; do \
 		if grep 'include .*/git.mk' $$x >/dev/null; then \
-			echo $$x already includes git.mk; \
+			echo "$$x already includes git.mk"; \
 		else \
 			failed=; \
 			echo "Updating $$x"; \
@@ -71,7 +134,7 @@ git-mk-install:
 				mv $$x.tmp $$x || failed=1; \
 			fi; \
 			if test x$$failed = x; then : else \
-				echo Failed updating $$x; >&2 \
+				echo "Failed updating $$x"; >&2 \
 				any_failed=1; \
 			fi; \
 	fi; done; test -z "$$any_failed"
@@ -79,11 +142,14 @@ git-mk-install:
 .PHONY: git-all git-mk-install
 
 
-### .gitignore generation
+
+###############################################################################
+# Actual .gitignore generation:
+###############################################################################
 
 $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
-	$(AM_V_GEN) \
-	{ \
+	@echo "git.mk: Generating $@"
+	@{ \
 		if test "x$(DOC_MODULE)" = x -o "x$(DOC_MAIN_SGML_FILE)" = x; then :; else \
 			for x in \
 				$(DOC_MODULE)-decl-list.txt \
@@ -91,35 +157,62 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 				tmpl/$(DOC_MODULE)-unused.sgml \
 				"tmpl/*.bak" \
 				xml html \
-			; do echo /$$x; done; \
+			; do echo "/$$x"; done; \
 		fi; \
-		if test "x$(DOC_MODULE)" = x -o "x$(DOC_LINGUAS)" = x; then :; else \
+		if test "x$(DOC_MODULE)$(DOC_ID)" = x -o "x$(DOC_LINGUAS)" = x; then :; else \
+			for lc in $(DOC_LINGUAS); do \
+				for x in \
+					$(if $(DOC_MODULE),$(DOC_MODULE).xml) \
+					$(DOC_PAGES) \
+					$(DOC_INCLUDES) \
+				; do echo "/$$lc/$$x"; done; \
+			done; \
 			for x in \
-				$(_DOC_C_DOCS) \
-				$(_DOC_LC_DOCS) \
 				$(_DOC_OMF_ALL) \
 				$(_DOC_DSK_ALL) \
 				$(_DOC_HTML_ALL) \
-				$(_DOC_POFILES) \
+				$(_DOC_MOFILES) \
+				$(DOC_H_FILE) \
 				"*/.xml2po.mo" \
 				"*/*.omf.out" \
 			; do echo /$$x; done; \
 		fi; \
+		if test "x$(HELP_ID)" = x -o "x$(HELP_LINGUAS)" = x; then :; else \
+			for lc in $(HELP_LINGUAS); do \
+				for x in \
+					$(HELP_FILES) \
+					"$$lc.stamp" \
+					"$$lc.mo" \
+				; do echo "/$$lc/$$x"; done; \
+			done; \
+		fi; \
+		if test "x$(gsettings_SCHEMAS)" = x; then :; else \
+			for x in \
+				$(gsettings_SCHEMAS:.xml=.valid) \
+				$(gsettings__enum_file) \
+			; do echo "/$$x"; done; \
+		fi; \
 		if test -f $(srcdir)/po/Makefile.in.in; then \
 			for x in \
 				po/Makefile.in.in \
+				po/Makefile.in.in~ \
 				po/Makefile.in \
 				po/Makefile \
+				po/Makevars.template \
 				po/POTFILES \
+				po/Rules-quot \
 				po/stamp-it \
 				po/.intltool-merge-cache \
 				"po/*.gmo" \
+				"po/*.header" \
 				"po/*.mo" \
+				"po/*.sed" \
+				"po/*.sin" \
 				po/$(GETTEXT_PACKAGE).pot \
 				intltool-extract.in \
 				intltool-merge.in \
 				intltool-update.in \
-			; do echo /$$x; done; \
+			; do echo "/$$x"; done; \
 		fi; \
 		if test -f $(srcdir)/configure; then \
 			for x in \
@@ -129,21 +222,33 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 				stamp-h1 \
 				libtool \
 				config.lt \
-			; do echo /$$x; done; \
+			; do echo "/$$x"; done; \
+		fi; \
+		if test "x$(DEJATOOL)" = x; then :; else \
+			for x in \
+				$(DEJATOOL) \
+			; do echo "/$$x.sum"; echo "/$$x.log"; done; \
+			echo /site.exp; \
+		fi; \
+		if test "x$(am__dirstamp)" = x; then :; else \
+			echo "$(am__dirstamp)"; \
+		fi; \
+		if test "x$(LTCOMPILE)" = x; then :; else \
+			for x in \
+				"*.lo" \
+				".libs" "_libs" \
+			; do echo "$$x"; done; \
 		fi; \
 		for x in \
 			.gitignore \
 			$(GITIGNOREFILES) \
 			$(CLEANFILES) \
-			$(PROGRAMS) \
-			$(check_PROGRAMS) \
-			$(EXTRA_PROGRAMS) \
-			$(LTLIBRARIES) \
+			$(PROGRAMS) $(check_PROGRAMS) $(EXTRA_PROGRAMS) \
+			$(LIBRARIES) $(check_LIBRARIES) $(EXTRA_LIBRARIES) \
+			$(LTLIBRARIES) $(check_LTLIBRARIES) $(EXTRA_LTLIBRARIES) \
 			so_locations \
-			.libs _libs \
 			$(MOSTLYCLEANFILES) \
 			"*.$(OBJEXT)" \
-			"*.lo" \
 			$(DISTCLEANFILES) \
 			$(am__CONFIG_DISTCLEAN_FILES) \
 			$(CONFIG_CLEAN_FILES) \
@@ -159,7 +264,8 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 			"*.bak" \
 			"*~" \
 			".*.sw[nop]" \
-		; do echo /$$x; done; \
+			".dirstamp" \
+		; do echo "/$$x"; done; \
 	} | \
 	sed "s@^/`echo "$(srcdir)" | sed 's/\(.\)/[\1]/g'`/@/@" | \
 	sed 's@/[.]/@/@g' | \
@@ -167,18 +273,19 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 	mv $@.tmp $@;
 
 all: $(srcdir)/.gitignore gitignore-recurse-maybe
+gitignore: $(srcdir)/.gitignore gitignore-recurse
+
 gitignore-recurse-maybe:
-	@if test "x$(SUBDIRS)" = "x$(DIST_SUBDIRS)"; then :; else \
-		$(MAKE) $(AM_MAKEFLAGS) gitignore-recurse; \
-	fi;
-gitignore-recurse:
 	@for subdir in $(DIST_SUBDIRS); do \
 	  case " $(SUBDIRS) " in \
 	    *" $$subdir "*) :;; \
-	    *) test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) .gitignore gitignore-recurse || echo "Skipping $$subdir");; \
+	    *) test "$$subdir" = . -o -e "$$subdir/.git" || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) gitignore || echo "Skipping $$subdir");; \
 	  esac; \
 	done
-gitignore: $(srcdir)/.gitignore gitignore-recurse
+gitignore-recurse:
+	@for subdir in $(DIST_SUBDIRS); do \
+	    test "$$subdir" = . -o -e "$$subdir/.git" || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) gitignore || echo "Skipping $$subdir"); \
+	done
 
 maintainer-clean: gitignore-clean
 gitignore-clean:
