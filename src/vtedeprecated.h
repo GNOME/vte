@@ -101,6 +101,19 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
 #endif
 
+/* Background effects. */
+void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll);
+void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
+void vte_terminal_set_background_image_file(VteTerminal *terminal,
+					    const char *path);
+void vte_terminal_set_background_tint_color(VteTerminal *terminal,
+					    const GdkColor *color);
+void vte_terminal_set_background_saturation(VteTerminal *terminal,
+					    double saturation);
+void vte_terminal_set_background_transparent(VteTerminal *terminal,
+					     gboolean transparent);
+void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity);
+
 G_END_DECLS
 
 #endif /* !vte_deprecated_h_included */

@@ -3087,6 +3087,8 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
  *
  * Sets the opacity of the terminal background, were 0 means completely
  * transparent and 65535 means completely opaque.
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
@@ -12422,6 +12424,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * in-memory copy of the image before applying it to the terminal.
          * 
          * Since: 0.20
+         *
+         * Deprecated: 0.34.8
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12441,6 +12445,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * in-memory copy of the image before applying it to the terminal.
          * 
          * Since: 0.20
+         *
+         * Deprecated: 0.34.8
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12456,6 +12462,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * transparent and 1.0 means completely opaque.
          *
          * Since: 0.20
+         *
+         * Deprecated: 0.34.8
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12476,6 +12484,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * image (or snapshot of the root window) and modify its pixel values.
          *
          * Since: 0.20
+         *
+         * Deprecated: 0.34.8
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12498,6 +12508,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * is black.
          * 
          * Since: 0.20
+         *
+         * Deprecated: 0.34.8
          */
         g_object_class_install_property
                 (gobject_class,
@@ -12517,6 +12529,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * set a RGBA colourmap on the toplevel window, so you get real transparency.
          *
          * Since: 0.20
+         *
+         * Deprecated: 0.34.8
          */
         g_object_class_install_property
                 (gobject_class,
@@ -13033,6 +13047,8 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
  * one is set) when the text in the window must be scrolled.
  *
  * Since: 0.11
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
@@ -13186,6 +13202,8 @@ vte_terminal_paste_primary(VteTerminal *terminal)
  * Appends menu items for various input methods to the given menu.  The
  * user can select one of these items to modify the input method used by
  * the terminal.
+ *
+ * Deprecated: 0.34.6
  */
 void
 vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
@@ -13314,6 +13332,8 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
  * than 1.0, the terminal will adjust the colors of the image before drawing
  * the image.  To do so, the terminal will create a copy of the background
  * image (or snapshot of the root window) and modify its pixel values.
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
@@ -13356,6 +13376,8 @@ vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
  * is black.
  *
  * Since: 0.11
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_background_tint_color(VteTerminal *terminal,
@@ -13397,6 +13419,8 @@ vte_terminal_set_background_tint_color(VteTerminal *terminal,
  * Sets the terminal's background image to the pixmap stored in the root
  * window, adjusted so that if there are no windows below your application,
  * the widget will appear to be transparent.
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_background_transparent(VteTerminal *terminal,
@@ -13434,6 +13458,8 @@ vte_terminal_set_background_transparent(VteTerminal *terminal,
  * widget's entire visible area. If specified by
  * vte_terminal_set_background_saturation(), the terminal will tint its
  * in-memory copy of the image before applying it to the terminal.
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
@@ -13493,6 +13519,8 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
  * Sets a background image for the widget.  If specified by
  * vte_terminal_set_background_saturation(), the terminal will tint its
  * in-memory copy of the image before applying it to the terminal.
+ *
+ * Deprecated: 0.34.8
  */
 void
 vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
