@@ -306,7 +306,6 @@ void vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible);
 gboolean vte_terminal_get_audible_bell(VteTerminal *terminal);
 void vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible);
 gboolean vte_terminal_get_visible_bell(VteTerminal *terminal);
-void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
@@ -351,18 +350,6 @@ void vte_terminal_set_colors_rgba(VteTerminal *terminal,
 #endif
 
 void vte_terminal_set_default_colors(VteTerminal *terminal);
-
-/* Background effects. */
-void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
-void vte_terminal_set_background_image_file(VteTerminal *terminal,
-					    const char *path);
-void vte_terminal_set_background_tint_color(VteTerminal *terminal,
-					    const GdkColor *color);
-void vte_terminal_set_background_saturation(VteTerminal *terminal,
-					    double saturation);
-void vte_terminal_set_background_transparent(VteTerminal *terminal,
-					     gboolean transparent);
-void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity);
 
 /* Set whether or not the cursor blinks. */
 void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,

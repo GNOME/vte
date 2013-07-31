@@ -98,21 +98,21 @@ void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
 
 #if GTK_CHECK_VERSION (2, 91, 2)
-GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
+GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal) G_GNUC_DEPRECATED;
 #endif
 
 /* Background effects. */
-void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll);
-void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image);
+void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll) G_GNUC_DEPRECATED;
+void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_image_file(VteTerminal *terminal,
-					    const char *path);
+					    const char *path) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_tint_color(VteTerminal *terminal,
-					    const GdkColor *color);
+					    const GdkColor *color) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_saturation(VteTerminal *terminal,
-					    double saturation);
+					    double saturation) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_transparent(VteTerminal *terminal,
-					     gboolean transparent);
-void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity);
+					     gboolean transparent) G_GNUC_DEPRECATED;
+void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity) G_GNUC_DEPRECATED;
 
 G_END_DECLS
 
