@@ -368,6 +368,9 @@ font_info_measure_font (struct font_info *info)
 	/* We don't do CEIL for width since we are averaging;
 	 * rounding is more accurate */
 	info->width  = PANGO_PIXELS (howmany (logical.width, strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS)));
+        /* Guard against pathological font since width=0 causes a FPE later on */
+	info->width = MAX (info->width, 1);
+
 	info->height = PANGO_PIXELS_CEIL (logical.height);
 	info->ascent = PANGO_PIXELS_CEIL (pango_layout_get_baseline (info->layout));
 
