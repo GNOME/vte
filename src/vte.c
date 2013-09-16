@@ -10673,21 +10673,10 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					 * in this chunk. */
 					selected = vte_cell_is_selected(terminal, j, row, NULL);
 					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
-					/* Graphic characters must be drawn individually. */
+					/* Graphic characters must be drawn individually and thus break the
+                                         * run of characters with the same attributes. */
 					if (vte_unichar_is_local_graphic(cell->c)) {
-						if (vte_terminal_draw_graphic(terminal,
-									cell->c,
-									nfore, nback,
-									FALSE,
-									start_x + j * column_width,
-									y,
-									column_width,
-									cell->attr.columns,
-									row_height)) {
-
-							j += cell->attr.columns;
-							continue;
-						}
+						break;
 					}
 					if (nfore != fore) {
 						break;
