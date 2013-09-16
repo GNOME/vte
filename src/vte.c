@@ -14132,13 +14132,13 @@ vte_terminal_reset(VteTerminal *terminal,
 		g_free(pvt->selection);
 		pvt->selection = NULL;
 		memset(&pvt->selection_origin, 0,
-		       sizeof(&pvt->selection_origin));
+		       sizeof(pvt->selection_origin));
 		memset(&pvt->selection_last, 0,
-		       sizeof(&pvt->selection_last));
+		       sizeof(pvt->selection_last));
 		memset(&pvt->selection_start, 0,
-		       sizeof(&pvt->selection_start));
+		       sizeof(pvt->selection_start));
 		memset(&pvt->selection_end, 0,
-		       sizeof(&pvt->selection_end));
+		       sizeof(pvt->selection_end));
 	}
 	/* Reset mouse motion events. */
 	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
