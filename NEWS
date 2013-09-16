@@ -1,3 +1,10 @@
+0.34.8
+======
+- Build fixes
+- Fix crash on pathological fonts (#708196)
+- Use correct character attributes around graphic characters (part of #707221)
+- Make extended fore/background colour handling more xterm-like (#616436)
+
 0.34.7
 ======
 - Honour gtk-enable-primary-paste setting
