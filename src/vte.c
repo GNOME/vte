@@ -318,10 +318,6 @@ G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
 #endif
 #endif /* GTK 3.0 */
 
-/* Indexes in the "palette" color array for the dim colors.
- * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
-static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
-
 static void
 vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 {
@@ -373,6 +369,8 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	screen->defaults = basic_cell.cell;
 	screen->color_defaults = screen->defaults;
 	screen->fill_defaults = screen->defaults;
+	screen->fg_sgr_extended = FALSE;
+	screen->bg_sgr_extended = FALSE;
 }
 
 /* Cause certain cells to be repainted. */
@@ -3292,8 +3290,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	_vte_debug_print(VTE_DEBUG_PARSE,
 			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld; ",
 			(long)c, c < 256 ? c : ' ',
-			screen->defaults.attr.fore,
-			screen->defaults.attr.back,
+			screen->color_defaults.attr.fore,
+			screen->color_defaults.attr.back,
 			col, columns, (long)screen->cursor_current.row,
 			(long)screen->insert_delta);
 
@@ -3398,6 +3396,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	attr = screen->defaults.attr;
+	attr.fore = screen->color_defaults.attr.fore;
+	attr.back = screen->color_defaults.attr.back;
 	attr.columns = columns;
 
 	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {
@@ -9198,29 +9198,6 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 			back = VTE_DEF_FG;
 	}
 
-	/* Handle bold by using set bold color or brightening */
-	if (cell->attr.bold) {
-		if (fore == VTE_DEF_FG)
-			fore = VTE_BOLD_FG;
-		else if (fore < VTE_LEGACY_COLOR_SET_SIZE) {
-			fore += VTE_COLOR_BRIGHT_OFFSET;
-		}
-	}
-
-	/* Handle half similarly */
-	if (cell->attr.half) {
-		if (fore == VTE_DEF_FG)
-			fore = VTE_DIM_FG;
-		else if ((fore < VTE_LEGACY_COLOR_SET_SIZE))
-			fore = corresponding_dim_index[fore];
-	}
-
-	/* And standout */
-	if (cell->attr.standout) {
-		if (back < VTE_LEGACY_COLOR_SET_SIZE)
-			back += VTE_COLOR_BRIGHT_OFFSET;
-	}
-
 	/* Reverse cell? */
 	if (cell->attr.reverse) {
 		swap (&fore, &back);
@@ -11070,8 +11047,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 				row * height + terminal->pvt->inner_border.top,
 				width * columns,
 				height);
-		fore = screen->defaults.attr.fore;
-		back = screen->defaults.attr.back;
+		fore = screen->color_defaults.attr.fore;
+		back = screen->color_defaults.attr.back;
 		vte_terminal_draw_cells_with_attributes(terminal,
 							items, len,
 							terminal->pvt->im_preedit_attrs,

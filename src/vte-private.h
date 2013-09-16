@@ -227,14 +227,19 @@ struct _VteTerminalPrivate {
 		long insert_delta;	/* insertion offset */
 		VteCell defaults;	/* default characteristics
 					   for insertion of any new
-					   characters */
+					   characters; colors not yet
+					   adjusted for bold/dim/standout */
 		VteCell color_defaults;	/* original defaults
 					   plus the current
-					   fore/back */
+					   fore/back already adjusted for
+					   bold/dim/standout */
 		VteCell fill_defaults;	/* original defaults
 					   plus the current
-					   fore/back with no
+					   fore/back already adjusted for
+					   bold/dim/standout with no
 					   character data */
+		gboolean fg_sgr_extended, bg_sgr_extended;	/* whether fg/bg were set by
+								   256 color sequences */
 		gboolean alternate_charset;
 		gboolean status_line;
 		GString *status_line_contents;

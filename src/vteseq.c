@@ -493,6 +493,53 @@ vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
 }
 
 
+/* Indexes in the "palette" color array for the dim colors.
+ * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
+static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
+
+static void
+vte_adjust_colors(VteTerminal *terminal)
+{
+	guint fore, back;
+
+	fore = terminal->pvt->screen->defaults.attr.fore;
+	back = terminal->pvt->screen->defaults.attr.back;
+
+	/* Handle bold by using set bold color or brightening */
+	if (terminal->pvt->screen->defaults.attr.bold) {
+		if (fore == VTE_DEF_FG) {
+			fore = VTE_BOLD_FG;
+		} else if (!terminal->pvt->screen->fg_sgr_extended
+			  && fore < VTE_LEGACY_COLOR_SET_SIZE) {
+				fore += VTE_COLOR_BRIGHT_OFFSET;
+		}
+	}
+
+	/* Handle half similarly */
+	if (terminal->pvt->screen->defaults.attr.half) {
+		if (fore == VTE_DEF_FG) {
+			fore = VTE_DIM_FG;
+		} else if (!terminal->pvt->screen->fg_sgr_extended
+			  && fore < VTE_LEGACY_COLOR_SET_SIZE) {
+			fore = corresponding_dim_index[fore];
+		}
+	}
+
+	/* And standout */
+	if (terminal->pvt->screen->defaults.attr.standout) {
+		if (!terminal->pvt->screen->bg_sgr_extended
+		  && back < VTE_LEGACY_COLOR_SET_SIZE) {
+			back += VTE_COLOR_BRIGHT_OFFSET;
+		}
+	}
+
+	/* Save the adjusted colors. */
+	terminal->pvt->screen->color_defaults.attr.fore = fore;
+	terminal->pvt->screen->color_defaults.attr.back = back;
+	terminal->pvt->screen->fill_defaults.attr.fore = fore;
+	terminal->pvt->screen->fill_defaults.attr.back = back;
+}
+
 /*
  * Sequence handling boilerplate
  */
@@ -2348,6 +2395,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 35:
 		case 36:
 		case 37:
+			terminal->pvt->screen->fg_sgr_extended = FALSE;
 			terminal->pvt->screen->defaults.attr.fore = param - 30;
 			break;
 		case 38:
@@ -2363,14 +2411,17 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 					break;
 				param1 = g_value_get_long(value1);
 				param2 = g_value_get_long(value2);
-				if (G_LIKELY (param1 == 5 && param2 >= 0 && param2 < 256))
+				if (G_LIKELY (param1 == 5 && param2 >= 0 && param2 < 256)) {
+					terminal->pvt->screen->fg_sgr_extended = TRUE;
 					terminal->pvt->screen->defaults.attr.fore = param2;
+				}
 				i += 2;
 			}
 			break;
 		}
 		case 39:
 			/* default foreground */
+			terminal->pvt->screen->fg_sgr_extended = FALSE;
 			terminal->pvt->screen->defaults.attr.fore = VTE_DEF_FG;
 			break;
 		case 40:
@@ -2381,6 +2432,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 45:
 		case 46:
 		case 47:
+			terminal->pvt->screen->bg_sgr_extended = FALSE;
 			terminal->pvt->screen->defaults.attr.back = param - 40;
 			break;
 		case 48:
@@ -2396,14 +2448,17 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 					break;
 				param1 = g_value_get_long(value1);
 				param2 = g_value_get_long(value2);
-				if (G_LIKELY (param1 == 5 && param2 >= 0 && param2 < 256))
+				if (G_LIKELY (param1 == 5 && param2 >= 0 && param2 < 256)) {
+					terminal->pvt->screen->bg_sgr_extended = TRUE;
 					terminal->pvt->screen->defaults.attr.back = param2;
+				}
 				i += 2;
 			}
 			break;
 		}
 		case 49:
 			/* default background */
+			terminal->pvt->screen->bg_sgr_extended = FALSE;
 			terminal->pvt->screen->defaults.attr.back = VTE_DEF_BG;
 			break;
 		case 90:
@@ -2414,6 +2469,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 95:
 		case 96:
 		case 97:
+			terminal->pvt->screen->fg_sgr_extended = FALSE;
 			terminal->pvt->screen->defaults.attr.fore = param - 90 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		case 100:
@@ -2424,6 +2480,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 105:
 		case 106:
 		case 107:
+			terminal->pvt->screen->bg_sgr_extended = FALSE;
 			terminal->pvt->screen->defaults.attr.back = param - 100 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		}
@@ -2433,14 +2490,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		_vte_terminal_set_default_attributes(terminal);
 	}
 	/* Save the new colors. */
-	terminal->pvt->screen->color_defaults.attr.fore =
-		terminal->pvt->screen->defaults.attr.fore;
-	terminal->pvt->screen->color_defaults.attr.back =
-		terminal->pvt->screen->defaults.attr.back;
-	terminal->pvt->screen->fill_defaults.attr.fore =
-		terminal->pvt->screen->defaults.attr.fore;
-	terminal->pvt->screen->fill_defaults.attr.back =
-		terminal->pvt->screen->defaults.attr.back;
+	vte_adjust_colors(terminal);
 }
 
 /* Move the cursor to the given column, 1-based. */
