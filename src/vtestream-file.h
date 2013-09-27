@@ -48,6 +48,19 @@ pwrite (int fd, char *data, gsize len, gsize offset)
 }
 #endif
 
+static void
+_xtruncate (gint fd, gsize offset)
+{
+	int ret;
+
+	if (G_UNLIKELY (!fd))
+		return;
+
+	do {
+		ret = ftruncate (fd, offset);
+	} while (ret == -1 && errno == EINTR);
+}
+
 static gsize
 _xpread (int fd, char *data, gsize len, gsize offset)
 {
@@ -78,6 +91,7 @@ static void
 _xpwrite (int fd, const char *data, gsize len, gsize offset)
 {
 	gsize ret;
+	gboolean truncated = FALSE;
 
 	g_assert (fd || !len);
 
@@ -86,6 +100,17 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
+			else if (errno == EINVAL && !truncated)
+			{
+				/* Perhaps previous writes failed and now we are
+				 * seeking past end of file.  Try extending it
+				 * and retry.  This allows recovering from a
+				 * "/tmp is full" error.
+				 */
+				_xtruncate (fd, offset);
+				truncated = TRUE;
+				continue;
+			}
 			else
 				break;
 		}
@@ -95,19 +120,6 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 		len -= ret;
 		offset += ret;
 	}
-}
-
-static void
-_xtruncate (gint fd, gsize offset)
-{
-	int ret;
-
-	if (G_UNLIKELY (!fd))
-		return;
-
-	do {
-		ret = ftruncate (fd, offset);
-	} while (ret == -1 && errno == EINTR);
 }
 
 static gboolean
