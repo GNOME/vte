@@ -21,6 +21,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include <gio/gunixinputstream.h>
 
@@ -181,6 +182,8 @@ _vte_file_stream_ensure_fd0 (VteFileStream *stream)
 		unlink (file_name);
 		g_free (file_name);
 	}
+
+	fcntl (fd, F_SETFL, O_NOATIME);
 
 	stream->fd[0] = dup (fd); /* we do the dup to make sure ->fd[0] is not 0 */
 
