@@ -209,7 +209,7 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 
 	_vte_file_stream_ensure_fd0 (stream);
 
-	_xpwrite (stream->fd[0], data, len, stream->head);
+	_xpwrite (stream->fd[0], data, len, stream->head - stream->offset[0]);
 	stream->head += len;
 }
 
