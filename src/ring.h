@@ -33,7 +33,7 @@ G_BEGIN_DECLS
 
 
 typedef struct _VteCellAttrChange {
-	gsize text_offset;
+	gsize text_end_offset;  // offset of first character no longer using this attr
 	VteIntCellAttr attr;
 } VteCellAttrChange;
 
@@ -55,7 +55,8 @@ struct _VteRing {
 	/* Storage */
 	gulong last_page;
 	VteStream *attr_stream, *text_stream, *row_stream;
-	VteCellAttrChange last_attr;
+	gsize last_attr_text_start_offset;
+	VteIntCellAttr last_attr;
 	GString *utf8_buffer;
 
 	VteRowData cached_row;

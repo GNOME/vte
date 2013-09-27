@@ -66,8 +66,8 @@ _vte_ring_init (VteRing *ring, gulong max_rows)
 	ring->text_stream = _vte_file_stream_new ();
 	ring->row_stream = _vte_file_stream_new ();
 
-	ring->last_attr.text_offset = 0;
-	ring->last_attr.attr.i = basic_cell.i.attr;
+	ring->last_attr_text_start_offset = 0;
+	ring->last_attr.i = basic_cell.i.attr;
 	ring->utf8_buffer = g_string_sized_new (128);
 
 	_vte_row_data_init (&ring->cached_row);
@@ -96,8 +96,8 @@ _vte_ring_fini (VteRing *ring)
 }
 
 typedef struct _VteRowRecord {
-	gsize text_offset;
-	gsize attr_offset;
+	gsize text_start_offset;  // offset where text of this row begins
+	gsize attr_start_offset;  // offset of the first character's attributes
 } VteRowRecord;
 
 static gboolean
@@ -122,8 +122,8 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 
 	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %lu.\n", position);
 
-	record.text_offset = _vte_stream_head (ring->text_stream);
-	record.attr_offset = _vte_stream_head (ring->attr_stream);
+	record.text_start_offset = _vte_stream_head (ring->text_stream);
+	record.attr_start_offset = _vte_stream_head (ring->attr_stream);
 
 	g_string_set_size (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
@@ -143,23 +143,30 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 		 */
 		attr.s = cell->attr;
 		if (G_LIKELY (!attr.s.fragment)) {
+			VteCellAttrChange attr_change;
 
-			if (ring->last_attr.attr.i != attr.i) {
-				ring->last_attr.text_offset = record.text_offset + buffer->len;
-				_vte_stream_append (ring->attr_stream, (const char *) &ring->last_attr, sizeof (ring->last_attr));
+			if (ring->last_attr.i != attr.i) {
+				ring->last_attr_text_start_offset = record.text_start_offset + buffer->len;
+				memset(&attr_change, 0, sizeof (attr_change));
+				attr_change.text_end_offset = ring->last_attr_text_start_offset;
+				attr_change.attr = ring->last_attr;
+				_vte_stream_append (ring->attr_stream, (const char *) &attr_change, sizeof (attr_change));
 				if (!buffer->len)
 					/* This row doesn't use last_attr, adjust */
-					record.attr_offset += sizeof (ring->last_attr);
-				ring->last_attr.attr = attr;
+					record.attr_start_offset += sizeof (attr_change);
+				ring->last_attr = attr;
 			}
 
 			num_chars = _vte_unistr_strlen (cell->c);
 			if (num_chars > 1) {
 				attr.s.columns = 0;
-				ring->last_attr.text_offset = record.text_offset + buffer->len
-							    + g_unichar_to_utf8 (_vte_unistr_get_base (cell->c), NULL);
-				_vte_stream_append (ring->attr_stream, (const char *) &ring->last_attr, sizeof (ring->last_attr));
-				ring->last_attr.attr = attr;
+				ring->last_attr_text_start_offset = record.text_start_offset + buffer->len
+								  + g_unichar_to_utf8 (_vte_unistr_get_base (cell->c), NULL);
+				memset(&attr_change, 0, sizeof (attr_change));
+				attr_change.text_end_offset = ring->last_attr_text_start_offset;
+				attr_change.attr = ring->last_attr;
+				_vte_stream_append (ring->attr_stream, (const char *) &attr_change, sizeof (attr_change));
+				ring->last_attr = attr;
 			}
 
 			_vte_unistr_append_to_string (cell->c, buffer);
@@ -186,7 +193,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 
 	_vte_row_data_clear (row);
 
-	attr_change.text_offset = 0;
+	attr_change.text_end_offset = 0;
 
 	if (!_vte_ring_read_row_record (ring, &records[0], position))
 		return;
@@ -194,10 +201,10 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 		if (!_vte_ring_read_row_record (ring, &records[1], position + 1))
 			return;
 	} else
-		records[1].text_offset = _vte_stream_head (ring->text_stream);
+		records[1].text_start_offset = _vte_stream_head (ring->text_stream);
 
-	g_string_set_size (buffer, records[1].text_offset - records[0].text_offset);
-	if (!_vte_stream_read (ring->text_stream, records[0].text_offset, buffer->str, buffer->len))
+	g_string_set_size (buffer, records[1].text_start_offset - records[0].text_start_offset);
+	if (!_vte_stream_read (ring->text_stream, records[0].text_start_offset, buffer->str, buffer->len))
 		return;
 
 	record = records[0];
@@ -211,13 +218,13 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 	end = p + buffer->len;
 	while (p < end) {
 
-		if (record.text_offset >= ring->last_attr.text_offset) {
-			attr = ring->last_attr.attr;
+		if (record.text_start_offset >= ring->last_attr_text_start_offset) {
+			attr = ring->last_attr;
 		} else {
-			if (record.text_offset >= attr_change.text_offset) {
-				if (!_vte_stream_read (ring->attr_stream, record.attr_offset, (char *) &attr_change, sizeof (attr_change)))
+			if (record.text_start_offset >= attr_change.text_end_offset) {
+				if (!_vte_stream_read (ring->attr_stream, record.attr_start_offset, (char *) &attr_change, sizeof (attr_change)))
 					return;
-				record.attr_offset += sizeof (attr_change);
+				record.attr_start_offset += sizeof (attr_change);
 			}
 			attr = attr_change.attr;
 		}
@@ -226,7 +233,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 		cell.c = g_utf8_get_char (p);
 
 		q = g_utf8_next_char (p);
-		record.text_offset += q - p;
+		record.text_start_offset += q - p;
 		p = q;
 
 		if (G_UNLIKELY (cell.attr.columns == 0)) {
@@ -251,14 +258,18 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 	}
 
 	if (do_truncate) {
-		if (records[0].text_offset < ring->last_attr.text_offset)
-			if (!_vte_stream_read (ring->attr_stream, records[0].attr_offset, (char *) &ring->last_attr, sizeof (ring->last_attr))) {
-				ring->last_attr.text_offset = 0;
-				ring->last_attr.attr.i = basic_cell.i.attr;
+		if (records[0].text_start_offset < ring->last_attr_text_start_offset) {
+			if (_vte_stream_read (ring->attr_stream, records[0].attr_start_offset, (char *) &attr_change, sizeof (attr_change))) {
+				ring->last_attr_text_start_offset = attr_change.text_end_offset;
+				ring->last_attr = attr_change.attr;
+			} else {
+				ring->last_attr_text_start_offset = 0;
+				ring->last_attr.i = basic_cell.i.attr;
 			}
+		}
 		_vte_stream_truncate (ring->row_stream, position * sizeof (record));
-		_vte_stream_truncate (ring->attr_stream, records[0].attr_offset);
-		_vte_stream_truncate (ring->text_stream, records[0].text_offset);
+		_vte_stream_truncate (ring->attr_stream, records[0].attr_start_offset);
+		_vte_stream_truncate (ring->text_stream, records[0].text_start_offset);
 	}
 }
 
@@ -271,8 +282,8 @@ _vte_ring_reset_streams (VteRing *ring, gulong position)
 	_vte_stream_reset (ring->text_stream, 0);
 	_vte_stream_reset (ring->attr_stream, 0);
 
-	ring->last_attr.text_offset = 0;
-	ring->last_attr.attr.i = basic_cell.i.attr;
+	ring->last_attr_text_start_offset = 0;
+	ring->last_attr.i = basic_cell.i.attr;
 
 	ring->last_page = position;
 }
@@ -614,7 +625,7 @@ _vte_ring_write_contents_sync(VteRing *ring,
 		/* XXX what to do in case of error? */
 		if (_vte_ring_read_row_record (ring, &record, ring->start)) {
 			if (!_vte_stream_write_contents (ring->text_stream, stream,
-							 record.text_offset,
+							 record.text_start_offset,
 							 cancellable, error))
 				return FALSE;
 		}
