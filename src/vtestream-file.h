@@ -24,8 +24,31 @@
 
 #include <gio/gunixinputstream.h>
 
+
+#ifndef HAVE_PREAD
+#define pread _pread
 static gsize
-_xread (int fd, char *data, gsize len)
+pread (int fd, char *data, gsize len, gsize offset)
+{
+  if (-1 == lseek (fd, offset, SEEK_SET))
+    return -1;
+  return read (fd, data, len);
+}
+#endif
+
+#ifndef HAVE_PWRITE
+#define pwrite _pwrite
+static gsize
+pwrite (int fd, char *data, gsize len, gsize offset)
+{
+  if (-1 == lseek (fd, offset, SEEK_SET))
+    return -1;
+  return write (fd, data, len);
+}
+#endif
+
+static gsize
+_xpread (int fd, char *data, gsize len, gsize offset)
 {
 	gsize ret, total = 0;
 
@@ -33,7 +56,7 @@ _xread (int fd, char *data, gsize len)
 		return 0;
 
 	while (len) {
-		ret = read (fd, data, len);
+		ret = pread (fd, data, len, offset);
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
@@ -44,20 +67,21 @@ _xread (int fd, char *data, gsize len)
 			break;
 		data += ret;
 		len -= ret;
+		offset += ret;
 		total += ret;
 	}
 	return total;
 }
 
 static void
-_xwrite (int fd, const char *data, gsize len)
+_xpwrite (int fd, const char *data, gsize len, gsize offset)
 {
 	gsize ret;
 
 	g_assert (fd || !len);
 
 	while (len) {
-		ret = write (fd, data, len);
+		ret = pwrite (fd, data, len, offset);
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
@@ -68,6 +92,7 @@ _xwrite (int fd, const char *data, gsize len)
 			break;
 		data += ret;
 		len -= ret;
+		offset += ret;
 	}
 }
 
@@ -181,8 +206,7 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 
 	_vte_file_stream_ensure_fd0 (stream);
 
-	lseek (stream->fd[0], 0, SEEK_END);
-	_xwrite (stream->fd[0], data, len);
+	_xpwrite (stream->fd[0], data, len, stream->head);
 	stream->head += len;
 }
 
@@ -196,13 +220,11 @@ _vte_file_stream_read (VteStream *astream, gsize offset, char *data, gsize len)
 		return FALSE;
 
 	if (offset < stream->offset[0]) {
-		lseek (stream->fd[1], offset - stream->offset[1], SEEK_SET);
-		l = _xread (stream->fd[1], data, len);
+		l = _xpread (stream->fd[1], data, len, offset - stream->offset[1]);
 		offset += l; data += l; len -= l; if (!len) return TRUE;
 	}
 
-	lseek (stream->fd[0], offset - stream->offset[0], SEEK_SET);
-	l = _xread (stream->fd[0], data, len);
+	l = _xpread (stream->fd[0], data, len, offset - stream->offset[0]);
 	offset += l; data += l; len -= l; if (!len) return TRUE;
 
 	return FALSE;
