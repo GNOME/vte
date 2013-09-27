@@ -65,10 +65,10 @@ _vte_stream_reset (VteStream *stream, gsize offset)
 	VTE_STREAM_GET_CLASS (stream)->reset (stream, offset);
 }
 
-gsize
+void
 _vte_stream_append (VteStream *stream, const char *data, gsize len)
 {
-	return VTE_STREAM_GET_CLASS (stream)->append (stream, data, len);
+	VTE_STREAM_GET_CLASS (stream)->append (stream, data, len);
 }
 
 gboolean

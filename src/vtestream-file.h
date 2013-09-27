@@ -111,6 +111,7 @@ typedef struct _VteFileStream {
 	/* The first fd/offset is for the write head, second is for last page */
 	gint fd[2];
 	gsize offset[2];
+	gsize head;
 } VteFileStream;
 
 typedef VteStreamClass VteFileStreamClass;
@@ -169,10 +170,10 @@ _vte_file_stream_reset (VteStream *astream, gsize offset)
 	if (stream->fd[0]) _xtruncate (stream->fd[0], 0);
 	if (stream->fd[1]) _xtruncate (stream->fd[1], 0);
 
-	stream->offset[0] = stream->offset[1] = offset;
+	stream->head = stream->offset[0] = stream->offset[1] = offset;
 }
 
-static gsize
+static void
 _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
@@ -180,10 +181,9 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 
 	_vte_file_stream_ensure_fd0 (stream);
 
-	ret = lseek (stream->fd[0], 0, SEEK_END);
+	lseek (stream->fd[0], 0, SEEK_END);
 	_xwrite (stream->fd[0], data, len);
-
-	return stream->offset[0] + ret;
+	stream->head += len;
 }
 
 static gboolean
@@ -233,6 +233,8 @@ _vte_file_stream_truncate (VteStream *astream, gsize offset)
 	} else {
 		_xtruncate (stream->fd[0], offset - stream->offset[0]);
 	}
+
+	stream->head = offset;
 }
 
 static void
@@ -252,10 +254,7 @@ _vte_file_stream_head (VteStream *astream)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	if (stream->fd[0])
-		return stream->offset[0] + lseek (stream->fd[0], 0, SEEK_END);
-	else
-		return stream->offset[0];
+	return stream->head;
 }
 
 static gboolean
