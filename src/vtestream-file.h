@@ -268,8 +268,7 @@ _vte_file_stream_new_page (VteStream *astream)
 	VteFileStream *stream = (VteFileStream *) astream;
 
 	stream->offset[1] = stream->offset[0];
-	if (stream->fd[0])
-		stream->offset[0] += lseek (stream->fd[0], 0, SEEK_END);
+	stream->offset[0] = stream->head;
 	_vte_file_stream_swap_fds (stream);
 	_xtruncate (stream->fd[0], 0);
 }
