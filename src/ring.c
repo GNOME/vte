@@ -258,17 +258,32 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 	}
 
 	if (do_truncate) {
-		if (records[0].text_start_offset < ring->last_attr_text_start_offset) {
-			if (_vte_stream_read (ring->attr_stream, records[0].attr_start_offset, (char *) &attr_change, sizeof (attr_change))) {
-				ring->last_attr_text_start_offset = attr_change.text_end_offset;
+		gsize attr_stream_truncate_at = records[0].attr_start_offset;
+		_vte_debug_print (VTE_DEBUG_RING, "Truncating\n");
+		if (records[0].text_start_offset <= ring->last_attr_text_start_offset) {
+			/* Check the previous attr record. If its text ends where truncating, this attr record also needs to be removed. */
+			if (_vte_stream_read (ring->attr_stream, attr_stream_truncate_at - sizeof (attr_change), (char *) &attr_change, sizeof (attr_change))) {
+				if (records[0].text_start_offset == attr_change.text_end_offset) {
+					_vte_debug_print (VTE_DEBUG_RING, "... at attribute change\n");
+					attr_stream_truncate_at -= sizeof (attr_change);
+				}
+			}
+			/* Reconstruct last_attr from the first record of attr_stream that we cut off,
+			   last_attr_text_start_offset from the last record that we keep. */
+			if (_vte_stream_read (ring->attr_stream, attr_stream_truncate_at, (char *) &attr_change, sizeof (attr_change))) {
 				ring->last_attr = attr_change.attr;
+				if (_vte_stream_read (ring->attr_stream, attr_stream_truncate_at - sizeof (attr_change), (char *) &attr_change, sizeof (attr_change))) {
+					ring->last_attr_text_start_offset = attr_change.text_end_offset;
+				} else {
+					ring->last_attr_text_start_offset = 0;
+				}
 			} else {
 				ring->last_attr_text_start_offset = 0;
 				ring->last_attr.i = basic_cell.i.attr;
 			}
 		}
 		_vte_stream_truncate (ring->row_stream, position * sizeof (record));
-		_vte_stream_truncate (ring->attr_stream, records[0].attr_start_offset);
+		_vte_stream_truncate (ring->attr_stream, attr_stream_truncate_at);
 		_vte_stream_truncate (ring->text_stream, records[0].text_start_offset);
 	}
 }
