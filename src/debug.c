@@ -50,7 +50,8 @@ _vte_debug_init(void)
     { "ally",         VTE_DEBUG_ALLY         },
     { "pangocairo",   VTE_DEBUG_PANGOCAIRO   },
     { "widget-size",  VTE_DEBUG_WIDGET_SIZE  },
-    { "bg",           VTE_DEBUG_BG           }
+    { "bg",           VTE_DEBUG_BG           },
+    { "resize",       VTE_DEBUG_RESIZE       }
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),
