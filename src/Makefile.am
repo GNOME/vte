@@ -81,6 +81,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtetypebuiltins.h \
 	vteunistr.c \
 	vteunistr.h \
+	vteutils.c \
+	vteutils.h \
 	vteversion.h
 	$(NULL)
 
