@@ -25,6 +25,7 @@
 
 #include <gio/gunixinputstream.h>
 
+#include "vteutils.h"
 
 #ifndef HAVE_PREAD
 #define pread _pread
@@ -185,21 +186,15 @@ static inline void
 _vte_file_stream_ensure_fd0 (VteFileStream *stream)
 {
 	gint fd;
-	gchar *file_name;
+
 	if (G_LIKELY (stream->fd[0]))
 		return;
 
-	fd = g_file_open_tmp ("vteXXXXXX", &file_name, NULL);
-	if (fd != -1) {
-		unlink (file_name);
-		g_free (file_name);
-	}
+        fd = _vte_mkstemp ();
+        if (fd == -1)
+                return;
 
-	fcntl (fd, F_SETFL, O_NOATIME);
-
-	stream->fd[0] = dup (fd); /* we do the dup to make sure ->fd[0] is not 0 */
-
-	close (fd);
+        stream->fd[0] = fd;
 }
 
 static void

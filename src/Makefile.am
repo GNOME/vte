@@ -87,6 +87,8 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vtetypebuiltins.h \
 	vteunistr.c \
 	vteunistr.h \
+	vteutils.c \
+	vteutils.h \
 	vteversion.h
 	$(NULL)
 
