@@ -8011,6 +8011,82 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 	}
 }
 
+/* Resize the given screen (normal or alternate) of the terminal. */
+static void
+vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old_columns, glong old_rows)
+{
+	VteRing *ring = screen->row_data;
+	gboolean was_scrolled_to_top = (screen->scroll_delta == _vte_ring_delta(ring));
+	gboolean was_scrolled_to_bottom = (screen->scroll_delta == screen->insert_delta);
+	glong new_scroll_delta;
+	long cursor_saved_absolute_row = screen->insert_delta + screen->cursor_saved.row;
+
+	_vte_debug_print(VTE_DEBUG_RESIZE,
+			"Resizing %s screen\n"
+			"Old  ring_delta=%ld  ring_next=%ld\n"
+			"Old  insert_delta=%ld  scroll_delta=%ld\n",
+			screen == &terminal->pvt->normal_screen ? "normal" : "alternate",
+			_vte_ring_delta(ring), _vte_ring_next(ring),
+			screen->insert_delta, screen->scroll_delta);
+
+	if (old_rows > terminal->row_count &&
+	    screen->insert_delta + old_rows > screen->cursor_current.row + 1) {
+		/* Shrinking the window, cursor was not at the bottom.
+		   Drop lines from the bottom as XTerm does, see bug 708213 */
+		int drop_lines = MIN(
+				old_rows - terminal->row_count,
+				(screen->insert_delta + old_rows) - (screen->cursor_current.row + 1));
+		int new_ring_next = screen->insert_delta + old_rows - drop_lines;
+		_vte_debug_print(VTE_DEBUG_RESIZE,
+				"Dropping %d rows at the bottom\n",
+				drop_lines);
+		_vte_ring_shrink(ring, new_ring_next - _vte_ring_delta(ring));
+	}
+	if (_vte_ring_length(ring) <= terminal->row_count) {
+		/* Everything fits without scrollbars. Align at top. */
+		screen->insert_delta = _vte_ring_delta(ring);
+		new_scroll_delta = screen->insert_delta;
+		_vte_debug_print(VTE_DEBUG_RESIZE,
+				"Everything fits without scrollbars\n");
+	} else {
+		/* Scrollbar required. Can't afford unused lines at bottom. */
+		screen->insert_delta = _vte_ring_next(ring) - terminal->row_count;
+		if (was_scrolled_to_bottom) {
+			/* Was scrolled to bottom, keep this way. */
+			new_scroll_delta = screen->insert_delta;
+			_vte_debug_print(VTE_DEBUG_RESIZE,
+					"Scroll to bottom\n");
+		} else if (was_scrolled_to_top) {
+			/* Was scrolled to top, keep this way. Not sure if this special case is worth it. */
+			new_scroll_delta = _vte_ring_delta(ring);
+			_vte_debug_print(VTE_DEBUG_RESIZE,
+					"Scroll to top\n");
+		} else {
+			/* Try to scroll so that the bottom visible row stays. */
+			new_scroll_delta = screen->scroll_delta + old_rows - terminal->row_count;
+			_vte_debug_print(VTE_DEBUG_RESIZE,
+					"Scroll so bottom row stays\n");
+		}
+	}
+
+	/* Saved cursor is relative to visible part. Adjust so that it stays relative to the ring.
+	   Don't clamp yet (so that it's tracked correctly through multiple resizes), it will be clamped when restored. */
+	screen->cursor_saved.row = cursor_saved_absolute_row - screen->insert_delta;
+
+	_vte_debug_print(VTE_DEBUG_RESIZE,
+			"New  ring_delta=%ld  ring_next=%ld\n"
+			"New  insert_delta=%ld  scroll_delta=%ld\n\n",
+			_vte_ring_delta(ring), _vte_ring_next(ring),
+			screen->insert_delta, new_scroll_delta);
+
+	if (screen == terminal->pvt->screen)
+		vte_terminal_queue_adjustment_value_changed (
+				terminal,
+				new_scroll_delta);
+	else
+		screen->scroll_delta = new_scroll_delta;
+}
+
 /**
  * vte_terminal_set_size:
  * @terminal: a #VteTerminal
@@ -8050,67 +8126,11 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		terminal->column_count = columns;
 	}
 	if (old_rows != terminal->row_count || old_columns != terminal->column_count) {
-		VteScreen *screen = terminal->pvt->screen;
-		VteRing *ring = screen->row_data;
-		gboolean was_scrolled_to_top = (screen->scroll_delta == _vte_ring_delta(ring));
-		gboolean was_scrolled_to_bottom = (screen->scroll_delta == screen->insert_delta);
-		glong new_scroll_delta;
+		/* Always resize normal screen, even if alternate is visible: bug 415277 */
+		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows);
+		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)
+			vte_terminal_screen_set_size(terminal, &terminal->pvt->alternate_screen, old_columns, old_rows);
 
-		_vte_debug_print(VTE_DEBUG_RESIZE,
-				"Old  ring_delta=%ld  ring_next=%ld\n"
-				"Old  insert_delta=%ld  scroll_delta=%ld\n",
-				_vte_ring_delta(ring), _vte_ring_next(ring),
-				screen->insert_delta, screen->scroll_delta);
-
-		if (old_rows > terminal->row_count &&
-		    screen->insert_delta + old_rows > screen->cursor_current.row + 1) {
-			/* Shrinking the window, cursor was not at the bottom.
-			   Drop lines from the bottom as XTerm does, see bug 708213 */
-			int drop_lines = MIN(
-					old_rows - terminal->row_count,
-					(screen->insert_delta + old_rows) - (screen->cursor_current.row + 1));
-			int new_ring_next = screen->insert_delta + old_rows - drop_lines;
-			_vte_debug_print(VTE_DEBUG_RESIZE,
-					"Dropping %d rows at the bottom\n",
-					drop_lines);
-			_vte_ring_shrink(ring, new_ring_next - _vte_ring_delta(ring));
-		}
-		if (_vte_ring_length(ring) <= terminal->row_count) {
-			/* Everything fits without scrollbars. Align at top. */
-			screen->insert_delta = _vte_ring_delta(ring);
-			new_scroll_delta = screen->insert_delta;
-			_vte_debug_print(VTE_DEBUG_RESIZE,
-					"Everything fits without scrollbars\n");
-		} else {
-			/* Scrollbar required. Can't afford unused lines at bottom. */
-			screen->insert_delta = _vte_ring_next(ring) - terminal->row_count;
-			if (was_scrolled_to_bottom) {
-				/* Was scrolled to bottom, keep this way. */
-				new_scroll_delta = screen->insert_delta;
-				_vte_debug_print(VTE_DEBUG_RESIZE,
-						"Scroll to bottom\n");
-			} else if (was_scrolled_to_top) {
-				/* Was scrolled to top, keep this way. Not sure if this special case is worth it. */
-				new_scroll_delta = _vte_ring_delta(ring);
-				_vte_debug_print(VTE_DEBUG_RESIZE,
-						"Scroll to top\n");
-			} else {
-				/* Try to scroll so that the bottom visible row stays. */
-				new_scroll_delta = screen->scroll_delta + old_rows - terminal->row_count;
-				_vte_debug_print(VTE_DEBUG_RESIZE,
-						"Scroll so bottom row stays\n");
-			}
-		}
-
-		_vte_debug_print(VTE_DEBUG_RESIZE,
-				"New  ring_delta=%ld  ring_next=%ld\n"
-				"New  insert_delta=%ld  scroll_delta=%ld\n\n",
-				_vte_ring_delta(ring), _vte_ring_next(ring),
-				screen->insert_delta, new_scroll_delta);
-
-		vte_terminal_queue_adjustment_value_changed (
-				terminal,
-				new_scroll_delta);
 		gtk_widget_queue_resize_no_redraw (&terminal->widget);
 		/* Our visible text changed. */
 		vte_terminal_emit_text_modified(terminal);
