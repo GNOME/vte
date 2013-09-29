@@ -123,22 +123,6 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 	}
 }
 
-static gboolean
-_xwrite_contents (gint fd, GOutputStream *output, GCancellable *cancellable, GError **error)
-{
-	gboolean ret;
-	GInputStream *input;
-
-	if (G_UNLIKELY (!fd))
-		return TRUE;
-
-	input = g_unix_input_stream_new (fd, FALSE);
-	ret = -1 != g_output_stream_splice (output, input, G_OUTPUT_STREAM_SPLICE_NONE, cancellable, error);
-	g_object_unref (input);
-
-	return ret;
-}
-
 
 /*
  * VteFileStream: A POSIX file-based stream
@@ -288,27 +272,6 @@ _vte_file_stream_head (VteStream *astream, guint index)
 	return index == 0 ? stream->head : stream->offset[index - 1];
 }
 
-static gboolean
-_vte_file_stream_write_contents (VteStream *astream, GOutputStream *output,
-				 gsize offset,
-				 GCancellable *cancellable, GError **error)
-{
-	VteFileStream *stream = (VteFileStream *) astream;
-
-	if (G_UNLIKELY (offset < stream->offset[1]))
-		return FALSE;
-
-	if (offset < stream->offset[0]) {
-		lseek (stream->fd[1], offset - stream->offset[1], SEEK_SET);
-		if (!_xwrite_contents (stream->fd[1], output, cancellable, error))
-			return FALSE;
-		offset = stream->offset[0];
-	}
-
-	lseek (stream->fd[0], offset - stream->offset[0], SEEK_SET);
-	return _xwrite_contents (stream->fd[0], output, cancellable, error);
-}
-
 static void
 _vte_file_stream_class_init (VteFileStreamClass *klass)
 {
@@ -322,5 +285,4 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 	klass->truncate = _vte_file_stream_truncate;
 	klass->new_page = _vte_file_stream_new_page;
 	klass->head = _vte_file_stream_head;
-	klass->write_contents = _vte_file_stream_write_contents;
 }

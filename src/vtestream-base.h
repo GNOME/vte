@@ -38,9 +38,6 @@ typedef struct _VteStreamClass {
 	void (*truncate) (VteStream *stream, gsize offset);
 	void (*new_page) (VteStream *stream);
 	gsize (*head) (VteStream *stream, guint index);
-	gboolean (*write_contents) (VteStream *stream, GOutputStream *output,
-				    gsize start_offset,
-				    GCancellable *cancellable, GError **error);
 } VteStreamClass;
 
 static GType _vte_stream_get_type (void);
@@ -95,14 +92,4 @@ _vte_stream_head (VteStream *stream, guint index)
 	g_assert (index < 3);
 
 	return VTE_STREAM_GET_CLASS (stream)->head (stream, index);
-}
-
-gboolean
-_vte_stream_write_contents (VteStream *stream, GOutputStream *output,
-			    gsize start_offset,
-			    GCancellable *cancellable, GError **error)
-{
-	return VTE_STREAM_GET_CLASS (stream)->write_contents (stream, output,
-							      start_offset,
-							      cancellable, error);
 }

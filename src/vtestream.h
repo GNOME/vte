@@ -39,10 +39,6 @@ void _vte_stream_new_page (VteStream *stream);
  * - index == 2 -> start of previous page (ie. last offset available in stream)
  */
 gsize _vte_stream_head (VteStream *stream, guint index);
-gboolean _vte_stream_write_contents (VteStream *stream, GOutputStream *output,
-				     gsize start_offset,
-				     GCancellable *cancellable, GError **error);
-
 
 /* Various streams */
 

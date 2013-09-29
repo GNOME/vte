@@ -658,15 +658,35 @@ _vte_ring_write_contents (VteRing *ring,
 
 	_vte_debug_print(VTE_DEBUG_RING, "Writing contents to GOutputStream.\n");
 
-	if (ring->start < ring->writable) {
+	if (ring->start < ring->writable)
+	{
 		VteRowRecord record;
-		/* XXX what to do in case of error? */
-		if (_vte_ring_read_row_record (ring, &record, ring->start)) {
-			if (!_vte_stream_write_contents (ring->text_stream, stream,
-							 record.text_start_offset,
-							 cancellable, error))
-				return FALSE;
+
+		if (_vte_ring_read_row_record (ring, &record, ring->start))
+		{
+			gsize start_offset = record.text_start_offset;
+			gsize end_offset = _vte_stream_head (ring->text_stream, 0);
+			char buf[4096];
+			while (start_offset < end_offset)
+			{
+				gsize bytes_written, len;
+
+				len = MIN (G_N_ELEMENTS (buf), end_offset - start_offset);
+
+				if (!_vte_stream_read (ring->text_stream, start_offset,
+						       buf, len))
+					return FALSE;
+
+				if (!g_output_stream_write_all (stream, buf, len,
+								&bytes_written, cancellable,
+								error))
+					return FALSE;
+
+				start_offset += len;
+			}
 		}
+		else
+			return FALSE;
 	}
 
 	for (i = ring->writable; i < ring->end; i++) {
