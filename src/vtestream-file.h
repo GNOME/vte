@@ -281,11 +281,11 @@ _vte_file_stream_new_page (VteStream *astream)
 }
 
 static gsize
-_vte_file_stream_head (VteStream *astream)
+_vte_file_stream_head (VteStream *astream, guint index)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	return stream->head;
+	return index == 0 ? stream->head : stream->offset[index - 1];
 }
 
 static gboolean

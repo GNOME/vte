@@ -33,7 +33,12 @@ void _vte_stream_append (VteStream *stream, const char *data, gsize len);
 gboolean _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize len);
 void _vte_stream_truncate (VteStream *stream, gsize offset);
 void _vte_stream_new_page (VteStream *stream);
-gsize _vte_stream_head (VteStream *stream);
+/* The stream has two pages at each time.  This function returns three positions:
+ * - index == 0 -> position of writing head,
+ * - index == 1 -> start of current page,
+ * - index == 2 -> start of previous page (ie. last offset available in stream)
+ */
+gsize _vte_stream_head (VteStream *stream, guint index);
 gboolean _vte_stream_write_contents (VteStream *stream, GOutputStream *output,
 				     gsize start_offset,
 				     GCancellable *cancellable, GError **error);

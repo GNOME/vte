@@ -124,8 +124,8 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 
 	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %lu.\n", position);
 
-	record.text_start_offset = _vte_stream_head (ring->text_stream);
-	record.attr_start_offset = _vte_stream_head (ring->attr_stream);
+	record.text_start_offset = _vte_stream_head (ring->text_stream, 0);
+	record.attr_start_offset = _vte_stream_head (ring->attr_stream, 0);
 
 	g_string_set_size (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
@@ -199,11 +199,11 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 
 	if (!_vte_ring_read_row_record (ring, &records[0], position))
 		return;
-	if ((position + 1) * sizeof (records[0]) < _vte_stream_head (ring->row_stream)) {
+	if ((position + 1) * sizeof (records[0]) < _vte_stream_head (ring->row_stream, 0)) {
 		if (!_vte_ring_read_row_record (ring, &records[1], position + 1))
 			return;
 	} else
-		records[1].text_start_offset = _vte_stream_head (ring->text_stream);
+		records[1].text_start_offset = _vte_stream_head (ring->text_stream, 0);
 
 	g_string_set_size (buffer, records[1].text_start_offset - records[0].text_start_offset);
 	if (!_vte_stream_read (ring->text_stream, records[0].text_start_offset, buffer->str, buffer->len))
