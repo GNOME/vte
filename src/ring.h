@@ -33,7 +33,7 @@ G_BEGIN_DECLS
 
 
 typedef struct _VteCellAttrChange {
-	gsize text_end_offset;  // offset of first character no longer using this attr
+	gsize text_end_offset;  /* offset of first character no longer using this attr */
 	VteIntCellAttr attr;
 } VteCellAttrChange;
 
@@ -62,6 +62,7 @@ struct _VteRing {
 	VteRowData cached_row;
 	gulong cached_row_num;
 
+	gulong visible_rows_hint;  /* to keep at least a screenful of lines in memory, bug 646098 comment 12 */
 };
 
 #define _vte_ring_contains(__ring, __position) \
@@ -81,6 +82,7 @@ void _vte_ring_shrink (VteRing *ring, gulong max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, gulong position);
 VteRowData *_vte_ring_append (VteRing *ring);
 void _vte_ring_remove (VteRing *ring, gulong position);
+void _vte_ring_set_visible_rows_hint (VteRing *ring, gulong rows);
 gboolean _vte_ring_write_contents (VteRing *ring,
 				   GOutputStream *stream,
 				   VteTerminalWriteFlags flags,

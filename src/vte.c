@@ -8126,6 +8126,9 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		terminal->column_count = columns;
 	}
 	if (old_rows != terminal->row_count || old_columns != terminal->column_count) {
+		_vte_ring_set_visible_rows_hint(terminal->pvt->normal_screen.row_data, terminal->row_count);
+		_vte_ring_set_visible_rows_hint(terminal->pvt->alternate_screen.row_data, terminal->row_count);
+
 		/* Always resize normal screen, even if alternate is visible: bug 415277 */
 		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows);
 		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)

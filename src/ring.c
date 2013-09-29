@@ -73,6 +73,8 @@ _vte_ring_init (VteRing *ring, gulong max_rows)
 	_vte_row_data_init (&ring->cached_row);
 	ring->cached_row_num = (gulong) -1;
 
+	ring->visible_rows_hint = 0;
+
 	_vte_ring_validate(ring);
 }
 
@@ -96,8 +98,8 @@ _vte_ring_fini (VteRing *ring)
 }
 
 typedef struct _VteRowRecord {
-	gsize text_start_offset;  // offset where text of this row begins
-	gsize attr_start_offset;  // offset of the first character's attributes
+	gsize text_start_offset;  /* offset where text of this row begins */
+	gsize attr_start_offset;  /* offset of the first character's attributes */
 } VteRowRecord;
 
 static gboolean
@@ -353,6 +355,9 @@ _vte_ring_freeze_one_row (VteRing *ring)
 {
 	VteRowData *row;
 
+	/* We should never even try to freeze if writable is less than a screenful from the end */
+	g_assert(ring->writable + ring->visible_rows_hint < ring->end);
+
 	if (G_UNLIKELY (ring->writable == ring->start))
 		_vte_ring_reset_streams (ring, ring->writable);
 
@@ -398,8 +403,10 @@ _vte_ring_discard_one_row (VteRing *ring)
 static void
 _vte_ring_maybe_freeze_one_row (VteRing *ring)
 {
-	if (G_LIKELY (ring->writable + ring->mask == ring->end))
+	if (G_LIKELY (ring->mask >= ring->visible_rows_hint && ring->writable + ring->mask + 1 == ring->end))
 		_vte_ring_freeze_one_row (ring);
+	else
+		_vte_ring_ensure_writable_room (ring);
 }
 
 static void
@@ -415,15 +422,18 @@ _vte_ring_ensure_writable_room (VteRing *ring)
 	gulong new_mask, old_mask, i, end;
 	VteRowData *old_array, *new_array;;
 
-	if (G_LIKELY (ring->writable + ring->mask > ring->end))
+	if (G_LIKELY (ring->mask >= ring->visible_rows_hint && ring->writable + ring->mask + 1 > ring->end))
 		return;
-
-	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array.\n");
 
 	old_mask = ring->mask;
 	old_array = ring->array;
 
-	ring->mask = (ring->mask << 1) + 1;
+	do {
+		ring->mask = (ring->mask << 1) + 1;
+	} while (ring->mask < ring->visible_rows_hint || ring->writable + ring->mask + 1 <= ring->end);
+
+	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array from %lu to %lu\n", old_mask, ring->mask);
+
 	ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
 
 	new_mask = ring->mask;
@@ -583,6 +593,19 @@ VteRowData *
 _vte_ring_append (VteRing * ring)
 {
 	return _vte_ring_insert (ring, _vte_ring_next (ring));
+}
+
+
+/**
+ * _vte_ring_set_visible_rows_hint:
+ * @ring: a #VteRing
+ *
+ * Set the number of visible rows, a hint only for better performance.
+ */
+void
+_vte_ring_set_visible_rows_hint (VteRing *ring, gulong rows)
+{
+	ring->visible_rows_hint = rows;
 }
 
 
