@@ -8495,6 +8495,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Scrolling options. */
 	pvt->scroll_on_keystroke = TRUE;
+	pvt->alternate_screen_scroll = TRUE;
         pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
 	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
 
@@ -8543,6 +8544,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 	pvt->root_pixmap_changed_tag = 0;
+
+        pvt->alternate_screen_scroll = TRUE;
 
 	/* Not all backends generate GdkVisibilityNotify, so mark the
 	 * window as unobscured initially. */
@@ -11403,8 +11406,9 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		return FALSE;
 	}
 
-	if (terminal->pvt->screen == &terminal->pvt->alternate_screen ||
-		terminal->pvt->normal_screen.scrolling_restricted) {
+	if ((terminal->pvt->screen == &terminal->pvt->alternate_screen &&
+             terminal->pvt->alternate_screen_scroll) ||
+            terminal->pvt->normal_screen.scrolling_restricted) {
 		char *normal;
 		gssize normal_length;
 		const gchar *special;
@@ -13153,6 +13157,20 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
         g_object_notify (G_OBJECT (terminal), "scroll-on-keystroke");
 }
 
+/**
+ * vte_terminal_set_alternate_screen_scroll: (skip):
+ * @terminal: a #VteTerminal
+ * @scroll:
+ *
+ * Since: 0.36
+ * Deprecated: 0.36: This function does nothing.
+ */
+void
+vte_terminal_set_alternate_screen_scroll(VteTerminal *terminal, gboolean scroll)
+{
+        /* We just want to export this symbol for compatibility */
+}
+
 static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
@@ -14174,6 +14192,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->alternate_screen.reverse_mode = FALSE;
 	pvt->alternate_screen.bracketed_paste_mode = FALSE;
 	pvt->cursor_visible = TRUE;
+        /* For some reason, xterm doesn't reset alternateScroll, but we do. */
+        pvt->alternate_screen_scroll = TRUE;
 	/* Reset the encoding. */
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(pvt->encoding != NULL);

@@ -737,6 +737,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(FALSE),
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
+		/* 1007: Alternate screen scroll. */
+		{1007, &terminal->pvt->alternate_screen_scroll, NULL, NULL,
+		 GINT_TO_POINTER(FALSE),
+		 GINT_TO_POINTER(TRUE),
+		 NULL, NULL,},
 		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
 		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */

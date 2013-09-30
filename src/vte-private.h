@@ -284,6 +284,7 @@ struct _VteTerminalPrivate {
 	gboolean scroll_background;
 	gboolean scroll_on_output;
 	gboolean scroll_on_keystroke;
+	gboolean alternate_screen_scroll;
 	long scrollback_lines;
 
 	/* Cursor shape */
