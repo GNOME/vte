@@ -33,7 +33,7 @@ typedef struct _VteStreamClass {
 	GObjectClass parent_class;
 
 	void (*reset) (VteStream *stream, gsize offset);
-	gsize (*append) (VteStream *stream, const char *data, gsize len);
+	void (*append) (VteStream *stream, const char *data, gsize len);
 	gboolean (*read) (VteStream *stream, gsize offset, char *data, gsize len);
 	void (*truncate) (VteStream *stream, gsize offset);
 	void (*new_page) (VteStream *stream);

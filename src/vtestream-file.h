@@ -197,7 +197,6 @@ static void
 _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
-	gsize ret;
 
 	_vte_file_stream_ensure_fd0 (stream);
 
@@ -266,11 +265,11 @@ _vte_file_stream_new_page (VteStream *astream)
 }
 
 static gsize
-_vte_file_stream_head (VteStream *astream, guint index)
+_vte_file_stream_head (VteStream *astream, guint _index)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	return index == 0 ? stream->head : stream->offset[index - 1];
+	return _index == 0 ? stream->head : stream->offset[_index - 1];
 }
 
 static void
