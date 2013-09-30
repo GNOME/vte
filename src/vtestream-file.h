@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009,2010 Red Hat, Inc.
+ * Copyright (C) 2013 Google, Inc.
  *
  * This is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Library General Public License as published by
@@ -16,12 +17,21 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  * Red Hat Author(s): Behdad Esfahbod
+ * Google Author(s): Behdad Esfahbod
  */
 
-#include <unistd.h>
 #include <errno.h>
 
 #include "vteutils.h"
+
+
+#if 1
+
+/*
+ * File implementation using Unix syscalls.
+ */
+
+#include <unistd.h>
 
 #ifndef HAVE_PREAD
 #define pread _pread
@@ -45,17 +55,41 @@ pwrite (int fd, char *data, gsize len, gsize offset)
 }
 #endif
 
+static inline void
+_xinit (gint *fd)
+{
+	*fd = -1;
+}
+
+static inline gboolean
+_xisopen (gint fd)
+{
+	return fd != -1;
+}
+
+static inline void
+_xclose (gint fd)
+{
+	if (G_UNLIKELY (!_xisopen (fd)))
+		return;
+
+	close (fd);
+}
+
+
 static void
 _xtruncate (gint fd, gsize offset)
 {
-	int ret;
-
-	if (G_UNLIKELY (fd == -1))
+	if (G_UNLIKELY (!_xisopen (fd)))
 		return;
 
-	do {
-		ret = ftruncate (fd, offset);
-	} while (ret == -1 && errno == EINTR);
+	do { } while (-1 == ftruncate (fd, offset) && errno == EINTR);
+}
+
+static void
+_xreset (gint fd)
+{
+	_xtruncate (fd, 0);
 }
 
 static gsize
@@ -63,7 +97,7 @@ _xpread (int fd, char *data, gsize len, gsize offset)
 {
 	gsize ret, total = 0;
 
-	if (G_UNLIKELY (fd == -1))
+	if (G_UNLIKELY (!_xisopen (fd)))
 		return 0;
 
 	while (len) {
@@ -90,7 +124,7 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 	gsize ret;
 	gboolean truncated = FALSE;
 
-	g_assert (fd != -1 || !len);
+	g_assert (_xisopen (fd) || !len);
 
 	while (len) {
 		ret = pwrite (fd, data, len, offset);
@@ -119,9 +153,11 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 	}
 }
 
+#endif
+
 
 /*
- * VteFileStream: A POSIX file-based stream
+ * VteFileStream: A file-based stream
  */
 
 typedef struct _VteFileStream {
@@ -157,8 +193,8 @@ _vte_file_stream_finalize (GObject *object)
 {
 	VteFileStream *stream = (VteFileStream *) object;
 
-	if (stream->fd[0] != -1) close (stream->fd[0]);
-	if (stream->fd[1] != -1) close (stream->fd[1]);
+	_xclose (stream->fd[0]);
+	_xclose (stream->fd[1]);
 
 	G_OBJECT_CLASS (_vte_file_stream_parent_class)->finalize(object);
 }
@@ -183,8 +219,8 @@ _vte_file_stream_reset (VteStream *astream, gsize offset)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	if (stream->fd[0]) _xtruncate (stream->fd[0], 0);
-	if (stream->fd[1]) _xtruncate (stream->fd[1], 0);
+	_xreset (stream->fd[0]);
+	_xreset (stream->fd[1]);
 
 	stream->head = stream->offset[0] = stream->offset[1] = offset;
 }
@@ -234,12 +270,12 @@ _vte_file_stream_truncate (VteStream *astream, gsize offset)
 	VteFileStream *stream = (VteFileStream *) astream;
 
 	if (G_UNLIKELY (offset < stream->offset[1])) {
-		_xtruncate (stream->fd[1], 0);
+		_xreset (stream->fd[1]);
 		stream->offset[1] = offset;
 	}
 
 	if (G_UNLIKELY (offset < stream->offset[0])) {
-		_xtruncate (stream->fd[0], 0);
+		_xreset (stream->fd[0]);
 		stream->offset[0] = stream->offset[1];
 		_vte_file_stream_swap_fds (stream);
 	} else {
@@ -257,7 +293,7 @@ _vte_file_stream_new_page (VteStream *astream)
 	stream->offset[1] = stream->offset[0];
 	stream->offset[0] = stream->head;
 	_vte_file_stream_swap_fds (stream);
-	_xtruncate (stream->fd[0], 0);
+	_xreset (stream->fd[0]);
 }
 
 static gsize
