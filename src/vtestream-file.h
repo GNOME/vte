@@ -18,12 +18,8 @@
  * Red Hat Author(s): Behdad Esfahbod
  */
 
-#include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <fcntl.h>
-
-#include <gio/gunixinputstream.h>
 
 #include "vteutils.h"
 
