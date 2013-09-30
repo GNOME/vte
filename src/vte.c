@@ -13842,6 +13842,9 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 	}
 
 	/* Adjust the scrollbars to the new locations. */
+	/* Hack: force a change in scroll_delta even if the value remains, so that
+	   vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 676075. */
+	terminal->pvt->screen->scroll_delta = -1;
 	vte_terminal_queue_adjustment_value_changed (terminal, scroll_delta);
 	_vte_terminal_adjust_adjustments_full (terminal);
 
