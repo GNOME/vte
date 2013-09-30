@@ -194,7 +194,12 @@ _file_write (_file_t *f, const char *data, gsize len, gsize offset)
 
 #include <stdio.h>
 
-/* TODO use unlocked versions. */
+/* Use unlocked versions if available. */
+#ifdef HAVE_FWRITE_UNLOCKED
+#	define fwrite	fwrite_unlocked
+#	define fread	fread_unlocked
+#	define fflush	fflush_unlocked
+#endif
 
 typedef struct
 {
