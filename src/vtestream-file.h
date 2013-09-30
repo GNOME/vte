@@ -54,7 +54,7 @@ _xtruncate (gint fd, gsize offset)
 {
 	int ret;
 
-	if (G_UNLIKELY (!fd))
+	if (G_UNLIKELY (fd == -1))
 		return;
 
 	do {
@@ -67,7 +67,7 @@ _xpread (int fd, char *data, gsize len, gsize offset)
 {
 	gsize ret, total = 0;
 
-	if (G_UNLIKELY (len && !fd))
+	if (G_UNLIKELY (fd == -1))
 		return 0;
 
 	while (len) {
@@ -94,7 +94,7 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 	gsize ret;
 	gboolean truncated = FALSE;
 
-	g_assert (fd || !len);
+	g_assert (fd != -1 || !len);
 
 	while (len) {
 		ret = pwrite (fd, data, len, offset);
