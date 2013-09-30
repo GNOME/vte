@@ -145,8 +145,9 @@ static GType _vte_file_stream_get_type (void);
 G_DEFINE_TYPE (VteFileStream, _vte_file_stream, VTE_TYPE_STREAM)
 
 static void
-_vte_file_stream_init (VteFileStream *stream G_GNUC_UNUSED)
+_vte_file_stream_init (VteFileStream *stream)
 {
+	stream->fd[0] = stream->fd[1] = -1;
 }
 
 VteStream *
@@ -160,8 +161,8 @@ _vte_file_stream_finalize (GObject *object)
 {
 	VteFileStream *stream = (VteFileStream *) object;
 
-	if (stream->fd[0]) close (stream->fd[0]);
-	if (stream->fd[1]) close (stream->fd[1]);
+	if (stream->fd[0] != -1) close (stream->fd[0]);
+	if (stream->fd[1] != -1) close (stream->fd[1]);
 
 	G_OBJECT_CLASS (_vte_file_stream_parent_class)->finalize(object);
 }
@@ -171,7 +172,7 @@ _vte_file_stream_ensure_fd0 (VteFileStream *stream)
 {
 	gint fd;
 
-	if (G_LIKELY (stream->fd[0]))
+	if (G_LIKELY (stream->fd[0] != -1))
 		return;
 
         fd = _vte_mkstemp ();

@@ -73,14 +73,5 @@ _vte_mkstemp (void)
  done:
 #endif
 
-        /* make sure fd is not 0 */
-        if (G_UNLIKELY (fd == 0)) {
-                int new_fd;
-
-                new_fd = dup (fd);
-                close (fd);
-                fd = new_fd;
-        }
-
         return fd;
 }
