@@ -35,7 +35,7 @@
 
 #ifndef HAVE_PREAD
 #define pread _pread
-static gsize
+static inline gsize
 pread (int fd, char *data, gsize len, gsize offset)
 {
   if (-1 == lseek (fd, offset, SEEK_SET))
@@ -46,7 +46,7 @@ pread (int fd, char *data, gsize len, gsize offset)
 
 #ifndef HAVE_PWRITE
 #define pwrite _pwrite
-static gsize
+static inline gsize
 pwrite (int fd, char *data, gsize len, gsize offset)
 {
   if (-1 == lseek (fd, offset, SEEK_SET))
@@ -55,53 +55,66 @@ pwrite (int fd, char *data, gsize len, gsize offset)
 }
 #endif
 
-static inline void
-_xinit (gint *fd)
+
+typedef struct
 {
-	*fd = -1;
+  int fd;
+} _file_t;
+
+static inline void
+_file_init (_file_t *f)
+{
+	f->fd = -1;
+}
+
+static inline void
+_file_open (_file_t *f, int fd)
+{
+	f->fd = fd;
 }
 
 static inline gboolean
-_xisopen (gint fd)
+_file_isopen (_file_t *f)
 {
-	return fd != -1;
+	return f->fd != -1;
 }
 
 static inline void
-_xclose (gint fd)
+_file_close (_file_t *f)
 {
-	if (G_UNLIKELY (!_xisopen (fd)))
+	if (G_UNLIKELY (!_file_isopen (f)))
 		return;
 
-	close (fd);
+	close (f->fd);
 }
 
 
 static void
-_xtruncate (gint fd, gsize offset)
+_file_try_truncate (_file_t *f, gsize offset)
 {
-	if (G_UNLIKELY (!_xisopen (fd)))
+	if (G_UNLIKELY (!_file_isopen (f)))
 		return;
 
-	do { } while (-1 == ftruncate (fd, offset) && errno == EINTR);
+	do { } while (-1 == ftruncate (f->fd, offset) && errno == EINTR);
 }
 
 static void
-_xreset (gint fd)
+_file_reset (_file_t *f)
 {
-	_xtruncate (fd, 0);
+	/* Our try_truncate() actually works. */
+	_file_try_truncate (f, 0);
 }
 
 static gsize
-_xpread (int fd, char *data, gsize len, gsize offset)
+_file_read (_file_t *f, char *data, gsize len, gsize offset)
 {
 	gsize ret, total = 0;
 
-	if (G_UNLIKELY (!_xisopen (fd)))
+	if (G_UNLIKELY (!_file_isopen (f)))
 		return 0;
 
 	while (len) {
-		ret = pread (fd, data, len, offset);
+		ret = pread (f->fd, data, len, offset);
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
@@ -119,15 +132,15 @@ _xpread (int fd, char *data, gsize len, gsize offset)
 }
 
 static void
-_xpwrite (int fd, const char *data, gsize len, gsize offset)
+_file_write (_file_t *f, const char *data, gsize len, gsize offset)
 {
 	gsize ret;
 	gboolean truncated = FALSE;
 
-	g_assert (_xisopen (fd) || !len);
+	g_assert (_file_isopen (f) || !len);
 
 	while (len) {
-		ret = pwrite (fd, data, len, offset);
+		ret = pwrite (f->fd, data, len, offset);
 		if (G_UNLIKELY (ret == (gsize) -1)) {
 			if (errno == EINTR)
 				continue;
@@ -138,7 +151,7 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 				 * and retry.  This allows recovering from a
 				 * "/tmp is full" error.
 				 */
-				_xtruncate (fd, offset);
+				_file_try_truncate (f, offset);
 				truncated = TRUE;
 				continue;
 			}
@@ -163,8 +176,8 @@ _xpwrite (int fd, const char *data, gsize len, gsize offset)
 typedef struct _VteFileStream {
 	VteStream parent;
 
-	/* The first fd/offset is for the write head, second is for last page */
-	gint fd[2];
+	/* The first file/offset is for the write head, second is for last page */
+	_file_t file[2];
 	gsize offset[2];
 	gsize head;
 } VteFileStream;
@@ -179,7 +192,8 @@ G_DEFINE_TYPE (VteFileStream, _vte_file_stream, VTE_TYPE_STREAM)
 static void
 _vte_file_stream_init (VteFileStream *stream)
 {
-	stream->fd[0] = stream->fd[1] = -1;
+	_file_init (&stream->file[0]);
+	_file_init (&stream->file[1]);
 }
 
 VteStream *
@@ -193,25 +207,25 @@ _vte_file_stream_finalize (GObject *object)
 {
 	VteFileStream *stream = (VteFileStream *) object;
 
-	_xclose (stream->fd[0]);
-	_xclose (stream->fd[1]);
+	_file_close (&stream->file[0]);
+	_file_close (&stream->file[1]);
 
 	G_OBJECT_CLASS (_vte_file_stream_parent_class)->finalize(object);
 }
 
 static inline void
-_vte_file_stream_ensure_fd0 (VteFileStream *stream)
+_vte_file_stream_ensure_file0 (VteFileStream *stream)
 {
-	gint fd;
+	int fd;
 
-	if (G_LIKELY (stream->fd[0] != -1))
+	if (G_LIKELY (_file_isopen (&stream->file[0])))
 		return;
 
         fd = _vte_mkstemp ();
         if (fd == -1)
                 return;
 
-        stream->fd[0] = fd;
+        _file_open (&stream->file[0], fd);
 }
 
 static void
@@ -219,8 +233,8 @@ _vte_file_stream_reset (VteStream *astream, gsize offset)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	_xreset (stream->fd[0]);
-	_xreset (stream->fd[1]);
+	_file_reset (&stream->file[0]);
+	_file_reset (&stream->file[1]);
 
 	stream->head = stream->offset[0] = stream->offset[1] = offset;
 }
@@ -230,9 +244,9 @@ _vte_file_stream_append (VteStream *astream, const char *data, gsize len)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	_vte_file_stream_ensure_fd0 (stream);
+	_vte_file_stream_ensure_file0 (stream);
 
-	_xpwrite (stream->fd[0], data, len, stream->head - stream->offset[0]);
+	_file_write (&stream->file[0], data, len, stream->head - stream->offset[0]);
 	stream->head += len;
 }
 
@@ -246,11 +260,11 @@ _vte_file_stream_read (VteStream *astream, gsize offset, char *data, gsize len)
 		return FALSE;
 
 	if (offset < stream->offset[0]) {
-		l = _xpread (stream->fd[1], data, len, offset - stream->offset[1]);
+		l = _file_read (&stream->file[1], data, len, offset - stream->offset[1]);
 		offset += l; data += l; len -= l; if (!len) return TRUE;
 	}
 
-	l = _xpread (stream->fd[0], data, len, offset - stream->offset[0]);
+	l = _file_read (&stream->file[0], data, len, offset - stream->offset[0]);
 	offset += l; data += l; len -= l; if (!len) return TRUE;
 
 	return FALSE;
@@ -259,9 +273,9 @@ _vte_file_stream_read (VteStream *astream, gsize offset, char *data, gsize len)
 static void
 _vte_file_stream_swap_fds (VteFileStream *stream)
 {
-	gint fd;
+	_file_t f;
 
-	fd = stream->fd[0]; stream->fd[0] = stream->fd[1]; stream->fd[1] = fd;
+	f = stream->file[0]; stream->file[0] = stream->file[1]; stream->file[1] = f;
 }
 
 static void
@@ -270,16 +284,16 @@ _vte_file_stream_truncate (VteStream *astream, gsize offset)
 	VteFileStream *stream = (VteFileStream *) astream;
 
 	if (G_UNLIKELY (offset < stream->offset[1])) {
-		_xreset (stream->fd[1]);
+		_file_reset (&stream->file[1]);
 		stream->offset[1] = offset;
 	}
 
 	if (G_UNLIKELY (offset < stream->offset[0])) {
-		_xreset (stream->fd[0]);
+		_file_reset (&stream->file[0]);
 		stream->offset[0] = stream->offset[1];
 		_vte_file_stream_swap_fds (stream);
 	} else {
-		_xtruncate (stream->fd[0], offset - stream->offset[0]);
+		_file_try_truncate (&stream->file[0], offset - stream->offset[0]);
 	}
 
 	stream->head = offset;
@@ -293,7 +307,7 @@ _vte_file_stream_new_page (VteStream *astream)
 	stream->offset[1] = stream->offset[0];
 	stream->offset[0] = stream->head;
 	_vte_file_stream_swap_fds (stream);
-	_xreset (stream->fd[0]);
+	_file_reset (&stream->file[0]);
 }
 
 static gsize
