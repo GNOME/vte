@@ -25,7 +25,20 @@
 #include "vteutils.h"
 
 
-#if 1
+/*
+ * We provide two file implementations: one based on raw
+ * syscalls, and one based on stdio.  The syscall one has
+ * got more than enough testing in the past.  The stdio
+ * is newer, but has a default cache, which greatly reduces
+ * number of syscalls.
+ *
+ * Change the following conditional to 0 for syscalls, and
+ * to 1 for stdio.  Please test both branches before
+ * making changes to _file_t semantics or implementation.
+ */
+
+#if 0
+
 
 /*
  * File implementation using Unix syscalls.
@@ -38,9 +51,9 @@
 static inline gsize
 pread (int fd, char *data, gsize len, gsize offset)
 {
-  if (-1 == lseek (fd, offset, SEEK_SET))
-    return -1;
-  return read (fd, data, len);
+	if (-1 == lseek (fd, offset, SEEK_SET))
+		return -1;
+	return read (fd, data, len);
 }
 #endif
 
@@ -49,16 +62,16 @@ pread (int fd, char *data, gsize len, gsize offset)
 static inline gsize
 pwrite (int fd, char *data, gsize len, gsize offset)
 {
-  if (-1 == lseek (fd, offset, SEEK_SET))
-    return -1;
-  return write (fd, data, len);
+	if (-1 == lseek (fd, offset, SEEK_SET))
+		return -1;
+	return write (fd, data, len);
 }
 #endif
 
 
 typedef struct
 {
-  int fd;
+	int fd;
 } _file_t;
 
 static inline void
@@ -89,19 +102,24 @@ _file_close (_file_t *f)
 }
 
 
-static void
+static gboolean
 _file_try_truncate (_file_t *f, gsize offset)
 {
+	int ret;
+
 	if (G_UNLIKELY (!_file_isopen (f)))
 		return;
 
-	do { } while (-1 == ftruncate (f->fd, offset) && errno == EINTR);
+	do {
+		ret = ftruncate (f->fd, offset);
+	} while (ret == -1 && errno == EINTR);
+
+	return !ret;
 }
 
 static void
 _file_reset (_file_t *f)
 {
-	/* Our try_truncate() actually works. */
 	_file_try_truncate (f, 0);
 }
 
@@ -165,6 +183,143 @@ _file_write (_file_t *f, const char *data, gsize len, gsize offset)
 		offset += ret;
 	}
 }
+
+
+#else
+
+
+/*
+ * File implementation using stdio.
+ */
+
+#include <stdio.h>
+
+/* TODO use unlocked versions. */
+
+typedef struct
+{
+	FILE *fp;
+	gsize pos;
+} _file_t;
+
+static inline void
+_file_init (_file_t *f)
+{
+	f->fp = NULL;
+	f->pos = -1;
+}
+
+static inline void
+_file_open (_file_t *f, int fd)
+{
+	f->fp = fdopen (fd, "w+");
+	f->pos = 0;
+}
+
+static inline gboolean
+_file_isopen (_file_t *f)
+{
+	return f->fp != NULL;
+}
+
+static inline void
+_file_close (_file_t *f)
+{
+	if (G_UNLIKELY (!_file_isopen (f)))
+		return;
+
+	fclose (f->fp);
+}
+
+
+static gboolean
+_file_try_truncate (_file_t *f, gsize offset)
+{
+	if (G_UNLIKELY (!_file_isopen (f)))
+		return TRUE;
+
+	/* We don't have to truncate.  The bytestream works
+	 * without a working truncate (hence the "try").
+	 * Here's a fallback implementation.  Things should
+	 * work with or without this.
+	 */
+	if (1)
+	{
+		int ret;
+
+		fflush (f->fp);
+
+		do {
+			ret = ftruncate (fileno (f->fp), offset);
+		} while (ret == -1 && errno == EINTR);
+
+		return !ret;
+	}
+
+	return FALSE;
+}
+
+static void
+_file_reset (_file_t *f)
+{
+	int fd;
+
+	if (_file_try_truncate (f, 0))
+		return;
+
+	if (G_UNLIKELY (!_file_isopen (f)))
+		return;
+
+	/* Reopen file to truncate it. */
+
+	fd = dup (fileno (f->fp));
+
+	_file_close (f);
+	_file_open (f, fd);
+}
+
+static gboolean
+_file_seek (_file_t *f, gsize offset)
+{
+	if (f->pos != offset)
+	{
+		if (-1 == fseek (f->fp, offset, SEEK_SET))
+			return FALSE;
+		f->pos = offset;
+	}
+	return TRUE;
+}
+
+static gsize
+_file_read (_file_t *f, char *data, gsize len, gsize offset)
+{
+	gsize ret;
+
+	if (G_UNLIKELY (!_file_isopen (f)))
+		return 0;
+
+	if (!_file_seek (f, offset))
+		return 0;
+
+	ret = fread (data, 1, len, f->fp);
+	f->pos += ret;
+	return ret;
+}
+
+static void
+_file_write (_file_t *f, const char *data, gsize len, gsize offset)
+{
+	gsize ret;
+
+	g_assert (_file_isopen (f) || !len);
+
+	if (!_file_seek (f, offset))
+		return;
+
+	ret = fwrite (data, 1, len, f->fp);
+	f->pos += ret;
+}
+
 
 #endif
 
