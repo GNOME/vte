@@ -27,7 +27,7 @@
 __vte_urlencode() (
   # This is important to make sure string manipulation is handled
   # byte-by-byte.
-  LANG=C
+  LC_ALL=C
   str="$1"
   while [ -n "$str" ]; do
     safe="${str%%[!a-zA-Z0-9/:_\.\-\!\'\(\)~]*}"
