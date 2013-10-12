@@ -13162,8 +13162,8 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
  * @terminal: a #VteTerminal
  * @scroll:
  *
- * Since: 0.36
- * Deprecated: 0.36: This function does nothing.
+ * Since: 0.34.9
+ * Deprecated: 0.34.9: This function does nothing.
  */
 void
 vte_terminal_set_alternate_screen_scroll(VteTerminal *terminal, gboolean scroll)

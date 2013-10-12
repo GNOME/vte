@@ -30,10 +30,6 @@
 
 #include <glib.h>
 
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-
 /* Temporary define until glibc release catches up */
 #ifdef __linux__
 #ifndef O_TMPFILE
@@ -52,7 +48,7 @@ _vte_mkstemp (void)
 
 #ifdef O_TMPFILE
         fd = open (g_get_tmp_dir (),
-                   O_TMPFILE | O_EXCL | O_RDWR | O_BINARY | O_NOATIME,
+                   O_TMPFILE | O_EXCL | O_RDWR | O_NOATIME,
                    0600);
         if (fd != -1)
                 goto done;
