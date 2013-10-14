@@ -13158,7 +13158,7 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
 }
 
 /**
- * vte_terminal_set_alternate_screen_scroll: (skip):
+ * vte_terminal_set_alternate_screen_scroll:
  * @terminal: a #VteTerminal
  * @scroll:
  *
