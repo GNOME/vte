@@ -1,3 +1,16 @@
+0.34.9
+======
+* Lines disappear after positioning back the cursor (#708496)
+* Garbage displayed after resizing whilst using an alternate screen (#415277)
+* vte uses too many file descriptors (part of #646098)
+* Incorrect scrollbar position after the "less" command (#676075)
+* Add support for DEC 1007 to set the alternate scroll mode (#518405, #709060)
+* Use O_TMPFILE when available (#704705)
+* Improvements to scrollback storage (#637275) 
+* Aborts on assertion (#676075)
+* zsh - lots of blank space upon resizing VTE based terminals (#708213)
+* Misc fixes
+
 0.34.8
 ======
 - Build fixes
