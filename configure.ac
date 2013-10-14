@@ -1,6 +1,6 @@
 m4_define([version_major],0)
-m4_define([version_minor],34)
-m4_define([version_micro],9)
+m4_define([version_minor],35)
+m4_define([version_micro],0)
 m4_define([version_triplet],version_major.version_minor.version_micro)
 
 m4_define([so_major_adjust],9) dnl Don't change!
