@@ -63,7 +63,9 @@ _vte_mkstemp (void)
         unlink (file_name);
         g_free (file_name);
 
+#ifdef O_NOATIME
         do { } while (fcntl (fd, F_SETFL, O_NOATIME) == -1 && errno == EINTR);
+#endif
 
 #ifdef O_TMPFILE
  done:
