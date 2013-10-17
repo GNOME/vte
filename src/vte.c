@@ -10014,7 +10014,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
                 half /= 2;
                 if (v & 1) h += half;
 
-                cairo_rectangle(cr, x, y + row_height - h, width, h);
+                cairo_rectangle(cr, x, ybottom - h, width, h);
                 cairo_fill (cr);
                 break;
         }
@@ -10066,7 +10066,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
                 break;
 
         case 0x2594: /* upper one eighth block */
-                cairo_rectangle(cr, x, y, width, upper_half / 4);
+                cairo_rectangle(cr, x, y, width, (upper_half + 3)/ 4);
                 cairo_fill (cr);
                 break;
 
