@@ -9923,6 +9923,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         {
                 const guint v = c - 0x256d;
                 int line_width;
+                int radius;
 
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
 
@@ -9930,13 +9931,36 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
                 adjust = (line_width & 1) ? .5 : 0.;
                 cairo_set_line_width(cr, line_width);
 
-                cairo_move_to(cr, xcenter + adjust, (v & 2) ? y : ybottom);
-                cairo_curve_to(cr, 
-                               xcenter + adjust, ycenter + adjust,
-                               xcenter + adjust, ycenter + adjust,
-                               (v == 1 || v == 2) ? x : xright, ycenter + adjust);
+                radius = (terminal->char_width + 2) / 3;
+                radius = MAX(radius, heavy_line_width);
+
+                if (v & 2) {
+                        cairo_move_to(cr, xcenter + adjust, y);
+                        cairo_line_to(cr, xcenter + adjust, ycenter - radius + 2 * adjust);
+                } else {
+                        cairo_move_to(cr, xcenter + adjust, ybottom);
+                        cairo_line_to(cr, xcenter + adjust, ycenter + radius);
+                }
                 cairo_stroke(cr);
 
+                cairo_arc(cr,
+                          (v == 1 || v == 2) ? xcenter - radius + 2 * adjust
+                                             : xcenter + radius,
+                          (v & 2) ? ycenter - radius + 2 * adjust
+                                  : ycenter + radius,
+                          radius - adjust,
+                          (v + 2) * M_PI / 2.0, (v + 3) * M_PI / 2.0);
+                cairo_stroke(cr);
+
+                if (v == 1 || v == 2) {
+                        cairo_move_to(cr, xcenter - radius + 2 * adjust, ycenter + adjust);
+                        cairo_line_to(cr, x, ycenter + adjust);
+                } else {
+                        cairo_move_to(cr, xcenter + radius, ycenter + adjust);
+                        cairo_line_to(cr, xright, ycenter + adjust);
+                }
+
+                cairo_stroke(cr);
                 break;
         }
 
