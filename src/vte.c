@@ -9418,6 +9418,14 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         left_half = width / 2;
         right_half = width - left_half;
 
+        /* Note that the upper/left halves above are the same as 4 eights */
+        /* FIXME: this could be smarter for very small n (< 8 resp. < 4) */
+#define EIGHTS(n, k) \
+        ({ int k_eights = (n) * (k) / 8; \
+           k_eights = MAX(k_eights, 1); \
+           k_eights; \
+        })
+
         light_line_width = (terminal->char_width + 4) / 5;
         light_line_width = MAX (light_line_width, 1);
 
@@ -9999,22 +10007,12 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         case 0x2587: /* lower seven eighths block */
         {
                 const guint v = c - 0x2580;
-                int h, half;
+                /* Use the number of eights from the top, so that
+                 * U+2584 aligns with U+2596..U+259f.
+                 */
+                const int h = EIGHTS (row_height, 8 - v);
 
-                if (v & 4) {
-                        half = upper_half;
-                        h = lower_half;
-                } else {
-                        half = lower_half;
-                        h = 0;
-                }
-
-                half /= 2;
-                if (v & 2) h += half;
-                half /= 2;
-                if (v & 1) h += half;
-
-                cairo_rectangle(cr, x, ybottom - h, width, h);
+                cairo_rectangle(cr, x, y + h, width, row_height - h);
                 cairo_fill (cr);
                 break;
         }
@@ -10029,19 +10027,10 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         case 0x258f: /* left one eighth block */
         {
                 const guint v = c - 0x2588;
-                int w, half;
-
-                if (v & 4) {
-                        w = half = left_half;
-                } else {
-                        w = width;
-                        half = right_half;
-                }
-
-                half /= 2;
-                if (v & 2) w -= half;
-                half /= 2;
-                if (v & 1) w -= half;
+                /* Use the number of eights from the top, so that
+                 * U+258c aligns with U+2596..U+259f.
+                 */
+                const int w = EIGHTS (width, 8 - v);
 
                 cairo_rectangle(cr, x, y, w, row_height);
                 cairo_fill (cr);
@@ -10066,14 +10055,20 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
                 break;
 
         case 0x2594: /* upper one eighth block */
-                cairo_rectangle(cr, x, y, width, (upper_half + 3)/ 4);
+        {
+                const int h = EIGHTS (row_height, 1); /* Align with U+2587 */
+                cairo_rectangle(cr, x, y, width, h);
                 cairo_fill (cr);
                 break;
+        }
 
         case 0x2595: /* right one eighth block */
-                cairo_rectangle(cr, x + width - right_half / 4, y, right_half / 4, row_height);
+        {
+                const int w = EIGHTS (width, 7);  /* Align with U+2589 */
+                cairo_rectangle(cr, x + w, y, width - w, row_height);
                 cairo_fill (cr);
                 break;
+        }
 
         case 0x2596: /* quadrant lower left */
                 cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
@@ -10138,6 +10133,8 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         default:
                 g_assert_not_reached();
         }
+
+#undef EIGHTS
 
         cairo_restore(cr);
 
