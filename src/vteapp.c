@@ -891,11 +891,13 @@ main(int argc, char **argv)
 	vte_terminal_set_audible_bell(terminal, audible);
 	vte_terminal_set_visible_bell(terminal, !audible);
 	vte_terminal_set_cursor_blink_mode(terminal, cursor_blink_mode);
-	vte_terminal_set_scroll_background(terminal, scroll);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
 	vte_terminal_set_scrollback_lines(terminal, lines);
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
+
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+	vte_terminal_set_scroll_background(terminal, scroll);
 	if (background != NULL) {
 		vte_terminal_set_background_image_file(terminal,
 						       background);
@@ -906,6 +908,8 @@ main(int argc, char **argv)
                 vte_terminal_set_background_tint_color(terminal, &tint);
                 vte_terminal_set_opacity(terminal, 0xdddd);
         }
+        G_GNUC_END_IGNORE_DEPRECATIONS;
+
 	vte_terminal_set_colors(terminal, &fore, &back, NULL, 0);
 	if (highlight_set) {
 		vte_terminal_set_color_highlight(terminal,
@@ -920,8 +924,10 @@ main(int argc, char **argv)
 	vte_terminal_set_cursor_shape(terminal, cursor_shape);
 
 	/* Set the default font. */
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	vte_terminal_set_font_from_string_full(terminal, font,
 					       antialias ? VTE_ANTI_ALIAS_USE_DEFAULT : VTE_ANTI_ALIAS_FORCE_DISABLE);
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	/* Match "abcdefg". */
 	if (dingus) {
@@ -1028,9 +1034,11 @@ main(int argc, char **argv)
 	#endif
 		} else {
 			long i;
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			i = vte_terminal_forkpty(terminal,
 						 env_add, working_directory,
 						 TRUE, TRUE, TRUE);
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
 			switch (i) {
 			case -1:
 				/* abnormal */

@@ -11669,22 +11669,34 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_BACKGROUND_IMAGE_FILE:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_image_file (terminal, g_value_get_string (value));
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_IMAGE_PIXBUF:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_image (terminal, g_value_get_object (value));
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_OPACITY:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_opacity (terminal, g_value_get_double (value) * (double) G_MAXUINT16);
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_SATURATION:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_saturation (terminal, g_value_get_double (value));
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_TINT_COLOR:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_tint_color (terminal, g_value_get_boxed (value));
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_TRANSPARENT:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_transparent (terminal, g_value_get_boolean (value));
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
