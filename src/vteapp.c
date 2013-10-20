@@ -559,7 +559,7 @@ main(int argc, char **argv)
 		 antialias = TRUE, use_scrolled_window = FALSE,
 		 show_object_notifications = FALSE;
 	char *geometry = NULL;
-	gint lines = 100;
+	gint lines = -1;
 	const char *message = "Launching interactive shell...\r\n";
 	const char *font = NULL;
 	const char *termcap = NULL;
