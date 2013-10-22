@@ -1303,10 +1303,14 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 	screen->scrolling_region.start = start;
 	screen->scrolling_region.end = end;
 	screen->scrolling_restricted = TRUE;
-	/* Special case -- run wild, run free. */
 	if (screen->scrolling_region.start == 0 &&
 	    screen->scrolling_region.end == rows - 1) {
+		/* Special case -- run wild, run free. */
 		screen->scrolling_restricted = FALSE;
+	} else {
+		/* Maybe extend the ring -- bug 710483 */
+		while (_vte_ring_next(screen->row_data) < screen->insert_delta + rows)
+			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
 	}
 }
 
@@ -1339,11 +1343,15 @@ vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
 	screen->scrolling_region.start = start;
 	screen->scrolling_region.end = end;
 	screen->scrolling_restricted = TRUE;
-	/* Special case -- run wild, run free. */
 	rows = terminal->row_count;
 	if ((screen->scrolling_region.start == 0) &&
 	    (screen->scrolling_region.end == rows - 1)) {
+		/* Special case -- run wild, run free. */
 		screen->scrolling_restricted = FALSE;
+	} else {
+		/* Maybe extend the ring -- bug 710483 */
+		while (_vte_ring_next(screen->row_data) < screen->insert_delta + rows)
+			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
 	}
 	/* Clamp the cursor to the scrolling region. */
 	screen->cursor_current.row = CLAMP(screen->cursor_current.row,
