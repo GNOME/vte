@@ -8107,6 +8107,8 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 			_vte_ring_delta(ring), _vte_ring_next(ring),
 			screen->insert_delta, screen->scroll_delta);
 
+	screen->scrolling_restricted = FALSE;
+
 	if (old_rows > terminal->row_count &&
 	    screen->insert_delta + old_rows > screen->cursor_current.row + 1) {
 		/* Shrinking the window, cursor was not at the bottom.
