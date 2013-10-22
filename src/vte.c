@@ -14235,8 +14235,6 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->vt220_fkey_mode = FALSE;
 	/* Enable meta-sends-escape. */
 	pvt->meta_sends_escape = TRUE;
-	/* Disable smooth scroll. */
-	pvt->smooth_scroll = FALSE;
 	/* Disable margin bell. */
 	pvt->margin_bell = FALSE;
 	/* Enable iso2022/NRC processing. */

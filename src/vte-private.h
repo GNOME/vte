@@ -274,7 +274,6 @@ struct _VteTerminalPrivate {
 	guint bell_margin;
 	gboolean allow_bold;
 	gboolean nrc_mode;
-	gboolean smooth_scroll;
 	GHashTable *tabstops;
 	gboolean text_modified_flag;
 	gboolean text_inserted_flag;

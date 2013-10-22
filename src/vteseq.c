@@ -652,11 +652,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{2, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 3: disallowed, window size is set by user. */
 		{3, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* 4: Smooth scroll. */
-		{4, &terminal->pvt->smooth_scroll, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
-		 NULL, NULL,},
 		/* 5: Reverse video. */
 		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
