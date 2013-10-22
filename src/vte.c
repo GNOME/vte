@@ -5968,8 +5968,17 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	vte_terminal_feed_mouse_event(terminal, button, FALSE /* not drag */, is_release, col, row);
 }
 
-/* Send a mouse button click/release notification. */
-static void
+/*
+ * vte_terminal_maybe_send_mouse_button:
+ * @terminal:
+ * @event:
+ *
+ * Sends a mouse button click or release notification to the application,
+ * if the terminal is in mouse tracking mode.
+ *
+ * Returns: %TRUE iff the event was consumed
+ */
+static gboolean
 vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 				     GdkEventButton *event)
 {
@@ -5978,17 +5987,17 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_CLICK) {
-			return;
+			return FALSE;
 		}
 		break;
 	case GDK_BUTTON_RELEASE: {
 		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_BUTTON) {
-			return;
+			return FALSE;
 		}
 		break;
 	}
 	default:
-		return;
+		return FALSE;
 		break;
 	}
 
@@ -5996,10 +6005,20 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 						event->button,
 						event->type == GDK_BUTTON_RELEASE,
 						event->x, event->y);
+	return TRUE;
 }
 
-/* Send a mouse motion notification. */
-static void
+/*
+ * vte_terminal_maybe_send_mouse_drag:
+ * @terminal:
+ * @event:
+ *
+ * Sends a mouse motion notification to the application,
+ * if the terminal is in mouse tracking mode.
+ *
+ * Returns: %TRUE iff the event was consumed
+ */
+static gboolean
 vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
 	int width = terminal->char_width;
@@ -6011,28 +6030,29 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
 		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_CELL_MOTION_TRACKING)
-			return;
+			return FALSE;
 
 		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_ALL_MOTION_TRACKING) {
 
 			if (terminal->pvt->mouse_last_button == 0) {
-				return;
+				return FALSE;
 			}
 			/* the xterm doc is not clear as to whether
 			 * all-tracking also sends degenerate same-cell events */
 			if (col == terminal->pvt->mouse_last_x / width &&
 			    row == terminal->pvt->mouse_last_y / height)
-				return;
+				return FALSE;
 		}
 		break;
 	default:
-		return;
+		return FALSE;
 		break;
 	}
 
 	vte_terminal_feed_mouse_event(terminal, terminal->pvt->mouse_last_button,
 				      TRUE /* drag */, FALSE /* not release */,
 				      col, row);
+	return TRUE;
 }
 
 /* Clear all match hilites. */
@@ -7515,8 +7535,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		/* If we haven't done anything yet, try sending the mouse
 		 * event to the app. */
 		if (handled == FALSE) {
-			vte_terminal_maybe_send_mouse_button(terminal, event);
-			handled = TRUE;
+			handled = vte_terminal_maybe_send_mouse_button(terminal, event);
 		}
 		break;
 	case GDK_2BUTTON_PRESS:
@@ -7530,6 +7549,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				vte_terminal_start_selection(terminal,
 							     x, y,
 							     selection_type_char);
+				handled = TRUE;
 			}
 			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
 			    !terminal->pvt->mouse_tracking_mode) {
@@ -7538,6 +7558,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     selection_type_word);
 				vte_terminal_extend_selection(terminal,
 							      x, y, FALSE, TRUE);
+				handled = TRUE;
 			}
 			break;
 		case 2:
@@ -7560,6 +7581,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     selection_type_line);
 				vte_terminal_extend_selection(terminal,
 							      x, y, FALSE, TRUE);
+				handled = TRUE;
 			}
 			break;
 		case 2:
@@ -7576,7 +7598,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
 
-	return TRUE;
+	return handled;
 }
 
 /* Read and handle a pointing device buttonrelease event. */
@@ -7617,8 +7639,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			break;
 		}
 		if (!handled) {
-			vte_terminal_maybe_send_mouse_button(terminal, event);
-			handled = TRUE;
+			handled = vte_terminal_maybe_send_mouse_button(terminal, event);
 		}
 		break;
 	default:
@@ -7631,7 +7652,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	terminal->pvt->mouse_last_y = y;
 	terminal->pvt->selecting_after_threshold = FALSE;
 
-	return TRUE;
+	return handled;
 }
 
 /* Handle receiving or losing focus. */
