@@ -3219,7 +3219,6 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				 * buffer by inserting a line at the next
 				 * line and scrolling the area up. */
 				screen->insert_delta++;
-				screen->scroll_delta++;
 				screen->cursor_current.row++;
 				/* update start and end, as they are relative
 				 * to insert_delta. */
