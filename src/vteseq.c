@@ -1151,7 +1151,9 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 			rowdata = _vte_terminal_ring_append (terminal, FALSE);
 		}
 		/* Pad out the row. */
-		_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
+			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
+		}
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
 		_vte_invalidate_cells(terminal,

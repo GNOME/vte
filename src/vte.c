@@ -8083,37 +8083,72 @@ vte_terminal_refresh_size(VteTerminal *terminal)
 
 /* Resize the given screen (normal or alternate) of the terminal. */
 static void
-vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old_columns, glong old_rows)
+vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old_columns, glong old_rows, gboolean do_rewrap)
 {
 	VteRing *ring = screen->row_data;
+	VteVisualPosition cursor_saved_absolute;
+	VteVisualPosition below_viewport;
+	VteVisualPosition below_current_paragraph;
+	VteVisualPosition *markers[5];
 	gboolean was_scrolled_to_top = (screen->scroll_delta == _vte_ring_delta(ring));
 	gboolean was_scrolled_to_bottom = (screen->scroll_delta == screen->insert_delta);
+	glong old_top_lines;
 	glong new_scroll_delta;
-	long cursor_saved_absolute_row = screen->insert_delta + screen->cursor_saved.row;
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Resizing %s screen\n"
-			"Old  ring_delta=%ld  ring_next=%ld\n"
-			"Old  insert_delta=%ld  scroll_delta=%ld\n",
+			"Old  insert_delta=%ld  scroll_delta=%ld\n"
+			"     cursor_current (absolute)  row=%ld  (visual line %ld)  col=%ld\n"
+			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n",
 			screen == &terminal->pvt->normal_screen ? "normal" : "alternate",
-			_vte_ring_delta(ring), _vte_ring_next(ring),
-			screen->insert_delta, screen->scroll_delta);
+			screen->insert_delta, screen->scroll_delta,
+			screen->cursor_current.row, screen->cursor_current.row - screen->scroll_delta + 1, screen->cursor_current.col,
+			screen->cursor_saved.row, screen->cursor_saved.col);
 
 	screen->scrolling_restricted = FALSE;
 
-	if (old_rows > terminal->row_count &&
-	    screen->insert_delta + old_rows > screen->cursor_current.row + 1) {
-		/* Shrinking the window, cursor was not at the bottom.
-		   Drop lines from the bottom as XTerm does, see bug 708213 */
-		int drop_lines = MIN(
-				old_rows - terminal->row_count,
-				(screen->insert_delta + old_rows) - (screen->cursor_current.row + 1));
-		int new_ring_next = screen->insert_delta + old_rows - drop_lines;
-		_vte_debug_print(VTE_DEBUG_RESIZE,
-				"Dropping %d rows at the bottom\n",
-				drop_lines);
-		_vte_ring_shrink(ring, new_ring_next - _vte_ring_delta(ring));
+	cursor_saved_absolute.row = screen->cursor_saved.row + screen->insert_delta;
+	cursor_saved_absolute.col = screen->cursor_saved.col;
+	below_viewport.row = screen->scroll_delta + old_rows;
+	below_viewport.col = 0;
+	below_current_paragraph.row = screen->cursor_current.row + 1;
+	while (below_current_paragraph.row < _vte_ring_next(ring)
+	    && _vte_ring_index(ring, below_current_paragraph.row - 1)->attr.soft_wrapped) {
+		below_current_paragraph.row++;
 	}
+	below_current_paragraph.col = 0;
+	markers[0] = &screen->cursor_current;
+	markers[1] = &cursor_saved_absolute;
+	markers[2] = &below_viewport;
+	markers[3] = &below_current_paragraph;
+	markers[4] = NULL;
+
+	old_top_lines = below_current_paragraph.row - screen->insert_delta;
+
+	if (do_rewrap && old_columns != terminal->column_count)
+		_vte_ring_rewrap(ring, terminal->column_count, markers);
+
+	if (_vte_ring_length(ring) > terminal->row_count) {
+		/* The content won't fit without scrollbars. Before figuring out the position, we might need to
+		   drop some lines from the ring if the cursor is not at the bottom, as XTerm does. See bug 708213.
+		   This code is really tricky, see ../doc/rewrap.txt for details! */
+		glong new_top_lines, drop1, drop2, drop3, drop;
+		screen->insert_delta = _vte_ring_next(ring) - terminal->row_count;
+		new_top_lines = below_current_paragraph.row - screen->insert_delta;
+		drop1 = _vte_ring_length(ring) - terminal->row_count;
+		drop2 = _vte_ring_length(ring) - below_current_paragraph.row;
+		drop3 = old_top_lines - new_top_lines;
+		drop = MIN(MIN(drop1, drop2), drop3);
+		if (drop > 0) {
+			int new_ring_next = screen->insert_delta + terminal->row_count - drop;
+			_vte_debug_print(VTE_DEBUG_RESIZE,
+					"Dropping %ld [== MIN(%ld, %ld, %ld)] rows at the bottom\n",
+					drop, drop1, drop2, drop3);
+			_vte_ring_shrink(ring, new_ring_next - _vte_ring_delta(ring));
+		}
+	}
+
+	/* Figure out new insert and scroll deltas */
 	if (_vte_ring_length(ring) <= terminal->row_count) {
 		/* Everything fits without scrollbars. Align at top. */
 		screen->insert_delta = _vte_ring_delta(ring);
@@ -8134,22 +8169,31 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Scroll to top\n");
 		} else {
-			/* Try to scroll so that the bottom visible row stays. */
-			new_scroll_delta = screen->scroll_delta + old_rows - terminal->row_count;
+			/* Try to scroll so that the bottom visible row stays.
+			   More precisely, the character below the bottom left corner stays in that
+			   (invisible) row.
+			   So if the bottom of the screen was at a hard line break then that hard
+			   line break will stay there.
+			   TODO: What would be the best behavior if the bottom of the screen is a
+			   soft line break, i.e. only a partial line is visible at the bottom? */
+			new_scroll_delta = below_viewport.row - terminal->row_count;
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Scroll so bottom row stays\n");
 		}
 	}
 
-	/* Saved cursor is relative to visible part. Adjust so that it stays relative to the ring.
-	   Don't clamp yet (so that it's tracked correctly through multiple resizes), it will be clamped when restored. */
-	screen->cursor_saved.row = cursor_saved_absolute_row - screen->insert_delta;
+	/* Don't clamp, they'll be clamped when restored. Until then remember off-screen values
+	   since they might become on-screen again on subsequent resizes. */
+	screen->cursor_saved.row = cursor_saved_absolute.row - screen->insert_delta;
+	screen->cursor_saved.col = cursor_saved_absolute.col;
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
-			"New  ring_delta=%ld  ring_next=%ld\n"
-			"New  insert_delta=%ld  scroll_delta=%ld\n\n",
-			_vte_ring_delta(ring), _vte_ring_next(ring),
-			screen->insert_delta, new_scroll_delta);
+			"New  insert_delta=%ld  scroll_delta=%ld\n"
+			"     cursor_current (absolute)  row=%ld  (visual line %ld)  col=%ld\n"
+			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n\n",
+			screen->insert_delta, new_scroll_delta,
+			screen->cursor_current.row, screen->cursor_current.row - new_scroll_delta + 1, screen->cursor_current.col,
+			screen->cursor_saved.row, screen->cursor_saved.col);
 
 	if (screen == terminal->pvt->screen)
 		vte_terminal_queue_adjustment_value_changed (
@@ -8202,10 +8246,12 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		_vte_ring_set_visible_rows_hint(terminal->pvt->alternate_screen.row_data, terminal->row_count);
 
 		/* Always resize normal screen, even if alternate is visible: bug 415277 */
-		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows);
+		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows, TRUE);
+		/* Resize the alternate screen if it's the current one, but never rewrap it: bug 336238 comment 60 */
 		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)
-			vte_terminal_screen_set_size(terminal, &terminal->pvt->alternate_screen, old_columns, old_rows);
+			vte_terminal_screen_set_size(terminal, &terminal->pvt->alternate_screen, old_columns, old_rows, FALSE);
 
+		_vte_terminal_adjust_adjustments_full (terminal);
 		gtk_widget_queue_resize_no_redraw (&terminal->widget);
 		/* Our visible text changed. */
 		vte_terminal_emit_text_modified(terminal);

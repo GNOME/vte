@@ -143,10 +143,6 @@ typedef struct _VteWordCharRange {
 	gunichar start, end;
 } VteWordCharRange;
 
-typedef struct _VteVisualPosition {
-	long row, col;
-} VteVisualPosition;
-
 /* Terminal private data. */
 struct _VteTerminalPrivate {
 	/* Emulation setup data. */
