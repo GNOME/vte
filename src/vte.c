@@ -11505,9 +11505,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		return FALSE;
 	}
 
-	if ((terminal->pvt->screen == &terminal->pvt->alternate_screen &&
-             terminal->pvt->alternate_screen_scroll) ||
-            terminal->pvt->normal_screen.scrolling_restricted) {
+	if (terminal->pvt->screen == &terminal->pvt->alternate_screen &&
+            terminal->pvt->alternate_screen_scroll) {
 		char *normal;
 		gssize normal_length;
 		const gchar *special;
