@@ -3206,13 +3206,6 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		end = start + terminal->row_count - 1;
 	}
 	if (screen->cursor_current.row == end) {
-		/* Match xterm and fill to the end of row when scrolling. */
-		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
-			VteRowData *rowdata;
-			rowdata = _vte_terminal_ensure_row (terminal);
-			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
-		}
-
 		if (screen->scrolling_restricted) {
 			if (start == screen->insert_delta) {
 				/* Scroll this line into the scrollback
