@@ -375,7 +375,7 @@ _vte_ring_discard_one_row (VteRing *ring)
 {
 	ring->start++;
 	if (G_UNLIKELY (ring->start == ring->writable)) {
-		_vte_ring_reset_streams (ring, 0);
+		_vte_ring_reset_streams (ring, ring->writable);
 	} else {
 		VteRowRecord record;
 		_vte_stream_advance_tail (ring->row_stream, ring->start * sizeof (record));
@@ -463,7 +463,7 @@ _vte_ring_resize (VteRing *ring, gulong max_rows)
 	if ((gulong) _vte_ring_length (ring) > max_rows) {
 		ring->start = ring->end - max_rows;
 		if (ring->start >= ring->writable) {
-			_vte_ring_reset_streams (ring, 0);
+			_vte_ring_reset_streams (ring, ring->writable);
 			ring->writable = ring->start;
 		}
 	}
