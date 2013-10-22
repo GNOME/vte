@@ -1913,7 +1913,7 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 				continue;
 
 			if (vte_parse_color (pairs[i + 1], &color)) {
-                                _vte_terminal_set_color_internal(terminal, idx, &color);
+                                _vte_terminal_set_color_internal(terminal, idx, TRUE, &color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
 				g_snprintf (buf, sizeof (buf),
@@ -3437,7 +3437,7 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 			return;
 
 		if (vte_parse_color (name, &color))
-			vte_terminal_set_color_cursor (terminal, &color);
+			_vte_terminal_set_color_cursor_internal(terminal, TRUE, &color);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
 			g_snprintf (buf, sizeof (buf),

@@ -342,8 +342,10 @@ struct _VteTerminalPrivate {
 
 	gboolean palette_initialized;
 	gboolean highlight_color_set;
+	gboolean cursor_default_color_set;
 	gboolean cursor_color_set;
-	PangoColor palette[VTE_PALETTE_SIZE];
+	PangoColor default_palette[VTE_PALETTE_SIZE];  /* get/set via API calls */
+	PangoColor palette[VTE_PALETTE_SIZE];  /* get/set via escape sequences */
 
 	/* Mouse cursors. */
 	gboolean mouse_cursor_visible;
@@ -445,7 +447,11 @@ void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);
 void _vte_terminal_set_color_internal(VteTerminal *terminal,
                                       int idx,
+                                      gboolean via_escape,
                                       const GdkColor *color);
+void _vte_terminal_set_color_cursor_internal(VteTerminal *terminal,
+                                             gboolean via_escape,
+                                             const GdkColor *color);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
