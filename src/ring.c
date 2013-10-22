@@ -124,8 +124,8 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 
 	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %lu.\n", position);
 
-	record.text_start_offset = _vte_stream_head (ring->text_stream, 0);
-	record.attr_start_offset = _vte_stream_head (ring->attr_stream, 0);
+	record.text_start_offset = _vte_stream_head (ring->text_stream);
+	record.attr_start_offset = _vte_stream_head (ring->attr_stream);
 
 	g_string_set_size (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
@@ -199,11 +199,11 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 
 	if (!_vte_ring_read_row_record (ring, &records[0], position))
 		return;
-	if ((position + 1) * sizeof (records[0]) < _vte_stream_head (ring->row_stream, 0)) {
+	if ((position + 1) * sizeof (records[0]) < _vte_stream_head (ring->row_stream)) {
 		if (!_vte_ring_read_row_record (ring, &records[1], position + 1))
 			return;
 	} else
-		records[1].text_start_offset = _vte_stream_head (ring->text_stream, 0);
+		records[1].text_start_offset = _vte_stream_head (ring->text_stream);
 
 	g_string_set_size (buffer, records[1].text_start_offset - records[0].text_start_offset);
 	if (!_vte_stream_read (ring->text_stream, records[0].text_start_offset, buffer->str, buffer->len))
@@ -301,23 +301,7 @@ _vte_ring_reset_streams (VteRing *ring, gulong position)
 
 	ring->last_attr_text_start_offset = 0;
 	ring->last_attr.i = basic_cell.i.attr;
-
-	ring->last_page = position;
 }
-
-static void
-_vte_ring_new_page (VteRing *ring)
-{
-	_vte_debug_print (VTE_DEBUG_RING, "Starting new stream page at %lu.\n", ring->writable);
-
-	_vte_stream_new_page (ring->attr_stream);
-	_vte_stream_new_page (ring->text_stream);
-	_vte_stream_new_page (ring->row_stream);
-
-	ring->last_page = ring->writable;
-}
-
-
 
 static inline VteRowData *
 _vte_ring_writable_index (VteRing *ring, gulong position)
@@ -365,9 +349,6 @@ _vte_ring_freeze_one_row (VteRing *ring)
 	_vte_ring_freeze_row (ring, ring->writable, row);
 
 	ring->writable++;
-
-	if (G_UNLIKELY (ring->writable == ring->last_page || ring->writable - ring->last_page >= ring->max))
-		_vte_ring_new_page (ring);
 }
 
 static void
@@ -395,6 +376,13 @@ _vte_ring_discard_one_row (VteRing *ring)
 	ring->start++;
 	if (G_UNLIKELY (ring->start == ring->writable)) {
 		_vte_ring_reset_streams (ring, 0);
+	} else {
+		VteRowRecord record;
+		_vte_stream_advance_tail (ring->row_stream, ring->start * sizeof (record));
+		if (G_LIKELY (_vte_ring_read_row_record (ring, &record, ring->start))) {
+			_vte_stream_advance_tail (ring->text_stream, record.text_start_offset);
+			_vte_stream_advance_tail (ring->attr_stream, record.attr_start_offset);
+		}
 	}
 	if (ring->start > ring->writable)
 		ring->writable = ring->start;
@@ -665,7 +653,7 @@ _vte_ring_write_contents (VteRing *ring,
 		if (_vte_ring_read_row_record (ring, &record, ring->start))
 		{
 			gsize start_offset = record.text_start_offset;
-			gsize end_offset = _vte_stream_head (ring->text_stream, 0);
+			gsize end_offset = _vte_stream_head (ring->text_stream);
 			char buf[4096];
 			while (start_offset < end_offset)
 			{

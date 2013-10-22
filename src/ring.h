@@ -53,7 +53,6 @@ struct _VteRing {
 	VteRowData *array;
 
 	/* Storage */
-	gulong last_page;
 	VteStream *attr_stream, *text_stream, *row_stream;
 	gsize last_attr_text_start_offset;
 	VteIntCellAttr last_attr;

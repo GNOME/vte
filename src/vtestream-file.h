@@ -460,22 +460,24 @@ _vte_file_stream_truncate (VteStream *astream, gsize offset)
 }
 
 static void
-_vte_file_stream_new_page (VteStream *astream)
+_vte_file_stream_advance_tail (VteStream *astream, gsize offset)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	stream->offset[1] = stream->offset[0];
-	stream->offset[0] = stream->head;
-	_vte_file_stream_swap_fds (stream);
-	_file_reset (&stream->file[0]);
+	if (offset >= stream->offset[0]) {
+		stream->offset[1] = stream->offset[0];
+		stream->offset[0] = stream->head;
+		_vte_file_stream_swap_fds (stream);
+		_file_reset (&stream->file[0]);
+	}
 }
 
 static gsize
-_vte_file_stream_head (VteStream *astream, guint _index)
+_vte_file_stream_head (VteStream *astream)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
-	return _index == 0 ? stream->head : stream->offset[_index - 1];
+	return stream->head;
 }
 
 static void
@@ -489,6 +491,6 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 	klass->append = _vte_file_stream_append;
 	klass->read = _vte_file_stream_read;
 	klass->truncate = _vte_file_stream_truncate;
-	klass->new_page = _vte_file_stream_new_page;
+	klass->advance_tail = _vte_file_stream_advance_tail;
 	klass->head = _vte_file_stream_head;
 }
