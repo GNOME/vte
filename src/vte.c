@@ -4077,6 +4077,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	long wcount, start, delta;
 	gboolean leftovers, modified, bottom, again;
 	gboolean invalidated_text;
+	gboolean in_scroll_region;
 	GArray *unichars;
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
@@ -4095,6 +4096,10 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	/* Save the current cursor position. */
 	cursor = screen->cursor_current;
 	cursor_visible = terminal->pvt->cursor_visible;
+
+	in_scroll_region = screen->scrolling_restricted
+	    && (screen->cursor_current.row >= (screen->insert_delta + screen->scrolling_region.start))
+	    && (screen->cursor_current.row <= (screen->insert_delta + screen->scrolling_region.end));
 
 	/* We should only be called when there's data to process. */
 	g_assert(terminal->pvt->incoming ||
@@ -4194,6 +4199,8 @@ skip_chunk:
 		 * points to the first character which isn't part of this
 		 * sequence. */
 		if ((match != NULL) && (match[0] != '\0')) {
+			gboolean new_in_scroll_region;
+
 			/* Call the right sequence handler for the requested
 			 * behavior. */
 			_vte_terminal_handle_sequence(terminal,
@@ -4204,12 +4211,21 @@ skip_chunk:
 			start = (next - wbuf);
 			modified = TRUE;
 
-			/* if we have moved during the sequence handler, restart the bbox */
+			new_in_scroll_region = screen->scrolling_restricted
+			    && (screen->cursor_current.row >= (screen->insert_delta + screen->scrolling_region.start))
+			    && (screen->cursor_current.row <= (screen->insert_delta + screen->scrolling_region.end));
+
+			delta = screen->scroll_delta;	/* delta may have changed from sequence. */
+
+			/* if we have moved greatly during the sequence handler, or moved
+                         * into a scroll_region from outside it, restart the bbox.
+                         */
 			if (invalidated_text &&
-					(screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
-					 screen->cursor_current.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
-					 screen->cursor_current.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
-					 screen->cursor_current.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+					((new_in_scroll_region && !in_scroll_region) ||
+					 (screen->cursor_current.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
+					  screen->cursor_current.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
+					  screen->cursor_current.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
+					  screen->cursor_current.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 0);
 				bbox_topleft.y = MAX(bbox_topleft.y, delta);
@@ -4229,6 +4245,8 @@ skip_chunk:
 				bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
 				bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 			}
+
+			in_scroll_region = new_in_scroll_region;
 		} else
 		/* Second, we have a NULL match, and next points to the very
 		 * next character in the buffer.  Insert the character which
