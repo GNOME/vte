@@ -9219,6 +9219,9 @@ vte_terminal_realize(GtkWidget *widget)
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
 				GDK_FOCUS_CHANGE_MASK |
+#if GTK_CHECK_VERSION (3, 4, 0)
+				GDK_SMOOTH_SCROLL_MASK |
+#endif
 				GDK_SCROLL_MASK |
 				GDK_BUTTON_PRESS_MASK |
 				GDK_BUTTON_RELEASE_MASK |
@@ -11443,40 +11446,52 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	GtkAdjustment *adj;
 	VteTerminal *terminal;
+	gdouble delta_x, delta_y;
 	gdouble v;
+	gint cnt, i;
 	int button;
 
 	terminal = VTE_TERMINAL(widget);
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
-	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS)
-		switch (event->direction) {
-		case GDK_SCROLL_UP:
-			g_printerr("Scroll up.\n");
-			break;
-		case GDK_SCROLL_DOWN:
-			g_printerr("Scroll down.\n");
-			break;
-		default:
-			break;
-		}
+	switch (event->direction) {
+	case GDK_SCROLL_UP:
+		terminal->pvt->mouse_smooth_scroll_delta -= 1.;
+		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll up\n");
+		break;
+	case GDK_SCROLL_DOWN:
+		terminal->pvt->mouse_smooth_scroll_delta += 1.;
+		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
+		break;
+#if GTK_CHECK_VERSION (3, 3, 18)
+	case GDK_SCROLL_SMOOTH:
+		gdk_event_get_scroll_deltas ((GdkEvent*) event, &delta_x, &delta_y);
+		terminal->pvt->mouse_smooth_scroll_delta += delta_y;
+		_vte_debug_print(VTE_DEBUG_EVENTS,
+				"Smooth scroll by %f, delta now at %f\n",
+				delta_y, terminal->pvt->mouse_smooth_scroll_delta);
+		break;
+#endif
+	default:
+		break;
+	}
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */
 	if (terminal->pvt->mouse_tracking_mode) {
-		switch (event->direction) {
-		case GDK_SCROLL_UP:
-			button = 4;
-			break;
-		case GDK_SCROLL_DOWN:
-			button = 5;
-			break;
-		default:
-			button = 0;
-			break;
-		}
-		if (button != 0) {
+		cnt = terminal->pvt->mouse_smooth_scroll_delta;
+		if (cnt == 0)
+			return TRUE;
+		terminal->pvt->mouse_smooth_scroll_delta -= cnt;
+		_vte_debug_print(VTE_DEBUG_EVENTS,
+				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
+				cnt, terminal->pvt->mouse_smooth_scroll_delta);
+
+		button = cnt > 0 ? 5 : 4;
+		if (cnt < 0)
+			cnt = -cnt;
+		for (i = 0; i < cnt; i++) {
 			/* Encode the parameters and send them to the app. */
 			vte_terminal_send_mouse_button_internal(terminal,
 								button,
@@ -11489,22 +11504,22 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	adj = terminal->adjustment;
 	v = MAX (1., ceil (gtk_adjustment_get_page_increment (adj) / 10.));
-	switch (event->direction) {
-	case GDK_SCROLL_UP:
-		v = -v;
-		break;
-	case GDK_SCROLL_DOWN:
-		break;
-	default:
-		return FALSE;
-	}
+	_vte_debug_print(VTE_DEBUG_EVENTS,
+			"Scroll speed is %d lines per non-smooth scroll unit\n",
+			(int) v);
+	cnt = v * terminal->pvt->mouse_smooth_scroll_delta;
+	if (cnt == 0)
+		return TRUE;
+	terminal->pvt->mouse_smooth_scroll_delta -= cnt / v;
+	_vte_debug_print(VTE_DEBUG_EVENTS,
+			"Scroll by %d lines, smooth scroll delta set back to %f\n",
+			cnt, terminal->pvt->mouse_smooth_scroll_delta);
 
 	if (terminal->pvt->screen == &terminal->pvt->alternate_screen &&
             terminal->pvt->alternate_screen_scroll) {
 		char *normal;
 		gssize normal_length;
 		const gchar *special;
-		gint i, cnt = v;
 
 		/* In the alternate screen there is no scrolling,
 		 * so fake a few cursor keystrokes. */
@@ -11533,8 +11548,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		g_free (normal);
 	} else {
 		/* Perform a history scroll. */
-		v += terminal->pvt->screen->scroll_delta;
-		vte_terminal_queue_adjustment_value_changed_clamped (terminal, v);
+		cnt += terminal->pvt->screen->scroll_delta;
+		vte_terminal_queue_adjustment_value_changed_clamped (terminal, cnt);
 	}
 
 	return TRUE;
@@ -14328,6 +14343,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_last_y = 0;
 	pvt->mouse_xterm_extension = FALSE;
 	pvt->mouse_urxvt_extension = FALSE;
+	pvt->mouse_smooth_scroll_delta = 0.;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
 	/* Cause everything to be redrawn (or cleared). */

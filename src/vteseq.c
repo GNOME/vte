@@ -616,6 +616,13 @@ vte_sequence_handler_multiple_r(VteTerminal *terminal,
                                               terminal->column_count - terminal->pvt->screen->cursor_current.col);
 }
 
+static void
+vte_reset_mouse_smooth_scroll_delta(VteTerminal *terminal,
+                                    GValueArray *params)
+{
+	terminal->pvt->mouse_smooth_scroll_delta = 0.;
+}
+
 /* Manipulate certain terminal attributes. */
 static void
 vte_sequence_handler_decset_internal(VteTerminal *terminal,
@@ -672,7 +679,8 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{9, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
 		 GINT_TO_POINTER(MOUSE_TRACKING_SEND_XY_ON_CLICK),
-		 NULL, NULL,},
+		 vte_reset_mouse_smooth_scroll_delta,
+		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 12: disallowed, cursor blinks is set by user. */
 		{12, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 18: print form feed. */
@@ -716,22 +724,26 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{1000, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
 		 GINT_TO_POINTER(MOUSE_TRACKING_SEND_XY_ON_BUTTON),
-		 NULL, NULL,},
+		 vte_reset_mouse_smooth_scroll_delta,
+		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1001: Hilite tracking. */
 		{1001, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
 		 GINT_TO_POINTER(MOUSE_TRACKING_HILITE_TRACKING),
-		 NULL, NULL,},
+		 vte_reset_mouse_smooth_scroll_delta,
+		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1002: Cell motion tracking. */
 		{1002, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
 		 GINT_TO_POINTER(MOUSE_TRACKING_CELL_MOTION_TRACKING),
-		 NULL, NULL,},
+		 vte_reset_mouse_smooth_scroll_delta,
+		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1003: All motion tracking. */
 		{1003, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
 		 GINT_TO_POINTER(0),
 		 GINT_TO_POINTER(MOUSE_TRACKING_ALL_MOTION_TRACKING),
-		 NULL, NULL,},
+		 vte_reset_mouse_smooth_scroll_delta,
+		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1006: Extended mouse coordinates. */
 		{1006, &terminal->pvt->mouse_xterm_extension, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),

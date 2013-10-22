@@ -313,6 +313,7 @@ struct _VteTerminalPrivate {
 	guint mouse_autoscroll_tag;
 	gboolean mouse_xterm_extension;
 	gboolean mouse_urxvt_extension;
+	double mouse_smooth_scroll_delta;
 
 	/* State variables for handling match checks. */
 	char *match_contents;
