@@ -338,10 +338,11 @@ _vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill)
 	VteRing *ring = terminal->pvt->screen->row_data;
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
 		row = _vte_ring_append (ring);
-		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
+		if (terminal->pvt->screen->fill_defaults.attr.back != VTE_DEF_BG)
+			_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
 	}
 	row = _vte_ring_insert (ring, position);
-	if (fill)
+	if (fill && terminal->pvt->screen->fill_defaults.attr.back != VTE_DEF_BG)
 		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
 	return row;
 }
