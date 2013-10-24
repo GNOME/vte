@@ -1390,7 +1390,7 @@ vte_sequence_handler_cursor_lower_left (VteTerminal *terminal, GValueArray *para
 	screen->cursor_current.col = 0;
 }
 
-/* Move the cursor to the beginning of the next line, scrolling if necessary. */
+/* Move the cursor to the beginning of the next line, no scrolling. */
 static void
 vte_sequence_handler_cursor_next_line (VteTerminal *terminal, GValueArray *params)
 {
@@ -1398,7 +1398,7 @@ vte_sequence_handler_cursor_next_line (VteTerminal *terminal, GValueArray *param
 	vte_sequence_handler_DO (terminal, params);
 }
 
-/* Move the cursor to the beginning of the next line, scrolling if necessary. */
+/* Move the cursor to the beginning of the previous line, no scrolling. */
 static void
 vte_sequence_handler_cursor_preceding_line (VteTerminal *terminal, GValueArray *params)
 {
@@ -1823,7 +1823,7 @@ static void
 vte_sequence_handler_next_line (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->screen->cursor_current.col = 0;
-	vte_sequence_handler_DO (terminal, params);
+	_vte_terminal_cursor_down (terminal);
 }
 
 /* No-op. */
