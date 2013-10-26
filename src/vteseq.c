@@ -917,6 +917,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* Clear the alternate screen if we're switching
 		 * to it, and home the cursor. */
 		if (set) {
+			_vte_terminal_set_default_attributes (terminal);
 			_vte_terminal_clear_screen (terminal);
 			_vte_terminal_home_cursor (terminal);
 		}
