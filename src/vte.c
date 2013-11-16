@@ -11729,7 +11729,9 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_pty_object (terminal, g_value_get_object (value));
                         break;
                 case PROP_SCROLL_BACKGROUND:
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_scroll_background (terminal, g_value_get_boolean (value));
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_SCROLLBACK_LINES:
                         vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
