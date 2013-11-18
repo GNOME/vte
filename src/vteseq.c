@@ -650,7 +650,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 NULL, NULL,},
 		/* 2: disallowed, we don't do VT52. */
 		{2, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
-		/* 3: disallowed, window size is set by user. */
+                /* 3: DECCOLM set/reset to and from 132/80 columns */
+                {3, NULL, NULL, NULL, 
+                 GINT_TO_POINTER(FALSE),
+                 GINT_TO_POINTER(TRUE),
+                 NULL, NULL,},
 		{3, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 5: Reverse video. */
 		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
@@ -690,8 +694,11 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		/* 35/rxvt: disallowed, fonts set by user. */
 		{35, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 38: enter Tektronix mode. */
-		/* 40: disallowed, the user sizes dynamically. */
-		{40, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+                /* 40: Enable DECCOLM mode. */
+                {40, &terminal->pvt->deccolm_mode, NULL, NULL, 
+                 GINT_TO_POINTER(FALSE),
+                 GINT_TO_POINTER(TRUE),
+                 NULL, NULL,},
 		/* 41: more(1) fix. */
 		/* 42: Enable NLS replacements. */
 		{42, &terminal->pvt->nrc_mode, NULL, NULL,
@@ -886,21 +893,22 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				"Entering application cursor mode.\n" :
 				"Leaving application cursor mode.\n");
 		break;
-#if 0		/* 3: disallowed, window size is set by user. */
 	case 3:
-		vte_terminal_emit_resize_window(terminal,
-						(set ? 132 : 80) *
-						terminal->char_width +
-						terminal->pvt->inner_border.left +
-                                                terminal->pvt->inner_border.right,
-						terminal->row_count *
-						terminal->char_height +
-						terminal->pvt->inner_border.top +
-                                                terminal->pvt->inner_border.bottom);
-		/* Request a resize and redraw. */
-		_vte_invalidate_all(terminal);
+                /* 3: DECCOLM set/reset to 132/80 columns mode */
+                if (terminal->pvt->deccolm_mode) {
+                        vte_terminal_emit_resize_window(terminal,
+                                                        (set ? 132 : 80) *
+                                                        terminal->char_width +
+                                                        terminal->pvt->inner_border.left +
+                                                        terminal->pvt->inner_border.right,
+                                                        terminal->row_count *
+                                                        terminal->char_height +
+                                                        terminal->pvt->inner_border.top +
+                                                        terminal->pvt->inner_border.bottom);
+                        /* Request a resize and redraw. */
+                        _vte_invalidate_all(terminal);
+                }
 		break;
-#endif
 	case 5:
 		/* Repaint everything in reverse mode. */
 		_vte_invalidate_all(terminal);

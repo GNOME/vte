@@ -8629,6 +8629,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->bell_margin = 10;
 	pvt->allow_bold = TRUE;
 	pvt->nrc_mode = TRUE;
+        pvt->deccolm_mode = FALSE;
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Cursor shape. */
@@ -14286,6 +14287,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->margin_bell = FALSE;
 	/* Enable iso2022/NRC processing. */
 	pvt->nrc_mode = TRUE;
+        /* Disable DECCOLM mode. */
+        pvt->deccolm_mode = FALSE;
 	/* Reset saved settings. */
 	if (pvt->dec_saved != NULL) {
 		g_hash_table_destroy(pvt->dec_saved);
