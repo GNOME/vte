@@ -623,6 +623,26 @@ vte_reset_mouse_smooth_scroll_delta(VteTerminal *terminal,
 	terminal->pvt->mouse_smooth_scroll_delta = 0.;
 }
 
+struct decset_t {
+        int setting;
+        gboolean *bvalue;
+        gint *ivalue;
+        gpointer *pvalue;
+        gpointer fvalue;
+        gpointer tvalue;
+        VteTerminalSequenceHandler reset, set;
+};
+
+static int
+decset_cmp(const void *va,
+           const void *vb)
+{
+        const struct decset_t *a = va;
+        const struct decset_t *b = vb;
+
+        return a->setting < b->setting ? -1 : a->setting > b->setting;
+}
+
 /* Manipulate certain terminal attributes. */
 static void
 vte_sequence_handler_decset_internal(VteTerminal *terminal,
@@ -631,18 +651,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				     gboolean save,
 				     gboolean set)
 {
-	gboolean recognized = FALSE;
-	gpointer p;
-	guint i;
-	struct {
-		int setting;
-		gboolean *bvalue;
-		gint *ivalue;
-		gpointer *pvalue;
-		gpointer fvalue;
-		gpointer tvalue;
-		VteTerminalSequenceHandler reset, set;
-	} settings[] = {
+	struct decset_t settings[] = {
 		/* 1: Application/normal cursor keys. */
 		{1, NULL, &terminal->pvt->cursor_mode, NULL,
 		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
@@ -817,16 +826,27 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 GINT_TO_POINTER(TRUE),
 		 NULL, NULL,},
 	};
+        struct decset_t key;
+        struct decset_t *found;
+	gpointer p;
 
 	/* Handle the setting. */
-	for (i = 0; i < G_N_ELEMENTS(settings); i++)
-	if (settings[i].setting == setting) {
-		recognized = TRUE;
+        key.setting = setting;
+        found = bsearch(&key, settings, G_N_ELEMENTS(settings), sizeof(settings[0]), decset_cmp);
+        if (!found) {
+		_vte_debug_print (VTE_DEBUG_MISC,
+				  "DECSET/DECRESET mode %d not recognized, ignoring.\n",
+				  setting);
+                return;
+	}
+
+        key = *found;
+        do {
 		/* Handle settings we want to ignore. */
-		if ((settings[i].fvalue == settings[i].tvalue) &&
-		    (settings[i].set == NULL) &&
-		    (settings[i].reset == NULL)) {
-			continue;
+		if ((key.fvalue == key.tvalue) &&
+		    (key.set == NULL) &&
+		    (key.reset == NULL)) {
+			break;
 		}
 
 		/* Read the old setting. */
@@ -840,16 +860,14 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		}
 		/* Save the current setting. */
 		if (save) {
-			if (settings[i].bvalue) {
-				set = *(settings[i].bvalue) != FALSE;
+			if (key.bvalue) {
+				set = *(key.bvalue) != FALSE;
 			} else
-			if (settings[i].ivalue) {
-				set = *(settings[i].ivalue) ==
-				      GPOINTER_TO_INT(settings[i].tvalue);
+			if (key.ivalue) {
+				set = *(key.ivalue) == GPOINTER_TO_INT(key.tvalue);
 			} else
-			if (settings[i].pvalue) {
-				set = *(settings[i].pvalue) ==
-				      settings[i].tvalue;
+			if (key.pvalue) {
+				set = *(key.pvalue) == key.tvalue;
 			}
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Setting %d is %s, saving.\n",
@@ -863,27 +881,27 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Setting %d to %s.\n",
 					setting, set ? "set" : "unset");
-			if (settings[i].set && set) {
-				settings[i].set (terminal, NULL);
+			if (key.set && set) {
+				key.set (terminal, NULL);
 			}
-			if (settings[i].bvalue) {
-				*(settings[i].bvalue) = set;
+			if (key.bvalue) {
+				*(key.bvalue) = set;
 			} else
-			if (settings[i].ivalue) {
-				*(settings[i].ivalue) = set ?
-					GPOINTER_TO_INT(settings[i].tvalue) :
-					GPOINTER_TO_INT(settings[i].fvalue);
+			if (key.ivalue) {
+				*(key.ivalue) = set ?
+					GPOINTER_TO_INT(key.tvalue) :
+					GPOINTER_TO_INT(key.fvalue);
 			} else
-			if (settings[i].pvalue) {
-				*(settings[i].pvalue) = set ?
-					settings[i].tvalue :
-					settings[i].fvalue;
+			if (key.pvalue) {
+				*(key.pvalue) = set ?
+					key.tvalue :
+					key.fvalue;
 			}
-			if (settings[i].reset && !set) {
-				settings[i].reset (terminal, NULL);
+			if (key.reset && !set) {
+				key.reset (terminal, NULL);
 			}
 		}
-	}
+	} while (0);
 
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
@@ -971,12 +989,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		break;
 	default:
 		break;
-	}
-
-	if (!recognized) {
-		_vte_debug_print (VTE_DEBUG_MISC,
-				  "DECSET/DECRESET mode %d not recognized, ignoring.\n",
-				  setting);
 	}
 }
 
