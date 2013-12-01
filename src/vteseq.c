@@ -624,12 +624,13 @@ vte_reset_mouse_smooth_scroll_delta(VteTerminal *terminal,
 }
 
 struct decset_t {
-        int setting;
-        gboolean *bvalue;
-        gint *ivalue;
-        gpointer *pvalue;
-        gpointer fvalue;
-        gpointer tvalue;
+        gint16 setting;
+        /* offset in VteTerminalPrivate (> 0) or VteScreen (< 0) */
+        gint16 boffset;
+        gint16 ioffset;
+        gint16 poffset;
+        gint16 fvalue;
+        gint16 tvalue;
         VteTerminalSequenceHandler reset, set;
 };
 
@@ -651,184 +652,187 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				     gboolean save,
 				     gboolean set)
 {
-	struct decset_t settings[] = {
+	static const struct decset_t const settings[] = {
+#define PRIV_OFFSET(member) (G_STRUCT_OFFSET(VteTerminalPrivate, member))
+#define SCREEN_OFFSET(member) (-G_STRUCT_OFFSET(VteScreen, member))
 		/* 1: Application/normal cursor keys. */
-		{1, NULL, &terminal->pvt->cursor_mode, NULL,
-		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
-		 GINT_TO_POINTER(VTE_KEYMODE_APPLICATION),
+		{1, 0, PRIV_OFFSET(cursor_mode), 0,
+		 VTE_KEYMODE_NORMAL,
+		 VTE_KEYMODE_APPLICATION,
 		 NULL, NULL,},
 		/* 2: disallowed, we don't do VT52. */
-		{2, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{2, 0, 0, 0, 0, 0, NULL, NULL,},
                 /* 3: DECCOLM set/reset to and from 132/80 columns */
-                {3, NULL, NULL, NULL, 
-                 GINT_TO_POINTER(FALSE),
-                 GINT_TO_POINTER(TRUE),
+                {3, 0, 0, 0,
+                 FALSE,
+                 TRUE,
                  NULL, NULL,},
 		/* 5: Reverse video. */
-		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{5, SCREEN_OFFSET(reverse_mode), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 6: Origin mode: when enabled, cursor positioning is
 		 * relative to the scrolling region. */
-		{6, &terminal->pvt->screen->origin_mode, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{6, SCREEN_OFFSET(origin_mode), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 7: Wraparound mode. */
-		{7, &terminal->pvt->flags.am, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{7, PRIV_OFFSET(flags.am), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 8: disallowed, keyboard repeat is set by user. */
-		{8, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{8, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 9: Send-coords-on-click. */
-		{9, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
-		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_TRACKING_SEND_XY_ON_CLICK),
+		{9, 0, PRIV_OFFSET(mouse_tracking_mode), 0,
+		 0,
+		 MOUSE_TRACKING_SEND_XY_ON_CLICK,
 		 vte_reset_mouse_smooth_scroll_delta,
 		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 12: disallowed, cursor blinks is set by user. */
-		{12, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{12, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 18: print form feed. */
 		/* 19: set print extent to full screen. */
 		/* 25: Cursor visible. */
-		{25, &terminal->pvt->cursor_visible, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{25, PRIV_OFFSET(cursor_visible), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 30/rxvt: disallowed, scrollbar visibility is set by user. */
-		{30, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{30, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 35/rxvt: disallowed, fonts set by user. */
-		{35, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{35, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 38: enter Tektronix mode. */
                 /* 40: Enable DECCOLM mode. */
-                {40, &terminal->pvt->deccolm_mode, NULL, NULL, 
-                 GINT_TO_POINTER(FALSE),
-                 GINT_TO_POINTER(TRUE),
+                {40, PRIV_OFFSET(deccolm_mode), 0, 0,
+                 FALSE,
+                 TRUE,
                  NULL, NULL,},
 		/* 41: more(1) fix. */
 		/* 42: Enable NLS replacements. */
-		{42, &terminal->pvt->nrc_mode, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{42, PRIV_OFFSET(nrc_mode), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 44: Margin bell. */
-		{44, &terminal->pvt->margin_bell, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{44, PRIV_OFFSET(margin_bell), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 47: Alternate screen. */
-		{47, NULL, NULL, (gpointer) &terminal->pvt->screen,
-		 &terminal->pvt->normal_screen,
-		 &terminal->pvt->alternate_screen,
+		{47, 0, 0, PRIV_OFFSET(screen),
+		 PRIV_OFFSET(normal_screen),
+                 PRIV_OFFSET(alternate_screen),
 		 NULL, NULL,},
 		/* 66: Keypad mode. */
-		{66, &terminal->pvt->keypad_mode, NULL, NULL,
-		 GINT_TO_POINTER(VTE_KEYMODE_NORMAL),
-		 GINT_TO_POINTER(VTE_KEYMODE_APPLICATION),
+		{66, PRIV_OFFSET(keypad_mode), 0, 0,
+		 VTE_KEYMODE_NORMAL,
+		 VTE_KEYMODE_APPLICATION,
 		 NULL, NULL,},
 		/* 67: disallowed, backspace key policy is set by user. */
-		{67, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{67, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 1000: Send-coords-on-button. */
-		{1000, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
-		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_TRACKING_SEND_XY_ON_BUTTON),
+		{1000, 0, PRIV_OFFSET(mouse_tracking_mode), 0,
+		 0,
+		 MOUSE_TRACKING_SEND_XY_ON_BUTTON,
 		 vte_reset_mouse_smooth_scroll_delta,
 		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1001: Hilite tracking. */
-		{1001, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
-		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_TRACKING_HILITE_TRACKING),
+		{1001, 0, PRIV_OFFSET(mouse_tracking_mode), 0,
+		 (0),
+		 (MOUSE_TRACKING_HILITE_TRACKING),
 		 vte_reset_mouse_smooth_scroll_delta,
 		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1002: Cell motion tracking. */
-		{1002, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
-		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_TRACKING_CELL_MOTION_TRACKING),
+		{1002, 0, PRIV_OFFSET(mouse_tracking_mode), 0,
+		 (0),
+		 (MOUSE_TRACKING_CELL_MOTION_TRACKING),
 		 vte_reset_mouse_smooth_scroll_delta,
 		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1003: All motion tracking. */
-		{1003, NULL, &terminal->pvt->mouse_tracking_mode, NULL,
-		 GINT_TO_POINTER(0),
-		 GINT_TO_POINTER(MOUSE_TRACKING_ALL_MOTION_TRACKING),
+		{1003, 0, PRIV_OFFSET(mouse_tracking_mode), 0,
+		 (0),
+		 (MOUSE_TRACKING_ALL_MOTION_TRACKING),
 		 vte_reset_mouse_smooth_scroll_delta,
 		 vte_reset_mouse_smooth_scroll_delta,},
 		/* 1006: Extended mouse coordinates. */
-		{1006, &terminal->pvt->mouse_xterm_extension, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1006, PRIV_OFFSET(mouse_xterm_extension), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 1007: Alternate screen scroll. */
-		{1007, &terminal->pvt->alternate_screen_scroll, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1007, PRIV_OFFSET(alternate_screen_scroll), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
-		{1010, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{1010, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */
-		{1011, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{1011, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 1015/urxvt: Extended mouse coordinates. */
-		{1015, &terminal->pvt->mouse_urxvt_extension, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1015, PRIV_OFFSET(mouse_urxvt_extension), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 1035: disallowed, don't know what to do with it. */
-		{1035, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{1035, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 1036: Meta-sends-escape. */
-		{1036, &terminal->pvt->meta_sends_escape, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1036, PRIV_OFFSET(meta_sends_escape), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
 		/* 1037: disallowed, delete key policy is set by user. */
-		{1037, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
+		{1037, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 1047: Use alternate screen buffer. */
-		{1047, NULL, NULL, (gpointer) &terminal->pvt->screen,
-		 &terminal->pvt->normal_screen,
-		 &terminal->pvt->alternate_screen,
+		{1047, 0, 0, PRIV_OFFSET(screen),
+		 PRIV_OFFSET(normal_screen),
+		 PRIV_OFFSET(alternate_screen),
 		 NULL, NULL,},
 		/* 1048: Save/restore cursor position. */
-		{1048, NULL, NULL, NULL,
-		 NULL,
-		 NULL,
+		{1048, 0, 0, 0,
+		 0,
+		 0,
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
 		/* 1049: Use alternate screen buffer, saving the cursor
 		 * position. */
-		{1049, NULL, NULL, (gpointer) &terminal->pvt->screen,
-		 &terminal->pvt->normal_screen,
-		 &terminal->pvt->alternate_screen,
+		{1049, 0, 0, PRIV_OFFSET(screen),
+		 PRIV_OFFSET(normal_screen),
+		 PRIV_OFFSET(alternate_screen),
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
 		/* 1051: Sun function key mode. */
-		{1051, NULL, NULL, (gpointer) &terminal->pvt->sun_fkey_mode,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1051, 0, 0, PRIV_OFFSET(sun_fkey_mode),
+		 FALSE,
+		 TRUE,
 		 NULL, NULL},
 		/* 1052: HP function key mode. */
-		{1052, NULL, NULL, (gpointer) &terminal->pvt->hp_fkey_mode,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1052, 0, 0, PRIV_OFFSET(hp_fkey_mode),
+		 FALSE,
+		 TRUE,
 		 NULL, NULL},
 		/* 1060: Legacy function key mode. */
-		{1060, NULL, NULL, (gpointer) &terminal->pvt->legacy_fkey_mode,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1060, 0, 0, PRIV_OFFSET(legacy_fkey_mode),
+		 FALSE,
+		 TRUE,
 		 NULL, NULL},
 		/* 1061: VT220 function key mode. */
-		{1061, NULL, NULL, (gpointer) &terminal->pvt->vt220_fkey_mode,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{1061, 0, 0, PRIV_OFFSET(vt220_fkey_mode),
+		 FALSE,
+		 TRUE,
 		 NULL, NULL},
 		/* 2004: Bracketed paste mode. */
-		{2004, &terminal->pvt->screen->bracketed_paste_mode, NULL, NULL,
-		 GINT_TO_POINTER(FALSE),
-		 GINT_TO_POINTER(TRUE),
+		{2004, SCREEN_OFFSET(bracketed_paste_mode), 0, 0,
+		 FALSE,
+		 TRUE,
 		 NULL, NULL,},
+#undef PRIV_OFFSET
+#undef SCREEN_OFFSET
 	};
         struct decset_t key;
         struct decset_t *found;
-	gpointer p;
 
 	/* Handle the setting. */
         key.setting = setting;
@@ -842,12 +846,31 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 
         key = *found;
         do {
+                gboolean *bvalue = NULL;
+                gint *ivalue = NULL;
+                gpointer *pvalue = NULL, pfvalue, ptvalue;
+                gpointer p;
+
 		/* Handle settings we want to ignore. */
 		if ((key.fvalue == key.tvalue) &&
 		    (key.set == NULL) &&
 		    (key.reset == NULL)) {
 			break;
 		}
+
+#define STRUCT_MEMBER_P(type,total_offset) \
+                (type) (total_offset >= 0 ? G_STRUCT_MEMBER_P(terminal->pvt, total_offset) : G_STRUCT_MEMBER_P(terminal->pvt->screen, -total_offset))
+
+                if (key.boffset) {
+                        bvalue = STRUCT_MEMBER_P(gboolean*, key.boffset);
+                } else if (key.ioffset) {
+                        ivalue = STRUCT_MEMBER_P(int*, key.ioffset);
+                } else if (key.poffset) {
+                        pvalue = STRUCT_MEMBER_P(gpointer*, key.poffset);
+                        pfvalue = STRUCT_MEMBER_P(gpointer, key.fvalue);
+                        ptvalue = STRUCT_MEMBER_P(gpointer, key.tvalue);
+                }
+#undef STRUCT_MEMBER_P
 
 		/* Read the old setting. */
 		if (restore) {
@@ -860,14 +883,14 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		}
 		/* Save the current setting. */
 		if (save) {
-			if (key.bvalue) {
-				set = *(key.bvalue) != FALSE;
+			if (bvalue) {
+				set = *(bvalue) != FALSE;
 			} else
-			if (key.ivalue) {
-				set = *(key.ivalue) == GPOINTER_TO_INT(key.tvalue);
+			if (ivalue) {
+                                set = *(ivalue) == (int)key.tvalue;
 			} else
-			if (key.pvalue) {
-				set = *(key.pvalue) == key.tvalue;
+			if (pvalue) {
+				set = *(pvalue) == ptvalue;
 			}
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Setting %d is %s, saving.\n",
@@ -884,18 +907,14 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 			if (key.set && set) {
 				key.set (terminal, NULL);
 			}
-			if (key.bvalue) {
-				*(key.bvalue) = set;
+			if (bvalue) {
+				*(bvalue) = set;
 			} else
-			if (key.ivalue) {
-				*(key.ivalue) = set ?
-					GPOINTER_TO_INT(key.tvalue) :
-					GPOINTER_TO_INT(key.fvalue);
+			if (ivalue) {
+                                *(ivalue) = set ? (int)key.tvalue : (int)key.fvalue;
 			} else
-			if (key.pvalue) {
-				*(key.pvalue) = set ?
-					key.tvalue :
-					key.fvalue;
+			if (pvalue) {
+                                *(pvalue) = set ? ptvalue : pfvalue;
 			}
 			if (key.reset && !set) {
 				key.reset (terminal, NULL);
