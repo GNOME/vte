@@ -655,7 +655,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
                  GINT_TO_POINTER(FALSE),
                  GINT_TO_POINTER(TRUE),
                  NULL, NULL,},
-		{3, NULL, NULL, NULL, NULL, NULL, NULL, NULL,},
 		/* 5: Reverse video. */
 		{5, &terminal->pvt->screen->reverse_mode, NULL, NULL,
 		 GINT_TO_POINTER(FALSE),
