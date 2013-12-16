@@ -309,6 +309,8 @@ gboolean vte_terminal_get_visible_bell(VteTerminal *terminal);
 void vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll);
 void vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 					  gboolean scroll);
+void vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap);
+gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal);
 
 /* Set the color scheme. */
 void vte_terminal_set_color_dim(VteTerminal *terminal,

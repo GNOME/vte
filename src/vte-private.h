@@ -275,6 +275,7 @@ struct _VteTerminalPrivate {
 	gboolean text_modified_flag;
 	gboolean text_inserted_flag;
 	gboolean text_deleted_flag;
+	gboolean rewrap_on_resize;
 
 	/* Scrolling options. */
 	gboolean scroll_background;

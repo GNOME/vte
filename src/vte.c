@@ -185,6 +185,7 @@ enum {
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY,
         PROP_PTY_OBJECT,
+        PROP_REWRAP_ON_RESIZE,
         PROP_SCROLL_BACKGROUND,
         PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
@@ -8246,8 +8247,8 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		_vte_ring_set_visible_rows_hint(terminal->pvt->normal_screen.row_data, terminal->row_count);
 		_vte_ring_set_visible_rows_hint(terminal->pvt->alternate_screen.row_data, terminal->row_count);
 
-		/* Always resize normal screen, even if alternate is visible: bug 415277 */
-		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows, TRUE);
+		/* Always resize normal screen (given that this feature is enabled), even if alternate is visible: bug 415277 */
+		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows, terminal->pvt->rewrap_on_resize);
 		/* Resize the alternate screen if it's the current one, but never rewrap it: bug 336238 comment 60 */
 		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)
 			vte_terminal_screen_set_size(terminal, &terminal->pvt->alternate_screen, old_columns, old_rows, FALSE);
@@ -8630,6 +8631,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->allow_bold = TRUE;
 	pvt->nrc_mode = TRUE;
         pvt->deccolm_mode = FALSE;
+        pvt->rewrap_on_resize = TRUE;
 	vte_terminal_set_default_tabstops(terminal);
 
 	/* Cursor shape. */
@@ -11741,6 +11743,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_PTY_OBJECT:
                         g_value_set_object (value, vte_terminal_get_pty_object(terminal));
                         break;
+                case PROP_REWRAP_ON_RESIZE:
+                        g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
+                        break;
                 case PROP_SCROLL_BACKGROUND:
                         g_value_set_boolean (value, pvt->scroll_background);
                         break;
@@ -11861,6 +11866,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_PTY_OBJECT:
                         vte_terminal_set_pty_object (terminal, g_value_get_object (value));
+                        break;
+                case PROP_REWRAP_ON_RESIZE:
+                        vte_terminal_set_rewrap_on_resize (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_SCROLL_BACKGROUND:
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
@@ -12930,6 +12938,21 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_STATIC_STRINGS));
 
         /**
+         * VteTerminal:rewrap-on-resize:
+         *
+         * Controls whether or not the terminal will rewrap its contents, including
+         * the scrollback buffer, whenever the terminal's width changes.
+         * 
+         * Since: 0.36
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_REWRAP_ON_RESIZE,
+                 g_param_spec_boolean ("rewrap-on-resize", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | STATIC_PARAMS));
+
+        /**
          * VteTerminal:scroll-background:
          *
          * Controls whether or not the terminal will scroll the background image (if
@@ -13338,6 +13361,49 @@ void
 vte_terminal_set_alternate_screen_scroll(VteTerminal *terminal, gboolean scroll)
 {
         /* We just want to export this symbol for compatibility */
+}
+
+/**
+ * vte_terminal_set_rewrap_on_resize:
+ * @terminal: a #VteTerminal
+ * @rewrap: %TRUE if the terminal should rewrap on resize
+ *
+ * Controls whether or not the terminal will rewrap its contents, including
+ * the scrollback history, whenever the terminal's width changes.
+ *
+ * Since: 0.36
+ */
+void
+vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap)
+{
+        VteTerminalPrivate *pvt;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        pvt = terminal->pvt;
+
+        if (rewrap == pvt->rewrap_on_resize)
+                return;
+
+        pvt->rewrap_on_resize = rewrap;
+        g_object_notify (G_OBJECT (terminal), "rewrap-on-resize");
+}
+
+/**
+ * vte_terminal_get_rewrap_on_resize:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not the terminal will rewrap its contents upon resize.
+ *
+ * Returns: %TRUE if rewrapping is enabled, %FALSE if not
+ *
+ * Since: 0.36
+ */
+gboolean
+vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->rewrap_on_resize;
 }
 
 static void

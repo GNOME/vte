@@ -557,7 +557,7 @@ main(int argc, char **argv)
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
 		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
 		 antialias = TRUE, use_scrolled_window = FALSE,
-		 show_object_notifications = FALSE;
+		 show_object_notifications = FALSE, rewrap = TRUE;
 	char *geometry = NULL;
 	gint lines = -1;
 	const char *message = "Launching interactive shell...\r\n";
@@ -591,6 +591,11 @@ main(int argc, char **argv)
 			"dingus", 'D', 0,
 			G_OPTION_ARG_NONE, &dingus,
 			"Highlight URLs inside the terminal", NULL
+		},
+		{
+			"no-rewrap", 'R', G_OPTION_FLAG_REVERSE,
+			G_OPTION_ARG_NONE, &rewrap,
+			"Disable rewrapping on resize", NULL
 		},
 		{
 			"shell", 'S', G_OPTION_FLAG_REVERSE,
@@ -922,6 +927,8 @@ main(int argc, char **argv)
 		vte_terminal_set_emulation(terminal, termcap);
 	}
 	vte_terminal_set_cursor_shape(terminal, cursor_shape);
+
+	vte_terminal_set_rewrap_on_resize(terminal, rewrap);
 
 	/* Set the default font. */
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
