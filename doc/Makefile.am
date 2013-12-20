@@ -1,6 +1,14 @@
+NULL =
+
 SUBDIRS = reference openi18n
 
-EXTRA_DIST = ctlseqs.ms readme.txt utmpwtmp.txt boxes.txt
+EXTRA_DIST = \
+        boxes.txt \
+	ctlseqs.ms \
+	readme.txt \
+        rewrap.txt \
+	utmpwtmp.txt \
+	$(NULL)
 
 ctlseqs.ps: ctlseqs.ms
 	$(AM_V_GEN) tbl $^ | groff -ms > $@
