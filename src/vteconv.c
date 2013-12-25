@@ -66,7 +66,6 @@ _vte_conv_utf8_utf8(GIConv converter,
 	gboolean validated;
 	const gchar *endptr;
 	size_t bytes;
-	guint skip;
 
 	/* We don't tolerate shenanigans! */
 	g_assert(*outbytes_left >= *inbytes_left);
@@ -88,29 +87,9 @@ _vte_conv_utf8_utf8(GIConv converter,
 		return 0;
 	}
 
-	/* Determine why the end of the string is not valid.
-	 * We are pur b@stards for running g_utf8_next_char() on an
-	 * invalid sequence. */
-	skip = g_utf8_next_char(*inbuf) - *inbuf;
-	if (skip > *inbytes_left) {
-		/* We didn't have enough bytes to validate the character.
-		 * That qualifies for EINVAL, but only if the part of the
-		 * character that we have is a valid prefix to a character.
-		 * Differentiating those requires verifying that all the
-		 * remaining bytes after this one are UTF-8 continuation
-		 * bytes.  Actually even that is not quite enough as not
-		 * all continuation bytes are valid in the most strict
-		 * interpretation of UTF-8, but we don't care about that.
-		 */
-		size_t i;
-
-		for (i = 1; i < *inbytes_left; i++)
-			if (((*inbuf)[i] & 0xC0) != 0x80) {
-				/* Not a continuation byte */
-				errno = EILSEQ;
-				return (size_t) -1;
-			}
-
+	/* Determine why the end of the string is not valid. */
+	if (g_utf8_get_char_validated(*inbuf, *inbytes_left) == (gunichar) -2) {
+		/* Prefix of a valid UTF-8 */
 		errno = EINVAL;
 	} else {
 		/* We had enough bytes to validate the character, and
