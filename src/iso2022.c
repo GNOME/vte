@@ -1156,7 +1156,7 @@ process_8_bit_sequence(struct _vte_iso2022_state *state,
 
 static glong
 process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize length,
-	      GArray *gunichars)
+	      gboolean incomplete_is_invalid, GArray *gunichars)
 {
 	int ambiguous_width;
 	glong processed = 0;
@@ -1197,6 +1197,9 @@ process_cdata(struct _vte_iso2022_state *state, const guchar *cdata, gsize lengt
 			stop = FALSE;
 			switch (converted) {
 			case ((gsize)-1):
+				if (errno == EINVAL && incomplete_is_invalid) {
+					errno = EILSEQ;
+				}
 				switch (errno) {
 				case EILSEQ:
 					/* Check if it's an 8-bit sequence. */
@@ -1627,6 +1630,7 @@ process_block (struct _vte_iso2022_state *state,
 	       guchar *input,
 	       struct _vte_iso2022_block *block,
 	       gboolean last,
+	       gboolean incomplete_is_invalid,
 	       GArray *gunichars)
 {
 	guint preserve_last = -1;
@@ -1660,6 +1664,7 @@ process_block (struct _vte_iso2022_state *state,
 					  block->end -
 					  block->start -
 					  initial,
+					  incomplete_is_invalid,
 					  gunichars);
 			if (j == 0) {
 				break;
@@ -1715,6 +1720,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			preserve_last = process_block (state,
 					               input, &block,
 						       TRUE,
+						       FALSE,
 					               gunichars);
 			break;
 		}
@@ -1723,7 +1729,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			block.type = _vte_iso2022_cdata;
 			block.start = p - input;
 			block.end = nextctl - input;
-			process_block (state, input, &block, FALSE, gunichars);
+			process_block (state, input, &block, FALSE, TRUE, gunichars);
 		}
 		/* Move on to the control data. */
 		p = nextctl;
@@ -1757,6 +1763,7 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 		}
 		preserve_last = process_block (state,
 				               input, &block,
+					       FALSE,
 					       FALSE,
 					       gunichars);
 	} while (p < q);
