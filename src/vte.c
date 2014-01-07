@@ -11147,7 +11147,9 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		case VTE_CURSOR_SHAPE_UNDERLINE: {
                         int line_height;
 
-                        line_height = (int) (((float) width) * terminal->pvt->cursor_aspect_ratio + 0.5);
+			/* use height (not width) so underline and ibeam will
+			 * be equally visible */
+                        line_height = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
                         line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
 			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
