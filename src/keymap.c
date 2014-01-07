@@ -164,6 +164,12 @@ struct _vte_keymap_entry {
 
 #define X_NULL ""
 
+enum _vte_modifier_encoding_method {
+	MODIFIER_ENCODING_NONE,
+	MODIFIER_ENCODING_SHORT,
+	MODIFIER_ENCODING_LONG,
+};
+
 /* Normal keys unaffected by modes. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_space[] = {
 	/* Meta+space = ESC+" " */
@@ -1261,10 +1267,10 @@ _vte_keymap_key_is_modifier(guint keyval)
 	return modifier;
 }
 
-static gboolean
-_vte_keymap_key_gets_modifiers(guint keyval)
+static enum _vte_modifier_encoding_method
+_vte_keymap_key_get_modifier_encoding_method(guint keyval)
 {
-	gboolean fkey = FALSE;
+	enum _vte_modifier_encoding_method method = MODIFIER_ENCODING_NONE;
 	/* Determine if this key gets modifiers. */
 	switch (keyval) {
 	case GDK_KEY (Up):
@@ -1318,13 +1324,19 @@ _vte_keymap_key_gets_modifiers(guint keyval)
 	case GDK_KEY (F33):
 	case GDK_KEY (F34):
 	case GDK_KEY (F35):
-		fkey = TRUE;
+		method = MODIFIER_ENCODING_LONG;
+		break;
+	case GDK_KEY (KP_Divide):
+	case GDK_KEY (KP_Multiply):
+	case GDK_KEY (KP_Subtract):
+	case GDK_KEY (KP_Add):
+		method = MODIFIER_ENCODING_SHORT;
 		break;
 	default:
-		fkey = FALSE;
+		method = MODIFIER_ENCODING_NONE;
 		break;
 	}
-	return fkey;
+	return method;
 }
 
 /* Prior and Next are ommitted for the SS3 to CSI switch below */
@@ -1365,13 +1377,15 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 {
 	int modifier, offset;
 	char *nnormal;
+	enum _vte_modifier_encoding_method modifier_encoding_method;
 	GdkModifierType significant_modifiers;
 
 	significant_modifiers = GDK_SHIFT_MASK |
 				GDK_CONTROL_MASK |
 				VTE_META_MASK;
 
-	if (!_vte_keymap_key_gets_modifiers(keyval)) {
+	modifier_encoding_method = _vte_keymap_key_get_modifier_encoding_method(keyval);
+	if (modifier_encoding_method == MODIFIER_ENCODING_NONE) {
 		return;
 	}
 	if (sun_mode || hp_mode || vt220_mode) {
@@ -1434,22 +1448,21 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 			nnormal[offset + 1] = modifier + '0';
 			nnormal[offset + 0] = ';';
 			*normal_length += 2;
-		} else {
-#if 1
+		} else if (modifier_encoding_method == MODIFIER_ENCODING_LONG) {
 			/* Stuff a "1", a semicolon and the modifier in right
-			 * before that last character, matching Xterm. */
+			 * before that last character, matching Xterm most of the time. */
 			nnormal[offset + 3] = nnormal[offset];
 			nnormal[offset + 2] = modifier + '0';
 			nnormal[offset + 1] = ';';
 			nnormal[offset + 0] = '1';
 			*normal_length += 3;
-#else
+		} else {
 			/* Stuff the modifier in right before that last
-			 * character, matching what people expect. */
+			 * character, matching what people expect,
+			 * and what Xterm does with numpad math operators */
 			nnormal[offset + 1] = nnormal[offset];
 			nnormal[offset + 0] = modifier + '0';
 			*normal_length += 1;
-#endif
 		}
 		g_free(*normal);
 		*normal = nnormal;
