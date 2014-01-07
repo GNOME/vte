@@ -549,10 +549,9 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Left[] = {
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Begin[] = {
 	{cursor_all, keypad_default, fkey_all, 0, X_NULL, 0, "K2"},
-	{cursor_all, keypad_default, fkey_notvt220,
-	 0, _VTE_CAP_CSI "E", -1, X_NULL},
+	{cursor_app, keypad_all, fkey_notvt220, 0, _VTE_CAP_SS3 "E", -1, X_NULL},
+	{cursor_default, keypad_all, fkey_notvt220, 0, _VTE_CAP_CSI "E", -1, X_NULL},
 	{cursor_all, keypad_default, fkey_vt220, 0, "5", 1, X_NULL},
-	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "E", -1, X_NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "u", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
 };
@@ -1301,6 +1300,7 @@ _vte_keymap_key_get_modifier_encoding_method(guint keyval)
 	case GDK_KEY (KP_End):
 	case GDK_KEY (KP_Page_Up):
 	case GDK_KEY (KP_Page_Down):
+	case GDK_KEY (KP_Begin):
 	case GDK_KEY (F1):
 	case GDK_KEY (F2):
 	case GDK_KEY (F3):
@@ -1369,6 +1369,7 @@ is_cursor_key(guint keyval)
 	case GDK_KEY (KP_Right):
 	case GDK_KEY (KP_Down):
 	case GDK_KEY (KP_End):
+	case GDK_KEY (KP_Begin):
 		return TRUE;
 	default:
 		return FALSE;
