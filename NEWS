@@ -2,9 +2,9 @@
 ======
 * Build fixes
 * Portability fixes (#710165)
-* Bug fixes (#4993, #13299, #336238, #542087, #686097, #693013,
-  #705985, #709692, #709584, #709930, #710426, #710481, #710483,
-  #710484, #710488, #710486)
+* Rewrap contents upon window resize (#336238)
+* Bug fixes (#4993, #13299, #542087, #686097, #693013, #705985, #709692,
+  #709584, #709930, #710426, #710481, #710483, #710484, #710488, #710486)
 
 Many thanks to Egmont Koblinger who contributed most of these bug fixes!
 
