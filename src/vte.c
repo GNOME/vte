@@ -11111,7 +11111,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 	/* Draw the cursor. */
 	item.c = (cell && cell->c) ? cell->c : ' ';
-	item.columns = cell ? cell->attr.columns : 1;
+	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns : 1;
 	item.x = col * width;
 	item.y = row * height;
 	cursor_width = item.columns * width;
