@@ -172,6 +172,9 @@ enum _vte_modifier_encoding_method {
 
 /* Normal keys unaffected by modes. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_space[] = {
+	/* Control+Meta+space = ESC+NUL */
+	{cursor_all, keypad_all, fkey_all,
+	 GDK_CONTROL_MASK | VTE_META_MASK, _VTE_CAP_ESC "\0", 2, X_NULL},
 	/* Meta+space = ESC+" " */
 	{cursor_all, keypad_all, fkey_all,
 	 VTE_META_MASK, _VTE_CAP_ESC " ", 2, X_NULL},
