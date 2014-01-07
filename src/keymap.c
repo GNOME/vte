@@ -284,6 +284,8 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_Home[] = {
 	{cursor_all, keypad_all, fkey_vt220, 0, _VTE_CAP_CSI "1~", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_hp, 0, _VTE_CAP_ESC "h", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_nothpvt, 0, X_NULL, 0, "kh"},
+	{cursor_default, keypad_all, fkey_default, 0, _VTE_CAP_CSI "H", -1, X_NULL},
+	{cursor_app, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "H", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
 };
 
@@ -291,6 +293,8 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_End[] = {
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, "@7"},
 	{cursor_all, keypad_all, fkey_vt220, 0, _VTE_CAP_CSI "4~", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_notvt220, 0, X_NULL, 0, "@7"},
+	{cursor_default, keypad_all, fkey_default, 0, _VTE_CAP_CSI "F", -1, X_NULL},
+	{cursor_app, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "F", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
 };
 
@@ -507,6 +511,8 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_KP_End[] = {
 	{cursor_all, keypad_default, fkey_vt220, 0, "1", 1, X_NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "4~", -1, X_NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "q", -1, X_NULL},
+	{cursor_default, keypad_all, fkey_default, 0, _VTE_CAP_CSI "F", -1, X_NULL},
+	{cursor_app, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "F", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
 };
 
@@ -568,6 +574,8 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Home[] = {
 	{cursor_all, keypad_default, fkey_vt220, 0, "7", 1, X_NULL},
 	{cursor_all, keypad_app, fkey_notvt220, 0, _VTE_CAP_CSI "1~", -1, X_NULL},
 	{cursor_all, keypad_app, fkey_vt220, 0, _VTE_CAP_SS3 "w", -1, X_NULL},
+	{cursor_default, keypad_all, fkey_default, 0, _VTE_CAP_CSI "H", -1, X_NULL},
+	{cursor_app, keypad_all, fkey_default, 0, _VTE_CAP_SS3 "H", -1, X_NULL},
 	{cursor_all, keypad_all, fkey_all, 0, X_NULL, 0, X_NULL},
 };
 
@@ -1279,6 +1287,8 @@ _vte_keymap_key_get_modifier_encoding_method(guint keyval)
 	case GDK_KEY (Right):
 	case GDK_KEY (Insert):
 	case GDK_KEY (Delete):
+	case GDK_KEY (Home):
+	case GDK_KEY (End):
 	case GDK_KEY (Page_Up):
 	case GDK_KEY (Page_Down):
 	case GDK_KEY (KP_Up):
@@ -1287,6 +1297,8 @@ _vte_keymap_key_get_modifier_encoding_method(guint keyval)
 	case GDK_KEY (KP_Right):
 	case GDK_KEY (KP_Insert):
 	case GDK_KEY (KP_Delete):
+	case GDK_KEY (KP_Home):
+	case GDK_KEY (KP_End):
 	case GDK_KEY (KP_Page_Up):
 	case GDK_KEY (KP_Page_Down):
 	case GDK_KEY (F1):
