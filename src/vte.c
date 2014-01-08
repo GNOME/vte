@@ -5464,7 +5464,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		/* Keypad/motion keys. */
 		case GDK_KEY (KP_Up):
 		case GDK_KEY (Up):
-			if (modifiers & GDK_CONTROL_MASK 
+			if (terminal->pvt->screen == &terminal->pvt->normal_screen
+			    && modifiers & GDK_CONTROL_MASK 
                             && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_lines(terminal, -1);
 				scrolled = TRUE;
@@ -5474,7 +5475,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KEY (KP_Down):
 		case GDK_KEY (Down):
-			if (modifiers & GDK_CONTROL_MASK
+			if (terminal->pvt->screen == &terminal->pvt->normal_screen
+			    && modifiers & GDK_CONTROL_MASK
                             && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_lines(terminal, 1);
 				scrolled = TRUE;
@@ -5484,7 +5486,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KEY (KP_Page_Up):
 		case GDK_KEY (Page_Up):
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->screen == &terminal->pvt->normal_screen
+			    && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, -1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -5493,7 +5496,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KEY (KP_Page_Down):
 		case GDK_KEY (Page_Down):
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->screen == &terminal->pvt->normal_screen
+			    && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_scroll_pages(terminal, 1);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -5502,7 +5506,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KEY (KP_Home):
 		case GDK_KEY (Home):
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->screen == &terminal->pvt->normal_screen
+			    && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_top(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
@@ -5510,7 +5515,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			break;
 		case GDK_KEY (KP_End):
 		case GDK_KEY (End):
-			if (modifiers & GDK_SHIFT_MASK) {
+			if (terminal->pvt->screen == &terminal->pvt->normal_screen
+			    && modifiers & GDK_SHIFT_MASK) {
 				vte_terminal_maybe_scroll_to_bottom(terminal);
 				scrolled = TRUE;
 				handled = TRUE;
