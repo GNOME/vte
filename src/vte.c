@@ -319,6 +319,10 @@ G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
 #endif
 #endif /* GTK 3.0 */
 
+/* Indexes in the "palette" color array for the dim colors.
+ * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
+static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
+
 static void
 vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 {
@@ -371,8 +375,6 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
 	screen->defaults = basic_cell.cell;
 	screen->color_defaults = screen->defaults;
 	screen->fill_defaults = screen->defaults;
-	screen->fg_sgr_extended = FALSE;
-	screen->bg_sgr_extended = FALSE;
 }
 
 /* Cause certain cells to be repainted. */
@@ -6300,6 +6302,23 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	}
 }
 
+/* Convert the internal color code (either index or RGB, see vte-private.h) into RGB. */
+static void
+vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoColor *color)
+{
+	if (index >= VTE_LEGACY_COLORS_OFFSET && index < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE)
+		index -= VTE_LEGACY_COLORS_OFFSET;
+	if (index < VTE_PALETTE_SIZE) {
+		memcpy(color, &terminal->pvt->palette[index], sizeof(PangoColor));
+	} else if (index & VTE_RGB_COLOR) {
+		color->red = ((index >> 16) & 0xFF) * 257;
+		color->green = ((index >> 8) & 0xFF) * 257;
+		color->blue = (index & 0xFF) * 257;
+	} else {
+		g_assert_not_reached();
+	}
+}
+
 /**
  * VteSelectionFunc:
  * @terminal: terminal in which the cell is.
@@ -6368,7 +6387,7 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
-	PangoColor fore, back, *palette;
+	PangoColor fore, back;
 
 	if (!is_selected)
 		is_selected = always_selected;
@@ -6381,7 +6400,6 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	string = g_string_new(NULL);
 	memset(&attr, 0, sizeof(attr));
 
-	palette = terminal->pvt->palette;
 	col = start_col;
 	for (row = start_row; row < end_row + 1; row++, col = 0) {
 		const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
@@ -6401,8 +6419,8 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				 * the selection. */
 				if (!pcell->attr.fragment && is_selected(terminal, col, row, data)) {
 					/* Store the attributes of this character. */
-					fore = palette[pcell->attr.fore];
-					back = palette[pcell->attr.back];
+					vte_terminal_get_rgb_from_index(terminal, pcell->attr.fore, &fore);
+					vte_terminal_get_rgb_from_index(terminal, pcell->attr.back, &back);
 					attr.fore.red = fore.red;
 					attr.fore.green = fore.green;
 					attr.fore.blue = fore.blue;
@@ -9407,6 +9425,29 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 			back = VTE_DEF_FG;
 	}
 
+	/* Handle bold by using set bold color or brightening */
+	if (cell->attr.bold) {
+		if (fore == VTE_DEF_FG)
+			fore = VTE_BOLD_FG;
+		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
+			fore += VTE_COLOR_BRIGHT_OFFSET;
+		}
+	}
+
+	/* Handle half similarly */
+	if (cell->attr.half) {
+		if (fore == VTE_DEF_FG)
+			fore = VTE_DIM_FG;
+		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
+			fore = corresponding_dim_index[fore - VTE_LEGACY_COLORS_OFFSET];
+	}
+
+	/* And standout */
+	if (cell->attr.standout) {
+		if (fore >= VTE_LEGACY_COLORS_OFFSET && back < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
+			back += VTE_COLOR_BRIGHT_OFFSET;
+	}
+
 	/* Reverse cell? */
 	if (cell->attr.reverse) {
 		swap (&fore, &back);
@@ -9527,18 +9568,22 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         double adjust;
         cairo_t *cr = _vte_draw_get_context (terminal->pvt->draw);
 
+        PangoColor fg, bg;
+        vte_terminal_get_rgb_from_index(terminal, fore, &fg);
+        vte_terminal_get_rgb_from_index(terminal, back, &bg);
+
         width = column_width * columns;
 
 	if ((back != VTE_DEF_BG) || draw_default_bg) {
 		vte_terminal_fill_rectangle(terminal,
-					    &terminal->pvt->palette[back],
+					    &bg,
 					    x, y, width, row_height);
 	}
 
         cairo_save (cr);
 
         cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-        _vte_draw_set_source_color_alpha (terminal->pvt->draw, &terminal->pvt->palette[fore], VTE_DRAW_OPAQUE);
+        _vte_draw_set_source_color_alpha (terminal->pvt->draw, &fg, VTE_DRAW_OPAQUE);
 
         // FIXME wtf!?
         x += terminal->pvt->inner_border.left;
@@ -10020,9 +10065,9 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 
                 /* Now take the inside out */
                 cairo_set_source_rgba (cr,
-                                       terminal->pvt->palette[back].red / 65535.,
-                                       terminal->pvt->palette[back].green / 65535.,
-                                       terminal->pvt->palette[back].blue / 65535.,
+                                       bg.red / 65535.,
+                                       bg.green / 65535.,
+                                       bg.blue / 65535.,
                                        1.);
                 cairo_set_line_width(cr, inner_line_width);
                 cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
@@ -10177,9 +10222,9 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         case 0x2592: /* medium shade */
         case 0x2593: /* dark shade */
                 cairo_set_source_rgba (cr,
-                                       terminal->pvt->palette[fore].red / 65535.,
-                                       terminal->pvt->palette[fore].green / 65535.,
-                                       terminal->pvt->palette[fore].blue / 65535.,
+                                       fg.red / 65535.,
+                                       fg.green / 65535.,
+                                       fg.blue / 65535.,
                                        (c - 0x2590) / 4.);
                 cairo_rectangle(cr, x, y, width, row_height);
                 cairo_fill (cr);
@@ -10284,7 +10329,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 {
 	int i, x, y, ascent;
 	gint columns = 0;
-	PangoColor *fg, *bg, *defbg;
+	PangoColor fg, bg, *defbg;
 
 	g_assert(n > 0);
 	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
@@ -10302,8 +10347,8 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	}
 
 	bold = bold && terminal->pvt->allow_bold;
-	fg = &terminal->pvt->palette[fore];
-	bg = &terminal->pvt->palette[back];
+	vte_terminal_get_rgb_from_index(terminal, fore, &fg);
+	vte_terminal_get_rgb_from_index(terminal, back, &bg);
 	defbg = &terminal->pvt->palette[VTE_DEF_BG];
 	ascent = terminal->char_ascent;
 
@@ -10318,20 +10363,20 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			items[i].y += terminal->pvt->inner_border.top;
 			columns += items[i].columns;
 		}
-		if (clear && (draw_default_bg || bg != defbg)) {
+		if (clear && (draw_default_bg || back != VTE_DEF_BG)) {
 			gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
 									VTE_DRAW_BOLD) ? 0 : bold;
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
 					x + terminal->pvt->inner_border.left,
                                         y + terminal->pvt->inner_border.top,
 					columns * column_width + bold_offset, row_height,
-					bg, VTE_DRAW_OPAQUE);
+					&bg, VTE_DRAW_OPAQUE);
 		}
 	} while (i < n);
 
 	_vte_draw_text(terminal->pvt->draw,
 			items, n,
-			fg, VTE_DRAW_OPAQUE,
+			&fg, VTE_DRAW_OPAQUE,
 			_vte_draw_get_style(bold, italic));
 
 	for (i = 0; i < n; i++) {
@@ -10351,7 +10396,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			}
 			if (underline) {
 				vte_terminal_draw_line(terminal,
-						&terminal->pvt->palette[fore],
+						&fg,
 						x,
 						y + terminal->pvt->underline_position,
 						x + (columns * column_width) - 1,
@@ -10359,7 +10404,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			}
 			if (strikethrough) {
 				vte_terminal_draw_line(terminal,
-						&terminal->pvt->palette[fore],
+						&fg,
 						x,
 						y + terminal->pvt->strikethrough_position,
 						x + (columns * column_width) - 1,
@@ -10367,7 +10412,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			}
 			if (hilite) {
 				vte_terminal_draw_line(terminal,
-						&terminal->pvt->palette[fore],
+						&fg,
 						x,
 						y + row_height - 1,
 						x + (columns * column_width) - 1,
@@ -10375,51 +10420,13 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			}
 			if (boxed) {
 				vte_terminal_draw_rectangle(terminal,
-						&terminal->pvt->palette[fore],
+						&fg,
 						x, y,
 						MAX(0, (columns * column_width)),
 						MAX(0, row_height));
 			}
 		}while (i < n);
 	}
-}
-
-/* Try to map a PangoColor to a palette entry and return its index. */
-static guint
-_vte_terminal_map_pango_color(VteTerminal *terminal, PangoColor *color)
-{
-	long distance[G_N_ELEMENTS(terminal->pvt->palette)];
-	guint i, ret;
-
-	/* Calculate a "distance" value.  Could stand to be improved a bit. */
-	for (i = 0; i < G_N_ELEMENTS(distance); i++) {
-		const PangoColor *entry = &terminal->pvt->palette[i];
-		distance[i] = 0;
-		distance[i] += ((entry->red >> 8) - (color->red >> 8)) *
-			       ((entry->red >> 8) - (color->red >> 8));
-		distance[i] += ((entry->blue >> 8) - (color->blue >> 8)) *
-			       ((entry->blue >> 8) - (color->blue >> 8));
-		distance[i] += ((entry->green >> 8) - (color->green >> 8)) *
-			       ((entry->green >> 8) - (color->green >> 8));
-	}
-
-	/* Find the index of the minimum value. */
-	ret = 0;
-	for (i = 1; i < G_N_ELEMENTS(distance); i++) {
-		if (distance[i] < distance[ret]) {
-			ret = i;
-		}
-	}
-
-	_vte_debug_print(VTE_DEBUG_UPDATES,
-			"mapped PangoColor(%04x,%04x,%04x) to "
-			"palette entry (%04x,%04x,%04x)\n",
-			color->red, color->green, color->blue,
-			terminal->pvt->palette[ret].red,
-			terminal->pvt->palette[ret].green,
-			terminal->pvt->palette[ret].blue);
-
-	return ret;
 }
 
 /* FIXME: we don't have a way to tell GTK+ what the default text attributes
@@ -10510,8 +10517,10 @@ _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
 	case PANGO_ATTR_FOREGROUND:
 	case PANGO_ATTR_BACKGROUND:
 		attrcolor = (PangoAttrColor*) attr;
-		ival = _vte_terminal_map_pango_color(terminal,
-						     &attrcolor->color);
+		ival = VTE_RGB_COLOR |
+		       ((attrcolor->color.red & 0xFF00) << 8) |
+		       ((attrcolor->color.green & 0xFF00)) |
+		       ((attrcolor->color.blue & 0xFF00) >> 8);
 		for (i = attr->start_index;
 		     i < attr->end_index && i < n_cells;
 		     i++) {
@@ -10726,15 +10735,17 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					j += cell ? cell->attr.columns : 1;
 				}
 				if (back != VTE_DEF_BG) {
+					PangoColor bg;
 					gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
 											VTE_DRAW_BOLD) ? 0 : bold;
+					vte_terminal_get_rgb_from_index(terminal, back, &bg);
 					_vte_draw_fill_rectangle (
 							terminal->pvt->draw,
 							x + i * column_width,
 							y,
 							(j - i) * column_width + bold_offset,
 							row_height,
-							&terminal->pvt->palette[back], VTE_DRAW_OPAQUE);
+							&bg, VTE_DRAW_OPAQUE);
 				}
 				/* We'll need to continue at the first cell which didn't
 				 * match the first one in this set. */
@@ -10753,12 +10764,14 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 				vte_terminal_determine_colors(terminal, NULL, selected, &fore, &back);
 				if (back != VTE_DEF_BG) {
+					PangoColor bg;
+					vte_terminal_get_rgb_from_index(terminal, back, &bg);
 					_vte_draw_fill_rectangle (terminal->pvt->draw,
 								  x + i *column_width,
 								  y,
 								  (j - i)  * column_width,
 								  row_height,
-								  &terminal->pvt->palette[back], VTE_DRAW_OPAQUE);
+								  &bg, VTE_DRAW_OPAQUE);
 				}
 				i = j;
 			} while (i < end_column);
@@ -11084,6 +11097,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	int row, drow, col;
 	long width, height, delta, cursor_width;
 	guint fore, back;
+	PangoColor bg;
 	int x, y;
 	gboolean blink, selected, focus;
 
@@ -11133,6 +11147,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	selected = vte_cell_is_selected(terminal, col, drow, NULL);
 
 	vte_terminal_determine_cursor_colors(terminal, cell, selected, &fore, &back);
+	vte_terminal_get_rgb_from_index(terminal, back, &bg);
 
 	x = item.x;
 	y = item.y;
@@ -11145,7 +11160,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
                         stem_width = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
 		 	
-			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
+			vte_terminal_fill_rectangle(terminal, &bg,
 						     x, y, stem_width, height);
 			break;
                 }
@@ -11158,7 +11173,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
                         line_height = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
                         line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
-			vte_terminal_fill_rectangle(terminal, &terminal->pvt->palette[back],
+			vte_terminal_fill_rectangle(terminal, &bg,
 						     x, y + height - line_height,
 						     cursor_width, line_height);
 			break;
@@ -11169,7 +11184,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 			if (focus) {
 				/* just reverse the character under the cursor */
 				vte_terminal_fill_rectangle (terminal,
-							     &terminal->pvt->palette[back],
+							     &bg,
 							     x, y,
 							     cursor_width, height);
 
@@ -11211,7 +11226,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 				/* draw a box around the character */
 
 				vte_terminal_draw_rectangle (terminal,
-							    &terminal->pvt->palette[back],
+							    &bg,
 							     x - VTE_LINE_WIDTH,
 							     y - VTE_LINE_WIDTH,
 							     cursor_width + 2*VTE_LINE_WIDTH,

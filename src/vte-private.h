@@ -56,11 +56,34 @@ G_BEGIN_DECLS
 #define VTE_LINE_WIDTH			1
 #define VTE_ROWS			24
 #define VTE_COLUMNS			80
+
+/*
+ * Colors are encoded in 25 bits as follows:
+ *
+ * 0 .. 255:
+ *   Colors set by SGR 256-color extension (38/48;5;index).
+ *   These are direct indices into the color palette.
+ *
+ * 256 .. VTE_PALETTE_SIZE - 1 (261):
+ *   Special values, such as default colors.
+ *   These are direct indices into the color palette.
+ *
+ * VTE_LEGACY_COLORS_OFFSET (512) .. VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE - 1 (527):
+ *   Colors set by legacy escapes (30..37/40..47, 90..97/100..107).
+ *   These are translated to 0 .. 15 before looking up in the palette, taking bold into account.
+ *
+ * VTE_RGB_COLOR (2^24) .. VTE_RGB_COLOR + 16Mi - 1 (2^25 - 1):
+ *   Colors set by SGR truecolor extension (38/48;2;red;green;blue)
+ *   These are direct RGB values.
+ */
+#define VTE_LEGACY_COLORS_OFFSET	512
 #define VTE_LEGACY_COLOR_SET_SIZE	8
+#define VTE_LEGACY_FULL_COLOR_SET_SIZE	16
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
 #define VTE_COLOR_DIM_OFFSET		16
-/* More color defines in ring.h */
+#define VTE_RGB_COLOR			(1 << 24)
+/* More color defines in vterowdata.h */
 
 #define VTE_SCROLLBACK_INIT		512
 #define VTE_SATURATION_MAX		10000
@@ -223,19 +246,14 @@ struct _VteTerminalPrivate {
 		long insert_delta;	/* insertion offset */
 		VteCell defaults;	/* default characteristics
 					   for insertion of any new
-					   characters; colors not yet
-					   adjusted for bold/dim/standout */
+					   characters */
 		VteCell color_defaults;	/* original defaults
 					   plus the current
-					   fore/back already adjusted for
-					   bold/dim/standout */
+					   fore/back */
 		VteCell fill_defaults;	/* original defaults
 					   plus the current
-					   fore/back already adjusted for
-					   bold/dim/standout with no
+					   fore/back with no
 					   character data */
-		gboolean fg_sgr_extended, bg_sgr_extended;	/* whether fg/bg were set by
-								   256 color sequences */
 		gboolean alternate_charset;
 		gboolean status_line;
 		GString *status_line_contents;

@@ -35,6 +35,14 @@ G_BEGIN_DECLS
 #define VTE_PALETTE_SIZE		262
 
 
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 6)
+#define VTE_GNUC_PACKED \
+	__attribute__((__packed__))
+#else
+#define VTE_GNUC_PACKED
+#endif  /* !__GNUC__ */
+
+
 /*
  * VteCellAttr: A single cell style attributes
  *
@@ -45,32 +53,33 @@ G_BEGIN_DECLS
  */
 
 typedef struct _VteCellAttr {
-	guint32 fragment: 1;	/* A continuation cell. */
-	guint32 columns: 4;	/* Number of visible columns
+	guint64 fragment: 1;	/* A continuation cell. */
+	guint64 columns: 4;	/* Number of visible columns
 				   (as determined by g_unicode_iswide(c)).
 				   Also abused for tabs; bug 353610
 				   Keep at least 4 for tabs to work
 				   */
-	guint32 bold: 1;
-	guint32 italic: 1;
-	guint32 fore: 9;	/* Index into color palette */
-	guint32 back: 9;	/* Index into color palette. */
+	guint64 bold: 1;
+	guint64 italic: 1;
+	guint64 fore: 25;	/* Index into color palette, or direct RGB, */
+	/* 4-byte boundary */
+	guint64 back: 25;	/* see vte-private.h */
 
-	guint32 standout: 1;
-	guint32 underline: 1;
-	guint32 strikethrough: 1;
+	guint64 standout: 1;
+	guint64 underline: 1;
+	guint64 strikethrough: 1;
 
-	guint32 reverse: 1;
-	guint32 blink: 1;
-	guint32 half: 1;
+	guint64 reverse: 1;
+	guint64 blink: 1;
+	guint64 half: 1;
 
-	guint32 invisible: 1;
+	guint64 invisible: 1;
 } VteCellAttr;
-G_STATIC_ASSERT (sizeof (VteCellAttr) == 4);
+G_STATIC_ASSERT (sizeof (VteCellAttr) == 8);
 
 typedef union _VteIntCellAttr {
 	VteCellAttr s;
-	guint32 i;
+	guint64 i;
 } VteIntCellAttr;
 G_STATIC_ASSERT (sizeof (VteCellAttr) == sizeof (VteIntCellAttr));
 
@@ -78,17 +87,17 @@ G_STATIC_ASSERT (sizeof (VteCellAttr) == sizeof (VteIntCellAttr));
  * VteCell: A single cell's data
  */
 
-typedef struct _VteCell {
+typedef struct VTE_GNUC_PACKED _VteCell {
 	vteunistr c;
 	VteCellAttr attr;
 } VteCell;
-G_STATIC_ASSERT (sizeof (VteCell) == 8);
+G_STATIC_ASSERT (sizeof (VteCell) == 12);
 
 typedef union _VteIntCell {
 	VteCell cell;
-	struct {
+	struct VTE_GNUC_PACKED {
 		guint32 c;
-		guint32 attr;
+		guint64 attr;
 	} i;
 } VteIntCell;
 G_STATIC_ASSERT (sizeof (VteCell) == sizeof (VteIntCell));
