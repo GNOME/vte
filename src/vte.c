@@ -14383,8 +14383,9 @@ vte_terminal_reset(VteTerminal *terminal,
 		g_hash_table_destroy(pvt->dec_saved);
 		pvt->dec_saved = g_hash_table_new(NULL, NULL);
 	}
-	/* Reset the color palette. */
-	/* vte_terminal_set_default_colors(terminal); */
+	/* Reset the color palette. Only the 256 indexed colors, not the special ones.
+	 * (XTerm doesn't reset the cursor color, the others are not alterable by escapes in vte.) */
+	memcpy(terminal->pvt->palette, terminal->pvt->default_palette, 256 * sizeof(terminal->pvt->palette[0]));
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
 	pvt->screen = &pvt->alternate_screen;
