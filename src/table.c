@@ -36,7 +36,7 @@
 #define _vte_table_is_numeric(__c) \
 	(((__c) >= '0') && ((__c) <= '9'))
 #define _vte_table_is_numeric_list(__c) \
-	((((__c) >= '0') && ((__c) <= '9')) || (__c) == ';')
+	((((__c) >= '0') && ((__c) <= '9')) || (__c) == ';' || (__c) == ':')
 
 struct _vte_table {
 	struct _vte_matcher_impl impl;
@@ -463,7 +463,7 @@ _vte_table_matchi(struct _vte_table *table,
 		const char *local_result;
 
 		subtable = table->table_number_list;
-		/* Iterate over all numeric characters and ';'. */
+		/* Iterate over all numeric characters, ';' and ':'. */
 		for (i = 1; i < length; i++) {
 			if (!_vte_table_is_numeric_list(candidate[i])) {
 				break;
@@ -536,6 +536,8 @@ _vte_table_extract_numbers(GValueArray **array,
 			   struct _vte_table_arginfo *arginfo, long increment)
 {
 	GValue value = {0,};
+	GValue subvalue = {0,};
+	GValueArray *subarray = NULL;
 	gssize i;
 
         if (G_UNLIKELY (*array == NULL)) {
@@ -543,16 +545,31 @@ _vte_table_extract_numbers(GValueArray **array,
         }
 
 	g_value_init(&value, G_TYPE_LONG);
+	g_value_init(&subvalue, G_TYPE_VALUE_ARRAY);
 	i = 0;
 	do {
 		long total = 0;
-		for (; i < arginfo->length && arginfo->start[i] != ';'; i++) {
+		for (; i < arginfo->length && arginfo->start[i] != ';' && arginfo->start[i] != ':'; i++) {
 			gint v = g_unichar_digit_value (arginfo->start[i]);
 			total *= 10;
 			total += v == -1 ?  0 : v;
 		}
 		g_value_set_long(&value, CLAMP (total, 0, G_MAXUSHORT));
-		g_value_array_append(*array, &value);
+		if (i < arginfo->length && arginfo->start[i] == ':') {
+			if (subarray == NULL) {
+				subarray = g_value_array_new(2);
+			}
+			g_value_array_append(subarray, &value);
+		} else {
+			if (subarray == NULL) {
+				g_value_array_append(*array, &value);
+			} else {
+				g_value_array_append(subarray, &value);
+				g_value_set_boxed(&subvalue, subarray);
+				g_value_array_append(*array, &subvalue);
+				subarray = NULL;
+			}
+		}
 	} while (i++ < arginfo->length);
 	g_value_unset(&value);
 }
@@ -859,6 +876,9 @@ print_array(GValueArray *array)
 				printf("\"%ls\"",
 				       (wchar_t*) g_value_get_pointer(value));
 			}
+			if (G_VALUE_HOLDS_BOXED(value)) {
+				print_array(g_value_get_boxed(value));
+			}
 		}
 		printf(")");
 		/* _vte_matcher_free_params_array(array); */
@@ -878,6 +898,12 @@ main(int argc, char **argv)
 		"]3;fook",
 		"[3;foo",
 		"[3;3m",
+		"[3;5;42m",
+		"[3;5:42m",
+		"[3:5:42m",
+		"[3;2;110;120;130m",
+		"[3;2:110:120:130m",
+		"[3:2:110:120:130m",
 		"[3;3mk",
 		"[3;3hk",
 		"[3;3h",
@@ -901,9 +927,7 @@ main(int argc, char **argv)
 	_vte_table_add(table, "ACDEF%sJ", 8, "ACDEF%sJ", 0);
 	_vte_table_add(table, "ACDEF%i%mJ", 10, "ACDEF%dJ", 0);
 	_vte_table_add(table, "[%mh", 5, "move-cursor", 0);
-	_vte_table_add(table, "[%d;%d;%dm", 11, "set-graphic-rendition", 0);
-	_vte_table_add(table, "[%dm", 5, "set-graphic-rendition", 0);
-	_vte_table_add(table, "[m", 3, "set-graphic-rendition", 0);
+	_vte_table_add(table, "[%mm", 5, "character-attributes", 0);
 	_vte_table_add(table, "]3;%s", 7, "set-icon-title", 0);
 	_vte_table_add(table, "]4;%s", 7, "set-window-title", 0);
 	printf("Table contents:\n");

@@ -2331,7 +2331,54 @@ vte_sequence_handler_vs (VteTerminal *terminal, GValueArray *params)
 						 visible. */
 }
 
-/* Handle ANSI color setting and related stuffs (SGR). */
+/* Parse parameters of SGR 38 or 48, starting at @index within @params.
+ * Returns the color index, or -1 on error.
+ * Increments @index to point to the last consumed parameter (not beyond). */
+static gint32
+vte_sequence_parse_sgr_38_48_parameters (GValueArray *params, unsigned int *index)
+{
+	if (*index < params->n_values) {
+		GValue *value0, *value1, *value2, *value3;
+		long param0, param1, param2, param3;
+		value0 = g_value_array_get_nth(params, *index);
+		if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value0)))
+			return -1;
+		param0 = g_value_get_long(value0);
+		switch (param0) {
+		case 2:
+			if (G_UNLIKELY (*index + 3 >= params->n_values))
+				return -1;
+			value1 = g_value_array_get_nth(params, *index + 1);
+			value2 = g_value_array_get_nth(params, *index + 2);
+			value3 = g_value_array_get_nth(params, *index + 3);
+			if (G_UNLIKELY (!(G_VALUE_HOLDS_LONG(value1) && G_VALUE_HOLDS_LONG(value2) && G_VALUE_HOLDS_LONG(value3))))
+				return -1;
+			param1 = g_value_get_long(value1);
+			param2 = g_value_get_long(value2);
+			param3 = g_value_get_long(value3);
+			if (G_UNLIKELY (param1 < 0 || param1 >= 256 || param2 < 0 || param2 >= 256 || param3 < 0 || param3 >= 256))
+				return -1;
+			*index += 3;
+			return VTE_RGB_COLOR | (param1 << 16) | (param2 << 8) | param3;
+		case 5:
+			if (G_UNLIKELY (*index + 1 >= params->n_values))
+				return -1;
+			value1 = g_value_array_get_nth(params, *index + 1);
+			if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value1)))
+				return -1;
+			param1 = g_value_get_long(value1);
+			if (G_UNLIKELY (param1 < 0 || param1 >= 256))
+				return -1;
+			*index += 1;
+			return param1;
+		}
+	}
+	return -1;
+}
+
+/* Handle ANSI color setting and related stuffs (SGR).
+ * @params contains the values split at semicolons, with sub arrays splitting at colons
+ * wherever colons were encountered. */
 static void
 vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *params)
 {
@@ -2342,8 +2389,36 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 	param = 0;
 	/* Step through each numeric parameter. */
 	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
-		/* If this parameter isn't a number, skip it. */
 		value = g_value_array_get_nth(params, i);
+		/* If this parameter is a GValueArray, it can be a fully colon separated 38 or 48
+		 * (see below for details). */
+		if (G_UNLIKELY (G_VALUE_HOLDS_BOXED(value))) {
+			GValueArray *subvalues = g_value_get_boxed(value);
+			GValue *value0;
+			long param0;
+			gint32 color;
+			unsigned int index = 1;
+
+			value0 = g_value_array_get_nth(subvalues, 0);
+			if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value0)))
+				continue;
+			param0 = g_value_get_long(value0);
+			if (G_UNLIKELY (param0 != 38 && param0 != 48))
+				continue;
+			color = vte_sequence_parse_sgr_38_48_parameters(subvalues, &index);
+			/* Bail out on additional colon-separated values. */
+			if (G_UNLIKELY (index != subvalues->n_values - 1))
+				continue;
+			if (G_LIKELY (color != -1)) {
+				if (param0 == 38) {
+					terminal->pvt->screen->defaults.attr.fore = color;
+				} else {
+					terminal->pvt->screen->defaults.attr.back = color;
+				}
+			}
+			continue;
+		}
+		/* If this parameter is not a GValueArray and not a number either, skip it. */
 		if (!G_VALUE_HOLDS_LONG(value)) {
 			continue;
 		}
@@ -2414,55 +2489,41 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 38:
 		case 48:
 		{
-			/* The format looks like: ^[[38;5;COLORNUMBERm or ^[[38;2;RED;GREEN;BLUEm
-			   so look for the parameters here. */
+			/* The format looks like:
+			 * - 256 color indexed palette:
+			 *   - ^[[38;5;INDEXm
+			 *   - ^[[38;5:INDEXm
+			 *   - ^[[38:5:INDEXm
+			 * - true colors:
+			 *   - ^[[38;2;RED;GREEN;BLUEm
+			 *   - ^[[38;2:RED:GREEN:BLUEm
+			 *   - ^[[38:2:RED:GREEN:BLUEm
+			 * See bug 685759 for details.
+			 * The fully colon versions were handled above separately. The code is reached
+			 * if the first separator is a semicolon. */
 			if ((i + 1) < params->n_values) {
-				GValue *value1, *value2, *value3, *value4;
-				long param1, param2, param3, param4;
-				value1 = g_value_array_get_nth(params, i + 1);
-				if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value1)))
+				gint32 color;
+				GValue *value1 = g_value_array_get_nth(params, ++i);
+				if (G_VALUE_HOLDS_LONG(value1)) {
+					/* Only semicolons as separators. */
+					color = vte_sequence_parse_sgr_38_48_parameters(params, &i);
+				} else if (G_VALUE_HOLDS_BOXED(value1)) {
+					/* The first separator was a semicolon, the rest are colons. */
+					GValueArray *subvalues = g_value_get_boxed(value1);
+					unsigned int index = 0;
+					color = vte_sequence_parse_sgr_38_48_parameters(subvalues, &index);
+					/* Bail out on additional colon-separated values. */
+					if (G_UNLIKELY (index != subvalues->n_values - 1))
+						break;
+				} else {
 					break;
-				param1 = g_value_get_long(value1);
-				switch (param1) {
-				case 2:
-					if (G_UNLIKELY ((i + 4) >= params->n_values))
-						break;
-					value2 = g_value_array_get_nth(params, i + 2);
-					value3 = g_value_array_get_nth(params, i + 3);
-					value4 = g_value_array_get_nth(params, i + 4);
-					if (G_UNLIKELY (!(G_VALUE_HOLDS_LONG(value2) && G_VALUE_HOLDS_LONG(value3) && G_VALUE_HOLDS_LONG(value4))))
-						break;
-					param2 = g_value_get_long(value2);
-					param3 = g_value_get_long(value3);
-					param4 = g_value_get_long(value4);
-					if (G_LIKELY (param2 >= 0 && param2 < 256 && param3 >= 0 && param3 < 256 && param4 >= 0 && param4 < 256)) {
-						guint32 value = (1 << 24) | (param2 << 16) | (param3 << 8) | param4;
-						if (param == 38) {
-							terminal->pvt->screen->defaults.attr.fore = value;
-						} else {
-							terminal->pvt->screen->defaults.attr.back = value;
-						}
+				}
+				if (G_LIKELY (color != -1)) {
+					if (param == 38) {
+						terminal->pvt->screen->defaults.attr.fore = color;
+					} else {
+						terminal->pvt->screen->defaults.attr.back = color;
 					}
-					i += 4;
-					break;
-				case 5:
-					if (G_UNLIKELY ((i + 2) >= params->n_values))
-						break;
-					value2 = g_value_array_get_nth(params, i + 2);
-					if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value2)))
-						break;
-					param2 = g_value_get_long(value2);
-					if (G_LIKELY (param2 >= 0 && param2 < 256)) {
-						if (param == 38) {
-							terminal->pvt->screen->defaults.attr.fore = param2;
-						} else {
-							terminal->pvt->screen->defaults.attr.back = param2;
-						}
-					}
-					i += 2;
-					break;
-				default:
-					break;
 				}
 			}
 			break;
