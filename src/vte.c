@@ -9444,7 +9444,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 
 	/* And standout */
 	if (cell->attr.standout) {
-		if (fore >= VTE_LEGACY_COLORS_OFFSET && back < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
+		if (back >= VTE_LEGACY_COLORS_OFFSET && back < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
 			back += VTE_COLOR_BRIGHT_OFFSET;
 	}
 
