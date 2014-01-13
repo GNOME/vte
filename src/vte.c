@@ -4593,7 +4593,7 @@ vte_terminal_io_read(GIOChannel *channel,
 		if (max_bytes) {
 			max_bytes = terminal->pvt->max_input_bytes / max_bytes;
 		} else {
-			max_bytes = VTE_MAX_INPUT_READ;
+			max_bytes = terminal->pvt->max_input_bytes;
 		}
 		bytes = terminal->pvt->input_bytes;
 
