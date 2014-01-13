@@ -1,3 +1,11 @@
+0.35.1
+======
+* Support for 16 million colors (#704449)
+* Fix Home/End and some other keys (#600659, #643233, #710349)
+* Add API to enable/disable rewrap on resize (#336238)
+* Fix a longstanding performance regression (#721944)
+* Bug fixes (#586950, #619891, #672210, #685759, #691972, #720977, #721522)
+
 0.35.0
 ======
 * Build fixes
