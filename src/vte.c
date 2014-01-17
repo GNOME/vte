@@ -2787,7 +2787,7 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
  * color, an eight color palette, bold versions of the eight color palette,
  * and a dim version of the the eight color palette.
  *
- * @palette_size must be either 0, 8, 16, or 24, or between 25 and 255 inclusive.
+ * @palette_size must be either 0, 8, 16, or 24, or between 25 and 256 inclusive.
  * If @foreground is %NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
  * @palette[7].  If @background is %NULL and @palette_size is greater than 0,
@@ -2813,7 +2813,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size == 8) ||
 			 (palette_size == 16) ||
 			 (palette_size == 24) ||
-			 (palette_size > 24 && palette_size < 256));
+			 (palette_size > 24 && palette_size <= 256));
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set color palette [%ld elements].\n",
@@ -3086,7 +3086,7 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
  * color, an eight color palette, bold versions of the eight color palette,
  * and a dim version of the the eight color palette.
  *
- * @palette_size must be either 0, 8, 16, or 24, or between 25 and 255 inclusive.
+ * @palette_size must be either 0, 8, 16, or 24, or between 25 and 256 inclusive.
  * If @foreground is %NULL and
  * @palette_size is greater than 0, the new foreground color is taken from
  * @palette[7].  If @background is %NULL and @palette_size is greater than 0,
