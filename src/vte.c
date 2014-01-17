@@ -3107,6 +3107,8 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 	GdkColor fg, bg, *pal;
 	gsize i;
 
+	g_return_if_fail(palette_size <= 256);
+
 	pal = g_new (GdkColor, palette_size);
 	for (i = 0; i < palette_size; ++i)
                 gdk_color_from_rgba(&pal[i], &palette[i]);
