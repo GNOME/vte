@@ -78,6 +78,7 @@ struct vteseq_n_struct {
 "utf-8-character-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_utf_8_charset)
 "window-manipulation", VTE_SEQUENCE_HANDLER(vte_sequence_handler_window_manipulation)
 "change-cursor-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_cursor_color)
+"reset-cursor-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_cursor_color)
 "character-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_character_attributes)
 "device-status-report", VTE_SEQUENCE_HANDLER(vte_sequence_handler_device_status_report)
 "set-scrolling-region", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_scrolling_region)

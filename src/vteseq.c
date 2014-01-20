@@ -3540,6 +3540,13 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 	}
 }
 
+/* Reset the color of the cursor */
+static void
+vte_sequence_handler_reset_cursor_color (VteTerminal *terminal, GValueArray *params)
+{
+	_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, VTE_COLOR_SOURCE_ESCAPE, NULL);
+}
+
 
 /* Lookup tables */
 

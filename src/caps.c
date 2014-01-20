@@ -537,6 +537,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{OSC "46;%s" BEL, "change-logfile", 0},
 	{OSC "50;#%d" BEL, "change-font-number", 0},
 	{OSC "50;%s" BEL, "change-font-name", 0},
+	{OSC "112" BEL, "reset-cursor-colors", 0},
 
 	/* Set text parameters, ST-terminated versions. */
 	{OSC ";%s" ST, "set-icon-and-window-title", 0}, /* undocumented default */
@@ -558,6 +559,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{OSC "46;%s" ST, "change-logfile", 0},
 	{OSC "50;#%d" ST, "change-font-number", 0},
 	{OSC "50;%s" ST, "change-font-name", 0},
+	{OSC "112" ST, "reset-cursor-colors", 0},
 
 	/* These may be bogus, I can't find docs for them anywhere (#104154). */
 	{OSC "21;%s" BEL, "set-text-property-21", 0},
