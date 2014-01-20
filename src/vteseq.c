@@ -1943,6 +1943,32 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 	}
 }
 
+/* Reset the color */
+static void
+vte_sequence_handler_reset_color (VteTerminal *terminal, GValueArray *params)
+{
+	GValue *value;
+	long idx, i;
+
+	if (params != NULL && params->n_values > 0) {
+		for (i = 0; i < params->n_values; i++) {
+			value = g_value_array_get_nth (params, i);
+
+			if (!G_VALUE_HOLDS_LONG (value))
+				continue;
+			idx = g_value_get_long (value);
+			if (idx < 0 || idx >= VTE_DEF_FG)
+				continue;
+
+			_vte_terminal_set_color_internal(terminal, idx, VTE_COLOR_SOURCE_ESCAPE, NULL);
+		}
+	} else {
+		for (idx = 0; idx < VTE_DEF_FG; idx++) {
+			_vte_terminal_set_color_internal(terminal, idx, VTE_COLOR_SOURCE_ESCAPE, NULL);
+		}
+	}
+}
+
 /* Scroll the text up, but don't move the cursor. */
 static void
 vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)

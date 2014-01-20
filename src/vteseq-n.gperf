@@ -42,6 +42,7 @@ struct vteseq_n_struct {
 "save-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_sc)
 "scroll-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_scroll_down)
 "change-color", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_color)
+"reset-color", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_color)
 "delete-lines", VTE_SEQUENCE_HANDLER(vte_sequence_handler_delete_lines)
 #"double-width", VTE_SEQUENCE_HANDLER_NULL
 "insert-lines", VTE_SEQUENCE_HANDLER(vte_sequence_handler_insert_lines)
