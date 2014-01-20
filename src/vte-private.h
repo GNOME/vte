@@ -109,6 +109,10 @@ G_BEGIN_DECLS
 
 #define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
 
+/* Keep in decreasing order of precedence. */
+#define VTE_COLOR_SOURCE_ESCAPE 0
+#define VTE_COLOR_SOURCE_API 1
+
 #define I_(string) (g_intern_static_string(string))
 
 
@@ -165,6 +169,13 @@ typedef struct _VteScreen VteScreen;
 typedef struct _VteWordCharRange {
 	gunichar start, end;
 } VteWordCharRange;
+
+typedef struct _VtePaletteColor {
+	struct {
+		PangoColor color;
+		gboolean is_set;
+	} sources[2];
+} VtePaletteColor;
 
 /* Terminal private data. */
 struct _VteTerminalPrivate {
@@ -357,11 +368,7 @@ struct _VteTerminalPrivate {
 	struct _vte_draw *draw;
 
 	gboolean palette_initialized;
-	gboolean highlight_color_set;
-	gboolean cursor_default_color_set;
-	gboolean cursor_color_set;
-	PangoColor default_palette[VTE_PALETTE_SIZE];  /* get/set via API calls */
-	PangoColor palette[VTE_PALETTE_SIZE];  /* get/set via escape sequences */
+	VtePaletteColor palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
 	gboolean mouse_cursor_visible;
@@ -461,13 +468,11 @@ void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
 void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);
+PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
 void _vte_terminal_set_color_internal(VteTerminal *terminal,
                                       int idx,
-                                      gboolean via_escape,
+                                      int source,
                                       const GdkColor *color);
-void _vte_terminal_set_color_cursor_internal(VteTerminal *terminal,
-                                             gboolean via_escape,
-                                             const GdkColor *color);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 

@@ -1922,14 +1922,14 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 				continue;
 
 			if (vte_parse_color (pairs[i + 1], &color)) {
-                                _vte_terminal_set_color_internal(terminal, idx, TRUE, &color);
+                                _vte_terminal_set_color_internal(terminal, idx, VTE_COLOR_SOURCE_ESCAPE, &color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
+				PangoColor *c = _vte_terminal_get_color(terminal, idx);
+				g_assert(c != NULL);
 				g_snprintf (buf, sizeof (buf),
 					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x" BEL, idx,
-					    terminal->pvt->palette[idx].red,
-					    terminal->pvt->palette[idx].green,
-					    terminal->pvt->palette[idx].blue);
+					    c->red, c->green, c->blue);
 				vte_terminal_feed_child (terminal, buf, -1);
 			}
 		}
@@ -3523,14 +3523,16 @@ vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *pa
 			return;
 
 		if (vte_parse_color (name, &color))
-			_vte_terminal_set_color_cursor_internal(terminal, TRUE, &color);
+			_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, VTE_COLOR_SOURCE_ESCAPE, &color);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
+			PangoColor *c = _vte_terminal_get_color(terminal, VTE_CUR_BG);
+			if (c == NULL)
+				c = _vte_terminal_get_color(terminal, VTE_DEF_FG);
+			g_assert(c != NULL);
 			g_snprintf (buf, sizeof (buf),
 				    _VTE_CAP_OSC "12;rgb:%04x/%04x/%04x" BEL,
-				    terminal->pvt->palette[VTE_CUR_BG].red,
-				    terminal->pvt->palette[VTE_CUR_BG].green,
-				    terminal->pvt->palette[VTE_CUR_BG].blue);
+				    c->red, c->green, c->blue);
 			vte_terminal_feed_child (terminal, buf, -1);
 		}
 

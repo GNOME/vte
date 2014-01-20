@@ -2501,44 +2501,50 @@ vte_terminal_new(void)
 	return g_object_new(VTE_TYPE_TERMINAL, NULL);
 }
 
+/* Get the actually used color from the palette. */
+PangoColor *
+_vte_terminal_get_color(const VteTerminal *terminal, int entry)
+{
+	VtePaletteColor *palette_color = &terminal->pvt->palette[entry];
+	guint source;
+	for (source = 0; source < G_N_ELEMENTS(palette_color->sources); source++)
+		if (palette_color->sources[source].is_set)
+			return &palette_color->sources[source].color;
+	return NULL;
+}
+
 /* Set up a palette entry with a more-or-less match for the requested color. */
 void
 _vte_terminal_set_color_internal(VteTerminal *terminal,
                                  int entry,
-                                 gboolean via_escape,
+                                 int source,
                                  const GdkColor *proposed)
 {
-	PangoColor *color;
-
-	if (via_escape)
-		color = &terminal->pvt->palette[entry];
-	else
-		color = &terminal->pvt->default_palette[entry];
-
-	if (color->red == proposed->red &&
-	    color->green == proposed->green &&
-	    color->blue == proposed->blue) {
-		return;
-	}
+	VtePaletteColor *palette_color = &terminal->pvt->palette[entry];
 
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set %s color[%d] to (%04x,%04x,%04x).\n", via_escape ? "actual" : "default",
+			"Set %s color[%d] to (%04x,%04x,%04x).\n",
+			source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
 			entry, proposed->red, proposed->green, proposed->blue);
 
 	/* Save the requested color. */
-	if (!via_escape) {
-		PangoColor *actual_color = &terminal->pvt->palette[entry];
-		if (actual_color->red == color->red &&
-		    actual_color->green == color->green &&
-		    actual_color->blue == color->blue) {
-			actual_color->red = proposed->red;
-			actual_color->green = proposed->green;
-			actual_color->blue = proposed->blue;
+	if (proposed != NULL) {
+		if (palette_color->sources[source].is_set &&
+		    palette_color->sources[source].color.red == proposed->red &&
+		    palette_color->sources[source].color.green == proposed->green &&
+		    palette_color->sources[source].color.blue == proposed->blue) {
+			return;
 		}
+		palette_color->sources[source].is_set = TRUE;
+		palette_color->sources[source].color.red = proposed->red;
+		palette_color->sources[source].color.green = proposed->green;
+		palette_color->sources[source].color.blue = proposed->blue;
+	} else {
+		if (!palette_color->sources[source].is_set) {
+			return;
+		}
+		palette_color->sources[source].is_set = FALSE;
 	}
-	color->red = proposed->red;
-	color->green = proposed->green;
-	color->blue = proposed->blue;
 
 	/* If we're not realized yet, there's nothing else to do. */
 	if (! gtk_widget_get_realized (&terminal->widget)) {
@@ -2621,7 +2627,7 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set bold color to (%04x,%04x,%04x).\n",
 			bold->red, bold->green, bold->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, FALSE, bold);
+	_vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, VTE_COLOR_SOURCE_API, bold);
 }
 
 /**
@@ -2640,7 +2646,7 @@ vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set dim color to (%04x,%04x,%04x).\n",
 			dim->red, dim->green, dim->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DIM_FG, FALSE, dim);
+	_vte_terminal_set_color_internal(terminal, VTE_DIM_FG, VTE_COLOR_SOURCE_API, dim);
 }
 
 /**
@@ -2660,7 +2666,7 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set foreground color to (%04x,%04x,%04x).\n",
 			foreground->red, foreground->green, foreground->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DEF_FG, FALSE, foreground);
+	_vte_terminal_set_color_internal(terminal, VTE_DEF_FG, VTE_COLOR_SOURCE_API, foreground);
 }
 
 /**
@@ -2682,24 +2688,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set background color to (%04x,%04x,%04x).\n",
 			background->red, background->green, background->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DEF_BG, FALSE, background);
-}
-
-void
-_vte_terminal_set_color_cursor_internal(VteTerminal *terminal,
-					gboolean via_escape,
-					const GdkColor *cursor_background)
-{
-	if (!via_escape) {
-		_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, FALSE,
-						cursor_background);
-		terminal->pvt->cursor_default_color_set = TRUE;
-	}
-	if (via_escape || !terminal->pvt->cursor_color_set) {
-		_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, TRUE,
-						cursor_background);
-		terminal->pvt->cursor_color_set = TRUE;
-	}
+	_vte_terminal_set_color_internal(terminal, VTE_DEF_BG, VTE_COLOR_SOURCE_API, background);
 }
 
 /**
@@ -2725,20 +2714,11 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 				cursor_background->red,
 				cursor_background->green,
 				cursor_background->blue);
-		_vte_terminal_set_color_cursor_internal(terminal, FALSE, cursor_background);
-	} else  if (terminal->pvt->cursor_default_color_set) {
-		/* Unset only if there isn't a different value set by escape sequences.
-		   Note: there's no way to reset the cursor color's defaults via escapes. */
-		PangoColor *default_color = &terminal->pvt->default_palette[VTE_CUR_BG];
-		PangoColor *actual_color = &terminal->pvt->palette[VTE_CUR_BG];
-		if (default_color->red == actual_color->red &&
-		    default_color->green == actual_color->green &&
-		    default_color->blue == actual_color->blue) {
-			_vte_debug_print(VTE_DEBUG_MISC,
-					"Cleared cursor color.\n");
-			terminal->pvt->cursor_default_color_set = FALSE;
-		}
+	} else {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Reset cursor color.\n");
 	}
+	_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, VTE_COLOR_SOURCE_API, cursor_background);
 }
 
 /**
@@ -2764,14 +2744,11 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 				highlight_background->red,
 				highlight_background->green,
 				highlight_background->blue);
-		_vte_terminal_set_color_internal(terminal, VTE_DEF_HL, FALSE,
-						highlight_background);
-		terminal->pvt->highlight_color_set = TRUE;
 	} else {
 		_vte_debug_print(VTE_DEBUG_MISC,
-				"Cleared highlight color.\n");
-		terminal->pvt->highlight_color_set = FALSE;
+				"Reset highlight color.\n");
 	}
+	_vte_terminal_set_color_internal(terminal, VTE_DEF_HL, VTE_COLOR_SOURCE_API, highlight_background);
 }
 
 /**
@@ -2805,6 +2782,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 {
 	guint i;
 	GdkColor color;
+	gboolean unset = FALSE;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -2833,6 +2811,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	/* Initialize each item in the palette if we got any entries to work
 	 * with. */
 	for (i=0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
+		unset = FALSE;
 		if (i < 16) {
 			color.blue = (i & 4) ? 0xc000 : 0;
 			color.green = (i & 2) ? 0xc000 : 0;
@@ -2876,26 +2855,22 @@ vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_BOLD_FG:
-				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-							   &terminal->pvt->palette[VTE_DEF_BG],
+				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
+							   _vte_terminal_get_color(terminal, VTE_DEF_BG),
 							   1.8,
 							   &color);
 				break;
 			case VTE_DIM_FG:
-				vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-							   &terminal->pvt->palette[VTE_DEF_BG],
+				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
+							   _vte_terminal_get_color(terminal, VTE_DEF_BG),
 							   0.5,
 							   &color);
 				break;
 			case VTE_DEF_HL:
-				color.red = 0xc000;
-				color.blue = 0xc000;
-				color.green = 0xc000;
+				unset = TRUE;
 				break;
 			case VTE_CUR_BG:
-				color.red = 0x0000;
-				color.blue = 0x0000;
-				color.green = 0x0000;
+				unset = TRUE;
 				break;
 			}
 
@@ -2905,9 +2880,9 @@ vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Set up the color entry. */
-		_vte_terminal_set_color_internal(terminal, i, FALSE, &color);
+		_vte_terminal_set_color_internal(terminal, i, VTE_COLOR_SOURCE_API, unset ? NULL : &color);
 		if (!terminal->pvt->palette_initialized)
-			_vte_terminal_set_color_internal(terminal, i, TRUE, &color);
+			terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	}
 
 	/* Track that we had a color palette set. */
@@ -2947,8 +2922,8 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
 
 	if (bold == NULL)
 	{
-		vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-					   &terminal->pvt->palette[VTE_DEF_BG],
+		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
+					   _vte_terminal_get_color(terminal, VTE_DEF_BG),
 					   1.8,
 					   &color);
 	}
@@ -2978,8 +2953,8 @@ vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
 
 	if (dim == NULL)
 	{
-		vte_terminal_generate_bold(&terminal->pvt->palette[VTE_DEF_FG],
-					   &terminal->pvt->palette[VTE_DEF_BG],
+		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
+					   _vte_terminal_get_color(terminal, VTE_DEF_BG),
 					   0.5,
 					   &color);
 	}
@@ -6311,7 +6286,7 @@ vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoC
 	if (index >= VTE_LEGACY_COLORS_OFFSET && index < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE)
 		index -= VTE_LEGACY_COLORS_OFFSET;
 	if (index < VTE_PALETTE_SIZE) {
-		memcpy(color, &terminal->pvt->palette[index], sizeof(PangoColor));
+		memcpy(color, _vte_terminal_get_color(terminal, index), sizeof(PangoColor));
 	} else if (index & VTE_RGB_COLOR) {
 		color->red = ((index >> 16) & 0xFF) * 257;
 		color->green = ((index >> 8) & 0xFF) * 257;
@@ -9331,15 +9306,6 @@ vte_terminal_realize(GtkWidget *widget)
 		vte_terminal_set_default_colors(terminal);
 	}
 
-	/* Allocate colors. */
-	for (i = 0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
-		color.red = terminal->pvt->palette[i].red;
-		color.green = terminal->pvt->palette[i].green;
-		color.blue = terminal->pvt->palette[i].blue;
-		color.pixel = 0;
-		_vte_terminal_set_color_internal(terminal, i, FALSE, &color);
-	}
-
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	if (terminal->pvt->im_context != NULL) {
@@ -9458,7 +9424,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	/* Selection: use hightlight back, or inverse */
 	if (selected) {
 		/* XXX what if hightlight back is same color as current back? */
-		if (terminal->pvt->highlight_color_set)
+		if (_vte_terminal_get_color(terminal, VTE_DEF_HL) != NULL)
 			back = VTE_DEF_HL;
 		else
 			swap (&fore, &back);
@@ -9467,7 +9433,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	/* Cursor: use cursor back, or inverse */
 	if (cursor) {
 		/* XXX what if cursor back is same color as current back? */
-		if (terminal->pvt->cursor_color_set)
+		if (_vte_terminal_get_color(terminal, VTE_CUR_BG) != NULL)
 			back = VTE_CUR_BG;
 		else
 			swap (&fore, &back);
@@ -10331,7 +10297,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 {
 	int i, x, y, ascent;
 	gint columns = 0;
-	PangoColor fg, bg, *defbg;
+	PangoColor fg, bg;
 
 	g_assert(n > 0);
 	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
@@ -10351,7 +10317,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	bold = bold && terminal->pvt->allow_bold;
 	vte_terminal_get_rgb_from_index(terminal, fore, &fg);
 	vte_terminal_get_rgb_from_index(terminal, back, &bg);
-	defbg = &terminal->pvt->palette[VTE_DEF_BG];
 	ascent = terminal->char_ascent;
 
 	i = 0;
@@ -13555,7 +13520,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background image.\n");
 
-	entry = &terminal->pvt->palette[VTE_DEF_BG];
+	entry = _vte_terminal_get_color(terminal, VTE_DEF_BG);
 	_vte_debug_print(VTE_DEBUG_BG,
 			 "Setting background color to (%d, %d, %d, %d).\n",
 			 entry->red, entry->green, entry->blue,
@@ -14343,6 +14308,7 @@ vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_history)
 {
         VteTerminalPrivate *pvt;
+        int i;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -14387,7 +14353,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	}
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones.
 	 * (XTerm doesn't reset the cursor color, the others are not alterable by escapes in vte.) */
-	memcpy(terminal->pvt->palette, terminal->pvt->default_palette, 256 * sizeof(terminal->pvt->palette[0]));
+	for (i = 0; i < 256; i++)
+		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
 	pvt->screen = &pvt->alternate_screen;
