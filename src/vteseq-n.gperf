@@ -96,7 +96,10 @@ struct vteseq_n_struct {
 #"double-height-top-half", VTE_SEQUENCE_HANDLER_NULL
 "line-position-absolute", VTE_SEQUENCE_HANDLER(vte_sequence_handler_line_position_absolute)
 "return-terminal-status", VTE_SEQUENCE_HANDLER(vte_sequence_handler_return_terminal_status)
-#"change-highlight-colors", VTE_SEQUENCE_HANDLER_NULL
+"change-highlight-background-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_highlight_background_color)
+"reset-highlight-background-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_highlight_background_color)
+#"change-highlight-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+#"reset-highlight-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
 #"enable-filter-rectangle", VTE_SEQUENCE_HANDLER_NULL
 "insert-blank-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_insert_blank_characters)
 #"invoke-g2-character-set", VTE_SEQUENCE_HANDLER_NULL
@@ -106,8 +109,10 @@ struct vteseq_n_struct {
 #"ansi-conformance-level-1", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-2", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-3", VTE_SEQUENCE_HANDLER_NULL
-#"change-background-colors", VTE_SEQUENCE_HANDLER_NULL
-#"change-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+"change-background-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_background_color)
+"reset-background-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_background_color)
+"change-foreground-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_foreground_color)
+"reset-foreground-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_foreground_color)
 "dec-device-status-report", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dec_device_status_report)
 #"enable-locator-reporting", VTE_SEQUENCE_HANDLER_NULL
 #"request-locator-position", VTE_SEQUENCE_HANDLER_NULL
@@ -120,7 +125,11 @@ struct vteseq_n_struct {
 "request-terminal-parameters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_request_terminal_parameters)
 #"select-character-protection", VTE_SEQUENCE_HANDLER_NULL
 #"change-tek-background-colors", VTE_SEQUENCE_HANDLER_NULL
+#"reset-tek-background-colors", VTE_SEQUENCE_HANDLER_NULL
 #"change-tek-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+#"reset-tek-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+#"change-tek-cursor-colors", VTE_SEQUENCE_HANDLER_NULL
+#"reset-tek-cursor-colors", VTE_SEQUENCE_HANDLER_NULL
 #"invoke-g1-character-set-as-gr", VTE_SEQUENCE_HANDLER_NULL
 #"invoke-g2-character-set-as-gr", VTE_SEQUENCE_HANDLER_NULL
 #"invoke-g3-character-set-as-gr", VTE_SEQUENCE_HANDLER_NULL
@@ -130,6 +139,8 @@ struct vteseq_n_struct {
 "horizontal-and-vertical-position", VTE_SEQUENCE_HANDLER(vte_sequence_handler_horizontal_and_vertical_position)
 "send-secondary-device-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_send_secondary_device_attributes)
 #"change-mouse-cursor-background-colors", VTE_SEQUENCE_HANDLER_NULL
+#"reset-mouse-cursor-background-colors", VTE_SEQUENCE_HANDLER_NULL
 #"change-mouse-cursor-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+#"reset-mouse-cursor-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
 "set-current-directory-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_directory_uri)
 "set-current-file-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_file_uri)
