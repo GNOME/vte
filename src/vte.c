@@ -2522,13 +2522,14 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 {
 	VtePaletteColor *palette_color = &terminal->pvt->palette[entry];
 
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set %s color[%d] to (%04x,%04x,%04x).\n",
-			source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
-			entry, proposed->red, proposed->green, proposed->blue);
 
 	/* Save the requested color. */
 	if (proposed != NULL) {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Set %s color[%d] to (%04x,%04x,%04x).\n",
+				source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
+				entry, proposed->red, proposed->green, proposed->blue);
+
 		if (palette_color->sources[source].is_set &&
 		    palette_color->sources[source].color.red == proposed->red &&
 		    palette_color->sources[source].color.green == proposed->green &&
@@ -2540,6 +2541,11 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 		palette_color->sources[source].color.green = proposed->green;
 		palette_color->sources[source].color.blue = proposed->blue;
 	} else {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Reset %s color[%d].\n",
+				source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
+				entry);
+
 		if (!palette_color->sources[source].is_set) {
 			return;
 		}
