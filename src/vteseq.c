@@ -31,6 +31,7 @@
 #include "vtetc.h"
 
 #define BEL "\007"
+#define ST _VTE_CAP_ST
 
 
 
@@ -1889,9 +1890,10 @@ vte_sequence_handler_scroll_down (VteTerminal *terminal, GValueArray *params)
 	_vte_terminal_scroll_text (terminal, val);
 }
 
-/* change color in the palette */
+/* Internal helper for changing color in the palette */
 static void
-vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *params,
+					    const char *terminator)
 {
 	gchar **pairs, *str = NULL;
 	GValue *value;
@@ -1928,8 +1930,8 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 				PangoColor *c = _vte_terminal_get_color(terminal, idx);
 				g_assert(c != NULL);
 				g_snprintf (buf, sizeof (buf),
-					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x" BEL, idx,
-					    c->red, c->green, c->blue);
+					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
+					    idx, c->red, c->green, c->blue, terminator);
 				vte_terminal_feed_child (terminal, buf, -1);
 			}
 		}
@@ -1943,7 +1945,21 @@ vte_sequence_handler_change_color (VteTerminal *terminal, GValueArray *params)
 	}
 }
 
-/* Reset the color */
+/* Change color in the palette, BEL terminated */
+static void
+vte_sequence_handler_change_color_bel (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_color_internal (terminal, params, BEL);
+}
+
+/* Change color in the palette, ST terminated */
+static void
+vte_sequence_handler_change_color_st (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_color_internal (terminal, params, ST);
+}
+
+/* Reset color in the palette */
 static void
 vte_sequence_handler_reset_color (VteTerminal *terminal, GValueArray *params)
 {
@@ -3532,7 +3548,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 /* Internal helper for setting/querying special colors */
 static void
 vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValueArray *params,
-						    int index, int index_fallback, int osc)
+						    int index, int index_fallback, int osc,
+						    const char *terminator)
 {
 	gchar *name = NULL;
 	GValue *value;
@@ -3558,8 +3575,8 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 				c = _vte_terminal_get_color(terminal, index_fallback);
 			g_assert(c != NULL);
 			g_snprintf (buf, sizeof (buf),
-				    _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x" BEL,
-				    osc, c->red, c->green, c->blue);
+				    _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",
+				    osc, c->red, c->green, c->blue, terminator);
 			vte_terminal_feed_child (terminal, buf, -1);
 		}
 
@@ -3567,12 +3584,20 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 	}
 }
 
-/* Change the default foreground cursor */
+/* Change the default foreground cursor, BEL terminated */
 static void
-vte_sequence_handler_change_foreground_color (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_foreground_color_bel (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_change_special_color_internal (terminal, params,
-							    VTE_DEF_FG, -1, 10);
+							    VTE_DEF_FG, -1, 10, BEL);
+}
+
+/* Change the default foreground cursor, ST terminated */
+static void
+vte_sequence_handler_change_foreground_color_st (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_special_color_internal (terminal, params,
+							    VTE_DEF_FG, -1, 10, ST);
 }
 
 /* Reset the default foreground color */
@@ -3582,12 +3607,20 @@ vte_sequence_handler_reset_foreground_color (VteTerminal *terminal, GValueArray 
 	_vte_terminal_set_color_internal(terminal, VTE_DEF_FG, VTE_COLOR_SOURCE_ESCAPE, NULL);
 }
 
-/* Change the default background cursor */
+/* Change the default background cursor, BEL terminated */
 static void
-vte_sequence_handler_change_background_color (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_background_color_bel (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_change_special_color_internal (terminal, params,
-							    VTE_DEF_BG, -1, 11);
+							    VTE_DEF_BG, -1, 11, BEL);
+}
+
+/* Change the default background cursor, ST terminated */
+static void
+vte_sequence_handler_change_background_color_st (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_special_color_internal (terminal, params,
+							    VTE_DEF_BG, -1, 11, ST);
 }
 
 /* Reset the default background color */
@@ -3597,12 +3630,20 @@ vte_sequence_handler_reset_background_color (VteTerminal *terminal, GValueArray 
 	_vte_terminal_set_color_internal(terminal, VTE_DEF_BG, VTE_COLOR_SOURCE_ESCAPE, NULL);
 }
 
-/* Change the color of the cursor */
+/* Change the color of the cursor, BEL terminated */
 static void
-vte_sequence_handler_change_cursor_color (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_cursor_color_bel (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_change_special_color_internal (terminal, params,
-							    VTE_CUR_BG, VTE_DEF_FG, 12);
+							    VTE_CUR_BG, VTE_DEF_FG, 12, BEL);
+}
+
+/* Change the color of the cursor, ST terminated */
+static void
+vte_sequence_handler_change_cursor_color_st (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_special_color_internal (terminal, params,
+							    VTE_CUR_BG, VTE_DEF_FG, 12, ST);
 }
 
 /* Reset the color of the cursor */
@@ -3612,12 +3653,20 @@ vte_sequence_handler_reset_cursor_color (VteTerminal *terminal, GValueArray *par
 	_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, VTE_COLOR_SOURCE_ESCAPE, NULL);
 }
 
-/* Change the highlight background color */
+/* Change the highlight background color, BEL terminated */
 static void
-vte_sequence_handler_change_highlight_background_color (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_highlight_background_color_bel (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_change_special_color_internal (terminal, params,
-							    VTE_DEF_HL, VTE_DEF_FG, 17);
+							    VTE_DEF_HL, VTE_DEF_FG, 17, BEL);
+}
+
+/* Change the highlight background color, ST terminated */
+static void
+vte_sequence_handler_change_highlight_background_color_st (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_special_color_internal (terminal, params,
+							    VTE_DEF_HL, VTE_DEF_FG, 17, ST);
 }
 
 /* Reset the highlight background color */
