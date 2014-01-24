@@ -6700,9 +6700,8 @@ vte_terminal_start_selection(VteTerminal *terminal, gdouble x, gdouble y,
 	/* Record that we have the selection, and where it started. */
 	delta = terminal->pvt->screen->scroll_delta;
 	terminal->pvt->has_selection = TRUE;
-	terminal->pvt->selection_last.x = x - terminal->pvt->inner_border.left;
-	terminal->pvt->selection_last.y = y - terminal->pvt->inner_border.top +
-					  (terminal->char_height * delta);
+	terminal->pvt->selection_last.x = x;
+	terminal->pvt->selection_last.y = y + (terminal->char_height * delta);
 
 	/* Decide whether or not to restart on the next drag. */
 	switch (selection_type) {
