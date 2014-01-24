@@ -6830,17 +6830,18 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				break;
 		}
 		/* If the end point is to its right, then extend the
-		 * endpoint as far right as we can expect. */
+		 * endpoint to the beginning of the next row. */
 		if (ec->col >= i) {
-			ec->col = MAX(ec->col,
-				    MAX(terminal->column_count,
-					(long) _vte_row_data_length (rowdata)));
+			ec->col = -1;
+			ec->row++;
 		}
 	} else {
-		/* Snap to the rightmost column, only if selecting anything of
-		 * this row. */
-		if (ec->col >= 0)
-			ec->col = MAX(ec->col, terminal->column_count);
+		/* Snap to the beginning of the next line, only if
+		 * selecting anything of this row. */
+		if (ec->col >= 0) {
+			ec->col = -1;
+			ec->row++;
+		}
 	}
 	ec->col = find_end_column (terminal, ec->col, ec->row);
 
@@ -6961,14 +6962,10 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			j++;
 			ec->row = j;
 		}
-		/* Make sure we include all of the last line. */
-		ec->col = terminal->column_count;
-		if (_vte_ring_contains (screen->row_data, ec->row)) {
-			rowdata = _vte_ring_index(screen->row_data, ec->row);
-			if (rowdata != NULL) {
-				ec->col = MAX(ec->col, (long) _vte_row_data_length (rowdata));
-			}
-		}
+		/* Make sure we include all of the last line by extending
+		 * to the beginning of the next line. */
+		ec->row++;
+		ec->col = -1;
 		break;
 	}
 }
@@ -8098,7 +8095,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 	VteVisualPosition cursor_saved_absolute;
 	VteVisualPosition below_viewport;
 	VteVisualPosition below_current_paragraph;
-	VteVisualPosition *markers[5];
+	VteVisualPosition *markers[7];
 	gboolean was_scrolled_to_top = (screen->scroll_delta == _vte_ring_delta(ring));
 	gboolean was_scrolled_to_bottom = (screen->scroll_delta == screen->insert_delta);
 	glong old_top_lines;
@@ -8130,7 +8127,15 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 	markers[1] = &cursor_saved_absolute;
 	markers[2] = &below_viewport;
 	markers[3] = &below_current_paragraph;
-	markers[4] = NULL;
+	if (screen == terminal->pvt->screen && terminal->pvt->has_selection) {
+		/* selection_end is inclusive, make it non-inclusive, see bug 722635. */
+		terminal->pvt->selection_end.col++;
+		markers[4] = &terminal->pvt->selection_start;
+		markers[5] = &terminal->pvt->selection_end;
+		markers[6] = NULL;
+	} else {
+		markers[4] = NULL;
+	}
 
 	old_top_lines = below_current_paragraph.row - screen->insert_delta;
 
@@ -8155,6 +8160,11 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 					drop, drop1, drop2, drop3);
 			_vte_ring_shrink(ring, new_ring_next - _vte_ring_delta(ring));
 		}
+	}
+
+	if (screen == terminal->pvt->screen && terminal->pvt->has_selection) {
+		/* Make selection_end inclusive again, see above. */
+		terminal->pvt->selection_end.col--;
 	}
 
 	/* Figure out new insert and scroll deltas */
