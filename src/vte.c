@@ -6986,7 +6986,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	height = terminal->char_height;
 	width = terminal->char_width;
 
-	/* Confine y into the visible area. (#563024) */
+	/* Confine coordinates into the visible area. (#563024, #722635c7) */
 	if (y < 0) {
 		y = 0;
 		if (!terminal->pvt->selection_block_mode)
@@ -6998,6 +6998,11 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 		} else {
 			y = terminal->row_count * height - 1;
 		}
+	}
+	if (x < 0) {
+		x = 0;
+	} else if (x >= terminal->column_count * width) {
+		x = terminal->column_count * width - 1;
 	}
 
 	screen = terminal->pvt->screen;
