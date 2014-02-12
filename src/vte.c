@@ -6684,10 +6684,35 @@ vte_terminal_invalidate_selection (VteTerminal *terminal)
 				terminal->pvt->selection_block_mode);
 }
 
+/* Confine coordinates into the visible area. Padding is alreday subtracted. */
+static void
+vte_terminal_confine_coordinates (VteTerminal *terminal, long *xp, long *yp)
+{
+	long x = *xp;
+	long y = *yp;
+
+	if (y < 0) {
+		y = 0;
+		if (!terminal->pvt->selection_block_mode)
+			x = 0;
+	} else if (y >= terminal->row_count * terminal->char_height) {
+		y = terminal->row_count * terminal->char_height - 1;
+		if (!terminal->pvt->selection_block_mode)
+			x = terminal->column_count * terminal->char_width - 1;
+	}
+	if (x < 0) {
+		x = 0;
+	} else if (x >= terminal->column_count * terminal->char_width) {
+		x = terminal->column_count * terminal->char_width - 1;
+	}
+
+	*xp = x;
+	*yp = y;
+}
 
 /* Start selection at the location of the event. */
 static void
-vte_terminal_start_selection(VteTerminal *terminal, gdouble x, gdouble y,
+vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
 			     enum vte_selection_type selection_type)
 {
 	long delta;
@@ -6696,6 +6721,9 @@ vte_terminal_start_selection(VteTerminal *terminal, gdouble x, gdouble y,
 
 	if (terminal->pvt->selection_block_mode)
 		selection_type = selection_type_char;
+
+	/* Confine coordinates into the visible area. (#563024, #722635c7) */
+	vte_terminal_confine_coordinates(terminal, &x, &y);
 
 	/* Record that we have the selection, and where it started. */
 	delta = terminal->pvt->screen->scroll_delta;
@@ -6986,23 +7014,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	width = terminal->char_width;
 
 	/* Confine coordinates into the visible area. (#563024, #722635c7) */
-	if (y < 0) {
-		y = 0;
-		if (!terminal->pvt->selection_block_mode)
-			x = 0;
-	} else if (y >= terminal->row_count * height) {
-		if (!terminal->pvt->selection_block_mode) {
-			y = terminal->row_count * height;
-			x = -1;
-		} else {
-			y = terminal->row_count * height - 1;
-		}
-	}
-	if (x < 0) {
-		x = 0;
-	} else if (x >= terminal->column_count * width) {
-		x = terminal->column_count * width - 1;
-	}
+	vte_terminal_confine_coordinates(terminal, &x, &y);
 
 	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
