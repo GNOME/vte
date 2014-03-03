@@ -54,12 +54,9 @@ window_title_changed(GtkWidget *widget, gpointer win)
 static void
 icon_title_changed(GtkWidget *widget, gpointer win)
 {
-	GtkWindow *window;
-
 	g_assert(VTE_TERMINAL(widget));
 	g_assert(GTK_IS_WINDOW(win));
 	g_assert(VTE_TERMINAL(widget)->icon_title != NULL);
-	window = GTK_WINDOW(win);
 
 	g_message("Icon title changed to \"%s\".\n",
 		  VTE_TERMINAL(widget)->icon_title);
@@ -68,7 +65,6 @@ icon_title_changed(GtkWidget *widget, gpointer win)
 static void
 char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 {
-	VteTerminal *terminal;
 	GtkWindow *window;
 	GdkGeometry geometry;
 	GtkBorder *inner_border;
@@ -76,7 +72,6 @@ char_size_changed(GtkWidget *widget, guint width, guint height, gpointer data)
 	g_assert(GTK_IS_WINDOW(data));
 	g_assert(VTE_IS_TERMINAL(widget));
 
-	terminal = VTE_TERMINAL(widget);
 	window = GTK_WINDOW(data);
 	if (!gtk_widget_get_realized (GTK_WIDGET (window)))
 		return;

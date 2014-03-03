@@ -62,7 +62,7 @@ catfile(const char *pathname, long delay, long chunksize)
 			}
 		}
 		if (i > 0) {
-			int bytes;
+			int bytes G_GNUC_UNUSED;
 			bytes = write(STDOUT_FILENO, buf, i);
 			fsync(STDOUT_FILENO);
 		}

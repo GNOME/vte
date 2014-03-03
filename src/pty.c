@@ -675,14 +675,11 @@ vte_pty_set_size(VtePty *pty,
                  int columns,
                  GError **error)
 {
-        VtePtyPrivate *priv;
 	struct winsize size;
         int master;
 	int ret;
 
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
-
-        priv = pty->priv;
 
         master = vte_pty_get_fd(pty);
 
@@ -734,14 +731,11 @@ vte_pty_get_size(VtePty *pty,
                  int *columns,
                  GError **error)
 {
-        VtePtyPrivate *priv;
 	struct winsize size;
         int master;
 	int ret;
 
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
-
-        priv = pty->priv;
 
         master = vte_pty_get_fd(pty);
 

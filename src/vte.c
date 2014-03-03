@@ -3627,12 +3627,9 @@ vte_terminal_pty_new(VteTerminal *terminal,
                      VtePtyFlags flags,
                      GError **error)
 {
-        VteTerminalPrivate *pvt;
         VtePty *pty;
 
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-        pvt = terminal->pvt;
 
         pty = vte_pty_new(flags, error);
         if (pty == NULL)
@@ -6366,7 +6363,6 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  gboolean include_trailing_spaces)
 {
 	glong col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
-	VteScreen *screen;
 	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
@@ -6374,8 +6370,6 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 	if (!is_selected)
 		is_selected = always_selected;
-
-	screen = terminal->pvt->screen;
 
 	if (attributes)
 		g_array_set_size (attributes, 0);
@@ -8400,14 +8394,12 @@ vte_terminal_set_scroll_adjustments(GtkWidget *widget,
 void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
-        VteTerminalPrivate *pvt;
         GObject *object;
 	int columns, rows;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
 
         g_object_freeze_notify(object);
 
@@ -9267,8 +9259,7 @@ vte_terminal_realize(GtkWidget *widget)
 	VteTerminal *terminal;
 	GdkWindowAttr attributes;
 	GtkAllocation allocation;
-        GdkColor color;
-	guint attributes_mask = 0, i;
+	guint attributes_mask = 0;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
@@ -9562,7 +9553,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 			  gint x, gint y,
 			  gint column_width, gint columns, gint row_height)
 {
-	gint width, xcenter, xright, ycenter, ybottom, i;
+	gint width, xcenter, xright, ycenter, ybottom;
         int upper_half, lower_half, left_half, right_half;
         int light_line_width, heavy_line_width;
         double adjust;
@@ -10327,7 +10318,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			gboolean strikethrough, gboolean hilite, gboolean boxed,
 			gint column_width, gint row_height)
 {
-	int i, x, y, ascent;
+	int i, x, y;
 	gint columns = 0;
 	PangoColor fg, bg;
 
@@ -10349,7 +10340,6 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 	bold = bold && terminal->pvt->allow_bold;
 	vte_terminal_get_rgb_from_index(terminal, fore, &fg);
 	vte_terminal_get_rgb_from_index(terminal, back, &bg);
-	ascent = terminal->char_ascent;
 
 	i = 0;
 	do {
@@ -10672,7 +10662,6 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
 	gint i, j, row, rows, x, y, end_column;
 	guint fore, nfore, back, nback;
-	glong delta;
 	gboolean underline, nunderline, bold, nbold, italic, nitalic, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
@@ -10684,7 +10673,6 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	end_column = start_column + column_count;
 
 	/* clear the background */
-	delta = screen->scroll_delta;
 	x = start_x + terminal->pvt->inner_border.left;
 	y = start_y + terminal->pvt->inner_border.top;
 	row = start_row;
@@ -10994,12 +10982,9 @@ fg_out:
 static void
 vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkRectangle *area)
 {
-	VteScreen *screen;
 	int width, height;
 	int row, col, row_stop, col_stop;
 	VteRegionRectangle rect;
-
-	screen = terminal->pvt->screen;
 
 	width = terminal->char_width;
 	height = terminal->char_height;
@@ -11240,8 +11225,8 @@ static void
 vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 {
 	VteScreen *screen;
-	int row, drow, col, columns;
-	long width, height, ascent, descent, delta;
+	int row, col, columns;
+	long width, height, delta;
 	int i, len;
 	guint fore, back;
 
@@ -11254,11 +11239,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	/* Keep local copies of rendering information. */
 	width = terminal->char_width;
 	height = terminal->char_height;
-	ascent = terminal->char_ascent;
-	descent = terminal->char_descent;
 	delta = screen->scroll_delta;
 
-	drow = screen->cursor_current.row;
 	row = screen->cursor_current.row - delta;
 
 	/* Find out how many columns the pre-edit string takes up. */
@@ -11632,30 +11614,17 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 static AtkObject *
 vte_terminal_get_accessible(GtkWidget *widget)
 {
-	VteTerminal *terminal;
 	static gboolean first_time = TRUE;
 	static GQuark quark_accessible_object;
-
-	terminal = VTE_TERMINAL(widget);
+	AtkRegistry *default_registry;
+	AtkObjectFactory *factory;
+	AtkObject *accessible;
 
 	if (first_time) {
-		AtkObjectFactory *factory;
 		AtkRegistry *registry;
-		GType derived_type;
-		GType derived_atk_type;
-
-		/*
-		 * Figure out whether accessibility is enabled by looking at the
-		 * type of the accessible object which would be created for
-		 * the parent type of VteTerminal.
-		 */
-		derived_type = g_type_parent (VTE_TYPE_TERMINAL);
 
 		registry = atk_get_default_registry ();
-		factory = atk_registry_get_factory (registry, derived_type);
 
-		derived_atk_type = atk_object_factory_get_accessible_type (
-			factory);
 		atk_registry_set_factory_type (registry, VTE_TYPE_TERMINAL,
 			vte_terminal_accessible_factory_get_type ());
 		quark_accessible_object = g_quark_from_static_string (
@@ -11663,9 +11632,7 @@ vte_terminal_get_accessible(GtkWidget *widget)
 		first_time = FALSE;
 	}
 
-	AtkRegistry *default_registry = atk_get_default_registry ();
-	AtkObjectFactory *factory;
-	AtkObject *accessible;
+	default_registry = atk_get_default_registry ();
 	accessible = g_object_get_qdata (G_OBJECT (widget),
 		quark_accessible_object);
 	if (accessible)

@@ -787,8 +787,6 @@ focus_cb (GtkWidget     *widget,
 	        GdkEventFocus *event)
 {
 	AtkObject* accessible;
-	gboolean return_val;
-	return_val = FALSE;
 
 	accessible = gtk_widget_get_accessible (widget);
 
@@ -1392,7 +1390,6 @@ static gunichar
 vte_terminal_accessible_get_character_at_offset(AtkText *text, gint offset)
 {
 	VteTerminalAccessiblePrivate *priv;
-	int mapped;
 	char *unichar;
 	gunichar ret;
 
@@ -1403,8 +1400,6 @@ vte_terminal_accessible_get_character_at_offset(AtkText *text, gint offset)
 				 VTE_TERMINAL_ACCESSIBLE_PRIVATE_DATA);
 
 	g_assert(offset < (int) priv->snapshot_characters->len);
-
-	mapped = g_array_index(priv->snapshot_characters, int, offset);
 
 	unichar = vte_terminal_accessible_get_text(text, offset, offset + 1);
 	ret = g_utf8_get_char(unichar);

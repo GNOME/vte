@@ -208,7 +208,6 @@ _vte_conv(VteConv converter,
 	const guchar *work_inbuf_start, *work_inbuf_working;
 	guchar *work_outbuf_start, *work_outbuf_working;
 	gsize work_inbytes, work_outbytes;
-	gsize in_converted, out_converted;
 
 	g_assert(converter != NULL);
 	g_assert(converter != VTE_INVALID_CONV);
@@ -217,8 +216,6 @@ _vte_conv(VteConv converter,
 	work_outbuf_start = work_outbuf_working = *outbuf;
 	work_inbytes = *inbytes_left;
 	work_outbytes = *outbytes_left;
-	in_converted = 0;
-	out_converted = 0;
 
 	/* Possibly convert the input data from gunichars to UTF-8. */
 	if (converter->in_unichar) {

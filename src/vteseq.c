@@ -802,7 +802,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
         do {
                 gboolean *bvalue = NULL;
                 gint *ivalue = NULL;
-                gpointer *pvalue = NULL, pfvalue, ptvalue;
+                gpointer *pvalue = NULL, pfvalue = NULL, ptvalue = NULL;
                 gpointer p;
 
 		/* Handle settings we want to ignore. */
@@ -2308,16 +2308,14 @@ static void
 vte_sequence_handler_up (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
-	long start, end;
+	long start;
 
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
 		start = screen->insert_delta + screen->scrolling_region.start;
-		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
 		start = screen->insert_delta;
-		end = start + terminal->row_count - 1;
 	}
 
 	screen->cursor_current.row = MAX(screen->cursor_current.row - 1, start);
@@ -3319,7 +3317,6 @@ static void
 vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *params)
 {
 	GdkScreen *gscreen;
-	VteScreen *screen;
 	GValue *value;
 	GtkWidget *widget;
 	char buf[128];
@@ -3329,7 +3326,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 	GtkAllocation allocation;
 
 	widget = &terminal->widget;
-	screen = terminal->pvt->screen;
 
 	for (i = 0; ((params != NULL) && (i < params->n_values)); i++) {
 		arg1 = arg2 = -1;
