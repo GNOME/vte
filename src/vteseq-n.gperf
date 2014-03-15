@@ -101,9 +101,9 @@ struct vteseq_n_struct {
 "change-highlight-background-colors-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_highlight_background_color_bel)
 "change-highlight-background-colors-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_highlight_background_color_st)
 "reset-highlight-background-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_highlight_background_color)
-#"change-highlight-foreground-colors-bel", VTE_SEQUENCE_HANDLER_NULL
-#"change-highlight-foreground-colors-st", VTE_SEQUENCE_HANDLER_NULL
-#"reset-highlight-foreground-colors", VTE_SEQUENCE_HANDLER_NULL
+"change-highlight-foreground-colors-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_highlight_foreground_color_bel)
+"change-highlight-foreground-colors-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_highlight_foreground_color_st)
+"reset-highlight-foreground-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_highlight_foreground_color)
 #"enable-filter-rectangle", VTE_SEQUENCE_HANDLER_NULL
 "insert-blank-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_insert_blank_characters)
 #"invoke-g2-character-set", VTE_SEQUENCE_HANDLER_NULL

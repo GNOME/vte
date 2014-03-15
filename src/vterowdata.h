@@ -30,9 +30,10 @@ G_BEGIN_DECLS
 #define VTE_DEFAULT_BG			257
 #define VTE_BOLD_FG			258
 #define VTE_DIM_FG			259
-#define VTE_HIGHLIGHT_BG		260
-#define VTE_CURSOR_BG			261
-#define VTE_PALETTE_SIZE		262
+#define VTE_HIGHLIGHT_FG		260
+#define VTE_HIGHLIGHT_BG		261
+#define VTE_CURSOR_BG			262
+#define VTE_PALETTE_SIZE		263
 
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 6)

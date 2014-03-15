@@ -2733,6 +2733,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
  * Sets the background color for text which is highlighted.  If %NULL,
+ * it is unset.  If neither highlight background nor highlight foreground are set,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
  *
@@ -2746,15 +2747,46 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 
 	if (highlight_background != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
-				"Set highlight color to (%04x,%04x,%04x).\n",
+				"Set highlight background color to (%04x,%04x,%04x).\n",
 				highlight_background->red,
 				highlight_background->green,
 				highlight_background->blue);
 	} else {
 		_vte_debug_print(VTE_DEBUG_MISC,
-				"Reset highlight color.\n");
+				"Reset highlight background color.\n");
 	}
 	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, highlight_background);
+}
+
+/**
+ * vte_terminal_set_color_highlight_foreground:
+ * @terminal: a #VteTerminal
+ * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
+ *
+ * Sets the foreground color for text which is highlighted.  If %NULL,
+ * it is unset.  If neither highlight background nor highlight foreground are set,
+ * highlighted text (which is usually highlighted because it is selected) will
+ * be drawn with foreground and background colors reversed.
+ *
+ * Since: 0.36
+ */
+void
+vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
+					    const GdkColor *highlight_foreground)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	if (highlight_foreground != NULL) {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Set highlight foreground color to (%04x,%04x,%04x).\n",
+				highlight_foreground->red,
+				highlight_foreground->green,
+				highlight_foreground->blue);
+	} else {
+		_vte_debug_print(VTE_DEBUG_MISC,
+				"Reset highlight foreground color.\n");
+	}
+	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, highlight_foreground);
 }
 
 /**
@@ -2873,6 +2905,9 @@ vte_terminal_set_colors(VteTerminal *terminal,
 							   &color);
 				break;
 			case VTE_HIGHLIGHT_BG:
+				unset = TRUE;
+				break;
+			case VTE_HIGHLIGHT_FG:
 				unset = TRUE;
 				break;
 			case VTE_CURSOR_BG:
@@ -3039,6 +3074,7 @@ vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
  * Sets the background color for text which is highlighted.  If %NULL,
+ * it is unset.  If neither highlight background nor highlight foreground are set,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
  *
@@ -3052,6 +3088,28 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 
 	vte_terminal_set_color_highlight(terminal,
                                          gdk_color_from_rgba(&color, highlight_background));
+}
+
+/**
+ * vte_terminal_set_color_highlight_foreground_rgba:
+ * @terminal: a #VteTerminal
+ * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
+ *
+ * Sets the foreground color for text which is highlighted.  If %NULL,
+ * it is unset.  If neither highlight background nor highlight foreground are set,
+ * highlighted text (which is usually highlighted because it is selected) will
+ * be drawn with foreground and background colors reversed.
+ *
+ * Since: 0.36
+ */
+void
+vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
+						 const GdkRGBA *highlight_foreground)
+{
+	GdkColor color;
+
+	vte_terminal_set_color_highlight_foreground(terminal,
+                                                    gdk_color_from_rgba(&color, highlight_foreground));
 }
 
 /**
@@ -9444,12 +9502,19 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 		swap (&fore, &back);
 	}
 
-	/* Selection: use hightlight back, or inverse */
+	/* Selection: use hightlight back/fore, or inverse */
 	if (selected) {
 		/* XXX what if hightlight back is same color as current back? */
-		if (_vte_terminal_get_color(terminal, VTE_HIGHLIGHT_BG) != NULL)
+		gboolean do_swap = TRUE;
+		if (_vte_terminal_get_color(terminal, VTE_HIGHLIGHT_BG) != NULL) {
 			back = VTE_HIGHLIGHT_BG;
-		else
+			do_swap = FALSE;
+		}
+		if (_vte_terminal_get_color(terminal, VTE_HIGHLIGHT_FG) != NULL) {
+			fore = VTE_HIGHLIGHT_FG;
+			do_swap = FALSE;
+		}
+		if (do_swap)
 			swap (&fore, &back);
 	}
 

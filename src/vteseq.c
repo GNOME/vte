@@ -3672,6 +3672,29 @@ vte_sequence_handler_reset_highlight_background_color (VteTerminal *terminal, GV
 	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_ESCAPE, NULL);
 }
 
+/* Change the highlight foreground color, BEL terminated */
+static void
+vte_sequence_handler_change_highlight_foreground_color_bel (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_special_color_internal (terminal, params,
+							    VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL);
+}
+
+/* Change the highlight foreground color, ST terminated */
+static void
+vte_sequence_handler_change_highlight_foreground_color_st (VteTerminal *terminal, GValueArray *params)
+{
+	vte_sequence_handler_change_special_color_internal (terminal, params,
+							    VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST);
+}
+
+/* Reset the highlight foreground color */
+static void
+vte_sequence_handler_reset_highlight_foreground_color (VteTerminal *terminal, GValueArray *params)
+{
+	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE, NULL);
+}
+
 
 /* Lookup tables */
 

@@ -325,6 +325,8 @@ void vte_terminal_set_color_cursor(VteTerminal *terminal,
 				   const GdkColor *cursor_background);
 void vte_terminal_set_color_highlight(VteTerminal *terminal,
 				      const GdkColor *highlight_background);
+void vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
+						 const GdkColor *highlight_foreground);
 void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *foreground,
 			     const GdkColor *background,
@@ -344,6 +346,8 @@ void vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
 					const GdkRGBA *cursor_background);
 void vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 					   const GdkRGBA *highlight_background);
+void vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
+						      const GdkRGBA *highlight_foreground);
 void vte_terminal_set_colors_rgba(VteTerminal *terminal,
 				  const GdkRGBA *foreground,
 				  const GdkRGBA *background,
