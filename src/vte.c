@@ -343,11 +343,11 @@ _vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill)
 	VteRing *ring = terminal->pvt->screen->row_data;
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
 		row = _vte_ring_append (ring);
-		if (terminal->pvt->screen->fill_defaults.attr.back != VTE_DEF_BG)
+		if (terminal->pvt->screen->fill_defaults.attr.back != VTE_DEFAULT_BG)
 			_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
 	}
 	row = _vte_ring_insert (ring, position);
-	if (fill && terminal->pvt->screen->fill_defaults.attr.back != VTE_DEF_BG)
+	if (fill && terminal->pvt->screen->fill_defaults.attr.back != VTE_DEFAULT_BG)
 		_vte_row_data_fill (row, &terminal->pvt->screen->fill_defaults, terminal->column_count);
 	return row;
 }
@@ -2559,12 +2559,12 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 
 	/* If we're setting the background color, set the background color
 	 * on the widget as well. */
-	if (entry == VTE_DEF_BG) {
+	if (entry == VTE_DEFAULT_BG) {
 		vte_terminal_queue_background_update(terminal);
 	}
 
 	/* and redraw */
-	if (entry == VTE_CUR_BG)
+	if (entry == VTE_CURSOR_BG)
 		_vte_invalidate_cursor_once(terminal, FALSE);
 	else
 		_vte_invalidate_all (terminal);
@@ -2672,7 +2672,7 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set foreground color to (%04x,%04x,%04x).\n",
 			foreground->red, foreground->green, foreground->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DEF_FG, VTE_COLOR_SOURCE_API, foreground);
+	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, foreground);
 }
 
 /**
@@ -2694,7 +2694,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set background color to (%04x,%04x,%04x).\n",
 			background->red, background->green, background->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DEF_BG, VTE_COLOR_SOURCE_API, background);
+	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, background);
 }
 
 /**
@@ -2724,7 +2724,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Reset cursor color.\n");
 	}
-	_vte_terminal_set_color_internal(terminal, VTE_CUR_BG, VTE_COLOR_SOURCE_API, cursor_background);
+	_vte_terminal_set_color_internal(terminal, VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, cursor_background);
 }
 
 /**
@@ -2754,7 +2754,7 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Reset highlight color.\n");
 	}
-	_vte_terminal_set_color_internal(terminal, VTE_DEF_HL, VTE_COLOR_SOURCE_API, highlight_background);
+	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, highlight_background);
 }
 
 /**
@@ -2842,7 +2842,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			color.red = color.green = color.blue = shade | shade << 8;
 		}
 		else switch (i) {
-			case VTE_DEF_BG:
+			case VTE_DEFAULT_BG:
 				if (background != NULL) {
 					color = *background;
 				} else {
@@ -2851,7 +2851,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 					color.green = 0;
 				}
 				break;
-			case VTE_DEF_FG:
+			case VTE_DEFAULT_FG:
 				if (foreground != NULL) {
 					color = *foreground;
 				} else {
@@ -2861,21 +2861,21 @@ vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_BOLD_FG:
-				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
-							   _vte_terminal_get_color(terminal, VTE_DEF_BG),
+				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
+							   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
 							   1.8,
 							   &color);
 				break;
 			case VTE_DIM_FG:
-				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
-							   _vte_terminal_get_color(terminal, VTE_DEF_BG),
+				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
+							   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
 							   0.5,
 							   &color);
 				break;
-			case VTE_DEF_HL:
+			case VTE_HIGHLIGHT_BG:
 				unset = TRUE;
 				break;
-			case VTE_CUR_BG:
+			case VTE_CURSOR_BG:
 				unset = TRUE;
 				break;
 			}
@@ -2928,8 +2928,8 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
 
 	if (bold == NULL)
 	{
-		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
-					   _vte_terminal_get_color(terminal, VTE_DEF_BG),
+		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
+					   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
 					   1.8,
 					   &color);
 	}
@@ -2959,8 +2959,8 @@ vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
 
 	if (dim == NULL)
 	{
-		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEF_FG),
-					   _vte_terminal_get_color(terminal, VTE_DEF_BG),
+		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
+					   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
 					   0.5,
 					   &color);
 	}
@@ -3231,7 +3231,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
-		if (screen->fill_defaults.attr.back != VTE_DEF_BG) {
+		if (screen->fill_defaults.attr.back != VTE_DEFAULT_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
 			_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->column_count);
@@ -9410,15 +9410,15 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 
 	/* Reverse-mode switches default fore and back colors */
 	if (G_UNLIKELY (terminal->pvt->screen->reverse_mode)) {
-		if (fore == VTE_DEF_FG)
-			fore = VTE_DEF_BG;
-		if (back == VTE_DEF_BG)
-			back = VTE_DEF_FG;
+		if (fore == VTE_DEFAULT_FG)
+			fore = VTE_DEFAULT_BG;
+		if (back == VTE_DEFAULT_BG)
+			back = VTE_DEFAULT_FG;
 	}
 
 	/* Handle bold by using set bold color or brightening */
 	if (cell->attr.bold) {
-		if (fore == VTE_DEF_FG)
+		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_BOLD_FG;
 		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
 			fore += VTE_COLOR_BRIGHT_OFFSET;
@@ -9427,7 +9427,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 
 	/* Handle half similarly */
 	if (cell->attr.half) {
-		if (fore == VTE_DEF_FG)
+		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_DIM_FG;
 		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
 			fore = corresponding_dim_index[fore - VTE_LEGACY_COLORS_OFFSET];
@@ -9447,8 +9447,8 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	/* Selection: use hightlight back, or inverse */
 	if (selected) {
 		/* XXX what if hightlight back is same color as current back? */
-		if (_vte_terminal_get_color(terminal, VTE_DEF_HL) != NULL)
-			back = VTE_DEF_HL;
+		if (_vte_terminal_get_color(terminal, VTE_HIGHLIGHT_BG) != NULL)
+			back = VTE_HIGHLIGHT_BG;
 		else
 			swap (&fore, &back);
 	}
@@ -9456,8 +9456,8 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	/* Cursor: use cursor back, or inverse */
 	if (cursor) {
 		/* XXX what if cursor back is same color as current back? */
-		if (_vte_terminal_get_color(terminal, VTE_CUR_BG) != NULL)
-			back = VTE_CUR_BG;
+		if (_vte_terminal_get_color(terminal, VTE_CURSOR_BG) != NULL)
+			back = VTE_CURSOR_BG;
 		else
 			swap (&fore, &back);
 	}
@@ -9565,7 +9565,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
 
         width = column_width * columns;
 
-	if ((back != VTE_DEF_BG) || draw_default_bg) {
+	if ((back != VTE_DEFAULT_BG) || draw_default_bg) {
 		vte_terminal_fill_rectangle(terminal,
 					    &bg,
 					    x, y, width, row_height);
@@ -10352,7 +10352,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 			items[i].y += terminal->pvt->inner_border.top;
 			columns += items[i].columns;
 		}
-		if (clear && (draw_default_bg || back != VTE_DEF_BG)) {
+		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
 			gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
 									VTE_DRAW_BOLD) ? 0 : bold;
 			_vte_draw_fill_rectangle(terminal->pvt->draw,
@@ -10721,7 +10721,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					bold = cell && cell->attr.bold;
 					j += cell ? cell->attr.columns : 1;
 				}
-				if (back != VTE_DEF_BG) {
+				if (back != VTE_DEFAULT_BG) {
 					PangoColor bg;
 					gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
 											VTE_DRAW_BOLD) ? 0 : bold;
@@ -10750,7 +10750,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					j++;
 				}
 				vte_terminal_determine_colors(terminal, NULL, selected, &fore, &back);
-				if (back != VTE_DEF_BG) {
+				if (back != VTE_DEFAULT_BG) {
 					PangoColor bg;
 					vte_terminal_get_rgb_from_index(terminal, back, &bg);
 					_vte_draw_fill_rectangle (terminal->pvt->draw,
@@ -13519,7 +13519,7 @@ vte_terminal_background_update(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background image.\n");
 
-	entry = _vte_terminal_get_color(terminal, VTE_DEF_BG);
+	entry = _vte_terminal_get_color(terminal, VTE_DEFAULT_BG);
 	_vte_debug_print(VTE_DEBUG_BG,
 			 "Setting background color to (%d, %d, %d, %d).\n",
 			 entry->red, entry->green, entry->blue,

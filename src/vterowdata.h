@@ -26,12 +26,12 @@
 G_BEGIN_DECLS
 
 
-#define VTE_DEF_FG			256
-#define VTE_DEF_BG			257
+#define VTE_DEFAULT_FG			256
+#define VTE_DEFAULT_BG			257
 #define VTE_BOLD_FG			258
 #define VTE_DIM_FG			259
-#define VTE_DEF_HL                      260
-#define VTE_CUR_BG			261
+#define VTE_HIGHLIGHT_BG		260
+#define VTE_CURSOR_BG			261
 #define VTE_PALETTE_SIZE		262
 
 
@@ -110,8 +110,8 @@ static const VteIntCell basic_cell = {
 			1, /* columns */
 			0, /* bold */
 			0, /* italic */
-			VTE_DEF_FG, /* fore */
-			VTE_DEF_BG, /* back */
+			VTE_DEFAULT_FG, /* fore */
+			VTE_DEFAULT_BG, /* back */
 
 			0, /* standout */
 			0, /* underline */
