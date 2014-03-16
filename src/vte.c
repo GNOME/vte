@@ -22,7 +22,7 @@
  * SECTION: vte-terminal
  * @short_description: A terminal widget implementation
  *
- * A VteTerminal is a terminal emulator implemented as a GTK2 widget.
+ * A VteTerminal is a terminal emulator implemented as a GTK3 widget.
  */
 
 #include <config.h>
@@ -74,12 +74,7 @@ static inline double round(double x) {
 }
 #endif
 
-#if GTK_CHECK_VERSION (2, 90, 7)
 #define GDK_KEY(symbol) GDK_KEY_##symbol
-#else
-#include <gdk/gdkkeysyms.h>
-#define GDK_KEY(symbol) GDK_##symbol
-#endif
 
 #ifndef HAVE_WINT_T
 typedef gunichar wint_t;
@@ -158,12 +153,10 @@ static guint signals[LAST_SIGNAL];
 
 enum {
         PROP_0,
-#if GTK_CHECK_VERSION (2, 91, 2)
         PROP_HADJUSTMENT,
         PROP_VADJUSTMENT,
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
-#endif
         PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_IMAGE_FILE,
@@ -295,7 +288,6 @@ _vte_incoming_chunks_reverse(struct _vte_incoming_chunk *chunk)
 	return prev;
 }
 
-#if GTK_CHECK_VERSION (2, 99, 0)
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
@@ -308,16 +300,6 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
 #endif
-#else
-#ifdef VTE_DEBUG
-G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-		if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-			g_printerr("vte_terminal_get_type()\n");
-		})
-#else
-G_DEFINE_TYPE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET)
-#endif
-#endif /* GTK 3.0 */
 
 /* Indexes in the "palette" color array for the dim colors.
  * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
@@ -2930,8 +2912,6 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	terminal->pvt->palette_initialized = TRUE;
 }
 
-#if GTK_CHECK_VERSION (2, 99, 0)
-
 static GdkColor *
 gdk_color_from_rgba (GdkColor *color,
                      const GdkRGBA *rgba)
@@ -3159,8 +3139,6 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 
 	g_free (pal);
 }
-
-#endif /* GTK 3.0 */
 
 /**
  * vte_terminal_set_opacity:
@@ -5226,11 +5204,7 @@ vte_translate_ctrlkey (GdkEventKey *event)
 	if (event->keyval < 128)
 		return event->keyval;
 
-#if GTK_CHECK_VERSION (2, 90, 8)
         keymap = gdk_keymap_get_for_display(gdk_window_get_display (event->window));
-#else
-	keymap = gdk_keymap_get_for_display(gdk_drawable_get_display (event->window));
-#endif
 
 	/* Try groups in order to find one mapping the key to ASCII */
 	for (i = 0; i < 4; i++) {
@@ -8377,7 +8351,6 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	}
 }
 
-#if GTK_CHECK_VERSION (2, 91, 2)
 static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
@@ -8392,7 +8365,6 @@ vte_terminal_set_hadjustment(VteTerminal *terminal,
 
   pvt->hadjustment = adjustment ? g_object_ref_sink (adjustment) : NULL;
 }
-#endif
 
 static void
 vte_terminal_set_vadjustment(VteTerminal *terminal,
@@ -8428,17 +8400,6 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
 				 G_CALLBACK(vte_terminal_handle_scroll),
 				 terminal);
 }
-
-/* Set the adjustment objects used by the terminal widget. */
-#if !GTK_CHECK_VERSION (2, 91, 2)
-static void
-vte_terminal_set_scroll_adjustments(GtkWidget *widget,
-                                   GtkAdjustment *hadjustment G_GNUC_UNUSED,
-                                   GtkAdjustment *vadjustment)
-{
-        vte_terminal_set_vadjustment(VTE_TERMINAL(widget), vadjustment);
-}
-#endif /* GTK 2.x */
 
 /**
  * vte_terminal_set_emulation:
@@ -8612,6 +8573,7 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
+	GtkStyleContext *context;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
@@ -8627,17 +8589,13 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Set an adjustment for the application to use to control scrolling. */
         terminal->adjustment = NULL;
-#if GTK_CHECK_VERSION (2, 91, 2)
         pvt->hadjustment = NULL;
         /* GtkScrollable */
         pvt->hscroll_policy = GTK_SCROLL_NATURAL;
         pvt->vscroll_policy = GTK_SCROLL_NATURAL;
 
         vte_terminal_set_hadjustment(terminal, NULL);
-#endif
-
 	vte_terminal_set_vadjustment(terminal, NULL);
-
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
 	terminal->char_width = 1;
@@ -8768,20 +8726,13 @@ vte_terminal_init(VteTerminal *terminal)
 	/* gtk_widget_get_accessible(&terminal->widget); */
 #endif
 
-#if GTK_CHECK_VERSION (2, 99, 0)
-{
-        GtkStyleContext *context;
-
         context = gtk_widget_get_style_context (&terminal->widget);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 }
-#endif
-}
 
 /* Tell GTK+ how much space we need. */
-#if GTK_CHECK_VERSION (2, 91, 0)
 static void
 vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *minimum_width,
@@ -8841,35 +8792,6 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 			terminal->column_count,
 			terminal->row_count);
 }
-#else /* GTK+ 2.x */
-static void
-vte_terminal_size_request(GtkWidget *widget, GtkRequisition *requisition)
-{
-	VteTerminal *terminal;
-
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_size_request()\n");
-
-	terminal = VTE_TERMINAL(widget);
-
-	vte_terminal_ensure_font (terminal);
-
-        vte_terminal_refresh_size(terminal);
-        requisition->width = terminal->char_width * terminal->column_count;
-        requisition->height = terminal->char_height * terminal->row_count;
-
-	requisition->width += terminal->pvt->inner_border.left +
-                              terminal->pvt->inner_border.right;
-	requisition->height += terminal->pvt->inner_border.top +
-                               terminal->pvt->inner_border.bottom;
-
-	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] Size request is %dx%d for %ldx%ld cells.\n",
-                        terminal,
-			requisition->width, requisition->height,
-			terminal->column_count,
-			terminal->row_count);
-}
-#endif
 
 /* Accept a given size from GTK+. */
 static void
@@ -9344,9 +9266,6 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.height = allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
 	attributes.visual = gtk_widget_get_visual (widget);
-#if !GTK_CHECK_VERSION (2, 90, 8)
-	attributes.colormap = gtk_widget_get_colormap (widget);
-#endif
 	attributes.event_mask = gtk_widget_get_events(widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
@@ -9367,9 +9286,6 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes_mask = GDK_WA_X |
 			  GDK_WA_Y |
 			  (attributes.visual ? GDK_WA_VISUAL : 0) |
-#if !GTK_CHECK_VERSION (2, 90, 8)
-			  (attributes.colormap ? GDK_WA_COLORMAP : 0) |
-#endif
 			  GDK_WA_CURSOR;
 
 	window = gdk_window_new (gtk_widget_get_parent_window (widget),
@@ -9414,28 +9330,9 @@ vte_terminal_realize(GtkWidget *widget)
 	terminal->pvt->modifiers = 0;
 
 	/* Create our invisible cursor. */
-#if GTK_CHECK_VERSION (2, 15, 1)
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
-#else
-    {
-	GdkPixmap *bitmap;
-	GdkColor black = {0,0,0,0};
 
-	bitmap = gdk_bitmap_create_from_data (window, "\0", 1, 1);
-	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_from_pixmap(bitmap,
-									bitmap,
-									&black,
-									&black,
-									0, 0);
-	g_object_unref(bitmap);
-    }
-#endif /* GTK >= 2.15.1 */
-
-#if GTK_CHECK_VERSION (2, 20, 0)
 	gtk_widget_style_attach (widget);
-#else
-	widget->style = gtk_style_attach(widget->style, widget->window);
-#endif
 
 	vte_terminal_ensure_font (terminal);
 
@@ -11443,8 +11340,6 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 }
 
 /* Handle an expose event by painting the exposed area. */
-#if GTK_CHECK_VERSION (2, 90, 8)
-
 static cairo_region_t *
 vte_cairo_get_clip_region (cairo_t *cr)
 {
@@ -11512,52 +11407,6 @@ vte_terminal_draw(GtkWidget *widget,
 
         return FALSE;
 }
-
-#else
-
-static gboolean
-vte_terminal_expose(GtkWidget *widget,
-                    GdkEventExpose *event)
-{
-	VteTerminal *terminal = VTE_TERMINAL (widget);
-	GtkAllocation allocation;
-
-	/* Beware the out of order events -
-	 *   do not even think about skipping exposes! */
-	_vte_debug_print (VTE_DEBUG_WORK, "+");
-	_vte_debug_print (VTE_DEBUG_EVENTS, "Expose (%d,%d)x(%d,%d)\n",
-			event->area.x, event->area.y,
-			event->area.width, event->area.height);
-	if (terminal->pvt->active != NULL &&
-			update_timeout_tag != 0 &&
-			!in_update_timeout) {
-		/* fix up a race condition where we schedule a delayed update
-		 * after an 'immediate' invalidate all */
-		if (terminal->pvt->invalidated_all &&
-				terminal->pvt->update_regions == NULL) {
-			terminal->pvt->invalidated_all = FALSE;
-		}
-		/* if we expect to redraw the widget soon,
-		 * just add this event to the list */
-		if (!terminal->pvt->invalidated_all) {
-			gtk_widget_get_allocation (widget, &allocation);
-			if (event->area.width >= allocation.width &&
-			    event->area.height >= allocation.height) {
-				_vte_invalidate_all (terminal);
-			} else {
-				terminal->pvt->update_regions =
-					g_slist_prepend (terminal->pvt->update_regions,
-							gdk_region_copy (event->region));
-			}
-		}
-	} else {
-		vte_terminal_paint(widget, event->region);
-		terminal->pvt->invalidated_all = FALSE;
-	}
-	return FALSE;
-}
-
-#endif /* GTK 3.0 */
 
 /* Handle a scroll event. */
 static gboolean
@@ -11720,7 +11569,6 @@ vte_terminal_get_property (GObject *object,
 
 	switch (prop_id)
 	{
-#if GTK_CHECK_VERSION (2, 91, 2)
                 case PROP_HADJUSTMENT:
                         g_value_set_object (value, pvt->hadjustment);
                         break;
@@ -11733,7 +11581,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_VSCROLL_POLICY:
                         g_value_set_enum (value, pvt->vscroll_policy);
                         break;
-#endif
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
                         break;
@@ -11839,7 +11686,6 @@ vte_terminal_set_property (GObject *object,
 
 	switch (prop_id)
 	{
-#if GTK_CHECK_VERSION (2, 91, 2)
                 case PROP_HADJUSTMENT:
                         vte_terminal_set_hadjustment (terminal, g_value_get_object (value));
                         break;
@@ -11854,7 +11700,6 @@ vte_terminal_set_property (GObject *object,
                         pvt->vscroll_policy = g_value_get_enum (value);
                         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
                         break;
-#endif
                 case PROP_ALLOW_BOLD:
                         vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
                         break;
@@ -12008,11 +11853,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gobject_class->set_property = vte_terminal_set_property;
 	widget_class->realize = vte_terminal_realize;
 	widget_class->scroll_event = vte_terminal_scroll;
-#if GTK_CHECK_VERSION (2, 90, 8)
         widget_class->draw = vte_terminal_draw;
-#else
-	widget_class->expose_event = vte_terminal_expose;
-#endif
 	widget_class->key_press_event = vte_terminal_key_press;
 	widget_class->key_release_event = vte_terminal_key_release;
 	widget_class->button_press_event = vte_terminal_button_press;
@@ -12025,12 +11866,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->style_updated = vte_terminal_style_updated;
-#if GTK_CHECK_VERSION (2, 91, 0)
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
-#else
-	widget_class->size_request = vte_terminal_size_request;
-#endif
 	widget_class->size_allocate = vte_terminal_size_allocate;
 	widget_class->get_accessible = vte_terminal_get_accessible;
         widget_class->screen_changed = vte_terminal_screen_changed;
@@ -12072,48 +11909,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         klass->beep = NULL;
 
-#if GTK_CHECK_VERSION (2, 91, 2)
         /* GtkScrollable interface properties */
         g_object_class_override_property (gobject_class, PROP_HADJUSTMENT, "hadjustment");
         g_object_class_override_property (gobject_class, PROP_VADJUSTMENT, "vadjustment");
         g_object_class_override_property (gobject_class, PROP_HSCROLL_POLICY, "hscroll-policy");
         g_object_class_override_property (gobject_class, PROP_VSCROLL_POLICY, "vscroll-policy");
 
-#else
-
-        klass->set_scroll_adjustments = vte_terminal_set_scroll_adjustments;
-
-        /**
-         * VteTerminal::set-scroll-adjustments:
-         * @vteterminal: the object which received the signal
-         * @horizontal: (allow-none): the horizontal #GtkAdjustment (unused in #VteTerminal)
-         * @vertical: (allow-none): the vertical #GtkAdjustment
-         *
-         * Set the scroll adjustments for the terminal. Usually scrolled containers
-         * like #GtkScrolledWindow will emit this signal to connect two instances
-         * of #GtkScrollbar to the scroll directions of the #VteTerminal.
-         *
-         * Since: 0.17.1
-         */
-	widget_class->set_scroll_adjustments_signal =
-		g_signal_new(I_("set-scroll-adjustments"),
-			     G_TYPE_FROM_CLASS (klass),
-			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET (VteTerminalClass, set_scroll_adjustments),
-			     NULL, NULL,
-			     _vte_marshal_VOID__OBJECT_OBJECT,
-			     G_TYPE_NONE, 2,
-			     GTK_TYPE_ADJUSTMENT, GTK_TYPE_ADJUSTMENT);
-
-#endif
-
 	/* Register some signals of our own. */
 
-#if GTK_CHECK_VERSION (2, 99, 0)
 #define OBSOLETE_SIGNAL(str)
-#else
-#define OBSOLETE_SIGNAL(str) str
-#endif
 
         /**
          * VteTerminal::eof:
@@ -13166,14 +12970,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                      G_PARAM_READABLE |
                                      G_PARAM_STATIC_STRINGS));
 
-#if !GTK_CHECK_VERSION (2,99, 0)
-        /* Now install the default style */
-        gtk_rc_parse_string("style \"vte-default-style\" {\n"
-                              "VteTerminal::inner-border = { 1, 1, 1, 1 }\n"
-                            "}\n"
-                            "class \"VteTerminal\" style : gtk \"vte-default-style\"\n");
-#endif
-
         /* Keybindings */
 	binding_set = gtk_binding_set_by_class(klass);
 
@@ -13184,7 +12980,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	process_timer = g_timer_new ();
 
-#if GTK_CHECK_VERSION (2, 99, 0)
         klass->priv = G_TYPE_CLASS_GET_PRIVATE (klass, VTE_TYPE_TERMINAL, VteTerminalClassPrivate);
 
         klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
@@ -13193,7 +12988,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                            "-VteTerminal-inner-border: 1;\n"
                                          "}\n",
                                          -1, NULL);
-#endif /* GTK 3.0 */
 }
 
 /**

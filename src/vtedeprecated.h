@@ -97,9 +97,7 @@ int vte_terminal_get_pty(VteTerminal *terminal);
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
 
-#if GTK_CHECK_VERSION (2, 91, 2)
 GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal) G_GNUC_DEPRECATED;
-#endif
 
 /* Background effects. */
 void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll) G_GNUC_DEPRECATED;

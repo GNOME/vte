@@ -40,12 +40,6 @@ G_BEGIN_DECLS
 #define _VTE_SEAL(name) name
 #endif
 
-#ifdef VTE_DISABLE_DEPRECATED
-#define _VTE_DEPRECATED(name) _vte_deprecated__ ## name
-#else
-#define _VTE_DEPRECATED(name) name
-#endif
-
 #define VTE_TYPE_TERMINAL            (vte_terminal_get_type())
 #define VTE_TERMINAL(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), VTE_TYPE_TERMINAL, VteTerminal))
 #define VTE_TERMINAL_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  VTE_TYPE_TERMINAL, VteTerminalClass))
@@ -127,62 +121,12 @@ struct _VteTerminalClass {
 	void (*copy_clipboard)(VteTerminal* terminal);
 	void (*paste_clipboard)(VteTerminal* terminal);
 
-#if !GTK_CHECK_VERSION (2, 91, 2)
-	void (* set_scroll_adjustments) (GtkWidget *widget,
-					 GtkAdjustment *hadjustment,
-					 GtkAdjustment *vadjustment);
-#endif
-
  	void (*beep)(VteTerminal* terminal);
 
-#if GTK_CHECK_VERSION (2, 99, 0)
         /* Padding for future expansion. */
         gpointer padding[16];
-#else
-	/* Padding for future expansion. */
-	void (*vte_reserved3)(void);
-	void (*vte_reserved4)(void);
 
-	/*< private > */
-	/* Signals we might emit. */
-        guint _VTE_DEPRECATED(eof_signal);
-        guint _VTE_DEPRECATED(child_exited_signal);
-        guint _VTE_DEPRECATED(emulation_changed_signal);
-        guint _VTE_DEPRECATED(encoding_changed_signal);
-        guint _VTE_DEPRECATED(char_size_changed_signal);
-        guint _VTE_DEPRECATED(window_title_changed_signal);
-        guint _VTE_DEPRECATED(icon_title_changed_signal);
-        guint _VTE_DEPRECATED(selection_changed_signal);
-        guint _VTE_DEPRECATED(contents_changed_signal);
-        guint _VTE_DEPRECATED(cursor_moved_signal);
-        guint _VTE_DEPRECATED(status_line_changed_signal);
-        guint _VTE_DEPRECATED(commit_signal);
-        guint _VTE_DEPRECATED(deiconify_window_signal);
-        guint _VTE_DEPRECATED(iconify_window_signal);
-        guint _VTE_DEPRECATED(raise_window_signal);
-        guint _VTE_DEPRECATED(lower_window_signal);
-        guint _VTE_DEPRECATED(refresh_window_signal);
-        guint _VTE_DEPRECATED(restore_window_signal);
-        guint _VTE_DEPRECATED(maximize_window_signal);
-        guint _VTE_DEPRECATED(resize_window_signal);
-        guint _VTE_DEPRECATED(move_window_signal);
-        guint _VTE_DEPRECATED(increase_font_size_signal);
-        guint _VTE_DEPRECATED(decrease_font_size_signal);
-        guint _VTE_DEPRECATED(text_modified_signal);
-        guint _VTE_DEPRECATED(text_inserted_signal);
-        guint _VTE_DEPRECATED(text_deleted_signal);
-        guint _VTE_DEPRECATED(text_scrolled_signal);
-        guint _VTE_DEPRECATED(reserved1);
-        guint _VTE_DEPRECATED(reserved2);
-        guint _VTE_DEPRECATED(reserved3);
-        guint _VTE_DEPRECATED(reserved4);
-        guint _VTE_DEPRECATED(reserved5);
-        guint _VTE_DEPRECATED(reserved6);
-#endif
-
-#if GTK_CHECK_VERSION (2, 99, 0)
         VteTerminalClassPrivate *priv;
-#endif
 };
 
 /**
@@ -333,7 +277,6 @@ void vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkColor *palette,
 			     glong palette_size);
 
-#if GTK_CHECK_VERSION (2, 99, 0)
 void vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
                                       const GdkRGBA *bold);
 void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
@@ -353,7 +296,6 @@ void vte_terminal_set_colors_rgba(VteTerminal *terminal,
 				  const GdkRGBA *background,
 				  const GdkRGBA *palette,
 				  gsize palette_size);
-#endif
 
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
@@ -475,10 +417,6 @@ VtePty *vte_terminal_get_pty_object(VteTerminal *terminal);
 char *vte_get_user_shell (void);
 
 /* Accessors for bindings. */
-#if !GTK_CHECK_VERSION (2, 91, 2)
-GtkAdjustment *vte_terminal_get_adjustment(VteTerminal *terminal);
-#endif
-
 glong vte_terminal_get_char_width(VteTerminal *terminal);
 glong vte_terminal_get_char_height(VteTerminal *terminal);
 glong vte_terminal_get_row_count(VteTerminal *terminal);
@@ -511,7 +449,6 @@ gboolean vte_terminal_write_contents (VteTerminal *terminal,
 				      GError **error);
 
 #undef _VTE_SEAL
-#undef _VTE_DEPRECATED
 
 G_END_DECLS
 

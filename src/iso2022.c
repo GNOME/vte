@@ -37,12 +37,7 @@
 
 #include <gtk/gtk.h>
 
-#if GTK_CHECK_VERSION (2, 90, 7)
 #define GDK_KEY(symbol) GDK_KEY_##symbol
-#else
-#include <gdk/gdkkeysyms.h>
-#define GDK_KEY(symbol) GDK_##symbol
-#endif
 
 /* Maps which jive with XTerm's ESC ()*+ ? sequences, RFC 1468.  Add the
  * PC437 map because despite knowing that XTerm doesn't support it, certain

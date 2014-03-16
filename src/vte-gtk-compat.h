@@ -23,8 +23,6 @@
 
 G_BEGIN_DECLS
 
-#if GTK_CHECK_VERSION (2, 90, 5)
-
 #define GdkRegion cairo_region_t
 #define VteRegionRectangle cairo_rectangle_int_t
 #define gdk_region_new() cairo_region_create()
@@ -43,36 +41,6 @@ G_BEGIN_DECLS
 		for (i = 0; i < *(n_rects); i++)			\
 			cairo_region_get_rectangle ((r), i, &(*(rects))[i]); \
 	} while (0)
-
-#else
-
-#define VteRegionRectangle GdkRectangle
-
-#endif
-
-#if !GTK_CHECK_VERSION (2, 90, 8)
-#define gdk_error_trap_pop_ignored gdk_error_trap_pop
-#endif
-
-#if !GTK_CHECK_VERSION (2, 22, 0)
-#define gtk_accessible_get_widget(accessible)           ((accessible)->widget)
-#endif
-
-#if !GTK_CHECK_VERSION (2, 20, 0)
-#define gtk_widget_get_mapped(widget)                   (GTK_WIDGET_MAPPED ((widget)))
-#define gtk_widget_get_realized(widget)                 (GTK_WIDGET_REALIZED ((widget)))
-#define gtk_widget_set_realized(widget, state)          ((state) ? GTK_WIDGET_SET_FLAGS ((widget), GTK_REALIZED) : GTK_WIDGET_UNSET_FLAGS ((widget), GTK_REALIZED))
-#endif
-
-#if !GTK_CHECK_VERSION (2, 18, 0)
-#define gtk_widget_has_focus(widget)                    (GTK_WIDGET_HAS_FOCUS ((widget)))
-#define gtk_widget_get_state(widget)                    ((widget)->state)
-#define gtk_widget_set_window(widget, wndw)             ((widget)->window = (wndw))
-#define gtk_widget_is_drawable(widget)                  (GTK_WIDGET_DRAWABLE ((widget)))
-#define gtk_widget_get_allocation(widget, alloc)        (*(alloc) = (widget)->allocation)
-#define gtk_widget_set_allocation(widget, alloc)        ((widget)->allocation = *(alloc))
-#define gtk_widget_get_double_buffered(widget)          (GTK_WIDGET_DOUBLE_BUFFERED ((widget)))
-#endif
 
 G_END_DECLS
 

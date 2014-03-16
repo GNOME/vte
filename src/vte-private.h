@@ -425,20 +425,16 @@ struct _VteTerminalPrivate {
         /* Style stuff */
         GtkBorder inner_border;
 
-#if GTK_CHECK_VERSION (2, 91, 2)
         /* GtkScrollable impl */
         GtkAdjustment *hadjustment; /* unused */
         guint hscroll_policy : 1; /* unused */
 
         guint vscroll_policy : 1;
-#endif
 };
 
-#if GTK_CHECK_VERSION (2, 99, 0)
 struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
-#endif
 
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
 void _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible);
