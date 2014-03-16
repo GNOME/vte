@@ -11439,7 +11439,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		terminal->pvt->mouse_smooth_scroll_delta += 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
 		break;
-#if GTK_CHECK_VERSION (3, 3, 18)
+#if GTK_CHECK_VERSION (3, 4, 0)
 	case GDK_SCROLL_SMOOTH:
 		gdk_event_get_scroll_deltas ((GdkEvent*) event, &delta_x, &delta_y);
 		terminal->pvt->mouse_smooth_scroll_delta += delta_y;
