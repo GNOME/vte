@@ -36,7 +36,6 @@
 #include "vte.h"
 #include "vteaccess.h"
 #include "vteint.h"
-#include "vte-gtk-compat.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>

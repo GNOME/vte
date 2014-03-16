@@ -24,7 +24,6 @@
 #include "debug.h"
 #include "marshal.h"
 #include "vtebg.h"
-#include "vte-gtk-compat.h"
 
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>

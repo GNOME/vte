@@ -31,7 +31,6 @@
 
 #include "vte.h"
 #include "vte-private.h"
-#include "vte-gtk-compat.h"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
@@ -363,7 +362,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		      glong column_start, gint column_count,
 		      glong row_start, gint row_count)
 {
-	VteRegionRectangle rect;
+	cairo_rectangle_int_t rect;
 	glong i;
 
 	if (!column_count || !row_count) {
@@ -442,7 +441,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	if (terminal->pvt->active != NULL) {
 		terminal->pvt->update_regions = g_slist_prepend (
 				terminal->pvt->update_regions,
-				gdk_region_rectangle (&rect));
+				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
@@ -482,7 +481,7 @@ _vte_invalidate_region (VteTerminal *terminal,
 void
 _vte_invalidate_all(VteTerminal *terminal)
 {
-	VteRegionRectangle rect;
+	cairo_rectangle_int_t rect;
 	GtkAllocation allocation;
 
 	g_assert(VTE_IS_TERMINAL(terminal));
@@ -508,7 +507,7 @@ _vte_invalidate_all(VteTerminal *terminal)
 
 	if (terminal->pvt->active != NULL) {
 		terminal->pvt->update_regions = g_slist_prepend (NULL,
-				gdk_region_rectangle (&rect));
+				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (terminal);
@@ -10940,11 +10939,11 @@ fg_out:
 }
 
 static void
-vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkRectangle *area)
+vte_terminal_expand_region (VteTerminal *terminal, cairo_region_t *region, const GdkRectangle *area)
 {
 	int width, height;
 	int row, col, row_stop, col_stop;
-	VteRegionRectangle rect;
+	cairo_rectangle_int_t rect;
 
 	width = terminal->char_width;
 	height = terminal->char_height;
@@ -10971,7 +10970,7 @@ vte_terminal_expand_region (VteTerminal *terminal, GdkRegion *region, const GdkR
 	rect.height = (row_stop - row)*height;
 
 	/* the rect must be cell aligned to avoid overlapping XY bands */
-	gdk_region_union_with_rect(region, &rect);
+	cairo_region_union_rectangle(region, &rect);
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"vte_terminal_expand_region"
@@ -11262,7 +11261,7 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 
 /* Draw the widget. */
 static void
-vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
+vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
 {
 	VteTerminal *terminal;
 	GtkAllocation allocation;
@@ -11291,8 +11290,8 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 	}
 
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
-		VteRegionRectangle clip;
-		gdk_region_get_clipbox (region, &clip);
+		cairo_rectangle_int_t clip;
+		cairo_region_get_extents (region, &clip);
 		g_printerr ("vte_terminal_paint"
 				"	(%d,%d)x(%d,%d) pixels\n",
 				clip.x, clip.y, clip.width, clip.height);
@@ -11305,21 +11304,31 @@ vte_terminal_paint(GtkWidget *widget, GdkRegion *region)
 
 	/* Calculate the bounding rectangle. */
 	{
-		VteRegionRectangle *rectangles;
+		cairo_rectangle_int_t *rectangles;
 		gint n, n_rectangles;
-		gdk_region_get_rectangles (region, &rectangles, &n_rectangles);
+		n_rectangles = cairo_region_num_rectangles (region);
+		rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+		for (n = 0; n < n_rectangles; n++) {
+			cairo_region_get_rectangle (region, n, &rectangles[n]);
+		}
+
 		/* don't bother to enlarge an invalidate all */
 		if (!(n_rectangles == 1
 		      && rectangles[0].width == allocation.width
 		      && rectangles[0].height == allocation.height)) {
-			GdkRegion *rr = gdk_region_new ();
+			cairo_region_t *rr = cairo_region_create ();
 			/* convert pixels into whole cells */
 			for (n = 0; n < n_rectangles; n++) {
 				vte_terminal_expand_region (terminal, rr, rectangles + n);
 			}
 			g_free (rectangles);
-			gdk_region_get_rectangles (rr, &rectangles, &n_rectangles);
-			gdk_region_destroy (rr);
+
+			n_rectangles = cairo_region_num_rectangles (rr);
+			rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+			for (n = 0; n < n_rectangles; n++) {
+				cairo_region_get_rectangle (rr, n, &rectangles[n]);
+			}
+			cairo_region_destroy (rr);
 		}
 
 		/* and now paint them */
@@ -14813,7 +14822,7 @@ reset_update_regions (VteTerminal *terminal)
 {
 	if (terminal->pvt->update_regions != NULL) {
 		g_slist_foreach (terminal->pvt->update_regions,
-				(GFunc)gdk_region_destroy, NULL);
+				(GFunc)cairo_region_destroy, NULL);
 		g_slist_free (terminal->pvt->update_regions);
 		terminal->pvt->update_regions = NULL;
 	}
@@ -15104,7 +15113,7 @@ static gboolean
 update_regions (VteTerminal *terminal)
 {
 	GSList *l;
-	GdkRegion *region;
+	cairo_region_t *region;
 	GdkWindow *window;
 
 	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
@@ -15120,10 +15129,10 @@ update_regions (VteTerminal *terminal)
 	l = terminal->pvt->update_regions;
 	if (g_slist_next (l) != NULL) {
 		/* amalgamate into one super-region */
-		region = gdk_region_new ();
+		region = cairo_region_create ();
 		do {
-			gdk_region_union (region, l->data);
-			gdk_region_destroy (l->data);
+			cairo_region_union (region, l->data);
+			cairo_region_destroy (l->data);
 		} while ((l = g_slist_next (l)) != NULL);
 	} else {
 		region = l->data;
@@ -15136,7 +15145,7 @@ update_regions (VteTerminal *terminal)
 	window = gtk_widget_get_window (&terminal->widget);
 	gdk_window_invalidate_region (window, region, FALSE);
 	gdk_window_process_updates (window, FALSE);
-	gdk_region_destroy (region);
+	cairo_region_destroy (region);
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
 
