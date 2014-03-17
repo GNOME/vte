@@ -1,5 +1,11 @@
 EXTRA_DIST = \
 	UTF-8-demo.txt \
-	vim.sh scroll.vim
+	img.sh \
+	inc.sh \
+	random.sh \
+	scroll.vim \
+	utf8.sh \
+	vim.sh \
+	$(NULL)
 
 -include $(top_srcdir)/git.mk
