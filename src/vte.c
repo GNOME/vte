@@ -12953,6 +12953,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	gtk_binding_entry_add_signal(binding_set, GDK_KEY_F18, 0, "paste-clipboard", 0);
 	gtk_binding_entry_add_signal(binding_set, GDK_KEY_F20, 0, "copy-clipboard",0);
 
+	/* Disable GTK's builtin handler for Ctrl+F1, see bug 726438 */
+	binding_set = gtk_binding_set_by_class(vte_terminal_parent_class);
+	gtk_binding_entry_skip(binding_set, GDK_KEY_F1, GDK_CONTROL_MASK);
+
 	process_timer = g_timer_new ();
 
         klass->priv = G_TYPE_CLASS_GET_PRIVATE (klass, VTE_TYPE_TERMINAL, VteTerminalClassPrivate);
