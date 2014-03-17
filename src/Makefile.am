@@ -92,7 +92,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	$(NULL)
 
 libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
-	-DG_LOG_DOMAIN=\"Vte-$(VTE_API_VERSION)\" \
+	-DG_LOG_DOMAIN=\"Vte\" \
 	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
 	-DDATADIR='"$(datadir)"' \
 	-DLIBEXECDIR='"$(libexecdir)"' \
