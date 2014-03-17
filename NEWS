@@ -1,3 +1,12 @@
+0.35.90
+=======
+* prompt: Use precmd hook on zsh (#724982)
+* Fix many compiler warnings
+* Remove obsolete gtk+-2.0 conditional code
+* Support OSC 19 and 119 sequences (#725974)
+* Also pass Ctrl-F1 to applications (#726438)
+* Nicer box drawing characters (#709556)
+
 0.35.2
 ======
 * Colour palette handling fixes (#640040)
