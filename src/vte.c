@@ -9504,6 +9504,8 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 				 color, VTE_DRAW_OPAQUE);
 }
 
+#include "box_drawing.h"
+
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static gboolean
@@ -9552,10 +9554,14 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
            k_eights; \
         })
 
-        light_line_width = (terminal->char_width + 4) / 5;
+        light_line_width = terminal->char_width / 5;
         light_line_width = MAX (light_line_width, 1);
 
-        heavy_line_width = light_line_width + 2;
+	if (c >= 0x2550 && c <= 0x256c) {
+		heavy_line_width = 3 * light_line_width;
+	} else {
+		heavy_line_width = light_line_width + 2;
+	}
 
         xcenter = x + left_half;
         ycenter = y + upper_half;
@@ -9569,66 +9575,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         case 0x2501: /* box drawings heavy horizontal */
         case 0x2502: /* box drawings light vertical */
         case 0x2503: /* box drawings heavy vertical */
-        case 0x2504: /* box drawings light triple dash horizontal */
-        case 0x2505: /* box drawings heavy triple dash horizontal */
-        case 0x2506: /* box drawings light triple dash vertical */
-        case 0x2507: /* box drawings heavy triple dash vertical */
-        case 0x2508: /* box drawings light quadruple dash horizontal */
-        case 0x2509: /* box drawings heavy quadruple dash horizontal */
-        case 0x250a: /* box drawings light quadruple dash vertical */
-        case 0x250b: /* box drawings heavy quadruple dash vertical */
-        case 0x254c: /* box drawings light double dash horizontal */
-        case 0x254d: /* box drawings heavy double dash horizontal */
-        case 0x254e: /* box drawings light double dash vertical */
-        case 0x254f: /* box drawings heavy double dash vertical */
-        {
-                const guint v = c - 0x2500;
-                int size, line_width;
-
-                size = (v & 2) ? row_height : width;
-
-                switch (v >> 2) {
-                case 0: /* no dashes */
-                        break;
-                case 1: /* triple dash */
-                {
-                        double segment = size / 8.;
-                        double dashes[2] = { segment * 2., segment };
-                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
-                        break;
-                }
-                case 2: /* quadruple dash */
-                {
-                        double segment = size / 11.;
-                        double dashes[2] = { segment * 2., segment };
-                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
-                        break;
-                }
-                case 19: /* double dash */
-                {
-                        double segment = size / 5.;
-                        double dashes[2] = { segment * 2., segment };
-                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
-                        break;
-                }
-                }
-
-                line_width = (v & 1) ? heavy_line_width : light_line_width;
-                adjust = (line_width & 1) ? .5 : 0.;
-
-                cairo_set_line_width(cr, line_width);
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
-                if (v & 2) {
-                        cairo_move_to(cr, xcenter + adjust, y);
-                        cairo_line_to(cr, xcenter + adjust, y + row_height);
-                } else {
-                        cairo_move_to(cr, x, ycenter + adjust);
-                        cairo_line_to(cr, x + width, ycenter + adjust);
-                }
-                cairo_stroke(cr);
-                break;
-        }
-
         case 0x250c: /* box drawings light down and right */
         case 0x250d: /* box drawings down light and right heavy */
         case 0x250e: /* box drawings down heavy and right light */
@@ -9693,190 +9639,6 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         case 0x2549: /* box drawings right light and left vertical heavy */
         case 0x254a: /* box drawings left light and right vertical heavy */
         case 0x254b: /* box drawings heavy vertical and horizontal */
-        case 0x2574: /* box drawings light left */
-        case 0x2575: /* box drawings light up */
-        case 0x2576: /* box drawings light right */
-        case 0x2577: /* box drawings light down */
-        case 0x2578: /* box drawings heavy left */
-        case 0x2579: /* box drawings heavy up */
-        case 0x257a: /* box drawings heavy right */
-        case 0x257b: /* box drawings heavy down */
-        case 0x257c: /* box drawings light left and heavy right */
-        case 0x257d: /* box drawings light up and heavy down */
-        case 0x257e: /* box drawings heavy left and light right */
-        case 0x257f: /* box drawings heavy up and light down */
-        {
-                enum { BOX_LEFT_LIGHT       = 1 << 0,
-                       BOX_LEFT_HEAVY       = 1 << 1,
-                       BOX_RIGHT_LIGHT      = 1 << 2,
-                       BOX_RIGHT_HEAVY      = 1 << 3,
-                       BOX_TOP_LIGHT        = 1 << 4,
-                       BOX_TOP_HEAVY        = 1 << 5,
-                       BOX_BOTTOM_LIGHT     = 1 << 6,
-                       BOX_BOTTOM_HEAVY     = 1 << 7,
-                       BOX_HORIZONTAL_LIGHT = BOX_LEFT_LIGHT | BOX_RIGHT_LIGHT,
-                       BOX_HORIZONTAL_HEAVY = BOX_LEFT_HEAVY | BOX_RIGHT_HEAVY,
-                       BOX_VERTICAL_LIGHT   = BOX_TOP_LIGHT  | BOX_BOTTOM_LIGHT,
-                       BOX_VERTICAL_HEAVY   = BOX_TOP_HEAVY  | BOX_BOTTOM_HEAVY,
-                       BOX_LEFT             = BOX_LEFT_LIGHT | BOX_LEFT_HEAVY,
-                       BOX_RIGHT            = BOX_RIGHT_LIGHT | BOX_RIGHT_HEAVY,
-                       BOX_TOP              = BOX_TOP_LIGHT | BOX_TOP_HEAVY,
-                       BOX_BOTTOM           = BOX_BOTTOM_LIGHT | BOX_BOTTOM_HEAVY,
-                       BOX_HORIZONTAL       = BOX_HORIZONTAL_LIGHT | BOX_HORIZONTAL_HEAVY,
-                       BOX_VERTICAL         = BOX_VERTICAL_LIGHT | BOX_VERTICAL_HEAVY,
-                       BOX_LIGHT            = BOX_HORIZONTAL_LIGHT | BOX_VERTICAL_LIGHT,
-                       BOX_HEAVY            = BOX_HORIZONTAL_HEAVY | BOX_VERTICAL_HEAVY
-                };
-                static const guint8 const map[] = {
-                        BOX_BOTTOM_LIGHT | BOX_RIGHT_LIGHT,
-                        BOX_BOTTOM_LIGHT | BOX_RIGHT_HEAVY,
-                        BOX_BOTTOM_HEAVY | BOX_RIGHT_LIGHT,
-                        BOX_BOTTOM_HEAVY | BOX_RIGHT_HEAVY,
-                        BOX_BOTTOM_LIGHT | BOX_LEFT_LIGHT,
-                        BOX_BOTTOM_LIGHT | BOX_LEFT_HEAVY,
-                        BOX_BOTTOM_HEAVY | BOX_LEFT_LIGHT,
-                        BOX_BOTTOM_HEAVY | BOX_LEFT_HEAVY,
-                        BOX_TOP_LIGHT | BOX_RIGHT_LIGHT,
-                        BOX_TOP_LIGHT | BOX_RIGHT_HEAVY,
-                        BOX_TOP_HEAVY | BOX_RIGHT_LIGHT,
-                        BOX_TOP_HEAVY | BOX_RIGHT_HEAVY,
-                        BOX_TOP_LIGHT | BOX_LEFT_LIGHT,
-                        BOX_TOP_LIGHT | BOX_LEFT_HEAVY,
-                        BOX_TOP_HEAVY | BOX_LEFT_LIGHT,
-                        BOX_TOP_HEAVY | BOX_LEFT_HEAVY,
-                        BOX_VERTICAL_LIGHT | BOX_RIGHT_LIGHT,
-                        BOX_VERTICAL_LIGHT | BOX_RIGHT_HEAVY,
-                        BOX_TOP_HEAVY | BOX_RIGHT_LIGHT | BOX_BOTTOM_LIGHT,
-                        BOX_BOTTOM_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_LIGHT,
-                        BOX_VERTICAL_HEAVY | BOX_RIGHT_LIGHT,
-                        BOX_BOTTOM_LIGHT | BOX_RIGHT_HEAVY | BOX_TOP_HEAVY,
-                        BOX_TOP_LIGHT | BOX_RIGHT_HEAVY | BOX_BOTTOM_HEAVY,
-                        BOX_VERTICAL_HEAVY | BOX_RIGHT_HEAVY,
-                        BOX_VERTICAL_LIGHT | BOX_LEFT_LIGHT,
-                        BOX_VERTICAL_LIGHT | BOX_LEFT_HEAVY,
-                        BOX_TOP_HEAVY | BOX_LEFT_LIGHT | BOX_BOTTOM_LIGHT,
-                        BOX_BOTTOM_HEAVY | BOX_LEFT_LIGHT | BOX_TOP_LIGHT,
-                        BOX_VERTICAL_HEAVY | BOX_LEFT_LIGHT,
-                        BOX_BOTTOM_LIGHT | BOX_LEFT_HEAVY | BOX_TOP_HEAVY,
-                        BOX_TOP_LIGHT | BOX_LEFT_HEAVY | BOX_BOTTOM_HEAVY,
-                        BOX_VERTICAL_HEAVY | BOX_LEFT_HEAVY,
-                        BOX_BOTTOM_LIGHT | BOX_HORIZONTAL_LIGHT,
-                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_BOTTOM_LIGHT,
-                        BOX_RIGHT_HEAVY | BOX_LEFT_LIGHT | BOX_BOTTOM_LIGHT,
-                        BOX_BOTTOM_LIGHT | BOX_HORIZONTAL_HEAVY,
-                        BOX_BOTTOM_HEAVY | BOX_HORIZONTAL_LIGHT,
-                        BOX_RIGHT_LIGHT | BOX_LEFT_HEAVY | BOX_BOTTOM_HEAVY,
-                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY | BOX_BOTTOM_HEAVY,
-                        BOX_BOTTOM_HEAVY| BOX_HORIZONTAL_HEAVY,
-                        BOX_TOP_LIGHT | BOX_HORIZONTAL_LIGHT,
-                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_LIGHT,
-                        BOX_RIGHT_HEAVY | BOX_LEFT_LIGHT | BOX_TOP_LIGHT,
-                        BOX_TOP_LIGHT | BOX_HORIZONTAL_HEAVY,
-                        BOX_TOP_HEAVY | BOX_HORIZONTAL_LIGHT,
-                        BOX_RIGHT_LIGHT | BOX_LEFT_HEAVY | BOX_TOP_HEAVY,
-                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY | BOX_TOP_HEAVY,
-                        BOX_TOP_HEAVY | BOX_HORIZONTAL_HEAVY,
-                        BOX_VERTICAL_LIGHT | BOX_HORIZONTAL_LIGHT,
-                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_VERTICAL_LIGHT,
-                        BOX_RIGHT_HEAVY | BOX_LEFT_LIGHT | BOX_VERTICAL_LIGHT,
-                        BOX_VERTICAL_LIGHT | BOX_HORIZONTAL_HEAVY,
-                        BOX_TOP_HEAVY | BOX_BOTTOM_LIGHT | BOX_HORIZONTAL_LIGHT,
-                        BOX_BOTTOM_HEAVY| BOX_TOP_LIGHT | BOX_HORIZONTAL_LIGHT,
-                        BOX_VERTICAL_HEAVY | BOX_HORIZONTAL_LIGHT,
-                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_HEAVY | BOX_BOTTOM_LIGHT,
-                        BOX_RIGHT_HEAVY | BOX_TOP_HEAVY | BOX_LEFT_LIGHT | BOX_BOTTOM_LIGHT,
-                        BOX_LEFT_HEAVY | BOX_BOTTOM_HEAVY | BOX_RIGHT_LIGHT | BOX_TOP_LIGHT,
-                        BOX_RIGHT_HEAVY | BOX_BOTTOM_HEAVY | BOX_LEFT_LIGHT | BOX_TOP_LIGHT,
-                        BOX_BOTTOM_LIGHT | BOX_TOP_HEAVY | BOX_HORIZONTAL_HEAVY,
-                        BOX_TOP_LIGHT | BOX_BOTTOM_HEAVY | BOX_HORIZONTAL_HEAVY,
-                        BOX_RIGHT_LIGHT | BOX_LEFT_HEAVY | BOX_VERTICAL_HEAVY,
-                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY | BOX_VERTICAL_HEAVY,
-                        BOX_VERTICAL_HEAVY | BOX_HORIZONTAL_HEAVY,
-
-                        /* U+254C - U+2573 are handled elsewhere */
-                        0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0,
-
-                        BOX_LEFT_LIGHT,
-                        BOX_TOP_LIGHT,
-                        BOX_RIGHT_LIGHT,
-                        BOX_BOTTOM_LIGHT,
-                        BOX_LEFT_HEAVY,
-                        BOX_TOP_HEAVY,
-                        BOX_RIGHT_HEAVY,
-                        BOX_BOTTOM_HEAVY,
-                        BOX_LEFT_LIGHT | BOX_RIGHT_HEAVY,
-                        BOX_TOP_LIGHT | BOX_BOTTOM_HEAVY,
-                        BOX_LEFT_HEAVY | BOX_RIGHT_LIGHT,
-                        BOX_TOP_HEAVY | BOX_BOTTOM_LIGHT
-                };
-                G_STATIC_ASSERT(G_N_ELEMENTS(map) == (0x257f - 0x250c + 1));
-                const guint v = c - 0x250c;
-                const guint8 m = map[v];
-                int line_width;
-
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
-
-                if (m & BOX_LEFT) {
-                        line_width = (m & BOX_LEFT_HEAVY) ? heavy_line_width : light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr, x, ycenter + adjust);
-                        cairo_line_to(cr, xcenter, ycenter + adjust);
-                        cairo_stroke(cr);
-                }
-                if (m & BOX_RIGHT) {
-                        line_width = (m & BOX_RIGHT_HEAVY) ? heavy_line_width : light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr, xcenter, ycenter + adjust);
-                        cairo_line_to(cr, xright, ycenter + adjust);
-                        cairo_stroke(cr);
-                }
-                if (m & BOX_TOP) {
-                        line_width = (m & BOX_TOP_HEAVY) ? heavy_line_width : light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr, xcenter + adjust, y);
-                        cairo_line_to(cr, xcenter + adjust, ycenter);
-                        cairo_stroke(cr);
-                }
-                if (m & BOX_BOTTOM) {
-                        line_width = (m & BOX_BOTTOM_HEAVY) ? heavy_line_width : light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr, xcenter + adjust, ycenter);
-                        cairo_line_to(cr, xcenter + adjust, ybottom);
-                        cairo_stroke(cr);
-                }
-
-                /* Make the join not look jagged */
-                if ((m & BOX_HORIZONTAL) && (m & BOX_VERTICAL)) {
-                        int xs, ys, w, h;
-
-                        if (m & BOX_HORIZONTAL_HEAVY) {
-                                ys = ycenter - heavy_line_width / 2;
-                                h = heavy_line_width;
-                        } else {
-                                ys = ycenter - light_line_width / 2;
-                                h = light_line_width;
-                        }
-                        if (m & BOX_VERTICAL_HEAVY) {
-                                xs = xcenter - heavy_line_width / 2;
-                                w = heavy_line_width;
-                        } else {
-                                xs = xcenter - light_line_width / 2;
-                                w = light_line_width;
-                        }
-                        cairo_rectangle(cr, xs, ys, w, h);
-                        cairo_fill(cr);
-                }
-
-                break;
-        }
-
         case 0x2550: /* box drawings double horizontal */
         case 0x2551: /* box drawings double vertical */
         case 0x2552: /* box drawings down single and right double */
@@ -9906,147 +9668,105 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
         case 0x256a: /* box drawings vertical single and horizontal double */
         case 0x256b: /* box drawings vertical double and horizontal single */
         case 0x256c: /* box drawings double vertical and horizontal */
+        case 0x2574: /* box drawings light left */
+        case 0x2575: /* box drawings light up */
+        case 0x2576: /* box drawings light right */
+        case 0x2577: /* box drawings light down */
+        case 0x2578: /* box drawings heavy left */
+        case 0x2579: /* box drawings heavy up */
+        case 0x257a: /* box drawings heavy right */
+        case 0x257b: /* box drawings heavy down */
+        case 0x257c: /* box drawings light left and heavy right */
+        case 0x257d: /* box drawings light up and heavy down */
+        case 0x257e: /* box drawings heavy left and light right */
+        case 0x257f: /* box drawings heavy up and light down */
         {
-                enum { BOX_LEFT_SINGLE       = 1 << 0,
-                       BOX_LEFT_DOUBLE       = 1 << 1,
-                       BOX_RIGHT_SINGLE      = 1 << 2,
-                       BOX_RIGHT_DOUBLE      = 1 << 3,
-                       BOX_TOP_SINGLE        = 1 << 4,
-                       BOX_TOP_DOUBLE        = 1 << 5,
-                       BOX_BOTTOM_SINGLE     = 1 << 6,
-                       BOX_BOTTOM_DOUBLE     = 1 << 7,
-                       BOX_LEFT              = BOX_LEFT_SINGLE | BOX_LEFT_DOUBLE,
-                       BOX_RIGHT             = BOX_RIGHT_SINGLE | BOX_RIGHT_DOUBLE,
-                       BOX_TOP               = BOX_TOP_SINGLE | BOX_TOP_DOUBLE,
-                       BOX_BOTTOM            = BOX_BOTTOM_SINGLE | BOX_BOTTOM_DOUBLE,
-                       BOX_SINGLE            = BOX_LEFT_SINGLE | BOX_RIGHT_SINGLE | BOX_TOP_SINGLE | BOX_BOTTOM_SINGLE,
-                       BOX_DOUBLE            = BOX_LEFT_DOUBLE | BOX_RIGHT_DOUBLE | BOX_TOP_DOUBLE | BOX_BOTTOM_DOUBLE,
-                       BOX_HORIZONTAL_SINGLE = BOX_LEFT_SINGLE | BOX_RIGHT_SINGLE,
-                       BOX_HORIZONTAL_DOUBLE = BOX_LEFT_DOUBLE | BOX_RIGHT_DOUBLE,
-                       BOX_VERTICAL_SINGLE   = BOX_TOP_SINGLE  | BOX_BOTTOM_SINGLE,
-                       BOX_VERTICAL_DOUBLE   = BOX_TOP_DOUBLE  | BOX_BOTTOM_DOUBLE
-                };
-                static const guint8 const map[] = {
-                        BOX_HORIZONTAL_DOUBLE,
-                        BOX_VERTICAL_DOUBLE,
-                        BOX_BOTTOM_SINGLE | BOX_RIGHT_DOUBLE,
-                        BOX_BOTTOM_DOUBLE | BOX_RIGHT_SINGLE,
-                        BOX_BOTTOM_DOUBLE | BOX_RIGHT_DOUBLE,
-                        BOX_BOTTOM_SINGLE | BOX_LEFT_DOUBLE,
-                        BOX_BOTTOM_DOUBLE | BOX_LEFT_SINGLE,
-                        BOX_BOTTOM_DOUBLE | BOX_LEFT_DOUBLE,
-                        BOX_TOP_SINGLE | BOX_RIGHT_DOUBLE,
-                        BOX_TOP_DOUBLE | BOX_RIGHT_SINGLE,
-                        BOX_TOP_DOUBLE | BOX_RIGHT_DOUBLE,
-                        BOX_TOP_SINGLE | BOX_LEFT_DOUBLE,
-                        BOX_TOP_DOUBLE | BOX_LEFT_SINGLE,
-                        BOX_TOP_DOUBLE | BOX_LEFT_DOUBLE,
-                        BOX_VERTICAL_SINGLE | BOX_RIGHT_DOUBLE,
-                        BOX_VERTICAL_DOUBLE | BOX_RIGHT_SINGLE,
-                        BOX_VERTICAL_DOUBLE | BOX_RIGHT_DOUBLE,
-                        BOX_VERTICAL_SINGLE | BOX_LEFT_DOUBLE,
-                        BOX_VERTICAL_DOUBLE | BOX_LEFT_SINGLE,
-                        BOX_VERTICAL_DOUBLE | BOX_LEFT_DOUBLE,
-                        BOX_BOTTOM_SINGLE | BOX_HORIZONTAL_DOUBLE,
-                        BOX_BOTTOM_DOUBLE | BOX_HORIZONTAL_SINGLE,
-                        BOX_BOTTOM_DOUBLE | BOX_HORIZONTAL_DOUBLE,
-                        BOX_TOP_SINGLE | BOX_HORIZONTAL_DOUBLE,
-                        BOX_TOP_DOUBLE | BOX_HORIZONTAL_SINGLE,
-                        BOX_TOP_DOUBLE | BOX_HORIZONTAL_DOUBLE,
-                        BOX_VERTICAL_SINGLE | BOX_HORIZONTAL_DOUBLE,
-                        BOX_VERTICAL_DOUBLE | BOX_HORIZONTAL_SINGLE,
-                        BOX_VERTICAL_DOUBLE | BOX_HORIZONTAL_DOUBLE
-                };
-                G_STATIC_ASSERT(G_N_ELEMENTS(map) == (0x256c - 0x2550 + 1));
-                const guint v = c - 0x2550;
-                const guint8 m = map[v];
-                int line_width;
-                int double_line_width, half_double_line_width, half_double_line_width_plus_1;
-                int inner_line_width;
+                guint32 bitmap = _vte_box_drawing_bitmaps[c - 0x2500];
+                int xboundaries[6] = { 0,
+                                       left_half - heavy_line_width / 2,
+                                       left_half - light_line_width / 2,
+                                       left_half - light_line_width / 2 + light_line_width,
+                                       left_half - heavy_line_width / 2 + heavy_line_width,
+                                       terminal->char_width};
+                int yboundaries[6] = { 0,
+                                       upper_half - heavy_line_width / 2,
+                                       upper_half - light_line_width / 2,
+                                       upper_half - light_line_width / 2 + light_line_width,
+                                       upper_half - heavy_line_width / 2 + heavy_line_width,
+                                       terminal->char_height};
+                int xi, yi;
+                cairo_set_line_width(cr, 0);
+                for (yi = 4; yi >= 0; yi--) {
+                        for (xi = 4; xi >= 0; xi--) {
+                                if (bitmap & 1) {
+                                        cairo_rectangle(cr,
+                                                        x + xboundaries[xi],
+                                                        y + yboundaries[yi],
+                                                        xboundaries[xi + 1] - xboundaries[xi],
+                                                        yboundaries[yi + 1] - yboundaries[yi]);
+                                        cairo_fill(cr);
+                                }
+                                bitmap >>= 1;
+                        }
+                }
+                break;
+        }
 
+        case 0x2504: /* box drawings light triple dash horizontal */
+        case 0x2505: /* box drawings heavy triple dash horizontal */
+        case 0x2506: /* box drawings light triple dash vertical */
+        case 0x2507: /* box drawings heavy triple dash vertical */
+        case 0x2508: /* box drawings light quadruple dash horizontal */
+        case 0x2509: /* box drawings heavy quadruple dash horizontal */
+        case 0x250a: /* box drawings light quadruple dash vertical */
+        case 0x250b: /* box drawings heavy quadruple dash vertical */
+        case 0x254c: /* box drawings light double dash horizontal */
+        case 0x254d: /* box drawings heavy double dash horizontal */
+        case 0x254e: /* box drawings light double dash vertical */
+        case 0x254f: /* box drawings heavy double dash vertical */
+        {
+                const guint v = c - 0x2500;
+                int size, line_width;
+
+                size = (v & 2) ? row_height : width;
+
+                switch (v >> 2) {
+                case 1: /* triple dash */
+                {
+                        double segment = size / 8.;
+                        double dashes[2] = { segment * 2., segment };
+                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
+                        break;
+                }
+                case 2: /* quadruple dash */
+                {
+                        double segment = size / 11.;
+                        double dashes[2] = { segment * 2., segment };
+                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
+                        break;
+                }
+                case 19: /* double dash */
+                {
+                        double segment = size / 5.;
+                        double dashes[2] = { segment * 2., segment };
+                        cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0.);
+                        break;
+                }
+                }
+
+                line_width = (v & 1) ? heavy_line_width : light_line_width;
+                adjust = (line_width & 1) ? .5 : 0.;
+
+                cairo_set_line_width(cr, line_width);
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
-
-                double_line_width = MAX (heavy_line_width, 3);
-                half_double_line_width = double_line_width / 2;
-                half_double_line_width_plus_1 = (double_line_width + 1) / 2;
-                inner_line_width = double_line_width / 3;
-                adjust = (inner_line_width & 1) ? .5 : 0.;
-
-                if (m & BOX_LEFT) {
-                        line_width = (m & BOX_LEFT_DOUBLE) ? double_line_width: light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr, x, ycenter + adjust);
-                        cairo_line_to(cr,
-                                      (m & BOX_VERTICAL_DOUBLE) ? xcenter + half_double_line_width_plus_1: xcenter,
-                                      ycenter + adjust);
-                        cairo_stroke(cr);
-                }
-                if (m & BOX_RIGHT) {
-                        line_width = (m & BOX_RIGHT_DOUBLE) ? double_line_width: light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr,
-                                      (m & BOX_VERTICAL_DOUBLE) ? xcenter - half_double_line_width: xcenter,
-                                      ycenter + adjust);
-                        cairo_line_to(cr, xright, ycenter + adjust);
-                        cairo_stroke(cr);
-                }
-                if (m & BOX_TOP) {
-                        line_width = (m & BOX_TOP_DOUBLE) ? double_line_width: light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
+                if (v & 2) {
                         cairo_move_to(cr, xcenter + adjust, y);
-                        cairo_line_to(cr,
-                                      xcenter + adjust,
-                                      (m & BOX_HORIZONTAL_DOUBLE) ? ycenter + half_double_line_width_plus_1 : ycenter);
-                        cairo_stroke(cr);
+                        cairo_line_to(cr, xcenter + adjust, y + row_height);
+                } else {
+                        cairo_move_to(cr, x, ycenter + adjust);
+                        cairo_line_to(cr, x + width, ycenter + adjust);
                 }
-                if (m & BOX_BOTTOM) {
-                        line_width = (m & BOX_BOTTOM_DOUBLE) ? double_line_width: light_line_width;
-                        adjust = (line_width & 1) ? .5 : 0.;
-                        cairo_set_line_width(cr, line_width);
-                        cairo_move_to(cr,
-                                      xcenter + adjust,
-                                      (m & BOX_HORIZONTAL_DOUBLE) ? ycenter - half_double_line_width : ycenter);
-                        cairo_line_to(cr, xcenter + adjust, ybottom);
-                        cairo_stroke(cr);
-                }
-
-                /* Now take the inside out */
-                cairo_set_source_rgba (cr,
-                                       bg.red / 65535.,
-                                       bg.green / 65535.,
-                                       bg.blue / 65535.,
-                                       1.);
-                cairo_set_line_width(cr, inner_line_width);
-                cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
-
-                if (m & BOX_VERTICAL_DOUBLE) {
-                        if (m & BOX_TOP) {
-                                cairo_move_to(cr, xcenter + adjust, y);
-                                cairo_line_to(cr, xcenter + adjust, ycenter);
-                        } else {
-                                cairo_move_to(cr, xcenter + adjust, ycenter);
-                        }
-                        if (m & BOX_BOTTOM) {
-                                cairo_line_to(cr, xcenter + adjust, ybottom);
-                        }
-                        cairo_stroke(cr);
-                }
-                if (m & BOX_HORIZONTAL_DOUBLE) {
-                        if (m & BOX_LEFT) {
-                                cairo_move_to(cr, x, ycenter + adjust);
-                                cairo_line_to(cr, xcenter, ycenter + adjust);
-                        } else {
-                                cairo_move_to(cr, xcenter, ycenter + adjust);
-                        }
-                        if (m & BOX_RIGHT) {
-                                cairo_line_to(cr, xright, ycenter + adjust);
-                        }
-                        cairo_stroke(cr);
-                }
-
+                cairo_stroke(cr);
                 break;
         }
 

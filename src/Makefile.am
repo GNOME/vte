@@ -29,6 +29,7 @@ EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	$(NULL)
 
 libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
+	box_drawing.h \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -115,10 +116,13 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
 # Generated sources
 
 VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-2.c vteseq-n.c
-BUILT_SOURCES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
+BUILT_SOURCES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
 MAINTAINERCLEANFILES = $(VTESEQ_BUILTSOURCES)
-EXTRA_DIST += $(VTESEQ_BUILTSOURCES)
-CLEANFILES = marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
+EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt
+CLEANFILES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
+
+box_drawing.h: box_drawing.txt
+	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh < $< > $@
 
 marshal.c: marshal.list
 	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $< > $@
@@ -355,6 +359,8 @@ xticker_SOURCES = xticker.c
 
 profiledir = $(sysconfdir)/profile.d
 dist_profile_DATA = vte.sh
+
+.DELETE_ON_ERROR:
 
 -include $(top_srcdir)/git.mk
 -include $(INTROSPECTION_MAKEFILE)
