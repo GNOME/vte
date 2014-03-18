@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright © 2014 Egmont Koblinger
 #
 # This program is free software; you can redistribute it and/or modify

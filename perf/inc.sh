@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 cnt=$1
 [ -n "$cnt" ] || cnt=500000

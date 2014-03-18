@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Image viewer for terminals that support true colors.
 # Copyright (C) 2014  Egmont Koblinger
