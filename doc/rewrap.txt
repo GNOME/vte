@@ -134,17 +134,14 @@ The cursor should ideally stay over the same character (whenever possible), or
 as "close" to that as possible. If it is over the second cell of a CJK, or in
 the middle of a Tab, it should remain so.
 
-In VTE versions prior to the rewrapping feature, the cursor can be anywhere to
-the right, even far away from the right end of the screen. This can occur
-easily when the window is narrowed. It's undecided yet if rewrapping will be
-an optional or mandatory feature. If it will be optional, this will still be
-the case. If it will be mandatory, it's not clear to me whether the cursor
-will be able to go past EOL. But, in any case, there are at least 1 more valid
-positions than the number of columns. E.g. with 80 columns, the cursor can be
-over the 1st character, ..., over the 80th character, or beyond the 80th
-character, which are 81 valid horizontal positions; in the latter case the
-cursor is not over a character. We need to distinguish all these positions and
-keep them during rewrap whenever possible.
+If rewrapping is disabled, the cursor can be anywhere to the right, even
+beyond the right end of the screen. This can occur easily when the window is
+narrowed. But even with rewrapping enabled, there is 1 more valid position
+than the number of columns. E.g. with 80 columns, the cursor can be over the
+1st character, ..., over the 80th character, or beyond the 80th character,
+which are 81 valid horizontal positions; in the latter case the cursor is not
+over a character. We need to distinguish all these positions and keep them
+during rewrap whenever possible.
 
 Let's assume the cursor's old position is not above a character, but at EOL or
 beyond. After rewrapping, we should try to maintain this position, so we
@@ -347,8 +344,9 @@ Markers
 There are some cell positions (I call them markers) that we need to keep track
 of, and tell where they moved during rewrapping. Such markers are the cursor,
 the saved cursor, the cell under the viewport's bottom left corner (for
-computing the new scrollbar offset) and the cell under the bottom left corner
-of the cursor's paragraph (for computing the number of lines to get dropped).
+computing the new scrollbar offset), the cell under the bottom left corner of
+the cursor's paragraph (for computing the number of lines to get dropped), and
+the boundaries of the highlighted region.
 
 A marker is a (row, column) pair where the row is either within the ring's
 range or in a further row, and the column is arbitrary.
@@ -435,13 +433,16 @@ Caveats
 
 With extremely large scrollback buffers (let's not forget: VTE supports
 infinite scrollback) rewrapping might become slow. On my computer (average
-laptop with Intel(R) Core(TM) i3 CPU , old-fashioned HDD) resizing 1 million
+laptop with Intel(R) Core(TM) i3 CPU, old-fashioned HDD) resizing 1 million
 lines take about 0.2 seconds wall clock time, this is close to the boundary of
-okay-ish speed.
+okay-ish speed. For this reason, rewrapping can be disabled with the
+vte_terminal_set_rewrap_on_resize() api call.
 
 Developers writing Vte-based multi-tab terminal emulators are encouraged to
 resize only the visible Vte, the hidden ones should be resized when they
 become visible. This avoids the time it takes to rewrap the buffer to be
-multiplied with the number of tabs and so block the user for a long
-uninterrupted time when they resize the window.
+multiplied by the number of tabs and so block the user for a long
+uninterrupted time when they resize the window. Developers are also encouraged
+to implement a user friendly way of disabling rewrapping if they allow giant
+scrollback buffer.
 
