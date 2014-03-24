@@ -1,6 +1,6 @@
 m4_define([version_major],0)
-m4_define([version_minor],36)
-m4_define([version_micro],1)
+m4_define([version_minor],37)
+m4_define([version_micro],0)
 m4_define([version_triplet],version_major.version_minor.version_micro)
 
 m4_define([so_major_adjust],9) dnl Don't change!
@@ -45,7 +45,7 @@ VTE_PC_VERSION=-$VTE_API_VERSION
 VTE_LIBRARY_SUFFIX=$VTE_API_VERSION
 VTE_SEAL_CFLAGS="-DVTE_SEAL_ENABLE"
 GTK_API_VERSION=3.0
-GTK_REQUIRED=3.1.9
+GTK_REQUIRED=3.2.0
 GLADE_API_VERSION=2.0
 
 AC_SUBST([VTE_API_VERSION])
