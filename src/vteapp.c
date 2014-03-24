@@ -426,10 +426,10 @@ take_xconsole_ownership(GtkWidget *widget, gpointer data)
 	GdkAtom atom;
 	GtkClipboard *clipboard;
 	const GtkTargetEntry targets[] = {
-		{"UTF8_STRING", 0, 0},
-		{"COMPOUND_TEXT", 0, 0},
-		{"TEXT", 0, 0},
-		{"STRING", 0, 0},
+		{(char*)"UTF8_STRING", 0, 0},
+		{(char*)"COMPOUND_TEXT", 0, 0},
+		{(char*)"TEXT", 0, 0},
+		{(char*)"STRING", 0, 0},
 	};
 
 	memset(hostname, '\0', sizeof(hostname));
