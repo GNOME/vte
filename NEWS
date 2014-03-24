@@ -1,3 +1,8 @@
+0.36.0
+======
+* Build fixes (#726604)
+* Docs updates
+
 0.35.90
 =======
 * prompt: Use precmd hook on zsh (#724982)
