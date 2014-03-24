@@ -104,7 +104,7 @@ HTML_IMAGES =
 # Extra SGML files that are included by $(DOC_MAIN_SGML_FILE).
 # e.g. content_files=running.sgml building.sgml changes-2.0.sgml
 content_files = \
- 	version.xml
+	version.xml
 
 # SGML files where gtk-doc abbrevations (#GtkWidget) are expanded
 # These files must be listed here *and* in content_files
@@ -125,7 +125,7 @@ GTKDOC_CFLAGS = \
 	$(VTE_CFLAGS)
 
 GTKDOC_LIBS = \
-	$(top_builddir)/src/libvte@VTE_LIBRARY_SUFFIX_U@.la \
+	$(top_builddir)/src/libvte-@VTE_API_VERSION@.la \
 	$(VTE_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.

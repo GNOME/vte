@@ -1,4 +1,4 @@
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I .
+ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 SUBDIRS = src termcaps po doc perf
 
@@ -19,7 +19,7 @@ SUBDIRS += glade
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = vte$(VTE_PC_VERSION).pc
+pkgconfig_DATA = vte-$(VTE_API_VERSION).pc
 
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \

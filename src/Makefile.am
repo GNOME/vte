@@ -7,9 +7,9 @@ EXTRA_DIST = iso2022.txt
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
 header_HEADERS = pty.h reaper.h vte.h vteaccess.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
 
-lib_LTLIBRARIES = libvte@VTE_LIBRARY_SUFFIX_U@.la
+lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 
-EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
+EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	marshal.list \
 	mkunitables.sh \
 	unitable.CNS11643 \
@@ -28,7 +28,7 @@ EXTRA_libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vtetypebuiltins.h.template \
 	$(NULL)
 
-libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	box_drawing.h \
 	buffer.h \
 	caps.c \
@@ -92,7 +92,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_SOURCES = \
 	vteversion.h
 	$(NULL)
 
-libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"Vte\" \
 	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
 	-DDATADIR='"$(datadir)"' \
@@ -103,10 +103,10 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_CPPFLAGS = \
 	-DVTE_COMPILATION \
 	$(AM_CPPFLAGS)
 
-libvte@VTE_LIBRARY_SUFFIX_U@_la_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
-libvte@VTE_LIBRARY_SUFFIX_U@_la_LIBADD = $(VTE_LIBS)
-libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
-  $(VTE_LDFLAGS) \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = $(VTE_LIBS)
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
+	$(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
 	-export-symbols-regex "^vte_terminal_.*|^vte_pty_.*|^vte_get_.*|^_vte_pty_.*|^vte_reaper_.*|_vte_debug_.*" \
 	@LIBTOOL_EXPORT_OPTIONS@ @LIBTOOL_FLAGS@ \
@@ -161,23 +161,23 @@ vteresources.c: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --g
 
 # vte the application
 
-bin_PROGRAMS = vte@VTE_LIBRARY_SUFFIX_U@
+bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
 
-vte@VTE_LIBRARY_SUFFIX_U@_SOURCES = \
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	vteapp.c \
 	$(NULL)
 
-vte@VTE_LIBRARY_SUFFIX_U@_CPPFLAGS = \
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \
         -DGLIB_DISABLE_DEPRECATION_WARNINGS \
         -DGDK_DISABLE_DEPRECATION_WARNINGS \
 	$(AM_CPPFLAGS)
 
-vte@VTE_LIBRARY_SUFFIX_U@_CFLAGS = \
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CFLAGS = \
 	$(VTE_CFLAGS) \
 	$(AM_CFLAGS)
 
-vte@VTE_LIBRARY_SUFFIX_U@_LDADD = \
-	libvte@VTE_LIBRARY_SUFFIX_U@.la \
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
+	libvte-$(VTE_API_VERSION).la \
 	$(VTE_LIBS)
 
 # introspection
@@ -188,10 +188,10 @@ INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 
 if HAVE_INTROSPECTION
 
-Vte-@VTE_API_VERSION@.gir: libvte@VTE_LIBRARY_SUFFIX_U@.la
+Vte-@VTE_API_VERSION@.gir: libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(top_srcdir)
-Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte@VTE_LIBRARY_SUFFIX_U@.la
+Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_EXPORT_PACKAGES = vte-$(VTE_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
@@ -213,7 +213,6 @@ nodist_typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(nodist_gir_DATA) $(nodist_typelib_DATA)
 endif
-
 
 # Misc unit tests and utilities
 
@@ -241,7 +240,7 @@ reflect_text_view_LDADD = $(VTE_LIBS)
 reflect_vte_CPPFLAGS = -DUSE_VTE
 reflect_vte_CFLAGS = $(VTE_CFLAGS)
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte@VTE_LIBRARY_SUFFIX_U@.la $(VTE_LIBS)
+reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
 
 interpret_SOURCES = \
 	buffer.h \

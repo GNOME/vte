@@ -3,14 +3,13 @@ m4_define([version_minor],37)
 m4_define([version_micro],0)
 m4_define([version_triplet],version_major.version_minor.version_micro)
 
-m4_define([so_major_adjust],9) dnl Don't change!
-
 AC_PREREQ([2.63])
 AC_INIT([vte],
         [version_triplet],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte],
         [vte])
 
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/vte.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -28,7 +27,7 @@ AM_MAINTAINER_MODE([enable])
 ################################################################################
 m4_define([lt_revision], m4_if(m4_eval(version_minor%2),1,0,version_micro))
 m4_define([lt_age], m4_eval(version_minor*100+version_micro-lt_revision))
-m4_define([lt_current], m4_eval(so_major_adjust+version_major+lt_age))
+m4_define([lt_current], m4_eval(version_major+lt_age))
 m4_define([lt_triplet],lt_current:lt_revision:lt_age)
 
 LT_VERSION_INFO="lt_triplet()"
@@ -39,10 +38,8 @@ AC_SUBST([LT_VERSION_INFO])
 ################################################################################
 
 VTE_API_MAJOR_VERSION=2
-VTE_API_MINOR_VERSION=90
+VTE_API_MINOR_VERSION=91
 VTE_API_VERSION=$VTE_API_MAJOR_VERSION.$VTE_API_MINOR_VERSION
-VTE_PC_VERSION=-$VTE_API_VERSION
-VTE_LIBRARY_SUFFIX=$VTE_API_VERSION
 VTE_SEAL_CFLAGS="-DVTE_SEAL_ENABLE"
 GTK_API_VERSION=3.0
 GTK_REQUIRED=3.2.0
@@ -52,10 +49,8 @@ AC_SUBST([VTE_API_VERSION])
 AC_SUBST([VTE_API_VERSION_U],[AS_TR_SH([$VTE_API_VERSION])])
 AC_SUBST([VTE_API_MAJOR_VERSION])
 AC_SUBST([VTE_API_MINOR_VERSION])
-AC_SUBST([VTE_PC_VERSION])
 AC_SUBST([VTE_SEAL_CFLAGS])
 AC_SUBST([GTK_API_VERSION])
-AC_SUBST([VTE_LIBRARY_SUFFIX_U],[AS_TR_SH([$VTE_LIBRARY_SUFFIX])])
 
 ################################################################################
 
@@ -403,7 +398,7 @@ glade/Makefile
 glade/vte.xml.in
 ])
 
-AC_CONFIG_FILES([vte${VTE_PC_VERSION}.pc:vte.pc.in],[VTE_PC_VERSION=${VTE_PC_VERSION}])
+AC_CONFIG_FILES([vte-${VTE_API_VERSION}.pc:vte.pc.in],[VTE_API_VERSION=${VTE_API_VERSION}])
 
 AC_OUTPUT
 

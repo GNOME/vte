@@ -7,5 +7,5 @@ Name: vte
 Description: Vte terminal widget.
 Version: @VERSION@
 Requires: @VTE_PKGS@
-Libs: -L${libdir} -lvte@VTE_LIBRARY_SUFFIX_U@
+Libs: -L${libdir} -lvte-@VTE_API_VERSION@
 Cflags: -I${includedir}/vte-@VTE_API_VERSION@ @VTE_SEAL_CFLAGS@
