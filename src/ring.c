@@ -814,7 +814,7 @@ _vte_ring_rewrap (VteRing *ring,
 			goto err;
 		new_markers[i].row = new_markers[i].col = -1;
 		_vte_debug_print(VTE_DEBUG_RING,
-				"Marker #%d old coords:  row %ld  col %ld  ->  text_offset %ld  fragment_cells %d  eol_cells %d\n",
+				"Marker #%d old coords:  row %ld  col %ld  ->  text_offset %" G_GSIZE_FORMAT " fragment_cells %d  eol_cells %d\n",
 				i, markers[i]->row, markers[i]->col, marker_text_offsets[i].text_offset,
 				marker_text_offsets[i].fragment_cells, marker_text_offsets[i].eol_cells);
 	}
@@ -843,7 +843,7 @@ _vte_ring_rewrap (VteRing *ring,
 		VteRowRecord new_record;
 		glong col = 0;
 		_vte_debug_print(VTE_DEBUG_RING,
-				"  Old paragraph:  row %ld  (text_offset %ld)  up to (exclusive)  ",  /* no '\n' */
+				"  Old paragraph:  row %" G_GSIZE_FORMAT "  (text_offset %" G_GSIZE_FORMAT ")  up to (exclusive)  ",  /* no '\n' */
 				paragraph_start_row, paragraph_start_text_offset);
 		while (old_row_index <= ring->end) {
 			prev_record_was_soft_wrapped = old_record.soft_wrapped;
@@ -864,7 +864,7 @@ _vte_ring_rewrap (VteRing *ring,
 		if (!prev_record_was_soft_wrapped)  /* The last paragraph can be soft wrapped! */
 			paragraph_len--;  /* Strip trailing '\n' */
 		_vte_debug_print(VTE_DEBUG_RING,
-				"row %ld  (text_offset %ld)%s  len %ld  is_ascii %d\n",
+				"row %" G_GSIZE_FORMAT "  (text_offset %" G_GSIZE_FORMAT ")%s  len %" G_GSIZE_FORMAT "  is_ascii %d\n",
 				paragraph_end_row, paragraph_end_text_offset,
 				prev_record_was_soft_wrapped ? "  soft_wrapped" : "",
 				paragraph_len, paragraph_is_ascii);
@@ -907,7 +907,7 @@ _vte_ring_rewrap (VteRing *ring,
 						new_record.soft_wrapped = 1;
 						_vte_stream_append(new_row_stream, (const char *) &new_record, sizeof (new_record));
 						_vte_debug_print(VTE_DEBUG_RING,
-								"    New row %ld  text_offset %ld  attr_offset %ld  soft_wrapped\n",
+								"    New row %ld  text_offset %" G_GSIZE_FORMAT "  attr_offset %" G_GSIZE_FORMAT "  soft_wrapped\n",
 								new_row_index,
 								new_record.text_start_offset, new_record.attr_start_offset);
 						for (i = 0; i < num_markers; i++) {
@@ -954,7 +954,7 @@ _vte_ring_rewrap (VteRing *ring,
 		new_record.soft_wrapped = prev_record_was_soft_wrapped;
 		_vte_stream_append(new_row_stream, (const char *) &new_record, sizeof (new_record));
 		_vte_debug_print(VTE_DEBUG_RING,
-				"    New row %ld  text_offset %ld  attr_offset %ld\n",
+				"    New row %ld  text_offset %" G_GSIZE_FORMAT "  attr_offset %" G_GSIZE_FORMAT "\n",
 				new_row_index,
 				new_record.text_start_offset, new_record.attr_start_offset);
 		for (i = 0; i < num_markers; i++) {
@@ -988,7 +988,7 @@ _vte_ring_rewrap (VteRing *ring,
 		if (!_vte_frozen_row_text_offset_to_column(ring, new_markers[i].row, &marker_text_offsets[i], &new_markers[i].col))
 			goto err;
 		_vte_debug_print(VTE_DEBUG_RING,
-				"Marker #%d new coords:  text_offset %ld  fragment_cells %d  eol_cells %d  ->  row %ld  col %ld\n",
+				"Marker #%d new coords:  text_offset %" G_GSIZE_FORMAT "  fragment_cells %d  eol_cells %d  ->  row %ld  col %ld\n",
 				i, marker_text_offsets[i].text_offset, marker_text_offsets[i].fragment_cells,
 				marker_text_offsets[i].eol_cells, new_markers[i].row, new_markers[i].col);
 		markers[i]->row = new_markers[i].row;
