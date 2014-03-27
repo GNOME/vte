@@ -401,8 +401,6 @@ struct _VteTerminalPrivate {
 
 	/* Background images/"transparency". */
 	gboolean bg_update_pending;
-	GdkPixbuf *bg_pixbuf;
-	char *bg_file;
         GdkRGBA bg_tint_color;
 
 	/* Key modifiers. */

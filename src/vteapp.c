@@ -547,11 +547,10 @@ main(int argc, char **argv)
 		(char *) "FOO=BAR", (char *) "BOO=BIZ",
 #endif
 		NULL};
-	const char *background = NULL;
         char *transparent = NULL;
 	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
-		 console = FALSE, scroll = FALSE, keep = FALSE,
+		 console = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
 		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
 		 use_scrolled_window = FALSE,
@@ -570,11 +569,6 @@ main(int argc, char **argv)
 	char *scrollbar_policy_string = NULL;
 	GdkRGBA fore, back, highlight, cursor, tint;
 	const GOptionEntry options[]={
-		{
-			"background", 'B', 0,
-			G_OPTION_ARG_FILENAME, &background,
-			"Specify a background image", NULL
-		},
 		{
 			"console", 'C', 0,
 			G_OPTION_ARG_NONE, &console,
@@ -665,11 +659,6 @@ main(int argc, char **argv)
 			"cursor-shape", 0, 0,
 			G_OPTION_ARG_STRING, &cursor_shape_string,
 			"Set cursor shape (block|underline|ibeam)", NULL
-		},
-		{
-			"scroll-background", 's', 0,
-			G_OPTION_ARG_NONE, &scroll,
-			"Enable a scrolling background", NULL
 		},
 		{
 			"termcap", 't', 0,
@@ -886,18 +875,11 @@ main(int argc, char **argv)
 	vte_terminal_set_scrollback_lines(terminal, lines);
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
 
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	vte_terminal_set_scroll_background(terminal, scroll);
-	if (background != NULL) {
-		vte_terminal_set_background_image_file(terminal,
-						       background);
-	}
 	if (transparent != NULL) {
                 tint.alpha = g_ascii_strtod (transparent, NULL);
                 g_free (transparent);
                 vte_terminal_set_background_tint_color_rgba(terminal, &tint);
         }
-        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
 	if (highlight_set) {

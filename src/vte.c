@@ -152,8 +152,6 @@ enum {
         PROP_VSCROLL_POLICY,
         PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
-        PROP_BACKGROUND_IMAGE_FILE,
-        PROP_BACKGROUND_IMAGE_PIXBUF,
         PROP_BACKGROUND_TINT_COLOR,
         PROP_BACKSPACE_BINDING,
         PROP_CURSOR_BLINK_MODE,
@@ -168,7 +166,6 @@ enum {
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY_OBJECT,
         PROP_REWRAP_ON_RESIZE,
-        PROP_SCROLL_BACKGROUND,
         PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
@@ -519,7 +516,7 @@ _vte_terminal_scroll_region (VteTerminal *terminal,
 		return;
 	}
 
-	if (terminal->pvt->scroll_background || count >= terminal->pvt->row_count) {
+	if (count >= terminal->pvt->row_count) {
 		/* We have to repaint the entire window. */
 		_vte_invalidate_all(terminal);
 	} else {
@@ -8389,9 +8386,6 @@ vte_terminal_finalize(GObject *object)
 	/* The NLS maps. */
 	_vte_iso2022_state_free(terminal->pvt->iso2022);
 
-	/* Free background info. */
-	g_free(terminal->pvt->bg_file);
-
 	/* Free the font description. */
 	if (terminal->pvt->fontdesc != NULL) {
 		pango_font_description_free(terminal->pvt->fontdesc);
@@ -10306,16 +10300,6 @@ vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
-        {
-		if (terminal->pvt->scroll_background) {
-			_vte_draw_set_background_scroll(terminal->pvt->draw,
-							0,
-							terminal->pvt->screen->scroll_delta *
-							terminal->pvt->char_height);
-		} else {
-			_vte_draw_set_background_scroll(terminal->pvt->draw, 0, 0);
-		}
-	}
 
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) {
 		cairo_rectangle_int_t clip;
@@ -10622,12 +10606,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_BACKGROUND_IMAGE_FILE:
-                        g_value_set_string (value, pvt->bg_file);
-                        break;
-                case PROP_BACKGROUND_IMAGE_PIXBUF:
-                        g_value_set_object (value, pvt->bg_pixbuf);
-                        break;
                 case PROP_BACKGROUND_TINT_COLOR:
                         g_value_set_boxed (value, &pvt->bg_tint_color);
                         break;
@@ -10669,9 +10647,6 @@ vte_terminal_get_property (GObject *object,
                         break;
                 case PROP_REWRAP_ON_RESIZE:
                         g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
-                        break;
-                case PROP_SCROLL_BACKGROUND:
-                        g_value_set_boolean (value, pvt->scroll_background);
                         break;
                 case PROP_SCROLLBACK_LINES:
                         g_value_set_uint (value, pvt->scrollback_lines);
@@ -10729,16 +10704,6 @@ vte_terminal_set_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
                         break;
-                case PROP_BACKGROUND_IMAGE_FILE:
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-                        vte_terminal_set_background_image_file (terminal, g_value_get_string (value));
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-                        break;
-                case PROP_BACKGROUND_IMAGE_PIXBUF:
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-                        vte_terminal_set_background_image (terminal, g_value_get_object (value));
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-                        break;
                 case PROP_BACKGROUND_TINT_COLOR:
                         vte_terminal_set_background_tint_color_rgba (terminal, g_value_get_boxed (value));
                         break;
@@ -10771,11 +10736,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_REWRAP_ON_RESIZE:
                         vte_terminal_set_rewrap_on_resize (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_SCROLL_BACKGROUND:
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-                        vte_terminal_set_scroll_background (terminal, g_value_get_boolean (value));
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_SCROLLBACK_LINES:
                         vte_terminal_set_scrollback_lines (terminal, g_value_get_uint (value));
@@ -11466,45 +11426,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_boolean ("audible-bell", NULL, NULL,
                                        TRUE,
                                        G_PARAM_READWRITE | STATIC_PARAMS));
-     
-        /**
-         * VteTerminal:background-image-file: (type filename):
-         *
-         * Sets a background image file for the widget.  If specified by
-         * #VteTerminal:background-tint-color:, the terminal will tint its
-         * in-memory copy of the image before applying it to the terminal.
-         * 
-         * Since: 0.20
-         *
-         * Deprecated: 0.34.8
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_IMAGE_FILE,
-                 g_param_spec_string ("background-image-file", NULL, NULL,
-                                      NULL,
-                                      G_PARAM_READWRITE | STATIC_PARAMS));
-
-        /**
-         * VteTerminal:background-image-pixbuf:
-         *
-         * Sets a background image for the widget.  Text which would otherwise be
-         * drawn using the default background color will instead be drawn over the
-         * specified image.  If necessary, the image will be tiled to cover the
-         * widget's entire visible area. If specified by
-         * #VteTerminal:background-tint-color:, the terminal will tint its
-         * in-memory copy of the image before applying it to the terminal.
-         * 
-         * Since: 0.20
-         *
-         * Deprecated: 0.34.8
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_IMAGE_PIXBUF,
-                 g_param_spec_object ("background-image-pixbuf", NULL, NULL,
-                                      GDK_TYPE_PIXBUF,
-                                      G_PARAM_READWRITE | STATIC_PARAMS));
 
         /**
          * VteTerminal:background-tint-color:
@@ -11703,21 +11624,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        TRUE,
                                        G_PARAM_READWRITE | STATIC_PARAMS));
 
-        /**
-         * VteTerminal:scroll-background:
-         *
-         * Controls whether or not the terminal will scroll the background image (if
-         * one is set) when the text in the window must be scrolled.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_SCROLL_BACKGROUND,
-                 g_param_spec_boolean ("scroll-background", NULL, NULL,
-                                       FALSE,
-                                       G_PARAM_READWRITE | STATIC_PARAMS));
-     
         /**
          * VteTerminal:scrollback-lines:
          *
@@ -12020,39 +11926,6 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_scroll_background:
- * @terminal: a #VteTerminal
- * @scroll: whether the terminal should scroll the background image along with
- *   the text
- *
- * Controls whether or not the terminal will scroll the background image (if
- * one is set) when the text in the window must be scrolled.
- *
- * Since: 0.11
- *
- * Deprecated: 0.34.8
- */
-void
-vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        scroll = scroll != FALSE;
-        if (scroll == pvt->scroll_background)
-                return;
-
-	pvt->scroll_background = scroll;
-
-        g_object_notify (G_OBJECT (terminal), "scroll-background");
-
-        vte_terminal_queue_background_update(terminal);
-}
-
-/**
  * vte_terminal_set_scroll_on_output:
  * @terminal: a #VteTerminal
  * @scroll: whether the terminal should scroll on output
@@ -12287,27 +12160,6 @@ vte_terminal_background_update(VteTerminal *terminal)
 
         _vte_draw_set_background_solid (terminal->pvt->draw, &color);
 
-	if (terminal->pvt->bg_file) {
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_FILE,
-					       NULL,
-					       terminal->pvt->bg_file,
-					       &terminal->pvt->bg_tint_color);
-	} else
-	if (GDK_IS_PIXBUF(terminal->pvt->bg_pixbuf)) {
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_PIXBUF,
-					       terminal->pvt->bg_pixbuf,
-					       NULL,
-					       &terminal->pvt->bg_tint_color);
-	} else {
-		_vte_draw_set_background_image(terminal->pvt->draw,
-					       VTE_BG_SOURCE_NONE,
-					       NULL,
-					       NULL,
-					       &terminal->pvt->bg_tint_color);
-	}
-
 	/* Note that the update has finished. */
 	terminal->pvt->bg_update_pending = FALSE;
 
@@ -12370,116 +12222,6 @@ vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
         g_object_notify(G_OBJECT (terminal), "background-tint-color");
 
         vte_terminal_queue_background_update(terminal);
-}
-
-/**
- * vte_terminal_set_background_image:
- * @terminal: a #VteTerminal
- * @image: (allow-none): a #GdkPixbuf to use, or %NULL to unset the background
- *
- * Sets a background image for the widget.  Text which would otherwise be
- * drawn using the default background color will instead be drawn over the
- * specified image.  If necessary, the image will be tiled to cover the
- * widget's entire visible area. If specified by
- * vte_terminal_set_background_tint_color_rgba(), the terminal will tint its
- * in-memory copy of the image before applying it to the terminal.
- *
- * Deprecated: 0.34.8
- */
-void
-vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
-{
-        VteTerminalPrivate *pvt;
-        GObject *object;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(image==NULL || GDK_IS_PIXBUF(image));
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-
-        if (image && image == pvt->bg_pixbuf)
-                return;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"%s background image.\n",
-			GDK_IS_PIXBUF(image) ? "Setting" : "Clearing");
-
-        g_object_freeze_notify(object);
-
-	/* Get a ref to the new image if there is one.  Do it here just in
-	 * case we're actually given the same one we're already using. */
-	if (image != NULL) {
-		g_object_ref(image);
-	}
-
-	/* Unref the previous background image. */
-	if (pvt->bg_pixbuf != NULL) {
-		g_object_unref(pvt->bg_pixbuf);
-	}
-
-	/* Clear a background file name, if one was set. */
-        if (pvt->bg_file) {
-                g_free(pvt->bg_file);
-                pvt->bg_file = NULL;
-
-                g_object_notify(object, "background-image-file");
-        }
-
-	/* Set the new background. */
-	pvt->bg_pixbuf = image;
-
-        g_object_notify(object, "background-image-pixbuf");
-
-	vte_terminal_queue_background_update(terminal);
-
-        g_object_thaw_notify(object);
-}
-
-/**
- * vte_terminal_set_background_image_file:
- * @terminal: a #VteTerminal
- * @path: (type filename): path to an image file
- *
- * Sets a background image for the widget.  If specified by
- * vte_terminal_set_background_tint_color_rgba(), the terminal will tint its
- * in-memory copy of the image before applying it to the terminal.
- *
- * Deprecated: 0.34.8
- */
-void
-vte_terminal_set_background_image_file(VteTerminal *terminal, const char *path)
-{
-        VteTerminalPrivate *pvt;
-        GObject *object;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Loading background image from `%s'.\n", path);
-
-        g_object_freeze_notify(G_OBJECT(terminal));
-
-	/* Save this background type. */
-	g_free(pvt->bg_file);
-	pvt->bg_file = g_strdup(path);
-
-	/* Turn off other background types. */
-	if (pvt->bg_pixbuf != NULL) {
-		g_object_unref(pvt->bg_pixbuf);
-		pvt->bg_pixbuf = NULL;
-
-                g_object_notify(object, "background-image-pixbuf");
-	}
-
-        g_object_notify(object, "background-image-file");
-
-	vte_terminal_queue_background_update(terminal);
-
-        g_object_thaw_notify(G_OBJECT(terminal));
 }
 
 /**

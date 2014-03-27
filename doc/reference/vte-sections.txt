@@ -118,9 +118,6 @@ vte_terminal_get_current_file_uri
 
 <SUBSECTION Deprecated>
 vte_terminal_im_append_menuitems
-vte_terminal_set_background_image
-vte_terminal_set_background_image_file
-vte_terminal_set_scroll_background
 
 <SUBSECTION Private>
 VteCharAttributes

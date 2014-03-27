@@ -32,13 +32,6 @@ G_BEGIN_DECLS
 void vte_terminal_im_append_menuitems(VteTerminal *terminal,
 				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
 
-/* Background effects. */
-void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll) G_GNUC_DEPRECATED;
-void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image) G_GNUC_DEPRECATED;
-void vte_terminal_set_background_image_file(VteTerminal *terminal,
-					    const char *path) G_GNUC_DEPRECATED;
-void vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity) G_GNUC_DEPRECATED;
-
 G_END_DECLS
 
 void vte_terminal_set_alternate_screen_scroll(VteTerminal *terminal,

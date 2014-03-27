@@ -24,7 +24,6 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include "debug.h"
-#include "vtebg.h"
 #include "vtedraw.h"
 #include "vte-private.h"
 
@@ -834,52 +833,6 @@ _vte_draw_set_background_solid(struct _vte_draw *draw,
 						      color->green,
 						      color->blue,
 						      color->alpha);
-}
-
-void
-_vte_draw_set_background_image (struct _vte_draw *draw,
-			        VteBgSourceType type,
-			        GdkPixbuf *pixbuf,
-			        const char *filename,
-			        const GdkRGBA *color)
-{
-	cairo_surface_t *surface;
-
-	/* Need a valid draw->cr for cairo_get_target () */
-	_vte_draw_start (draw);
-
-	surface = vte_bg_get_surface (vte_bg_get_for_screen (gtk_widget_get_screen (draw->widget)),
-				     type, pixbuf, filename,
-				     color,
-				     cairo_get_target(draw->cr));
-
-	_vte_draw_end (draw);
-
-	if (!surface)
-		return;
-
-	if (draw->bg_pattern)
-		cairo_pattern_destroy (draw->bg_pattern);
-
-	draw->bg_pattern = cairo_pattern_create_for_surface (surface);
-	cairo_surface_destroy (surface);
-	cairo_pattern_set_extend (draw->bg_pattern, CAIRO_EXTEND_REPEAT);
-}
-
-void
-_vte_draw_set_background_scroll (struct _vte_draw *draw,
-				 gint x, gint y)
-{
-	cairo_matrix_t matrix;
-
-	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_set_scroll (%d, %d)\n",
-			x, y);
-
-	g_return_if_fail (draw->bg_pattern != NULL);
-
-	cairo_matrix_init_translate (&matrix, x, y);
-	cairo_pattern_set_matrix (draw->bg_pattern, &matrix);
 }
 
 void

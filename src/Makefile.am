@@ -55,8 +55,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vte-private.h \
 	vteaccess.c \
 	vteaccess.h \
-	vtebg.c \
-	vtebg.h \
 	vteconv.c \
 	vteconv.h \
 	vtedraw.c \
