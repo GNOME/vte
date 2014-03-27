@@ -71,10 +71,8 @@ void _vte_draw_free(struct _vte_draw *draw);
 
 cairo_t *_vte_draw_get_context (struct _vte_draw *draw);
 
-/* Begin and end a drawing operation.  If anything is buffered locally, it is
-   flushed to the window system when _end() is called. */
-void _vte_draw_start(struct _vte_draw *draw);
-void _vte_draw_end(struct _vte_draw *draw);
+void _vte_draw_set_cairo(struct _vte_draw *draw,
+                         cairo_t *cr);
 
 void _vte_draw_set_background_solid(struct _vte_draw *draw,
                                     const GdkRGBA *color);

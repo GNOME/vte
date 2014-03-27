@@ -10308,7 +10308,7 @@ vte_terminal_draw(GtkWidget *widget,
         allocated_height = gtk_widget_get_allocated_height(widget);
 
 	/* Designate the start of the drawing operation and clear the area. */
-	_vte_draw_start(terminal->pvt->draw);
+	_vte_draw_set_cairo(terminal->pvt->draw, cr);
 
 	_vte_draw_clip(terminal->pvt->draw, region);
 	_vte_draw_clear (terminal->pvt->draw, 0, 0,
@@ -10355,7 +10355,7 @@ vte_terminal_draw(GtkWidget *widget,
 	vte_terminal_paint_im_preedit_string(terminal);
 
 	/* Done with various structures. */
-	_vte_draw_end(terminal->pvt->draw);
+	_vte_draw_set_cairo(terminal->pvt->draw, NULL);
 
         cairo_region_destroy (region);
 
