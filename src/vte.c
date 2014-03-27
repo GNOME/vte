@@ -132,6 +132,7 @@ static void _vte_check_cursor_blink(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
+static cairo_region_t *vte_cairo_get_clip_region (cairo_t *cr);
 
 enum {
     COPY_CLIPBOARD,
@@ -10281,12 +10282,26 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	}
 }
 
-/* Draw the widget. */
-static void
-vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
+static gboolean
+vte_terminal_draw(GtkWidget *widget,
+                  cairo_t *cr)
 {
-	VteTerminal *terminal;
+        VteTerminal *terminal = VTE_TERMINAL (widget);
+        cairo_rectangle_int_t clip_rect;
+        cairo_region_t *region;
 	GtkAllocation allocation;
+
+        if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
+                return FALSE;
+
+        _vte_debug_print (VTE_DEBUG_WORK, "+");
+        _vte_debug_print (VTE_DEBUG_EVENTS, "Draw (%d,%d)x(%d,%d)\n",
+                          clip_rect.x, clip_rect.y,
+                          clip_rect.width, clip_rect.height);
+
+        region = vte_cairo_get_clip_region (cr);
+        if (region == NULL)
+                return FALSE;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_paint()\n");
 	_vte_debug_print(VTE_DEBUG_WORK, "=");
@@ -10352,6 +10367,12 @@ vte_terminal_paint(GtkWidget *widget, cairo_region_t *region)
 
 	/* Done with various structures. */
 	_vte_draw_end(terminal->pvt->draw);
+
+        cairo_region_destroy (region);
+
+        terminal->pvt->invalidated_all = FALSE;
+
+        return FALSE;
 }
 
 /* Handle an expose event by painting the exposed area. */
@@ -10393,34 +10414,6 @@ vte_cairo_get_clip_region (cairo_t *cr)
 
         cairo_rectangle_list_destroy (list);
         return region;
-}
-
-static gboolean
-vte_terminal_draw(GtkWidget *widget,
-                  cairo_t *cr)
-{
-        VteTerminal *terminal = VTE_TERMINAL (widget);
-        cairo_rectangle_int_t clip_rect;
-        cairo_region_t *region;
-
-        if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
-                return FALSE;
-
-        _vte_debug_print (VTE_DEBUG_WORK, "+");
-        _vte_debug_print (VTE_DEBUG_EVENTS, "Draw (%d,%d)x(%d,%d)\n",
-                          clip_rect.x, clip_rect.y,
-                          clip_rect.width, clip_rect.height);
-
-        region = vte_cairo_get_clip_region (cr);
-        if (region == NULL)
-                return FALSE;
-
-        vte_terminal_paint(widget, region);
-        cairo_region_destroy (region);
-
-        terminal->pvt->invalidated_all = FALSE;
-
-        return FALSE;
 }
 
 /* Handle a scroll event. */
