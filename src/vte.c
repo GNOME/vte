@@ -154,7 +154,6 @@ enum {
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_IMAGE_FILE,
         PROP_BACKGROUND_IMAGE_PIXBUF,
-        PROP_BACKGROUND_SATURATION,
         PROP_BACKGROUND_TINT_COLOR,
         PROP_BACKSPACE_BINDING,
         PROP_CURSOR_BLINK_MODE,
@@ -8047,11 +8046,10 @@ vte_terminal_init(VteTerminal *terminal)
 	gtk_widget_ensure_style(&terminal->widget);
 
 	/* Set up background information. */
-	pvt->bg_tint_color.red = 0.;
-	pvt->bg_tint_color.green = 0.;
-	pvt->bg_tint_color.blue = 0.;
+	pvt->bg_tint_color.red = 1.;
+	pvt->bg_tint_color.green = 1.;
+	pvt->bg_tint_color.blue = 1.;
         pvt->bg_tint_color.alpha = 1.;
-	pvt->bg_saturation = 0.4;
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 
@@ -10630,9 +10628,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKGROUND_IMAGE_PIXBUF:
                         g_value_set_object (value, pvt->bg_pixbuf);
                         break;
-                case PROP_BACKGROUND_SATURATION:
-                        g_value_set_double (value, pvt->bg_saturation);
-                        break;
                 case PROP_BACKGROUND_TINT_COLOR:
                         g_value_set_boxed (value, &pvt->bg_tint_color);
                         break;
@@ -10742,11 +10737,6 @@ vte_terminal_set_property (GObject *object,
                 case PROP_BACKGROUND_IMAGE_PIXBUF:
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                         vte_terminal_set_background_image (terminal, g_value_get_object (value));
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-                        break;
-                case PROP_BACKGROUND_SATURATION:
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-                        vte_terminal_set_background_saturation (terminal, g_value_get_double (value));
                         G_GNUC_END_IGNORE_DEPRECATIONS;
                         break;
                 case PROP_BACKGROUND_TINT_COLOR:
@@ -11481,7 +11471,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:background-image-file: (type filename):
          *
          * Sets a background image file for the widget.  If specified by
-         * #VteTerminal:background-saturation:, the terminal will tint its
+         * #VteTerminal:background-tint-color:, the terminal will tint its
          * in-memory copy of the image before applying it to the terminal.
          * 
          * Since: 0.20
@@ -11502,7 +11492,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * drawn using the default background color will instead be drawn over the
          * specified image.  If necessary, the image will be tiled to cover the
          * widget's entire visible area. If specified by
-         * #VteTerminal:background-saturation:, the terminal will tint its
+         * #VteTerminal:background-tint-color:, the terminal will tint its
          * in-memory copy of the image before applying it to the terminal.
          * 
          * Since: 0.20
@@ -11517,38 +11507,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_READWRITE | STATIC_PARAMS));
 
         /**
-         * VteTerminal:background-saturation:
-         *
-         * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTerminal:background-image-pixbuf:,
-         * and the saturation value is less
-         * than 1.0, the terminal will adjust the colors of the image before drawing
-         * the image.  To do so, the terminal will create a copy of the background
-         * image and modify its pixel values.
-         *
-         * Since: 0.20
-         *
-         * Deprecated: 0.34.8
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_SATURATION,
-                 g_param_spec_double ("background-saturation", NULL, NULL,
-                                      0.0, 1.0,
-                                      0.4,
-                                      G_PARAM_READWRITE | STATIC_PARAMS));
-     
-        /**
          * VteTerminal:background-tint-color:
          *
          * If a background image has been set using #VteTerminal:background-image-file: or
          * #VteTerminal:background-image-pixbuf:, and
-         * and the value set by VteTerminal:background-saturation: is less than 1.0,
+         * and the value set by VteTerminal:background-tint-color: is less than 1.0,
          * the terminal
          * will adjust the color of the image before drawing the image.  To do so,
          * the terminal will create a copy of the background image
          * and modify its pixel values.  The initial tint color
-         * is black.
+         * is white.
          * 
          * Since: 0.20
          *
@@ -12291,7 +12259,6 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 static gboolean
 vte_terminal_background_update(VteTerminal *terminal)
 {
-        double saturation;
 	const PangoColor *entry;
 	GdkRGBA color;
 
@@ -12320,29 +12287,25 @@ vte_terminal_background_update(VteTerminal *terminal)
 
         _vte_draw_set_background_solid (terminal->pvt->draw, &color);
 
-	saturation = terminal->pvt->bg_saturation;
 	if (terminal->pvt->bg_file) {
 		_vte_draw_set_background_image(terminal->pvt->draw,
 					       VTE_BG_SOURCE_FILE,
 					       NULL,
 					       terminal->pvt->bg_file,
-					       &terminal->pvt->bg_tint_color,
-					       saturation);
+					       &terminal->pvt->bg_tint_color);
 	} else
 	if (GDK_IS_PIXBUF(terminal->pvt->bg_pixbuf)) {
 		_vte_draw_set_background_image(terminal->pvt->draw,
 					       VTE_BG_SOURCE_PIXBUF,
 					       terminal->pvt->bg_pixbuf,
 					       NULL,
-					       &terminal->pvt->bg_tint_color,
-					       saturation);
+					       &terminal->pvt->bg_tint_color);
 	} else {
 		_vte_draw_set_background_image(terminal->pvt->draw,
 					       VTE_BG_SOURCE_NONE,
 					       NULL,
 					       NULL,
-					       &terminal->pvt->bg_tint_color,
-					       saturation);
+					       &terminal->pvt->bg_tint_color);
 	}
 
 	/* Note that the update has finished. */
@@ -12369,58 +12332,19 @@ vte_terminal_queue_background_update(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_background_saturation:
- * @terminal: a #VteTerminal
- * @saturation: a floating point value between 0.0 and 1.0.
- *
- * If a background image has been set using
- * vte_terminal_set_background_image(),
- * vte_terminal_set_background_image_file(), or
- * and the saturation value is less
- * than 1.0, the terminal will adjust the colors of the image before drawing
- * the image.  To do so, the terminal will create a copy of the background
- * image and modify its pixel values.
- *
- * Deprecated: 0.34.8
- */
-void
-vte_terminal_set_background_saturation(VteTerminal *terminal, double saturation)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(saturation >= 0.0 && saturation <= 1.0);
-
-        pvt = terminal->pvt;
-
-        if (saturation == pvt->bg_saturation)
-                return;
-
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting background saturation to %.3f\n",
-			saturation);
-
-        pvt->bg_saturation = saturation;
-        g_object_notify(G_OBJECT (terminal), "background-saturation");
-
-        vte_terminal_queue_background_update(terminal);
-}
-
-/**
  * vte_terminal_set_background_tint_color_rgba:
  * @terminal: a #VteTerminal
- * @rgba: (allow-none): a color which the terminal background should be tinted to if its
- *   saturation is not 1.0.
+ * @rgba: (allow-none): a color which the terminal background should be tinted to if
  *
  * If a background image has been set using
  * vte_terminal_set_background_image(),
  * vte_terminal_set_background_image_file(), or
  * and the value set by
- * vte_terminal_set_background_saturation() is less than one, the terminal
+ * alpha value in @rgba is greater than 0.0, the terminal
  * will adjust the color of the image before drawing the image.  To do so,
  * the terminal will create a copy of the background image
  * and modify its pixel values.  The initial tint color
- * is black.
+ * is white.
  *
  * Since: 0.38
  */
@@ -12457,7 +12381,7 @@ vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
  * drawn using the default background color will instead be drawn over the
  * specified image.  If necessary, the image will be tiled to cover the
  * widget's entire visible area. If specified by
- * vte_terminal_set_background_saturation(), the terminal will tint its
+ * vte_terminal_set_background_tint_color_rgba(), the terminal will tint its
  * in-memory copy of the image before applying it to the terminal.
  *
  * Deprecated: 0.34.8
@@ -12518,7 +12442,7 @@ vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image)
  * @path: (type filename): path to an image file
  *
  * Sets a background image for the widget.  If specified by
- * vte_terminal_set_background_saturation(), the terminal will tint its
+ * vte_terminal_set_background_tint_color_rgba(), the terminal will tint its
  * in-memory copy of the image before applying it to the terminal.
  *
  * Deprecated: 0.34.8

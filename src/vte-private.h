@@ -404,7 +404,6 @@ struct _VteTerminalPrivate {
 	GdkPixbuf *bg_pixbuf;
 	char *bg_file;
         GdkRGBA bg_tint_color;
-	double bg_saturation; /* 0.0 .. 1.0 */
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;

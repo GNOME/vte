@@ -38,7 +38,6 @@ typedef struct {
 	char *source_file;
 
 	GdkRGBA tint_color;
-	double saturation;
 	cairo_surface_t *surface;
 } VteBgCacheItem;
 
@@ -178,7 +177,6 @@ vte_bg_cache_add(VteBg *bg, VteBgCacheItem *item)
  * @source_pixbuf: a #GdkPixbuf, or %NULL
  * @source_file: path of an image file, or %NULL
  * @tint: a #GdkRGBA to use as tint color
- * @saturation: the saturation as a value between 0.0 and 1.0
  *
  * Returns: a reference to a #cairo_surface_t, or %NULL on if
  *   there is no matching item in the cache
@@ -188,8 +186,7 @@ vte_bg_cache_search(VteBg *bg,
 		    VteBgSourceType source_type,
 		    const GdkPixbuf *source_pixbuf,
 		    const char *source_file,
-		    const GdkRGBA *tint,
-		    double saturation)
+		    const GdkRGBA *tint)
 {
 	GList *i;
 
@@ -197,7 +194,6 @@ vte_bg_cache_search(VteBg *bg,
 	for (i = bg->pvt->cache; i != NULL; i = g_list_next(i)) {
 		VteBgCacheItem *item = i->data;
 		if (gdk_rgba_equal (&item->tint_color, tint) &&
-		    (saturation == item->saturation) &&
 		    (source_type == item->source_type)) {
 			switch (source_type) {
 			case VTE_BG_SOURCE_PIXBUF:
@@ -228,7 +224,6 @@ vte_bg_cache_search(VteBg *bg,
  * @source_pixbuf: (allow-none): a #GdkPixbuf, or %NULL
  * @source_file: (allow-none): path of an image file, or %NULL
  * @tint: a #PangoColor to use as tint color
- * @saturation: the saturation as a value between 0.0 and 1.0
  * @other: a #cairo_surface_t
  *
  * Returns: a reference to a #cairo_surface_t, or %NULL on failure
@@ -239,7 +234,6 @@ vte_bg_get_surface(VteBg *bg,
 		   GdkPixbuf *source_pixbuf,
 		   const char *source_file,
 		   const GdkRGBA *tint,
-		   double saturation,
 		   cairo_surface_t *other)
 {
         VteBgPrivate *pvt;
@@ -248,7 +242,6 @@ vte_bg_get_surface(VteBg *bg,
 	cairo_surface_t *cached;
 	cairo_t *cr;
 	int width, height;
-        double alpha;
 
         g_return_val_if_fail(VTE_IS_BG(bg), NULL);
         pvt = bg->pvt;
@@ -259,16 +252,16 @@ vte_bg_get_surface(VteBg *bg,
 
 	cached = vte_bg_cache_search(bg, source_type,
 				     source_pixbuf, source_file,
-				     tint, saturation);
+				     tint);
 	if (cached != NULL) {
 		return cached;
 	}
 
         /* FIXME: The above only returned a hit when the source *and*
-         * tint and saturation matched. This means that for VTE_BG_SOURCE_FILE,
+         * tint matched. This means that for VTE_BG_SOURCE_FILE,
          * we will create below *another* #GdkPixbuf for the same source file,
          * wasting memory. We should instead look up the source pixbuf regardless
-         * of tint and saturation, and just create a new #VteBgCacheItem
+         * of tint, and just create a new #VteBgCacheItem
          * with a new surface for it.
          */
 
@@ -277,7 +270,6 @@ vte_bg_get_surface(VteBg *bg,
 	item->source_pixbuf = NULL;
 	item->source_file = NULL;
 	item->tint_color = *tint;
-	item->saturation = saturation;
         item->surface = NULL;
 	pixbuf = NULL;
 
@@ -314,13 +306,8 @@ vte_bg_get_surface(VteBg *bg,
 		gdk_cairo_set_source_pixbuf (cr, pixbuf, 0, 0);
 	cairo_paint (cr);
 
-        alpha = (1. - saturation) * tint->alpha;
-	if (alpha > 0.) {
-		cairo_set_source_rgba (cr, 
-				       tint->red,
-				       tint->green,
-				       tint->blue,
-				       alpha);
+	if (tint->alpha < 1.) {
+                gdk_cairo_set_source_rgba (cr, tint);
 		cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 		cairo_paint (cr);
 	}

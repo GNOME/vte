@@ -776,7 +776,7 @@ main(int argc, char **argv)
 
 	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
 	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
-	tint.red = tint.green = tint.blue = 0.; tint.alpha = .875;
+	tint.red = tint.green = tint.blue = 1.; tint.alpha = .875;
 
 	gdk_window_set_debug_updates(debug);
 

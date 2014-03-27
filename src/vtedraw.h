@@ -83,8 +83,7 @@ void _vte_draw_set_background_image(struct _vte_draw *draw,
 				    VteBgSourceType type,
 				    GdkPixbuf *pixbuf,
 				    const char *file,
-				    const GdkRGBA *color,
-				    double saturation);
+				    const GdkRGBA *color);
 void _vte_draw_set_background_scroll(struct _vte_draw *draw,
 				     gint x, gint y);
 
