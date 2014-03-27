@@ -37,8 +37,6 @@ void vte_terminal_set_scroll_background(VteTerminal *terminal, gboolean scroll) 
 void vte_terminal_set_background_image(VteTerminal *terminal, GdkPixbuf *image) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_image_file(VteTerminal *terminal,
 					    const char *path) G_GNUC_DEPRECATED;
-void vte_terminal_set_background_tint_color(VteTerminal *terminal,
-					    const GdkColor *color) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_saturation(VteTerminal *terminal,
 					    double saturation) G_GNUC_DEPRECATED;
 void vte_terminal_set_background_transparent(VteTerminal *terminal,

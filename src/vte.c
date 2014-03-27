@@ -2193,10 +2193,9 @@ void
 _vte_terminal_set_color_internal(VteTerminal *terminal,
                                  int entry,
                                  int source,
-                                 const GdkColor *proposed)
+                                 const PangoColor *proposed)
 {
 	VtePaletteColor *palette_color = &terminal->pvt->palette[entry];
-
 
 	/* Save the requested color. */
 	if (proposed != NULL) {
@@ -2249,7 +2248,7 @@ static void
 vte_terminal_generate_bold(const PangoColor *foreground,
 			   const PangoColor *background,
 			   double factor,
-			   GdkColor *bold)
+                           PangoColor *bold /* (out) (callee allocates) */)
 {
 	double fy, fcb, fcr, by, bcb, bcr, r, g, b;
 	g_assert(foreground != NULL);
@@ -2283,7 +2282,6 @@ vte_terminal_generate_bold(const PangoColor *foreground,
 			"Calculated bold (%d, %d, %d) = (%lf,%lf,%lf)",
 			foreground->red, foreground->green, foreground->blue,
 			r, g, b);
-	bold->pixel = 0;
 	bold->red = CLAMP(r, 0, 0xffff);
 	bold->green = CLAMP(g, 0, 0xffff);
 	bold->blue = CLAMP(b, 0, 0xffff);
@@ -2292,15 +2290,16 @@ vte_terminal_generate_bold(const PangoColor *foreground,
 			bold->red, bold->green, bold->blue);
 }
 
-/**
- * vte_terminal_set_color_bold:
+/*
+ * _vte_terminal_set_color_bold:
  * @terminal: a #VteTerminal
  * @bold: the new bold color
  *
  * Sets the color used to draw bold text in the default foreground color.
  */
-void
-vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
+static void
+_vte_terminal_set_color_bold(VteTerminal *terminal,
+                             const PangoColor *bold)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(bold != NULL);
@@ -2311,15 +2310,16 @@ vte_terminal_set_color_bold(VteTerminal *terminal, const GdkColor *bold)
 	_vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, VTE_COLOR_SOURCE_API, bold);
 }
 
-/**
- * vte_terminal_set_color_dim:
+/*
+ * _vte_terminal_set_color_dim:
  * @terminal: a #VteTerminal
  * @dim: the new dim color
  *
  * Sets the color used to draw dim text in the default foreground color.
  */
-void
-vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
+static void
+_vte_terminal_set_color_dim(VteTerminal *terminal,
+                            const PangoColor *dim)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(dim != NULL);
@@ -2330,16 +2330,16 @@ vte_terminal_set_color_dim(VteTerminal *terminal, const GdkColor *dim)
 	_vte_terminal_set_color_internal(terminal, VTE_DIM_FG, VTE_COLOR_SOURCE_API, dim);
 }
 
-/**
- * vte_terminal_set_color_foreground:
+/*
+ * _vte_terminal_set_color_foreground:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color
  *
  * Sets the foreground color used to draw normal text
  */
-void
-vte_terminal_set_color_foreground(VteTerminal *terminal,
-				  const GdkColor *foreground)
+static void
+_vte_terminal_set_color_foreground(VteTerminal *terminal,
+                                   const PangoColor *foreground)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(foreground != NULL);
@@ -2350,8 +2350,8 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, foreground);
 }
 
-/**
- * vte_terminal_set_color_background:
+/*
+ * _vte_terminal_set_color_background:
  * @terminal: a #VteTerminal
  * @background: the new background color
  *
@@ -2359,9 +2359,9 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
  * color assigned.  Only has effect when no background image is set and when
  * the terminal is not transparent.
  */
-void
-vte_terminal_set_color_background(VteTerminal *terminal,
-				  const GdkColor *background)
+static void
+_vte_terminal_set_color_background(VteTerminal *terminal,
+                                   const PangoColor *background)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail(background != NULL);
@@ -2372,20 +2372,18 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, background);
 }
 
-/**
- * vte_terminal_set_color_cursor:
+/*
+ * _vte_terminal_set_color_cursor:
  * @terminal: a #VteTerminal
  * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
  *
  * Sets the background color for text which is under the cursor.  If %NULL, text
  * under the cursor will be drawn with foreground and background colors
  * reversed.
- *
- * Since: 0.11.11
  */
-void
-vte_terminal_set_color_cursor(VteTerminal *terminal,
-			      const GdkColor *cursor_background)
+static void
+_vte_terminal_set_color_cursor(VteTerminal *terminal,
+                               const PangoColor *cursor_background)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -2402,8 +2400,8 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 	_vte_terminal_set_color_internal(terminal, VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, cursor_background);
 }
 
-/**
- * vte_terminal_set_color_highlight:
+/*
+ * _vte_terminal_set_color_highlight:
  * @terminal: a #VteTerminal
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
@@ -2411,12 +2409,10 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
  * it is unset.  If neither highlight background nor highlight foreground are set,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
- *
- * Since: 0.11.11
  */
-void
-vte_terminal_set_color_highlight(VteTerminal *terminal,
-				 const GdkColor *highlight_background)
+static void
+_vte_terminal_set_color_highlight(VteTerminal *terminal,
+                                  const PangoColor *highlight_background)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -2433,8 +2429,8 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
 	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, highlight_background);
 }
 
-/**
- * vte_terminal_set_color_highlight_foreground:
+/*
+ * _vte_terminal_set_color_highlight_foreground:
  * @terminal: a #VteTerminal
  * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
  *
@@ -2442,12 +2438,10 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
  * it is unset.  If neither highlight background nor highlight foreground are set,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
- *
- * Since: 0.36
  */
-void
-vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
-					    const GdkColor *highlight_foreground)
+static void
+_vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
+                                             const PangoColor *highlight_foreground)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -2464,8 +2458,8 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
 	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, highlight_foreground);
 }
 
-/**
- * vte_terminal_set_colors:
+/*
+ * _vte_terminal_set_colors:
  * @terminal: a #VteTerminal
  * @foreground: (allow-none): the new foreground color, or %NULL
  * @background: (allow-none): the new background color, or %NULL
@@ -2486,20 +2480,19 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
  * 8-color palettes are extrapolated from the new background color and the items
  * in @palette.
  */
-void
-vte_terminal_set_colors(VteTerminal *terminal,
-			const GdkColor *foreground,
-			const GdkColor *background,
-			const GdkColor *palette,
-			glong palette_size)
+static void
+_vte_terminal_set_colors(VteTerminal *terminal,
+                         const PangoColor *foreground,
+                         const PangoColor *background,
+                         const PangoColor *palette,
+                         gsize palette_size)
 {
-	guint i;
-	GdkColor color;
+	gsize i;
+	PangoColor color;
 	gboolean unset = FALSE;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	g_return_if_fail(palette_size >= 0);
 	g_return_if_fail((palette_size == 0) ||
 			 (palette_size == 8) ||
 			 (palette_size == 16) ||
@@ -2507,7 +2500,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size > 24 && palette_size <= 256));
 
 	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set color palette [%ld elements].\n",
+			"Set color palette [%" G_GSIZE_FORMAT " elements].\n",
 			palette_size);
 
 	/* Accept NULL as the default foreground and background colors if we
@@ -2591,7 +2584,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			}
 
 		/* Override from the supplied palette if there is one. */
-		if ((glong) i < palette_size) {
+		if (i < palette_size) {
 			color = palette[i];
 		}
 
@@ -2605,9 +2598,9 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	terminal->pvt->palette_initialized = TRUE;
 }
 
-static GdkColor *
-gdk_color_from_rgba (GdkColor *color,
-                     const GdkRGBA *rgba)
+static PangoColor *
+_pango_color_from_rgba (PangoColor *color,
+                        const GdkRGBA *rgba)
 {
         if (rgba == NULL)
                 return NULL;
@@ -2615,7 +2608,6 @@ gdk_color_from_rgba (GdkColor *color,
         color->red = rgba->red * 65535.;
         color->green = rgba->green * 65535.;
         color->blue = rgba->blue * 65535.;
-        color->pixel = 0;
 
 	return color;
 }
@@ -2632,7 +2624,7 @@ void
 vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
                                  const GdkRGBA *bold)
 {
-	GdkColor color;
+	PangoColor color;
 
 	if (bold == NULL)
 	{
@@ -2643,10 +2635,10 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
 	}
 	else
 	{
-		gdk_color_from_rgba(&color, bold);
+		_pango_color_from_rgba(&color, bold);
 	}
 
-	vte_terminal_set_color_bold(terminal, &color);
+	_vte_terminal_set_color_bold(terminal, &color);
 }
 
 /**
@@ -2663,7 +2655,7 @@ void
 vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
                                 const GdkRGBA *dim)
 {
-	GdkColor color;
+	PangoColor color;
 
 	if (dim == NULL)
 	{
@@ -2674,10 +2666,10 @@ vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
 	}
 	else
 	{
-		gdk_color_from_rgba(&color, dim);
+		_pango_color_from_rgba(&color, dim);
 	}
 
-	vte_terminal_set_color_dim(terminal, &color);
+	_vte_terminal_set_color_dim(terminal, &color);
 }
 
 /**
@@ -2693,10 +2685,10 @@ void
 vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
 				       const GdkRGBA *foreground)
 {
-	GdkColor color;
+	PangoColor color;
 
-	vte_terminal_set_color_foreground(terminal,
-                                          gdk_color_from_rgba(&color, foreground));
+	_vte_terminal_set_color_foreground(terminal,
+                                           _pango_color_from_rgba(&color, foreground));
 }
 
 /**
@@ -2714,10 +2706,10 @@ void
 vte_terminal_set_color_background_rgba(VteTerminal *terminal,
 				       const GdkRGBA *background)
 {
-	GdkColor color;
+	PangoColor color;
 
-	vte_terminal_set_color_background(terminal,
-                                          gdk_color_from_rgba (&color, background));
+	_vte_terminal_set_color_background(terminal,
+                                           _pango_color_from_rgba (&color, background));
 }
 
 /**
@@ -2735,10 +2727,10 @@ void
 vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
 				   const GdkRGBA *cursor_background)
 {
-        GdkColor color;
+        PangoColor color;
 
-	vte_terminal_set_color_cursor(terminal,
-                                      gdk_color_from_rgba(&color, cursor_background));
+	_vte_terminal_set_color_cursor(terminal,
+                                       _pango_color_from_rgba(&color, cursor_background));
 }
 
 /**
@@ -2757,10 +2749,10 @@ void
 vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 				      const GdkRGBA *highlight_background)
 {
-	GdkColor color;
+	PangoColor color;
 
-	vte_terminal_set_color_highlight(terminal,
-                                         gdk_color_from_rgba(&color, highlight_background));
+	_vte_terminal_set_color_highlight(terminal,
+                                          _pango_color_from_rgba(&color, highlight_background));
 }
 
 /**
@@ -2779,10 +2771,10 @@ void
 vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
 						 const GdkRGBA *highlight_foreground)
 {
-	GdkColor color;
+	PangoColor color;
 
-	vte_terminal_set_color_highlight_foreground(terminal,
-                                                    gdk_color_from_rgba(&color, highlight_foreground));
+	_vte_terminal_set_color_highlight_foreground(terminal,
+                                                     _pango_color_from_rgba(&color, highlight_foreground));
 }
 
 /**
@@ -2816,19 +2808,19 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 			     const GdkRGBA *palette,
 			     gsize palette_size)
 {
-	GdkColor fg, bg, *pal;
+	PangoColor fg, bg, *pal;
 	gsize i;
 
 	g_return_if_fail(palette_size <= 256);
 
-	pal = g_new (GdkColor, palette_size);
+	pal = g_new (PangoColor, palette_size);
 	for (i = 0; i < palette_size; ++i)
-                gdk_color_from_rgba(&pal[i], &palette[i]);
+                _pango_color_from_rgba(&pal[i], &palette[i]);
 
-	vte_terminal_set_colors(terminal,
-                                gdk_color_from_rgba(&fg, foreground),
-                                gdk_color_from_rgba(&bg, background),
-	                        pal, palette_size);
+	_vte_terminal_set_colors(terminal,
+                                 _pango_color_from_rgba(&fg, foreground),
+                                 _pango_color_from_rgba(&bg, background),
+                                 pal, palette_size);
 
 	g_free (pal);
 }
@@ -2843,7 +2835,7 @@ void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
+	_vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
 }
 
 

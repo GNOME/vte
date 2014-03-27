@@ -159,7 +159,7 @@ typedef struct _VteScreen VteScreen;
 typedef struct _VteWordCharRange {
 	gunichar start, end;
 } VteWordCharRange;
-
+ 
 typedef struct _VtePaletteColor {
 	struct {
 		PangoColor color;
@@ -467,7 +467,7 @@ PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
 void _vte_terminal_set_color_internal(VteTerminal *terminal,
                                       int idx,
                                       int source,
-                                      const GdkColor *color);
+                                      const PangoColor *color);
 
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 

@@ -165,7 +165,7 @@ typedef struct _VteCharAttributes VteCharAttributes;
 struct _VteCharAttributes {
         /*< private >*/
 	long row, column;
-	GdkColor fore, back;
+	PangoColor fore, back;
 	guint underline:1, strikethrough:1;
 };
 
@@ -230,26 +230,6 @@ void vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap);
 gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal);
 
 /* Set the color scheme. */
-void vte_terminal_set_color_dim(VteTerminal *terminal,
-				const GdkColor *dim);
-void vte_terminal_set_color_bold(VteTerminal *terminal,
-				 const GdkColor *bold);
-void vte_terminal_set_color_foreground(VteTerminal *terminal,
-				       const GdkColor *foreground);
-void vte_terminal_set_color_background(VteTerminal *terminal,
-				       const GdkColor *background);
-void vte_terminal_set_color_cursor(VteTerminal *terminal,
-				   const GdkColor *cursor_background);
-void vte_terminal_set_color_highlight(VteTerminal *terminal,
-				      const GdkColor *highlight_background);
-void vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
-						 const GdkColor *highlight_foreground);
-void vte_terminal_set_colors(VteTerminal *terminal,
-			     const GdkColor *foreground,
-			     const GdkColor *background,
-			     const GdkColor *palette,
-			     glong palette_size);
-
 void vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
                                       const GdkRGBA *bold);
 void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,

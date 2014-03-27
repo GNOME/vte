@@ -136,10 +136,11 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 }
 
 static gboolean
-vte_parse_color (const char *spec, GdkColor *color)
+vte_parse_color (const char *spec, PangoColor *color)
 {
 	gchar *spec_copy = (gchar *) spec;
 	gboolean retval = FALSE;
+        GdkColor gdk_color;
 
 	/* gdk_color_parse doesnt handle all XParseColor formats.  It only
 	 * supports the #RRRGGGBBB format, not the rgb:RRR/GGG/BBB format.
@@ -159,10 +160,16 @@ vte_parse_color (const char *spec, GdkColor *color)
 		*cur++ = '\0';
 	}
 
-	retval = gdk_color_parse (spec_copy, color);
+	retval = gdk_color_parse (spec_copy, &gdk_color);
 
 	if (spec_copy != spec)
 		g_free (spec_copy);
+
+        if (retval) {
+                color->red = gdk_color.red;
+                color->green = gdk_color.green;
+                color->blue = gdk_color.blue;
+        }
 
 	return retval;
 }
@@ -1897,7 +1904,7 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
 {
 	gchar **pairs, *str = NULL;
 	GValue *value;
-	GdkColor color;
+	PangoColor color;
 	guint idx, i;
 
 	if (params != NULL && params->n_values > 0) {
@@ -3549,7 +3556,7 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 {
 	gchar *name = NULL;
 	GValue *value;
-	GdkColor color;
+	PangoColor color;
 
 	if (params != NULL && params->n_values > 0) {
 		value = g_value_array_get_nth (params, 0);
