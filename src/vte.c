@@ -10289,7 +10289,7 @@ vte_terminal_draw(GtkWidget *widget,
         VteTerminal *terminal = VTE_TERMINAL (widget);
         cairo_rectangle_int_t clip_rect;
         cairo_region_t *region;
-	GtkAllocation allocation;
+        int allocated_width, allocated_height;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                 return FALSE;
@@ -10304,16 +10304,15 @@ vte_terminal_draw(GtkWidget *widget,
         if (region == NULL)
                 return FALSE;
 
-	terminal = VTE_TERMINAL(widget);
-	gtk_widget_get_allocation (widget, &allocation);
+        allocated_width = gtk_widget_get_allocated_width(widget);
+        allocated_height = gtk_widget_get_allocated_height(widget);
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_start(terminal->pvt->draw);
 
 	_vte_draw_clip(terminal->pvt->draw, region);
-	gtk_widget_get_allocation(&terminal->widget, &allocation);
 	_vte_draw_clear (terminal->pvt->draw, 0, 0,
-			 allocation.width, allocation.height);
+			 allocated_width, allocated_height);
 
 	/* Calculate the bounding rectangle. */
 	{
@@ -10327,8 +10326,8 @@ vte_terminal_draw(GtkWidget *widget,
 
 		/* don't bother to enlarge an invalidate all */
 		if (!(n_rectangles == 1
-		      && rectangles[0].width == allocation.width
-		      && rectangles[0].height == allocation.height)) {
+		      && rectangles[0].width == allocated_width
+		      && rectangles[0].height == allocated_height)) {
 			cairo_region_t *rr = cairo_region_create ();
 			/* convert pixels into whole cells */
 			for (n = 0; n < n_rectangles; n++) {
