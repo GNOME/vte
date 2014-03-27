@@ -5,7 +5,7 @@ EXTRA_DIST = iso2022.txt
 # The library
 
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
-header_HEADERS = vte.h vtepty.h vtetypebuiltins.h vteversion.h vtedeprecated.h
+header_HEADERS = vte.h vtepty.h vtetypebuiltins.h vteversion.h
 
 lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 
@@ -59,7 +59,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
-	vtedeprecated.h \
 	vteint.h \
 	vtepty.h \
 	vtepty-private.h \
@@ -125,13 +124,13 @@ marshal.h: marshal.list
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h vtedeprecated.h
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h vtedeprecated.h
+vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
