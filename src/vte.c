@@ -12068,28 +12068,6 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 	vte_terminal_paste(terminal, GDK_SELECTION_PRIMARY);
 }
 
-/**
- * vte_terminal_im_append_menuitems:
- * @terminal: a #VteTerminal
- * @menushell: a GtkMenuShell
- *
- * Appends menu items for various input methods to the given menu.  The
- * user can select one of these items to modify the input method used by
- * the terminal.
- *
- * Deprecated: 0.34.6
- */
-void
-vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
-{
-	GtkIMMulticontext *context;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail (gtk_widget_get_realized (&terminal->widget));
-        g_return_if_fail(GTK_IS_MENU_SHELL(menushell));
-	context = GTK_IM_MULTICONTEXT(terminal->pvt->im_context);
-	gtk_im_multicontext_append_menuitems(context, menushell);
-}
-
 /* Set up whatever background we wanted. */
 static void
 vte_terminal_background_update(VteTerminal *terminal)

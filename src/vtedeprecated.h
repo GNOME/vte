@@ -29,9 +29,6 @@
 
 G_BEGIN_DECLS
 
-void vte_terminal_im_append_menuitems(VteTerminal *terminal,
-				      GtkMenuShell *menushell) G_GNUC_DEPRECATED;
-
 G_END_DECLS
 
 void vte_terminal_set_alternate_screen_scroll(VteTerminal *terminal,

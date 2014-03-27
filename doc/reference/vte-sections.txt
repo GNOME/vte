@@ -116,9 +116,6 @@ vte_terminal_get_window_title
 vte_terminal_get_current_directory_uri
 vte_terminal_get_current_file_uri
 
-<SUBSECTION Deprecated>
-vte_terminal_im_append_menuitems
-
 <SUBSECTION Private>
 VteCharAttributes
 VteTerminalPrivate
