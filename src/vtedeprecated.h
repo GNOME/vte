@@ -31,9 +31,6 @@ G_BEGIN_DECLS
 
 G_END_DECLS
 
-void vte_terminal_set_alternate_screen_scroll(VteTerminal *terminal,
-                                              gboolean scroll) G_GNUC_DEPRECATED;
-
 #endif /* !vte_deprecated_h_included */
 
 #endif /* !VTE_DISABLE_DEPRECATED */
