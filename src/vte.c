@@ -96,7 +96,7 @@ static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
 static void vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y);
 static void vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y);
 static void vte_terminal_match_contents_clear(VteTerminal *terminal);
-static gboolean vte_terminal_background_update(VteTerminal *data);
+static void vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
@@ -12101,7 +12101,7 @@ vte_terminal_im_append_menuitems(VteTerminal *terminal, GtkMenuShell *menushell)
 }
 
 /* Set up whatever background we wanted. */
-static gboolean
+static void
 vte_terminal_background_update(VteTerminal *terminal)
 {
 	const PangoColor *entry;
@@ -12110,14 +12110,11 @@ vte_terminal_background_update(VteTerminal *terminal)
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
 	if (! gtk_widget_get_realized (&terminal->widget)) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Can not set background image without "
-				"window.\n");
-		return TRUE;
+		return;
 	}
 
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
-			"Updating background image.\n");
+			"Updating background color.\n");
 
 	entry = _vte_terminal_get_color(terminal, VTE_DEFAULT_BG);
 	_vte_debug_print(VTE_DEBUG_BG,
@@ -12134,8 +12131,6 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	/* Force a redraw for everything. */
 	_vte_invalidate_all (terminal);
-
-	return FALSE;
 }
 
 /**
