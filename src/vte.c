@@ -699,6 +699,9 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 	gint columns;
 	guint style;
 
+        if (!gtk_widget_get_realized(&terminal->widget))
+                return;
+
 	if (terminal->pvt->invalidated_all) {
 		return;
 	}
@@ -4521,11 +4524,8 @@ vte_terminal_style_updated (GtkWidget *widget)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         float aspect;
-        void (* style_updated) (GtkWidget *) =
-          GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated;
 
-        if (style_updated)
-          style_updated (widget);
+        GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated (widget);
 
         vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
         vte_terminal_set_inner_border(terminal);
@@ -7357,8 +7357,9 @@ vte_terminal_set_font(VteTerminal *terminal,
                       const PangoFontDescription *font_desc)
 {
         GObject *object;
-	GtkStyle *style;
+        GtkStyleContext *context;
 	VteTerminalPrivate *pvt;
+        const PangoFontDescription *style_font;
 	PangoFontDescription *desc;
         gboolean same_desc;
 
@@ -7368,9 +7369,9 @@ vte_terminal_set_font(VteTerminal *terminal,
         pvt = terminal->pvt;
 
 	/* Create an owned font description. */
-	gtk_widget_ensure_style (&terminal->widget);
-	style = gtk_widget_get_style (&terminal->widget);
-	desc = pango_font_description_copy (style->font_desc);
+        context = gtk_widget_get_style_context(&terminal->widget);
+        style_font = gtk_style_context_get_font(context, GTK_STATE_FLAG_NORMAL);
+	desc = pango_font_description_copy (style_font);
 	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != NULL) {
 		pango_font_description_merge (desc, font_desc, TRUE);
@@ -8037,9 +8038,6 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Rendering data */
 	pvt->draw = _vte_draw_new();
 
-	/* The font description. */
-	gtk_widget_ensure_style(&terminal->widget);
-
 	/* Set up background information. */
 	pvt->bg_tint_color.red = 1.;
 	pvt->bg_tint_color.green = 1.;
@@ -8270,12 +8268,6 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Remove the GDK window. */
 	if (window != NULL) {
-		/* detach style */
-		GtkStyle *style;
-
-		style = gtk_widget_get_style (widget);
-		gtk_style_detach (style);
-
 		gdk_window_set_user_data (window, NULL);
 		gtk_widget_set_window (widget, NULL);
 
@@ -8627,8 +8619,6 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Create our invisible cursor. */
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
-
-	gtk_widget_style_attach (widget);
 
 	vte_terminal_ensure_font (terminal);
 
