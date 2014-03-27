@@ -741,13 +741,12 @@ struct _vte_draw {
 };
 
 struct _vte_draw *
-_vte_draw_new (GtkWidget *widget)
+_vte_draw_new (void)
 {
 	struct _vte_draw *draw;
 
 	/* Create the structure. */
 	draw = g_slice_new0 (struct _vte_draw);
-	draw->widget = g_object_ref (widget);
 
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_new\n");
 
@@ -778,10 +777,6 @@ _vte_draw_free (struct _vte_draw *draw)
 			font_info_destroy (draw->fonts[style]);
 			draw->fonts[style] = NULL;
 		}
-	}
-
-	if (draw->widget != NULL) {
-		g_object_unref (draw->widget);
 	}
 
 	g_slice_free (struct _vte_draw, draw);
@@ -841,7 +836,8 @@ _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height
 
 void
 _vte_draw_set_text_font (struct _vte_draw *draw,
-			const PangoFontDescription *fontdesc)
+                         GtkWidget *widget,
+                         const PangoFontDescription *fontdesc)
 {
 	PangoFontDescription *bolddesc   = NULL;
 	PangoFontDescription *italicdesc = NULL;
@@ -871,11 +867,11 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
 	bolditalicdesc = pango_font_description_copy (bolddesc);
 	pango_font_description_set_style (bolditalicdesc, PANGO_STYLE_ITALIC);
 
-	draw->fonts[VTE_DRAW_NORMAL]  = font_info_create_for_widget (draw->widget, fontdesc);
-	draw->fonts[VTE_DRAW_BOLD]    = font_info_create_for_widget (draw->widget, bolddesc);
-	draw->fonts[VTE_DRAW_ITALIC]  = font_info_create_for_widget (draw->widget, italicdesc);
+	draw->fonts[VTE_DRAW_NORMAL]  = font_info_create_for_widget (widget, fontdesc);
+	draw->fonts[VTE_DRAW_BOLD]    = font_info_create_for_widget (widget, bolddesc);
+	draw->fonts[VTE_DRAW_ITALIC]  = font_info_create_for_widget (widget, italicdesc);
 	draw->fonts[VTE_DRAW_ITALIC | VTE_DRAW_BOLD] =
-                font_info_create_for_widget (draw->widget, bolditalicdesc);
+                font_info_create_for_widget (widget, bolditalicdesc);
 	pango_font_description_free (bolddesc);
 	pango_font_description_free (italicdesc);
 	pango_font_description_free (bolditalicdesc);
