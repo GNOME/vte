@@ -399,8 +399,7 @@ struct _VteTerminalPrivate {
         gchar *current_file_uri;
         gchar *current_file_uri_changed;
 
-	/* Background images/"transparency". */
-	gboolean bg_update_pending;
+	/* Background */
         GdkRGBA bg_tint_color;
 
 	/* Key modifiers. */

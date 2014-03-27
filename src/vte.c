@@ -100,7 +100,6 @@ static void vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y
 static void vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y);
 static void vte_terminal_match_contents_clear(VteTerminal *terminal);
 static gboolean vte_terminal_background_update(VteTerminal *data);
-static void vte_terminal_queue_background_update(VteTerminal *terminal);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
@@ -2229,7 +2228,7 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 	/* If we're setting the background color, set the background color
 	 * on the widget as well. */
 	if (entry == VTE_DEFAULT_BG) {
-		vte_terminal_queue_background_update(terminal);
+		vte_terminal_background_update(terminal);
 	}
 
 	/* and redraw */
@@ -12160,27 +12159,10 @@ vte_terminal_background_update(VteTerminal *terminal)
 
         _vte_draw_set_background_solid (terminal->pvt->draw, &color);
 
-	/* Note that the update has finished. */
-	terminal->pvt->bg_update_pending = FALSE;
-
 	/* Force a redraw for everything. */
 	_vte_invalidate_all (terminal);
 
 	return FALSE;
-}
-
-/* Queue an update of the background image, to be done as soon as we can
- * get to it.  Just bail if there's already an update pending, so that if
- * opaque move tables to screw us, we don't end up with an insane backlog
- * of updates after the user finishes moving us. */
-static void
-vte_terminal_queue_background_update(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Queued background update.\n");
-	terminal->pvt->bg_update_pending = TRUE;
-	/* force a redraw when convenient */
-	add_update_timeout (terminal);
 }
 
 /**
@@ -12221,7 +12203,7 @@ vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
 
         g_object_notify(G_OBJECT (terminal), "background-tint-color");
 
-        vte_terminal_queue_background_update(terminal);
+        vte_terminal_background_update(terminal);
 }
 
 /**
@@ -13560,9 +13542,6 @@ update_repeat_timeout (gpointer data)
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
-		if (terminal->pvt->bg_update_pending) {
-			vte_terminal_background_update (terminal);
-		}
 		vte_terminal_emit_adjustment_changed (terminal);
 		if (need_processing (terminal)) {
 			if (VTE_MAX_PROCESS_TIME) {
@@ -13663,9 +13642,6 @@ update_timeout (gpointer data)
 						G_IO_IN, terminal);
 			}
 			_vte_terminal_enable_input_source (terminal);
-		}
-		if (terminal->pvt->bg_update_pending) {
-			vte_terminal_background_update (terminal);
 		}
 		vte_terminal_emit_adjustment_changed (terminal);
 		if (need_processing (terminal)) {
