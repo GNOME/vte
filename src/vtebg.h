@@ -51,7 +51,6 @@ VteBg *vte_bg_get_for_screen(GdkScreen *screen);
 
 typedef enum {
 	VTE_BG_SOURCE_NONE,
-	VTE_BG_SOURCE_ROOT,
 	VTE_BG_SOURCE_PIXBUF,
 	VTE_BG_SOURCE_FILE
 } VteBgSourceType;

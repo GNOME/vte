@@ -548,7 +548,8 @@ main(int argc, char **argv)
 #endif
 		NULL};
 	const char *background = NULL;
-	gboolean transparent = FALSE, audible = TRUE,
+        char *transparent = NULL;
+	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, scroll = FALSE, keep = FALSE,
 		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
@@ -596,8 +597,8 @@ main(int argc, char **argv)
 		},
 		{
 			"transparent", 'T', 0,
-			G_OPTION_ARG_NONE, &transparent,
-			"Enable the use of a transparent background", NULL
+			G_OPTION_ARG_STRING, &transparent,
+			"Enable the use of a transparent background", "ALPHA"
 		},
 		{
 			"double-buffer", '2', G_OPTION_FLAG_REVERSE,
@@ -891,9 +892,9 @@ main(int argc, char **argv)
 		vte_terminal_set_background_image_file(terminal,
 						       background);
 	}
-	if (transparent) {
-		vte_terminal_set_background_transparent(terminal,
-							TRUE);
+	if (transparent != NULL) {
+                tint.alpha = g_ascii_strtod (transparent, NULL);
+                g_free (transparent);
                 vte_terminal_set_background_tint_color_rgba(terminal, &tint);
         }
         G_GNUC_END_IGNORE_DEPRECATIONS;

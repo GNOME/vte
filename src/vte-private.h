@@ -400,9 +400,7 @@ struct _VteTerminalPrivate {
         gchar *current_file_uri_changed;
 
 	/* Background images/"transparency". */
-	guint root_pixmap_changed_tag;
 	gboolean bg_update_pending;
-	gboolean bg_transparent;
 	GdkPixbuf *bg_pixbuf;
 	char *bg_file;
         GdkRGBA bg_tint_color;

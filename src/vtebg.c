@@ -25,26 +25,11 @@
 #include "marshal.h"
 #include "vtebg.h"
 
-#ifdef GDK_WINDOWING_X11
-#include <gdk/gdkx.h>
-#include <cairo-xlib.h>
-#endif
-
 G_DEFINE_TYPE(VteBg, vte_bg, G_TYPE_OBJECT)
 
 struct _VteBgPrivate {
 	GList *cache;
 	GdkScreen *screen;
-#ifdef GDK_WINDOWING_X11
-	cairo_surface_t *root_surface;
-        struct {
-                GdkDisplay *display;
-                GdkWindow *window;
-                XID native_window;
-                GdkAtom atom;
-                Atom native_atom;
-        } native;
-#endif
 };
 
 typedef struct {
@@ -58,119 +43,7 @@ typedef struct {
 } VteBgCacheItem;
 
 static void vte_bg_cache_item_free(VteBgCacheItem *item);
-static void vte_bg_cache_prune_int(VteBg *bg, gboolean root);
 static const cairo_user_data_key_t item_surface_key;
-
-#ifdef GDK_WINDOWING_X11
-
-static void
-_vte_bg_display_sync(VteBg *bg)
-{
-        VteBgPrivate *pvt = bg->pvt;
-
-	gdk_display_sync(pvt->native.display);
-}
-
-static gboolean
-_vte_property_get_pixmaps(GdkWindow *window, GdkAtom atom,
-			  GdkAtom *type, int *size,
-			  XID **pixmaps)
-{
-	return gdk_property_get(window, atom, GDK_TARGET_PIXMAP,
-				0, INT_MAX - 3,
-				FALSE,
-				type, NULL, size,
-				(guchar**) pixmaps);
-}
-
-static cairo_surface_t *
-vte_bg_root_surface(VteBg *bg)
-{
-        VteBgPrivate *pvt = bg->pvt;
-	GdkAtom prop_type;
-	int prop_size;
-	Window root;
-	XID *pixmaps;
-	int x, y;
-	unsigned int width, height, border_width, depth;
-	cairo_surface_t *surface = NULL;
-	Display *display;
-	Screen *screen;
-
-	pixmaps = NULL;
-	gdk_error_trap_push();
-	if (!_vte_property_get_pixmaps(pvt->native.window, pvt->native.atom,
-                                       &prop_type, &prop_size,
-                                       &pixmaps))
-		goto out;
-
-	if ((prop_type != GDK_TARGET_PIXMAP) ||
-	    (prop_size < (int)sizeof(XID) ||
-	     (pixmaps == NULL)))
-		goto out_pixmaps;
-		
-	if (!XGetGeometry (GDK_DISPLAY_XDISPLAY (pvt->native.display),
-			   pixmaps[0], &root,
-			   &x, &y, &width, &height, &border_width, &depth))
-		goto out_pixmaps;
-
-	display = gdk_x11_display_get_xdisplay (pvt->native.display);
-	screen = gdk_x11_screen_get_xscreen (pvt->screen);
-	surface = cairo_xlib_surface_create (display,
-					     pixmaps[0],
-					     DefaultVisualOfScreen(screen),
-					     width, height);
-
-        _vte_debug_print(VTE_DEBUG_BG|VTE_DEBUG_EVENTS,
-                         "VteBg new background image %dx%d\n", width, height);
-
- out_pixmaps:
-	g_free(pixmaps);
- out:
-	_vte_bg_display_sync(bg);
-	gdk_error_trap_pop_ignored ();
-
-	return surface;
-}
-
-static void
-vte_bg_set_root_surface(VteBg *bg, cairo_surface_t *surface)
-{
-        VteBgPrivate *pvt = bg->pvt;
-
-	if (pvt->root_surface != NULL) {
-		cairo_surface_destroy (pvt->root_surface);
-	}
-	pvt->root_surface = surface;
-	vte_bg_cache_prune_int (bg, TRUE);
-	g_signal_emit_by_name(bg, "root-pixmap-changed");
-}
-
-static GdkFilterReturn
-vte_bg_root_filter(GdkXEvent *native, GdkEvent *event, gpointer data)
-{
-	XEvent *xevent = (XEvent*) native;
-	VteBg *bg;
-        VteBgPrivate *pvt;
-	cairo_surface_t *surface;
-
-	switch (xevent->type) {
-	case PropertyNotify:
-		bg = VTE_BG(data);
-                pvt = bg->pvt;
-		if ((xevent->xproperty.window == pvt->native.native_window) &&
-		    (xevent->xproperty.atom == pvt->native.native_atom)) {
-			surface = vte_bg_root_surface(bg);
-			vte_bg_set_root_surface(bg, surface);
-		}
-		break;
-	default:
-		break;
-	}
-	return GDK_FILTER_CONTINUE;
-}
-
-#endif /* GDK_WINDOWING_X11 */
 
 static void
 vte_bg_finalize (GObject *obj)
@@ -191,14 +64,6 @@ vte_bg_class_init(VteBgClass *klass)
 
 	gobject_class->finalize = vte_bg_finalize;
 
-	g_signal_new("root-pixmap-changed",
-                     G_OBJECT_CLASS_TYPE(klass),
-                     G_SIGNAL_RUN_LAST,
-                     0,
-                     NULL,
-                     NULL,
-                     g_cclosure_marshal_VOID__VOID,
-                     G_TYPE_NONE, 0);
 	g_type_class_add_private(klass, sizeof (VteBgPrivate));
 }
 
@@ -232,25 +97,6 @@ vte_bg_get_for_screen(GdkScreen *screen)
 		/* connect bg to screen */
                 pvt = bg->pvt;
 		pvt->screen = screen;
-#ifdef GDK_WINDOWING_X11
-            if (GDK_IS_X11_DISPLAY(gdk_screen_get_display(screen)))
-            {
-                GdkEventMask events;
-                GdkWindow   *window;
-
-		window = gdk_screen_get_root_window(screen);
-                pvt->native.window = window;
-                pvt->native.native_window = GDK_WINDOW_XID (window);
-                pvt->native.display = gdk_window_get_display(window);
-                pvt->native.native_atom = gdk_x11_get_xatom_by_name_for_display(pvt->native.display, "_XROOTPMAP_ID");
-                pvt->native.atom = gdk_x11_xatom_to_atom_for_display(pvt->native.display, pvt->native.native_atom);
-		pvt->root_surface = vte_bg_root_surface(bg);
-		events = gdk_window_get_events(window);
-		events |= GDK_PROPERTY_CHANGE_MASK;
-		gdk_window_set_events(window, events);
-		gdk_window_add_filter(window, vte_bg_root_filter, bg);
-            }
-#endif /* GDK_WINDOWING_X11 */
 	}
 
 	return bg;
@@ -277,27 +123,19 @@ vte_bg_cache_item_free(VteBgCacheItem *item)
 }
 
 static void
-vte_bg_cache_prune_int(VteBg *bg, gboolean root)
+vte_bg_cache_prune(VteBg *bg)
 {
 	GList *i, *next;
 	for (i = bg->pvt->cache; i != NULL; i = next) {
 		VteBgCacheItem *item = i->data;
 		next = g_list_next (i);
-		/* Prune the item if either it is a "root pixmap" item and
-		 * we want to prune them, or its surface is NULL because
+		/* Prune the item if its surface is NULL because
 		 * whichever object it created has been destroyed. */
-		if ((root && (item->source_type == VTE_BG_SOURCE_ROOT)) ||
-		    item->surface == NULL) {
+                if (item->surface == NULL) {
 			vte_bg_cache_item_free (item);
 			bg->pvt->cache = g_list_delete_link(bg->pvt->cache, i);
 		}
 	}
-}
-
-static void
-vte_bg_cache_prune(VteBg *bg)
-{
-	vte_bg_cache_prune_int(bg, FALSE);
 }
 
 static void item_surface_destroy_func(void *data)
@@ -362,8 +200,6 @@ vte_bg_cache_search(VteBg *bg,
 		    (saturation == item->saturation) &&
 		    (source_type == item->source_type)) {
 			switch (source_type) {
-			case VTE_BG_SOURCE_ROOT:
-				break;
 			case VTE_BG_SOURCE_PIXBUF:
 				if (item->source_pixbuf != source_pixbuf) {
 					continue;
@@ -420,11 +256,6 @@ vte_bg_get_surface(VteBg *bg,
 	if (source_type == VTE_BG_SOURCE_NONE) {
 		return NULL;
 	}
-#ifndef GDK_WINDOWING_X11
-        if (source_type == VTE_BG_SOURCE_ROOT) {
-                return NULL;
-        }
-#endif
 
 	cached = vte_bg_cache_search(bg, source_type,
 				     source_pixbuf, source_file,
@@ -451,8 +282,6 @@ vte_bg_get_surface(VteBg *bg,
 	pixbuf = NULL;
 
 	switch (source_type) {
-	case VTE_BG_SOURCE_ROOT:
-		break;
 	case VTE_BG_SOURCE_PIXBUF:
 		item->source_pixbuf = g_object_ref (source_pixbuf);
 		pixbuf = g_object_ref (source_pixbuf);
@@ -472,13 +301,6 @@ vte_bg_get_surface(VteBg *bg,
 		width = gdk_pixbuf_get_width(pixbuf);
 		height = gdk_pixbuf_get_height(pixbuf);
 	}
-#ifdef GDK_WINDOWING_X11
-        else if (source_type == VTE_BG_SOURCE_ROOT &&
-                 pvt->root_surface != NULL) {
-		width = cairo_xlib_surface_get_width(pvt->root_surface);
-		height = cairo_xlib_surface_get_height(pvt->root_surface);
-	}
-#endif
         else
                 goto out;
 
@@ -490,10 +312,6 @@ vte_bg_get_surface(VteBg *bg,
 	cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 	if (pixbuf)
 		gdk_cairo_set_source_pixbuf (cr, pixbuf, 0, 0);
-#ifdef GDK_WINDOWING_X11
-	else if (source_type == VTE_BG_SOURCE_ROOT)
-		cairo_set_source_surface (cr, pvt->root_surface, 0, 0);
-#endif
 	cairo_paint (cr);
 
         alpha = (1. - saturation) * tint->alpha;

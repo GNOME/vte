@@ -121,7 +121,6 @@ vte_terminal_im_append_menuitems
 vte_terminal_set_background_image
 vte_terminal_set_background_image_file
 vte_terminal_set_background_saturation
-vte_terminal_set_background_transparent
 vte_terminal_set_scroll_background
 
 <SUBSECTION Private>
