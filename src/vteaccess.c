@@ -1876,8 +1876,7 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 
         /* If the size is an exact multiple of the cell size, use that,
          * otherwise round down. */
-        if (!_vte_terminal_size_to_grid_size(terminal, width, height, &columns, &rows))
-                return FALSE;
+        (void) _vte_terminal_size_to_grid_size(terminal, width, height, &columns, &rows);
 
 	vte_terminal_set_size(terminal, columns, rows);
 	return (vte_terminal_get_row_count (terminal) == rows) &&
