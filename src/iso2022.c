@@ -769,13 +769,13 @@ _vte_iso2022_state_new(const char *native_codeset,
 	state->g[1] = 'B';
 	state->g[2] = 'B';
 	state->g[3] = 'B';
-	state->codeset = native_codeset;
-	state->native_codeset = state->codeset;
+	state->native_codeset = state->codeset = g_intern_string(native_codeset);
 	if (native_codeset == NULL) {
-		g_get_charset(&state->codeset);
-		state->native_codeset = state->codeset;
-	}
-	state->utf8_codeset = "UTF-8";
+                const char *codeset;
+		g_get_charset(&codeset);
+		state->native_codeset = state->codeset = g_intern_string(codeset);
+        }
+	state->utf8_codeset = g_intern_string("UTF-8");
 	state->target_codeset = VTE_CONV_GUNICHAR_TYPE;
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 			"Native codeset \"%s\", currently %s\n",
