@@ -206,6 +206,7 @@ struct _VteTerminalPrivate {
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
+        int iso2022_utf8_ambiguous_width;
 	struct _vte_iso2022_state *iso2022;
 	struct _vte_incoming_chunk{
 		struct _vte_incoming_chunk *next;

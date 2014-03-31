@@ -151,6 +151,7 @@ enum {
         PROP_AUDIBLE_BELL,
         PROP_BACKGROUND_TINT_COLOR,
         PROP_BACKSPACE_BINDING,
+        PROP_CJK_AMBIGUOUS_WIDTH,
         PROP_CURSOR_BLINK_MODE,
         PROP_CURSOR_SHAPE,
         PROP_CURRENT_DIRECTORY_URI,
@@ -2035,6 +2036,49 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	return terminal->pvt->encoding;
+}
+
+/**
+ * vte_terminal_set_cjk_ambiguous_width:
+ * @terminal: a #VteTerminal
+ * @width: either 1 (narrow) or 2 (wide)
+ *
+ * This setting controls whether ambiguous-width characters are narrow or wide
+ * when using the UTF-8 encoding (vte_terminal_set_encoding()). In all other encodings,
+ * the width of ambiguous-width characters is fixed.
+ *
+ * This setting only takes effect the next time the terminal is reset, either
+ * via escape sequence or with vte_terminal_reset().
+ *
+ * Since: 0.38
+ */
+void
+vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(width == 1 || width == 2);
+
+        terminal->pvt->iso2022_utf8_ambiguous_width = width;
+        if (terminal->pvt->pty == NULL)
+                _vte_iso2022_state_set_utf8_ambiguous_width(terminal->pvt->iso2022, width);
+}
+
+/**
+ * vte_terminal_get_cjk_ambiguous_width:
+ * @terminal: a #VteTerminal
+ *
+ * Returns whether ambiguous-width characters are narrow or wide when using
+ * the UTF-8 encoding (vte_terminal_set_encoding()).
+ *
+ * Returns: 1 if ambiguous-width characters are narrow, or 2 if they are wide
+ *
+ * Since: 0.38
+ */
+int
+vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1);
+        return terminal->pvt->iso2022_utf8_ambiguous_width;
 }
 
 static inline VteRowData *
@@ -8026,7 +8070,9 @@ vte_terminal_init(VteTerminal *terminal)
 	_vte_terminal_set_default_attributes(terminal);
 
 	/* Set up I/O encodings. */
+        pvt->iso2022_utf8_ambiguous_width = VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
+                                              pvt->iso2022_utf8_ambiguous_width,
 					      &_vte_terminal_codeset_changed_cb,
 					      terminal);
 	pvt->incoming = NULL;
@@ -10633,6 +10679,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, pvt->backspace_binding);
                         break;
+                case PROP_CJK_AMBIGUOUS_WIDTH:
+                        g_value_set_int (value, vte_terminal_get_cjk_ambiguous_width (terminal));
+                        break;
                 case PROP_CURSOR_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
                         break;
@@ -10730,6 +10779,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
+                        break;
+                case PROP_CJK_AMBIGUOUS_WIDTH:
+                        vte_terminal_set_cjk_ambiguous_width (terminal, g_value_get_int (value));
                         break;
                 case PROP_CURSOR_BLINK_MODE:
                         vte_terminal_set_cursor_blink_mode (terminal, g_value_get_enum (value));
@@ -11489,6 +11541,25 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
+         * VteTerminal:cjk-ambiguous-width:
+         *
+         * This setting controls whether ambiguous-width characters are narrow or wide
+         * when using the UTF-8 encoding (vte_terminal_set_encoding()). In all other encodings,
+         * the width of ambiguous-width characters is fixed.
+         *
+         * This setting only takes effect the next time the terminal is reset, either
+         * via escape sequence or with vte_terminal_reset().
+         * 
+         * Since: 0.38
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_CURSOR_BLINK_MODE,
+                 g_param_spec_int ("cjk-ambiguous-width", NULL, NULL,
+                                   1, 2, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+        /**
          * VteTerminal:cursor-blink-mode:
          *
          * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
@@ -11503,7 +11574,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
                                     VTE_CURSOR_BLINK_SYSTEM,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
+
         /**
          * VteTerminal:cursor-shape:
          *
@@ -12625,6 +12696,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	/* Reset charset substitution state. */
 	_vte_iso2022_state_free(pvt->iso2022);
 	pvt->iso2022 = _vte_iso2022_state_new(NULL,
+                                              pvt->iso2022_utf8_ambiguous_width,
 							&_vte_terminal_codeset_changed_cb,
 							terminal);
 	_vte_iso2022_state_set_codeset(pvt->iso2022,

@@ -541,6 +541,8 @@ main(int argc, char **argv)
 #endif
 		NULL};
         char *transparent = NULL;
+        char *encoding = NULL;
+        char *cjk_ambiguous_width = NULL;
 	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, keep = FALSE,
@@ -660,6 +662,16 @@ main(int argc, char **argv)
 			"Specify the terminal emulation to use", NULL
 		},
 		{
+			"encoding", 0, 0,
+			G_OPTION_ARG_STRING, &encoding,
+			"Specify the terminal encoding to use", NULL
+		},
+		{
+			"cjk-width", 0, 0,
+			G_OPTION_ARG_STRING, &cjk_ambiguous_width,
+			"Specify the cjk ambiguous width to use for UTF-8 encoding", "NARROW|WIDE"
+		},
+		{
 			"working-directory", 'w', 0,
 			G_OPTION_ARG_FILENAME, &working_directory,
 			"Specify the initial working directory of the terminal",
@@ -726,6 +738,9 @@ main(int argc, char **argv)
 			g_mem_set_vtable(glib_mem_profiler_table);
 		}
 	}
+        if (g_getenv("VTE_CJK_WIDTH")) {
+                g_printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
+        }
 
 	context = g_option_context_new (" - test VTE terminal emulation");
 	g_option_context_add_main_entries (context, options, NULL);
@@ -898,6 +913,25 @@ main(int argc, char **argv)
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
+        if (encoding != NULL) {
+                vte_terminal_set_encoding(terminal, encoding);
+                g_free(encoding);
+        }
+        if (cjk_ambiguous_width != NULL) {
+                int width = 1;
+
+                if (g_ascii_strcasecmp(cjk_ambiguous_width, "narrow") == 0)
+                        width = 1;
+                else if (g_ascii_strcasecmp(cjk_ambiguous_width, "wide") == 0)
+                        width = 2;
+                else
+                        g_printerr("Unrecognised value \"%s\" for --cjk-width\n",
+                                   cjk_ambiguous_width);
+                g_free(cjk_ambiguous_width);
+
+                vte_terminal_set_cjk_ambiguous_width(terminal, width);
+        }
+
 	vte_terminal_set_cursor_shape(terminal, cursor_shape);
 
 	vte_terminal_set_rewrap_on_resize(terminal, rewrap);

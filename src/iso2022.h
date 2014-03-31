@@ -33,10 +33,13 @@ struct _vte_iso2022_state;
 typedef void (*_vte_iso2022_codeset_changed_cb_fn)(struct _vte_iso2022_state *,
 						   gpointer);
 struct _vte_iso2022_state *_vte_iso2022_state_new(const char *native_codeset,
+                                                  int utf8_ambiguous_width,
 						  _vte_iso2022_codeset_changed_cb_fn,
 						  gpointer);
 void _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 				    const char *codeset);
+void _vte_iso2022_state_set_utf8_ambiguous_width(struct _vte_iso2022_state *state,
+                                                 int utf8_ambiguous_width);
 const char *_vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state);
 gsize _vte_iso2022_process(struct _vte_iso2022_state *state,
 			  guchar *input, gsize length,
@@ -45,6 +48,7 @@ gunichar _vte_iso2022_process_single(struct _vte_iso2022_state *state,
 				     gunichar c, gunichar map);
 void _vte_iso2022_state_free(struct _vte_iso2022_state *);
 
+#define VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH 1
 
 #define VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET	28
 #define VTE_ISO2022_ENCODED_WIDTH_MASK		(3 << VTE_ISO2022_ENCODED_WIDTH_BIT_OFFSET)

@@ -73,6 +73,7 @@ struct _vte_iso2022_state {
 	gunichar g[4];
 	const gchar *codeset, *native_codeset, *utf8_codeset, *target_codeset;
 	gint ambiguous_width;
+        gint utf8_ambiguous_width;
 	VteConv conv;
 	_vte_iso2022_codeset_changed_cb_fn codeset_changed;
 	gpointer codeset_changed_data;
@@ -338,9 +339,7 @@ _vte_iso2022_ambiguous_width(struct _vte_iso2022_state *state)
 	 * current locale is UTF-8.
 	 */
 	if (strcmp (codeset, "utf8") == 0) {
-	  const char *env = g_getenv ("VTE_CJK_WIDTH");
-	  if (env && (g_ascii_strcasecmp (env, "wide")==0 || g_ascii_strcasecmp (env, "1")==0))
-	    return 2;
+                return state->utf8_ambiguous_width;
 	}
 
 	/* Not in the list => not wide. */
@@ -757,10 +756,14 @@ _vte_iso2022_set_encoded_width(gunichar c, int width)
 
 struct _vte_iso2022_state *
 _vte_iso2022_state_new(const char *native_codeset,
+                       int utf8_ambiguous_width,
 		       _vte_iso2022_codeset_changed_cb_fn fn,
 		       gpointer data)
 {
 	struct _vte_iso2022_state *state;
+
+        g_return_val_if_fail(utf8_ambiguous_width == 1 || utf8_ambiguous_width == 2, NULL);
+
 	state = g_slice_new0(struct _vte_iso2022_state);
 	state->nrc_enabled = TRUE;
 	state->current = 0;
@@ -797,7 +800,7 @@ _vte_iso2022_state_new(const char *native_codeset,
 				state->codeset, state->target_codeset);
 		}
 	}
-	state->ambiguous_width = _vte_iso2022_ambiguous_width(state);
+        _vte_iso2022_state_set_utf8_ambiguous_width(state, utf8_ambiguous_width);
 	return state;
 }
 
@@ -834,12 +837,21 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 	state->codeset = g_intern_string (codeset);
 	state->conv = conv;
 	state->ambiguous_width = _vte_iso2022_ambiguous_width (state);
+
 }
 
 const char *
 _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 {
 	return state->codeset;
+}
+
+void
+_vte_iso2022_state_set_utf8_ambiguous_width(struct _vte_iso2022_state *state,
+                                            int utf8_ambiguous_width)
+{
+        state->utf8_ambiguous_width = utf8_ambiguous_width;
+	state->ambiguous_width = _vte_iso2022_ambiguous_width(state);
 }
 
 static const guchar *

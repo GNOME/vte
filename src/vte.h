@@ -365,6 +365,10 @@ const char *vte_get_default_emulation(void);
 void vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset);
 const char *vte_terminal_get_encoding(VteTerminal *terminal);
 
+/* CJK compatibility setting */
+void vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width);
+int vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal);
+
 /* Get the contents of the status line. */
 const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
