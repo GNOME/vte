@@ -51,7 +51,6 @@
 #include "keymap.h"
 #include "marshal.h"
 #include "matcher.h"
-#include "pty.h"
 #include "vteaccess.h"
 #include "vteint.h"
 #include "vtepty.h"

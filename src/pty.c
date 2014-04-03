@@ -64,7 +64,6 @@
 #include <glib.h>
 #include <gio/gio.h>
 #include "debug.h"
-#include "pty.h"
 
 #ifdef MSG_NOSIGNAL
 #define PTY_RECVMSG_FLAGS MSG_NOSIGNAL
