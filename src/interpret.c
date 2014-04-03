@@ -82,7 +82,7 @@ main(int argc, char **argv)
 
 	matcher = _vte_matcher_new(terminal, termcap);
 
-	subst = _vte_iso2022_state_new(NULL, NULL, NULL);
+	subst = _vte_iso2022_state_new(NULL, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH, NULL, NULL);
 
 	for (;;) {
 		l = read (infile, buf, sizeof (buf));
