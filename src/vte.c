@@ -4802,6 +4802,25 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				steal = TRUE;
 			}
 			switch (keyval) {
+                        case GDK_KEY_ISO_Lock:
+                        case GDK_KEY_ISO_Level2_Latch:
+                        case GDK_KEY_ISO_Level3_Shift:
+                        case GDK_KEY_ISO_Level3_Latch:
+                        case GDK_KEY_ISO_Level3_Lock:
+                        case GDK_KEY_ISO_Level5_Shift:
+                        case GDK_KEY_ISO_Level5_Latch:
+                        case GDK_KEY_ISO_Level5_Lock:
+                        case GDK_KEY_ISO_Group_Shift:
+                        case GDK_KEY_ISO_Group_Latch:
+                        case GDK_KEY_ISO_Group_Lock:
+                        case GDK_KEY_ISO_Next_Group:
+                        case GDK_KEY_ISO_Next_Group_Lock:
+                        case GDK_KEY_ISO_Prev_Group:
+                        case GDK_KEY_ISO_Prev_Group_Lock:
+                        case GDK_KEY_ISO_First_Group:
+                        case GDK_KEY_ISO_First_Group_Lock:
+                        case GDK_KEY_ISO_Last_Group:
+                        case GDK_KEY_ISO_Last_Group_Lock:
 			case GDK_KEY_Multi_key:
 			case GDK_KEY_Codeinput:
 			case GDK_KEY_SingleCandidate:
@@ -4809,7 +4828,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case GDK_KEY_PreviousCandidate:
 			case GDK_KEY_Kanji:
 			case GDK_KEY_Muhenkan:
-			case GDK_KEY_Henkan:
+                        case GDK_KEY_Henkan_Mode:
+                        /* case GDK_KEY_Henkan: is GDK_KEY_Henkan_Mode */
 			case GDK_KEY_Romaji:
 			case GDK_KEY_Hiragana:
 			case GDK_KEY_Katakana:
@@ -4823,6 +4843,27 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case GDK_KEY_Kana_Shift:
 			case GDK_KEY_Eisu_Shift:
 			case GDK_KEY_Eisu_toggle:
+                        /* case GDK_KEY_Kanji_Bangou: is GDK_KEY_Codeinput */
+                        /* case GDK_KEY_Zen_Koho: is GDK_KEY_MultipleCandidate */
+                        /* case GDK_KEY_Mae_Koho: is GDK_KEY_PreviousCandidate */
+                        /* case GDK_KEY_kana_switch: is GDK_KEY_ISO_Group_Shift */
+                        case GDK_KEY_Hangul:
+                        case GDK_KEY_Hangul_Start:
+                        case GDK_KEY_Hangul_End:
+                        case GDK_KEY_Hangul_Hanja:
+                        case GDK_KEY_Hangul_Jamo:
+                        case GDK_KEY_Hangul_Romaja:
+                        /* case GDK_KEY_Hangul_Codeinput: is GDK_KEY_Codeinput */
+                        case GDK_KEY_Hangul_Jeonja:
+                        case GDK_KEY_Hangul_Banja:
+                        case GDK_KEY_Hangul_PreHanja:
+                        case GDK_KEY_Hangul_PostHanja:
+                        /* case GDK_KEY_Hangul_SingleCandidate: is GDK_KEY_SingleCandidate */
+                        /* case GDK_KEY_Hangul_MultipleCandidate: is GDK_KEY_MultipleCandidate */
+                        /* case GDK_KEY_Hangul_PreviousCandidate: is GDK_KEY_PreviousCandidate */
+                        case GDK_KEY_Hangul_Special:
+                        /* case GDK_KEY_Hangul_switch: is GDK_KEY_ISO_Group_Shift */
+
 				steal = FALSE;
 				break;
 			default:
