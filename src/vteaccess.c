@@ -1455,6 +1455,15 @@ get_attribute_set (struct _VteCharAttributes attr)
 	return set;
 }
 
+static gboolean
+_pango_color_equal(const PangoColor *a,
+                   const PangoColor *b)
+{
+        return a->red   == b->red &&
+               a->green == b->green &&
+               a->blue  == b->blue;
+}
+
 static AtkAttributeSet *
 vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 					   gint *start_offset, gint *end_offset)
@@ -1478,8 +1487,8 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 		cur_attr = g_array_index (priv->snapshot_attributes,
 				      struct _VteCharAttributes,
 				      i);
-		if (!gdk_color_equal (&cur_attr.fore, &attr.fore) ||
-		    !gdk_color_equal (&cur_attr.back, &attr.back) ||
+		if (!_pango_color_equal (&cur_attr.fore, &attr.fore) ||
+		    !_pango_color_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
 		    cur_attr.strikethrough != attr.strikethrough) {
 			*start_offset = i + 1;
@@ -1491,8 +1500,8 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 		cur_attr = g_array_index (priv->snapshot_attributes,
 				      struct _VteCharAttributes,
 				      i);
-		if (!gdk_color_equal (&cur_attr.fore, &attr.fore) ||
-		    !gdk_color_equal (&cur_attr.back, &attr.back) ||
+		if (!_pango_color_equal (&cur_attr.fore, &attr.fore) ||
+		    !_pango_color_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
 		    cur_attr.strikethrough != attr.strikethrough) {
 			*end_offset = i - 1;
