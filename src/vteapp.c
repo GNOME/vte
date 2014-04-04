@@ -563,7 +563,7 @@ main(int argc, char **argv)
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
         char *border_width_string = NULL;
-	GdkRGBA fore, back, highlight, cursor, tint;
+	GdkRGBA fore, back, highlight, cursor;
 	const GOptionEntry options[]={
 		{
 			"console", 'C', 0,
@@ -781,7 +781,6 @@ main(int argc, char **argv)
 
 	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
 	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
-	tint.red = tint.green = tint.blue = 1.; tint.alpha = .875;
 
 	gdk_window_set_debug_updates(debug);
 
@@ -898,9 +897,8 @@ main(int argc, char **argv)
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
 
 	if (transparent != NULL) {
-                tint.alpha = g_ascii_strtod (transparent, NULL);
+                back.alpha = g_ascii_strtod (transparent, NULL);
                 g_free (transparent);
-                vte_terminal_set_background_tint_color_rgba(terminal, &tint);
         }
 
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);

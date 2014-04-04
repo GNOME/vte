@@ -149,7 +149,6 @@ enum {
         PROP_VSCROLL_POLICY,
         PROP_ALLOW_BOLD,
         PROP_AUDIBLE_BELL,
-        PROP_BACKGROUND_TINT_COLOR,
         PROP_BACKSPACE_BINDING,
         PROP_CJK_AMBIGUOUS_WIDTH,
         PROP_CURSOR_BLINK_MODE,
@@ -2412,6 +2411,28 @@ _vte_terminal_set_color_background(VteTerminal *terminal,
 }
 
 /*
+ * _vte_terminal_set_background_alpha:
+ * @terminal: a #VteTerminal
+ * @alpha: an alpha value from 0.0 to 0.1
+ */
+static void
+_vte_terminal_set_background_alpha(VteTerminal *terminal,
+                                   gdouble alpha)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+
+        if (alpha == pvt->background_alpha)
+                return;
+
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Setting background alpha to %.3f\n", alpha);
+
+        pvt->background_alpha = alpha;
+
+        vte_terminal_background_update(terminal);
+}
+
+/*
  * _vte_terminal_set_color_cursor:
  * @terminal: a #VteTerminal
  * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
@@ -2749,6 +2770,7 @@ vte_terminal_set_color_background_rgba(VteTerminal *terminal,
 
 	_vte_terminal_set_color_background(terminal,
                                            _pango_color_from_rgba (&color, background));
+        _vte_terminal_set_background_alpha(terminal, background->alpha);
 }
 
 /**
@@ -8143,10 +8165,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->draw = _vte_draw_new();
 
 	/* Set up background information. */
-	pvt->bg_tint_color.red = 1.;
-	pvt->bg_tint_color.green = 1.;
-	pvt->bg_tint_color.blue = 1.;
-        pvt->bg_tint_color.alpha = 1.;
+        pvt->background_alpha = 1.;
+
 	pvt->selection_block_mode = FALSE;
 	pvt->has_fonts = FALSE;
 
@@ -10673,9 +10693,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
-                case PROP_BACKGROUND_TINT_COLOR:
-                        g_value_set_boxed (value, &pvt->bg_tint_color);
-                        break;
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, pvt->backspace_binding);
                         break;
@@ -10773,9 +10790,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_BACKGROUND_TINT_COLOR:
-                        vte_terminal_set_background_tint_color_rgba (terminal, g_value_get_boxed (value));
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
@@ -11502,29 +11516,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteTerminal:background-tint-color:
-         *
-         * If a background image has been set using #VteTerminal:background-image-file: or
-         * #VteTerminal:background-image-pixbuf:, and
-         * and the value set by VteTerminal:background-tint-color: is less than 1.0,
-         * the terminal
-         * will adjust the color of the image before drawing the image.  To do so,
-         * the terminal will create a copy of the background image
-         * and modify its pixel values.  The initial tint color
-         * is white.
-         * 
-         * Since: 0.20
-         *
-         * Deprecated: 0.34.8
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_BACKGROUND_TINT_COLOR,
-                 g_param_spec_boxed ("background-tint-color", NULL, NULL,
-                                     GDK_TYPE_RGBA,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
          * VteTerminal:backspace-binding:
          *
          * *Controls what string or control sequence the terminal sends to its child
@@ -12191,58 +12182,17 @@ vte_terminal_background_update(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_BG,
 			 "Setting background color to (%d, %d, %d, %.3f).\n",
 			 entry->red, entry->green, entry->blue,
-			 terminal->pvt->bg_tint_color.alpha);
+			 terminal->pvt->background_alpha);
 
 	color.red = entry->red / 65535.;
 	color.green = entry->green / 65535.;
 	color.blue = entry->blue / 65535.;
-        color.alpha = terminal->pvt->bg_tint_color.alpha;
+        color.alpha = terminal->pvt->background_alpha;
 
         _vte_draw_set_background_solid (terminal->pvt->draw, &color);
 
 	/* Force a redraw for everything. */
 	_vte_invalidate_all (terminal);
-}
-
-/**
- * vte_terminal_set_background_tint_color_rgba:
- * @terminal: a #VteTerminal
- * @rgba: (allow-none): a color which the terminal background should be tinted to if
- *
- * If a background image has been set using
- * vte_terminal_set_background_image(),
- * vte_terminal_set_background_image_file(), or
- * and the value set by
- * alpha value in @rgba is greater than 0.0, the terminal
- * will adjust the color of the image before drawing the image.  To do so,
- * the terminal will create a copy of the background image
- * and modify its pixel values.  The initial tint color
- * is white.
- *
- * Since: 0.38
- */
-void
-vte_terminal_set_background_tint_color_rgba(VteTerminal *terminal,
-                                            const GdkRGBA *rgba)
-{
-        VteTerminalPrivate *pvt;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(rgba != NULL);
-
-        pvt = terminal->pvt;
-
-        _vte_debug_print(VTE_DEBUG_MISC,
-                        "Setting background tint to %.3f,%.3f,%.3f,%.3f\n",
-                        rgba->red, rgba->green, rgba->blue, rgba->alpha);
-        if (gdk_rgba_equal(&pvt->bg_tint_color, rgba))
-                return;
-
-        pvt->bg_tint_color = *rgba;
-
-        g_object_notify(G_OBJECT (terminal), "background-tint-color");
-
-        vte_terminal_background_update(terminal);
 }
 
 /**

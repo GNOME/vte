@@ -400,7 +400,7 @@ struct _VteTerminalPrivate {
         gchar *current_file_uri_changed;
 
 	/* Background */
-        GdkRGBA bg_tint_color;
+        gdouble background_alpha;
 
 	/* Key modifiers. */
 	GdkModifierType modifiers;
