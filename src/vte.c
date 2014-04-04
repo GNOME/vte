@@ -2340,9 +2340,6 @@ static void
 _vte_terminal_set_color_bold(VteTerminal *terminal,
                              const PangoColor *bold)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(bold != NULL);
-
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set bold color to (%04x,%04x,%04x).\n",
 			bold->red, bold->green, bold->blue);
@@ -2360,9 +2357,6 @@ static void
 _vte_terminal_set_color_dim(VteTerminal *terminal,
                             const PangoColor *dim)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(dim != NULL);
-
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set dim color to (%04x,%04x,%04x).\n",
 			dim->red, dim->green, dim->blue);
@@ -2380,9 +2374,6 @@ static void
 _vte_terminal_set_color_foreground(VteTerminal *terminal,
                                    const PangoColor *foreground)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(foreground != NULL);
-
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set foreground color to (%04x,%04x,%04x).\n",
 			foreground->red, foreground->green, foreground->blue);
@@ -2401,9 +2392,6 @@ static void
 _vte_terminal_set_color_background(VteTerminal *terminal,
                                    const PangoColor *background)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail(background != NULL);
-
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set background color to (%04x,%04x,%04x).\n",
 			background->red, background->green, background->blue);
@@ -2445,8 +2433,6 @@ static void
 _vte_terminal_set_color_cursor(VteTerminal *terminal,
                                const PangoColor *cursor_background)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
 	if (cursor_background != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Set cursor color to (%04x,%04x,%04x).\n",
@@ -2474,8 +2460,6 @@ static void
 _vte_terminal_set_color_highlight(VteTerminal *terminal,
                                   const PangoColor *highlight_background)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
 	if (highlight_background != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Set highlight background color to (%04x,%04x,%04x).\n",
@@ -2503,8 +2487,6 @@ static void
 _vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
                                              const PangoColor *highlight_foreground)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
 	if (highlight_foreground != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Set highlight foreground color to (%04x,%04x,%04x).\n",
@@ -2550,14 +2532,6 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 	gsize i;
 	PangoColor color;
 	gboolean unset = FALSE;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	g_return_if_fail((palette_size == 0) ||
-			 (palette_size == 8) ||
-			 (palette_size == 16) ||
-			 (palette_size == 24) ||
-			 (palette_size > 24 && palette_size <= 256));
 
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set color palette [%" G_GSIZE_FORMAT " elements].\n",
@@ -2686,6 +2660,8 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
 {
 	PangoColor color;
 
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	if (bold == NULL)
 	{
 		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
@@ -2717,6 +2693,8 @@ vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
 {
 	PangoColor color;
 
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
 	if (dim == NULL)
 	{
 		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
@@ -2747,6 +2725,9 @@ vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
 {
 	PangoColor color;
 
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(foreground != NULL);
+
 	_vte_terminal_set_color_foreground(terminal,
                                            _pango_color_from_rgba(&color, foreground));
 }
@@ -2767,6 +2748,9 @@ vte_terminal_set_color_background_rgba(VteTerminal *terminal,
 				       const GdkRGBA *background)
 {
 	PangoColor color;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(background != NULL);
 
 	_vte_terminal_set_color_background(terminal,
                                            _pango_color_from_rgba (&color, background));
@@ -2790,6 +2774,9 @@ vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
 {
         PangoColor color;
 
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(cursor_background != NULL);
+
 	_vte_terminal_set_color_cursor(terminal,
                                        _pango_color_from_rgba(&color, cursor_background));
 }
@@ -2812,6 +2799,9 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 {
 	PangoColor color;
 
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(highlight_background != NULL);
+
 	_vte_terminal_set_color_highlight(terminal,
                                           _pango_color_from_rgba(&color, highlight_background));
 }
@@ -2833,6 +2823,9 @@ vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
 						 const GdkRGBA *highlight_foreground)
 {
 	PangoColor color;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(highlight_foreground != NULL);
 
 	_vte_terminal_set_color_highlight_foreground(terminal,
                                                      _pango_color_from_rgba(&color, highlight_foreground));
@@ -2872,7 +2865,12 @@ vte_terminal_set_colors_rgba(VteTerminal *terminal,
 	PangoColor fg, bg, *pal;
 	gsize i;
 
-	g_return_if_fail(palette_size <= 256);
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail((palette_size == 0) ||
+			 (palette_size == 8) ||
+			 (palette_size == 16) ||
+			 (palette_size == 24) ||
+			 (palette_size > 24 && palette_size <= 256));
 
 	pal = g_new (PangoColor, palette_size);
 	for (i = 0; i < palette_size; ++i)
