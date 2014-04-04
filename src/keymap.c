@@ -1361,6 +1361,7 @@ is_cursor_key(guint keyval)
 	case GDK_KEY_Right:
 	case GDK_KEY_Down:
 	case GDK_KEY_End:
+        case GDK_KEY_Begin:
 
 	case GDK_KEY_KP_Home:
 	case GDK_KEY_KP_Left:
