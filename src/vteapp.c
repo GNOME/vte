@@ -1006,12 +1006,13 @@ main(int argc, char **argv)
 			char **command_argv = NULL;
 			int command_argc;
 			GPid pid = -1;
+                        char *free_me = NULL;
 
 			_VTE_DEBUG_IF(VTE_DEBUG_MISC)
 				vte_terminal_feed(terminal, message, -1);
 
                         if (command == NULL || *command == '\0')
-                                command = vte_get_user_shell ();
+                                command = free_me = vte_get_user_shell ();
 
 			if (command == NULL || *command == '\0')
 				command = g_getenv ("SHELL");
@@ -1035,6 +1036,7 @@ main(int argc, char **argv)
 				g_print("Fork succeeded, PID %d\n", pid);
 			}
 
+                        g_free (free_me);
 			g_strfreev(command_argv);
 	#ifdef VTE_DEBUG
 			if (command == NULL) {
