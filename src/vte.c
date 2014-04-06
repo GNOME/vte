@@ -7644,7 +7644,6 @@ vte_terminal_set_font_scale(VteTerminal *terminal,
                             gdouble scale)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(scale >= VTE_FONT_SCALE_MIN && scale <= VTE_FONT_SCALE_MAX);
 
         terminal->pvt->font_scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
         vte_terminal_update_font(terminal);
