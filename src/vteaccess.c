@@ -1712,66 +1712,6 @@ vte_terminal_accessible_contains(AtkComponent *component,
 		(y < ey + eheight));
 }
 
-static void
-vte_terminal_accessible_get_extents(AtkComponent *component,
-				    gint *x, gint *y,
-				    gint *width, gint *height,
-				    AtkCoordType coord_type)
-{
-	atk_component_get_position(component, x, y, coord_type);
-	atk_component_get_size(component, width, height);
-}
-
-static void
-vte_terminal_accessible_get_position(AtkComponent *component,
-				     gint *x, gint *y,
-				     AtkCoordType coord_type)
-{
-	GtkWidget *widget;
-	*x = 0;
-	*y = 0;
-	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
-	if (widget == NULL) {
-		return;
-	}
-	if (!gtk_widget_get_realized(widget)) {
-		return;
-	}
-	switch (coord_type) {
-	case ATK_XY_SCREEN:
-		gdk_window_get_origin(gtk_widget_get_window (widget), x, y);
-		break;
-	case ATK_XY_WINDOW:
-		gdk_window_get_position(gtk_widget_get_window (widget), x, y);
-		break;
-	default:
-		g_assert_not_reached();
-		break;
-	}
-}
-
-static void
-vte_terminal_accessible_get_size(AtkComponent *component,
-				 gint *width, gint *height)
-{
-	GtkWidget *widget;
-	GdkWindow *window;
-	*width = 0;
-	*height = 0;
-	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(component));
-	if (widget == NULL) {
-		return;
-	}
-	if (!gtk_widget_get_realized(widget)) {
-		return;
-	}
-	window = gtk_widget_get_window (widget);
-	if (width)
-		*width = gdk_window_get_width (window);
-	if (height)
-		*height = gdk_window_get_height (window);
-}
-
 static gboolean
 vte_terminal_accessible_set_extents(AtkComponent *component,
 				    gint x, gint y,
@@ -1887,9 +1827,6 @@ vte_terminal_accessible_component_iface_init(AtkComponentIface *component)
 	component->add_focus_handler = vte_terminal_accessible_add_focus_handler;
 	component->contains = vte_terminal_accessible_contains;
 	component->ref_accessible_at_point = vte_terminal_accessible_ref_accessible_at_point;
-	component->get_extents = vte_terminal_accessible_get_extents;
-	component->get_position = vte_terminal_accessible_get_position;
-	component->get_size = vte_terminal_accessible_get_size;
 	component->remove_focus_handler = vte_terminal_accessible_remove_focus_handler;
 	component->set_extents = vte_terminal_accessible_set_extents;
 	component->set_position = vte_terminal_accessible_set_position;
