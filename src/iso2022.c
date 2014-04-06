@@ -1812,7 +1812,7 @@ main(int argc, char **argv)
 	FILE *fp;
 	guchar b;
 
-	state = _vte_iso2022_state_new(NULL, NULL, NULL);
+	state = _vte_iso2022_state_new(NULL, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH, NULL, NULL);
 	buffer = _vte_buffer_new();
 	gunichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
 	if (argc > 1) {
