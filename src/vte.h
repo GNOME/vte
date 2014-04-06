@@ -369,8 +369,8 @@ int vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal);
 /* Get the contents of the status line. */
 const char *vte_terminal_get_status_line(VteTerminal *terminal);
 
-void vte_terminal_set_pty_object(VteTerminal *terminal, VtePty *pty);
-VtePty *vte_terminal_get_pty_object(VteTerminal *terminal);
+void vte_terminal_set_pty(VteTerminal *terminal, VtePty *pty);
+VtePty *vte_terminal_get_pty(VteTerminal *terminal);
 
 char *vte_get_user_shell (void);
 

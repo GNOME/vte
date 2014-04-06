@@ -161,7 +161,7 @@ enum {
         PROP_FONT_DESC,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
-        PROP_PTY_OBJECT,
+        PROP_PTY,
         PROP_REWRAP_ON_RESIZE,
         PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
@@ -3267,7 +3267,7 @@ vte_terminal_child_watch_cb(GPid pid,
 		terminal->pvt->pty_pid = -1;
 
 		/* Close out the PTY. */
-                vte_terminal_set_pty_object(terminal, NULL);
+                vte_terminal_set_pty(terminal, NULL);
 
 		/* Tell observers what's happened. */
 		vte_terminal_emit_child_exited(terminal, status);
@@ -3398,7 +3398,7 @@ vte_terminal_pty_new(VteTerminal *terminal,
  * signal will be called with the child's exit status.
  *
  * Prior to calling this function, a #VtePty must have been set in @terminal
- * using vte_terminal_set_pty_object().
+ * using vte_terminal_set_pty().
  * When the child exits, the terminal's #VtePty will be set to %NULL.
  *
  * Note: g_child_watch_add() or g_child_watch_add_full() must not have
@@ -3542,7 +3542,7 @@ vte_terminal_fork_command_full(VteTerminal *terminal,
                 return FALSE;
         }
 
-        vte_terminal_set_pty_object(terminal, pty);
+        vte_terminal_set_pty(terminal, pty);
         vte_terminal_watch_child(terminal, pid);
         g_object_unref (pty);
 
@@ -3560,7 +3560,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
 
         g_object_freeze_notify(object);
 
-        vte_terminal_set_pty_object(terminal, NULL);
+        vte_terminal_set_pty(terminal, NULL);
 
 	/* Emit a signal that we read an EOF. */
 	vte_terminal_queue_eof(terminal);
@@ -10731,8 +10731,8 @@ vte_terminal_get_property (GObject *object,
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
-                case PROP_PTY_OBJECT:
-                        g_value_set_object (value, vte_terminal_get_pty_object(terminal));
+                case PROP_PTY:
+                        g_value_set_object (value, vte_terminal_get_pty(terminal));
                         break;
                 case PROP_REWRAP_ON_RESIZE:
                         g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
@@ -10820,8 +10820,8 @@ vte_terminal_set_property (GObject *object,
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
                         break;
-                case PROP_PTY_OBJECT:
-                        vte_terminal_set_pty_object (terminal, g_value_get_object (value));
+                case PROP_PTY:
+                        vte_terminal_set_pty (terminal, g_value_get_object (value));
                         break;
                 case PROP_REWRAP_ON_RESIZE:
                         vte_terminal_set_rewrap_on_resize (terminal, g_value_get_boolean (value));
@@ -11680,7 +11680,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteTerminal:pty-object:
+         * VteTerminal:pty:
          *
          * The PTY object for the terminal.
          *
@@ -11688,8 +11688,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         g_object_class_install_property
                 (gobject_class,
-                 PROP_PTY_OBJECT,
-                 g_param_spec_object ("pty-object", NULL, NULL,
+                 PROP_PTY,
+                 g_param_spec_object ("pty", NULL, NULL,
                                       VTE_TYPE_PTY,
                                       G_PARAM_READWRITE |
                                       G_PARAM_STATIC_STRINGS));
@@ -12918,7 +12918,7 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
 }
 
 /**
- * vte_terminal_set_pty_object:
+ * vte_terminal_set_pty:
  * @terminal: a #VteTerminal
  * @pty: (allow-none): a #VtePty, or %NULL
  *
@@ -12928,7 +12928,7 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
  * Since: 0.26.
  */
 void
-vte_terminal_set_pty_object(VteTerminal *terminal,
+vte_terminal_set_pty(VteTerminal *terminal,
                             VtePty *pty)
 {
         VteTerminalPrivate *pvt;
@@ -12978,7 +12978,7 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
 
         if (pty == NULL) {
                 pvt->pty = NULL;
-                g_object_notify(object, "pty-object");
+                g_object_notify(object, "pty");
                 g_object_thaw_notify(object);
                 return;
         }
@@ -13005,13 +13005,13 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
         /* Open channels to listen for input on. */
         _vte_terminal_connect_pty_read (terminal);
 
-        g_object_notify(object, "pty-object");
+        g_object_notify(object, "pty");
 
         g_object_thaw_notify(object);
 }
 
 /**
- * vte_terminal_get_pty_object:
+ * vte_terminal_get_pty:
  * @terminal: a #VteTerminal
  *
  * Returns the #VtePty of @terminal.
@@ -13021,7 +13021,7 @@ vte_terminal_set_pty_object(VteTerminal *terminal,
  * Since: 0.26
  */
 VtePty *
-vte_terminal_get_pty_object(VteTerminal *terminal)
+vte_terminal_get_pty(VteTerminal *terminal)
 {
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 
