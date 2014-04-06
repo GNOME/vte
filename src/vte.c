@@ -8217,11 +8217,6 @@ vte_terminal_init(VteTerminal *terminal)
 
         pvt->padding = default_padding;
 
-#ifdef VTE_DEBUG
-	/* In debuggable mode, we always do this. */
-	/* gtk_widget_get_accessible(&terminal->widget); */
-#endif
-
         context = gtk_widget_get_style_context (&terminal->widget);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
@@ -10668,41 +10663,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	return TRUE;
 }
 
-/* Create a new accessible object associated with ourselves, and return
- * it to the caller. */
-static AtkObject *
-vte_terminal_get_accessible(GtkWidget *widget)
-{
-	static gboolean first_time = TRUE;
-	static GQuark quark_accessible_object;
-	AtkRegistry *default_registry;
-	AtkObjectFactory *factory;
-	AtkObject *accessible;
-
-	if (first_time) {
-		AtkRegistry *registry;
-
-		registry = atk_get_default_registry ();
-
-		atk_registry_set_factory_type (registry, VTE_TYPE_TERMINAL,
-			_vte_terminal_accessible_factory_get_type ());
-		quark_accessible_object = g_quark_from_static_string (
-		"gtk-accessible-object");
-		first_time = FALSE;
-	}
-
-	default_registry = atk_get_default_registry ();
-	accessible = g_object_get_qdata (G_OBJECT (widget),
-		quark_accessible_object);
-	if (accessible)
-		return accessible;
-	factory = atk_registry_get_factory (default_registry,
-	                                    G_TYPE_FROM_INSTANCE (widget));
-	accessible = atk_object_factory_create_accessible (factory, G_OBJECT (widget));
-	g_object_set_qdata (G_OBJECT (widget), quark_accessible_object, accessible);
-	return accessible;
-}
-
 static void
 vte_terminal_get_property (GObject *object,
                            guint prop_id,
@@ -10957,7 +10917,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
 	widget_class->size_allocate = vte_terminal_size_allocate;
-	widget_class->get_accessible = vte_terminal_get_accessible;
         widget_class->screen_changed = vte_terminal_screen_changed;
 
 	/* Initialize default handlers. */
@@ -11900,6 +11859,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                            "padding: 1px 1px 1px 1px;\n"
                                          "}\n",
                                          -1, NULL);
+
+        /* a11y */
+        gtk_widget_class_set_accessible_type(widget_class, VTE_TYPE_TERMINAL_ACCESSIBLE);
 }
 
 /**
