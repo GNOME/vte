@@ -7520,6 +7520,10 @@ vte_terminal_update_font(VteTerminal *terminal)
         PangoFontDescription *desc;
         gdouble size;
 
+        /* We'll get called again later */
+        if (pvt->unscaled_font_desc == NULL)
+                return;
+
         desc = pango_font_description_copy(pvt->unscaled_font_desc);
 
         size = pango_font_description_get_size(desc);
