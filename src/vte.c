@@ -351,12 +351,14 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	cairo_rectangle_int_t rect;
 	glong i;
 
+	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
+                return;
+
 	if (!column_count || !row_count) {
 		return;
 	}
 
-	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
-				|| terminal->pvt->invalidated_all)) {
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
@@ -472,9 +474,9 @@ _vte_invalidate_all(VteTerminal *terminal)
 
 	g_assert(VTE_IS_TERMINAL(terminal));
 
-	if (! gtk_widget_is_drawable (&terminal->widget)) {
-		return;
-	}
+	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
+                return;
+
 	if (terminal->pvt->invalidated_all) {
 		return;
 	}
@@ -654,8 +656,10 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	int columns;
 	guint style;
 
-	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
-				|| terminal->pvt->invalidated_all)) {
+	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
+                return;
+
+	if (terminal->pvt->invalidated_all) {
 		return;
 	}
 
@@ -699,7 +703,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 	gint columns;
 	guint style;
 
-        if (!gtk_widget_get_realized(&terminal->widget))
+        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
                 return;
 
 	if (terminal->pvt->invalidated_all) {
@@ -712,7 +716,7 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 		}
 	}
 
-	if (terminal->pvt->cursor_visible && gtk_widget_is_drawable (&terminal->widget)) {
+	if (terminal->pvt->cursor_visible) {
 		preedit_width = vte_terminal_preedit_width(terminal, FALSE);
 
 		screen = terminal->pvt->screen;
@@ -6962,17 +6966,15 @@ vte_terminal_stop_autoscroll(VteTerminal *terminal)
 static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
 	int width, height;
 	long x, y;
 	gboolean handled = FALSE;
 
 	/* check to see if it matters */
-	if (! gtk_widget_is_drawable (widget)) {
-		return handled;
-	}
+        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
+                return FALSE;
 
-	terminal = VTE_TERMINAL(widget);
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
 	width = terminal->pvt->char_width;
@@ -7845,8 +7847,9 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	screen->scroll_delta = adj;
 
 	/* Sanity checks. */
-	if (! gtk_widget_is_drawable (&terminal->widget)
-			|| terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
+                return;
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		return;
 	}
 
@@ -13443,8 +13446,9 @@ update_regions (VteTerminal *terminal)
 	cairo_region_t *region;
 	GdkWindow *window;
 
-	if (G_UNLIKELY (! gtk_widget_is_drawable (&terminal->widget)
-				|| terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)) {
+        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
+                return FALSE;
+	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		reset_update_regions (terminal);
 		return FALSE;
 	}
