@@ -528,6 +528,18 @@ parse_flags(GType type,
   return value;
 }
 
+static gboolean
+parse_color (const gchar *value,
+             GdkRGBA *color)
+{
+        if (!gdk_rgba_parse(color, value)) {
+                g_printerr("Failed to parse value \"%s\" as color", value);
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -546,8 +558,8 @@ main(int argc, char **argv)
 	gboolean audible = TRUE,
 		 debug = FALSE, dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, keep = FALSE,
-		 icon_title = FALSE, shell = TRUE, highlight_set = FALSE,
-		 cursor_set = FALSE, reverse = FALSE, use_geometry_hints = TRUE,
+                icon_title = FALSE, shell = TRUE,
+		 reverse = FALSE, use_geometry_hints = TRUE,
 		 use_scrolled_window = FALSE,
 		 show_object_notifications = FALSE, rewrap = TRUE;
 	char *geometry = NULL;
@@ -563,7 +575,10 @@ main(int argc, char **argv)
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
         char *border_width_string = NULL;
-	GdkRGBA fore, back, highlight, cursor;
+        char *cursor_color_string = NULL;
+        char *highlight_foreground_color_string = NULL;
+        char *highlight_background_color_string = NULL;
+	GdkRGBA fore, back;
 	const GOptionEntry options[]={
 		{
 			"console", 'C', 0,
@@ -622,9 +637,14 @@ main(int argc, char **argv)
 			"Set the size (in characters) and position", "GEOMETRY"
 		},
 		{
-			"highlight", 'h', 0,
-			G_OPTION_ARG_NONE, &highlight_set,
-			"Enable distinct highlight color for selection", NULL
+			"highlight-foreground-color", 0, 0,
+			G_OPTION_ARG_STRING, &highlight_foreground_color_string,
+			"Enable distinct highlight foreground color for selection", NULL
+		},
+		{
+			"highlight-background-color", 0, 0,
+			G_OPTION_ARG_STRING, &highlight_background_color_string,
+			"Enable distinct highlight background color for selection", NULL
 		},
 		{
 			"icon-title", 'i', 0,
@@ -647,8 +667,8 @@ main(int argc, char **argv)
 			"Cursor blink mode (system|on|off)", "MODE"
 		},
 		{
-			"color-cursor", 'r', 0,
-			G_OPTION_ARG_NONE, &cursor_set,
+			"cursor-color", 0, 0,
+			G_OPTION_ARG_STRING, &cursor_color_string,
 			"Enable a colored cursor", NULL
 		},
 		{
@@ -779,9 +799,6 @@ main(int argc, char **argv)
 		fore.red = fore.green = fore.blue = 1.0; fore.alpha = 1.0;
 	}
 
-	highlight.red = highlight.green = highlight.blue = 0.75; highlight.alpha = 1.0;
-	cursor.red = 1.0; cursor.green = cursor.blue = 0.5; cursor.alpha = 1.0;
-
 	gdk_window_set_debug_updates(debug);
 
 	/* Create a window to hold the scrolling shell, and hook its
@@ -902,12 +919,26 @@ main(int argc, char **argv)
         }
 
 	vte_terminal_set_colors_rgba(terminal, &fore, &back, NULL, 0);
-	if (highlight_set) {
-		vte_terminal_set_color_highlight_rgba(terminal, &highlight);
+
+	if (cursor_color_string) {
+                GdkRGBA rgba;
+                if (parse_color (cursor_color_string, &rgba))
+                        vte_terminal_set_color_cursor_rgba(terminal, &rgba);
+                g_free(cursor_color_string);
 	}
-	if (cursor_set) {
-		vte_terminal_set_color_cursor_rgba(terminal, &cursor);
+	if (highlight_foreground_color_string) {
+                GdkRGBA rgba;
+                if (parse_color (highlight_foreground_color_string, &rgba))
+                        vte_terminal_set_color_cursor_rgba(terminal, &rgba);
+                g_free(highlight_foreground_color_string);
 	}
+	if (highlight_background_color_string) {
+                GdkRGBA rgba;
+                if (parse_color (highlight_background_color_string, &rgba))
+                        vte_terminal_set_color_cursor_rgba(terminal, &rgba);
+                g_free(highlight_background_color_string);
+	}
+
 	if (termcap != NULL) {
 		vte_terminal_set_emulation(terminal, termcap);
 	}
