@@ -720,18 +720,10 @@ vte_terminal_accessible_initialize (AtkObject *obj, gpointer data)
 			 G_CALLBACK(vte_terminal_accessible_title_changed),
 			 obj);
 
-	/* everything below copied from gtkwidgetaccessible.c */
 	g_signal_connect(terminal, "visibility-notify-event",
 		G_CALLBACK(vte_terminal_accessible_visibility_notify), obj);
 	g_signal_connect(terminal, "selection-changed",
 		G_CALLBACK(vte_terminal_accessible_selection_changed), obj);
-
-	if (GTK_IS_WIDGET(gtk_widget_get_parent(GTK_WIDGET(terminal)))) {
-		parent = gtk_widget_get_accessible(gtk_widget_get_parent ((GTK_WIDGET(terminal))));
-		if (ATK_IS_OBJECT(parent)) {
-			atk_object_set_parent(obj, parent);
-		}
-	}
 
 	atk_object_set_name(obj, "Terminal");
         window_title = vte_terminal_get_window_title(terminal);
@@ -743,7 +735,7 @@ vte_terminal_accessible_initialize (AtkObject *obj, gpointer data)
 				       ATK_STATE_EXPANDABLE, FALSE);
 	atk_object_notify_state_change(obj,
 				       ATK_STATE_RESIZABLE, TRUE);
-	obj->role = ATK_ROLE_TERMINAL;
+        atk_object_set_role(obj, ATK_ROLE_TERMINAL);
 }
 
 static void
