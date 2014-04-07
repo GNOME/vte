@@ -82,6 +82,7 @@ typedef gunichar wint_t;
 
 #define WORD_CHARS "-A-Za-z0-9,./?%&#:_=+@~"
 
+static void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
@@ -169,7 +170,6 @@ enum {
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
         PROP_WINDOW_TITLE,
-        PROP_WORD_CHARS,
         PROP_VISIBLE_BELL,
         PROP_FONT_SCALE
 };
@@ -8226,7 +8226,7 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
-	vte_terminal_set_word_chars(terminal, NULL);
+	vte_terminal_set_word_chars(terminal, WORD_CHARS);
 
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
@@ -10808,9 +10808,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
                         break;
-                case PROP_WORD_CHARS:
-                        g_value_set_string (value, NULL /* FIXME */);
-                        break;
                 case PROP_VISIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_visible_bell (terminal));
                         break;
@@ -10896,9 +10893,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
                         vte_terminal_set_scroll_on_output (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_WORD_CHARS:
-                        vte_terminal_set_word_chars (terminal, g_value_get_string (value));
                         break;
                 case PROP_VISIBLE_BELL:
                         vte_terminal_set_visible_bell (terminal, g_value_get_boolean (value));
@@ -11884,26 +11878,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         /**
-         * VteTerminal:word-chars:
-         *
-         * When the user double-clicks to start selection, the terminal will extend
-         * the selection on word boundaries.  It will treat characters the word-chars
-         * characters as parts of words, and all other characters as word separators.
-         * Ranges of characters can be specified by separating them with a hyphen.
-         *
-         * As a special case, when setting this to %NULL or the empty string, the terminal will
-         * treat all graphic non-punctuation non-space characters as word characters.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_WORD_CHARS,
-                 g_param_spec_string ("word-chars", NULL, NULL,
-                                      WORD_CHARS,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
-        /**
          * VteTerminal:visible-bell:
          *
          * Controls whether the terminal will present a visible bell to the
@@ -12500,7 +12474,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
         g_object_thaw_notify(object);
 }
 
-/**
+/*
  * vte_terminal_set_word_chars:
  * @terminal: a #VteTerminal
  * @spec: a specification
@@ -12513,7 +12487,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
  * As a special case, if @spec is %NULL or the empty string, the terminal will
  * treat all graphic non-punctuation non-space characters as word characters.
  */
-void
+static void
 vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 {
 	VteConv conv;
@@ -12532,7 +12506,6 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 						sizeof(VteWordCharRange));
 	/* Special case: if spec is NULL, try to do the right thing. */
 	if (spec == NULL || spec[0] == '\0') {
-                g_object_notify(G_OBJECT(terminal), "word-chars");
 		return;
 	}
 	/* Convert the spec from UTF-8 to a string of gunichars . */
@@ -12589,8 +12562,6 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 		}
 	}
 	g_free(ibufptr);
-
-        g_object_notify(G_OBJECT(terminal), "word-chars");
 }
 
 /**

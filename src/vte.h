@@ -284,11 +284,6 @@ gboolean vte_terminal_get_allow_bold(VteTerminal *terminal);
 /* Check if the terminal is the current selection owner. */
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 
-/* Set the list of word chars, optionally using hyphens to specify ranges
- * (to get a hyphen, place it first), and check if a character is in the
- * range. */
-void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
-
 /* Set what happens when the user strikes backspace or delete. */
 void vte_terminal_set_backspace_binding(VteTerminal *terminal,
 					VteTerminalEraseBinding binding);

@@ -27,7 +27,6 @@
         <property id="scroll-on-keystroke" />
         <property id="scroll-on-output" />
         <property id="window-title" />
-        <property id="word-chars" />
         <property id="visible-bell" />
       </properties>
     </glade-widget-class>
