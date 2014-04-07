@@ -80,6 +80,8 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
+#define WORD_CHARS "-A-Za-z0-9,./?%&#:_=+@~"
+
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
@@ -11898,7 +11900,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_WORD_CHARS,
                  g_param_spec_string ("word-chars", NULL, NULL,
-                                      NULL,
+                                      WORD_CHARS,
                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
      
         /**
