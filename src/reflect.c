@@ -71,12 +71,13 @@ terminal_shell_vte(GtkWidget *terminal)
 
         argv[0] = vte_get_user_shell ();
         argv[1] = NULL;
-	vte_terminal_fork_command_full(VTE_TERMINAL(terminal),
+	vte_terminal_spawn_sync(VTE_TERMINAL(terminal),
                                        VTE_PTY_DEFAULT,
                                        g_get_home_dir() ? g_get_home_dir() : NULL,
                                        argv,
                                        NULL,
                                        0, NULL, NULL,
+                                       NULL,
                                        NULL,
                                        NULL);
 }
