@@ -13929,3 +13929,79 @@ vte_terminal_search_find_next (VteTerminal *terminal)
 {
 	return vte_terminal_search_find (terminal, FALSE);
 }
+
+/* Just some arbitrary minimum values */
+#define MIN_COLUMNS (16)
+#define MIN_ROWS    (2)
+
+/**
+ * vte_terminal_get_geometry_hints:
+ * @terminal: a #VteTerminal
+ * @hints: (out caller-allocates): a #GdkGeometry to fill in
+ * @min_rows: the minimum number of rows to request
+ * @min_columns: the minimum number of columns to request
+ *
+ * Fills in some @hints from @terminal's geometry. The hints
+ * filled are those covered by the %GDK_HINT_RESIZE_INC,
+ * %GDK_HINT_MIN_SIZE and %GDK_HINT_BASE_SIZE flags.
+ *
+ * See gtk_window_set_geometry_hints() for more information.
+ *
+ * @terminal must be realized (see gtk_widget_get_realized()).
+ */
+void
+vte_terminal_get_geometry_hints(VteTerminal *terminal,
+                                GdkGeometry *hints,
+                                int min_rows,
+                                int min_columns)
+{
+        VteTerminalPrivate *pvt;
+        GtkWidget *widget;
+        GtkBorder padding;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(hints != NULL);
+        widget = &terminal->widget;
+        g_return_if_fail(gtk_widget_get_realized(widget));
+
+        pvt = terminal->pvt;
+
+        gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
+                                      gtk_widget_get_state_flags(widget),
+                                      &padding);
+
+        hints->base_width  = padding.left + padding.right;
+        hints->base_height = padding.top  + padding.bottom;
+        hints->width_inc   = pvt->char_width;
+        hints->height_inc  = pvt->char_height;
+        hints->min_width   = hints->base_width  + hints->width_inc  * min_columns;
+        hints->min_height  = hints->base_height + hints->height_inc * min_rows;
+}
+
+/**
+ * vte_terminal_set_geometry_hints_for_window:
+ * @terminal: a #VteTerminal
+ * @window: a #GtkWindow
+ *
+ * Sets @terminal as @window's geometry widget. See
+ * gtk_window_set_geometry_hints() for more information.
+ *
+ * @terminal must be realized (see gtk_widget_get_realized()).
+ */
+void
+vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
+                                           GtkWindow *window)
+{
+        GdkGeometry hints;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(gtk_widget_get_realized(&terminal->widget));
+
+        vte_terminal_get_geometry_hints(terminal, &hints, MIN_ROWS, MIN_COLUMNS);
+        gtk_window_set_geometry_hints(window,
+                                      &terminal->widget,
+                                      &hints,
+                                      GDK_HINT_RESIZE_INC |
+                                      GDK_HINT_MIN_SIZE |
+                                      GDK_HINT_BASE_SIZE);
+}
