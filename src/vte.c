@@ -5220,8 +5220,6 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 gboolean
 _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 {
-        GUnicodeType type;
-
 	return g_unichar_isgraph(c) &&
                (g_unichar_isalnum(c) ||
                 g_unichar_ispunct(c));
