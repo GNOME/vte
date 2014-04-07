@@ -159,10 +159,6 @@ typedef enum _VteKeymode {
 
 typedef struct _VteScreen VteScreen;
 
-typedef struct _VteWordCharRange {
-	gunichar start, end;
-} VteWordCharRange;
- 
 typedef struct _VtePaletteColor {
 	struct {
 		PangoColor color;
@@ -269,7 +265,6 @@ struct _VteTerminalPrivate {
 	} normal_screen, alternate_screen, *screen;
 
 	/* Selection information. */
-	GArray *word_chars;
 	gboolean has_selection;
 	gboolean selecting;
 	gboolean selecting_after_threshold;

@@ -80,9 +80,6 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
-#define WORD_CHARS "-A-Za-z0-9,./?%&#:_=+@~"
-
-static void vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_set_termcap(VteTerminal *terminal);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
@@ -5211,7 +5208,7 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 }
 
 /*
- * __vte_terminal_is_word_char:
+ * _vte_terminal_is_word_char:
  * @terminal: a #VteTerminal
  * @c: a candidate Unicode code point
  *
@@ -5223,29 +5220,11 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 gboolean
 _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
 {
-	guint i;
-	VteWordCharRange *range;
+        GUnicodeType type;
 
-	if (terminal->pvt->word_chars != NULL) {
-		/* Go through each range and check if c is included. */
-		for (i = 0; i < terminal->pvt->word_chars->len; i++) {
-			range = &g_array_index(terminal->pvt->word_chars,
-					       VteWordCharRange,
-					       i);
-			if ((c >= range->start) && (c <= range->end))
-				return TRUE;
-		}
-	}
-
-	/* If not ASCII, or ASCII and no array set (or empty array),
-	 * fall back on Unicode properties. */
-	return (c >= 0x80 ||
-	        (terminal->pvt->word_chars == NULL) ||
-	        (terminal->pvt->word_chars->len == 0)) &&
-		g_unichar_isgraph(c) &&
-	       !g_unichar_ispunct(c) &&
-	       !g_unichar_isspace(c) &&
-	       (c != '\0');
+	return g_unichar_isgraph(c) &&
+               (g_unichar_isalnum(c) ||
+                g_unichar_ispunct(c));
 }
 
 /* Check if the characters in the two given locations are in the same class
@@ -8221,9 +8200,6 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
 	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
 
-	/* Selection info. */
-	vte_terminal_set_word_chars(terminal, WORD_CHARS);
-
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
 	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
@@ -8644,9 +8620,6 @@ vte_terminal_finalize(GObject *object)
 					       -1);
 		}
 		g_free(terminal->pvt->selection);
-	}
-	if (terminal->pvt->word_chars != NULL) {
-		g_array_free(terminal->pvt->word_chars, TRUE);
 	}
 
 	/* Clear the output histories. */
@@ -12468,96 +12441,6 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
         g_object_notify(object, "scrollback-lines");
 
         g_object_thaw_notify(object);
-}
-
-/*
- * vte_terminal_set_word_chars:
- * @terminal: a #VteTerminal
- * @spec: a specification
- *
- * When the user double-clicks to start selection, the terminal will extend
- * the selection on word boundaries.  It will treat characters included in @spec
- * as parts of words, and all other characters as word separators.  Ranges of
- * characters can be specified by separating them with a hyphen.
- *
- * As a special case, if @spec is %NULL or the empty string, the terminal will
- * treat all graphic non-punctuation non-space characters as word characters.
- */
-static void
-vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
-{
-	VteConv conv;
-	gunichar *wbuf;
-	guchar *ibuf, *ibufptr, *obuf, *obufptr;
-	gsize ilen, olen;
-	VteWordCharRange range;
-	guint i;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	/* Allocate a new range array. */
-	if (terminal->pvt->word_chars != NULL) {
-		g_array_free(terminal->pvt->word_chars, TRUE);
-	}
-	terminal->pvt->word_chars = g_array_new(FALSE, TRUE,
-						sizeof(VteWordCharRange));
-	/* Special case: if spec is NULL, try to do the right thing. */
-	if (spec == NULL || spec[0] == '\0') {
-		return;
-	}
-	/* Convert the spec from UTF-8 to a string of gunichars . */
-        /* FIXME: why not just directly use g_utf8_to_ucs4 here? It'll never fail */
-	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
-	if (conv == VTE_INVALID_CONV) {
-		/* Aaargh.  We're screwed. */
-		g_warning(_("_vte_conv_open() failed setting word characters"));
-		return;
-	}
-	ilen = strlen(spec);
-	ibuf = ibufptr = (guchar *)g_strdup(spec);
-	olen = (ilen + 1) * sizeof(gunichar);
-	_vte_byte_array_set_minimum_size(terminal->pvt->conv_buffer, olen);
-	obuf = obufptr = terminal->pvt->conv_buffer->data;
-	wbuf = (gunichar*) obuf;
-	wbuf[ilen] = '\0';
-	_vte_conv(conv, (const guchar **)&ibuf, &ilen, &obuf, &olen);
-	_vte_conv_close(conv);
-	for (i = 0; i < ((obuf - obufptr) / sizeof(gunichar)); i++) {
-		/* The hyphen character. */
-		if (wbuf[i] == '-') {
-			range.start = wbuf[i];
-			range.end = wbuf[i];
-			g_array_append_val(terminal->pvt->word_chars, range);
-			_vte_debug_print(VTE_DEBUG_MISC,
-				"Word charset includes hyphen.\n");
-			continue;
-		}
-		/* A single character, not the start of a range. */
-		if ((wbuf[i] != '-') && (wbuf[i + 1] != '-')) {
-			range.start = wbuf[i];
-			range.end = wbuf[i];
-			g_array_append_val(terminal->pvt->word_chars, range);
-			_vte_debug_print(VTE_DEBUG_MISC,
-					"Word charset includes `%lc'.\n",
-					(wint_t) wbuf[i]);
-			continue;
-		}
-		/* The start of a range. */
-		if ((wbuf[i] != '-') &&
-		    (wbuf[i + 1] == '-') &&
-		    (wbuf[i + 2] != '-') &&
-		    (wbuf[i + 2] != 0)) {
-			range.start = wbuf[i];
-			range.end = wbuf[i + 2];
-			g_array_append_val(terminal->pvt->word_chars, range);
-			_vte_debug_print(VTE_DEBUG_MISC,
-					"Word charset includes range from "
-					"`%lc' to `%lc'.\n", (wint_t) wbuf[i],
-					(wint_t) wbuf[i + 2]);
-			i += 2;
-			continue;
-		}
-	}
-	g_free(ibufptr);
 }
 
 /**
