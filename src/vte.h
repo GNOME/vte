@@ -113,7 +113,7 @@ struct _VteTerminalClass {
 };
 
 /**
- * VteTerminalEraseBinding:
+ * VteEraseBinding:
  * @VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
  * @VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).
  * @VTE_ERASE_ASCII_DELETE: Send an ASCII delete character (0x7F).
@@ -130,10 +130,10 @@ typedef enum {
 	VTE_ERASE_ASCII_DELETE,
 	VTE_ERASE_DELETE_SEQUENCE,
 	VTE_ERASE_TTY
-} VteTerminalEraseBinding;
+} VteEraseBinding;
 
 /**
- * VteTerminalCursorBlinkMode:
+ * VteCursorBlinkMode:
  * @VTE_CURSOR_BLINK_SYSTEM: Follow GTK+ settings for cursor blinking.
  * @VTE_CURSOR_BLINK_ON: Cursor blinks.
  * @VTE_CURSOR_BLINK_OFF: Cursor does not blink.
@@ -145,10 +145,10 @@ typedef enum {
         VTE_CURSOR_BLINK_SYSTEM,
         VTE_CURSOR_BLINK_ON,
         VTE_CURSOR_BLINK_OFF
-} VteTerminalCursorBlinkMode;
+} VteCursorBlinkMode;
 
 /**
- * VteTerminalCursorShape:
+ * VteCursorShape:
  * @VTE_CURSOR_SHAPE_BLOCK: Draw a block cursor.  This is the default.
  * @VTE_CURSOR_SHAPE_IBEAM: Draw a vertical bar on the left side of character.
  * This is similar to the default cursor for other GTK+ widgets.
@@ -161,7 +161,7 @@ typedef enum {
         VTE_CURSOR_SHAPE_BLOCK,
         VTE_CURSOR_SHAPE_IBEAM,
         VTE_CURSOR_SHAPE_UNDERLINE
-} VteTerminalCursorShape;
+} VteCursorShape;
 
 /* The structure we return as the supplemental attributes for strings. */
 typedef struct _VteCharAttributes VteCharAttributes;
@@ -262,13 +262,13 @@ void vte_terminal_set_default_colors(VteTerminal *terminal);
 
 /* Set whether or not the cursor blinks. */
 void vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
-					VteTerminalCursorBlinkMode mode);
-VteTerminalCursorBlinkMode vte_terminal_get_cursor_blink_mode(VteTerminal *terminal);
+					VteCursorBlinkMode mode);
+VteCursorBlinkMode vte_terminal_get_cursor_blink_mode(VteTerminal *terminal);
 
 /* Set cursor shape */
 void vte_terminal_set_cursor_shape(VteTerminal *terminal,
-				   VteTerminalCursorShape shape);
-VteTerminalCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal);
+				   VteCursorShape shape);
+VteCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal);
 
 /* Set the number of scrollback lines, above or at an internal minimum. */
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines);
@@ -285,9 +285,9 @@ gboolean vte_terminal_get_has_selection(VteTerminal *terminal);
 
 /* Set what happens when the user strikes backspace or delete. */
 void vte_terminal_set_backspace_binding(VteTerminal *terminal,
-					VteTerminalEraseBinding binding);
+					VteEraseBinding binding);
 void vte_terminal_set_delete_binding(VteTerminal *terminal,
-				     VteTerminalEraseBinding binding);
+				     VteEraseBinding binding);
 
 /* Manipulate the autohide setting. */
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting);
@@ -387,19 +387,19 @@ const char *vte_terminal_get_current_file_uri(VteTerminal *terminal);
 /* Writing contents out */
 
 /**
- * VteTerminalWriteFlags:
- * @VTE_TERMINAL_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
+ * VteWriteFlags:
+ * @VTE_WRITE_DEFAULT: Write contents as UTF-8 text.  This is the default.
  *
  * A flag type to determine how terminal contents should be written
  * to an output stream.
  */
 typedef enum {
-  VTE_TERMINAL_WRITE_DEFAULT = 0
-} VteTerminalWriteFlags;
+  VTE_WRITE_DEFAULT = 0
+} VteWriteFlags;
 
 gboolean vte_terminal_write_contents (VteTerminal *terminal,
 				      GOutputStream *stream,
-				      VteTerminalWriteFlags flags,
+				      VteWriteFlags flags,
 				      GCancellable *cancellable,
 				      GError **error);
 

@@ -2,10 +2,10 @@
 <FILE>vte-terminal</FILE>
 <TITLE>VteTerminal</TITLE>
 VteTerminal
-VteTerminalCursorBlinkMode
-VteTerminalCursorShape
-VteTerminalEraseBinding
-VteTerminalWriteFlags
+VteCursorBlinkMode
+VteCursorShape
+VteEraseBinding
+VteWriteFlags
 VteSelectionFunc
 vte_terminal_new
 vte_terminal_feed
@@ -90,14 +90,14 @@ vte_terminal_pty_new_sync
 vte_terminal_watch_child
 
 <SUBSECTION Standard>
-VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE
-vte_terminal_cursor_blink_mode_get_type
-VTE_TYPE_TERMINAL_CURSOR_SHAPE
-vte_terminal_cursor_shape_get_type
-VTE_TYPE_TERMINAL_ERASE_BINDING
-vte_terminal_erase_binding_get_type
-VTE_TYPE_TERMINAL_WRITE_FLAGS
-vte_terminal_write_flags_get_type
+VTE_TYPE_CURSOR_BLINK_MODE
+vte_cursor_blink_mode_get_type
+VTE_TYPE_CURSOR_SHAPE
+vte_cursor_shape_get_type
+VTE_TYPE_ERASE_BINDING
+vte_erase_binding_get_type
+VTE_TYPE_WRITE_FLAGS
+vte_write_flags_get_type
 VTE_TYPE_TERMINAL
 vte_terminal_get_type
 VTE_IS_TERMINAL

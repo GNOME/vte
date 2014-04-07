@@ -288,7 +288,7 @@ struct _VteTerminalPrivate {
 	VteVisualPosition selection_start, selection_end;
 
 	/* Miscellaneous options. */
-	VteTerminalEraseBinding backspace_binding, delete_binding;
+	VteEraseBinding backspace_binding, delete_binding;
 	gboolean meta_sends_escape;
 	gboolean audible_bell;
 	gboolean visible_bell;
@@ -311,11 +311,11 @@ struct _VteTerminalPrivate {
 	long scrollback_lines;
 
 	/* Cursor shape */
-	VteTerminalCursorShape cursor_shape;
+	VteCursorShape cursor_shape;
         float cursor_aspect_ratio;
 
 	/* Cursor blinking. */
-        VteTerminalCursorBlinkMode cursor_blink_mode;
+        VteCursorBlinkMode cursor_blink_mode;
 	gboolean cursor_blink_state;
 	guint cursor_blink_tag;           /* cursor blinking timeout ID */
         gint cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */

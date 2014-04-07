@@ -1017,7 +1017,7 @@ static gboolean
 _vte_ring_write_row (VteRing *ring,
 		     GOutputStream *stream,
 		     VteRowData *row,
-		     VteTerminalWriteFlags flags,
+		     VteWriteFlags flags,
 		     GCancellable *cancellable,
 		     GError **error)
 {
@@ -1043,7 +1043,7 @@ _vte_ring_write_row (VteRing *ring,
  * _vte_ring_write_contents:
  * @ring: a #VteRing
  * @stream: a #GOutputStream to write to
- * @flags: a set of #VteTerminalWriteFlags
+ * @flags: a set of #VteWriteFlags
  * @cancellable: optional #GCancellable object, %NULL to ignore
  * @error: a #GError location to store the error occuring, or %NULL to ignore
  *
@@ -1054,7 +1054,7 @@ _vte_ring_write_row (VteRing *ring,
 gboolean
 _vte_ring_write_contents (VteRing *ring,
 			  GOutputStream *stream,
-			  VteTerminalWriteFlags flags,
+			  VteWriteFlags flags,
 			  GCancellable *cancellable,
 			  GError **error)
 {

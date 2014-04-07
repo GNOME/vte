@@ -11583,7 +11583,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_BACKSPACE_BINDING,
                  g_param_spec_enum ("backspace-binding", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_ERASE_BINDING,
+                                    VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -11618,7 +11618,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_CURSOR_BLINK_MODE,
                  g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE,
+                                    VTE_TYPE_CURSOR_BLINK_MODE,
                                     VTE_CURSOR_BLINK_SYSTEM,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
@@ -11633,7 +11633,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_CURSOR_SHAPE,
                  g_param_spec_enum ("cursor-shape", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_CURSOR_SHAPE,
+                                    VTE_TYPE_CURSOR_SHAPE,
                                     VTE_CURSOR_SHAPE_BLOCK,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
      
@@ -11649,7 +11649,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_DELETE_BINDING,
                  g_param_spec_enum ("delete-binding", NULL, NULL,
-                                    VTE_TYPE_TERMINAL_ERASE_BINDING,
+                                    VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
      
@@ -12283,7 +12283,7 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
 /**
  * vte_terminal_set_cursor_blink_mode:
  * @terminal: a #VteTerminal
- * @mode: the #VteTerminalCursorBlinkMode to use
+ * @mode: the #VteCursorBlinkMode to use
  *
  * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
  * will use the #GtkSettings::gtk-cursor-blink setting.
@@ -12291,7 +12291,7 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
  * Since: 0.17.1
  */
 void
-vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlinkMode mode)
+vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteCursorBlinkMode mode)
 {
         VteTerminalPrivate *pvt;
         gboolean blinks;
@@ -12333,7 +12333,7 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteTerminalCursorBlink
  *
  * Since: 0.17.1
  */
-VteTerminalCursorBlinkMode
+VteCursorBlinkMode
 vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
@@ -12344,14 +12344,14 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
 /**
  * vte_terminal_set_cursor_shape:
  * @terminal: a #VteTerminal
- * @shape: the #VteTerminalCursorShape to use
+ * @shape: the #VteCursorShape to use
  *
  * Sets the shape of the cursor drawn.
  *
  * Since: 0.20
  */
 void
-vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shape)
+vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
 {
         VteTerminalPrivate *pvt;
 
@@ -12377,7 +12377,7 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteTerminalCursorShape shap
  *
  * Since: 0.17.6
  */
-VteTerminalCursorShape
+VteCursorShape
 vte_terminal_get_cursor_shape(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
@@ -12563,7 +12563,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
 /**
  * vte_terminal_set_backspace_binding:
  * @terminal: a #VteTerminal
- * @binding: a #VteTerminalEraseBinding for the backspace key
+ * @binding: a #VteEraseBinding for the backspace key
  *
  * Modifies the terminal's backspace key binding, which controls what
  * string or control sequence the terminal sends to its child when the user
@@ -12571,7 +12571,7 @@ vte_terminal_set_word_chars(VteTerminal *terminal, const char *spec)
  */
 void
 vte_terminal_set_backspace_binding(VteTerminal *terminal,
-				   VteTerminalEraseBinding binding)
+				   VteEraseBinding binding)
 {
         VteTerminalPrivate *pvt;
 
@@ -12591,7 +12591,7 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 /**
  * vte_terminal_set_delete_binding:
  * @terminal: a #VteTerminal
- * @binding: a #VteTerminalEraseBinding for the delete key
+ * @binding: a #VteEraseBinding for the delete key
  *
  * Modifies the terminal's delete key binding, which controls what
  * string or control sequence the terminal sends to its child when the user
@@ -12599,7 +12599,7 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
  */
 void
 vte_terminal_set_delete_binding(VteTerminal *terminal,
-				VteTerminalEraseBinding binding)
+				VteEraseBinding binding)
 {
         VteTerminalPrivate *pvt;
 
@@ -13705,7 +13705,7 @@ update_timeout (gpointer data)
  * vte_terminal_write_contents:
  * @terminal: a #VteTerminal
  * @stream: a #GOutputStream to write to
- * @flags: a set of #VteTerminalWriteFlags
+ * @flags: a set of #VteWriteFlags
  * @cancellable: (allow-none): a #GCancellable object, or %NULL
  * @error: (allow-none): a #GError location to store the error occuring, or %NULL
  *
@@ -13727,7 +13727,7 @@ update_timeout (gpointer data)
 gboolean
 vte_terminal_write_contents (VteTerminal *terminal,
                              GOutputStream *stream,
-                             VteTerminalWriteFlags flags,
+                             VteWriteFlags flags,
                              GCancellable *cancellable,
                              GError **error)
 {

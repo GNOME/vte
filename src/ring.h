@@ -89,7 +89,7 @@ void _vte_ring_set_visible_rows_hint (VteRing *ring, gulong rows);
 void _vte_ring_rewrap (VteRing *ring, glong columns, VteVisualPosition **markers);
 gboolean _vte_ring_write_contents (VteRing *ring,
 				   GOutputStream *stream,
-				   VteTerminalWriteFlags flags,
+				   VteWriteFlags flags,
 				   GCancellable *cancellable,
 				   GError **error);
 

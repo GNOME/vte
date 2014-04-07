@@ -147,7 +147,7 @@ destroy_and_quit(VteTerminal *terminal, GtkWidget *window)
 
 		if (stream) {
 			vte_terminal_write_contents (terminal, stream,
-						     VTE_TERMINAL_WRITE_DEFAULT,
+						     VTE_WRITE_DEFAULT,
 						     NULL, &error);
 			g_object_unref (stream);
 		}
@@ -807,8 +807,8 @@ main(int argc, char **argv)
 	};
 	GOptionContext *context;
 	GError *error = NULL;
-	VteTerminalCursorBlinkMode cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
-	VteTerminalCursorShape cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+	VteCursorBlinkMode cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
+	VteCursorShape cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
 	GtkPolicyType scrollbar_policy = GTK_POLICY_ALWAYS;
 	VtePtyFlags pty_flags = VTE_PTY_DEFAULT;
 
@@ -837,11 +837,11 @@ main(int argc, char **argv)
 	}
 
 	if (cursor_blink_mode_string) {
-		cursor_blink_mode = parse_enum(VTE_TYPE_TERMINAL_CURSOR_BLINK_MODE, cursor_blink_mode_string);
+		cursor_blink_mode = parse_enum(VTE_TYPE_CURSOR_BLINK_MODE, cursor_blink_mode_string);
 		g_free(cursor_blink_mode_string);
 	}
 	if (cursor_shape_string) {
-		cursor_shape = parse_enum(VTE_TYPE_TERMINAL_CURSOR_SHAPE, cursor_shape_string);
+		cursor_shape = parse_enum(VTE_TYPE_CURSOR_SHAPE, cursor_shape_string);
 		g_free(cursor_shape_string);
 	}
 	if (scrollbar_policy_string) {
