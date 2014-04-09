@@ -1320,13 +1320,13 @@ vte_terminal_accessible_get_character_extents(AtkText *text, gint offset,
 	VteTerminalAccessiblePrivate *priv = _vte_terminal_accessible_get_instance_private(accessible);
 	VteTerminal *terminal;
 	glong char_width, char_height;
-	gint base_x, base_y;
+	gint base_x, base_y, w, h;
 
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
 	terminal = VTE_TERMINAL (gtk_accessible_get_widget (GTK_ACCESSIBLE (text)));
 
-	atk_component_get_position (ATK_COMPONENT (text), &base_x, &base_y, coords);
+	atk_component_get_extents (ATK_COMPONENT (text), &base_x, &base_y, &w, &h, coords);
 	xy_from_offset (priv, offset, x, y);
 	char_width = vte_terminal_get_char_width (terminal);
 	char_height = vte_terminal_get_char_height (terminal);
@@ -1359,13 +1359,13 @@ vte_terminal_accessible_get_offset_at_point(AtkText *text,
 	VteTerminalAccessiblePrivate *priv = _vte_terminal_accessible_get_instance_private(accessible);
 	VteTerminal *terminal;
 	glong char_width, char_height;
-	gint base_x, base_y;
+	gint base_x, base_y, w, h;
 
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
 	terminal = VTE_TERMINAL (gtk_accessible_get_widget (GTK_ACCESSIBLE (text)));
 
-	atk_component_get_position (ATK_COMPONENT (text), &base_x, &base_y, coords);
+	atk_component_get_extents (ATK_COMPONENT (text), &base_x, &base_y, &w, &h, coords);
         /* FIXME: use _vte_terminal_xy_to_grid */
 	char_width = vte_terminal_get_char_width (terminal);
 	char_height = vte_terminal_get_char_height (terminal);
