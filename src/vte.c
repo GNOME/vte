@@ -895,9 +895,15 @@ vte_terminal_emit_eof(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `eof'.\n");
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter ();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
+
 	g_signal_emit_by_name(terminal, "eof");
+
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave ();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	return FALSE;
 }
@@ -4181,9 +4187,14 @@ out:
 			_vte_terminal_feed_chunks (terminal, chunks);
 		}
 		if (!vte_terminal_is_processing (terminal)) {
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
+
 			vte_terminal_add_process_timeout (terminal);
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_leave ();
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
 		}
 		terminal->pvt->pty_input_active = len != 0;
 		terminal->pvt->input_bytes = bytes;
@@ -4216,9 +4227,15 @@ out:
 	if (eof) {
 		/* potential deadlock ... */
 		if (!vte_terminal_is_processing (terminal)) {
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
+
 			vte_terminal_eof (channel, terminal);
+
+                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_leave ();
+                        G_GNUC_END_IGNORE_DEPRECATIONS;
 		} else {
 			vte_terminal_eof (channel, terminal);
 		}
@@ -13290,7 +13307,9 @@ process_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	in_process_timeout = TRUE;
 
@@ -13352,7 +13371,9 @@ process_timeout (gpointer data)
 
 	in_process_timeout = FALSE;
 
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -13418,7 +13439,9 @@ update_repeat_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	in_update_timeout = TRUE;
 
@@ -13491,7 +13514,9 @@ update_repeat_timeout (gpointer data)
 
 	in_update_timeout = FALSE;
 
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -13512,7 +13537,9 @@ update_timeout (gpointer data)
 	GList *l, *next;
 	gboolean redraw = FALSE;
 
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	in_update_timeout = TRUE;
 
@@ -13577,7 +13604,9 @@ update_timeout (gpointer data)
 				    NULL);
 	in_update_timeout = FALSE;
 
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave();
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	return FALSE;
 }
