@@ -1132,7 +1132,7 @@ regex_match_clear_cursor (struct vte_match_regex *regex)
         switch (regex->cursor_mode) {
                 case VTE_REGEX_CURSOR_GDKCURSOR:
                         if (regex->cursor.cursor != NULL) {
-                                gdk_cursor_unref(regex->cursor.cursor);
+                                g_object_unref(regex->cursor.cursor);
                                 regex->cursor.cursor = NULL;
                         }
                         break;
@@ -1170,7 +1170,7 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
         switch (regex->cursor_mode) {
                 case VTE_REGEX_CURSOR_GDKCURSOR:
                         if (regex->cursor.cursor != NULL) {
-                                cursor = gdk_cursor_ref(regex->cursor.cursor);
+                                cursor = g_object_ref(regex->cursor.cursor);
                         }
                         break;
                 case VTE_REGEX_CURSOR_GDKCURSORTYPE:
@@ -1187,7 +1187,7 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
 	gdk_window_set_cursor (gtk_widget_get_window (&terminal->widget), cursor);
 
         if (cursor)
-                gdk_cursor_unref(cursor);
+                g_object_unref(cursor);
 }
 
 /**
@@ -1338,7 +1338,7 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
 			       tag);
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSOR;
-	regex->cursor.cursor = cursor ? gdk_cursor_ref(cursor) : NULL;
+	regex->cursor.cursor = cursor ? g_object_ref(cursor) : NULL;
 	vte_terminal_match_hilite_clear(terminal);
 }
 
@@ -8409,11 +8409,11 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Deallocate the cursors. */
 	terminal->pvt->mouse_cursor_visible = FALSE;
-	gdk_cursor_unref(terminal->pvt->mouse_default_cursor);
+	g_object_unref(terminal->pvt->mouse_default_cursor);
 	terminal->pvt->mouse_default_cursor = NULL;
-	gdk_cursor_unref(terminal->pvt->mouse_mousing_cursor);
+	g_object_unref(terminal->pvt->mouse_mousing_cursor);
 	terminal->pvt->mouse_mousing_cursor = NULL;
-	gdk_cursor_unref(terminal->pvt->mouse_inviso_cursor);
+	g_object_unref(terminal->pvt->mouse_inviso_cursor);
 	terminal->pvt->mouse_inviso_cursor = NULL;
 
 	vte_terminal_match_hilite_clear(terminal);
