@@ -7558,8 +7558,7 @@ vte_terminal_set_font(VteTerminal *terminal,
         GObject *object;
         GtkStyleContext *context;
 	VteTerminalPrivate *pvt;
-        const PangoFontDescription *style_font;
-	PangoFontDescription *desc;
+        PangoFontDescription *desc;
         gboolean same_desc;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -7569,8 +7568,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 
 	/* Create an owned font description. */
         context = gtk_widget_get_style_context(&terminal->widget);
-        style_font = gtk_style_context_get_font(context, GTK_STATE_FLAG_NORMAL);
-	desc = pango_font_description_copy (style_font);
+        gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font", &desc, NULL);
 	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != NULL) {
 		pango_font_description_merge (desc, font_desc, TRUE);
