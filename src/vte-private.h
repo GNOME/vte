@@ -132,10 +132,20 @@ typedef enum {
 	MOUSE_TRACKING_ALL_MOTION_TRACKING
 } MouseTrackingMode;
 
-struct _vte_regex_match {
-       int rm_so;
-       int rm_eo;
-};
+/* For unified handling of PRIMARY and CLIPBOARD selection */
+typedef enum {
+	VTE_SELECTION_PRIMARY,
+	VTE_SELECTION_CLIPBOARD,
+	LAST_VTE_SELECTION
+} VteSelection;
+
+/* Used in the GtkClipboard API, to distinguish requests for HTML and TEXT
+ * contents of a clipboard */
+typedef enum {
+	VTE_TARGET_TEXT,
+	VTE_TARGET_HTML,
+	LAST_VTE_TARGET
+} VteSelectionTarget;
 
 /* A match regex, with a tag. */
 struct vte_match_regex {
@@ -271,7 +281,6 @@ struct _VteTerminalPrivate {
 	gboolean selecting_restart;
 	gboolean selecting_had_delta;
 	gboolean selection_block_mode;
-	char *selection;
 	enum vte_selection_type {
 		selection_type_char,
 		selection_type_word,
@@ -281,6 +290,11 @@ struct _VteTerminalPrivate {
 		long x, y;
 	} selection_origin, selection_last;
 	VteVisualPosition selection_start, selection_end;
+
+	/* Clipboard data information. */
+	char *selection_text[LAST_VTE_SELECTION];
+	char *selection_html[LAST_VTE_SELECTION];
+	GtkClipboard *clipboard[LAST_VTE_SELECTION];
 
 	/* Miscellaneous options. */
 	VteEraseBinding backspace_binding, delete_binding;
