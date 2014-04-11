@@ -6306,7 +6306,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal, const VteCellAttr *attr, co
 		g_string_prepend(string, "<blink>");
 		g_string_append(string, "</blink>");
 	}
-	// reverse and invisible are not supported
+	/* reverse and invisible are not supported */
 
 	return g_string_free(string, FALSE);
 }
@@ -6349,13 +6349,15 @@ vte_terminal_attributes_to_html(VteTerminal *terminal, const gchar *text, GArray
 
 	g_assert(strlen(text) == attrs->len);
 
-	// Initial size fits perfectly if the text has no attributes and no
-	// characters that need to be escaped
+	/* Initial size fits perfectly if the text has no attributes and no
+	 * characters that need to be escaped
+         */
 	string = g_string_sized_new (strlen(text) + 11);
 	
 	g_string_append(string, "<pre>");
-	// Find streches with equal attributes. Newlines are treated specially,
-	// so that the <span> do not cover multiple lines.
+	/* Find streches with equal attributes. Newlines are treated specially,
+	 * so that the <span> do not cover multiple lines.
+         */
 	from = to = 0;
 	while (text[from] != '\0') {
 		g_assert(from == to);
