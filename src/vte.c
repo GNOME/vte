@@ -4766,6 +4766,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 	terminal = VTE_TERMINAL(widget);
 
+        /* We do NOT want chain up to GtkWidget::key-press-event, since that would
+         * cause GtkWidget's keybindings to be handled and consumed. However we'll
+         * have to handle the one sane binding (Shift-F10 or MenuKey, to pop up the
+         * context menu) ourself, so for now we simply skip the offending keybinding
+         * in class_init.
+         */
+
 	/* First, check if GtkWidget's behavior already does something with
 	 * this key. */
 	if (GTK_WIDGET_CLASS(vte_terminal_parent_class)->key_press_event) {
@@ -11875,19 +11882,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        FALSE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-        /* Style properties */
-
-        /* Keybindings */
-	binding_set = gtk_binding_set_by_class(klass);
-
-	/* Bind Copy, Paste, Cut keys */
-	gtk_binding_entry_add_signal(binding_set, GDK_KEY_F16, 0, "copy-clipboard",0);
-	gtk_binding_entry_add_signal(binding_set, GDK_KEY_F18, 0, "paste-clipboard", 0);
-	gtk_binding_entry_add_signal(binding_set, GDK_KEY_F20, 0, "copy-clipboard",0);
-
-	/* Disable GTK's builtin handler for Ctrl+F1, see bug 726438 */
+	/* Disable GtkWidget's keybindings except for Shift-F10 and MenuKey
+         * which pop up the context menu.
+         */
 	binding_set = gtk_binding_set_by_class(vte_terminal_parent_class);
 	gtk_binding_entry_skip(binding_set, GDK_KEY_F1, GDK_CONTROL_MASK);
+	gtk_binding_entry_skip(binding_set, GDK_KEY_F1, GDK_SHIFT_MASK);
+	gtk_binding_entry_skip(binding_set, GDK_KEY_KP_F1, GDK_CONTROL_MASK);
+	gtk_binding_entry_skip(binding_set, GDK_KEY_KP_F1, GDK_SHIFT_MASK);
+
 
 	process_timer = g_timer_new ();
 
