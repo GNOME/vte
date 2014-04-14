@@ -42,9 +42,9 @@ class Window : Gtk.ApplicationWindow
 	{
 		Object(application: app);
 
-        add_action_entries (action_entries, this);
+		add_action_entries (action_entries, this);
 
-		/* set_resize_mode(Gtk.ResizeMode.IMMEDIATE); */
+        /* set_resize_mode(Gtk.ResizeMode.IMMEDIATE); */
 
 		clipboard = get_clipboard(Gdk.SELECTION_CLIPBOARD);
 		clipboard.owner_change.connect(clipboard_owner_change_cb);
@@ -517,7 +517,7 @@ class App : Gtk.Application
 
 	public App()
 	{
-		Object(application_id: "org.gnome.Vte.TestApp",
+		Object(application_id: "org.gnome.Vte.Test.App",
 			   flags: ApplicationFlags.NON_UNIQUE);
 	}
 
@@ -593,7 +593,7 @@ class App : Gtk.Application
 			if (flags == null)
 				return value;
 
-			for (int i = 0; flags[i] != null; i++) {
+			for (int i = 0; i < flags.length; i++) {
 				unowned FlagsValue? flags_value = flags_klass.get_value_by_nick(flags[i]);
 				if (flags_value != null)
 					value |= flags_value.value;
@@ -690,7 +690,7 @@ class App : Gtk.Application
 		public static Vte.PtyFlags get_pty_flags()
 		{
 			Vte.PtyFlags flags;
-			if (cursor_shape_string != null)
+			if (pty_flags_string != null)
 				flags = (Vte.PtyFlags)parse_flags(typeof(Vte.CursorShape),
 												  pty_flags_string);
 			else
