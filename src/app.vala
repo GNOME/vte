@@ -645,8 +645,10 @@ class App : Gtk.Application
 			if (str == null)
 				return null;
 			var color = Gdk.RGBA();
-			if (!color.parse(str))
+			if (!color.parse(str)) {
+				printerr("Failed to parse \"%s\" as color.\n", str);
 				return null;
+			}
 			return color;
 		}
 
