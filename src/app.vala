@@ -356,12 +356,7 @@ class Window : Gtk.ApplicationWindow
 		if (App.Options.no_context_menu)
 			return false;
 
-		var padding = get_style_context().get_padding(get_state_flags());
-        var char_width = terminal.get_char_width();
-        var char_height = terminal.get_char_height();
-		var match = terminal.match_check(((int)event.x - padding.left) / (int)char_width,
-										 ((int)event.y - padding.top) / (int)char_height,
-										 null);
+		var match = terminal.match_check_event(event, null);
 
 		var menu = new GLib.Menu();
 		menu.append("_Copy", "win.copy");

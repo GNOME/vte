@@ -216,6 +216,8 @@ if ENABLE_TEST_APPLICATION
 
 bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
 
+vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@: vte-$(VTE_API_VERSION).vapi
+
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	app.vala \
 	config.vapi \
@@ -229,7 +231,6 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
 	--vapidir=. \
 	--girdir=. \
 	--pkg=posix \
-	--pkg=linux \
 	--pkg=gio-2.0 \
 	--pkg=gtk+-$(GTK_API_VERSION) \
 	--pkg=vte-$(VTE_API_VERSION) \

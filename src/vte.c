@@ -1709,6 +1709,46 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	return ret;
 }
 
+/**
+ * vte_terminal_match_check_event:
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ * @tag: (out) (allow-none): a location to store the tag, or %NULL
+ *
+ * Checks if the text in and around the position of the event matches any of the
+ * regular expressions previously set using vte_terminal_match_add().  If a
+ * match exists, the text string is returned and if @tag is not %NULL, the number
+ * associated with the matched regular expression will be stored in @tag.
+ *
+ * If more than one regular expression has been set with
+ * vte_terminal_match_add(), then expressions are checked in the order in
+ * which they were added.
+ *
+ * Returns: (transfer full): a newly allocated string which matches one of the previously
+ *   set regular expressions
+ */
+char *
+vte_terminal_match_check_event(VteTerminal *terminal,
+                               GdkEvent *event,
+                               int *tag)
+{
+        double x, y;
+        long col, row;
+
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        if (event == NULL)
+                return FALSE;
+        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
+                return FALSE;
+        if (!gdk_event_get_coords(event, &x, &y))
+                return FALSE;
+        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+                return FALSE;
+
+        return vte_terminal_match_check(terminal, col, row, tag);
+}
+
 /* Emit an adjustment changed signal on our adjustment object. */
 static void
 vte_terminal_emit_adjustment_changed(VteTerminal *terminal)

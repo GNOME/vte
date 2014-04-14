@@ -340,6 +340,9 @@ void vte_terminal_match_remove_all(VteTerminal *terminal);
 char *vte_terminal_match_check(VteTerminal *terminal,
 			       glong column, glong row,
 			       int *tag);
+char *vte_terminal_match_check_event(VteTerminal *terminal,
+                                     GdkEvent *event,
+                                     int *tag);
 
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *regex,
