@@ -789,7 +789,7 @@ vte_terminal_emit_selection_changed(VteTerminal *terminal)
 
 /* Emit a "commit" signal. */
 static void
-vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
+vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, gssize length)
 {
 	const char *result = NULL;
 	char *wrapped = NULL;
@@ -797,7 +797,7 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, guint length)
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `commit' of %d bytes.\n", length);
 
-	if (length == (guint)-1) {
+	if (length == -1) {
 		length = strlen(text);
 		result = text;
 	} else {
@@ -4245,17 +4245,17 @@ out:
  * vte_terminal_feed:
  * @terminal: a #VteTerminal
  * @data: (array length=length) (element-type guint8): a string in the terminal's current encoding
- * @length: the length of the string
+ * @length: the length of the string, or -1 to use the full length or a nul-terminated string
  *
  * Interprets @data as if it were data received from a child process.  This
  * can either be used to drive the terminal without a child process, or just
  * to mess with your users.
  */
 void
-vte_terminal_feed(VteTerminal *terminal, const char *data, glong length)
+vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length)
 {
 	/* If length == -1, use the length of the data string. */
-	if (length == ((gssize)-1)) {
+	if (length == -1) {
 		length = strlen(data);
 	}
 
@@ -4454,10 +4454,10 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
  * at the keyboard.
  */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
+vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (length == ((gssize)-1)) {
+	if (length == -1) {
 		length = strlen(text);
 	}
 	if (length > 0) {
@@ -4477,14 +4477,14 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, glong length)
  * Since: 0.12.1
  */
 void
-vte_terminal_feed_child_binary(VteTerminal *terminal, const char *data, glong length)
+vte_terminal_feed_child_binary(VteTerminal *terminal, const guint8 *data, gsize length)
 {
 	g_assert(VTE_IS_TERMINAL(terminal));
 
 	/* Tell observers that we're sending this to the child. */
 	if (length > 0) {
 		vte_terminal_emit_commit(terminal,
-					 data, length);
+					 (char*)data, length);
 
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
@@ -5549,7 +5549,7 @@ vte_terminal_feed_mouse_event(VteTerminal *terminal,
 	}
 
 	/* Send event direct to the child, this is binary not text data */
-	vte_terminal_feed_child_binary(terminal, buf, len);
+	vte_terminal_feed_child_binary(terminal, (guint8*) buf, len);
 }
 
 static void
