@@ -2785,7 +2785,6 @@ vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
         PangoColor color;
 
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(cursor_background != NULL);
 
 	_vte_terminal_set_color_cursor(terminal,
                                        _pango_color_from_rgba(&color, cursor_background));
@@ -2810,7 +2809,6 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 	PangoColor color;
 
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(highlight_background != NULL);
 
 	_vte_terminal_set_color_highlight(terminal,
                                           _pango_color_from_rgba(&color, highlight_background));
@@ -2835,7 +2833,6 @@ vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
 	PangoColor color;
 
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(highlight_foreground != NULL);
 
 	_vte_terminal_set_color_highlight_foreground(terminal,
                                                      _pango_color_from_rgba(&color, highlight_foreground));
