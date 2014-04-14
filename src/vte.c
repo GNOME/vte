@@ -158,6 +158,7 @@ enum {
         PROP_EMULATION,
         PROP_ENCODING,
         PROP_FONT_DESC,
+        PROP_FONT_SCALE,
         PROP_ICON_TITLE,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY,
@@ -167,7 +168,6 @@ enum {
         PROP_SCROLL_ON_OUTPUT,
         PROP_WINDOW_TITLE,
         PROP_VISIBLE_BELL,
-        PROP_FONT_SCALE
 };
 
 /* these static variables are guarded by the GDK mutex */
@@ -10769,6 +10769,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_FONT_DESC:
                         g_value_set_boxed (value, vte_terminal_get_font (terminal));
                         break;
+                case PROP_FONT_SCALE:
+                        g_value_set_double (value, vte_terminal_get_font_scale (terminal));
+                        break;
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
                         break;
@@ -10795,9 +10798,6 @@ vte_terminal_get_property (GObject *object,
                         break;
                 case PROP_VISIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_visible_bell (terminal));
-                        break;
-                case PROP_FONT_SCALE:
-                        g_value_set_double (value, vte_terminal_get_font_scale (terminal));
                         break;
 
 		default:
@@ -10861,6 +10861,9 @@ vte_terminal_set_property (GObject *object,
                 case PROP_FONT_DESC:
                         vte_terminal_set_font (terminal, g_value_get_boxed (value));
                         break;
+                case PROP_FONT_SCALE:
+                        vte_terminal_set_font_scale (terminal, g_value_get_double (value));
+                        break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
                         break;
@@ -10881,9 +10884,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_VISIBLE_BELL:
                         vte_terminal_set_visible_bell (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_FONT_SCALE:
-                        vte_terminal_set_font_scale (terminal, g_value_get_double (value));
                         break;
 
                 /* Not writable */
@@ -11667,7 +11667,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         g_object_class_install_property
                 (gobject_class,
-                 PROP_AUDIBLE_BELL,
+                 PROP_FONT_SCALE,
                  g_param_spec_double ("font-scale", NULL, NULL,
                                       VTE_FONT_SCALE_MIN,
                                       VTE_FONT_SCALE_MAX,
