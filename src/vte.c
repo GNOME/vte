@@ -11335,8 +11335,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal::resize-window:
          * @vteterminal: the object which received the signal
-         * @width: the desired width in pixels, including padding
-         * @height: the desired height in pixels, including padding
+         * @width: the desired number of columns
+         * @height: the desired number of rows
          *
          * Emitted at the child application's request.
          */

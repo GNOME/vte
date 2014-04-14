@@ -480,32 +480,13 @@ class Window : Gtk.ApplicationWindow
 		queue_draw();
 	}
 
-	private void resize_window_cb(Vte.Terminal terminal, uint width, uint height)
+	private void resize_window_cb(Vte.Terminal terminal, uint columns, uint rows)
 	{
-        long char_width, char_height, columns, rows;
-		int owidth, oheight;
-		Gtk.Border padding;
-
-		/* Read the screen dimensions in cells. */
-		columns = terminal.get_column_count();
-		rows = terminal.get_column_count();
-
-		/* Take into account padding and border overhead. */
-		get_size(out owidth, out oheight);
-        char_width = terminal.get_char_width();
-        char_height = terminal.get_char_height();
-
-		if (width < 2 || height < 2)
+		if (columns < 2 || rows < 2)
 			return;
 
-		/* Take into account border overhead. */
-		padding = get_style_context().get_padding(get_state_flags());
-
-		owidth -= (int)(char_width * columns) + padding.left + padding.right;
-		oheight -= (int)(char_height * rows) + padding.top + padding.bottom;
-		// FIXMEchpe use resize_to_geometry
-		resize((int)(width + owidth),
-			   (int)(height + oheight));
+		terminal.set_size((int)columns, (int)rows);
+		resize_to_geometry((int)columns, (int)rows);
 	}
 
 	private void restore_window_cb(Vte.Terminal terminal)

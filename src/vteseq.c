@@ -33,11 +33,7 @@
 #define BEL "\007"
 #define ST _VTE_CAP_ST
 
-
-
 /* FUNCTIONS WE USE */
-
-
 
 static void
 display_control_sequence(const char *name, GValueArray *params)
@@ -251,14 +247,14 @@ vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
 	g_signal_emit_by_name(terminal, "move-window", x, y);
 }
 
-/* Emit a "resize-window" signal.  (Pixels.) */
+/* Emit a "resize-window" signal.  (Grid size.) */
 static void
 vte_terminal_emit_resize_window(VteTerminal *terminal,
-				guint width, guint height)
+				guint columns, guint rows)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `resize-window'.\n");
-	g_signal_emit_by_name(terminal, "resize-window", width, height);
+	g_signal_emit_by_name(terminal, "resize-window", columns, rows);
 }
 
 
@@ -894,14 +890,8 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
                 /* 3: DECCOLM set/reset to 132/80 columns mode */
                 if (terminal->pvt->deccolm_mode) {
                         vte_terminal_emit_resize_window(terminal,
-                                                        (set ? 132 : 80) *
-                                                        terminal->pvt->char_width +
-                                                        terminal->pvt->padding.left +
-                                                        terminal->pvt->padding.right,
-                                                        terminal->pvt->row_count *
-                                                        terminal->pvt->char_height +
-                                                        terminal->pvt->padding.top +
-                                                        terminal->pvt->padding.bottom);
+                                                        set ? 132 : 80,
+                                                        terminal->pvt->row_count);
                         /* Request a resize and redraw. */
                         _vte_invalidate_all(terminal);
                 }
@@ -3330,7 +3320,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 	long param, arg1, arg2;
 	gint width, height;
 	guint i;
-	GtkAllocation allocation;
 
 	widget = &terminal->widget;
 
@@ -3378,15 +3367,13 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			if ((arg1 != -1) && (arg2 != -1)) {
 				_vte_debug_print(VTE_DEBUG_PARSE,
 						"Resizing window "
-						"(to %ldx%ld pixels).\n",
-						arg2, arg1);
+						"(to %ldx%ld pixels, grid size %ldx%ld).\n",
+                                                 arg2, arg1,
+                                                 arg2 / terminal->pvt->char_width,
+                                                 arg1 / terminal->pvt->char_height);
 				vte_terminal_emit_resize_window(terminal,
-								arg2 +
-								terminal->pvt->padding.left +
-								terminal->pvt->padding.right,
-								arg1 +
-								terminal->pvt->padding.top +
-								terminal->pvt->padding.bottom);
+                                                                arg2 / terminal->pvt->char_width,
+                                                                arg1 / terminal->pvt->char_height);
 				i += 2;
 			}
 			break;
@@ -3410,13 +3397,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 						"Resizing window "
 						"(to %ld columns, %ld rows).\n",
 						arg2, arg1);
-				vte_terminal_emit_resize_window(terminal,
-								arg2 * terminal->pvt->char_width +
-								terminal->pvt->padding.left +
-								terminal->pvt->padding.right,
-								arg1 * terminal->pvt->char_height +
-								terminal->pvt->padding.top +
-								terminal->pvt->padding.bottom);
+				vte_terminal_emit_resize_window(terminal, arg2, arg1);
 				i += 2;
 			}
 			break;
@@ -3464,20 +3445,16 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 			break;
 		case 14:
 			/* Send window size, in pixels. */
-			gtk_widget_get_allocation(widget, &allocation);
 			g_snprintf(buf, sizeof(buf),
 				   _VTE_CAP_CSI "4;%d;%dt",
-				   allocation.height -
-                                       (terminal->pvt->padding.top +
-                                        terminal->pvt->padding.bottom),
-				   allocation.width -
-                                       (terminal->pvt->padding.left +
-                                        terminal->pvt->padding.right));
+                                   (int)(terminal->pvt->row_count * terminal->pvt->char_height),
+                                   (int)(terminal->pvt->column_count * terminal->pvt->char_width));
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Reporting window size "
-					"(%dx%dn",
-					width - (terminal->pvt->padding.left + terminal->pvt->padding.right),
-					height - (terminal->pvt->padding.top + terminal->pvt->padding.bottom));
+					"(%dx%d)\n",
+                                         (int)(terminal->pvt->row_count * terminal->pvt->char_height),
+                                         (int)(terminal->pvt->column_count * terminal->pvt->char_width));
+
 			vte_terminal_feed_child(terminal, buf, -1);
 			break;
 		case 18:
@@ -3536,12 +3513,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 				/* Resize to the specified number of
 				 * rows. */
 				vte_terminal_emit_resize_window(terminal,
-								terminal->pvt->column_count * terminal->pvt->char_width +
-                                                                terminal->pvt->padding.left +
-                                                                terminal->pvt->padding.right,
-								param * terminal->pvt->char_height +
-								terminal->pvt->padding.top +
-                                                                terminal->pvt->padding.bottom);
+								terminal->pvt->column_count,
+								param);
 			}
 			break;
 		}
