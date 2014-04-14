@@ -2843,7 +2843,7 @@ vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  * @foreground: (allow-none): the new foreground color, or %NULL
  * @background: (allow-none): the new background color, or %NULL
- * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA): the color palette
+ * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA) (allow-none): the color palette
  * @palette_size: the number of entries in @palette
  *
  * The terminal widget uses a 28-color model comprised of the default foreground

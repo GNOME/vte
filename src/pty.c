@@ -1694,7 +1694,7 @@ vte_pty_error_quark(void)
 }
 
 /**
- * vte_pty_new_sync:
+ * vte_pty_new_sync: (constructor)
  * @flags: flags from #VtePtyFlags
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
@@ -1744,7 +1744,7 @@ vte_pty_new_sync (VtePtyFlags flags,
 }
 
 /**
- * vte_pty_new_foreign_sync:
+ * vte_pty_new_foreign_sync: (constructor)
  * @fd: (transfer full): a file descriptor to the PTY
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL

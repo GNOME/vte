@@ -188,8 +188,8 @@ case $host in
 	;;
 esac
 
-GLIB_REQUIRED=2.31.13
-GIO_REQUIRED=2.31.13
+GLIB_REQUIRED=2.40.0
+GIO_REQUIRED=2.40.0
 PANGO_REQUIRED=1.22.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
 PKG_CHECK_MODULES(GLIB,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gio-2.0 >= $GIO_REQUIRED])
@@ -197,12 +197,6 @@ PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gio-2.0 >= $GIO_RE
 
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
-
-AC_ARG_VAR([GLIB_COMPILE_RESOURCES],[the glib-compile-resources programme])
-AC_PATH_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[])
-if test -z "$GLIB_COMPILE_RESOURCES"; then
-  AC_MSG_ERROR([glib-compile-resources not found])
-fi
 
 VTE_DEFAULT_EMULATION=xterm
 AC_DEFINE_UNQUOTED(VTE_DEFAULT_EMULATION,"$VTE_DEFAULT_EMULATION",[The default terminal type to be emulated.])
@@ -355,7 +349,40 @@ if test -z "$enable_vala"; then
   enable_vala=no
 fi
 
-VAPIGEN_CHECK([0.16])
+VAPIGEN_CHECK([0.18])
+
+# ****************
+# Test Application
+# ****************
+
+AC_MSG_CHECKING([whether to build the test application])
+AC_ARG_ENABLE([test-application],
+        [AS_HELP_STRING([--disable-test-application],[Disable test application])],
+        [],[enable_test_application=$enable_vala])
+AC_MSG_RESULT([$enable_test_application])
+
+AM_PROG_VALAC([0.18.0],[],[
+  if test "$enable_test_application" != "no"; then
+    AC_MSG_ERROR([vala support enabled by vala compiler not found])
+  fi])
+
+AM_CONDITIONAL([ENABLE_TEST_APPLICATION],[test "$enable_test_application" = "yes"])
+
+# ***************
+# Auxiliary tools
+# ***************
+
+AC_ARG_VAR([GLIB_COMPILE_RESOURCES],[the glib-compile-resources programme])
+AC_PATH_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[])
+if test -z "$GLIB_COMPILE_RESOURCES"; then
+  AC_MSG_ERROR([glib-compile-resources not found])
+fi
+
+AC_ARG_VAR([XMLLINT],[the xmllint programme])
+AC_PATH_PROG([XMLLINT],[xmllint],[])
+if test -z "$XMLLINT"; then
+  AC_MSG_ERROR([xmllint not found])
+fi
 
 ################################################################################
 
@@ -410,4 +437,5 @@ Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Debugging: $enable_debug
 	Introspection: $enable_introspection
         Vala bindings: $enable_vala
+        Test application: $enable_test_application
 EOF

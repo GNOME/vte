@@ -1,6 +1,7 @@
 
 EXTRA_DIST = iso2022.txt
 
+noinst_PROGRAMS =
 
 # The library
 
@@ -150,29 +151,6 @@ vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
 vteresources.c: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate --c-name vte $<
 
-# vte the application
-
-bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
-
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
-	vteapp.c \
-	debug.c \
-	debug.h \
-	$(NULL)
-
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \
-        -DGLIB_DISABLE_DEPRECATION_WARNINGS \
-        -DGDK_DISABLE_DEPRECATION_WARNINGS \
-	$(AM_CPPFLAGS)
-
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CFLAGS = \
-	$(VTE_CFLAGS) \
-	$(AM_CFLAGS)
-
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
-	libvte-$(VTE_API_VERSION).la \
-	$(VTE_LIBS)
-
 # introspection
 
 INTROSPECTION_GIRS =
@@ -210,18 +188,18 @@ CLEANFILES += $(nodist_gir_DATA) $(nodist_typelib_DATA)
 if ENABLE_VAPIGEN
 include $(VAPIGEN_MAKEFILE)
 
-VAPIGEN_VAPIS = Vte-$(VTE_API_VERSION).vapi
+VAPIGEN_VAPIS = vte-$(VTE_API_VERSION).vapi
 
-Vte-@VTE_API_VERSION@.vapi: Vte-$(VTE_API_VERSION).gir
-Vte_@VTE_API_VERSION_U@_vapi_DEPS = \
+vte-@VTE_API_VERSION@.vapi: Vte-$(VTE_API_VERSION).gir
+vte_@VTE_API_VERSION_U@_vapi_DEPS = \
 	glib-2.0 \
 	gio-2.0 \
 	pango \
 	gdk-$(GTK_API_VERSION) \
 	gtk+-$(GTK_API_VERSION) \
 	$(NULL)
-Vte_@VTE_API_VERSION_U@_vapi_METADATADIRS = $(srcdir)
-Vte_@VTE_API_VERSION_U@_vapi_FILES = Vte-$(VTE_API_VERSION).gir
+vte_@VTE_API_VERSION_U@_vapi_METADATADIRS = $(srcdir)
+vte_@VTE_API_VERSION_U@_vapi_FILES = Vte-$(VTE_API_VERSION).gir
 
 vapidir = $(datadir)/vala/vapi
 nodist_vapi_DATA = $(VAPIGEN_VAPIS)
@@ -232,9 +210,64 @@ endif # ENABLE_VAPIGEN
 
 endif # HAVE_INTROSPECTION
 
+# Test application
+
+if ENABLE_TEST_APPLICATION
+
+bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
+
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
+	app.vala \
+	config.vapi \
+	$(NULL)
+
+nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
+	appresources.c \
+	$(NULL)
+
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
+	--vapidir=. \
+	--girdir=. \
+	--pkg=posix \
+	--pkg=linux \
+	--pkg=gio-2.0 \
+	--pkg=gtk+-$(GTK_API_VERSION) \
+	--pkg=vte-$(VTE_API_VERSION) \
+	$(NULL)
+
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	$(NULL)
+
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CFLAGS = \
+	-Wno-unused-variable \
+	-Wno-unused-but-set-variable \
+	$(VTE_CFLAGS) \
+	$(AM_CFLAGS) \
+	$(NULL)
+
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	$(NULL)
+
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
+	libvte-$(VTE_API_VERSION).la \
+	$(VTE_LIBS) \
+	$(NULL)
+
+EXTRA_DIST += \
+        app.gresource.xml \
+	app.ui \
+	$(NULL)
+
+appresources.c: app.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies --sourcedir $(srcdir) $(srcdir)/app.gresource.xml)
+	$(AM_V_GEN) XMLLINT=$(XMLLINT) $(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir $(srcdir) --generate --c-name app $<
+
+endif # ENABLE_TEST_APPLICATION
+
 # Misc unit tests and utilities
 
-noinst_PROGRAMS = interpret slowcat
+noinst_PROGRAMS += interpret slowcat
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
