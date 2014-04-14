@@ -64,7 +64,7 @@ G_BEGIN_DECLS
  *   Colors set by SGR 256-color extension (38/48;5;index).
  *   These are direct indices into the color palette.
  *
- * 256 .. VTE_PALETTE_SIZE - 1 (261):
+ * 256 .. VTE_PALETTE_SIZE - 1 (262):
  *   Special values, such as default colors.
  *   These are direct indices into the color palette.
  *
@@ -367,7 +367,6 @@ struct _VteTerminalPrivate {
 	 * when realizing. */
 	struct _vte_draw *draw;
 
-	gboolean palette_initialized;
 	VtePaletteColor palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */

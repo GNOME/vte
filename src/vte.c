@@ -2480,7 +2480,11 @@ vte_terminal_new(void)
 	return g_object_new(VTE_TYPE_TERMINAL, NULL);
 }
 
-/* Get the actually used color from the palette. */
+/*
+ * Get the actually used color from the palette.
+ * The return value can be NULL only if entry is one of VTE_CURSOR_BG,
+ * VTE_HIGHLIGHT_BG or VTE_HIGHLIGHT_FG.
+ */
 PangoColor *
 _vte_terminal_get_color(const VteTerminal *terminal, int entry)
 {
@@ -2901,12 +2905,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 
 		/* Set up the color entry. */
 		_vte_terminal_set_color_internal(terminal, i, VTE_COLOR_SOURCE_API, unset ? NULL : &color);
-		if (!terminal->pvt->palette_initialized)
-			terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	}
-
-	/* Track that we had a color palette set. */
-	terminal->pvt->palette_initialized = TRUE;
 }
 
 static GdkColor *
@@ -8571,6 +8570,7 @@ vte_terminal_init(VteTerminal *terminal)
 {
 	VteTerminalPrivate *pvt;
 	GtkStyleContext *context;
+	int i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
@@ -8617,6 +8617,11 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
+
+	/* Set up the desired palette. */
+	vte_terminal_set_default_colors(terminal);
+	for (i = 0; i < VTE_PALETTE_SIZE; i++)
+		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
 	/* Set up I/O encodings. */
 	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
@@ -9294,11 +9299,6 @@ vte_terminal_realize(GtkWidget *widget)
 
 	/* Set the realized flag. */
 	gtk_widget_set_realized (widget, TRUE);
-
-	/* Set up the desired palette. */
-	if (!terminal->pvt->palette_initialized) {
-		vte_terminal_set_default_colors(terminal);
-	}
 
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
@@ -13908,8 +13908,7 @@ vte_terminal_reset(VteTerminal *terminal,
 		g_hash_table_destroy(pvt->dec_saved);
 		pvt->dec_saved = g_hash_table_new(NULL, NULL);
 	}
-	/* Reset the color palette. Only the 256 indexed colors, not the special ones.
-	 * (XTerm doesn't reset the cursor color, the others are not alterable by escapes in vte.) */
+	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */
 	for (i = 0; i < 256; i++)
 		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	/* Reset the default attributes.  Reset the alternate attribute because
