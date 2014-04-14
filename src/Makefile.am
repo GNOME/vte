@@ -1,6 +1,7 @@
 
 EXTRA_DIST = iso2022.txt
 
+bin_PROGRAMS =
 noinst_PROGRAMS =
 
 # The library
@@ -214,13 +215,12 @@ endif # HAVE_INTROSPECTION
 
 if ENABLE_TEST_APPLICATION
 
-bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
-
-vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@: vte-$(VTE_API_VERSION).vapi
+bin_PROGRAMS += vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	app.vala \
 	config.vapi \
+	vte-$(VTE_API_VERSION).vapi \
 	$(NULL)
 
 nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
@@ -233,8 +233,8 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
 	--pkg=posix \
 	--pkg=gio-2.0 \
 	--pkg=gtk+-$(GTK_API_VERSION) \
-	--pkg=vte-$(VTE_API_VERSION) \
-	$(NULL)
+	--gresources app.gresource.xml \
+	$(AM_VALAFLAGS)
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -254,6 +254,11 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDFLAGS = \
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
 	libvte-$(VTE_API_VERSION).la \
 	$(VTE_LIBS) \
+	$(NULL)
+
+CLEANFILES += \
+	app.c \
+	appresources.c \
 	$(NULL)
 
 EXTRA_DIST += \
