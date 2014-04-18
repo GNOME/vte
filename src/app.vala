@@ -137,6 +137,9 @@ class Window : Gtk.ApplicationWindow
 		if (App.Options.dingus != null)
 			add_dingus(App.Options.dingus);
 
+		/* Property actions */
+		add_action(new GLib.PropertyAction ("input-enabled", terminal, "input-enabled"));
+
 		/* Done! */
 		box.pack_start(terminal);
 		terminal.show();

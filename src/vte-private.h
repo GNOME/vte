@@ -321,6 +321,7 @@ struct _VteTerminalPrivate {
 	gboolean has_focus;               /* is the terminal window focused */
 
 	/* Input device options. */
+        gboolean input_enabled;
 	time_t last_keypress_time;
 
 	int mouse_tracking_mode; /* this is of type MouseTrackingMode,

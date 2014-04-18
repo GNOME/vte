@@ -160,6 +160,7 @@ enum {
         PROP_FONT_DESC,
         PROP_FONT_SCALE,
         PROP_ICON_TITLE,
+        PROP_INPUT_ENABLED,
         PROP_MOUSE_POINTER_AUTOHIDE,
         PROP_PTY,
         PROP_REWRAP_ON_RESIZE,
@@ -3357,6 +3358,8 @@ _vte_terminal_connect_pty_write(VteTerminal *terminal)
         VteTerminalPrivate *pvt = terminal->pvt;
 
         g_assert(pvt->pty != NULL);
+        g_warn_if_fail(pvt->input_enabled);
+
 	if (terminal->pvt->pty_channel == NULL) {
 		pvt->pty_channel =
 			g_io_channel_unix_new(vte_pty_get_fd(pvt->pty));
@@ -4381,6 +4384,9 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	g_assert(VTE_IS_TERMINAL(terminal));
 	g_assert(encoding && strcmp(encoding, "UTF-8") == 0);
 
+        if (!terminal->pvt->input_enabled)
+                return;
+
 	conv = VTE_INVALID_CONV;
 	if (strcmp(encoding, "UTF-8") == 0) {
 		conv = terminal->pvt->outgoing_conv;
@@ -4497,6 +4503,10 @@ void
 vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (!terminal->pvt->input_enabled)
+                return;
+
 	if (length == -1) {
 		length = strlen(text);
 	}
@@ -4519,7 +4529,10 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
 void
 vte_terminal_feed_child_binary(VteTerminal *terminal, const guint8 *data, gsize length)
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (!terminal->pvt->input_enabled)
+                return;
 
 	/* Tell observers that we're sending this to the child. */
 	if (length > 0) {
@@ -4945,7 +4958,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	modifiers = terminal->pvt->modifiers;
 
 	/* Let the input method at this one first. */
-	if (!steal) {
+	if (!steal && terminal->pvt->input_enabled) {
 		if (gtk_widget_get_realized (&terminal->widget)
 				&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
@@ -8273,6 +8286,8 @@ vte_terminal_init(VteTerminal *terminal)
         pvt->rewrap_on_resize = TRUE;
 	vte_terminal_set_default_tabstops(terminal);
 
+        pvt->input_enabled = TRUE;
+
 	/* Cursor shape. */
 	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
         pvt->cursor_aspect_ratio = 0.04;
@@ -10815,6 +10830,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
                         break;
+                case PROP_INPUT_ENABLED:
+                        g_value_set_boolean (value, vte_terminal_get_input_enabled (terminal));
+                        break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         g_value_set_boolean (value, vte_terminal_get_mouse_autohide (terminal));
                         break;
@@ -10903,6 +10921,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_FONT_SCALE:
                         vte_terminal_set_font_scale (terminal, g_value_get_double (value));
+                        break;
+                case PROP_INPUT_ENABLED:
+                        vte_terminal_set_input_enabled (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_MOUSE_POINTER_AUTOHIDE:
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
@@ -11762,7 +11783,21 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_string ("icon-title", NULL, NULL,
                                       NULL,
                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-     
+
+        /**
+         * VteTerminal:input-enabled:
+         *
+         * Controls whether the terminal allows user input. When user input is disabled,
+         * key press and mouse button press and motion events are not sent to the
+         * terminal's child.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_INPUT_ENABLED,
+                 g_param_spec_boolean ("input-enabled", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
         /**
          * VteTerminal:pointer-autohide:
          *
@@ -14069,4 +14104,69 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
                                       GDK_HINT_RESIZE_INC |
                                       GDK_HINT_MIN_SIZE |
                                       GDK_HINT_BASE_SIZE);
+}
+
+/**
+ * vte_terminal_set_input_enabled:
+ * @terminal: a #VteTerminal
+ * @enabled: whether to enable user input
+ *
+ * Enables or disables user input. When user input is disabled,
+ * the terminal's child will not receive any key press, or mouse button
+ * press or motion events sent to it.
+ */
+void
+vte_terminal_set_input_enabled (VteTerminal *terminal,
+                                gboolean enabled)
+{
+        VteTerminalPrivate *pvt;
+        GtkWidget *widget;
+        GtkStyleContext *context;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        pvt = terminal->pvt;
+        widget = &terminal->widget;
+
+        enabled = enabled != FALSE;
+        if (enabled == terminal->pvt->input_enabled)
+                return;
+
+        pvt->input_enabled = enabled;
+
+        context = gtk_widget_get_style_context (widget);
+
+        /* FIXME: maybe hide cursor when input disabled, too? */
+
+        if (enabled) {
+                if (gtk_widget_has_focus(widget))
+                        gtk_im_context_focus_in(pvt->im_context);
+
+                gtk_style_context_remove_class (context, GTK_STYLE_CLASS_READ_ONLY);
+        } else {
+                vte_terminal_im_reset(terminal);
+                if (gtk_widget_has_focus(widget))
+                        gtk_im_context_focus_out(pvt->im_context);
+
+                _vte_terminal_disconnect_pty_write(terminal);
+                _vte_byte_array_clear(pvt->outgoing);
+
+                gtk_style_context_add_class (context, GTK_STYLE_CLASS_READ_ONLY);
+        }
+
+        g_object_notify(G_OBJECT(terminal), "input-enabled");
+}
+
+/**
+ * vte_terminal_get_input_enabled:
+ * @terminal: a #VteTerminal
+ *
+ * Returns whether the terminal allow user input.
+ */
+gboolean
+vte_terminal_get_input_enabled (VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        return terminal->pvt->input_enabled;
 }

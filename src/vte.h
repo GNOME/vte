@@ -387,6 +387,11 @@ const char *vte_terminal_get_icon_title(VteTerminal *terminal);
 const char *vte_terminal_get_current_directory_uri(VteTerminal *terminal);
 const char *vte_terminal_get_current_file_uri(VteTerminal *terminal);
 
+/* misc */
+void vte_terminal_set_input_enabled (VteTerminal *terminal,
+                                     gboolean enabled);
+gboolean vte_terminal_get_input_enabled (VteTerminal *terminal);
+
 /* Window geometry helpers */
 void vte_terminal_get_geometry_hints(VteTerminal *terminal,
                                      GdkGeometry *hints,
