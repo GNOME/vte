@@ -18,15 +18,20 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
+#include "config.h"
 
-#include <config.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
 #include <glib.h>
 #include "buffer.h"
 #include "vteconv.h"
+
+#ifdef VTE_COMPILATION
 #include "vte-private.h"
+#else
+#define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
+#endif
 
 typedef size_t (*convert_func)(GIConv converter,
 			  const guchar **inbuf,

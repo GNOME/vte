@@ -16,7 +16,4 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <gresources>
-  <gresource prefix="/org/gnome/vte/@VTE_API_VERSION@/termcap">
-    <file alias="xterm">@top_srcdir@/termcaps/xterm</file>
-  </gresource>
 </gresources>

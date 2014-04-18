@@ -107,8 +107,8 @@ class Window : Gtk.ApplicationWindow
     if (App.Options.no_double_buffer)
       terminal.set_double_buffered(true);
 
-    if (App.Options.termcap != null)
-      terminal.set_emulation(App.Options.termcap);
+    if (App.Options.term != null)
+      terminal.set_emulation(App.Options.term);
     if (App.Options.encoding != null)
       terminal.set_encoding(App.Options.encoding);
 
@@ -569,7 +569,7 @@ class App : Gtk.Application
     private static string? pty_flags_string = null;
     public static bool reverse = false;
     public static int scrollback_lines = 512;
-    public static string? termcap = null;
+    public static string? term = null;
     public static int transparency_percent = 0;
     public static bool version = false;
     public static string? working_directory = null;
@@ -762,7 +762,7 @@ class App : Gtk.Application
         "Reverse foreground/background colors", null },
       { "scrollback-lines", 'n', 0, OptionArg.INT, ref scrollback_lines,
         "Specify the number of scrollback-lines", null },
-      { "termcap", 't', 0, OptionArg.STRING, ref termcap,
+      { "terminfo", 't', 0, OptionArg.STRING, ref term,
         "Specify the terminal emulation to use", null },
       { "transparent", 'T', 0, OptionArg.INT, ref transparency_percent,
         "Enable the use of a transparent background", "0..100" },

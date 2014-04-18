@@ -23,7 +23,8 @@
 
 #include <glib.h>
 #include <gdk/gdk.h>
-#include "vtetc.h"
+
+#include "vteti.h"
 
 G_BEGIN_DECLS
 
@@ -40,8 +41,7 @@ void _vte_keymap_map(guint keyval,
 		     gboolean vt220_mode,
 		     gboolean app_cursor_keys,
 		     gboolean app_keypad_keys,
-		     struct _vte_termcap *termcap,
-		     const char *term,
+		     struct _vte_terminfo *terminfo,
 		     char **normal,
 		     gssize *normal_length,
 		     const char **special);

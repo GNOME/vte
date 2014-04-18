@@ -168,13 +168,12 @@ struct _VteTerminalPrivate {
         glong column_count;
 
 	/* Emulation setup data. */
-	struct _vte_termcap *termcap;	/* termcap storage */
+	struct _vte_terminfo *terminfo;	/* terminfo */
 	struct _vte_matcher *matcher;	/* control sequence matcher */
 	const char *emulation;		/* terminal type to emulate */
-	struct vte_terminal_flags {	/* boolean termcap flags */
+	struct vte_terminal_flags {	/* boolean terminfo flags */
 		gboolean am;
 		gboolean bw;
-		gboolean LP;
 		gboolean ul;
 		gboolean xn;
 	} flags;
@@ -470,6 +469,7 @@ void _vte_terminal_handle_sequence(VteTerminal *terminal,
 				   const char *match_s,
 				   GQuark match,
 				   GValueArray *params);
+gboolean _vte_terminal_can_handle_sequence(const char *name);
 gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,
                                   long x,
                                   long y,
