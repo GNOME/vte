@@ -33,14 +33,23 @@ struct _vte_matcher {
 	GValueArray *free_params;
 };
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 static GStaticMutex _vte_matcher_mutex = G_STATIC_MUTEX_INIT;
 static GCache *_vte_matcher_cache = NULL;
+G_GNUC_END_IGNORE_DEPRECATIONS;
+
 static struct _vte_matcher_impl dummy_vte_matcher_trie = {
 	&_vte_matcher_trie
 };
 static struct _vte_matcher_impl dummy_vte_matcher_table = {
 	&_vte_matcher_table
 };
+
+#ifdef VTE_COMPILATION
+#include "vte-private.h"
+#else
+static gboolean _vte_terminal_can_handle_sequence(const char *name) { return TRUE; }
+#endif
 
 /* Add a string to the matcher. */
 static void
@@ -51,54 +60,72 @@ _vte_matcher_add(const struct _vte_matcher *matcher,
 	matcher->impl->klass->add(matcher->impl, pattern, length, result, quark);
 }
 
+static void
+_vte_matcher_add_one(struct _vte_terminfo *terminfo,
+                     const char *cap,
+                     const char *compat_cap,
+                     const char *value,
+                     gpointer user_data)
+{
+        struct _vte_matcher *matcher = user_data;
+
+        /* Skip key caps, which all start with 'k' in terminfo */
+        if (cap[0] == 'k')
+                return;
+
+        /* Skip anything that doesn't start with a control character. This catches
+         * ACS_CHARS and SGR, and the F0..F10 key labels (lf0..lf10).
+         */
+        if (value[0] >= 0x20 && value[0] < 0x7f){
+                _vte_debug_print(VTE_DEBUG_PARSE,
+                                 "Dropping caps %s with printable value '%s'\n",
+                                 cap, _vte_terminfo_sequence_to_string(value));
+                return;
+        }
+
+        /* We use the 2-character termcap code instead of the terminfo code
+         * if it exists, since that makes matching faster by using vteseq-2.
+         */
+        if (compat_cap[0] != 0)
+                cap = compat_cap;
+
+        /* If there is no handler for it, it'd be pointless to continue. */
+        if (!_vte_terminal_can_handle_sequence(cap)) {
+                _vte_debug_print(VTE_DEBUG_PARSE, "No handler for cap %s with value '%s', skipping\n",
+                                 cap, _vte_terminfo_sequence_to_string(value));
+                return;
+        }
+
+        _vte_debug_print(VTE_DEBUG_PARSE,
+                         "Adding caps %s with value '%s'\n", cap,
+                         _vte_terminfo_sequence_to_string(value));
+
+        _vte_matcher_add(matcher, value, strlen(value), cap, 0);
+}
+
 /* Loads all sequences into matcher */
 static void
-_vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
-		  struct _vte_termcap *termcap)
+_vte_matcher_init(struct _vte_matcher *matcher,
+                  struct _vte_terminfo *terminfo)
 {
 	const char *code, *value;
-	gboolean found_cr = FALSE, found_lf = FALSE;
-	gssize stripped_length;
-	char *stripped;
 	int i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_init()\n");
 
-	if (termcap != NULL) {
-		/* Load the known capability strings from the termcap
-		 * structure into the table for recognition. */
-		for (i = 0;
-				_vte_terminal_capability_strings[i].capability[0];
-				i++) {
-			if (_vte_terminal_capability_strings[i].key) {
-				continue;
-			}
-			code = _vte_terminal_capability_strings[i].capability;
-			stripped = _vte_termcap_find_string_length(termcap,
-					emulation,
-					code,
-					&stripped_length);
-			if (stripped[0] != '\0') {
-				_vte_matcher_add(matcher,
-						stripped, stripped_length,
-						code, 0);
-				if (stripped[0] == '\r') {
-					found_cr = TRUE;
-				} else
-					if (stripped[0] == '\n') {
-						if (strcmp(code, "sf") == 0 ||
-								strcmp(code, "do") == 0) {
-							found_lf = TRUE;
-						}
-					}
-			}
-			g_free(stripped);
-		}
-	}
+	if (terminfo != NULL) {
+                _vte_terminfo_foreach_string(terminfo, TRUE, _vte_matcher_add_one, matcher);
+
+                /* FIXME: we used to always add LF and CR to the matcher if they weren't in the
+                 * termcap. However this seems unlikely to happen since if the terminfo is so
+                 * broken it doesn't include CR and LF, everything else will be broken too.
+                 */
+        }
 
 	/* Add emulator-specific sequences. */
-	if (strstr(emulation, "xterm") || strstr(emulation, "dtterm")) {
+        if (terminfo != NULL && _vte_terminfo_is_xterm_like(terminfo)) {
 		/* Add all of the xterm-specific stuff. */
+
 		for (i = 0;
 		     _vte_xterm_capability_strings[i].value != NULL;
 		     i++) {
@@ -107,14 +134,6 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 			_vte_matcher_add(matcher, code, strlen (code),
 					 value, 0);
 		}
-	}
-
-	/* Always define cr and lf. */
-	if (!found_cr) {
-		_vte_matcher_add(matcher, "\r", 1, "cr", 0);
-	}
-	if (!found_lf) {
-		_vte_matcher_add(matcher, "\n", 1, "sf", 0);
 	}
 
 	_VTE_DEBUG_IF(VTE_DEBUG_TRIE) {
@@ -128,7 +147,7 @@ _vte_matcher_init(struct _vte_matcher *matcher, const char *emulation,
 static gpointer
 _vte_matcher_create(gpointer key)
 {
-	char *emulation = key;
+        struct _vte_terminfo *terminfo = key;
 	struct _vte_matcher *ret = NULL;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_create()\n");
@@ -137,10 +156,10 @@ _vte_matcher_create(gpointer key)
 	ret->match = NULL;
 	ret->free_params = NULL;
 
-	if (strcmp(emulation, "xterm") == 0) {
-		ret->impl = &dummy_vte_matcher_table;
-	} else
-	if (strcmp(emulation, "dtterm") == 0) {
+        /* FIXMEchpe: this means the trie one is always unused? It also seems totally broken
+         * since when accidentally using it instead of table, all was messed up
+         */
+        if (_vte_terminfo_is_xterm_like(terminfo)) {
 		ret->impl = &dummy_vte_matcher_table;
 	}
 
@@ -164,31 +183,33 @@ _vte_matcher_destroy(gpointer value)
 
 /* Create and init matcher. */
 struct _vte_matcher *
-_vte_matcher_new(const char *emulation, struct _vte_termcap *termcap)
+_vte_matcher_new(struct _vte_terminfo *terminfo)
 {
 	struct _vte_matcher *ret = NULL;
+
+        g_return_val_if_fail(terminfo != NULL, NULL);
+
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	g_static_mutex_lock(&_vte_matcher_mutex);
 
-	if (emulation == NULL) {
-		emulation = "";
-	}
-
 	if (_vte_matcher_cache == NULL) {
-		_vte_matcher_cache = g_cache_new(_vte_matcher_create,
-				_vte_matcher_destroy,
-				(GCacheDupFunc) g_strdup, g_free,
-				g_str_hash, g_direct_hash, g_str_equal);
+		_vte_matcher_cache = g_cache_new((GCacheNewFunc)_vte_matcher_create,
+                                                 (GCacheDestroyFunc)_vte_matcher_destroy,
+                                                 (GCacheDupFunc)_vte_terminfo_ref,
+                                                 (GCacheDestroyFunc)_vte_terminfo_unref,
+                                                 g_direct_hash, g_direct_hash, g_direct_equal);
 	}
 
-	ret = g_cache_insert(_vte_matcher_cache, (gpointer) emulation);
+	ret = g_cache_insert(_vte_matcher_cache, terminfo);
 
 	if (ret->match == NULL) {
 		ret->impl = ret->impl->klass->create();
 		ret->match = ret->impl->klass->match;
-		_vte_matcher_init(ret, emulation, termcap);
+		_vte_matcher_init(ret, terminfo);
 	}
 
 	g_static_mutex_unlock(&_vte_matcher_mutex);
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 	return ret;
 }
 
@@ -197,9 +218,11 @@ void
 _vte_matcher_free(struct _vte_matcher *matcher)
 {
 	g_assert(_vte_matcher_cache != NULL);
+        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	g_static_mutex_lock(&_vte_matcher_mutex);
 	g_cache_remove(_vte_matcher_cache, matcher);
 	g_static_mutex_unlock(&_vte_matcher_mutex);
+        G_GNUC_END_IGNORE_DEPRECATIONS;
 }
 
 /* Check if a string matches a sequence the matcher knows about. */
@@ -245,4 +268,3 @@ _vte_matcher_free_params_array(struct _vte_matcher *matcher,
 		params->n_values = 0;
 	}
 }
-

@@ -171,8 +171,6 @@ GLIB_REQUIRED=2.40.0
 GIO_REQUIRED=2.40.0
 PANGO_REQUIRED=1.22.0
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
-PKG_CHECK_MODULES(GLIB,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gio-2.0 >= $GIO_REQUIRED])
-PKG_CHECK_MODULES(GTK,[glib-2.0 >= $GLIB_REQUIRED gobject-2.0 gio-2.0 >= $GIO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
 
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
@@ -211,51 +209,23 @@ fi
 AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
 AC_CHECK_FUNCS([ceil floor round])
 
-# Look for tgetent
-
-AC_CHECK_FUNC([tgetent],[vte_cv_termcap_lib=libc],
-  [AC_CHECK_LIB([ncurses],[tgetent],[vte_cv_termcap_lib=libncurses],
-    [AC_CHECK_LIB([tinfo],[tgetent],[vte_cv_termcap_lib=libtinfo],
-      [AC_CHECK_LIB([curses],[tgetent],[vte_cv_termcap_lib=libcurses],
-        [AC_CHECK_LIB([termcap],[tgetent],[vte_cv_termcap_lib=libtermcap],
-          [vte_cv_termcap_lib=])])])])])
-
-case "$vte_cv_termcap_lib" in
-  libc)       # FIXME: which headers to include here?
-              ;;
-  libncurses) # We need ncurses.h and term.h, or ncurses/curses.h and ncurses/term.h
-              AC_CHECK_HEADERS([ncurses.h term.h],[],
-                [AC_CHECK_HEADERS([ncurses/curses.h ncurses/term.h],[],
-                  [AC_MSG_ERROR([ncurses headers not found])])])
-              LIBS="-lncurses $LIBS"
-              ;;
-  libtinfo)   # Need ncurses/curses.h and ncurses/term.h
-              AC_CHECK_HEADERS([ncurses.h term.h],[],
-                [AC_CHECK_HEADERS([ncurses/curses.h ncurses/term.h],[],
-                  [AC_MSG_ERROR([ncurses headers not found])])])
-              LIBS="-ltinfo $LIBS"
-              ;;
-  libcurses)  # Need curses.h and term.h
-              AC_CHECK_HEADERS([curses.h term.h],[],
-                [AC_MSG_ERROR([curses headers not found])],
-                [[#ifdef HAVE_CURSES_H
-                  #include <curses.h>
-                  #endif]])
-              LIBS="-lcurses $LIBS"
-              ;;
-  libtermcap) # Need termcap.h
-              AC_CHECK_HEADERS([termcap.h],[],
-                [AC_MSG_ERROR([termcap headers not found])])
-              LIBS="-ltermcap $LIBS"
-              ;;
-  *)          AC_MSG_ERROR([tgetent not found in any library]) ;;
-esac
-
 # Search for the required modules.
 
 VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
+
+PKG_CHECK_MODULES([TERMINFO],[tinfo])
+PKG_CHECK_MODULES([GLIB],[glib-2.0 >= $GLIB_REQUIRED])
+PKG_CHECK_MODULES([GOBJECT],[gobject-2.0])
+PKG_CHECK_MODULES([GTK],[gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
+
+# terminfo
+
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $TERMINFO_CFLAGS"
+AC_CHECK_HEADERS([ncurses.h term.h tic.h],[],[AC_MSG_ERROR([ncurses terminfo headers not found])])
+CFLAGS="$save_CFLAGS"
 
 wcs_funcs_includes="
 #ifdef HAVE_STRING_H

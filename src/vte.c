@@ -55,7 +55,7 @@
 #include "vteint.h"
 #include "vtepty.h"
 #include "vtepty-private.h"
-#include "vtetc.h"
+#include "vteti.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -80,7 +80,7 @@ typedef gunichar wint_t;
 #endif
 
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
-static void vte_terminal_set_termcap(VteTerminal *terminal);
+static void vte_terminal_set_terminfo(VteTerminal *terminal);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
@@ -1083,10 +1083,9 @@ vte_terminal_set_default_tabstops(VteTerminal *terminal)
 		g_hash_table_destroy(terminal->pvt->tabstops);
 	}
 	terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
-	if (terminal->pvt->termcap != NULL) {
-		width = _vte_termcap_find_numeric(terminal->pvt->termcap,
-						  terminal->pvt->emulation,
-						  "it");
+	if (terminal->pvt->terminfo != NULL) {
+		width = _vte_terminfo_get_numeric(terminal->pvt->terminfo,
+                                                  VTE_TERMINFO_VAR_INIT_TABS);
 	}
 	if (width == 0) {
 		width = VTE_TAB_WIDTH;
@@ -4799,8 +4798,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
 	GdkModifierType modifiers;
-	struct _vte_termcap *termcap;
-	const char *tterm;
 	char *normal = NULL, *output;
 	gssize normal_length = 0;
 	int i;
@@ -4985,7 +4982,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = FALSE;
 				break;
 			case VTE_ERASE_DELETE_SEQUENCE:
-				special = "kD";
+				special = VTE_TERMINFO_CAP_KEY_DC;
 				suppress_meta_esc = TRUE;
 				break;
 			case VTE_ERASE_TTY:
@@ -5043,10 +5040,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case VTE_ERASE_DELETE_SEQUENCE:
 			case VTE_ERASE_AUTO:
 			default:
-				special = "kD";
+				special = VTE_TERMINFO_CAP_KEY_DC;
 				break;
 			}
 			handled = TRUE;
+                        /* FIXMEchpe: why? this overrides the FALSE set above? */
 			suppress_meta_esc = TRUE;
 			break;
 		case GDK_KEY_KP_Insert:
@@ -5152,7 +5150,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
-		if (handled == FALSE && terminal->pvt->termcap != NULL) {
+		if (handled == FALSE && terminal->pvt->terminfo != NULL) {
 			_vte_keymap_map(keyval, modifiers,
 					terminal->pvt->sun_fkey_mode,
 					terminal->pvt->hp_fkey_mode,
@@ -5160,9 +5158,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 					terminal->pvt->vt220_fkey_mode,
 					terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
-					terminal->pvt->termcap,
-					terminal->pvt->emulation ?
-					terminal->pvt->emulation : vte_get_default_emulation(),
+					terminal->pvt->terminfo,
 					&normal,
 					&normal_length,
 					&special);
@@ -5234,13 +5230,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			g_free(normal);
 		} else
 		/* If the key maps to characters, send them to the child. */
-		if (special != NULL && terminal->pvt->termcap != NULL) {
-			termcap = terminal->pvt->termcap;
-			tterm = terminal->pvt->emulation;
-			normal = _vte_termcap_find_string_length(termcap,
-								 tterm,
-								 special,
-								 &normal_length);
+		if (special != NULL) {
+                        normal = g_strdup(_vte_terminfo_get_string_by_cap(terminal->pvt->terminfo, special, FALSE));
+                        normal_length = strlen(normal);
 			_vte_keymap_key_add_key_modifiers(keyval,
 							  modifiers,
 							  terminal->pvt->sun_fkey_mode,
@@ -5252,12 +5244,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							  &normal_length);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+                        /* FIXMEchpe: wtf! */
 			output = g_strdup_printf(normal, 1);
 #pragma GCC diagnostic pop
 			vte_terminal_feed_child_using_modes(terminal,
 							    output, -1);
+                        g_free(normal);
 			g_free(output);
-			g_free(normal);
 		}
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
@@ -8025,7 +8018,7 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
  * @emulation: (allow-none): the name of a terminal description, or %NULL to use the default
  *
  * Sets what type of terminal the widget attempts to emulate by scanning for
- * control sequences defined in the system's termcap file.  Unless you
+ * control sequences defined in the system's terminfo file.  Unless you
  * are interested in this feature, always use "xterm".
  */
 void
@@ -8047,45 +8040,36 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 	terminal->pvt->emulation = g_intern_string(emulation);
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Setting emulation to `%s'...\n", emulation);
-	/* Find and read the right termcap file. */
-	vte_terminal_set_termcap(terminal);
+	/* Find and read the right terminfo file. */
+	vte_terminal_set_terminfo(terminal);
 
 	/* Create a table to hold the control sequences. */
 	if (terminal->pvt->matcher != NULL) {
 		_vte_matcher_free(terminal->pvt->matcher);
 	}
-	terminal->pvt->matcher = _vte_matcher_new(emulation, terminal->pvt->termcap);
+	terminal->pvt->matcher = _vte_matcher_new(terminal->pvt->terminfo);
 
-	if (terminal->pvt->termcap != NULL) {
+	if (terminal->pvt->terminfo != NULL) {
 		/* Read emulation flags. */
-		terminal->pvt->flags.am = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
-								    "am");
-		terminal->pvt->flags.bw = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
-								    "bw");
-		terminal->pvt->flags.LP = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
-								    "LP");
-		terminal->pvt->flags.ul = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
-								    "ul");
-		terminal->pvt->flags.xn = _vte_termcap_find_boolean(terminal->pvt->termcap,
-								    terminal->pvt->emulation,
-								    "xn");
+		terminal->pvt->flags.am = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
+								    VTE_TERMINFO_VAR_AUTO_RIGHT_MARGIN);
+		terminal->pvt->flags.bw = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
+								    VTE_TERMINFO_VAR_AUTO_LEFT_MARGIN);
+		terminal->pvt->flags.ul = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
+								    VTE_TERMINFO_VAR_TRANSPARENT_UNDERLINE);
+		terminal->pvt->flags.xn = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
+								    VTE_TERMINFO_VAR_EAT_NEWLINE_GLITCH);
 
 		/* Resize to the given default. */
-		columns = _vte_termcap_find_numeric(terminal->pvt->termcap,
-						    terminal->pvt->emulation,
-						    "co");
+		columns = _vte_terminfo_get_numeric(terminal->pvt->terminfo,
+						    VTE_TERMINFO_VAR_COLUMNS);
 		if (columns <= 0) {
 			columns = VTE_COLUMNS;
 		}
 		terminal->pvt->default_column_count = columns;
 
-		rows = _vte_termcap_find_numeric(terminal->pvt->termcap,
-						 terminal->pvt->emulation,
-						 "li");
+		rows = _vte_terminfo_get_numeric(terminal->pvt->terminfo,
+                                                 VTE_TERMINFO_VAR_LINES);
 		if (rows <= 0 ) {
 			rows = VTE_ROWS;
 		}
@@ -8148,9 +8132,9 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 	g_free (str);
 }
 
-/* Set the path to the termcap file we read, and read it in. */
+/* Set the path to the terminfo file we read, and read it in. */
 static void
-vte_terminal_set_termcap(VteTerminal *terminal)
+vte_terminal_set_terminfo(VteTerminal *terminal)
 {
         GObject *object = G_OBJECT(terminal);
         const char *emulation;
@@ -8160,14 +8144,14 @@ vte_terminal_set_termcap(VteTerminal *terminal)
         emulation = terminal->pvt->emulation ? terminal->pvt->emulation
                                              : vte_get_default_emulation();
 
-	_vte_debug_print(VTE_DEBUG_MISC, "Loading termcap `%s'...",
+	_vte_debug_print(VTE_DEBUG_MISC, "Loading terminfo `%s'...",
 			 emulation);
-	if (terminal->pvt->termcap != NULL) {
-		_vte_termcap_free(terminal->pvt->termcap);
+	if (terminal->pvt->terminfo != NULL) {
+		_vte_terminfo_unref(terminal->pvt->terminfo);
 	}
-	terminal->pvt->termcap = _vte_termcap_new(emulation);
+	terminal->pvt->terminfo = _vte_terminfo_new(emulation);
 	_vte_debug_print(VTE_DEBUG_MISC, "\n");
-	if (terminal->pvt->termcap == NULL) {
+	if (terminal->pvt->terminfo == NULL) {
 		_vte_terminal_inline_error_message(terminal,
 				"Failed to load terminal capabilities for '%s'",
 				emulation);
@@ -8183,7 +8167,7 @@ _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 }
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
- * We need to create a new psuedo-terminal pair, read in the termcap file, and
+ * We need to create a new psuedo-terminal pair, read in the terminfo file, and
  * set ourselves up to do the interpretation of sequences. */
 static void
 vte_terminal_init(VteTerminal *terminal)
@@ -8259,7 +8243,7 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(terminal->pvt->encoding != NULL);
 
-	/* Load the termcap data and set up the emulation. */
+	/* Load the terminfo data and set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
 	pvt->dec_saved = g_hash_table_new(NULL, NULL);
@@ -8768,8 +8752,8 @@ vte_terminal_finalize(GObject *object)
 	if (terminal->pvt->matcher != NULL) {
 		_vte_matcher_free(terminal->pvt->matcher);
 	}
-	if (terminal->pvt->termcap != NULL) {
-		_vte_termcap_free(terminal->pvt->termcap);
+	if (terminal->pvt->terminfo != NULL) {
+		_vte_terminfo_unref(terminal->pvt->terminfo);
 	}
 
 	remove_update_timeout (terminal);
@@ -10752,9 +10736,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 				terminal->pvt->vt220_fkey_mode,
 				terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 				terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
-				terminal->pvt->termcap,
-				terminal->pvt->emulation ?
-				terminal->pvt->emulation : vte_get_default_emulation(),
+				terminal->pvt->terminfo,
 				&normal,
 				&normal_length,
 				&special);
@@ -11711,14 +11693,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-     
+
         /**
          * VteTerminal:emulation:
          *
          * Sets what type of terminal the widget attempts to emulate by scanning for
-         * control sequences defined in the system's termcap file.  Unless you
+         * control sequences defined in the system's terminfo file.  Unless you
          * are interested in this feature, always use the default which is "xterm".
-         * 
+         *
          * Since: 0.20
          */
         g_object_class_install_property

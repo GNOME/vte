@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-SUBDIRS = src termcaps po doc perf
+SUBDIRS = src po doc perf
 
 EXTRA_DIST = \
 	MAINTAINERS \

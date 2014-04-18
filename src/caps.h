@@ -35,21 +35,11 @@ G_BEGIN_DECLS
 #define _VTE_CAP_SS2 _VTE_CAP_ESC "N"	/* Single-shift to G2 */
 #define _VTE_CAP_SS3 _VTE_CAP_ESC "O"	/* Single-shift to G3 */
 
-/* A NULL-terminated list of capability strings which have string values,
- * which means they're either key sequences or commands. */
-struct _vte_capability_quark {
-	const char capability[4];
-	gboolean key;
-	GQuark quark;
-};
 struct _vte_capability_string {
 	const char *code;
 	const char *value;
 	GQuark quark;
 };
-
-/* The known capability strings in termcap entries, terminated by NULLs. */
-extern struct _vte_capability_quark _vte_terminal_capability_strings[];
 
 /* The xterm-specific terminal control strings, terminated by NULLs. */
 extern struct _vte_capability_string _vte_xterm_capability_strings[];

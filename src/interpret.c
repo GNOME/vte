@@ -33,14 +33,13 @@
 #include "debug.h"
 #include "iso2022.h"
 #include "matcher.h"
-#include "vtetc.h"
+#include "vteti.h"
 
 int
 main(int argc, char **argv)
 {
-	char *terminal = NULL;
 	struct _vte_matcher *matcher = NULL;
-	struct _vte_termcap *termcap = NULL;
+	struct _vte_terminfo *terminfo = NULL;
 	GArray *array;
 	unsigned int i, j;
 	int l;
@@ -55,7 +54,7 @@ main(int argc, char **argv)
 	_vte_debug_init();
 
 	if (argc < 2) {
-		g_print("usage: %s terminal [file]\n", argv[0]);
+		g_print("usage: %s TERM [file]\n", argv[0]);
 		return 1;
 	}
 
@@ -71,16 +70,15 @@ main(int argc, char **argv)
 	}
 
 	g_type_init();
-	terminal = argv[1];
-	termcap = _vte_termcap_new(terminal);
-        if (termcap == NULL) {
-                g_printerr ("No termcap entry for '%s'\n", terminal);
+	terminfo = _vte_terminfo_new(argv[1]);
+        if (terminfo == NULL) {
+                g_printerr ("No terminfo entry for '%s'\n", argv[1]);
                 return 1;
         }
 
 	array = g_array_new(FALSE, FALSE, sizeof(gunichar));
 
-	matcher = _vte_matcher_new(terminal, termcap);
+	matcher = _vte_matcher_new(terminfo);
 
 	subst = _vte_iso2022_state_new(NULL, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH, NULL, NULL);
 
@@ -166,7 +164,7 @@ main(int argc, char **argv)
 
 	_vte_iso2022_state_free(subst);
 	g_array_free(array, TRUE);
-	_vte_termcap_free(termcap);
+	_vte_terminfo_unref(terminfo);
 	_vte_matcher_free(matcher);
 	return 0;
 }

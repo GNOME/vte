@@ -740,7 +740,7 @@ _vte_table_match(struct _vte_table *table,
 					p += 2;
 				} else {
 					_vte_debug_print (VTE_DEBUG_PARSE,
-							  "Invalid termcap sequence %s\n",
+							  "Invalid terminfo sequence %s\n",
 							  original);
 				}
 			} /* else Literal. */
