@@ -283,7 +283,7 @@ TEST_SH = \
 	$(NULL)
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev ssfe table trie xticker vteconv vtetc
+check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table trie xticker vteconv vtetc
 TESTS = table trie $(TEST_SH)
 
 AM_CFLAGS = $(GLIB_CFLAGS)
@@ -405,7 +405,6 @@ vteconv_LDADD = $(VTE_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
 mev_SOURCES = mev.c
-ssfe_SOURCES = ssfe.c
 xticker_SOURCES = xticker.c
 
 # Shell
