@@ -5275,8 +5275,12 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
-	return gtk_widget_get_realized (&terminal->widget)
-			&& gtk_im_context_filter_keypress (terminal->pvt->im_context, event);
+	if (gtk_widget_get_realized (&terminal->widget) &&
+            terminal->pvt->input_enabled &&
+            gtk_im_context_filter_keypress (terminal->pvt->im_context, event))
+                return TRUE;
+
+        return FALSE;
 }
 
 /*
