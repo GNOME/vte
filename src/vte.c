@@ -6331,6 +6331,10 @@ static void
 vte_terminal_paste(VteTerminal *terminal, GdkAtom board)
 {
 	GtkClipboard *clipboard;
+
+        if (!terminal->pvt->input_enabled)
+                return;
+
 	clipboard = vte_terminal_clipboard_get(terminal, board);
 	if (clipboard != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
@@ -7092,7 +7096,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			handled = TRUE;
 		}
 
-		if (!handled)
+		if (!handled && terminal->pvt->input_enabled)
 			vte_terminal_maybe_send_mouse_drag(terminal, event);
 		break;
 	default:
@@ -7314,7 +7318,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 		default:
 			break;
 		}
-		if (!handled) {
+		if (!handled && terminal->pvt->input_enabled) {
 			handled = vte_terminal_maybe_send_mouse_button(terminal, event);
 		}
 		break;
