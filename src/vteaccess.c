@@ -930,7 +930,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Back up to the previous non-word-word transition. */
 			while (offset > 0) {
 				prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-				if (_vte_terminal_is_word_char(terminal, prev)) {
+				if (_vte_is_word_char(prev)) {
 					offset--;
 				} else {
 					break;
@@ -944,7 +944,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_previous) {
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (!_vte_terminal_is_word_char(terminal, prev)) {
+					if (!_vte_is_word_char(prev)) {
 						offset--;
 					} else {
 						break;
@@ -952,7 +952,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (_vte_terminal_is_word_char(terminal, prev)) {
+					if (_vte_is_word_char(prev)) {
 						offset--;
 					} else {
 						break;
@@ -967,7 +967,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_next) {
 				while (offset < (int) priv->snapshot_characters->len) {
 					next = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (_vte_terminal_is_word_char(terminal, next)) {
+					if (_vte_is_word_char(next)) {
 						offset++;
 					} else {
 						break;
@@ -975,7 +975,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 				while (offset < (int) priv->snapshot_characters->len) {
 					next = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (!_vte_terminal_is_word_char(terminal, next)) {
+					if (!_vte_is_word_char(next)) {
 						offset++;
 					} else {
 						break;
@@ -986,7 +986,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Now find the end of this word. */
 			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (_vte_terminal_is_word_char(terminal, current)) {
+				if (_vte_is_word_char(current)) {
 					offset++;
 				} else {
 					break;
@@ -996,7 +996,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Now find the next non-word-word transition */
 			while (offset < (int) priv->snapshot_characters->len) {
 				next = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (!_vte_terminal_is_word_char(terminal, next)) {
+				if (!_vte_is_word_char(next)) {
 					offset++;
 				} else {
 					break;
@@ -1009,8 +1009,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			current = vte_terminal_accessible_get_character_at_offset(text, offset);
 			while (offset > 0) {
 				prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-				if (_vte_terminal_is_word_char(terminal, prev) &&
-				    !_vte_terminal_is_word_char(terminal, current)) {
+				if (_vte_is_word_char(prev) &&
+				    !_vte_is_word_char(current)) {
 					break;
 				} else {
 					offset--;
@@ -1025,7 +1025,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_previous) {
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (_vte_terminal_is_word_char(terminal, prev)) {
+					if (_vte_is_word_char(prev)) {
 						offset--;
 					} else {
 						break;
@@ -1034,8 +1034,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (_vte_terminal_is_word_char(terminal, prev) &&
-					    !_vte_terminal_is_word_char(terminal, current)) {
+					if (_vte_is_word_char(prev) &&
+					    !_vte_is_word_char(current)) {
 						break;
 					} else {
 						offset--;
@@ -1051,7 +1051,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_next) {
 				while (offset < (int) priv->snapshot_characters->len) {
 					current = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (!_vte_terminal_is_word_char(terminal, current)) {
+					if (!_vte_is_word_char(current)) {
 						offset++;
 					} else {
 						break;
@@ -1059,7 +1059,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 				while (offset < (int) priv->snapshot_characters->len) {
 					current = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (_vte_terminal_is_word_char(terminal, current)) {
+					if (_vte_is_word_char(current)) {
 						offset++;
 					} else {
 						break;
@@ -1070,7 +1070,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Now find the next word end. */
 			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (!_vte_terminal_is_word_char(terminal, current)) {
+				if (!_vte_is_word_char(current)) {
 					offset++;
 				} else {
 					break;
@@ -1078,7 +1078,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			}
 			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (_vte_terminal_is_word_char(terminal, current)) {
+				if (_vte_is_word_char(current)) {
 					offset++;
 				} else {
 					break;

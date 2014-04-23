@@ -5284,17 +5284,15 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 }
 
 /*
- * _vte_terminal_is_word_char:
- * @terminal: a #VteTerminal
+ * _vte_is_word_char:
  * @c: a candidate Unicode code point
  *
- * Checks if a particular character is considered to be part of a word or not,
- * based on the values last passed to vte_terminal_set_word_chars().
+ * Checks if a particular character is considered to be part of a word or not.
  *
  * Returns: %TRUE if the character is considered to be part of a word
  */
 gboolean
-_vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
+_vte_is_word_char(gunichar c)
 {
 	return g_unichar_isgraph(c) &&
                (g_unichar_isalnum(c) ||
@@ -5310,7 +5308,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	const VteCell *pcell = NULL;
 	gboolean word_char;
 	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
-		word_char = _vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c));
+		word_char = _vte_is_word_char(_vte_unistr_get_base (pcell->c));
 
 		/* Lets not group non-wordchars together (bug #25290) */
 		if (!word_char)
@@ -5320,7 +5318,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 		if (pcell == NULL || pcell->c == 0) {
 			return FALSE;
 		}
-		if (word_char != _vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c))) {
+		if (word_char != _vte_is_word_char(_vte_unistr_get_base (pcell->c))) {
 			return FALSE;
 		}
 		return TRUE;
