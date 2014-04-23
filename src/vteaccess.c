@@ -24,14 +24,11 @@
  * framework.
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <atk/atk.h>
 #include <gtk/gtk.h>
 #include <gtk/gtk-a11y.h>
-#ifdef GDK_WINDOWING_X11
-#include <gdk/gdkx.h>
-#endif
 #include <string.h>
 #include "debug.h"
 #include "vte.h"
