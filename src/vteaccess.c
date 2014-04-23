@@ -763,8 +763,6 @@ vte_terminal_accessible_finalize(GObject *object)
         widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(accessible));
 
 	if (widget != NULL) {
-		g_object_remove_weak_pointer(G_OBJECT(widget),
-					     (gpointer*)(gpointer)&widget);
 		g_signal_handlers_disconnect_matched(widget,
 						     G_SIGNAL_MATCH_FUNC |
 						     G_SIGNAL_MATCH_DATA,
