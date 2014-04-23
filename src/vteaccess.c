@@ -1547,20 +1547,6 @@ vte_terminal_accessible_get_mdi_zorder(AtkComponent *component)
 }
 
 static gboolean
-vte_terminal_accessible_contains(AtkComponent *component,
-				 gint x, gint y,
-				 AtkCoordType coord_type)
-{
-	gint ex, ey, ewidth, eheight;
-	atk_component_get_extents(component, &ex, &ey, &ewidth, &eheight,
-				  coord_type);
-	return ((x >= ex) &&
-		(x < ex + ewidth) &&
-		(y >= ey) &&
-		(y < ey + eheight));
-}
-
-static gboolean
 vte_terminal_accessible_set_extents(AtkComponent *component,
 				    gint x, gint y,
 				    gint width, gint height,
@@ -1646,7 +1632,6 @@ static void
 vte_terminal_accessible_component_iface_init(AtkComponentIface *component)
 {
 	component->add_focus_handler = vte_terminal_accessible_add_focus_handler;
-	component->contains = vte_terminal_accessible_contains;
 	component->ref_accessible_at_point = vte_terminal_accessible_ref_accessible_at_point;
 	component->remove_focus_handler = vte_terminal_accessible_remove_focus_handler;
 	component->set_extents = vte_terminal_accessible_set_extents;
