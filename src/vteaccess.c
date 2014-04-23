@@ -1534,12 +1534,6 @@ vte_terminal_accessible_text_iface_init(AtkTextIface *text)
 	text->set_caret_offset = vte_terminal_accessible_set_caret_offset;
 }
 
-static gint
-vte_terminal_accessible_get_mdi_zorder(AtkComponent *component)
-{
-	return G_MININT;
-}
-
 static gboolean
 vte_terminal_accessible_set_extents(AtkComponent *component,
 				    gint x, gint y,
@@ -1600,7 +1594,6 @@ vte_terminal_accessible_component_iface_init(AtkComponentIface *component)
 	component->set_extents = vte_terminal_accessible_set_extents;
 	component->set_position = vte_terminal_accessible_set_position;
 	component->set_size = vte_terminal_accessible_set_size;
-	component->get_mdi_zorder = vte_terminal_accessible_get_mdi_zorder;
 }
 
 /* AtkAction interface */
