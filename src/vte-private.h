@@ -132,11 +132,6 @@ typedef enum {
 	MOUSE_TRACKING_ALL_MOTION_TRACKING
 } MouseTrackingMode;
 
-struct _vte_regex_match {
-       int rm_so;
-       int rm_eo;
-};
-
 /* A match regex, with a tag. */
 struct vte_match_regex {
 	gint tag;
