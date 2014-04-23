@@ -90,42 +90,6 @@ AM_GLIB_GNU_GETTEXT
 AC_CHECK_DECLS(bind_textdomain_codeset,,,[#include "libintl.h"])
 
 ################################################################################
-# Platform checks
-################################################################################
-
-AC_MSG_CHECKING([for a win32 platform])
-platform_win32=no
-case "$host" in
-	*-*-mingw*|*-*-cygwin*)
-		platform_win32=yes
-		;;
-esac
-AC_MSG_RESULT([$platform_win32])
-AM_CONDITIONAL(PLATFORM_WIN32, test "$platform_win32" = "yes")
-
-os_win32=no
-if test "x$platform_win32" = "xyes"; then
-	AC_MSG_CHECKING([for native win32])
-	case "$host" in
-		*-*-mingw*)
-			os_win32=yes
-			;;
-	esac
-	AC_MSG_RESULT([$os_win32])
-fi
-AM_CONDITIONAL(OS_WIN32, test "x$os_win32" = "xyes")
-
-
-if test "x$platform_win32" != "xyes"; then
-	LIBTOOL_EXPORT_OPTIONS=
-else
-	LIBTOOL_EXPORT_OPTIONS='-no-undefined'
-fi
-AC_SUBST([LIBTOOL_EXPORT_OPTIONS])
-LIBTOOL_FLAGS='-as-needed'
-AC_SUBST([LIBTOOL_FLAGS])
-
-################################################################################
 # Compilation
 ################################################################################
 
