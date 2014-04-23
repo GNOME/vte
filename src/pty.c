@@ -548,7 +548,7 @@ __vte_pty_spawn (VtePty *pty,
  * @pty: a #VtePty
  * @rows: the desired number of rows
  * @columns: the desired number of columns
- * @error: (allow-none); return location to store a #GError, or %NULL
+ * @error: (allow-none): return location to store a #GError, or %NULL
  *
  * Attempts to resize the pseudo terminal's window size.  If successful, the
  * OS kernel will send #SIGWINCH to the child process group.
