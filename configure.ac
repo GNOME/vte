@@ -318,14 +318,14 @@ AM_CONDITIONAL([ENABLE_GLADE_CATALOGUE],[test "$enable_glade_catalogue" = "yes"]
 
 # No automagic please!
 if test -z "$enable_introspection"; then
-  enable_introspection=no
+  enable_introspection=yes
 fi
 
 GOBJECT_INTROSPECTION_CHECK([0.9.0])
 
 # No automagic please!
 if test -z "$enable_vala"; then
-  enable_vala=no
+  enable_vala=yes
 fi
 
 VAPIGEN_CHECK([0.18])
