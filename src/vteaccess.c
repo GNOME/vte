@@ -1534,12 +1534,6 @@ vte_terminal_accessible_text_iface_init(AtkTextIface *text)
 	text->set_caret_offset = vte_terminal_accessible_set_caret_offset;
 }
 
-static AtkLayer
-vte_terminal_accessible_get_layer(AtkComponent *component)
-{
-	return ATK_LAYER_WIDGET;
-}
-
 static gint
 vte_terminal_accessible_get_mdi_zorder(AtkComponent *component)
 {
@@ -1590,7 +1584,6 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 	       (vte_terminal_get_column_count (terminal) == columns);
 }
 
-
 static AtkObject *
 vte_terminal_accessible_ref_accessible_at_point(AtkComponent *component,
 						gint x, gint y,
@@ -1607,7 +1600,6 @@ vte_terminal_accessible_component_iface_init(AtkComponentIface *component)
 	component->set_extents = vte_terminal_accessible_set_extents;
 	component->set_position = vte_terminal_accessible_set_position;
 	component->set_size = vte_terminal_accessible_set_size;
-	component->get_layer = vte_terminal_accessible_get_layer;
 	component->get_mdi_zorder = vte_terminal_accessible_get_mdi_zorder;
 }
 
