@@ -403,8 +403,16 @@ vteconv_CFLAGS = $(VTE_CFLAGS)
 vteconv_LDADD = $(VTE_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
+dumpkeys_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+dumpkeys_LDADD = $(GLIB_LIBS)
+
 mev_SOURCES = mev.c
+mev_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+mev_LDADD = $(GLIB_LIBS)
+
 xticker_SOURCES = xticker.c
+xticker_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+xticker_LDADD = $(GLIB_LIBS)
 
 # Shell
 
