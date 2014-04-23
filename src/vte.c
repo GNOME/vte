@@ -796,7 +796,7 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, gssize length
 	char *wrapped = NULL;
 
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `commit' of %d bytes.\n", length);
+			"Emitting `commit' of %" G_GSSIZE_FORMAT" bytes.\n", length);
 
 	if (length == -1) {
 		length = strlen(text);
