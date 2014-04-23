@@ -54,6 +54,7 @@ AC_SUBST([GTK_API_VERSION])
 
 # Check for programs
 AC_PROG_CC
+AC_USE_SYSTEM_EXTENSIONS
 AC_HEADER_STDC
 AM_PROG_CC_C_O
 AC_PROG_SED
@@ -168,25 +169,6 @@ AC_SUBST([VTE_LDFLAGS])
 ################################################################################
 # Core
 ################################################################################
-
-# Use all available features under glibc, and disable accidental use of
-# deprecated functionality.
-AC_EGREP_CPP(glibc,
-		[
-		 #include <stdio.h>
-		 #ifdef __GLIBC__
-		 glibc
-		 #endif
-		],
-		AC_DEFINE(_GNU_SOURCE,1,[Use all glibc features.]))
-
-case $host in
-*-*-solaris*)
-	AC_DEFINE(_XOPEN_SOURCE_EXTENDED,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
-	AC_DEFINE(_XOPEN_SOURCE,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
-	AC_DEFINE(__EXTENSIONS__,1,[Needed to get declarations for msg_control and msg_controllen on Solaris])
-	;;
-esac
 
 GLIB_REQUIRED=2.40.0
 GIO_REQUIRED=2.40.0
