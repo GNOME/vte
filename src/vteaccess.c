@@ -1600,40 +1600,10 @@ vte_terminal_accessible_ref_accessible_at_point(AtkComponent *component,
 	return NULL;
 }
 
-static guint
-vte_terminal_accessible_add_focus_handler(AtkComponent *component,
-					  AtkFocusHandler handler)
-{
-	guint signal_id;
-	signal_id = g_signal_lookup("focus-event",
-				    VTE_TYPE_TERMINAL_ACCESSIBLE);
-	if (g_signal_handler_find(component,
-				  G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_ID,
-				  signal_id,
-				  0,
-				  NULL,
-				  (gpointer)handler,
-				  NULL) != 0) {
-		return 0;
-	}
-	return g_signal_connect(component, "focus-event",
-				G_CALLBACK(handler), NULL);
-}
-
-static void
-vte_terminal_accessible_remove_focus_handler(AtkComponent *component,
-					     guint handler_id)
-{
-	g_assert(g_signal_handler_is_connected(component, handler_id));
-	g_signal_handler_disconnect(component, handler_id);
-}
-
 static void
 vte_terminal_accessible_component_iface_init(AtkComponentIface *component)
 {
-	component->add_focus_handler = vte_terminal_accessible_add_focus_handler;
 	component->ref_accessible_at_point = vte_terminal_accessible_ref_accessible_at_point;
-	component->remove_focus_handler = vte_terminal_accessible_remove_focus_handler;
 	component->set_extents = vte_terminal_accessible_set_extents;
 	component->set_position = vte_terminal_accessible_set_position;
 	component->set_size = vte_terminal_accessible_set_size;
