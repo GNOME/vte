@@ -286,9 +286,6 @@ EXTRA_DIST += $(TEST_SH)
 check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table trie xticker vteconv vtetc
 TESTS = table trie $(TEST_SH)
 
-AM_CFLAGS = $(GLIB_CFLAGS)
-LDADD = $(GLIB_LIBS)
-
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW
 reflect_text_view_CFLAGS = $(VTE_CFLAGS)
 reflect_text_view_SOURCES = reflect.c
@@ -353,7 +350,10 @@ iso2022_CFLAGS = $(GTK_CFLAGS)
 iso2022_LDADD = $(GTK_LIBS)
 
 slowcat_SOURCES = \
-	slowcat.c
+	slowcat.c \
+	$(NULL)
+slowcat_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
+slowcat_LDADD = $(GLIB_LIBS)
 
 table_SOURCES = \
 	buffer.h \

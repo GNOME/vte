@@ -1,11 +1,12 @@
 dnl Macros to check the presence of generic (non-typed) symbols.
 dnl Copyright (c) 2006-2008 Diego Pettenò <flameeyes@gmail.com>
 dnl Copyright (c) 2006-2008 xine project
+dnl Copyright (c) 2012 Lucas De Marchi <lucas.de.marchi@gmail.com>
 dnl
-dnl This program is free software: you can redistribute it and/or modify
+dnl This program is free software; you can redistribute it and/or modify
 dnl it under the terms of the GNU General Public License as published by
-dnl the Free Software Foundation, either version 3 of the License, or
-dnl (at your option) any later version.
+dnl the Free Software Foundation; either version 2, or (at your option)
+dnl any later version.
 dnl
 dnl This program is distributed in the hope that it will be useful,
 dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,7 +14,9 @@ dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl GNU General Public License for more details.
 dnl
 dnl You should have received a copy of the GNU General Public License
-dnl along with this program.  If not, see <http://www.gnu.org/licenses/>.
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+dnl 02110-1301, USA.
 dnl
 dnl As a special exception, the copyright owners of the
 dnl macro gives unlimited permission to copy, distribute and modify the
@@ -30,52 +33,28 @@ dnl distribute a modified version of the Autoconf Macro, you may extend
 dnl this special exception to the GPL to apply to your modified version as
 dnl well.
 
-dnl Check if the flag is supported by compiler
-dnl CC_CHECK_CFLAGS_SILENT([FLAG], [ACTION-IF-FOUND],[ACTION-IF-NOT-FOUND])
+dnl Check if FLAG in ENV-VAR is supported by compiler and append it
+dnl to WHERE-TO-APPEND variable
+dnl CC_CHECK_FLAG_APPEND([WHERE-TO-APPEND], [ENV-VAR], [FLAG])
 
-AC_DEFUN([CC_CHECK_CFLAGS_SILENT], [
-  AC_CACHE_VAL(AS_TR_SH([cc_cv_cflags_$1]),
-    [ac_save_CFLAGS="$CFLAGS"
-     CFLAGS="$CFLAGS $1"
-     AC_COMPILE_IFELSE([AC_LANG_SOURCE([int a;])],
-       [eval "AS_TR_SH([cc_cv_cflags_$1])='yes'"],
-       [eval "AS_TR_SH([cc_cv_cflags_$1])='no'"])
-     CFLAGS="$ac_save_CFLAGS"
-    ])
+AC_DEFUN([CC_CHECK_FLAG_APPEND], [
+  AC_CACHE_CHECK([if $CC supports flag $3 in envvar $2],
+                 AS_TR_SH([cc_cv_$2_$3]),
+		 [eval "AS_TR_SH([cc_save_$2])='${$2}'"
+		  eval "AS_TR_SH([$2])='$3'"
+		  AC_COMPILE_IFELSE([AC_LANG_SOURCE([int a = 0; int main(void) { return a; } ])],
+                                    [eval "AS_TR_SH([cc_cv_$2_$3])='yes'"],
+                                    [eval "AS_TR_SH([cc_cv_$2_$3])='no'"])
+		  eval "AS_TR_SH([$2])='$cc_save_$2'"])
 
-  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
-    [$2], [$3])
+  AS_IF([eval test x$]AS_TR_SH([cc_cv_$2_$3])[ = xyes],
+        [eval "$1='${$1} $3'"])
 ])
 
-dnl Check if the flag is supported by compiler (cacheable)
-dnl CC_CHECK_CFLAGS([FLAG], [ACTION-IF-FOUND],[ACTION-IF-NOT-FOUND])
-
-AC_DEFUN([CC_CHECK_CFLAGS], [
-  AC_CACHE_CHECK([if $CC supports $1 flag],
-    AS_TR_SH([cc_cv_cflags_$1]),
-    CC_CHECK_CFLAGS_SILENT([$1]) dnl Don't execute actions here!
-  )
-
-  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
-    [$2], [$3])
-])
-
-dnl CC_CHECK_CFLAG_APPEND(FLAG, [action-if-found], [action-if-not-found])
-dnl Check for CFLAG and appends them to CFLAGS if supported
-AC_DEFUN([CC_CHECK_CFLAG_APPEND], [
-  AC_CACHE_CHECK([if $CC supports $1 flag],
-    AS_TR_SH([cc_cv_cflags_$1]),
-    CC_CHECK_CFLAGS_SILENT([$1]) dnl Don't execute actions here!
-  )
-
-  AS_IF([eval test x$]AS_TR_SH([cc_cv_cflags_$1])[ = xyes],
-    [CFLAGS="$CFLAGS $1"; DEBUG_CFLAGS="$DEBUG_CFLAGS $1"; $2], [$3])
-])
-
-dnl CC_CHECK_CFLAGS_APPEND([FLAG1 FLAG2], [action-if-found], [action-if-not])
-AC_DEFUN([CC_CHECK_CFLAGS_APPEND], [
-  for flag in $1; do
-    CC_CHECK_CFLAG_APPEND($flag, [$2], [$3])
+dnl CC_CHECK_FLAGS_APPEND([WHERE-TO-APPEND], [ENV-VAR], [FLAG1 FLAG2])
+AC_DEFUN([CC_CHECK_FLAGS_APPEND], [
+  for flag in $3; do
+    CC_CHECK_FLAG_APPEND($1, $2, $flag)
   done
 ])
 
@@ -87,11 +66,9 @@ AC_DEFUN([CC_CHECK_LDFLAGS], [
     AS_TR_SH([cc_cv_ldflags_$1]),
     [ac_save_LDFLAGS="$LDFLAGS"
      LDFLAGS="$LDFLAGS $1"
-     AC_LANG_PUSH([C])
-     AC_LINK_IFELSE([AC_LANG_SOURCE([int main() { return 1; }])],
+     AC_LINK_IFELSE([AC_LANG_SOURCE([[int main() { return 1; }]])],
        [eval "AS_TR_SH([cc_cv_ldflags_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_ldflags_$1])="])
-     AC_LANG_POP([C])
      LDFLAGS="$ac_save_LDFLAGS"
     ])
 
@@ -147,11 +124,9 @@ AC_DEFUN([CC_CHECK_ATTRIBUTE], [
     AS_TR_SH([cc_cv_attribute_$1]),
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $cc_cv_werror"
-     AC_LANG_PUSH([C])
      AC_COMPILE_IFELSE([AC_LANG_SOURCE([$3])],
        [eval "AS_TR_SH([cc_cv_attribute_$1])='yes'"],
        [eval "AS_TR_SH([cc_cv_attribute_$1])='no'"])
-     AC_LANG_POP([C])
      CFLAGS="$ac_save_CFLAGS"
     ])
 
@@ -273,7 +248,6 @@ AC_DEFUN([CC_FUNC_EXPECT], [
     [cc_cv_func_expect],
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $cc_cv_werror"
-     AC_LANG_PUSH([C])
      AC_COMPILE_IFELSE([AC_LANG_SOURCE(
        [int some_function() {
         int a = 3;
@@ -281,7 +255,6 @@ AC_DEFUN([CC_FUNC_EXPECT], [
 	}])],
        [cc_cv_func_expect=yes],
        [cc_cv_func_expect=no])
-     AC_LANG_POP([C])
      CFLAGS="$ac_save_CFLAGS"
     ])
 
@@ -298,7 +271,6 @@ AC_DEFUN([CC_ATTRIBUTE_ALIGNED], [
     [cc_cv_attribute_aligned],
     [ac_save_CFLAGS="$CFLAGS"
      CFLAGS="$CFLAGS $cc_cv_werror"
-     AC_LANG_PUSH([C])
      for cc_attribute_align_try in 64 32 16 8 4 2; do
         AC_COMPILE_IFELSE([AC_LANG_SOURCE([
           int main() {
@@ -306,7 +278,6 @@ AC_DEFUN([CC_ATTRIBUTE_ALIGNED], [
             return c;
           }])], [cc_cv_attribute_aligned=$cc_attribute_align_try; break])
      done
-     AC_LANG_POP([C])
      CFLAGS="$ac_save_CFLAGS"
   ])
 

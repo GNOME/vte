@@ -5250,7 +5250,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 							  terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 							  &normal,
 							  &normal_length);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 			output = g_strdup_printf(normal, 1);
+#pragma GCC diagnostic pop
 			vte_terminal_feed_child_using_modes(terminal,
 							    output, -1);
 			g_free(output);

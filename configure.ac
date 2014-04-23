@@ -129,18 +129,51 @@ AC_SUBST([LIBTOOL_FLAGS])
 # Compilation
 ################################################################################
 
-CC_CHECK_CFLAGS_APPEND([ \
-  -Wall -Wextra \
-  -Wformat-nonliteral -Werror=format-security \
-  -Wsign-compare -Werror=implicit-function-declaration \
-  -Wpointer-arith -Wwrite-strings -Wstrict-prototypes \
-  -Waggregate-return -Wcast-align -Wimplicit -Wuninitialized \
-  -Wmissing-prototypes -Wmissing-declarations -Wnested-externs \
-  -Wpacked -Wmissing-format-attribute -Wshadow \
-  -Wstrict-aliasing=2 -Winit-self -Wunsafe-loop-optimizations \
-  -Wdeclaration-after-statement -Wold-style-definition \
-  -Wno-missing-field-initializers -Wno-unused-parameter \
-  -fno-common -Wno-switch-enum])
+CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[ \
+  -pipe \
+  -Waggregate-return \
+  -Wall \
+  -Wcast-align \
+  -Wendif-labels \
+  -Werror=declaration-after-statement \
+  -Werror=format=2 \
+  -Werror=format-nonliteral \
+  -Werror=format-security \
+  -Werror=implicit-function-declaration \
+  -Werror=init-self \
+  -Werror=missing-include-dirs \
+  -Werror=missing-prototypes \
+  -Werror=pointer-arith \
+  -Wextra \
+  -Wfloat-equal \
+  -Wformat-nonliteral \
+  -Wimplicit \
+  -Wlogical-op \
+  -Wmissing-declarations \
+  -Wmissing-include-dirs \
+  -Wmissing-format-attribute \
+  -Wmissing-noreturn \
+  -Wnested-externs \
+  -Wno-missing-field-initializers \
+  -Wno-switch-enum \
+  -Wno-unused-parameter \
+  -Wold-style-definition \
+  -Wpacked \
+  -Wshadow \
+  -Wsign-compare \
+  -Wstrict-aliasing=2 \
+  -Wstrict-prototypes \
+  -Wundef \
+  -Wuninitialized \
+  -Wunsafe-loop-optimizations \
+  -Wwrite-strings \
+  -fno-common \
+  -fdiagnostics-show-option \
+  -fno-strict-aliasing \
+  -fstack-protector \
+  -fstack-protector-strong \
+  -Wno-deprecated-declarations \
+])
 
 ##########################################################
 # Check for -Bsymbolic-functions linker flag used to avoid
