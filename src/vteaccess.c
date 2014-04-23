@@ -691,7 +691,6 @@ static void
 vte_terminal_accessible_initialize (AtkObject *obj, gpointer data)
 {
 	VteTerminal *terminal = VTE_TERMINAL (data);
-	AtkObject *parent;
         const char *window_title;
 
 	ATK_OBJECT_CLASS (_vte_terminal_accessible_parent_class)->initialize (obj, data);
@@ -886,14 +885,11 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 {
         VteTerminalAccessible *accessible = VTE_TERMINAL_ACCESSIBLE(text);
 	VteTerminalAccessiblePrivate *priv = _vte_terminal_accessible_get_instance_private(accessible);
-	VteTerminal *terminal;
 	gunichar current, prev, next;
 	guint start, end, line;
 
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
-
-	terminal = VTE_TERMINAL(gtk_accessible_get_widget (GTK_ACCESSIBLE(accessible)));
 
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Getting %s %s at %d of %d.\n",
