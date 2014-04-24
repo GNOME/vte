@@ -1958,7 +1958,8 @@ static void
 vte_sequence_handler_reset_color (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *value;
-	long idx, i;
+        guint i;
+	long idx;
 
 	if (params != NULL && params->n_values > 0) {
 		for (i = 0; i < params->n_values; i++) {
