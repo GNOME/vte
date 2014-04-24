@@ -122,9 +122,9 @@ _vte_terminfo_get_boolean(struct _vte_terminfo *terminfo,
         NCURSES_SBOOL b;
 
         g_return_val_if_fail(terminfo != NULL, FALSE);
-        g_return_val_if_fail(variable & VTE_TERMINFO_VARTYPE_BOOLEAN, FALSE);
+        g_return_val_if_fail(variable & VTE_TERMINFO_VARTYPE_BOOLEAN, NULL);
         variable &= VTE_TERMINFO_VARTYPE_MASK;
-        g_return_val_if_fail(variable < BOOLCOUNT, FALSE);
+        g_return_val_if_fail(variable < BOOLCOUNT, NULL);
 
         b = terminfo->termtype.Booleans[variable];
         return VALID_BOOLEAN(b) ? b != 0 : FALSE;
@@ -146,9 +146,9 @@ _vte_terminfo_get_numeric(struct _vte_terminfo *terminfo,
         short n;
 
         g_return_val_if_fail(terminfo != NULL, -1);
-        g_return_val_if_fail(variable & VTE_TERMINFO_VARTYPE_NUMERIC, -1);
+        g_return_val_if_fail(variable & VTE_TERMINFO_VARTYPE_NUMERIC, NULL);
         variable &= VTE_TERMINFO_VARTYPE_MASK;
-        g_return_val_if_fail(variable < NUMCOUNT, -1);
+        g_return_val_if_fail(variable < NUMCOUNT, NULL);
 
         n = terminfo->termtype.Numbers[variable];
         return VALID_NUMERIC(n) ? (int)n : -1;
@@ -229,8 +229,8 @@ _vte_terminfo_get_numeric_by_cap(struct _vte_terminfo *terminfo,
         short n;
         const struct name_table_entry *e;
 
-        g_return_val_if_fail(terminfo != NULL, -1);
-        g_return_val_if_fail(cap != NULL, -1);
+        g_return_val_if_fail(terminfo != NULL, FALSE);
+        g_return_val_if_fail(cap != NULL, FALSE);
 
         e = _nc_find_entry(cap, _nc_get_hash_table(compat));
         if (e == NULL)
@@ -261,8 +261,8 @@ _vte_terminfo_get_string_by_cap(struct _vte_terminfo *terminfo,
         /* const */ char *str;
         const struct name_table_entry *e;
 
-        g_return_val_if_fail(terminfo != NULL, NULL);
-        g_return_val_if_fail(cap != NULL, NULL);
+        g_return_val_if_fail(terminfo != NULL, FALSE);
+        g_return_val_if_fail(cap != NULL, FALSE);
 
         e = _nc_find_entry(cap, _nc_get_hash_table(compat));
         if (e == NULL)
