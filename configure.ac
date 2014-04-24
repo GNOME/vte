@@ -357,6 +357,7 @@ Makefile
 src/Makefile
 src/vteversion.h
 src/vte.gresource.xml
+termcaps/Makefile
 perf/Makefile
 po/Makefile.in
 doc/Makefile
