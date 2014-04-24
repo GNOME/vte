@@ -265,8 +265,6 @@ class Window : Gtk.ApplicationWindow
 				}
 				Posix.sleep(1);
 			}
-			Posix._exit(0);
-			break;
 		}
 		default: /* parent */
 			terminal.set_pty(pty);
