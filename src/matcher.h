@@ -23,7 +23,7 @@
 
 
 #include <glib-object.h>
-#include "vteti.h"
+#include "vtetc.h"
 
 G_BEGIN_DECLS
 
@@ -53,7 +53,8 @@ struct _vte_matcher_class{
 };
 
 /* Create and init matcher. */
-struct _vte_matcher *_vte_matcher_new(struct _vte_terminfo *terminfo);
+struct _vte_matcher *_vte_matcher_new(const char *emulation,
+				      struct _vte_termcap *termcap);
 
 /* Free a matcher. */
 void _vte_matcher_free(struct _vte_matcher *matcher);

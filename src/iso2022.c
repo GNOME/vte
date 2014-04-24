@@ -35,7 +35,7 @@
 #endif
 #include <glib/gi18n-lib.h>
 
-#include <gdk/gdkkeysyms.h>
+#include <gtk/gtk.h>
 
 /* Maps which jive with XTerm's ESC ()*+ ? sequences, RFC 1468.  Add the
  * PC437 map because despite knowing that XTerm doesn't support it, certain
