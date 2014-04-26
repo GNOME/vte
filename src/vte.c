@@ -2684,8 +2684,8 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 }
 
 static PangoColor *
-_pango_color_from_rgba (PangoColor *color,
-                        const GdkRGBA *rgba)
+_pango_color_from_rgba(PangoColor *color,
+                       const GdkRGBA *rgba)
 {
         if (rgba == NULL)
                 return NULL;
@@ -2698,7 +2698,7 @@ _pango_color_from_rgba (PangoColor *color,
 }
 
 /**
- * vte_terminal_set_color_bold_rgba:
+ * vte_terminal_set_color_bold:
  * @terminal: a #VteTerminal
  * @bold: (allow-none): the new bold color or %NULL
  *
@@ -2706,7 +2706,7 @@ _pango_color_from_rgba (PangoColor *color,
  * If @bold is %NULL then the default color is used.
  */
 void
-vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
+vte_terminal_set_color_bold(VteTerminal *terminal,
                                  const GdkRGBA *bold)
 {
 	PangoColor color;
@@ -2729,17 +2729,15 @@ vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_dim_rgba:
+ * vte_terminal_set_color_dim:
  * @terminal: a #VteTerminal
  * @dim: (allow-none): the new dim color or %NULL
  *
  * Sets the color used to draw dim text in the default foreground color.
  * If @dim is %NULL then the default color is used.
- *
- * Since: 0.28
  */
 void
-vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
+vte_terminal_set_color_dim(VteTerminal *terminal,
                                 const GdkRGBA *dim)
 {
 	PangoColor color;
@@ -2762,16 +2760,14 @@ vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_foreground_rgba:
+ * vte_terminal_set_color_foreground:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color
  *
  * Sets the foreground color used to draw normal text.
- *
- * Since: 0.28
  */
 void
-vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
+vte_terminal_set_color_foreground(VteTerminal *terminal,
 				       const GdkRGBA *foreground)
 {
 	PangoColor color;
@@ -2784,18 +2780,16 @@ vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_background_rgba:
+ * vte_terminal_set_color_background:
  * @terminal: a #VteTerminal
  * @background: the new background color
  *
  * Sets the background color for text which does not have a specific background
  * color assigned.  Only has effect when no background image is set and when
  * the terminal is not transparent.
- *
- * Since: 0.28
  */
 void
-vte_terminal_set_color_background_rgba(VteTerminal *terminal,
+vte_terminal_set_color_background(VteTerminal *terminal,
 				       const GdkRGBA *background)
 {
 	PangoColor color;
@@ -2804,23 +2798,21 @@ vte_terminal_set_color_background_rgba(VteTerminal *terminal,
         g_return_if_fail(background != NULL);
 
 	_vte_terminal_set_color_background(terminal,
-                                           _pango_color_from_rgba (&color, background));
+                                           _pango_color_from_rgba(&color, background));
         _vte_terminal_set_background_alpha(terminal, background->alpha);
 }
 
 /**
- * vte_terminal_set_color_cursor_rgba:
+ * vte_terminal_set_color_cursor:
  * @terminal: a #VteTerminal
  * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
  *
  * Sets the background color for text which is under the cursor.  If %NULL, text
  * under the cursor will be drawn with foreground and background colors
  * reversed.
- *
- * Since: 0.28
  */
 void
-vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
+vte_terminal_set_color_cursor(VteTerminal *terminal,
 				   const GdkRGBA *cursor_background)
 {
         PangoColor color;
@@ -2832,7 +2824,7 @@ vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_highlight_rgba:
+ * vte_terminal_set_color_highlight:
  * @terminal: a #VteTerminal
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
@@ -2840,11 +2832,9 @@ vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
  * it is unset.  If neither highlight background nor highlight foreground are set,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
- *
- * Since: 0.28
  */
 void
-vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
+vte_terminal_set_color_highlight(VteTerminal *terminal,
 				      const GdkRGBA *highlight_background)
 {
 	PangoColor color;
@@ -2856,7 +2846,7 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_color_highlight_foreground_rgba:
+ * vte_terminal_set_color_highlight_foreground:
  * @terminal: a #VteTerminal
  * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
  *
@@ -2864,11 +2854,9 @@ vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
  * it is unset.  If neither highlight background nor highlight foreground are set,
  * highlighted text (which is usually highlighted because it is selected) will
  * be drawn with foreground and background colors reversed.
- *
- * Since: 0.36
  */
 void
-vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
+vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
 						 const GdkRGBA *highlight_foreground)
 {
 	PangoColor color;
@@ -2880,7 +2868,7 @@ vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_colors_rgba:
+ * vte_terminal_set_colors:
  * @terminal: a #VteTerminal
  * @foreground: (allow-none): the new foreground color, or %NULL
  * @background: (allow-none): the new background color, or %NULL
@@ -2900,11 +2888,9 @@ vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
  * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
  * 8-color palettes are extrapolated from the new background color and the items
  * in @palette.
- *
- * Since: 0.28
  */
 void
-vte_terminal_set_colors_rgba(VteTerminal *terminal,
+vte_terminal_set_colors(VteTerminal *terminal,
 			     const GdkRGBA *foreground,
 			     const GdkRGBA *background,
 			     const GdkRGBA *palette,

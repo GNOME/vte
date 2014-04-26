@@ -124,12 +124,12 @@ class Window : Gtk.ApplicationWindow
 			terminal.set_font(desc);
 		}
 
-		terminal.set_colors_rgba(App.Options.get_color_fg(),
-								 App.Options.get_color_bg(),
-								 null);
-		terminal.set_color_cursor_rgba(App.Options.get_color_cursor());
-		terminal.set_color_highlight_rgba(App.Options.get_color_hl_bg());
-		terminal.set_color_highlight_foreground_rgba(App.Options.get_color_hl_fg());
+		terminal.set_colors(App.Options.get_color_fg(),
+							App.Options.get_color_bg(),
+							null);
+		terminal.set_color_cursor(App.Options.get_color_cursor());
+		terminal.set_color_highlight(App.Options.get_color_hl_bg());
+		terminal.set_color_highlight_foreground(App.Options.get_color_hl_fg());
 
 		/* Dingus */
 		if (!App.Options.no_builtin_dingus)

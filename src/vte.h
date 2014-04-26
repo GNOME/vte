@@ -238,25 +238,25 @@ void vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap);
 gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal);
 
 /* Set the color scheme. */
-void vte_terminal_set_color_bold_rgba(VteTerminal *terminal,
-                                      const GdkRGBA *bold);
-void vte_terminal_set_color_dim_rgba(VteTerminal *terminal,
-	                             const GdkRGBA *dim);
-void vte_terminal_set_color_foreground_rgba(VteTerminal *terminal,
-					    const GdkRGBA *foreground);
-void vte_terminal_set_color_background_rgba(VteTerminal *terminal,
-					    const GdkRGBA *background);
-void vte_terminal_set_color_cursor_rgba(VteTerminal *terminal,
-					const GdkRGBA *cursor_background);
-void vte_terminal_set_color_highlight_rgba(VteTerminal *terminal,
-					   const GdkRGBA *highlight_background);
-void vte_terminal_set_color_highlight_foreground_rgba(VteTerminal *terminal,
-						      const GdkRGBA *highlight_foreground);
-void vte_terminal_set_colors_rgba(VteTerminal *terminal,
-				  const GdkRGBA *foreground,
-				  const GdkRGBA *background,
-				  const GdkRGBA *palette,
-				  gsize palette_size);
+void vte_terminal_set_color_bold(VteTerminal *terminal,
+                                 const GdkRGBA *bold);
+void vte_terminal_set_color_dim(VteTerminal *terminal,
+                                const GdkRGBA *dim);
+void vte_terminal_set_color_foreground(VteTerminal *terminal,
+                                       const GdkRGBA *foreground);
+void vte_terminal_set_color_background(VteTerminal *terminal,
+                                       const GdkRGBA *background);
+void vte_terminal_set_color_cursor(VteTerminal *terminal,
+                                   const GdkRGBA *cursor_background);
+void vte_terminal_set_color_highlight(VteTerminal *terminal,
+                                      const GdkRGBA *highlight_background);
+void vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
+                                                 const GdkRGBA *highlight_foreground);
+void vte_terminal_set_colors(VteTerminal *terminal,
+                             const GdkRGBA *foreground,
+                             const GdkRGBA *background,
+                             const GdkRGBA *palette,
+                             gsize palette_size);
 
 void vte_terminal_set_default_colors(VteTerminal *terminal);
 
