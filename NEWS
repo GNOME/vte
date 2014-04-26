@@ -1,3 +1,8 @@
+0.36.1
+======
+* Fix qemu crash (#728051)
+* Translation updates
+
 0.36.0
 ======
 * Build fixes (#726604)
