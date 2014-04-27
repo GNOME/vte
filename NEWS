@@ -1,3 +1,9 @@
+0.37.0
+======
+* New API: vte-2.91
+* Many improvements and bug fixes
+* Translation updates
+
 0.36.0
 ======
 * Build fixes (#726604)
