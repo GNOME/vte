@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	MAINTAINERS \
 	HACKING \
 	autogen.sh \
-	ChangeLog.pre-git
+	ChangeLog.pre-git \
+	vte/vte.h
 
 DISTCLEANFILES =
 
