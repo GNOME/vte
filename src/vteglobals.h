@@ -16,28 +16,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __VTE_VTE_H__
-#define __VTE_VTE_H__
+#ifndef __VTE_VTE_GLOBALS_H__
+#define __VTE_VTE_GLOBALS_H__
 
 #include <glib.h>
-
-#define __VTE_VTE_H_INSIDE__ 1
-
-#include "vteenums.h"
-#include "vteglobals.h"
-#include "vtepty.h"
-#include "vteterminal.h"
-#include "vtetypebuiltins.h"
-#include "vteversion.h"
-
-#undef __VTE_VTE_H_INSIDE__
 
 G_BEGIN_DECLS
 
 const char *vte_get_default_emulation(void);
 
-char *vte_get_user_shell (void);
+char *vte_get_user_shell(void);
 
 G_END_DECLS
 
-#endif /* __VTE_VTE_H__ */
+#endif /* __VTE_VTE_GLOBALS_H__ */

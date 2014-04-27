@@ -16,50 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef __VTE_VTE_PTY_H__
+#define __VTE_VTE_PTY_H__
+
 #if !defined (__VTE_VTE_H_INSIDE__) && !defined (VTE_COMPILATION)
 #error "Only <vte/vte.h> can be included directly."
 #endif
 
-#ifndef VTE_PTY_H
-#define VTE_PTY_H
-
 #include <gio/gio.h>
 
+#include "vteenums.h"
+
 G_BEGIN_DECLS
-
-/**
- * VtePtyFlags:
- * @VTE_PTY_NO_LASTLOG: don't record the session in lastlog
- * @VTE_PTY_NO_UTMP: don't record the session in utmp
- * @VTE_PTY_NO_WTMP: don't record the session in wtmp
- * @VTE_PTY_NO_HELPER: don't use the GNOME PTY helper to allocate the PTY
- * @VTE_PTY_NO_FALLBACK: when allocating the PTY with the PTY helper fails,
- *   don't fall back to try using PTY98
- * @VTE_PTY_DEFAULT: the default flags
- *
- * Since: 0.26
- */
-typedef enum {
-  VTE_PTY_NO_LASTLOG  = 1 << 0,
-  VTE_PTY_NO_UTMP     = 1 << 1,
-  VTE_PTY_NO_WTMP     = 1 << 2,
-  VTE_PTY_NO_HELPER   = 1 << 3,
-  VTE_PTY_NO_FALLBACK = 1 << 4,
-  VTE_PTY_DEFAULT     = 0
-} VtePtyFlags;
-
-/**
- * VtePtyError:
- * @VTE_PTY_ERROR_PTY_HELPER_FAILED: failure when using the GNOME PTY helper to
- *   allocate the PTY
- * @VTE_PTY_ERROR_PTY98_FAILED: failure when using PTY98 to allocate the PTY
- *
- * Since: 0.26
- */
-typedef enum {
-  VTE_PTY_ERROR_PTY_HELPER_FAILED = 0,
-  VTE_PTY_ERROR_PTY98_FAILED
-} VtePtyError;
 
 #define VTE_SPAWN_NO_PARENT_ENVV (1 << 25)
 
@@ -122,4 +90,4 @@ void vte_pty_set_term (VtePty *pty,
 
 G_END_DECLS
 
-#endif /* VTE_PTY_H */
+#endif /* __VTE_VTE_PTY_H__ */

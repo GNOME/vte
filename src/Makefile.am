@@ -7,7 +7,15 @@ noinst_PROGRAMS =
 # The library
 
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
-header_HEADERS = vte.h vtepty.h vtetypebuiltins.h vteversion.h
+header_HEADERS = \
+	vte.h \
+	vteenums.h \
+	vteglobals.h \
+	vtepty.h \
+	vteterminal.h \
+	vtetypebuiltins.h \
+	vteversion.h \
+	$(NULL)
 
 lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 
@@ -124,13 +132,13 @@ marshal.h: marshal.list
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte.h vtepty.h
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vteenums.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vte.h vtepty.h
+vtetypebuiltins.c: vtetypebuiltins.c.template vteenums.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
@@ -169,10 +177,13 @@ Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.c \
 	vte.h \
+	vteenums.h \
 	vtepty.h \
-	pty.c \
+	vteterminal.h \
 	vtetypebuiltins.c \
 	vtetypebuiltins.h \
+	vteversion.h \
+	pty.c \
 	$(NULL)
 
 INTROSPECTION_GIRS += Vte-$(VTE_API_VERSION).gir
@@ -396,6 +407,8 @@ trie_LDADD = $(VTE_LIBS)
 
 vtetc_SOURCES = vtetc.c vtetc.h debug.c debug.h
 vtetc_CPPFLAGS = -DTERMCAP_MAIN
+vtetc_CFLAGS = $(VTE_CFLAGS)
+vtetc_LDADD = $(VTE_LIBS)
 
 vteconv_SOURCES = buffer.h debug.c debug.h vteconv.c vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN

@@ -33,6 +33,8 @@
 #include "vtepty.h"
 #include "vtepty-private.h"
 #include "vte.h"
+#include "vteenums.h"
+#include "vtetypebuiltins.h"
 #include "vteversion.h"
 
 #include <sys/types.h>

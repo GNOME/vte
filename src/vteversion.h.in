@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef __VTE_VTE_VERSION_H__
+#define __VTE_VTE_VERSION_H__
+
 #if !defined (__VTE_VTE_H_INSIDE__) && !defined (VTE_COMPILATION)
 #error "Only <vte/vte.h> can be included directly."
 #endif
-
-#ifndef vte_vteversion_h_included
-#define vte_vteversion_h_included
 
 /**
  * SECTION:vte-version
@@ -79,4 +79,4 @@
    (VTE_MAJOR_VERSION == (major) && VTE_MINOR_VERSION > (minor)) || \
    (VTE_MAJOR_VERSION == (major) && VTE_MINOR_VERSION == (minor) && VTE_MICRO_VERSION >= (micro)))
 
-#endif /* !vte_vteversion_h_included */
+#endif /* __VTE_VTE_VERSION_H__ */
