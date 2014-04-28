@@ -184,6 +184,7 @@ Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.c \
 	vte.h \
 	vteenums.h \
+	vteglobals.h \
 	vtepty.h \
 	vteterminal.h \
 	vtetypebuiltins.c \
