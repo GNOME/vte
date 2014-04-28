@@ -13,6 +13,9 @@ header_HEADERS = \
 	vteglobals.h \
 	vtepty.h \
 	vteterminal.h \
+	$(NULL)
+
+nodist_header_HEADERS = \
 	vtetypebuiltins.h \
 	vteversion.h \
 	$(NULL)
@@ -69,6 +72,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
+	vteenums.h \
+	vteglobals.h \
 	vteint.h \
 	vtepty.h \
 	vtepty-private.h \
@@ -81,6 +86,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtestream.h \
 	vtestream-base.h \
 	vtestream-file.h \
+	vteterminal.h \
 	vtetc.c \
 	vtetc.h \
 	vtetree.c \
