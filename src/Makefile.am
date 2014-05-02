@@ -11,6 +11,7 @@ header_HEADERS = \
 	vte.h \
 	vteenums.h \
 	vteglobals.h \
+	vtemacros.h \
 	vtepty.h \
 	vteterminal.h \
 	$(NULL)
@@ -75,6 +76,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteenums.h \
 	vteglobals.h \
 	vteint.h \
+	vtemacros.h \
 	vtepty.h \
 	vtepty-private.h \
 	vteresources.c \
@@ -185,6 +187,7 @@ Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.h \
 	vteenums.h \
 	vteglobals.h \
+	vtemacros.h \
 	vtepty.h \
 	vteterminal.h \
 	vtetypebuiltins.c \

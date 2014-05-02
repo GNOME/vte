@@ -22,6 +22,7 @@
 #define vterowdata_h_included
 
 #include "vteunistr.h"
+#include "vtemacros.h"
 
 G_BEGIN_DECLS
 
@@ -34,15 +35,6 @@ G_BEGIN_DECLS
 #define VTE_HIGHLIGHT_BG		261
 #define VTE_CURSOR_BG			262
 #define VTE_PALETTE_SIZE		263
-
-
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 6)
-#define VTE_GNUC_PACKED \
-	__attribute__((__packed__))
-#else
-#define VTE_GNUC_PACKED
-#endif  /* !__GNUC__ */
-
 
 /*
  * VteCellAttr: A single cell style attributes
