@@ -269,17 +269,17 @@ void vte_terminal_reset(VteTerminal *terminal,
 char *vte_terminal_get_text(VteTerminal *terminal,
 			    VteSelectionFunc is_selected,
 			    gpointer user_data,
-			    GArray *attributes) VTE_GNUC_NONNULL(1);
+			    GArray *attributes) VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						    VteSelectionFunc is_selected,
 						    gpointer user_data,
-						    GArray *attributes) VTE_GNUC_NONNULL(1);
+						    GArray *attributes) VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  glong start_row, glong start_col,
 				  glong end_row, glong end_col,
 				  VteSelectionFunc is_selected,
 				  gpointer user_data,
-				  GArray *attributes) VTE_GNUC_NONNULL(1);
+				  GArray *attributes) VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column,
                                       glong *row) VTE_GNUC_NONNULL(1);
@@ -308,10 +308,10 @@ void vte_terminal_match_remove_all(VteTerminal *terminal) VTE_GNUC_NONNULL(1);
  * argument. */
 char *vte_terminal_match_check(VteTerminal *terminal,
 			       glong column, glong row,
-			       int *tag) VTE_GNUC_NONNULL(1);
+			       int *tag) VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
-                                     int *tag) VTE_GNUC_NONNULL(1) VTE_GNUC_NONNULL(2);
+                                     int *tag) VTE_GNUC_NONNULL(1) VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
 
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *regex,
