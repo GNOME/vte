@@ -66,28 +66,28 @@ VtePty *vte_pty_new_foreign_sync (int fd,
                                   GCancellable *cancellable,
                                   GError **error);
 
-int vte_pty_get_fd (VtePty *pty) VTE_GNUC_NONNULL(1);
+int vte_pty_get_fd (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
-void vte_pty_close (VtePty *pty) VTE_GNUC_NONNULL(1);
+void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
-void vte_pty_child_setup (VtePty *pty) VTE_GNUC_NONNULL(1);
+void vte_pty_child_setup (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
 gboolean vte_pty_get_size (VtePty *pty,
                            int *rows,
                            int *columns,
-                           GError **error) VTE_GNUC_NONNULL(1);
+                           GError **error) _VTE_GNUC_NONNULL(1);
 
 gboolean vte_pty_set_size (VtePty *pty,
                            int rows,
                            int columns,
-                           GError **error) VTE_GNUC_NONNULL(1);
+                           GError **error) _VTE_GNUC_NONNULL(1);
 
 gboolean vte_pty_set_utf8 (VtePty *pty,
                            gboolean utf8,
-                           GError **error) VTE_GNUC_NONNULL(1);
+                           GError **error) _VTE_GNUC_NONNULL(1);
 
 void vte_pty_set_term (VtePty *pty,
-                       const char *emulation) VTE_GNUC_NONNULL(1);
+                       const char *emulation) _VTE_GNUC_NONNULL(1);
 
 G_END_DECLS
 

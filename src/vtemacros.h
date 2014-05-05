@@ -24,15 +24,15 @@
 #endif
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 6)
-#define VTE_GNUC_PACKED __attribute__((__packed__))
+#define _VTE_GNUC_PACKED __attribute__((__packed__))
 #else
-#define VTE_GNUC_PACKED
+#define _VTE_GNUC_PACKED
 #endif  /* !__GNUC__ */
 
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 2)
-#define VTE_GNUC_NONNULL(position) __attribute__((__nonnull__(position)))
+#define _VTE_GNUC_NONNULL(position) __attribute__((__nonnull__(position)))
 #else
-#define VTE_GNUC_NONNULL(position)
+#define _VTE_GNUC_NONNULL(position)
 #endif
 
 #endif /* __VTE_VTE_MACROS_H__ */

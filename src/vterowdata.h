@@ -80,7 +80,7 @@ G_STATIC_ASSERT (sizeof (VteCellAttr) == sizeof (VteIntCellAttr));
  * VteCell: A single cell's data
  */
 
-typedef struct VTE_GNUC_PACKED _VteCell {
+typedef struct _VTE_GNUC_PACKED _VteCell {
 	vteunistr c;
 	VteCellAttr attr;
 } VteCell;
@@ -88,7 +88,7 @@ G_STATIC_ASSERT (sizeof (VteCell) == 12);
 
 typedef union _VteIntCell {
 	VteCell cell;
-	struct VTE_GNUC_PACKED {
+	struct _VTE_GNUC_PACKED {
 		guint32 c;
 		guint64 attr;
 	} i;
