@@ -6,87 +6,107 @@
 # kostas: updated translation for 2.4, 15Jul2003
 # Kostas Papadimas <pkst@gmx.net>, ,2003.
 # Kostas Papadimas <pkst@gmx.net>, 2003
-#
+# Dimitris Spingos (Δημήτρης Σπίγγος) <dmtrs32@gmail.com>, 2014.
 msgid ""
 msgstr ""
 "Project-Id-Version: el\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-09-04 19:01+0300\n"
-"PO-Revision-Date: 2010-09-04 10:03+0200\n"
-"Last-Translator: Michael Kotsarinis <mk73628@gmail.com>\n"
-"Language-Team: Greek <nls@tux.hellug.gr>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
+"ywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-05-02 10:37+0000\n"
+"PO-Revision-Date: 2014-05-05 07:15+0300\n"
+"Last-Translator: Dimitris Spingos (Δημήτρης Σπίγγος) <dmtrs32@gmail.com>\n"
+"Language-Team: team@gnome.gr\n"
 "Language: el\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Virtaal 0.7.1\n"
+"X-Project-Style: gnome\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2254
+#: ../src/app.ui.h:1
+msgid "Copy"
+msgstr "Αντίγραφο"
+
+#: ../src/app.ui.h:2
+msgid "Paste"
+msgstr "Επικόλληση"
+
+#: ../src/app.ui.h:3
+msgid "Reset (use Ctrl to reset and clear)"
+msgstr "Επαναρύθμιση (χρησιμοποιήστε Ctrl για επαναφορά και καθαρισμό)"
+
+#: ../src/app.ui.h:4
+msgid "Reset"
+msgstr "Επαναρύθμιση"
+
+#: ../src/app.ui.h:5
+msgid "Toggle input enabled setting"
+msgstr "Εναλλαγή ενεργοποιημένης ρύθμισης εισόδου"
+
+#: ../src/app.ui.h:6
+msgid "Input"
+msgstr "Είσοδος"
+
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:2021
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Αδυναμία μετατροπής χαρακτήρων από %s σε %s."
+msgstr "Αδύνατη η μετατροπή χαρακτήρων από %s σε %s."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1496
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Προσπάθεια ορισμού μη έγκυρου χάρτη NRC '%c'."
+msgstr "Προσπάθεια ορισμού άκυρου χάρτη NRC '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1526
 msgid "Unrecognized identified coding system."
 msgstr "Μη αναγνωρίσιμο σύστημα κωδικοποίησης."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Προσπάθεια ορισμού μή έγκυρου γενικού χάρτη NRC'%c'."
+msgstr "Προσπάθεια ορισμού άκυρου γενικού χάρτη NRC '%c'."
 
 #: ../src/trie.c:409
 #, c-format
 msgid "Duplicate (%s/%s)!"
 msgstr "Διπλότυπο (%s/%s)!"
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:965
-msgid "Could not open console.\n"
-msgstr "Αδυναμία ανοίγματος κονσόλας.\n"
-
-#: ../src/vteapp.c:1056
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Αδυναμία ανάλυσης των δεδομένων της παραμέτρου --geometry"
-
-#: ../src/vte.c:1280
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Σφάλμα σύνταξης κανονικής έκφρασης \"%s\"."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4362
+#: ../src/vte.c:4245
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Σφάλμα ανάγνωσης από θυγατρική διεργασία: %s."
 
-#: ../src/vte.c:4489
+#: ../src/vte.c:4381
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
-"Αδυναμία αποστολής δεδομένων σε θυγατρική διεργασία, μη έγκυρη μετατροπή "
+"Αδύνατη η αποστολή δεδομένων σε θυγατρική διεργασία, άκυρη μετατροπή "
 "κωδικοσελίδας"
 
-#: ../src/vte.c:4500 ../src/vte.c:5531
+#: ../src/vte.c:4392 ../src/vte.c:5431
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr ""
-"Σφάλμα (%s) μετατροπής δεδομένων από θυγατρική διεργασία, γίνεται παραίτηση."
+msgstr "Σφάλμα (%s) μετατροπής δεδομένων από θυγατρική διεργασία, απορρίπτεται."
 
-#: ../src/vte.c:7725
+#: ../src/vte.c:7730
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Σφάλμα ανάγνωσης μεγέθους PTY, χρήση προεπιλογών: %s.\n"
+msgstr "Σφάλμα ανάγνωσης μεγέθους PTY, χρήση προεπιλογών: %s\n"
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:13297
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() απέτυχε να ορίσει χαρακτήρες λέξης"
+#~ msgid "Could not open console.\n"
+#~ msgstr "Αδυναμία ανοίγματος κονσόλας.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "Αδυναμία ανάλυσης των δεδομένων της παραμέτρου --geometry"
+
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "Σφάλμα σύνταξης κανονικής έκφρασης \"%s\"."
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() απέτυχε να ορίσει χαρακτήρες λέξης"
 
 #~ msgid "can not run %s"
 #~ msgstr "αδυναμία εκτέλεσης %s"
