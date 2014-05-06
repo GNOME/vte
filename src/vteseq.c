@@ -781,7 +781,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 TRUE,
 		 NULL, NULL},
 		/* 2004: Bracketed paste mode. */
-		{2004, SCREEN_OFFSET(bracketed_paste_mode), 0, 0,
+		{2004, PRIV_OFFSET(bracketed_paste_mode), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
