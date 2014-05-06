@@ -5878,10 +5878,10 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 				p++;
 			}
 		}
-		if (terminal->pvt->screen->bracketed_paste_mode)
+		if (terminal->pvt->bracketed_paste_mode)
 			vte_terminal_feed_child(terminal, "\e[200~", -1);
 		vte_terminal_feed_child(terminal, paste, length);
-		if (terminal->pvt->screen->bracketed_paste_mode)
+		if (terminal->pvt->bracketed_paste_mode)
 			vte_terminal_feed_child(terminal, "\e[201~", -1);
 		g_free(paste);
 	}
@@ -13968,14 +13968,12 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->normal_screen.linefeed_mode = FALSE;
 	pvt->normal_screen.origin_mode = FALSE;
 	pvt->normal_screen.reverse_mode = FALSE;
-	pvt->normal_screen.bracketed_paste_mode = FALSE;
 	pvt->alternate_screen.scrolling_restricted = FALSE;
 	pvt->alternate_screen.sendrecv_mode = TRUE;
 	pvt->alternate_screen.insert_mode = FALSE;
 	pvt->alternate_screen.linefeed_mode = FALSE;
 	pvt->alternate_screen.origin_mode = FALSE;
 	pvt->alternate_screen.reverse_mode = FALSE;
-	pvt->alternate_screen.bracketed_paste_mode = FALSE;
 	pvt->cursor_visible = TRUE;
         /* For some reason, xterm doesn't reset alternateScroll, but we do. */
         pvt->alternate_screen_scroll = TRUE;
@@ -14010,6 +14008,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_smooth_scroll_delta = 0.;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
+	/* Reset miscellaneous stuff. */
+	pvt->bracketed_paste_mode = FALSE;
 	/* Cause everything to be redrawn (or cleared). */
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	_vte_invalidate_all(terminal);
