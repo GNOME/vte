@@ -357,12 +357,14 @@ class Window : Gtk.ApplicationWindow
     if (App.Options.no_context_menu)
       return false;
 
-    var match = terminal.match_check_event(event, null);
-
     var menu = new GLib.Menu();
     menu.append("_Copy", "win.copy");
+
+#if VALA_0_24
+    var match = terminal.match_check_event(event, null);
     if (match != null)
       menu.append("Copy _Match", "win.copy-match::" + match);
+#endif
 
     menu.append("_Paste", "win.paste");
 
