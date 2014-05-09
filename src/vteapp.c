@@ -893,6 +893,7 @@ main(int argc, char **argv)
 						       background);
 	}
 	if (transparent) {
+                gtk_widget_set_app_paintable (window, TRUE);
 		vte_terminal_set_background_transparent(terminal,
 							TRUE);
                 vte_terminal_set_background_tint_color(terminal, &tint);
