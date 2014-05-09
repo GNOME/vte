@@ -2915,6 +2915,8 @@ vte_terminal_set_colors(VteTerminal *terminal,
                                  _pango_color_from_rgba(&bg, background),
                                  pal, palette_size);
 
+        _vte_terminal_set_background_alpha(terminal, background ? background->alpha : 1.0);
+
 	g_free (pal);
 }
 
