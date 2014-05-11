@@ -52,11 +52,15 @@ class Window : Gtk.ApplicationWindow
     title = "Terminal";
 
     /* Set ARGB visual */
-    if (!App.Options.no_argb_visual) {
-      var screen = get_screen();
-      Gdk.Visual? visual = screen.get_rgba_visual();
-      if (visual != null)
-        set_visual(visual);
+    if (App.Options.transparency_percent != 0) {
+      if (!App.Options.no_argb_visual) {
+        var screen = get_screen();
+        Gdk.Visual? visual = screen.get_rgba_visual();
+        if (visual != null)
+          set_visual(visual);
+      }
+
+      app_paintable = true;
     }
 
     var ui = new Gtk.Builder.from_resource("/org/gnome/vte/test/app/ui/window.ui");
@@ -68,7 +72,7 @@ class Window : Gtk.ApplicationWindow
       var toolbar = ui.get_object("toolbar") as Gtk.Widget;
       toolbar.hide();
     }
-			
+
     terminal = new Vte.Terminal();
 
     /* Connect scrollbar */
