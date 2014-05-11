@@ -8849,6 +8849,11 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Set the realized flag. */
 	gtk_widget_set_realized (widget, TRUE);
 
+	/* Create rendering data if this is a re-realise */
+        if (terminal->pvt->draw == NULL) {
+                terminal->pvt->draw = _vte_draw_new();
+        }
+
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
 	if (terminal->pvt->im_context != NULL) {
