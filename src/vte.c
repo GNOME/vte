@@ -3159,6 +3159,7 @@ vte_terminal_set_opacity(VteTerminal *terminal, guint16 opacity)
                 return;
 
 	pvt->bg_opacity = opacity;
+	vte_terminal_queue_background_update(terminal);
 
         g_object_notify(G_OBJECT(terminal), "background-opacity");
 }
