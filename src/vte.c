@@ -2457,7 +2457,7 @@ _vte_terminal_set_color_background(VteTerminal *terminal,
 /*
  * _vte_terminal_set_background_alpha:
  * @terminal: a #VteTerminal
- * @alpha: an alpha value from 0.0 to 0.1
+ * @alpha: an alpha value from 0.0 to 1.0
  */
 static void
 _vte_terminal_set_background_alpha(VteTerminal *terminal,
