@@ -60,6 +60,7 @@ class Window : Gtk.ApplicationWindow
           set_visual(visual);
       }
 
+      /* Without this transparency doesn't work; see bug #729884. */
       app_paintable = true;
     }
 
