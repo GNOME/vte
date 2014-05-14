@@ -118,7 +118,7 @@ libvte@VTE_LIBRARY_SUFFIX_U@_la_LDFLAGS = \
 VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-2.c vteseq-n.c
 BUILT_SOURCES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
 MAINTAINERCLEANFILES = $(VTESEQ_BUILTSOURCES)
-EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt
+EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt box_drawing_generate.sh
 CLEANFILES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
 
 box_drawing.h: box_drawing.txt
