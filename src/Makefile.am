@@ -24,6 +24,7 @@ nodist_header_HEADERS = \
 lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 
 EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
+	box_drawing_generate.sh \
 	marshal.list \
 	mkunitables.sh \
 	unitable.CNS11643 \
@@ -43,7 +44,6 @@ EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	$(NULL)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
-	box_drawing.h \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -53,8 +53,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	iso2022.h \
 	keymap.c \
 	keymap.h \
-	marshal.c \
-	marshal.h \
 	matcher.c \
 	matcher.h \
 	pty.c \
@@ -79,7 +77,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtemacros.h \
 	vtepty.h \
 	vtepty-private.h \
-	vteresources.c \
 	vterowdata.c \
 	vterowdata.h \
 	vteseq.c \
@@ -93,13 +90,20 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtetc.h \
 	vtetree.c \
 	vtetree.h \
-	vtetypebuiltins.c \
-	vtetypebuiltins.h \
 	vteunistr.c \
 	vteunistr.h \
 	vteutils.c \
 	vteutils.h \
-	vteversion.h
+	$(NULL)
+
+nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
+	box_drawing.h \
+	marshal.c \
+	marshal.h \
+	vteresources.c \
+	vtetypebuiltins.c \
+	vtetypebuiltins.h \
+	vteversion.h \
 	$(NULL)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
