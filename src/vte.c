@@ -7911,7 +7911,7 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		_vte_ring_set_visible_rows_hint(terminal->pvt->normal_screen.row_data, terminal->pvt->row_count);
 		_vte_ring_set_visible_rows_hint(terminal->pvt->alternate_screen.row_data, terminal->pvt->row_count);
 
-		/* Always resize normal screen (given that this feature is enabled), even if alternate is visible: bug 415277 */
+		/* Resize the normal screen and (if rewrapping is enabled) rewrap it even if the alternate screen is visible: bug 415277 */
 		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows, terminal->pvt->rewrap_on_resize);
 		/* Resize the alternate screen if it's the current one, but never rewrap it: bug 336238 comment 60 */
 		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)
