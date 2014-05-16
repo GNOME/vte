@@ -582,7 +582,7 @@ main(int argc, char **argv)
 			g_assert((ret == -1) && (errno == EINVAL));
 			break;
 		case 1:
-			g_assert((ret == -1) && (errno == EINVAL));
+			g_assert((ret == -1) && (errno == EILSEQ));
 			break;
 		case 2:
 			g_assert((ret == -1) && (errno == EILSEQ));
