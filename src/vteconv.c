@@ -46,11 +46,11 @@ static glong
 _vte_conv_utf8_strlen(const gchar *p, gssize max)
 {
 	const gchar *q = p + max;
-	glong length = -1;
-	do {
-		length++;
+        glong length = 0;
+        while (p < q) {
 		p = g_utf8_next_char(p);
-	} while (p < q);
+                length++;
+        }
 	return length;
 }
 
@@ -395,6 +395,9 @@ main(int argc, char **argv)
 	char mbyte_test_break[] = {0xe2, 0xe2, 0xe2};
 	int i;
 
+        /* Test _vte_conv_utf8_strlen, especially where it differs from g_utf8_strlen. */
+        i = _vte_conv_utf8_strlen("", 0);
+        g_assert(i == 0);
 	i = _vte_conv_utf8_strlen("\0\0\0\0", 4);
 	g_assert(i == 4);
 	i = _vte_conv_utf8_strlen("\0A\0\0", 4);
@@ -403,8 +406,12 @@ main(int argc, char **argv)
 	g_assert(i == 4);
 	i = _vte_conv_utf8_strlen("A\0B\0", 4);
 	g_assert(i == 4);
+        i = _vte_conv_utf8_strlen("ABCD", 4);
+        g_assert(i == 4);
 	i = _vte_conv_utf8_strlen("ABCDE", 4);
 	g_assert(i == 4);
+        i = _vte_conv_utf8_strlen("\xC2\xA0\xC2\xA0", 4);
+        g_assert(i == 2);
 
 	/* Test g_iconv, no gunichar stuff. */
 	clear(wide_test, narrow_test);
