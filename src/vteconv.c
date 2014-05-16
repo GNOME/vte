@@ -389,7 +389,8 @@ main(int argc, char **argv)
 	gunichar wide_test[5];
 	gchar narrow_test[5], buf[10];
 	VteConv conv;
-	gchar *inbuf, *outbuf;
+	const guchar *inbuf;
+	guchar *outbuf;
 	gsize inbytes, outbytes;
 	char mbyte_test[] = {0xe2, 0x94, 0x80};
 	char mbyte_test_break[] = {0xe2, 0xe2, 0xe2};
