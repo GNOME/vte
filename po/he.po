@@ -3,37 +3,64 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # Gil 'Dolfin' Osher <dolfin@rpg.org.il>, 2002,2003
+# Yosef Or Boczko <yoseforb@gnome.org>, 2014.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.he\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-05-29 13:26+0300\n"
-"PO-Revision-Date: 2010-05-29 13:29+0200\n"
-"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
-"Language-Team: Hebrew <he@li.org>\n"
+"POT-Creation-Date: 2014-05-16 05:06+0300\n"
+"PO-Revision-Date: 2014-05-16 05:08+0300\n"
+"Last-Translator: Yosef Or Boczko <yoseforb@gnome.org>\n"
+"Language-Team: עברית <>\n"
+"Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: KBabel 1.0.1\n"
+"X-Generator: Gtranslator 2.91.6\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2239
+#: ../src/app.ui.h:1
+msgid "Copy"
+msgstr "העתקה"
+
+#: ../src/app.ui.h:2
+msgid "Paste"
+msgstr "הדבקה"
+
+#: ../src/app.ui.h:3
+msgid "Reset (use Ctrl to reset and clear)"
+msgstr "איפוס (Ctrl לאיפוס וניקוי)"
+
+#: ../src/app.ui.h:4
+msgid "Reset"
+msgstr "איפוס"
+
+#: ../src/app.ui.h:5
+msgid "Toggle input enabled setting"
+msgstr "הפעלה/השבתת אפשור קלט"
+
+#: ../src/app.ui.h:6
+msgid "Input"
+msgstr "קלט"
+
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:2021
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "לא ניתן להמיר תווים מ־%s ל־%s."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1496
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "מנסה לקבוע מפת NRC לא תקנית '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1526
 msgid "Unrecognized identified coding system."
 msgstr "מערכת זיהוי קודים לא מוכרת."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "ניסיון לקבוע מפת NRC רחבה לא תקנית '%c'."
@@ -43,44 +70,37 @@ msgstr "ניסיון לקבוע מפת NRC רחבה לא תקנית '%c'."
 msgid "Duplicate (%s/%s)!"
 msgstr "כפול (%s/%s)!"
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:954
-msgid "Could not open console.\n"
-msgstr "Could not open console.\n"
-
-#: ../src/vteapp.c:1045
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Could not parse the geometry spec passed to --geometry"
-
-#: ../src/vte.c:1275
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "שגיאה בהידור ביטוי רגולרי \"%s\"."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4343
+#: ../src/vte.c:4247
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "שגיאה בקריאה מהילד: %s."
 
-#: ../src/vte.c:4470
+#: ../src/vte.c:4383
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "Unable to send data to child, invalid charset convertor"
 
-#: ../src/vte.c:4481 ../src/vte.c:5498
+#: ../src/vte.c:4394 ../src/vte.c:5433
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "שגיאה (%s) בהמרת מידע לילד, זורק."
 
-#: ../src/vte.c:7687
+#: ../src/vte.c:7732
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
 msgstr "שגיאה בקריאת גודל ה־PTY, משתמש בברירת המחדל: %s.\n"
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:13241
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() נכשל בקביעת תווי המילה"
+#~ msgid "Could not open console.\n"
+#~ msgstr "Could not open console.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "Could not parse the geometry spec passed to --geometry"
+
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "שגיאה בהידור ביטוי רגולרי \"%s\"."
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() נכשל בקביעת תווי המילה"
 
 #~ msgid "can not run %s"
 #~ msgstr "לא ניתן להפעיל את %s"
