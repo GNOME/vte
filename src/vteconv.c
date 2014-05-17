@@ -54,6 +54,46 @@ _vte_conv_utf8_strlen(const gchar *p, gssize max)
 	return length;
 }
 
+/* A variant of g_utf8_validate() that allows NUL characters.
+ * Requires that max_len >= 0 && end != NULL. */
+static gboolean
+_vte_conv_utf8_validate(const gchar *str,
+                        gssize max_len,
+                        const gchar **end)
+{
+        gboolean ret;
+        do {
+                ret = g_utf8_validate(str, max_len, end);
+                max_len -= *end - str;
+                str = *end;
+                /* Hitting a NUL is okay. Clear the error and iterate over them. */
+                while (max_len > 0 && *str == '\0') {
+                        ret = TRUE;
+                        max_len--;
+                        str++;
+                        *end = str;
+                }
+        } while (ret && max_len > 0);
+        return ret;
+}
+
+/* A variant of g_utf8_get_char_validated() that allows NUL characters.
+ * Requires that max_len >= 0. */
+static gunichar
+_vte_conv_utf8_get_char_validated(const gchar *p,
+                                  gssize max_len) {
+        gunichar ret;
+        /* Handle NUL at the beginning. */
+        if (max_len > 0 && p[0] == '\0')
+                return 0;
+        ret = g_utf8_get_char_validated(p, max_len);
+        /* If a partial match is returned but there's a NUL in the buffer
+         * then this is a wrong error, we're facing an invalid character. */
+        if (ret == (gunichar) -2 && memchr(p, '\0', max_len) != NULL)
+                ret = (gunichar) -1;
+        return ret;
+}
+
 /* A bogus UTF-8 to UTF-8 conversion function which attempts to provide the
  * same semantics as g_iconv(). */
 static size_t
@@ -71,7 +111,7 @@ _vte_conv_utf8_utf8(GIConv converter,
 	g_assert(*outbytes_left >= *inbytes_left);
 
 	/* The only error we can throw is EILSEQ, so check for that here. */
-	validated = g_utf8_validate(*inbuf, *inbytes_left, &endptr);
+        validated = _vte_conv_utf8_validate(*inbuf, *inbytes_left, &endptr);
 
 	/* Copy whatever data was validated. */
 	bytes = endptr - *inbuf;
@@ -88,7 +128,7 @@ _vte_conv_utf8_utf8(GIConv converter,
 	}
 
 	/* Determine why the end of the string is not valid. */
-	if (g_utf8_get_char_validated(*inbuf, *inbytes_left) == (gunichar) -2) {
+        if (_vte_conv_utf8_get_char_validated(*inbuf, *inbytes_left) == (gunichar) -2) {
 		/* Prefix of a valid UTF-8 */
 		errno = EINVAL;
 	} else {
@@ -391,6 +431,8 @@ main(int argc, char **argv)
 	VteConv conv;
 	gchar *inbuf, *outbuf;
 	gsize inbytes, outbytes;
+        gchar *str;
+        const gchar *end;
 	char mbyte_test[] = {0xe2, 0x94, 0x80};
 	char mbyte_test_break[] = {0xe2, 0xe2, 0xe2};
 	int i;
@@ -412,6 +454,45 @@ main(int argc, char **argv)
 	g_assert(i == 4);
         i = _vte_conv_utf8_strlen("\xC2\xA0\xC2\xA0", 4);
         g_assert(i == 2);
+
+        /* Test _vte_conv_utf8_validate. */
+        str = "\0\0\0";
+        g_assert(_vte_conv_utf8_validate(str, 0, &end) == TRUE);
+        g_assert(end - str == 0);
+        g_assert(_vte_conv_utf8_validate(str, 1, &end) == TRUE);
+        g_assert(end - str == 1);
+        g_assert(_vte_conv_utf8_validate(str, 3, &end) == TRUE);
+        g_assert(end - str == 3);
+        str = "ab\0cd\0\0ef";
+        g_assert(_vte_conv_utf8_validate(str, 6, &end) == TRUE);
+        g_assert(end - str == 6);
+        g_assert(_vte_conv_utf8_validate(str, 7, &end) == TRUE);
+        g_assert(end - str == 7);
+        g_assert(_vte_conv_utf8_validate(str, 9, &end) == TRUE);
+        g_assert(end - str == 9);
+        str = "ab\xE2\x94\x80\0\xE2\x94\x80yz";
+        g_assert(_vte_conv_utf8_validate(str, 11, &end) == TRUE);
+        g_assert(end - str == 11);
+        str = "ab\x80\0cd";
+        g_assert(_vte_conv_utf8_validate(str, 6, &end) == FALSE);
+        g_assert(end - str == 2);
+        str = "ab\xE2\0cd";
+        g_assert(_vte_conv_utf8_validate(str, 6, &end) == FALSE);
+        g_assert(end - str == 2);
+
+        /* Test _vte_conv_utf8_get_char_validated. */
+        g_assert(_vte_conv_utf8_get_char_validated("", 0) == -2);
+        g_assert(_vte_conv_utf8_get_char_validated("\0", 1) == 0);
+        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 1) == -2);
+        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 2) == -2);
+        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 3) == 0x2500);
+        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test_break, 1) == -2);
+        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test_break, 2) == -1);
+        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test_break, 3) == -1);
+        g_assert(_vte_conv_utf8_get_char_validated("\x80\0", 2) == -1);
+        g_assert(_vte_conv_utf8_get_char_validated("\xE2\0", 2) == -1);
+        g_assert(_vte_conv_utf8_get_char_validated("\xE2\x94\0", 3) == -1);
+        g_assert(_vte_conv_utf8_get_char_validated("\xE2\x94\x80\0", 4) == 0x2500);
 
 	/* Test g_iconv, no gunichar stuff. */
 	clear(wide_test, narrow_test);
