@@ -321,7 +321,7 @@ TEST_SH = \
 EXTRA_DIST += $(TEST_SH)
 
 check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table trie xticker vteconv vteti
-TESTS = table trie $(TEST_SH)
+TESTS = table trie vteconv $(TEST_SH)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)

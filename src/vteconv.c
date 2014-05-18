@@ -47,7 +47,7 @@ struct _VteConv {
 };
 
 /* We can't use g_utf8_strlen as that's not nul-safe :( */
-static glong
+static gsize
 _vte_conv_utf8_strlen(const gchar *p, gssize max)
 {
 	const gchar *q = p + max;
@@ -359,7 +359,7 @@ _vte_conv(VteConv converter,
 	if (converter->in_unichar) {
 		/* Get an idea of how many characters were converted, and
 		 * advance the pointer as required. */
-		int chars;
+		gsize chars;
 		chars = _vte_conv_utf8_strlen((const gchar *)work_inbuf_start,
 					      work_inbuf_working - work_inbuf_start);
 		*inbuf += (sizeof(gunichar) * chars);
@@ -428,22 +428,12 @@ mixed_strcmp(gunichar *wide, gchar *narrow)
 	return 0;
 }
 
-int
-main(int argc, char **argv)
+/* Test _vte_conv_utf8_strlen, especially where it differs from g_utf8_strlen. */
+static void
+test_utf8_strlen (void)
 {
-	gunichar wide_test[5];
-	gchar narrow_test[5], buf[10];
-	VteConv conv;
-	const guchar *inbuf;
-	guchar *outbuf;
-	gsize inbytes, outbytes;
-        gchar *str;
-        const gchar *end;
-	char mbyte_test[] = {0xe2, 0x94, 0x80};
-	char mbyte_test_break[] = {0xe2, 0xe2, 0xe2};
-	int i;
+        gsize i;
 
-        /* Test _vte_conv_utf8_strlen, especially where it differs from g_utf8_strlen. */
         i = _vte_conv_utf8_strlen("", 0);
         g_assert(i == 0);
 	i = _vte_conv_utf8_strlen("\0\0\0\0", 4);
@@ -460,6 +450,12 @@ main(int argc, char **argv)
 	g_assert(i == 4);
         i = _vte_conv_utf8_strlen("\xC2\xA0\xC2\xA0", 4);
         g_assert(i == 2);
+}
+
+static void
+test_utf8_validate (void)
+{
+        const char *str, *end;
 
         /* Test _vte_conv_utf8_validate. */
         str = "\0\0\0";
@@ -469,6 +465,7 @@ main(int argc, char **argv)
         g_assert(end - str == 1);
         g_assert(_vte_conv_utf8_validate(str, 3, &end) == TRUE);
         g_assert(end - str == 3);
+
         str = "ab\0cd\0\0ef";
         g_assert(_vte_conv_utf8_validate(str, 6, &end) == TRUE);
         g_assert(end - str == 6);
@@ -476,17 +473,27 @@ main(int argc, char **argv)
         g_assert(end - str == 7);
         g_assert(_vte_conv_utf8_validate(str, 9, &end) == TRUE);
         g_assert(end - str == 9);
+
         str = "ab\xE2\x94\x80\0\xE2\x94\x80yz";
         g_assert(_vte_conv_utf8_validate(str, 11, &end) == TRUE);
         g_assert(end - str == 11);
+
         str = "ab\x80\0cd";
         g_assert(_vte_conv_utf8_validate(str, 6, &end) == FALSE);
         g_assert(end - str == 2);
+
         str = "ab\xE2\0cd";
         g_assert(_vte_conv_utf8_validate(str, 6, &end) == FALSE);
         g_assert(end - str == 2);
+}
 
-        /* Test _vte_conv_utf8_get_char_validated. */
+/* Test _vte_conv_utf8_get_char_validated. */
+static void
+test_utf8_get_char_validated (void)
+{
+	static const char mbyte_test[] = { 0xe2, 0x94, 0x80 };
+	static const char mbyte_test_break[] = { 0xe2, 0xe2, 0xe2 };
+
         g_assert(_vte_conv_utf8_get_char_validated("", 0) == -2);
         g_assert(_vte_conv_utf8_get_char_validated("\0", 1) == 0);
         g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 1) == -2);
@@ -499,8 +506,20 @@ main(int argc, char **argv)
         g_assert(_vte_conv_utf8_get_char_validated("\xE2\0", 2) == -1);
         g_assert(_vte_conv_utf8_get_char_validated("\xE2\x94\0", 3) == -1);
         g_assert(_vte_conv_utf8_get_char_validated("\xE2\x94\x80\0", 4) == 0x2500);
+}
 
-	/* Test g_iconv, no gunichar stuff. */
+/* Test g_iconv, no gunichar stuff. */
+static void
+test_g_iconv_no_unichar (void)
+{
+	gunichar wide_test[5];
+	gchar narrow_test[5], buf[10];
+	VteConv conv;
+	const guchar *inbuf;
+	guchar *outbuf;
+	gsize inbytes, outbytes;
+        int i;
+
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = narrow_test;
@@ -515,7 +534,7 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
-	/* Test g_iconv, no gunichar stuff. */
+        /* Next test */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = narrow_test;
@@ -529,8 +548,20 @@ main(int argc, char **argv)
 		g_error("Conversion 2 failed.\n");
 	}
 	_vte_conv_close(conv);
+}
 
-	/* Test g_iconv + gunichar stuff. */
+/* Test g_iconv + gunichar stuff. */
+static void
+test_g_iconv_unichar (void)
+{
+	gunichar wide_test[5];
+	gchar narrow_test[5], buf[10];
+	VteConv conv;
+	const guchar *inbuf;
+	guchar *outbuf;
+	gsize inbytes, outbytes;
+        int i;
+
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = narrow_test;
@@ -545,7 +576,7 @@ main(int argc, char **argv)
 	}
 	_vte_conv_close(conv);
 
-	/* Test g_iconv + gunichar stuff. */
+        /* Next test */
 	clear(wide_test, narrow_test);
 	memset(buf, 0, sizeof(buf));
 	inbuf = (gchar*) wide_test;
@@ -559,6 +590,18 @@ main(int argc, char **argv)
 		g_error("Conversion 4 failed.\n");
 	}
 	_vte_conv_close(conv);
+}
+
+static void
+test_utf8_to_utf8 (void)
+{
+	gunichar wide_test[5];
+	gchar narrow_test[5], buf[10];
+	VteConv conv;
+	const guchar *inbuf;
+	guchar *outbuf;
+	gsize inbytes, outbytes;
+        int i;
 
 	/* Test UTF-8 to UTF-8 "conversion". */
 	clear(wide_test, narrow_test);
@@ -574,6 +617,18 @@ main(int argc, char **argv)
 		g_error("Conversion 5 failed.\n");
 	}
 	_vte_conv_close(conv);
+}
+
+static void
+test_zero_byte_passthrough (void)
+{
+	gunichar wide_test[5];
+	gchar narrow_test[5];
+	VteConv conv;
+	const guchar *inbuf;
+	guchar *outbuf;
+	gsize inbytes, outbytes;
+        int i;
 
 	/* Test zero-byte pass-through. */
 	clear(wide_test, narrow_test);
@@ -627,6 +682,19 @@ main(int argc, char **argv)
 		g_error("Conversion 8 failed.\n");
 	}
 	_vte_conv_close(conv);
+}
+
+static void
+test_utf8_to_utf8_error (void)
+{
+	gchar buf[10];
+	VteConv conv;
+	const guchar *inbuf;
+	guchar *outbuf;
+	gsize inbytes, outbytes;
+	static const char mbyte_test[] = { 0xe2, 0x94, 0x80 };
+	static const char mbyte_test_break[] = { 0xe2, 0xe2, 0xe2 };
+	gsize i;
 
 	/* Test UTF-8 to UTF-8 error reporting, valid multibyte. */
 	for (i = 0; i < sizeof(mbyte_test); i++) {
@@ -679,7 +747,23 @@ main(int argc, char **argv)
 			break;
 		}
 	}
+}
 
-	return 0;
+int
+main (int argc,
+      char *argv[])
+{
+        g_test_init (&argc, &argv, NULL);
+
+        g_test_add_func ("/vteconv/utf8/strlen", test_utf8_strlen);
+        g_test_add_func ("/vteconv/utf8/validate", test_utf8_validate);
+        g_test_add_func ("/vteconv/utf8/get-char", test_utf8_get_char_validated);
+        g_test_add_func ("/vteconv/utf8/conversion", test_utf8_to_utf8);
+        g_test_add_func ("/vteconv/utf8/conversion-with-error", test_utf8_to_utf8_error);
+        g_test_add_func ("/vteconv/conv/no-unichar", test_g_iconv_no_unichar);
+        g_test_add_func ("/vteconv/conv/unichar", test_g_iconv_unichar);
+        g_test_add_func ("/vteconv/conv/zero-byte-passthrough", test_zero_byte_passthrough);
+
+	return g_test_run ();
 }
 #endif
