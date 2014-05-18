@@ -1586,13 +1586,6 @@ vte_sequence_handler_ho (VteTerminal *terminal, GValueArray *params)
 	_vte_terminal_home_cursor (terminal);
 }
 
-/* Move the cursor to a specified position. */
-static void
-vte_sequence_handler_horizontal_and_vertical_position (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
-}
-
 /* Insert a character. */
 static void
 vte_sequence_handler_ic (VteTerminal *terminal, GValueArray *params)
@@ -2587,6 +2580,19 @@ static void
 vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
+}
+
+static void
+vte_sequence_handler_cursor_position_top_row (VteTerminal *terminal, GValueArray *params)
+{
+        GValue value = {0};
+
+        g_value_init (&value, G_TYPE_LONG);
+        g_value_set_long (&value, 1);
+
+        g_value_array_insert (params, 0, &value);
+
+        vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
 }
 
 /* Request terminal attributes. */

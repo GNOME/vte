@@ -64,6 +64,7 @@ struct vteseq_n_struct {
 "cursor-back-tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_bt)
 "cursor-backward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_LE)
 "cursor-position", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_position)
+"cursor-position-top-row", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_position_top_row)
 #"single-shift-g2", VTE_SEQUENCE_HANDLER_NULL
 #"single-shift-g3", VTE_SEQUENCE_HANDLER_NULL
 #"change-font-name", VTE_SEQUENCE_HANDLER_NULL
@@ -145,7 +146,6 @@ struct vteseq_n_struct {
 #"initiate-hilite-mouse-tracking", VTE_SEQUENCE_HANDLER_NULL
 "send-primary-device-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_send_primary_device_attributes)
 "linux-console-cursor-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
-"horizontal-and-vertical-position", VTE_SEQUENCE_HANDLER(vte_sequence_handler_horizontal_and_vertical_position)
 "send-secondary-device-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_send_secondary_device_attributes)
 #"change-mouse-cursor-background-colors-bel", VTE_SEQUENCE_HANDLER_NULL
 #"change-mouse-cursor-background-colors-st", VTE_SEQUENCE_HANDLER_NULL
