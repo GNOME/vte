@@ -37,10 +37,8 @@ void _vte_keymap_map(guint keyval,
 		     GdkModifierType modifiers,
 		     gboolean app_cursor_keys,
 		     gboolean app_keypad_keys,
-		     struct _vte_terminfo *terminfo,
 		     char **normal,
-		     gssize *normal_length,
-		     const char **special);
+		     gssize *normal_length);
 
 /* Return TRUE if a keyval is just a modifier key. */
 gboolean _vte_keymap_key_is_modifier(guint keyval);

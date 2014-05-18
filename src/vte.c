@@ -4789,10 +4789,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	char *normal = NULL, *output;
 	gssize normal_length = 0;
 	int i;
-	const char *special = NULL;
 	struct termios tio;
 	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
-		 suppress_meta_esc = FALSE;
+		 suppress_meta_esc = FALSE, add_modifiers = FALSE;
 	guint keyval = 0;
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
@@ -4970,7 +4969,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = FALSE;
 				break;
 			case VTE_ERASE_DELETE_SEQUENCE:
-				special = VTE_TERMINFO_CAP_KEY_DC;
+                                normal = g_strdup("\e[3~");
+                                normal_length = 4;
+                                add_modifiers = TRUE;
 				suppress_meta_esc = TRUE;
 				break;
 			case VTE_ERASE_TTY:
@@ -5028,7 +5029,9 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			case VTE_ERASE_DELETE_SEQUENCE:
 			case VTE_ERASE_AUTO:
 			default:
-				special = VTE_TERMINFO_CAP_KEY_DC;
+                                normal = g_strdup("\e[3~");
+                                normal_length = 4;
+                                add_modifiers = TRUE;
 				break;
 			}
 			handled = TRUE;
@@ -5142,14 +5145,11 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 			_vte_keymap_map(keyval, modifiers,
 					terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
-					terminal->pvt->terminfo,
 					&normal,
-					&normal_length,
-					&special);
+					&normal_length);
 			/* If we found something this way, suppress
 			 * escape-on-meta. */
-			if (((normal != NULL) && (normal_length > 0)) ||
-			    (special != NULL)) {
+                        if (normal != NULL && normal_length > 0) {
 				suppress_meta_esc = TRUE;
 			}
 		}
@@ -5160,7 +5160,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
-		if (handled == FALSE && normal == NULL && special == NULL) {
+		if (handled == FALSE && normal == NULL) {
 
 			/* Convert the keyval to a gunichar. */
 			keychar = gdk_keyval_to_unicode(keyval);
@@ -5198,6 +5198,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If we got normal characters, send them to the child. */
 		if (normal != NULL) {
+                        if (add_modifiers) {
+                                _vte_keymap_key_add_key_modifiers(keyval,
+                                                                  modifiers,
+                                                                  terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
+                                                                  &normal,
+                                                                  &normal_length);
+                        }
 			if (terminal->pvt->meta_sends_escape &&
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
@@ -5212,25 +5219,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 								    normal_length);
 			}
 			g_free(normal);
-		} else
-		/* If the key maps to characters, send them to the child. */
-		if (special != NULL) {
-                        normal = g_strdup(_vte_terminfo_get_string_by_cap(terminal->pvt->terminfo, special, FALSE));
-                        normal_length = strlen(normal);
-			_vte_keymap_key_add_key_modifiers(keyval,
-							  modifiers,
-							  terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
-							  &normal,
-							  &normal_length);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-                        /* FIXMEchpe: wtf! */
-			output = g_strdup_printf(normal, 1);
-#pragma GCC diagnostic pop
-			vte_terminal_feed_child_using_modes(terminal,
-							    output, -1);
-                        g_free(normal);
-			g_free(output);
 		}
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
@@ -10708,7 +10696,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
             terminal->pvt->alternate_screen_scroll) {
 		char *normal;
 		gssize normal_length;
-		const gchar *special;
 
 		/* In the alternate screen there is no scrolling,
 		 * so fake a few cursor keystrokes. */
@@ -10718,10 +10705,8 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 				terminal->pvt->modifiers,
 				terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 				terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
-				terminal->pvt->terminfo,
 				&normal,
-				&normal_length,
-				&special);
+				&normal_length);
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {

@@ -75,7 +75,6 @@ struct _vte_keymap_entry {
 	GdkModifierType mod_mask;
 	const char normal[8];
 	gssize normal_length;
-	const char cap[8];
 };
 
 #define X_NULL ""
@@ -88,574 +87,521 @@ enum _vte_modifier_encoding_method {
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_space[] = {
 	/* Control+Meta+space = ESC+NUL */
-	{cursor_all, keypad_all, GDK_CONTROL_MASK | VTE_META_MASK, _VTE_CAP_ESC "\0", 2, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK | VTE_META_MASK, _VTE_CAP_ESC "\0", 2},
 	/* Meta+space = ESC+" " */
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC " ", 2, X_NULL},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC " ", 2},
 	/* Control+space = NUL */
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\0", 1, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\0", 1},
 	/* Regular space. */
-	{cursor_all, keypad_all, 0, " ", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, " ", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Tab[] = {
 	/* Shift+Tab = Back-Tab */
-	{cursor_all, keypad_all, GDK_SHIFT_MASK, X_NULL, 0, "kB"},
-	{cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "Z", -1, X_NULL},
+        {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "Z", -1},
 	/* Alt+Tab = Esc+Tab */
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\t", -1, X_NULL},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\t", -1},
 	/* Regular tab. */
-	{cursor_all, keypad_all, 0, X_NULL, 0, "ta"},
-	{cursor_all, keypad_all, 0, "\t", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "\t", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Return[] = {
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\n", 2, X_NULL},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\n", 1, X_NULL},
-	{cursor_all, keypad_all, 0, "\r", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\n", 2},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\n", 1},
+        {cursor_all, keypad_all, 0, "\r", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Escape[] = {
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC _VTE_CAP_ESC, 2, X_NULL},
-	{cursor_all, keypad_all, 0, _VTE_CAP_ESC, 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC _VTE_CAP_ESC, 2},
+        {cursor_all, keypad_all, 0, _VTE_CAP_ESC, 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Insert[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kI"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "2~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "2~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_ISO_Left_Tab[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kB"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "Z", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "Z", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_slash[] = {
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "/", 2, X_NULL},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1, X_NULL},
-	{cursor_all, keypad_all, 0, "/", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "/", 2},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1},
+        {cursor_all, keypad_all, 0, "/", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_question[] = {
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "?", 2, X_NULL},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\177", 1, X_NULL},
-	{cursor_all, keypad_all, 0, "?", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "?", 2},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\177", 1},
+        {cursor_all, keypad_all, 0, "?", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 /* Various numeric keys enter control characters. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_2[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\0", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\0", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_3[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\033", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\033", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_4[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\034", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\034", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_5[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\035", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\035", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_6[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\036", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\036", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_7[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_8[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\177", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\177", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 static const struct _vte_keymap_entry _vte_keymap_GDK_Minus[] = {
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
-/* Home and End are strange cases because their sequences vary wildly from
- * system to system, or mine's just broken.  But anyway. */
+/* Keys (potentially) affected by the cursor key mode. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_Home[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kh"},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "H", -1, X_NULL},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "H", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "H", -1},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "H", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_End[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "@7"},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "F", -1, X_NULL},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "F", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "F", -1},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "F", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Page_Up[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kP"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "5~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "5~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Page_Down[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kN"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "6~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "6~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
-/* Keys affected by the cursor key mode. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_Up[] = {
-	{cursor_default, keypad_all, 0, X_NULL, 0, "ku"},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "A", -1, X_NULL},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "A", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "A", -1},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "A", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Down[] = {
-	{cursor_default, keypad_all, 0, X_NULL, 0, "kd"},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "B", -1, X_NULL},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "B", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "B", -1},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "B", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Right[] = {
-	{cursor_default, keypad_all, 0, X_NULL, 0, "kr"},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "C", -1, X_NULL},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "C", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "C", -1},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "C", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Left[] = {
-	{cursor_default, keypad_all, 0, X_NULL, 0, "kl"},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "D", -1, X_NULL},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "D", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "D", -1},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "D", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 /* Keys (potentially) affected by the keypad key mode. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Space[] = {
-	{cursor_all, keypad_default, 0, " ", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 " ", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, " ", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 " ", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Tab[] = {
-	{cursor_all, keypad_default, 0, "\t", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "I", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, "\t", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "I", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Enter[] = {
-	{cursor_all, keypad_default, 0, X_NULL, 0, "@8"},
-	{cursor_all, keypad_app, VTE_NUMLOCK_MASK | GDK_CONTROL_MASK, "\n", 1, X_NULL},
-	{cursor_all, keypad_app, VTE_NUMLOCK_MASK, "\r", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "M", -1, X_NULL},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, "\n", 1, X_NULL},
-	{cursor_all, keypad_all, 0, "\r", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_app, VTE_NUMLOCK_MASK | GDK_CONTROL_MASK, "\n", 1},
+        {cursor_all, keypad_app, VTE_NUMLOCK_MASK, "\r", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "M", -1},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\n", 1},
+        {cursor_all, keypad_all, 0, "\r", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_F1[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k1"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "P", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "P", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_F2[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k2"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "Q", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "Q", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_F3[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k3"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "R", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "R", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_F4[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k4"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "S", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "S", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Multiply[] = {
-	{cursor_all, keypad_default, 0, "*", 1, X_NULL},
-	{cursor_all, keypad_app, VTE_NUMLOCK_MASK, "*", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "j", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, "*", 1},
+        {cursor_all, keypad_app, VTE_NUMLOCK_MASK, "*", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "j", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Add[] = {
-	{cursor_all, keypad_default, 0, "+", 1, X_NULL},
-	{cursor_all, keypad_app, VTE_NUMLOCK_MASK, "+", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "k", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, "+", 1},
+        {cursor_all, keypad_app, VTE_NUMLOCK_MASK, "+", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "k", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Separator[] = {
-	{cursor_all, keypad_default, 0, ",", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "l", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, ",", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "l", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Subtract[] = {
-	{cursor_all, keypad_default, 0, "-", 1, X_NULL},
-	{cursor_all, keypad_app, VTE_NUMLOCK_MASK, "-", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "m", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, "-", 1},
+        {cursor_all, keypad_app, VTE_NUMLOCK_MASK, "-", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "m", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Decimal_Delete[] = {
-	{cursor_all, keypad_default, 0, ".", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "3~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, ".", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "3~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Divide[] = {
-	{cursor_all, keypad_default, 0, "/", 1, X_NULL},
-	{cursor_all, keypad_app, VTE_NUMLOCK_MASK, "/", 1, X_NULL},
-	{cursor_all, keypad_app, 0, _VTE_CAP_SS3 "o", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_default, 0, "/", 1},
+        {cursor_all, keypad_app, VTE_NUMLOCK_MASK, "/", 1},
+        {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "o", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 /* GDK already separates keypad "0" from keypad "Insert", so the only time
- * we'll see this key is when NumLock is on, and that means that we're in
- * "default" mode. */
+ * we'll see this key is when NumLock is on. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_0[] = {
-	{cursor_all, keypad_all, 0, "0", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "0", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_1[] = {
-	{cursor_all, keypad_all, 0, "1", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "1", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_2[] = {
-	{cursor_all, keypad_all, 0, "2", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "2", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_3[] = {
-	{cursor_all, keypad_all, 0, "3", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "3", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_4[] = {
-	{cursor_all, keypad_all, 0, "4", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "4", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_5[] = {
-	{cursor_all, keypad_all, 0, "5", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "5", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_6[] = {
-	{cursor_all, keypad_all, 0, "6", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "6", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_7[] = {
-	{cursor_all, keypad_all, 0, "7", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "7", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_8[] = {
-	{cursor_all, keypad_all, 0, "8", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "8", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_9[] = {
-	{cursor_all, keypad_all, 0, "9", 1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, "9", 1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
-/* These are the same keys as above, but without numlock.  If there's a
- * capability associated with the key, then we send that, unless we're in
- * application mode. */
+/* These are the same keys as above, but without numlock. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Insert[] = {
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "2~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "2~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_End[] = {
-	{cursor_all, keypad_default, 0, X_NULL, 0, "K4"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "F", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "F", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "F", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "F", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Down[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kd"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "B", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "B", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "B", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "B", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Down[] = {
-	{cursor_all, keypad_default, 0, X_NULL, 0, "K5"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "6~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "6~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Left[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kl"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "D", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "D", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "D", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "D", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Begin[] = {
-	{cursor_all, keypad_default, 0, X_NULL, 0, "K2"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "E", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "E", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "E", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "E", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Right[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "kr"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "C", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "C", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "C", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "C", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Home[] = {
-	{cursor_all, keypad_default, 0, X_NULL, 0, "K1"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "H", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "H", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "H", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "H", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Up[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "ku"},
-	{cursor_app, keypad_all, 0, _VTE_CAP_SS3 "A", -1, X_NULL},
-	{cursor_default, keypad_all, 0, _VTE_CAP_CSI "A", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_app, keypad_all, 0, _VTE_CAP_SS3 "A", -1},
+        {cursor_default, keypad_all, 0, _VTE_CAP_CSI "A", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Up[] = {
-	{cursor_all, keypad_default, 0, X_NULL, 0, "K3"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "5~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "5~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
-
-/* Keys affected by the function key mode. */
 static const struct _vte_keymap_entry _vte_keymap_GDK_F1[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k1"},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "P", -1, X_NULL},
-	{cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "P", -1, X_NULL},
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "P", -1, X_NULL},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "P", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "P", -1},
+        {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "P", -1},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "P", -1},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "P", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F2[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k2"},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "Q", -1, X_NULL},
-	{cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "Q", -1, X_NULL},
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "Q", -1, X_NULL},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "Q", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "Q", -1},
+        {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "Q", -1},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "Q", -1},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "Q", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F3[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k3"},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "R", -1, X_NULL},
-	{cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "R", -1, X_NULL},
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "R", -1, X_NULL},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "R", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "R", -1},
+        {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "R", -1},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "R", -1},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "R", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F4[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k4"},
-	{cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "S", -1, X_NULL},
-	{cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "S", -1, X_NULL},
-	{cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "S", -1, X_NULL},
-	{cursor_all, keypad_all, 0, _VTE_CAP_SS3 "S", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "S", -1},
+        {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "S", -1},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "S", -1},
+        {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "S", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F5[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k5"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "15~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "15~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F6[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k6"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "17~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "17~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F7[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k7"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "18~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "18~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F8[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k8"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "19~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "19~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F9[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k9"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "20~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "20~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F10[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "k;"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "21~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "21~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F11[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F1"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "23~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "23~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F12[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F2"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "24~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "24~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F13[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F3"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "25~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "25~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F14[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F4"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "26~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "26~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F15[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F5"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "28~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "28~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F16[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F6"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "29~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "29~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F17[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F7"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "31~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "31~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F18[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F8"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "32~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "32~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F19[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "F9"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "33~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "33~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F20[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FA"},
-	{cursor_all, keypad_all, 0, _VTE_CAP_CSI "34~", -1, X_NULL},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "34~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F21[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FB"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "42~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F22[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FC"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "43~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F23[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FD"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "44~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F24[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FE"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "45~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F25[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FF"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "46~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F26[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FG"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "47~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F27[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FH"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "48~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F28[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FI"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "49~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F29[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FJ"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "50~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F30[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FK"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "51~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F31[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FL"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "52~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F32[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FM"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "53~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F33[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FN"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "54~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F34[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FO"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "55~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_F35[] = {
-	{cursor_all, keypad_all, 0, X_NULL, 0, "FP"},
-	{cursor_all, keypad_all, 0, X_NULL, 0, X_NULL},
+        {cursor_all, keypad_all, 0, _VTE_CAP_CSI "56~", -1},
+        {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_group {
@@ -762,27 +708,23 @@ static const struct _vte_keymap_group {
 	{GDK_KEY_F35,			_vte_keymap_GDK_F35},
 };
 
-/* Map the specified keyval/modifier setup, dependent on the mode, to either
- * a literal string or a capability name. */
+/* Map the specified keyval/modifier setup, dependent on the mode, to
+ * a literal string. */
 void
 _vte_keymap_map(guint keyval,
 		GdkModifierType modifiers,
 		gboolean app_cursor_keys,
 		gboolean app_keypad_keys,
-		struct _vte_terminfo *terminfo,
 		char **normal,
-		gssize *normal_length,
-		const char **terminfo_cap)
+		gssize *normal_length)
 {
 	gsize i;
 	const struct _vte_keymap_entry *entries;
 	enum _vte_cursor_mode cursor_mode;
 	enum _vte_keypad_mode keypad_mode;
-	const char *cap = NULL, *ti;
 
 	g_return_if_fail(normal != NULL);
 	g_return_if_fail(normal_length != NULL);
-	g_return_if_fail(terminfo_cap != NULL);
 
 	_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) 
 		_vte_keysym_print(keyval, modifiers);
@@ -790,25 +732,10 @@ _vte_keymap_map(guint keyval,
 	/* Start from scratch. */
 	*normal = NULL;
 	*normal_length = 0;
-	*terminfo_cap = NULL;
 
 	/* Search for the list for this key. */
 	entries = NULL;
 	for (i = 0; i < G_N_ELEMENTS(_vte_keymap); i++) {
-#ifdef VTE_DEBUG
-		int j;
-		/* Check for NULL strings with non-zero length, and
-		 * vice-versa. */
-		entries = _vte_keymap[i].entries;
-		for (j = 0; entries[j].normal_length || entries[j].cap[0]; j++) {
-			if (entries[j].normal_length) {
-				g_assert(!entries[j].cap[0]);
-			} else {
-				g_assert(!entries[j].normal[0]);
-			}
-		}
-		entries = NULL;
-#endif
 		if (_vte_keymap[i].keyval == keyval) {
 			/* Found it! */
 			entries = _vte_keymap[i].entries;
@@ -827,51 +754,28 @@ _vte_keymap_map(guint keyval,
 	modifiers &= (GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK);
 
 	/* Search for the conditions. */
-	for (i = 0; entries[i].normal_length || entries[i].cap[0]; i++)
+	for (i = 0; entries[i].normal_length; i++)
 	if ((entries[i].cursor_mode & cursor_mode) &&
 	    (entries[i].keypad_mode & keypad_mode))
 	if ((modifiers & entries[i].mod_mask) == entries[i].mod_mask) {
-		if (entries[i].normal_length) {
-			if (entries[i].normal_length != -1) {
-				*normal_length = entries[i].normal_length;
-				*normal = g_memdup(entries[i].normal,
-						   entries[i].normal_length);
-			} else {
-				*normal_length = strlen(entries[i].normal);
-				*normal = g_strdup(entries[i].normal);
-			}
-			_vte_keymap_key_add_key_modifiers(keyval,
-							  modifiers,
-							  cursor_mode & cursor_app,
-							  normal,
-							  normal_length);
-			_vte_debug_print(VTE_DEBUG_KEYBOARD,
-                                         " to '%s'.\n",
-                                         _vte_terminfo_sequence_to_string(*normal));
-			return;
-		} else {
-                        cap = entries[i].cap;
-
-                        /* This is going away soon anyway, so for now
-                         * emulate the previous behaviour where the lookup
-                         * in here actually never succeded, and only as
-                         * last resort was the termcap looked up below.
-                         */
-                        continue;
-		}
-	}
-
-        if (cap != NULL &&
-            (ti = _vte_terminfo_get_string_by_cap(terminfo, entries[i].cap, TRUE))) {
-                *terminfo_cap = cap;
-                /* Save the special string. */
-
+                if (entries[i].normal_length != -1) {
+                        *normal_length = entries[i].normal_length;
+                        *normal = g_memdup(entries[i].normal,
+                                           entries[i].normal_length);
+                } else {
+                        *normal_length = strlen(entries[i].normal);
+                        *normal = g_strdup(entries[i].normal);
+                }
+                _vte_keymap_key_add_key_modifiers(keyval,
+                                                  modifiers,
+                                                  cursor_mode & cursor_app,
+                                                  normal,
+                                                  normal_length);
                 _vte_debug_print(VTE_DEBUG_KEYBOARD,
-                                 " via terminfo cap '%s' to '%s' , returning.\n",
-                                 entries[i].cap,
-                                 _vte_terminfo_sequence_to_string(ti));
+                                 " to '%s'.\n",
+                                 _vte_terminfo_sequence_to_string(*normal));
                 return;
-        }
+	}
 
 	_vte_debug_print(VTE_DEBUG_KEYBOARD,
 			" (ignoring, no match for modifier state).\n");
