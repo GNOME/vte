@@ -1934,30 +1934,7 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
 {
-	const char *standout;
-
-	/* Standout may be mapped to another attribute, so attempt to do
-	 * the Right Thing here.
-	 *
-	 * If the standout sequence is the same as another sequence, do what
-	 * we'd do for that other sequence instead. */
-
-	standout = _vte_terminfo_get_string(terminal->pvt->terminfo,
-                                            VTE_TERMINFO_VAR_ENTER_STANDOUT_MODE);
-
-        /* FIXMEchpe: why not cache this in pvt? */
-	if (standout != NULL &&
-            (vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_BLINK_MODE)     /* blink */   ||
-             vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_BOLD_MODE)      /* bold */    ||
-             vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_DIM_MODE)       /* half */    ||
-             vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_REVERSE_MODE)   /* reverse */ ||
-             vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_UNDERLINE_MODE) /* underline */))
-	{
-		vte_sequence_handler_me (terminal, params);
-	} else {
-		/* Otherwise just set standout mode. */
-		terminal->pvt->screen->defaults.attr.standout = 0;
-	}
+        terminal->pvt->screen->defaults.attr.reverse = 0;
 }
 
 /* Cursor down, with scrolling. */
@@ -1979,31 +1956,7 @@ vte_sequence_handler_SF (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_so (VteTerminal *terminal, GValueArray *params)
 {
-	const char *standout;
-
-	/* Standout may be mapped to another attribute, so attempt to do
-	 * the Right Thing here.
-	 *
-	 * If the standout sequence is the same as another sequence, do what
-	 * we'd do for that other sequence instead. */
-
-	standout = _vte_terminfo_get_string(terminal->pvt->terminfo,
-                                            VTE_TERMINFO_VAR_ENTER_STANDOUT_MODE);
-
-	if (vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_BLINK_MODE) /* blink */)
-		vte_sequence_handler_mb (terminal, params);
-	else if (vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_BOLD_MODE) /* bold */)
-		vte_sequence_handler_md (terminal, params);
-	else if (vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_DIM_MODE) /* half */)
-		vte_sequence_handler_mh (terminal, params);
-	else if (vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_REVERSE_MODE) /* reverse */)
-		vte_sequence_handler_mr (terminal, params);
-	else if (vte_terminal_terminfo_string_same_as_for (terminal, standout, VTE_TERMINFO_VAR_ENTER_UNDERLINE_MODE) /* underline */)
-		vte_sequence_handler_us (terminal, params);
-	else {
-		/* Otherwise just set standout mode. */
-		terminal->pvt->screen->defaults.attr.standout = 1;
-	}
+        terminal->pvt->screen->defaults.attr.reverse = 1;
 }
 
 /* Cursor up, scrolling if need be. */

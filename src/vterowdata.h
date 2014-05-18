@@ -58,7 +58,6 @@ typedef struct _VteCellAttr {
 	/* 4-byte boundary */
 	guint64 back: 25;	/* see vte-private.h */
 
-	guint64 standout: 1;
 	guint64 underline: 1;
 	guint64 strikethrough: 1;
 
@@ -67,6 +66,7 @@ typedef struct _VteCellAttr {
 	guint64 half: 1;
 
 	guint64 invisible: 1;
+        /* 1 bit unused */
 } VteCellAttr;
 G_STATIC_ASSERT (sizeof (VteCellAttr) == 8);
 
@@ -106,7 +106,6 @@ static const VteIntCell basic_cell = {
 			VTE_DEFAULT_FG, /* fore */
 			VTE_DEFAULT_BG, /* back */
 
-			0, /* standout */
 			0, /* underline */
 			0, /* strikethrough */
 

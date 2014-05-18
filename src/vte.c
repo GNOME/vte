@@ -8813,12 +8813,6 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 			fore = corresponding_dim_index[fore - VTE_LEGACY_COLORS_OFFSET];
 	}
 
-	/* And standout */
-	if (cell->attr.standout) {
-		if (back >= VTE_LEGACY_COLORS_OFFSET && back < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
-			back += VTE_COLOR_BRIGHT_OFFSET;
-	}
-
 	/* Reverse cell? */
 	if (cell->attr.reverse) {
 		swap (&fore, &back);
