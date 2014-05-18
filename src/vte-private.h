@@ -171,16 +171,10 @@ struct _VteTerminalPrivate {
 	struct _vte_terminfo *terminfo;	/* terminfo */
 	struct _vte_matcher *matcher;	/* control sequence matcher */
 	const char *emulation;		/* terminal type to emulate */
-	struct vte_terminal_flags {	/* boolean terminfo flags */
-		gboolean am;
-		gboolean bw;
-		gboolean ul;
-		gboolean xn;
-	} flags;
+        gboolean autowrap;              /* auto wraparound at right margin */
 	int keypad_mode, cursor_mode;	/* these would be VteKeymodes, but we
 					   need to guarantee its type */
 	GHashTable *dec_saved;
-	int default_column_count, default_row_count;	/* default sizes */
 
 	/* PTY handling data. */
 	VtePty *pty;

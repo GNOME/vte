@@ -633,7 +633,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 TRUE,
 		 NULL, NULL,},
 		/* 7: Wraparound mode. */
-		{7, PRIV_OFFSET(flags.am), 0, 0,
+                {7, PRIV_OFFSET(autowrap), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
@@ -1664,20 +1664,6 @@ vte_sequence_handler_le (VteTerminal *terminal, GValueArray *params)
 		/* There's room to move left, so do so. */
 		screen->cursor_current.col--;
 		_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
-	} else {
-		if (terminal->pvt->flags.bw) {
-			/* Wrap to the previous line. */
-			screen->cursor_current.col = terminal->pvt->column_count - 1;
-			if (screen->scrolling_restricted) {
-				vte_sequence_handler_sr (terminal, params);
-			} else {
-				screen->cursor_current.row = MAX(screen->cursor_current.row - 1,
-								 screen->insert_delta);
-			}
-		} else {
-			/* Stick to the first column. */
-			screen->cursor_current.col = 0;
-		}
 	}
 }
 

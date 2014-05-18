@@ -1078,19 +1078,12 @@ _vte_terminal_set_tabstop(VteTerminal *terminal, int column)
 static void
 vte_terminal_set_default_tabstops(VteTerminal *terminal)
 {
-	int i, width = 0;
+        int i;
 	if (terminal->pvt->tabstops != NULL) {
 		g_hash_table_destroy(terminal->pvt->tabstops);
 	}
 	terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
-	if (terminal->pvt->terminfo != NULL) {
-		width = _vte_terminfo_get_numeric(terminal->pvt->terminfo,
-                                                  VTE_TERMINFO_VAR_INIT_TABS);
-	}
-	if (width == 0) {
-		width = VTE_TAB_WIDTH;
-	}
-	for (i = 0; i <= VTE_TAB_MAX; i += width) {
+        for (i = 0; i <= VTE_TAB_MAX; i += VTE_TAB_WIDTH) {
 		_vte_terminal_set_tabstop(terminal, i);
 	}
 }
@@ -3075,7 +3068,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
 	if (G_UNLIKELY (columns && col + columns > terminal->pvt->column_count)) {
-		if (terminal->pvt->flags.am) {
+		if (terminal->pvt->autowrap) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
@@ -3206,20 +3199,6 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	attr.back = screen->color_defaults.attr.back;
 	attr.columns = columns;
 
-	if (G_UNLIKELY (c == '_' && terminal->pvt->flags.ul)) {
-		const VteCell *pcell = _vte_row_data_get (row, col);
-		/* Handle overstrike-style underlining. */
-		if (pcell->c != 0) {
-			/* restore previous contents */
-			c = pcell->c;
-			attr.columns = pcell->attr.columns;
-			attr.fragment = pcell->attr.fragment;
-
-			attr.underline = 1;
-		}
-	}
-
-
 	{
 		VteCell *pcell = _vte_row_data_get_writable (row, col);
 		pcell->c = c;
@@ -3245,18 +3224,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				screen->cursor_current.row, 1);
 	}
 
-
-	/* If we're autowrapping *here*, do it. */
 	screen->cursor_current.col = col;
-	if (G_UNLIKELY (col >= terminal->pvt->column_count)) {
-		if (terminal->pvt->flags.am && !terminal->pvt->flags.xn) {
-			/* Wrap. */
-			screen->cursor_current.col = 0;
-			/* Mark this line as soft-wrapped. */
-			row->attr.soft_wrapped = 1;
-			_vte_terminal_cursor_down (terminal);
-		}
-	}
 
 done:
 	/* We added text, so make a note of it. */
@@ -7993,7 +7961,6 @@ void
 vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 {
         GObject *object;
-	int columns, rows;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -8016,33 +7983,6 @@ vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
 		_vte_matcher_free(terminal->pvt->matcher);
 	}
 	terminal->pvt->matcher = _vte_matcher_new(terminal->pvt->terminfo);
-
-	if (terminal->pvt->terminfo != NULL) {
-		/* Read emulation flags. */
-		terminal->pvt->flags.am = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
-								    VTE_TERMINFO_VAR_AUTO_RIGHT_MARGIN);
-		terminal->pvt->flags.bw = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
-								    VTE_TERMINFO_VAR_AUTO_LEFT_MARGIN);
-		terminal->pvt->flags.ul = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
-								    VTE_TERMINFO_VAR_TRANSPARENT_UNDERLINE);
-		terminal->pvt->flags.xn = _vte_terminfo_get_boolean(terminal->pvt->terminfo,
-								    VTE_TERMINFO_VAR_EAT_NEWLINE_GLITCH);
-
-		/* Resize to the given default. */
-		columns = _vte_terminfo_get_numeric(terminal->pvt->terminfo,
-						    VTE_TERMINFO_VAR_COLUMNS);
-		if (columns <= 0) {
-			columns = VTE_COLUMNS;
-		}
-		terminal->pvt->default_column_count = columns;
-
-		rows = _vte_terminfo_get_numeric(terminal->pvt->terminfo,
-                                                 VTE_TERMINFO_VAR_LINES);
-		if (rows <= 0 ) {
-			rows = VTE_ROWS;
-		}
-		terminal->pvt->default_row_count = rows;
-	}
 
 	/* Notify observers that we changed our emulation. */
 	vte_terminal_emit_emulation_changed(terminal);
@@ -8214,17 +8154,14 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Load the terminfo data and set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+        pvt->autowrap = TRUE;
 	pvt->dec_saved = g_hash_table_new(NULL, NULL);
-	pvt->default_column_count = VTE_COLUMNS;
-	pvt->default_row_count = VTE_ROWS;
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         pvt->pty = NULL;
 	vte_terminal_set_emulation(terminal, NULL);
-	vte_terminal_set_size(terminal,
-			      pvt->default_column_count,
-			      pvt->default_row_count);
+        vte_terminal_set_size(terminal, VTE_COLUMNS, VTE_ROWS);
 	pvt->pty_input_source = 0;
 	pvt->pty_output_source = 0;
 	pvt->pty_pid = -1;
@@ -12634,6 +12571,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	/* Reset keypad/cursor key modes. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+        /* Enable autowrap. */
+        pvt->autowrap = TRUE;
 	/* Enable meta-sends-escape. */
 	pvt->meta_sends_escape = TRUE;
 	/* Disable margin bell. */
