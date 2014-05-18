@@ -78,7 +78,6 @@ struct _VteTerminalClass {
 	void (*selection_changed)(VteTerminal* terminal);
 	void (*contents_changed)(VteTerminal* terminal);
 	void (*cursor_moved)(VteTerminal* terminal);
-	void (*status_line_changed)(VteTerminal* terminal);
 	void (*commit)(VteTerminal* terminal, const gchar *text, guint size);
 
 	void (*deiconify_window)(VteTerminal* terminal);
@@ -338,9 +337,6 @@ const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_GNUC_NONNULL(1
 void vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal,
                                           int width) _VTE_GNUC_NONNULL(1);
 int vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
-
-/* Get the contents of the status line. */
-const char *vte_terminal_get_status_line(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 void vte_terminal_set_pty(VteTerminal *terminal,
                           VtePty *pty) _VTE_GNUC_NONNULL(1);

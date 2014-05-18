@@ -98,7 +98,6 @@ class Window : Gtk.ApplicationWindow
     terminal.resize_window.connect(resize_window_cb);
     terminal.restore_window.connect(restore_window_cb);
     terminal.selection_changed.connect(selection_changed_cb);
-    terminal.status_line_changed.connect(status_line_changed_cb);
     terminal.window_title_changed.connect(window_title_changed_cb);
     if (App.Options.object_notifications)
       terminal.notify.connect(notify_cb);
@@ -500,11 +499,6 @@ class Window : Gtk.ApplicationWindow
   private void selection_changed_cb(Vte.Terminal terminal)
   {
     update_copy_sensitivity();
-  }
-
-  private void status_line_changed_cb(Vte.Terminal terminal)
-  {
-    print("Status: `%s'\n", terminal.get_status_line());
   }
 
   private void window_title_changed_cb(Vte.Terminal terminal)

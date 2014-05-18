@@ -1572,13 +1572,6 @@ vte_sequence_handler_form_feed (VteTerminal *terminal, GValueArray *params)
 	vte_sequence_handler_index (terminal, params);
 }
 
-/* Move from status line. */
-static void
-vte_sequence_handler_fs (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->status_line = FALSE;
-}
-
 /* Move the cursor to the home position. */
 static void
 vte_sequence_handler_ho (VteTerminal *terminal, GValueArray *params)
@@ -2182,15 +2175,6 @@ vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 			terminal->pvt->tabstops = NULL;
 		}
 	}
-}
-
-/* Move to status line. */
-static void
-vte_sequence_handler_ts (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->status_line = TRUE;
-	terminal->pvt->screen->status_line_changed = TRUE;
-	g_string_truncate(terminal->pvt->screen->status_line_contents, 0);
 }
 
 /* Underline this character and move right. */

@@ -180,7 +180,7 @@ struct vteseq_2_struct {
 "ed", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
 "ei", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ei)
 "ff", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
-"fs", VTE_SEQUENCE_HANDLER(vte_sequence_handler_fs)
+#"fs", VTE_SEQUENCE_HANDLER_NULL
 #"hd", VTE_SEQUENCE_HANDLER_NULL
 "ho", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ho)
 #"hu", VTE_SEQUENCE_HANDLER_NULL
@@ -279,7 +279,7 @@ struct vteseq_2_struct {
 "ta", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ta)
 "te", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
 "ti", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
-"ts", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ts)
+#"ts", VTE_SEQUENCE_HANDLER_NULL
 "uc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_uc)
 "ue", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ue)
 "up", VTE_SEQUENCE_HANDLER(vte_sequence_handler_up)

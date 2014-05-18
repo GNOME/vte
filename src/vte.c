@@ -931,16 +931,6 @@ vte_terminal_emit_char_size_changed(VteTerminal *terminal,
 /*         g_object_notify(G_OBJECT(terminal), "char-size"); */
 }
 
-/* Emit a "status-line-changed" signal. */
-static void
-_vte_terminal_emit_status_line_changed(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `status-line-changed'.\n");
-	g_signal_emit_by_name(terminal, "status-line-changed");
-/*         g_object_notify(G_OBJECT(terminal), "status-line"); */
-}
-
 /* Emit an "increase-font-size" signal. */
 static void
 vte_terminal_emit_increase_font_size(VteTerminal *terminal)
@@ -3047,13 +3037,6 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				"for U+%04X.\n", c);
 		/* See if there's a mapping for it. */
 		c = _vte_iso2022_process_single(terminal->pvt->iso2022, c, '0');
-	}
-
-	/* If this character is destined for the status line, save it. */
-	if (G_UNLIKELY (screen->status_line)) {
-		g_string_append_unichar(screen->status_line_contents, c);
-		screen->status_line_changed = TRUE;
-		return FALSE;
 	}
 
 	/* Figure out how many columns this character should occupy. */
@@ -8120,13 +8103,11 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize the screens and histories. */
 	_vte_ring_init (pvt->alternate_screen.row_data, terminal->pvt->row_count);
 	pvt->alternate_screen.sendrecv_mode = TRUE;
-	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->alternate_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
 	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
 	pvt->normal_screen.sendrecv_mode = TRUE;
-	pvt->normal_screen.status_line_contents = g_string_new(NULL);
 	pvt->screen = &terminal->pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
@@ -8599,12 +8580,6 @@ vte_terminal_finalize(GObject *object)
 	/* Clear the output histories. */
 	_vte_ring_fini(terminal->pvt->normal_screen.row_data);
 	_vte_ring_fini(terminal->pvt->alternate_screen.row_data);
-
-	/* Clear the status lines. */
-	g_string_free(terminal->pvt->normal_screen.status_line_contents,
-		      TRUE);
-	g_string_free(terminal->pvt->alternate_screen.status_line_contents,
-		      TRUE);
 
 	/* Free conversion descriptors. */
 	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
@@ -10933,7 +10908,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->selection_changed = NULL;
 	klass->contents_changed = NULL;
 	klass->cursor_moved = NULL;
-	klass->status_line_changed = NULL;
 	klass->commit = NULL;
 
 	klass->deiconify_window = NULL;
@@ -11321,22 +11295,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 		     NULL,
 		     _vte_marshal_VOID__UINT_UINT,
 		     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
-
-        /**
-         * VteTerminal::status-line-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the contents of the status line are modified or
-         * cleared.
-         */
-	g_signal_new(I_("status-line-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, status_line_changed),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::increase-font-size:
@@ -12618,21 +12576,6 @@ vte_terminal_reset(VteTerminal *terminal,
 		pvt->alternate_screen.insert_delta = 0;
 		_vte_terminal_adjust_adjustments_full (terminal);
 	}
-	/* Clear the status lines. */
-	pvt->normal_screen.status_line = FALSE;
-	pvt->normal_screen.status_line_changed = FALSE;
-	if (pvt->normal_screen.status_line_contents != NULL) {
-		g_string_free(pvt->normal_screen.status_line_contents,
-			      TRUE);
-	}
-	pvt->normal_screen.status_line_contents = g_string_new(NULL);
-	pvt->alternate_screen.status_line = FALSE;
-	pvt->alternate_screen.status_line_changed = FALSE;
-	if (pvt->alternate_screen.status_line_contents != NULL) {
-		g_string_free(pvt->alternate_screen.status_line_contents,
-			      TRUE);
-	}
-	pvt->alternate_screen.status_line_contents = g_string_new(NULL);
 	/* Do more stuff we refer to as a "full" reset. */
 	if (clear_tabstops) {
 		vte_terminal_set_default_tabstops(terminal);
@@ -12692,25 +12635,6 @@ vte_terminal_reset(VteTerminal *terminal,
 	_vte_invalidate_all(terminal);
 
         g_object_thaw_notify(G_OBJECT(terminal));
-}
-
-/**
- * vte_terminal_get_status_line:
- * @terminal: a #VteTerminal
- *
- * Some terminal emulations specify a status line which is separate from the
- * main display area, and define a means for applications to move the cursor
- * to the status line and back.
- *
- * Returns: (transfer none): the current contents of the terminal's status line.
- *   For terminals like "xterm", this will usually be the empty string.  The string
- *   must not be modified or freed by the caller.
- */
-const char *
-vte_terminal_get_status_line(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->screen->status_line_contents->str;
 }
 
 /**
@@ -13195,11 +13119,6 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
         g_object_freeze_notify(object);
 
 	vte_terminal_emit_adjustment_changed (terminal);
-
-	if (terminal->pvt->screen->status_line_changed) {
-		_vte_terminal_emit_status_line_changed (terminal);
-		terminal->pvt->screen->status_line_changed = FALSE;
-	}
 
 	if (terminal->pvt->window_title_changed) {
 		g_free (terminal->pvt->window_title);

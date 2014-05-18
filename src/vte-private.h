@@ -240,9 +240,6 @@ struct _VteTerminalPrivate {
 					   fore/back with no
 					   character data */
 		gboolean alternate_charset;
-		gboolean status_line;
-		GString *status_line_contents;
-		gboolean status_line_changed;
 	} normal_screen, alternate_screen, *screen;
 
 	/* Selection information. */
