@@ -43,17 +43,11 @@
 #define MODE_APPLICATION_KEYPAD		ESC "="
 #define MODE_NORMAL_KEYPAD		ESC ">"
 #define MODE_APPLICATION_CURSOR_KEYS	1
-#define MODE_SUN_FUNCTION_KEYS		1051
-#define MODE_HP_FUNCTION_KEYS		1052
-#define MODE_XTERM_FUNCTION_KEYS	1060
-#define MODE_VT220_FUNCTION_KEYS	1061
 #define MODE_ALTERNATE_SCREEN		1047
 
 enum {
 	normal = 0, application = 1
 } keypad_mode = normal, cursor_mode = normal;
-gboolean sun_fkeys = FALSE, hp_fkeys = FALSE,
-	 xterm_fkeys = FALSE, vt220_fkeys = FALSE;
 struct termios original;
 
 /* Output the DEC private mode set sequence. */
@@ -96,30 +90,6 @@ print_help(void)
 	} else {
 		g_print("NORMAL\r\n");
 	}
-	g_print(ESC "[K" "C - SUN    ");
-	if (sun_fkeys) {
-		g_print("TRUE\r\n");
-	} else {
-		g_print("FALSE\r\n");
-	}
-	g_print(ESC "[K" "D - HP     ");
-	if (hp_fkeys) {
-		g_print("TRUE\r\n");
-	} else {
-		g_print("FALSE\r\n");
-	}
-	g_print(ESC "[K" "E - XTERM  ");
-	if (xterm_fkeys) {
-		g_print("TRUE\r\n");
-	} else {
-		g_print("FALSE\r\n");
-	}
-	g_print(ESC "[K" "F - VT220  ");
-	if (vt220_fkeys) {
-		g_print("TRUE\r\n");
-	} else {
-		g_print("FALSE\r\n");
-	}
 	g_print(ESC "[K" "R - RESET\r\n");
 	g_print(ESC "[K" "Q - QUIT\r\n");
 }
@@ -137,8 +107,8 @@ reset_scrolling_region(void)
 static void
 set_scrolling_region(void)
 {
-	g_print(ESC "[10;24r");
-	g_print(ESC "[9;1H");
+	g_print(ESC "[6;24r");
+	g_print(ESC "[5;1H");
 }
 
 /* Save the current location of the cursor in the terminal's memory. */
@@ -161,10 +131,6 @@ reset(void)
 {
 	g_print(MODE_NORMAL_KEYPAD);
 	decset(MODE_APPLICATION_CURSOR_KEYS, FALSE);
-	decset(MODE_SUN_FUNCTION_KEYS, FALSE);
-	decset(MODE_HP_FUNCTION_KEYS, FALSE);
-	decset(MODE_XTERM_FUNCTION_KEYS, FALSE);
-	decset(MODE_VT220_FUNCTION_KEYS, FALSE);
 	reset_scrolling_region();
 	restore_cursor();
 }
@@ -250,30 +216,9 @@ main(int argc, char **argv)
 			decset(MODE_APPLICATION_CURSOR_KEYS,
 			       cursor_mode == application);
 			break;
-		case 'C':
-		case 'c':
-			sun_fkeys = !sun_fkeys;
-			decset(MODE_SUN_FUNCTION_KEYS, sun_fkeys);
-			break;
-		case 'D':
-		case 'd':
-			hp_fkeys = !hp_fkeys;
-			decset(MODE_HP_FUNCTION_KEYS, hp_fkeys);
-			break;
-		case 'E':
-		case 'e':
-			xterm_fkeys = !xterm_fkeys;
-			decset(MODE_XTERM_FUNCTION_KEYS, xterm_fkeys);
-			break;
-		case 'F':
-		case 'f':
-			vt220_fkeys = !vt220_fkeys;
-			decset(MODE_VT220_FUNCTION_KEYS, vt220_fkeys);
-			break;
 		case 'R':
 		case 'r':
 			keypad_mode = cursor_mode = normal;
-			sun_fkeys = hp_fkeys = xterm_fkeys = vt220_fkeys = FALSE;
 			reset();
 			break;
 		case 'Q':

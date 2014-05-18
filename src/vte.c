@@ -5140,10 +5140,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		 * it to a literal or capability name. */
 		if (handled == FALSE && terminal->pvt->terminfo != NULL) {
 			_vte_keymap_map(keyval, modifiers,
-					terminal->pvt->sun_fkey_mode,
-					terminal->pvt->hp_fkey_mode,
-					terminal->pvt->legacy_fkey_mode,
-					terminal->pvt->vt220_fkey_mode,
 					terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->terminfo,
@@ -5223,10 +5219,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
                         normal_length = strlen(normal);
 			_vte_keymap_key_add_key_modifiers(keyval,
 							  modifiers,
-							  terminal->pvt->sun_fkey_mode,
-							  terminal->pvt->hp_fkey_mode,
-							  terminal->pvt->legacy_fkey_mode,
-							  terminal->pvt->vt220_fkey_mode,
 							  terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 							  &normal,
 							  &normal_length);
@@ -10724,10 +10716,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		_vte_keymap_map (
 				cnt > 0 ? GDK_KEY_Down : GDK_KEY_Up,
 				terminal->pvt->modifiers,
-				terminal->pvt->sun_fkey_mode,
-				terminal->pvt->hp_fkey_mode,
-				terminal->pvt->legacy_fkey_mode,
-				terminal->pvt->vt220_fkey_mode,
 				terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 				terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
 				terminal->pvt->terminfo,
@@ -12658,13 +12646,9 @@ vte_terminal_reset(VteTerminal *terminal,
 							terminal);
 	_vte_iso2022_state_set_codeset(pvt->iso2022,
 				       pvt->encoding);
-	/* Reset keypad/cursor/function key modes. */
+	/* Reset keypad/cursor key modes. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
-	pvt->sun_fkey_mode = FALSE;
-	pvt->hp_fkey_mode = FALSE;
-	pvt->legacy_fkey_mode = FALSE;
-	pvt->vt220_fkey_mode = FALSE;
 	/* Enable meta-sends-escape. */
 	pvt->meta_sends_escape = TRUE;
 	/* Disable margin bell. */

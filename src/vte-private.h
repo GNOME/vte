@@ -179,12 +179,6 @@ struct _VteTerminalPrivate {
 	} flags;
 	int keypad_mode, cursor_mode;	/* these would be VteKeymodes, but we
 					   need to guarantee its type */
-	gboolean sun_fkey_mode;
-	gboolean hp_fkey_mode;
-	gboolean legacy_fkey_mode;
-	gboolean vt220_fkey_mode;
-	int fkey;			/* this would be a VteFKey, but we
-					   need to guarantee its type */
 	GHashTable *dec_saved;
 	int default_column_count, default_row_count;	/* default sizes */
 

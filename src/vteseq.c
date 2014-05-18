@@ -757,26 +757,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 PRIV_OFFSET(alternate_screen),
 		 vte_sequence_handler_rc,
 		 vte_sequence_handler_sc,},
-		/* 1051: Sun function key mode. */
-		{1051, PRIV_OFFSET(sun_fkey_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 NULL, NULL},
-		/* 1052: HP function key mode. */
-		{1052, PRIV_OFFSET(hp_fkey_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 NULL, NULL},
-		/* 1060: Legacy function key mode. */
-		{1060, PRIV_OFFSET(legacy_fkey_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 NULL, NULL},
-		/* 1061: VT220 function key mode. */
-		{1061, PRIV_OFFSET(vt220_fkey_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 NULL, NULL},
 		/* 2004: Bracketed paste mode. */
 		{2004, PRIV_OFFSET(bracketed_paste_mode), 0, 0,
 		 FALSE,
@@ -933,26 +913,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
 				"Entering application keypad mode.\n" :
 				"Leaving application keypad mode.\n");
-		break;
-	case 1051:
-		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
-				"Entering Sun fkey mode.\n" :
-				"Leaving Sun fkey mode.\n");
-		break;
-	case 1052:
-		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
-				"Entering HP fkey mode.\n" :
-				"Leaving HP fkey mode.\n");
-		break;
-	case 1060:
-		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
-				"Entering Legacy fkey mode.\n" :
-				"Leaving Legacy fkey mode.\n");
-		break;
-	case 1061:
-		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
-				"Entering VT220 fkey mode.\n" :
-				"Leaving VT220 fkey mode.\n");
 		break;
 	default:
 		break;
