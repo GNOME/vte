@@ -1164,37 +1164,46 @@ vte_sequence_handler_carriage_return (VteTerminal *terminal, GValueArray *params
 
 /* Restrict scrolling and updates to a subset of the visible lines. */
 static void
-vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *params)
 {
 	long start=-1, end=-1, rows;
 	GValue *value;
 	VteScreen *screen;
 
-	_vte_terminal_home_cursor (terminal);
-
 	/* We require two parameters.  Anything less is a reset. */
 	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
+                _vte_terminal_home_cursor (terminal);
 		screen->scrolling_restricted = FALSE;
 		return;
 	}
 	/* Extract the two values. */
 	value = g_value_array_get_nth(params, 0);
 	if (G_VALUE_HOLDS_LONG(value)) {
-		start = g_value_get_long(value);
+                start = g_value_get_long(value) - 1;
 	}
 	value = g_value_array_get_nth(params, 1);
 	if (G_VALUE_HOLDS_LONG(value)) {
-		end = g_value_get_long(value);
+                end = g_value_get_long(value) - 1;
 	}
-	/* Catch garbage. */
 	rows = terminal->pvt->row_count;
-	if (start <= 0 || start >= rows) {
+        /* A (1-based) value of 0 means default. */
+        if (start == -1) {
 		start = 0;
 	}
-	if (end <= 0 || end >= rows) {
+        if (end == -1) {
+                end = rows - 1;
+        }
+        /* Bail out on garbage, require at least 2 rows, as per xterm. */
+        if (start < 0 || start >= rows - 1 || end < start + 1) {
+                return;
+        }
+        if (end >= rows) {
 		end = rows - 1;
 	}
+
+        _vte_terminal_home_cursor (terminal);
+
 	/* Set the right values. */
 	screen->scrolling_region.start = start;
 	screen->scrolling_region.end = end;
@@ -1208,51 +1217,6 @@ vte_sequence_handler_cs (VteTerminal *terminal, GValueArray *params)
 		while (_vte_ring_next(screen->row_data) < screen->insert_delta + rows)
 			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
 	}
-}
-
-/* Restrict scrolling and updates to a subset of the visible lines, because
- * GNU Emacs is special. */
-static void
-vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
-{
-	long start=0, end=terminal->pvt->row_count-1, rows;
-	GValue *value;
-	VteScreen *screen;
-
-	/* We require four parameters. */
-	screen = terminal->pvt->screen;
-	if ((params == NULL) || (params->n_values < 2)) {
-		screen->scrolling_restricted = FALSE;
-		return;
-	}
-	/* Extract the two parameters we care about, encoded as the number
-	 * of lines above and below the scrolling region, respectively. */
-	value = g_value_array_get_nth(params, 1);
-	if (G_VALUE_HOLDS_LONG(value)) {
-		start = g_value_get_long(value);
-	}
-	value = g_value_array_get_nth(params, 2);
-	if (G_VALUE_HOLDS_LONG(value)) {
-		end -= g_value_get_long(value);
-	}
-	/* Set the right values. */
-	screen->scrolling_region.start = start;
-	screen->scrolling_region.end = end;
-	screen->scrolling_restricted = TRUE;
-	rows = terminal->pvt->row_count;
-	if ((screen->scrolling_region.start == 0) &&
-	    (screen->scrolling_region.end == rows - 1)) {
-		/* Special case -- run wild, run free. */
-		screen->scrolling_restricted = FALSE;
-	} else {
-		/* Maybe extend the ring -- bug 710483 */
-		while (_vte_ring_next(screen->row_data) < screen->insert_delta + rows)
-			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
-	}
-	/* Clamp the cursor to the scrolling region. */
-	screen->cursor_current.row = CLAMP(screen->cursor_current.row,
-					   screen->insert_delta + start,
-					   screen->insert_delta + end);
 }
 
 /* Move the cursor to the beginning of the Nth next line, no scrolling. */
@@ -1645,7 +1609,7 @@ vte_sequence_handler_sc (VteTerminal *terminal, GValueArray *params)
 					 0, terminal->pvt->row_count - 1);
 }
 
-/* Scroll the text down, but don't move the cursor. */
+/* Scroll the text down N lines, but don't move the cursor. */
 static void
 vte_sequence_handler_scroll_down (VteTerminal *terminal, GValueArray *params)
 {
@@ -1759,7 +1723,7 @@ vte_sequence_handler_reset_color (VteTerminal *terminal, GValueArray *params)
 	}
 }
 
-/* Scroll the text up, but don't move the cursor. */
+/* Scroll the text up N lines, but don't move the cursor. */
 static void
 vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 {
@@ -2485,22 +2449,16 @@ vte_sequence_handler_set_current_file_uri (VteTerminal *terminal, GValueArray *p
 
 /* Restrict the scrolling region. */
 static void
-vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cs);
-}
-
-static void
 vte_sequence_handler_set_scrolling_region_from_start (VteTerminal *terminal, GValueArray *params)
 {
 	GValue value = {0};
 
 	g_value_init (&value, G_TYPE_LONG);
-	g_value_set_long (&value, 0); /* Out of range means start/end */
+        g_value_set_long (&value, 0);  /* A missing value is treated as 0 */
 
 	g_value_array_insert (params, 0, &value);
 
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cs);
+        vte_sequence_handler_set_scrolling_region (terminal, params);
 }
 
 static void
@@ -2509,11 +2467,11 @@ vte_sequence_handler_set_scrolling_region_to_end (VteTerminal *terminal, GValueA
 	GValue value = {0};
 
 	g_value_init (&value, G_TYPE_LONG);
-	g_value_set_long (&value, 0); /* Out of range means start/end */
+        g_value_set_long (&value, 0);  /* A missing value is treated as 0 */
 
 	g_value_array_insert (params, 1, &value);
 
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cs);
+        vte_sequence_handler_set_scrolling_region (terminal, params);
 }
 
 /* Set the application or normal keypad. */
