@@ -975,7 +975,7 @@ vte_sequence_handler_back_tab (VteTerminal *terminal, GValueArray *params)
 
 /* Clear from the cursor position to the beginning of the line. */
 static void
-vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
+_vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 {
 	VteRowData *rowdata;
 	long i;
@@ -1009,7 +1009,7 @@ vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 
 /* Clear to the right of the cursor and below the current line. */
 static void
-vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
+_vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 {
 	VteRowData *rowdata;
 	glong i;
@@ -1064,7 +1064,7 @@ vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 
 /* Clear from the cursor position to the end of the line. */
 static void
-vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
+_vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 {
 	VteRowData *rowdata;
 	VteScreen *screen;
@@ -2653,14 +2653,14 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 	switch (param) {
 	case 0:
 		/* Clear below the current line. */
-		vte_sequence_handler_cd (terminal, NULL);
+                _vte_sequence_handler_cd (terminal, NULL);
 		break;
 	case 1:
 		/* Clear above the current line. */
 		_vte_terminal_clear_above_current (terminal);
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
-		vte_sequence_handler_cb (terminal, NULL);
+                _vte_sequence_handler_cb (terminal, NULL);
 		break;
 	case 2:
 		/* Clear the entire screen. */
@@ -2694,11 +2694,11 @@ vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 	switch (param) {
 	case 0:
 		/* Clear to end of the line. */
-		vte_sequence_handler_ce (terminal, NULL);
+                _vte_sequence_handler_ce (terminal, NULL);
 		break;
 	case 1:
 		/* Clear to start of the line. */
-		vte_sequence_handler_cb (terminal, NULL);
+                _vte_sequence_handler_cb (terminal, NULL);
 		break;
 	case 2:
 		/* Clear the entire line. */
