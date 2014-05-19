@@ -73,9 +73,9 @@ struct vteseq_2_struct {
 #"@7", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"@8", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"@9", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
-"AL", VTE_SEQUENCE_HANDLER(vte_sequence_handler_AL)
-"DC", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DC)
-"DL", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DL)
+#"AL", VTE_SEQUENCE_HANDLER(vte_sequence_handler_AL)
+#"DC", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DC)
+#"DL", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DL)
 #"DO", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DO)
 #"F1", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"F2", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
@@ -130,7 +130,7 @@ struct vteseq_2_struct {
 #"Fp", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"Fq", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"Fr", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
-"IC", VTE_SEQUENCE_HANDLER(vte_sequence_handler_IC)
+#"IC", VTE_SEQUENCE_HANDLER(vte_sequence_handler_IC)
 #"K1", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"K2", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"K3", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
@@ -153,7 +153,7 @@ struct vteseq_2_struct {
 #"UP", VTE_SEQUENCE_HANDLER(vte_sequence_handler_UP)
 #"XF", VTE_SEQUENCE_HANDLER_NULL
 "ae", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ae)
-"al", VTE_SEQUENCE_HANDLER(vte_sequence_handler_al)
+#"al", VTE_SEQUENCE_HANDLER(vte_sequence_handler_al)
 "as", VTE_SEQUENCE_HANDLER(vte_sequence_handler_as)
 #"bc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_le)
 #"bl", VTE_SEQUENCE_HANDLER(vte_sequence_handler_bl)
@@ -170,13 +170,13 @@ struct vteseq_2_struct {
 "cs", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cs)
 #"ct", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ct)
 #"cv", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cv)
-"dc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dc)
-"dl", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dl)
+#"dc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dc)
+#"dl", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dl)
 "dm", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
 #"do", VTE_SEQUENCE_HANDLER(vte_sequence_handler_do)
 #"ds", VTE_SEQUENCE_HANDLER_NULL
 "eA", VTE_SEQUENCE_HANDLER(vte_sequence_handler_eA)
-"ec", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ec)
+#"ec", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ec)
 "ed", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
 "ei", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ei)
 "ff", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
@@ -187,7 +187,7 @@ struct vteseq_2_struct {
 #"i1", VTE_SEQUENCE_HANDLER_NULL
 #"i3", VTE_SEQUENCE_HANDLER_NULL
 #"iP", VTE_SEQUENCE_HANDLER_NULL
-"ic", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ic)
+#"ic", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ic)
 #"if", VTE_SEQUENCE_HANDLER_NULL
 "im", VTE_SEQUENCE_HANDLER(vte_sequence_handler_im)
 #"ip", VTE_SEQUENCE_HANDLER_NULL

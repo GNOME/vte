@@ -78,7 +78,7 @@ struct vteseq_n_struct {
 "erase-in-display", VTE_SEQUENCE_HANDLER(vte_sequence_handler_erase_in_display)
 "set-window-title", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_window_title)
 #"cursor-lower-left", VTE_SEQUENCE_HANDLER_NULL
-"delete-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DC)
+"delete-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_delete_characters)
 "application-keypad", VTE_SEQUENCE_HANDLER(vte_sequence_handler_application_keypad)
 #"change-font-number", VTE_SEQUENCE_HANDLER_NULL
 "return-terminal-id", VTE_SEQUENCE_HANDLER(vte_sequence_handler_return_terminal_id)

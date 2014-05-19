@@ -932,56 +932,6 @@ vte_sequence_handler_ae (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->screen->alternate_charset = FALSE;
 }
 
-/* Add a line at the current cursor position. */
-static void
-vte_sequence_handler_al (VteTerminal *terminal, GValueArray *params)
-{
-	VteScreen *screen;
-	long start, end, param, i;
-	GValue *value;
-
-	/* Find out which part of the screen we're messing with. */
-	screen = terminal->pvt->screen;
-	start = screen->cursor_current.row;
-	if (screen->scrolling_restricted) {
-		end = screen->insert_delta + screen->scrolling_region.end;
-	} else {
-		end = screen->insert_delta + terminal->pvt->row_count - 1;
-	}
-
-	/* Extract any parameters. */
-	param = 1;
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
-		}
-	}
-
-	/* Insert the right number of lines. */
-	for (i = 0; i < param; i++) {
-		/* Clear a line off the end of the region and add one to the
-		 * top of the region. */
-		_vte_terminal_ring_remove (terminal, end);
-		_vte_terminal_ring_insert (terminal, start, TRUE);
-		/* Adjust the scrollbars if necessary. */
-		_vte_terminal_adjust_adjustments(terminal);
-	}
-
-	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, start, end - start + 1, param);
-
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
-}
-
-/* Add N lines at the current cursor position. */
-static void
-vte_sequence_handler_AL (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_al (terminal, params);
-}
-
 /* Start using alternate character set. */
 static void
 vte_sequence_handler_as (VteTerminal *terminal, GValueArray *params)
@@ -1349,7 +1299,7 @@ vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray 
 
 /* Delete a character at the current cursor position. */
 static void
-vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
+_vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
@@ -1384,59 +1334,9 @@ vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 
 /* Delete N characters at the current cursor position. */
 static void
-vte_sequence_handler_DC (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_delete_characters (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_multiple_r(terminal, params, vte_sequence_handler_dc);
-}
-
-/* Delete a line at the current cursor position. */
-static void
-vte_sequence_handler_dl (VteTerminal *terminal, GValueArray *params)
-{
-	VteScreen *screen;
-	long start, end, param, i;
-	GValue *value;
-
-	/* Find out which part of the screen we're messing with. */
-	screen = terminal->pvt->screen;
-	start = screen->cursor_current.row;
-	if (screen->scrolling_restricted) {
-		end = screen->insert_delta + screen->scrolling_region.end;
-	} else {
-		end = screen->insert_delta + terminal->pvt->row_count - 1;
-	}
-
-	/* Extract any parameters. */
-	param = 1;
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
-		}
-	}
-
-	/* Delete the right number of lines. */
-	for (i = 0; i < param; i++) {
-		/* Clear a line off the end of the region and add one to the
-		 * top of the region. */
-		_vte_terminal_ring_remove (terminal, start);
-		_vte_terminal_ring_insert (terminal, end, TRUE);
-		/* Adjust the scrollbars if necessary. */
-		_vte_terminal_adjust_adjustments(terminal);
-	}
-
-	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, start, end - start + 1, -param);
-
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
-}
-
-/* Delete N lines at the current cursor position. */
-static void
-vte_sequence_handler_DL (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_dl (terminal, params);
+        vte_sequence_handler_multiple_r(terminal, params, _vte_sequence_handler_dc);
 }
 
 /* Cursor down N lines, no scrolling. */
@@ -1478,7 +1378,7 @@ vte_sequence_handler_eA (VteTerminal *terminal, GValueArray *params)
 /* Erase characters starting at the cursor position (overwriting N with
  * spaces, but not moving the cursor). */
 static void
-vte_sequence_handler_ec (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	VteRowData *rowdata;
@@ -1541,9 +1441,9 @@ vte_sequence_handler_form_feed (VteTerminal *terminal, GValueArray *params)
         vte_sequence_handler_line_feed (terminal, params);
 }
 
-/* Insert a character. */
+/* Insert a blank character. */
 static void
-vte_sequence_handler_ic (VteTerminal *terminal, GValueArray *params)
+_vte_sequence_handler_insert_character (VteTerminal *terminal, GValueArray *params)
 {
 	VteVisualPosition save;
 	VteScreen *screen;
@@ -1557,11 +1457,11 @@ vte_sequence_handler_ic (VteTerminal *terminal, GValueArray *params)
 	screen->cursor_current = save;
 }
 
-/* Insert N characters. */
+/* Insert N blank characters. */
 static void
-vte_sequence_handler_IC (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_insert_blank_characters (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_multiple_r(terminal, params, vte_sequence_handler_ic);
+        vte_sequence_handler_multiple_r(terminal, params, _vte_sequence_handler_insert_character);
 }
 
 /* Begin insert mode. */
@@ -2637,11 +2537,9 @@ vte_sequence_handler_normal_keypad (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_character_position_absolute (VteTerminal *terminal, GValueArray *params)
 {
-        VteScreen *screen;
         GValue *value;
         long val;
 
-        screen = terminal->pvt->screen;
         /* We only care if there's a parameter in there. */
         if ((params != NULL) && (params->n_values > 0)) {
                 value = g_value_array_get_nth(params, 0);
@@ -2734,13 +2632,6 @@ vte_sequence_handler_decreset (VteTerminal *terminal, GValueArray *params)
 	}
 }
 
-/* Erase a specified number of characters. */
-static void
-vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_ec (terminal, params);
-}
-
 /* Erase certain lines in the display. */
 static void
 vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *params)
@@ -2825,13 +2716,6 @@ static void
 vte_sequence_handler_full_reset (VteTerminal *terminal, GValueArray *params)
 {
 	vte_terminal_reset(terminal, TRUE, TRUE);
-}
-
-/* Insert a specified number of blank characters. */
-static void
-vte_sequence_handler_insert_blank_characters (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_IC (terminal, params);
 }
 
 /* Insert a certain number of lines below the current cursor. */
