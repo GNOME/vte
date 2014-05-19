@@ -19,8 +19,6 @@ struct vteseq_n_struct {
 };
 
 %%
-#"..rp", VTE_SEQUENCE_HANDLER_NULL
-#"..sa", VTE_SEQUENCE_HANDLER_NULL
 "line-feed", VTE_SEQUENCE_HANDLER(vte_sequence_handler_line_feed)
 "carriage-return", VTE_SEQUENCE_HANDLER(vte_sequence_handler_carriage_return)
 "bell", VTE_SEQUENCE_HANDLER(vte_sequence_handler_bell)

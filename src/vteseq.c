@@ -72,22 +72,6 @@ display_control_sequence(const char *name, GValueArray *params)
 
 /* A couple are duplicated from vte.c, to keep them static... */
 
-/* Find the character an the given position in the backscroll buffer. */
-static VteCell *
-vte_terminal_find_charcell (VteTerminal *terminal, glong col, glong row)
-{
-	VteRowData *rowdata;
-	VteCell *ret = NULL;
-	VteScreen *screen;
-	g_assert(VTE_IS_TERMINAL(terminal));
-	screen = terminal->pvt->screen;
-	if (_vte_ring_contains (screen->row_data, row)) {
-		rowdata = _vte_ring_index_writable (screen->row_data, row);
-		ret = _vte_row_data_get_writable (rowdata, col);
-	}
-	return ret;
-}
-
 /* Check how long a string of unichars is.  Slow version. */
 static gssize
 vte_unichar_strlen(gunichar *c)
@@ -396,22 +380,6 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 	terminal->pvt->text_deleted_flag = TRUE;
 }
 
-static gboolean
-vte_terminal_terminfo_string_same_as_for (VteTerminal *terminal,
-                                          const char *cap_str,
-                                          guint var_other)
-{
-	const char *other_str;
-
-	other_str = _vte_terminfo_get_string(terminal->pvt->terminfo,
-                                             var_other);
-
-        /* FIXMEchpe: why case insensitive compare!? */
-        return cap_str &&
-               other_str &&
-               g_ascii_strcasecmp(cap_str, other_str) == 0;
-}
-
 /* Set icon/window titles. */
 static void
 vte_sequence_handler_set_title_internal(VteTerminal *terminal,
@@ -508,29 +476,6 @@ typedef void (*VteTerminalSequenceHandler) (VteTerminal *terminal, GValueArray *
 #undef VTE_SEQUENCE_HANDLER
 
 
-/* Call another handler, offsetting any long arguments by the given
- * increment value. */
-static void
-vte_sequence_handler_offset(VteTerminal *terminal,
-			    GValueArray *params,
-			    int increment,
-			    VteTerminalSequenceHandler handler)
-{
-	guint i;
-	long val;
-	GValue *value;
-	/* Decrement the parameters and let the _cs handler deal with it. */
-	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
-		value = g_value_array_get_nth(params, i);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			val = g_value_get_long(value);
-			val += increment;
-			g_value_set_long(value, val);
-		}
-	}
-	handler (terminal, params);
-}
-
 /* Call another function a given number of times, or once. */
 static void
 vte_sequence_handler_multiple_limited(VteTerminal *terminal,
@@ -551,14 +496,6 @@ vte_sequence_handler_multiple_limited(VteTerminal *terminal,
 	}
 	for (i = 0; i < val; i++)
 		handler (terminal, NULL);
-}
-
-static void
-vte_sequence_handler_multiple(VteTerminal *terminal,
-                              GValueArray *params,
-                              VteTerminalSequenceHandler handler)
-{
-        vte_sequence_handler_multiple_limited(terminal, params, handler, G_MAXUSHORT);
 }
 
 static void
