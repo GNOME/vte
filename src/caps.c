@@ -70,6 +70,9 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ESC "%%@", "iso8859-1-character-set", 0},
 	{ESC "%%G", "utf-8-character-set", 0},
 
+        {ESC "(0", "alternate-character-set-start", 0},
+        {ESC "(B", "alternate-character-set-end", 0},
+
 	{ESC "7", "save-cursor", 0},
 	{ESC "8", "restore-cursor", 0},
 	{ESC "=", "application-keypad", 0},

@@ -748,15 +748,15 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		{1048, 0, 0, 0,
 		 0,
 		 0,
-		 vte_sequence_handler_rc,
-		 vte_sequence_handler_sc,},
+                 vte_sequence_handler_restore_cursor,
+                 vte_sequence_handler_save_cursor,},
 		/* 1049: Use alternate screen buffer, saving the cursor
 		 * position. */
 		{1049, 0, 0, PRIV_OFFSET(screen),
 		 PRIV_OFFSET(normal_screen),
 		 PRIV_OFFSET(alternate_screen),
-		 vte_sequence_handler_rc,
-		 vte_sequence_handler_sc,},
+                 vte_sequence_handler_restore_cursor,
+                 vte_sequence_handler_save_cursor,},
 		/* 2004: Bracketed paste mode. */
 		{2004, PRIV_OFFSET(bracketed_paste_mode), 0, 0,
 		 FALSE,
@@ -927,14 +927,14 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 
 /* End alternate character set. */
 static void
-vte_sequence_handler_ae (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_alternate_character_set_end (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->screen->alternate_charset = FALSE;
 }
 
 /* Start using alternate character set. */
 static void
-vte_sequence_handler_as (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_alternate_character_set_start (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->screen->alternate_charset = TRUE;
 }
@@ -1332,13 +1332,6 @@ vte_sequence_handler_cursor_down (VteTerminal *terminal, GValueArray *params)
         screen->cursor_current.row = MIN(screen->cursor_current.row + val, end);
 }
 
-/* Start using alternate character set. */
-static void
-vte_sequence_handler_eA (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_ae (terminal, params);
-}
-
 /* Erase characters starting at the cursor position (overwriting N with
  * spaces, but not moving the cursor). */
 static void
@@ -1391,13 +1384,6 @@ vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *param
 	terminal->pvt->text_deleted_flag = TRUE;
 }
 
-/* End insert mode. */
-static void
-vte_sequence_handler_ei (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->insert_mode = FALSE;
-}
-
 /* Form-feed / next-page. */
 static void
 vte_sequence_handler_form_feed (VteTerminal *terminal, GValueArray *params)
@@ -1428,32 +1414,11 @@ vte_sequence_handler_insert_blank_characters (VteTerminal *terminal, GValueArray
         vte_sequence_handler_multiple_r(terminal, params, _vte_sequence_handler_insert_character);
 }
 
-/* Begin insert mode. */
-static void
-vte_sequence_handler_im (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->insert_mode = TRUE;
-}
-
 /* Cursor down 1 line, with scrolling. */
 static void
 vte_sequence_handler_index (VteTerminal *terminal, GValueArray *params)
 {
         vte_sequence_handler_line_feed (terminal, params);
-}
-
-/* Keypad mode end. */
-static void
-vte_sequence_handler_ke (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
-}
-
-/* Keypad mode start. */
-static void
-vte_sequence_handler_ks (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
 }
 
 /* Cursor left. */
@@ -1488,59 +1453,6 @@ vte_sequence_handler_cursor_backward (VteTerminal *terminal, GValueArray *params
                 }
         }
         screen->cursor_current.col = MAX(screen->cursor_current.col - val, 1);
-}
-
-/* Blink on. */
-static void
-vte_sequence_handler_mb (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.blink = 1;
-}
-
-/* Bold on. */
-static void
-vte_sequence_handler_md (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.bold = 1;
-	terminal->pvt->screen->defaults.attr.half = 0;
-}
-
-/* End modes. */
-static void
-vte_sequence_handler_me (VteTerminal *terminal, GValueArray *params)
-{
-	_vte_terminal_set_default_attributes(terminal);
-}
-
-/* Half-bright on. */
-static void
-vte_sequence_handler_mh (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.half = 1;
-	terminal->pvt->screen->defaults.attr.bold = 0;
-}
-
-/* Invisible on. */
-static void
-vte_sequence_handler_mk (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.invisible = 1;
-}
-
-/* Protect on. */
-static void
-vte_sequence_handler_mp (VteTerminal *terminal, GValueArray *params)
-{
-	/* unused; bug 499893
-	terminal->pvt->screen->defaults.attr.protect = 1;
-	 */
-}
-
-/* Reverse on. */
-static void
-vte_sequence_handler_mr (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.reverse = 1;
 }
 
 /* Cursor right N columns. */
@@ -1585,7 +1497,7 @@ vte_sequence_handler_noop (VteTerminal *terminal, GValueArray *params)
 
 /* Restore cursor (position). */
 static void
-vte_sequence_handler_rc (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_restore_cursor (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
@@ -1599,7 +1511,7 @@ vte_sequence_handler_rc (VteTerminal *terminal, GValueArray *params)
 
 /* Save cursor (position). */
 static void
-vte_sequence_handler_sc (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_save_cursor (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
@@ -1741,25 +1653,11 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 	_vte_terminal_scroll_text (terminal, -val);
 }
 
-/* Standout end. */
-static void
-vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
-{
-        terminal->pvt->screen->defaults.attr.reverse = 0;
-}
-
 /* Cursor down 1 line, with scrolling. */
 static void
 vte_sequence_handler_line_feed (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_terminal_cursor_down (terminal);
-}
-
-/* Standout start. */
-static void
-vte_sequence_handler_so (VteTerminal *terminal, GValueArray *params)
-{
-        terminal->pvt->screen->defaults.attr.reverse = 1;
 }
 
 /* Cursor up 1 line, with scrolling. */
@@ -1932,44 +1830,6 @@ vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 	}
 }
 
-/* Underline this character and move right. */
-static void
-vte_sequence_handler_uc (VteTerminal *terminal, GValueArray *params)
-{
-	VteCell *cell;
-	int column;
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
-	column = screen->cursor_current.col;
-	cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
-	while ((cell != NULL) && (cell->attr.fragment) && (column > 0)) {
-		column--;
-		cell = vte_terminal_find_charcell(terminal, column, screen->cursor_current.row);
-	}
-	if (cell != NULL) {
-		/* Set this character to be underlined. */
-		cell->attr.underline = 1;
-		/* Cause the character to be repainted. */
-		_vte_invalidate_cells(terminal,
-				      column, cell->attr.columns,
-				      screen->cursor_current.row, 1);
-		/* Move the cursor right. */
-		vte_sequence_handler_cursor_forward (terminal, params);
-	}
-
-	/* We've modified the display without changing the text.  Make a note
-	 * of it. */
-	terminal->pvt->text_modified_flag = TRUE;
-}
-
-/* Underline end. */
-static void
-vte_sequence_handler_ue (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.underline = 0;
-}
-
 /* Cursor up N lines, no scrolling. */
 static void
 vte_sequence_handler_cursor_up (VteTerminal *terminal, GValueArray *params)
@@ -1999,47 +1859,11 @@ vte_sequence_handler_cursor_up (VteTerminal *terminal, GValueArray *params)
         screen->cursor_current.row = MAX(screen->cursor_current.row - val, start);
 }
 
-/* Underline start. */
-static void
-vte_sequence_handler_us (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->screen->defaults.attr.underline = 1;
-}
-
-/* Visible bell. */
-static void
-vte_sequence_handler_vb (VteTerminal *terminal, GValueArray *params)
-{
-	_vte_terminal_visible_beep (terminal);
-}
-
-/* Cursor visible. */
-static void
-vte_sequence_handler_ve (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->cursor_visible = TRUE;
-}
-
 /* Vertical tab. */
 static void
 vte_sequence_handler_vertical_tab (VteTerminal *terminal, GValueArray *params)
 {
         vte_sequence_handler_line_feed (terminal, params);
-}
-
-/* Cursor invisible. */
-static void
-vte_sequence_handler_vi (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->cursor_visible = FALSE;
-}
-
-/* Cursor standout. */
-static void
-vte_sequence_handler_vs (VteTerminal *terminal, GValueArray *params)
-{
-	terminal->pvt->cursor_visible = TRUE; /* FIXME: should be *more*
-						 visible. */
 }
 
 /* Parse parameters of SGR 38 or 48, starting at @index within @params.

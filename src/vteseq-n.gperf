@@ -44,7 +44,7 @@ struct vteseq_n_struct {
 "soft-reset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_soft_reset)
 "cursor-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_down)
 #"memory-lock", VTE_SEQUENCE_HANDLER_NULL
-"save-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_sc)
+"save-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_save_cursor)
 "scroll-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_scroll_down)
 "change-color-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_color_bel)
 "change-color-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_color_st)
@@ -64,7 +64,7 @@ struct vteseq_n_struct {
 #"change-logfile", VTE_SEQUENCE_HANDLER_NULL
 "cursor-forward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_forward)
 #"dec-media-copy", VTE_SEQUENCE_HANDLER_NULL
-"restore-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_rc)
+"restore-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_restore_cursor)
 "set-icon-title", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_icon_title)
 "cursor-back-tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_back_tab)
 "cursor-backward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_backward)
@@ -119,6 +119,8 @@ struct vteseq_n_struct {
 #"ansi-conformance-level-1", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-2", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-3", VTE_SEQUENCE_HANDLER_NULL
+"alternate-character-set-start", VTE_SEQUENCE_HANDLER(vte_sequence_handler_alternate_character_set_start)
+"alternate-character-set-end", VTE_SEQUENCE_HANDLER(vte_sequence_handler_alternate_character_set_end)
 "change-background-colors-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_background_color_bel)
 "change-background-colors-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_background_color_st)
 "reset-background-colors", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_background_color)
