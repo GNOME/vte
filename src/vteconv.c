@@ -445,36 +445,33 @@ test_utf8_strlen (void)
 static void
 test_utf8_validate (void)
 {
-        const char *str, *end;
+        static const struct {
+                char input[16];
+                gsize ilen;
+                gsize endlen;
+                gboolean validates;
+        } tests[] = {
+                { "\0\0\0", 0, 0, TRUE },
+                { "\0\0\0", 1, 1, TRUE },
+                { "\0\0\0", 3, 3, TRUE },
 
-        /* Test _vte_conv_utf8_validate. */
-        str = "\0\0\0";
-        g_assert(_vte_conv_utf8_validate(str, 0, &end) == TRUE);
-        g_assert(end - str == 0);
-        g_assert(_vte_conv_utf8_validate(str, 1, &end) == TRUE);
-        g_assert(end - str == 1);
-        g_assert(_vte_conv_utf8_validate(str, 3, &end) == TRUE);
-        g_assert(end - str == 3);
+                { "ab\0cd\0\0ef", 6, 6, TRUE },
+                { "ab\0cd\0\0ef", 7, 7, TRUE },
+                { "ab\0cd\0\0ef", 9, 9, TRUE },
 
-        str = "ab\0cd\0\0ef";
-        g_assert(_vte_conv_utf8_validate(str, 6, &end) == TRUE);
-        g_assert(end - str == 6);
-        g_assert(_vte_conv_utf8_validate(str, 7, &end) == TRUE);
-        g_assert(end - str == 7);
-        g_assert(_vte_conv_utf8_validate(str, 9, &end) == TRUE);
-        g_assert(end - str == 9);
+                { "ab\xE2\x94\x80\0\xE2\x94\x80yz", 11, 11, TRUE },
 
-        str = "ab\xE2\x94\x80\0\xE2\x94\x80yz";
-        g_assert(_vte_conv_utf8_validate(str, 11, &end) == TRUE);
-        g_assert(end - str == 11);
+                { "ab\x80\0cd", 6, 2, FALSE },
 
-        str = "ab\x80\0cd";
-        g_assert(_vte_conv_utf8_validate(str, 6, &end) == FALSE);
-        g_assert(end - str == 2);
+                { "ab\xE2\0cd", 6, 2, FALSE },
+        };
+        guint i;
+        const char *end;
 
-        str = "ab\xE2\0cd";
-        g_assert(_vte_conv_utf8_validate(str, 6, &end) == FALSE);
-        g_assert(end - str == 2);
+        for (i = 0; i < G_N_ELEMENTS (tests); i++) {
+                g_assert(_vte_conv_utf8_validate(tests[i].input, tests[i].ilen, &end) == tests[i].validates);
+                g_assert_cmpuint((gsize)(end - tests[i].input), ==, tests[i].endlen);
+        }
 }
 
 /* Test _vte_conv_utf8_get_char_validated. */
