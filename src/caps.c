@@ -38,13 +38,20 @@
 #define CR  "\015"
 #define SO  "\016"
 #define SI  "\017"
+#define DEL "\177"
 
 /* From some really old XTerm docs we had at the office, and an updated
  * version at Moy, Gildea, and Dickey. */
 struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ENQ, "return-terminal-status", 0},
+        {BEL, "bell", 0},
+        {BS,  "backspace", 0},
+        {TAB, "tab", 0},
+        {LF,  "line-feed", 0},
 	{VT,  "vertical-tab", 0},
 	{FF,  "form-feed", 0},
+        {CR,  "carriage-return", 0},
+        {DEL, "backspace", 0},
 
 	{ESC " F", "7-bit-controls", 0},
 	{ESC " G", "8-bit-controls", 0},
@@ -116,6 +123,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
         {CSI ";%dH", "cursor-position-top-row", 0},
 	{CSI "%d;%dH", "cursor-position", 0},
 	{CSI "I", "cursor-forward-tabulation", 0},
+        {CSI "%dI", "cursor-forward-tabulation", 0},
 	{CSI "J", "erase-in-display", 0},
 	{CSI "%dJ", "erase-in-display", 0},
 	{CSI "?J", "selective-erase-in-display", 0},

@@ -21,10 +21,15 @@ struct vteseq_n_struct {
 %%
 #"..rp", VTE_SEQUENCE_HANDLER_NULL
 #"..sa", VTE_SEQUENCE_HANDLER_NULL
+"line-feed", VTE_SEQUENCE_HANDLER(vte_sequence_handler_line_feed)
+"carriage-return", VTE_SEQUENCE_HANDLER(vte_sequence_handler_carriage_return)
+"bell", VTE_SEQUENCE_HANDLER(vte_sequence_handler_bell)
+"backspace", VTE_SEQUENCE_HANDLER(vte_sequence_handler_backspace)
+"tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_tab)
 "index", VTE_SEQUENCE_HANDLER(vte_sequence_handler_index)
 "decset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_decset)
 #"repeat", VTE_SEQUENCE_HANDLER_NULL
-"tab-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_st)
+"tab-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_tab_set)
 "decreset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_decreset)
 "set-mode", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_mode)
 "cursor-up", VTE_SEQUENCE_HANDLER(vte_sequence_handler_UP)
@@ -61,7 +66,7 @@ struct vteseq_n_struct {
 #"dec-media-copy", VTE_SEQUENCE_HANDLER_NULL
 "restore-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_rc)
 "set-icon-title", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_icon_title)
-"cursor-back-tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_bt)
+"cursor-back-tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_back_tab)
 "cursor-backward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_LE)
 "cursor-position", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_position)
 "cursor-position-top-row", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_position_top_row)
@@ -124,7 +129,7 @@ struct vteseq_n_struct {
 #"enable-locator-reporting", VTE_SEQUENCE_HANDLER_NULL
 #"request-locator-position", VTE_SEQUENCE_HANDLER_NULL
 "cursor-character-absolute", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_character_absolute)
-"cursor-forward-tabulation", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ta)
+"cursor-forward-tabulation", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_forward_tabulation)
 #"double-height-bottom-half", VTE_SEQUENCE_HANDLER_NULL
 "set-icon-and-window-title", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_icon_and_window_title)
 #"selective-erase-in-display", VTE_SEQUENCE_HANDLER_NULL

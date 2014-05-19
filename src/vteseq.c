@@ -991,7 +991,7 @@ vte_sequence_handler_as (VteTerminal *terminal, GValueArray *params)
 
 /* Beep. */
 static void
-vte_sequence_handler_bl (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_bell (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_terminal_beep (terminal);
 	g_signal_emit_by_name(terminal, "beep");
@@ -999,7 +999,7 @@ vte_sequence_handler_bl (VteTerminal *terminal, GValueArray *params)
 
 /* Backtab. */
 static void
-vte_sequence_handler_bt (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_back_tab (VteTerminal *terminal, GValueArray *params)
 {
 	long newcol;
 
@@ -1217,7 +1217,7 @@ vte_sequence_handler_cm (VteTerminal *terminal, GValueArray *params)
 
 /* Carriage return. */
 static void
-vte_sequence_handler_cr (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_carriage_return (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->screen->cursor_current.col = 0;
 }
@@ -1313,16 +1313,6 @@ vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
 	screen->cursor_current.row = CLAMP(screen->cursor_current.row,
 					   screen->insert_delta + start,
 					   screen->insert_delta + end);
-}
-
-/* Clear all tab stops. */
-static void
-vte_sequence_handler_ct (VteTerminal *terminal, GValueArray *params)
-{
-	if (terminal->pvt->tabstops != NULL) {
-		g_hash_table_destroy(terminal->pvt->tabstops);
-		terminal->pvt->tabstops = NULL;
-	}
 }
 
 /* Move the cursor to the lower left-hand corner. */
@@ -1569,7 +1559,7 @@ vte_sequence_handler_ei (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_form_feed (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_index (terminal, params);
+        vte_sequence_handler_line_feed (terminal, params);
 }
 
 /* Move the cursor to the home position. */
@@ -1613,16 +1603,7 @@ vte_sequence_handler_im (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_index (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_sf (terminal, params);
-}
-
-/* Send me a backspace key sym, will you?  Guess that the application meant
- * to send the cursor back one position. */
-static void
-vte_sequence_handler_kb (VteTerminal *terminal, GValueArray *params)
-{
-	/* Move the cursor left. */
-	vte_sequence_handler_le (terminal, params);
+        vte_sequence_handler_line_feed (terminal, params);
 }
 
 /* Keypad mode end. */
@@ -1641,7 +1622,7 @@ vte_sequence_handler_ks (VteTerminal *terminal, GValueArray *params)
 
 /* Cursor left. */
 static void
-vte_sequence_handler_le (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_backspace (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 
@@ -1657,7 +1638,7 @@ vte_sequence_handler_le (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_LE (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_le);
+        vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_backspace);
 }
 
 /* Move the cursor to the lower left corner of the display. */
@@ -1751,13 +1732,6 @@ vte_sequence_handler_noop (VteTerminal *terminal, GValueArray *params)
 {
 }
 
-/* Carriage return command(?). */
-static void
-vte_sequence_handler_nw (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_cr (terminal, params);
-}
-
 /* Restore cursor (position). */
 static void
 vte_sequence_handler_rc (VteTerminal *terminal, GValueArray *params)
@@ -1770,13 +1744,6 @@ vte_sequence_handler_rc (VteTerminal *terminal, GValueArray *params)
 					   screen->insert_delta,
 					   screen->insert_delta +
 					   terminal->pvt->row_count - 1);
-}
-
-/* Cursor down, with scrolling. */
-static void
-vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_sr (terminal, params);
 }
 
 /* Cursor right N characters. */
@@ -1939,17 +1906,9 @@ vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
 
 /* Cursor down, with scrolling. */
 static void
-vte_sequence_handler_sf (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_line_feed (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_terminal_cursor_down (terminal);
-}
-
-/* Cursor down, with scrolling. */
-static void
-vte_sequence_handler_SF (VteTerminal *terminal, GValueArray *params)
-{
-	/* XXX implement this directly in _vte_terminal_cursor_down */
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_sf);
 }
 
 /* Standout start. */
@@ -1959,9 +1918,9 @@ vte_sequence_handler_so (VteTerminal *terminal, GValueArray *params)
         terminal->pvt->screen->defaults.attr.reverse = 1;
 }
 
-/* Cursor up, scrolling if need be. */
+/* Cursor up 1 line, with scrolling. */
 static void
-vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
 {
 	long start, end;
 	VteScreen *screen;
@@ -1996,16 +1955,9 @@ vte_sequence_handler_sr (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->text_modified_flag = TRUE;
 }
 
-/* Cursor up, with scrolling. */
-static void
-vte_sequence_handler_SR (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_sr);
-}
-
 /* Set tab stop in the current column. */
 static void
-vte_sequence_handler_st (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_tab_set (VteTerminal *terminal, GValueArray *params)
 {
 	if (terminal->pvt->tabstops == NULL) {
 		terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
@@ -2016,7 +1968,7 @@ vte_sequence_handler_st (VteTerminal *terminal, GValueArray *params)
 
 /* Tab. */
 static void
-vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	long old_len, newcol, col;
@@ -2103,6 +2055,12 @@ vte_sequence_handler_ta (VteTerminal *terminal, GValueArray *params)
 				screen->cursor_current.row, 1);
 		screen->cursor_current.col = newcol;
 	}
+}
+
+static void
+vte_sequence_handler_cursor_forward_tabulation (VteTerminal *terminal, GValueArray *params)
+{
+        vte_sequence_handler_multiple_r(terminal, params, vte_sequence_handler_tab);
 }
 
 /* Clear tabs selectively. */
@@ -2218,7 +2176,7 @@ vte_sequence_handler_ve (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_vertical_tab (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_index (terminal, params);
+        vte_sequence_handler_line_feed (terminal, params);
 }
 
 /* Cursor invisible. */
