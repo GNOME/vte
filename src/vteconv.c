@@ -113,7 +113,7 @@ _vte_conv_utf8_utf8(GIConv converter,
 	size_t bytes;
 
 	/* We don't tolerate shenanigans! */
-	g_assert(*outbytes_left >= *inbytes_left);
+	g_assert_cmpuint(*outbytes_left, >=, *inbytes_left);
 
 	/* The only error we can throw is EILSEQ, so check for that here. */
         validated = _vte_conv_utf8_validate(*inbuf, *inbytes_left, &endptr);
@@ -432,24 +432,14 @@ mixed_strcmp(gunichar *wide, gchar *narrow)
 static void
 test_utf8_strlen (void)
 {
-        gsize i;
-
-        i = _vte_conv_utf8_strlen("", 0);
-        g_assert(i == 0);
-	i = _vte_conv_utf8_strlen("\0\0\0\0", 4);
-	g_assert(i == 4);
-	i = _vte_conv_utf8_strlen("\0A\0\0", 4);
-	g_assert(i == 4);
-	i = _vte_conv_utf8_strlen("\0A\0B", 4);
-	g_assert(i == 4);
-	i = _vte_conv_utf8_strlen("A\0B\0", 4);
-	g_assert(i == 4);
-        i = _vte_conv_utf8_strlen("ABCD", 4);
-        g_assert(i == 4);
-	i = _vte_conv_utf8_strlen("ABCDE", 4);
-	g_assert(i == 4);
-        i = _vte_conv_utf8_strlen("\xC2\xA0\xC2\xA0", 4);
-        g_assert(i == 2);
+        g_assert_cmpuint(_vte_conv_utf8_strlen("", 0), ==, 0);
+	g_assert_cmpuint(_vte_conv_utf8_strlen("\0\0\0\0", 4), ==, 4);
+	g_assert_cmpuint(_vte_conv_utf8_strlen("\0A\0\0", 4), ==, 4);
+	g_assert_cmpuint(_vte_conv_utf8_strlen("\0A\0B", 4), ==, 4);
+	g_assert_cmpuint(_vte_conv_utf8_strlen("A\0B\0", 4), ==, 4);
+        g_assert_cmpuint(_vte_conv_utf8_strlen("ABCD", 4), ==, 4);
+	g_assert_cmpuint(_vte_conv_utf8_strlen("ABCDE", 4), ==, 4);
+        g_assert_cmpuint(_vte_conv_utf8_strlen("\xC2\xA0\xC2\xA0", 4), ==, 2);
 }
 
 static void
@@ -494,18 +484,18 @@ test_utf8_get_char_validated (void)
 	static const char mbyte_test[] = { 0xe2, 0x94, 0x80 };
 	static const char mbyte_test_break[] = { 0xe2, 0xe2, 0xe2 };
 
-        g_assert(_vte_conv_utf8_get_char_validated("", 0) == -2);
-        g_assert(_vte_conv_utf8_get_char_validated("\0", 1) == 0);
-        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 1) == -2);
-        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 2) == -2);
-        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test, 3) == 0x2500);
-        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test_break, 1) == -2);
-        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test_break, 2) == -1);
-        g_assert(_vte_conv_utf8_get_char_validated(mbyte_test_break, 3) == -1);
-        g_assert(_vte_conv_utf8_get_char_validated("\x80\0", 2) == -1);
-        g_assert(_vte_conv_utf8_get_char_validated("\xE2\0", 2) == -1);
-        g_assert(_vte_conv_utf8_get_char_validated("\xE2\x94\0", 3) == -1);
-        g_assert(_vte_conv_utf8_get_char_validated("\xE2\x94\x80\0", 4) == 0x2500);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated("", 0), ==, (gunichar)-2);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated("\0", 1), ==, 0);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated(mbyte_test, 1), ==, (gunichar)-2);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated(mbyte_test, 2), ==, (gunichar)-2);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated(mbyte_test, 3), ==, 0x2500);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated(mbyte_test_break, 1), ==, (gunichar)-2);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated(mbyte_test_break, 2), ==, (gunichar)-1);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated(mbyte_test_break, 3), ==, (gunichar)-1);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated("\x80\0", 2), ==, (gunichar)-1);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated("\xE2\0", 2), ==, (gunichar)-1);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated("\xE2\x94\0", 3), ==, (gunichar)-1);
+        g_assert_cmpuint(_vte_conv_utf8_get_char_validated("\xE2\x94\x80\0", 4), ==, 0x2500);
 }
 
 /* Test g_iconv, no gunichar stuff. */
