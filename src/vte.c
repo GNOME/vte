@@ -7744,6 +7744,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		vte_terminal_match_hilite_hide (terminal);
 		/* Mark the cursor as invisible to disable hilite updating */
 		terminal->pvt->mouse_cursor_visible = FALSE;
+		terminal->pvt->mouse_last_button = 0;
 	}
 
 	terminal->pvt->has_focus = FALSE;
