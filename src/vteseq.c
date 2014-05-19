@@ -1143,43 +1143,33 @@ vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 			      screen->cursor_current.row, 1);
 }
 
-/* Move the cursor to the given column (horizontal position). */
+/* Move the cursor to the given column (horizontal position), 1-based. */
 static void
-vte_sequence_handler_ch (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	GValue *value;
 	long val;
 
 	screen = terminal->pvt->screen;
-	/* We only care if there's a parameter in there. */
+
+        val = 0;
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-			val = CLAMP(g_value_get_long(value),
+                        val = CLAMP(g_value_get_long(value) - 1,
 				    0,
 				    terminal->pvt->column_count - 1);
-			/* Move the cursor. */
-			screen->cursor_current.col = val;
-			_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 		}
 	}
+
+        screen->cursor_current.col = val;
+        _vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 }
 
-/* Clear the screen and home the cursor. */
+/* Move the cursor to the given position, 1-based. */
 static void
-vte_sequence_handler_cl (VteTerminal *terminal, GValueArray *params)
-{
-	_vte_terminal_clear_screen (terminal);
-	_vte_terminal_home_cursor (terminal);
-
-	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
-}
-
-/* Move the cursor to the given position. */
-static void
-vte_sequence_handler_cm (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *row, *col;
 	long rowval, colval, origin;
@@ -1199,13 +1189,13 @@ vte_sequence_handler_cm (VteTerminal *terminal, GValueArray *params)
 			} else {
 				origin = 0;
 			}
-			rowval = g_value_get_long(row) + origin;
+                        rowval = g_value_get_long(row) - 1 + origin;
 			rowval = CLAMP(rowval, 0, terminal->pvt->row_count - 1);
 		}
 		if (params->n_values >= 2) {
 			col = g_value_array_get_nth(params, 1);
 			if (G_VALUE_HOLDS_LONG(col)) {
-				colval = g_value_get_long(col);
+                                colval = g_value_get_long(col) - 1;
 				colval = CLAMP(colval, 0, terminal->pvt->column_count - 1);
 			}
 		}
@@ -1315,37 +1305,25 @@ vte_sequence_handler_cS (VteTerminal *terminal, GValueArray *params)
 					   screen->insert_delta + end);
 }
 
-/* Move the cursor to the lower left-hand corner. */
-static void
-vte_sequence_handler_cursor_lower_left (VteTerminal *terminal, GValueArray *params)
-{
-	VteScreen *screen;
-	long row;
-	screen = terminal->pvt->screen;
-	row = MAX(0, terminal->pvt->row_count - 1);
-	screen->cursor_current.row = screen->insert_delta + row;
-	screen->cursor_current.col = 0;
-}
-
-/* Move the cursor to the beginning of the next line, no scrolling. */
+/* Move the cursor to the beginning of the Nth next line, no scrolling. */
 static void
 vte_sequence_handler_cursor_next_line (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->screen->cursor_current.col = 0;
-	vte_sequence_handler_DO (terminal, params);
+        vte_sequence_handler_cursor_down (terminal, params);
 }
 
-/* Move the cursor to the beginning of the previous line, no scrolling. */
+/* Move the cursor to the beginning of the Nth previous line, no scrolling. */
 static void
 vte_sequence_handler_cursor_preceding_line (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->screen->cursor_current.col = 0;
-	vte_sequence_handler_UP (terminal, params);
+        vte_sequence_handler_cursor_up (terminal, params);
 }
 
-/* Move the cursor to the given row (vertical position). */
+/* Move the cursor to the given row (vertical position), 1-based. */
 static void
-vte_sequence_handler_cv (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	GValue *value;
@@ -1362,7 +1340,7 @@ vte_sequence_handler_cv (VteTerminal *terminal, GValueArray *params)
 			} else {
 				origin = 0;
 			}
-			val = g_value_get_long(value) + origin;
+                        val = g_value_get_long(value) - 1 + origin;
 			val = CLAMP(val, 0, terminal->pvt->row_count - 1);
 			screen->cursor_current.row = screen->insert_delta + val;
 		}
@@ -1461,32 +1439,33 @@ vte_sequence_handler_DL (VteTerminal *terminal, GValueArray *params)
 	vte_sequence_handler_dl (terminal, params);
 }
 
-/* Cursor down, no scrolling. */
+/* Cursor down N lines, no scrolling. */
 static void
-vte_sequence_handler_do (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_down (VteTerminal *terminal, GValueArray *params)
 {
-	long start, end;
+        long end;
 	VteScreen *screen;
+        GValue *value;
+        long val;
 
 	screen = terminal->pvt->screen;
 
 	if (screen->scrolling_restricted) {
-		start = screen->insert_delta + screen->scrolling_region.start;
 		end = screen->insert_delta + screen->scrolling_region.end;
 	} else {
-		start = screen->insert_delta;
-		end = start + terminal->pvt->row_count - 1;
+                end = screen->insert_delta + terminal->pvt->row_count - 1;
 	}
 
-	/* Move the cursor down. */
-	screen->cursor_current.row = MIN(screen->cursor_current.row + 1, end);
-}
+        val = 1;
+        if (params != NULL && params->n_values >= 1) {
+                value = g_value_array_get_nth(params, 0);
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        val = CLAMP(g_value_get_long(value),
+                                    1, terminal->pvt->row_count);
+                }
+        }
 
-/* Cursor down, no scrolling. */
-static void
-vte_sequence_handler_DO (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_do);
+        screen->cursor_current.row = MIN(screen->cursor_current.row + val, end);
 }
 
 /* Start using alternate character set. */
@@ -1562,13 +1541,6 @@ vte_sequence_handler_form_feed (VteTerminal *terminal, GValueArray *params)
         vte_sequence_handler_line_feed (terminal, params);
 }
 
-/* Move the cursor to the home position. */
-static void
-vte_sequence_handler_ho (VteTerminal *terminal, GValueArray *params)
-{
-	_vte_terminal_home_cursor (terminal);
-}
-
 /* Insert a character. */
 static void
 vte_sequence_handler_ic (VteTerminal *terminal, GValueArray *params)
@@ -1599,7 +1571,7 @@ vte_sequence_handler_im (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->screen->insert_mode = TRUE;
 }
 
-/* Cursor down, with scrolling. */
+/* Cursor down 1 line, with scrolling. */
 static void
 vte_sequence_handler_index (VteTerminal *terminal, GValueArray *params)
 {
@@ -1634,23 +1606,24 @@ vte_sequence_handler_backspace (VteTerminal *terminal, GValueArray *params)
 	}
 }
 
-/* Move the cursor left N columns. */
+/* Cursor left N columns. */
 static void
-vte_sequence_handler_LE (VteTerminal *terminal, GValueArray *params)
-{
-        vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_backspace);
-}
-
-/* Move the cursor to the lower left corner of the display. */
-static void
-vte_sequence_handler_ll (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_backward (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	screen->cursor_current.row = MAX(screen->insert_delta,
-					 screen->insert_delta +
-					 terminal->pvt->row_count - 1);
-	screen->cursor_current.col = 0;
+        GValue *value;
+        long val;
+
+        screen = terminal->pvt->screen;
+
+        val = 1;
+        if (params != NULL && params->n_values >= 1) {
+                value = g_value_array_get_nth(params, 0);
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        val = MAX(g_value_get_long(value), 1);
+                }
+        }
+        screen->cursor_current.col = MAX(screen->cursor_current.col - val, 1);
 }
 
 /* Blink on. */
@@ -1706,15 +1679,29 @@ vte_sequence_handler_mr (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->screen->defaults.attr.reverse = 1;
 }
 
-/* Cursor right. */
+/* Cursor right N columns. */
 static void
-vte_sequence_handler_nd (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_forward (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
+        GValue *value;
+        long val;
+
 	screen = terminal->pvt->screen;
-	if ((screen->cursor_current.col + 1) < terminal->pvt->column_count) {
+
+        val = 1;
+        if (params != NULL && params->n_values >= 1) {
+                value = g_value_array_get_nth(params, 0);
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        val = CLAMP(g_value_get_long(value),
+                                    1, terminal->pvt->column_count);
+                }
+        }
+        /* The cursor can be further to the right, don't move in that case. */
+        if (screen->cursor_current.col < terminal->pvt->column_count) {
 		/* There's room to move right. */
-		screen->cursor_current.col++;
+                screen->cursor_current.col = MIN(screen->cursor_current.col + val,
+                                                 terminal->pvt->column_count - 1);
 	}
 }
 
@@ -1744,13 +1731,6 @@ vte_sequence_handler_rc (VteTerminal *terminal, GValueArray *params)
 					   screen->insert_delta,
 					   screen->insert_delta +
 					   terminal->pvt->row_count - 1);
-}
-
-/* Cursor right N characters. */
-static void
-vte_sequence_handler_RI (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_multiple_r(terminal, params, vte_sequence_handler_nd);
 }
 
 /* Save cursor (position). */
@@ -1904,7 +1884,7 @@ vte_sequence_handler_se (VteTerminal *terminal, GValueArray *params)
         terminal->pvt->screen->defaults.attr.reverse = 0;
 }
 
-/* Cursor down, with scrolling. */
+/* Cursor down 1 line, with scrolling. */
 static void
 vte_sequence_handler_line_feed (VteTerminal *terminal, GValueArray *params)
 {
@@ -2111,7 +2091,7 @@ vte_sequence_handler_uc (VteTerminal *terminal, GValueArray *params)
 				      column, cell->attr.columns,
 				      screen->cursor_current.row, 1);
 		/* Move the cursor right. */
-		vte_sequence_handler_nd (terminal, params);
+		vte_sequence_handler_cursor_forward (terminal, params);
 	}
 
 	/* We've modified the display without changing the text.  Make a note
@@ -2126,12 +2106,14 @@ vte_sequence_handler_ue (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->screen->defaults.attr.underline = 0;
 }
 
-/* Cursor up, no scrolling. */
+/* Cursor up N lines, no scrolling. */
 static void
-vte_sequence_handler_up (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_up (VteTerminal *terminal, GValueArray *params)
 {
 	VteScreen *screen;
 	long start;
+        GValue *value;
+        long val;
 
 	screen = terminal->pvt->screen;
 
@@ -2141,14 +2123,16 @@ vte_sequence_handler_up (VteTerminal *terminal, GValueArray *params)
 		start = screen->insert_delta;
 	}
 
-	screen->cursor_current.row = MAX(screen->cursor_current.row - 1, start);
-}
+        val = 1;
+        if (params != NULL && params->n_values >= 1) {
+                value = g_value_array_get_nth(params, 0);
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        val = CLAMP(g_value_get_long(value),
+                                    1, terminal->pvt->row_count);
+                }
+        }
 
-/* Cursor up N lines, no scrolling. */
-static void
-vte_sequence_handler_UP (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_multiple(terminal, params, vte_sequence_handler_up);
+        screen->cursor_current.row = MAX(screen->cursor_current.row - val, start);
 }
 
 /* Underline start. */
@@ -2447,36 +2431,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		terminal->pvt->screen->defaults.attr.back;
 }
 
-/* Move the cursor to the given column, 1-based. */
-static void
-vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArray *params)
-{
-	VteScreen *screen;
-	GValue *value;
-	long val;
-
-	screen = terminal->pvt->screen;
-
-        val = 0;
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			val = CLAMP(g_value_get_long(value),
-				    1, terminal->pvt->column_count) - 1;
-		}
-	}
-
-        screen->cursor_current.col = val;
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
-}
-
-/* Move the cursor to the given position, 1-based. */
-static void
-vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
-}
-
+/* Move the cursor to the given column in the top row, 1-based. */
 static void
 vte_sequence_handler_cursor_position_top_row (VteTerminal *terminal, GValueArray *params)
 {
@@ -2487,7 +2442,7 @@ vte_sequence_handler_cursor_position_top_row (VteTerminal *terminal, GValueArray
 
         g_value_array_insert (params, 0, &value);
 
-        vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cm);
+        vte_sequence_handler_cursor_position(terminal, params);
 }
 
 /* Request terminal attributes. */
@@ -2678,16 +2633,25 @@ vte_sequence_handler_normal_keypad (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 }
 
-/* Move the cursor. */
+/* Move the cursor to the given column (horizontal position), 1-based. */
 static void
 vte_sequence_handler_character_position_absolute (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_ch);
-}
-static void
-vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray *params)
-{
-	vte_sequence_handler_offset(terminal, params, -1, vte_sequence_handler_cv);
+        VteScreen *screen;
+        GValue *value;
+        long val;
+
+        screen = terminal->pvt->screen;
+        /* We only care if there's a parameter in there. */
+        if ((params != NULL) && (params->n_values > 0)) {
+                value = g_value_array_get_nth(params, 0);
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        val = g_value_get_long(value);
+                        if (val > 0) {
+                                vte_sequence_handler_cursor_character_absolute (terminal, params);
+                        }
+                }
+        }
 }
 
 /* Set certain terminal attributes. */

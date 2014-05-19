@@ -32,7 +32,7 @@ struct vteseq_n_struct {
 "tab-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_tab_set)
 "decreset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_decreset)
 "set-mode", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_mode)
-"cursor-up", VTE_SEQUENCE_HANDLER(vte_sequence_handler_UP)
+"cursor-up", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_up)
 "form-feed", VTE_SEQUENCE_HANDLER(vte_sequence_handler_form_feed)
 "next-line", VTE_SEQUENCE_HANDLER(vte_sequence_handler_next_line)
 "save-mode", VTE_SEQUENCE_HANDLER(vte_sequence_handler_save_mode)
@@ -42,7 +42,7 @@ struct vteseq_n_struct {
 #"media-copy", VTE_SEQUENCE_HANDLER_NULL
 "reset-mode", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_mode)
 "soft-reset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_soft_reset)
-"cursor-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DO)
+"cursor-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_down)
 #"memory-lock", VTE_SEQUENCE_HANDLER_NULL
 "save-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_sc)
 "scroll-down", VTE_SEQUENCE_HANDLER(vte_sequence_handler_scroll_down)
@@ -62,12 +62,12 @@ struct vteseq_n_struct {
 #"7-bit-controls", VTE_SEQUENCE_HANDLER_NULL
 #"8-bit-controls", VTE_SEQUENCE_HANDLER_NULL
 #"change-logfile", VTE_SEQUENCE_HANDLER_NULL
-"cursor-forward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_RI)
+"cursor-forward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_forward)
 #"dec-media-copy", VTE_SEQUENCE_HANDLER_NULL
 "restore-cursor", VTE_SEQUENCE_HANDLER(vte_sequence_handler_rc)
 "set-icon-title", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_icon_title)
 "cursor-back-tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_back_tab)
-"cursor-backward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_LE)
+"cursor-backward", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_backward)
 "cursor-position", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_position)
 "cursor-position-top-row", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_position_top_row)
 #"single-shift-g2", VTE_SEQUENCE_HANDLER_NULL
@@ -77,7 +77,7 @@ struct vteseq_n_struct {
 "erase-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_erase_characters)
 "erase-in-display", VTE_SEQUENCE_HANDLER(vte_sequence_handler_erase_in_display)
 "set-window-title", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_window_title)
-"cursor-lower-left", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cursor_lower_left)
+#"cursor-lower-left", VTE_SEQUENCE_HANDLER_NULL
 "delete-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DC)
 "application-keypad", VTE_SEQUENCE_HANDLER(vte_sequence_handler_application_keypad)
 #"change-font-number", VTE_SEQUENCE_HANDLER_NULL

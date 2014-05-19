@@ -76,7 +76,7 @@ struct vteseq_2_struct {
 "AL", VTE_SEQUENCE_HANDLER(vte_sequence_handler_AL)
 "DC", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DC)
 "DL", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DL)
-"DO", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DO)
+#"DO", VTE_SEQUENCE_HANDLER(vte_sequence_handler_DO)
 #"F1", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"F2", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"F3", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
@@ -136,7 +136,7 @@ struct vteseq_2_struct {
 #"K3", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"K4", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
 #"K5", VTE_SEQUENCE_HANDLER(vte_sequence_handler_complain_key)
-"LE", VTE_SEQUENCE_HANDLER(vte_sequence_handler_LE)
+#"LE", VTE_SEQUENCE_HANDLER(vte_sequence_handler_LE)
 #"LF", VTE_SEQUENCE_HANDLER_NULL
 #"LO", VTE_SEQUENCE_HANDLER_NULL
 #"MC", VTE_SEQUENCE_HANDLER_NULL
@@ -144,13 +144,13 @@ struct vteseq_2_struct {
 #"MR", VTE_SEQUENCE_HANDLER_NULL
 #"RA", VTE_SEQUENCE_HANDLER_NULL
 #"RF", VTE_SEQUENCE_HANDLER_NULL
-"RI", VTE_SEQUENCE_HANDLER(vte_sequence_handler_RI)
+#"RI", VTE_SEQUENCE_HANDLER(vte_sequence_handler_RI)
 #"RX", VTE_SEQUENCE_HANDLER_NULL
 #"SA", VTE_SEQUENCE_HANDLER_NULL
 #"SF", VTE_SEQUENCE_HANDLER(vte_sequence_handler_SF)
 #"SR", VTE_SEQUENCE_HANDLER(vte_sequence_handler_SR)
 #"SX", VTE_SEQUENCE_HANDLER_NULL
-"UP", VTE_SEQUENCE_HANDLER(vte_sequence_handler_UP)
+#"UP", VTE_SEQUENCE_HANDLER(vte_sequence_handler_UP)
 #"XF", VTE_SEQUENCE_HANDLER_NULL
 "ae", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ae)
 "al", VTE_SEQUENCE_HANDLER(vte_sequence_handler_al)
@@ -163,13 +163,13 @@ struct vteseq_2_struct {
 "cc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
 "cd", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cd)
 "ce", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ce)
-"ch", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ch)
-"cl", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cl)
-"cm", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cm)
+#"ch", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ch)
+#"cl", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cl)
+#"cm", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cm)
 #"cr", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cr)
 "cs", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cs)
 #"ct", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ct)
-"cv", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cv)
+#"cv", VTE_SEQUENCE_HANDLER(vte_sequence_handler_cv)
 "dc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dc)
 "dl", VTE_SEQUENCE_HANDLER(vte_sequence_handler_dl)
 "dm", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
@@ -182,7 +182,7 @@ struct vteseq_2_struct {
 "ff", VTE_SEQUENCE_HANDLER(vte_sequence_handler_noop)
 #"fs", VTE_SEQUENCE_HANDLER_NULL
 #"hd", VTE_SEQUENCE_HANDLER_NULL
-"ho", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ho)
+#"ho", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ho)
 #"hu", VTE_SEQUENCE_HANDLER_NULL
 #"i1", VTE_SEQUENCE_HANDLER_NULL
 #"i3", VTE_SEQUENCE_HANDLER_NULL
@@ -240,7 +240,7 @@ struct vteseq_2_struct {
 #"l9", VTE_SEQUENCE_HANDLER_NULL
 #"la", VTE_SEQUENCE_HANDLER_NULL
 #"le", VTE_SEQUENCE_HANDLER(vte_sequence_handler_le)
-"ll", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ll)
+#"ll", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ll)
 "mb", VTE_SEQUENCE_HANDLER(vte_sequence_handler_mb)
 "md", VTE_SEQUENCE_HANDLER(vte_sequence_handler_md)
 "me", VTE_SEQUENCE_HANDLER(vte_sequence_handler_me)
@@ -250,7 +250,7 @@ struct vteseq_2_struct {
 #"mo", VTE_SEQUENCE_HANDLER_NULL
 "mp", VTE_SEQUENCE_HANDLER(vte_sequence_handler_mp)
 "mr", VTE_SEQUENCE_HANDLER(vte_sequence_handler_mr)
-"nd", VTE_SEQUENCE_HANDLER(vte_sequence_handler_nd)
+#"nd", VTE_SEQUENCE_HANDLER(vte_sequence_handler_nd)
 #"nw", VTE_SEQUENCE_HANDLER(vte_sequence_handler_nw)
 #"pO", VTE_SEQUENCE_HANDLER_NULL
 #"pc", VTE_SEQUENCE_HANDLER_NULL
@@ -282,7 +282,7 @@ struct vteseq_2_struct {
 #"ts", VTE_SEQUENCE_HANDLER_NULL
 "uc", VTE_SEQUENCE_HANDLER(vte_sequence_handler_uc)
 "ue", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ue)
-"up", VTE_SEQUENCE_HANDLER(vte_sequence_handler_up)
+#"up", VTE_SEQUENCE_HANDLER(vte_sequence_handler_up)
 "us", VTE_SEQUENCE_HANDLER(vte_sequence_handler_us)
 "vb", VTE_SEQUENCE_HANDLER(vte_sequence_handler_vb)
 "ve", VTE_SEQUENCE_HANDLER(vte_sequence_handler_ve)

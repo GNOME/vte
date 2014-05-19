@@ -76,7 +76,7 @@ struct _vte_capability_string _vte_xterm_capability_strings[] = {
 	{ESC ">", "normal-keypad", 0},
 	{ESC "D", "index", 0},
 	{ESC "E", "next-line", 0},
-	{ESC "F", "cursor-lower-left", 0},
+        /* {ESC "F", "cursor-lower-left", 0}, */
 	{ESC "H", "tab-set", 0},
 	{ESC "M", "reverse-index", 0},
 	/* {ESC "N", "single-shift-g2", 0}, */
