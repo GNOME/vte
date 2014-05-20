@@ -60,8 +60,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	ring.h \
 	table.c \
 	table.h \
-	trie.c \
-	trie.h \
 	vte.c \
 	vte.h \
 	vte-private.h \
@@ -305,8 +303,8 @@ TEST_SH = \
 	$(NULL)
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table trie xticker vteconv
-TESTS = table trie vteconv $(TEST_SH)
+check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table xticker vteconv
+TESTS = table vteconv $(TEST_SH)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
@@ -330,8 +328,6 @@ interpret_SOURCES = \
 	matcher.h \
 	table.c \
 	table.h \
-	trie.c \
-	trie.h \
 	vteconv.c \
 	vteconv.h \
 	vtetree.c \
@@ -362,8 +358,6 @@ iso2022_SOURCES = \
 	matcher.h \
 	table.c \
 	table.h \
-	trie.c \
-	trie.h \
 	vteconv.c \
 	vteconv.h \
 	vtetree.c \
@@ -395,8 +389,6 @@ table_SOURCES = \
 	matcher.h \
 	table.c \
 	table.h \
-	trie.c \
-	trie.h \
 	vteconv.c \
 	vteconv.h \
 	$(NULL)
@@ -407,32 +399,6 @@ table_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(AM_CFLAGS)
 table_LDADD = \
-	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS)
-
-trie_SOURCES = \
-	trie.c \
-	trie.h \
-	buffer.h \
-	caps.c \
-	caps.h \
-	debug.c \
-	debug.h \
-	matcher.c \
-	matcher.h \
-	table.c \
-	table.h \
-	vteconv.c \
-	vteconv.h \
-	$(NULL)
-trie_CPPFLAGS = \
-	-DTRIE_MAIN \
-	$(AM_CPPFLAGS)
-trie_CFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(AM_CFLAGS)
-trie_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
 

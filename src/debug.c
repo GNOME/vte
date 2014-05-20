@@ -42,7 +42,7 @@ _vte_debug_init(void)
     { "cursor",       VTE_DEBUG_CURSOR       },
     { "keyboard",     VTE_DEBUG_KEYBOARD     },
     { "lifecycle",    VTE_DEBUG_LIFECYCLE    },
-    { "trie",         VTE_DEBUG_TRIE         },
+    { "matcher",      VTE_DEBUG_MATCHER      },
     { "work",         VTE_DEBUG_WORK         },
     { "cells",        VTE_DEBUG_CELLS        },
     { "timeout",      VTE_DEBUG_TIMEOUT      },

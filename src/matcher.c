@@ -25,7 +25,6 @@
 #include "caps.h"
 #include "matcher.h"
 #include "table.h"
-#include "trie.h"
 
 struct _vte_matcher {
 	_vte_matcher_match_func match; /* shortcut to the most common op */
@@ -66,8 +65,8 @@ _vte_matcher_init(struct _vte_matcher *matcher)
                                  value, 0);
         }
 
-	_VTE_DEBUG_IF(VTE_DEBUG_TRIE) {
-		g_printerr("Trie contents:\n");
+	_VTE_DEBUG_IF(VTE_DEBUG_MATCHER) {
+		g_printerr("Matcher contents:\n");
 		_vte_matcher_print(matcher);
 		g_printerr("\n");
 	}
@@ -81,7 +80,6 @@ _vte_matcher_create(void)
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_create()\n");
 	ret = g_slice_new(struct _vte_matcher);
-        /* FIXMEchpe,egmont: The trie matcher is never used, we should remove it */
         ret->impl = &dummy_vte_matcher_table;
 	ret->match = NULL;
 	ret->free_params = NULL;
