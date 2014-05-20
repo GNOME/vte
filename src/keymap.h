@@ -24,8 +24,6 @@
 #include <glib.h>
 #include <gdk/gdk.h>
 
-#include "vteti.h"
-
 G_BEGIN_DECLS
 
 #define VTE_META_MASK		GDK_META_MASK

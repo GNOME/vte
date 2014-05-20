@@ -55,7 +55,6 @@
 #include "vteint.h"
 #include "vtepty.h"
 #include "vtepty-private.h"
-#include "vteti.h"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -80,7 +79,6 @@ typedef gunichar wint_t;
 #endif
 
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
-static void vte_terminal_set_terminfo(VteTerminal *terminal);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
@@ -155,7 +153,6 @@ enum {
         PROP_CURRENT_DIRECTORY_URI,
         PROP_CURRENT_FILE_URI,
         PROP_DELETE_BINDING,
-        PROP_EMULATION,
         PROP_ENCODING,
         PROP_FONT_DESC,
         PROP_FONT_SCALE,
@@ -811,17 +808,6 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, gssize length
 
 	if(wrapped)
 		g_slice_free1(length+1, wrapped);
-}
-
-/* Emit an "emulation-changed" signal. */
-static void
-vte_terminal_emit_emulation_changed(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `emulation-changed'.\n");
-	g_signal_emit_by_name(terminal, "emulation-changed");
-        g_object_notify(G_OBJECT(terminal), "emulation");
-
 }
 
 /* Emit an "encoding-changed" signal. */
@@ -3371,8 +3357,6 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
         if (pty == NULL)
                 return NULL;
 
-        vte_pty_set_term(pty, vte_terminal_get_emulation(terminal));
-
         return pty;
 }
 
@@ -3475,8 +3459,8 @@ vte_get_user_shell (void)
  *
  * Starts the specified command under a newly-allocated controlling
  * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
- * The "TERM" environment variable is automatically set to reflect the
- * terminal widget's emulation setting.
+ * The "TERM" environment variable is automatically set to a default value,
+ * but can be overridden from @envv.
  * @pty_flags controls logging the session to the specified system log files.
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
@@ -5092,7 +5076,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
-		if (handled == FALSE && terminal->pvt->terminfo != NULL) {
+                if (handled == FALSE) {
 			_vte_keymap_map(keyval, modifiers,
 					terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
 					terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
@@ -7932,82 +7916,6 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
 				 terminal);
 }
 
-/**
- * vte_terminal_set_emulation:
- * @terminal: a #VteTerminal
- * @emulation: (allow-none): the name of a terminal description, or %NULL to use the default
- *
- * Sets what type of terminal the widget attempts to emulate by scanning for
- * control sequences defined in the system's terminfo file.  Unless you
- * are interested in this feature, always use "xterm".
- */
-void
-vte_terminal_set_emulation(VteTerminal *terminal, const char *emulation)
-{
-        GObject *object;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        object = G_OBJECT(terminal);
-
-        g_object_freeze_notify(object);
-
-	/* Set the emulation type, for reference. */
-	if (emulation == NULL) {
-		emulation = vte_get_default_emulation();
-	}
-	terminal->pvt->emulation = g_intern_string(emulation);
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Setting emulation to `%s'...\n", emulation);
-	/* Find and read the right terminfo file. */
-	vte_terminal_set_terminfo(terminal);
-
-	/* Create a table to hold the control sequences. */
-	if (terminal->pvt->matcher != NULL) {
-		_vte_matcher_free(terminal->pvt->matcher);
-	}
-	terminal->pvt->matcher = _vte_matcher_new(terminal->pvt->terminfo);
-
-	/* Notify observers that we changed our emulation. */
-	vte_terminal_emit_emulation_changed(terminal);
-
-        g_object_thaw_notify(object);
-}
-
-/**
- * vte_get_default_emulation:
- *
- * Returns the default emulation, which is used in #VteTerminal if the
- * terminal type passed to vte_terminal_set_emulation() is %NULL.
- *
- * Returns: (transfer none) (type utf8): an interned string containing the name
- *   of the default terminal type the widget attempts to emulate
- *
- * Since: 0.30
- */
-const char *
-vte_get_default_emulation(void)
-{
-	return g_intern_static_string(VTE_DEFAULT_EMULATION);
-}
-
-/**
- * vte_terminal_get_emulation:
- * @terminal: a #VteTerminal
- *
- * Queries the terminal for its current emulation, as last set by a call to
- * vte_terminal_set_emulation().
- *
- * Returns: an interned string containing the name of the terminal type the
- *   widget is attempting to emulate
- */
-const char *
-vte_terminal_get_emulation(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->emulation;
-}
-
 void
 _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...)
 {
@@ -8024,34 +7932,6 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 	g_free (str);
 }
 
-/* Set the path to the terminfo file we read, and read it in. */
-static void
-vte_terminal_set_terminfo(VteTerminal *terminal)
-{
-        GObject *object = G_OBJECT(terminal);
-        const char *emulation;
-
-        g_object_freeze_notify(object);
-
-        emulation = terminal->pvt->emulation ? terminal->pvt->emulation
-                                             : vte_get_default_emulation();
-
-	_vte_debug_print(VTE_DEBUG_MISC, "Loading terminfo `%s'...",
-			 emulation);
-	if (terminal->pvt->terminfo != NULL) {
-		_vte_terminfo_unref(terminal->pvt->terminfo);
-	}
-	terminal->pvt->terminfo = _vte_terminfo_new(emulation);
-	_vte_debug_print(VTE_DEBUG_MISC, "\n");
-	if (terminal->pvt->terminfo == NULL) {
-		_vte_terminal_inline_error_message(terminal,
-				"Failed to load terminal capabilities for '%s'",
-				emulation);
-	}
-
-        g_object_thaw_notify(object);
-}
-
 static void
 _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 {
@@ -8059,8 +7939,8 @@ _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 }
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
- * We need to create a new psuedo-terminal pair, read in the terminfo file, and
- * set ourselves up to do the interpretation of sequences. */
+ * We need to create a new psuedo-terminal pair, and set ourselves up to do
+ * the interpretation of sequences. */
 static void
 vte_terminal_init(VteTerminal *terminal)
 {
@@ -8133,16 +8013,16 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_encoding(terminal, NULL);
 	g_assert(terminal->pvt->encoding != NULL);
 
-	/* Load the terminfo data and set up the emulation. */
+        /* Set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
         pvt->autowrap = TRUE;
 	pvt->dec_saved = g_hash_table_new(NULL, NULL);
+        pvt->matcher = _vte_matcher_new();
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         pvt->pty = NULL;
-	vte_terminal_set_emulation(terminal, NULL);
         vte_terminal_set_size(terminal, VTE_COLUMNS, VTE_ROWS);
 	pvt->pty_input_source = 0;
 	pvt->pty_output_source = 0;
@@ -8632,9 +8512,6 @@ vte_terminal_finalize(GObject *object)
 	/* Clean up emulation structures. */
 	if (terminal->pvt->matcher != NULL) {
 		_vte_matcher_free(terminal->pvt->matcher);
-	}
-	if (terminal->pvt->terminfo != NULL) {
-		_vte_terminfo_unref(terminal->pvt->terminfo);
 	}
 
 	remove_update_timeout (terminal);
@@ -10680,9 +10557,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_DELETE_BINDING:
                         g_value_set_enum (value, pvt->delete_binding);
                         break;
-                case PROP_EMULATION:
-                        g_value_set_string (value, vte_terminal_get_emulation (terminal));
-                        break;
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
                         break;
@@ -10774,9 +10648,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_DELETE_BINDING:
                         vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
-                        break;
-                case PROP_EMULATION:
-                        vte_terminal_set_emulation (terminal, g_value_get_string (value));
                         break;
                 case PROP_ENCODING:
                         vte_terminal_set_encoding (terminal, g_value_get_string (value));
@@ -10895,7 +10766,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	/* Initialize default handlers. */
 	klass->eof = NULL;
 	klass->child_exited = NULL;
-	klass->emulation_changed = NULL;
 	klass->encoding_changed = NULL;
 	klass->char_size_changed = NULL;
 	klass->window_title_changed = NULL;
@@ -11070,22 +10940,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 		     NULL,
 		     _vte_marshal_VOID__STRING_UINT,
 		     G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
-
-        /**
-         * VteTerminal::emulation-changed:
-         * @vteterminal: the object which received the signal
-         *
-         * Emitted whenever the terminal's emulation changes, only possible at
-         * the parent application's request.
-         */
-	g_signal_new(I_("emulation-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, emulation_changed),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::char-size-changed:
@@ -11550,22 +11404,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VteTerminal:emulation:
-         *
-         * Sets what type of terminal the widget attempts to emulate by scanning for
-         * control sequences defined in the system's terminfo file.  Unless you
-         * are interested in this feature, always use the default which is "xterm".
-         *
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_EMULATION,
-                 g_param_spec_string ("emulation", NULL, NULL,
-                                      VTE_DEFAULT_EMULATION,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * VteTerminal:font-scale:

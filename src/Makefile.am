@@ -37,8 +37,6 @@ EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	unitable.JIS0208 \
 	unitable.JIS0212 \
 	unitable.KSX1001 \
-	vteseq-2.gperf \
-	vteseq-2.c \
 	vteseq-n.gperf \
 	vteseq-n.c \
 	vtetypebuiltins.c.template \
@@ -88,9 +86,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtestream-base.h \
 	vtestream-file.h \
 	vteterminal.h \
-	vteti.c \
-	vteti.h \
-	vtetivars.h \
 	vtetree.c \
 	vtetree.h \
 	vteunistr.c \
@@ -121,7 +116,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS = \
 	$(VTE_CFLAGS) \
-	$(TERMINFO_CFLAGS) \
 	$(AM_CFLAGS)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
@@ -131,15 +125,14 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
 	$(AM_LDFLAGS)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
-	$(VTE_LIBS) \
-	$(TERMINFO_LIBS)
+	$(VTE_LIBS)
 
 # Generated sources
 
-VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-2.c vteseq-n.c
+VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-n.c
 BUILT_SOURCES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
 MAINTAINERCLEANFILES += $(VTESEQ_BUILTSOURCES)
-EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt box_drawing_generate.sh iso2022.txt vtetivars.awk
+EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt box_drawing_generate.sh iso2022.txt
 CLEANFILES += box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
 
 box_drawing.h: box_drawing.txt
@@ -164,25 +157,17 @@ vtetypebuiltins.c: vtetypebuiltins.c.template vteenums.h
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
 
-vteseq-2.c: vteseq-2.gperf
-	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 --no-strlen $< > $@.tmp && \
-	mv -f $@.tmp $@
-
 vteseq-n.c: vteseq-n.gperf
 	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
 	mv -f $@.tmp $@
 
-vteseq-list.h: vteseq-2.gperf vteseq-n.gperf
+vteseq-list.h: vteseq-n.gperf
 	$(AM_V_GEN) echo '/* Generated file.  Do not edit */' > $@.tmp && \
 	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
 	mv -f $@.tmp $@
 
 vteresources.c: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate --c-name vte $<
-
-vtetivars.h: vtetivars.awk
-	$(AM_V_GEN) $(top_srcdir)/missing --run gawk -f $< Caps > $@.tmp && \
-	mv -f $@.tmp $@
 
 # introspection
 
@@ -320,7 +305,7 @@ TEST_SH = \
 	$(NULL)
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table trie xticker vteconv vteti
+check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table trie xticker vteconv
 TESTS = table trie vteconv $(TEST_SH)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW $(AM_CPPFLAGS)
@@ -349,9 +334,6 @@ interpret_SOURCES = \
 	trie.h \
 	vteconv.c \
 	vteconv.h \
-	vteti.c \
-	vteti.h \
-	vtetivars.h \
 	vtetree.c \
 	vtetree.h \
 	interpret.c
@@ -363,12 +345,10 @@ interpret_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GOBJECT_CFLAGS) \
 	$(GTK_CFLAGS) \
-	$(TERMINFO_CFLAGS) \
 	$(AM_CFLAGS)
 interpret_LDADD = \
 	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS) \
-	$(TERMINFO_LIBS)
+	$(GOBJECT_LIBS)
 
 iso2022_SOURCES = \
 	buffer.h \
@@ -386,9 +366,6 @@ iso2022_SOURCES = \
 	trie.h \
 	vteconv.c \
 	vteconv.h \
-	vteti.c \
-	vteti.h \
-	vtetivars.h \
 	vtetree.c \
 	vtetree.h
 iso2022_CPPFLAGS = \
@@ -397,12 +374,10 @@ iso2022_CPPFLAGS = \
 iso2022_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GTK_CFLAGS) \
-	$(TERMINFO_CFLAGS) \
 	$(AM_CFLAGS)
 iso2022_LDADD = \
 	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS) \
-	$(TERMINFO_LIBS)
+	$(GOBJECT_LIBS)
 
 slowcat_SOURCES = \
 	slowcat.c \
@@ -424,21 +399,16 @@ table_SOURCES = \
 	trie.h \
 	vteconv.c \
 	vteconv.h \
-	vteti.c \
-	vteti.h \
-	vtetivars.h \
 	$(NULL)
 table_CPPFLAGS = \
 	-DTABLE_MAIN \
 	$(AM_CPPFLAGS)
 table_CFLAGS = \
 	$(GLIB_CFLAGS) \
-	$(TERMINFO_CFLAGS) \
 	$(AM_CFLAGS)
 table_LDADD = \
 	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS) \
-	$(TERMINFO_LIBS)
+	$(GOBJECT_LIBS)
 
 trie_SOURCES = \
 	trie.c \
@@ -454,9 +424,6 @@ trie_SOURCES = \
 	table.h \
 	vteconv.c \
 	vteconv.h \
-	vteti.c \
-	vteti.h \
-	vtetivars.h \
 	$(NULL)
 trie_CPPFLAGS = \
 	-DTRIE_MAIN \
@@ -464,30 +431,10 @@ trie_CPPFLAGS = \
 trie_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GOBJECT_CFLAGS) \
-	$(TERMINFO_CFLAGS) \
 	$(AM_CFLAGS)
 trie_LDADD = \
 	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS) \
-	$(TERMINFO_LIBS)
-
-vteti_SOURCES = \
-	debug.c \
-	debug.h \
-	vteti.c \
-	vteti.h \
-	vtetivars.h \
-	$(NULL)
-vteti_CPPFLAGS = \
-	-DTERMINFO_MAIN \
-	$(AM_CPPFLAGS)
-vteti_CFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(TERMINFO_CFLAGS) \
-	$(AM_CFLAGS)
-vteti_LDADD = \
-	$(GLIB_LIBS) \
-	$(TERMINFO_LIBS)
+	$(GOBJECT_LIBS)
 
 vteconv_SOURCES = buffer.h debug.c debug.h vteconv.c vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN $(AM_CPPFLAGS)

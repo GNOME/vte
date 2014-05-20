@@ -59,3 +59,45 @@ _vte_debug_init(void)
   _vte_debug_print(0xFFFFFFFF, "VTE debug flags = %x\n", _vte_debug_flags);
 #endif /* VTE_DEBUG */
 }
+
+const char *
+_vte_debug_sequence_to_string(const char *str)
+{
+#if defined(VTE_DEBUG)
+        static const char codes[][6] = {
+                "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+                "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI",
+                "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+                "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US",
+                "SPACE"
+        };
+        static GString *buf;
+        int i;
+
+        if (str == NULL)
+                return "(nil)";
+
+        if (buf == NULL)
+                buf = g_string_new(NULL);
+
+        g_string_truncate(buf, 0);
+        for (i = 0; str[i]; i++) {
+                guint8 c = (guint8)str[i];
+                if (i > 0)
+                        g_string_append_c(buf, ' ');
+
+                if (c <= 0x20)
+                        g_string_append(buf, codes[c]);
+                else if (c == 0x7f)
+                        g_string_append(buf, "DEL");
+                else if (c >= 0x80)
+                        g_string_append_printf(buf, "\\%02x ", c);
+                else
+                        g_string_append_c(buf, c);
+        }
+
+        return buf->str;
+#else
+        return NULL;
+#endif /* VTE_DEBUG */
+}

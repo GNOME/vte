@@ -3,16 +3,9 @@ cleaning it as fast as possible and aiming for a 1.0 release "next year".
 Please contact people listed in filed MAINTAINERS if you intend to hack
 on it, especially if you want to commit stuff.
 
-Vte is different from other terminal emulators in that instead of hard
-coding behavior of a few select terminals, it can emulate any terminal
-simply by reading its terminfo capabilities file.  The idea being that
-if applications can communicate with any terminal by reading its
-capabilities, the emulation widget can also behave like any terminal by
-reading that file.  Well, that's just the idea :).
-
 This is the most useful resource in understanding various internal states
 as well as control sequences:
 
 	http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 
-And to understand termcap, terminfo, etc, "make terminfo" is a great start.
+And to understand termcap, terminfo, etc, "man 5 terminfo" is a great start.

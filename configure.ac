@@ -172,8 +172,8 @@ AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
-VTE_DEFAULT_EMULATION=xterm
-AC_DEFINE_UNQUOTED(VTE_DEFAULT_EMULATION,"$VTE_DEFAULT_EMULATION",[The default terminal type to be emulated.])
+VTE_DEFAULT_TERM=xterm
+AC_DEFINE_UNQUOTED(VTE_DEFAULT_TERM,"$VTE_DEFAULT_TERM",[The default value $TERM is set to.])
 
 # Check for headers.
 AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h util.h wchar.h)
@@ -212,17 +212,9 @@ VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
 
-PKG_CHECK_MODULES([TERMINFO],[tinfo])
 PKG_CHECK_MODULES([GLIB],[glib-2.0 >= $GLIB_REQUIRED])
 PKG_CHECK_MODULES([GOBJECT],[gobject-2.0])
 PKG_CHECK_MODULES([GTK],[gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
-
-# terminfo
-
-save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $TERMINFO_CFLAGS"
-AC_CHECK_HEADERS([ncurses.h term.h tic.h],[],[AC_MSG_ERROR([ncurses terminfo headers not found])])
-CFLAGS="$save_CFLAGS"
 
 wcs_funcs_includes="
 #ifdef HAVE_STRING_H

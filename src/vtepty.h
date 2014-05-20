@@ -86,9 +86,6 @@ gboolean vte_pty_set_utf8 (VtePty *pty,
                            gboolean utf8,
                            GError **error) _VTE_GNUC_NONNULL(1);
 
-void vte_pty_set_term (VtePty *pty,
-                       const char *emulation) _VTE_GNUC_NONNULL(1);
-
 G_END_DECLS
 
 #endif /* __VTE_VTE_PTY_H__ */

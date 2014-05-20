@@ -226,7 +226,6 @@ struct _VtePtyPrivate {
         VtePtyFlags flags;
         int pty_fd;
 
-        const char *term;
         VtePtyChildSetupData child_setup_data;
 
         gpointer helper_tag; /* only use when using_helper is TRUE */
@@ -354,9 +353,9 @@ vte_pty_child_setup (VtePty *pty)
 	_vte_pty_reset_signal_handlers();
 
         /* Now set the TERM environment variable */
-        if (priv->term != NULL) {
-                g_setenv("TERM", priv->term, TRUE);
-        }
+        /* FIXME: Setting environment here seems to have no effect, the merged envp2 will override on exec.
+         * By the way, we'd need to set the one from there, if any. */
+        g_setenv("TERM", VTE_DEFAULT_TERM, TRUE);
 
         g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
         g_setenv ("VTE_VERSION", version, TRUE);
@@ -374,7 +373,6 @@ vte_pty_child_setup (VtePty *pty)
 /*
  * __vte_pty_merge_environ:
  * @envp: environment vector
- * @term_value: the value for the TERM env variable, or %NULL
  * @inherit: whether to use the parent environment
  *
  * Merges @envp to the parent environment, and returns a new environment vector.
@@ -383,7 +381,6 @@ vte_pty_child_setup (VtePty *pty)
  */
 static gchar **
 __vte_pty_merge_environ (char **envp,
-                         const char *term_value,
                          gboolean inherit)
 {
 	GHashTable *table;
@@ -405,6 +402,9 @@ __vte_pty_merge_environ (char **envp,
 		g_strfreev (parent_environ);
 	}
 
+        /* Make sure the one in envp overrides the default. */
+        g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (VTE_DEFAULT_TERM));
+
 	if (envp != NULL) {
 		for (i = 0; envp[i] != NULL; i++) {
 			name = g_strdup (envp[i]);
@@ -416,9 +416,6 @@ __vte_pty_merge_environ (char **envp,
 			g_hash_table_replace (table, name, value);
 		}
 	}
-
-        if (term_value != NULL)
-                g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (term_value));
 
         g_hash_table_replace (table, g_strdup ("VTE_VERSION"), g_strdup_printf ("%u", VTE_VERSION_NUMERIC));
 
@@ -493,7 +490,7 @@ __vte_pty_spawn (VtePty *pty,
         spawn_flags &= ~VTE_SPAWN_NO_PARENT_ENVV;
 
         /* add the given environment to the childs */
-        envp2 = __vte_pty_merge_environ (envv, pty->priv->term, inherit_envv);
+        envp2 = __vte_pty_merge_environ (envv, inherit_envv);
 
         _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
                 g_printerr ("Spawing command:\n");
@@ -1431,7 +1428,6 @@ enum {
         PROP_0,
         PROP_FLAGS,
         PROP_FD,
-        PROP_TERM
 };
 
 /* GInitable impl */
@@ -1530,7 +1526,6 @@ vte_pty_init (VtePty *pty)
         priv->foreign = FALSE;
         priv->using_helper = FALSE;
         priv->helper_tag = NULL;
-        priv->term = vte_get_default_emulation(); /* already interned */
 }
 
 static void
@@ -1573,10 +1568,6 @@ vte_pty_get_property (GObject    *object,
                 g_value_set_int(value, vte_pty_get_fd(pty));
                 break;
 
-        case PROP_TERM:
-                g_value_set_string(value, priv->term);
-                break;
-
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
         }
@@ -1599,10 +1590,6 @@ vte_pty_set_property (GObject      *object,
         case PROP_FD:
                 priv->pty_fd = g_value_get_int(value);
                 priv->foreign = (priv->pty_fd != -1);
-                break;
-
-        case PROP_TERM:
-                vte_pty_set_term(pty, g_value_get_string(value));
                 break;
 
         default:
@@ -1654,22 +1641,6 @@ vte_pty_class_init (VtePtyClass *klass)
                                    G_PARAM_READWRITE |
                                    G_PARAM_CONSTRUCT_ONLY |
                                    G_PARAM_STATIC_STRINGS));
-
-        /**
-         * VtePty:term:
-         *
-         * The value to set for the TERM environment variable just after
-         * forking.
-         *
-         * Since: 0.26
-         */
-        g_object_class_install_property
-                (object_class,
-                 PROP_TERM,
-                 g_param_spec_string ("term", NULL, NULL,
-                                      "xterm",
-                                      G_PARAM_READWRITE |
-                                      G_PARAM_STATIC_STRINGS));
 }
 
 /* public API */
@@ -1794,31 +1765,4 @@ vte_pty_get_fd (VtePty *pty)
         g_return_val_if_fail(priv->pty_fd != -1, -1);
 
         return priv->pty_fd;
-}
-
-/**
- * vte_pty_set_term:
- * @pty: a #VtePty
- * @emulation: (allow-none): the name of a terminal description, or %NULL
- *
- * Sets what value of the TERM environment variable to set just after forking.
- *
- * Since: 0.26
- */
-void
-vte_pty_set_term (VtePty *pty,
-                  const char *emulation)
-{
-        VtePtyPrivate *priv;
-
-        g_return_if_fail(VTE_IS_PTY(pty));
-        g_return_if_fail(emulation != NULL);
-
-        priv = pty->priv;
-        emulation = g_intern_string(emulation);
-        if (emulation == priv->term)
-                return;
-
-        priv->term = emulation;
-        g_object_notify(G_OBJECT(pty), "term");
 }

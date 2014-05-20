@@ -23,8 +23,6 @@
 
 G_BEGIN_DECLS
 
-const char *vte_get_default_emulation(void);
-
 char *vte_get_user_shell(void);
 
 G_END_DECLS

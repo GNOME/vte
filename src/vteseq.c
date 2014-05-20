@@ -28,7 +28,6 @@
 
 #include "vte.h"
 #include "vte-private.h"
-#include "vteti.h"
 
 #define BEL "\007"
 #define ST _VTE_CAP_ST
@@ -3086,10 +3085,6 @@ vte_sequence_handler_reset_highlight_foreground_color (VteTerminal *terminal, GV
 
 #define VTE_SEQUENCE_HANDLER(name) name
 
-static const struct vteseq_2_struct *
-vteseq_2_lookup (register const char *str, register unsigned int len);
-#include"vteseq-2.c"
-
 static const struct vteseq_n_struct *
 vteseq_n_lookup (register const char *str, register unsigned int len);
 #include"vteseq-n.c"
@@ -3103,10 +3098,6 @@ _vte_sequence_get_handler (const char *name)
 
 	if (G_UNLIKELY (len < 2)) {
 		return NULL;
-	} else if (len == 2) {
-		const struct vteseq_2_struct *seqhandler;
-		seqhandler = vteseq_2_lookup (name, 2);
-		return seqhandler ? seqhandler->handler : NULL;
 	} else {
 		const struct vteseq_n_struct *seqhandler;
 		seqhandler = vteseq_n_lookup (name, len);
