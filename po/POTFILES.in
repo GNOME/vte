@@ -1,5 +1,4 @@
 [type: gettext/glade]src/app.ui
 src/iso2022.c
 src/pty.c
-src/trie.c
 src/vte.c
