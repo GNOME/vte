@@ -1,4 +1,4 @@
-ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
+ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = src po doc perf
 
