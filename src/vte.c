@@ -3560,35 +3560,8 @@ vte_terminal_im_reset(VteTerminal *terminal)
 
 /* Emit whichever signals are called for here. */
 static void
-vte_terminal_emit_pending_text_signals(VteTerminal *terminal, GQuark quark)
+vte_terminal_emit_pending_text_signals(VteTerminal *terminal)
 {
-	static struct {
-		const char *name;
-		GQuark quark;
-	} non_visual_quarks[] = {
-		{"mb", 0},
-		{"md", 0},
-		{"mr", 0},
-		{"mu", 0},
-		{"se", 0},
-		{"so", 0},
-		{"ta", 0},
-		{"character-attributes", 0},
-	};
-	guint i;
-
-	if (quark != 0) {
-		for (i = 0; i < G_N_ELEMENTS(non_visual_quarks); i++) {
-			if (non_visual_quarks[i].quark == 0) {
-				non_visual_quarks[i].quark =
-					g_quark_from_static_string(non_visual_quarks[i].name);
-			}
-			if (quark == non_visual_quarks[i].quark) {
-				return;
-			}
-		}
-	}
-
 	if (terminal->pvt->text_modified_flag) {
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting buffered `text-modified'.\n");
@@ -12990,7 +12963,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 
 	/* Flush any pending "inserted" signals. */
 	vte_terminal_emit_cursor_moved(terminal);
-	vte_terminal_emit_pending_text_signals(terminal, 0);
+	vte_terminal_emit_pending_text_signals(terminal);
 	vte_terminal_emit_contents_changed (terminal);
 
         g_object_thaw_notify(object);
