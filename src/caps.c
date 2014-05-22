@@ -87,7 +87,7 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(ESC "M", "reverse-index")
         COMMENT(/* ENTRY(ESC "N", "single-shift-g2") */)
         COMMENT(/* ENTRY(ESC "O", "single-shift-g3") */)
-        ENTRY(ESC "P%s" ESC "\\", "device-control-string")
+        ENTRY(ESC "P%s" ST, "device-control-string")
         ENTRY(ESC "V", "start-of-guarded-area")
         ENTRY(ESC "W", "end-of-guarded-area")
         ENTRY(ESC "X", "start-of-string")
