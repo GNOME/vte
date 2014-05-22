@@ -46,7 +46,6 @@ main(int argc, char **argv)
 	int infile;
 	struct _vte_iso2022_state *subst;
 	const char *tmp;
-	GQuark quark;
 	GValueArray *values;
 
 	_vte_debug_init();
@@ -97,7 +96,6 @@ main(int argc, char **argv)
 						   j,
 						   &tmp,
 						   NULL,
-						   &quark,
 						   &values);
 				if ((tmp == NULL) || (strlen(tmp) > 0)) {
 					break;
@@ -125,7 +123,7 @@ main(int argc, char **argv)
 			}
 
 			l = j;
-			g_print("%s(", g_quark_to_string(quark));
+			g_print("%s(", tmp);
 			for (j = 0; (values != NULL) && (j < values->n_values); j++) {
 				if (j > 0) {
 					g_print(", ");
