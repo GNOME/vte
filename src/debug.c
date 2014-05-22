@@ -86,7 +86,18 @@ _vte_debug_sequence_to_string(const char *str)
                 if (i > 0)
                         g_string_append_c(buf, ' ');
 
-                if (c <= 0x20)
+                if (c == '\033' /* ESC */) {
+                        switch (str[++i]) {
+                        case '_': g_string_append(buf, "APC"); break;
+                        case '[': g_string_append(buf, "CSI"); break;
+                        case 'P': g_string_append(buf, "DCS"); break;
+                        case ']': g_string_append(buf, "OSC"); break;
+                        case '^': g_string_append(buf, "PM"); break;
+                        case '\\': g_string_append(buf, "ST"); break;
+                        default: g_string_append(buf, "ESC"); i--; break;
+                        }
+                }
+                else if (c <= 0x20)
                         g_string_append(buf, codes[c]);
                 else if (c == 0x7f)
                         g_string_append(buf, "DEL");
