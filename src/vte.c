@@ -2901,36 +2901,109 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
 	_vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
 }
 
-
-/* Cleanup smart-tabs.  See vte_sequence_handler_ta() */
+/*
+ * _vte_terminal_cleanup_fragments:
+ * @terminal: a #VteTerminal
+ * @start: the starting column, inclusive
+ * @end: the end column, exclusive
+ *
+ * Needs to be called before modifying the contents in the cursor's row,
+ * between the two given columns.  Cleans up TAB and CJK fragments to the
+ * left of @start and to the right of @end.  If a CJK is split in half,
+ * the remaining half is replaced by a space.  If a TAB at @start is split,
+ * it is replaced by spaces.  If a TAB at @end is split, it is replaced by
+ * a shorter TAB.  @start and @end can be equal if characters will be
+ * inserted at the location rather than overwritten.
+ *
+ * The area between @start and @end is not cleaned up, hence the whole row
+ * can be left in an inconsistent state.  It is expected that the caller
+ * will fill up that range afterwards, resulting in a consistent row again.
+ *
+ * Invalidates the cells that visually change outside of the range,
+ * because the caller can't reasonably be expected to take care of this.
+ */
 void
-_vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal)
+_vte_terminal_cleanup_fragments(VteTerminal *terminal,
+                                long start, long end)
 {
-	VteRowData *row = _vte_terminal_ensure_row (terminal);
-	VteScreen *screen = terminal->pvt->screen;
-	long col = screen->cursor_current.col;
-	const VteCell *pcell = _vte_row_data_get (row, col);
+        VteRowData *row = _vte_terminal_ensure_row (terminal);
+        const VteCell *cell_start;
+        VteCell *cell_end, *cell_col;
+        gboolean cell_start_is_fragment;
+        long col;
 
-	if (G_UNLIKELY (pcell != NULL && pcell->c == '\t')) {
-		long i, num_columns;
-		VteCell *cell = _vte_row_data_get_writable (row, col);
-		
-		_vte_debug_print(VTE_DEBUG_MISC,
-				 "Cleaning tab fragments at %ld",
-				 col);
+        g_assert(end >= start);
 
-		/* go back to the beginning of the tab */
-		while (cell->attr.fragment && col > 0)
-			cell = _vte_row_data_get_writable (row, --col);
+        /* Remember whether the cell at start is a fragment.  We'll need to know it when
+         * handling the left hand side, but handling the right hand side first might
+         * overwrite it if start == end (inserting to the middle of a character). */
+        cell_start = _vte_row_data_get (row, start);
+        cell_start_is_fragment = cell_start != NULL && cell_start->attr.fragment;
 
-		num_columns = cell->attr.columns;
-		for (i = 0; i < num_columns; i++) {
-			cell = _vte_row_data_get_writable (row, col++);
-			if (G_UNLIKELY (!cell))
-			  break;
-			*cell = screen->fill_defaults;
-		}
-	}
+        /* On the right hand side, try to replace a TAB by a shorter TAB if we can.
+         * This requires that the TAB on the left (which might be the same TAB) is
+         * not yet converted to spaces, so start on the right hand side. */
+        cell_end = _vte_row_data_get_writable (row, end);
+        if (G_UNLIKELY (cell_end != NULL && cell_end->attr.fragment)) {
+                col = end;
+                do {
+                        col--;
+                        g_assert(col >= 0);  /* The first cell can't be a fragment. */
+                        cell_col = _vte_row_data_get_writable (row, col);
+                } while (cell_col->attr.fragment);
+                if (cell_col->c == '\t') {
+                        _vte_debug_print(VTE_DEBUG_MISC,
+                                         "Replacing right part of TAB with a shorter one at %ld (%d cells) => %ld (%ld cells)\n",
+                                         col, cell_col->attr.columns, end, cell_col->attr.columns - (end - col));
+                        cell_end->c = '\t';
+                        cell_end->attr.fragment = 0;
+                        g_assert(cell_col->attr.columns > end - col);
+                        cell_end->attr.columns = cell_col->attr.columns - (end - col);
+                } else {
+                        _vte_debug_print(VTE_DEBUG_MISC,
+                                         "Cleaning CJK right half at %ld\n",
+                                         end);
+                        g_assert(end - col == 1 && cell_col->attr.columns == 2);
+                        cell_end->c = ' ';
+                        cell_end->attr.fragment = 0;
+                        cell_end->attr.columns = 1;
+                        _vte_invalidate_cells(terminal,
+                                              end, 1,
+                                              terminal->pvt->screen->cursor_current.row, 1);
+                }
+        }
+
+        /* Handle the left hand side.  Converting longer TABs to shorter ones probably
+         * wouldn't make that much sense here, so instead convert to spaces. */
+        if (G_UNLIKELY (cell_start_is_fragment)) {
+                gboolean keep_going = TRUE;
+                col = start;
+                do {
+                        col--;
+                        g_assert(col >= 0);  /* The first cell can't be a fragment. */
+                        cell_col = _vte_row_data_get_writable (row, col);
+                        if (!cell_col->attr.fragment) {
+                                if (cell_col->c == '\t') {
+                                        _vte_debug_print(VTE_DEBUG_MISC,
+                                                         "Replacing left part of TAB with spaces at %ld (%d => %ld cells)\n",
+                                                         col, cell_col->attr.columns, start - col);
+                                        /* nothing to do here */
+                                } else {
+                                        _vte_debug_print(VTE_DEBUG_MISC,
+                                                         "Cleaning CJK left half at %ld\n",
+                                                         col);
+                                        g_assert(start - col == 1);
+                                        _vte_invalidate_cells(terminal,
+                                                              col, 1,
+                                                              terminal->pvt->screen->cursor_current.row, 1);
+                                }
+                                keep_going = FALSE;
+                        }
+                        cell_col->c = ' ';
+                        cell_col->attr.fragment = 0;
+                        cell_col->attr.columns = 1;
+                } while (keep_going);
+        }
 }
 
 /* Cursor down, with scrolling. */
@@ -3135,32 +3208,13 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	row = vte_terminal_ensure_cursor (terminal);
 	g_assert(row != NULL);
 
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
-
 	if (insert) {
+                _vte_terminal_cleanup_fragments (terminal, col, col);
 		for (i = 0; i < columns; i++)
 			_vte_row_data_insert (row, col + i, &screen->color_defaults);
 	} else {
+                _vte_terminal_cleanup_fragments (terminal, col, col + columns);
 		_vte_row_data_fill (row, &basic_cell.cell, col + columns);
-	}
-
-	/* Convert any wide characters we may have broken into single
-	 * cells. (#514632) */
-	if (G_LIKELY (col > 0)) {
-		glong col2 = col - 1;
-		VteCell *cell = _vte_row_data_get_writable (row, col2);
-		while (col2 > 0 && cell != NULL && cell->attr.fragment)
-			cell = _vte_row_data_get_writable (row, --col2);
-		cell->attr.columns = col - col2;
-	}
-	{
-		glong col2 = col + columns;
-		VteCell *cell = _vte_row_data_get_writable (row, col2);
-		while (cell != NULL && cell->attr.fragment) {
-			cell->attr.columns = 1;
-			cell->c = 0;
-			cell = _vte_row_data_get_writable (row, ++col2);
-		}
 	}
 
 	attr = screen->defaults.attr;
@@ -10048,9 +10102,10 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	if (focus && !blink)
 		return;
 
-	/* Find the character "under" the cursor. */
+        /* Find the first cell of the character "under" the cursor.
+         * This is for CJK.  For TAB, paint the cursor where it really is. */
 	cell = vte_terminal_find_charcell(terminal, col, drow);
-	while ((cell != NULL) && (cell->attr.fragment) && (col > 0)) {
+        while (cell != NULL && cell->attr.fragment && cell->c != '\t' && col > 0) {
 		col--;
 		cell = vte_terminal_find_charcell(terminal, col, drow);
 	}

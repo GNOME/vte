@@ -432,7 +432,7 @@ void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
 gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
-void _vte_terminal_cleanup_tab_fragments_at_cursor (VteTerminal *terminal);
+void _vte_terminal_cleanup_fragments(VteTerminal *terminal, long start, long end);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
 void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);

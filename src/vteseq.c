@@ -921,6 +921,8 @@ _vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 
 	/* Get the data for the row which the cursor points to. */
 	rowdata = _vte_terminal_ensure_row(terminal);
+        /* Clean up Tab/CJK fragments. */
+        _vte_terminal_cleanup_fragments (terminal, 0, screen->cursor_current.col);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
@@ -958,6 +960,9 @@ _vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	if (i < _vte_ring_next(screen->row_data)) {
 		/* Get the data for the row we're clipping. */
 		rowdata = _vte_ring_index_writable (screen->row_data, i);
+                /* Clean up Tab/CJK fragments. */
+                if ((glong) _vte_row_data_length (rowdata) > screen->cursor_current.col)
+                        _vte_terminal_cleanup_fragments (terminal, screen->cursor_current.col, _vte_row_data_length (rowdata));
 		/* Clear everything to the right of the cursor. */
 		if (rowdata)
 			_vte_row_data_shrink (rowdata, screen->cursor_current.col);
@@ -1009,9 +1014,11 @@ _vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	/* Get the data for the row which the cursor points to. */
 	rowdata = _vte_terminal_ensure_row(terminal);
 	g_assert(rowdata != NULL);
-	/* Remove the data at the end of the array until the current column
-	 * is the end of the array. */
 	if ((glong) _vte_row_data_length (rowdata) > screen->cursor_current.col) {
+                /* Clean up Tab/CJK fragments. */
+                _vte_terminal_cleanup_fragments (terminal, screen->cursor_current.col, _vte_row_data_length (rowdata));
+                /* Remove the data at the end of the array until the current column
+                 * is the end of the array. */
 		_vte_row_data_shrink (rowdata, screen->cursor_current.col);
 		/* We've modified the display.  Make a note of it. */
 		terminal->pvt->text_deleted_flag = TRUE;
@@ -1050,7 +1057,6 @@ vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArr
 	}
 
         screen->cursor_current.col = val;
-        _vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 }
 
 /* Move the cursor to the given position, 1-based. */
@@ -1088,7 +1094,6 @@ vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params
 	}
 	screen->cursor_current.row = rowval + screen->insert_delta;
 	screen->cursor_current.col = colval;
-	_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 }
 
 /* Carriage return. */
@@ -1216,6 +1221,8 @@ _vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 		len = _vte_row_data_length (rowdata);
 		/* Remove the column. */
 		if (col < len) {
+                        /* Clean up Tab/CJK fragments. */
+                        _vte_terminal_cleanup_fragments (terminal, col, col + 1);
 			_vte_row_data_remove (rowdata, col);
 			if (screen->fill_defaults.attr.back != VTE_DEFAULT_BG) {
 				_vte_row_data_fill (rowdata, &screen->fill_defaults, terminal->pvt->column_count);
@@ -1294,6 +1301,8 @@ vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *param
 	rowdata = _vte_terminal_ensure_row(terminal);
 	if (_vte_ring_next(screen->row_data) > screen->cursor_current.row) {
 		g_assert(rowdata != NULL);
+                /* Clean up Tab/CJK fragments. */
+                _vte_terminal_cleanup_fragments (terminal, screen->cursor_current.col, screen->cursor_current.col + count);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */
 		for (i = 0; i < count; i++) {
@@ -1338,12 +1347,14 @@ _vte_sequence_handler_insert_character (VteTerminal *terminal, GValueArray *para
 
 	save = screen->cursor_current;
 
+        _vte_terminal_cleanup_fragments(terminal, screen->cursor_current.col, screen->cursor_current.col);
 	_vte_terminal_insert_char(terminal, ' ', TRUE, TRUE);
 
 	screen->cursor_current = save;
 }
 
 /* Insert N blank characters. */
+/* TODOegmont: Insert them in a single run, so that we call _vte_terminal_cleanup_fragments only once. */
 static void
 vte_sequence_handler_insert_blank_characters (VteTerminal *terminal, GValueArray *params)
 {
@@ -1367,7 +1378,6 @@ vte_sequence_handler_backspace (VteTerminal *terminal, GValueArray *params)
 	if (screen->cursor_current.col > 0) {
 		/* There's room to move left, so do so. */
 		screen->cursor_current.col--;
-		_vte_terminal_cleanup_tab_fragments_at_cursor (terminal);
 	}
 }
 
