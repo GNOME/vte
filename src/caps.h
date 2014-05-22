@@ -38,7 +38,6 @@ G_BEGIN_DECLS
 struct _vte_capability_string {
 	const char *code;
 	const char *value;
-	GQuark quark;
 };
 
 /* The xterm-specific terminal control strings, terminated by NULLs. */
