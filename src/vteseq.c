@@ -885,7 +885,7 @@ vte_sequence_handler_bell (VteTerminal *terminal, GValueArray *params)
 
 /* Backtab. */
 static void
-vte_sequence_handler_back_tab (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_cursor_back_tab (VteTerminal *terminal, GValueArray *params)
 {
 	long newcol;
 
@@ -1427,7 +1427,7 @@ vte_sequence_handler_next_line (VteTerminal *terminal, GValueArray *params)
 
 /* No-op. */
 static void
-vte_sequence_handler_noop (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_linux_console_cursor_attributes (VteTerminal *terminal, GValueArray *params)
 {
 }
 
@@ -2530,7 +2530,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 
 /* Set the terminal encoding. */
 static void
-vte_sequence_handler_local_charset (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_default_character_set (VteTerminal *terminal, GValueArray *params)
 {
 	G_CONST_RETURN char *locale_encoding;
 	g_get_charset(&locale_encoding);
@@ -2538,7 +2538,7 @@ vte_sequence_handler_local_charset (VteTerminal *terminal, GValueArray *params)
 }
 
 static void
-vte_sequence_handler_utf_8_charset (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_utf_8_character_set (VteTerminal *terminal, GValueArray *params)
 {
 	vte_terminal_set_encoding(terminal, "UTF-8");
 }
