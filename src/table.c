@@ -43,7 +43,6 @@ struct _vte_table {
 	const char *result;
 	unsigned char *original;
 	gssize original_length;
-	int increment;
 	struct _vte_table *table_string;
 	struct _vte_table *table_number;
 	struct _vte_table *table_number_list;
@@ -188,12 +187,11 @@ _vte_table_free(struct _vte_table *table)
 	g_slice_free(struct _vte_table, table);
 }
 
-/* Add a string to the tree with the given increment value. */
 static void
 _vte_table_addi(struct _vte_table *table,
 		const unsigned char *original, gssize original_length,
 		const char *pattern, gssize length,
-		const char *result, int inc)
+		const char *result)
 {
 	int i;
 	guint8 check;
@@ -219,20 +217,11 @@ _vte_table_addi(struct _vte_table *table,
 		}
 		table->original = g_memdup(original, original_length);
 		table->original_length = original_length;
-		table->increment = inc;
 		return;
 	}
 
 	/* All of the interesting arguments begin with '%'. */
 	if (pattern[0] == '%') {
-		/* Handle an increment. */
-		if (pattern[1] == 'i') {
-			_vte_table_addi(table, original, original_length,
-					pattern + 2, length - 2,
-					result, inc + 1);
-			return;
-		}
-
 		/* Handle numeric parameters. */
 		if ((pattern[1] == 'd') ||
 		    (pattern[1] == '2') ||
@@ -247,7 +236,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, inc);
+					result);
 			return;
 		}
 
@@ -271,7 +260,7 @@ _vte_table_addi(struct _vte_table *table,
 				_vte_table_addi(table, b->data, b->len,
 						(const char *)b->data + initial,
 						b->len - initial,
-						result, inc);
+						result);
 				g_byte_array_free(b, TRUE);
 			}
 			/* Create a new subtable. */
@@ -284,7 +273,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, inc);
+					result);
 			return;
 		}
 
@@ -302,7 +291,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, inc);
+					result);
 			return;
 		}
 
@@ -323,7 +312,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, inc);
+					result);
 			return;
 		}
 
@@ -350,7 +339,7 @@ _vte_table_addi(struct _vte_table *table,
 				_vte_table_addi(subtable,
 						original, original_length,
 						pattern + 3, length - 3,
-						result, inc);
+						result);
 			}
 			/* Also add a subtable for higher characters. */
 			if (table->table == NULL) {
@@ -367,7 +356,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 3, length - 3,
-					result, inc);
+					result);
 			return;
 		}
 	}
@@ -390,7 +379,7 @@ _vte_table_addi(struct _vte_table *table,
 	/* Add the rest of the string to the subtable. */
 	_vte_table_addi(subtable, original, original_length,
 			pattern + 1, length - 1,
-			result, inc);
+			result);
 }
 
 /* Add a string to the matching tree. */
@@ -402,7 +391,7 @@ _vte_table_add(struct _vte_table *table,
 	_vte_table_addi(table,
 			(const unsigned char *) pattern, length,
 			pattern, length,
-			result, 0);
+			result);
 }
 
 /* Match a string in a subtree. */
@@ -530,7 +519,7 @@ _vte_table_matchi(struct _vte_table *table,
 
 static void
 _vte_table_extract_numbers(GValueArray **array,
-			   struct _vte_table_arginfo *arginfo, long increment)
+			   struct _vte_table_arginfo *arginfo)
 {
 	GValue value = {0,};
 	GValue subvalue = {0,};
@@ -594,22 +583,6 @@ _vte_table_extract_string(GValueArray **array,
 	g_value_unset(&value);
 }
 
-static void
-_vte_table_extract_char(GValueArray **array,
-			struct _vte_table_arginfo *arginfo, long increment)
-{
-	GValue value = {0,};
-
-	g_value_init(&value, G_TYPE_LONG);
-	g_value_set_long(&value, *(arginfo->start) - increment);
-
-	if (G_UNLIKELY (*array == NULL)) {
-		*array = g_value_array_new(1);
-	}
-	g_value_array_append(*array, &value);
-	g_value_unset(&value);
-}
-
 /* Check if a string matches something in the tree. */
 const char *
 _vte_table_match(struct _vte_table *table,
@@ -624,7 +597,6 @@ _vte_table_match(struct _vte_table *table,
 	const char *ret;
 	unsigned char *original, *p;
 	gssize original_length;
-	long increment = 0;
 	int i;
 	struct _vte_table_arginfo_head params;
 	struct _vte_table_arginfo *arginfo;
@@ -696,14 +668,8 @@ _vte_table_match(struct _vte_table *table,
 		do {
 			/* All of the interesting arguments begin with '%'. */
 			if (p[0] == '%') {
-				/* Handle an increment. */
-				if (p[1] == 'i') {
-					increment++;
-					p += 2;
-					continue;
-				}
 				/* Handle an escaped '%'. */
-				else if (p[1] == '%') {
+				if (p[1] == '%') {
 					p++;
 				}
 				/* Handle numeric parameters. */
@@ -713,8 +679,7 @@ _vte_table_match(struct _vte_table *table,
 				    (p[1] == 'm') ||
 				    (p[1] == 'M')) {
 					_vte_table_extract_numbers(array,
-								   arginfo,
-								   increment);
+								   arginfo);
 					p++;
 				}
 				/* Handle string parameters. */
@@ -722,13 +687,6 @@ _vte_table_match(struct _vte_table *table,
 					_vte_table_extract_string(array,
 								  arginfo);
 					p++;
-				}
-				/* Handle a parameter character. */
-				else if (p[1] == '+') {
-					_vte_table_extract_char(array,
-								arginfo,
-								p[2]);
-					p += 2;
 				} else {
 					_vte_debug_print (VTE_DEBUG_PARSE,
                                                           "Invalid sequence %s\n",
@@ -755,8 +713,8 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 
 	/* Result? */
 	if (table->result != NULL) {
-		g_printerr("%s = `%s'(%d)\n", lead,
-			table->result, table->increment);
+		g_printerr("%s = `%s'\n", lead,
+			table->result);
 	}
 
 	/* Literal? */
@@ -915,7 +873,6 @@ main(int argc, char **argv)
 	_vte_table_add(table, "ABCDEFH", 7, "ABCDEFH");
 	_vte_table_add(table, "ACDEFH", 6, "ACDEFH");
 	_vte_table_add(table, "ACDEF%sJ", 8, "ACDEF%sJ");
-	_vte_table_add(table, "ACDEF%i%mJ", 10, "ACDEF%dJ");
 	_vte_table_add(table, "[%mh", 5, "move-cursor");
 	_vte_table_add(table, "[%mm", 5, "character-attributes");
 	_vte_table_add(table, "]3;%s", 7, "set-icon-title");
