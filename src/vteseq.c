@@ -3130,9 +3130,3 @@ _vte_terminal_handle_sequence(VteTerminal *terminal,
 				  match_s);
 	}
 }
-
-gboolean
- _vte_terminal_can_handle_sequence(const char *name)
-{
-        return _vte_sequence_get_handler(name) != NULL;
-}

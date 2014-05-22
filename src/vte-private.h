@@ -453,7 +453,7 @@ void _vte_terminal_handle_sequence(VteTerminal *terminal,
 				   const char *match_s,
 				   GQuark match,
 				   GValueArray *params);
-gboolean _vte_terminal_can_handle_sequence(const char *name);
+
 gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,
                                   long x,
                                   long y,
