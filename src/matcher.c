@@ -54,15 +54,15 @@ static void
 _vte_matcher_init(struct _vte_matcher *matcher)
 {
 	const char *code, *value;
-	int i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_init()\n");
 
-        for (i = 0; _vte_xterm_capability_strings[i].value != NULL; i++) {
-                code = _vte_xterm_capability_strings[i].code;
-                value = _vte_xterm_capability_strings[i].value;
-                _vte_matcher_add(matcher, code, strlen (code), value);
-        }
+        code = _vte_xterm_capability_strings;
+        do {
+                value = strchr(code, '\0') + 1;
+                _vte_matcher_add(matcher, code, strlen(code), value);
+                code = strchr(value, '\0') + 1;
+        } while (*code);
 
 	_VTE_DEBUG_IF(VTE_DEBUG_MATCHER) {
 		g_printerr("Matcher contents:\n");

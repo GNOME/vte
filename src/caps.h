@@ -35,13 +35,7 @@ G_BEGIN_DECLS
 #define _VTE_CAP_SS2 _VTE_CAP_ESC "N"	/* Single-shift to G2 */
 #define _VTE_CAP_SS3 _VTE_CAP_ESC "O"	/* Single-shift to G3 */
 
-struct _vte_capability_string {
-	const char *code;
-	const char *value;
-};
-
-/* The xterm-specific terminal control strings, terminated by NULLs. */
-extern struct _vte_capability_string _vte_xterm_capability_strings[];
+extern const char _vte_xterm_capability_strings[];
 
 G_END_DECLS
 
