@@ -223,9 +223,7 @@ _vte_table_addi(struct _vte_table *table,
 	/* All of the interesting arguments begin with '%'. */
 	if (pattern[0] == '%') {
 		/* Handle numeric parameters. */
-		if ((pattern[1] == 'd') ||
-		    (pattern[1] == '2') ||
-		    (pattern[1] == '3')) {
+		if (pattern[1] == 'd') {
 			/* Create a new subtable. */
 			if (table->table_number == NULL) {
 				subtable = _vte_table_new();
@@ -241,18 +239,15 @@ _vte_table_addi(struct _vte_table *table,
 		}
 
 		/* Handle variable-length parameters. */
-		if ((pattern[1] == 'm') ||
-		    (pattern[1] == 'M')) {
+		if (pattern[1] == 'm') {
 			/* Build the "new" original using the initial portion
 			 * of the original string and what's left after this
 			 * specifier. */
-			if (pattern[1] == 'm') {
+			{
 				int initial;
 				GByteArray *b;
 
 				initial = original_length - length;
-				/* 0 args; we use 'M' to signal that zero is
-				 * not allowed.  */
 				b = g_byte_array_new();
 				g_byte_array_set_size(b, 0);
 				g_byte_array_append(b, original, initial);
@@ -673,11 +668,7 @@ _vte_table_match(struct _vte_table *table,
 					p++;
 				}
 				/* Handle numeric parameters. */
-				else if ((p[1] == 'd') ||
-				    (p[1] == '2') ||
-				    (p[1] == '3') ||
-				    (p[1] == 'm') ||
-				    (p[1] == 'M')) {
+				else if ((p[1] == 'd') || (p[1] == 'm')) {
 					_vte_table_extract_numbers(array,
 								   arginfo);
 					p++;
