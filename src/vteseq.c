@@ -1388,7 +1388,7 @@ vte_sequence_handler_cursor_backward (VteTerminal *terminal, GValueArray *params
                         val = MAX(g_value_get_long(value), 1);
                 }
         }
-        screen->cursor_current.col = MAX(screen->cursor_current.col - val, 1);
+        screen->cursor_current.col = MAX(screen->cursor_current.col - val, 0);
 }
 
 /* Cursor right N columns. */
