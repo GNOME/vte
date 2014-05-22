@@ -1,5 +1,5 @@
 bin_PROGRAMS =
-noinst_PROGRAMS =
+noinst_PROGRAMS = testvte
 
 CLEANFILES =
 DISTCLEANFILES =
@@ -231,7 +231,28 @@ endif # ENABLE_VAPIGEN
 
 endif # HAVE_INTROSPECTION
 
-# Test application
+# C Test application
+
+testvte_SOURCES = \
+        vteapp.c \
+        debug.c \
+        debug.h \
+        $(NULL)
+
+testvte_CPPFLAGS = \
+        -DGLIB_DISABLE_DEPRECATION_WARNINGS \
+        -DGDK_DISABLE_DEPRECATION_WARNINGS \
+        $(AM_CPPFLAGS)
+
+testvte_CFLAGS = \
+        $(VTE_CFLAGS) \
+        $(AM_CFLAGS)
+
+testvte_LDADD = \
+        libvte-$(VTE_API_VERSION).la \
+        $(VTE_LIBS)
+
+# VALA Test application
 
 if ENABLE_TEST_APPLICATION
 
