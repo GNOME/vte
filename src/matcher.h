@@ -37,10 +37,10 @@ typedef struct _vte_matcher_impl *(*_vte_matcher_create_func)(void);
 typedef const char *(*_vte_matcher_match_func)(struct _vte_matcher_impl *impl,
 		const gunichar *pattern, gssize length,
 		const char **res, const gunichar **consumed,
-		GQuark *quark, GValueArray **array);
+		GValueArray **array);
 typedef void (*_vte_matcher_add_func)(struct _vte_matcher_impl *impl,
 		const char *pattern, gssize length,
-		const char *result, GQuark quark);
+		const char *result);
 typedef void (*_vte_matcher_print_func)(struct _vte_matcher_impl *impl);
 typedef void (*_vte_matcher_destroy_func)(struct _vte_matcher_impl *impl);
 struct _vte_matcher_class{
@@ -61,7 +61,7 @@ void _vte_matcher_free(struct _vte_matcher *matcher);
 const char *_vte_matcher_match(struct _vte_matcher *matcher,
 			       const gunichar *pattern, gssize length,
 			       const char **res, const gunichar **consumed,
-			       GQuark *quark, GValueArray **array);
+			       GValueArray **array);
 
 /* Dump out the contents of a matcher, mainly for debugging. */
 void _vte_matcher_print(struct _vte_matcher *matcher);

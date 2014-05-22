@@ -40,7 +40,6 @@
 
 struct _vte_table {
 	struct _vte_matcher_impl impl;
-	GQuark resultq;
 	const char *result;
 	unsigned char *original;
 	gssize original_length;
@@ -194,7 +193,7 @@ static void
 _vte_table_addi(struct _vte_table *table,
 		const unsigned char *original, gssize original_length,
 		const char *pattern, gssize length,
-		const char *result, GQuark quark, int inc)
+		const char *result, int inc)
 {
 	int i;
 	guint8 check;
@@ -214,8 +213,7 @@ _vte_table_addi(struct _vte_table *table,
 					  "`%s' and `%s' are indistinguishable.\n",
 					  table->result, result);
 
-		table->resultq = g_quark_from_string(result);
-		table->result = g_quark_to_string(table->resultq);
+		table->result = g_intern_string(result);
 		if (table->original != NULL) {
 			g_free(table->original);
 		}
@@ -231,7 +229,7 @@ _vte_table_addi(struct _vte_table *table,
 		if (pattern[1] == 'i') {
 			_vte_table_addi(table, original, original_length,
 					pattern + 2, length - 2,
-					result, quark, inc + 1);
+					result, inc + 1);
 			return;
 		}
 
@@ -249,7 +247,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, quark, inc);
+					result, inc);
 			return;
 		}
 
@@ -273,7 +271,7 @@ _vte_table_addi(struct _vte_table *table,
 				_vte_table_addi(table, b->data, b->len,
 						(const char *)b->data + initial,
 						b->len - initial,
-						result, quark, inc);
+						result, inc);
 				g_byte_array_free(b, TRUE);
 			}
 			/* Create a new subtable. */
@@ -286,7 +284,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, quark, inc);
+					result, inc);
 			return;
 		}
 
@@ -304,7 +302,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, quark, inc);
+					result, inc);
 			return;
 		}
 
@@ -325,7 +323,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result, quark, inc);
+					result, inc);
 			return;
 		}
 
@@ -352,7 +350,7 @@ _vte_table_addi(struct _vte_table *table,
 				_vte_table_addi(subtable,
 						original, original_length,
 						pattern + 3, length - 3,
-						result, quark, inc);
+						result, inc);
 			}
 			/* Also add a subtable for higher characters. */
 			if (table->table == NULL) {
@@ -369,7 +367,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 3, length - 3,
-					result, quark, inc);
+					result, inc);
 			return;
 		}
 	}
@@ -392,26 +390,26 @@ _vte_table_addi(struct _vte_table *table,
 	/* Add the rest of the string to the subtable. */
 	_vte_table_addi(subtable, original, original_length,
 			pattern + 1, length - 1,
-			result, quark, inc);
+			result, inc);
 }
 
 /* Add a string to the matching tree. */
 void
 _vte_table_add(struct _vte_table *table,
 	       const char *pattern, gssize length,
-	       const char *result, GQuark quark)
+	       const char *result)
 {
 	_vte_table_addi(table,
 			(const unsigned char *) pattern, length,
 			pattern, length,
-			result, quark, 0);
+			result, 0);
 }
 
 /* Match a string in a subtree. */
 static const char *
 _vte_table_matchi(struct _vte_table *table,
 		  const gunichar *candidate, gssize length,
-		  const char **res, const gunichar **consumed, GQuark *quark,
+		  const char **res, const gunichar **consumed,
 		  unsigned char **original, gssize *original_length,
 		  struct _vte_table_arginfo_head *params)
 {
@@ -425,7 +423,6 @@ _vte_table_matchi(struct _vte_table *table,
 		*original = table->original;
 		*original_length = table->original_length;
 		*res = table->result;
-		*quark = table->resultq;
 		return table->result;
 	}
 
@@ -453,7 +450,7 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = i;
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + i, length - i,
-					 res, consumed, quark,
+					 res, consumed,
 					 original, original_length, params);
 	}
 
@@ -478,7 +475,7 @@ _vte_table_matchi(struct _vte_table *table,
 		/* Try and continue. */
 		local_result = _vte_table_matchi(subtable,
 					 candidate + i, length - i,
-					 res, consumed, quark,
+					 res, consumed,
 					 original, original_length,
 					 params);
 		if (local_result != NULL) {
@@ -506,7 +503,7 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = i;
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + i, length - i,
-					 res, consumed, quark,
+					 res, consumed,
 					 original, original_length, params);
 	}
 
@@ -521,7 +518,7 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = 1;
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + 1, length - 1,
-					 res, consumed, quark,
+					 res, consumed,
 					 original, original_length, params);
 	}
 
@@ -618,12 +615,11 @@ const char *
 _vte_table_match(struct _vte_table *table,
 		 const gunichar *candidate, gssize length,
 		 const char **res, const gunichar **consumed,
-		 GQuark *quark, GValueArray **array)
+		 GValueArray **array)
 {
 	struct _vte_table *head;
 	const gunichar *dummy_consumed;
 	const char *dummy_res;
-	GQuark dummy_quark;
 	GValueArray *dummy_array;
 	const char *ret;
 	unsigned char *original, *p;
@@ -642,10 +638,6 @@ _vte_table_match(struct _vte_table *table,
 		consumed = &dummy_consumed;
 	}
 	*consumed = candidate;
-	if (G_UNLIKELY (quark == NULL)) {
-		quark = &dummy_quark;
-	}
-	*quark = 0;
 	if (G_UNLIKELY (array == NULL)) {
 		dummy_array = NULL;
 		array = &dummy_array;
@@ -684,7 +676,6 @@ _vte_table_match(struct _vte_table *table,
 		/* Got a literal match. */
 		*consumed = candidate + i;
 		*res = head->result;
-		*quark = head->resultq;
 		return *res;
 	}
 
@@ -692,7 +683,7 @@ _vte_table_match(struct _vte_table *table,
 
 	/* Check for a pattern match. */
 	ret = _vte_table_matchi(table, candidate, length,
-				res, consumed, quark,
+				res, consumed,
 				&original, &original_length,
 				&params);
 	*res = ret;
@@ -916,20 +907,19 @@ main(int argc, char **argv)
 	const gunichar *consumed;
 	char *tmp;
 	gunichar *candidate;
-	GQuark quark;
 	GValueArray *array;
 	g_type_init();
 	table = _vte_table_new();
-	_vte_table_add(table, "ABCDEFG", 7, "ABCDEFG", 0);
-	_vte_table_add(table, "ABCD", 4, "ABCD", 0);
-	_vte_table_add(table, "ABCDEFH", 7, "ABCDEFH", 0);
-	_vte_table_add(table, "ACDEFH", 6, "ACDEFH", 0);
-	_vte_table_add(table, "ACDEF%sJ", 8, "ACDEF%sJ", 0);
-	_vte_table_add(table, "ACDEF%i%mJ", 10, "ACDEF%dJ", 0);
-	_vte_table_add(table, "[%mh", 5, "move-cursor", 0);
-	_vte_table_add(table, "[%mm", 5, "character-attributes", 0);
-	_vte_table_add(table, "]3;%s", 7, "set-icon-title", 0);
-	_vte_table_add(table, "]4;%s", 7, "set-window-title", 0);
+	_vte_table_add(table, "ABCDEFG", 7, "ABCDEFG");
+	_vte_table_add(table, "ABCD", 4, "ABCD");
+	_vte_table_add(table, "ABCDEFH", 7, "ABCDEFH");
+	_vte_table_add(table, "ACDEFH", 6, "ACDEFH");
+	_vte_table_add(table, "ACDEF%sJ", 8, "ACDEF%sJ");
+	_vte_table_add(table, "ACDEF%i%mJ", 10, "ACDEF%dJ");
+	_vte_table_add(table, "[%mh", 5, "move-cursor");
+	_vte_table_add(table, "[%mm", 5, "character-attributes");
+	_vte_table_add(table, "]3;%s", 7, "set-icon-title");
+	_vte_table_add(table, "]4;%s", 7, "set-window-title");
 	printf("Table contents:\n");
 	_vte_table_print(table);
 	printf("\nTable matches:\n");
@@ -938,7 +928,7 @@ main(int argc, char **argv)
 		candidate = make_wide(p);
 		array = NULL;
 		_vte_table_match(table, candidate, strlen(p),
-				 &result, &consumed, &quark, &array);
+				 &result, &consumed, &array);
 		tmp = escape(p);
 		printf("`%s' => `%s'", tmp, (result ? result : "(NULL)"));
 		g_free(tmp);

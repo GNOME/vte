@@ -44,9 +44,9 @@ static struct _vte_matcher_impl dummy_vte_matcher_table = {
 static void
 _vte_matcher_add(const struct _vte_matcher *matcher,
 		 const char *pattern, gssize length,
-		 const char *result, GQuark quark)
+		 const char *result)
 {
-	matcher->impl->klass->add(matcher->impl, pattern, length, result, quark);
+	matcher->impl->klass->add(matcher->impl, pattern, length, result);
 }
 
 /* Loads all sequences into matcher */
@@ -61,8 +61,7 @@ _vte_matcher_init(struct _vte_matcher *matcher)
         for (i = 0; _vte_xterm_capability_strings[i].value != NULL; i++) {
                 code = _vte_xterm_capability_strings[i].code;
                 value = _vte_xterm_capability_strings[i].value;
-                _vte_matcher_add(matcher, code, strlen (code),
-                                 value, 0);
+                _vte_matcher_add(matcher, code, strlen (code), value);
         }
 
 	_VTE_DEBUG_IF(VTE_DEBUG_MATCHER) {
@@ -142,14 +141,14 @@ const char *
 _vte_matcher_match(struct _vte_matcher *matcher,
 		   const gunichar *pattern, gssize length,
 		   const char **res, const gunichar **consumed,
-		   GQuark *quark, GValueArray **array)
+		   GValueArray **array)
 {
 	if (G_UNLIKELY (array != NULL && matcher->free_params != NULL)) {
 		*array = matcher->free_params;
 		matcher->free_params = NULL;
 	}
 	return matcher->match(matcher->impl, pattern, length,
-					res, consumed, quark, array);
+					res, consumed, array);
 }
 
 /* Dump out the contents of a matcher, mainly for debugging. */

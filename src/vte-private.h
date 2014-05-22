@@ -450,8 +450,7 @@ void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
 
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,
-				   const char *match_s,
-				   GQuark match,
+				   const char *match,
 				   GValueArray *params);
 
 gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,

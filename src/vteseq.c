@@ -3109,17 +3109,16 @@ _vte_sequence_get_handler (const char *name)
 /* Handle a terminal control sequence and its parameters. */
 void
 _vte_terminal_handle_sequence(VteTerminal *terminal,
-			      const char *match_s,
-			      GQuark match G_GNUC_UNUSED,
+			      const char *match,
 			      GValueArray *params)
 {
 	VteTerminalSequenceHandler handler;
 
 	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
-		display_control_sequence(match_s, params);
+		display_control_sequence(match, params);
 
 	/* Find the handler for this control sequence. */
-	handler = _vte_sequence_get_handler (match_s);
+	handler = _vte_sequence_get_handler (match);
 
 	if (handler != NULL) {
 		/* Let the handler handle it. */
@@ -3127,6 +3126,6 @@ _vte_terminal_handle_sequence(VteTerminal *terminal,
 	} else {
 		_vte_debug_print (VTE_DEBUG_MISC,
 				  "No handler for control sequence `%s' defined.\n",
-				  match_s);
+				  match);
 	}
 }

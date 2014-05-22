@@ -3727,7 +3727,6 @@ skip_chunk:
 
 	while (start < wcount && !leftovers) {
 		const char *match;
-		GQuark quark;
 		const gunichar *next;
 		GValueArray *params = NULL;
 
@@ -3737,7 +3736,6 @@ skip_chunk:
 				   wcount - start,
 				   &match,
 				   &next,
-				   &quark,
 				   &params);
 		/* We're in one of three possible situations now.
 		 * First, the match string is a non-empty string and next
@@ -3750,7 +3748,6 @@ skip_chunk:
 			 * behavior. */
 			_vte_terminal_handle_sequence(terminal,
 						      match,
-						      quark,
 						      params);
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
@@ -3805,7 +3802,6 @@ skip_chunk:
 			    (start + 1 < next - wbuf)) {
 				const gunichar *tnext = NULL;
 				const char *tmatch = NULL;
-				GQuark tquark = 0;
 				gunichar ctrl;
 				int i;
 				/* We don't want to permute it if it's another
@@ -3815,7 +3811,6 @@ skip_chunk:
 						   wcount - (next - wbuf),
 						   &tmatch,
 						   &tnext,
-						   &tquark,
 						   NULL);
 				/* We only do this for non-control-sequence
 				 * characters and random garbage. */
