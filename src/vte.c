@@ -7758,6 +7758,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 void
 vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 {
+	VteScreen *screen;
 	glong old_columns, old_rows;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -7793,6 +7794,21 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 		/* Resize the alternate screen if it's the current one, but never rewrap it: bug 336238 comment 60 */
 		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)
 			vte_terminal_screen_set_size(terminal, &terminal->pvt->alternate_screen, old_columns, old_rows, FALSE);
+
+                /* Ensure scrollback buffers cover the screen. */
+                vte_terminal_set_scrollback_lines(terminal,
+                                                  terminal->pvt->scrollback_lines);
+                /* Ensure the cursor is valid */
+                screen = &terminal->pvt->normal_screen;
+                screen->cursor_current.row = CLAMP (screen->cursor_current.row,
+                                                    _vte_ring_delta (screen->row_data),
+                                                    MAX (_vte_ring_delta (screen->row_data),
+                                                         _vte_ring_next (screen->row_data) - 1));
+                screen = &terminal->pvt->alternate_screen;
+                screen->cursor_current.row = CLAMP (screen->cursor_current.row,
+                                                    _vte_ring_delta (screen->row_data),
+                                                    MAX (_vte_ring_delta (screen->row_data),
+                                                         _vte_ring_next (screen->row_data) - 1));
 
 		_vte_terminal_adjust_adjustments_full (terminal);
 		gtk_widget_queue_resize_no_redraw (&terminal->widget);
@@ -8158,30 +8174,9 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 			|| height != terminal->pvt->row_count
 			|| update_scrollback)
 	{
-		VteScreen *screen = terminal->pvt->screen;
-
 		/* Set the size of the pseudo-terminal. */
 		vte_terminal_set_size(terminal, width, height);
 
-		/* Adjust scrolling area in case our boundaries have just been
-		 * redefined to be invalid. */
-		if (screen->scrolling_restricted) {
-			screen->scrolling_region.start =
-				MIN(screen->scrolling_region.start,
-						terminal->pvt->row_count - 1);
-			screen->scrolling_region.end =
-				MIN(screen->scrolling_region.end,
-						terminal->pvt->row_count - 1);
-		}
-
-		/* Ensure scrollback buffers cover the screen. */
-		vte_terminal_set_scrollback_lines(terminal,
-				terminal->pvt->scrollback_lines);
-		/* Ensure the cursor is valid */
-		screen->cursor_current.row = CLAMP (screen->cursor_current.row,
-				_vte_ring_delta (screen->row_data),
-				MAX (_vte_ring_delta (screen->row_data),
-					_vte_ring_next (screen->row_data) - 1));
 		/* Notify viewers that the contents have changed. */
 		_vte_terminal_queue_contents_changed(terminal);
 	}
