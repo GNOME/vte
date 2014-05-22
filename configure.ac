@@ -238,7 +238,12 @@ AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is
 # GNOME PTY Helper
 ################################################################################
 
-AC_ARG_ENABLE(gnome-pty-helper, [AS_HELP_STRING(--enable-gnome-pty-helper,Build a setuid helper for opening ptys [default=yes])], enable_gnome_pty_helper="$enableval", enable_gnome_pty_helper=yes)
+AC_MSG_CHECKING([whether to build the PTY helper binary])
+AC_ARG_ENABLE(gnome-pty-helper,
+  [AS_HELP_STRING([--disable-gnome-pty-helper],
+                  [Build a setuid helper for opening ptys])],
+  [],[enable_gnome_pty_helper=no])
+AC_MSG_RESULT([$enable_gnome_pty_helper])
 if test "$enable_gnome_pty_helper" != no; then
 	AC_DEFINE(VTE_USE_GNOME_PTY_HELPER,1,[Define if you intend to use gnome-pty-helper.])
 	AC_CONFIG_SUBDIRS(gnome-pty-helper)
@@ -375,4 +380,5 @@ Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Introspection: $enable_introspection
         Vala bindings: $enable_vala
         Test application: $enable_test_application
+	PTY helper: $enable_gnome_pty_helper
 EOF

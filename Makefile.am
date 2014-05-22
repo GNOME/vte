@@ -27,6 +27,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-introspection \
 	--enable-vala \
 	--enable-test-application \
+	--enable-gnome-pty-helper \
 	--disable-silent-rules \
 	--with-gtk=3.0
 

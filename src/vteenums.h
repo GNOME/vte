@@ -93,12 +93,12 @@ typedef enum {
 
 /**
  * VtePtyFlags:
- * @VTE_PTY_NO_LASTLOG: don't record the session in lastlog
- * @VTE_PTY_NO_UTMP: don't record the session in utmp
- * @VTE_PTY_NO_WTMP: don't record the session in wtmp
- * @VTE_PTY_NO_HELPER: don't use the GNOME PTY helper to allocate the PTY
+ * @VTE_PTY_NO_LASTLOG: don't record the session in lastlog. Deprecated: 0.38
+ * @VTE_PTY_NO_UTMP: don't record the session in utmp. Deprecated: 0.38
+ * @VTE_PTY_NO_WTMP: don't record the session in wtmp. Deprecated: 0.38
+ * @VTE_PTY_NO_HELPER: don't use the GNOME PTY helper to allocate the PTY. Deprecated: 0.38
  * @VTE_PTY_NO_FALLBACK: when allocating the PTY with the PTY helper fails,
- *   don't fall back to try using PTY98
+ *   don't fall back to try using PTY98. Deprecated: 0.38
  * @VTE_PTY_DEFAULT: the default flags
  *
  * Since: 0.26
