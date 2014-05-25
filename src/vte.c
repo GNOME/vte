@@ -8654,6 +8654,9 @@ vte_terminal_realize(GtkWidget *widget)
 	/* Create our invisible cursor. */
 	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
 
+        /* Make sure the style is set, bug 727614. */
+        vte_terminal_style_updated (widget);
+
 	vte_terminal_ensure_font (terminal);
 
 	/* Set up the background, *now*. */
