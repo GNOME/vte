@@ -13246,14 +13246,22 @@ update_repeat_timeout (gpointer data)
 	_vte_debug_print (VTE_DEBUG_WORK, "]");
 
 	/* We only stop the timer if no update request was received in this
-	 * past cycle.
+         * past cycle.  Technically, always stop this timer object and maybe
+         * reinstall a new one because we need to delay by the amount of time
+         * it took to repaint the screen: bug 730732.
 	 */
-	again = TRUE;
 	if (active_terminals == NULL) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Stoping update timeout\n");
 		update_timeout_tag = 0;
 		again = FALSE;
+        } else {
+                update_timeout_tag =
+                        g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
+                                            VTE_UPDATE_REPEAT_TIMEOUT,
+                                            update_repeat_timeout, NULL,
+                                            NULL);
+                again = TRUE;
 	}
 
 	in_update_timeout = FALSE;
@@ -13272,7 +13280,7 @@ update_repeat_timeout (gpointer data)
 		prune_chunks (10);
 	}
 
-	return again;
+        return FALSE;  /* If we need to go again, we already have a new timer for that. */
 }
 
 static gboolean
