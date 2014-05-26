@@ -12225,7 +12225,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 		}
 	}
 
-	/* Adjust the scrollbars to the new locations. */
+	/* Adjust the scrollbar to the new location. */
 	/* Hack: force a change in scroll_delta even if the value remains, so that
 	   vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 676075. */
 	terminal->pvt->screen->scroll_delta = -1;
@@ -12430,6 +12430,11 @@ vte_terminal_reset(VteTerminal *terminal,
 		pvt->alternate_screen.cursor_current.col = 0;
 		pvt->alternate_screen.scroll_delta = 0;
 		pvt->alternate_screen.insert_delta = 0;
+                /* Adjust the scrollbar to the new location. */
+                /* Hack: force a change in scroll_delta even if the value remains, so that
+                   vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */
+                pvt->screen->scroll_delta = -1;
+                vte_terminal_queue_adjustment_value_changed (terminal, 0);
 		_vte_terminal_adjust_adjustments_full (terminal);
 	}
 	/* Do more stuff we refer to as a "full" reset. */
