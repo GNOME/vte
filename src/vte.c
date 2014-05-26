@@ -12414,8 +12414,10 @@ vte_terminal_reset(VteTerminal *terminal,
 	if (clear_history) {
 		_vte_ring_fini(pvt->normal_screen.row_data);
 		_vte_ring_init(pvt->normal_screen.row_data, pvt->scrollback_lines);
+                _vte_ring_set_visible_rows_hint(pvt->normal_screen.row_data, pvt->row_count);
 		_vte_ring_fini(pvt->alternate_screen.row_data);
-		_vte_ring_init(pvt->alternate_screen.row_data, terminal->pvt->row_count);
+		_vte_ring_init(pvt->alternate_screen.row_data, pvt->row_count);
+                _vte_ring_set_visible_rows_hint(pvt->alternate_screen.row_data, pvt->row_count);
 		pvt->normal_screen.cursor_saved.row = 0;
 		pvt->normal_screen.cursor_saved.col = 0;
 		pvt->normal_screen.cursor_current.row = 0;
