@@ -6759,14 +6759,14 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			/* The left band */
 			_vte_invalidate_region (terminal,
 						MIN(sc->col, so->col),
-						MAX(sc->col, so->col) - 1,
+						MAX(sc->col, so->col) - 1 + (VTE_TAB_WIDTH_MAX - 1),
 						MIN(sc->row, so->row),
 						MAX(ec->row, eo->row),
 						TRUE);
 			/* The right band */
 			_vte_invalidate_region (terminal,
 						MIN(ec->col, eo->col) + 1,
-						MAX(ec->col, eo->col),
+						MAX(ec->col, eo->col) + (VTE_TAB_WIDTH_MAX - 1),
 						MIN(sc->row, so->row),
 						MAX(ec->row, eo->row),
 						TRUE);

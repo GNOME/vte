@@ -26,6 +26,8 @@
 
 G_BEGIN_DECLS
 
+#define VTE_TAB_WIDTH_BITS		4  /* Has to be able to store the value of 8. */
+#define VTE_TAB_WIDTH_MAX		((1 << VTE_TAB_WIDTH_BITS) - 1)
 
 #define VTE_DEFAULT_FG			256
 #define VTE_DEFAULT_BG			257
@@ -47,11 +49,10 @@ G_BEGIN_DECLS
 
 typedef struct _VteCellAttr {
 	guint64 fragment: 1;	/* A continuation cell. */
-	guint64 columns: 4;	/* Number of visible columns
-				   (as determined by g_unicode_iswide(c)).
-				   Also abused for tabs; bug 353610
-				   Keep at least 4 for tabs to work
-				   */
+	guint64 columns: VTE_TAB_WIDTH_BITS;	/* Number of visible columns
+						   (as determined by g_unicode_iswide(c)).
+						   Also abused for tabs; bug 353610
+						   */
 	guint64 bold: 1;
 	guint64 italic: 1;
 	guint64 fore: 25;	/* Index into color palette, or direct RGB, */

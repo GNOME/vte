@@ -1717,22 +1717,19 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 			}
 			/* Nothing found on the line after us, turn this into
 			 * a smart tab */
-			if (!found) {
+			if (!found && newcol - col <= VTE_TAB_WIDTH_MAX) {
 				VteCell *cell = _vte_row_data_get_writable (rowdata, col);
 				VteCell tab = *cell;
 				tab.attr.columns = newcol - col;
 				tab.c = '\t';
-				/* Check if it fits in columns */
-				if (tab.attr.columns == newcol - col) {
-					/* Save tab char */
-					*cell = tab;
-					/* And adjust the fragments */
-					for (i = col + 1; i < newcol; i++) {
-						cell = _vte_row_data_get_writable (rowdata, i);
-						cell->c = '\t';
-						cell->attr.columns = 1;
-						cell->attr.fragment = 1;
-					}
+				/* Save tab char */
+				*cell = tab;
+				/* And adjust the fragments */
+				for (i = col + 1; i < newcol; i++) {
+					cell = _vte_row_data_get_writable (rowdata, i);
+					cell->c = '\t';
+					cell->attr.columns = 1;
+					cell->attr.fragment = 1;
 				}
 			}
 		}
