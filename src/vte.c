@@ -4603,7 +4603,7 @@ vte_terminal_style_updated (GtkWidget *widget)
 
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated (widget);
 
-        vte_terminal_set_font(terminal, terminal->pvt->fontdesc);
+        vte_terminal_set_font(terminal, terminal->pvt->unscaled_font_desc);
         vte_terminal_set_padding(terminal);
 
         gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
@@ -7473,7 +7473,7 @@ vte_terminal_ensure_font (VteTerminal *terminal)
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!terminal->pvt->has_fonts) {
 			vte_terminal_set_font(terminal,
-                                                            terminal->pvt->fontdesc);
+                                              terminal->pvt->unscaled_font_desc);
 		}
 		if (terminal->pvt->fontdirty) {
 			gint width, height, ascent;
