@@ -13874,13 +13874,7 @@ vte_terminal_reset(VteTerminal *terminal,
 
         g_object_freeze_notify(G_OBJECT(terminal));
 
-	/* Stop processing any of the data we've got backed up. */
-	vte_terminal_stop_processing (terminal);
-
-	/* Clear the input and output buffers. */
-	_vte_incoming_chunks_release (pvt->incoming);
-	pvt->incoming = NULL;
-	g_array_set_size(pvt->pending, 0);
+	/* Clear the output buffer. */
 	_vte_buffer_clear(pvt->outgoing);
 	/* Reset charset substitution state. */
 	_vte_iso2022_state_free(pvt->iso2022);
