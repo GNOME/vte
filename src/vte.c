@@ -7523,8 +7523,8 @@ vte_terminal_update_font(VteTerminal *terminal)
         }
 }
 
-/*
- * _vte_terminal_set_font:
+/**
+ * vte_terminal_set_font:
  * @terminal: a #VteTerminal
  * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
  *
@@ -7532,7 +7532,7 @@ vte_terminal_update_font(VteTerminal *terminal)
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
  * will immediately attempt to load the desired font, retrieve its
  * metrics, and attempt to resize itself to keep the same number of rows
- * and columns.
+ * and columns.  The font scale is applied to the specified font.
  */
 void
 vte_terminal_set_font(VteTerminal *terminal,
@@ -7590,15 +7590,17 @@ vte_terminal_set_font(VteTerminal *terminal,
                 g_object_notify(object, "font-desc");
 }
 
- /**
+/**
  * vte_terminal_get_font:
  * @terminal: a #VteTerminal
  *
  * Queries the terminal for information about the fonts which will be
- * used to draw text in the terminal.
+ * used to draw text in the terminal.  The actual font takes the font scale
+ * into account, this is not reflected in the return value, the unscaled
+ * font is returned.
  *
- * Returns: (transfer none): a #PangoFontDescription describing the font the terminal is
- *   currently using to render text
+ * Returns: (transfer none): a #PangoFontDescription describing the font the
+ * terminal uses to render text at the default font scale of 1.0.
  */
 const PangoFontDescription *
 vte_terminal_get_font(VteTerminal *terminal)
