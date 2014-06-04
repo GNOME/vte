@@ -246,9 +246,18 @@ vte_terminal_emit_resize_window(VteTerminal *terminal,
 static void
 _vte_terminal_home_cursor (VteTerminal *terminal)
 {
+        long origin;
 	VteScreen *screen;
 	screen = terminal->pvt->screen;
-	screen->cursor_current.row = screen->insert_delta;
+
+        if (screen->origin_mode &&
+            screen->scrolling_restricted) {
+                origin = screen->scrolling_region.start;
+        } else {
+                origin = 0;
+        }
+
+	screen->cursor_current.row = screen->insert_delta + origin;
 	screen->cursor_current.col = 0;
 }
 
@@ -1114,8 +1123,8 @@ vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *p
 	/* We require two parameters.  Anything less is a reset. */
 	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
-                _vte_terminal_home_cursor (terminal);
 		screen->scrolling_restricted = FALSE;
+                _vte_terminal_home_cursor (terminal);
 		return;
 	}
 	/* Extract the two values. */
@@ -1143,8 +1152,6 @@ vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *p
 		end = rows - 1;
 	}
 
-        _vte_terminal_home_cursor (terminal);
-
 	/* Set the right values. */
 	screen->scrolling_region.start = start;
 	screen->scrolling_region.end = end;
@@ -1158,6 +1165,8 @@ vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *p
 		while (_vte_ring_next(screen->row_data) < screen->insert_delta + rows)
 			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
 	}
+
+        _vte_terminal_home_cursor (terminal);
 }
 
 /* Move the cursor to the beginning of the Nth next line, no scrolling. */
