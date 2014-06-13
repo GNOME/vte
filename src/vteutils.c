@@ -32,13 +32,18 @@
 
 /* Temporary define until glibc release catches up */
 #ifdef __linux__
+
+#include <sys/ioctl.h>
+#include <linux/fs.h>
+
 #ifndef O_TMPFILE
 #ifndef __O_TMPFILE
 #define __O_TMPFILE     020000000
 #endif
 #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
 #endif
-#endif
+
+#endif /* __linux__ */
 
 int
 _vte_mkstemp (void)
@@ -48,7 +53,7 @@ _vte_mkstemp (void)
 
 #ifdef O_TMPFILE
         fd = open (g_get_tmp_dir (),
-                   O_TMPFILE | O_EXCL | O_RDWR | O_NOATIME,
+                   O_TMPFILE | O_EXCL | O_RDWR | O_NOATIME | O_CLOEXEC,
                    0600);
         if (fd != -1)
                 goto done;
@@ -70,6 +75,24 @@ _vte_mkstemp (void)
 #ifdef O_TMPFILE
  done:
 #endif
+
+#ifdef __linux__
+{
+        /* Mark the tmpfile as no-cow on file systems that support it.
+         *
+         * (Note that the definition of the ioctls make you think @flags would
+         * be long instead of int, but it turns out that this is not the case;
+         * see http://lwn.net/Articles/575846/ ).
+         */
+        int flags;
+
+        if (ioctl (fd, FS_IOC_GETFLAGS, &flags) == 0) {
+                flags |= FS_SECRM_FL | FS_NOATIME_FL | FS_NOCOMP_FL | FS_NOCOW_FL | FS_NODUMP_FL;
+
+                ioctl (fd, FS_IOC_SETFLAGS, &flags);
+        }
+}
+#endif /* __linux__ */
 
         return fd;
 }
