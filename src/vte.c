@@ -4791,7 +4791,10 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		if (terminal->pvt->cursor_blink_tag != 0)
 		{
 			remove_cursor_timeout (terminal);
-			terminal->pvt->cursor_blink_state = TRUE;
+                        if (terminal->pvt->cursor_blink_state == FALSE) {
+                                _vte_invalidate_cursor_once(terminal, FALSE);
+                                terminal->pvt->cursor_blink_state = TRUE;
+                        }
 			add_cursor_timeout (terminal);
 		}
 
