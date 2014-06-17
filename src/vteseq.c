@@ -918,7 +918,7 @@ vte_sequence_handler_cursor_back_tab (VteTerminal *terminal, GValueArray *params
 	terminal->pvt->screen->cursor_current.col = newcol;
 }
 
-/* Clear from the cursor position to the beginning of the line. */
+/* Clear from the cursor position (inclusive!) to the beginning of the line. */
 static void
 _vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 {
@@ -931,7 +931,7 @@ _vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 	/* Get the data for the row which the cursor points to. */
 	rowdata = _vte_terminal_ensure_row(terminal);
         /* Clean up Tab/CJK fragments. */
-        _vte_terminal_cleanup_fragments (terminal, 0, screen->cursor_current.col);
+        _vte_terminal_cleanup_fragments (terminal, 0, screen->cursor_current.col + 1);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
