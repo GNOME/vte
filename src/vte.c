@@ -3237,6 +3237,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		pcell->attr = attr;
 		col++;
 	}
+	if (_vte_row_data_length (row) > terminal->pvt->column_count)
+		_vte_terminal_cleanup_fragments (terminal, terminal->pvt->column_count, _vte_row_data_length (row));
 	_vte_row_data_shrink (row, terminal->pvt->column_count);
 
 	/* Signal that this part of the window needs drawing. */

@@ -1356,7 +1356,6 @@ _vte_sequence_handler_insert_character (VteTerminal *terminal, GValueArray *para
 
 	save = screen->cursor_current;
 
-        _vte_terminal_cleanup_fragments(terminal, screen->cursor_current.col, screen->cursor_current.col);
 	_vte_terminal_insert_char(terminal, ' ', TRUE, TRUE);
 
 	screen->cursor_current = save;
