@@ -988,7 +988,7 @@ static void
 vte_terminal_deselect_all(VteTerminal *terminal)
 {
 	if (terminal->pvt->has_selection) {
-		gint sx, sy, ex, ey;
+		gint sx, sy, ex, ey, extra;
 
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Deselecting all text.\n");
@@ -1003,8 +1003,9 @@ vte_terminal_deselect_all(VteTerminal *terminal)
 		sy = terminal->pvt->selection_start.row;
 		ex = terminal->pvt->selection_end.col;
 		ey = terminal->pvt->selection_end.row;
+                extra = terminal->pvt->selection_block_mode ? (VTE_TAB_WIDTH_MAX - 1) : 0;
 		_vte_invalidate_region(terminal,
-				MIN (sx, ex), MAX (sx, ex),
+				MIN (sx, ex), MAX (sx, ex) + extra,
 				MIN (sy, ey),   MAX (sy, ey),
 				FALSE);
 	}
