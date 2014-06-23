@@ -98,6 +98,8 @@ static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
+static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
+                                          gboolean always_grow, gboolean force);
 static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 						       glong start_row,
 						       glong start_col,
@@ -6357,6 +6359,9 @@ vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
 			terminal->pvt->selection_start.col,
 			terminal->pvt->selection_start.row);
 
+        /* Take care of updating the display. */
+        vte_terminal_extend_selection(terminal, x, y, FALSE, TRUE);
+
 	/* Temporarily stop caring about input from the child. */
 	_vte_terminal_disconnect_pty_read(terminal);
 }
@@ -7161,8 +7166,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				vte_terminal_start_selection(terminal,
 							     x, y,
 							     selection_type_word);
-				vte_terminal_extend_selection(terminal,
-							      x, y, FALSE, TRUE);
 				handled = TRUE;
 			}
 			break;
@@ -7184,8 +7187,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				vte_terminal_start_selection(terminal,
 							     x, y,
 							     selection_type_line);
-				vte_terminal_extend_selection(terminal,
-							      x, y, FALSE, TRUE);
 				handled = TRUE;
 			}
 			break;
