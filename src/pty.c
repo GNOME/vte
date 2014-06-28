@@ -94,6 +94,10 @@ static int _vte_pty_helper_tunnel = -1;
 
 #define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
 
+#if !GLIB_CHECK_VERSION(2, 41, 2)
+#define G_PARAM_EXPLICIT_NOTIFY 0
+#endif
+
 /* Reset the handlers for all known signals to their defaults.  The parent
  * (or one of the libraries it links to) may have changed one to be ignored. */
 static void
@@ -1624,7 +1628,7 @@ vte_pty_class_init (VtePtyClass *klass)
                                      VTE_PTY_DEFAULT,
                                      G_PARAM_READWRITE |
                                      G_PARAM_CONSTRUCT_ONLY |
-                                     G_PARAM_STATIC_STRINGS));
+                                     G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VtePty:fd:
@@ -1640,7 +1644,7 @@ vte_pty_class_init (VtePtyClass *klass)
                                    -1, G_MAXINT, -1,
                                    G_PARAM_READWRITE |
                                    G_PARAM_CONSTRUCT_ONLY |
-                                   G_PARAM_STATIC_STRINGS));
+                                   G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 }
 
 /* public API */

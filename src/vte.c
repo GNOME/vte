@@ -74,6 +74,10 @@ static inline double round(double x) {
 typedef gunichar wint_t;
 #endif
 
+#if !GLIB_CHECK_VERSION(2, 41, 2)
+#define G_PARAM_EXPLICIT_NOTIFY 0
+#endif
+
 #ifndef howmany
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
@@ -11342,7 +11346,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_ALLOW_BOLD,
                  g_param_spec_boolean ("allow-bold", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:audible-bell:
@@ -11357,7 +11361,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_AUDIBLE_BELL,
                  g_param_spec_boolean ("audible-bell", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:backspace-binding:
@@ -11373,7 +11377,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("backspace-binding", NULL, NULL,
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:cjk-ambiguous-width:
@@ -11392,7 +11396,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_CURSOR_BLINK_MODE,
                  g_param_spec_int ("cjk-ambiguous-width", NULL, NULL,
                                    1, 2, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:cursor-blink-mode:
@@ -11408,7 +11412,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
                                     VTE_TYPE_CURSOR_BLINK_MODE,
                                     VTE_CURSOR_BLINK_SYSTEM,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:cursor-shape:
@@ -11423,7 +11427,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("cursor-shape", NULL, NULL,
                                     VTE_TYPE_CURSOR_SHAPE,
                                     VTE_CURSOR_SHAPE_BLOCK,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:delete-binding:
@@ -11439,7 +11443,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("delete-binding", NULL, NULL,
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:font-scale:
@@ -11455,7 +11459,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       VTE_FONT_SCALE_MIN,
                                       VTE_FONT_SCALE_MAX,
                                       1.,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:encoding:
@@ -11472,7 +11476,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_ENCODING,
                  g_param_spec_string ("encoding", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:font-desc:
@@ -11490,7 +11494,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_FONT_DESC,
                  g_param_spec_boxed ("font-desc", NULL, NULL,
                                      PANGO_TYPE_FONT_DESCRIPTION,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:icon-title:
@@ -11504,7 +11508,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_ICON_TITLE,
                  g_param_spec_string ("icon-title", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:input-enabled:
@@ -11518,7 +11522,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_INPUT_ENABLED,
                  g_param_spec_boolean ("input-enabled", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:pointer-autohide:
@@ -11534,7 +11538,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_MOUSE_POINTER_AUTOHIDE,
                  g_param_spec_boolean ("pointer-autohide", NULL, NULL,
                                        FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:pty:
@@ -11549,7 +11553,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_object ("pty", NULL, NULL,
                                       VTE_TYPE_PTY,
                                       G_PARAM_READWRITE |
-                                      G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:rewrap-on-resize:
@@ -11564,7 +11568,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_REWRAP_ON_RESIZE,
                  g_param_spec_boolean ("rewrap-on-resize", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:scrollback-lines:
@@ -11584,7 +11588,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_uint ("scrollback-lines", NULL, NULL,
                                     0, G_MAXUINT,
                                     VTE_SCROLLBACK_INIT,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:scroll-on-keystroke:
@@ -11600,7 +11604,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_SCROLL_ON_KEYSTROKE,
                  g_param_spec_boolean ("scroll-on-keystroke", NULL, NULL,
                                        FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:scroll-on-output:
@@ -11615,7 +11619,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_SCROLL_ON_OUTPUT,
                  g_param_spec_boolean ("scroll-on-output", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
         /**
          * VteTerminal:window-title:
@@ -11629,7 +11633,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_WINDOW_TITLE,
                  g_param_spec_string ("window-title", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:current-directory-uri:
@@ -11643,7 +11647,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_CURRENT_DIRECTORY_URI,
                  g_param_spec_string ("current-directory-uri", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:current-file-uri:
@@ -11657,7 +11661,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_CURRENT_FILE_URI,
                  g_param_spec_string ("current-file-uri", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:visible-bell:
@@ -11673,7 +11677,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_VISIBLE_BELL,
                  g_param_spec_boolean ("visible-bell", NULL, NULL,
                                        FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
 	/* Disable GtkWidget's keybindings except for Shift-F10 and MenuKey
          * which pop up the context menu.
