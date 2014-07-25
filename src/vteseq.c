@@ -824,9 +824,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		break;
 	case 6:
 		/* Reposition the cursor in its new home position. */
-		terminal->pvt->screen->cursor_current.col = 0;
-		terminal->pvt->screen->cursor_current.row =
-			terminal->pvt->screen->insert_delta;
+                _vte_terminal_home_cursor (terminal);
 		break;
 	case 47:
 	case 1047:
@@ -1073,7 +1071,7 @@ static void
 vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *row, *col;
-	long rowval, colval, origin;
+        long rowval, colval, origin, rowmax;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
@@ -1087,11 +1085,13 @@ vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params
 			if (screen->origin_mode &&
 			    screen->scrolling_restricted) {
 				origin = screen->scrolling_region.start;
+                                rowmax = screen->scrolling_region.end;
 			} else {
 				origin = 0;
+                                rowmax = terminal->pvt->row_count - 1;
 			}
                         rowval = g_value_get_long(row) - 1 + origin;
-			rowval = CLAMP(rowval, 0, terminal->pvt->row_count - 1);
+                        rowval = CLAMP(rowval, origin, rowmax);
 		}
 		if (params->n_values >= 2) {
 			col = g_value_array_get_nth(params, 1);
@@ -1191,7 +1191,7 @@ vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray 
 {
 	VteScreen *screen;
 	GValue *value;
-	long val, origin;
+        long val, origin, rowmax;
 	screen = terminal->pvt->screen;
 	/* We only care if there's a parameter in there. */
 	if ((params != NULL) && (params->n_values > 0)) {
@@ -1201,11 +1201,13 @@ vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray 
 			if (screen->origin_mode &&
 			    screen->scrolling_restricted) {
 				origin = screen->scrolling_region.start;
+                                rowmax = screen->scrolling_region.end;
 			} else {
 				origin = 0;
+                                rowmax = terminal->pvt->row_count - 1;
 			}
                         val = g_value_get_long(value) - 1 + origin;
-			val = CLAMP(val, 0, terminal->pvt->row_count - 1);
+                        val = CLAMP(val, origin, rowmax);
 			screen->cursor_current.row = screen->insert_delta + val;
 		}
 	}
