@@ -2558,7 +2558,7 @@ vte_sequence_handler_device_status_report (VteTerminal *terminal, GValueArray *p
 {
 	GValue *value;
 	VteScreen *screen;
-	long param;
+        long param, rowval, origin, rowmax;
 	char buf[128];
 
 	screen = terminal->pvt->screen;
@@ -2574,10 +2574,19 @@ vte_sequence_handler_device_status_report (VteTerminal *terminal, GValueArray *p
 				break;
 			case 6:
 				/* Send the cursor position. */
+                                if (screen->origin_mode &&
+                                    screen->scrolling_restricted) {
+                                        origin = screen->scrolling_region.start;
+                                        rowmax = screen->scrolling_region.end;
+                                } else {
+                                        origin = 0;
+                                        rowmax = terminal->pvt->row_count - 1;
+                                }
+                                rowval = screen->cursor_current.row - screen->insert_delta - origin;
+                                rowval = CLAMP(rowval, 0, rowmax);
 				g_snprintf(buf, sizeof(buf),
 					   _VTE_CAP_CSI "%ld;%ldR",
-					   screen->cursor_current.row + 1 -
-					   screen->insert_delta,
+                                           rowval + 1,
 					   screen->cursor_current.col + 1);
 				vte_terminal_feed_child(terminal, buf, -1);
 				break;
@@ -2594,7 +2603,7 @@ vte_sequence_handler_dec_device_status_report (VteTerminal *terminal, GValueArra
 {
 	GValue *value;
 	VteScreen *screen;
-	long param;
+        long param, rowval, origin, rowmax;
 	char buf[128];
 
 	screen = terminal->pvt->screen;
@@ -2606,10 +2615,19 @@ vte_sequence_handler_dec_device_status_report (VteTerminal *terminal, GValueArra
 			switch (param) {
 			case 6:
 				/* Send the cursor position. */
+                                if (screen->origin_mode &&
+                                    screen->scrolling_restricted) {
+                                        origin = screen->scrolling_region.start;
+                                        rowmax = screen->scrolling_region.end;
+                                } else {
+                                        origin = 0;
+                                        rowmax = terminal->pvt->row_count - 1;
+                                }
+                                rowval = screen->cursor_current.row - screen->insert_delta - origin;
+                                rowval = CLAMP(rowval, 0, rowmax);
 				g_snprintf(buf, sizeof(buf),
 					   _VTE_CAP_CSI "?%ld;%ldR",
-					   screen->cursor_current.row + 1 -
-					   screen->insert_delta,
+                                           rowval + 1,
 					   screen->cursor_current.col + 1);
 				vte_terminal_feed_child(terminal, buf, -1);
 				break;
