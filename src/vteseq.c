@@ -1191,26 +1191,27 @@ vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray 
 {
 	VteScreen *screen;
 	GValue *value;
-        long val, origin, rowmax;
+        long val = 1, origin, rowmax;
 	screen = terminal->pvt->screen;
-	/* We only care if there's a parameter in there. */
+
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-			/* Move the cursor. */
-			if (screen->origin_mode &&
-			    screen->scrolling_restricted) {
-				origin = screen->scrolling_region.start;
-                                rowmax = screen->scrolling_region.end;
-			} else {
-				origin = 0;
-                                rowmax = terminal->pvt->row_count - 1;
-			}
-                        val = g_value_get_long(value) - 1 + origin;
-                        val = CLAMP(val, origin, rowmax);
-			screen->cursor_current.row = screen->insert_delta + val;
+                        val = g_value_get_long(value);
 		}
 	}
+
+        if (screen->origin_mode &&
+            screen->scrolling_restricted) {
+                origin = screen->scrolling_region.start;
+                rowmax = screen->scrolling_region.end;
+        } else {
+                origin = 0;
+                rowmax = terminal->pvt->row_count - 1;
+        }
+        val = val - 1 + origin;
+        val = CLAMP(val, origin, rowmax);
+        screen->cursor_current.row = screen->insert_delta + val;
 }
 
 /* Delete a character at the current cursor position. */
@@ -2268,23 +2269,11 @@ vte_sequence_handler_normal_keypad (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
 }
 
-/* Move the cursor to the given column (horizontal position), 1-based. */
+/* Same as cursor_character_absolute, not widely supported. */
 static void
 vte_sequence_handler_character_position_absolute (VteTerminal *terminal, GValueArray *params)
 {
-        GValue *value;
-        long val;
-
-        /* We only care if there's a parameter in there. */
-        if ((params != NULL) && (params->n_values > 0)) {
-                value = g_value_array_get_nth(params, 0);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value);
-                        if (val > 0) {
-                                vte_sequence_handler_cursor_character_absolute (terminal, params);
-                        }
-                }
-        }
+	vte_sequence_handler_cursor_character_absolute (terminal, params);
 }
 
 /* Set certain terminal attributes. */
