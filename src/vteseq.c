@@ -809,13 +809,13 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				"Leaving application cursor mode.\n");
 		break;
 	case 3:
-                /* 3: DECCOLM set/reset to 132/80 columns mode */
+                /* 3: DECCOLM set/reset to 132/80 columns mode, clear screen and cursor home */
                 if (terminal->pvt->deccolm_mode) {
                         vte_terminal_emit_resize_window(terminal,
                                                         set ? 132 : 80,
                                                         terminal->pvt->row_count);
-                        /* Request a resize and redraw. */
-                        _vte_invalidate_all(terminal);
+                        _vte_terminal_clear_screen(terminal);
+                        _vte_terminal_home_cursor(terminal);
                 }
 		break;
 	case 5:
