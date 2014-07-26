@@ -8883,7 +8883,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
            k_eights; \
         })
 
-        light_line_width = terminal->pvt->char_width / 5;
+        light_line_width = column_width / 5;
         light_line_width = MAX (light_line_width, 1);
 
 	if (c >= 0x2550 && c <= 0x256c) {
@@ -9016,13 +9016,13 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
                                        left_half - light_line_width / 2,
                                        left_half - light_line_width / 2 + light_line_width,
                                        left_half - heavy_line_width / 2 + heavy_line_width,
-                                       terminal->pvt->char_width};
+                                       width};
                 int yboundaries[6] = { 0,
                                        upper_half - heavy_line_width / 2,
                                        upper_half - light_line_width / 2,
                                        upper_half - light_line_width / 2 + light_line_width,
                                        upper_half - heavy_line_width / 2 + heavy_line_width,
-                                       terminal->pvt->char_height};
+                                       row_height};
                 int xi, yi;
                 cairo_set_line_width(cr, 0);
                 for (yi = 4; yi >= 0; yi--) {
@@ -9114,7 +9114,7 @@ vte_terminal_draw_graphic(VteTerminal *terminal, vteunistr c,
                 adjust = (line_width & 1) ? .5 : 0.;
                 cairo_set_line_width(cr, line_width);
 
-                radius = (terminal->pvt->char_width + 2) / 3;
+                radius = (column_width + 2) / 3;
                 radius = MAX(radius, heavy_line_width);
 
                 if (v & 2) {
