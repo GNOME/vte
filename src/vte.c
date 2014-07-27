@@ -12188,7 +12188,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
         VteTerminalPrivate *pvt;
         GObject *object;
-	glong scroll_delta;
+        glong scroll_delta, low, high, next;
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -12211,38 +12211,35 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 			"Setting scrollback lines to %ld\n", lines);
 
 	pvt->scrollback_lines = lines;
-	screen = pvt->screen;
-	scroll_delta = screen->scroll_delta;
 
-	/* The main screen gets the full scrollback buffer, but the
-	 * alternate screen isn't allowed to scroll at all. */
-	if (screen == &terminal->pvt->normal_screen) {
-		glong low, high, next;
-		/* We need at least as many lines as are visible */
-		lines = MAX (lines, terminal->pvt->row_count);
-		next = MAX (screen->cursor_current.row + 1,
-				_vte_ring_next (screen->row_data));
-		_vte_ring_resize (screen->row_data, lines);
-		low = _vte_ring_delta (screen->row_data);
-		high = lines + MIN (G_MAXLONG - lines, low - terminal->pvt->row_count + 1);
-		screen->insert_delta = CLAMP (screen->insert_delta, low, high);
-		scroll_delta = CLAMP (scroll_delta, low, screen->insert_delta);
-		next = MIN (next, screen->insert_delta + terminal->pvt->row_count);
-		if (_vte_ring_next (screen->row_data) > next){
-			_vte_ring_shrink (screen->row_data, next - low);
-		}
-	} else {
-		_vte_ring_resize (screen->row_data, terminal->pvt->row_count);
-		scroll_delta = _vte_ring_delta (screen->row_data);
-		screen->insert_delta = _vte_ring_delta (screen->row_data);
-		if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->pvt->row_count){
-			_vte_ring_shrink (screen->row_data, terminal->pvt->row_count);
-		}
-	}
+        /* The main screen gets the full scrollback buffer. */
+        screen = &terminal->pvt->normal_screen;
+        lines = MAX (lines, terminal->pvt->row_count);
+        next = MAX (screen->cursor_current.row + 1,
+                    _vte_ring_next (screen->row_data));
+        _vte_ring_resize (screen->row_data, lines);
+        low = _vte_ring_delta (screen->row_data);
+        high = lines + MIN (G_MAXLONG - lines, low - terminal->pvt->row_count + 1);
+        screen->insert_delta = CLAMP (screen->insert_delta, low, high);
+        screen->scroll_delta = CLAMP (screen->scroll_delta, low, screen->insert_delta);
+        next = MIN (next, screen->insert_delta + terminal->pvt->row_count);
+        if (_vte_ring_next (screen->row_data) > next){
+                _vte_ring_shrink (screen->row_data, next - low);
+        }
+
+        /* The alternate screen isn't allowed to scroll at all. */
+        screen = &terminal->pvt->alternate_screen;
+        _vte_ring_resize (screen->row_data, terminal->pvt->row_count);
+        screen->scroll_delta = _vte_ring_delta (screen->row_data);
+        screen->insert_delta = _vte_ring_delta (screen->row_data);
+        if (_vte_ring_next (screen->row_data) > screen->insert_delta + terminal->pvt->row_count){
+                _vte_ring_shrink (screen->row_data, terminal->pvt->row_count);
+        }
 
 	/* Adjust the scrollbar to the new location. */
 	/* Hack: force a change in scroll_delta even if the value remains, so that
 	   vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 676075. */
+        scroll_delta = terminal->pvt->screen->scroll_delta;
 	terminal->pvt->screen->scroll_delta = -1;
 	vte_terminal_queue_adjustment_value_changed (terminal, scroll_delta);
 	_vte_terminal_adjust_adjustments_full (terminal);
