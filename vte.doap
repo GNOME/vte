@@ -13,7 +13,7 @@
   rdf:resource="http://download.gnome.org/sources/vte"/>
   <bug-database
   rdf:resource="http://bugzilla.gnome.org/browse.cgi?product=vte"/>
-  <category rdf:resource="http://api.gnome.org/doap-extensions#desktop" />
+  <category rdf:resource="http://api.gnome.org/doap-extensions#core" />
 
   <maintainer>
     <foaf:Person>
