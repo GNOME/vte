@@ -14,6 +14,8 @@
   <bug-database
   rdf:resource="http://bugzilla.gnome.org/browse.cgi?product=vte"/>
   <category rdf:resource="http://api.gnome.org/doap-extensions#core" />
+  <programming-language>C</programming-language>
+  <programming-language>Vala</programming-language>
 
   <maintainer>
     <foaf:Person>
