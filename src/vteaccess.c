@@ -609,9 +609,12 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 		if (inserted) {
 			len = priv->snapshot_text->len;
 			if (len > i) {
+				/* snapshot_text always contains a trailing '\n',
+				 * insertion happens in front of it: bug 657960 */
+				g_assert(i >= 1);
 				emit_text_changed_insert(G_OBJECT(accessible),
 							 priv->snapshot_text->str,
-							 i,
+							 i - 1,
 							 len - i);
 			}
 		}
