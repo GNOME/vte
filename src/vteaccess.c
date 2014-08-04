@@ -199,7 +199,8 @@ emit_text_changed_delete(GObject *object,
 
 static void
 vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *accessible,
-						      char **old, glong *olen)
+                                                      GString **old_text,
+                                                      GArray **old_characters)
 {
 	VteTerminalAccessiblePrivate *priv = _vte_terminal_accessible_get_instance_private(accessible);
         VteTerminal *terminal;
@@ -212,25 +213,23 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 	/* If nothing's changed, just return immediately. */
 	if ((priv->snapshot_contents_invalid == FALSE) &&
 	    (priv->snapshot_caret_invalid == FALSE)) {
-		if (old) {
+                if (old_text) {
 			if (priv->snapshot_text) {
-				*old = g_malloc(priv->snapshot_text->len + 1);
-				memcpy(*old,
-				       priv->snapshot_text->str,
-				       priv->snapshot_text->len);
-				(*old)[priv->snapshot_text->len] = '\0';
-				if (olen) {
-					*olen = priv->snapshot_text->len;
-				}
+                                *old_text = g_string_new_len(priv->snapshot_text->str,
+                                                             priv->snapshot_text->len);
 			} else {
-				*old = g_strdup("");
-				if (olen) {
-					*olen = 0;
-				}
+                                *old_text = g_string_new("");
 			}
-		} else {
-			if (olen) {
-				g_assert_not_reached();
+                }
+                if (old_characters) {
+                        if (priv->snapshot_characters) {
+                                *old_characters = g_array_sized_new(FALSE, FALSE, sizeof(int),
+                                                                    priv->snapshot_characters->len);
+                                g_array_append_vals(*old_characters,
+                                                    priv->snapshot_characters->data,
+                                                    priv->snapshot_characters->len);
+                        } else {
+                                *old_characters = g_array_new(FALSE, FALSE, sizeof(int));
 			}
 		}
 		return;
@@ -241,33 +240,31 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 	if (priv->snapshot_contents_invalid) {
 		/* Free the outdated snapshot data, unless the caller
 		 * wants it. */
-		if (old) {
+                if (old_text) {
 			if (priv->snapshot_text != NULL) {
-				*old = priv->snapshot_text->str;
-				if (olen) {
-					*olen = priv->snapshot_text->len;
-				}
-				g_string_free(priv->snapshot_text, FALSE);
+                                *old_text = priv->snapshot_text;
 			} else {
-				*old = g_strdup("");
-				if (olen) {
-					*olen = 0;
-				}
+                                *old_text = g_string_new("");
 			}
 		} else {
-			if (olen) {
-				g_assert_not_reached();
-			}
 			if (priv->snapshot_text != NULL) {
 				g_string_free(priv->snapshot_text, TRUE);
 			}
 		}
 		priv->snapshot_text = NULL;
 
-		/* Free the character offsets and allocate a new array to hold
-		 * them. */
-		if (priv->snapshot_characters != NULL) {
-			g_array_free(priv->snapshot_characters, TRUE);
+                /* Free the character offsets unless the caller wants it,
+                 * and allocate a new array to hold them. */
+                if (old_characters) {
+                        if (priv->snapshot_characters != NULL) {
+                                *old_characters = priv->snapshot_characters;
+                        } else {
+                                *old_characters = g_array_new(FALSE, FALSE, sizeof(int));
+                        }
+                } else {
+                        if (priv->snapshot_characters != NULL) {
+                                g_array_free(priv->snapshot_characters, TRUE);
+                        }
 		}
 		priv->snapshot_characters = g_array_new(FALSE, FALSE, sizeof(int));
 
@@ -388,6 +385,8 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 {
         VteTerminalAccessible *accessible = data;
 	VteTerminalAccessiblePrivate *priv = _vte_terminal_accessible_get_instance_private(accessible);
+        GString *old_text;
+        GArray *old_characters;
 	char *old, *current;
 	glong offset, caret_offset, olen, clen;
 	gint old_snapshot_caret;
@@ -395,11 +394,15 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	old_snapshot_caret = priv->snapshot_caret;
 	priv->snapshot_contents_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
-							      &old, &olen);
-	g_assert(old != NULL);
+                                                              &old_text,
+                                                              &old_characters);
+        g_assert(old_text != NULL);
+        g_assert(old_characters != NULL);
 
 	current = priv->snapshot_text->str;
 	clen = priv->snapshot_text->len;
+        old = old_text->str;
+        olen = old_text->len;
 
 	if ((guint) priv->snapshot_caret < priv->snapshot_characters->len) {
 		caret_offset = g_array_index(priv->snapshot_characters,
@@ -422,12 +425,15 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 	if ((olen == offset) &&
 		       	(caret_offset < olen && old[caret_offset] == ' ') &&
 			(old_snapshot_caret == priv->snapshot_caret + 1)) {
-                priv->snapshot_text->str = old;
-		priv->snapshot_text->len = caret_offset + 1;
+                GString *saved_text = priv->snapshot_text;
+                GArray *saved_characters = priv->snapshot_characters;
+
+                priv->snapshot_text = old_text;
+                priv->snapshot_characters = old_characters;
 		emit_text_changed_delete(G_OBJECT(accessible),
 					 old, caret_offset, 1);
-		priv->snapshot_text->str = current;
-		priv->snapshot_text->len = clen;
+                priv->snapshot_text = saved_text;
+                priv->snapshot_characters = saved_characters;
 	}
 
 
@@ -456,17 +462,17 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 		/* Now emit a deleted signal for text that was in the old
 		 * string but isn't in the new one... */
 		if (olen > offset) {
-			gchar *saved_str = priv->snapshot_text->str;
-			gsize saved_len = priv->snapshot_text->len;
+                        GString *saved_text = priv->snapshot_text;
+                        GArray *saved_characters = priv->snapshot_characters;
 
-			priv->snapshot_text->str = old;
-			priv->snapshot_text->len = olen;
+                        priv->snapshot_text = old_text;
+                        priv->snapshot_characters = old_characters;
 			emit_text_changed_delete(G_OBJECT(accessible),
 						 old,
 						 offset,
 						 olen - offset);
-			priv->snapshot_text->str = saved_str;
-			priv->snapshot_text->len = saved_len;
+                        priv->snapshot_text = saved_text;
+                        priv->snapshot_characters = saved_characters;
 		}
 		/* .. and an inserted signal for text that wasn't in the old
 		 * string but is in the new one. */
@@ -478,7 +484,8 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 		}
 	}
 
-	g_free(old);
+        g_string_free(old_text, TRUE);
+        g_array_free(old_characters, TRUE);
 }
 
 /* A signal handler to catch "text-scrolled" signals. */
