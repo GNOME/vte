@@ -82,6 +82,8 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
+#define WORD_CHAR_ASCII_PUNCT "-,.;/?%&#:_=+@~"
+
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
@@ -5229,7 +5231,9 @@ _vte_is_word_char(gunichar c)
 {
 	return g_unichar_isgraph(c) &&
                (g_unichar_isalnum(c) ||
-                g_unichar_ispunct(c));
+                (g_unichar_ispunct(c) &&
+                 (c >= 0x80 ||
+                  strchr (WORD_CHAR_ASCII_PUNCT, (int) c) != NULL)));
 }
 
 /* Check if the characters in the two given locations are in the same class
