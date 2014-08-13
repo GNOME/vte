@@ -5227,15 +5227,9 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 gboolean
 _vte_is_word_char(gunichar c)
 {
-	if (G_UNLIKELY (!g_unichar_isgraph(c)))
-		return FALSE;
-	if (G_LIKELY (g_unichar_isalnum(c)))
-		return TRUE;
-	if (G_UNLIKELY (g_unichar_type(c) == G_UNICODE_CONNECT_PUNCTUATION))  /* Pc */
-		return TRUE;
-	if (G_UNLIKELY (c == 0x00b7))  /* middle dot, requested in bug 700217 */
-		return TRUE;
-	return FALSE;
+	return g_unichar_isgraph(c) &&
+               (g_unichar_isalnum(c) ||
+                g_unichar_ispunct(c));
 }
 
 /* Check if the characters in the two given locations are in the same class
