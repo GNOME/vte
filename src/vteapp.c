@@ -944,7 +944,9 @@ main(int argc, char **argv)
 	}
 
         if (encoding != NULL) {
-                vte_terminal_set_encoding(terminal, encoding);
+                if (!vte_terminal_set_encoding(terminal, encoding, &error)) {
+                        g_printerr("Failed to set encoding: %s\n", error->message);
+                }
                 g_free(encoding);
         }
         if (cjk_ambiguous_width != NULL) {

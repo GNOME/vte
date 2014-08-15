@@ -106,8 +106,13 @@ class Window : Gtk.ApplicationWindow
     if (App.Options.no_double_buffer)
       terminal.set_double_buffered(true);
 
-    if (App.Options.encoding != null)
-      terminal.set_encoding(App.Options.encoding);
+    if (App.Options.encoding != null) {
+      try {
+        terminal.set_encoding(App.Options.encoding);
+      } catch (Error e) {
+        printerr("Failed to set encoding: %s\n", e.message);
+      }
+    }
 
     terminal.set_audible_bell(App.Options.audible);
     terminal.set_cjk_ambiguous_width(App.Options.get_cjk_ambiguous_width());

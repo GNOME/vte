@@ -1959,15 +1959,20 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
 /**
  * vte_terminal_set_encoding:
  * @terminal: a #VteTerminal
- * @codeset: (allow-none): a valid #GIConv target, or %NULL to use the default encoding
+ * @codeset: (allow-none): a valid #GIConv target, or %NULL to use UTF-8
+ * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Changes the encoding the terminal will expect data from the child to
  * be encoded with.  For certain terminal types, applications executing in the
- * terminal can change the encoding.  The default encoding is defined by the
- * application's locale settings.
+ * terminal can change the encoding. If @codeset is %NULL, it uses "UTF-8".
+ *
+ * Returns: %TRUE if the encoding could be changed to the specified one,
+ *  or %FALSE with @error set to %G_CONVERT_ERROR_NO_CONVERSION.
  */
-void
-vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
+gboolean
+vte_terminal_set_encoding(VteTerminal *terminal,
+                          const char *codeset,
+                          GError **error)
 {
         VteTerminalPrivate *pvt;
         GObject *object;
@@ -1976,30 +1981,32 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	char *obuf1, *obuf2;
 	gsize bytes_written;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
         object = G_OBJECT(terminal);
         pvt = terminal->pvt;
 
 	old_codeset = pvt->encoding;
 	if (codeset == NULL) {
-		g_get_charset(&codeset);
+                codeset = "UTF-8";
 	}
-	if ((old_codeset != NULL) && (strcmp(codeset, old_codeset) == 0)) {
+	if ((old_codeset != NULL) && g_str_equal(codeset, old_codeset)) {
 		/* Nothing to do! */
-		return;
+		return TRUE;
 	}
-
-        g_object_freeze_notify(object);
 
 	/* Open new conversions. */
 	conv = _vte_conv_open(codeset, "UTF-8");
 	if (conv == VTE_INVALID_CONV) {
-		g_warning(_("Unable to convert characters from %s to %s."),
-			  "UTF-8", codeset);
-		/* fallback to no conversion */
-		conv = _vte_conv_open(codeset = "UTF-8", "UTF-8");
-	}
+		g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
+                            _("Unable to convert characters from %s to %s."),
+                            "UTF-8", codeset);
+                return FALSE;
+        }
+
+        g_object_freeze_notify(object);
+
 	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
 		_vte_conv_close(terminal->pvt->outgoing_conv);
 	}
@@ -2048,6 +2055,8 @@ vte_terminal_set_encoding(VteTerminal *terminal, const char *codeset)
 	vte_terminal_emit_encoding_changed(terminal);
 
         g_object_thaw_notify(object);
+
+        return TRUE;
 }
 
 /**
@@ -7990,7 +7999,7 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 static void
 _vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
 {
-	vte_terminal_set_encoding(p, _vte_iso2022_state_get_codeset(state));
+	vte_terminal_set_encoding(p, _vte_iso2022_state_get_codeset(state), NULL);
 }
 
 /* Initialize the terminal widget after the base widget stuff is initialized.
@@ -8065,8 +8074,8 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->outgoing = _vte_byte_array_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_byte_array_new();
-	vte_terminal_set_encoding(terminal, NULL);
-	g_assert(terminal->pvt->encoding != NULL);
+	vte_terminal_set_encoding(terminal, NULL /* UTF-8 */, NULL);
+	g_assert_cmpstr(terminal->pvt->encoding, ==, "UTF-8");
 
         /* Set up the emulation. */
 	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
@@ -10688,7 +10697,7 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
                         break;
                 case PROP_ENCODING:
-                        vte_terminal_set_encoding (terminal, g_value_get_string (value));
+                        vte_terminal_set_encoding (terminal, g_value_get_string (value), NULL);
                         break;
                 case PROP_FONT_DESC:
                         vte_terminal_set_font (terminal, g_value_get_boxed (value));
@@ -12467,8 +12476,8 @@ vte_terminal_reset(VteTerminal *terminal,
         /* For some reason, xterm doesn't reset alternateScroll, but we do. */
         pvt->alternate_screen_scroll = TRUE;
 	/* Reset the encoding. */
-	vte_terminal_set_encoding(terminal, NULL);
-	g_assert(pvt->encoding != NULL);
+	vte_terminal_set_encoding(terminal, NULL /* UTF-8 */, NULL);
+	g_assert_cmpstr(pvt->encoding, ==, "UTF-8");
 	/* Reset selection. */
 	vte_terminal_deselect_all(terminal);
 	pvt->has_selection = FALSE;

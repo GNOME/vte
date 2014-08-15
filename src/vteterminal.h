@@ -323,8 +323,9 @@ gboolean  vte_terminal_search_find_next       (VteTerminal *terminal) _VTE_GNUC_
 
 
 /* Set the character encoding.  Most of the time you won't need this. */
-void vte_terminal_set_encoding(VteTerminal *terminal,
-                               const char *codeset) _VTE_GNUC_NONNULL(1);
+gboolean vte_terminal_set_encoding(VteTerminal *terminal,
+                                   const char *codeset,
+                                   GError **error) _VTE_GNUC_NONNULL(1);
 const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 /* CJK compatibility setting */
