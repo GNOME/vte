@@ -105,9 +105,9 @@ destroy_and_quit(VteTerminal *terminal, GtkWidget *window)
 		stream = G_OUTPUT_STREAM (g_file_replace (file, NULL, FALSE, G_FILE_CREATE_NONE, NULL, &error));
 
 		if (stream) {
-			vte_terminal_write_contents (terminal, stream,
-						     VTE_WRITE_DEFAULT,
-						     NULL, &error);
+			vte_terminal_write_contents_sync (terminal, stream,
+                                                          VTE_WRITE_DEFAULT,
+                                                          NULL, &error);
 			g_object_unref (stream);
 		}
 

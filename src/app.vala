@@ -395,7 +395,7 @@ class Window : Gtk.ApplicationWindow
       try {
         var file = GLib.File.new_for_commandline_arg(App.Options.output_filename);
         var stream = file.replace(null, false, GLib.FileCreateFlags.NONE, null);
-        terminal.write_contents(stream, Vte.WriteFlags.DEFAULT, null);
+        terminal.write_contents_sync(stream, Vte.WriteFlags.DEFAULT, null);
       } catch (Error e) {
         printerr("Failed to write output to \"%s\": %s\n",
                  App.Options.output_filename, e.message);

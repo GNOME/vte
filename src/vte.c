@@ -13381,7 +13381,7 @@ update_timeout (gpointer data)
 }
 
 /**
- * vte_terminal_write_contents:
+ * vte_terminal_write_contents_sync:
  * @terminal: a #VteTerminal
  * @stream: a #GOutputStream to write to
  * @flags: a set of #VteWriteFlags
@@ -13400,15 +13400,13 @@ update_timeout (gpointer data)
  * depending on scrollback history and @stream availability for writing.
  *
  * Returns: %TRUE on success, %FALSE if there was an error
- *
- * Since: 0.24
  */
 gboolean
-vte_terminal_write_contents (VteTerminal *terminal,
-                             GOutputStream *stream,
-                             VteWriteFlags flags,
-                             GCancellable *cancellable,
-                             GError **error)
+vte_terminal_write_contents_sync (VteTerminal *terminal,
+                                  GOutputStream *stream,
+                                  VteWriteFlags flags,
+                                  GCancellable *cancellable,
+                                  GError **error)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), FALSE);

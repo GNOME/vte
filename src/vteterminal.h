@@ -361,11 +361,11 @@ void vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
                                                 GtkWindow *window) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 /* Writing contents out */
-gboolean vte_terminal_write_contents (VteTerminal *terminal,
-				      GOutputStream *stream,
-				      VteWriteFlags flags,
-				      GCancellable *cancellable,
-				      GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,
+                                           GOutputStream *stream,
+                                           VteWriteFlags flags,
+                                           GCancellable *cancellable,
+                                           GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 G_END_DECLS
 
