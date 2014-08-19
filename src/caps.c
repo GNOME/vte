@@ -209,7 +209,7 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(CSI "%d;%d;%d;%dw", "enable-filter-rectangle")
         ENTRY(CSI "%dx", "request-terminal-parameters")
         ENTRY(CSI "%d;%d'z", "enable-locator-reporting")
-        ENTRY(CSI "%m'ENTRY(", "select-locator-events")
+        ENTRY(CSI "%m'{", "select-locator-events")
         ENTRY(CSI "%d'|", "request-locator-position")
 
         COMMENT(/* Set text parameters, BEL-terminated versions. */)
