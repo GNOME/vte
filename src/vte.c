@@ -11704,6 +11704,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteTerminal {\n"
                                            "padding: 1px 1px 1px 1px;\n"
+                                           "background-color: @theme_base_color;\n"
+                                           "color: @theme_fg_color;\n"
                                          "}\n",
                                          -1, NULL);
 
