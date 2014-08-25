@@ -32,11 +32,10 @@ G_BEGIN_DECLS
 #define VTE_DEFAULT_FG			256
 #define VTE_DEFAULT_BG			257
 #define VTE_BOLD_FG			258
-#define VTE_DIM_FG			259
-#define VTE_HIGHLIGHT_FG		260
-#define VTE_HIGHLIGHT_BG		261
-#define VTE_CURSOR_BG			262
-#define VTE_PALETTE_SIZE		263
+#define VTE_HIGHLIGHT_FG		259
+#define VTE_HIGHLIGHT_BG		260
+#define VTE_CURSOR_BG			261
+#define VTE_PALETTE_SIZE		262
 
 /*
  * VteCellAttr: A single cell style attributes
@@ -64,7 +63,7 @@ typedef struct _VteCellAttr {
 
 	guint64 reverse: 1;
 	guint64 blink: 1;
-	guint64 half: 1;
+	guint64 dim: 1;		/* also known as faint, half intensity etc. */
 
 	guint64 invisible: 1;
         /* 1 bit unused */

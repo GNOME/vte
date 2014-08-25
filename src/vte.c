@@ -289,10 +289,6 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
 #endif
 
-/* Indexes in the "palette" color array for the dim colors.
- * Only the first %VTE_LEGACY_COLOR_SET_SIZE colors have dim versions.  */
-static const guchar corresponding_dim_index[] = {16,88,28,100,18,90,30,102};
-
 static void
 vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 {
@@ -2389,23 +2385,6 @@ _vte_terminal_set_color_bold(VteTerminal *terminal,
 }
 
 /*
- * _vte_terminal_set_color_dim:
- * @terminal: a #VteTerminal
- * @dim: the new dim color
- *
- * Sets the color used to draw dim text in the default foreground color.
- */
-static void
-_vte_terminal_set_color_dim(VteTerminal *terminal,
-                            const PangoColor *dim)
-{
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set dim color to (%04x,%04x,%04x).\n",
-			dim->red, dim->green, dim->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DIM_FG, VTE_COLOR_SOURCE_API, dim);
-}
-
-/*
  * _vte_terminal_set_color_foreground:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color
@@ -2642,12 +2621,6 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 							   1.8,
 							   &color);
 				break;
-			case VTE_DIM_FG:
-				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
-							   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
-							   0.5,
-							   &color);
-				break;
 			case VTE_HIGHLIGHT_BG:
 				unset = TRUE;
 				break;
@@ -2712,37 +2685,6 @@ vte_terminal_set_color_bold(VteTerminal *terminal,
 	}
 
 	_vte_terminal_set_color_bold(terminal, &color);
-}
-
-/**
- * vte_terminal_set_color_dim:
- * @terminal: a #VteTerminal
- * @dim: (allow-none): the new dim color or %NULL
- *
- * Sets the color used to draw dim text in the default foreground color.
- * If @dim is %NULL then the default color is used.
- */
-void
-vte_terminal_set_color_dim(VteTerminal *terminal,
-                                const GdkRGBA *dim)
-{
-	PangoColor color;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	if (dim == NULL)
-	{
-		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
-					   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
-					   0.5,
-					   &color);
-	}
-	else
-	{
-		_pango_color_from_rgba(&color, dim);
-	}
-
-	_vte_terminal_set_color_dim(terminal, &color);
 }
 
 /**
@@ -5904,10 +5846,22 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 static void
 vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoColor *color)
 {
+        gboolean dim = FALSE;
+        if (!(index & VTE_RGB_COLOR) && (index & VTE_DIM_COLOR)) {
+                index &= ~VTE_DIM_COLOR;
+                dim = TRUE;
+        }
+
 	if (index >= VTE_LEGACY_COLORS_OFFSET && index < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE)
 		index -= VTE_LEGACY_COLORS_OFFSET;
 	if (index < VTE_PALETTE_SIZE) {
 		memcpy(color, _vte_terminal_get_color(terminal, index), sizeof(PangoColor));
+                if (dim) {
+                        /* magic formula taken from xterm */
+                        color->red = color->red * 2 / 3;
+                        color->green = color->green * 2 / 3;
+                        color->blue = color->blue * 2 / 3;
+                }
 	} else if (index & VTE_RGB_COLOR) {
 		color->red = ((index >> 16) & 0xFF) * 257;
 		color->green = ((index >> 8) & 0xFF) * 257;
@@ -8729,13 +8683,12 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 		}
 	}
 
-	/* Handle half similarly */
-	if (cell->attr.half) {
-		if (fore == VTE_DEFAULT_FG)
-			fore = VTE_DIM_FG;
-		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE)
-			fore = corresponding_dim_index[fore - VTE_LEGACY_COLORS_OFFSET];
-	}
+        /* Handle dim colors.  Only apply to palette colors, dimming direct RGB wouldn't make sense.
+         * Apply to the foreground color only, but do this before handling reverse/highlight so that
+         * those can be used to dim the background instead. */
+        if (cell->attr.dim && !(fore & VTE_RGB_COLOR)) {
+	        fore |= VTE_DIM_COLOR;
+        }
 
 	/* Reverse cell? */
 	if (cell->attr.reverse) {

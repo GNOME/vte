@@ -197,8 +197,6 @@ gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal) _VTE_GNUC_NONN
 /* Set the color scheme. */
 void vte_terminal_set_color_bold(VteTerminal *terminal,
                                  const GdkRGBA *bold) _VTE_GNUC_NONNULL(1);
-void vte_terminal_set_color_dim(VteTerminal *terminal,
-                                const GdkRGBA *dim) _VTE_GNUC_NONNULL(1);
 void vte_terminal_set_color_foreground(VteTerminal *terminal,
                                        const GdkRGBA *foreground) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 void vte_terminal_set_color_background(VteTerminal *terminal,

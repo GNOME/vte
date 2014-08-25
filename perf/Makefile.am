@@ -1,4 +1,5 @@
 EXTRA_DIST = \
+	256test.sh \
 	UTF-8-demo.txt \
 	img.sh \
 	inc.sh \

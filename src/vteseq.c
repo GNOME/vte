@@ -1974,11 +1974,9 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 			break;
 		case 1:
 			terminal->pvt->screen->defaults.attr.bold = 1;
-			terminal->pvt->screen->defaults.attr.half = 0;
 			break;
 		case 2:
-			terminal->pvt->screen->defaults.attr.half = 1;
-			terminal->pvt->screen->defaults.attr.bold = 0;
+			terminal->pvt->screen->defaults.attr.dim = 1;
 			break;
 		case 3:
 			terminal->pvt->screen->defaults.attr.italic = 1;
@@ -2001,7 +1999,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		case 21: /* Error in old versions of linux console. */
 		case 22: /* ECMA 48. */
 			terminal->pvt->screen->defaults.attr.bold = 0;
-			terminal->pvt->screen->defaults.attr.half = 0;
+			terminal->pvt->screen->defaults.attr.dim = 0;
 			break;
 		case 23:
 			terminal->pvt->screen->defaults.attr.italic = 0;

@@ -63,13 +63,17 @@ G_BEGIN_DECLS
  *   Colors set by SGR 256-color extension (38/48;5;index).
  *   These are direct indices into the color palette.
  *
- * 256 .. VTE_PALETTE_SIZE - 1 (262):
+ * 256 .. VTE_PALETTE_SIZE - 1 (261):
  *   Special values, such as default colors.
  *   These are direct indices into the color palette.
  *
  * VTE_LEGACY_COLORS_OFFSET (512) .. VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE - 1 (527):
  *   Colors set by legacy escapes (30..37/40..47, 90..97/100..107).
  *   These are translated to 0 .. 15 before looking up in the palette, taking bold into account.
+ *
+ * VTE_DIM_COLORS (2^10) .. :
+ *   Dimmed version of the above, for foreground colors.
+ *   Cell attributes can't have these colors.
  *
  * VTE_RGB_COLOR (2^24) .. VTE_RGB_COLOR + 16Mi - 1 (2^25 - 1):
  *   Colors set by SGR truecolor extension (38/48;2;red;green;blue)
@@ -80,7 +84,7 @@ G_BEGIN_DECLS
 #define VTE_LEGACY_FULL_COLOR_SET_SIZE	16
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
-#define VTE_COLOR_DIM_OFFSET		16
+#define VTE_DIM_COLOR			(1 << 10)
 #define VTE_RGB_COLOR			(1 << 24)
 /* More color defines in vterowdata.h */
 
