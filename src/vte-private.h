@@ -106,6 +106,7 @@ G_BEGIN_DECLS
 #define VTE_DISPLAY_TIMEOUT		10
 #define VTE_UPDATE_TIMEOUT		15
 #define VTE_UPDATE_REPEAT_TIMEOUT	30
+#define VTE_VISIBLE_BELL_DURATION       80
 #define VTE_MAX_PROCESS_TIME		100
 #define VTE_CELL_BBOX_SLACK		1
 
@@ -302,6 +303,9 @@ struct _VteTerminalPrivate {
 	gboolean cursor_visible;
 	gboolean has_focus;               /* is the terminal window focused */
 
+        /* Visible bell's state. */
+        guint visible_bell_tag;           /* timeout ID for stopping the bell */
+
 	/* Input device options. */
         gboolean input_enabled;
 	time_t last_keypress_time;
@@ -437,8 +441,6 @@ gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_fragments(VteTerminal *terminal, long start, long end);
-void _vte_terminal_audible_beep(VteTerminal *terminal);
-void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);
 PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
 void _vte_terminal_set_color_internal(VteTerminal *terminal,

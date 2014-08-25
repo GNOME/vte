@@ -134,6 +134,10 @@ static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 static void vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink);
 static void _vte_check_cursor_blink(VteTerminal *terminal);
+static void _vte_terminal_audible_beep(VteTerminal *terminal);
+static void remove_visible_bell_timeout (VteTerminal *terminal);
+static gboolean stop_visible_beep (VteTerminal *terminal);
+static void _vte_terminal_visible_beep(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -4611,7 +4615,7 @@ _vte_check_cursor_blink(VteTerminal *terminal)
 		remove_cursor_timeout(terminal);
 }
 
-void
+static void
 _vte_terminal_audible_beep(VteTerminal *terminal)
 {
 	GdkDisplay *display;
@@ -4621,15 +4625,46 @@ _vte_terminal_audible_beep(VteTerminal *terminal)
 	gdk_display_beep(display);
 }
 
-void
+static void
+remove_visible_bell_timeout (VteTerminal *terminal)
+{
+        if (terminal->pvt->visible_bell_tag == 0)
+                return; /* already removed */
+
+        g_source_remove (terminal->pvt->visible_bell);
+        terminal->pvt->visible_bell_tag = 0;
+}
+
+static gboolean
+stop_visible_beep (VteTerminal *terminal)
+{
+        if (G_LIKELY (gtk_widget_get_realized (&terminal->widget) && gtk_widget_get_mapped (&terminal->widget))) {
+                /* Force the repaint, max delay of UPDATE_REPEAT_TIMEOUT */
+                _vte_invalidate_all (terminal);
+        }
+        terminal->pvt->visible_bell_tag = 0;
+        return FALSE;
+}
+
+static void
 _vte_terminal_visible_beep(VteTerminal *terminal)
 {
 	GtkWidget *widget = &terminal->widget;
 
-	if (gtk_widget_get_realized (widget)) {
+        if (G_UNLIKELY (!gtk_widget_get_realized (widget) || !gtk_widget_get_mapped (widget)))
+                return;
+
+        if (terminal->pvt->visible_bell_tag != 0) {
+                g_source_remove (terminal->pvt->visible_bell_tag);
+        } else {
 		/* Force the repaint, max delay of UPDATE_REPEAT_TIMEOUT */
 		_vte_invalidate_all (terminal);
 	}
+        terminal->pvt->visible_bell_tag = g_timeout_add_full (G_PRIORITY_LOW,
+                                                              VTE_VISIBLE_BELL_DURATION,
+                                                              (GSourceFunc)stop_visible_beep,
+                                                              terminal,
+                                                              NULL);
 }
 
 void
@@ -8025,6 +8060,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
 	pvt->cursor_blink_tag = 0;
+        pvt->visible_bell_tag = 0;
 	pvt->outgoing = _vte_byte_array_new();
 	pvt->outgoing_conv = VTE_INVALID_CONV;
 	pvt->conv_buffer = _vte_byte_array_new();
@@ -8297,6 +8333,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 
 	/* Remove the blink timeout function. */
 	remove_cursor_timeout(terminal);
+        remove_visible_bell_timeout(terminal);
 
 	/* Cancel any pending redraws. */
 	remove_update_timeout (terminal);
@@ -8511,6 +8548,8 @@ vte_terminal_finalize(GObject *object)
 		_vte_matcher_free(terminal->pvt->matcher);
 	}
 
+        remove_cursor_timeout (terminal);
+        remove_visible_bell_timeout (terminal);
 	remove_update_timeout (terminal);
 
 	/* discard title updates */
@@ -8658,6 +8697,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 				       guint *pfore, guint *pback)
 {
 	guint fore, back;
+        gboolean reverse = terminal->pvt->visible_bell_tag != 0;
 
 	if (!cell)
 		cell = &basic_cell.cell;
@@ -8691,7 +8731,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
         }
 
 	/* Reverse cell? */
-	if (cell->attr.reverse) {
+        if (cell->attr.reverse ^ reverse) {
 		swap (&fore, &back);
 	}
 
