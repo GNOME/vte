@@ -114,7 +114,7 @@ class Window : Gtk.ApplicationWindow
       }
     }
 
-    terminal.set_audible_bell(App.Options.audible);
+    terminal.set_audible_bell(App.Options.bell_string == "audible");
     terminal.set_cjk_ambiguous_width(App.Options.get_cjk_ambiguous_width());
     terminal.set_cursor_blink_mode(App.Options.get_cursor_blink_mode());
     terminal.set_cursor_shape(App.Options.get_cursor_shape());
@@ -123,7 +123,7 @@ class Window : Gtk.ApplicationWindow
     terminal.set_scroll_on_output(false);
     terminal.set_scroll_on_keystroke(true);
     terminal.set_scrollback_lines(App.Options.scrollback_lines);
-    terminal.set_visible_bell(!App.Options.audible);
+    terminal.set_visible_bell(App.Options.bell_string == "visual");
 
     /* Style */
     if (App.Options.font_string != null) {
@@ -537,7 +537,7 @@ class App : Gtk.Application
 
   public struct Options
   {
-    public static bool audible = false;
+    public static string? bell_string = null;
     public static string? command = null;
     private static string? cjk_ambiguous_width_string = null;
     private static string? cursor_blink_mode_string = null;
@@ -700,8 +700,8 @@ class App : Gtk.Application
     }
 		
     public static const OptionEntry[] entries = {
-      { "audible-bell", 'a', 0, OptionArg.NONE, ref audible,
-        "Use audible terminal bell", null },
+      { "bell", 0, 0, OptionArg.STRING, ref bell_string,
+        "Set bell mode (none|audible|visual)", "MODE" },
       { "command", 'c', 0, OptionArg.STRING, ref command,
         "Execute a command in the terminal", null },
       { "cjk-width", 0, 0, OptionArg.STRING, ref cjk_ambiguous_width_string,
@@ -711,7 +711,7 @@ class App : Gtk.Application
       { "cursor-color", 0, 0, OptionArg.STRING, ref cursor_color_string,
         "Enable a colored cursor", null },
       { "cursor-shape", 0, 0, OptionArg.STRING, ref cursor_shape_string,
-        "Set cursor shape (block|underline|ibeam)", null },
+        "Set cursor shape (block|underline|ibeam)", "SHAPE" },
       { "dingu", 'D', 0, OptionArg.STRING_ARRAY, ref dingus,
         "Add regex highlight", null },
       { "debug", 'd', 0,OptionArg.NONE, ref debug,
