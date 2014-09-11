@@ -563,7 +563,8 @@ main(int argc, char **argv)
         char *transparent = NULL;
         char *encoding = NULL;
         char *cjk_ambiguous_width = NULL;
-	gboolean debug = FALSE, no_builtin_dingus = FALSE, dbuffer = TRUE,
+	gboolean audible = TRUE,
+		 debug = FALSE, no_builtin_dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, keep = FALSE,
                 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
@@ -577,7 +578,6 @@ main(int argc, char **argv)
 	const char *working_directory = NULL;
 	const char *output_file = NULL;
 	char *pty_flags_string = NULL;
-	char *bell_string = NULL;
 	char *cursor_blink_mode_string = NULL;
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
@@ -622,6 +622,12 @@ main(int argc, char **argv)
 			"double-buffer", '2', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &dbuffer,
 			"Disable double-buffering", NULL
+		},
+		{
+			"audible", 'a', G_OPTION_FLAG_REVERSE,
+			G_OPTION_ARG_NONE, &audible,
+			"Use visible, instead of audible, terminal bell",
+			NULL
 		},
 		{
 			"command", 'c', 0,
@@ -669,11 +675,6 @@ main(int argc, char **argv)
 			"Specify the number of scrollback-lines", NULL
 		},
 		{
-			"bell", 0, 0,
-			G_OPTION_ARG_STRING, &bell_string,
-			"Set bell mode (none|audible|visual)", "MODE"
-		},
-		{
 			"cursor-blink", 0, 0,
 			G_OPTION_ARG_STRING, &cursor_blink_mode_string,
 			"Cursor blink mode (system|on|off)", "MODE"
@@ -686,7 +687,7 @@ main(int argc, char **argv)
 		{
 			"cursor-shape", 0, 0,
 			G_OPTION_ARG_STRING, &cursor_shape_string,
-			"Set cursor shape (block|underline|ibeam)", "SHAPE"
+			"Set cursor shape (block|underline|ibeam)", NULL
 		},
 		{
 			"encoding", 0, 0,
@@ -908,8 +909,8 @@ main(int argc, char **argv)
 	}
 
 	/* Set some defaults. */
-	vte_terminal_set_audible_bell(terminal, g_strcmp0(bell_string, "audible") == 0);
-	vte_terminal_set_visible_bell(terminal, g_strcmp0(bell_string, "visual") == 0);
+	vte_terminal_set_audible_bell(terminal, audible);
+	vte_terminal_set_visible_bell(terminal, !audible);
 	vte_terminal_set_cursor_blink_mode(terminal, cursor_blink_mode);
 	vte_terminal_set_scroll_on_output(terminal, FALSE);
 	vte_terminal_set_scroll_on_keystroke(terminal, TRUE);
