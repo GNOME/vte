@@ -10775,7 +10775,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
 	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
 
-        klass->beep = NULL;
+        klass->bell = NULL;
 
         /* GtkScrollable interface properties */
         g_object_class_override_property (gobject_class, PROP_HADJUSTMENT, "hadjustment");
@@ -11256,16 +11256,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     G_TYPE_NONE, 0);
 
         /**
-         * VteTerminal::beep:
+         * VteTerminal::bell:
          * @vteterminal: the object which received the signal
          *
-         * This signal is emitted when the a child sends a beep request to the
+         * This signal is emitted when the a child sends a bell request to the
          * terminal.
          */
-        g_signal_new(I_("beep"),
+        g_signal_new(I_("bell"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     G_SIGNAL_RUN_LAST,
-			     G_STRUCT_OFFSET(VteTerminalClass, beep),
+			     G_STRUCT_OFFSET(VteTerminalClass, bell),
 			     NULL,
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,

@@ -102,7 +102,7 @@ struct _VteTerminalClass {
 	void (*copy_clipboard)(VteTerminal* terminal);
 	void (*paste_clipboard)(VteTerminal* terminal);
 
- 	void (*beep)(VteTerminal* terminal);
+	void (*bell)(VteTerminal* terminal);
 
         /* Padding for future expansion. */
         gpointer padding[16];
