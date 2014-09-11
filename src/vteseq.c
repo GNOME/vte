@@ -909,7 +909,7 @@ static void
 vte_sequence_handler_bell (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_terminal_beep (terminal);
-	g_signal_emit_by_name(terminal, "beep");
+	g_signal_emit_by_name(terminal, "bell");
 }
 
 /* Backtab. */
