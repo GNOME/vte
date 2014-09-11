@@ -123,7 +123,6 @@ class Window : Gtk.ApplicationWindow
     terminal.set_scroll_on_output(false);
     terminal.set_scroll_on_keystroke(true);
     terminal.set_scrollback_lines(App.Options.scrollback_lines);
-    terminal.set_visible_bell(!App.Options.audible);
 
     /* Style */
     if (App.Options.font_string != null) {

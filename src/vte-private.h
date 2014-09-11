@@ -267,7 +267,6 @@ struct _VteTerminalPrivate {
 	VteEraseBinding backspace_binding, delete_binding;
 	gboolean meta_sends_escape;
 	gboolean audible_bell;
-	gboolean visible_bell;
 	gboolean margin_bell;
 	guint bell_margin;
 	gboolean allow_bold;
@@ -438,7 +437,6 @@ void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_fragments(VteTerminal *terminal, long start, long end);
 void _vte_terminal_audible_beep(VteTerminal *terminal);
-void _vte_terminal_visible_beep(VteTerminal *terminal);
 void _vte_terminal_beep(VteTerminal *terminal);
 PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
 void _vte_terminal_set_color_internal(VteTerminal *terminal,

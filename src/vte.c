@@ -173,7 +173,6 @@ enum {
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
         PROP_WINDOW_TITLE,
-        PROP_VISIBLE_BELL,
 };
 
 /* these static variables are guarded by the GDK mutex */
@@ -4622,24 +4621,10 @@ _vte_terminal_audible_beep(VteTerminal *terminal)
 }
 
 void
-_vte_terminal_visible_beep(VteTerminal *terminal)
-{
-	GtkWidget *widget = &terminal->widget;
-
-	if (gtk_widget_get_realized (widget)) {
-		/* Force the repaint, max delay of UPDATE_REPEAT_TIMEOUT */
-		_vte_invalidate_all (terminal);
-	}
-}
-
-void
 _vte_terminal_beep(VteTerminal *terminal)
 {
 	if (terminal->pvt->audible_bell) {
 		_vte_terminal_audible_beep (terminal);
-	}
-	if (terminal->pvt->visible_bell) {
-		_vte_terminal_visible_beep (terminal);
 	}
 }
 
@@ -10593,9 +10578,6 @@ vte_terminal_get_property (GObject *object,
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
                         break;
-                case PROP_VISIBLE_BELL:
-                        g_value_set_boolean (value, vte_terminal_get_visible_bell (terminal));
-                        break;
 
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -10678,9 +10660,6 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
                         vte_terminal_set_scroll_on_output (terminal, g_value_get_boolean (value));
-                        break;
-                case PROP_VISIBLE_BELL:
-                        vte_terminal_set_visible_bell (terminal, g_value_get_boolean (value));
                         break;
 
                 /* Not writable */
@@ -11623,22 +11602,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       NULL,
                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
-        /**
-         * VteTerminal:visible-bell:
-         *
-         * Controls whether the terminal will present a visible bell to the
-         * user when the child outputs the "bl" sequence.  The terminal
-         * will clear itself to the default foreground color and then repaint itself.
-         * 
-         * Since: 0.20
-         */
-        g_object_class_install_property
-                (gobject_class,
-                 PROP_VISIBLE_BELL,
-                 g_param_spec_boolean ("visible-bell", NULL, NULL,
-                                       FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
-
 	/* Disable GtkWidget's keybindings except for Shift-F10 and MenuKey
          * which pop up the context menu.
          */
@@ -11706,51 +11669,6 @@ vte_terminal_get_audible_bell(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 	return terminal->pvt->audible_bell;
-}
-
-/**
- * vte_terminal_set_visible_bell:
- * @terminal: a #VteTerminal
- * @is_visible: whether the terminal should flash on bell
- *
- * Controls whether or not the terminal will present a visible bell to the
- * user when the child outputs the "bl" sequence.  The terminal
- * will clear itself to the default foreground color and then repaint itself.
- *
- */
-void
-vte_terminal_set_visible_bell(VteTerminal *terminal, gboolean is_visible)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        is_visible = is_visible != FALSE;
-        if (is_visible == pvt->visible_bell)
-                return;
-
-	pvt->visible_bell = is_visible;
-
-        g_object_notify (G_OBJECT (terminal), "visible-bell");
-}
-
-/**
- * vte_terminal_get_visible_bell:
- * @terminal: a #VteTerminal
- *
- * Checks whether or not the terminal will present a visible bell to the
- * user when the child outputs the "bl" sequence.  The terminal
- * will clear itself to the default foreground color and then repaint itself.
- *
- * Returns: %TRUE if visible bell is enabled, %FALSE if not
- */
-gboolean
-vte_terminal_get_visible_bell(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->visible_bell;
 }
 
 /**
