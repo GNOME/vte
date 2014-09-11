@@ -563,7 +563,7 @@ main(int argc, char **argv)
         char *transparent = NULL;
         char *encoding = NULL;
         char *cjk_ambiguous_width = NULL;
-	gboolean audible = TRUE,
+	gboolean audible = FALSE,
 		 debug = FALSE, no_builtin_dingus = FALSE, dbuffer = TRUE,
 		 console = FALSE, keep = FALSE,
                 icon_title = FALSE, shell = TRUE,
@@ -624,9 +624,9 @@ main(int argc, char **argv)
 			"Disable double-buffering", NULL
 		},
 		{
-			"audible", 'a', G_OPTION_FLAG_REVERSE,
+			"audible-bell", 'a', 0,
 			G_OPTION_ARG_NONE, &audible,
-			"Use visible, instead of audible, terminal bell",
+			"Use audible terminal bell",
 			NULL
 		},
 		{
