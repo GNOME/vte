@@ -5,29 +5,29 @@
       <properties>
         <property id="allow-bold" />
         <property id="audible-bell" />
-        <property id="background-image-file" />
-        <property id="background-image-pixbuf" />
-        <property id="background-opacity" />
-        <property id="background-saturation" />
-        <property id="background-tint-color" />
-        <property id="background-transparent" />
         <property id="backspace-binding" />
+        <property id="cjk-ambiguous-width" />
+        <property id="current-directory-uri" />
+        <property id="current-file-uri" />
         <property id="cursor-blink-mode" />
         <property id="cursor-shape" />
         <property id="delete-binding" />
-        <property id="emulation" />
         <property id="encoding" />
-        <property id="font" />
-        <property id="font-antialias" />
+        <property id="font-desc" />
+        <property id="font-scale" />
+        <property id="hadjustment" />
+        <property id="hscroll-policy" />
         <property id="icon-title" />
+        <property id="input-enabled" />
         <property id="pointer-autohide" />
         <property id="pty" />
-        <property id="scroll-background" />
+        <property id="rewrap-on-resize" />
         <property id="scrollback-lines" />
         <property id="scroll-on-keystroke" />
         <property id="scroll-on-output" />
+        <property id="vadjustment" />
+        <property id="vscroll-policy" />
         <property id="window-title" />
-        <property id="visible-bell" />
       </properties>
     </glade-widget-class>
   </glade-widget-classes>
