@@ -358,10 +358,10 @@ doc/openi18n/Makefile
 doc/reference/Makefile
 doc/reference/version.xml
 glade/Makefile
-glade/vte.xml.in
 ])
 
 AC_CONFIG_FILES([vte-${VTE_API_VERSION}.pc:vte.pc.in],[VTE_API_VERSION=${VTE_API_VERSION}])
+AC_CONFIG_FILES([glade/vte-${VTE_API_VERSION}.xml.in:glade/vte.xml.in.in],[VTE_API_VERSION=${VTE_API_VERSION}])
 
 AC_OUTPUT
 
