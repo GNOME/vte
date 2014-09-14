@@ -2,7 +2,7 @@
 # Copyright (C) 2005-2007 Free Software Foundation, Inc.
 # This file is distributed under the same license as the program package.
 #
-# Andraž Tori <andraz.tori1@guest.arnes.si> 2002
+# Andraž Tori <andraz.tori1@guest.arnes.si> 2002.
 # Matej Urbančič <mateju@svn.gnome.org>, 2006-2014.
 #
 msgid ""
