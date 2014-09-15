@@ -111,7 +111,6 @@ struct _VteTerminalClass {
 };
 
 /* The structure we return as the supplemental attributes for strings. */
-typedef struct _VteCharAttributes VteCharAttributes;
 struct _VteCharAttributes {
         /*< private >*/
 	long row, column;
