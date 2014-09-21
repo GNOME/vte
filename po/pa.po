@@ -2,95 +2,108 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
 #
-# A S Alam <aalam@users.sf.net>, 2004, 2005, 2006, 2007, 2009, 2010.
+# A S Alam <aalam@users.sf.net>, 2004, 2005, 2006, 2007, 2009, 2010, 2014.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug."
-"cgi?product=vte&component=general\n"
-"POT-Creation-Date: 2010-03-17 17:23+0000\n"
-"PO-Revision-Date: 2010-08-04 15:10+0530\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-09-21 11:44+0000\n"
+"PO-Revision-Date: 2014-09-21 08:40-0500\n"
 "Last-Translator: A S Alam <aalam@users.sf.net>\n"
 "Language-Team: Punjabi/Panjabi <punjabi-users@lists.sf.net>\n"
+"Language: pa\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.0\n"
+"X-Generator: Lokalize 1.5\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2232
+#: ../src/app.ui.h:1
+msgid "Copy"
+msgstr "ਕਾਪੀ ਕਰੋ"
+
+#: ../src/app.ui.h:2
+msgid "Paste"
+msgstr "ਚੇਪੋ"
+
+#: ../src/app.ui.h:3
+msgid "Reset (use Ctrl to reset and clear)"
+msgstr "ਮੁੜ-ਸੈੱਟ (ਮੁੜ-ਸੈੱਟ ਤੇ ਸਾਫ਼ ਕਰਨ ਲਈ Ctrl ਵਰਤੋਂ)"
+
+#: ../src/app.ui.h:4
+msgid "Reset"
+msgstr "ਮੁੜ-ਸੈੱਟ"
+
+#: ../src/app.ui.h:5
+msgid "Toggle input enabled setting"
+msgstr "ਇੰਪੁੱਟ ਯੋਗ ਕੀਤੀ ਸੈਟਿੰਗ ਬਦਲੋ"
+
+#: ../src/app.ui.h:6
+msgid "Input"
+msgstr "ਇੰਪੁੱਟ"
+
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:1998
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋਂ %s ਤਬਦੀਲ ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ ਹੈ।"
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1496
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "ਗਲਤ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1526
 msgid "Unrecognized identified coding system."
 msgstr "ਅਣਜਾਣ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ ਹੈ।"
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "ਗਲਤ ਚੌਡ਼ਾ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:1073 ../src/pty.c:1076
-#, c-format
-msgid "can not run %s"
-msgstr "%s ਚਲਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"
-
-#: ../src/trie.c:409
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "ਡੁਪਲੀਕੇਟ (%s/%s)!"
-
 #. Bail back to normal mode.
-#: ../src/vteapp.c:876
+#: ../src/vteapp.c:1027
 msgid "Could not open console.\n"
 msgstr "ਕੰਨਸੋਲ ਖੋਲ੍ਹਿਆ ਨਹੀ ਜਾ ਸਕਿਆ।\n"
 
-#: ../src/vteapp.c:967
+#: ../src/vteapp.c:1137
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr "--geometry ਨੂੰ ਦਿੱਤੀ ਜੁਮੈਟਰੀ ਗਿਣਤੀ ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
 
-#: ../src/vte.c:1279
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "ਨਿਯਮਿਤ ਸਮੀਕਰਨ \"%s\" ਨੂੰ ਕੰਪਾਇਲ ਕਰਨ ਦੀ ਗਲਤੀ ਹੈ।"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4344
+#: ../src/vte.c:4164
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "ਚਲਾਈਡ ਤੋਂ ਪੜ੍ਹਨ ਦੌਰਾਨ ਗਲਤੀ: %s।"
 
-#: ../src/vte.c:4472
+#: ../src/vte.c:4300
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr "ਚਾਈਲਡ ਨੂੰ ਡਾਟਾ ਭੇਜਣ ਲਈ ਅਸਮਰੱਥ, ਅਢੁੱਕਵਾਂ ਅੱਖਰ-ਸੈੱਟ ਕੰਨਵਰਟਰ"
 
-#: ../src/vte.c:4483 ../src/vte.c:5505
+#: ../src/vte.c:4311 ../src/vte.c:5315
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "ਗਲਤੀ (%s) ਚਲਾਈਡ ਲਈ ਡਾਟਾ ਬਦਲਣ ਦੌਰਾਨ, ਛੱਡਿਆ ਗਿਆ।"
 
-#: ../src/vte.c:7726
+#: ../src/vte.c:7628
 #, c-format
-#| msgid "Error reading PTY size, using defaults: %s."
 msgid "Error reading PTY size, using defaults: %s\n"
 msgstr "PTY ਅਕਾਰ ਪਡ਼੍ਹਨ ਵਿੱਚ ਗਲਤੀ, ਡਿਫਾਲਟ ਦੀ ਵਰਤੋਂ: %s\n"
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:13281
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() ਸ਼ਬਦ ਅੱਖਰ ਸੈਟ ਕਰਨ ਲਈ ਫੇਲ੍ਹ"
+#~ msgid "can not run %s"
+#~ msgstr "%s ਚਲਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"
+
+#~ msgid "Duplicate (%s/%s)!"
+#~ msgstr "ਡੁਪਲੀਕੇਟ (%s/%s)!"
+
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "ਨਿਯਮਿਤ ਸਮੀਕਰਨ \"%s\" ਨੂੰ ਕੰਪਾਇਲ ਕਰਨ ਦੀ ਗਲਤੀ ਹੈ।"
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() ਸ਼ਬਦ ਅੱਖਰ ਸੈਟ ਕਰਨ ਲਈ ਫੇਲ੍ਹ"
 
 #~ msgid "Error creating signal pipe."
 #~ msgstr "ਸੰਕੇਤ ਪਾਇਪ ਬਣਾਉਣ ਦੀ ਗਲਤੀ ਹੈ।"
