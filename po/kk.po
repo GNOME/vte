@@ -1,0 +1,93 @@
+# Kazakh translation for vte.
+# Copyright (C) 2014 vte's COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# Baurzhan Muftakhidinov <baurthefirst@gmail.com>, 2014.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte master\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-10-06 23:11+0000\n"
+"PO-Revision-Date: 2014-10-26 08:27+0600\n"
+"Last-Translator: Baurzhan Muftakhidinov <baurthefirst@gmail.com>\n"
+"Language-Team: Kazakh <kk@li.org>\n"
+"Language: kk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.5.4\n"
+
+#: ../src/app.ui.h:1
+msgid "Copy"
+msgstr "Көшіріп алу"
+
+#: ../src/app.ui.h:2
+msgid "Paste"
+msgstr "Кірістіру"
+
+#: ../src/app.ui.h:3
+msgid "Reset (use Ctrl to reset and clear)"
+msgstr "Тастау (Тастау және тазарту үшін Ctrl қолданыңыз)"
+
+#: ../src/app.ui.h:4
+msgid "Reset"
+msgstr "Тастау"
+
+#: ../src/app.ui.h:5
+msgid "Toggle input enabled setting"
+msgstr "Енгізу параметрін ауыстыру"
+
+#: ../src/app.ui.h:6
+msgid "Input"
+msgstr "Кіріс"
+
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:1998
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Таңбаларды %s жинағынан %s жинағына түрлендіру мүмкін емес."
+
+#: ../src/iso2022.c:1496
+#, c-format
+msgid "Attempt to set invalid NRC map '%c'."
+msgstr "Жарамсыз '%c' NRC картасын орнату талабы."
+
+#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
+#: ../src/iso2022.c:1526
+msgid "Unrecognized identified coding system."
+msgstr "Белгісіз кодталу жүйесі."
+
+#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
+#, c-format
+msgid "Attempt to set invalid wide NRC map '%c'."
+msgstr "Жарамсыз '%c' кең NRC картасын орнату талабы."
+
+#. Bail back to normal mode.
+#: ../src/vteapp.c:1027
+msgid "Could not open console.\n"
+msgstr "Консольді ашу мүмкін емес.\n"
+
+#: ../src/vteapp.c:1137
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Қолданбаның --geometry опциясына берілген геометрияны талдау қатесі"
+
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.c:4164
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Ұрпақтан оқу қатесі: %s."
+
+#: ../src/vte.c:4300
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr "Ұрпаққа деректерді жіберу сәтсіз, кодтау кестесінің түрлендіргіші қате"
+
+#: ../src/vte.c:4311 ../src/vte.c:5315
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Ұрпақ үшін деректерді түрлендіру қатесі (%s), тасталады."
+
+#: ../src/vte.c:7628
+#, c-format
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "PTY өлшемін оқу қатесі, бастапқысы қолданылады: %s\n"
