@@ -1174,8 +1174,6 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
  *
  * Clears the list of regular expressions the terminal uses to highlight text
  * when the user moves the mouse cursor.
- *
- * Since: 0.30
  */
 void
 vte_terminal_match_remove_all(VteTerminal *terminal)
@@ -1247,8 +1245,6 @@ vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
  * this expression, the text will be highlighted.
  *
  * Returns: an integer associated with this expression
- *
- * Since: 0.17.1
  */
 int
 vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchFlags flags)
@@ -1301,9 +1297,6 @@ vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchF
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  The terminal keeps a reference to @cursor.
- *
- * Since: 0.11
- *
  */
 void
 vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
@@ -1328,9 +1321,6 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.
- *
- * Since: 0.11.9
- *
  */
 void
 vte_terminal_match_set_cursor_type(VteTerminal *terminal,
@@ -1356,9 +1346,6 @@ vte_terminal_match_set_cursor_type(VteTerminal *terminal,
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.
- *
- * Since: 0.17.1
- *
  */
 void
 vte_terminal_match_set_cursor_name(VteTerminal *terminal,
@@ -2081,8 +2068,6 @@ vte_terminal_get_encoding(VteTerminal *terminal)
  *
  * This setting only takes effect the next time the terminal is reset, either
  * via escape sequence or with vte_terminal_reset().
- *
- * Since: 0.38
  */
 void
 vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
@@ -2103,8 +2088,6 @@ vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
  * the UTF-8 encoding (vte_terminal_set_encoding()).
  *
  * Returns: 1 if ambiguous-width characters are narrow, or 2 if they are wide
- *
- * Since: 0.38
  */
 int
 vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
@@ -3355,8 +3338,6 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
  * See vte_pty_new() for more information.
  *
  * Returns: (transfer full): a new #VtePty
- *
- * Since: 0.30
  */
 VtePty *
 vte_terminal_pty_new_sync(VteTerminal *terminal,
@@ -3393,8 +3374,6 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
  *
  * Note: when using the g_spawn_async() family of functions,
  * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
- *
- * Since: 0.26
  */
 void
 vte_terminal_watch_child (VteTerminal *terminal,
@@ -3441,8 +3420,6 @@ vte_terminal_watch_child (VteTerminal *terminal,
  *
  * Returns: (transfer full) (type filename): a newly allocated string with the
  *   user's shell, or %NULL
- *
- * Since: 0.28
  */
 char *
 vte_get_user_shell (void)
@@ -3487,8 +3464,6 @@ vte_get_user_shell (void)
  * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
- *
- * Since: 0.30
  */
 gboolean
 vte_terminal_spawn_sync(VteTerminal *terminal,
@@ -4428,8 +4403,6 @@ vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
- *
- * Since: 0.12.1
  */
 void
 vte_terminal_feed_child_binary(VteTerminal *terminal, const guint8 *data, gsize length)
@@ -6114,8 +6087,6 @@ vte_terminal_get_text(VteTerminal *terminal,
  * lines are included.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
- *
- * Since: 0.11.11
  */
 char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
@@ -6792,8 +6763,6 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
  * @terminal: a #VteTerminal
  *
  * Selects all text within the terminal (including the scrollback buffer).
- *
- * Since: 0.16
  */
 void
 vte_terminal_select_all (VteTerminal *terminal)
@@ -7579,8 +7548,6 @@ vte_terminal_get_font(VteTerminal *terminal)
  * @scale: the font scale
  *
  * Sets the terminal's font scale to @scale.
- *
- * Since: 0.30
  */
 void
 vte_terminal_set_font_scale(VteTerminal *terminal,
@@ -7599,8 +7566,6 @@ vte_terminal_set_font_scale(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Returns: the terminal's font scale
- *
- * Since: 0.30
  */
 gdouble
 vte_terminal_get_font_scale(VteTerminal *terminal)
@@ -10855,8 +10820,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @vteterminal: the object which received the signal
          *
          * Emitted when the current directory URI is modified.
-         *
-         * Since: 0.34
          */
 	g_signal_new(I_("current-directory-uri-changed"),
 		     G_OBJECT_CLASS_TYPE(klass),
@@ -10872,8 +10835,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @vteterminal: the object which received the signal
          *
          * Emitted when the current file URI is modified.
-         *
-         * Since: 0.34
          */
 	g_signal_new(I_("current-file-uri-changed"),
 		     G_OBJECT_CLASS_TYPE(klass),
@@ -11277,8 +11238,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls whether or not the terminal will attempt to draw bold text.
          * This may happen either by using a bold font variant, or by
          * repainting text with a different offset.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11292,8 +11251,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls whether or not the terminal will beep when the child outputs the
          * "bl" sequence.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11307,8 +11264,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * *Controls what string or control sequence the terminal sends to its child
          * when the user presses the backspace key.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11327,8 +11282,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * This setting only takes effect the next time the terminal is reset, either
          * via escape sequence or with vte_terminal_reset().
-         * 
-         * Since: 0.38
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11342,8 +11295,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
          * will use the #GtkSettings::gtk-cursor-blink setting.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11357,8 +11308,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:cursor-shape:
          *
          * Controls the shape of the cursor.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11373,8 +11322,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls what string or control sequence the terminal sends to its child
          * when the user presses the delete key.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11388,8 +11335,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:font-scale:
          *
          * The terminal's font scale.
-         *
-         * Since: 0.30
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11407,8 +11352,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * be encoded with.  For certain terminal types, applications executing in the
          * terminal can change the encoding.  The default is defined by the
          * application's locale settings.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11425,8 +11368,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * will immediately attempt to load the desired font, retrieve its
          * metrics, and attempt to resize itself to keep the same number of rows
          * and columns.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11439,8 +11380,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:icon-title:
          *
          * The terminal's so-called icon title, or %NULL if no icon title has been set.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11469,8 +11408,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls the value of the terminal's mouse autohide setting.  When autohiding
          * is enabled, the mouse cursor will be hidden when the user presses a key and
          * shown when the user moves the mouse.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11483,8 +11420,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:pty:
          *
          * The PTY object for the terminal.
-         *
-         * Since: 0.26
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11499,8 +11434,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls whether or not the terminal will rewrap its contents, including
          * the scrollback buffer, whenever the terminal's width changes.
-         * 
-         * Since: 0.36
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11518,8 +11451,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * scrollback.  Note that this setting only affects the normal screen buffer.
          * For terminal types which have an alternate screen buffer, no scrollback is
          * allowed on the alternate screen buffer.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11535,8 +11466,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Controls whether or not the terminal will forcibly scroll to the bottom of
          * the viewable history when the user presses a key.  Modifier keys do not
          * trigger this behavior.
-         *
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11550,8 +11479,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls whether or not the terminal will forcibly scroll to the bottom of
          * the viewable history when the new data is received from the child.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11564,8 +11491,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:window-title:
          *
          * The terminal's title.
-         * 
-         * Since: 0.20
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11578,8 +11503,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:current-directory-uri:
          *
          * The current directory URI, or %NULL if unset.
-         *
-         * Since: 0.34
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11592,8 +11515,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:current-file-uri:
          *
          * The current file URI, or %NULL if unset.
-         *
-         * Since: 0.34
          */
         g_object_class_install_property
                 (gobject_class,
@@ -11765,8 +11686,6 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
  *
  * Controls whether or not the terminal will rewrap its contents, including
  * the scrollback history, whenever the terminal's width changes.
- *
- * Since: 0.36
  */
 void
 vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap)
@@ -11791,8 +11710,6 @@ vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap)
  * Checks whether or not the terminal will rewrap its contents upon resize.
  *
  * Returns: %TRUE if rewrapping is enabled, %FALSE if not
- *
- * Since: 0.36
  */
 gboolean
 vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
@@ -11953,8 +11870,6 @@ vte_terminal_set_cursor_blinks_internal(VteTerminal *terminal, gboolean blink)
  *
  * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
  * will use the #GtkSettings::gtk-cursor-blink setting.
- *
- * Since: 0.17.1
  */
 void
 vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteCursorBlinkMode mode)
@@ -11996,8 +11911,6 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteCursorBlinkMode mod
  * Returns the currently set cursor blink mode.
  *
  * Return value: cursor blink mode.
- *
- * Since: 0.17.1
  */
 VteCursorBlinkMode
 vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
@@ -12013,8 +11926,6 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
  * @shape: the #VteCursorShape to use
  *
  * Sets the shape of the cursor drawn.
- *
- * Since: 0.20
  */
 void
 vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
@@ -12040,8 +11951,6 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
  * Returns the currently set cursor shape.
  *
  * Return value: cursor shape.
- *
- * Since: 0.17.6
  */
 VteCursorShape
 vte_terminal_get_cursor_shape(VteTerminal *terminal)
@@ -12475,8 +12384,6 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
  *
  * Returns: (transfer none): the URI of the current directory of the
  *   process running in the terminal, or %NULL
- *
- * Since: 0.34
  */
 const char *
 vte_terminal_get_current_directory_uri(VteTerminal *terminal)
@@ -12492,8 +12399,6 @@ vte_terminal_get_current_directory_uri(VteTerminal *terminal)
  * Returns: (transfer none): the URI of the current file the
  *   process running in the terminal is operating on, or %NULL if
  *   not set
- *
- * Since: 0.34
  */
 const char *
 vte_terminal_get_current_file_uri(VteTerminal *terminal)
@@ -12509,8 +12414,6 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
  *
  * Sets @pty as the PTY to use in @terminal.
  * Use %NULL to unset the PTY.
- *
- * Since: 0.26.
  */
 void
 vte_terminal_set_pty(VteTerminal *terminal,
@@ -12602,8 +12505,6 @@ vte_terminal_set_pty(VteTerminal *terminal,
  * Returns the #VtePty of @terminal.
  *
  * Returns: (transfer none): a #VtePty, or %NULL
- *
- * Since: 0.26
  */
 VtePty *
 vte_terminal_get_pty(VteTerminal *terminal)
@@ -13302,8 +13203,6 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
  * @flags: flags from #GRegexMatchFlags
  *
  * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
- *
- * Since: 0.26
  */
 void
 vte_terminal_search_set_gregex (VteTerminal *terminal,
@@ -13332,8 +13231,6 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
- *
- * Since: 0.26
  */
 GRegex *
 vte_terminal_search_get_gregex (VteTerminal *terminal)
@@ -13350,8 +13247,6 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
  *
  * Sets whether search should wrap around to the beginning of the
  * terminal content when reaching its end.
- * 
- * Since: 0.26
  */
 void
 vte_terminal_search_set_wrap_around (VteTerminal *terminal,
@@ -13367,8 +13262,6 @@ vte_terminal_search_set_wrap_around (VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Returns: whether searching will wrap around
- *
- * Since: 0.26
  */
 gboolean
 vte_terminal_search_get_wrap_around (VteTerminal *terminal)
@@ -13573,8 +13466,6 @@ vte_terminal_search_find (VteTerminal *terminal,
  * vte_terminal_search_set_gregex().
  *
  * Returns: %TRUE if a match was found
- *
- * Since: 0.26
  */
 gboolean
 vte_terminal_search_find_previous (VteTerminal *terminal)
@@ -13590,8 +13481,6 @@ vte_terminal_search_find_previous (VteTerminal *terminal)
  * vte_terminal_search_set_gregex().
  *
  * Returns: %TRUE if a match was found
- *
- * Since: 0.26
  */
 gboolean
 vte_terminal_search_find_next (VteTerminal *terminal)

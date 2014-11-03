@@ -83,30 +83,6 @@
     <title>Index of deprecated symbols</title>
     <xi:include href="xml/api-index-deprecated.xml"><xi:fallback /></xi:include>
   </index>
-  <index id="api-index-0-20" role="0.20">
-    <title>Index of new symbols in 0.20</title>
-    <xi:include href="xml/api-index-0.20.xml"><xi:fallback /></xi:include>
-  </index>
-  <index id="api-index-0-24" role="0.24">
-    <title>Index of new symbols in 0.24</title>
-    <xi:include href="xml/api-index-0.24.xml"><xi:fallback /></xi:include>
-  </index>
-  <index id="api-index-0-26" role="0.26">
-    <title>Index of new symbols in 0.26</title>
-    <xi:include href="xml/api-index-0.26.xml"><xi:fallback /></xi:include>
-  </index>
-  <index id="api-index-0-28" role="0.28">
-    <title>Index of new symbols in 0.28</title>
-    <xi:include href="xml/api-index-0.28.xml"><xi:fallback /></xi:include>
-  </index>
-  <index id="api-index-0-34" role="0.34">
-    <title>Index of new symbols in 0.34</title>
-    <xi:include href="xml/api-index-0.34.xml"><xi:fallback /></xi:include>
-  </index>
-  <index id="api-index-0-36" role="0.36">
-    <title>Index of new symbols in 0.36</title>
-    <xi:include href="xml/api-index-0.36.xml"><xi:fallback /></xi:include>
-  </index>
  
   <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>
 
