@@ -16,24 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __VTE_VTE_H__
-#define __VTE_VTE_H__
+#if !defined (__VTE_VTE_H_INSIDE__) && !defined (VTE_COMPILATION)
+#error "Only <vte/vte.h> can be included directly."
+#endif
 
-#include <glib.h>
+#ifndef __VTE_DEPRECATED_H__
+#define __VTE_DEPRECATED_H__
 
-#define __VTE_VTE_H_INSIDE__ 1
+#ifndef VTE_DISABLE_DEPRECATION_WARNINGS
+#define _VTE_DEPRECATED G_DEPRECATED
+#else
+#define _VTE_DEPRECATED
+#endif
 
-#include "vteenums.h"
-#include "vteglobals.h"
-#include "vtepty.h"
-#include "vteterminal.h"
-#include "vtetypebuiltins.h"
-#include "vteversion.h"
+G_BEGIN_DECLS
 
-#ifndef VTE_DISABLE_DEPRECATED
-#include "vtedeprecated.h"
-#endif /* VTE_DISABLE_DEPRECATED */
+G_END_DECLS
 
-#undef __VTE_VTE_H_INSIDE__
+#undef _VTE_DEPRECATED
 
-#endif /* __VTE_VTE_H__ */
+#endif /* !__VTE_DEPRECATED__H__ */

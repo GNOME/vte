@@ -11,6 +11,7 @@ EXTRA_DIST =
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
 header_HEADERS = \
 	vte.h \
+	vtedeprecated.h \
 	vteenums.h \
 	vteglobals.h \
 	vtemacros.h \
@@ -69,6 +70,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
+	vtedeprecated.h \
 	vteenums.h \
 	vteglobals.h \
 	vteint.h \
@@ -144,13 +146,13 @@ marshal.h: marshal.list
 
 vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vteenums.h
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vteenums.h vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
 	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vteenums.h
+vtetypebuiltins.c: vtetypebuiltins.c.template vteenums.h vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
@@ -185,6 +187,7 @@ Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.c \
 	vte.h \
+	vtedeprecated.h \
 	vteenums.h \
 	vteglobals.h \
 	vtemacros.h \
