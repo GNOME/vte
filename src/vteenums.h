@@ -83,8 +83,6 @@ typedef enum {
  * @VTE_PTY_ERROR_PTY_HELPER_FAILED: failure when using the GNOME PTY helper to
  *   allocate the PTY
  * @VTE_PTY_ERROR_PTY98_FAILED: failure when using PTY98 to allocate the PTY
- *
- * Since: 0.26
  */
 typedef enum {
   VTE_PTY_ERROR_PTY_HELPER_FAILED = 0,
@@ -100,8 +98,6 @@ typedef enum {
  * @VTE_PTY_NO_FALLBACK: when allocating the PTY with the PTY helper fails,
  *   don't fall back to try using PTY98. Deprecated: 0.38
  * @VTE_PTY_DEFAULT: the default flags
- *
- * Since: 0.26
  */
 typedef enum {
   VTE_PTY_NO_LASTLOG  = 1 << 0,

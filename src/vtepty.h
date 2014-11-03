@@ -39,8 +39,6 @@ GQuark vte_pty_error_quark (void);
  *
  * Error domain for VTE PTY errors. Errors in this domain will be from the #VtePtyError
  * enumeration. See #GError for more information on error domains.
- *
- * Since: 0.26
  */
 #define VTE_PTY_ERROR (vte_pty_error_quark ())
 

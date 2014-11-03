@@ -28,8 +28,6 @@
  * @short_description: Library version checks
  *
  * These macros enable compile time checks of the library version.
- *
- * Since: 0.16.15
  */
 
 /**
@@ -37,8 +35,6 @@
  *
  * The major version number of the VTE library
  * (e.g. in version 3.1.4 this is 3).
- *
- * Since: 0.16.15
  */
 #define VTE_MAJOR_VERSION (@VTE_MAJOR_VERSION@)
 
@@ -47,8 +43,6 @@
  *
  * The minor version number of the VTE library
  * (e.g. in version 3.1.4 this is 1).
- *
- * Since: 0.16.15
  */
 #define VTE_MINOR_VERSION (@VTE_MINOR_VERSION@)
 
@@ -57,8 +51,6 @@
  *
  * The micro version number of the VTE library
  * (e.g. in version 3.1.4 this is 4).
- *
- * Since: 0.16.15
  */
 #define VTE_MICRO_VERSION (@VTE_MICRO_VERSION@)
 
@@ -71,8 +63,6 @@
  * Macro to check the library version at compile time.
  * It returns %1 if the version of VTE is greater or
  * equal to the required one, and %0 otherwise.
- *
- * Since: 0.16.15
  */
 #define VTE_CHECK_VERSION(major,minor,micro) \
   (VTE_MAJOR_VERSION > (major) || \
