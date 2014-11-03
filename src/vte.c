@@ -1147,7 +1147,8 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
 
         switch (regex->cursor_mode) {
                 case VTE_REGEX_CURSOR_GDKCURSOR:
-                        if (regex->cursor.cursor != NULL) {
+                        if (regex->cursor.cursor != NULL &&
+                            gdk_cursor_get_display(regex->cursor.cursor) == gtk_widget_get_display(&terminal->widget)) {
                                 cursor = g_object_ref(regex->cursor.cursor);
                         }
                         break;
