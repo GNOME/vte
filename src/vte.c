@@ -8245,7 +8245,7 @@ vte_terminal_init(VteTerminal *terminal)
         context = gtk_widget_get_style_context (&terminal->widget);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
-                                        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                                        GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
 }
 
 /* Tell GTK+ how much space we need. */
