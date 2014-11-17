@@ -108,7 +108,7 @@ _file_try_truncate (_file_t *f, gsize offset)
 	int ret;
 
 	if (G_UNLIKELY (!_file_isopen (f)))
-		return;
+		return TRUE;
 
 	do {
 		ret = ftruncate (f->fd, offset);
