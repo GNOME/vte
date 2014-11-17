@@ -386,16 +386,16 @@ _vte_ring_discard_one_row (VteRing *ring)
 	ring->start++;
 	if (G_UNLIKELY (ring->start == ring->writable)) {
 		_vte_ring_reset_streams (ring, ring->writable);
-	} else {
+	} else if (ring->start < ring->writable) {
 		VteRowRecord record;
 		_vte_stream_advance_tail (ring->row_stream, ring->start * sizeof (record));
 		if (G_LIKELY (_vte_ring_read_row_record (ring, &record, ring->start))) {
 			_vte_stream_advance_tail (ring->text_stream, record.text_start_offset);
 			_vte_stream_advance_tail (ring->attr_stream, record.attr_start_offset);
 		}
-	}
-	if (ring->start > ring->writable)
+	} else {
 		ring->writable = ring->start;
+	}
 }
 
 static void

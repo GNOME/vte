@@ -464,6 +464,8 @@ _vte_file_stream_advance_tail (VteStream *astream, gsize offset)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
 
+	g_assert(offset <= stream->head);
+
 	if (offset >= stream->offset[0]) {
 		stream->offset[1] = stream->offset[0];
 		stream->offset[0] = stream->head;
