@@ -69,4 +69,10 @@
    (VTE_MAJOR_VERSION == (major) && VTE_MINOR_VERSION > (minor)) || \
    (VTE_MAJOR_VERSION == (major) && VTE_MINOR_VERSION == (minor) && VTE_MICRO_VERSION >= (micro)))
 
+guint vte_get_major_version (void) G_GNUC_CONST;
+
+guint vte_get_minor_version (void) G_GNUC_CONST;
+
+guint vte_get_micro_version (void) G_GNUC_CONST;
+
 #endif /* __VTE_VTE_VERSION_H__ */

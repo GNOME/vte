@@ -13631,3 +13631,57 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
 
         return terminal->pvt->input_enabled;
 }
+
+/**
+ * vte_get_major_version:
+ *
+ * Returns the major version of the VTE library at runtime.
+ * Contrast this with %VTE_MAJOR_VERSION which represents
+ * the version of the VTE library that the code was compiled
+ * with.
+ *
+ * Returns: the major version
+ *
+ * Since: 0.40
+ */
+guint
+vte_get_major_version (void)
+{
+        return VTE_MAJOR_VERSION;
+}
+
+/**
+ * vte_get_minor_version:
+ *
+ * Returns the minor version of the VTE library at runtime.
+ * Contrast this with %VTE_MINOR_VERSION which represents
+ * the version of the VTE library that the code was compiled
+ * with.
+ *
+ * Returns: the minor version
+ *
+ * Since: 0.40
+ */
+guint
+vte_get_minor_version (void)
+{
+        return VTE_MINOR_VERSION;
+}
+
+/**
+ * vte_get_micro_version:
+ *
+ * Returns the micro version of the VTE library at runtime.
+ * Contrast this with %VTE_MICRO_VERSION which represents
+ * the version of the VTE library that the code was compiled
+ * with.
+ *
+ * Returns: the micro version
+ *
+ * Since: 0.40
+ */
+guint
+vte_get_micro_version (void)
+{
+        return VTE_MICRO_VERSION;
+}
