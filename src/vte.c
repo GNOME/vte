@@ -11286,7 +11286,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         g_object_class_install_property
                 (gobject_class,
-                 PROP_CURSOR_BLINK_MODE,
+                 PROP_CJK_AMBIGUOUS_WIDTH,
                  g_param_spec_int ("cjk-ambiguous-width", NULL, NULL,
                                    1, 2, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
