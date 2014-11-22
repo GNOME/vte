@@ -54,13 +54,52 @@ static void
 _vte_matcher_init(struct _vte_matcher *matcher)
 {
 	const char *code, *value;
+        char *c1;
+        int i, k, n, variants;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_init()\n");
 
         code = _vte_xterm_capability_strings;
         do {
                 value = strchr(code, '\0') + 1;
-                _vte_matcher_add(matcher, code, strlen(code), value);
+
+                /* Escape sequences from \e@ to \e_ have a C1 counterpart
+                 * with the eighth bit set instead of a preceding '\x1b'.
+                 * This is encoded in the current encoding, e.g. in UTF-8
+                 * the C1 CSI (U+009B) becomes \xC2\x9B.
+                 *
+                 * When matching, the bytestream is already decoded to
+                 * Unicode codepoints.  In the "code" string, each byte
+                 * is interpreted as a Unicode codepoint (in other words,
+                 * Latin-1 is assumed).  So '\x80' .. '\x9F' bytes
+                 * (e.g. the byte '\x9B' for CSI) are the right choice here.
+                 *
+                 * For each sequence containing N occurrences of \e@ to \e_,
+                 * we create 2^N variants, by replacing every subset of them
+                 * with their C1 counterpart.
+                 */
+                variants = 1;
+                for (i = 0; code[i] != '\0'; i++) {
+                        if (code[i] == '\x1B' && code[i + 1] >= '@' && code[i + 1] <= '_') {
+                                variants <<= 1;
+                        }
+                }
+                for (n = 0; n < variants; n++) {
+                        c1 = g_strdup(code);
+                        k = 0;
+                        for (i = 0; c1[i] != '\0'; i++) {
+                                if (c1[i] == '\x1B' && c1[i + 1] >= '@' && c1[i + 1] <= '_') {
+                                        if (n & (1 << k)) {
+                                                memmove(c1 + i, c1 + i + 1, strlen(c1 + i + 1) + 1);
+                                                c1[i] += 0x40;
+                                        }
+                                        k++;
+                                }
+                        }
+                        _vte_matcher_add(matcher, c1, strlen(c1), value);
+                        g_free(c1);
+                }
+
                 code = strchr(value, '\0') + 1;
         } while (*code);
 
