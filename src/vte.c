@@ -82,7 +82,7 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
-#define WORD_CHAR_ASCII_PUNCT "-,.;/?%&#:_=+@~"
+#define WORD_CHAR_ASCII_PUNCT "-,.;/?%&#_=+@~"
 
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
