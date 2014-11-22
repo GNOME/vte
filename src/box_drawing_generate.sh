@@ -31,7 +31,7 @@ cat <<"END"
 
 /* Definition of most of the glyphs in the 2500..257F range as 5x5 bitmaps
    (bits 24..0 in the obvious order), see bug 709556 and ../doc/boxes.txt */
-static const guint32 _vte_box_drawing_bitmaps[128] = {
+static const guint32 _vte_draw_box_drawing_bitmaps[128] = {
 END
 
 LC_ALL=C
