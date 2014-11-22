@@ -246,33 +246,44 @@ struct _VteTerminalPrivate {
 	 * screen, which seems to be a DEC-specific feature. */
 	struct _VteScreen {
 		VteRing row_data[1];	/* buffer contents */
-		VteVisualPosition cursor_current, cursor_saved;
-					/* the current and saved positions of
-					   the [insertion] cursor -- current is
-					   absolute, saved is relative to the
-					   insertion delta */
-		gboolean reverse_mode;	/* reverse mode */
-		gboolean origin_mode;	/* origin mode */
-		gboolean sendrecv_mode;	/* sendrecv mode */
-		gboolean insert_mode;	/* insert mode */
-		gboolean linefeed_mode;	/* linefeed mode */
-		struct vte_scrolling_region {
-			int start, end;
-		} scrolling_region;	/* the region we scroll in */
-		gboolean scrolling_restricted;
 		long scroll_delta;	/* scroll offset */
 		long insert_delta;	/* insertion offset */
-		VteCell defaults;	/* default characteristics
-					   for insertion of any new
-					   characters */
-		VteCell color_defaults;	/* original defaults
-					   plus the current
-					   fore/back */
-		VteCell fill_defaults;	/* original defaults
-					   plus the current
-					   fore/back with no
-					   character data */
+
+                /* Stuff saved along with the cursor */
+                struct {
+                        VteVisualPosition cursor;
+                        gboolean reverse_mode;
+                        gboolean origin_mode;
+                        gboolean sendrecv_mode;
+                        gboolean insert_mode;
+                        gboolean linefeed_mode;
+                        VteCell defaults;
+                        VteCell color_defaults;
+                        VteCell fill_defaults;
+                        VteCharacterReplacement character_replacements[2];
+                        VteCharacterReplacement *character_replacement;
+                } saved;
 	} normal_screen, alternate_screen, *screen;
+
+        /* Values we save along with the cursor */
+        VteVisualPosition cursor;	/* relative to the insertion delta */
+        gboolean reverse_mode;	/* reverse mode */
+        gboolean origin_mode;	/* origin mode */
+        gboolean sendrecv_mode;	/* sendrecv mode */
+        gboolean insert_mode;	/* insert mode */
+        gboolean linefeed_mode;	/* linefeed mode */
+        VteCell defaults;	/* default characteristics
+                                   for insertion of any new
+                                   characters */
+        VteCell color_defaults;	/* original defaults
+                                   plus the current
+                                   fore/back */
+        VteCell fill_defaults;	/* original defaults
+                                   plus the current
+                                   fore/back with no
+                                   character data */
+        VteCharacterReplacement character_replacements[2];  /* charsets in the G0 and G1 slots */
+        VteCharacterReplacement *character_replacement;     /* pointer to the active one */
 
 	/* Selection information. */
 	gboolean has_selection;
@@ -306,8 +317,6 @@ struct _VteTerminalPrivate {
 	gboolean text_deleted_flag;
 	gboolean rewrap_on_resize;
 	gboolean bracketed_paste_mode;
-        VteCharacterReplacement character_replacements[2];  /* charsets in the G0 and G1 slots */
-        VteCharacterReplacement *character_replacement;     /* pointer to the active one */
 
 	/* Scrolling options. */
 	gboolean scroll_background;
@@ -315,6 +324,12 @@ struct _VteTerminalPrivate {
 	gboolean scroll_on_keystroke;
 	gboolean alternate_screen_scroll;
 	long scrollback_lines;
+
+        /* Restricted scrolling */
+        struct vte_scrolling_region {
+                int start, end;
+        } scrolling_region;     /* the region we scroll in */
+        gboolean scrolling_restricted;
 
 	/* Cursor shape, as set via API */
 	VteCursorShape cursor_shape;
