@@ -2787,6 +2787,34 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 	terminal->pvt->text_modified_flag = TRUE;
 }
 
+/* DECSCUSR set cursor style */
+static void
+vte_sequence_handler_set_cursor_style (VteTerminal *terminal, GValueArray *params)
+{
+        long style;
+
+        if ((params == NULL) || (params->n_values > 1)) {
+                return;
+        }
+
+        if (params->n_values == 0) {
+                /* no parameters means default (according to vt100.net) */
+                style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
+        } else {
+                GValue *value = g_value_array_get_nth(params, 0);
+
+                if (!G_VALUE_HOLDS_LONG(value)) {
+                        return;
+                }
+                style = g_value_get_long(value);
+                if (style < 0 || style > 6) {
+                        return;
+                }
+        }
+
+        _vte_terminal_set_cursor_style(terminal, style);
+}
+
 /* Perform a soft reset. */
 static void
 vte_sequence_handler_soft_reset (VteTerminal *terminal, GValueArray *params)

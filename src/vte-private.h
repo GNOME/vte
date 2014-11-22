@@ -165,6 +165,29 @@ typedef struct _VtePaletteColor {
 	} sources[2];
 } VtePaletteColor;
 
+/* These correspond to the parameters for DECSCUSR (Set cursor style). */
+typedef enum _VteCursorStyle {
+        /* We treat 0 and 1 differently, assuming that the VT510 does so too.
+         *
+         * See, according to the "VT510 Video Terminal Programmer Information",
+         * from vt100.net, paragraph "2.5.7 Cursor Display", there was a menu
+         * item in the "Terminal Set-Up" to set the cursor's style. It looks
+         * like that defaulted to blinking block. So it makes sense for 0 to
+         * mean "set cursor style to default (set by Set-Up)" and 1 to mean
+         * "set cursor style to blinking block", since that default need not be
+         * blinking block. Access to a VT510 is needed to test this theory,
+         * but it seems plausible. And, anyhow, we can even decide we know
+         * better than the VT510 designers! */
+        VTE_CURSOR_STYLE_TERMINAL_DEFAULT = 0,
+        VTE_CURSOR_STYLE_BLINK_BLOCK      = 1,
+        VTE_CURSOR_STYLE_STEADY_BLOCK     = 2,
+        VTE_CURSOR_STYLE_BLINK_UNDERLINE  = 3,
+        VTE_CURSOR_STYLE_STEADY_UNDERLINE = 4,
+        /* *_IBEAM are xterm extensions */
+        VTE_CURSOR_STYLE_BLINK_IBEAM      = 5,
+        VTE_CURSOR_STYLE_STEADY_IBEAM     = 6
+} VteCursorStyle;
+
 /* Terminal private data. */
 struct _VteTerminalPrivate {
         /* Metric and sizing data: dimensions of the window */
@@ -286,11 +309,11 @@ struct _VteTerminalPrivate {
 	gboolean alternate_screen_scroll;
 	long scrollback_lines;
 
-	/* Cursor shape */
+	/* Cursor shape, as set via API */
 	VteCursorShape cursor_shape;
         float cursor_aspect_ratio;
 
-	/* Cursor blinking. */
+	/* Cursor blinking, as set in dconf. */
         VteCursorBlinkMode cursor_blink_mode;
 	gboolean cursor_blink_state;
 	guint cursor_blink_tag;           /* cursor blinking timeout ID */
@@ -300,6 +323,10 @@ struct _VteTerminalPrivate {
 	gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
 	gboolean cursor_visible;
 	gboolean has_focus;               /* is the terminal window focused */
+
+        /* DECSCUSR cursor style (shape and blinking possibly overridden
+         * via escape sequence) */
+        VteCursorStyle cursor_style;
 
 	/* Input device options. */
         gboolean input_enabled;
@@ -449,6 +476,8 @@ void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *forma
 VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill);
 VteRowData *_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill);
 void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
+
+void _vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style);
 
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,

@@ -190,6 +190,8 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(CSI "?%dn", "dec-device-status-report")
         ENTRY(CSI "!p", "soft-reset")
         ENTRY(CSI "%d;%d\"p", "set-conformance-level")
+        ENTRY(CSI " q", "set-cursor-style")
+        ENTRY(CSI "%d q", "set-cursor-style")
         ENTRY(CSI "%d\"q", "select-character-protection")
 
         ENTRY(CSI "r", "set-scrolling-region")
