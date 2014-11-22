@@ -108,6 +108,7 @@ G_BEGIN_DECLS
 #define VTE_UPDATE_REPEAT_TIMEOUT	30
 #define VTE_MAX_PROCESS_TIME		100
 #define VTE_CELL_BBOX_SLACK		1
+#define VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH 1
 
 #define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
 
@@ -148,6 +149,12 @@ struct vte_match_regex {
                GdkCursorType cursor_type;
         } cursor;
 };
+
+typedef enum _VteCharacterReplacement {
+        VTE_CHARACTER_REPLACEMENT_NONE,
+        VTE_CHARACTER_REPLACEMENT_LINE_DRAWING,
+        VTE_CHARACTER_REPLACEMENT_BRITISH
+} VteCharacterReplacement;
 
 /* The terminal's keypad/cursor state.  A terminal can either be using the
  * normal keypad, or the "application" keypad. */
@@ -213,7 +220,7 @@ struct _VteTerminalPrivate {
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
-        int iso2022_utf8_ambiguous_width;
+        int utf8_ambiguous_width;
 	struct _vte_iso2022_state *iso2022;
 	struct _vte_incoming_chunk{
 		struct _vte_incoming_chunk *next;
@@ -265,7 +272,6 @@ struct _VteTerminalPrivate {
 					   plus the current
 					   fore/back with no
 					   character data */
-		gboolean alternate_charset;
 	} normal_screen, alternate_screen, *screen;
 
 	/* Selection information. */
@@ -293,7 +299,6 @@ struct _VteTerminalPrivate {
 	gboolean margin_bell;
 	guint bell_margin;
 	gboolean allow_bold;
-	gboolean nrc_mode;
         gboolean deccolm_mode; /* DECCOLM allowed */
 	GHashTable *tabstops;
 	gboolean text_modified_flag;
@@ -301,6 +306,8 @@ struct _VteTerminalPrivate {
 	gboolean text_deleted_flag;
 	gboolean rewrap_on_resize;
 	gboolean bracketed_paste_mode;
+        VteCharacterReplacement character_replacements[2];  /* charsets in the G0 and G1 slots */
+        VteCharacterReplacement *character_replacement;     /* pointer to the active one */
 
 	/* Scrolling options. */
 	gboolean scroll_background;

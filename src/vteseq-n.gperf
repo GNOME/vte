@@ -118,8 +118,14 @@ struct vteseq_n_struct {
 #"ansi-conformance-level-1", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-2", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-3", VTE_SEQUENCE_HANDLER_NULL
-"alternate-character-set-start", VTE_SEQUENCE_HANDLER(vte_sequence_handler_alternate_character_set_start)
-"alternate-character-set-end", VTE_SEQUENCE_HANDLER(vte_sequence_handler_alternate_character_set_end)
+"designate-g0-plain", VTE_SEQUENCE_HANDLER(vte_sequence_handler_designate_g0_plain)
+"designate-g0-line-drawing", VTE_SEQUENCE_HANDLER(vte_sequence_handler_designate_g0_line_drawing)
+"designate-g0-british", VTE_SEQUENCE_HANDLER(vte_sequence_handler_designate_g0_british)
+"designate-g1-plain", VTE_SEQUENCE_HANDLER(vte_sequence_handler_designate_g1_plain)
+"designate-g1-line-drawing", VTE_SEQUENCE_HANDLER(vte_sequence_handler_designate_g1_line_drawing)
+"designate-g1-british", VTE_SEQUENCE_HANDLER(vte_sequence_handler_designate_g1_british)
+"shift-in", VTE_SEQUENCE_HANDLER(vte_sequence_handler_shift_in)
+"shift-out", VTE_SEQUENCE_HANDLER(vte_sequence_handler_shift_out)
 "change-background-color-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_background_color_bel)
 "change-background-color-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_background_color_st)
 "reset-background-color", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_background_color)

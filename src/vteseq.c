@@ -633,10 +633,6 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
                  NULL, NULL,},
 		/* 41: more(1) fix. */
 		/* 42: Enable NLS replacements. */
-		{42, PRIV_OFFSET(nrc_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 NULL, NULL,},
 		/* 44: Margin bell. */
 		{44, PRIV_OFFSET(margin_bell), 0, 0,
 		 FALSE,
@@ -890,18 +886,60 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 /* THE HANDLERS */
 
 
-/* End alternate character set. */
+/* G0 character set is a pass-thru (no mapping). */
 static void
-vte_sequence_handler_alternate_character_set_end (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_designate_g0_plain (VteTerminal *terminal, GValueArray *params)
 {
-	terminal->pvt->screen->alternate_charset = FALSE;
+        terminal->pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
 }
 
-/* Start using alternate character set. */
+/* G0 character set is DEC Special Character and Line Drawing Set. */
 static void
-vte_sequence_handler_alternate_character_set_start (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_designate_g0_line_drawing (VteTerminal *terminal, GValueArray *params)
 {
-	terminal->pvt->screen->alternate_charset = TRUE;
+        terminal->pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_LINE_DRAWING;
+}
+
+/* G0 character set is British (# is converted to £). */
+static void
+vte_sequence_handler_designate_g0_british (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_BRITISH;
+}
+
+/* G1 character set is a pass-thru (no mapping). */
+static void
+vte_sequence_handler_designate_g1_plain (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
+}
+
+/* G1 character set is DEC Special Character and Line Drawing Set. */
+static void
+vte_sequence_handler_designate_g1_line_drawing (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_LINE_DRAWING;
+}
+
+/* G1 character set is British (# is converted to £). */
+static void
+vte_sequence_handler_designate_g1_british (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_BRITISH;
+}
+
+/* SI (shift in): switch to G0 character set. */
+static void
+vte_sequence_handler_shift_in (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->character_replacement = &terminal->pvt->character_replacements[0];
+}
+
+/* SO (shift out): switch to G1 character set. */
+static void
+vte_sequence_handler_shift_out (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->character_replacement = &terminal->pvt->character_replacements[1];
 }
 
 /* Beep. */
@@ -2160,7 +2198,7 @@ static void
 vte_sequence_handler_send_primary_device_attributes (VteTerminal *terminal, GValueArray *params)
 {
 	/* Claim to be a VT220 with only national character set support. */
-	vte_terminal_feed_child(terminal, "\e[?62;9;c", -1);
+        vte_terminal_feed_child(terminal, "\e[?62;c", -1);
 }
 
 /* Send terminal ID. */

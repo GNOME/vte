@@ -84,6 +84,7 @@ typedef gunichar wint_t;
 
 #define WORD_CHAR_ASCII_PUNCT "-,.;/?%&#_=+@~"
 
+static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
@@ -186,6 +187,22 @@ static GList *active_terminals;
 static GTimer *process_timer;
 
 static const GtkBorder default_padding = { 1, 1, 1, 1 };
+
+static int
+_vte_unichar_width(gunichar c, int utf8_ambiguous_width)
+{
+        if (G_LIKELY (c < 0x80))
+                return 1;
+        if (G_UNLIKELY (g_unichar_iszerowidth (c)))
+                return 0;
+        if (G_UNLIKELY (g_unichar_iswide (c)))
+                return 2;
+        if (G_LIKELY (utf8_ambiguous_width == 1))
+                return 1;
+        if (G_UNLIKELY (g_unichar_iswide_cjk (c)))
+                return 2;
+        return 1;
+}
 
 /* process incoming data without copying */
 static struct _vte_incoming_chunk *free_chunks;
@@ -620,7 +637,7 @@ vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
 		     i++) {
 			c = g_utf8_get_char(preedit);
-			ret += _vte_iso2022_unichar_width(terminal->pvt->iso2022, c);
+                        ret += _vte_unichar_width(c, terminal->pvt->utf8_ambiguous_width);
 			preedit = g_utf8_next_char(preedit);
 		}
 	}
@@ -2070,9 +2087,6 @@ vte_terminal_get_encoding(VteTerminal *terminal)
  * This setting controls whether ambiguous-width characters are narrow or wide
  * when using the UTF-8 encoding (vte_terminal_set_encoding()). In all other encodings,
  * the width of ambiguous-width characters is fixed.
- *
- * This setting only takes effect the next time the terminal is reset, either
- * via escape sequence or with vte_terminal_reset().
  */
 void
 vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
@@ -2080,9 +2094,7 @@ vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(width == 1 || width == 2);
 
-        terminal->pvt->iso2022_utf8_ambiguous_width = width;
-        if (terminal->pvt->pty == NULL)
-                _vte_iso2022_state_set_utf8_ambiguous_width(terminal->pvt->iso2022, width);
+        terminal->pvt->utf8_ambiguous_width = width;
 }
 
 /**
@@ -2098,7 +2110,7 @@ int
 vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1);
-        return terminal->pvt->iso2022_utf8_ambiguous_width;
+        return terminal->pvt->utf8_ambiguous_width;
 }
 
 static inline VteRowData *
@@ -3031,28 +3043,57 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	VteScreen *screen;
 	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
 
+        /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
+        static gunichar line_drawing_map[31] = {
+                0x25c6,  /* ` => diamond */
+                0x2592,  /* a => checkerboard */
+                0x2409,  /* b => HT symbol */
+                0x240c,  /* c => FF symbol */
+                0x240d,  /* d => CR symbol */
+                0x240a,  /* e => LF symbol */
+                0x00b0,  /* f => degree */
+                0x00b1,  /* g => plus/minus */
+                0x2424,  /* h => NL symbol */
+                0x240b,  /* i => VT symbol */
+                0x2518,  /* j => downright corner */
+                0x2510,  /* k => upright corner */
+                0x250c,  /* l => upleft corner */
+                0x2514,  /* m => downleft corner */
+                0x253c,  /* n => cross */
+                0x23ba,  /* o => scan line 1/9 */
+                0x23bb,  /* p => scan line 3/9 */
+                0x2500,  /* q => horizontal line (also scan line 5/9) */
+                0x23bc,  /* r => scan line 7/9 */
+                0x23bd,  /* s => scan line 9/9 */
+                0x251c,  /* t => left t */
+                0x2524,  /* u => right t */
+                0x2534,  /* v => bottom t */
+                0x252c,  /* w => top t */
+                0x2502,  /* x => vertical line */
+                0x2264,  /* y => <= */
+                0x2265,  /* z => >= */
+                0x03c0,  /* { => pi */
+                0x2260,  /* | => not equal */
+                0x00a3,  /* } => pound currency sign */
+                0x00b7,  /* ~ => bullet */
+        };
+
 	screen = terminal->pvt->screen;
 	insert |= screen->insert_mode;
 	invalidate_now |= insert;
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
-	if (G_UNLIKELY (screen->alternate_charset)) {
-		_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
-				"Attempting charset substitution"
-				"for U+%04X.\n", c);
-		/* See if there's a mapping for it. */
-		c = _vte_iso2022_process_single(terminal->pvt->iso2022, c, '0');
-	}
+        if (G_UNLIKELY (*terminal->pvt->character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING)) {
+                if (c >= 96 && c <= 126)
+                        c = line_drawing_map[c - 96];
+        } else if (G_UNLIKELY (*terminal->pvt->character_replacement == VTE_CHARACTER_REPLACEMENT_BRITISH)) {
+                if (G_UNLIKELY (c == '#'))
+                        c = 0x00a3;  /* pound sign */
+        }
 
 	/* Figure out how many columns this character should occupy. */
-	if (G_UNLIKELY (VTE_ISO2022_HAS_ENCODED_WIDTH(c))) {
-		columns = _vte_iso2022_get_encoded_width(c);
-		c &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
-	} else {
-		columns = _vte_iso2022_unichar_width(terminal->pvt->iso2022, c);
-	}
-
+        columns = _vte_unichar_width(c, terminal->pvt->utf8_ambiguous_width);
 
 	/* If we're autowrapping here, do it. */
 	col = screen->cursor_current.col;
@@ -3797,20 +3838,19 @@ skip_chunk:
 				}
 			}
 			_VTE_DEBUG_IF(VTE_DEBUG_PARSE) {
-				gunichar cc = c & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
-				if (cc > 255) {
-					g_printerr("U+%04lx\n", (long) cc);
+                                if (c > 255) {
+                                        g_printerr("U+%04lx\n", (long) c);
 				} else {
-					if (cc > 127) {
+                                        if (c > 127) {
 						g_printerr("%ld = ",
-								(long) cc);
+                                                                (long) c);
 					}
-					if (cc < 32) {
+                                        if (c < 32) {
 						g_printerr("^%lc\n",
-								(wint_t)cc + 64);
+                                                                (wint_t)c + 64);
 					} else {
 						g_printerr("`%lc'\n",
-								(wint_t)cc);
+                                                                (wint_t)c);
 					}
 				}
 			}
@@ -7905,12 +7945,6 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 	g_free (str);
 }
 
-static void
-_vte_terminal_codeset_changed_cb(struct _vte_iso2022_state *state, gpointer p)
-{
-	vte_terminal_set_encoding(p, _vte_iso2022_state_get_codeset(state), NULL);
-}
-
 /* Initialize the terminal widget after the base widget stuff is initialized.
  * We need to create a new psuedo-terminal pair, and set ourselves up to do
  * the interpretation of sequences. */
@@ -7965,17 +7999,19 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->screen = &terminal->pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
 
+        /* Initialize charset modes. */
+        pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
+        pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
+        pvt->character_replacement = &pvt->character_replacements[0];
+
 	/* Set up the desired palette. */
 	vte_terminal_set_default_colors(terminal);
 	for (i = 0; i < VTE_PALETTE_SIZE; i++)
 		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
 	/* Set up I/O encodings. */
-        pvt->iso2022_utf8_ambiguous_width = VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
-	pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding,
-                                              pvt->iso2022_utf8_ambiguous_width,
-					      &_vte_terminal_codeset_changed_cb,
-					      terminal);
+        pvt->utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
+        pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding);
 	pvt->incoming = NULL;
 	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
@@ -8014,7 +8050,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->audible_bell = TRUE;
 	pvt->bell_margin = 10;
 	pvt->allow_bold = TRUE;
-	pvt->nrc_mode = TRUE;
         pvt->deccolm_mode = FALSE;
         pvt->rewrap_on_resize = TRUE;
 	vte_terminal_set_default_tabstops(terminal);
@@ -9676,8 +9711,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 		items = g_new(struct _vte_draw_text_request, len);
 		for (i = columns = 0; i < len; i++) {
 			items[i].c = g_utf8_get_char(preedit);
-			items[i].columns = _vte_iso2022_unichar_width(terminal->pvt->iso2022,
-								      items[i].c);
+                        items[i].columns = _vte_unichar_width(items[i].c,
+                                                              terminal->pvt->utf8_ambiguous_width);
 			items[i].x = (col + columns) * width;
 			items[i].y = row * height;
 			columns += items[i].columns;
@@ -10771,7 +10806,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_CJK_AMBIGUOUS_WIDTH,
                  g_param_spec_int ("cjk-ambiguous-width", NULL, NULL,
-                                   1, 2, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
+                                   1, 2, VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
@@ -11733,10 +11768,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	_vte_byte_array_clear(pvt->outgoing);
 	/* Reset charset substitution state. */
 	_vte_iso2022_state_free(pvt->iso2022);
-	pvt->iso2022 = _vte_iso2022_state_new(NULL,
-                                              pvt->iso2022_utf8_ambiguous_width,
-							&_vte_terminal_codeset_changed_cb,
-							terminal);
+        pvt->iso2022 = _vte_iso2022_state_new(NULL);
 	_vte_iso2022_state_set_codeset(pvt->iso2022,
 				       pvt->encoding);
 	/* Reset keypad/cursor key modes. */
@@ -11748,8 +11780,6 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->meta_sends_escape = TRUE;
 	/* Disable margin bell. */
 	pvt->margin_bell = FALSE;
-	/* Enable iso2022/NRC processing. */
-	pvt->nrc_mode = TRUE;
         /* Disable DECCOLM mode. */
         pvt->deccolm_mode = FALSE;
 	/* Reset saved settings. */
@@ -11766,9 +11796,10 @@ vte_terminal_reset(VteTerminal *terminal,
 	_vte_terminal_set_default_attributes(terminal);
 	pvt->screen = &pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
-	/* Reset alternate charset mode. */
-	pvt->normal_screen.alternate_charset = FALSE;
-	pvt->alternate_screen.alternate_charset = FALSE;
+        /* Reset charset modes. */
+        pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
+        pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
+        pvt->character_replacement = &pvt->character_replacements[0];
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
 		_vte_ring_fini(pvt->normal_screen.row_data);

@@ -561,13 +561,10 @@ _vte_table_extract_string(GValueArray **array,
 {
 	GValue value = {0,};
 	gunichar *ptr;
-	guint i;
 
 	ptr = g_new(gunichar, arginfo->length + 1);
-	for (i = 0; i < arginfo->length; i++) {
-		ptr[i] = arginfo->start[i] & ~VTE_ISO2022_ENCODED_WIDTH_MASK;
-	}
-	ptr[i] = '\0';
+        memcpy(ptr, arginfo->start, sizeof(gunichar) * arginfo->length);
+        ptr[arginfo->length] = '\0';
 	g_value_init(&value, G_TYPE_POINTER);
 	g_value_set_pointer(&value, ptr);
 

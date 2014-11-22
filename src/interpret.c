@@ -72,7 +72,7 @@ main(int argc, char **argv)
 
         matcher = _vte_matcher_new();
 
-	subst = _vte_iso2022_state_new(NULL, VTE_ISO2022_DEFAULT_UTF8_AMBIGUOUS_WIDTH, NULL, NULL);
+        subst = _vte_iso2022_state_new(NULL);
 
 	for (;;) {
 		l = read (infile, buf, sizeof (buf));
@@ -107,9 +107,6 @@ main(int argc, char **argv)
 			if (tmp == NULL) {
 				gunichar c;
 				c = g_array_index(array, gunichar, i);
-				if (VTE_ISO2022_HAS_ENCODED_WIDTH(c)) {
-					c &= ~VTE_ISO2022_ENCODED_WIDTH_MASK;
-				}
 				if (c < 32) {
 					g_print("`^%c'\n", c + 64);
 				} else

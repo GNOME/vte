@@ -54,6 +54,8 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(VT,  "vertical-tab")
         ENTRY(FF,  "form-feed")
         ENTRY(CR,  "carriage-return")
+        ENTRY(SO,  "shift-out")
+        ENTRY(SI,  "shift-in")
         ENTRY(DEL, "backspace")
 
         ENTRY(ESC " F", "7-bit-controls")
@@ -73,8 +75,12 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(ESC "%%@", "default-character-set")
         ENTRY(ESC "%%G", "utf-8-character-set")
 
-        ENTRY(ESC "(0", "alternate-character-set-start")
-        ENTRY(ESC "(B", "alternate-character-set-end")
+        ENTRY(ESC "(0", "designate-g0-line-drawing")
+        ENTRY(ESC "(A", "designate-g0-british")
+        ENTRY(ESC "(B", "designate-g0-plain")
+        ENTRY(ESC ")0", "designate-g1-line-drawing")
+        ENTRY(ESC ")A", "designate-g1-british")
+        ENTRY(ESC ")B", "designate-g1-plain")
 
         ENTRY(ESC "7", "save-cursor")
         ENTRY(ESC "8", "restore-cursor")

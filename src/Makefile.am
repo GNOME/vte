@@ -29,15 +29,6 @@ lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	box_drawing_generate.sh \
 	marshal.list \
-	mkunitables.sh \
-	unitable.CNS11643 \
-	unitable.CP437 \
-	unitable.GB12345 \
-	unitable.GB2312 \
-	unitable.JIS0201 \
-	unitable.JIS0208 \
-	unitable.JIS0212 \
-	unitable.KSX1001 \
 	vteseq-n.gperf \
 	vteseq-n.c \
 	vtetypebuiltins.c.template \
@@ -329,7 +320,7 @@ TEST_SH = \
 	$(NULL)
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys iso2022 reflect-text-view reflect-vte mev table xticker vteconv
+check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv
 TESTS = table vteconv $(TEST_SH)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW $(AM_CPPFLAGS)
@@ -369,33 +360,6 @@ interpret_CFLAGS = \
 	$(GTK_CFLAGS) \
 	$(AM_CFLAGS)
 interpret_LDADD = \
-	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS)
-
-iso2022_SOURCES = \
-	buffer.h \
-	caps.c \
-	caps.h \
-	debug.c \
-	debug.h \
-	iso2022.c \
-	iso2022.h \
-	matcher.c \
-	matcher.h \
-	table.c \
-	table.h \
-	vteconv.c \
-	vteconv.h \
-	vtetree.c \
-	vtetree.h
-iso2022_CPPFLAGS = \
-	-DISO2022_MAIN \
-	$(AM_CPPFLAGS)
-iso2022_CFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(GTK_CFLAGS) \
-	$(AM_CFLAGS)
-iso2022_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
 
