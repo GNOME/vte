@@ -82,7 +82,7 @@ struct vteseq_n_struct {
 #"change-font-number", VTE_SEQUENCE_HANDLER_NULL
 "return-terminal-id", VTE_SEQUENCE_HANDLER(vte_sequence_handler_return_terminal_id)
 #"end-of-guarded-area", VTE_SEQUENCE_HANDLER_NULL
-"utf-8-character-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_utf_8_character_set)
+#"utf-8-character-set", VTE_SEQUENCE_HANDLER_NULL
 "window-manipulation", VTE_SEQUENCE_HANDLER(vte_sequence_handler_window_manipulation)
 "change-cursor-color-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_cursor_color_bel)
 "change-cursor-color-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_cursor_color_st)
@@ -113,7 +113,7 @@ struct vteseq_n_struct {
 "insert-blank-characters", VTE_SEQUENCE_HANDLER(vte_sequence_handler_insert_blank_characters)
 #"invoke-g2-character-set", VTE_SEQUENCE_HANDLER_NULL
 #"invoke-g3-character-set", VTE_SEQUENCE_HANDLER_NULL
-"default-character-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_default_character_set)
+#"default-character-set", VTE_SEQUENCE_HANDLER_NULL
 #"selective-erase-in-line", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-1", VTE_SEQUENCE_HANDLER_NULL
 #"ansi-conformance-level-2", VTE_SEQUENCE_HANDLER_NULL

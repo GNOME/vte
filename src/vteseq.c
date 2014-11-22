@@ -2628,21 +2628,6 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	terminal->pvt->text_deleted_flag = TRUE;
 }
 
-/* Set the terminal encoding. */
-static void
-vte_sequence_handler_default_character_set (VteTerminal *terminal, GValueArray *params)
-{
-	G_CONST_RETURN char *locale_encoding;
-	g_get_charset(&locale_encoding);
-	vte_terminal_set_encoding(terminal, locale_encoding, NULL);
-}
-
-static void
-vte_sequence_handler_utf_8_character_set (VteTerminal *terminal, GValueArray *params)
-{
-	vte_terminal_set_encoding(terminal, NULL /* UTF-8 */, NULL);
-}
-
 /* Device status reports. The possible reports are the cursor position and
  * whether or not we're okay. */
 static void
