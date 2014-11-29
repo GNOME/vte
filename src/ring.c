@@ -316,6 +316,16 @@ _vte_ring_reset_streams (VteRing *ring, gulong position)
 	ring->last_attr.i = basic_cell.i.attr;
 }
 
+void
+_vte_ring_reset (VteRing *ring)
+{
+        _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring.\n");
+
+        _vte_ring_reset_streams (ring, 0);
+        ring->start = ring->end = ring->writable = 0;
+        ring->cached_row_num = (gulong) -1;
+}
+
 static inline VteRowData *
 _vte_ring_writable_index (VteRing *ring, gulong position)
 {

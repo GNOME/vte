@@ -11789,12 +11789,8 @@ vte_terminal_reset(VteTerminal *terminal,
         pvt->character_replacement = &pvt->character_replacements[0];
 	/* Clear the scrollback buffers and reset the cursors. */
 	if (clear_history) {
-		_vte_ring_fini(pvt->normal_screen.row_data);
-		_vte_ring_init(pvt->normal_screen.row_data, pvt->scrollback_lines);
-                _vte_ring_set_visible_rows_hint(pvt->normal_screen.row_data, pvt->row_count);
-		_vte_ring_fini(pvt->alternate_screen.row_data);
-		_vte_ring_init(pvt->alternate_screen.row_data, pvt->row_count);
-                _vte_ring_set_visible_rows_hint(pvt->alternate_screen.row_data, pvt->row_count);
+                _vte_ring_reset(pvt->normal_screen.row_data);
+                _vte_ring_reset(pvt->alternate_screen.row_data);
                 pvt->normal_screen.saved.cursor.row = 0;
                 pvt->normal_screen.saved.cursor.col = 0;
 		pvt->normal_screen.scroll_delta = 0;
