@@ -1167,7 +1167,13 @@ _vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 {
 	VteRowData *rowdata;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+	/* If we were to strictly emulate xterm, we'd ensure the cursor is onscreen.
+	 * But due to https://bugzilla.gnome.org/show_bug.cgi?id=740789 we intentionally
+	 * deviate and do instead what konsole does. This way emitting a \e[K doesn't
+	 * influence the text flow, and serves as a perfect workaround against a new line
+	 * getting painted with the active background color (except for a possible flicker).
+	 */
+	/* _vte_terminal_ensure_cursor_is_onscreen(terminal); */
 
 	/* Get the data for the row which the cursor points to. */
 	rowdata = _vte_terminal_ensure_row(terminal);
