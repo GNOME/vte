@@ -172,7 +172,7 @@ AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
-VTE_DEFAULT_TERM=xterm
+VTE_DEFAULT_TERM=xterm-256color
 AC_DEFINE_UNQUOTED(VTE_DEFAULT_TERM,"$VTE_DEFAULT_TERM",[The default value $TERM is set to.])
 
 # Check for headers.
