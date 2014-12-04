@@ -8426,11 +8426,11 @@ vte_terminal_finalize(GObject *object)
         if (terminal->pvt->child_watch_source != 0) {
                 g_source_remove (terminal->pvt->child_watch_source);
                 terminal->pvt->child_watch_source = 0;
+                g_child_watch_add_full(G_PRIORITY_HIGH,
+                                       terminal->pvt->pty_pid,
+                                       (GChildWatchFunc)vte_terminal_child_watch_cb,
+                                       NULL, NULL);
         }
-        g_child_watch_add_full(G_PRIORITY_HIGH,
-                               terminal->pvt->pty_pid,
-                               (GChildWatchFunc)vte_terminal_child_watch_cb,
-                               NULL, NULL);
 
 	/* Stop processing input. */
 	vte_terminal_stop_processing (terminal);
