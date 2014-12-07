@@ -3025,6 +3025,47 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 	}
 }
 
+/* Restore cursor on a screen. */
+void
+_vte_terminal_restore_cursor (VteTerminal *terminal, VteScreen *screen)
+{
+        terminal->pvt->cursor.col = screen->saved.cursor.col;
+        terminal->pvt->cursor.row = screen->insert_delta + CLAMP(screen->saved.cursor.row,
+                                                                 0, terminal->pvt->row_count - 1);
+
+        terminal->pvt->reverse_mode = screen->saved.reverse_mode;
+        terminal->pvt->origin_mode = screen->saved.origin_mode;
+        terminal->pvt->sendrecv_mode = screen->saved.sendrecv_mode;
+        terminal->pvt->insert_mode = screen->saved.insert_mode;
+        terminal->pvt->linefeed_mode = screen->saved.linefeed_mode;
+        terminal->pvt->defaults = screen->saved.defaults;
+        terminal->pvt->color_defaults = screen->saved.color_defaults;
+        terminal->pvt->fill_defaults = screen->saved.fill_defaults;
+        terminal->pvt->character_replacements[0] = screen->saved.character_replacements[0];
+        terminal->pvt->character_replacements[1] = screen->saved.character_replacements[1];
+        terminal->pvt->character_replacement = screen->saved.character_replacement;
+}
+
+/* Save cursor on a screen. */
+void
+_vte_terminal_save_cursor (VteTerminal *terminal, VteScreen *screen)
+{
+        screen->saved.cursor.col = terminal->pvt->cursor.col;
+        screen->saved.cursor.row = terminal->pvt->cursor.row - screen->insert_delta;
+
+        screen->saved.reverse_mode = terminal->pvt->reverse_mode;
+        screen->saved.origin_mode = terminal->pvt->origin_mode;
+        screen->saved.sendrecv_mode = terminal->pvt->sendrecv_mode;
+        screen->saved.insert_mode = terminal->pvt->insert_mode;
+        screen->saved.linefeed_mode = terminal->pvt->linefeed_mode;
+        screen->saved.defaults = terminal->pvt->defaults;
+        screen->saved.color_defaults = terminal->pvt->color_defaults;
+        screen->saved.fill_defaults = terminal->pvt->fill_defaults;
+        screen->saved.character_replacements[0] = terminal->pvt->character_replacements[0];
+        screen->saved.character_replacements[1] = terminal->pvt->character_replacements[1];
+        screen->saved.character_replacement = terminal->pvt->character_replacement;
+}
+
 /* Insert a single character into the stored data array. */
 gboolean
 _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
@@ -8018,8 +8059,6 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
         pvt->autowrap = TRUE;
         pvt->sendrecv_mode = TRUE;
-        pvt->normal_screen.saved.sendrecv_mode = TRUE;
-        pvt->alternate_screen.saved.sendrecv_mode = TRUE;
 	pvt->dec_saved = g_hash_table_new(NULL, NULL);
         pvt->matcher = _vte_matcher_new();
         pvt->alternate_screen_scroll = TRUE;
@@ -8064,6 +8103,10 @@ vte_terminal_init(VteTerminal *terminal)
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
         pvt->cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
+
+        /* Initialize the saved cursor. */
+        _vte_terminal_save_cursor(terminal, &terminal->pvt->normal_screen);
+        _vte_terminal_save_cursor(terminal, &terminal->pvt->alternate_screen);
 
 	/* Matching data. */
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
@@ -11868,6 +11911,9 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->modifiers = 0;
 	/* Reset miscellaneous stuff. */
 	pvt->bracketed_paste_mode = FALSE;
+        /* Reset the saved cursor. */
+        _vte_terminal_save_cursor(terminal, &terminal->pvt->normal_screen);
+        _vte_terminal_save_cursor(terminal, &terminal->pvt->alternate_screen);
 	/* Cause everything to be redrawn (or cleared). */
 	vte_terminal_maybe_scroll_to_bottom(terminal);
 	_vte_invalidate_all(terminal);

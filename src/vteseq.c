@@ -414,48 +414,15 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 static void
 vte_sequence_handler_restore_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        VteScreen *screen;
-        screen = terminal->pvt->screen;
-
-        terminal->pvt->cursor.col = screen->saved.cursor.col;
-        terminal->pvt->cursor.row = screen->insert_delta + CLAMP(screen->saved.cursor.row,
-                                                                 0, terminal->pvt->row_count - 1);
+        _vte_terminal_restore_cursor(terminal, terminal->pvt->screen);
         _vte_terminal_ensure_cursor_is_onscreen(terminal);
-
-        terminal->pvt->reverse_mode = screen->saved.reverse_mode;
-        terminal->pvt->origin_mode = screen->saved.origin_mode;
-        terminal->pvt->sendrecv_mode = screen->saved.sendrecv_mode;
-        terminal->pvt->insert_mode = screen->saved.insert_mode;
-        terminal->pvt->linefeed_mode = screen->saved.linefeed_mode;
-        terminal->pvt->defaults = screen->saved.defaults;
-        terminal->pvt->color_defaults = screen->saved.color_defaults;
-        terminal->pvt->fill_defaults = screen->saved.fill_defaults;
-        terminal->pvt->character_replacements[0] = screen->saved.character_replacements[0];
-        terminal->pvt->character_replacements[1] = screen->saved.character_replacements[1];
-        terminal->pvt->character_replacement = screen->saved.character_replacement;
 }
 
 /* Save cursor. */
 static void
 vte_sequence_handler_save_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        VteScreen *screen;
-        screen = terminal->pvt->screen;
-
-        screen->saved.cursor.col = terminal->pvt->cursor.col;
-        screen->saved.cursor.row = terminal->pvt->cursor.row - screen->insert_delta;
-
-        screen->saved.reverse_mode = terminal->pvt->reverse_mode;
-        screen->saved.origin_mode = terminal->pvt->origin_mode;
-        screen->saved.sendrecv_mode = terminal->pvt->sendrecv_mode;
-        screen->saved.insert_mode = terminal->pvt->insert_mode;
-        screen->saved.linefeed_mode = terminal->pvt->linefeed_mode;
-        screen->saved.defaults = terminal->pvt->defaults;
-        screen->saved.color_defaults = terminal->pvt->color_defaults;
-        screen->saved.fill_defaults = terminal->pvt->fill_defaults;
-        screen->saved.character_replacements[0] = terminal->pvt->character_replacements[0];
-        screen->saved.character_replacements[1] = terminal->pvt->character_replacements[1];
-        screen->saved.character_replacement = terminal->pvt->character_replacement;
+        _vte_terminal_save_cursor(terminal, terminal->pvt->screen);
 }
 
 /* Switch to normal screen. */
