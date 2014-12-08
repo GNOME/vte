@@ -1,33 +1,15 @@
 #
 #  Sample text using terminal national character set suppport.
 #
-General format: [ISO-2022] [UTF-8]
-
-#
-#  Sample text from Ken Lunde's [4mCJKV Information Processing[m.
-#
-ISO-2022-JP/156:  [$B$+$J4A;z(B] [かな漢字]
-ISO-2022-KR/158:  [$)C1hD!)B] [김치]
+General format: [ISO-2022]
+                [UTF-8]
 
 #
 #  Sample text based on XTerm's specs and random other docs.
 #
-US-ASCII:         [(B#$@[\]^_{|}~(B] [#$@[\]^_{|}~]
+US-ASCII:         [(B#$@[\]^_{|}~(B]
+                  [#$@[\]^_{|}~]
 Graphics:         [(0abcdefghijklmnopqrstuvwxyz_{|}~(B]
                   [▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥_π≠£·]
-British:          [(A#$@[\]^_{|}~(B] [#£@[\]^_{|}~]
-Dutch:            [(4#$@[\]^_{|}~(B] [£$¾ÿ½|^_¨f¼´]
-Finnish:          [(C#$@[\]^_{|}~(B] [#$@ÄÖÅÜ_äöåü]
-French:           [(R#$@[\]^_{|}~(B] [£$à°ç§^_éùè¨]
-French Canadian:  [(Q#$@[\]^_{|}~(B] [#$àâçêî_éùèû]
-German:           [(K#$@[\]^_{|}~(B] [#$§ÄÖÜ^_äöüß]
-Italian:          [(Y#$@[\]^_{|}~(B] [£$§°çé^_àòèì]
-Norwegian/Danish: [(E#$@[\]^_{|}~(B] [#$ÄÆØÅÜ_æøåü]
-Spanish:          [(Z#$@[\]^_{|}~(B] [£$§¡Ñ¿^_°ñç~]
-Swedish:          [(H#$@[\]^_{|}~(B] [#$ÉÄÖÅÜ_äöåü]
-Swiss:            [(=#$@[\]^_{|}~(B] [ù$àéçêîèäöüû]
-
-ISO-2022-JP:      [(J~\(B~\] [¥‾~\]
-ISO-2022-KR:      [$)C>o^-] [억嚬]
-ISO-2022-CN(1):   [$)G&*&4] [⑩⑽]
-ISO-2022-CN(2):   [$*HN$&N5~] [怀梩]
+British:          [(A#$@[\]^_{|}~(B]
+                  [£$@[\]^_{|}~]
