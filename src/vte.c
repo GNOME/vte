@@ -8025,10 +8025,9 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize the screens and histories. */
 	_vte_ring_init (pvt->alternate_screen.row_data, terminal->pvt->row_count);
 	pvt->screen = &terminal->pvt->alternate_screen;
-	_vte_terminal_set_default_attributes(terminal);
-
 	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
 	pvt->screen = &terminal->pvt->normal_screen;
+
 	_vte_terminal_set_default_attributes(terminal);
 
         /* Initialize charset modes. */
@@ -11832,16 +11831,14 @@ vte_terminal_reset(VteTerminal *terminal,
 		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-	pvt->screen = &pvt->alternate_screen;
-	_vte_terminal_set_default_attributes(terminal);
-	pvt->screen = &pvt->normal_screen;
 	_vte_terminal_set_default_attributes(terminal);
         /* Reset charset modes. */
         pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
         pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
         pvt->character_replacement = &pvt->character_replacements[0];
-	/* Clear the scrollback buffers and reset the cursors. */
+	/* Clear the scrollback buffers and reset the cursors. Switch to normal screen. */
 	if (clear_history) {
+                pvt->screen = &pvt->normal_screen;
                 _vte_ring_reset(pvt->normal_screen.row_data);
                 _vte_ring_reset(pvt->alternate_screen.row_data);
                 pvt->normal_screen.saved.cursor.row = 0;
