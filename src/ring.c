@@ -51,7 +51,7 @@ _vte_ring_validate (VteRing * ring)
 
 
 void
-_vte_ring_init (VteRing *ring, gulong max_rows)
+_vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams)
 {
 	_vte_debug_print(VTE_DEBUG_RING, "New ring %p.\n", ring);
 
@@ -62,9 +62,14 @@ _vte_ring_init (VteRing *ring, gulong max_rows)
 	ring->mask = 31;
 	ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
 
-	ring->attr_stream = _vte_file_stream_new ();
-	ring->text_stream = _vte_file_stream_new ();
-	ring->row_stream = _vte_file_stream_new ();
+	ring->has_streams = has_streams;
+	if (has_streams) {
+		ring->attr_stream = _vte_file_stream_new ();
+		ring->text_stream = _vte_file_stream_new ();
+		ring->row_stream = _vte_file_stream_new ();
+	} else {
+		ring->attr_stream = ring->text_stream = ring->row_stream = NULL;
+	}
 
 	ring->last_attr_text_start_offset = 0;
 	ring->last_attr.i = basic_cell.i.attr;
@@ -132,6 +137,8 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 	int i;
 
 	_vte_debug_print (VTE_DEBUG_RING, "Freezing row %lu.\n", position);
+
+        g_assert(ring->has_streams);
 
 	memset(&record, 0, sizeof (record));
 	record.text_start_offset = _vte_stream_head (ring->text_stream);
@@ -205,6 +212,8 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 	GString *buffer = ring->utf8_buffer;
 
 	_vte_debug_print (VTE_DEBUG_RING, "Thawing row %lu.\n", position);
+
+        g_assert(ring->has_streams);
 
 	_vte_row_data_clear (row);
 
@@ -308,9 +317,11 @@ _vte_ring_reset_streams (VteRing *ring, gulong position)
 {
 	_vte_debug_print (VTE_DEBUG_RING, "Reseting streams to %lu.\n", position);
 
-	_vte_stream_reset (ring->row_stream, position * sizeof (VteRowRecord));
-	_vte_stream_reset (ring->text_stream, 0);
-	_vte_stream_reset (ring->attr_stream, 0);
+	if (ring->has_streams) {
+		_vte_stream_reset (ring->row_stream, position * sizeof (VteRowRecord));
+		_vte_stream_reset (ring->text_stream, 0);
+		_vte_stream_reset (ring->attr_stream, 0);
+	}
 
 	ring->last_attr_text_start_offset = 0;
 	ring->last_attr.i = basic_cell.i.attr;
@@ -608,7 +619,9 @@ _vte_ring_append (VteRing * ring)
  * _vte_ring_set_visible_rows_hint:
  * @ring: a #VteRing
  *
- * Set the number of visible rows, a hint only for better performance.
+ * Set the number of visible rows, a hint for better performance.
+ * It's no longer a hint only; it's required to be set correctly
+ * for the alternate screen so that it never hits the streams.
  */
 void
 _vte_ring_set_visible_rows_hint (VteRing *ring, gulong rows)

@@ -8023,9 +8023,9 @@ vte_terminal_init(VteTerminal *terminal)
 	/* We allocated zeroed memory, just fill in non-zero stuff. */
 
 	/* Initialize the screens and histories. */
-	_vte_ring_init (pvt->alternate_screen.row_data, terminal->pvt->row_count);
+	_vte_ring_init (pvt->alternate_screen.row_data, terminal->pvt->row_count, FALSE);
 	pvt->screen = &terminal->pvt->alternate_screen;
-	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT);
+	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT, TRUE);
 	pvt->screen = &terminal->pvt->normal_screen;
 
 	_vte_terminal_set_default_attributes(terminal);

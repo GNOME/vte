@@ -65,6 +65,7 @@ struct _VteRing {
 	VteRowData cached_row;
 	gulong cached_row_num;
 
+	gboolean has_streams;
 	gulong visible_rows_hint;  /* to keep at least a screenful of lines in memory, bug 646098 comment 12 */
 };
 
@@ -78,7 +79,7 @@ struct _VteRing {
 const VteRowData *_vte_ring_index (VteRing *ring, gulong position);
 VteRowData *_vte_ring_index_writable (VteRing *ring, gulong position);
 
-void _vte_ring_init (VteRing *ring, gulong max_rows);
+void _vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams);
 void _vte_ring_fini (VteRing *ring);
 void _vte_ring_reset (VteRing *ring);
 void _vte_ring_resize (VteRing *ring, gulong max_rows);
