@@ -33,10 +33,11 @@ typedef struct _VteStreamClass {
 	GObjectClass parent_class;
 
 	void (*reset) (VteStream *stream, gsize offset);
-	void (*append) (VteStream *stream, const char *data, gsize len);
 	gboolean (*read) (VteStream *stream, gsize offset, char *data, gsize len);
+	void (*append) (VteStream *stream, const char *data, gsize len);
 	void (*truncate) (VteStream *stream, gsize offset);
 	void (*advance_tail) (VteStream *stream, gsize offset);
+	gsize (*tail) (VteStream *stream);
 	gsize (*head) (VteStream *stream);
 } VteStreamClass;
 
@@ -62,16 +63,16 @@ _vte_stream_reset (VteStream *stream, gsize offset)
 	VTE_STREAM_GET_CLASS (stream)->reset (stream, offset);
 }
 
-void
-_vte_stream_append (VteStream *stream, const char *data, gsize len)
-{
-	VTE_STREAM_GET_CLASS (stream)->append (stream, data, len);
-}
-
 gboolean
 _vte_stream_read (VteStream *stream, gsize offset, char *data, gsize len)
 {
 	return VTE_STREAM_GET_CLASS (stream)->read (stream, offset, data, len);
+}
+
+void
+_vte_stream_append (VteStream *stream, const char *data, gsize len)
+{
+	VTE_STREAM_GET_CLASS (stream)->append (stream, data, len);
 }
 
 void
@@ -84,6 +85,12 @@ void
 _vte_stream_advance_tail (VteStream *stream, gsize offset)
 {
 	VTE_STREAM_GET_CLASS (stream)->advance_tail (stream, offset);
+}
+
+gsize
+_vte_stream_tail (VteStream *stream)
+{
+	return VTE_STREAM_GET_CLASS (stream)->tail (stream);
 }
 
 gsize

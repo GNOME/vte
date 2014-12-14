@@ -320,8 +320,8 @@ TEST_SH = \
 	$(NULL)
 EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv
-TESTS = table vteconv $(TEST_SH)
+check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv vtestream-file
+TESTS = table vteconv vtestream-file $(TEST_SH)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
@@ -391,6 +391,23 @@ table_CFLAGS = \
 table_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
+
+vtestream_file_SOURCES = \
+	vtestream-base.h \
+	vtestream-file.h \
+	vtestream.c \
+	vtestream.h \
+	vteutils.c \
+	vteutils.h \
+	$(NULL)
+vtestream_file_CPPFLAGS = \
+	-DVTESTREAM_MAIN \
+	$(AM_CPPFLAGS)
+vtestream_file_CFLAGS = \
+	$(VTE_CFLAGS) \
+	$(AM_CFLAGS)
+vtestream_file_LDADD = \
+	$(VTE_LIBS)
 
 vteconv_SOURCES = buffer.h debug.c debug.h vteconv.c vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN $(AM_CPPFLAGS)
