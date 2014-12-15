@@ -1,6 +1,6 @@
 m4_define([version_major],0)
 m4_define([version_minor],38)
-m4_define([version_micro],3)
+m4_define([version_micro],4)
 m4_define([version_triplet],version_major.version_minor.version_micro)
 
 AC_PREREQ([2.63])
