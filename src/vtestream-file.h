@@ -604,7 +604,10 @@ _vte_boa_compress (char *dst, unsigned int dstlen, const char *src, unsigned int
 {
 #ifndef VTESTREAM_MAIN
         uLongf dstlen_ulongf = dstlen;
-        g_assert_cmpuint (compress2 ((Bytef *) dst, &dstlen_ulongf, (const Bytef *) src, srclen, 1), ==, Z_OK);
+        unsigned int z_ret;
+
+        z_ret = compress2 ((Bytef *) dst, &dstlen_ulongf, (const Bytef *) src, srclen, 1);
+        g_assert_cmpuint (z_ret, ==, Z_OK);
         return dstlen_ulongf;
 #else
         /* Fake compression for unit testing:
@@ -639,7 +642,10 @@ _vte_boa_uncompress (char *dst, unsigned int dstlen, const char *src, unsigned i
 {
 #ifndef VTESTREAM_MAIN
         uLongf dstlen_ulongf = dstlen;
-        g_assert_cmpuint (uncompress ((Bytef *) dst, &dstlen_ulongf, (const Bytef *) src, srclen), ==, Z_OK);
+        unsigned int z_ret;
+
+        z_ret = uncompress ((Bytef *) dst, &dstlen_ulongf, (const Bytef *) src, srclen);
+        g_assert_cmpuint (z_ret, ==, Z_OK);
         return dstlen_ulongf;
 #else
         /* Fake decompression for unit testing; see above. */
@@ -706,7 +712,9 @@ _vte_boa_read (VteBoa *boa, gsize offset, char *data)
         if (G_UNLIKELY (compressed_len >= VTE_BOA_BLOCKSIZE)) {
                 memcpy (data, buf + VTE_BLOCK_DATALENGTH_SIZE, VTE_BOA_BLOCKSIZE);
         } else {
-                g_assert_cmpuint (_vte_boa_uncompress(data, VTE_BOA_BLOCKSIZE, buf + VTE_BLOCK_DATALENGTH_SIZE, compressed_len), ==, VTE_BOA_BLOCKSIZE);
+                unsigned int uncompressed_len;
+                uncompressed_len = _vte_boa_uncompress(data, VTE_BOA_BLOCKSIZE, buf + VTE_BLOCK_DATALENGTH_SIZE, compressed_len);
+                g_assert_cmpuint (uncompressed_len, ==, VTE_BOA_BLOCKSIZE);
         }
         ret = TRUE;
 
@@ -735,7 +743,7 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
 
         /* Compress, or copy if uncompressable */
         compressed_len = _vte_boa_compress (buf + VTE_BLOCK_DATALENGTH_SIZE, boa->compressBound,
-                                        data, VTE_BOA_BLOCKSIZE);
+                                            data, VTE_BOA_BLOCKSIZE);
         if (G_UNLIKELY (compressed_len >= VTE_BOA_BLOCKSIZE)) {
                 memcpy (buf + VTE_BLOCK_DATALENGTH_SIZE, data, VTE_BOA_BLOCKSIZE);
                 compressed_len = VTE_BOA_BLOCKSIZE;
