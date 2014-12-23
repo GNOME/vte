@@ -156,6 +156,7 @@ enum {
         PROP_HSCROLL_POLICY,
         PROP_VSCROLL_POLICY,
         PROP_ALLOW_BOLD,
+        PROP_ALTSCREEN_ENABLED,
         PROP_AUDIBLE_BELL,
         PROP_BACKSPACE_BINDING,
         PROP_CJK_AMBIGUOUS_WIDTH,
@@ -8088,6 +8089,7 @@ vte_terminal_init(VteTerminal *terminal)
 	vte_terminal_set_default_tabstops(terminal);
 
         pvt->input_enabled = TRUE;
+        pvt->altscreen_enabled = TRUE;
 
 	/* Cursor shape. */
 	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
@@ -10041,6 +10043,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
                         break;
+                case PROP_ALTSCREEN_ENABLED:
+                        g_value_set_boolean (value, vte_terminal_get_altscreen_enabled (terminal));
+                        break;
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
@@ -10135,6 +10140,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_ALLOW_BOLD:
                         vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_ALTSCREEN_ENABLED:
+                        vte_terminal_set_altscreen_enabled (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
@@ -10804,6 +10812,18 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                        TRUE,
                                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
      
+        /**
+         * VteTerminal:altscreen-enabled:
+         *
+         * Controls whether the terminal allows switching to the alternate
+	 * screen.
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_ALTSCREEN_ENABLED,
+                 g_param_spec_boolean ("altscreen-enabled", NULL, NULL,
+                                       TRUE,
+                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
         /**
          * VteTerminal:audible-bell:
          *
@@ -13183,6 +13203,75 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
                                       GDK_HINT_RESIZE_INC |
                                       GDK_HINT_MIN_SIZE |
                                       GDK_HINT_BASE_SIZE);
+}
+
+/**
+ * vte_terminal_set_altscreen_enabled:
+ * @terminal: a #VteTerminal
+ * @enabled: whether to enable the alternative screen
+ *
+ * Enables or disables switching to the alternative screen
+ */
+void
+vte_terminal_set_altscreen_enabled (VteTerminal *terminal,
+                                gboolean enabled)
+{
+        VteTerminalPrivate *pvt;
+        GtkWidget *widget;
+        GtkStyleContext *context;
+
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        pvt = terminal->pvt;
+        widget = &terminal->widget;
+
+        enabled = enabled != FALSE;
+        if (enabled == terminal->pvt->altscreen_enabled)
+                return;
+
+#if 0
+	/* It's probably better not to do anything here.
+	 * If the screen is still switched to the alternative one,
+	 * switching back will only confuse the user. Since the
+	 * flag disables switching to the alternative only,
+	 * but does not disable switching back, the switch
+	 * back will occur normally when the user exits the
+	 * application / sends the te sequence.
+	 */
+
+	if (pvt->altscreen_enabled && !enabled) {
+		/* If we disable the alternative screen, switch back to */
+		/* the normal one. Note that, if the current application */
+		/* has switched to the alternative screen, this will */
+		/* hide the current application. */
+		/* This is copied from vte_sequence_handler_normal_screen */
+		/* in vteseq.c, which is a static_function there. */
+		/* cursor.row includes insert_delta, adjust accordingly */
+		pvt->cursor.row -= pvt->screen->insert_delta;
+		pvt->screen = &pvt->normal_screen;
+		pvt->cursor.row += pvt->screen->insert_delta;
+
+		/* Make sure the ring is large enough */
+		_vte_terminal_ensure_row(terminal);
+	}
+#endif
+
+        pvt->altscreen_enabled = enabled;
+        g_object_notify(G_OBJECT(terminal), "altscreen-enabled");
+}
+
+/**
+ * vte_terminal_get_altscreen_enabled:
+ * @terminal: a #VteTerminal
+ *
+ * Returns whether the terminal allows switching to the alternative screen.
+ */
+gboolean
+vte_terminal_get_altscreen_enabled (VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        return terminal->pvt->altscreen_enabled;
 }
 
 /**

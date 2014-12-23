@@ -10,6 +10,7 @@
     <glade-widget-class title="VTE Terminal" name="VteTerminal" generic-name="terminal">
       <properties>
         <property id="allow-bold" />
+        <property id="altscreen-enabled" />
         <property id="audible-bell" />
         <property id="backspace-binding" />
         <property id="cjk-ambiguous-width" />
