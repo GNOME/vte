@@ -616,12 +616,31 @@ _vte_ring_append (VteRing * ring)
 
 
 /**
+ * _vte_ring_drop_scrollback:
+ * @ring: a #VteRing
+ * @position: drop contents up to this point, which must be in the writable region.
+ *
+ * Drop the scrollback (offscreen contents).
+ *
+ * TODOegmont: We wouldn't need the position argument after addressing 708213#c29.
+ */
+void
+_vte_ring_drop_scrollback (VteRing * ring, gulong position)
+{
+        _vte_ring_ensure_writable (ring, position);
+
+        ring->start = ring->writable = position;
+        _vte_ring_reset_streams (ring, position);
+}
+
+
+/**
  * _vte_ring_set_visible_rows:
  * @ring: a #VteRing
  *
  * Set the number of visible rows.
  * It's required to be set correctly for the alternate screen so that it
- * never hits the streams.
+ * never hits the streams. It's also required for clearing the scrollback.
  */
 void
 _vte_ring_set_visible_rows (VteRing *ring, gulong rows)

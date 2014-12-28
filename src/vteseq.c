@@ -2470,13 +2470,14 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 	guint i;
 	/* The default parameter is 0. */
 	param = 0;
-	/* Pull out a parameter. */
+        /* Pull out the first parameter. */
 	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
 			continue;
 		}
 		param = g_value_get_long(value);
+                break;
 	}
 	/* Clear the right area. */
 	switch (param) {
@@ -2495,6 +2496,10 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		/* Clear the entire screen. */
 		_vte_terminal_clear_screen (terminal);
 		break;
+        case 3:
+                /* Drop the scrollback. */
+                _vte_terminal_drop_scrollback (terminal);
+                break;
 	default:
 		break;
 	}
@@ -2511,13 +2516,14 @@ vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 	guint i;
 	/* The default parameter is 0. */
 	param = 0;
-	/* Pull out a parameter. */
+        /* Pull out the first parameter. */
 	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
 		value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
 			continue;
 		}
 		param = g_value_get_long(value);
+                break;
 	}
 	/* Clear the right area. */
 	switch (param) {

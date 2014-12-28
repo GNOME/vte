@@ -3025,6 +3025,20 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 	}
 }
 
+/* Drop the scrollback. */
+void
+_vte_terminal_drop_scrollback (VteTerminal *terminal)
+{
+        /* Only for normal screen; alternate screen doesn't have a scrollback. */
+        _vte_ring_drop_scrollback (terminal->pvt->normal_screen.row_data,
+                                   terminal->pvt->normal_screen.insert_delta);
+
+        if (terminal->pvt->screen == &terminal->pvt->normal_screen) {
+                vte_terminal_queue_adjustment_value_changed (terminal, terminal->pvt->normal_screen.insert_delta);
+                _vte_terminal_adjust_adjustments_full (terminal);
+        }
+}
+
 /* Restore cursor on a screen. */
 void
 _vte_terminal_restore_cursor (VteTerminal *terminal, VteScreen *screen)

@@ -87,6 +87,7 @@ void _vte_ring_shrink (VteRing *ring, gulong max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, gulong position);
 VteRowData *_vte_ring_append (VteRing *ring);
 void _vte_ring_remove (VteRing *ring, gulong position);
+void _vte_ring_drop_scrollback (VteRing *ring, gulong position);
 void _vte_ring_set_visible_rows (VteRing *ring, gulong rows);
 void _vte_ring_rewrap (VteRing *ring, glong columns, VteVisualPosition **markers);
 gboolean _vte_ring_write_contents (VteRing *ring,
