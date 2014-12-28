@@ -78,7 +78,7 @@ _vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams)
 	_vte_row_data_init (&ring->cached_row);
 	ring->cached_row_num = (gulong) -1;
 
-	ring->visible_rows_hint = 0;
+        ring->visible_rows = 0;
 
 	_vte_ring_validate(ring);
 }
@@ -422,7 +422,7 @@ _vte_ring_discard_one_row (VteRing *ring)
 static void
 _vte_ring_maybe_freeze_one_row (VteRing *ring)
 {
-	if (G_LIKELY (ring->mask >= ring->visible_rows_hint && ring->writable + ring->mask + 1 == ring->end))
+        if (G_LIKELY (ring->mask >= ring->visible_rows && ring->writable + ring->mask + 1 == ring->end))
 		_vte_ring_freeze_one_row (ring);
 	else
 		_vte_ring_ensure_writable_room (ring);
@@ -441,7 +441,7 @@ _vte_ring_ensure_writable_room (VteRing *ring)
 	gulong new_mask, old_mask, i, end;
 	VteRowData *old_array, *new_array;;
 
-	if (G_LIKELY (ring->mask >= ring->visible_rows_hint && ring->writable + ring->mask + 1 > ring->end))
+        if (G_LIKELY (ring->mask >= ring->visible_rows && ring->writable + ring->mask + 1 > ring->end))
 		return;
 
 	old_mask = ring->mask;
@@ -449,7 +449,7 @@ _vte_ring_ensure_writable_room (VteRing *ring)
 
 	do {
 		ring->mask = (ring->mask << 1) + 1;
-	} while (ring->mask < ring->visible_rows_hint || ring->writable + ring->mask + 1 <= ring->end);
+        } while (ring->mask < ring->visible_rows || ring->writable + ring->mask + 1 <= ring->end);
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array from %lu to %lu\n", old_mask, ring->mask);
 
@@ -616,17 +616,17 @@ _vte_ring_append (VteRing * ring)
 
 
 /**
- * _vte_ring_set_visible_rows_hint:
+ * _vte_ring_set_visible_rows:
  * @ring: a #VteRing
  *
- * Set the number of visible rows, a hint for better performance.
- * It's no longer a hint only; it's required to be set correctly
- * for the alternate screen so that it never hits the streams.
+ * Set the number of visible rows.
+ * It's required to be set correctly for the alternate screen so that it
+ * never hits the streams.
  */
 void
-_vte_ring_set_visible_rows_hint (VteRing *ring, gulong rows)
+_vte_ring_set_visible_rows (VteRing *ring, gulong rows)
 {
-	ring->visible_rows_hint = rows;
+        ring->visible_rows = rows;
 }
 
 

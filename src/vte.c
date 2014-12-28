@@ -7855,8 +7855,8 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 	if (old_rows != terminal->pvt->row_count || old_columns != terminal->pvt->column_count) {
                 terminal->pvt->scrolling_restricted = FALSE;
 
-		_vte_ring_set_visible_rows_hint(terminal->pvt->normal_screen.row_data, terminal->pvt->row_count);
-		_vte_ring_set_visible_rows_hint(terminal->pvt->alternate_screen.row_data, terminal->pvt->row_count);
+                _vte_ring_set_visible_rows(terminal->pvt->normal_screen.row_data, terminal->pvt->row_count);
+                _vte_ring_set_visible_rows(terminal->pvt->alternate_screen.row_data, terminal->pvt->row_count);
 
 		/* Resize the normal screen and (if rewrapping is enabled) rewrap it even if the alternate screen is visible: bug 415277 */
 		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows, terminal->pvt->rewrap_on_resize);

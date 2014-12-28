@@ -66,7 +66,7 @@ struct _VteRing {
 	gulong cached_row_num;
 
 	gboolean has_streams;
-	gulong visible_rows_hint;  /* to keep at least a screenful of lines in memory, bug 646098 comment 12 */
+        gulong visible_rows;  /* to keep at least a screenful of lines in memory, bug 646098 comment 12 */
 };
 
 #define _vte_ring_contains(__ring, __position) \
@@ -87,7 +87,7 @@ void _vte_ring_shrink (VteRing *ring, gulong max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, gulong position);
 VteRowData *_vte_ring_append (VteRing *ring);
 void _vte_ring_remove (VteRing *ring, gulong position);
-void _vte_ring_set_visible_rows_hint (VteRing *ring, gulong rows);
+void _vte_ring_set_visible_rows (VteRing *ring, gulong rows);
 void _vte_ring_rewrap (VteRing *ring, glong columns, VteVisualPosition **markers);
 gboolean _vte_ring_write_contents (VteRing *ring,
 				   GOutputStream *stream,
