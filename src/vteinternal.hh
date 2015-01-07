@@ -577,6 +577,8 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
+        gboolean m_shell_preexec;
+
         std::string m_window_title{};
         std::string m_current_directory_uri{};
         std::string m_current_file_uri{};
@@ -1319,6 +1321,9 @@ public:
                              int osc) noexcept;
 
         /* OSC handlers */
+        void handle_urxvt_extension(vte::parser::Sequence const& seq,
+                                    vte::parser::StringTokeniser::const_iterator& token,
+                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
         void set_color(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,
                        vte::parser::StringTokeniser::const_iterator const& endtoken,

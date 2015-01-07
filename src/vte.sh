@@ -57,7 +57,7 @@ __vte_prompt_command() {
 
 case "$TERM" in
   xterm*|vte*)
-    [ -n "$BASH_VERSION" ] && PROMPT_COMMAND="__vte_prompt_command"
+    [ -n "$BASH_VERSION" ] && PROMPT_COMMAND="__vte_prompt_command" && PS0=$(printf "\u009D777;preexec\u009C")
     [ -n "$ZSH_VERSION"  ] && precmd_functions+=(__vte_osc7)
     ;;
 esac

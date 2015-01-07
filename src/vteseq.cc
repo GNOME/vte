@@ -1339,6 +1339,20 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
         m_text_deleted_flag = TRUE;
 }
 
+void
+VteTerminalPrivate::handle_urxvt_extension(vte::parser::Sequence const& seq,
+                                           vte::parser::StringTokeniser::const_iterator& token,
+                                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+{
+        if (token == endtoken) {
+                return;
+        }
+
+        if (*token == "preexec") {
+                m_shell_preexec = TRUE;
+        }
+}
+
 bool
 VteTerminalPrivate::get_osc_color_index(int osc,
                                         int value,
@@ -6342,6 +6356,10 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
                 reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
                 break;
 
+        case VTE_OSC_URXVT_EXTENSION:
+                handle_urxvt_extension(seq, it, cend);
+                break;
+
         case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
@@ -6382,7 +6400,6 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_URXVT_SET_FONT_BOLD_ITALIC:
         case VTE_OSC_URXVT_VIEW_UP:
         case VTE_OSC_URXVT_VIEW_DOWN:
-        case VTE_OSC_URXVT_EXTENSION:
         case VTE_OSC_YF_RQGWR:
         default:
                 break;
