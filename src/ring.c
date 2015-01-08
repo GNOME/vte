@@ -93,9 +93,11 @@ _vte_ring_fini (VteRing *ring)
 
 	g_free (ring->array);
 
-	g_object_unref (ring->attr_stream);
-	g_object_unref (ring->text_stream);
-	g_object_unref (ring->row_stream);
+	if (ring->has_streams) {
+		g_object_unref (ring->attr_stream);
+		g_object_unref (ring->text_stream);
+		g_object_unref (ring->row_stream);
+	}
 
 	g_string_free (ring->utf8_buffer, TRUE);
 
