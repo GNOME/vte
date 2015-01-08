@@ -7709,6 +7709,9 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 	glong old_top_lines;
 	glong new_scroll_delta;
 
+        if (terminal->pvt->selection_block_mode && do_rewrap && old_columns != terminal->pvt->column_count)
+                vte_terminal_deselect_all(terminal);
+
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Resizing %s screen\n"
 			"Old  insert_delta=%ld  scroll_delta=%ld\n"
