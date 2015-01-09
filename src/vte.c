@@ -2522,19 +2522,15 @@ _vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
  * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.Color): the color palette
  * @palette_size: the number of entries in @palette
  *
- * The terminal widget uses a 28-color model comprised of the default foreground
- * and background colors, the bold foreground color, the dim foreground
- * color, an eight color palette, bold versions of the eight color palette,
- * and a dim version of the the eight color palette.
+ * @palette specifies the new values for the 256 palette colors: 8 standard colors,
+ * their 8 bright counterparts, 6x6x6 color cube, and 24 grayscale colors.
+ * Omitted entries will default to a hardcoded value.
  *
- * @palette_size must be either 0, 8, 16, or 24, or between 25 and 256 inclusive.
- * If @foreground is %NULL and
- * @palette_size is greater than 0, the new foreground color is taken from
- * @palette[7].  If @background is %NULL and @palette_size is greater than 0,
- * the new background color is taken from @palette[0].  If
- * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
- * 8-color palettes are extrapolated from the new background color and the items
- * in @palette.
+ * @palette_size must be 0, 8, 16, 232 or 256.
+ *
+ * If @foreground is %NULL and @palette_size is greater than 0, the new foreground
+ * color is taken from @palette[7].  If @background is %NULL and @palette_size is
+ * greater than 0, the new background color is taken from @palette[0].
  */
 static void
 _vte_terminal_set_colors(VteTerminal *terminal,
@@ -2796,19 +2792,15 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
  * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA) (allow-none): the color palette
  * @palette_size: the number of entries in @palette
  *
- * The terminal widget uses a 28-color model comprised of the default foreground
- * and background colors, the bold foreground color, the dim foreground
- * color, an eight color palette, bold versions of the eight color palette,
- * and a dim version of the the eight color palette.
+ * @palette specifies the new values for the 256 palette colors: 8 standard colors,
+ * their 8 bright counterparts, 6x6x6 color cube, and 24 grayscale colors.
+ * Omitted entries will default to a hardcoded value.
  *
- * @palette_size must be either 0, 8, 16, or 24, or between 25 and 256 inclusive.
- * If @foreground is %NULL and
- * @palette_size is greater than 0, the new foreground color is taken from
- * @palette[7].  If @background is %NULL and @palette_size is greater than 0,
- * the new background color is taken from @palette[0].  If
- * @palette_size is 8 or 16, the third (dim) and possibly the second (bold)
- * 8-color palettes are extrapolated from the new background color and the items
- * in @palette.
+ * @palette_size must be 0, 8, 16, 232 or 256.
+ *
+ * If @foreground is %NULL and @palette_size is greater than 0, the new foreground
+ * color is taken from @palette[7].  If @background is %NULL and @palette_size is
+ * greater than 0, the new background color is taken from @palette[0].
  */
 void
 vte_terminal_set_colors(VteTerminal *terminal,
@@ -2824,8 +2816,8 @@ vte_terminal_set_colors(VteTerminal *terminal,
 	g_return_if_fail((palette_size == 0) ||
 			 (palette_size == 8) ||
 			 (palette_size == 16) ||
-			 (palette_size == 24) ||
-			 (palette_size > 24 && palette_size <= 256));
+			 (palette_size == 232) ||
+			 (palette_size == 256));
 
 	pal = g_new (PangoColor, palette_size);
 	for (i = 0; i < palette_size; ++i)
