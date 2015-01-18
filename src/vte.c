@@ -6449,24 +6449,21 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			if (cell->attr.fragment || cell->c != 0)
 				break;
 		}
-		/* If the start point is to its right, then move the
-		 * startpoint up to the beginning of the next line
-		 * unless that would move the startpoint after the end
-		 * point, or we're in select-by-line mode. */
-		if ((sc->col >= i) &&
-				(terminal->pvt->selection_type != selection_type_line)) {
-			if (sc->row < ec->row) {
-				sc->col = 0;
-				sc->row++;
-			} else {
-				sc->col = i;
-			}
-		}
 	} else {
-		/* Snap to the leftmost column. */
-		sc->col = 0;
+                i = 0;
 	}
-	sc->col = find_start_column (terminal, sc->col, sc->row);
+        if (sc->col > i) {
+                if (terminal->pvt->selection_type == selection_type_char) {
+                        /* If the start point is neither over the used cells, nor over the first
+                         * unused one, then move it to the next line. This way you can still start
+                         * selecting at the newline character by clicking over the first unused cell.
+                         * See bug 725909. */
+                        sc->col = -1;
+                        sc->row++;
+                } else if (terminal->pvt->selection_type == selection_type_word) {
+                        sc->col = i;
+                }
+        }
 
 	/* Handle end-of-line at the end-cell. */
 	rowdata = _vte_terminal_find_row_data(terminal, ec->row);
