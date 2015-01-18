@@ -81,7 +81,7 @@ VteRowData *_vte_ring_index_writable (VteRing *ring, gulong position);
 
 void _vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams);
 void _vte_ring_fini (VteRing *ring);
-void _vte_ring_reset (VteRing *ring);
+long _vte_ring_reset (VteRing *ring);
 void _vte_ring_resize (VteRing *ring, gulong max_rows);
 void _vte_ring_shrink (VteRing *ring, gulong max_len);
 VteRowData *_vte_ring_insert (VteRing *ring, gulong position);

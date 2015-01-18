@@ -321,22 +321,24 @@ _vte_ring_reset_streams (VteRing *ring, gulong position)
 
 	if (ring->has_streams) {
 		_vte_stream_reset (ring->row_stream, position * sizeof (VteRowRecord));
-		_vte_stream_reset (ring->text_stream, 0);
-		_vte_stream_reset (ring->attr_stream, 0);
+                _vte_stream_reset (ring->text_stream, _vte_stream_head (ring->text_stream));
+                _vte_stream_reset (ring->attr_stream, _vte_stream_head (ring->attr_stream));
 	}
 
 	ring->last_attr_text_start_offset = 0;
 	ring->last_attr.i = basic_cell.i.attr;
 }
 
-void
+long
 _vte_ring_reset (VteRing *ring)
 {
-        _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring.\n");
+        _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", ring->end);
 
-        _vte_ring_reset_streams (ring, 0);
-        ring->start = ring->end = ring->writable = 0;
+        _vte_ring_reset_streams (ring, ring->end);
+        ring->start = ring->writable = ring->end;
         ring->cached_row_num = (gulong) -1;
+
+        return ring->end;
 }
 
 static inline VteRowData *

@@ -11848,23 +11848,17 @@ vte_terminal_reset(VteTerminal *terminal,
 	/* Clear the scrollback buffers and reset the cursors. Switch to normal screen. */
 	if (clear_history) {
                 pvt->screen = &pvt->normal_screen;
-                _vte_ring_reset(pvt->normal_screen.row_data);
-                _vte_ring_reset(pvt->alternate_screen.row_data);
-                pvt->normal_screen.saved.cursor.row = 0;
-                pvt->normal_screen.saved.cursor.col = 0;
-		pvt->normal_screen.scroll_delta = 0;
-		pvt->normal_screen.insert_delta = 0;
-                pvt->alternate_screen.saved.cursor.row = 0;
-                pvt->alternate_screen.saved.cursor.col = 0;
-		pvt->alternate_screen.scroll_delta = 0;
-		pvt->alternate_screen.insert_delta = 0;
-                pvt->cursor.row = 0;
+                pvt->normal_screen.scroll_delta = pvt->normal_screen.insert_delta =
+                        _vte_ring_reset(pvt->normal_screen.row_data);
+                pvt->alternate_screen.scroll_delta = pvt->alternate_screen.insert_delta =
+                        _vte_ring_reset(pvt->alternate_screen.row_data);
+                pvt->cursor.row = pvt->screen->insert_delta;
                 pvt->cursor.col = 0;
                 /* Adjust the scrollbar to the new location. */
                 /* Hack: force a change in scroll_delta even if the value remains, so that
                    vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */
                 pvt->screen->scroll_delta = -1;
-                vte_terminal_queue_adjustment_value_changed (terminal, 0);
+                vte_terminal_queue_adjustment_value_changed (terminal, pvt->screen->insert_delta);
 		_vte_terminal_adjust_adjustments_full (terminal);
 	}
         /* DECSCUSR cursor style */
