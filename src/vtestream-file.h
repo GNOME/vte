@@ -42,29 +42,35 @@
  *   the head of the stream, and then appending again. In this layer and also
  *   in the next one, offering random-access-overwrite instead of truncation
  *   makes the implementation a lot easier. It's also essential to maintain a
- *   unique encryption IV in a forthcoming version.)
+ *   unique encryption IV in the current design.)
  *
  *   The name was chosen because VteFileStream's way of advancing the head and
  *   the tail is kinda like a snake, and the mapping to file offsets reminds
  *   me of the well-known game on old mobile phones.
  *
- * o The middle layer is called VteBoa. It does compression and is planned to
- *   do encryption along with integrity check. It has (almost) the same API as
- *   the snake, but the blocksize is a bit smaller to leave room for the
- *   required overhead.
+ * o The middle layer is called VteBoa. It does compression and encryption
+ *   along with integrity check. It has (almost) the same API as the snake,
+ *   but the blocksize is a bit smaller to leave room for the required
+ *   overhead. See below for the exact layout.
+ *
+ *   This overhead consists of the length of the compressed+encrypted payload,
+ *   an overwrite counter, and the encryption verification tag. The overwrite
+ *   counter is incremented each time the data at a certain logical offset is
+ *   overwritten, this is used in constructing a unique IV.
  *
  *   The name was chosen because the world of encryption is full of three
- *   letter abbreviations. At this moment we're planning to use GNU TLS's
- *   method for doing AES GCM. Also, because grown-ups might think it's a hat,
- *   when actually it's a boa constrictor digesting an elephant :)
+ *   letter abbreviations. At this moment we use GNU TLS's method for doing
+ *   AES GCM. Also, because grown-ups might think it's a hat, when actually
+ *   it's a boa constrictor digesting an elephant :)
  *
  * o The top layer is VteFileStream. It does buffering and caching. As opposed
  *   to the previous layers, this one provides methods on arbitrary amount of
  *   data. It doesn't offer random-access-writes, instead, it offers appending
  *   data, and truncating the head (undoing the latest appends). Write
- *   requests are batched up until there's a complete block to be compressed
- *   and written to disk. Read requests are answered by reading and decrypting
- *   possibly more underlying blocks, and sped up by caching the result.
+ *   requests are batched up until there's a complete block to be compressed,
+ *   encrypted and written to disk. Read requests are answered by reading,
+ *   decrypting and uncompressing possibly more underlying blocks, and sped up
+ *   by caching the result.
  *
  * Design discussions: https://bugzilla.gnome.org/show_bug.cgi?id=738601
  */
@@ -75,20 +81,34 @@
 #include <string.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <gnutls/gnutls.h>
+#include <gnutls/crypto.h>
 
 #include "vteutils.h"
+
+/* Currently the code requires that a stream cipher (e.g. GCM) is used
+ * which can encrypt any amount of data without need for padding. */
+#define VTE_CIPHER_ALGORITHM    GNUTLS_CIPHER_AES_256_GCM
+#define VTE_CIPHER_KEY_SIZE     32
+#define VTE_CIPHER_IV_SIZE      12
+#define VTE_CIPHER_TAG_SIZE     16
 
 #ifndef VTESTREAM_MAIN
 # define VTE_SNAKE_BLOCKSIZE 65536
 typedef guint32 _vte_block_datalength_t;
+typedef guint32 _vte_overwrite_counter_t;
 #else
 /* Smaller sizes for unit testing */
-# define VTE_SNAKE_BLOCKSIZE     8
+# define VTE_SNAKE_BLOCKSIZE    10
 typedef guint8 _vte_block_datalength_t;
+typedef guint8 _vte_overwrite_counter_t;
+# undef VTE_CIPHER_TAG_SIZE
+# define VTE_CIPHER_TAG_SIZE     1
 #endif
 
 #define VTE_BLOCK_DATALENGTH_SIZE  sizeof(_vte_block_datalength_t)
-#define VTE_BOA_BLOCKSIZE (VTE_SNAKE_BLOCKSIZE - VTE_BLOCK_DATALENGTH_SIZE)
+#define VTE_OVERWRITE_COUNTER_SIZE sizeof(_vte_overwrite_counter_t)
+#define VTE_BOA_BLOCKSIZE (VTE_SNAKE_BLOCKSIZE - VTE_BLOCK_DATALENGTH_SIZE - VTE_OVERWRITE_COUNTER_SIZE - VTE_CIPHER_TAG_SIZE)
 
 #define OFFSET_BOA_TO_SNAKE(x) ((x) / VTE_BOA_BLOCKSIZE * VTE_SNAKE_BLOCKSIZE)
 #define ALIGN_BOA(x) ((x) / VTE_BOA_BLOCKSIZE * VTE_BOA_BLOCKSIZE)
@@ -553,17 +573,54 @@ _vte_snake_class_init (VteSnakeClass *klass)
 /******************************************************************************************/
 
 /*
- * VteBoa: Compress the data.
+ * VteBoa: Compress and encrypt an elephant to make it look like a hat.
  *
- * The data is stored as 4 bytes (1 byte for unit testing) denoting the length
- * of the compressed block, followed by the compressed data. The data is
- * stored uncompressed if compression didn't result in a smaller size.
+ *                 _.----._
+ *                /         \._______
+ *               /                    \.
+ *              |                       \
+ *              |                        \
+ *             /                          \
+ *   ________/                             \_________________
+ *  '------------------------------------------------------'-'
+ *
+ *
+ * A boa block is converted to a snake block and vice versa as follows.
+ * (Numbers in parentheses are the offsets/lengths used for unit testing.)
+ *
+ *                        snake block 65536(10)
+ * ├───────┬───────┬────────────────────┬───────┬────────────────────┤
+ * 0  dat  4  owr  8   compressed and   D  enc  T      implicit    65536
+ *    len (1) cnt (2)  encrypted data   ╵  tag          zeros       (10)
+ *    4(1)    4(1) ╵     <= 65512(7)    ╵ 16(1)          >= 0
+ *                 ╵                    ╵
+ * ┌ ─ ─ ─ ─ ─ ─ ─ ┘                    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+ * ├────────────────────────────────────────────────────────────┤
+ *                       boa block 65512(7)
+ *
+ * Structure of the block that we give to the snake:
+ * - 0..4 (0..1): The length of the compressed and encrypted Data, that is D-8 (D-2) [VTE_BLOCK_DATALENGTH_SIZE bytes]
+ * - 4..8 (1..2): Overwrite counter [VTE_OVERWRITE_COUNTER_SIZE bytes]
+ * - 8..D (2..D): The compressed and encrypted Data [<= VTE_BOA_BLOCKSIZE bytes]
+ * - D..T: Encryption verification Tag [VTE_CIPHER_TAG_SIZE bytes]
+ * - T..64k (T..10): Area not written to the file, most of that leaving sparse FS blocks (dots for unit testing)
  */
 
 typedef struct _VteBoa {
         VteSnake parent;
         gsize tail, head;
 
+        gnutls_cipher_hd_t cipher_hd;
+        /* The IV (nonce) consists of the offset within the stream, and an overwrite counter so that
+         * we don't reuse the same IVs when a block at a certain logical offset is overwritten.
+         * The padding is there to make sure the structure is at least VTE_CIPHER_IV_SIZE bytes large.
+         * Assertion is made later that the real data fits in its first VTE_CIPHER_IV_SIZE bytes.
+         */
+        struct _VteIv {
+                gsize offset;
+                guint32 overwrite_counter;
+                unsigned char padding[VTE_CIPHER_IV_SIZE];
+        } iv;
         int compressBound;
 } VteBoa;
 
@@ -586,7 +643,63 @@ G_DEFINE_TYPE (VteBoa, _vte_boa, VTE_TYPE_SNAKE)
 
 /*----------------------------------------------------------------------------------------*/
 
-/* Thin wrapper layers above the compression routines, for unit testing. */
+/* Thin wrapper layers above the compression and encryption routines, for unit testing. */
+
+/* Encrypt: len bytes are overwritten in place, followed by VTE_CIPHER_TAG_SIZE more bytes for the tag. */
+static void
+_vte_boa_encrypt (VteBoa *boa, gsize offset, guint32 overwrite_counter, char *data, unsigned int len)
+{
+#ifndef VTESTREAM_MAIN
+        boa->iv.offset = offset;
+        boa->iv.overwrite_counter = overwrite_counter;
+        gnutls_cipher_set_iv (boa->cipher_hd, &boa->iv, VTE_CIPHER_IV_SIZE);
+        gnutls_cipher_encrypt (boa->cipher_hd, data, len);
+        gnutls_cipher_tag (boa->cipher_hd, data + len, VTE_CIPHER_TAG_SIZE);
+#else
+        /* Fake encryption for unit testing: uppercase <-> lowercase, followed by verification tag which is
+         * 5 bits: block sequence number (offset divided by blocksize)
+         * 3 bits: overwrite counter
+         * (This is easy to read and write as octal constant.) */
+        unsigned int i;
+        for (i = 0; i < len; i++) {
+                unsigned char c = data[i];
+                if (c >= 0x40) c ^= 0x20;
+                data[i] = c;
+        }
+        data[len] = (((offset / VTE_BOA_BLOCKSIZE) & 037) << 3) | (overwrite_counter & 007);
+#endif
+}
+
+/* Decrypt: data is len bytes of data + VTE_CIPHER_TAG_SIZE more bytes of tag. Returns FALSE on tag mismatch. */
+static gboolean
+_vte_boa_decrypt (VteBoa *boa, gsize offset, guint32 overwrite_counter, char *data, unsigned int len)
+{
+        unsigned char tag[VTE_CIPHER_TAG_SIZE];
+        unsigned int i, j;
+        guint8 faulty = 0;
+
+#ifndef VTESTREAM_MAIN
+        boa->iv.offset = offset;
+        boa->iv.overwrite_counter = overwrite_counter;
+        gnutls_cipher_set_iv (boa->cipher_hd, &boa->iv, VTE_CIPHER_IV_SIZE);
+        gnutls_cipher_decrypt (boa->cipher_hd, data, len);
+        gnutls_cipher_tag (boa->cipher_hd, tag, VTE_CIPHER_TAG_SIZE);
+#else
+        /* Fake decryption for unit testing; see above. */
+        for (i = 0; i < len; i++) {
+                unsigned char c = data[i];
+                if (c >= 0x40) c ^= 0x20;
+                data[i] = c;
+        }
+        *tag = (((offset / VTE_BOA_BLOCKSIZE) & 037) << 3) | (overwrite_counter & 007);
+#endif
+
+        /* Constant time tag verification: 738601#c66 */
+        for (i = 0, j = len; i < VTE_CIPHER_TAG_SIZE; i++, j++) {
+                faulty |= tag[i] ^ data[j];
+        }
+        return !faulty;
+}
 
 static int
 _vte_boa_compressBound (unsigned int len)
@@ -669,12 +782,48 @@ _vte_boa_uncompress (char *dst, unsigned int dstlen, const char *src, unsigned i
 static void
 _vte_boa_init (VteBoa *boa)
 {
+#ifndef VTESTREAM_MAIN
+        unsigned char key[VTE_CIPHER_KEY_SIZE];
+        gnutls_datum_t datum_key;
+
+        gnutls_global_init ();
+
+        /* Assert that VTE_CIPHER_* constants are defined correctly. Should happen compile-time, nevermind. */
+        g_assert_cmpuint (gnutls_cipher_get_iv_size(VTE_CIPHER_ALGORITHM), ==, VTE_CIPHER_IV_SIZE);
+        g_assert_cmpuint (gnutls_cipher_get_tag_size(VTE_CIPHER_ALGORITHM), ==, VTE_CIPHER_TAG_SIZE);
+
+        /* Assert that IV does indeed include all the data we want to use (offset and overwrite_counter). */
+        g_assert_cmpuint (offsetof(struct _VteIv, padding), <=, VTE_CIPHER_IV_SIZE);
+
+        /* Strong random for the key. */
+        gnutls_rnd(GNUTLS_RND_KEY, key, VTE_CIPHER_KEY_SIZE);
+
+        datum_key.data = key;
+        datum_key.size = VTE_CIPHER_KEY_SIZE;
+        gnutls_cipher_init(&boa->cipher_hd, VTE_CIPHER_ALGORITHM, &datum_key, NULL);
+        /* FIXME: 738601#c52 the compiler might optimize this away, how to make sure it's erased?
+         * It's on the stack so maybe we can rest assured it'll be overwritten pretty soon. */
+        memset(key, 0, VTE_CIPHER_KEY_SIZE);
+
+        /* Empty IV. */
+        memset(&boa->iv, 0, sizeof(boa->iv));
+#endif
+
         boa->compressBound = _vte_boa_compressBound(VTE_BOA_BLOCKSIZE);
 }
 
 static void
 _vte_boa_finalize (GObject *object)
 {
+        VteBoa *boa = (VteBoa *) object;
+
+        memset(&boa->iv, 0, sizeof(boa->iv));
+
+#ifndef VTESTREAM_MAIN
+        gnutls_cipher_deinit (boa->cipher_hd);
+        gnutls_global_deinit ();
+#endif
+
         G_OBJECT_CLASS (_vte_boa_parent_class)->finalize(object);
 }
 
@@ -683,14 +832,20 @@ _vte_boa_reset (VteBoa *boa, gsize offset)
 {
         g_assert_cmpuint (offset % VTE_BOA_BLOCKSIZE, ==, 0);
 
+        /* _vte_ring_reset() is designed never to actually reset the logical offset.
+         * It's important for the encryption so that we don't reuse the same IV.
+         * Hence this is probably the best place to double check this. */
+        g_assert_cmpuint (offset, >=, boa->head);
+
         _vte_snake_reset (&boa->parent, OFFSET_BOA_TO_SNAKE(offset));
 
         boa->tail = boa->head = offset;
 }
 
-/* Place VTE_BOA_BLOCKSIZE bytes at data. */
+/* Place VTE_BOA_BLOCKSIZE bytes at data.
+ * data can be NULL if we're only interested in integrity verification and the overwrite_counter. */
 static gboolean
-_vte_boa_read (VteBoa *boa, gsize offset, char *data)
+_vte_boa_read_with_overwrite_counter (VteBoa *boa, gsize offset, char *data, _vte_overwrite_counter_t *overwrite_counter)
 {
         _vte_block_datalength_t compressed_len;
         gboolean ret = FALSE;
@@ -703,24 +858,38 @@ _vte_boa_read (VteBoa *boa, gsize offset, char *data)
                 goto out;
 
         compressed_len = *((_vte_block_datalength_t *) buf);
+        *overwrite_counter = *((_vte_overwrite_counter_t *) (buf + VTE_BLOCK_DATALENGTH_SIZE));
 
         /* We could have read an empty block due to a previous disk full. Treat that as an error too. Perform other sanity checks. */
-        if (G_UNLIKELY (compressed_len <= 0 || compressed_len > VTE_BOA_BLOCKSIZE))
+        if (G_UNLIKELY (compressed_len <= 0 || compressed_len > VTE_BOA_BLOCKSIZE || *overwrite_counter <= 0))
+                goto out;
+
+        /* Decrypt, bail out on tag mismatch */
+        if (G_UNLIKELY (!_vte_boa_decrypt (boa, offset, *overwrite_counter, buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, compressed_len)))
                 goto out;
 
         /* Uncompress, or copy if wasn't compressable */
-        if (G_UNLIKELY (compressed_len >= VTE_BOA_BLOCKSIZE)) {
-                memcpy (data, buf + VTE_BLOCK_DATALENGTH_SIZE, VTE_BOA_BLOCKSIZE);
-        } else {
-                unsigned int uncompressed_len;
-                uncompressed_len = _vte_boa_uncompress(data, VTE_BOA_BLOCKSIZE, buf + VTE_BLOCK_DATALENGTH_SIZE, compressed_len);
-                g_assert_cmpuint (uncompressed_len, ==, VTE_BOA_BLOCKSIZE);
+        if (G_LIKELY (data != NULL)) {
+                if (G_UNLIKELY (compressed_len >= VTE_BOA_BLOCKSIZE)) {
+                        memcpy (data, buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, VTE_BOA_BLOCKSIZE);
+                } else {
+                        unsigned int uncompressed_len;
+                        uncompressed_len = _vte_boa_uncompress(data, VTE_BOA_BLOCKSIZE, buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, compressed_len);
+                        g_assert_cmpuint (uncompressed_len, ==, VTE_BOA_BLOCKSIZE);
+                }
         }
         ret = TRUE;
 
 out:
         g_free(buf);
         return ret;
+}
+
+static gboolean
+_vte_boa_read (VteBoa *boa, gsize offset, char *data)
+{
+        _vte_overwrite_counter_t overwrite_counter;
+        return _vte_boa_read_with_overwrite_counter (boa, offset, data, &overwrite_counter);
 }
 
 /*
@@ -732,32 +901,61 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
 {
         _vte_block_datalength_t compressed_len = boa->compressBound;
 
+        /* The overwrite counter is 1-based.  This is to make sure that the IV is never 0: 738601#c88,
+           to make sure that an empty block (e.g. after a previous write failure) is always invalid,
+           and to make unit testing easier */
+        _vte_overwrite_counter_t overwrite_counter = 1;
+
         /* The helper buffer should be large enough to contain a whole snake block,
          * and also large enough to compress data that actually grows bigger during compression. */
         char *buf = g_malloc(MAX(VTE_SNAKE_BLOCKSIZE,
-                                 VTE_BLOCK_DATALENGTH_SIZE + boa->compressBound));
+                                 VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE + boa->compressBound));
 
         g_assert_cmpuint (offset, >=, boa->tail);
         g_assert_cmpuint (offset, <=, boa->head);
         g_assert_cmpuint (offset % VTE_BOA_BLOCKSIZE, ==, 0);
 
+        if (G_UNLIKELY (offset < boa->head)) {
+                /* Overwriting an existing block. This only happens around a window resize.
+                 * We need to read back that block and verify its integrity to get the previous overwrite_counter,
+                 * which will be incremented for the new block.
+                 * Then the new block is encrypted with the new IV.
+                 * This is to never reuse the same IV/nonce for encryption.
+                 * In case of read failure, do our best to destroy that block (overwrite with zeros, then punch a hole)
+                 * and return, forcing this and all subsequent reads and writes to fail. */
+                if (G_UNLIKELY (!_vte_boa_read_with_overwrite_counter (boa, offset, NULL, &overwrite_counter))) {
+                        /* Try to overwrite with explicit zeros */
+                        memset (buf, 0, VTE_SNAKE_BLOCKSIZE);
+                        _vte_snake_write (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), buf, VTE_SNAKE_BLOCKSIZE);
+                        /* Try to punch out from the FS */
+                        _vte_snake_write (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), "", 0);
+                        goto out;
+                }
+                overwrite_counter++;
+        }
+
         /* Compress, or copy if uncompressable */
-        compressed_len = _vte_boa_compress (buf + VTE_BLOCK_DATALENGTH_SIZE, boa->compressBound,
+        compressed_len = _vte_boa_compress (buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, boa->compressBound,
                                             data, VTE_BOA_BLOCKSIZE);
         if (G_UNLIKELY (compressed_len >= VTE_BOA_BLOCKSIZE)) {
-                memcpy (buf + VTE_BLOCK_DATALENGTH_SIZE, data, VTE_BOA_BLOCKSIZE);
+                memcpy (buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, data, VTE_BOA_BLOCKSIZE);
                 compressed_len = VTE_BOA_BLOCKSIZE;
         }
 
         *((_vte_block_datalength_t *) buf) = (_vte_block_datalength_t) compressed_len;
+        *((_vte_overwrite_counter_t *) (buf + VTE_BLOCK_DATALENGTH_SIZE)) = (_vte_overwrite_counter_t) overwrite_counter;
+
+        /* Encrypt */
+        _vte_boa_encrypt (boa, offset, overwrite_counter, buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, compressed_len);
 
         /* Write */
-        _vte_snake_write (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), buf, VTE_BLOCK_DATALENGTH_SIZE + compressed_len);
+        _vte_snake_write (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), buf, VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE + compressed_len + VTE_CIPHER_TAG_SIZE);
 
         if (G_LIKELY (offset == boa->head)) {
                 boa->head += VTE_BOA_BLOCKSIZE;
         }
 
+out:
         g_free(buf);
 }
 
@@ -864,6 +1062,10 @@ _vte_file_stream_reset (VteStream *astream, gsize offset)
 {
 	VteFileStream *stream = (VteFileStream *) astream;
         gsize offset_aligned = ALIGN_BOA(offset);
+
+        /* This is the same assertion as in boa, repeated here for the buffering layer
+         * to catch if this expectation is broken within a block. */
+        g_assert_cmpuint (offset, >=, stream->head);
 
         _vte_boa_reset (stream->boa, offset_aligned);
         stream->tail = stream->head = offset;
@@ -1072,6 +1274,23 @@ test_fakes (void)
         char buf[100], buf2[100];
         VteBoa *boa = g_object_new (VTE_TYPE_BOA, NULL);
 
+        /* Encrypt */
+        strcpy(buf, "abcdXYZ1234!!!");
+        _vte_boa_encrypt (boa, 35, 6, buf, 14);
+        g_assert(strncmp (buf, "ABCDxyz1234!!!\056", 15) == 0);
+
+        /* Decrypt */
+        g_assert_true(_vte_boa_decrypt (boa, 35, 6, buf, 14));
+        g_assert(strncmp (buf, "abcdXYZ1234!!!", 14) == 0);
+
+        /* Encrypt again */
+        _vte_boa_encrypt (boa, 35, 6, buf, 14);
+        g_assert(strncmp (buf, "ABCDxyz1234!!!\056", 15) == 0);
+
+        /* Decrypting with corrupted tag should fail */
+        buf[14]++;
+        g_assert_false(_vte_boa_decrypt (boa, 35, 6, buf, 14));
+
         /* Compress, but becomes bigger */
         strcpy(buf, "abcdef");
         g_assert_cmpuint(_vte_boa_compress (buf2, 100, buf, 6), ==, 7);
@@ -1118,89 +1337,89 @@ test_snake (void)
         VteSnake *snake = g_object_new (VTE_TYPE_SNAKE, NULL);
 
         /* Test overwriting data */
-        snake_write (snake, 0, "Antelope");
-        assert_snake (snake, 1, 0, 8, "Antelope");
+        snake_write (snake, 0, "Armadillo");
+        assert_snake (snake, 1, 0, 10, "Armadillo.");
 
-        snake_write (snake, 8, "Bobcat");
-        assert_file (snake->fd, "AntelopeBobcat..");
-        assert_snake (snake, 1, 0, 16, "AntelopeBobcat..");
+        snake_write (snake, 10, "Bobcat");
+        assert_file (snake->fd, "Armadillo.Bobcat....");
+        assert_snake (snake, 1, 0, 20, "Armadillo.Bobcat....");
 
-        snake_write (snake, 8, "Camel");
-        assert_file (snake->fd, "AntelopeCamel...");
-        assert_snake (snake, 1, 0, 16, "AntelopeCamel...");
+        snake_write (snake, 10, "Chinchilla");
+        assert_file (snake->fd, "Armadillo.Chinchilla");
+        assert_snake (snake, 1, 0, 20, "Armadillo.Chinchilla");
 
         snake_write (snake, 0, "Duck");
-        assert_file (snake->fd, "Duck....Camel...");
-        assert_snake (snake, 1, 0, 16, "Duck....Camel...");
+        assert_file (snake->fd, "Duck......Chinchilla");
+        assert_snake (snake, 1, 0, 20, "Duck......Chinchilla");
 
-        snake_write (snake, 16, "");
-        assert_file (snake->fd, "Duck....Camel...........");
-        assert_snake (snake, 1, 0, 24, "Duck....Camel...........");
+        snake_write (snake, 20, "");
+        assert_file (snake->fd, "Duck......Chinchilla..........");
+        assert_snake (snake, 1, 0, 30, "Duck......Chinchilla..........");
 
-        snake_write (snake, 24, "Ferret");
-        assert_file (snake->fd, "Duck....Camel...........Ferret..");
-        assert_snake (snake, 1, 0, 32, "Duck....Camel...........Ferret..");
+        snake_write (snake, 30, "Ferret");
+        assert_file (snake->fd, "Duck......Chinchilla..........Ferret....");
+        assert_snake (snake, 1, 0, 40, "Duck......Chinchilla..........Ferret....");
 
         /* Reset */
         _vte_snake_reset (snake, 0);
         assert_snake (snake, 1, 0, 0, "");
 
         /* State 1 */
-        snake_write (snake, 0, "Antelope");
-        snake_write (snake, 8, "Bobcat");
-        assert_file (snake->fd, "AntelopeBobcat..");
-        assert_snake (snake, 1, 0, 16, "AntelopeBobcat..");
+        snake_write (snake, 0, "Armadillo");
+        snake_write (snake, 10, "Bobcat");
+        assert_file (snake->fd, "Armadillo.Bobcat....");
+        assert_snake (snake, 1, 0, 20, "Armadillo.Bobcat....");
 
         /* Stay in state 1 */
-        _vte_snake_advance_tail (snake, 8);
-        snake_write (snake, 16, "Camel");
-        assert_file (snake->fd, "........Bobcat..Camel...");
-        assert_snake (snake, 1, 8, 24, "Bobcat..Camel...");
+        _vte_snake_advance_tail (snake, 10);
+        snake_write (snake, 20, "Chinchilla");
+        assert_file (snake->fd, "..........Bobcat....Chinchilla");
+        assert_snake (snake, 1, 10, 30, "Bobcat....Chinchilla");
 
         /* State 1 -> 2 */
-        _vte_snake_advance_tail (snake, 16);
-        snake_write (snake, 24, "Duck");
-        assert_file (snake->fd, "Duck............Camel...");
-        assert_snake (snake, 2, 16, 32, "Camel...Duck....");
+        _vte_snake_advance_tail (snake, 20);
+        snake_write (snake, 30, "Duck");
+        assert_file (snake->fd, "Duck................Chinchilla");
+        assert_snake (snake, 2, 20, 40, "ChinchillaDuck......");
 
         /* Stay in state 2 */
-        snake_write (snake, 32, "Elephant");
-        assert_file (snake->fd, "Duck....ElephantCamel...");
-        assert_snake (snake, 2, 16, 40, "Camel...Duck....Elephant");
+        snake_write (snake, 40, "Elephant");
+        assert_file (snake->fd, "Duck......Elephant..Chinchilla");
+        assert_snake (snake, 2, 20, 50, "ChinchillaDuck......Elephant..");
 
         /* State 2 -> 3 */
-        snake_write (snake, 40, "Ferret");
-        assert_file (snake->fd, "Duck....ElephantCamel...Ferret..");
-        assert_snake (snake, 3, 16, 48, "Camel...Duck....ElephantFerret..");
+        snake_write (snake, 50, "Ferret");
+        assert_file (snake->fd, "Duck......Elephant..ChinchillaFerret....");
+        assert_snake (snake, 3, 20, 60, "ChinchillaDuck......Elephant..Ferret....");
 
         /* State 3 -> 4 */
-        _vte_snake_advance_tail (snake, 24);
-        assert_file (snake->fd, "Duck....Elephant........Ferret..");
-        assert_snake (snake, 4, 24, 48, "Duck....ElephantFerret..");
+        _vte_snake_advance_tail (snake, 30);
+        assert_file (snake->fd, "Duck......Elephant............Ferret....");
+        assert_snake (snake, 4, 30, 60, "Duck......Elephant..Ferret....");
 
         /* Stay in state 4 */
-        _vte_snake_advance_tail (snake, 32);
-        assert_file (snake->fd, "........Elephant........Ferret..");
-        assert_snake (snake, 4, 32, 48, "ElephantFerret..");
+        _vte_snake_advance_tail (snake, 40);
+        assert_file (snake->fd, "..........Elephant............Ferret....");
+        assert_snake (snake, 4, 40, 60, "Elephant..Ferret....");
 
         /* State 4 -> 1 */
-        _vte_snake_advance_tail (snake, 40);
-        assert_file (snake->fd, "........................Ferret..");
-        assert_snake (snake, 1, 40, 48, "Ferret..");
+        _vte_snake_advance_tail (snake, 50);
+        assert_file (snake->fd, "..............................Ferret....");
+        assert_snake (snake, 1, 50, 60, "Ferret....");
 
         /* State 1 -> 2 */
-        snake_write (snake, 48, "Giraffe");
-        assert_file (snake->fd, "Giraffe.................Ferret..");
-        assert_snake (snake, 2, 40, 56, "Ferret..Giraffe.");
+        snake_write (snake, 60, "Giraffe");
+        assert_file (snake->fd, "Giraffe.......................Ferret....");
+        assert_snake (snake, 2, 50, 70, "Ferret....Giraffe...");
 
         /* Reset, back to state 1 */
-        _vte_snake_reset (snake, 200);
-        assert_snake (snake, 1, 200, 200, "");
+        _vte_snake_reset (snake, 250);
+        assert_snake (snake, 1, 250, 250, "");
 
         /* Stay in state 1 */
-        snake_write (snake, 200, "Zebra");
-        assert_file (snake->fd, "Zebra...");
-        assert_snake (snake, 1, 200, 208, "Zebra...");
+        snake_write (snake, 250, "Zebra");
+        assert_file (snake->fd, "Zebra.....");
+        assert_snake (snake, 1, 250, 260, "Zebra.....");
 
         g_object_unref (snake);
 }
@@ -1214,45 +1433,45 @@ test_boa (void)
         /* State 1 */
         _vte_boa_write (boa, 0, "axolotl");
         _vte_boa_write (boa, 7, "beeeeee");
-        assert_file (snake->fd, "\007axolotl" "\0041b6e...");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0041b6e...");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\004\0011B6E\011...");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\004\0011B6E\011...");
         assert_boa (boa, 0, 14, "axolotl" "beeeeee");
 
-        /* Test overwrites */
+        /* Test overwrites: overwrite counter increases separately for each block */
         _vte_boa_write (boa, 7, "buffalo");
-        assert_file (snake->fd, "\007axolotl" "\007buffalo");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\007buffalo");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\007\002BUFFALO\012");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\007\002BUFFALO\012");
         assert_boa (boa, 0, 14, "axolotl" "buffalo");
 
         _vte_boa_write (boa, 7, "beeeeee");
-        assert_file (snake->fd, "\007axolotl" "\0041b6e...");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0041b6e...");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\004\0031B6E\013...");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\004\0031B6E\013...");
         assert_boa (boa, 0, 14, "axolotl" "beeeeee");
 
         _vte_boa_write (boa, 0, "axolotl");
-        assert_file (snake->fd, "\007axolotl" "\0041b6e...");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0041b6e...");
+        assert_file (snake->fd, "\007\002AXOLOTL\002" "\004\0031B6E\013...");
+        assert_snake (snake, 1, 0, 20, "\007\002AXOLOTL\002" "\004\0031B6E\013...");
         assert_boa (boa, 0, 14, "axolotl" "beeeeee");
 
         /* Stay in state 1 */
         _vte_boa_advance_tail (boa, 7);
         _vte_boa_write (boa, 14, "cheetah");
-        assert_file (snake->fd, "........" "\0041b6e..." "\007cheetah");
-        assert_snake (snake, 1, 8, 24, "\0041b6e..." "\007cheetah");
+        assert_file (snake->fd, ".........." "\004\0031B6E\013..." "\007\001CHEETAH\021");
+        assert_snake (snake, 1, 10, 30, "\004\0031B6E\013..." "\007\001CHEETAH\021");
         assert_boa (boa, 7, 21, "beeeeee" "cheetah");
 
         /* State 1 -> 2 */
         _vte_boa_advance_tail (boa, 14);
         _vte_boa_write (boa, 21, "deeeeer");
-        assert_file (snake->fd, "\0061d5e1r." "........" "\007cheetah");
-        assert_snake (snake, 2, 16, 32, "\007cheetah" "\0061d5e1r.");
+        assert_file (snake->fd, "\006\0011D5E1R\031." ".........." "\007\001CHEETAH\021");
+        assert_snake (snake, 2, 20, 40, "\007\001CHEETAH\021" "\006\0011D5E1R\031.");
         assert_boa (boa, 14, 28, "cheetah" "deeeeer");
 
         /* Skip some state changes that we tested in test_snake() */
 
         /* Reset, back to state 1 */
         _vte_boa_reset (boa, 175);
-        assert_snake (snake, 1, 200, 200, "");
+        assert_snake (snake, 1, 250, 250, "");
         assert_boa (boa, 175, 175, "");
 
         /* Stay in state 1.
@@ -1263,8 +1482,8 @@ test_boa (void)
          * don't try to decompress.
          */
         _vte_boa_write (boa, 175, "zebraaa");
-        assert_file (snake->fd, "\007zebraaa");
-        assert_snake (snake, 1, 200, 208, "\007zebraaa");
+        assert_file (snake->fd, "\007\001ZEBRAAA\311");
+        assert_snake (snake, 1, 250, 260, "\007\001ZEBRAAA\311");
         assert_boa (boa, 175, 182, "zebraaa");
 
         g_object_unref (boa);
@@ -1292,40 +1511,40 @@ test_stream (void)
         assert_stream (astream, 0, 6, "axolot");
 
         stream_append (astream, "l");
-        assert_file (snake->fd, "\007axolotl");
-        assert_snake (snake, 1, 0, 8, "\007axolotl");
+        assert_file (snake->fd, "\007\001AXOLOTL\001");
+        assert_snake (snake, 1, 0, 10, "\007\001AXOLOTL\001");
         assert_boa (boa, 0, 7, "axolotl");
         assert_stream (astream, 0, 7, "axolotl");
 
         stream_append (astream, "beeee");
-        assert_file (snake->fd, "\007axolotl");
-        assert_snake (snake, 1, 0, 8, "\007axolotl");
+        assert_file (snake->fd, "\007\001AXOLOTL\001");
+        assert_snake (snake, 1, 0, 10, "\007\001AXOLOTL\001");
         assert_boa (boa, 0, 7, "axolotl");
         assert_stream (astream, 0, 12, "axolotl" "beeee");
 
         stream_append (astream, "es" "cat");
-        assert_file (snake->fd, "\007axolotl" "\0061b5e1s.");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0061b5e1s.");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\006\0011B5E1S\011.");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\006\0011B5E1S\011.");
         assert_boa (boa, 0, 14, "axolotl" "beeeees");
         assert_stream (astream, 0, 17, "axolotl" "beeeees" "cat");
 
         /* Truncate */
         _vte_stream_truncate (astream, 14);
-        assert_file (snake->fd, "\007axolotl" "\0061b5e1s.");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0061b5e1s.");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\006\0011B5E1S\011.");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\006\0011B5E1S\011.");
         assert_boa (boa, 0, 14, "axolotl" "beeeees");
         assert_stream (astream, 0, 14, "axolotl" "beeeees");
 
         _vte_stream_truncate (astream, 10);
-        assert_file (snake->fd, "\007axolotl" "\0061b5e1s.");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0061b5e1s.");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\006\0011B5E1S\011.");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\006\0011B5E1S\011.");
         assert_boa (boa, 0, 14, "axolotl" "beeeees");
         assert_stream (astream, 0, 10, "axolotl" "bee");
 
         /* Increase overwrite counter, overwrite with shorter block */
         stream_append (astream, "eeee" "cat");
-        assert_file (snake->fd, "\007axolotl" "\0041b6e...");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0041b6e...");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\004\0021B6E\012...");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\004\0021B6E\012...");
         assert_boa (boa, 0, 14, "axolotlbeeeeee");
         assert_stream (astream, 0, 17, "axolotl" "beeeeee" "cat");
 
@@ -1339,28 +1558,28 @@ test_stream (void)
         g_assert_cmpuint (stream->rbuf_offset, ==, 7);
         buf[2] = '\0';
         g_assert_cmpstr (buf, ==, "ez");
-        assert_file (snake->fd, "\007axolotl" "\0061b5e1z.");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0061b5e1z.");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\006\0031B5E1Z\013.");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\006\0031B5E1Z\013.");
         assert_boa (boa, 0, 14, "axolotl" "beeeeez");
         assert_stream (astream, 0, 17, "axolotl" "beeeeez" "cat");
 
         /* Truncate again */
         _vte_stream_truncate (astream, 10);
-        assert_file (snake->fd, "\007axolotl" "\0061b5e1z.");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0061b5e1z.");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\006\0031B5E1Z\013.");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\006\0031B5E1Z\013.");
         assert_boa (boa, 0, 14, "axolotl" "beeeeez");
         assert_stream (astream, 0, 10, "axolotl" "bee");
 
         /* Advance_tail */
         _vte_stream_advance_tail (astream, 6);
-        assert_file (snake->fd, "\007axolotl" "\0061b5e1z.");
-        assert_snake (snake, 1, 0, 16, "\007axolotl" "\0061b5e1z.");
+        assert_file (snake->fd, "\007\001AXOLOTL\001" "\006\0031B5E1Z\013.");
+        assert_snake (snake, 1, 0, 20, "\007\001AXOLOTL\001" "\006\0031B5E1Z\013.");
         assert_boa (boa, 0, 14, "axolotl" "beeeeez");
         assert_stream (astream, 6, 10, "l" "bee");
 
         _vte_stream_advance_tail (astream, 7);
-        assert_file (snake->fd, "........" "\0061b5e1z.");
-        assert_snake (snake, 1, 8, 16, "\0061b5e1z.");
+        assert_file (snake->fd, ".........." "\006\0031B5E1Z\013.");
+        assert_snake (snake, 1, 10, 20, "\006\0031B5E1Z\013.");
         assert_boa (boa, 7, 14, "beeeeez");
         assert_stream (astream, 7, 10, "bee");
 
@@ -1368,15 +1587,15 @@ test_stream (void)
          * but not in underlying layers (due to a previous truncate).
          * Nothing special. */
         _vte_stream_advance_tail (astream, 9);
-        assert_file (snake->fd, "........" "\0061b5e1z.");
-        assert_snake (snake, 1, 8, 16, "\0061b5e1z.");
+        assert_file (snake->fd, ".........." "\006\0031B5E1Z\013.");
+        assert_snake (snake, 1, 10, 20, "\006\0031B5E1Z\013.");
         assert_boa (boa, 7, 14, "beeeeez");
         assert_stream (astream, 9, 10, "e");
 
         /* Tail reaches head. Still nothing special. */
         _vte_stream_advance_tail (astream, 10);
-        assert_file (snake->fd, "........" "\0061b5e1z.");
-        assert_snake (snake, 1, 8, 16, "\0061b5e1z.");
+        assert_file (snake->fd, ".........." "\006\0031B5E1Z\013.");
+        assert_snake (snake, 1, 10, 20, "\006\0031B5E1Z\013.");
         assert_boa (boa, 7, 14, "beeeeez");
         assert_stream (astream, 10, 10, "");
 
@@ -1384,8 +1603,8 @@ test_stream (void)
         stream_append (astream, "eeee" "catfish");
         _vte_stream_advance_tail (astream, 15);
         stream_append (astream, "dolphin" "echi");
-        assert_file (snake->fd, "\007dolphin" "........" "\007catfish");
-        assert_snake (snake, 2, 16, 32, "\007catfish" "\007dolphin");
+        assert_file (snake->fd, "\007\001DOLPHIN\031" ".........." "\007\001CATFISH\021");
+        assert_snake (snake, 2, 20, 40, "\007\001CATFISH\021" "\007\001DOLPHIN\031");
         assert_boa (boa, 14, 28, "catfish" "dolphin");
         assert_stream (astream, 15, 32, "atfish" "dolphin" "echi");
 
@@ -1393,67 +1612,67 @@ test_stream (void)
          * The snake resets itself to state 1, ...
          * (Note: despite advance_tail, "ec" is still there in the write buffer) */
         _vte_stream_advance_tail (astream, 30);
-        assert_snake (snake, 1, 32, 32, "");
+        assert_snake (snake, 1, 40, 40, "");
         assert_boa (boa, 28, 28, "");
         assert_stream (astream, 30, 32, "hi");
 
         /* ... and the next write goes to beginning of the file */
         stream_append (astream, "dna");
-        assert_file (snake->fd, "\007echidna");
-        assert_snake (snake, 1, 32, 40, "\007echidna");
+        assert_file (snake->fd, "\007\001ECHIDNA\041");
+        assert_snake (snake, 1, 40, 50, "\007\001ECHIDNA\041");
         assert_boa (boa, 28, 35, "echidna");
         assert_stream (astream, 30, 35, "hidna");
 
         /* Test a bit what happens when "accidentally" writing aligned blocks. */
         _vte_stream_advance_tail (astream, 35);
         stream_append (astream, "flicker" "grizzly");
-        assert_file (snake->fd, "\007flicker" "\007grizzly");
-        assert_snake (snake, 1, 40, 56, "\007flicker" "\007grizzly");
+        assert_file (snake->fd, "\007\001FLICKER\051" "\007\001GRIZZLY\061");
+        assert_snake (snake, 1, 50, 70, "\007\001FLICKER\051" "\007\001GRIZZLY\061");
         assert_boa (boa, 35, 49, "flicker" "grizzly");
         assert_stream (astream, 35, 49, "flicker" "grizzly");
 
         stream_append (astream, "hamster");
-        assert_file (snake->fd, "\007flicker" "\007grizzly" "\007hamster");
-        assert_snake (snake, 1, 40, 64, "\007flicker" "\007grizzly" "\007hamster");
+        assert_file (snake->fd, "\007\001FLICKER\051" "\007\001GRIZZLY\061" "\007\001HAMSTER\071");
+        assert_snake (snake, 1, 50, 80, "\007\001FLICKER\051" "\007\001GRIZZLY\061" "\007\001HAMSTER\071");
         assert_boa (boa, 35, 56, "flicker" "grizzly" "hamster");
         assert_stream (astream, 35, 56, "flicker" "grizzly" "hamster");
 
         _vte_stream_advance_tail (astream, 49);
-        assert_file (snake->fd, "........" "........" "\007hamster");
-        assert_snake (snake, 1, 56, 64, "\007hamster");
+        assert_file (snake->fd, ".........." ".........." "\007\001HAMSTER\071");
+        assert_snake (snake, 1, 70, 80, "\007\001HAMSTER\071");
         assert_boa (boa, 49, 56, "hamster");
         assert_stream (astream, 49, 56, "hamster");
 
         /* State 2 */
         stream_append (astream, "ibexxxx");
-        assert_file (snake->fd, "\0061ibe4x." "........" "\007hamster");
-        assert_snake (snake, 2, 56, 72, "\007hamster" "\0061ibe4x.");
+        assert_file (snake->fd, "\006\0011IBE4X\101." ".........." "\007\001HAMSTER\071");
+        assert_snake (snake, 2, 70, 90, "\007\001HAMSTER\071" "\006\0011IBE4X\101.");
         assert_boa (boa, 49, 63, "hamster" "ibexxxx");
         assert_stream (astream, 49, 63, "hamster" "ibexxxx");
 
         stream_append (astream, "jjjjjjj");
-        assert_file (snake->fd, "\0061ibe4x." "\0027j....." "\007hamster");
-        assert_snake (snake, 2, 56, 80, "\007hamster" "\0061ibe4x." "\0027j.....");
+        assert_file (snake->fd, "\006\0011IBE4X\101." "\002\0017J\111....." "\007\001HAMSTER\071");
+        assert_snake (snake, 2, 70, 100, "\007\001HAMSTER\071" "\006\0011IBE4X\101." "\002\0017J\111.....");
         assert_boa (boa, 49, 70, "hamster" "ibexxxx" "jjjjjjj");
         assert_stream (astream, 49, 70, "hamster" "ibexxxx" "jjjjjjj");
 
         /* State 3 */
         stream_append (astream, "karakul");
-        assert_file (snake->fd, "\0061ibe4x." "\0027j....." "\007hamster" "\007karakul");
-        assert_snake (snake, 3, 56, 88, "\007hamster" "\0061ibe4x." "\0027j....." "\007karakul");
+        assert_file (snake->fd, "\006\0011IBE4X\101." "\002\0017J\111....." "\007\001HAMSTER\071" "\007\001KARAKUL\121");
+        assert_snake (snake, 3, 70, 110, "\007\001HAMSTER\071" "\006\0011IBE4X\101." "\002\0017J\111....." "\007\001KARAKUL\121");
         assert_boa (boa, 49, 77, "hamster" "ibexxxx" "jjjjjjj" "karakul");
         assert_stream (astream, 49, 77, "hamster" "ibexxxx" "jjjjjjj" "karakul");
 
         /* State 4 */
         _vte_stream_advance_tail (astream, 56);
-        assert_file (snake->fd, "\0061ibe4x." "\0027j....." "........" "\007karakul");
-        assert_snake (snake, 4, 64, 88, "\0061ibe4x." "\0027j....." "\007karakul");
+        assert_file (snake->fd, "\006\0011IBE4X\101." "\002\0017J\111....." ".........." "\007\001KARAKUL\121");
+        assert_snake (snake, 4, 80, 110, "\006\0011IBE4X\101." "\002\0017J\111....." "\007\001KARAKUL\121");
         assert_boa (boa, 56, 77, "ibexxxx" "jjjjjjj" "karakul");
         assert_stream (astream, 56, 77, "ibexxxx" "jjjjjjj" "karakul");
 
         stream_append (astream, "llllama");
-        assert_file (snake->fd, "\0061ibe4x." "\0027j....." "........" "\007karakul" "\0064l1ama.");
-        assert_snake (snake, 4, 64, 96, "\0061ibe4x." "\0027j....." "\007karakul" "\0064l1ama.");
+        assert_file (snake->fd, "\006\0011IBE4X\101." "\002\0017J\111....." ".........." "\007\001KARAKUL\121" "\006\0014L1AMA\131.");
+        assert_snake (snake, 4, 80, 120, "\006\0011IBE4X\101." "\002\0017J\111....." "\007\001KARAKUL\121" "\006\0014L1AMA\131.");
         assert_boa (boa, 56, 84, "ibexxxx" "jjjjjjj" "karakul" "llllama");
         assert_stream (astream, 56, 84, "ibexxxx" "jjjjjjj" "karakul" "llllama");
 
@@ -1461,16 +1680,16 @@ test_stream (void)
         _vte_stream_reset (astream, 88);
         stream_append (astream, "kat");
         /* Unused leading blocks are filled with dashes */
-        assert_file (snake->fd, "\0064-1kat.");
-        assert_snake (snake, 1, 96, 104, "\0064-1kat.");
+        assert_file (snake->fd, "\006\0014-1KAT\141.");
+        assert_snake (snake, 1, 120, 130, "\006\0014-1KAT\141.");
         assert_boa (boa, 84, 91, "----kat");
         assert_stream (astream, 88, 91, "kat");
 
         /* Explicit reset to a block boundary */
         _vte_stream_reset (astream, 175);
         stream_append (astream, "zebraaa");
-        assert_file (snake->fd, "\007zebraaa");
-        assert_snake (snake, 1, 200, 208, "\007zebraaa");
+        assert_file (snake->fd, "\007\001ZEBRAAA\311");
+        assert_snake (snake, 1, 250, 260, "\007\001ZEBRAAA\311");
         assert_boa (boa, 175, 182, "zebraaa");
         assert_stream (astream, 175, 182, "zebraaa");
 
