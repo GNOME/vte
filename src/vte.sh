@@ -46,7 +46,7 @@ __vte_ps1() {
 }
 
 __vte_osc7 () {
-  printf "\033]7;file://%s%s\a" "${HOSTNAME:-}" "$(__vte_urlencode "${PWD}")"
+  printf "\033]7;file://%s%s\007" "${HOSTNAME:-}" "$(__vte_urlencode "${PWD}")"
 }
 
 __vte_prompt_command() {
