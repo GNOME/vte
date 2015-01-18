@@ -6601,6 +6601,12 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			sc->row = j;
 		}
 		/* And move forward as far as we can go. */
+                if (ec->col < 0) {
+                        /* If triple clicking on an unused area, ec already points
+                         * to the beginning of the next line after the second click.
+                         * Go back to the actual row we're at. See bug 725909. */
+                        ec->row--;
+                }
 		j = ec->row;
 		while (_vte_ring_contains (screen->row_data, j) &&
 		       vte_line_is_wrappable(terminal, j)) {
