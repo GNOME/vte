@@ -6464,6 +6464,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
                         sc->col = i;
                 }
         }
+        sc->col = find_start_column (terminal, sc->col, sc->row);
 
 	/* Handle end-of-line at the end-cell. */
 	rowdata = _vte_terminal_find_row_data(terminal, ec->row);
