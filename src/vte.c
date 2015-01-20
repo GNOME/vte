@@ -3527,6 +3527,25 @@ vte_get_user_shell (void)
 }
 
 /**
+ * vte_get_features:
+ *
+ * Gets a list of features vte was compiled with.
+ *
+ * Returns: (transfer none): a string with features
+ */
+const char *
+vte_get_features (void)
+{
+        return
+#ifdef WITH_GNUTLS
+                "+GNUTLS"
+#else
+                "-GNUTLS"
+#endif
+                ;
+}
+
+/**
  * vte_terminal_spawn_sync:
  * @terminal: a #VteTerminal
  * @pty_flags: flags from #VtePtyFlags

@@ -25,6 +25,8 @@ G_BEGIN_DECLS
 
 char *vte_get_user_shell(void);
 
+const char *vte_get_features (void);
+
 G_END_DECLS
 
 #endif /* __VTE_VTE_GLOBALS_H__ */
