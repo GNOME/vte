@@ -167,6 +167,23 @@ AC_SUBST([VTE_LDFLAGS])
 GLIB_REQUIRED=2.40.0
 GIO_REQUIRED=2.40.0
 PANGO_REQUIRED=1.22.0
+GNUTLS_REQUIRED=3.2.0
+
+AC_MSG_CHECKING([whether gnutls support is requested])
+AC_ARG_WITH([gnutls],
+  [AS_HELP_STRING([--without-gnutls],[Disable gnutls support])],
+  [],[with_gnutls=yes])
+AC_MSG_RESULT([$with_gnutls])
+
+GNUTLS_PKGS=
+if test "$with_gnutls" = "yes"; then
+  GNUTLS_PKGS="gnutls >= $GNUTLS_REQUIRED"
+
+  AC_DEFINE([WITH_GNUTLS],[1],[Define to 1 to enable gnutls support])
+fi
+
+AM_CONDITIONAL([WITH_GNUTLS],[test "$with_gnutls" = "yes"])
+
 AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
 
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
@@ -208,7 +225,7 @@ AC_CHECK_FUNCS([ceil floor round])
 
 # Search for the required modules.
 
-VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 zlib gnutls >= 3.2.0"
+VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 zlib $GNUTLS_PKGS"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
 
@@ -375,6 +392,7 @@ cat <<EOF | tee -a config.log
 ## -------------- ##
 
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
+	GNUTLS: $with_gnutls
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
 	Introspection: $enable_introspection
