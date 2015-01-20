@@ -108,8 +108,7 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_Tab[] = {
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Return[] = {
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\n", 2},
-        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\n", 1},
+        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\r", 2},
         {cursor_all, keypad_all, 0, "\r", 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -239,10 +238,8 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Tab[] = {
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Enter[] = {
-        {cursor_all, keypad_app, VTE_NUMLOCK_MASK | GDK_CONTROL_MASK, "\n", 1},
         {cursor_all, keypad_app, VTE_NUMLOCK_MASK, "\r", 1},
         {cursor_all, keypad_app, 0, _VTE_CAP_SS3 "M", -1},
-        {cursor_all, keypad_all, GDK_CONTROL_MASK, "\n", 1},
         {cursor_all, keypad_all, 0, "\r", 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -895,6 +892,7 @@ _vte_keymap_key_get_modifier_encoding_method(guint keyval)
 	case GDK_KEY_KP_Multiply:
 	case GDK_KEY_KP_Subtract:
 	case GDK_KEY_KP_Add:
+	case GDK_KEY_KP_Enter:
 		method = MODIFIER_ENCODING_SHORT;
 		break;
 	default:
