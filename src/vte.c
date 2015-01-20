@@ -1312,7 +1312,7 @@ vte_terminal_match_add_gregex(VteTerminal *terminal, GRegex *regex, GRegexMatchF
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  The terminal keeps a reference to @cursor.
  *
- * Deprecated: 0.40: Use vte_terminal_match_set_cursor_type or vte_terminal_match_set_cursor_named instead.
+ * Deprecated: 0.40: Use vte_terminal_match_set_cursor_type() or vte_terminal_match_set_cursor_named() instead.
  */
 void
 vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
