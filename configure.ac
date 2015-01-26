@@ -133,6 +133,7 @@ CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[ \
   -fno-strict-aliasing \
   -fstack-protector \
   -fstack-protector-strong \
+  -fno-semantic-interposition \
   -Wno-deprecated-declarations \
 ])
 
