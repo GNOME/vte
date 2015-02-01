@@ -341,7 +341,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 			"Cursor at (%ld, " "%ld).\n", ccol, crow);
 
 	/* Get the offsets to the beginnings of each line. */
-	caret = -1;
+	caret = 0;
 	for (i = 0; i < priv->snapshot_characters->len; i++) {
 		/* Get the attributes for the current cell. */
 		offset = g_array_index(priv->snapshot_characters,
@@ -355,12 +355,6 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		    ((attrs.row == crow) && (attrs.column < ccol))) {
 			caret = i + 1;
 		}
-	}
-
-	/* If no cells are before the caret, then the caret must be
-	 * at the end of the buffer. */
-	if (caret == -1) {
-		caret = priv->snapshot_characters->len;
 	}
 
 	/* Notify observers if the caret moved. */
