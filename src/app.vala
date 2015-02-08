@@ -114,6 +114,9 @@ class Window : Gtk.ApplicationWindow
       }
     }
 
+    if (App.Options.word_char_exceptions != null)
+      terminal.set_word_char_exceptions(App.Options.word_char_exceptions);
+
     terminal.set_audible_bell(App.Options.audible);
     terminal.set_cjk_ambiguous_width(App.Options.get_cjk_ambiguous_width());
     terminal.set_cursor_blink_mode(App.Options.get_cursor_blink_mode());
@@ -567,6 +570,7 @@ class App : Gtk.Application
     public static int scrollback_lines = 512;
     public static int transparency_percent = 0;
     public static bool version = false;
+    public static string? word_char_exceptions = null;
     public static string? working_directory = null;
 
     private static int parse_enum(Type type, string str)
@@ -587,7 +591,7 @@ class App : Gtk.Application
       uint value = 0;
       var flags_klass = (FlagsClass)type.class_ref();
       string[]? flags = str.split(",|", -1);
-		  
+
       if (flags == null)
         return value;
 
@@ -697,7 +701,7 @@ class App : Gtk.Application
         flags = Vte.PtyFlags.DEFAULT;
       return flags;
     }
-		
+
     public static const OptionEntry[] entries = {
       { "audible-bell", 'a', 0, OptionArg.NONE, ref audible,
         "Use audible terminal bell", null },
@@ -761,7 +765,9 @@ class App : Gtk.Application
         "Enable the use of a transparent background", "0..100" },
       { "version", 0, 0, OptionArg.NONE, ref version,
         "Show version", null },
-      { "working-directory", 'w', 0,OptionArg.FILENAME, ref working_directory,
+      { "word-char-exceptions", 0, 0, OptionArg.STRING, ref word_char_exceptions,
+        "Specify the word char exceptions", "CHARS" },
+      { "working-directory", 'w', 0, OptionArg.FILENAME, ref working_directory,
         "Specify the initial working directory of the terminal", null },
       { null }
     };

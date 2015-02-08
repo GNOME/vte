@@ -170,6 +170,11 @@ void vte_terminal_paste_primary(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 void vte_terminal_select_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 void vte_terminal_unselect_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+/* By-word selection */
+void vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
+                                           const char *word_char_exceptions) _VTE_GNUC_NONNULL(1);
+const char *vte_terminal_get_word_char_exceptions(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 /* Set the terminal's size. */
 void vte_terminal_set_size(VteTerminal *terminal,
 			   glong columns, glong rows) _VTE_GNUC_NONNULL(1);

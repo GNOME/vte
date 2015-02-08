@@ -176,6 +176,7 @@ enum {
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
         PROP_WINDOW_TITLE,
+        PROP_WORD_CHAR_EXCEPTIONS
 };
 
 /* these static variables are guarded by the GDK mutex */
@@ -8589,6 +8590,8 @@ vte_terminal_finalize(GObject *object)
         g_free(terminal->pvt->current_file_uri_changed);
         g_free(terminal->pvt->current_file_uri);
 
+        g_free(terminal->pvt->word_char_exceptions);
+
 	/* Free public-facing data. */
 	g_free(terminal->pvt->icon_title);
 	if (terminal->pvt->vadjustment != NULL) {
@@ -10136,6 +10139,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
                         break;
+                case PROP_WORD_CHAR_EXCEPTIONS:
+                        g_value_set_string (value, vte_terminal_get_word_char_exceptions (terminal));
+                        break;
 
 		default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -10218,6 +10224,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
                         vte_terminal_set_scroll_on_output (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_WORD_CHAR_EXCEPTIONS:
+                        vte_terminal_set_word_char_exceptions (terminal, g_value_get_string (value));
                         break;
 
                 /* Not writable */
@@ -11113,6 +11122,18 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 (gobject_class,
                  PROP_CURRENT_FILE_URI,
                  g_param_spec_string ("current-file-uri", NULL, NULL,
+                                      NULL,
+                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:word-char-exceptions:
+         *
+         * Since: 0.40
+         */
+        g_object_class_install_property
+                (gobject_class,
+                 PROP_WORD_CHAR_EXCEPTIONS,
+                 g_param_spec_string ("word-char-exceptions", NULL, NULL,
                                       NULL,
                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
@@ -13277,6 +13298,44 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
         return terminal->pvt->input_enabled;
+}
+
+/**
+ * vte_terminal_set_word_char_exceptions:
+ * @terminal: a #VteTerminal
+ * @word_char_exceptions: a string of ASCII punctuation characters, or %NULL
+ *
+ * Since: 0.40
+ */
+void
+vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
+                                      const char *word_char_exceptions)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (g_strcmp0(word_char_exceptions, terminal->pvt->word_char_exceptions) == 0)
+                return;
+
+        g_free(terminal->pvt->word_char_exceptions);
+        terminal->pvt->word_char_exceptions = g_strdup(word_char_exceptions);
+
+        g_object_notify(G_OBJECT(terminal), "word-char-exceptions");
+}
+
+/**
+ * vte_terminal_get_word_char_exceptions:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): a string, or %NULL
+ *
+ * Since: 0.40
+ */
+const char *
+vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        return terminal->pvt->word_char_exceptions;
 }
 
 /**
