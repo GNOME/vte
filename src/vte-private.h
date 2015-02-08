@@ -520,7 +520,7 @@ gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
                                          long *cols,
                                          long *rows);
 
-gboolean _vte_is_word_char(gunichar c) G_GNUC_CONST;
+gboolean _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 
 G_END_DECLS
 
