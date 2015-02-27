@@ -54,6 +54,7 @@ typedef struct _VteTerminalAccessiblePrivate {
 	GArray *snapshot_attributes;	/* Attributes, per byte. */
 	GArray *snapshot_linebreaks;	/* Offsets to line breaks. */
 	gint snapshot_caret;       /* Location of the cursor (in characters). */
+        gboolean text_caret_moved_pending;
 
 	char *action_descriptions[LAST_ACTION];
 } VteTerminalAccessiblePrivate;
@@ -357,10 +358,11 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		}
 	}
 
-	/* Notify observers if the caret moved. */
+        /* Make a note that we'll need to notify observers if the caret moved.
+         * But only notify them after sending text-changed. */
 	if (caret != priv->snapshot_caret) {
 		priv->snapshot_caret = caret;
-		emit_text_caret_moved(G_OBJECT(accessible), caret);
+                priv->text_caret_moved_pending = TRUE;
 	}
 
 	/* Done updating the caret position, whether we needed to or not. */
@@ -371,6 +373,17 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 			"%ld cells, %ld characters.\n",
 			(long)priv->snapshot_attributes->len,
 			(long)priv->snapshot_characters->len);
+}
+
+static void
+vte_terminal_accessible_maybe_emit_text_caret_moved(VteTerminalAccessible *accessible)
+{
+        VteTerminalAccessiblePrivate *priv = _vte_terminal_accessible_get_instance_private(accessible);
+
+        if (priv->text_caret_moved_pending) {
+                emit_text_caret_moved(G_OBJECT(accessible), priv->snapshot_caret);
+                priv->text_caret_moved_pending = FALSE;
+        }
 }
 
 /* A signal handler to catch "text-inserted/deleted/modified" signals. */
@@ -478,6 +491,8 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 		}
 	}
 
+        vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
+
         g_string_free(old_text, TRUE);
         g_array_free(old_characters, TRUE);
 }
@@ -521,6 +536,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 							 priv->snapshot_text->len);
 			}
 		}
+                vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
 	/* Find the start point. */
@@ -575,6 +591,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 							 len - i);
 			}
 		}
+                vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
 	/* We scrolled down, so text was added at the bottom and removed
@@ -619,6 +636,7 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 							 len - i);
 			}
 		}
+                vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
 	g_assert_not_reached();
@@ -636,6 +654,7 @@ vte_terminal_accessible_invalidate_cursor(VteTerminal *terminal, gpointer data)
 	priv->snapshot_caret_invalid = TRUE;
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
+        vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 }
 
 /* Handle title changes by resetting the description. */
@@ -752,6 +771,7 @@ _vte_terminal_accessible_init (VteTerminalAccessible *accessible)
 	priv->snapshot_caret = -1;
 	priv->snapshot_contents_invalid = TRUE;
 	priv->snapshot_caret_invalid = TRUE;
+        priv->text_caret_moved_pending = FALSE;
 }
 
 static void
