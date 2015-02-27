@@ -7061,9 +7061,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		}
 
 		if (terminal->pvt->selecting &&
-		    ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-		      !terminal->pvt->mouse_tracking_mode))
-		{
+                    (terminal->pvt->mouse_handled_buttons & 1) != 0) {
 			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
 			vte_terminal_extend_selection(terminal,
 						      x, y, FALSE, FALSE);
@@ -7224,8 +7222,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 							     selection_type_char);
 				handled = TRUE;
 			}
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_tracking_mode) {
+                        if ((terminal->pvt->mouse_handled_buttons & 1) != 0) {
 				vte_terminal_start_selection(terminal,
 							     x, y,
 							     selection_type_word);
@@ -7245,8 +7242,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				x, y + (terminal->pvt->char_height * delta));
 		switch (event->button) {
 		case 1:
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_tracking_mode) {
+                        if ((terminal->pvt->mouse_handled_buttons & 1) != 0) {
 				vte_terminal_start_selection(terminal,
 							     x, y,
 							     selection_type_line);
@@ -7299,7 +7295,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				event->button, x, y);
 		switch (event->button) {
 		case 1:
-			handled = _vte_terminal_maybe_end_selection (terminal);
+                        if ((terminal->pvt->mouse_handled_buttons & 1) != 0)
+                                handled = _vte_terminal_maybe_end_selection (terminal);
 			break;
 		case 2:
                         handled = (terminal->pvt->mouse_handled_buttons & 2) != 0;
