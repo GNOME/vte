@@ -19,6 +19,7 @@ struct vteseq_n_struct {
 };
 
 %%
+"nop", VTE_SEQUENCE_HANDLER(vte_sequence_handler_nop)
 "line-feed", VTE_SEQUENCE_HANDLER(vte_sequence_handler_line_feed)
 "carriage-return", VTE_SEQUENCE_HANDLER(vte_sequence_handler_carriage_return)
 "bell", VTE_SEQUENCE_HANDLER(vte_sequence_handler_bell)

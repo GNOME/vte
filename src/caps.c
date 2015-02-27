@@ -56,7 +56,7 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(CR,  "carriage-return")
         ENTRY(SO,  "shift-out")
         ENTRY(SI,  "shift-in")
-        ENTRY(DEL, "backspace")
+        ENTRY(DEL, "nop")
 
         ENTRY(ESC " F", "7-bit-controls")
         ENTRY(ESC " G", "8-bit-controls")

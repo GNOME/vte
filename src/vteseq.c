@@ -942,6 +942,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 /* THE HANDLERS */
 
 
+/* Do nothing. */
+static void
+vte_sequence_handler_nop (VteTerminal *terminal, GValueArray *params)
+{
+}
+
 /* G0 character set is a pass-thru (no mapping). */
 static void
 vte_sequence_handler_designate_g0_plain (VteTerminal *terminal, GValueArray *params)
