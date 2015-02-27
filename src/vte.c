@@ -5507,6 +5507,9 @@ vte_terminal_feed_mouse_event(VteTerminal *terminal,
 
 	/* Encode the button information in cb. */
 	switch (button) {
+        case 0:                 /* No button, just dragging. */
+                cb = 3;
+                break;
 	case 1:			/* Left. */
 		cb = 0;
 		break;
@@ -5640,6 +5643,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	int height = terminal->pvt->char_height;
 	long col = ((long) event->x - terminal->pvt->padding.left) / width;
 	long row = ((long) event->y - terminal->pvt->padding.top) / height;
+        int button;
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
@@ -5649,7 +5653,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 
 		if (terminal->pvt->mouse_tracking_mode < MOUSE_TRACKING_ALL_MOTION_TRACKING) {
 
-			if (terminal->pvt->mouse_last_button == 0) {
+                        if (terminal->pvt->mouse_pressed_buttons == 0) {
 				return FALSE;
 			}
 			/* the xterm doc is not clear as to whether
@@ -5664,7 +5668,16 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 		break;
 	}
 
-	vte_terminal_feed_mouse_event(terminal, terminal->pvt->mouse_last_button,
+        /* As per xterm, report the leftmost pressed button - if any. */
+        if (terminal->pvt->mouse_pressed_buttons & 1)
+                button = 1;
+        else if (terminal->pvt->mouse_pressed_buttons & 2)
+                button = 2;
+        else if (terminal->pvt->mouse_pressed_buttons & 4)
+                button = 3;
+        else
+                button = 0;
+        vte_terminal_feed_mouse_event(terminal, button,
 				      TRUE /* drag */, FALSE /* not release */,
 				      col, row);
 	return TRUE;
@@ -7023,7 +7036,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
-	if (terminal->pvt->mouse_last_button) {
+        if (terminal->pvt->mouse_pressed_buttons != 0) {
 		vte_terminal_match_hilite_hide (terminal);
 	} else {
 		/* Hilite any matches. */
@@ -7244,7 +7257,8 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Save the pointer state for later use. */
-	terminal->pvt->mouse_last_button = event->button;
+        if (event->button >= 1 && event->button <= 3)
+                terminal->pvt->mouse_pressed_buttons |= (1 << (event->button - 1));
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
 
@@ -7297,7 +7311,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	}
 
 	/* Save the pointer state for later use. */
-	terminal->pvt->mouse_last_button = 0;
+        if (event->button >= 1 && event->button <= 3)
+                terminal->pvt->mouse_pressed_buttons &= ~(1 << (event->button - 1));
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
 	terminal->pvt->selecting_after_threshold = FALSE;
@@ -7357,7 +7372,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		vte_terminal_match_hilite_hide (terminal);
 		/* Mark the cursor as invisible to disable hilite updating */
 		terminal->pvt->mouse_cursor_visible = FALSE;
-		terminal->pvt->mouse_last_button = 0;
+                terminal->pvt->mouse_pressed_buttons = 0;
 	}
 
 	terminal->pvt->has_focus = FALSE;
@@ -11948,7 +11963,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	}
 	/* Reset mouse motion events. */
 	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
-	pvt->mouse_last_button = 0;
+        pvt->mouse_pressed_buttons = 0;
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
 	pvt->mouse_xterm_extension = FALSE;
