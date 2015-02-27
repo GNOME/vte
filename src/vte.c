@@ -7199,6 +7199,12 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		default:
 			break;
 		}
+                if (event->button >= 1 && event->button <= 3) {
+                        if (handled)
+                                terminal->pvt->mouse_handled_buttons |= (1 << (event->button - 1));
+                        else
+                                terminal->pvt->mouse_handled_buttons &= ~(1 << (event->button - 1));
+                }
 		/* If we haven't done anything yet, try sending the mouse
 		 * event to the app. */
 		if (handled == FALSE) {
@@ -7296,7 +7302,8 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 			handled = _vte_terminal_maybe_end_selection (terminal);
 			break;
 		case 2:
-			handled = TRUE;
+                        handled = (terminal->pvt->mouse_handled_buttons & 2) != 0;
+                        terminal->pvt->mouse_handled_buttons &= ~2;
 			break;
 		case 3:
 		default:
@@ -7373,6 +7380,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		/* Mark the cursor as invisible to disable hilite updating */
 		terminal->pvt->mouse_cursor_visible = FALSE;
                 terminal->pvt->mouse_pressed_buttons = 0;
+                terminal->pvt->mouse_handled_buttons = 0;
 	}
 
 	terminal->pvt->has_focus = FALSE;
@@ -11964,6 +11972,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	/* Reset mouse motion events. */
 	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
         pvt->mouse_pressed_buttons = 0;
+        pvt->mouse_handled_buttons = 0;
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
 	pvt->mouse_xterm_extension = FALSE;

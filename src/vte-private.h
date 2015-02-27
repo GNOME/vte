@@ -358,6 +358,7 @@ struct _VteTerminalPrivate {
 	int mouse_tracking_mode; /* this is of type MouseTrackingMode,
 				    but we need to guarantee its type. */
         guint mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
+        guint mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
 	long mouse_last_x, mouse_last_y;
 	gboolean mouse_autohide;
 	guint mouse_autoscroll_tag;
