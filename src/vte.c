@@ -6371,8 +6371,6 @@ vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
 {
 	long delta;
 
-	terminal->pvt->selection_block_mode = !!(terminal->pvt->modifiers & GDK_CONTROL_MASK);
-
 	if (terminal->pvt->selection_block_mode)
 		selection_type = selection_type_char;
 
@@ -7165,6 +7163,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 			if (start_selecting) {
 				vte_terminal_deselect_all(terminal);
 				terminal->pvt->selecting_after_threshold = TRUE;
+                                terminal->pvt->selection_block_mode = !!(terminal->pvt->modifiers & GDK_CONTROL_MASK);
 				handled = TRUE;
 			}
 			if (extend_selecting) {
