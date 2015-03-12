@@ -285,8 +285,13 @@ struct _VteTerminalPrivate {
         VteCharacterReplacement character_replacements[2];  /* charsets in the G0 and G1 slots */
         VteCharacterReplacement *character_replacement;     /* pointer to the active one */
 
+
+        /* Word chars */
+        char *word_char_exceptions_string;
+        gunichar *word_char_exceptions;
+        gsize word_char_exceptions_len;
+
 	/* Selection information. */
-        char *word_char_exceptions;
 	gboolean has_selection;
 	gboolean selecting;
 	gboolean selecting_after_threshold;

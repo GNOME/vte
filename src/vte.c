@@ -82,7 +82,7 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
-#define WORD_CHAR_ASCII_PUNCT "-,.;/?%&#_=+@~"
+#define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./:;=?@\\_~\302\267"
 
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
@@ -5241,6 +5241,48 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
         return FALSE;
 }
 
+static int
+compare_unichar_p(const void *u1p,
+                  const void *u2p)
+{
+        const gunichar u1 = *(gunichar*)u1p;
+        const gunichar u2 = *(gunichar*)u2p;
+        return u1 < u2 ? -1 : u1 > u2 ? 1 : 0;
+}
+
+static const guint8 word_char_by_category[] = {
+        [G_UNICODE_CONTROL]             = 2,
+        [G_UNICODE_FORMAT]              = 2,
+        [G_UNICODE_UNASSIGNED]          = 2,
+        [G_UNICODE_PRIVATE_USE]         = 0,
+        [G_UNICODE_SURROGATE]           = 2,
+        [G_UNICODE_LOWERCASE_LETTER]    = 1,
+        [G_UNICODE_MODIFIER_LETTER]     = 1,
+        [G_UNICODE_OTHER_LETTER]        = 1,
+        [G_UNICODE_TITLECASE_LETTER]    = 1,
+        [G_UNICODE_UPPERCASE_LETTER]    = 1,
+        [G_UNICODE_SPACING_MARK]        = 0,
+        [G_UNICODE_ENCLOSING_MARK]      = 0,
+        [G_UNICODE_NON_SPACING_MARK]    = 0,
+        [G_UNICODE_DECIMAL_NUMBER]      = 1,
+        [G_UNICODE_LETTER_NUMBER]       = 1,
+        [G_UNICODE_OTHER_NUMBER]        = 1,
+        [G_UNICODE_CONNECT_PUNCTUATION] = 0,
+        [G_UNICODE_DASH_PUNCTUATION]    = 0,
+        [G_UNICODE_CLOSE_PUNCTUATION]   = 0,
+        [G_UNICODE_FINAL_PUNCTUATION]   = 0,
+        [G_UNICODE_INITIAL_PUNCTUATION] = 0,
+        [G_UNICODE_OTHER_PUNCTUATION]   = 0,
+        [G_UNICODE_OPEN_PUNCTUATION]    = 0,
+        [G_UNICODE_CURRENCY_SYMBOL]     = 0,
+        [G_UNICODE_MODIFIER_SYMBOL]     = 0,
+        [G_UNICODE_MATH_SYMBOL]         = 0,
+        [G_UNICODE_OTHER_SYMBOL]        = 0,
+        [G_UNICODE_LINE_SEPARATOR]      = 2,
+        [G_UNICODE_PARAGRAPH_SEPARATOR] = 2,
+        [G_UNICODE_SPACE_SEPARATOR]     = 2,
+};
+
 /*
  * _vte_terminal_is_word_char:
  * @terminal: a #VteTerminal
@@ -5251,13 +5293,23 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
  * Returns: %TRUE if the character is considered to be part of a word
  */
 gboolean
-_vte_terminal_is_word_char(VteTerminal *terminal, gunichar c)
+_vte_terminal_is_word_char(VteTerminal *terminal,
+                           gunichar c)
 {
-	return g_unichar_isgraph(c) &&
-               (g_unichar_isalnum(c) ||
-                (g_unichar_ispunct(c) &&
-                 (c >= 0x80 ||
-                  strchr (WORD_CHAR_ASCII_PUNCT, (int) c) != NULL)));
+        const guint8 v = word_char_by_category[g_unichar_type(c)];
+        gunichar *u;
+
+        if (v)
+                return v == 1;
+
+        /* Do we have an exception? */
+        u = bsearch(&c,
+                    terminal->pvt->word_char_exceptions,
+                    terminal->pvt->word_char_exceptions_len,
+                    sizeof(gunichar),
+                    compare_unichar_p);
+
+        return u != NULL;
 }
 
 /* Check if the characters in the two given locations are in the same class
@@ -8174,6 +8226,10 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Set up background information. */
         pvt->background_alpha = 1.;
 
+        /* Word chars */
+        vte_terminal_set_word_char_exceptions(terminal, WORD_CHAR_EXCEPTIONS_DEFAULT);
+
+        /* Selection */
 	pvt->selection_block_mode = FALSE;
         pvt->unscaled_font_desc = pvt->fontdesc = NULL;
         pvt->font_scale = 1.;
@@ -8609,6 +8665,8 @@ vte_terminal_finalize(GObject *object)
         g_free(terminal->pvt->current_file_uri_changed);
         g_free(terminal->pvt->current_file_uri);
 
+        /* Word char exceptions */
+        g_free(terminal->pvt->word_char_exceptions_string);
         g_free(terminal->pvt->word_char_exceptions);
 
 	/* Free public-facing data. */
@@ -11147,6 +11205,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:word-char-exceptions:
          *
+         * The set of characters which will be considered parts of a word
+         * when doing word-wise selection, in addition to the default which only
+         * considers alphanumeric characters part of a word.
+         *
+         * If %NULL, a built-in set is used.
+         *
          * Since: 0.40
          */
         g_object_class_install_property
@@ -13320,24 +13384,111 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
         return terminal->pvt->input_enabled;
 }
 
+static gboolean
+process_word_char_exceptions(const char *str,
+                             gunichar **arrayp,
+                             gsize *lenp)
+{
+        const char *p;
+        gunichar *array, c;
+        gsize len, i;
+
+        if (str == NULL)
+                str = WORD_CHAR_EXCEPTIONS_DEFAULT;
+
+        len = g_utf8_strlen(str, -1);
+        array = g_new(gunichar, len);
+        i = 0;
+
+        for (p = str; *p; p = g_utf8_next_char(p)) {
+                c = g_utf8_get_char(p);
+
+                /* For forward compatibility reasons, we skip
+                 * characters that aren't supposed to be here,
+                 * instead of erroring out.
+                 */
+                /* '-' must only be used*  at the start of the string */
+                if (c == (gunichar)'-' && p != str)
+                        continue;
+                if (!g_unichar_isgraph(c))
+                        continue;
+                if (g_unichar_isspace(c))
+                        continue;
+                if (g_unichar_isalnum(c))
+                        continue;
+
+                array[i++] = g_utf8_get_char(p);
+        }
+
+        g_assert(i <= len);
+        len = i; /* we may have skipped some characters */
+
+        /* Sort the result since we want to use bsearch on it */
+        qsort(array, len, sizeof(gunichar), compare_unichar_p);
+
+        /* Check that no character occurs twice */
+        for (i = 1; i < len; i++) {
+                if (array[i-1] != array[i])
+                        continue;
+
+                g_free(array);
+                return FALSE;
+        }
+
+#if 0
+        /* Debug */
+        for (i = 0; i < len; i++) {
+                char utf[7];
+                c = array[i];
+                utf[g_unichar_to_utf8(c, utf)] = '\0';
+                g_printerr("Word char exception: U+%04X %s\n", c, utf);
+        }
+#endif
+
+        *lenp = len;
+        *arrayp = array;
+        return TRUE;
+}
+
 /**
  * vte_terminal_set_word_char_exceptions:
  * @terminal: a #VteTerminal
- * @word_char_exceptions: a string of ASCII punctuation characters, or %NULL
+ * @exceptions: a string of ASCII punctuation characters, or %NULL
+ *
+ * With this function you can provide a set of characters which will
+ * be considered parts of a word when doing word-wise selection, in
+ * addition to the default which only considers alphanumeric characters
+ * part of a word.
+ *
+ * The characters in @exceptions must be non-alphanumeric, each character
+ * must occur only once, and if @exceptions contains the character
+ * U+002D HYPHEN-MINUS, it must be at the start of the string.
+ *
+ * Use %NULL to reset the set of exception characters to the default.
  *
  * Since: 0.40
  */
 void
 vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
-                                      const char *word_char_exceptions)
+                                      const char *exceptions)
 {
+        gunichar *array;
+        gsize len;
+
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (g_strcmp0(word_char_exceptions, terminal->pvt->word_char_exceptions) == 0)
+        if (g_strcmp0(exceptions, terminal->pvt->word_char_exceptions_string) == 0)
                 return;
 
+        if (!process_word_char_exceptions(exceptions, &array, &len))
+                return;
+
+        g_free(terminal->pvt->word_char_exceptions_string);
+        terminal->pvt->word_char_exceptions_string = g_strdup(exceptions);
+
         g_free(terminal->pvt->word_char_exceptions);
-        terminal->pvt->word_char_exceptions = g_strdup(word_char_exceptions);
+        terminal->pvt->word_char_exceptions = array;
+        terminal->pvt->word_char_exceptions_len = len;
 
         g_object_notify(G_OBJECT(terminal), "word-char-exceptions");
 }
@@ -13345,6 +13496,12 @@ vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
 /**
  * vte_terminal_get_word_char_exceptions:
  * @terminal: a #VteTerminal
+ *
+ * Returns the set of characters which will be considered parts of a word
+ * when doing word-wise selection, in addition to the default which only
+ * considers alphanumeric characters part of a word.
+ *
+ * If %NULL, a built-in set is used.
  *
  * Returns: (transfer none): a string, or %NULL
  *
@@ -13355,7 +13512,7 @@ vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return terminal->pvt->word_char_exceptions;
+        return terminal->pvt->word_char_exceptions_string;
 }
 
 /**
