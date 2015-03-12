@@ -82,7 +82,7 @@ typedef gunichar wint_t;
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
-#define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./:;=?@\\_~\302\267"
+#define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"
 
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
@@ -5297,19 +5297,16 @@ _vte_terminal_is_word_char(VteTerminal *terminal,
                            gunichar c)
 {
         const guint8 v = word_char_by_category[g_unichar_type(c)];
-        gunichar *u;
 
         if (v)
                 return v == 1;
 
         /* Do we have an exception? */
-        u = bsearch(&c,
-                    terminal->pvt->word_char_exceptions,
-                    terminal->pvt->word_char_exceptions_len,
-                    sizeof(gunichar),
-                    compare_unichar_p);
-
-        return u != NULL;
+        return bsearch(&c,
+                       terminal->pvt->word_char_exceptions,
+                       terminal->pvt->word_char_exceptions_len,
+                       sizeof(gunichar),
+                       compare_unichar_p) != NULL;
 }
 
 /* Check if the characters in the two given locations are in the same class
