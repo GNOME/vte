@@ -1338,7 +1338,7 @@ vte_pty_set_utf8(VtePty *pty,
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
 
         priv = pty->priv;
-        g_return_val_if_fail (priv->pty_fd > 0, FALSE);
+        g_return_val_if_fail (priv->pty_fd != -1, FALSE);
 
         if (tcgetattr(priv->pty_fd, &tio) == -1) {
                 int errsv = errno;
