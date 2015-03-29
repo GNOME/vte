@@ -8715,9 +8715,7 @@ vte_terminal_realize(GtkWidget *widget)
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
 				GDK_FOCUS_CHANGE_MASK |
-#if GTK_CHECK_VERSION (3, 4, 0)
 				GDK_SMOOTH_SCROLL_MASK |
-#endif
 				GDK_SCROLL_MASK |
 				GDK_BUTTON_PRESS_MASK |
 				GDK_BUTTON_RELEASE_MASK |
@@ -10045,7 +10043,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		terminal->pvt->mouse_smooth_scroll_delta += 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
 		break;
-#if GTK_CHECK_VERSION (3, 4, 0)
 	case GDK_SCROLL_SMOOTH:
 		gdk_event_get_scroll_deltas ((GdkEvent*) event, &delta_x, &delta_y);
 		terminal->pvt->mouse_smooth_scroll_delta += delta_y;
@@ -10053,7 +10050,6 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 				"Smooth scroll by %f, delta now at %f\n",
 				delta_y, terminal->pvt->mouse_smooth_scroll_delta);
 		break;
-#endif
 	default:
 		break;
 	}
