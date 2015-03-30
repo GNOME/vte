@@ -30,8 +30,8 @@ EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	box_drawing_generate.sh \
 	marshal.list \
 	vteseq-n.gperf \
-	vteseq-n.c \
-	vtetypebuiltins.c.template \
+	vteseq-n.cc \
+	vtetypebuiltins.cc.template \
 	vtetypebuiltins.h.template \
 	$(NULL)
 
@@ -44,53 +44,53 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vte/vtepty.h \
 	vte/vteterminal.h \
 	buffer.h \
-	caps.c \
+	caps.cc \
 	caps.h \
-	debug.c \
+	debug.cc \
 	debug.h \
-	iso2022.c \
+	iso2022.cc \
 	iso2022.h \
-	keymap.c \
+	keymap.cc \
 	keymap.h \
-	matcher.c \
+	matcher.cc \
 	matcher.h \
-	pty.c \
-	ring.c \
+	pty.cc \
+	ring.cc \
 	ring.h \
-	table.c \
+	table.cc \
 	table.h \
-	vte.c \
+	vte.cc \
 	vte-private.h \
-	vteaccess.c \
+	vteaccess.cc \
 	vteaccess.h \
-	vteconv.c \
+	vteconv.cc \
 	vteconv.h \
-	vtedraw.c \
+	vtedraw.cc \
 	vtedraw.h \
 	vteint.h \
 	vtepty-private.h \
-	vterowdata.c \
+	vterowdata.cc \
 	vterowdata.h \
-	vteseq.c \
+	vteseq.cc \
 	vteseq-list.h \
-	vtestream.c \
+	vtestream.cc \
 	vtestream.h \
 	vtestream-base.h \
 	vtestream-file.h \
-	vtetree.c \
+	vtetree.cc \
 	vtetree.h \
-	vteunistr.c \
+	vteunistr.cc \
 	vteunistr.h \
-	vteutils.c \
+	vteutils.cc \
 	vteutils.h \
 	$(NULL)
 
 nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	box_drawing.h \
-	marshal.c \
+	marshal.cc \
 	marshal.h \
-	vteresources.c \
-	vtetypebuiltins.c \
+	vteresources.cc \
+	vtetypebuiltins.cc \
 	vte/vtetypebuiltins.h \
 	vte/vteversion.h \
 	$(NULL)
@@ -107,16 +107,12 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-I$(builddir)/vte \
 	$(AM_CPPFLAGS)
 
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS = \
-	$(VTE_CFLAGS) \
-	$(AM_CFLAGS)
-
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CXXFLAGS = \
 	$(VTE_CFLAGS) \
 	$(AM_CXXFLAGS)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
-	$(VTE_LDFLAGS) \
+	$(VTE_CXXLDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
 	-export-symbols-regex "^vte_.*" \
 	$(AM_LDFLAGS)
@@ -124,18 +120,27 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
 	$(VTE_LIBS)
 
+# Try hard to avoid linking to libstd++ by using the C linker instead of the C++ linker
+if HAVE_GXX
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LINK = \
+	$(LINK) \
+	$(libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS) \
+	$(libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS) \
+	$(NULL)
+endif # HAVE_GXX
+
 # Generated sources
 
-VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-n.c
-BUILT_SOURCES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vte/vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
+VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-n.cc
+BUILT_SOURCES = box_drawing.h marshal.cc marshal.h vtetypebuiltins.cc vte/vtetypebuiltins.h vteresources.cc $(VTESEQ_BUILTSOURCES)
 MAINTAINERCLEANFILES += $(VTESEQ_BUILTSOURCES)
 EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt box_drawing_generate.sh iso2022.txt
-CLEANFILES += box_drawing.h marshal.c marshal.h vtetypebuiltins.c vte/vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
+CLEANFILES += box_drawing.h marshal.cc marshal.h vtetypebuiltins.cc vte/vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.cc
 
 box_drawing.h: box_drawing.txt box_drawing_generate.sh
 	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh < $< > $@
 
-marshal.c: marshal.list
+marshal.cc: marshal.list
 	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $< > $@
 
 marshal.h: marshal.list
@@ -149,12 +154,12 @@ stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte/vteenums.h vte/vtedeprec
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vte/vteenums.h vte/vtedeprecated.h
+vtetypebuiltins.cc: vtetypebuiltins.cc.template vte/vteenums.h vte/vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
-	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
+	&& (cmp -s xgen-vtbc vtetypebuiltins.cc || cp xgen-vtbc vtetypebuiltins.cc ) \
 	&& rm -f xgen-vtbc
 
-vteseq-n.c: vteseq-n.gperf
+vteseq-n.cc: vteseq-n.gperf
 	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
 	mv -f $@.tmp $@
 
@@ -163,8 +168,8 @@ vteseq-list.h: vteseq-n.gperf
 	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
 	mv -f $@.tmp $@
 
-vteresources.c: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
-	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate --c-name vte $<
+vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
+	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate-source --c-name vte $<
 
 # introspection
 
@@ -184,9 +189,9 @@ Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	$(filter-out vte/vtedeprecated.h,$(header_HEADERS)) \
 	$(nodist_header_HEADERS) \
-	vte.c \
-	vtetypebuiltins.c \
-	pty.c \
+	vte.cc \
+	vtetypebuiltins.cc \
+	pty.cc \
 	$(NULL)
 
 INTROSPECTION_GIRS += Vte-$(VTE_API_VERSION).gir
@@ -342,19 +347,19 @@ reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
 
 interpret_SOURCES = \
 	buffer.h \
-	caps.c \
+	caps.cc \
 	caps.h \
-	debug.c \
+	debug.cc \
 	debug.h \
-	iso2022.c \
+	iso2022.cc \
 	iso2022.h \
-	matcher.c \
+	matcher.cc \
 	matcher.h \
-	table.c \
+	table.cc \
 	table.h \
-	vteconv.c \
+	vteconv.cc \
 	vteconv.h \
-	vtetree.c \
+	vtetree.cc \
 	vtetree.h \
 	interpret.c
 interpret_CPPFLAGS = \
@@ -368,6 +373,11 @@ interpret_CFLAGS = \
 	$(GOBJECT_CFLAGS) \
 	$(GTK_CFLAGS) \
 	$(AM_CFLAGS)
+interpret_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GTK_CFLAGS) \
+	$(AM_CXXFLAGS)
 interpret_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
@@ -381,15 +391,15 @@ slowcat_LDADD = $(GLIB_LIBS)
 
 table_SOURCES = \
 	buffer.h \
-	caps.c \
+	caps.cc \
 	caps.h \
-	debug.c \
+	debug.cc \
 	debug.h \
-	matcher.c \
+	matcher.cc \
 	matcher.h \
-	table.c \
+	table.cc \
 	table.h \
-	vteconv.c \
+	vteconv.cc \
 	vteconv.h \
 	$(NULL)
 table_CPPFLAGS = \
@@ -397,9 +407,9 @@ table_CPPFLAGS = \
 	-I$(srcdir) \
 	-I$(builddir) \
 	$(AM_CPPFLAGS)
-table_CFLAGS = \
+table_CXXFLAGS = \
 	$(GLIB_CFLAGS) \
-	$(AM_CFLAGS)
+	$(AM_CXXFLAGS)
 table_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
@@ -407,9 +417,9 @@ table_LDADD = \
 vtestream_file_SOURCES = \
 	vtestream-base.h \
 	vtestream-file.h \
-	vtestream.c \
+	vtestream.cc \
 	vtestream.h \
-	vteutils.c \
+	vteutils.cc \
 	vteutils.h \
 	$(NULL)
 vtestream_file_CPPFLAGS = \
@@ -417,15 +427,15 @@ vtestream_file_CPPFLAGS = \
 	-I$(srcdir) \
 	-I$(builddir) \
 	$(AM_CPPFLAGS)
-vtestream_file_CFLAGS = \
+vtestream_file_CXXFLAGS = \
 	$(VTE_CFLAGS) \
-	$(AM_CFLAGS)
+	$(AM_CXXFLAGS)
 vtestream_file_LDADD = \
 	$(VTE_LIBS)
 
-vteconv_SOURCES = buffer.h debug.c debug.h vteconv.c vteconv.h
+vteconv_SOURCES = buffer.h debug.cc debug.h vteconv.cc vteconv.h
 vteconv_CPPFLAGS = -DVTECONV_MAIN -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
-vteconv_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
+vteconv_CXXFLAGS = $(VTE_CFLAGS) $(AM_CXXFLAGS)
 vteconv_LDADD = $(VTE_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c

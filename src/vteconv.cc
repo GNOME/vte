@@ -406,10 +406,10 @@ _vte_conv_uc(VteConv converter,
 #ifdef VTECONV_MAIN
 
 static gsize
-ucs4_strlen(gunichar *p,
+ucs4_strlen(const gunichar *p,
             gsize max_len)
 {
-        gunichar *q = p + max_len;
+        const gunichar *q = p + max_len;
         gsize length = 0;
         while (p < q && *p++ != 0)
                 length++;
@@ -427,10 +427,10 @@ clear(gunichar wide[5], gchar narrow[5])
 }
 
 static int
-mixed_strcmp(gunichar *wide, gchar *narrow)
+mixed_strcmp(const gunichar *wide, const guchar *narrow)
 {
 	while (*wide && *narrow) {
-		if (*wide != *narrow) {
+                if (*wide != (gunichar)*narrow) {
 			return -1;
 		}
 		wide++;
@@ -489,8 +489,10 @@ test_utf8_validate (void)
 static void
 test_utf8_get_char_validated (void)
 {
-	static const char mbyte_test[] = { 0xe2, 0x94, 0x80 };
-	static const char mbyte_test_break[] = { 0xe2, 0xe2, 0xe2 };
+        static const guchar mbyte_test_u[] = { 0xe2, 0x94, 0x80 };
+        static const guchar mbyte_test_break_u[] = { 0xe2, 0xe2, 0xe2 };
+        const char *mbyte_test = (const char *)mbyte_test_u;
+        const char *mbyte_test_break = (const char *)mbyte_test_break_u;
 
         g_assert_cmpuint(_vte_conv_utf8_get_char_validated("", 0), ==, (gunichar)-2);
         g_assert_cmpuint(_vte_conv_utf8_get_char_validated("\0", 1), ==, 0);
@@ -516,7 +518,7 @@ typedef struct {
 } TestData;
 
 static void
-test_narrow_narrow (TestData *tests,
+test_narrow_narrow (const TestData *tests,
                     gsize n_tests)
 {
 	VteConv conv;
@@ -528,7 +530,7 @@ test_narrow_narrow (TestData *tests,
 
         for (i = 0; i < n_tests; i++) {
                 memset(buf, 0, sizeof(buf));
-                inbuf = tests[i].narrow;
+                inbuf = (const guchar *)tests[i].narrow;
                 inbytes = tests[i].narrowlen >= 0 ? tests[i].narrowlen : strlen(tests[i].narrow);
                 outbuf = buf;
                 outbytes = sizeof(buf);
@@ -536,13 +538,13 @@ test_narrow_narrow (TestData *tests,
                 ret = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
                 g_assert_cmpuint(ret, ==, 0);
                 g_assert_cmpuint(inbytes, ==, 0);
-                g_assert_cmpstr(tests[i].narrow, ==, buf);
+                g_assert_cmpstr(tests[i].narrow, ==, (char *)buf);
                 _vte_conv_close(conv);
         }
 }
 
 static void
-test_narrow_to_wide (TestData *tests,
+test_narrow_to_wide (const TestData *tests,
                      gsize n_tests)
 {
         gunichar widebuf[5];
@@ -554,21 +556,21 @@ test_narrow_to_wide (TestData *tests,
 
         for (i = 0; i < n_tests; i++) {
                 memset(widebuf, 0, sizeof(widebuf));
-                inbuf = tests[i].narrow;
+                inbuf = (const guchar *)tests[i].narrow;
                 inbytes = tests[i].narrowlen >= 0 ? tests[i].narrowlen : strlen(tests[i].narrow);
-                outbuf = (gchar*) widebuf;
+                outbuf = (guchar*) widebuf;
                 outbytes = sizeof(widebuf);
                 conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, tests[i].source);
                 ret = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
                 g_assert_cmpuint(ret, ==, 0);
                 g_assert_cmpuint(inbytes, ==, 0);
-                g_assert_cmpint(mixed_strcmp(widebuf, tests[i].narrow), ==, 0);
+                g_assert_cmpint(mixed_strcmp(widebuf, inbuf), ==, 0);
                 _vte_conv_close(conv);
         }
 }
 
 static void
-test_wide_to_narrow (TestData *tests,
+test_wide_to_narrow (const TestData *tests,
                      gsize n_tests)
 {
         char buf[10];
@@ -580,16 +582,16 @@ test_wide_to_narrow (TestData *tests,
 
         for (i = 0; i < n_tests; i++) {
                 memset(buf, 0, sizeof(buf));
-                inbuf = (char*)tests[i].wide;
+                inbuf = (const guchar *)tests[i].wide;
                 inbytes = tests[i].widelen >= 0 ? tests[i].widelen
                         : ucs4_strlen(tests[i].wide, sizeof(tests[i].wide)) * sizeof(gunichar);
-                outbuf = buf;
+                outbuf = (guchar *)buf;
                 outbytes = sizeof(buf);
                 conv = _vte_conv_open(tests[i].target, VTE_CONV_GUNICHAR_TYPE);
                 ret = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
                 g_assert_cmpuint(ret, ==, 0);
                 g_assert_cmpuint(inbytes, ==, 0);
-                g_assert_cmpint(mixed_strcmp(tests[i].wide, buf), ==, 0);
+                g_assert_cmpint(mixed_strcmp(tests[i].wide, outbuf), ==, 0);
                 _vte_conv_close(conv);
         }
 }
@@ -649,9 +651,9 @@ test_zero_byte_passthrough (void)
 	/* Test zero-byte pass-through. */
 	clear(wide_test, narrow_test);
 	memset(wide_test, 0, sizeof(wide_test));
-	inbuf = (gchar*) wide_test;
+	inbuf = (guchar *)wide_test;
 	inbytes = 3 * sizeof(gunichar);
-	outbuf = narrow_test;
+	outbuf = (guchar *)narrow_test;
 	outbytes = sizeof(narrow_test);
 	conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
 	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
@@ -667,9 +669,9 @@ test_zero_byte_passthrough (void)
 	clear(wide_test, narrow_test);
 	memset(wide_test, 'A', sizeof(wide_test));
 	memset(narrow_test, 0, sizeof(narrow_test));
-	inbuf = narrow_test;
+	inbuf = (guchar *)narrow_test;
 	inbytes = 3;
-	outbuf = (char*)wide_test;
+	outbuf = (guchar *)wide_test;
 	outbytes = sizeof(wide_test);
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
 	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
@@ -685,9 +687,9 @@ test_zero_byte_passthrough (void)
 	clear(wide_test, narrow_test);
 	memset(wide_test, 'A', sizeof(wide_test));
 	memset(narrow_test, 0, sizeof(narrow_test));
-	inbuf = narrow_test;
+	inbuf = (guchar *)narrow_test;
 	inbytes = 3;
-	outbuf = (char*)wide_test;
+	outbuf = (guchar *)wide_test;
 	outbytes = sizeof(wide_test);
 	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "ISO-8859-1");
 	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
@@ -703,13 +705,13 @@ test_zero_byte_passthrough (void)
 static void
 test_utf8_to_utf8_error (void)
 {
+	static const guchar mbyte_test[] = { 0xe2, 0x94, 0x80 };
+	static const guchar mbyte_test_break[] = { 0xe2, 0xe2, 0xe2 };
 	gchar buf[10];
 	VteConv conv;
 	const guchar *inbuf;
 	guchar *outbuf;
 	gsize inbytes, outbytes;
-	static const char mbyte_test[] = { 0xe2, 0x94, 0x80 };
-	static const char mbyte_test_break[] = { 0xe2, 0xe2, 0xe2 };
 	gsize i;
 
 	/* Test UTF-8 to UTF-8 error reporting, valid multibyte. */
@@ -717,7 +719,7 @@ test_utf8_to_utf8_error (void)
 		int ret;
 		inbuf = mbyte_test;
 		inbytes = i + 1;
-		outbuf = buf;
+		outbuf = (guchar *)buf;
 		outbytes = sizeof(buf);
 		conv = _vte_conv_open("UTF-8", "UTF-8");
 		ret = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
@@ -745,7 +747,7 @@ test_utf8_to_utf8_error (void)
 		int ret;
 		inbuf = mbyte_test_break;
 		inbytes = i + 1;
-		outbuf = buf;
+		outbuf = (guchar *)buf;
 		outbytes = sizeof(buf);
 		conv = _vte_conv_open("UTF-8", "UTF-8");
 		ret = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);

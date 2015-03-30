@@ -3249,7 +3249,7 @@ vte_sequence_handler_reset_highlight_foreground_color (VteTerminal *terminal, GV
 
 static const struct vteseq_n_struct *
 vteseq_n_lookup (register const char *str, register unsigned int len);
-#include"vteseq-n.c"
+#include"vteseq-n.cc"
 
 #undef VTE_SEQUENCE_HANDLER
 

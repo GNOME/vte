@@ -1291,7 +1291,7 @@ static void
 test_fakes (void)
 {
         char buf[100], buf2[100];
-        VteBoa *boa = g_object_new (VTE_TYPE_BOA, NULL);
+        VteBoa *boa = (VteBoa *)g_object_new (VTE_TYPE_BOA, NULL);
 
         /* Encrypt */
         strcpy(buf, "abcdXYZ1234!!!");
@@ -1353,7 +1353,7 @@ test_fakes (void)
 static void
 test_snake (void)
 {
-        VteSnake *snake = g_object_new (VTE_TYPE_SNAKE, NULL);
+        VteSnake *snake = (VteSnake *)g_object_new (VTE_TYPE_SNAKE, NULL);
 
         /* Test overwriting data */
         snake_write (snake, 0, "Armadillo");
@@ -1446,7 +1446,7 @@ test_snake (void)
 static void
 test_boa (void)
 {
-        VteBoa *boa = g_object_new (VTE_TYPE_BOA, NULL);
+        VteBoa *boa = (VteBoa *)g_object_new (VTE_TYPE_BOA, NULL);
         VteSnake *snake = (VteSnake *) &boa->parent;
 
         /* State 1 */

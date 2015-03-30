@@ -780,7 +780,7 @@ make_wide(const char *p)
 	gunichar *ret;
 	guint8 check;
 	int i;
-	ret = g_malloc((strlen(p) + 1) * sizeof(gunichar));
+	ret = (gunichar *)g_malloc((strlen(p) + 1) * sizeof(gunichar));
 	for (i = 0; p[i] != 0; i++) {
 		check = (guint8) p[i];
 		g_assert(check < 0x80);
@@ -814,7 +814,7 @@ print_array(GValueArray *array)
 				       (wchar_t*) g_value_get_pointer(value));
 			}
 			if (G_VALUE_HOLDS_BOXED(value)) {
-				print_array(g_value_get_boxed(value));
+                                print_array((GValueArray *)g_value_get_boxed(value));
 			}
 		}
 		printf(")");

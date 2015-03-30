@@ -67,7 +67,8 @@ HFILE_GLOB = \
 	$(NULL)
 
 CFILE_GLOB = \
-	$(top_srcdir)/src/*.c
+	$(top_srcdir)/src/*.c \
+	$(top_srcdir)/src/*.cc
 
 # Extra header to include when scanning, which are not under DOC_SOURCE_DIR
 # e.g. EXTRA_HFILES=$(top_srcdir}/contrib/extra.h
