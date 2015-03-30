@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 /* Map the specified keyval/modifier setup, dependent on the mode, to either
  * a literal string or a capability name. */
 void _vte_keymap_map(guint keyval,
-		     GdkModifierType modifiers,
+		     guint modifiers,
 		     gboolean app_cursor_keys,
 		     gboolean app_keypad_keys,
 		     char **normal,
@@ -43,7 +43,7 @@ gboolean _vte_keymap_key_is_modifier(guint keyval);
 
 /* Add modifiers to the sequence if they're needed. */
 void _vte_keymap_key_add_key_modifiers(guint keyval,
-				       GdkModifierType modifiers,
+				       guint modifiers,
 				       gboolean app_cursor_keys,
 				       char **normal,
 				       gssize *normal_length);

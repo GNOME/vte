@@ -66,11 +66,11 @@ typedef enum {
 void _vte_debug_init(void);
 const char *_vte_debug_sequence_to_string(const char *str);
 
-extern VteDebugFlags _vte_debug_flags;
-static inline gboolean _vte_debug_on(VteDebugFlags flags) G_GNUC_CONST G_GNUC_UNUSED;
+extern guint _vte_debug_flags;
+static inline gboolean _vte_debug_on(guint flags) G_GNUC_CONST G_GNUC_UNUSED;
 
 static inline gboolean
-_vte_debug_on(VteDebugFlags flags)
+_vte_debug_on(guint flags)
 {
 	return (_vte_debug_flags & flags) == flags;
 }

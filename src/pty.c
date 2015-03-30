@@ -181,11 +181,13 @@ _vte_pty_reset_signal_handlers(void)
 
 typedef struct _VtePtyPrivate VtePtyPrivate;
 
+enum TtyOpenMode {
+        TTY_OPEN_BY_NAME,
+        TTY_OPEN_BY_FD
+};
+
 typedef struct {
-	enum {
-		TTY_OPEN_BY_NAME,
-		TTY_OPEN_BY_FD
-	} mode;
+        enum TtyOpenMode mode;
 	union {
 		const char *name;
 		int fd;
@@ -399,7 +401,7 @@ __vte_pty_merge_environ (char **envp,
 
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
         g_hash_table_iter_init(&iter, table);
-        while (g_hash_table_iter_next(&iter, (gpointer) &name, (gpointer) &value)) {
+        while (g_hash_table_iter_next(&iter, (void**) &name, (void**) &value)) {
                 g_ptr_array_add (array, g_strconcat (name, "=", value, NULL));
         }
         g_assert(g_hash_table_size(table) == array->len);
@@ -443,7 +445,7 @@ __vte_pty_spawn (VtePty *pty,
                  const char *directory,
                  char **argv,
                  char **envv,
-                 GSpawnFlags spawn_flags,
+                 GSpawnFlags spawn_flags_,
                  GSpawnChildSetupFunc child_setup,
                  gpointer child_setup_data,
                  GPid *child_pid /* out */,
@@ -451,6 +453,7 @@ __vte_pty_spawn (VtePty *pty,
 {
 	VtePtyPrivate *priv = pty->priv;
         VtePtyChildSetupData *data = &priv->child_setup_data;
+        guint spawn_flags = (guint) spawn_flags_;
 	gboolean ret = TRUE;
         gboolean inherit_envv;
         char **envp2;
@@ -487,7 +490,7 @@ __vte_pty_spawn (VtePty *pty,
 
         ret = g_spawn_async_with_pipes(directory,
                                        argv, envp2,
-                                       spawn_flags,
+                                       (GSpawnFlags) spawn_flags,
                                        (GSpawnChildSetupFunc) vte_pty_child_setup,
                                        pty,
                                        child_pid,
@@ -500,7 +503,7 @@ __vte_pty_spawn (VtePty *pty,
                 g_clear_error(&err);
                 ret = g_spawn_async_with_pipes(NULL,
                                                argv, envp2,
-                                               spawn_flags,
+                                               (GSpawnFlags) spawn_flags,
                                                (GSpawnChildSetupFunc) vte_pty_child_setup,
                                                pty,
                                                child_pid,
@@ -652,7 +655,7 @@ _vte_pty_ptsname(int master,
 	char *buf = NULL;
 	int i, errsv;
 	do {
-		buf = g_malloc0(len);
+		buf = (char *) g_malloc0(len);
 		i = ptsname_r(master, buf, len - 1);
 		switch (i) {
 		case 0:
@@ -1082,7 +1085,7 @@ vte_pty_set_property (GObject      *object,
 
         switch (property_id) {
         case PROP_FLAGS:
-                priv->flags = g_value_get_flags(value);
+                priv->flags = (VtePtyFlags) g_value_get_flags(value);
                 break;
 
         case PROP_FD:
@@ -1117,9 +1120,9 @@ vte_pty_class_init (VtePtyClass *klass)
                  g_param_spec_flags ("flags", NULL, NULL,
                                      VTE_TYPE_PTY_FLAGS,
                                      VTE_PTY_DEFAULT,
-                                     G_PARAM_READWRITE |
-                                     G_PARAM_CONSTRUCT_ONLY |
-                                     G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READWRITE |
+                                                    G_PARAM_CONSTRUCT_ONLY |
+                                                    G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VtePty:fd:
@@ -1131,9 +1134,9 @@ vte_pty_class_init (VtePtyClass *klass)
                  PROP_FD,
                  g_param_spec_int ("fd", NULL, NULL,
                                    -1, G_MAXINT, -1,
-                                   G_PARAM_READWRITE |
-                                   G_PARAM_CONSTRUCT_ONLY |
-                                   G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                   (GParamFlags) (G_PARAM_READWRITE |
+                                                  G_PARAM_CONSTRUCT_ONLY |
+                                                  G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 }
 
 /* public API */
@@ -1187,11 +1190,11 @@ vte_pty_new_sync (VtePtyFlags flags,
                   GCancellable *cancellable,
                   GError **error)
 {
-        return g_initable_new (VTE_TYPE_PTY,
-                               cancellable,
-                               error,
-                               "flags", flags,
-                               NULL);
+        return (VtePty *) g_initable_new (VTE_TYPE_PTY,
+                                          cancellable,
+                                          error,
+                                          "flags", flags,
+                                          NULL);
 }
 
 /**
@@ -1216,11 +1219,11 @@ vte_pty_new_foreign_sync (int fd,
 {
         g_return_val_if_fail(fd >= 0, NULL);
 
-        return g_initable_new (VTE_TYPE_PTY,
-                               cancellable,
-                               error,
-                               "fd", fd,
-                               NULL);
+        return (VtePty *) g_initable_new (VTE_TYPE_PTY,
+                                          cancellable,
+                                          error,
+                                          "fd", fd,
+                                          NULL);
 }
 
 /**

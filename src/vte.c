@@ -816,7 +816,7 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, gssize length
 		length = strlen(text);
 		result = text;
 	} else {
-		result = wrapped = g_slice_alloc(length + 1);
+		result = wrapped = (char *) g_slice_alloc(length + 1);
 		memcpy(wrapped, text, length);
 		wrapped[length] = '\0';
 	}
@@ -1163,7 +1163,7 @@ vte_terminal_set_cursor_from_regex_match(VteTerminal *terminal, struct vte_match
                 case VTE_REGEX_CURSOR_GDKCURSOR:
                         if (regex->cursor.cursor != NULL &&
                             gdk_cursor_get_display(regex->cursor.cursor) == gtk_widget_get_display(&terminal->widget)) {
-                                cursor = g_object_ref(regex->cursor.cursor);
+                                cursor = (GdkCursor *)g_object_ref(regex->cursor.cursor);
                         }
                         break;
                 case VTE_REGEX_CURSOR_GDKCURSORTYPE:
@@ -1326,7 +1326,7 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
 			       tag);
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSOR;
-	regex->cursor.cursor = cursor ? g_object_ref(cursor) : NULL;
+	regex->cursor.cursor = cursor ? (GdkCursor *)g_object_ref(cursor) : NULL;
 	vte_terminal_match_hilite_clear(terminal);
 }
 
@@ -2240,7 +2240,7 @@ _vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
 GtkWidget *
 vte_terminal_new(void)
 {
-	return g_object_new(VTE_TYPE_TERMINAL, NULL);
+	return (GtkWidget *)g_object_new(VTE_TYPE_TERMINAL, NULL);
 }
 
 /*
@@ -2899,8 +2899,8 @@ _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                 } while (cell_col->attr.fragment);
                 if (cell_col->c == '\t') {
                         _vte_debug_print(VTE_DEBUG_MISC,
-                                         "Replacing right part of TAB with a shorter one at %ld (%d cells) => %ld (%ld cells)\n",
-                                         col, cell_col->attr.columns, end, cell_col->attr.columns - (end - col));
+                                         "Replacing right part of TAB with a shorter one at %ld (%ld cells) => %ld (%ld cells)\n",
+                                         col, (long) cell_col->attr.columns, end, (long) cell_col->attr.columns - (end - col));
                         cell_end->c = '\t';
                         cell_end->attr.fragment = 0;
                         g_assert(cell_col->attr.columns > end - col);
@@ -2931,8 +2931,8 @@ _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                         if (!cell_col->attr.fragment) {
                                 if (cell_col->c == '\t') {
                                         _vte_debug_print(VTE_DEBUG_MISC,
-                                                         "Replacing left part of TAB with spaces at %ld (%d => %ld cells)\n",
-                                                         col, cell_col->attr.columns, start - col);
+                                                         "Replacing left part of TAB with spaces at %ld (%ld => %ld cells)\n",
+                                                         col, (long)cell_col->attr.columns, start - col);
                                         /* nothing to do here */
                                 } else {
                                         _vte_debug_print(VTE_DEBUG_MISC,
@@ -3161,8 +3161,8 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	_vte_debug_print(VTE_DEBUG_PARSE,
 			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld; ",
 			(long)c, c < 256 ? c : ' ',
-                        terminal->pvt->color_defaults.attr.fore,
-                        terminal->pvt->color_defaults.attr.back,
+                         (int)terminal->pvt->color_defaults.attr.fore,
+                         (int)terminal->pvt->color_defaults.attr.back,
                         col, columns, (long)terminal->pvt->cursor.row,
 			(long)screen->insert_delta);
 
@@ -3356,7 +3356,7 @@ _vte_terminal_connect_pty_read(VteTerminal *terminal)
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
-					    G_IO_IN | G_IO_HUP,
+					    (GIOCondition)(G_IO_IN | G_IO_HUP),
 					    (GIOFunc) vte_terminal_io_read,
 					    terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
@@ -3586,13 +3586,14 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                                const char *working_directory,
                                char **argv,
                                char **envv,
-                               GSpawnFlags spawn_flags,
+                               GSpawnFlags spawn_flags_,
                                GSpawnChildSetupFunc child_setup,
                                gpointer child_setup_data,
                                GPid *child_pid /* out */,
                                GCancellable *cancellable,
                                GError **error)
 {
+        guint spawn_flags = (guint)spawn_flags_;
         VtePty *pty;
         GPid pid;
 
@@ -3612,7 +3613,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                              working_directory,
                              argv,
                              envv,
-                             spawn_flags,
+                             (GSpawnFlags)spawn_flags,
                              child_setup, child_setup_data,
                              &pid,
                              error)) {
@@ -4121,7 +4122,7 @@ _vte_terminal_enable_input_source (VteTerminal *terminal)
 		terminal->pvt->pty_input_source =
 			g_io_add_watch_full(terminal->pvt->pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
-					    G_IO_IN | G_IO_HUP,
+					    (GIOCondition)(G_IO_IN | G_IO_HUP),
 					    (GIOFunc) vte_terminal_io_read,
 					    terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
@@ -4391,7 +4392,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	}
 
 	icount = length;
-	ibuf =  data;
+	ibuf = (const guchar *)data;
 	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
 	_vte_byte_array_set_minimum_size(terminal->pvt->conv_buffer, ocount);
 	obuf = obufptr = terminal->pvt->conv_buffer->data;
@@ -4413,7 +4414,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 			}
 		}
 		if (crcount > 0) {
-			cooked = g_malloc(obuf - obufptr + crcount);
+			cooked = (char *)g_malloc(obuf - obufptr + crcount);
 			cooked_length = 0;
 			for (i = 0; i < obuf - obufptr; i++) {
 				switch (obufptr[i]) {
@@ -4733,9 +4734,10 @@ vte_translate_ctrlkey (GdkEventKey *event)
 		GdkModifierType consumed_modifiers;
 
 		gdk_keymap_translate_keyboard_state (keymap,
-				event->hardware_keycode, event->state,
-				i,
-				&keyval, NULL, NULL, &consumed_modifiers);
+                                                     event->hardware_keycode,
+                                                     (GdkModifierType)event->state,
+                                                     i,
+                                                     &keyval, NULL, NULL, &consumed_modifiers);
 		if (keyval < 128) {
 			_vte_debug_print (VTE_DEBUG_EVENTS,
 					"ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
@@ -4752,16 +4754,18 @@ vte_terminal_read_modifiers (VteTerminal *terminal,
 			     GdkEvent *event)
 {
         GdkKeymap *keymap;
-	GdkModifierType modifiers;
+	GdkModifierType mods;
+        guint modifiers;
 
 	/* Read the modifiers. */
-	if (!gdk_event_get_state((GdkEvent*)event, &modifiers))
+	if (!gdk_event_get_state((GdkEvent*)event, &mods))
                 return;
 
         keymap = gdk_keymap_get_for_display(gdk_window_get_display(((GdkEventAny*)event)->window));
 
-        gdk_keymap_add_virtual_modifiers (keymap, &modifiers);
+        gdk_keymap_add_virtual_modifiers (keymap, &mods);
 
+        modifiers = (guint)mods;
 #if 1
         /* HACK! Treat ALT as META; see bug #663779. */
         if (modifiers & GDK_MOD1_MASK)
@@ -4776,8 +4780,8 @@ static gint
 vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal;
-	GdkModifierType modifiers;
-	char *normal = NULL, *output;
+	guint modifiers;
+	char *normal = NULL;
 	gssize normal_length = 0;
 	int i;
 	struct termios tio;
@@ -5164,7 +5168,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				normal_length = g_unichar_to_utf8(keychar,
 								  keybuf);
 				if (normal_length != 0) {
-					normal = g_malloc(normal_length + 1);
+					normal = (char *)g_malloc(normal_length + 1);
 					memcpy(normal, keybuf, normal_length);
 					normal[normal_length] = '\0';
 				} else {
@@ -5440,10 +5444,10 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 static void
 vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = (VteTerminal *)data;
 	gchar *paste, *p;
-	long length;
-	terminal = data;
+	gsize length;
+
 	if (text != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Pasting %"G_GSIZE_FORMAT" UTF-8 bytes.\n",
@@ -5458,8 +5462,8 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 		paste = g_strdup(text);
 		length = strlen(paste);
 		p = paste;
-		while ((p != NULL) && (p - paste < length)) {
-			p = memchr(p, '\n', length - (p - paste));
+		while ((p != NULL) && ((gsize)(p - paste) < length)) {
+			p = (char *)memchr(p, '\n', length - (gsize)(p - paste));
 			if (p != NULL) {
 				*p = '\r';
 				p++;
@@ -5948,8 +5952,8 @@ vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 static void
 vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
 {
-	VteTerminal *terminal;
-	terminal = owner;
+	VteTerminal *terminal = (VteTerminal *)owner;
+
 	if (terminal->pvt->has_selection) {
 		_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
 		vte_terminal_deselect_all(terminal);
@@ -5961,8 +5965,8 @@ static void
 vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 		     guint info, gpointer owner)
 {
-	VteTerminal *terminal;
-	terminal = owner;
+	VteTerminal *terminal = (VteTerminal *)owner;
+
 	if (terminal->pvt->selection != NULL) {
 		_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 			int i;
@@ -8029,7 +8033,7 @@ vte_terminal_set_hadjustment(VteTerminal *terminal,
   if (pvt->hadjustment)
     g_object_unref (pvt->hadjustment);
 
-  pvt->hadjustment = adjustment ? g_object_ref_sink (adjustment) : NULL;
+  pvt->hadjustment = adjustment ? (GtkAdjustment *)g_object_ref_sink (adjustment) : NULL;
 }
 
 static void
@@ -8052,7 +8056,7 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
 	if (terminal->pvt->vadjustment != NULL) {
 		/* Disconnect our signal handlers from this object. */
 		g_signal_handlers_disconnect_by_func(terminal->pvt->vadjustment,
-						     vte_terminal_handle_scroll,
+						     (void*)vte_terminal_handle_scroll,
 						     terminal);
 		g_object_unref(terminal->pvt->vadjustment);
 	}
@@ -8393,7 +8397,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	/* Shut down input methods. */
 	if (terminal->pvt->im_context != NULL) {
 	        g_signal_handlers_disconnect_by_func (terminal->pvt->im_context,
-						      vte_terminal_im_preedit_changed,
+						      (void *)vte_terminal_im_preedit_changed,
 						      terminal);
 		vte_terminal_im_reset(terminal);
 		gtk_im_context_set_client_window(terminal->pvt->im_context,
@@ -9070,7 +9074,7 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 	}
 
 	while (attributes != NULL) {
-		PangoAttribute *attr = attributes->data;
+		PangoAttribute *attr = (PangoAttribute *)attributes->data;
 		PangoAttrColor *color;
 		switch (attr->klass->type) {
 		case PANGO_ATTR_FOREGROUND:
@@ -9188,7 +9192,7 @@ _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
 static void
 _vte_terminal_pango_attribute_destroy(gpointer attr, gpointer data)
 {
-	pango_attribute_destroy(attr);
+	pango_attribute_destroy((PangoAttribute *)attr);
 }
 static void
 _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
@@ -9211,13 +9215,13 @@ _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
 				for (listiter = list;
 				     listiter != NULL;
 				     listiter = g_slist_next(listiter)) {
-					attr = listiter->data;
+					attr = (PangoAttribute *)listiter->data;
 					_vte_terminal_apply_pango_attr(terminal,
 								       attr,
 								       cells,
 								       n_cells);
 				}
-				attr = list->data;
+				attr = (PangoAttribute *)list->data;
 				_vte_terminal_fudge_pango_colors(terminal,
 								 list,
 								 cells +
@@ -10230,10 +10234,10 @@ vte_terminal_set_property (GObject *object,
 	switch (prop_id)
 	{
                 case PROP_HADJUSTMENT:
-                        vte_terminal_set_hadjustment (terminal, g_value_get_object (value));
+                        vte_terminal_set_hadjustment (terminal, (GtkAdjustment *)g_value_get_object (value));
                         break;
                 case PROP_VADJUSTMENT:
-                        vte_terminal_set_vadjustment (terminal, g_value_get_object (value));
+                        vte_terminal_set_vadjustment (terminal, (GtkAdjustment *)g_value_get_object (value));
                         break;
                 case PROP_HSCROLL_POLICY:
                         pvt->hscroll_policy = g_value_get_enum (value);
@@ -10250,25 +10254,25 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_BACKSPACE_BINDING:
-                        vte_terminal_set_backspace_binding (terminal, g_value_get_enum (value));
+                        vte_terminal_set_backspace_binding (terminal, (VteEraseBinding)g_value_get_enum (value));
                         break;
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         vte_terminal_set_cjk_ambiguous_width (terminal, g_value_get_int (value));
                         break;
                 case PROP_CURSOR_BLINK_MODE:
-                        vte_terminal_set_cursor_blink_mode (terminal, g_value_get_enum (value));
+                        vte_terminal_set_cursor_blink_mode (terminal, (VteCursorBlinkMode)g_value_get_enum (value));
                         break;
                 case PROP_CURSOR_SHAPE:
-                        vte_terminal_set_cursor_shape (terminal, g_value_get_enum (value));
+                        vte_terminal_set_cursor_shape (terminal, (VteCursorShape)g_value_get_enum (value));
                         break;
                 case PROP_DELETE_BINDING:
-                        vte_terminal_set_delete_binding (terminal, g_value_get_enum (value));
+                        vte_terminal_set_delete_binding (terminal, (VteEraseBinding)g_value_get_enum (value));
                         break;
                 case PROP_ENCODING:
                         vte_terminal_set_encoding (terminal, g_value_get_string (value), NULL);
                         break;
                 case PROP_FONT_DESC:
-                        vte_terminal_set_font (terminal, g_value_get_boxed (value));
+                        vte_terminal_set_font (terminal, (PangoFontDescription *)g_value_get_boxed (value));
                         break;
                 case PROP_FONT_SCALE:
                         vte_terminal_set_font_scale (terminal, g_value_get_double (value));
@@ -10280,7 +10284,7 @@ vte_terminal_set_property (GObject *object,
                         vte_terminal_set_mouse_autohide (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_PTY:
-                        vte_terminal_set_pty (terminal, g_value_get_object (value));
+                        vte_terminal_set_pty (terminal, (VtePty *)g_value_get_object (value));
                         break;
                 case PROP_REWRAP_ON_RESIZE:
                         vte_terminal_set_rewrap_on_resize (terminal, g_value_get_boolean (value));
@@ -10864,7 +10868,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	signals[COPY_CLIPBOARD] =
                 g_signal_new(I_("copy-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+			     (GSignalFlags)(G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION),
 			     G_STRUCT_OFFSET(VteTerminalClass, copy_clipboard),
 			     NULL,
 			     NULL,
@@ -10880,7 +10884,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	signals[PASTE_CLIPBOARD] =
                 g_signal_new(I_("paste-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
-			     G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+			     (GSignalFlags)(G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION),
 			     G_STRUCT_OFFSET(VteTerminalClass, paste_clipboard),
 			     NULL,
 			     NULL,
@@ -10915,7 +10919,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_ALLOW_BOLD,
                  g_param_spec_boolean ("allow-bold", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:audible-bell:
@@ -10928,7 +10932,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_AUDIBLE_BELL,
                  g_param_spec_boolean ("audible-bell", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:backspace-binding:
@@ -10942,7 +10946,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("backspace-binding", NULL, NULL,
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:cjk-ambiguous-width:
@@ -10959,7 +10963,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_CJK_AMBIGUOUS_WIDTH,
                  g_param_spec_int ("cjk-ambiguous-width", NULL, NULL,
                                    1, 2, VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                   (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:cursor-blink-mode:
@@ -10973,7 +10977,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
                                     VTE_TYPE_CURSOR_BLINK_MODE,
                                     VTE_CURSOR_BLINK_SYSTEM,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:cursor-shape:
@@ -10986,7 +10990,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("cursor-shape", NULL, NULL,
                                     VTE_TYPE_CURSOR_SHAPE,
                                     VTE_CURSOR_SHAPE_BLOCK,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:delete-binding:
@@ -11000,7 +11004,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_enum ("delete-binding", NULL, NULL,
                                     VTE_TYPE_ERASE_BINDING,
                                     VTE_ERASE_AUTO,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:font-scale:
@@ -11014,7 +11018,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       VTE_FONT_SCALE_MIN,
                                       VTE_FONT_SCALE_MAX,
                                       1.,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:encoding:
@@ -11029,7 +11033,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_ENCODING,
                  g_param_spec_string ("encoding", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:font-desc:
@@ -11045,7 +11049,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_FONT_DESC,
                  g_param_spec_boxed ("font-desc", NULL, NULL,
                                      PANGO_TYPE_FONT_DESCRIPTION,
-                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:icon-title:
@@ -11057,7 +11061,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_ICON_TITLE,
                  g_param_spec_string ("icon-title", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:input-enabled:
@@ -11071,7 +11075,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_INPUT_ENABLED,
                  g_param_spec_boolean ("input-enabled", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:pointer-autohide:
@@ -11085,7 +11089,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_MOUSE_POINTER_AUTOHIDE,
                  g_param_spec_boolean ("pointer-autohide", NULL, NULL,
                                        FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:pty:
@@ -11097,8 +11101,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_PTY,
                  g_param_spec_object ("pty", NULL, NULL,
                                       VTE_TYPE_PTY,
-                                      G_PARAM_READWRITE |
-                                      G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:rewrap-on-resize:
@@ -11111,7 +11114,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_REWRAP_ON_RESIZE,
                  g_param_spec_boolean ("rewrap-on-resize", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:scrollback-lines:
@@ -11129,7 +11132,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  g_param_spec_uint ("scrollback-lines", NULL, NULL,
                                     0, G_MAXUINT,
                                     VTE_SCROLLBACK_INIT,
-                                    G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:scroll-on-keystroke:
@@ -11143,7 +11146,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_SCROLL_ON_KEYSTROKE,
                  g_param_spec_boolean ("scroll-on-keystroke", NULL, NULL,
                                        FALSE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:scroll-on-output:
@@ -11156,7 +11159,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_SCROLL_ON_OUTPUT,
                  g_param_spec_boolean ("scroll-on-output", NULL, NULL,
                                        TRUE,
-                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
      
         /**
          * VteTerminal:window-title:
@@ -11168,7 +11171,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_WINDOW_TITLE,
                  g_param_spec_string ("window-title", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:current-directory-uri:
@@ -11180,7 +11183,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_CURRENT_DIRECTORY_URI,
                  g_param_spec_string ("current-directory-uri", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:current-file-uri:
@@ -11192,7 +11195,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_CURRENT_FILE_URI,
                  g_param_spec_string ("current-file-uri", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
         /**
          * VteTerminal:word-char-exceptions:
@@ -11210,7 +11213,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                  PROP_WORD_CHAR_EXCEPTIONS,
                  g_param_spec_string ("word-char-exceptions", NULL, NULL,
                                       NULL,
-                                      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY)));
 
 	/* Disable GtkWidget's keybindings except for Shift-F10 and MenuKey
          * which pop up the context menu.
@@ -12217,7 +12220,7 @@ vte_terminal_set_pty(VteTerminal *terminal,
                 return;
         }
 
-        pvt->pty = g_object_ref(pty);
+        pvt->pty = (VtePty *)g_object_ref(pty);
         pty_master = vte_pty_get_fd(pvt->pty);
 
         pvt->pty_channel = g_io_channel_unix_new (pty_master);
@@ -12600,7 +12603,7 @@ process_timeout (gpointer data)
 			g_list_length (active_terminals));
 
 	for (l = active_terminals; l != NULL; l = next) {
-		VteTerminal *terminal = l->data;
+		VteTerminal *terminal = (VteTerminal *)l->data;
 		gboolean active = FALSE;
 
 		next = g_list_next (l);
@@ -12693,11 +12696,12 @@ update_regions (VteTerminal *terminal)
 		/* amalgamate into one super-region */
 		region = cairo_region_create ();
 		do {
-			cairo_region_union (region, l->data);
-			cairo_region_destroy (l->data);
+                        cairo_region_t *r = (cairo_region_t *)l->data;
+			cairo_region_union (region, r);
+			cairo_region_destroy (r);
 		} while ((l = g_slist_next (l)) != NULL);
 	} else {
-		region = l->data;
+		region = (cairo_region_t *)l->data;
 	}
 	g_slist_free (terminal->pvt->update_regions);
 	terminal->pvt->update_regions = NULL;
@@ -12732,7 +12736,7 @@ update_repeat_timeout (gpointer data)
 			g_list_length (active_terminals));
 
 	for (l = active_terminals; l != NULL; l = next) {
-		VteTerminal *terminal = l->data;
+		VteTerminal *terminal = (VteTerminal *)l->data;
 
 		next = g_list_next (l);
 
@@ -12845,7 +12849,7 @@ update_timeout (gpointer data)
 	}
 
 	for (l = active_terminals; l != NULL; l = next) {
-		VteTerminal *terminal = l->data;
+		VteTerminal *terminal = (VteTerminal *)l->data;
 
 		next = g_list_next (l);
 
@@ -13039,7 +13043,7 @@ vte_terminal_search_rows (VteTerminal *terminal,
 	row_text = vte_terminal_get_text_range (terminal, start_row, 0, end_row, -1, NULL, NULL, NULL);
 
 	g_regex_match_full (pvt->search_regex, row_text, -1, 0,
-                            pvt->search_match_flags | G_REGEX_MATCH_NOTEMPTY,
+                            (GRegexMatchFlags)(pvt->search_match_flags | G_REGEX_MATCH_NOTEMPTY),
                             &match_info, &error);
 	if (error) {
 		g_printerr ("Error while matching: %s\n", error->message);
@@ -13305,9 +13309,9 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
         gtk_window_set_geometry_hints(window,
                                       &terminal->widget,
                                       &hints,
-                                      GDK_HINT_RESIZE_INC |
-                                      GDK_HINT_MIN_SIZE |
-                                      GDK_HINT_BASE_SIZE);
+                                      (GdkWindowHints)(GDK_HINT_RESIZE_INC |
+                                                       GDK_HINT_MIN_SIZE |
+                                                       GDK_HINT_BASE_SIZE));
 }
 
 /**

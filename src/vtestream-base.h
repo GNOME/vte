@@ -21,6 +21,8 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
+G_BEGIN_DECLS
+
 /*
  * VteStream: Abstract base stream class
  */
@@ -98,3 +100,6 @@ _vte_stream_head (VteStream *stream)
 {
 	return VTE_STREAM_GET_CLASS (stream)->head (stream);
 }
+
+G_END_DECLS
+

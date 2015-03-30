@@ -244,7 +244,7 @@ font_info_find_unistr_info (struct font_info    *info,
 	if (G_UNLIKELY (info->other_unistr_info == NULL))
 		info->other_unistr_info = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) unistr_info_destroy);
 
-	uinfo = g_hash_table_lookup (info->other_unistr_info, GINT_TO_POINTER (c));
+	uinfo = (struct unistr_info *)g_hash_table_lookup (info->other_unistr_info, GINT_TO_POINTER (c));
 	if (G_LIKELY (uinfo))
 		return uinfo;
 
@@ -289,7 +289,7 @@ font_info_cache_ascii (struct font_info *info)
 	if (G_UNLIKELY (!line || !line->runs || line->runs->next))
 		return;
 
-	glyph_item = line->runs->data;
+	glyph_item = (PangoGlyphItem *)line->runs->data;
 	glyph_string = glyph_item->glyphs;
 	pango_font = glyph_item->item->analysis.font;
 	if (!pango_font)
@@ -567,7 +567,7 @@ font_info_find_for_context (PangoContext *context)
 	if (G_UNLIKELY (font_info_for_context == NULL))
 		font_info_for_context = g_hash_table_new ((GHashFunc) context_hash, (GEqualFunc) context_equal);
 
-	info = g_hash_table_lookup (font_info_for_context, context);
+	info = (struct font_info *)g_hash_table_lookup (font_info_for_context, context);
 	if (G_LIKELY (info)) {
 		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 				  "vtepangocairo: %p found font_info in cache\n",
@@ -678,10 +678,10 @@ font_info_get_unistr_info (struct font_info *info,
 		/* we hold a manual reference on layout.  pango currently
 		 * doesn't work if line->layout is NULL.  ugh! */
 		pango_layout_set_text (info->layout, "", -1); /* make layout disassociate from the line */
-		ufi->using_pango_layout_line.line->layout = g_object_ref (info->layout);
+		ufi->using_pango_layout_line.line->layout = (PangoLayout *)g_object_ref (info->layout);
 
 	} else {
-		PangoGlyphItem *glyph_item = line->runs->data;
+		PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
 		PangoFont *pango_font = glyph_item->item->analysis.font;
 		PangoGlyphString *glyph_string = glyph_item->glyphs;
 
@@ -706,7 +706,7 @@ font_info_get_unistr_info (struct font_info *info,
 		if (G_UNLIKELY (uinfo->coverage == COVERAGE_UNKNOWN)) {
 			uinfo->coverage = COVERAGE_USE_PANGO_GLYPH_STRING;
 
-			ufi->using_pango_glyph_string.font = pango_font ? g_object_ref (pango_font) : NULL;
+			ufi->using_pango_glyph_string.font = pango_font ? (PangoFont *)g_object_ref (pango_font) : NULL;
 			ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
 		}
 	}

@@ -21,7 +21,7 @@
 #include <glib.h>
 #include "debug.h"
 
-VteDebugFlags _vte_debug_flags;
+guint _vte_debug_flags;
 
 void
 _vte_debug_init(void)

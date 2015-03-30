@@ -60,7 +60,7 @@ _vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams)
 	ring->max = MAX (max_rows, 3);
 
 	ring->mask = 31;
-	ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
+	ring->array = (VteRowData *) g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
 
 	ring->has_streams = has_streams;
 	if (has_streams) {
@@ -457,7 +457,7 @@ _vte_ring_ensure_writable_room (VteRing *ring)
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array from %lu to %lu\n", old_mask, ring->mask);
 
-	ring->array = g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
+	ring->array = (VteRowData *) g_malloc0 (sizeof (ring->array[0]) * (ring->mask + 1));
 
 	new_mask = ring->mask;
 	new_array = ring->array;
@@ -852,8 +852,8 @@ _vte_ring_rewrap (VteRing *ring,
 	   This code requires that the rows are already frozen. */
 	while (markers[num_markers] != NULL)
 		num_markers++;
-	marker_text_offsets = g_malloc(num_markers * sizeof (marker_text_offsets[0]));
-	new_markers = g_malloc(num_markers * sizeof (new_markers[0]));
+	marker_text_offsets = (VteCellTextOffset *) g_malloc(num_markers * sizeof (marker_text_offsets[0]));
+	new_markers = (VteVisualPosition *) g_malloc(num_markers * sizeof (new_markers[0]));
 	for (i = 0; i < num_markers; i++) {
 		/* Convert visual column into byte offset */
 		if (!_vte_frozen_row_column_to_text_offset(ring, markers[i]->row, markers[i]->col, &marker_text_offsets[i]))

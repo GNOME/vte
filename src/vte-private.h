@@ -195,6 +195,48 @@ typedef enum _VteCursorStyle {
         VTE_CURSOR_STYLE_STEADY_IBEAM     = 6
 } VteCursorStyle;
 
+typedef struct _vte_incoming_chunk _vte_incoming_chunk_t;
+struct _vte_incoming_chunk{
+        _vte_incoming_chunk_t *next;
+        guint len;
+        guchar data[VTE_INPUT_CHUNK_SIZE - 2 * sizeof(void *)];
+};
+
+struct _VteScreen {
+        VteRing row_data[1];	/* buffer contents */
+        long scroll_delta;	/* scroll offset */
+        long insert_delta;	/* insertion offset */
+
+        /* Stuff saved along with the cursor */
+        struct {
+                VteVisualPosition cursor;
+                gboolean reverse_mode;
+                gboolean origin_mode;
+                gboolean sendrecv_mode;
+                gboolean insert_mode;
+                gboolean linefeed_mode;
+                VteCell defaults;
+                VteCell color_defaults;
+                VteCell fill_defaults;
+                VteCharacterReplacement character_replacements[2];
+                VteCharacterReplacement *character_replacement;
+        } saved;
+};
+
+enum vte_selection_type {
+        selection_type_char,
+        selection_type_word,
+        selection_type_line
+};
+
+struct selection_event_coords {
+        long x, y;
+};
+
+struct vte_scrolling_region {
+        int start, end;
+};
+
 /* Terminal private data. */
 struct _VteTerminalPrivate {
         /* Metric and sizing data: dimensions of the window */
@@ -222,12 +264,7 @@ struct _VteTerminalPrivate {
 	const char *encoding;		/* the pty's encoding */
         int utf8_ambiguous_width;
 	struct _vte_iso2022_state *iso2022;
-	struct _vte_incoming_chunk{
-		struct _vte_incoming_chunk *next;
-		guint len;
-		guchar data[VTE_INPUT_CHUNK_SIZE
-			- 2 * sizeof(void *)];
-	} *incoming;			/* pending bytestream */
+	_vte_incoming_chunk_t *incoming;/* pending bytestream */
 	GArray *pending;		/* pending characters */
 	GSList *update_regions;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
@@ -244,26 +281,7 @@ struct _VteTerminalPrivate {
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
-	struct _VteScreen {
-		VteRing row_data[1];	/* buffer contents */
-		long scroll_delta;	/* scroll offset */
-		long insert_delta;	/* insertion offset */
-
-                /* Stuff saved along with the cursor */
-                struct {
-                        VteVisualPosition cursor;
-                        gboolean reverse_mode;
-                        gboolean origin_mode;
-                        gboolean sendrecv_mode;
-                        gboolean insert_mode;
-                        gboolean linefeed_mode;
-                        VteCell defaults;
-                        VteCell color_defaults;
-                        VteCell fill_defaults;
-                        VteCharacterReplacement character_replacements[2];
-                        VteCharacterReplacement *character_replacement;
-                } saved;
-	} normal_screen, alternate_screen, *screen;
+	struct _VteScreen normal_screen, alternate_screen, *screen;
 
         /* Values we save along with the cursor */
         VteVisualPosition cursor;	/* relative to the insertion delta */
@@ -299,14 +317,8 @@ struct _VteTerminalPrivate {
 	gboolean selecting_had_delta;
 	gboolean selection_block_mode;
 	char *selection;
-	enum vte_selection_type {
-		selection_type_char,
-		selection_type_word,
-		selection_type_line
-	} selection_type;
-	struct selection_event_coords {
-		long x, y;
-	} selection_origin, selection_last;
+	enum vte_selection_type selection_type;
+	struct selection_event_coords selection_origin, selection_last;
 	VteVisualPosition selection_start, selection_end;
 
 	/* Miscellaneous options. */
@@ -332,9 +344,7 @@ struct _VteTerminalPrivate {
 	long scrollback_lines;
 
         /* Restricted scrolling */
-        struct vte_scrolling_region {
-                int start, end;
-        } scrolling_region;     /* the region we scroll in */
+        struct vte_scrolling_region scrolling_region;     /* the region we scroll in */
         gboolean scrolling_restricted;
 
 	/* Cursor shape, as set via API */
@@ -441,7 +451,7 @@ struct _VteTerminalPrivate {
         gdouble background_alpha;
 
 	/* Key modifiers. */
-	GdkModifierType modifiers;
+	guint modifiers;
 
 	/* Obscured? state. */
 	GdkVisibilityState visibility_state;

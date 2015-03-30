@@ -51,7 +51,7 @@ _vte_cells_realloc (VteCells *cells, guint32 len)
 	guint32 alloc_len = (1 << g_bit_storage (MAX (len, 80))) - 1;
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging cell array of %d cells to %d cells\n", cells ? cells->alloc_len : 0, alloc_len);
-	cells = g_realloc (cells, G_STRUCT_OFFSET (VteCells, cells) + alloc_len * sizeof (cells->cells[0]));
+	cells = (VteCells *)g_realloc (cells, G_STRUCT_OFFSET (VteCells, cells) + alloc_len * sizeof (cells->cells[0]));
 	cells->alloc_len = alloc_len;
 
 	return cells;

@@ -31,7 +31,7 @@
 #ifdef VTE_DEBUG
 static void
 _vte_keysym_print(guint keyval,
-		GdkModifierType modifiers)
+                  guint modifiers)
 {
 	g_printerr("Mapping ");
 	if (modifiers & GDK_CONTROL_MASK) {
@@ -51,28 +51,28 @@ _vte_keysym_print(guint keyval,
 #else
 static void
 _vte_keysym_print(guint keyval,
-		GdkModifierType modifiers)
+                  guint modifiers)
 {
 }
 #endif
 
 enum _vte_cursor_mode {
-	cursor_default =	1 << 0,
-	cursor_app =		1 << 1
+	cursor_default =	1u << 0,
+	cursor_app =		1u << 1
 };
 
 enum _vte_keypad_mode {
-	keypad_default =	1 << 0,
-	keypad_app =		1 << 1
+	keypad_default =	1u << 0,
+	keypad_app =		1u << 1
 };
 
 #define cursor_all	(cursor_default | cursor_app)
 #define keypad_all	(keypad_default | keypad_app)
 
 struct _vte_keymap_entry {
-	enum _vte_cursor_mode cursor_mode;
-	enum _vte_keypad_mode keypad_mode;
-	GdkModifierType mod_mask;
+	guint cursor_mode;
+	guint keypad_mode;
+	guint mod_mask;
 	const char normal[8];
 	gssize normal_length;
 };
@@ -709,7 +709,7 @@ static const struct _vte_keymap_group {
  * a literal string. */
 void
 _vte_keymap_map(guint keyval,
-		GdkModifierType modifiers,
+		guint modifiers,
 		gboolean app_cursor_keys,
 		gboolean app_keypad_keys,
 		char **normal,
@@ -748,7 +748,7 @@ _vte_keymap_map(guint keyval,
 	/* Build mode masks. */
 	cursor_mode = app_cursor_keys ? cursor_app : cursor_default;
 	keypad_mode = app_keypad_keys ? keypad_app : keypad_default;
-	modifiers &= (GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK);
+	modifiers &= GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK;
 
 	/* Search for the conditions. */
 	for (i = 0; entries[i].normal_length; i++)
@@ -757,8 +757,8 @@ _vte_keymap_map(guint keyval,
 	if ((modifiers & entries[i].mod_mask) == entries[i].mod_mask) {
                 if (entries[i].normal_length != -1) {
                         *normal_length = entries[i].normal_length;
-                        *normal = g_memdup(entries[i].normal,
-                                           entries[i].normal_length);
+                        *normal = (char*)g_memdup(entries[i].normal,
+                                                  entries[i].normal_length);
                 } else {
                         *normal_length = strlen(entries[i].normal);
                         *normal = g_strdup(entries[i].normal);
@@ -931,7 +931,7 @@ is_cursor_key(guint keyval)
 
 void
 _vte_keymap_key_add_key_modifiers(guint keyval,
-				  GdkModifierType modifiers,
+				  guint modifiers,
 				  gboolean cursor_app_mode,
 				  char **normal,
 				  gssize *normal_length)
@@ -939,7 +939,7 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 	int modifier, offset;
 	char *nnormal;
 	enum _vte_modifier_encoding_method modifier_encoding_method;
-	GdkModifierType significant_modifiers;
+	guint significant_modifiers;
 
 	significant_modifiers = GDK_SHIFT_MASK |
 				GDK_CONTROL_MASK |
@@ -984,7 +984,7 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 		return;
 	}
 
-	nnormal = g_malloc0(*normal_length + 4);
+	nnormal = g_new0(char, *normal_length + 4);
 	memcpy(nnormal, *normal, *normal_length);
 	if (strlen(nnormal) > 1) {
 		/* SS3 should have no modifiers so make it CSI instead. See

@@ -75,6 +75,8 @@
  * Design discussions: https://bugzilla.gnome.org/show_bug.cgi?id=738601
  */
 
+#include <glib.h>
+#include "config.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -88,6 +90,8 @@
 #endif
 
 #include "vteutils.h"
+
+G_BEGIN_DECLS
 
 #ifdef WITH_GNUTLS
 /* Currently the code requires that a stream cipher (e.g. GCM) is used
@@ -862,7 +866,7 @@ _vte_boa_read_with_overwrite_counter (VteBoa *boa, gsize offset, char *data, _vt
 {
         _vte_block_datalength_t compressed_len;
         gboolean ret = FALSE;
-        char *buf = g_malloc(VTE_SNAKE_BLOCKSIZE);
+        char *buf = (char *)g_malloc(VTE_SNAKE_BLOCKSIZE);
 
         g_assert_cmpuint (offset % VTE_BOA_BLOCKSIZE, ==, 0);
 
@@ -921,8 +925,8 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
 
         /* The helper buffer should be large enough to contain a whole snake block,
          * and also large enough to compress data that actually grows bigger during compression. */
-        char *buf = g_malloc(MAX(VTE_SNAKE_BLOCKSIZE,
-                                 VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE + boa->compressBound));
+        char *buf = (char *)g_malloc(MAX(VTE_SNAKE_BLOCKSIZE,
+                                         VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE + boa->compressBound));
 
         g_assert_cmpuint (offset, >=, boa->tail);
         g_assert_cmpuint (offset, <=, boa->head);
@@ -1050,11 +1054,11 @@ _vte_file_stream_new (void)
 static void
 _vte_file_stream_init (VteFileStream *stream)
 {
-        stream->boa = g_object_new (VTE_TYPE_BOA, NULL);
+        stream->boa = (VteBoa *)g_object_new (VTE_TYPE_BOA, NULL);
         _vte_boa_init (stream->boa);
 
-        stream->rbuf = g_malloc(VTE_BOA_BLOCKSIZE);
-        stream->wbuf = g_malloc(VTE_BOA_BLOCKSIZE);
+        stream->rbuf = (char *)g_malloc(VTE_BOA_BLOCKSIZE);
+        stream->wbuf = (char *)g_malloc(VTE_BOA_BLOCKSIZE);
         stream->rbuf_offset = 1;  /* Invalidate */
 }
 
@@ -1226,6 +1230,8 @@ _vte_file_stream_class_init (VteFileStreamClass *klass)
 	klass->tail = _vte_file_stream_tail;
 	klass->head = _vte_file_stream_head;
 }
+
+G_END_DECLS
 
 /******************************************************************************************/
 

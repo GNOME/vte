@@ -59,7 +59,7 @@ display_control_sequence(const char *name, GValueArray *params)
 				g_printerr("\"%s\"", s);
 			} else
 			if (G_VALUE_HOLDS_POINTER(value)) {
-				w = g_value_get_pointer(value);
+				w = (const gunichar *)g_value_get_pointer(value);
 				g_printerr("\"%ls\"", (const wchar_t*) w);
 			}
 		}
@@ -497,7 +497,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			title = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
-			title = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+			title = vte_ucs4_to_utf8 (terminal, (const guchar *)g_value_get_pointer (value));
 		}
 		if (title != NULL) {
 			char *p, *validated;
@@ -621,8 +621,8 @@ static int
 decset_cmp(const void *va,
            const void *vb)
 {
-        const struct decset_t *a = va;
-        const struct decset_t *b = vb;
+        const struct decset_t *a = (const struct decset_t *)va;
+        const struct decset_t *b = (const struct decset_t *)vb;
 
         return a->setting < b->setting ? -1 : a->setting > b->setting;
 }
@@ -635,7 +635,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 				     gboolean save,
 				     gboolean set)
 {
-	static const struct decset_t const settings[] = {
+	static const struct decset_t settings[] = {
 #define PRIV_OFFSET(member) (G_STRUCT_OFFSET(VteTerminalPrivate, member))
 #define SCREEN_OFFSET(member) (-G_STRUCT_OFFSET(VteScreen, member))
 		/* 1: Application/normal cursor keys. */
@@ -797,7 +797,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 
 	/* Handle the setting. */
         key.setting = setting;
-        found = bsearch(&key, settings, G_N_ELEMENTS(settings), sizeof(settings[0]), decset_cmp);
+        found = (struct decset_t *)bsearch(&key, settings, G_N_ELEMENTS(settings), sizeof(settings[0]), decset_cmp);
         if (!found) {
 		_vte_debug_print (VTE_DEBUG_MISC,
 				  "DECSET/DECRESET mode %d not recognized, ignoring.\n",
@@ -1624,7 +1624,7 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
 		if (G_VALUE_HOLDS_STRING (value))
 			str = g_value_dup_string (value);
 		else if (G_VALUE_HOLDS_POINTER (value))
-			str = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+			str = vte_ucs4_to_utf8 (terminal, (const guchar *)g_value_get_pointer (value));
 
 		if (! str)
 			return;
@@ -2000,7 +2000,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		/* If this parameter is a GValueArray, it can be a fully colon separated 38 or 48
 		 * (see below for details). */
 		if (G_UNLIKELY (G_VALUE_HOLDS_BOXED(value))) {
-			GValueArray *subvalues = g_value_get_boxed(value);
+			GValueArray *subvalues = (GValueArray *)g_value_get_boxed(value);
 			GValue *value0;
 			long param0;
 			gint32 color;
@@ -2114,7 +2114,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 					color = vte_sequence_parse_sgr_38_48_parameters(params, &i);
 				} else if (G_VALUE_HOLDS_BOXED(value1)) {
 					/* The first separator was a semicolon, the rest are colons. */
-					GValueArray *subvalues = g_value_get_boxed(value1);
+					GValueArray *subvalues = (GValueArray *)g_value_get_boxed(value1);
 					unsigned int index = 0;
 					color = vte_sequence_parse_sgr_38_48_parameters(subvalues, &index);
 					/* Bail out on additional colon-separated values. */
@@ -2284,7 +2284,7 @@ vte_sequence_handler_set_current_directory_uri (VteTerminal *terminal, GValueArr
                 value = g_value_array_get_nth(params, 0);
 
                 if (G_VALUE_HOLDS_POINTER(value)) {
-                        uri = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+                        uri = vte_ucs4_to_utf8 (terminal, (const guchar *)g_value_get_pointer (value));
                 } else if (G_VALUE_HOLDS_STRING(value)) {
                         /* Copy the string into the buffer. */
                         uri = g_value_dup_string(value);
@@ -2318,7 +2318,7 @@ vte_sequence_handler_set_current_file_uri (VteTerminal *terminal, GValueArray *p
                 value = g_value_array_get_nth(params, 0);
 
                 if (G_VALUE_HOLDS_POINTER(value)) {
-                        uri = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+                        uri = vte_ucs4_to_utf8 (terminal, (const guchar *)g_value_get_pointer (value));
                 } else if (G_VALUE_HOLDS_STRING(value)) {
                         /* Copy the string into the buffer. */
                         uri = g_value_dup_string(value);
@@ -2865,7 +2865,7 @@ vte_sequence_handler_set_cursor_style (VteTerminal *terminal, GValueArray *param
                 }
         }
 
-        _vte_terminal_set_cursor_style(terminal, style);
+        _vte_terminal_set_cursor_style(terminal, (VteCursorStyle)style);
 }
 
 /* Perform a soft reset. */
@@ -3109,7 +3109,7 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 		if (G_VALUE_HOLDS_STRING (value))
 			name = g_value_dup_string (value);
 		else if (G_VALUE_HOLDS_POINTER (value))
-			name = vte_ucs4_to_utf8 (terminal, g_value_get_pointer (value));
+			name = vte_ucs4_to_utf8 (terminal, (const guchar *)g_value_get_pointer (value));
 
 		if (! name)
 			return;
