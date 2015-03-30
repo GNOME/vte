@@ -92,7 +92,7 @@ static int _vte_pty_helper_tunnel = -1;
 
 #define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
 
-#if !GLIB_CHECK_VERSION(2, 41, 2)
+#if !GLIB_CHECK_VERSION(2, 42, 0)
 #define G_PARAM_EXPLICIT_NOTIFY 0
 #endif
 

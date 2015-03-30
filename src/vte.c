@@ -74,7 +74,7 @@ static inline double round(double x) {
 typedef gunichar wint_t;
 #endif
 
-#if !GLIB_CHECK_VERSION(2, 41, 2)
+#if !GLIB_CHECK_VERSION(2, 42, 0)
 #define G_PARAM_EXPLICIT_NOTIFY 0
 #endif
 
