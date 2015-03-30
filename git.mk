@@ -1,4 +1,5 @@
-# git.mk
+# git.mk, a small Makefile to autogenerate .gitignore files
+# for autotools-based projects.
 #
 # Copyright 2009, Red Hat, Inc.
 # Copyright 2010,2011,2012,2013 Behdad Esfahbod
@@ -9,7 +10,8 @@
 # notice and this notice are preserved.
 #
 # The latest version of this file can be downloaded from:
-#   https://raw.github.com/behdad/git.mk/master/git.mk
+GIT_MK_URL = https://raw.githubusercontent.com/behdad/git.mk/master/git.mk
+#
 # Bugs, etc, should be reported upstream at:
 #   https://github.com/behdad/git.mk
 #
@@ -45,7 +47,8 @@
 # build dir.
 #
 # This file knows how to handle autoconf, automake, libtool, gtk-doc,
-# gnome-doc-utils, yelp.m4, mallard, intltool, gsettings, dejagnu, appdata.
+# gnome-doc-utils, yelp.m4, mallard, intltool, gsettings, dejagnu, appdata,
+# appstream.
 #
 # This makefile provides the following targets:
 #
@@ -90,6 +93,7 @@ GITIGNORE_MAINTAINERCLEANFILES_TOPLEVEL = \
 		missing \
 		mkinstalldirs \
 		test-driver \
+		ylwrap \
 	 ; do echo "$$AUX_DIR/$$x"; done` \
 	`cd $(top_srcdir); $(AUTOCONF) --trace 'AC_CONFIG_HEADERS:$$1' ./configure.ac | \
 	head -n 1 | while read f; do echo "$(srcdir)/$$f.in"; done`
@@ -147,7 +151,10 @@ git-mk-install:
 			fi; \
 	fi; done; test -z "$$any_failed"
 
-.PHONY: git-all git-mk-install
+git-mk-update:
+	wget $(GIT_MK_URL) -O $(top_srcdir)/git.mk
+
+.PHONY: git-all git-mk-install git-mk-update
 
 
 
@@ -207,6 +214,11 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 				$(appdata_XML:.xml=.valid) \
 			; do echo "/$$x"; done; \
 		fi; \
+		if test "x$(appstream_XML)" = x; then :; else \
+			for x in \
+				$(appstream_XML:.xml=.valid) \
+			; do echo "/$$x"; done; \
+		fi; \
 		if test -f $(srcdir)/po/Makefile.in.in; then \
 			for x in \
 				po/Makefile.in.in \
@@ -248,7 +260,7 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 		if test "x$(am__dirstamp)" = x; then :; else \
 			echo "$(am__dirstamp)"; \
 		fi; \
-		if test "x$(LTCOMPILE)" = x -a "x$(GTKDOC_RUN)" = x; then :; else \
+		if test "x$(LTCOMPILE)" = x -a "x$(LTCXXCOMPILE)" = x -a "x$(GTKDOC_RUN)" = x; then :; else \
 			for x in \
 				"*.lo" \
 				".libs" "_libs" \
@@ -266,7 +278,7 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 			$(TEST_LOGS) \
 			$(TEST_LOGS:.log=.trs) \
 			$(TEST_SUITE_LOG) \
-			"*.$(OBJEXT)" \
+			$(TESTS:=.test) \
 			"*.gcda" \
 			"*.gcno" \
 			$(DISTCLEANFILES) \
@@ -276,7 +288,6 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 			"*.tab.c" \
 			$(MAINTAINERCLEANFILES) \
 			$(BUILT_SOURCES) \
-			$(DEPDIR) \
 			$(patsubst %.vala,%.c,$(filter %.vala,$(SOURCES))) \
 			$(filter %_vala.stamp,$(DIST_COMMON)) \
 			$(filter %.vapi,$(DIST_COMMON)) \
@@ -290,6 +301,10 @@ $(srcdir)/.gitignore: Makefile.am $(top_srcdir)/git.mk
 			".*.sw[nop]" \
 			".dirstamp" \
 		; do echo "/$$x"; done; \
+		for x in \
+			"*.$(OBJEXT)" \
+			$(DEPDIR) \
+		; do echo "$$x"; done; \
 	} | \
 	sed "s@^/`echo "$(srcdir)" | sed 's/\(.\)/[\1]/g'`/@/@" | \
 	sed 's@/[.]/@/@g' | \
