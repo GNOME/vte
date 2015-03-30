@@ -111,6 +111,10 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS = \
 	$(VTE_CFLAGS) \
 	$(AM_CFLAGS)
 
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CXXFLAGS = \
+	$(VTE_CFLAGS) \
+	$(AM_CXXFLAGS)
+
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
 	$(VTE_LDFLAGS) \
 	-version-info $(LT_VERSION_INFO) \
@@ -311,14 +315,20 @@ noinst_PROGRAMS += interpret slowcat
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
-TEST_SH = \
+check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv vtestream-file
+
+dist_check_SCRIPTS = \
 	check-doc-syntax.sh \
+	check-libstdc++.sh \
 	test-vte-sh.sh \
 	$(NULL)
-EXTRA_DIST += $(TEST_SH)
 
-check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv vtestream-file
-TESTS = table vteconv vtestream-file $(TEST_SH)
+TESTS = table vteconv vtestream-file $(dist_check_SCRIPTS)
+TESTS_ENVIRONMENT = \
+	srcdir="$(srcdir)" \
+	top_builddir="$(top_builddir)" \
+	VTE_API_VERSION="$(VTE_API_VERSION)" \
+	$(NULL)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)

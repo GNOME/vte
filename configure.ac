@@ -54,6 +54,7 @@ AC_SUBST([GTK_API_VERSION])
 
 # Check for programs
 AC_PROG_CC
+AC_PROG_CXX
 AC_USE_SYSTEM_EXTENSIONS
 AC_HEADER_STDC
 AM_PROG_CC_C_O
@@ -62,6 +63,9 @@ AC_PROG_SED
 # Initialize libtool
 LT_PREREQ([2.2])
 LT_INIT
+
+AM_CONDITIONAL([HAVE_GCC],[test "$GCC" = "yes"])
+AM_CONDITIONAL([HAVE_GXX],[test "$GXX" = "yes"])
 
 ################################################################################
 # Enable debugging messages and additional run-time checks.
@@ -93,49 +97,63 @@ AC_CHECK_DECLS(bind_textdomain_codeset,,,[#include "libintl.h"])
 # Compilation
 ################################################################################
 
-CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[ \
-  -pipe \
-  -Waggregate-return \
-  -Wall \
-  -Wcast-align \
-  -Wendif-labels \
-  -Werror=declaration-after-statement \
-  "-Werror=format=2 -Werror=format-nonliteral -Werror=format-security" \
-  -Werror=implicit-function-declaration \
-  -Werror=init-self \
-  -Werror=missing-include-dirs \
-  -Werror=missing-prototypes \
-  -Werror=pointer-arith \
-  -Wextra \
-  -Wfloat-equal \
-  -Wimplicit \
-  -Wlogical-op \
-  -Wmissing-declarations \
-  -Wmissing-include-dirs \
-  -Wmissing-format-attribute \
-  -Wmissing-noreturn \
-  -Wnested-externs \
-  -Wno-missing-field-initializers \
-  -Wno-switch-enum \
-  -Wno-unused-parameter \
-  -Wold-style-definition \
-  -Wpacked \
-  -Wshadow \
-  -Wsign-compare \
-  -Wstrict-aliasing=2 \
-  -Wstrict-prototypes \
-  -Wundef \
-  -Wuninitialized \
-  -Wunsafe-loop-optimizations \
-  -Wwrite-strings \
-  -fno-common \
-  -fdiagnostics-show-option \
-  -fno-strict-aliasing \
-  -fstack-protector \
-  -fstack-protector-strong \
-  -fno-semantic-interposition \
-  -Wno-deprecated-declarations \
+m4_define([compiler_flags_common],[ dnl
+  -pipe dnl
+  -Waggregate-return dnl
+  -Wall dnl
+  -Wcast-align dnl
+  -Wendif-labels dnl
+  -Werror=declaration-after-statement dnl
+  "-Werror=format=2 -Werror=format-nonliteral -Werror=format-security" dnl
+  -Werror=implicit-function-declaration dnl
+  -Werror=init-self dnl
+  -Werror=missing-include-dirs dnl
+  -Werror=missing-prototypes dnl
+  -Werror=pointer-arith dnl
+  -Wextra dnl
+  -Wfloat-equal dnl
+  -Wlogical-op dnl
+  -Wmissing-declarations dnl
+  -Wmissing-include-dirs dnl
+  -Wmissing-format-attribute dnl
+  -Wmissing-noreturn dnl
+  -Wno-missing-field-initializers dnl
+  -Wno-switch-enum dnl
+  -Wno-unused-parameter dnl
+  -Wpacked dnl
+  -Wshadow dnl
+  -Wsign-compare dnl
+  -Wstrict-aliasing=2 dnl
+  -Wundef dnl
+  -Wuninitialized dnl
+  -Wunsafe-loop-optimizations dnl
+  -Wwrite-strings dnl
+  -fno-common dnl
+  -fdiagnostics-show-option dnl
+  -fno-strict-aliasing dnl
+  -fstack-protector dnl
+  -fstack-protector-strong dnl
+  -fno-semantic-interposition dnl
+  -Wno-deprecated-declarations dnl
 ])
+
+m4_define([compiler_flags_only_c],[ dnl
+  -Wimplicit dnl
+  -Wnested-externs dnl
+  -Wold-style-definition dnl
+  -Wstrict-prototypes dnl
+])
+
+m4_define([compiler_flags_only_cxx],[ dnl
+  -fno-rtti dnl
+  -fno-exceptions dnl
+])
+
+CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[compiler_flags_common compiler_flags_only_c])
+
+AC_LANG_PUSH([C++])
+CC_CHECK_FLAGS_APPEND([AM_CXXFLAGS],[CXXFLAGS],[compiler_flags_common compiler_flags_only_cxx])
+AC_LANG_POP([C++])
 
 ##########################################################
 # Check for -Bsymbolic-functions linker flag used to avoid
@@ -150,16 +168,28 @@ AC_ARG_ENABLE([Bsymbolic],
 VTE_LDFLAGS=
 if test "$enable_Bsymbolic" != "no"; then
   CC_CHECK_LDFLAGS(["-Wl,-Bsymbolic-functions"],
-    [VTE_LDFLAGS="$VTE_LDFLAGS -Wl,-Bsymbolic-functions"],
+    [VTE_LDFLAGS="$VTE_CXXLDFLAGS -Wl,-Bsymbolic-functions"],
     [if test "$enable_Bsymbolic" = "auto"; then
        AC_MSG_WARN([-Bsymbolic not supported by ld; disabling])
        enable_Bsymbolic=no
      else
        AC_MSG_ERROR([-Bsymbolic requested but not supported by ld. Use --disable-Bsymbolic to disable])
      fi])
+
+  AC_LANG_PUSH([C++])
+  CC_CHECK_LDFLAGS(["-Wl,-Bsymbolic-functions"],
+    [VTE_LDFLAGS="$VTE_CXXLDFLAGS -Wl,-Bsymbolic-functions"],
+    [if test "$enable_Bsymbolic" = "auto"; then
+       AC_MSG_WARN([-Bsymbolic not supported by ld; disabling])
+       enable_Bsymbolic=no
+     else
+       AC_MSG_ERROR([-Bsymbolic requested but not supported by ld. Use --disable-Bsymbolic to disable])
+     fi])
+  AC_LANG_POP([C++])
 fi
 
 AC_SUBST([VTE_LDFLAGS])
+AC_SUBST([VTE_CXXLDFLAGS])
 
 ################################################################################
 # Core
@@ -332,6 +362,7 @@ AC_SUBST([VTE_MICRO_VERSION],[version_micro])
 
 AC_SUBST([AM_CPPFLAGS])
 AC_SUBST([AM_CFLAGS])
+AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_LDFLAGS])
 
 ################################################################################
