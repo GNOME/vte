@@ -7665,7 +7665,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 		screen->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
 		new_top_lines = below_current_paragraph.row - screen->insert_delta;
 		drop1 = _vte_ring_length(ring) - terminal->pvt->row_count;
-		drop2 = _vte_ring_length(ring) - below_current_paragraph.row;
+		drop2 = _vte_ring_next(ring) - below_current_paragraph.row;
 		drop3 = old_top_lines - new_top_lines;
 		drop = MIN(MIN(drop1, drop2), drop3);
 		if (drop > 0) {
