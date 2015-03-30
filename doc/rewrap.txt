@@ -253,14 +253,14 @@ the lines (if necessary) after rewrapping, but before computing the new
 scrollbar offsets, and we drop the highest number of lines that satisfies all
 these three conditions:
 
- - We shouldn't drop more lines than necessary to fit the content without
-   scrollbars.
+ - drop1: We shouldn't drop more lines than necessary to fit the content
+   without scrollbars.
 
- - We should only drop data that's below the cursor's paragraph. (We don't
-   drop data that is under the cursor's row, but belongs to the same
+ - drop2: We should only drop data that's below the cursor's paragraph. (We
+   don't drop data that is under the cursor's row, but belongs to the same
    paragraph).
 
- - We track the character cell that immediately follows the cursor's
+ - drop3: We track the character cell that immediately follows the cursor's
    paragraph (that is, the line after this paragraph, first column), and see
    how much it would get closer to the top of the window (assuming viewport is
    scrolled to the bottom). The original bug is about that the cursor
