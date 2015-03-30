@@ -65,24 +65,7 @@
 #include <gio/gio.h>
 #include "debug.h"
 
-#ifdef MSG_NOSIGNAL
-#define PTY_RECVMSG_FLAGS MSG_NOSIGNAL
-#else
-#define PTY_RECVMSG_FLAGS 0
-#endif
-
 #include <glib/gi18n-lib.h>
-
-#ifdef VTE_USE_GNOME_PTY_HELPER
-#include <sys/uio.h>
-#ifdef HAVE_SYS_UN_H
-#include <sys/un.h>
-#endif
-#include "../gnome-pty-helper/gnome-pty.h"
-static gboolean _vte_pty_helper_started = FALSE;
-static pid_t _vte_pty_helper_pid = -1;
-static int _vte_pty_helper_tunnel = -1;
-#endif
 
 #if defined(HAVE_PTSNAME_R) || defined(HAVE_PTSNAME) || defined(TIOCGPTN)
 #define HAVE_UNIX98_PTY
@@ -228,11 +211,8 @@ struct _VtePtyPrivate {
 
         VtePtyChildSetupData child_setup_data;
 
-        gpointer helper_tag; /* only use when using_helper is TRUE */
-
         guint utf8 : 1;
         guint foreign : 1;
-        guint using_helper : 1;
 };
 
 struct _VtePtyClass {
@@ -869,7 +849,6 @@ _vte_pty_open_unix98(VtePty *pty,
         priv->pty_fd = fd;
         priv->child_setup_data.mode = TTY_OPEN_BY_NAME;
         priv->child_setup_data.tty.name = buf;
-        priv->using_helper = FALSE;
 
         return TRUE;
 }
@@ -903,7 +882,6 @@ _vte_pty_open_bsd(VtePty *pty,
 	priv->pty_fd = parentfd;
 	priv->child_setup_data.mode = TTY_OPEN_BY_FD;
 	priv->child_setup_data.tty.fd = childfd;
-	priv->using_helper = FALSE;
 
 	return TRUE;
 }
@@ -911,407 +889,6 @@ _vte_pty_open_bsd(VtePty *pty,
 #else
 #error Have neither UNIX98 PTY nor BSD openpty!
 #endif /* HAVE_UNIX98_PTY */
-
-#ifdef VTE_USE_GNOME_PTY_HELPER
-#ifdef HAVE_RECVMSG
-static void
-_vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
-{
-	int i, ret;
-	char control[LINE_MAX], iobuf[LINE_MAX];
-	struct cmsghdr *cmsg;
-	struct msghdr msg;
-	struct iovec vec;
-
-	for (i = 0; i < 2; i++) {
-		vec.iov_base = iobuf;
-		vec.iov_len = sizeof(iobuf);
-		msg.msg_name = NULL;
-		msg.msg_namelen = 0;
-		msg.msg_iov = &vec;
-		msg.msg_iovlen = 1;
-		msg.msg_control = control;
-		msg.msg_controllen = sizeof(control);
-		ret = recvmsg(tunnel, &msg, PTY_RECVMSG_FLAGS);
-		if (ret == -1) {
-			return;
-		}
-		for (cmsg = CMSG_FIRSTHDR(&msg);
-		     cmsg != NULL;
-		     cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-			if (cmsg->cmsg_type == SCM_RIGHTS) {
-				memcpy(&ret, CMSG_DATA(cmsg), sizeof(ret));
-				switch (i) {
-					case 0:
-						*parentfd = ret;
-						break;
-					case 1:
-						*childfd = ret;
-						break;
-					default:
-						g_assert_not_reached();
-						break;
-				}
-			}
-		}
-	}
-}
-#elif defined (I_RECVFD)
-static void
-_vte_pty_read_ptypair(int tunnel, int *parentfd, int *childfd)
-{
-	int i;
-	if (ioctl(tunnel, I_RECVFD, &i) == -1) {
-		return;
-	}
-	*parentfd = i;
-	if (ioctl(tunnel, I_RECVFD, &i) == -1) {
-		return;
-	}
-	*childfd = i;
-}
-#endif
-
-#ifdef HAVE_SOCKETPAIR
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-#ifdef PF_UNIX
-#ifdef SOCK_STREAM
-	ret = socketpair(PF_UNIX, SOCK_STREAM, 0, p);
-#else
-#ifdef SOCK_DGRAM
-	ret = socketpair(PF_UNIX, SOCK_DGRAM, 0, p);
-#endif
-#endif
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-		return 0;
-	}
-#endif
-	return ret;
-}
-#else
-static int
-_vte_pty_pipe_open(int *a, int *b)
-{
-	int p[2], ret = -1;
-
-	ret = pipe(p);
-
-	if (ret == 0) {
-		*a = p[0];
-		*b = p[1];
-	}
-	return ret;
-}
-#endif
-
-/* Like read, but hide EINTR and EAGAIN. */
-static ssize_t
-n_read(int fd, void *buffer, size_t count)
-{
-	size_t n = 0;
-	char *buf = buffer;
-	int i;
-	while (n < count) {
-		i = read(fd, buf + n, count - n);
-		switch (i) {
-		case 0:
-			return n;
-		case -1:
-			switch (errno) {
-			case EINTR:
-			case EAGAIN:
-#ifdef ERESTART
-			case ERESTART:
-#endif
-				break;
-			default:
-				return -1;
-			}
-			break;
-		default:
-			n += i;
-			break;
-		}
-	}
-	return n;
-}
-
-/* Like write, but hide EINTR and EAGAIN. */
-static ssize_t
-n_write(int fd, const void *buffer, size_t count)
-{
-	size_t n = 0;
-	const char *buf = buffer;
-	int i;
-	while (n < count) {
-		i = write(fd, buf + n, count - n);
-		switch (i) {
-		case 0:
-			return n;
-		case -1:
-			switch (errno) {
-			case EINTR:
-			case EAGAIN:
-#ifdef ERESTART
-			case ERESTART:
-#endif
-				break;
-			default:
-				return -1;
-			}
-			break;
-		default:
-			n += i;
-			break;
-		}
-	}
-	return n;
-}
-
-/*
- * _vte_pty_stop_helper:
- *
- * Terminates the running GNOME PTY helper.
- */
-static void
-_vte_pty_stop_helper(void)
-{
-	if (_vte_pty_helper_started) {
-		close(_vte_pty_helper_tunnel);
-		_vte_pty_helper_tunnel = -1;
-		kill(_vte_pty_helper_pid, SIGTERM);
-		_vte_pty_helper_pid = -1;
-		_vte_pty_helper_started = FALSE;
-	}
-}
-
-/*
- * _vte_pty_start_helper:
- * @error: a location to store a #GError, or %NULL
- *
- * Starts the GNOME PTY helper process, if it is not already running.
- *
- * Returns: %TRUE if the helper was already started, or starting it succeeded,
- *   %FALSE on failure with @error filled in
- */
-static gboolean
-_vte_pty_start_helper(GError **error)
-{
-	int i, errsv;
-        int tunnel = -1;
-        int tmp[2] = { -1, -1 };
-
-        if (_vte_pty_helper_started)
-                return TRUE;
-
-	/* Create a communication link for use with the helper. */
-	tmp[0] = open("/dev/null", O_RDONLY);
-	if (tmp[0] == -1) {
-		goto failure;
-	}
-	tmp[1] = open("/dev/null", O_RDONLY);
-	if (tmp[1] == -1) {
-		goto failure;
-	}
-	if (_vte_pty_pipe_open(&_vte_pty_helper_tunnel, &tunnel) != 0) {
-		goto failure;
-	}
-	close(tmp[0]);
-	close(tmp[1]);
-        tmp[0] = tmp[1] = -1;
-
-	/* Now fork and start the helper. */
-	_vte_pty_helper_pid = fork();
-	if (_vte_pty_helper_pid == -1) {
-		goto failure;
-	}
-	if (_vte_pty_helper_pid == 0) {
-		/* Child.  Close descriptors.  No need to close all,
-		 * gnome-pty-helper does that anyway. */
-		for (i = 0; i < 3; i++) {
-			close(i);
-		}
-		/* Reassign the socket pair to stdio. */
-		dup2(tunnel, STDIN_FILENO);
-		dup2(tunnel, STDOUT_FILENO);
-		close(tunnel);
-		close(_vte_pty_helper_tunnel);
-		/* Exec our helper. */
-		execl(LIBEXECDIR "/gnome-pty-helper",
-		      "gnome-pty-helper", NULL);
-		/* Bail. */
-		_exit(1);
-	}
-	close(tunnel);
-	atexit(_vte_pty_stop_helper);
-
-        _vte_pty_helper_started = TRUE;
-	return TRUE;
-
-failure:
-        errsv = errno;
-
-        g_set_error(error, VTE_PTY_ERROR,
-                    VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                    "Failed to start gnome-pty-helper: %s",
-                    g_strerror (errsv));
-
-        if (tmp[0] != -1)
-                close(tmp[0]);
-        if (tmp[1] != -1)
-                close(tmp[1]);
-        if (tunnel != -1)
-                close(tunnel);
-        if (_vte_pty_helper_tunnel != -1)
-                close(_vte_pty_helper_tunnel);
-
-        _vte_pty_helper_pid = -1;
-        _vte_pty_helper_tunnel = -1;
-
-        errno = errsv;
-        return FALSE;
-}
-
-/*
- * _vte_pty_helper_ops_from_flags:
- * @flags: flags from #VtePtyFlags
- *
- * Translates @flags into the corresponding op code for the
- * GNOME PTY helper.
- *
- * Returns: the #GnomePtyOps corresponding to @flags
- */
-static int
-_vte_pty_helper_ops_from_flags (VtePtyFlags flags)
-{
-	int op = 0;
-	static const int opmap[8] = {
-		GNOME_PTY_OPEN_NO_DB_UPDATE,		/* 0 0 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOG,		/* 0 0 1 */
-		GNOME_PTY_OPEN_PTY_UTMP,		/* 0 1 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOGUTMP,		/* 0 1 1 */
-		GNOME_PTY_OPEN_PTY_WTMP,		/* 1 0 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOGWTMP,		/* 1 0 1 */
-		GNOME_PTY_OPEN_PTY_UWTMP,		/* 1 1 0 */
-		GNOME_PTY_OPEN_PTY_LASTLOGUWTMP,	/* 1 1 1 */
-	};
-	if ((flags & VTE_PTY_NO_LASTLOG) == 0) {
-		op += 1;
-	}
-	if ((flags & VTE_PTY_NO_UTMP) == 0) {
-		op += 2;
-	}
-	if ((flags & VTE_PTY_NO_WTMP) == 0) {
-		op += 4;
-	}
-	g_assert(op >= 0 && op < (int) G_N_ELEMENTS(opmap));
-
-        return opmap[op];
-}
-
-/*
- * _vte_pty_open_with_helper:
- * @pty: a #VtePty
- * @error: a location to store a #GError, or %NULL
- *
- * Opens a new file descriptor to a new PTY master using the
- * GNOME PTY helper.
- *
- * Returns: %TRUE on success, %FALSE on failure with @error filled in
- */
-static gboolean
-_vte_pty_open_with_helper(VtePty *pty,
-                          GError **error)
-{
-        VtePtyPrivate *priv = pty->priv;
-	GnomePtyOps ops;
-	int ret;
-	int parentfd = -1, childfd = -1;
-	gpointer tag;
-
-	/* We have to use the pty helper here. */
-	if (!_vte_pty_start_helper(error))
-                return FALSE;
-
-	/* Try to open a new descriptor. */
-
-        ops = _vte_pty_helper_ops_from_flags(priv->flags);
-        /* Send our request. */
-        if (n_write(_vte_pty_helper_tunnel,
-                    &ops, sizeof(ops)) != sizeof(ops)) {
-                g_set_error (error, VTE_PTY_ERROR,
-                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                              "Failed to send request to gnome-pty-helper: %s",
-                              g_strerror(errno));
-                return FALSE;
-        }
-        _vte_debug_print(VTE_DEBUG_PTY, "Sent request to helper.\n");
-        /* Read back the response. */
-        if (n_read(_vte_pty_helper_tunnel,
-                    &ret, sizeof(ret)) != sizeof(ret)) {
-                g_set_error (error, VTE_PTY_ERROR,
-                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                              "Failed to read response from gnome-pty-helper: %s",
-                              g_strerror(errno));
-                return FALSE;
-        }
-        _vte_debug_print(VTE_DEBUG_PTY,
-                        "Received response from helper.\n");
-        if (ret == 0) {
-                g_set_error_literal (error, VTE_PTY_ERROR,
-                                      VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                      "gnome-pty-helper failed to open pty");
-                return FALSE;
-        }
-        _vte_debug_print(VTE_DEBUG_PTY, "Helper returns success.\n");
-        /* Read back a tag. */
-        if (n_read(_vte_pty_helper_tunnel,
-                    &tag, sizeof(tag)) != sizeof(tag)) {
-                g_set_error (error, VTE_PTY_ERROR,
-                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                              "Failed to read tag from gnome-pty-helper: %s",
-                              g_strerror(errno));
-                return FALSE;
-        }
-        _vte_debug_print(VTE_DEBUG_PTY, "Tag = %p.\n", tag);
-        /* Receive the master and slave ptys. */
-        _vte_pty_read_ptypair(_vte_pty_helper_tunnel,
-                              &parentfd, &childfd);
-
-        if ((parentfd == -1) || (childfd == -1)) {
-                int errsv = errno;
-
-                close(parentfd);
-                close(childfd);
-
-                g_set_error (error, VTE_PTY_ERROR,
-                              VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                              "Failed to read master or slave pty from gnome-pty-helper: %s",
-                              g_strerror(errsv));
-                errno = errsv;
-                return FALSE;
-        }
-
-        _vte_debug_print(VTE_DEBUG_PTY,
-                        "Got master pty %d and slave pty %d.\n",
-                        parentfd, childfd);
-
-        priv->using_helper = TRUE;
-        priv->helper_tag = tag;
-        priv->pty_fd = parentfd;
-
-        priv->child_setup_data.mode = TTY_OPEN_BY_FD;
-        priv->child_setup_data.tty.fd = childfd;
-
-        return TRUE;
-}
-
-#endif /* VTE_USE_GNOME_PTY_HELPER */
 
 /**
  * vte_pty_set_utf8:
@@ -1373,43 +950,13 @@ vte_pty_set_utf8(VtePty *pty,
  * vte_pty_close:
  * @pty: a #VtePty
  *
- * Cleans up the PTY, specifically any logging performed for the session.
- * The file descriptor to the PTY master remains open.
+ * Since 0.42 this is a no-op.
+ *
+ * Deprecated: 0.42
  */
 void
 vte_pty_close (VtePty *pty)
 {
-#ifdef VTE_USE_GNOME_PTY_HELPER
-        VtePtyPrivate *priv = pty->priv;
-	gpointer tag;
-	GnomePtyOps ops;
-
-        if (!priv->using_helper)
-                return;
-
-        /* Signal the helper that it needs to close its connection. */
-        tag = priv->helper_tag;
-
-        ops = GNOME_PTY_CLOSE_PTY;
-        if (n_write(_vte_pty_helper_tunnel,
-                    &ops, sizeof(ops)) != sizeof(ops)) {
-                return;
-        }
-        if (n_write(_vte_pty_helper_tunnel,
-                    &tag, sizeof(tag)) != sizeof(tag)) {
-                return;
-        }
-
-        ops = GNOME_PTY_SYNCH;
-        if (n_write(_vte_pty_helper_tunnel,
-                    &ops, sizeof(ops)) != sizeof(ops)) {
-                return;
-        }
-        n_read(_vte_pty_helper_tunnel, &ops, 1);
-
-        priv->helper_tag = NULL;
-        priv->using_helper = FALSE;
-#endif
 }
 
 /* VTE PTY class */
@@ -1443,40 +990,6 @@ vte_pty_initable_init (GInitable *initable,
                 return TRUE;
         }
 
-#ifdef VTE_USE_GNOME_PTY_HELPER
-	if ((priv->flags & VTE_PTY_NO_HELPER) == 0) {
-                GError *err = NULL;
-
-		ret = _vte_pty_open_with_helper(pty, &err);
-                g_assert(ret || err != NULL);
-
-                if (ret)
-                        goto out;
-
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "_vte_pty_open_with_helper failed: %s\n",
-                                 err->message);
-
-                /* Only do fallback if gnome-pty-helper failed! */
-                if ((priv->flags & VTE_PTY_NO_FALLBACK) ||
-                    !g_error_matches(err,
-                                     VTE_PTY_ERROR,
-                                     VTE_PTY_ERROR_PTY_HELPER_FAILED)) {
-                        g_propagate_error (error, err);
-                        goto out;
-                }
-
-                g_error_free(err);
-                /* Fall back to unix98 or bsd PTY */
-        }
-#else
-        if (priv->flags & VTE_PTY_NO_FALLBACK) {
-                g_set_error_literal(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY_HELPER_FAILED,
-                                    "VTE compiled without GNOME PTY helper");
-                goto out;
-        }
-#endif /* VTE_USE_GNOME_PTY_HELPER */
-
 #if defined(HAVE_UNIX98_PTY)
         ret = _vte_pty_open_unix98(pty, error);
 #elif defined(HAVE_OPENPTY)
@@ -1485,7 +998,6 @@ vte_pty_initable_init (GInitable *initable,
 #error Have neither UNIX98 PTY nor BSD openpty!
 #endif
 
-  out:
 	_vte_debug_print(VTE_DEBUG_PTY,
 			"vte_pty_initable_init returning %s with ptyfd = %d\n",
 			ret ? "TRUE" : "FALSE", priv->pty_fd);
@@ -1514,8 +1026,6 @@ vte_pty_init (VtePty *pty)
         priv->flags = VTE_PTY_DEFAULT;
         priv->pty_fd = -1;
         priv->foreign = FALSE;
-        priv->using_helper = FALSE;
-        priv->helper_tag = NULL;
 }
 
 static void
@@ -1529,8 +1039,6 @@ vte_pty_finalize (GObject *object)
                 /* Close the child FD */
                 close(priv->child_setup_data.tty.fd);
         }
-
-        vte_pty_close(pty);
 
         /* Close the master FD */
         if (priv->pty_fd != -1) {
@@ -1601,8 +1109,7 @@ vte_pty_class_init (VtePtyClass *klass)
         /**
          * VtePty:flags:
          *
-         * Controls how the session is recorded in lastlog, utmp, and wtmp,
-         * and whether to use the GNOME PTY helper.
+         * Flags.
          */
         g_object_class_install_property
                 (object_class,
@@ -1672,17 +1179,6 @@ vte_pty_error_quark(void)
  * function; you must not call it again.
  *
  * Also, you MUST pass the %G_SPAWN_DO_NOT_REAP_CHILD flag.
- *
- * If GNOME PTY Helper is available and
- * unless some of the %VTE_PTY_NO_LASTLOG, %VTE_PTY_NO_UTMP or
- * %VTE_PTY_NO_WTMP flags are passed in @flags, the
- * session is logged in the corresponding lastlog, utmp or wtmp
- * system files.  When passing %VTE_PTY_NO_HELPER in @flags, the
- * GNOME PTY Helper is bypassed entirely.
- *
- * When passing %VTE_PTY_NO_FALLBACK in @flags,
- * and opening a PTY using the PTY helper fails, there will
- * be no fallback to allocate a PTY using Unix98 PTY functions.
  *
  * Returns: (transfer full): a new #VtePty, or %NULL on error with @error filled in
  */

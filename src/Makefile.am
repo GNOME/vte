@@ -178,7 +178,6 @@ Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	vte.c \
 	vte.h \
-	vtedeprecated.h \
 	vteenums.h \
 	vteglobals.h \
 	vtemacros.h \

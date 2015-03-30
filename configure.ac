@@ -10,7 +10,7 @@ AC_INIT([vte],
         [vte])
 
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([src/vte.c])
+AC_CONFIG_SRCDIR([src/vteapp.c])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.9 foreign no-dist-gzip dist-bzip2 -Wno-portability])
@@ -194,7 +194,7 @@ VTE_DEFAULT_TERM=xterm-256color
 AC_DEFINE_UNQUOTED(VTE_DEFAULT_TERM,"$VTE_DEFAULT_TERM",[The default value $TERM is set to.])
 
 # Check for headers.
-AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/un.h sys/wait.h stropts.h termios.h util.h wchar.h)
+AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/wait.h stropts.h termios.h util.h wchar.h)
 AC_HEADER_TIOCGWINSZ
 
 # Check for PTY handling functions.
@@ -205,19 +205,7 @@ AC_CHECK_FUNCS([pread pwrite fwrite_unlocked])
 
 # Pull in the right libraries for various functions which might not be
 # bundled into an exploded libc.
-AC_CHECK_FUNC(socket,[have_socket=1],AC_CHECK_LIB(socket,socket,[have_socket=1; LIBS="$LIBS -lsocket"]))
-AC_CHECK_FUNC(socketpair,[have_socketpair=1],AC_CHECK_LIB(socket,socketpair,[have_socketpair=1; LIBS="$LIBS -lsocket"]))
-AC_CHECK_FUNC(recvmsg,[have_recvmsg=1],AC_CHECK_LIB(socket,recvmsg,[have_recvmsg=1; LIBS="$LIBS -lsocket -lnsl"]))
 AC_CHECK_FUNC(openpty,[have_openpty=1],AC_CHECK_LIB(util,openpty,[have_openpty=1; LIBS="$LIBS -lutil"]))
-if test x$have_socket = x1 ; then
-	AC_DEFINE(HAVE_SOCKET,1,[Define if you have the socket function.])
-fi
-if test x$have_socketpair = x1 ; then
-	AC_DEFINE(HAVE_SOCKETPAIR,1,[Define if you have the socketpair function.])
-fi
-if test x$have_recvmsg = x1 ; then
-	AC_DEFINE(HAVE_RECVMSG,1,[Define if you have the recvmsg function.])
-fi
 if test x$have_openpty = x1 ; then
 	AC_DEFINE(HAVE_OPENPTY,1,[Define if you have the openpty function.])
 fi
@@ -251,22 +239,6 @@ wcs_funcs_includes="
 "
 
 AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is supported]), ,$wcs_funcs_includes)
-
-################################################################################
-# GNOME PTY Helper
-################################################################################
-
-AC_MSG_CHECKING([whether to build the PTY helper binary])
-AC_ARG_ENABLE(gnome-pty-helper,
-  [AS_HELP_STRING([--disable-gnome-pty-helper],
-                  [Build a setuid helper for opening ptys])],
-  [],[enable_gnome_pty_helper=no])
-AC_MSG_RESULT([$enable_gnome_pty_helper])
-if test "$enable_gnome_pty_helper" != no; then
-	AC_DEFINE(VTE_USE_GNOME_PTY_HELPER,1,[Define if you intend to use gnome-pty-helper.])
-	AC_CONFIG_SUBDIRS(gnome-pty-helper)
-fi
-AM_CONDITIONAL(BUILD_GNOME_PTY_HELPER,[test "$enable_gnome_pty_helper" != no])
 
 ################################################################################
 # Glade catalogue
@@ -399,5 +371,4 @@ Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Introspection: $enable_introspection
         Vala bindings: $enable_vala
         Test application: $enable_test_application
-	PTY helper: $enable_gnome_pty_helper
 EOF

@@ -36,6 +36,10 @@ void vte_terminal_match_set_cursor(VteTerminal *terminal,
                                    int tag,
                                    GdkCursor *cursor) _VTE_GNUC_NONNULL(1);
 
+
+_VTE_DEPRECATED
+void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED

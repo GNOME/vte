@@ -80,8 +80,7 @@ typedef enum {
 
 /**
  * VtePtyError:
- * @VTE_PTY_ERROR_PTY_HELPER_FAILED: failure when using the GNOME PTY helper to
- *   allocate the PTY
+ * @VTE_PTY_ERROR_PTY_HELPER_FAILED: Obsolete. Deprecated: 0.42
  * @VTE_PTY_ERROR_PTY98_FAILED: failure when using PTY98 to allocate the PTY
  */
 typedef enum {
@@ -91,12 +90,11 @@ typedef enum {
 
 /**
  * VtePtyFlags:
- * @VTE_PTY_NO_LASTLOG: don't record the session in lastlog. Deprecated: 0.38
- * @VTE_PTY_NO_UTMP: don't record the session in utmp. Deprecated: 0.38
- * @VTE_PTY_NO_WTMP: don't record the session in wtmp. Deprecated: 0.38
- * @VTE_PTY_NO_HELPER: don't use the GNOME PTY helper to allocate the PTY. Deprecated: 0.38
- * @VTE_PTY_NO_FALLBACK: when allocating the PTY with the PTY helper fails,
- *   don't fall back to try using PTY98. Deprecated: 0.38
+ * @VTE_PTY_NO_LASTLOG: Unused. Deprecated: 0.38
+ * @VTE_PTY_NO_UTMP: Unused. Deprecated: 0.38
+ * @VTE_PTY_NO_WTMP: Unused. Deprecated: 0.38
+ * @VTE_PTY_NO_HELPER: Unused. Deprecated: 0.38
+ * @VTE_PTY_NO_FALLBACK: Unused. Deprecated: 0.38
  * @VTE_PTY_DEFAULT: the default flags
  */
 typedef enum {

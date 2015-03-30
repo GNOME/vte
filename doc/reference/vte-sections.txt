@@ -58,7 +58,6 @@ vte_terminal_match_remove
 vte_terminal_match_remove_all
 vte_terminal_match_check
 vte_terminal_match_check_event
-vte_terminal_match_set_cursor
 vte_terminal_match_set_cursor_type
 vte_terminal_match_set_cursor_name
 vte_terminal_set_cjk_ambiguous_width
@@ -117,6 +116,9 @@ vte_terminal_get_window_title
 vte_terminal_get_current_directory_uri
 vte_terminal_get_current_file_uri
 
+<SUBSECTION Deprecated>
+vte_terminal_match_set_cursor
+
 <SUBSECTION Private>
 VteCharAttributes
 VteTerminalPrivate
@@ -131,7 +133,6 @@ VtePtyError
 VtePty
 vte_pty_new_sync
 vte_pty_new_foreign_sync
-vte_pty_close
 vte_pty_child_setup
 vte_pty_get_fd
 vte_pty_set_size
@@ -154,6 +155,9 @@ VTE_IS_PTY
 VTE_IS_PTY_CLASS
 VTE_PTY_GET_CLASS
 VtePtyClass
+
+<SUBSECTION Deprecated>
+vte_pty_close
 </SECTION>
 
 <SECTION>

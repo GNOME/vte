@@ -11,10 +11,6 @@ EXTRA_DIST = \
 
 DISTCLEANFILES =
 
-if BUILD_GNOME_PTY_HELPER
-SUBDIRS += gnome-pty-helper
-endif
-
 if ENABLE_GLADE_CATALOGUE
 SUBDIRS += glade
 endif
@@ -27,7 +23,6 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-introspection \
 	--enable-vala \
 	--enable-test-application \
-	--enable-gnome-pty-helper \
 	--disable-silent-rules \
 	--with-gtk=3.0
 

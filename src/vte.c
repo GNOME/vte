@@ -8637,7 +8637,6 @@ vte_terminal_finalize(GObject *object)
 		g_io_channel_unref (terminal->pvt->pty_channel);
 	}
 	if (terminal->pvt->pty != NULL) {
-                vte_pty_close(terminal->pvt->pty);
                 g_object_unref(terminal->pvt->pty);
 	}
 
@@ -12207,7 +12206,6 @@ vte_terminal_set_pty(VteTerminal *terminal,
 		/* Clear the outgoing buffer as well. */
 		_vte_byte_array_clear(terminal->pvt->outgoing);
 
-                vte_pty_close(pvt->pty);
                 g_object_unref(pvt->pty);
                 pvt->pty = NULL;
         }

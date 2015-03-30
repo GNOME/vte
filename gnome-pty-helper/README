@@ -1,9 +1,0 @@
-This is some bits from libzvt CVS extracted to make a more-or-less standalone
-gnome-pty-helper kit.  Presumably it is licensed under the LGPL, as libzvt
-itself is.
-
-Note that for utmp/wtmp/lastlog logging to work properly, you *must* ensure
-that gnome-pty-helper is installed with the correct permissions.  By default,
-gnome-pty-helper is installed setgid "utmp".  If your system does not have a
-group named "utmp" (or if this group does not have write access to the
-corresponding log files), then it will probably need to be made setuid "root".

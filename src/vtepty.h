@@ -66,8 +66,6 @@ VtePty *vte_pty_new_foreign_sync (int fd,
 
 int vte_pty_get_fd (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
-void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
-
 void vte_pty_child_setup (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
 gboolean vte_pty_get_size (VtePty *pty,
