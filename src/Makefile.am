@@ -10,18 +10,18 @@ EXTRA_DIST =
 
 headerdir = $(includedir)/vte-$(VTE_API_VERSION)/vte
 header_HEADERS = \
-	vte.h \
-	vtedeprecated.h \
-	vteenums.h \
-	vteglobals.h \
-	vtemacros.h \
-	vtepty.h \
-	vteterminal.h \
+	vte/vte.h \
+	vte/vtedeprecated.h \
+	vte/vteenums.h \
+	vte/vteglobals.h \
+	vte/vtemacros.h \
+	vte/vtepty.h \
+	vte/vteterminal.h \
 	$(NULL)
 
 nodist_header_HEADERS = \
-	vtetypebuiltins.h \
-	vteversion.h \
+	vte/vtetypebuiltins.h \
+	vte/vteversion.h \
 	$(NULL)
 
 lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
@@ -36,6 +36,13 @@ EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	$(NULL)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
+	vte/vte.h \
+	vte/vtedeprecated.h \
+	vte/vteenums.h \
+	vte/vteglobals.h \
+	vte/vtemacros.h \
+	vte/vtepty.h \
+	vte/vteterminal.h \
 	buffer.h \
 	caps.c \
 	caps.h \
@@ -53,7 +60,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	table.c \
 	table.h \
 	vte.c \
-	vte.h \
 	vte-private.h \
 	vteaccess.c \
 	vteaccess.h \
@@ -61,12 +67,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteconv.h \
 	vtedraw.c \
 	vtedraw.h \
-	vtedeprecated.h \
-	vteenums.h \
-	vteglobals.h \
 	vteint.h \
-	vtemacros.h \
-	vtepty.h \
 	vtepty-private.h \
 	vterowdata.c \
 	vterowdata.h \
@@ -76,7 +77,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtestream.h \
 	vtestream-base.h \
 	vtestream-file.h \
-	vteterminal.h \
 	vtetree.c \
 	vtetree.h \
 	vteunistr.c \
@@ -91,8 +91,8 @@ nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	marshal.h \
 	vteresources.c \
 	vtetypebuiltins.c \
-	vtetypebuiltins.h \
-	vteversion.h \
+	vte/vtetypebuiltins.h \
+	vte/vteversion.h \
 	$(NULL)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
@@ -103,6 +103,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-DLOCALEDIR='"$(localedir)"' \
 	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
 	-DVTE_COMPILATION \
+	-I$(srcdir)/vte \
+	-I$(builddir)/vte \
 	$(AM_CPPFLAGS)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS = \
@@ -121,10 +123,10 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
 # Generated sources
 
 VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-n.c
-BUILT_SOURCES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
+BUILT_SOURCES = box_drawing.h marshal.c marshal.h vtetypebuiltins.c vte/vtetypebuiltins.h vteresources.c $(VTESEQ_BUILTSOURCES)
 MAINTAINERCLEANFILES += $(VTESEQ_BUILTSOURCES)
 EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt box_drawing_generate.sh iso2022.txt
-CLEANFILES += box_drawing.h marshal.c marshal.h vtetypebuiltins.c vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
+CLEANFILES += box_drawing.h marshal.c marshal.h vtetypebuiltins.c vte/vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.c
 
 box_drawing.h: box_drawing.txt box_drawing_generate.sh
 	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh < $< > $@
@@ -135,15 +137,15 @@ marshal.c: marshal.list
 marshal.h: marshal.list
 	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --internal $< > $@
 
-vtetypebuiltins.h: stamp-vtetypebuiltins.h
+vte/vtetypebuiltins.h: stamp-vtetypebuiltins.h
 	@true
-stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vteenums.h vtedeprecated.h
+stamp-vtetypebuiltins.h: vtetypebuiltins.h.template vte/vteenums.h vte/vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbh \
-	&& (cmp -s xgen-vtbh vtetypebuiltins.h || cp xgen-vtbh vtetypebuiltins.h ) \
+	&& (cmp -s xgen-vtbh vte/vtetypebuiltins.h || cp xgen-vtbh vte/vtetypebuiltins.h ) \
 	&& rm -f xgen-vtbh \
 	&& echo timestamp > $(@F)
 
-vtetypebuiltins.c: vtetypebuiltins.c.template vteenums.h vtedeprecated.h
+vtetypebuiltins.c: vtetypebuiltins.c.template vte/vteenums.h vte/vtedeprecated.h
 	$(AM_V_GEN) $(GLIB_MKENUMS) --template $< $(filter %.h,$^) > xgen-vtbc \
 	&& (cmp -s xgen-vtbc vtetypebuiltins.c || cp xgen-vtbc vtetypebuiltins.c ) \
 	&& rm -f xgen-vtbc
@@ -176,16 +178,10 @@ Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_EXPORT_PACKAGES = vte-$(VTE_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
+	$(filter-out vte/vtedeprecated.h,$(header_HEADERS)) \
+	$(nodist_header_HEADERS) \
 	vte.c \
-	vte.h \
-	vteenums.h \
-	vteglobals.h \
-	vtemacros.h \
-	vtepty.h \
-	vteterminal.h \
 	vtetypebuiltins.c \
-	vtetypebuiltins.h \
-	vteversion.h \
 	pty.c \
 	$(NULL)
 
@@ -235,6 +231,8 @@ testvte_SOURCES = \
 testvte_CPPFLAGS = \
         -DGLIB_DISABLE_DEPRECATION_WARNINGS \
         -DGDK_DISABLE_DEPRECATION_WARNINGS \
+	-I$(srcdir)/vte \
+	-I$(builddir)/vte \
         $(AM_CPPFLAGS)
 
 testvte_CFLAGS = \
@@ -271,8 +269,8 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
 	$(AM_VALAFLAGS)
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \
-	-I$(top_builddir) \
-	-I$(top_srcdir) \
+	-I$(srcdir)/vte \
+	-I$(builddir)/vte \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 
@@ -322,12 +320,12 @@ EXTRA_DIST += $(TEST_SH)
 check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv vtestream-file
 TESTS = table vteconv vtestream-file $(TEST_SH)
 
-reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW $(AM_CPPFLAGS)
+reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_text_view_SOURCES = reflect.c
 reflect_text_view_LDADD = $(VTE_LIBS)
 
-reflect_vte_CPPFLAGS = -DUSE_VTE $(AM_CPPFLAGS)
+reflect_vte_CPPFLAGS = -DUSE_VTE  -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
 reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
@@ -352,6 +350,8 @@ interpret_SOURCES = \
 interpret_CPPFLAGS = \
 	-DINTERPRET_MAIN \
 	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
+	-I$(srcdir) \
+	-I$(builddir) \
 	$(AM_CPPFLAGS)
 interpret_CFLAGS = \
 	$(GLIB_CFLAGS) \
@@ -365,6 +365,7 @@ interpret_LDADD = \
 slowcat_SOURCES = \
 	slowcat.c \
 	$(NULL)
+slowcat_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
 slowcat_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 slowcat_LDADD = $(GLIB_LIBS)
 
@@ -383,6 +384,8 @@ table_SOURCES = \
 	$(NULL)
 table_CPPFLAGS = \
 	-DTABLE_MAIN \
+	-I$(srcdir) \
+	-I$(builddir) \
 	$(AM_CPPFLAGS)
 table_CFLAGS = \
 	$(GLIB_CFLAGS) \
@@ -401,6 +404,8 @@ vtestream_file_SOURCES = \
 	$(NULL)
 vtestream_file_CPPFLAGS = \
 	-DVTESTREAM_MAIN \
+	-I$(srcdir) \
+	-I$(builddir) \
 	$(AM_CPPFLAGS)
 vtestream_file_CFLAGS = \
 	$(VTE_CFLAGS) \
@@ -409,19 +414,22 @@ vtestream_file_LDADD = \
 	$(VTE_LIBS)
 
 vteconv_SOURCES = buffer.h debug.c debug.h vteconv.c vteconv.h
-vteconv_CPPFLAGS = -DVTECONV_MAIN $(AM_CPPFLAGS)
+vteconv_CPPFLAGS = -DVTECONV_MAIN -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
 vteconv_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 vteconv_LDADD = $(VTE_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
+dumpkeys_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
 dumpkeys_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 dumpkeys_LDADD = $(GLIB_LIBS)
 
 mev_SOURCES = mev.c
+mev_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
 mev_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 mev_LDADD = $(GLIB_LIBS)
 
 xticker_SOURCES = xticker.c
+xticker_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
 xticker_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 xticker_LDADD = $(GLIB_LIBS)
 

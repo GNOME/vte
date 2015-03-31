@@ -1,3 +1,5 @@
+NULL =
+
 ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = src po doc perf
@@ -7,7 +9,7 @@ EXTRA_DIST = \
 	HACKING \
 	autogen.sh \
 	ChangeLog.pre-git \
-	vte/vte.h
+	$(NULL)
 
 DISTCLEANFILES =
 

@@ -339,8 +339,8 @@ AC_SUBST([AM_LDFLAGS])
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
-src/vteversion.h
 src/vte.gresource.xml
+src/vte/vteversion.h
 perf/Makefile
 po/Makefile.in
 doc/Makefile

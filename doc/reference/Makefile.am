@@ -1,3 +1,5 @@
+NULL =
+
 # We require automake 1.10 for $(abs_builddir)
 AUTOMAKE_OPTIONS = 1.10
 
@@ -21,7 +23,10 @@ DOC_MAIN_SGML_FILE = $(DOC_MODULE)-docs.xml
 # e.g. DOC_SOURCE_DIR=../../../gtk
 DOC_SOURCE_DIR = \
 	$(top_srcdir)/src \
-	$(top_builddir)/src
+	$(top_srcdir)/src/vte \
+	$(top_builddir)/src \
+	$(top_builddir)/src/vte \
+	$(NULL)
 
 # Extra options to pass to gtkdoc-scangobj. Not normally needed.
 SCANGOBJ_OPTIONS =
@@ -56,7 +61,10 @@ FIXXREF_OPTIONS = \
 # e.g. CFILE_GLOB=$(top_srcdir)/gtk/*.c
 HFILE_GLOB = \
 	$(top_srcdir)/src/*.h \
-	$(top_builddir)/src/*.h
+	$(top_srcdir)/src/vte/*.h \
+	$(top_builddir)/src/*.h \
+	$(top_builddir)/src/vte/*.h \
+	$(NULL)
 
 CFILE_GLOB = \
 	$(top_srcdir)/src/*.c
@@ -117,8 +125,10 @@ expand_content_files =
 GTKDOC_CFLAGS = \
 	-I$(top_srcdir) \
 	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/src/vte \
 	-I$(top_builddir) \
 	-I$(top_builddir)/src \
+	-I$(top_builddir)/src/vte \
 	-DVTE_COMPILATION \
 	$(VTE_CFLAGS)
 

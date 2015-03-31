@@ -25,7 +25,7 @@
 #include <gtk/gtk.h>
 #include <atk/atk.h>
 #ifdef USE_VTE
-#include "vte.h"
+#include <vte/vte.h>
 #endif
 
 static GArray *contents = NULL;
