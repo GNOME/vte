@@ -87,10 +87,10 @@ typedef gunichar wint_t;
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
-static void clipboard_get(GtkClipboard* clipboard,
-			  GtkSelectionData* sd,
-			  guint info,
-			  gpointer user_data);
+static void clipboard_get_data(GtkClipboard* clipboard,
+			       GtkSelectionData* sd,
+			       guint info,
+			       gpointer user_data);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
 static gboolean vte_terminal_io_read(GIOChannel *channel,
@@ -11412,10 +11412,10 @@ vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
 	return terminal->pvt->rewrap_on_resize;
 }
 
-static void clipboard_get(GtkClipboard* clipboard,
-			  GtkSelectionData* sd,
-			  guint info,
-			  gpointer user_data)
+static void clipboard_get_data(GtkClipboard* clipboard,
+			       GtkSelectionData* sd,
+			       guint info,
+			       gpointer user_data)
 {
         gchar *html_data;
         GdkAtom html_target = gdk_atom_intern( "text/html", FALSE );
@@ -11449,8 +11449,8 @@ vte_terminal_real_copy_clipboard(VteTerminal *terminal)
                 n_targets += 1;
 
                 clipboard = vte_terminal_clipboard_get (terminal, GDK_SELECTION_CLIPBOARD);
-                gtk_clipboard_set_with_data (clipboard, targets, n_targets, clipboard_get, NULL,
-         					terminal->pvt->selection);
+                gtk_clipboard_set_with_data (clipboard, targets, n_targets, clipboard_get_data, NULL,
+         				     terminal->pvt->selection);
                 g_free (targets);
         	gtk_target_list_unref (target_list);
 	}
