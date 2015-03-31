@@ -87,6 +87,10 @@ typedef gunichar wint_t;
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
+static void clipboard_get_data(GtkClipboard* clipboard,
+                          GtkSelectionData* sd,
+                          guint info,
+                          gpointer user_data);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
 static gboolean vte_terminal_io_read(GIOChannel *channel,
@@ -11411,14 +11415,44 @@ vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
 }
 
 static void
+clipboard_get_data(GtkClipboard* clipboard,
+                          GtkSelectionData* sd,
+                          guint info,
+                          gpointer user_data)
+{
+        gchar *html_data;
+        GdkAtom html_target = gdk_atom_intern( "text/html", FALSE );
+
+        if (gtk_selection_data_get_target(sd) == html_target) {
+                html_data = g_strdup_printf("<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"><pre style=\"color: #ffffff; background-color: #000000;\">%s</pre>", (gchar *)user_data);
+                gtk_selection_data_set(sd, html_target, 8, (guchar *)html_data, strlen(html_data));
+                g_free(html_data);
+        } else {
+                gtk_selection_data_set_text (sd, user_data, -1);
+        }
+}
+
+static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
 	if (terminal->pvt->selection != NULL) {
 		GtkClipboard *clipboard;
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_CLIPBOARD);
-		gtk_clipboard_set_text(clipboard, terminal->pvt->selection, -1);
+		GtkTargetList *target_list;
+		GtkTargetEntry *targets;
+		gint n_targets;
+		GdkAtom html_target = gdk_atom_intern( "text/html", FALSE );
+
+		target_list = gtk_target_list_new (NULL, 0);
+		gtk_target_list_add_text_targets (target_list, 0);
+		gtk_target_list_add(target_list, html_target, 0, 1);
+		targets = gtk_target_table_new_from_list (target_list, &n_targets);
+
+		clipboard = vte_terminal_clipboard_get (terminal, GDK_SELECTION_CLIPBOARD);
+		gtk_clipboard_set_with_data (clipboard, targets, n_targets, clipboard_get_data, NULL,
+				terminal->pvt->selection);
+		g_free (targets);
+		gtk_target_list_unref (target_list);
 	}
 }
 
