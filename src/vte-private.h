@@ -202,6 +202,7 @@ struct _VteTerminalPrivate {
         glong column_count;
 
 	/* Emulation setup data. */
+        gboolean altscreen_enabled;	/* switching allowed? */
 	struct _vte_matcher *matcher;	/* control sequence matcher */
 	const char *emulation;		/* terminal type to emulate */
         gboolean autowrap;              /* auto wraparound at right margin */
