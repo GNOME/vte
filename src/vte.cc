@@ -84,6 +84,8 @@ typedef gunichar wint_t;
 
 #define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"
 
+#define I_(string) (g_intern_static_string(string))
+
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
 static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);

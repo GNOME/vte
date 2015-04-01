@@ -53,8 +53,6 @@
 
 G_BEGIN_DECLS
 
-#define I_(string) (g_intern_static_string(string))
-
 typedef enum {
   VTE_REGEX_CURSOR_GDKCURSOR,
   VTE_REGEX_CURSOR_GDKCURSORTYPE,

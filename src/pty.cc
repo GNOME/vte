@@ -79,6 +79,8 @@
 #define G_PARAM_EXPLICIT_NOTIFY 0
 #endif
 
+#define I_(string) (g_intern_static_string(string))
+
 /* Reset the handlers for all known signals to their defaults.  The parent
  * (or one of the libraries it links to) may have changed one to be ignored. */
 static void
