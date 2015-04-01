@@ -32,6 +32,10 @@
 #include "vtemacros.h"
 #include "vtepty.h"
 
+#if defined(VTE_COMPILATION) && defined(__cplusplus)
+class VteTerminalPrivate;
+#endif
+
 G_BEGIN_DECLS
 
 #define VTE_TYPE_TERMINAL            (vte_terminal_get_type())
@@ -42,7 +46,9 @@ G_BEGIN_DECLS
 #define VTE_TERMINAL_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  VTE_TYPE_TERMINAL, VteTerminalClass))
 
 typedef struct _VteTerminal             VteTerminal;
+#if !defined(VTE_COMPILATION) || !defined(__cplusplus)
 typedef struct _VteTerminalPrivate      VteTerminalPrivate;
+#endif
 typedef struct _VteTerminalClass        VteTerminalClass;
 typedef struct _VteTerminalClassPrivate VteTerminalClassPrivate;
 typedef struct _VteCharAttributes       VteCharAttributes;

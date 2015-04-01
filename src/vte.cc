@@ -60,6 +60,8 @@
 #include <locale.h>
 #endif
 
+#include <new> /* placement new */
+
 #ifndef HAVE_ROUND
 static inline double round(double x) {
 	if(x - floor(x) < 0.5) {
@@ -8095,6 +8097,7 @@ _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ..
 static void
 vte_terminal_init(VteTerminal *terminal)
 {
+        void *place;
 	VteTerminalPrivate *pvt;
 	GtkStyleContext *context;
 	int i;
@@ -8102,7 +8105,8 @@ vte_terminal_init(VteTerminal *terminal)
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
 	/* Initialize private data. */
-	pvt = terminal->pvt = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+        pvt = terminal->pvt = new (place) VteTerminalPrivate();
 
 	gtk_widget_set_can_focus(&terminal->widget, TRUE);
 
@@ -8681,6 +8685,8 @@ vte_terminal_finalize(GObject *object)
         g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
                                               0, 0, NULL, NULL,
                                               terminal);
+
+        terminal->pvt->~VteTerminalPrivate();
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
