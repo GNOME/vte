@@ -65,6 +65,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteaccess.h \
 	vteconv.cc \
 	vteconv.h \
+	vtedefines.hh \
 	vtedraw.cc \
 	vtedraw.h \
 	vteint.h \
