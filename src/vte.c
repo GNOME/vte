@@ -91,6 +91,7 @@ static void clipboard_get_data(GtkClipboard* clipboard,
                           GtkSelectionData* sd,
                           guint info,
                           gpointer user_data);
+static void clipboard_clean_data(GtkClipboard *clipboard, gpointer user_data);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
 static gboolean vte_terminal_io_read(GIOChannel *channel,
@@ -11433,6 +11434,12 @@ clipboard_get_data(GtkClipboard* clipboard,
 }
 
 static void
+clipboard_clean_data(GtkClipboard *clipboard, gpointer user_data)
+{
+	g_free(user_data);
+}
+
+static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
@@ -11449,8 +11456,8 @@ vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 		targets = gtk_target_table_new_from_list (target_list, &n_targets);
 
 		clipboard = vte_terminal_clipboard_get (terminal, GDK_SELECTION_CLIPBOARD);
-		gtk_clipboard_set_with_data (clipboard, targets, n_targets, clipboard_get_data, NULL,
-				terminal->pvt->selection);
+		gtk_clipboard_set_with_data (clipboard, targets, n_targets, clipboard_get_data, clipboard_clean_data,
+				g_strdup(terminal->pvt->selection));
 		g_free (targets);
 		gtk_target_list_unref (target_list);
 	}
