@@ -23,6 +23,10 @@
 #error "Only <vte/vte.h> can be included directly."
 #endif
 
+#include <glib.h>
+
+G_BEGIN_DECLS
+
 /**
  * SECTION:vte-version
  * @short_description: Library version checks
@@ -74,5 +78,7 @@ guint vte_get_major_version (void) G_GNUC_CONST;
 guint vte_get_minor_version (void) G_GNUC_CONST;
 
 guint vte_get_micro_version (void) G_GNUC_CONST;
+
+G_END_DECLS
 
 #endif /* __VTE_VTE_VERSION_H__ */
