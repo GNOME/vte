@@ -148,6 +148,7 @@ class Window : Gtk.ApplicationWindow
 
     /* Property actions */
     add_action(new GLib.PropertyAction ("input-enabled", terminal, "input-enabled"));
+    add_action(new GLib.PropertyAction ("altscreen-enabled", terminal, "altscreen-enabled"));
 
     /* Done! */
     box.pack_start(terminal);

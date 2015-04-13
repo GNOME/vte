@@ -344,6 +344,10 @@ const char *vte_terminal_get_current_directory_uri(VteTerminal *terminal) _VTE_G
 const char *vte_terminal_get_current_file_uri(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 /* misc */
+void vte_terminal_set_altscreen_enabled (VteTerminal *terminal,
+                                     gboolean enabled) _VTE_GNUC_NONNULL(1);
+gboolean vte_terminal_get_altscreen_enabled (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 void vte_terminal_set_input_enabled (VteTerminal *terminal,
                                      gboolean enabled) _VTE_GNUC_NONNULL(1);
 gboolean vte_terminal_get_input_enabled (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
