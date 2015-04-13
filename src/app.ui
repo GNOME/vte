@@ -66,6 +66,21 @@
             <property name="homogeneous">False</property>
           </packing>
         </child>
+        <child>
+          <object class="GtkToggleToolButton" id="altscreen-enabled-toolbutton">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="tooltip_text" translatable="yes">Toggle alternative screen enabled setting</property>
+            <property name="is_important">True</property>
+            <property name="action_name">win.altscreen-enabled</property>
+            <property name="label" translatable="yes">alternative Screen</property>
+            <property name="icon_name">altscreen-keyboard</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="homogeneous">False</property>
+          </packing>
+        </child>
       </object>
       <packing>
         <property name="expand">False</property>
