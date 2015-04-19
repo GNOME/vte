@@ -436,12 +436,23 @@ vte_sequence_handler_normal_screen (VteTerminal *terminal, GValueArray *params)
 
         /* Make sure the ring is large enough */
         _vte_terminal_ensure_row(terminal);
+
+	/* If the alternative screen is disabled, then we didn't change */
+	/* the display, and we don't want the following restore cursor */
+	/* to do anything. This should go here, not in the save/restore */
+	/* cursor functions, since we don't want to break those. */
+
+	if (!terminal->pvt->altscreen_enabled) {
+		_vte_terminal_save_cursor(terminal, terminal->pvt->screen);
+	}
 }
 
 /* Switch to alternate screen. */
 static void
 vte_sequence_handler_alternate_screen (VteTerminal *terminal, GValueArray *params)
 {
+	if (!terminal->pvt->altscreen_enabled)
+		return;
         /* cursor.row includes insert_delta, adjust accordingly */
         terminal->pvt->cursor.row -= terminal->pvt->screen->insert_delta;
         terminal->pvt->screen = &terminal->pvt->alternate_screen;
