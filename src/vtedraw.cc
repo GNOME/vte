@@ -1496,7 +1496,7 @@ _vte_draw_text (struct _vte_draw *draw,
 			g_string_append_unichar (string, requests[n].c);
 		}
 		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%"G_GSIZE_FORMAT", color=(%d,%d,%d,%d), %s - %s)\n",
+		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d,%d), %s - %s)\n",
 				str, n_requests, color->red, color->green, color->blue, alpha,
 				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
 				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");

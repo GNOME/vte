@@ -3710,7 +3710,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Handler processing %"G_GSIZE_FORMAT" bytes over %"G_GSIZE_FORMAT" chunks + %d bytes pending.\n",
+			"Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks + %d bytes pending.\n",
 			_vte_incoming_chunks_length(terminal->pvt->incoming),
 			_vte_incoming_chunks_count(terminal->pvt->incoming),
 			terminal->pvt->pending->len);
@@ -4108,7 +4108,7 @@ next_match:
 
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
-			"%ld chars and %ld bytes in %"G_GSIZE_FORMAT" chunks left to process.\n",
+			"%ld chars and %ld bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
 			(long) unichars->len,
 			(long) _vte_incoming_chunks_length(terminal->pvt->incoming),
 			_vte_incoming_chunks_count(terminal->pvt->incoming));
@@ -4137,7 +4137,7 @@ _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *ch
 {
 	struct _vte_incoming_chunk *last;
 
-	_vte_debug_print(VTE_DEBUG_IO, "Feed %"G_GSIZE_FORMAT" bytes, in %"G_GSIZE_FORMAT" chunks.\n",
+	_vte_debug_print(VTE_DEBUG_IO, "Feed %" G_GSIZE_FORMAT " bytes, in %" G_GSIZE_FORMAT " chunks.\n",
 			_vte_incoming_chunks_length(chunks),
 			_vte_incoming_chunks_count(chunks));
 
@@ -5454,7 +5454,7 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 
 	if (text != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Pasting %"G_GSIZE_FORMAT" UTF-8 bytes.\n",
+				"Pasting %" G_GSIZE_FORMAT " UTF-8 bytes.\n",
 				strlen(text));
 		if (!g_utf8_validate(text, -1, NULL)) {
 			g_warning(_("Error (%s) converting data for child, dropping."), g_strerror(EINVAL));
@@ -5974,7 +5974,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 	if (terminal->pvt->selection != NULL) {
 		_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 			int i;
-			g_printerr("Setting selection (%"G_GSIZE_FORMAT" UTF-8 bytes.)\n",
+			g_printerr("Setting selection (%" G_GSIZE_FORMAT " UTF-8 bytes.)\n",
 				strlen(terminal->pvt->selection));
 			for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
 				g_printerr("0x%04x\n",
