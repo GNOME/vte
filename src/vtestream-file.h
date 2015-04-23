@@ -617,22 +617,26 @@ _vte_snake_class_init (VteSnakeClass *klass)
  * - T..64k (T..10): Area not written to the file, most of that leaving sparse FS blocks (dots for unit testing)
  */
 
+#if !defined VTESTREAM_MAIN && defined WITH_GNUTLS
+        /* The IV (nonce) consists of the offset within the stream, and an overwrite counter so that
+         * we don't reuse the same IVs when a block at a certain logical offset is overwritten.
+         * The padding is there to make sure the structure is at least VTE_CIPHER_IV_SIZE bytes large.
+         * Assertion is made later that the real data fits in its first VTE_CIPHER_IV_SIZE bytes.
+         */
+        typedef struct _VteIv {
+                gsize offset;
+                guint32 overwrite_counter;
+                unsigned char padding[VTE_CIPHER_IV_SIZE];
+        } VteIv;
+#endif
+
 typedef struct _VteBoa {
         VteSnake parent;
         gsize tail, head;
 
 #if !defined VTESTREAM_MAIN && defined WITH_GNUTLS
         gnutls_cipher_hd_t cipher_hd;
-        /* The IV (nonce) consists of the offset within the stream, and an overwrite counter so that
-         * we don't reuse the same IVs when a block at a certain logical offset is overwritten.
-         * The padding is there to make sure the structure is at least VTE_CIPHER_IV_SIZE bytes large.
-         * Assertion is made later that the real data fits in its first VTE_CIPHER_IV_SIZE bytes.
-         */
-        struct _VteIv {
-                gsize offset;
-                guint32 overwrite_counter;
-                unsigned char padding[VTE_CIPHER_IV_SIZE];
-        } iv;
+        VteIv iv;
 #endif
         int compressBound;
 } VteBoa;
