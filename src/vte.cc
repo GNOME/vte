@@ -145,6 +145,11 @@ static VteCursorBlinkMode _vte_terminal_decscusr_cursor_blink(VteTerminal *termi
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
 static cairo_region_t *vte_cairo_get_clip_region (cairo_t *cr);
+static void vte_terminal_determine_colors_internal(VteTerminal *terminal,
+                                                   const VteCellAttr *attr,
+                                                   gboolean selected,
+                                                   gboolean cursor,
+                                                   guint *pfore, guint *pback);
 
 enum {
     COPY_CLIPBOARD,
@@ -4046,8 +4051,9 @@ next_match:
 						    vte_cell_is_selected,
 						    NULL,
 						    NULL);
-			if ((selection == NULL) || (terminal->pvt->selection == NULL) ||
-			    (strcmp(selection, terminal->pvt->selection) != 0)) {
+			if ((selection == NULL) ||
+			    (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
+			    (strcmp(selection, terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
 				vte_terminal_deselect_all(terminal);
 			}
 			g_free(selection);
@@ -5951,6 +5957,13 @@ vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 	vte_terminal_match_hilite_update(terminal, x, y);
 }
 
+static GtkClipboard *
+vte_terminal_clipboard_get(VteTerminal *terminal, GdkAtom board)
+{
+	GdkDisplay *display;
+	display = gtk_widget_get_display(&terminal->widget);
+	return gtk_clipboard_get_for_display(display, board);
+}
 
 /* Note that the clipboard has cleared. */
 static void
@@ -5958,9 +5971,11 @@ vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
 {
 	VteTerminal *terminal = (VteTerminal *)owner;
 
-	if (terminal->pvt->has_selection) {
-		_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
-		vte_terminal_deselect_all(terminal);
+	if (clipboard == vte_terminal_clipboard_get(terminal, GDK_SELECTION_PRIMARY)) {
+		if (terminal->pvt->has_selection) {
+			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
+			vte_terminal_deselect_all(terminal);
+		}
 	}
 }
 
@@ -5970,18 +5985,42 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 		     guint info, gpointer owner)
 {
 	VteTerminal *terminal = (VteTerminal *)owner;
+	int sel;
 
-	if (terminal->pvt->selection != NULL) {
-		_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
-			int i;
-			g_printerr("Setting selection (%" G_GSIZE_FORMAT " UTF-8 bytes.)\n",
-				strlen(terminal->pvt->selection));
-			for (i = 0; terminal->pvt->selection[i] != '\0'; i++) {
-				g_printerr("0x%04x\n",
-					terminal->pvt->selection[i]);
+	for (sel = 0; sel < LAST_VTE_SELECTION; sel++) {
+		if (clipboard == terminal->pvt->clipboard[sel] && terminal->pvt->selection_text[sel] != NULL) {
+			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
+				int i;
+				g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.)\n",
+					sel,
+					strlen(terminal->pvt->selection_text[sel]));
+				for (i = 0; terminal->pvt->selection_text[sel][i] != '\0'; i++) {
+					g_printerr("0x%04x\n",
+						terminal->pvt->selection_text[sel][i]);
+				}
 			}
+			if (info == VTE_TARGET_TEXT) {
+				gtk_selection_data_set_text(data, terminal->pvt->selection_text[sel], -1);
+			} else if (info == VTE_TARGET_HTML) {
+#ifdef HTML_SELECTION
+				gsize len;
+				gchar *selection;
+
+				/* Mozilla asks that we start our text/html with the Unicode byte order mark */
+				/* (Comment found in gtkimhtml.c of pidgin fame) */
+				selection = g_convert(terminal->pvt->selection_html[sel],
+					-1, "UTF-16", "UTF-8", NULL, &len, NULL);
+				gtk_selection_data_set(data,
+					gdk_atom_intern("text/html", FALSE),
+					16,
+					(const guchar *)selection,
+					len);
+				g_free(selection);
+#endif
+			} else {
+                                /* Not reached */
+                        }
 		}
-		gtk_selection_data_set_text(data, terminal->pvt->selection, -1);
 	}
 }
 
@@ -6288,6 +6327,171 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						   TRUE);
 }
 
+/*
+ * Compares the visual attributes of a VteCellAttr for equality, but ignores
+ * attributes that tend to change from character to character or are otherwise
+ * strange (in particular: fragment, columns).
+ */
+static gboolean
+vte_terminal_cellattr_equal(const VteCellAttr *attr1,
+                            const VteCellAttr *attr2)
+{
+	return (attr1->bold          == attr2->bold      &&
+	        attr1->fore          == attr2->fore      &&
+	        attr1->back          == attr2->back      &&
+	        attr1->underline     == attr2->underline &&
+	        attr1->strikethrough == attr2->strikethrough &&
+	        attr1->reverse       == attr2->reverse   &&
+	        attr1->blink         == attr2->blink     &&
+	        attr1->invisible     == attr2->invisible);
+}
+
+/*
+ * Wraps a given string according to the VteCellAttr in HTML tags. Used
+ * old-style HTML (and not CSS) for better compatibility with, for example,
+ * evolution's mail editor component.
+ */
+static gchar *
+vte_terminal_cellattr_to_html(VteTerminal *terminal,
+                              const VteCellAttr *attr,
+                              const gchar *text)
+{
+	GString *string;
+	guint fore, back;
+
+	string = g_string_new(text);
+
+	vte_terminal_determine_colors_internal (terminal, attr,
+					        FALSE, FALSE,
+						&fore, &back);
+
+	if (attr->bold) {
+		g_string_prepend(string, "<b>");
+		g_string_append(string, "</b>");
+	}
+	if (attr->fore != VTE_DEFAULT_FG || attr->reverse) {
+		PangoColor color;
+                char *tag;
+
+                vte_terminal_get_rgb_from_index(terminal, attr->fore, &color);
+		tag = g_strdup_printf("<font color=\"#%02X%02X%02X\">",
+                                      color.red >> 8,
+                                      color.green >> 8,
+                                      color.blue >> 8);
+		g_string_prepend(string, tag);
+		g_free(tag);
+		g_string_append(string, "</font>");
+	}
+	if (attr->back != VTE_DEFAULT_BG || attr->reverse) {
+		PangoColor color;
+                char *tag;
+
+                vte_terminal_get_rgb_from_index(terminal, attr->back, &color);
+		tag = g_strdup_printf("<span style=\"background-color:#%02X%02X%02X\">",
+                                      color.red >> 8,
+                                      color.green >> 8,
+                                      color.blue >> 8);
+		g_string_prepend(string, tag);
+		g_free(tag);
+		g_string_append(string, "</span>");
+	}
+	if (attr->underline) {
+		g_string_prepend(string, "<u>");
+		g_string_append(string, "</u>");
+	}
+	if (attr->strikethrough) {
+		g_string_prepend(string, "<strike>");
+		g_string_append(string, "</strike>");
+	}
+	if (attr->blink) {
+		g_string_prepend(string, "<blink>");
+		g_string_append(string, "</blink>");
+	}
+	/* reverse and invisible are not supported */
+
+	return g_string_free(string, FALSE);
+}
+
+/*
+ * Similar to vte_terminal_find_charcell, but takes a VteCharAttribute for
+ * indexing and returns the VteCellAttr.
+ */
+static const VteCellAttr *
+vte_terminal_char_to_cell_attr(VteTerminal *terminal,
+                               VteCharAttributes *attr)
+{
+	const VteCell *cell;
+
+	cell = vte_terminal_find_charcell(terminal, attr->column, attr->row);
+	if (cell)
+		return &cell->attr;
+	return NULL;
+}
+
+
+/*
+ * _vte_terminal_attributes_to_html:
+ * @terminal: a #VteTerminal
+ * @text: A string as returned by the vte_terminal_get_* family of functions.
+ * @attrs: (array) (element-type Vte.CharAttributes): text attributes, as created by vte_terminal_get_*
+ *
+ * Marks the given text up according to the given attributes, using HTML <span>
+ * commands, and wraps the string in a <pre> element. The attributes have to be
+ * "fresh" in the sense that the terminal must not have changed since they were
+ * obtained using the vte_terminal_get* function.
+ *
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
+ */
+char *
+_vte_terminal_attributes_to_html(VteTerminal *terminal,
+                                 const gchar *text,
+                                 GArray *attrs)
+{
+	GString *string;
+	guint from,to;
+	const VteCellAttr *attr;
+	char *escaped, *marked;
+
+	g_assert(strlen(text) == attrs->len);
+
+	/* Initial size fits perfectly if the text has no attributes and no
+	 * characters that need to be escaped
+         */
+	string = g_string_sized_new (strlen(text) + 11);
+	
+	g_string_append(string, "<pre>");
+	/* Find streches with equal attributes. Newlines are treated specially,
+	 * so that the <span> do not cover multiple lines.
+         */
+	from = to = 0;
+	while (text[from] != '\0') {
+		g_assert(from == to);
+		if (text[from] == '\n') {
+			g_string_append_c(string, '\n');
+			from = ++to;
+		} else {
+			attr = vte_terminal_char_to_cell_attr(terminal,
+				&g_array_index(attrs, VteCharAttributes, from));
+			while (text[to] != '\0' && text[to] != '\n' &&
+			       vte_terminal_cellattr_equal(attr,
+					vte_terminal_char_to_cell_attr(terminal,
+						&g_array_index(attrs, VteCharAttributes, to))))
+			{
+				to++;
+			}
+			escaped = g_markup_escape_text(text + from, to - from);
+			marked = vte_terminal_cellattr_to_html(terminal, attr, escaped);
+			g_string_append(string, marked);
+			g_free(escaped);
+			g_free(marked);
+			from = to;
+		}
+	}
+	g_string_append(string, "</pre>");
+
+	return g_string_free(string, FALSE);
+}
+
 /**
  * vte_terminal_get_cursor_position:
  * @terminal: a #VteTerminal
@@ -6310,28 +6514,23 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 	}
 }
 
-static GtkClipboard *
-vte_terminal_clipboard_get(VteTerminal *terminal, GdkAtom board)
-{
-	GdkDisplay *display;
-	display = gtk_widget_get_display(&terminal->widget);
-	return gtk_clipboard_get_for_display(display, board);
-}
-
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
 static void
-vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
+vte_terminal_copy(VteTerminal *terminal, VteSelection sel)
 {
 	GtkClipboard *clipboard;
 	static GtkTargetEntry *targets = NULL;
 	static gint n_targets = 0;
+	GArray *attributes;
 
-	clipboard = vte_terminal_clipboard_get(terminal, board);
+	clipboard = terminal->pvt->clipboard[sel];
+
+	attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
-	g_free(terminal->pvt->selection);
-	terminal->pvt->selection =
+	g_free(terminal->pvt->selection_text[sel]);
+	terminal->pvt->selection_text[sel] =
 		vte_terminal_get_text_range(terminal,
 					    terminal->pvt->selection_start.row,
 					    0,
@@ -6339,18 +6538,37 @@ vte_terminal_copy(VteTerminal *terminal, GdkAtom board)
 					    terminal->pvt->column_count,
 					    vte_cell_is_selected,
 					    NULL,
-					    NULL);
-	terminal->pvt->has_selection = TRUE;
+					    attributes);
+#ifdef HTML_SELECTION
+	g_free(terminal->pvt->selection_html[sel]);
+	terminal->pvt->selection_html[sel] =
+		_vte_terminal_attributes_to_html(terminal,
+                                                 terminal->pvt->selection_text[sel],
+                                                 attributes);
+#endif
+
+	g_array_free (attributes, TRUE);
+
+	if (sel == VTE_SELECTION_PRIMARY)
+		terminal->pvt->has_selection = TRUE;
 
 	/* Place the text on the clipboard. */
-	if (terminal->pvt->selection != NULL) {
+	if (terminal->pvt->selection_text[sel] != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Assuming ownership of selection.\n");
 		if (!targets) {
 			GtkTargetList *list;
 
 			list = gtk_target_list_new (NULL, 0);
-			gtk_target_list_add_text_targets (list, 0);
+			gtk_target_list_add_text_targets (list, VTE_TARGET_TEXT);
+
+#ifdef HTML_SELECTION
+			gtk_target_list_add (list,
+				gdk_atom_intern("text/html", FALSE),
+				0,
+				VTE_TARGET_HTML);
+#endif
+
                         targets = gtk_target_table_new_from_list (list, &n_targets);
 			gtk_target_list_unref (list);
 		}
@@ -8101,6 +8319,7 @@ vte_terminal_init(VteTerminal *terminal)
 	VteTerminalPrivate *pvt;
 	GtkStyleContext *context;
 	int i;
+	GdkDisplay *display;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
@@ -8189,6 +8408,11 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->alternate_screen_scroll = TRUE;
         pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
 	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
+
+	/* Selection info. */
+	display = gtk_widget_get_display(&terminal->widget);
+	pvt->clipboard[VTE_SELECTION_PRIMARY] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
+	pvt->clipboard[VTE_SELECTION_CLIPBOARD] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
 
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
@@ -8532,6 +8756,7 @@ vte_terminal_finalize(GObject *object)
 	GtkClipboard *clipboard;
         GtkSettings *settings;
 	struct vte_match_regex *regex;
+	int sel;
 	guint i;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
@@ -8590,15 +8815,19 @@ vte_terminal_finalize(GObject *object)
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
-	if (terminal->pvt->selection != NULL) {
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_PRIMARY);
-		if (gtk_clipboard_get_owner(clipboard) == object) {
-			gtk_clipboard_set_text(clipboard,
-					       terminal->pvt->selection,
-					       -1);
+	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
+		if (terminal->pvt->selection_text[sel] != NULL) {
+			clipboard = terminal->pvt->clipboard[sel];
+			if (gtk_clipboard_get_owner(clipboard) == object) {
+				gtk_clipboard_set_text(clipboard,
+						       terminal->pvt->selection_text[sel],
+						       -1);
+			}
+			g_free(terminal->pvt->selection_text[sel]);
+#ifdef HTML_SELECTION
+			g_free(terminal->pvt->selection_html[sel]);
+#endif
 		}
-		g_free(terminal->pvt->selection);
 	}
 
 	/* Clear the output histories. */
@@ -8805,19 +9034,18 @@ swap (guint *a, guint *b)
 
 static void
 vte_terminal_determine_colors_internal(VteTerminal *terminal,
-				       const VteCell *cell,
+				       const VteCellAttr *attr,
 				       gboolean selected,
 				       gboolean cursor,
 				       guint *pfore, guint *pback)
 {
 	guint fore, back;
 
-	if (!cell)
-		cell = &basic_cell.cell;
+        g_assert(attr);
 
 	/* Start with cell colors */
-	fore = cell->attr.fore;
-	back = cell->attr.back;
+	fore = attr->fore;
+	back = attr->back;
 
 	/* Reverse-mode switches default fore and back colors */
         if (G_UNLIKELY (terminal->pvt->reverse_mode)) {
@@ -8828,7 +9056,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* Handle bold by using set bold color or brightening */
-	if (cell->attr.bold) {
+	if (attr->bold) {
 		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_BOLD_FG;
 		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
@@ -8839,12 +9067,12 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
         /* Handle dim colors.  Only apply to palette colors, dimming direct RGB wouldn't make sense.
          * Apply to the foreground color only, but do this before handling reverse/highlight so that
          * those can be used to dim the background instead. */
-        if (cell->attr.dim && !(fore & VTE_RGB_COLOR)) {
+        if (attr->dim && !(fore & VTE_RGB_COLOR)) {
 	        fore |= VTE_DIM_COLOR;
         }
 
 	/* Reverse cell? */
-	if (cell->attr.reverse) {
+	if (attr->reverse) {
 		swap (&fore, &back);
 	}
 
@@ -8874,7 +9102,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* Invisible? */
-	if (cell && cell->attr.invisible) {
+	if (attr->invisible) {
 		fore = back;
 	}
 
@@ -8888,7 +9116,7 @@ vte_terminal_determine_colors (VteTerminal *terminal,
 			       gboolean highlight,
 			       guint *fore, guint *back)
 {
-	vte_terminal_determine_colors_internal (terminal, cell,
+	vte_terminal_determine_colors_internal (terminal, cell ? &cell->attr : &basic_cell.cell.attr,
 						       highlight, FALSE,
 						       fore, back);
 }
@@ -8899,7 +9127,7 @@ vte_terminal_determine_cursor_colors (VteTerminal *terminal,
 				      gboolean highlight,
 				      guint *fore, guint *back)
 {
-	vte_terminal_determine_colors_internal (terminal, cell,
+	vte_terminal_determine_colors_internal (terminal, cell ? &cell->attr : &basic_cell.cell.attr,
 						       highlight, TRUE,
 						       fore, back);
 }
@@ -11418,16 +11646,12 @@ vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
 	return terminal->pvt->rewrap_on_resize;
 }
 
+/* Place the selected text onto the CLIPBOARD clipboard. Do this
+ * asynchronously, so that we can support the html target as well */
 static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to CLIPBOARD.\n");
-	if (terminal->pvt->selection != NULL) {
-		GtkClipboard *clipboard;
-		clipboard = vte_terminal_clipboard_get(terminal,
-						       GDK_SELECTION_CLIPBOARD);
-		gtk_clipboard_set_text(clipboard, terminal->pvt->selection, -1);
-	}
+	vte_terminal_copy(terminal, VTE_SELECTION_CLIPBOARD);
 }
 
 /**
@@ -11479,7 +11703,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	vte_terminal_copy(terminal, GDK_SELECTION_PRIMARY);
+	vte_terminal_copy(terminal, VTE_SELECTION_PRIMARY);
 }
 
 /**
@@ -11937,7 +12161,7 @@ vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_history)
 {
         VteTerminalPrivate *pvt;
-        int i;
+        int i, sel;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -12020,18 +12244,25 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->selecting = FALSE;
 	pvt->selecting_restart = FALSE;
 	pvt->selecting_had_delta = FALSE;
-	if (pvt->selection != NULL) {
-		g_free(pvt->selection);
-		pvt->selection = NULL;
-		memset(&pvt->selection_origin, 0,
-		       sizeof(pvt->selection_origin));
-		memset(&pvt->selection_last, 0,
-		       sizeof(pvt->selection_last));
-		memset(&pvt->selection_start, 0,
-		       sizeof(pvt->selection_start));
-		memset(&pvt->selection_end, 0,
-		       sizeof(pvt->selection_end));
+	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
+		if (pvt->selection_text[sel] != NULL) {
+			g_free(pvt->selection_text[sel]);
+			pvt->selection_text[sel] = NULL;
+#ifdef HTML_SELECTION
+			g_free(pvt->selection_html[sel]);
+			pvt->selection_html[sel] = NULL;
+#endif
+		}
 	}
+        memset(&pvt->selection_origin, 0,
+               sizeof(pvt->selection_origin));
+        memset(&pvt->selection_last, 0,
+               sizeof(pvt->selection_last));
+        memset(&pvt->selection_start, 0,
+               sizeof(pvt->selection_start));
+        memset(&pvt->selection_end, 0,
+               sizeof(pvt->selection_end));
+
 	/* Reset mouse motion events. */
 	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
         pvt->mouse_pressed_buttons = 0;
@@ -12285,7 +12516,7 @@ _vte_terminal_get_selection(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-	return g_strdup (terminal->pvt->selection);
+	return g_strdup (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]);
 }
 
 void

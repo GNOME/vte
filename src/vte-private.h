@@ -102,6 +102,10 @@ void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
 
 void _vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style);
 
+char *_vte_terminal_attributes_to_html(VteTerminal *terminal,
+                                       const gchar *text,
+                                       GArray *attributes);
+
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,
 				   const char *match,
