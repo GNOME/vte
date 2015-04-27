@@ -29,7 +29,7 @@
 
 #include <math.h>
 
-#include "vte.h"
+#include <vte/vte.h>
 #include "vte-private.h"
 
 #ifdef HAVE_WCHAR_H

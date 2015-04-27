@@ -21,11 +21,9 @@
 #ifndef vte_vtedraw_h_included
 #define vte_vtedraw_h_included
 
-
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <cairo.h>
-#include "vte.h"
 #include "vteunistr.h"
 
 G_BEGIN_DECLS

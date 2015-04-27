@@ -26,7 +26,7 @@
 
 #include <glib.h>
 
-#include "vte.h"
+#include <vte/vte.h>
 #include "vte-private.h"
 
 #define BEL "\007"

@@ -31,7 +31,7 @@
 #include "debug.h"
 
 #undef VTE_DISABLE_DEPRECATED
-#include "vte.h"
+#include <vte/vte.h>
 
 #include <glib/gi18n.h>
 

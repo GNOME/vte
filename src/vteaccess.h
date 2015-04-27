@@ -23,7 +23,6 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gtk/gtk-a11y.h>
-#include "vte.h"
 
 G_BEGIN_DECLS
 

@@ -19,8 +19,7 @@
 #ifndef vte_vteint_h_included
 #define vte_vteint_h_included
 
-
-#include "vte.h"
+#include <vte/vte.h>
 
 G_BEGIN_DECLS
 

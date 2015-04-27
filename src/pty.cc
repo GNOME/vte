@@ -28,11 +28,8 @@
 
 #include <config.h>
 
-#include "vtepty.h"
+#include <vte/vte.h>
 #include "vtepty-private.h"
-#include "vteenums.h"
-#include "vtetypebuiltins.h"
-#include "vteversion.h"
 
 #include <sys/types.h>
 #include <sys/ioctl.h>

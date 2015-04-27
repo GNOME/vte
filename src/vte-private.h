@@ -41,7 +41,6 @@
 #include <unistd.h>
 #include <glib/gi18n-lib.h>
 
-#include "vte.h"
 #include "buffer.h"
 #include "debug.h"
 #include "vteconv.h"

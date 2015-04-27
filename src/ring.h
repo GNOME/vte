@@ -24,7 +24,7 @@
 #define vte_ring_h_included
 
 #include <gio/gio.h>
-#include "vte.h"
+#include <vte/vte.h>
 
 #include "vterowdata.h"
 #include "vtestream.h"

@@ -31,7 +31,7 @@
 #include <gtk/gtk-a11y.h>
 #include <string.h>
 #include "debug.h"
-#include "vte.h"
+#include <vte/vte.h>
 #include "vteaccess.h"
 #include "vteint.h"
 #include "vte-private.h"
