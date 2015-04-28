@@ -389,16 +389,24 @@ _vte_snake_ensure_file (VteSnake *snake)
         snake->fd = _vte_mkstemp ();
 }
 
+static void _vte_snake_advance_tail (VteSnake *snake, gsize offset);
 static void
 _vte_snake_reset (VteSnake *snake, gsize offset)
 {
         g_assert_cmpuint (offset % VTE_SNAKE_BLOCKSIZE, ==, 0);
 
-        _file_reset (snake->fd);
+        /* See the comments in _vte_boa_reset(). */
+        g_assert_cmpuint (offset, >=, snake->tail);
 
-        snake->segment[0].st_tail = snake->segment[0].st_head = snake->tail = snake->head = offset;
-        snake->segment[0].fd_tail = snake->segment[0].fd_head = 0;
-        snake->state = 1;
+        if (G_LIKELY (offset >= snake->head)) {
+                _file_reset (snake->fd);
+                snake->segment[0].st_tail = snake->segment[0].st_head = snake->tail = snake->head = offset;
+                snake->segment[0].fd_tail = snake->segment[0].fd_head = 0;
+                snake->state = 1;
+        } else {
+                /* Never retreat the head: bug 748484. */
+                _vte_snake_advance_tail (snake, offset);
+        }
 }
 
 /*
@@ -853,14 +861,20 @@ _vte_boa_reset (VteBoa *boa, gsize offset)
 {
         g_assert_cmpuint (offset % VTE_BOA_BLOCKSIZE, ==, 0);
 
-        /* _vte_ring_reset() is designed never to actually reset the logical offset.
-         * It's important for the encryption so that we don't reuse the same IV.
-         * Hence this is probably the best place to double check this. */
-        g_assert_cmpuint (offset, >=, boa->head);
+        /* _vte_ring_reset() requires the new offset not to be in the
+         * offset region that we've left behind for good. This is so that
+         * if we write at a position that we've already written previously,
+         * we're aware of it and can read back and increment the overwrite
+         * counter. This is important for the encryption so that we don't
+         * reuse the same IV. For the same reason, we never retreat the
+         * head of the stream. See bug 748484. */
+        g_assert_cmpuint (offset, >=, boa->tail);
 
         _vte_snake_reset (&boa->parent, OFFSET_BOA_TO_SNAKE(offset));
 
-        boa->tail = boa->head = offset;
+        boa->tail = offset;
+        /* Never retreat the head: bug 748484. */
+        boa->head = MAX(boa->head, offset);
 }
 
 /* Place VTE_BOA_BLOCKSIZE bytes at data.
@@ -1383,9 +1397,9 @@ test_snake (void)
         assert_file (snake->fd, "Duck......Chinchilla..........Ferret....");
         assert_snake (snake, 1, 0, 40, "Duck......Chinchilla..........Ferret....");
 
-        /* Reset */
-        _vte_snake_reset (snake, 0);
-        assert_snake (snake, 1, 0, 0, "");
+        /* Start over */
+        g_object_unref (snake);
+        snake = (VteSnake *)g_object_new (VTE_TYPE_SNAKE, NULL);
 
         /* State 1 */
         snake_write (snake, 0, "Armadillo");
@@ -1446,6 +1460,16 @@ test_snake (void)
 
         g_object_unref (snake);
 }
+
+/* 10-byte blocks in the file and snake layers consist of:
+ * - 1 byte: length of the fake-compressed, fake-encrypted payload (n)
+ * - 1 byte: overwrite counter for the given block
+ * - n bytes: fake-compressed (if could indeed be compressed), fake-encrypted payload
+ * - 1 byte: fake checksum:
+ *   - 2 octal digits: block sequence number
+ *   - 1 octal digit: overwrite counter
+ * - 7-n bytes: dots for padding
+ */
 
 static void
 test_boa (void)
@@ -1715,6 +1739,24 @@ test_stream (void)
         assert_snake (snake, 1, 250, 260, "\007\001ZEBRAAA\311");
         assert_boa (boa, 175, 182, "zebraaa");
         assert_stream (astream, 175, 182, "zebraaa");
+
+        /* Bug 748484: cross-boundary truncate followed by a reset */
+        _vte_stream_truncate (astream, 178);
+        assert_file (snake->fd, "\007\001ZEBRAAA\311");
+        assert_snake (snake, 1, 250, 260, "\007\001ZEBRAAA\311");
+        assert_boa (boa, 175, 182, "zebraaa");
+        assert_stream (astream, 175, 178, "zeb");
+        _vte_stream_reset (astream, 178);
+        /* Snake and boa don't drop the data */
+        assert_file (snake->fd, "\007\001ZEBRAAA\311");
+        assert_snake (snake, 1, 250, 260, "\007\001ZEBRAAA\311");
+        assert_boa (boa, 175, 182, "zebraaa");
+        assert_stream (astream, 178, 178, "");
+        stream_append (astream, "raaa");
+        assert_file (snake->fd, "\006\0023-1R3A\312.");
+        assert_snake (snake, 1, 250, 260, "\006\0023-1R3A\312.");
+        assert_boa (boa, 175, 182, "---raaa");
+        assert_stream (astream, 178, 182, "raaa");
 
         g_object_unref (astream);
 }
