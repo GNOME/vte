@@ -102,6 +102,7 @@ _vte_pty_reset_signal_handlers(void)
 	signal(SIGHUP,  SIG_DFL);
 #endif
 	signal(SIGINT,  SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
 	signal(SIGILL,  SIG_DFL);
 	signal(SIGABRT, SIG_DFL);
 	signal(SIGFPE,  SIG_DFL);
