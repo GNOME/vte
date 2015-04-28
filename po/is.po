@@ -1,113 +1,98 @@
-# SOME DESCRIPTIVE TITLE.
+# translation of vte.vte-0-38.is.po to
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# Samúel Jón Gunnarsson  <sammi@techattack.nu>, 2003
+# Samúel Jón Gunnarsson  <sammi@techattack.nu>, 2003.
+# Sveinn í Felli <sv1@fellsnet.is>, 2015.
 msgid ""
 msgstr ""
-"Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-03-13 00:22-0500\n"
-"PO-Revision-Date: 2003-06-07 09:07--100\n"
-"Last-Translator: Samuel Jon Gunnarsson <sammi@techattack.nu>\n"
-"Language-Team: Icelandic <gnome@techattack.nu>\n"
+"Project-Id-Version: vte.vte-0-38.is\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&"
+"keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-09-21 12:51+0000\n"
+"PO-Revision-Date: 2015-04-28 16:12+0000\n"
+"Last-Translator: Sveinn í Felli <sv1@fellsnet.is>\n"
+"Language-Team: Icelandic <translation-team-is@lists.sourceforge.net>\n"
+"Language: is\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 1.5\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: src/iso2022.c:792 src/iso2022.c:803 src/iso2022.c:852 src/vte.c:1590
+#: ../src/app.ui.h:1
+msgid "Copy"
+msgstr "Afrita"
+
+#: ../src/app.ui.h:2
+msgid "Paste"
+msgstr "Líma"
+
+#: ../src/app.ui.h:3
+msgid "Reset (use Ctrl to reset and clear)"
+msgstr "Frumstilla (nota Ctrl til að endurræsa og hreinsa)"
+
+#: ../src/app.ui.h:4
+msgid "Reset"
+msgstr "Frumstilla"
+
+#: ../src/app.ui.h:5
+msgid "Toggle input enabled setting"
+msgstr "Víxla inntaksháðum stillingum"
+
+#: ../src/app.ui.h:6
+msgid "Input"
+msgstr "Inntak"
+
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:1998
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Ekki tókst að umbreyta rittáknum frá %s yfir í %s."
 
-#: src/iso2022.c:1582
+#: ../src/iso2022.c:1496
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Reyndi að setja ógilt NRC kort '%c'."
 
 #  Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: src/iso2022.c:1623
+#: ../src/iso2022.c:1526
 msgid "Unrecognized identified coding system."
 msgstr "Óþekkt \"identified coding system\"."
 
-#: src/iso2022.c:1672 src/iso2022.c:1698
+#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Reyndi að setja upp ógilda breidd á NRC korti '%c'."
 
-#: src/pty.c:329
-#, c-format
-msgid "Error adding `%s' to environment, continuing."
-msgstr "Villa. Ekki tókst að bæta `%s' við í umhverfið, held áfram."
+#. Bail back to normal mode.
+#: ../src/vteapp.c:1027
+msgid "Could not open console.\n"
+msgstr "Ekki tókst að opna stjórnskjá.\n"
 
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: src/pty.c:914
-#, c-format
-msgid "can not run %s"
-msgstr "get ekki keyrt %s"
-
-#: src/reaper.c:156
-msgid "Error creating signal pipe."
-msgstr "Villa. Ekki tókst að búa til merkja pípu."
-
-#: src/trie.c:412
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "Tvöfalda (%s/%s)!"
-
-#: src/vte.c:1016
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Villa. Ekki tókst að vistþýða venjulega segð \"%s\"."
-
-#: src/vte.c:2472
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Engin aðgerð fyrir stjórnun á runu `%s' skilgreind."
+#: ../src/vteapp.c:1137
+msgid "Could not parse the geometry spec passed to --geometry"
+msgstr "Gat ekki þáttað stærðarupplýsingar sem sendar voru til --geometry"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.c:3315
+#: ../src/vte.c:4164
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Villa. Ekki tókst að lesa frá barni: %s"
+msgstr "Villa. Ekki tókst að lesa frá afleiðu: %s"
 
-#: src/vte.c:3437 src/vte.c:4331
+#: ../src/vte.c:4300
+msgid "Unable to send data to child, invalid charset convertor"
+msgstr "Tókst ekki að senda gögn til afleiðu, ógild stafatöfluumbreyting"
+
+#: ../src/vte.c:4311 ../src/vte.c:5315
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Villa (%s) við umbreytingu á gögnum frá barni, hætti við."
+msgstr "Villa (%s) við umbreytingu á gögnum frá afleiðu, hætti við."
 
-#: src/vte.c:6284
+#: ../src/vte.c:7628
 #, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr "Villa. Ekki tókst að lesa PTY stærð, nota sjálfgefið: %s"
+#| msgid "Error reading PTY size, using defaults: %s."
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "Villa kom upp við að lesa PTY stærð, nota sjálfgefið: %s\n"
 
-#: src/vte.c:6320
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Villa. Ekki tókst að setja PTY stærð: %s"
 
-#. Aaargh.  We're screwed.
-#: src/vte.c:10629
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "g_iconv_open() tókst ekki að setja orðrittákn"
-
-#. Bail back to normal mode.
-#: src/vteapp.c:736
-msgid "Could not open console.\n"
-msgstr "Ekki tókst að opna skel.\n"
-
-#: src/vteglyph.c:579
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Óþekktur punkta hamur %d.\n"
-
-#: src/vtexft.c:714
-#, c-format
-msgid "Can not draw character U+%04x.\n"
-msgstr "Ekki tókst að teikna tákn U+%04x.\n"
-
-#~ msgid "Got unexpected (key?) sequence `%s'."
-#~ msgstr "Meðtók óvænta (flýtilykla?) runu `%s'."
