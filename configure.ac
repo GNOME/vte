@@ -231,7 +231,7 @@ AC_HEADER_TIOCGWINSZ
 AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid getpt grantpt unlockpt posix_openpt ptsname ptsname_r tcgetattr tcsetattr])
 
 # Misc I/O routines.
-AC_CHECK_FUNCS([pread pwrite fwrite_unlocked])
+AC_CHECK_FUNCS([pread pwrite])
 
 # Pull in the right libraries for various functions which might not be
 # bundled into an exploded libc.
