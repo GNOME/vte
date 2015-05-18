@@ -1,115 +1,99 @@
-# Translation of oc.po to Occitan
 # Occitan translation of vte.
-# Copyright (C) 2002-2007 Free Software Foundation, Inc.
+# Copyright (C) 2002-2014 Free Software Foundation, Inc.
 # This file is under the same license as the vte package.
-#
-# Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>, 2006-2008
+# 
+# Cédric Valmary (Tot en Òc) <cvalmary@yahoo.fr>, 2015.
 msgid ""
 msgstr ""
-"Project-Id-Version: oc\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-07-02 09:01+0200\n"
-"PO-Revision-Date: 2007-12-28 11:58+0100\n"
-"Last-Translator: Yannig Marchegay (Kokoyaya) <yannig@marchegay.org>\n"
-"Language-Team: Occitan <ubuntu-l10n-oci@lists.ubuntu.com>\n"
+"Project-Id-Version: vte 0.14.1\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
+"ywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2014-08-17 11:39+0000\n"
+"PO-Revision-Date: 2015-04-24 11:28+0200\n"
+"Last-Translator: Cédric Valmary (Tot en Òc) <cvalmary@yahoo.fr>\n"
+"Language-Team: www.totenoc.org\n"
+"Language: oc\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Virtaal 0.7.0\n"
+"X-Project-Style: gnome\n"
 
-#: ../src/iso2022.c:798 ../src/iso2022.c:806 ../src/iso2022.c:837
-#: ../src/vte.c:2192
+#: ../src/app.ui.h:1
+msgid "Copy"
+msgstr "Copiar"
+
+#: ../src/app.ui.h:2
+msgid "Paste"
+msgstr "Pegar"
+
+#: ../src/app.ui.h:3
+msgid "Reset (use Ctrl to reset and clear)"
+msgstr "Reïnicializar (quichar Ctrl per reïnicializar e escafar)"
+
+#: ../src/app.ui.h:4
+msgid "Reset"
+msgstr "Reïnicializar"
+
+#: ../src/app.ui.h:5
+msgid "Toggle input enabled setting"
+msgstr "Activa/desactiva la foncion de picada"
+
+#: ../src/app.ui.h:6
+msgid "Input"
+msgstr "Picada"
+
+#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
+#: ../src/vte.c:1992
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr ""
+msgstr "Impossible de convertir los caractèrs %s en %s."
 
-#: ../src/iso2022.c:1481
+#: ../src/iso2022.c:1496
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
-msgstr ""
+msgstr "Temptativa de definir una mapa NRC « %c » invalida."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1511
+#: ../src/iso2022.c:1526
 msgid "Unrecognized identified coding system."
-msgstr ""
+msgstr "Sistèma d'encodatge identificat pas reconegut."
 
-#: ../src/iso2022.c:1570 ../src/iso2022.c:1597
+#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:831
-#, c-format
-msgid "can not run %s"
-msgstr "impossible d'executar %s"
-
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr ""
-
-#: ../src/trie.c:409
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr ""
-
-#: ../src/vte.c:1251
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr ""
-
-#: ../src/vte.c:3052 ../src/vte.c:3057
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr ""
-
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4032
-#, c-format
-msgid "Error reading from child: %s."
-msgstr ""
-
-#: ../src/vte.c:4160
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr ""
-
-#: ../src/vte.c:4171 ../src/vte.c:5087
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr ""
-
-#: ../src/vte.c:7333
-#, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
-
-#: ../src/vte.c:7369
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr ""
-
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:11964
-msgid "_vte_conv_open() failed setting word characters"
-msgstr ""
-
-#: ../src/vteseq.c:3979
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr ""
+msgstr "Temptativa de definir una mapa NRC larga « %c » invalida."
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:775
+#: ../src/vteapp.c:1026
 msgid "Could not open console.\n"
 msgstr "Impossible de dobrir la consòla.\n"
 
-#: ../src/vteapp.c:839
+#: ../src/vteapp.c:1136
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
+"Impossible d'analisar los arguments de geometria indicats per --geometry"
 
-#: ../src/vteglyph.c:556
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.c:4208
 #, c-format
-msgid "Unknown pixel mode %d.\n"
+msgid "Error reading from child: %s."
+msgstr "Error al moment de la lectura del filh : « %s »."
+
+#: ../src/vte.c:4344
+msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
+"Impossible de mandar las donadas al filh, convertidor de jòcs de caractèrs "
+"incorrècte"
+
+#: ../src/vte.c:4355 ../src/vte.c:5377
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Error (%s) al moment de la conversion de donadas pel filh, abandon."
+
+#: ../src/vte.c:7678
+#, c-format
+msgid "Error reading PTY size, using defaults: %s\n"
+msgstr "Error al moment de la lectura de la talha PTY, utilizacion de la valor per "
+"defaut : %s\n"
