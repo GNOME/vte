@@ -320,7 +320,7 @@ class Window : Gtk.ApplicationWindow
 
     /* Settings */
     if (App.Options.no_double_buffer)
-      terminal.set_double_buffered(true);
+      terminal.set_double_buffered(false);
 
     if (App.Options.encoding != null) {
       try {
