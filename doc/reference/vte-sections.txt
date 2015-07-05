@@ -165,8 +165,11 @@ vte_pty_close
 <TITLE>Version Information</TITLE>
 
 VTE_MAJOR_VERSION
+vte_get_major_version
 VTE_MINOR_VERSION
+vte_get_minor_version
 VTE_MICRO_VERSION
+vte_get_micro_version
 
 <SUBSECTION>
 VTE_CHECK_VERSION
