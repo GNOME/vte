@@ -77,7 +77,7 @@ vte_terminal_search_set_wrap_around
 
 <SUBSECTION>
 vte_get_user_shell
-vet_get_features
+vte_get_features
 
 <SUBSECTION>
 vte_terminal_spawn_sync
