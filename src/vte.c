@@ -4998,6 +4998,13 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 				suppress_meta_esc = FALSE;
 				break;
 			}
+                        /* Toggle ^H vs ^? if Ctrl is pressed */
+                        if (normal_length == 1 && modifiers & GDK_CONTROL_MASK) {
+                                if (normal[0] == '\010')
+                                        normal[0] = '\177';
+                                else if (normal[0] == '\177')
+                                        normal[0] = '\010';
+                        }
 			handled = TRUE;
 			break;
 		case GDK_KEY_KP_Delete:
