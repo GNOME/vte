@@ -4576,6 +4576,10 @@ remove_cursor_timeout (VteTerminal *terminal)
 
 	g_source_remove (terminal->pvt->cursor_blink_tag);
 	terminal->pvt->cursor_blink_tag = 0;
+        if (terminal->pvt->cursor_blink_state == FALSE) {
+                _vte_invalidate_cursor_once(terminal, FALSE);
+                terminal->pvt->cursor_blink_state = TRUE;
+        }
 }
 
 /* Activates / disactivates the cursor blink timer to reduce wakeups */
@@ -4718,10 +4722,6 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		if (terminal->pvt->cursor_blink_tag != 0)
 		{
 			remove_cursor_timeout (terminal);
-                        if (terminal->pvt->cursor_blink_state == FALSE) {
-                                _vte_invalidate_cursor_once(terminal, FALSE);
-                                terminal->pvt->cursor_blink_state = TRUE;
-                        }
 			add_cursor_timeout (terminal);
 		}
 
