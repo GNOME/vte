@@ -759,7 +759,7 @@ _vte_frozen_row_text_offset_to_column (VteRing *ring,
 		return TRUE;
 	}
 
-	g_assert(position < ring->writable);
+	g_assert_cmpuint(position, <, ring->writable);
 	if (!_vte_ring_read_row_record (ring, &records[0], position))
 		return FALSE;
 	if ((position + 1) * sizeof (records[0]) < _vte_stream_head (ring->row_stream)) {
