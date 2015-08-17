@@ -69,6 +69,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtedraw.cc \
 	vtedraw.h \
 	vteint.h \
+	vteinternal.hh \
 	vtepty-private.h \
 	vterowdata.cc \
 	vterowdata.h \
