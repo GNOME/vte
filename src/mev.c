@@ -37,15 +37,19 @@
 #include <sys/select.h>
 #endif
 
-static enum {
+enum {
 	tracking_x10 = 9,
 	tracking_mouse = 1000,
 	tracking_hilite = 1001,
 	tracking_cell_motion = 1002,
 	tracking_all_motion = 1003,
+        tracking_focus = 1004,
         tracking_xterm_ext = 1006,
         tracking_urxvt = 1015
-} tracking_mode = 0;
+};
+
+static int tracking_mode = 0;
+static gboolean tracking_focus_mode = FALSE;
 
 static void
 decset(int mode, gboolean value)
@@ -54,7 +58,7 @@ decset(int mode, gboolean value)
 }
 
 static void
-reset(void)
+reset_mouse_tracking_mode(void)
 {
 	decset(tracking_x10, FALSE);
 	decset(tracking_mouse, FALSE);
@@ -67,15 +71,23 @@ reset(void)
 }
 
 static void
+reset(void)
+{
+        reset_mouse_tracking_mode();
+        decset(tracking_focus, FALSE);
+        fflush(stdout);
+}
+
+static void
 clear(void)
 {
 	fprintf(stdout, "%s",
 		_VTE_CAP_ESC "7"
-		_VTE_CAP_CSI "8;1H"
+		_VTE_CAP_CSI "11;1H"
 		_VTE_CAP_CSI "1J"
 		_VTE_CAP_CSI "2K"
 		_VTE_CAP_CSI "1;1H");
-	reset();
+	reset_mouse_tracking_mode();
 	switch (tracking_mode) {
 	case tracking_x10:
 		fprintf(stdout, "X10 tracking enabled.\r\n");
@@ -109,6 +121,7 @@ clear(void)
 		fprintf(stdout, "Tracking disabled.\r\n");
 		break;
 	}
+        fprintf(stdout, "Tracking focus %s.\r\n", tracking_focus_mode ? "enabled":"disabled");
 	fprintf(stdout, "A - X10.\r\n");
 	fprintf(stdout, "B - Mouse tracking.\r\n");
 	fprintf(stdout, "C - Hilite tracking [FIXME: NOT IMPLEMENTED].\r\n");
@@ -116,17 +129,144 @@ clear(void)
 	fprintf(stdout, "E - All motion tracking.\r\n");
 	fprintf(stdout, "F - Xterm 1006 extension.\r\n");
 	fprintf(stdout, "G - rxvt-unicode extension.\r\n");
+	fprintf(stdout, "I - Focus tracking.\r\n");
+	fprintf(stdout, "Q - Quit.\r\n");
 	fprintf(stdout, "%s", _VTE_CAP_ESC "8");
 	fflush(stdout);
+}
+
+static gsize
+parse_legacy_mouse_mode(guint8 *data,
+                        gsize len)
+{
+        int button = 0;
+        const char *shift = "", *control = "", *meta = "";
+        gboolean motion = FALSE;
+        int x, y;
+        guint8 b;
+
+        if (len < 6)
+                return 0;
+
+        b = data[3] - 32;
+        switch (b & 3) {
+        case 0:
+                button = 1;
+                if (b & 64) {
+                        button += 3;
+                }
+                break;
+        case 1:
+                button = 2;
+                if (b & 64) {
+                        button += 3;
+                }
+                break;
+        case 2:
+                button = 3;
+                if (b & 64) {
+                        button += 3;
+                }
+                break;
+        case 3:
+                button = 0;
+                break;
+        }
+        shift = b & 4 ?
+                "[shift]" :
+                "";
+        meta = b & 8 ?
+                "[meta]" :
+                "";
+        control = b & 16 ?
+                "[control]" :
+                "";
+        motion = (b & 32) != 0;
+        x = data[4] - 32;
+        y = data[5] - 32;
+        fprintf(stdout, "%d %s%s%s(%s%s%s) at %d,%d\r\n",
+                button,
+                motion ? "motion " : "",
+                (!motion && button) ? "press" : "",
+                (!motion && !button) ? "release" : "",
+                meta, control, shift,
+                x, y);
+
+        return 6;
+}
+
+static gsize
+parse_esc(guint8 *data,
+          gsize len)
+{
+        if (len < 3)
+                return 0;
+
+        if (!(data[0] == '\033' && data[1] == '[')) /* CSI ? */
+                return 0;
+
+        if (data[2] == 'M')
+                return parse_legacy_mouse_mode(data, len);
+
+        /* FIXME: add support for xterm extended mode (1006) and urxvt mode (1015) */
+
+        if (data[2] == 'I' || data[2] == 'O') {
+                fprintf(stdout, "focus %s\r\n", data[2] == 'I' ? "in" : "out");
+                return 3;
+        }
+
+        return 0;
+}
+
+static gsize
+print_data(guint8 *data,
+           gsize len)
+{
+        static const char codes[][6] = {
+                "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
+                "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI",
+                "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB",
+                "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US",
+                "SPACE"
+        };
+        gsize i;
+
+        if (len == 0)
+                return 0;
+
+        for (i = 0; i < len; i++) {
+                guint8 c = (guint8)data[i];
+
+                if (c == '\033' /* ESC */) {
+                        switch (data[++i]) {
+                        case '_': fprintf(stdout, "APC "); break;
+                        case '[': fprintf(stdout, "CSI "); break;
+                        case 'P': fprintf(stdout, "DCS "); break;
+                        case ']': fprintf(stdout, "OSC "); break;
+                        case '^': fprintf(stdout, "PM "); break;
+                        case '\\': fprintf(stdout, "ST "); break;
+                        default: fprintf(stdout, "ESC "); i--; break;
+                        }
+                }
+                else if (c <= 0x20)
+                        fprintf(stdout, "%s ", codes[c]);
+                else if (c == 0x7f)
+                        fprintf(stdout, "DEL ");
+                else if (c >= 0x80)
+                        fprintf(stdout, "\\%02x ", c);
+                else
+                        fprintf(stdout, "%c ", c);
+        }
+
+        return len;
 }
 
 static gboolean
 parse(void)
 {
 	GByteArray *bytes;
-	gchar buffer[64];
-	int i, length;
-	guchar b;
+	guchar buffer[64];
+	gsize i, length;
 	gboolean ret = FALSE;
 
 	bytes = g_byte_array_new();
@@ -179,80 +319,27 @@ parse(void)
 					0 : tracking_urxvt;
 			i++;
 			break;
+		case 'I':
+		case 'i':
+			tracking_focus_mode = !tracking_focus_mode;
+                        decset(tracking_focus, tracking_focus_mode);
+			i++;
+			break;
 		case 'Q':
 		case 'q':
 			ret = TRUE;
 			i++;
 			break;
-		case '\033':
-			if (bytes->len - i >= 6) {
-				int button = 0;
-				const char *shift = "", *control = "",
-					   *meta = "";
-				gboolean motion = FALSE;
-				int x, y;
-				if ((bytes->data[i + 0] == '\033') &&
-				    (bytes->data[i + 1] == '[')) {
-					if (bytes->data[i + 2] == 'M') {
-						b = bytes->data[i + 3] - 32;
-						switch (b & 3) {
-						case 0:
-							button = 1;
-							if (b & 64) {
-								button += 3;
-							}
-							break;
-						case 1:
-							button = 2;
-							if (b & 64) {
-								button += 3;
-							}
-							break;
-						case 2:
-							button = 3;
-							if (b & 64) {
-								button += 3;
-							}
-							break;
-						case 3:
-							button = 0;
-							break;
-						}
-						shift = b & 4 ?
-							"[shift]" :
-							"";
-						meta = b & 8 ?
-						       "[meta]" :
-						       "";
-						control = b & 16 ?
-							  "[control]" :
-							  "";
-						motion = (b & 32) != 0;
-						x = bytes->data[i + 4] - 32;
-						y = bytes->data[i + 5] - 32;
-						fprintf(stdout, "%d %s%s%s(%s%s%s) at %d,%d\r\n",
-							button,
-							motion ? "motion " : "",
-							(!motion && button) ? "press" : "",
-							(!motion && !button) ? "release" : "",
-							meta, control, shift,
-							x, y);
-					}
-				}
-				i += 6;
-				break;
-			}
+		case '\033': {
+                        gsize consumed = parse_esc(&bytes->data[i], bytes->len - i);
+                        if (consumed > 0) {
+                                i += consumed;
+                                break;
+                        }
+                        /* else fall-trough */
+                }
 		default:
-			while (i < length) {
-				if (bytes->data[i] < 32) {
-					fprintf(stdout, "'^%c' ",
-						bytes->data[i] | 64);
-				} else {
-					fprintf(stdout, "'%c' ",
-						bytes->data[i]);
-				}
-				i++;
-			}
+                        i += print_data(&bytes->data[i], bytes->len - i);
 			fprintf(stdout, "\r\n");
 			break;
 		}
@@ -308,7 +395,7 @@ main(int argc, char **argv)
 	flags = fcntl(STDIN_FILENO, F_GETFL);
 	fcntl(STDIN_FILENO, F_SETFL, flags & ~(O_NONBLOCK));
 	fprintf(stdout, "%s",
-		_VTE_CAP_CSI "9;1H"
+		_VTE_CAP_CSI "12;1H"
 		_VTE_CAP_CSI "2K"
 		_VTE_CAP_CSI "2J");
 	do {
