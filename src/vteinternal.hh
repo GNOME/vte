@@ -311,6 +311,8 @@ public:
 	gboolean mouse_urxvt_extension;
 	double mouse_smooth_scroll_delta;
 
+        gboolean focus_tracking_mode;
+
 	/* State variables for handling match checks. */
 	char *match_contents;
 	GArray *match_attributes;

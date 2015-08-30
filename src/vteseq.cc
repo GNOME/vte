@@ -601,6 +601,16 @@ vte_reset_mouse_smooth_scroll_delta(VteTerminal *terminal,
 	terminal->pvt->mouse_smooth_scroll_delta = 0.;
 }
 
+static void
+vte_set_focus_tracking_mode(VteTerminal *terminal,
+                            GValueArray *params)
+{
+        /* We immediately send the terminal a focus event, since otherwise
+         * it has no way to know the current status.
+         */
+        _vte_terminal_feed_focus_event(terminal, gtk_widget_has_focus(&terminal->widget));
+}
+
 struct decset_t {
         gint16 setting;
         /* offset in VteTerminalPrivate (> 0) or VteScreen (< 0) */
@@ -732,6 +742,12 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		 (MOUSE_TRACKING_ALL_MOTION_TRACKING),
 		 vte_reset_mouse_smooth_scroll_delta,
 		 vte_reset_mouse_smooth_scroll_delta,},
+		/* 1004: Focus tracking. */
+		{1004, PRIV_OFFSET(focus_tracking_mode), 0, 0,
+		 FALSE,
+		 TRUE,
+                 NULL,
+                 vte_set_focus_tracking_mode,},
 		/* 1006: Extended mouse coordinates. */
 		{1006, PRIV_OFFSET(mouse_xterm_extension), 0, 0,
 		 FALSE,

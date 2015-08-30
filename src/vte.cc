@@ -5656,6 +5656,25 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	vte_terminal_feed_mouse_event(terminal, button, FALSE /* not drag */, is_release, col, row);
 }
 
+void
+_vte_terminal_feed_focus_event(VteTerminal *terminal,
+                               gboolean in)
+{
+        char buf[8];
+        gsize len;
+
+        len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%c", in ? 'I' : 'O');
+        vte_terminal_feed_child_binary(terminal, (guint8 *)buf, len);
+}
+
+static void
+vte_terminal_feed_focus_event_internal(VteTerminal *terminal,
+                                       gboolean in)
+{
+        if (terminal->pvt->focus_tracking_mode)
+                _vte_terminal_feed_focus_event(terminal, in);
+}
+
 /*
  * vte_terminal_maybe_send_mouse_button:
  * @terminal:
@@ -7630,6 +7649,7 @@ vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 		gtk_im_context_focus_in(terminal->pvt->im_context);
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
+                vte_terminal_feed_focus_event_internal(terminal, TRUE);
 	}
 
 	return FALSE;
@@ -7646,6 +7666,8 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
 	if (gtk_widget_get_realized (widget)) {
+                vte_terminal_feed_focus_event_internal(terminal, FALSE);
+
 		_vte_terminal_maybe_end_selection (terminal);
 
 		gtk_im_context_focus_out(terminal->pvt->im_context);
@@ -12279,6 +12301,8 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_xterm_extension = FALSE;
 	pvt->mouse_urxvt_extension = FALSE;
 	pvt->mouse_smooth_scroll_delta = 0.;
+        /* Reset focus tracking. xterm doesn't, but that makes no sense */
+        pvt->focus_tracking_mode = FALSE;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
 	/* Reset miscellaneous stuff. */

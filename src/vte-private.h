@@ -93,6 +93,8 @@ void _vte_terminal_set_color_internal(VteTerminal *terminal,
                                       int source,
                                       const PangoColor *color);
 
+void _vte_terminal_feed_focus_event(VteTerminal *terminal, gboolean in);
+
 void _vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...) G_GNUC_PRINTF(2,3);
 
 VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill);
