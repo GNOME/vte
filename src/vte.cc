@@ -12301,7 +12301,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	pvt->mouse_xterm_extension = FALSE;
 	pvt->mouse_urxvt_extension = FALSE;
 	pvt->mouse_smooth_scroll_delta = 0.;
-        /* Reset focus tracking. xterm doesn't, but that makes no sense */
+        /* Reset focus tracking */
         pvt->focus_tracking_mode = FALSE;
 	/* Clear modifiers. */
 	pvt->modifiers = 0;
