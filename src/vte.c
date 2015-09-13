@@ -1557,7 +1557,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                                         g_match_info_free(match_info);
 					return result;
 				}
-				if (ko > rm_eo &&
+				if (ko > rm_eo - 1 &&
 						rm_eo > sblank) {
 					sblank = rm_eo;
 				}
@@ -1583,7 +1583,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 		*start = sattr + start_blank;
 	}
 	if (end != NULL) {
-		*end = sattr + end_blank;
+		*end = sattr + end_blank - 1;
 	}
 	return NULL;
 }
