@@ -32,10 +32,22 @@
 G_BEGIN_DECLS
 
 _VTE_DEPRECATED
+int vte_terminal_match_add_gregex(VteTerminal *terminal,
+                                  GRegex *gregex,
+                                  GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+
+_VTE_DEPRECATED
 void vte_terminal_match_set_cursor(VteTerminal *terminal,
                                    int tag,
                                    GdkCursor *cursor) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
+					       GRegex      *gregex,
+                                               GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1);
+
+_VTE_DEPRECATED
+GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);

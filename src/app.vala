@@ -35,8 +35,13 @@ class SearchPopover : Gtk.Popover
   [GtkChild] private Gtk.Button reveal_button;
   [GtkChild] private Gtk.Revealer revealer;
 
-  private GLib.RegexCompileFlags regex_flags = 0;
-  private GLib.Regex? regex = null;
+  private bool regex_caseless = false;
+  private bool regex_multiline = false;
+  private string? regex_pattern = null;
+  private GLib.Regex? regex_gregex = null;
+#if WITH_PCRE2
+  private Vte.Regex? regex_regex = null;
+#endif
 
   public SearchPopover(Vte.Terminal term,
                        Gtk.Widget relative_to)
@@ -66,9 +71,18 @@ class SearchPopover : Gtk.Popover
     update_sensitivity();
   }
 
+  private bool have_regex()
+  {
+    return regex_gregex != null
+#if WITH_PCRE2
+      || regex_regex != null
+#endif
+      ;
+  }
+
   private void update_sensitivity()
   {
-    bool can_search = regex != null;
+    bool can_search = have_regex();
 
     search_prev_button.set_sensitive(can_search);
     search_next_button.set_sensitive(can_search);
@@ -76,19 +90,21 @@ class SearchPopover : Gtk.Popover
 
   private void update_regex()
   {
-    GLib.RegexCompileFlags flags;
     string search_text;
-    string pattern;
+    string pattern = null;
+    bool caseless = false;
+    bool multiline = false;
+    GLib.Regex? gregex = null;
+#if WITH_PCRE2
+    Vte.Regex? regex = null;
+#endif
 
     search_text = search_entry.get_text();
-    flags = GLib.RegexCompileFlags.OPTIMIZE;
-
-    if (!match_case_checkbutton.active)
-      flags |= GLib.RegexCompileFlags.CASELESS;
+    caseless = !match_case_checkbutton.active;
 
     if (regex_checkbutton.active) {
       pattern = search_text;
-      flags |= GLib.RegexCompileFlags.MULTILINE;
+      multiline = true;
     } else {
       pattern = GLib.Regex.escape_string(search_text);
     }
@@ -96,15 +112,49 @@ class SearchPopover : Gtk.Popover
     if (entire_word_checkbutton.active)
       pattern = "\\b" + pattern + "\\b";
 
-    if (regex != null &&
-        regex_flags == flags &&
-        pattern == regex.get_pattern())
+    if (caseless == regex_caseless &&
+        multiline == regex_multiline &&
+        pattern == regex_pattern)
       return;
 
-    regex_flags = flags;
+    regex_pattern = null;
+    regex_caseless = caseless;
+    regex_multiline = multiline;
+
     if (search_text.length != 0) {
       try {
-        regex = new GLib.Regex(pattern, flags, 0);
+#if WITH_PCRE2
+        if (!App.Options.no_pcre) {
+          uint32 flags;
+
+          flags = 0x40080000u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK */;
+          if (caseless)
+            flags |= 0x00000008u; /* PCRE2_CASELESS */
+          if (multiline)
+            flags |= 0x00000400u; /* PCRE2_MULTILINE */
+          regex = new Vte.Regex(pattern, pattern.length, flags);
+
+          try {
+            regex.jit(0x00000001u /* PCRE2_JIT_COMPLETE */);
+            regex.jit(0x00000002u /* PCRE2_JIT_PARTIAL_SOFT */);
+          } catch (Error e) {
+            printerr("JITing regex \"%s\" failed: %s\n", pattern, e.message);
+          }
+        } else
+#endif /* WITH_PCRE2 */
+        {
+          GLib.RegexCompileFlags flags;
+
+          flags = GLib.RegexCompileFlags.OPTIMIZE;
+          if (caseless)
+            flags |= GLib.RegexCompileFlags.CASELESS;
+          if (multiline)
+            flags |= GLib.RegexCompileFlags.MULTILINE;
+
+          gregex = new GLib.Regex(pattern, flags, 0);
+        }
+
+        regex_pattern = pattern;
       } catch (Error e) {
         regex = null;
       }
@@ -112,13 +162,19 @@ class SearchPopover : Gtk.Popover
       regex = null;
     }
 
-    terminal.search_set_gregex(regex, 0);
+#if WITH_PCRE2
+    if (regex != null)
+      terminal.search_set_regex(regex, 0);
+    else
+#endif
+      terminal.search_set_gregex(gregex, 0);
+
     update_sensitivity();
   }
 
   private void search(bool backward)
   {
-    if (regex == null)
+    if (!have_regex())
       return;
 
     if (backward)
@@ -318,11 +374,23 @@ class Window : Gtk.ApplicationWindow
 
     for (int i = 0; i < dingus.length; ++i) {
       try {
-        GLib.Regex regex;
         int tag;
+#if WITH_PCRE2
+        if (!App.Options.no_pcre) {
+          Vte.Regex regex;
 
-        regex = new GLib.Regex(dingus[i], GLib.RegexCompileFlags.OPTIMIZE, 0);
-        tag = terminal.match_add_gregex(regex, 0);
+          regex = new Vte.Regex(dingus[i], dingus[i].length,
+                                0x40080008u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_CASELESS */);
+          tag = terminal.match_add_regex(regex, 0);
+        } else 
+#endif
+        {
+          GLib.Regex regex;
+
+          regex = new GLib.Regex(dingus[i], GLib.RegexCompileFlags.OPTIMIZE, 0);
+          tag = terminal.match_add_gregex(regex, 0);
+        }
+
         terminal.match_set_cursor_type(tag, cursors[i % cursors.length]);
       } catch (Error e) {
         printerr("Failed to compile regex \"%s\": %s\n", dingus[i], e.message);
@@ -723,6 +791,7 @@ class App : Gtk.Application
     public static bool no_context_menu = false;
     public static bool no_double_buffer = false;
     public static bool no_geometry_hints = false;
+    public static bool no_pcre = false;
     public static bool no_rewrap = false;
     public static bool no_shell = false;
     public static bool object_notifications = false;
@@ -887,6 +956,8 @@ class App : Gtk.Application
         "Add environment variable to the child\'s environment", "VAR=VALUE" },
       { "font", 'f', 0, OptionArg.STRING, ref font_string,
         "Specify a font to use", null },
+      { "gregex", 0, 0, OptionArg.NONE, ref no_pcre,
+        "Use GRegex instead of PCRE2", null },
       { "geometry", 'g', 0, OptionArg.STRING, ref geometry,
         "Set the size (in characters) and position", "GEOMETRY" },
       { "highlight-background-color", 0, 0, OptionArg.STRING, ref hl_bg_color_string,

@@ -60,7 +60,8 @@ typedef enum {
 	VTE_DEBUG_PANGOCAIRO    = 1 << 20,
 	VTE_DEBUG_WIDGET_SIZE   = 1 << 21,
         VTE_DEBUG_STYLE         = 1 << 22,
-	VTE_DEBUG_RESIZE        = 1 << 23
+	VTE_DEBUG_RESIZE        = 1 << 23,
+        VTE_DEBUG_REGEX         = 1 << 24
 } VteDebugFlags;
 
 void _vte_debug_init(void);
@@ -72,7 +73,7 @@ static inline gboolean _vte_debug_on(guint flags) G_GNUC_CONST G_GNUC_UNUSED;
 static inline gboolean
 _vte_debug_on(guint flags)
 {
-	return (_vte_debug_flags & flags) == flags;
+	return (_vte_debug_flags & flags) != 0;
 }
 
 #ifdef VTE_DEBUG

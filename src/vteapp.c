@@ -33,6 +33,10 @@
 #undef VTE_DISABLE_DEPRECATED
 #include <vte/vte.h>
 
+#ifdef WITH_PCRE2
+#include "vtepcre2.h"
+#endif
+
 #include <glib/gi18n.h>
 
 #define DINGUS1 "(((gopher|news|telnet|nntp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?"
@@ -525,24 +529,47 @@ parse_color (const gchar *value,
 
 static void
 add_dingus (VteTerminal *terminal,
-            char **dingus)
+            char **dingus,
+            gboolean use_gregex)
 {
         const GdkCursorType cursors[] = { GDK_GUMBY, GDK_HAND1 };
-        GRegex *regex;
-        GError *error;
         int id, i;
 
         for (i = 0; dingus[i]; ++i) {
-                error = NULL;
-                if (!(regex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE, 0, &error))) {
+                GRegex *gregex = NULL;
+                GError *error = NULL;
+#ifdef WITH_PCRE2
+                VteRegex *regex = NULL;
+
+                if (!use_gregex)
+                        regex = vte_regex_new(dingus[i], -1,
+                                              PCRE2_UTF | PCRE2_NO_UTF_CHECK,
+                                              &error);
+                else
+#endif
+                        gregex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE, 0, &error);
+
+                if (error) {
                         g_warning("Failed to compile regex '%s': %s\n",
                                   dingus[i], error->message);
                         g_error_free(error);
                         continue;
                 }
 
-                id = vte_terminal_match_add_gregex(terminal, regex, 0);
-                g_regex_unref (regex);
+#ifdef WITH_PCRE2
+                if (!use_gregex)
+                        id = vte_terminal_match_add_regex(terminal, regex, 0);
+                else
+#endif
+                        id = vte_terminal_match_add_gregex(terminal, gregex, 0);
+
+#ifdef WITH_PCRE2
+                if (regex)
+                        vte_regex_unref(regex);
+#endif
+                if (gregex)
+                        g_regex_unref (gregex);
+
                 vte_terminal_match_set_cursor_type(terminal, id,
                                                    cursors[i % G_N_ELEMENTS(cursors)]);
         }
@@ -568,8 +595,8 @@ main(int argc, char **argv)
 		 console = FALSE, keep = FALSE,
                 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
-		 use_scrolled_window = FALSE,
-		 show_object_notifications = FALSE, rewrap = TRUE;
+                use_scrolled_window = FALSE, use_gregex = FALSE,
+                show_object_notifications = FALSE, rewrap = TRUE;
 	char *geometry = NULL;
 	gint lines = -1;
 	const char *message = "Launching interactive shell...\r\n";
@@ -603,6 +630,13 @@ main(int argc, char **argv)
 			G_OPTION_ARG_STRING_ARRAY, &dingus,
 			"Add regex highlight", NULL
 		},
+#ifdef WITH_PCRE2
+		{
+			"gregex", 0, 0,
+			G_OPTION_ARG_NONE, &use_gregex,
+			"Use GRegex instead of PCRE2", NULL
+		},
+#endif
 		{
 			"no-rewrap", 'R', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &rewrap,
@@ -976,10 +1010,10 @@ main(int argc, char **argv)
 
 	/* Match "abcdefg". */
 	if (!no_builtin_dingus) {
-                add_dingus (terminal, (char **) builtin_dingus);
+                add_dingus (terminal, (char **) builtin_dingus, use_gregex);
 	}
 	if (dingus) {
-                add_dingus (terminal, dingus);
+                add_dingus (terminal, dingus, use_gregex);
                 g_strfreev (dingus);
         }
 

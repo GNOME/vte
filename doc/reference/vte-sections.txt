@@ -53,7 +53,7 @@ vte_terminal_get_text
 vte_terminal_get_text_include_trailing_spaces
 vte_terminal_get_text_range
 vte_terminal_get_cursor_position
-vte_terminal_match_add_gregex
+vte_terminal_match_add_regex
 vte_terminal_match_remove
 vte_terminal_match_remove_all
 vte_terminal_match_check
@@ -69,9 +69,9 @@ vte_terminal_get_word_char_exceptions
 vte_terminal_write_contents_sync
 vte_terminal_search_find_next
 vte_terminal_search_find_previous
-vte_terminal_search_get_gregex
+vte_terminal_search_get_regex
 vte_terminal_search_get_wrap_around
-vte_terminal_search_set_gregex
+vte_terminal_search_set_regex
 vte_terminal_search_set_wrap_around
 
 <SUBSECTION>
@@ -118,12 +118,32 @@ vte_terminal_get_current_file_uri
 
 <SUBSECTION Deprecated>
 vte_terminal_match_set_cursor
+vte_terminal_match_add_gregex
+vte_terminal_search_get_gregex
+vte_terminal_search_set_gregex
 
 <SUBSECTION Private>
 VteCharAttributes
 VteTerminalPrivate
 VteTerminalClassPrivate
 </SECTION>
+
+<SECTION>
+<FILE>vte-regex</FILE>
+<TITLE>VteRegex</TITLE>
+VteRegex
+vte_regex_ref
+vte_regex_unref
+vte_regex_new
+vte_regex_jit
+vte_regex_new_pcre
+vte_regex_get_pcre
+
+<SUBSECTION Standard>
+VTE_TYPE_REGEX
+vte_regex_get_type
+VTE_REGEX_ERROR
+vte_regex_error_quark
 
 <SECTION>
 <FILE>vte-pty</FILE>

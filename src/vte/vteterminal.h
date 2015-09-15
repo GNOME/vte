@@ -31,6 +31,7 @@
 #include "vteenums.h"
 #include "vtemacros.h"
 #include "vtepty.h"
+#include "vteregex.h"
 
 #if defined(VTE_COMPILATION) && defined(__cplusplus)
 class VteTerminalPrivate;
@@ -289,9 +290,9 @@ void vte_terminal_get_cursor_position(VteTerminal *terminal,
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
-int vte_terminal_match_add_gregex(VteTerminal *terminal,
-                                  GRegex *regex,
-                                  GRegexMatchFlags flags) _VTE_GNUC_NONNULL(1);
+int vte_terminal_match_add_regex(VteTerminal *terminal,
+                                 VteRegex *regex,
+                                 guint32 flags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 /* Set the cursor to be used when the pointer is over a given match. */
 void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 					int tag,
@@ -313,10 +314,10 @@ char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
                                      int *tag) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
 
-void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
-					       GRegex      *regex,
-                                               GRegexMatchFlags flags) _VTE_GNUC_NONNULL(1);
-GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+void      vte_terminal_search_set_regex      (VteTerminal *terminal,
+                                              VteRegex    *regex,
+                                              guint32      flags) _VTE_GNUC_NONNULL(1);
+VteRegex *vte_terminal_search_get_regex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 void      vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 					       gboolean     wrap_around) _VTE_GNUC_NONNULL(1);
 gboolean  vte_terminal_search_get_wrap_around (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);

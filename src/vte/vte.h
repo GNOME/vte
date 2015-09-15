@@ -26,13 +26,14 @@
 #include "vteenums.h"
 #include "vteglobals.h"
 #include "vtepty.h"
+#include "vteregex.h"
 #include "vteterminal.h"
 #include "vtetypebuiltins.h"
 #include "vteversion.h"
 
-#ifndef VTE_DISABLE_DEPRECATED
+#if !defined(VTE_DISABLE_DEPRECATED) || defined(VTE_COMPILATION)
 #include "vtedeprecated.h"
-#endif /* VTE_DISABLE_DEPRECATED */
+#endif /* !VTE_DISABLE_DEPRECATED */
 
 #undef __VTE_VTE_H_INSIDE__
 

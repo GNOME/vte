@@ -16,6 +16,7 @@ header_HEADERS = \
 	vte/vteglobals.h \
 	vte/vtemacros.h \
 	vte/vtepty.h \
+	vte/vteregex.h \
 	vte/vteterminal.h \
 	$(NULL)
 
@@ -42,6 +43,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vte/vteglobals.h \
 	vte/vtemacros.h \
 	vte/vtepty.h \
+	vte/vteregex.h \
 	vte/vteterminal.h \
 	buffer.h \
 	caps.cc \
@@ -70,7 +72,10 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtedraw.h \
 	vteint.h \
 	vteinternal.hh \
+	vtepcre2.h \
 	vtepty-private.h \
+	vteregex.cc \
+	vteregexinternal.hh \
 	vterowdata.cc \
 	vterowdata.h \
 	vteseq.cc \
@@ -189,7 +194,7 @@ Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_EXPORT_PACKAGES = vte-$(VTE_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
-	$(filter-out vte/vtedeprecated.h,$(header_HEADERS)) \
+	$(header_HEADERS) \
 	$(nodist_header_HEADERS) \
 	vte.cc \
 	vtetypebuiltins.cc \
@@ -234,25 +239,26 @@ endif # HAVE_INTROSPECTION
 # C Test application
 
 testvte_SOURCES = \
-        vteapp.c \
-        debug.c \
-        debug.h \
-        $(NULL)
+	vteapp.c \
+	vtepcre2.h \
+	debug.c \
+	debug.h \
+	$(NULL)
 
 testvte_CPPFLAGS = \
-        -DGLIB_DISABLE_DEPRECATION_WARNINGS \
-        -DGDK_DISABLE_DEPRECATION_WARNINGS \
+	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
+	-DGDK_DISABLE_DEPRECATION_WARNINGS \
 	-I$(srcdir)/vte \
 	-I$(builddir)/vte \
-        $(AM_CPPFLAGS)
+	$(AM_CPPFLAGS)
 
 testvte_CFLAGS = \
-        $(VTE_CFLAGS) \
-        $(AM_CFLAGS)
+	$(VTE_CFLAGS) \
+	$(AM_CFLAGS)
 
 testvte_LDADD = \
-        libvte-$(VTE_API_VERSION).la \
-        $(VTE_LIBS)
+	libvte-$(VTE_API_VERSION).la \
+	$(VTE_LIBS)
 
 # VALA Test application
 
@@ -304,6 +310,9 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
 
 if HAVE_GTK_3_16
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += -D GTK_3_16
+endif
+if WITH_PCRE2
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += -D WITH_PCRE2
 endif
 
 CLEANFILES += \

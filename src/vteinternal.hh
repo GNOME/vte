@@ -21,6 +21,12 @@
 #include <glib.h>
 
 typedef enum {
+        VTE_REGEX_UNDECIDED,
+        VTE_REGEX_PCRE2,
+        VTE_REGEX_GREGEX
+} VteRegexMode;
+
+typedef enum {
         VTE_REGEX_CURSOR_GDKCURSOR,
         VTE_REGEX_CURSOR_GDKCURSORTYPE,
         VTE_REGEX_CURSOR_NAME
@@ -36,11 +42,24 @@ typedef enum {
 	MOUSE_TRACKING_ALL_MOTION_TRACKING
 } MouseTrackingMode;
 
+struct vte_regex_and_flags {
+        VteRegexMode mode;
+        union { /* switched on @mode */
+                struct {
+                        VteRegex *regex;
+                        guint32 match_flags;
+                } pcre;
+                struct {
+                        GRegex *regex;
+                        GRegexMatchFlags match_flags;
+                } gregex;
+        };
+};
+
 /* A match regex, with a tag. */
 struct vte_match_regex {
 	gint tag;
-        GRegex *regex;
-        GRegexMatchFlags match_flags;
+        struct vte_regex_and_flags regex;
         VteRegexCursorMode cursor_mode;
         union {
 	       GdkCursor *cursor;
@@ -316,6 +335,7 @@ public:
 	/* State variables for handling match checks. */
 	char *match_contents;
 	GArray *match_attributes;
+        VteRegexMode match_regex_mode;
 	GArray *match_regexes;
 	char *match;
 	int match_tag;
@@ -323,8 +343,7 @@ public:
 	gboolean show_match;
 
 	/* Search data. */
-	GRegex *search_regex;
-        GRegexMatchFlags search_match_flags;
+        struct vte_regex_and_flags search_regex;
 	gboolean search_wrap_around;
 	GArray *search_attrs; /* Cache attrs */
 
