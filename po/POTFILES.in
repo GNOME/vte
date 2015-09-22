@@ -1,5 +1,6 @@
 [type: gettext/glade]src/app.ui
 src/iso2022.cc
 src/pty.cc
+[type: gettext/glade]src/search-popover.ui
 src/vteapp.c
 src/vte.cc
