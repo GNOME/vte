@@ -19,12 +19,130 @@
 namespace Test
 {
 
+[GtkTemplate (ui = "/org/gnome/vte/test/app/ui/search-popover.ui")]
+class SearchPopover : Gtk.Popover
+{
+  public Vte.Terminal terminal { get; construct set; }
+
+  [GtkChild] private Gtk.SearchEntry search_entry;
+  [GtkChild] private Gtk.Button search_prev_button;
+  [GtkChild] private Gtk.Button search_next_button;
+  [GtkChild] private Gtk.Button close_button;
+  [GtkChild] private Gtk.ToggleButton  match_case_checkbutton;
+  [GtkChild] private Gtk.ToggleButton entire_word_checkbutton;
+  [GtkChild] private Gtk.ToggleButton regex_checkbutton;
+  [GtkChild] private Gtk.ToggleButton wrap_around_checkbutton;
+  [GtkChild] private Gtk.Button reveal_button;
+  [GtkChild] private Gtk.Revealer revealer;
+
+  private GLib.RegexCompileFlags regex_flags = 0;
+  private GLib.Regex? regex = null;
+
+  public SearchPopover(Vte.Terminal term,
+                       Gtk.Widget relative_to)
+  {
+    Object(relative_to: relative_to, terminal: term);
+
+    close_button.clicked.connect(() => { hide(); });
+    reveal_button.bind_property("active", revealer, "reveal-child");
+
+    search_entry.next_match.connect(() => { search(false); });
+    search_entry.previous_match.connect(() => { search(true); });
+    search_entry.search_changed.connect(() => { update_regex(); });
+
+    search_next_button.clicked.connect(() => { search(false); });
+    search_prev_button.clicked.connect(() => { search(true); });
+
+    match_case_checkbutton.toggled.connect(() => { update_regex(); });
+    entire_word_checkbutton.toggled.connect(() => { update_regex(); });
+    regex_checkbutton.toggled.connect(() => { update_regex(); });
+
+    wrap_around_checkbutton.toggled.connect(() => {
+        terminal.search_set_wrap_around(wrap_around_checkbutton.active);
+      });
+
+    update_sensitivity();
+  }
+
+  private void update_sensitivity()
+  {
+    bool can_search = regex != null;
+
+    search_prev_button.set_sensitive(can_search);
+    search_next_button.set_sensitive(can_search);
+  }
+
+  private void update_regex()
+  {
+    GLib.RegexCompileFlags flags;
+    string search_text;
+    string pattern;
+
+    search_text = search_entry.get_text();
+    flags = GLib.RegexCompileFlags.OPTIMIZE;
+
+    if (!match_case_checkbutton.active)
+      flags |= GLib.RegexCompileFlags.CASELESS;
+
+    if (regex_checkbutton.active) {
+      pattern = search_text;
+      flags |= GLib.RegexCompileFlags.MULTILINE;
+    } else {
+      pattern = GLib.Regex.escape_string(search_text);
+    }
+
+    if (entire_word_checkbutton.active)
+      pattern = "\\b" + pattern + "\\b";
+
+    if (regex != null &&
+        regex_flags == flags &&
+        pattern == regex.get_pattern())
+      return;
+
+    regex_flags = flags;
+    if (search_text.length != 0) {
+      try {
+        regex = new GLib.Regex(pattern, flags, 0);
+      } catch (Error e) {
+        regex = null;
+      }
+    } else {
+      regex = null;
+    }
+
+    terminal.search_set_gregex(regex, 0);
+    update_sensitivity();
+  }
+
+  private void search(bool backward)
+  {
+    if (regex == null)
+      return;
+
+    if (backward)
+      terminal.search_find_previous();
+    else
+      terminal.search_find_next();
+  }
+
+} /* class SearchPopover */
+
+[GtkTemplate (ui = "/org/gnome/vte/test/app/ui/window.ui")]
 class Window : Gtk.ApplicationWindow
 {
+  [GtkChild] private Gtk.Toolbar toolbar;
+  [GtkChild] private Gtk.Scrollbar scrollbar;
+  [GtkChild] private Gtk.Box terminal_box;
+  /* [GtkChild] private Gtk.ToolButton copy_toolbutton; */
+  /* [GtkChild] private Gtk.ToolButton paste_toolbutton; */
+  /* [GtkChild] private Gtk.ToolButton reset_toolbutton; */
+  /* [GtkChild] private Gtk.ToggleToolButton input_enabled_toolbutton; */
+  [GtkChild] private Gtk.ToggleToolButton search_toolbutton;
+
   private Vte.Terminal terminal;
-  private Gtk.Scrollbar scrollbar;
   private Gtk.Clipboard clipboard;
   private GLib.Pid child_pid;
+  private SearchPopover? search_popover;
 
   private string[] builtin_dingus = {
     "(((gopher|news|telnet|nntp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?",
@@ -35,7 +153,8 @@ class Window : Gtk.ApplicationWindow
     { "copy",        action_copy_cb            },
     { "copy-match",  action_copy_match_cb, "s" },
     { "paste",       action_paste_cb           },
-    { "reset",       action_reset_cb           }
+    { "reset",       action_reset_cb           },
+    { "find",        action_find_cb            }
   };
 
   public Window(App app)
@@ -64,20 +183,13 @@ class Window : Gtk.ApplicationWindow
       app_paintable = true;
     }
 
-    var ui = new Gtk.Builder.from_resource("/org/gnome/vte/test/app/ui/window.ui");
-    add(ui.get_object("main-box") as Gtk.Widget);
-
-    var box = ui.get_object("terminal-box") as Gtk.Box;
-
-    if (App.Options.no_toolbar) {
-      var toolbar = ui.get_object("toolbar") as Gtk.Widget;
+    if (App.Options.no_toolbar)
       toolbar.hide();
-    }
 
+    search_toolbutton.toggled.connect(search_toolbutton_toggled_cb);
+
+    /* Create terminal and connect scrollbar */
     terminal = new Vte.Terminal();
-
-    /* Connect scrollbar */
-    scrollbar = ui.get_object("scrollbar") as Gtk.Scrollbar;
     scrollbar.set_adjustment(terminal.get_vadjustment());
 
     /* Signals */
@@ -150,7 +262,7 @@ class Window : Gtk.ApplicationWindow
     add_action(new GLib.PropertyAction ("input-enabled", terminal, "input-enabled"));
 
     /* Done! */
-    box.pack_start(terminal);
+    terminal_box.pack_start(terminal);
     terminal.show();
 
     update_paste_sensitivity();
@@ -357,6 +469,22 @@ class Window : Gtk.ApplicationWindow
       clear = false;
 
     terminal.reset(true, clear);
+  }
+
+  private void action_find_cb()
+  {
+    search_toolbutton.active = true;
+  }
+
+  private void search_toolbutton_toggled_cb()
+  {
+    if (search_toolbutton.active && search_popover == null) {
+      search_popover = new SearchPopover(terminal, search_toolbutton);
+      search_popover.closed.connect(() => { search_toolbutton.set_active(false); });
+    }
+
+    if (search_popover.visible != search_toolbutton.active)
+      search_popover.set_visible(search_toolbutton.active);
   }
 
   private bool button_press_event_cb(Gtk.Widget widget, Gdk.EventButton event)

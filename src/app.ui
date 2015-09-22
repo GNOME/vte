@@ -1,106 +1,124 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.16.0 on Fri Apr 18 10:59:58 2014 -->
+<!-- Generated with glade 3.19.0 -->
 <interface>
-  <!-- interface-requires gtk+ 3.10 -->
-  <object class="GtkBox" id="main-box">
-    <property name="visible">True</property>
+  <requires lib="gtk+" version="3.10"/>
+  <template class="TestWindow" parent="GtkApplicationWindow">
     <property name="can_focus">False</property>
-    <property name="orientation">vertical</property>
     <child>
-      <object class="GtkToolbar" id="toolbar">
+      <object class="GtkBox" id="main_box">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
         <child>
-          <object class="GtkToolButton" id="copy-toolbutton">
+          <object class="GtkToolbar" id="toolbar">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="tooltip_text" translatable="yes">Copy</property>
-            <property name="action_name">win.copy</property>
-            <property name="label" translatable="yes">Copy</property>
-            <property name="icon_name">edit-copy</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkToolButton" id="paste-toolbutton">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="tooltip_text" translatable="yes">Paste</property>
-            <property name="action_name">win.paste</property>
-            <property name="label" translatable="yes">Paste</property>
-            <property name="icon_name">edit-paste</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkToolButton" id="reset-toolbutton">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="tooltip_text" translatable="yes">Reset (use Ctrl to reset and clear)</property>
-            <property name="action_name">win.reset</property>
-            <property name="label" translatable="yes">Reset</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkToggleToolButton" id="input-enabled-toolbutton">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="tooltip_text" translatable="yes">Toggle input enabled setting</property>
-            <property name="is_important">True</property>
-            <property name="action_name">win.input-enabled</property>
-            <property name="label" translatable="yes">Input</property>
-            <property name="icon_name">input-keyboard</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">0</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkBox" id="terminal-box">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <child>
-          <placeholder/>
-        </child>
-        <child>
-          <object class="GtkScrollbar" id="scrollbar">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <property name="restrict_to_fill_level">False</property>
-            <property name="fill_level">0</property>
+            <child>
+              <object class="GtkToolButton" id="copy_toolbutton">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Copy</property>
+                <property name="action_name">win.copy</property>
+                <property name="label" translatable="yes">Copy</property>
+                <property name="icon_name">edit-copy-symbolic</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="paste_toolbutton">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Paste</property>
+                <property name="action_name">win.paste</property>
+                <property name="label" translatable="yes">Paste</property>
+                <property name="icon_name">edit-paste-symbolic</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="reset_toolbutton">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Reset (use Ctrl to reset and clear)</property>
+                <property name="action_name">win.reset</property>
+                <property name="label" translatable="yes">Reset</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleToolButton" id="input_enabled_toolbutton">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Toggle input enabled setting</property>
+                <property name="is_important">True</property>
+                <property name="action_name">win.input-enabled</property>
+                <property name="label" translatable="yes">Input</property>
+                <property name="icon_name">input-keyboard</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">False</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToggleToolButton" id="search_toolbutton">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Search</property>
+                <property name="use_underline">True</property>
+                <property name="icon_name">edit-find-symbolic</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="pack_type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkBox" id="terminal_box">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkScrollbar" id="scrollbar">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <property name="restrict_to_fill_level">False</property>
+                <property name="fill_level">0</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="pack_type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
         </child>
       </object>
-      <packing>
-        <property name="expand">True</property>
-        <property name="fill">True</property>
-        <property name="position">1</property>
-      </packing>
     </child>
-  </object>
+  </template>
 </interface>

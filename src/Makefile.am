@@ -271,6 +271,7 @@ nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	$(NULL)
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
+	--target-glib=2.38 \
 	--vapidir=. \
 	--girdir=. \
 	--pkg=posix \
@@ -309,6 +310,7 @@ CLEANFILES += \
 EXTRA_DIST += \
         app.gresource.xml \
 	app.ui \
+	search-popover.ui \
 	$(NULL)
 
 appresources.c: app.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies --sourcedir $(srcdir) $(srcdir)/app.gresource.xml)

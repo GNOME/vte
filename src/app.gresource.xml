@@ -18,5 +18,6 @@
 <gresources>
   <gresource prefix="/org/gnome/vte/test/app">
     <file alias="ui/window.ui" compressed="true" preprocess="xml-stripblanks">app.ui</file>
+    <file alias="ui/search-popover.ui" compressed="true" preprocess="xml-stripblanks">search-popover.ui</file>
   </gresource>
 </gresources>
