@@ -130,19 +130,19 @@ class SearchPopover : Gtk.Popover
 [GtkTemplate (ui = "/org/gnome/vte/test/app/ui/window.ui")]
 class Window : Gtk.ApplicationWindow
 {
-  [GtkChild] private Gtk.Toolbar toolbar;
   [GtkChild] private Gtk.Scrollbar scrollbar;
   [GtkChild] private Gtk.Box terminal_box;
-  /* [GtkChild] private Gtk.ToolButton copy_toolbutton; */
-  /* [GtkChild] private Gtk.ToolButton paste_toolbutton; */
-  /* [GtkChild] private Gtk.ToolButton reset_toolbutton; */
-  /* [GtkChild] private Gtk.ToggleToolButton input_enabled_toolbutton; */
-  [GtkChild] private Gtk.ToggleToolButton search_toolbutton;
+  /* [GtkChild] private Gtk.Box notifications_box; */
+  [GtkChild] private Gtk.Widget readonly_emblem;
+  /* [GtkChild] private Gtk.Button copy_button; */
+  /* [GtkChild] private Gtk.Button paste_button; */
+  [GtkChild] private Gtk.ToggleButton find_button;
+  [GtkChild] private Gtk.MenuButton gear_button;
 
   private Vte.Terminal terminal;
   private Gtk.Clipboard clipboard;
   private GLib.Pid child_pid;
-  private SearchPopover? search_popover;
+  private SearchPopover search_popover;
 
   private string[] builtin_dingus = {
     "(((gopher|news|telnet|nntp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?",
@@ -153,15 +153,64 @@ class Window : Gtk.ApplicationWindow
     { "copy",        action_copy_cb            },
     { "copy-match",  action_copy_match_cb, "s" },
     { "paste",       action_paste_cb           },
-    { "reset",       action_reset_cb           },
-    { "find",        action_find_cb            }
+    { "reset",       action_reset_cb,      "b" },
+    { "find",        action_find_cb            },
+    { "quit",        action_quit_cb            }
   };
 
   public Window(App app)
   {
     Object(application: app);
 
+    /* Create terminal and connect scrollbar */
+    terminal = new Vte.Terminal();
+    scrollbar.set_adjustment(terminal.get_vadjustment());
+
+    /* Create actions */
     add_action_entries (action_entries, this);
+
+    /* Property actions */
+    var action = new GLib.PropertyAction ("input-enabled", terminal, "input-enabled");
+    add_action(action);
+    action.notify["state"].connect((obj, pspec) => {
+        GLib.Action a = (GLib.Action)obj;
+        readonly_emblem.set_visible(!a.state.get_boolean());
+      });
+
+    /* Find */
+    search_popover = new SearchPopover(terminal, find_button);
+    search_popover.closed.connect(() => {
+        if (find_button.active)
+          find_button.set_active(false);
+      });
+
+    find_button.toggled.connect(() => {
+        var active = find_button.active;
+        if (search_popover.visible != active)
+          search_popover.set_visible(active);
+      });
+
+    /* Gear menu */
+    /* FIXME: figure out how to put this into the .ui file */
+    var menu = new GLib.Menu();
+
+    var section = new GLib.Menu();
+    section.append("_Copy", "win.copy");
+    section.append("_Paste", "win.paste");
+    section.append("_Find…", "win.find");
+    menu.append_section(null, section);
+
+    section = new GLib.Menu();
+    section.append("_Reset", "win.reset(false)");
+    section.append("Reset and C_lear", "win.reset(true)");
+    section.append("_Input enabled", "win.input-enabled");
+    menu.append_section(null, section);
+
+    section = new GLib.Menu();
+    section.append("_Quit", "win.quit");
+    menu.append_section(null, section);
+
+    gear_button.set_menu_model(menu);
 
     /* set_resize_mode(Gtk.ResizeMode.IMMEDIATE); */
 
@@ -182,15 +231,6 @@ class Window : Gtk.ApplicationWindow
       /* Without this transparency doesn't work; see bug #729884. */
       app_paintable = true;
     }
-
-    if (App.Options.no_toolbar)
-      toolbar.hide();
-
-    search_toolbutton.toggled.connect(search_toolbutton_toggled_cb);
-
-    /* Create terminal and connect scrollbar */
-    terminal = new Vte.Terminal();
-    scrollbar.set_adjustment(terminal.get_vadjustment());
 
     /* Signals */
     terminal.button_press_event.connect(button_press_event_cb);
@@ -257,9 +297,6 @@ class Window : Gtk.ApplicationWindow
       add_dingus(builtin_dingus);
     if (App.Options.dingus != null)
       add_dingus(App.Options.dingus);
-
-    /* Property actions */
-    add_action(new GLib.PropertyAction ("input-enabled", terminal, "input-enabled"));
 
     /* Done! */
     terminal_box.pack_start(terminal);
@@ -458,12 +495,14 @@ class Window : Gtk.ApplicationWindow
     terminal.paste_clipboard();
   }
 
-  private void action_reset_cb()
+  private void action_reset_cb(GLib.SimpleAction action, GLib.Variant? parameter)
   {
     bool clear;
     Gdk.ModifierType modifiers;
 
-    if (Gtk.get_current_event_state(out modifiers))
+    if (parameter != null) {
+      clear = parameter.get_boolean();
+    } else if (Gtk.get_current_event_state(out modifiers))
       clear = (modifiers & Gdk.ModifierType.CONTROL_MASK) != 0;
     else
       clear = false;
@@ -473,18 +512,12 @@ class Window : Gtk.ApplicationWindow
 
   private void action_find_cb()
   {
-    search_toolbutton.active = true;
+    find_button.set_active(true);
   }
 
-  private void search_toolbutton_toggled_cb()
+  private void action_quit_cb()
   {
-    if (search_toolbutton.active && search_popover == null) {
-      search_popover = new SearchPopover(terminal, search_toolbutton);
-      search_popover.closed.connect(() => { search_toolbutton.set_active(false); });
-    }
-
-    if (search_popover.visible != search_toolbutton.active)
-      search_popover.set_visible(search_toolbutton.active);
+    destroy();
   }
 
   private bool button_press_event_cb(Gtk.Widget widget, Gdk.EventButton event)
@@ -690,7 +723,6 @@ class App : Gtk.Application
     public static bool no_geometry_hints = false;
     public static bool no_rewrap = false;
     public static bool no_shell = false;
-    public static bool no_toolbar = false;
     public static bool object_notifications = false;
     public static string? output_filename = null;
     private static string? pty_flags_string = null;
@@ -877,8 +909,6 @@ class App : Gtk.Application
         "Disable rewrapping on resize", null },
       { "no-shell", 'S', 0, OptionArg.NONE, ref no_shell,
         "Disable spawning a shell inside the terminal", null },
-      { "no-toolbar", 0, 0, OptionArg.NONE, ref no_toolbar,
-        "Disable toolbar", null },
       { "object-notifications", 'N', 0, OptionArg.NONE, ref object_notifications,
         "Print VteTerminal object notifications", null },
       { "output-file", 0, 0, OptionArg.FILENAME, ref output_filename,
