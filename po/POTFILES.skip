@@ -1,0 +1,2 @@
+[type: gettext/glade]src/app.ui
+[type: gettext/glade]src/search-popover.ui
