@@ -46,8 +46,10 @@ class SearchPopover : Gtk.Popover
     close_button.clicked.connect(() => { hide(); });
     reveal_button.bind_property("active", revealer, "reveal-child");
 
+#if GTK_3_16
     search_entry.next_match.connect(() => { search(false); });
     search_entry.previous_match.connect(() => { search(true); });
+#endif
     search_entry.search_changed.connect(() => { update_regex(); });
 
     search_next_button.clicked.connect(() => { search(false); });

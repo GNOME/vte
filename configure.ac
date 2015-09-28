@@ -329,7 +329,14 @@ AM_PROG_VALAC([0.18.0],[],[
     AC_MSG_ERROR([vala support enabled by vala compiler not found])
   fi])
 
+if test "$enable_test_application" = "yes"; then
+  PKG_CHECK_MODULES([GTK_3_16],[gtk+-3.0 >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
+else
+  have_gtk_3_16=no
+fi
+
 AM_CONDITIONAL([ENABLE_TEST_APPLICATION],[test "$enable_test_application" = "yes"])
+AM_CONDITIONAL([HAVE_GTK_3_16],[test "$have_gtk_3_16" = "yes"])
 
 # ***************
 # Auxiliary tools
