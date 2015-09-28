@@ -770,6 +770,10 @@ main(int argc, char **argv)
                 g_printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
         }
 
+        /* Not interested in silly debug spew, bug #749195 */
+        if (g_getenv ("G_ENABLE_DIAGNOSTIC") == NULL)
+                g_setenv ("G_ENABLE_DIAGNOSTIC", "0", TRUE);
+
 	context = g_option_context_new (" - test VTE terminal emulation");
 	g_option_context_add_main_entries (context, options, NULL);
 	g_option_context_add_group (context, gtk_get_option_group (TRUE));

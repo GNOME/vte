@@ -936,6 +936,10 @@ class App : Gtk.Application
     if (Environment.get_variable("VTE_CJK_WIDTH") != null) {
       printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
     }
+    /* Not interested in silly debug spew, bug #749195 */
+    if (Environment.get_variable("G_ENABLE_DIAGNOSTIC") == null) {
+      Environment.set_variable("G_ENABLE_DIAGNOSTIC", "0", true);
+    }
     Environment.set_prgname("vte-app");
     Environment.set_application_name("Terminal");
 
