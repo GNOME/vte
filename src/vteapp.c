@@ -760,12 +760,6 @@ main(int argc, char **argv)
 
         _vte_debug_init();
 
-	/* Have to do this early. */
-	if (getenv("VTE_PROFILE_MEMORY")) {
-		if (atol(getenv("VTE_PROFILE_MEMORY")) != 0) {
-			g_mem_set_vtable(glib_mem_profiler_table);
-		}
-	}
         if (g_getenv("VTE_CJK_WIDTH")) {
                 g_printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
         }
