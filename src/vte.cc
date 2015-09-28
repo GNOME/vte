@@ -1503,7 +1503,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
 	gssize line_length, offset, sattr, eattr, start_blank, end_blank, position;
-	gchar *line, eol;
+	gchar *line;
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
         gsize *ovector;
@@ -1609,21 +1609,16 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 	offset -= sattr;
 	eattr -= sattr;
 
-        /* END identical */
-
 	line = terminal->pvt->match_contents + sattr;
         line_length = eattr;
-
-	/* temporarily shorten the contents to this row */
-        // FIXME obsolete
-	eol = line[eattr];
-	line[eattr] = '\0';
 
 	start_blank = 0;
 	end_blank = eattr;
 
         //        _vte_debug_print(VTE_DEBUG_REGEX, "Cursor offset: %" G_GSSIZE_FORMAT " in line with length %" G_GSSIZE_FORMAT "): %*s\n",
         //                         offset, line_length, -(int)line_length, line);
+
+        /* END identical */
 
         match_context = create_match_context();
         match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
@@ -1727,9 +1722,6 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
                                 vte_terminal_set_cursor_from_regex_match(terminal, regex);
 
-                                // FIXME obsolete
-                                line[eattr] = eol;
-
                                 pcre2_match_data_free_8(match_data);
                                 pcre2_match_context_free_8(match_context);
                                 return result;
@@ -1758,9 +1750,6 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
         pcre2_match_data_free_8(match_data);
         pcre2_match_context_free_8(match_context);
 
-        // FIXME obsolete
-	line[eattr] = eol;
-
         // FIXME: WTF is this doing and why?
 	if (start != NULL) {
 		*start = sattr + start_blank;
@@ -1784,7 +1773,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 	struct vte_match_regex *regex = NULL;
 	struct _VteCharAttributes *attr = NULL;
 	gssize line_length, sattr, eattr;
-	gchar *line, eol;
+	gchar *line;
         GMatchInfo *match_info;
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
@@ -1888,20 +1877,17 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 	offset -= sattr;
 	eattr -= sattr;
 
-        /* END identical */
-
 	/* temporarily shorten the contents to this row */
 	line = terminal->pvt->match_contents + sattr;
         line_length = eattr;
-
-	eol = line[eattr];
-	line[eattr] = '\0';
 
 	start_blank = 0;
 	end_blank = eattr;
 
         //        _vte_debug_print(VTE_DEBUG_REGEX, "Cursor offset: %" G_GSSIZE_FORMAT " in line with length %" G_GSSIZE_FORMAT "): %*s\n",
         //                         offset, line_length, -(int)line_length, line);
+
+        /* END identical */
 
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
@@ -1919,7 +1905,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
                 if (!g_regex_match_full(regex->regex.gregex.regex,
-                                        line, -1, 0,
+                                        line, line_length, 0,
                                         regex->regex.gregex.match_flags,
                                         &match_info,
                                         NULL)) {
@@ -1974,7 +1960,6 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 					}
                                         vte_terminal_set_cursor_from_regex_match(terminal, regex);
                                         result = g_match_info_fetch(match_info, 0);
-					line[eattr] = eol;
 
                                         g_match_info_free(match_info);
 					return result;
@@ -2000,7 +1985,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
                 g_match_info_free(match_info);
 	}
-	line[eattr] = eol;
+
 	if (start != NULL) {
 		*start = sattr + start_blank;
 	}
