@@ -90,12 +90,12 @@ set_gerror_from_pcre_error(int errcode,
 
 #else
 
-static void *
+static gboolean
 set_unsupported_error(GError **error)
 {
         g_set_error_literal(error, VTE_REGEX_ERROR, VTE_REGEX_ERROR_NOT_SUPPORTED,
                             "PCRE2 not supported");
-        return NULL;
+        return FALSE;
 }
 
 #endif /* WITH_PCRE2 */
@@ -197,7 +197,8 @@ vte_regex_new(const char *pattern,
 
         return regex_new(code);
 #else
-        return set_unsupported_error(error);
+        set_unsupported_error(error);
+        return NULL;
 #endif /* WITH_PCRE2 */
 }
 
@@ -226,7 +227,8 @@ vte_regex_new_pcre(pcre2_code_8 *code,
 
         return regex_new(code);
 #else
-        return set_unsupported_error(error);
+        set_unsupported_error(error);
+        return NULL;
 #endif
 }
 
@@ -286,6 +288,7 @@ vte_regex_jit(VteRegex *regex,
 gboolean
 _vte_regex_get_jited(VteRegex *regex)
 {
+#ifdef WITH_PCRE2
         PCRE2_SIZE s;
         int r;
 
@@ -294,4 +297,7 @@ _vte_regex_get_jited(VteRegex *regex)
         r = pcre2_pattern_info_8(regex->code, PCRE2_INFO_JITSIZE, &s);
 
         return r == 0 && s != 0;
+#else
+        return FALSE;
+#endif
 }
