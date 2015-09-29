@@ -25,6 +25,7 @@
 #include "config.h"
 
 #include "vtemacros.h"
+#include "vteenums.h"
 #include "vteregex.h"
 #include "vteregexinternal.hh"
 

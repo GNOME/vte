@@ -42,14 +42,6 @@ GQuark vte_regex_error_quark (void);
 /* This is PCRE2_NO_UTF_CHECK | PCRE2_UTF */
 #define VTE_REGEX_FLAGS_DEFAULT (0x00080000u | 0x40000000u)
 
-typedef enum {
-        /* Negative values are PCRE2 errors */
-
-        /* VTE specific values */
-        VTE_REGEX_ERROR_INCOMPATIBLE  = G_MAXINT-1,
-        VTE_REGEX_ERROR_NOT_SUPPORTED = G_MAXINT
-} VteRegexError;
-
 VteRegex *vte_regex_ref      (VteRegex *regex) _VTE_GNUC_NONNULL(1);
 
 VteRegex *vte_regex_unref    (VteRegex *regex) _VTE_GNUC_NONNULL(1);

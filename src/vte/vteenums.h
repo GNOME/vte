@@ -117,6 +117,26 @@ typedef enum {
   VTE_WRITE_DEFAULT = 0
 } VteWriteFlags;
 
+/**
+ * VteRegexError:
+ * @VTE_REGEX_ERROR_INCOMPATIBLE: The PCRE2 library was built without
+ *   Unicode support which is required for VTE
+ * @VTE_REGEX_ERROR_NOT_SUPPORTED: Regexes are not supported because VTE was
+ *   built without PCRE2 support
+ *
+ * An enum type for regex errors. In addition to the values listed above,
+ * any PCRE2_ERR* value (which areall negative values) may occur.
+ *
+ * Since: 0.44
+ */
+typedef enum {
+        /* Negative values are PCRE2 errors */
+
+        /* VTE specific values */
+        VTE_REGEX_ERROR_INCOMPATIBLE  = G_MAXINT-1,
+        VTE_REGEX_ERROR_NOT_SUPPORTED = G_MAXINT
+} VteRegexError;
+
 G_END_DECLS
 
 #endif /* __VTE_VTE_ENUMS_H__ */
