@@ -441,6 +441,8 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
 					 old, caret_offset, 1);
                 priv->snapshot_text = saved_text;
                 priv->snapshot_characters = saved_characters;
+		emit_text_changed_insert(G_OBJECT(accessible),
+					 old, caret_offset, 1);
 	}
 
 
