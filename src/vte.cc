@@ -13727,7 +13727,7 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
         regex_and_flags_clear(search_regex);
 
         if (gregex != NULL) {
-                search_regex->mode = VTE_REGEX_PCRE2;
+                search_regex->mode = VTE_REGEX_GREGEX;
                 search_regex->gregex.regex = g_regex_ref(gregex);
                 search_regex->gregex.match_flags = gflags;
         }
@@ -13851,7 +13851,7 @@ vte_terminal_search_rows(VteTerminal *terminal,
                 GMatchInfo *match_info;
                 GError *error = NULL;
 
-                g_assert_cmpuint(pvt->search_regex.mode, ==, VTE_REGEX_GREGEX);
+                g_assert_cmpint(pvt->search_regex.mode, ==, VTE_REGEX_GREGEX);
 
                 g_regex_match_full (pvt->search_regex.gregex.regex, row_text, row_text_length, 0,
                                     (GRegexMatchFlags)(pvt->search_regex.gregex.match_flags | G_REGEX_MATCH_NOTEMPTY),
