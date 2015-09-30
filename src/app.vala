@@ -156,14 +156,20 @@ class SearchPopover : Gtk.Popover
 
         regex_pattern = pattern;
       } catch (Error e) {
+#if WITH_PCRE2
         regex = null;
+#endif
+        gregex = null;
       }
     } else {
+#if WITH_PCRE2
       regex = null;
+#endif
+      gregex = null;
     }
 
 #if WITH_PCRE2
-    if (regex != null)
+    if (!App.Options.no_pcre)
       terminal.search_set_regex(regex, 0);
     else
 #endif
