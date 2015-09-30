@@ -1546,7 +1546,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                         c = g_utf8_get_char (terminal->pvt->match_contents + offset);
                         utf[g_unichar_to_utf8(g_unichar_isprint(c) ? c : 0xFFFD, utf)] = 0;
 
-			g_printerr("Cursor is on character U+%04X '%s' at %d.\n",
+			g_printerr("Cursor is on character U+%04X '%s' at %" G_GSSIZE_FORMAT ".\n",
                                    c, utf, offset);
                 }
 	}
@@ -1685,7 +1685,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                 _eattr = &g_array_index(terminal->pvt->match_attributes,
 							struct _VteCharAttributes,
 							rm_eo - 1);
-                                g_printerr("%s match `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
+                                g_printerr("%s match `%s' from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld) (%" G_GSSIZE_FORMAT ").\n",
                                            r == PCRE2_ERROR_PARTIAL ? "Partial":"Full",
                                            match,
                                            rm_so,
