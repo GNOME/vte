@@ -2824,7 +2824,7 @@ _vte_terminal_set_background_alpha(VteTerminal *terminal,
 {
         VteTerminalPrivate *pvt = terminal->pvt;
 
-        if (alpha == pvt->background_alpha)
+        if (_vte_double_equal(alpha, pvt->background_alpha))
                 return;
 
         _vte_debug_print(VTE_DEBUG_MISC,
@@ -5063,7 +5063,7 @@ vte_terminal_style_updated (GtkWidget *widget)
         vte_terminal_set_padding(terminal);
 
         gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
-        if (aspect != terminal->pvt->cursor_aspect_ratio) {
+        if (!_vte_double_equal(aspect, terminal->pvt->cursor_aspect_ratio)) {
                 terminal->pvt->cursor_aspect_ratio = aspect;
                 _vte_invalidate_cursor_once(terminal, FALSE);
         }

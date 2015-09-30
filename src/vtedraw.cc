@@ -552,7 +552,7 @@ static gboolean
 context_equal (PangoContext *a,
 	       PangoContext *b)
 {
-	return pango_cairo_context_get_resolution (a) == pango_cairo_context_get_resolution (b)
+	return _vte_double_equal(pango_cairo_context_get_resolution(a), pango_cairo_context_get_resolution (b))
 	    && pango_font_description_equal (pango_context_get_font_description (a), pango_context_get_font_description (b))
 	    && cairo_font_options_equal (pango_cairo_context_get_font_options (a), pango_cairo_context_get_font_options (b))
 	    && pango_context_get_language (a) == pango_context_get_language (b)

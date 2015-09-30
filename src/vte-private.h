@@ -125,6 +125,16 @@ gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
 
 gboolean _vte_terminal_is_word_char(VteTerminal *terminal, gunichar c);
 
+static inline bool
+_vte_double_equal(double a,
+                  double b)
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+        return a == b;
+#pragma GCC diagnostic pop
+}
+
 G_END_DECLS
 
 #endif
