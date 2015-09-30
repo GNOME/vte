@@ -122,7 +122,7 @@ m4_define([compiler_flags_common],[ dnl
   -Wno-missing-field-initializers dnl
   -Wno-switch-enum dnl
   -Wno-unused-parameter dnl
-  -Wpacked dnl
+  -Wno-packed dnl
   -Wshadow dnl
   -Wsign-compare dnl
   -Wstrict-aliasing=2 dnl
