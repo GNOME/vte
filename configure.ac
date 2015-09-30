@@ -170,7 +170,7 @@ AC_ARG_ENABLE([Bsymbolic],
 VTE_LDFLAGS=
 if test "$enable_Bsymbolic" != "no"; then
   CC_CHECK_LDFLAGS(["-Wl,-Bsymbolic-functions"],
-    [VTE_LDFLAGS="$VTE_CXXLDFLAGS -Wl,-Bsymbolic-functions"],
+    [VTE_LDFLAGS="$VTE_LDFLAGS -Wl,-Bsymbolic-functions"],
     [if test "$enable_Bsymbolic" = "auto"; then
        AC_MSG_WARN([-Bsymbolic not supported by ld; disabling])
        enable_Bsymbolic=no
@@ -180,12 +180,12 @@ if test "$enable_Bsymbolic" != "no"; then
 
   AC_LANG_PUSH([C++])
   CC_CHECK_LDFLAGS(["-Wl,-Bsymbolic-functions"],
-    [VTE_LDFLAGS="$VTE_CXXLDFLAGS -Wl,-Bsymbolic-functions"],
+    [VTE_CXXLDFLAGS="$VTE_CXXLDFLAGS -Wl,-Bsymbolic-functions"],
     [if test "$enable_Bsymbolic" = "auto"; then
-       AC_MSG_WARN([-Bsymbolic not supported by ld; disabling])
+       AC_MSG_WARN([-Bsymbolic not supported by cxx ld; disabling])
        enable_Bsymbolic=no
      else
-       AC_MSG_ERROR([-Bsymbolic requested but not supported by ld. Use --disable-Bsymbolic to disable])
+       AC_MSG_ERROR([-Bsymbolic requested but not supported by cxx ld. Use --disable-Bsymbolic to disable])
      fi])
   AC_LANG_POP([C++])
 fi
