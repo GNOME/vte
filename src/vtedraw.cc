@@ -923,7 +923,7 @@ _vte_draw_has_bold (struct _vte_draw *draw, guint style)
 	return (draw->fonts[style ^ VTE_DRAW_BOLD] != draw->fonts[style]);
 }
 
-void
+static void
 _vte_draw_set_source_color_alpha (struct _vte_draw *draw,
                                   const PangoColor *color,
                                   guchar            alpha)
@@ -1522,6 +1522,9 @@ _vte_draw_text (struct _vte_draw *draw,
 	}
 }
 
+/* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
+ * but let's keep them for now since they may become used again.
+ */
 gboolean
 _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, guint style)
 {
