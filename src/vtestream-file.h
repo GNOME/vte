@@ -883,25 +883,24 @@ static gboolean
 _vte_boa_read_with_overwrite_counter (VteBoa *boa, gsize offset, char *data, _vte_overwrite_counter_t *overwrite_counter)
 {
         _vte_block_datalength_t compressed_len;
-        gboolean ret = FALSE;
-        char *buf = (char *)g_malloc(VTE_SNAKE_BLOCKSIZE);
+        char *buf = g_newa(char, VTE_SNAKE_BLOCKSIZE);
 
         g_assert_cmpuint (offset % VTE_BOA_BLOCKSIZE, ==, 0);
 
         /* Read */
         if (G_UNLIKELY (!_vte_snake_read (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), buf)))
-                goto out;
+                return FALSE;
 
         compressed_len = *((_vte_block_datalength_t *) buf);
         *overwrite_counter = *((_vte_overwrite_counter_t *) (buf + VTE_BLOCK_DATALENGTH_SIZE));
 
         /* We could have read an empty block due to a previous disk full. Treat that as an error too. Perform other sanity checks. */
         if (G_UNLIKELY (compressed_len <= 0 || compressed_len > VTE_BOA_BLOCKSIZE || *overwrite_counter <= 0))
-                goto out;
+                return FALSE;
 
         /* Decrypt, bail out on tag mismatch */
         if (G_UNLIKELY (!_vte_boa_decrypt (boa, offset, *overwrite_counter, buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, compressed_len)))
-                goto out;
+                return FALSE;
 
         /* Uncompress, or copy if wasn't compressable */
         if (G_LIKELY (data != NULL)) {
@@ -913,11 +912,7 @@ _vte_boa_read_with_overwrite_counter (VteBoa *boa, gsize offset, char *data, _vt
                         g_assert_cmpuint (uncompressed_len, ==, VTE_BOA_BLOCKSIZE);
                 }
         }
-        ret = TRUE;
-
-out:
-        g_free(buf);
-        return ret;
+        return TRUE;
 }
 
 static gboolean
@@ -943,8 +938,8 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
 
         /* The helper buffer should be large enough to contain a whole snake block,
          * and also large enough to compress data that actually grows bigger during compression. */
-        char *buf = (char *)g_malloc(MAX(VTE_SNAKE_BLOCKSIZE,
-                                         VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE + boa->compressBound));
+        char *buf = g_newa(char, MAX(VTE_SNAKE_BLOCKSIZE,
+                                     VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE + boa->compressBound));
 
         g_assert_cmpuint (offset, >=, boa->tail);
         g_assert_cmpuint (offset, <=, boa->head);
@@ -964,7 +959,7 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
                         _vte_snake_write (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), buf, VTE_SNAKE_BLOCKSIZE);
                         /* Try to punch out from the FS */
                         _vte_snake_write (&boa->parent, OFFSET_BOA_TO_SNAKE(offset), "", 0);
-                        goto out;
+                        return;
                 }
                 overwrite_counter++;
         }
@@ -989,9 +984,6 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
         if (G_LIKELY (offset == boa->head)) {
                 boa->head += VTE_BOA_BLOCKSIZE;
         }
-
-out:
-        g_free(buf);
 }
 
 static void
