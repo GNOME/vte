@@ -744,9 +744,9 @@ _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 				columns++;
 			}
 		}
-		if (preedit_width > 0) {
-			columns += preedit_width;
-			columns++; /* one more for the preedit cursor */
+		columns = MAX(columns, preedit_width);
+		if (column + columns > terminal->column_count) {
+			column = MAX(0, terminal->column_count - columns);
 		}
 
 		_vte_debug_print(VTE_DEBUG_UPDATES,
