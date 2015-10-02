@@ -42,6 +42,11 @@ void vte_terminal_match_set_cursor(VteTerminal *terminal,
                                    GdkCursor *cursor) _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
+char *vte_terminal_match_check(VteTerminal *terminal,
+			       glong column, glong row,
+			       int *tag) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_DEPRECATED
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *gregex,
                                                GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1);

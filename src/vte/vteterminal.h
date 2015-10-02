@@ -307,9 +307,6 @@ void vte_terminal_match_remove_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 /* Check if a given cell on the screen contains part of a matched string.  If
  * it does, return the string, and store the match tag in the optional tag
  * argument. */
-char *vte_terminal_match_check(VteTerminal *terminal,
-			       glong column, glong row,
-			       int *tag) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
                                      int *tag) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;

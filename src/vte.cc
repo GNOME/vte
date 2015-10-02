@@ -2056,6 +2056,8 @@ rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
  *
  * Returns: (transfer full): a newly allocated string which matches one of the previously
  *   set regular expressions
+ *
+ * Deprecated: 0.44: Use vte_terminal_match_check_event() instead.
  */
 char *
 vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
