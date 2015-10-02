@@ -3409,11 +3409,13 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
+#if 0           /* Disable for now: see bug 754596. */
                 if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG) {
 			VteRowData *rowdata;
 			rowdata = _vte_terminal_ensure_row (terminal);
                         _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
 		}
+#endif
 	} else {
 		/* Otherwise, just move the cursor down. */
                 terminal->pvt->cursor.row++;
