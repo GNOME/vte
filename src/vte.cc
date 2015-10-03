@@ -6052,7 +6052,11 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 	int width = terminal->pvt->char_width;
 	int height = terminal->pvt->char_height;
 	long col = (x - terminal->pvt->padding.left) / width;
-	long row = (y - terminal->pvt->padding.top) / height;
+        long row = (y - terminal->pvt->padding.top) / height -
+                   (terminal->pvt->screen->insert_delta - terminal->pvt->screen->scroll_delta);
+
+        if (row < 0)
+                return;
 
 	vte_terminal_feed_mouse_event(terminal, button, FALSE /* not drag */, is_release, col, row);
 }
@@ -6132,8 +6136,12 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 	int width = terminal->pvt->char_width;
 	int height = terminal->pvt->char_height;
 	long col = ((long) event->x - terminal->pvt->padding.left) / width;
-	long row = ((long) event->y - terminal->pvt->padding.top) / height;
+        long row = ((long) event->y - terminal->pvt->padding.top) / height -
+                   (terminal->pvt->screen->insert_delta - terminal->pvt->screen->scroll_delta);
         int button;
+
+        if (row < 0)
+                return FALSE;
 
 	/* First determine if we even want to send notification. */
 	switch (event->type) {
