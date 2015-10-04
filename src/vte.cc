@@ -1473,21 +1473,6 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
 	vte_terminal_match_hilite_clear(terminal);
 }
 
-#ifdef WITH_PCRE2
-
-/* creates a pcre match context with appropriate limits */
-static pcre2_match_context_8 *
-create_match_context(void)
-{
-        pcre2_match_context_8 *match_context;
-
-        match_context = pcre2_match_context_create_8(NULL /* general context */);
-        pcre2_set_match_limit_8(match_context, 65536); /* should be plenty */
-        pcre2_set_recursion_limit_8(match_context, 64); /* should be plenty */
-
-        return match_context;
-}
-
 /*
  * match_rowcol_to_offset:
  * @terminal:
@@ -1606,6 +1591,21 @@ match_rowcol_to_offset(VteTerminal *terminal,
         *eattr_ptr = eattr;
 
         return TRUE;
+}
+
+#ifdef WITH_PCRE2
+
+/* creates a pcre match context with appropriate limits */
+static pcre2_match_context_8 *
+create_match_context(void)
+{
+        pcre2_match_context_8 *match_context;
+
+        match_context = pcre2_match_context_create_8(NULL /* general context */);
+        pcre2_set_match_limit_8(match_context, 65536); /* should be plenty */
+        pcre2_set_recursion_limit_8(match_context, 64); /* should be plenty */
+
+        return match_context;
 }
 
 /* Check if a given cell on the screen contains part of a matched string.  If
