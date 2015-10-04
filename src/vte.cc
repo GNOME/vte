@@ -1865,7 +1865,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 					_eattr = &g_array_index(terminal->pvt->match_attributes,
 							struct _VteCharAttributes,
 							rm_eo - 1);
-					g_printerr("Match `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%d).\n",
+					g_printerr("Match `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%" G_GSIZE_FORMAT ").\n",
 							match,
 							rm_so,
 							_sattr->column,
