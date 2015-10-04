@@ -1631,15 +1631,6 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                          "Checking for pcre match at (%ld,%ld).\n", row, column);
 
         /* Identical with vte_terminal_match_check_internal_gregex until END */
-	if (tag != NULL) {
-		*tag = -1;
-	}
-	if (start != NULL) {
-		*start = 0;
-	}
-	if (end != NULL) {
-		*end = 0;
-	}
 
         if (!match_rowcol_to_offset(terminal, column,row,
                                     &offset, &sattr, &eattr))
@@ -1814,15 +1805,6 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 			"Checking for gregex match at (%ld,%ld).\n", row, column);
 
         /* Identical with vte_terminal_match_check_internal_pcre until END */
-	if (tag != NULL) {
-		*tag = -1;
-	}
-	if (start != NULL) {
-		*start = 0;
-	}
-	if (end != NULL) {
-		*end = 0;
-	}
 
         if (!match_rowcol_to_offset(terminal, column,row,
                                     &offset, &sattr, &eattr))
@@ -1955,6 +1937,16 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 
 	if (pvt->match_contents == NULL) {
 		vte_terminal_match_contents_refresh(terminal);
+	}
+
+	if (tag != NULL) {
+		*tag = -1;
+	}
+	if (start != NULL) {
+		*start = 0;
+	}
+	if (end != NULL) {
+		*end = 0;
 	}
 
 #ifdef WITH_PCRE2
