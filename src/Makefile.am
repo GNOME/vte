@@ -176,7 +176,7 @@ vteseq-list.h: vteseq-n.gperf
 	mv -f $@.tmp $@
 
 vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
-	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate-source --c-name vte $<
+	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate-source --c-name _vte $<
 
 # introspection
 
