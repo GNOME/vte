@@ -1488,40 +1488,32 @@ create_match_context(void)
         return match_context;
 }
 
-/* Check if a given cell on the screen contains part of a matched string.  If
- * it does, return the string, and store the match tag in the optional tag
- * argument. */
-static char *
-vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
-                                       glong column,
-                                       glong row,
-                                       int *tag,
-                                       int *start,
-                                       int *end)
+/*
+ * match_rowcol_to_offset:
+ * @terminal:
+ * @column:
+ * @row:
+ * @offset_ptr: (out):
+ * @sattr_ptr: (out):
+ * @ettr_ptr: (out):
+ *
+ * Maps (row, column) to an offset in pvt->match_attributes, and returns
+ * that offset in @offset_ptr, and the start and end of the corresponding
+ * line in @sattr_ptr and @eattr_ptr.
+ */
+static gboolean
+match_rowcol_to_offset(VteTerminal *terminal,
+                       long column,
+                       long row,
+                       gssize *offset_ptr,
+                       gssize *sattr_ptr,
+                       gssize *eattr_ptr)
 {
-        guint i;
-	struct vte_match_regex *regex = NULL;
-	struct _VteCharAttributes *attr = NULL;
-	gssize line_length, offset, sattr, eattr, start_blank, end_blank, position;
-	gchar *line;
-        pcre2_match_data_8 *match_data;
-        pcre2_match_context_8 *match_context;
-        gsize *ovector;
+        gssize offset, sattr, eattr;
+        struct _VteCharAttributes *attr = NULL;
 
-	_vte_debug_print(VTE_DEBUG_REGEX,
-                         "Checking for pcre match at (%ld,%ld).\n", row, column);
-
-        /* Identical with vte_terminal_match_check_internal_gregex until END */
-	if (tag != NULL) {
-		*tag = -1;
-	}
-	if (start != NULL) {
-		*start = 0;
-	}
-	if (end != NULL) {
-		*end = 0;
-	}
 	/* Map the pointer position to a portion of the string. */
+        // FIXME do a bsearch here?
 	eattr = terminal->pvt->match_attributes->len;
 	for (offset = eattr; offset--; ) {
 		attr = &g_array_index(terminal->pvt->match_attributes,
@@ -1553,7 +1545,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
 	/* If the pointer isn't on a matchable character, bug out. */
 	if (offset < 0) {
-		return NULL;
+		return FALSE;
 	}
 
 	/* If the pointer is on a newline, bug out. */
@@ -1561,7 +1553,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 	    (terminal->pvt->match_contents[offset] == '\0')) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Cursor is on whitespace.\n");
-		return NULL;
+		return FALSE;
 	}
 
 	/* Snip off any final newlines. */
@@ -1600,14 +1592,58 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 		sattr++;
 	}
 	if (eattr <= sattr) { /* blank line */
-		return NULL;
+		return FALSE;
 	}
 	if (eattr <= offset || sattr > offset) {
 		/* nothing to match on this line */
-		return NULL;
+		return FALSE;
 	}
 	offset -= sattr;
 	eattr -= sattr;
+
+        *offset_ptr = offset;
+        *sattr_ptr = sattr;
+        *eattr_ptr = eattr;
+
+        return TRUE;
+}
+
+/* Check if a given cell on the screen contains part of a matched string.  If
+ * it does, return the string, and store the match tag in the optional tag
+ * argument. */
+static char *
+vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
+                                       glong column,
+                                       glong row,
+                                       int *tag,
+                                       int *start,
+                                       int *end)
+{
+        guint i;
+	struct vte_match_regex *regex = NULL;
+	gssize line_length, offset, sattr, eattr, start_blank, end_blank, position;
+	gchar *line;
+        pcre2_match_data_8 *match_data;
+        pcre2_match_context_8 *match_context;
+        gsize *ovector;
+
+	_vte_debug_print(VTE_DEBUG_REGEX,
+                         "Checking for pcre match at (%ld,%ld).\n", row, column);
+
+        /* Identical with vte_terminal_match_check_internal_gregex until END */
+	if (tag != NULL) {
+		*tag = -1;
+	}
+	if (start != NULL) {
+		*start = 0;
+	}
+	if (end != NULL) {
+		*end = 0;
+	}
+
+        if (!match_rowcol_to_offset(terminal, column,row,
+                                    &offset, &sattr, &eattr))
+                return NULL;
 
 	line = terminal->pvt->match_contents + sattr;
         line_length = eattr;
@@ -1769,10 +1805,8 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 {
 	gint start_blank, end_blank;
         guint i;
-	int offset;
 	struct vte_match_regex *regex = NULL;
-	struct _VteCharAttributes *attr = NULL;
-	gssize line_length, sattr, eattr;
+	gssize line_length, sattr, eattr, offset;
 	gchar *line;
         GMatchInfo *match_info;
 
@@ -1789,93 +1823,10 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 	if (end != NULL) {
 		*end = 0;
 	}
-	/* Map the pointer position to a portion of the string. */
-	eattr = terminal->pvt->match_attributes->len;
-	for (offset = eattr; offset--; ) {
-		attr = &g_array_index(terminal->pvt->match_attributes,
-				      struct _VteCharAttributes,
-				      offset);
-		if (row < attr->row) {
-			eattr = offset;
-		}
-		if (row == attr->row &&
-		    column == attr->column &&
-		    terminal->pvt->match_contents[offset] != ' ') {
-			break;
-		}
-	}
 
-	_VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
-		if (offset < 0)
-			g_printerr("Cursor is not on a character.\n");
-		else {
-                        gunichar c;
-                        char utf[7];
-                        c = g_utf8_get_char (terminal->pvt->match_contents + offset);
-                        utf[g_unichar_to_utf8(g_unichar_isprint(c) ? c : 0xFFFD, utf)] = 0;
-
-			g_printerr("Cursor is on character U+%04X '%s' at %d.\n",
-                                   c, utf, offset);
-                }
-	}
-
-	/* If the pointer isn't on a matchable character, bug out. */
-	if (offset < 0) {
-		return NULL;
-	}
-
-	/* If the pointer is on a newline, bug out. */
-	if ((g_ascii_isspace(terminal->pvt->match_contents[offset])) ||
-	    (terminal->pvt->match_contents[offset] == '\0')) {
-		_vte_debug_print(VTE_DEBUG_REGEX,
-				"Cursor is on whitespace.\n");
-		return NULL;
-	}
-
-	/* Snip off any final newlines. */
-	while (terminal->pvt->match_contents[eattr] == '\n' ||
-			terminal->pvt->match_contents[eattr] == '\0') {
-		eattr--;
-	}
-	/* and scan forwards to find the end of this line */
-	while (!(terminal->pvt->match_contents[eattr] == '\n' ||
-			terminal->pvt->match_contents[eattr] == '\0')) {
-		eattr++;
-	}
-
-	/* find the start of row */
-	if (row == 0) {
-		sattr = 0;
-	} else {
-		for (sattr = offset; sattr > 0; sattr--) {
-			attr = &g_array_index(terminal->pvt->match_attributes,
-					      struct _VteCharAttributes,
-					      sattr);
-			if (row > attr->row) {
-				break;
-			}
-		}
-	}
-	/* Scan backwards to find the start of this line */
-	while (sattr > 0 &&
-		! (terminal->pvt->match_contents[sattr] == '\n' ||
-		    terminal->pvt->match_contents[sattr] == '\0')) {
-		sattr--;
-	}
-	/* and skip any initial newlines. */
-	while (terminal->pvt->match_contents[sattr] == '\n' ||
-		terminal->pvt->match_contents[sattr] == '\0') {
-		sattr++;
-	}
-	if (eattr <= sattr) { /* blank line */
-		return NULL;
-	}
-	if (eattr <= offset || sattr > offset) {
-		/* nothing to match on this line */
-		return NULL;
-	}
-	offset -= sattr;
-	eattr -= sattr;
+        if (!match_rowcol_to_offset(terminal, column,row,
+                                    &offset, &sattr, &eattr))
+                return NULL;
 
 	/* temporarily shorten the contents to this row */
 	line = terminal->pvt->match_contents + sattr;
