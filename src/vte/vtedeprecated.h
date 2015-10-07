@@ -47,6 +47,14 @@ char *vte_terminal_match_check(VteTerminal *terminal,
 			       int *tag) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_DEPRECATED
+gboolean vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
+                                                GdkEvent *event,
+                                                GRegex **regexes,
+                                                gsize n_regexes,
+                                                GRegexMatchFlags match_flags,
+                                                char **matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+
+_VTE_DEPRECATED
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *gregex,
                                                GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1);

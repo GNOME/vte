@@ -48,6 +48,8 @@ static const char *builtin_dingus[] = {
   NULL
 };
 
+static gboolean use_gregex = FALSE;
+
 static void
 window_title_changed(GtkWidget *widget, gpointer win)
 {
@@ -145,6 +147,8 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	char *match;
 	int tag;
 	GtkBorder padding;
+        gboolean has_extra_match;
+        char *extra_match;
 
 	switch (event->button) {
 	case 3:
@@ -163,6 +167,32 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 				vte_terminal_match_remove(terminal, tag);
 			}
 		}
+#ifdef WITH_PCRE2
+                if (!use_gregex) {
+                        VteRegex *regex = vte_regex_new("\\d+", -1, PCRE2_UTF, NULL);
+                        has_extra_match = vte_terminal_event_check_regex_simple(terminal,
+                                                                                (GdkEvent*)event,
+                                                                                &regex, 1,
+                                                                                0,
+                                                                                &extra_match);
+                        vte_regex_unref(regex);
+                } else
+#endif
+                {
+                        GRegex *regex = g_regex_new("\\d+", 0, 0, NULL);
+                        has_extra_match = vte_terminal_event_check_gregex_simple(terminal,
+                                                                                 (GdkEvent*)event,
+                                                                                 &regex, 1,
+                                                                                 0,
+                                                                                 &extra_match);
+                        g_regex_unref(regex);
+                }
+
+                if (has_extra_match)
+                        g_print("Extra regex match: %s\n", extra_match);
+                else
+                        g_print("Extra regex didn't match\n");
+                g_free(extra_match);
 		break;
 	case 1:
 	case 2:
@@ -525,8 +555,7 @@ parse_color (const gchar *value,
 
 static void
 add_dingus (VteTerminal *terminal,
-            char **dingus,
-            gboolean use_gregex)
+            char **dingus)
 {
         const GdkCursorType cursors[] = { GDK_GUMBY, GDK_HAND1 };
         int id, i;
@@ -591,7 +620,7 @@ main(int argc, char **argv)
 		 console = FALSE, keep = FALSE,
                 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
-                use_scrolled_window = FALSE, use_gregex = FALSE,
+                use_scrolled_window = FALSE,
                 show_object_notifications = FALSE, rewrap = TRUE;
 	char *geometry = NULL;
 	gint lines = -1;
@@ -1006,10 +1035,10 @@ main(int argc, char **argv)
 
 	/* Match "abcdefg". */
 	if (!no_builtin_dingus) {
-                add_dingus (terminal, (char **) builtin_dingus, use_gregex);
+                add_dingus (terminal, (char **) builtin_dingus);
 	}
 	if (dingus) {
-                add_dingus (terminal, dingus, use_gregex);
+                add_dingus (terminal, dingus);
                 g_strfreev (dingus);
         }
 

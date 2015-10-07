@@ -1624,7 +1624,8 @@ static gboolean
 match_check_pcre(VteTerminalPrivate *pvt,
                  pcre2_match_data_8 *match_data,
                  pcre2_match_context_8 *match_context,
-                 struct vte_regex_and_flags *regex,
+                 VteRegex *regex,
+                 guint32 match_flags,
                  gsize sattr,
                  gsize eattr,
                  gsize offset,
@@ -1642,9 +1643,7 @@ match_check_pcre(VteTerminalPrivate *pvt,
         const char *line;
         int r = 0;
 
-        g_assert_cmpint(regex->mode, ==, VTE_REGEX_PCRE2);
-
-        if (_vte_regex_get_jited(regex->pcre.regex))
+        if (_vte_regex_get_jited(regex))
                 match_fn = pcre2_jit_match_8;
         else
                 match_fn = pcre2_match_8;
@@ -1661,10 +1660,10 @@ match_check_pcre(VteTerminalPrivate *pvt,
          */
         position = sattr;
         while (position < eattr &&
-               ((r = match_fn(vte_regex_get_pcre(regex->pcre.regex),
+               ((r = match_fn(vte_regex_get_pcre(regex),
                               (PCRE2_SPTR8)line, line_length, /* subject, length */
                               position, /* start offset */
-                              regex->pcre.match_flags |
+                              match_flags |
                               PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
                               match_data,
                               match_context)) >= 0 || r == PCRE2_ERROR_PARTIAL)) {
@@ -1779,9 +1778,12 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 			continue;
 		}
 
+                g_assert_cmpint(regex->regex.mode, ==, VTE_REGEX_PCRE2);
+
                 if (match_check_pcre(terminal->pvt,
                                      match_data, match_context,
-                                     &regex->regex,
+                                     regex->regex.pcre.regex,
+                                     regex->regex.pcre.match_flags,
                                      sattr, eattr, offset,
                                      &dingu_match,
                                      start, end,
@@ -1831,7 +1833,8 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
 static gboolean
 match_check_gregex(VteTerminalPrivate *pvt,
-                   struct vte_regex_and_flags *regex,
+                   GRegex *regex,
+                   GRegexMatchFlags match_flags,
                    gsize sattr,
                    gsize eattr,
                    gsize offset,
@@ -1846,18 +1849,16 @@ match_check_gregex(VteTerminalPrivate *pvt,
         gsize line_length;
         gint sblank = G_MININT, eblank = G_MAXINT;
 
-        g_assert_cmpint(regex->mode, ==, VTE_REGEX_GREGEX);
-
         line = pvt->match_contents;
         line_length = eattr;
 
         /* We'll only match the first item in the buffer which
          * matches, so we'll have to skip each match until we
          * stop getting matches. */
-        if (!g_regex_match_full(regex->gregex.regex,
+        if (!g_regex_match_full(regex,
                                 line, line_length, /* subject, length */
                                 sattr, /* start position */
-                                regex->gregex.match_flags,
+                                match_flags,
                                 &match_info,
                                 NULL)) {
                 g_match_info_free(match_info);
@@ -1958,8 +1959,11 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 			continue;
 		}
 
+                g_assert_cmpint(regex->regex.mode, ==, VTE_REGEX_GREGEX);
+
                 if (match_check_gregex(terminal->pvt,
-                                       &regex->regex,
+                                       regex->regex.gregex.regex,
+                                       regex->regex.gregex.match_flags,
                                        sattr, eattr, offset,
                                        &dingu_match,
                                        start, end,
@@ -2161,6 +2165,166 @@ vte_terminal_match_check_event(VteTerminal *terminal,
                 return FALSE;
 
         return vte_terminal_match_check(terminal, col, row, tag);
+}
+
+/**
+ * vte_terminal_event_check_regex_simple:
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ * @regexes: (array length=n_regexes): an array of #VteRegex
+ * @n_regexes: number of items in @regexes
+ * @flags: PCRE2 match flags, or 0
+ * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
+ *
+ * Checks each regex in @regexes if the text in and around the position of
+ * the event matches the regular expressions.  If a match exists, the matched
+ * text is stored in @matches at the position of the regex in @regexes; otherwise
+ * %NULL is stored there.
+ *
+ * Returns: %TRUE iff any of the regexes produced a match
+ *
+ * Since: 0.44
+ */
+gboolean
+vte_terminal_event_check_regex_simple(VteTerminal *terminal,
+                                      GdkEvent *event,
+                                      VteRegex **regexes,
+                                      gsize n_regexes,
+                                      guint32 match_flags,
+                                      char **matches)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+	gsize offset, sattr, eattr;
+        pcre2_match_data_8 *match_data;
+        pcre2_match_context_8 *match_context;
+        gboolean any_matches = FALSE;
+        double x, y;
+        long col, row;
+        guint i;
+
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(event != NULL, FALSE);
+        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
+        g_return_val_if_fail(matches != NULL, FALSE);
+
+        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
+                return FALSE;
+        if (!gdk_event_get_coords(event, &x, &y))
+                return FALSE;
+        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+                return FALSE;
+
+	if (pvt->match_contents == NULL) {
+		vte_terminal_match_contents_refresh(terminal);
+	}
+
+        if (!match_rowcol_to_offset(terminal, col, row,
+                                    &offset, &sattr, &eattr))
+                return FALSE;
+
+        match_context = create_match_context();
+        match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
+
+        for (i = 0; i < n_regexes; i++) {
+                gsize start, end, sblank, eblank;
+                char *match;
+
+                g_return_val_if_fail(regexes[i] != NULL, FALSE);
+
+                if (match_check_pcre(terminal->pvt,
+                                     match_data, match_context,
+                                     regexes[i], match_flags,
+                                     sattr, eattr, offset,
+                                     &match,
+                                     &start, &end,
+                                     &sblank, &eblank)) {
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched regex with text: %s\n", match);
+                        matches[i] = match;
+                        any_matches = TRUE;
+                } else
+                        matches[i] = NULL;
+        }
+
+        pcre2_match_data_free_8(match_data);
+        pcre2_match_context_free_8(match_context);
+
+        return any_matches;
+}
+
+/**
+ * vte_terminal_event_check_gregex_simple:
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ * @regexes: (array length=n_regexes): an array of #GRegex
+ * @n_regexes: number of items in @regexes
+ * @gflags: the #GRegexMatchFlags to use when matching the regexes
+ * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
+ *
+ * Checks each regex in @regexes if the text in and around the position of
+ * the event matches the regular expressions.  If a match exists, the matched
+ * text is stored in @matches at the position of the regex in @regexes; otherwise
+ * %NULL is stored there.
+ *
+ * Returns: %TRUE iff any of the regexes produced a match
+ *
+ * Since: 0.44
+ * Deprecated: 0.44: Use vte_terminal_event_check_regex_simple() instead.
+ */
+gboolean
+vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
+                                       GdkEvent *event,
+                                       GRegex **regexes,
+                                       gsize n_regexes,
+                                       GRegexMatchFlags match_flags,
+                                       char **matches)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+	gsize offset, sattr, eattr;
+        gboolean any_matches = FALSE;
+        double x, y;
+        long col, row;
+        guint i;
+
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(event != NULL, FALSE);
+        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
+        g_return_val_if_fail(matches != NULL, FALSE);
+
+        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
+                return FALSE;
+        if (!gdk_event_get_coords(event, &x, &y))
+                return FALSE;
+        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+                return FALSE;
+
+	if (pvt->match_contents == NULL) {
+		vte_terminal_match_contents_refresh(terminal);
+	}
+
+        if (!match_rowcol_to_offset(terminal, col, row,
+                                    &offset, &sattr, &eattr))
+                return FALSE;
+
+        for (i = 0; i < n_regexes; i++) {
+                gsize start, end, sblank, eblank;
+                char *match;
+
+                g_return_val_if_fail(regexes[i] != NULL, FALSE);
+
+                if (match_check_gregex(terminal->pvt,
+                                       regexes[i], match_flags,
+                                       sattr, eattr, offset,
+                                       &match,
+                                       &start, &end,
+                                       &sblank, &eblank)) {
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched gregex with text: %s\n", match);
+                        matches[i] = match;
+                        any_matches = TRUE;
+                } else
+                        matches[i] = NULL;
+        }
+
+        return any_matches;
 }
 
 /* Emit an adjustment changed signal on our adjustment object. */

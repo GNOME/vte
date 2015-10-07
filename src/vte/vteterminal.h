@@ -310,6 +310,12 @@ void vte_terminal_match_remove_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
                                      int *tag) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
+gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
+                                               GdkEvent *event,
+                                               VteRegex **regexes,
+                                               gsize n_regexes,
+                                               guint32 match_flags,
+                                               char **matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 void      vte_terminal_search_set_regex      (VteTerminal *terminal,
                                               VteRegex    *regex,
