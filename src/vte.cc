@@ -1614,8 +1614,8 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                        glong column,
                                        glong row,
                                        int *tag,
-                                       int *start,
-                                       int *end)
+                                       gssize *start,
+                                       gssize *end)
 {
         guint i;
 	struct vte_match_regex *regex = NULL;
@@ -1627,8 +1627,6 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for pcre match at (%ld,%ld).\n", row, column);
-
-        /* Identical with vte_terminal_match_check_internal_gregex until END */
 
         if (!match_rowcol_to_offset(terminal, column, row,
                                     &offset, &sattr, &eattr))
@@ -1646,8 +1644,6 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
         //        _vte_debug_print(VTE_DEBUG_REGEX, "Cursor offset: %" G_GSSIZE_FORMAT " in line with length %" G_GSSIZE_FORMAT "): %*s\n",
         //                         offset, line_length, -(int)line_length, line);
-
-        /* END identical */
 
         match_context = create_match_context();
         match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
@@ -1736,16 +1732,11 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
                         /* If the pointer is in this substring, then we're done. */
                         if (ko >= rm_so && ko < rm_eo) {
-                                gchar *result;
-                                if (tag != NULL) {
-                                        *tag = regex->tag;
-                                }
-                                if (start != NULL) {
-                                        *start = rm_so;
-                                }
-                                if (end != NULL) {
-                                        *end = rm_eo - 1;
-                                }
+                                char *result;
+
+                                *tag = regex->tag;
+                                *start = rm_so;
+                                *end = rm_eo - 1;
 
                                 result = g_strndup(line + rm_so, rm_eo - rm_so);
 
@@ -1779,13 +1770,10 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
         pcre2_match_data_free_8(match_data);
         pcre2_match_context_free_8(match_context);
 
-        // FIXME: WTF is this doing and why?
-	if (start != NULL) {
-		*start = start_blank;
-	}
-	if (end != NULL) {
-		*end = end_blank - 1;
-	}
+        /* Record smallest span where none of the dingus match */
+        *start = start_blank;
+        *end = end_blank - 1;
+
 	return NULL;
 }
 
@@ -1793,10 +1781,13 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
 static char *
 vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
-                                         long column, glong row,
-                                         int *tag, int *start, int *end)
+                                         long column,
+                                         long row,
+                                         int *tag,
+                                         gssize *start,
+                                         gssize *end)
 {
-	gint start_blank, end_blank;
+	gssize start_blank, end_blank;
         guint i;
 	struct vte_match_regex *regex = NULL;
 	gssize line_length, sattr, eattr, offset;
@@ -1805,8 +1796,6 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
 			"Checking for gregex match at (%ld,%ld).\n", row, column);
-
-        /* Identical with vte_terminal_match_check_internal_pcre until END */
 
         if (!match_rowcol_to_offset(terminal, column, row,
                                     &offset, &sattr, &eattr))
@@ -1821,8 +1810,6 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
         //        _vte_debug_print(VTE_DEBUG_REGEX, "Cursor offset: %" G_GSSIZE_FORMAT " in line with length %" G_GSSIZE_FORMAT "): %*s\n",
         //                         offset, line_length, -(int)line_length, line);
-
-        /* END identical */
 
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
@@ -1884,15 +1871,11 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 				if (ko >= rm_so &&
 				    ko < rm_eo) {
 					gchar *result;
-					if (tag != NULL) {
-						*tag = regex->tag;
-					}
-					if (start != NULL) {
-						*start = rm_so;
-					}
-					if (end != NULL) {
-						*end = rm_eo - 1;
-					}
+
+                                        *tag = regex->tag;
+                                        *start = rm_so;
+                                        *end = rm_eo - 1;
+
                                         vte_terminal_set_cursor_from_regex_match(terminal, regex);
                                         result = g_match_info_fetch(match_info, 0);
 
@@ -1921,19 +1904,36 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                 g_match_info_free(match_info);
 	}
 
-	if (start != NULL) {
-		*start = start_blank;
-	}
-	if (end != NULL) {
-		*end = end_blank - 1;
-	}
+        /* Record smallest span where none of the dingus match */
+        *start = start_blank;
+        *end = end_blank - 1;
+
 	return NULL;
 }
 
+/*
+ * vte_terminal_match_check_internal:
+ * @terminal:
+ * @column:
+ * @row:
+ * @tag: (out):
+ * @start: (out):
+ * @end: (out):
+ *
+ * Checks pvt->match_contents for dingu matches, and returns the tag, start, and
+ * end of the match in @tag, @start, @end. If no match occurs, @tag will be set to
+ * -1, and if they are nonzero, @start and @end mark the smallest span in the @row
+ * in which none of the dingus match.
+ *
+ * Returns: (transfer full): the matched string, or %NULL
+ */
 static char *
 vte_terminal_match_check_internal(VteTerminal *terminal,
-                                  long column, glong row,
-                                  int *tag, int *start, int *end)
+                                  long column,
+                                  glong row,
+                                  int *tag,
+                                  gssize *start,
+                                  gssize *end)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
 
@@ -1941,15 +1941,13 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-	if (tag != NULL) {
-		*tag = -1;
-	}
-	if (start != NULL) {
-		*start = 0;
-	}
-	if (end != NULL) {
-		*end = 0;
-	}
+        g_assert(tag != NULL);
+        g_assert(start != NULL);
+        g_assert(end != NULL);
+
+        *tag = -1;
+        *start = 0;
+        *end = 0;
 
 #ifdef WITH_PCRE2
         if (G_LIKELY(pvt->match_regex_mode == VTE_REGEX_PCRE2))
@@ -2023,9 +2021,10 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 			g_strdup (terminal->pvt->match) :
 			NULL;
 	} else {
+                gssize start, end;
 		ret = vte_terminal_match_check_internal(terminal,
-				column, row + delta,
-				tag, NULL, NULL);
+                                                        column, row + delta,
+                                                        tag, &start, &end);
 	}
 	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX) {
 		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
@@ -6213,7 +6212,8 @@ vte_terminal_match_hilite_hide(VteTerminal *terminal)
 static void
 vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 {
-	int start, end, width, height;
+	gssize start, end;
+        int width, height;
 	char *match;
 	struct _VteCharAttributes *attr;
 	VteScreen *screen;
