@@ -1890,13 +1890,14 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 						rm_so < eblank) {
 					eblank = rm_so;
 				}
-			}
-			if (sblank > start_blank) {
-				start_blank = sblank;
-			}
-			if (eblank < end_blank) {
-				end_blank = eblank;
-			}
+
+                                if (sblank > start_blank) {
+                                        start_blank = sblank;
+                                }
+                                if (eblank < end_blank) {
+                                        end_blank = eblank;
+                                }
+                        }
 
                         g_match_info_next(match_info, NULL);
 		}
