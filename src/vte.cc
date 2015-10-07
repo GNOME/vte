@@ -2193,6 +2193,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                       guint32 match_flags,
                                       char **matches)
 {
+#ifdef WITH_PCRE2
         VteTerminalPrivate *pvt = terminal->pvt;
 	gsize offset, sattr, eattr;
         pcre2_match_data_8 *match_data;
@@ -2249,6 +2250,9 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         pcre2_match_context_free_8(match_context);
 
         return any_matches;
+#else
+        return FALSE;
+#endif
 }
 
 /**

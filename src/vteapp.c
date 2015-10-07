@@ -48,7 +48,9 @@ static const char *builtin_dingus[] = {
   NULL
 };
 
+#ifdef WITH_PCRE2
 static gboolean use_gregex = FALSE;
+#endif
 
 static void
 window_title_changed(GtkWidget *widget, gpointer win)
