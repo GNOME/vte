@@ -1583,8 +1583,6 @@ match_rowcol_to_offset(VteTerminal *terminal,
 		/* nothing to match on this line */
 		return FALSE;
 	}
-	offset -= sattr;
-	eattr -= sattr;
 
         *offset_ptr = offset;
         *sattr_ptr = sattr;
@@ -1632,14 +1630,18 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
         /* Identical with vte_terminal_match_check_internal_gregex until END */
 
-        if (!match_rowcol_to_offset(terminal, column,row,
+        if (!match_rowcol_to_offset(terminal, column, row,
                                     &offset, &sattr, &eattr))
                 return NULL;
 
-	line = terminal->pvt->match_contents + sattr;
+	line = terminal->pvt->match_contents;
+        /* FIXME: what we really want is to pass the whole data to pcre2_match, but
+         * limit matching to between sattr and eattr, so that the extra data can
+         * satisfy lookahead assertions. This needs new pcre2 API though.
+         */
         line_length = eattr;
 
-	start_blank = 0;
+	start_blank = sattr;
 	end_blank = eattr;
 
         //        _vte_debug_print(VTE_DEBUG_REGEX, "Cursor offset: %" G_GSSIZE_FORMAT " in line with length %" G_GSSIZE_FORMAT "): %*s\n",
@@ -1676,10 +1678,10 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
 
-                position = 0;
-                while (position < line_length &&
+                position = sattr;
+                while (position < eattr &&
                        ((r = match_fn(vte_regex_get_pcre(regex->regex.pcre.regex),
-                                      (PCRE2_SPTR8)line, line_length , /* subject, length */
+                                      (PCRE2_SPTR8)line, line_length, /* subject, length */
                                       position, /* start offset */
                                       regex->regex.pcre.match_flags |
                                       PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
@@ -1739,10 +1741,10 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                         *tag = regex->tag;
                                 }
                                 if (start != NULL) {
-                                        *start = sattr + rm_so;
+                                        *start = rm_so;
                                 }
                                 if (end != NULL) {
-                                        *end = sattr + rm_eo - 1;
+                                        *end = rm_eo - 1;
                                 }
 
                                 result = g_strndup(line + rm_so, rm_eo - rm_so);
@@ -1779,10 +1781,10 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
         // FIXME: WTF is this doing and why?
 	if (start != NULL) {
-		*start = sattr + start_blank;
+		*start = start_blank;
 	}
 	if (end != NULL) {
-		*end = sattr + end_blank - 1;
+		*end = end_blank - 1;
 	}
 	return NULL;
 }
@@ -1806,15 +1808,15 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
         /* Identical with vte_terminal_match_check_internal_pcre until END */
 
-        if (!match_rowcol_to_offset(terminal, column,row,
+        if (!match_rowcol_to_offset(terminal, column, row,
                                     &offset, &sattr, &eattr))
                 return NULL;
 
 	/* temporarily shorten the contents to this row */
-	line = terminal->pvt->match_contents + sattr;
+	line = terminal->pvt->match_contents;
         line_length = eattr;
 
-	start_blank = 0;
+	start_blank = sattr;
 	end_blank = eattr;
 
         //        _vte_debug_print(VTE_DEBUG_REGEX, "Cursor offset: %" G_GSSIZE_FORMAT " in line with length %" G_GSSIZE_FORMAT "): %*s\n",
@@ -1838,7 +1840,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 		 * matches, so we'll have to skip each match until we
 		 * stop getting matches. */
                 if (!g_regex_match_full(regex->regex.gregex.regex,
-                                        line, line_length, 0,
+                                        line, line_length, sattr,
                                         regex->regex.gregex.match_flags,
                                         &match_info,
                                         NULL)) {
@@ -1886,10 +1888,10 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 						*tag = regex->tag;
 					}
 					if (start != NULL) {
-						*start = sattr + rm_so;
+						*start = rm_so;
 					}
 					if (end != NULL) {
-						*end = sattr + rm_eo - 1;
+						*end = rm_eo - 1;
 					}
                                         vte_terminal_set_cursor_from_regex_match(terminal, regex);
                                         result = g_match_info_fetch(match_info, 0);
@@ -1920,10 +1922,10 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 	}
 
 	if (start != NULL) {
-		*start = sattr + start_blank;
+		*start = start_blank;
 	}
 	if (end != NULL) {
-		*end = sattr + end_blank - 1;
+		*end = end_blank - 1;
 	}
 	return NULL;
 }
