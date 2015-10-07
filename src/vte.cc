@@ -1694,8 +1694,8 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                 break;
 
                         /* The offsets should be "sane". We set NOTEMPTY, but check anyway */
-                        if (G_UNLIKELY(rm_so == rm_eo)) {
-                                /* rm_so is before the end of subject string's length, so this is safe */
+                        if (G_UNLIKELY(position == rm_eo)) {
+                                /* rm_eo is before the end of subject string's length, so this is safe */
                                 position = g_utf8_next_char(line + rm_eo) - line;
                                 continue;
                         }
