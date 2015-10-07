@@ -1654,6 +1654,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                   PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
                                   pcre2_match_data_8 *, pcre2_match_context_8 *);
                 int r = 0;
+                gssize sblank = G_MINSSIZE, eblank = G_MAXSSIZE;
 
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
@@ -1685,7 +1686,6 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                       match_context)) >= 0 || r == PCRE2_ERROR_PARTIAL)) {
 			gsize ko = offset;
                         gsize rm_so, rm_eo;
-			gssize sblank=G_MINSSIZE, eblank=G_MAXSSIZE;
 
                         ovector = pcre2_get_ovector_pointer_8(match_data);
                         rm_so = ovector[0];
@@ -1754,17 +1754,18 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                         if (ko < rm_so && rm_so < eblank) {
                                 eblank = rm_so;
                         }
-
-                        if (sblank > start_blank) {
-                                start_blank = sblank;
-                        }
-                        if (eblank < end_blank) {
-                                end_blank = eblank;
-                        }
                 }
 
                 if (G_UNLIKELY(r < PCRE2_ERROR_PARTIAL))
                         _vte_debug_print(VTE_DEBUG_REGEX, "Unexpected pcre2_match error code: %d\n", r);
+
+                if (sblank > start_blank) {
+                        start_blank = sblank;
+                }
+                if (eblank < end_blank) {
+                        end_blank = eblank;
+                }
+
 	}
 
         pcre2_match_data_free_8(match_data);
@@ -1826,6 +1827,8 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
+                gint sblank = G_MININT, eblank = G_MAXINT;
+
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
 				       i);
@@ -1850,7 +1853,6 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
                 while (g_match_info_matches(match_info)) {
 			gint ko = offset;
-			gint sblank=G_MININT, eblank=G_MAXINT;
                         gint rm_so, rm_eo;
 
                         if (g_match_info_fetch_pos (match_info, 0, &rm_so, &rm_eo)) {
@@ -1901,19 +1903,19 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 				if (ko < rm_so && rm_so < eblank) {
 					eblank = rm_so;
 				}
-
-                                if (sblank > start_blank) {
-                                        start_blank = sblank;
-                                }
-                                if (eblank < end_blank) {
-                                        end_blank = eblank;
-                                }
                         }
 
                         g_match_info_next(match_info, NULL);
 		}
 
                 g_match_info_free(match_info);
+
+                if (sblank > start_blank) {
+                        start_blank = sblank;
+                }
+                if (eblank < end_blank) {
+                        end_blank = eblank;
+                }
 	}
 
         /* Record smallest span where none of the dingus match */
