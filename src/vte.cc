@@ -1490,10 +1490,11 @@ static gboolean
 match_rowcol_to_offset(VteTerminal *terminal,
                        long column,
                        long row,
-                       gssize *offset_ptr,
-                       gssize *sattr_ptr,
-                       gssize *eattr_ptr)
+                       gsize *offset_ptr,
+                       gsize *sattr_ptr,
+                       gsize *eattr_ptr)
 {
+        /* FIXME: use gsize, after making sure the code below doesn't underflow offset */
         gssize offset, sattr, eattr;
         struct _VteCharAttributes *attr = NULL;
 
@@ -1624,22 +1625,21 @@ match_check_pcre(VteTerminalPrivate *pvt,
                  pcre2_match_data_8 *match_data,
                  pcre2_match_context_8 *match_context,
                  struct vte_regex_and_flags *regex,
-                 gssize sattr,
-                 gssize eattr,
-                 gssize offset,
+                 gsize sattr,
+                 gsize eattr,
+                 gsize offset,
                  char **result,
-                 gssize *start,
-                 gssize *end,
-                 gssize *sblank_ptr,
-                 gssize *eblank_ptr)
+                 gsize *start,
+                 gsize *end,
+                 gsize *sblank_ptr,
+                 gsize *eblank_ptr)
 {
         int (* match_fn) (const pcre2_code_8 *,
                           PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
                           pcre2_match_data_8 *, pcre2_match_context_8 *);
-        gssize sblank = G_MINSSIZE, eblank = G_MAXSSIZE;
-        gssize position;
+        gsize sblank = 0, eblank = G_MAXSIZE;
+        gsize position, line_length;
         const char *line;
-        gsize line_length;
         int r = 0;
 
         g_assert_cmpint(regex->mode, ==, VTE_REGEX_PCRE2);
@@ -1744,12 +1744,12 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                        glong column,
                                        glong row,
                                        int *tag,
-                                       gssize *start,
-                                       gssize *end)
+                                       gsize *start,
+                                       gsize *end)
 {
         struct vte_match_regex *regex;
         guint i;
-	gssize offset, sattr, eattr, start_blank, end_blank;
+	gsize offset, sattr, eattr, start_blank, end_blank;
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
         char *dingu_match = NULL;
@@ -1769,7 +1769,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
-                gssize sblank, eblank;
+                gsize sblank, eblank;
 
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
@@ -1786,6 +1786,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                      &dingu_match,
                                      start, end,
                                      &sblank, &eblank)) {
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", regex->tag);
                         vte_terminal_set_cursor_from_regex_match(terminal, regex);
                         *tag = regex->tag;
                         break;
@@ -1831,14 +1832,14 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 static gboolean
 match_check_gregex(VteTerminalPrivate *pvt,
                    struct vte_regex_and_flags *regex,
-                   gssize sattr,
-                   gssize eattr,
-                   gssize offset,
+                   gsize sattr,
+                   gsize eattr,
+                   gsize offset,
                    char **result,
-                   int *start,
-                   int *end,
-                   int *sblank_ptr,
-                   int *eblank_ptr)
+                   gsize *start,
+                   gsize *end,
+                   gsize *sblank_ptr,
+                   gsize *eblank_ptr)
 {
         GMatchInfo *match_info;
         const char *line;
@@ -1869,8 +1870,8 @@ match_check_gregex(VteTerminalPrivate *pvt,
 
                 if (g_match_info_fetch_pos (match_info, 0, &rm_so, &rm_eo)) {
                         /* The offsets should be "sane". */
-                        g_assert(rm_so < eattr);
-                        g_assert(rm_eo <= eattr);
+                        g_assert(rm_so < (int)eattr);
+                        g_assert(rm_eo <= (int)eattr);
                         _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                                 gchar *match;
                                 struct _VteCharAttributes *_sattr, *_eattr;
@@ -1927,13 +1928,12 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                                          long column,
                                          long row,
                                          int *tag,
-                                         gssize *start,
-                                         gssize *end)
+                                         gsize *start,
+                                         gsize *end)
 {
-	gssize start_blank, end_blank;
         guint i;
 	struct vte_match_regex *regex = NULL;
-	gssize sattr, eattr, offset;
+	gsize sattr, eattr, offset, start_blank, end_blank;
         char *dingu_match = NULL;
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
@@ -1948,7 +1948,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
 	/* Now iterate over each regex we need to match against. */
 	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
-                gint sblank = G_MININT, eblank = G_MAXINT;
+                gsize sblank = 0, eblank = G_MAXSIZE;
 
 		regex = &g_array_index(terminal->pvt->match_regexes,
 				       struct vte_match_regex,
@@ -1964,6 +1964,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                                        &dingu_match,
                                        start, end,
                                        &sblank, &eblank)) {
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", regex->tag);
                         vte_terminal_set_cursor_from_regex_match(terminal, regex);
                         *tag = regex->tag;
                         break;
@@ -2022,8 +2023,8 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
                                   long column,
                                   glong row,
                                   int *tag,
-                                  gssize *start,
-                                  gssize *end)
+                                  gsize *start,
+                                  gsize *end)
 {
         VteTerminalPrivate *pvt = terminal->pvt;
 
@@ -2111,7 +2112,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 			g_strdup (terminal->pvt->match) :
 			NULL;
 	} else {
-                gssize start, end;
+                gsize start, end;
 		ret = vte_terminal_match_check_internal(terminal,
                                                         column, row + delta,
                                                         tag, &start, &end);
@@ -6302,7 +6303,7 @@ vte_terminal_match_hilite_hide(VteTerminal *terminal)
 static void
 vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 {
-	gssize start, end;
+	gsize start, end;
         int width, height;
 	char *match;
 	struct _VteCharAttributes *attr;
@@ -6340,7 +6341,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 
 	/* Read the new locations. */
 	attr = NULL;
-	if ((guint) start < terminal->pvt->match_attributes->len) {
+	if (start < terminal->pvt->match_attributes->len) {
 		attr = &g_array_index(terminal->pvt->match_attributes,
 				struct _VteCharAttributes,
 				start);
@@ -6348,7 +6349,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 		terminal->pvt->match_start.col = attr->column;
 
 		attr = NULL;
-		if ((guint) end < terminal->pvt->match_attributes->len) {
+		if (end < terminal->pvt->match_attributes->len) {
 			attr = &g_array_index(terminal->pvt->match_attributes,
 					struct _VteCharAttributes,
 					end);
