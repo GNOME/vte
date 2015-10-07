@@ -1748,7 +1748,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
                         }
 
-                        if (ko > rm_eo - 1 && rm_eo > sblank) {
+                        if (ko >= rm_eo && rm_eo > sblank) {
                                 sblank = rm_eo;
                         }
                         if (ko < rm_so && rm_so < eblank) {
@@ -1895,12 +1895,10 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                                         g_match_info_free(match_info);
 					return result;
 				}
-				if (ko > rm_eo - 1 &&
-						rm_eo > sblank) {
+				if (ko >= rm_eo && rm_eo > sblank) {
 					sblank = rm_eo;
 				}
-				if (ko < rm_so &&
-						rm_so < eblank) {
+				if (ko < rm_so && rm_so < eblank) {
 					eblank = rm_so;
 				}
 
