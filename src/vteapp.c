@@ -145,7 +145,6 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	char *match;
 	int tag;
 	GtkBorder padding;
-	int char_width, char_height;
 
 	switch (event->button) {
 	case 3:
@@ -154,12 +153,9 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
                 gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
                                               gtk_widget_get_state_flags(widget),
                                               &padding);
-                char_width = vte_terminal_get_char_width (terminal);
-		char_height = vte_terminal_get_char_height (terminal);
-		match = vte_terminal_match_check(terminal,
-						 (event->x - padding.left) / char_width,
-						 (event->y - padding.top) / char_height,
-						 &tag);
+		match = vte_terminal_match_check_event(terminal,
+                                                       (GdkEvent*)event,
+                                                       &tag);
 		if (match != NULL) {
 			g_print("Matched `%s' (%d).\n", match, tag);
 			g_free(match);
