@@ -1755,13 +1755,13 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                 eblank = rm_so;
                         }
 
-			if (sblank > start_blank) {
-				start_blank = sblank;
-			}
-			if (eblank < end_blank) {
-				end_blank = eblank;
-			}
-		}
+                        if (sblank > start_blank) {
+                                start_blank = sblank;
+                        }
+                        if (eblank < end_blank) {
+                                end_blank = eblank;
+                        }
+                }
 
                 if (G_UNLIKELY(r < PCRE2_ERROR_PARTIAL))
                         _vte_debug_print(VTE_DEBUG_REGEX, "Unexpected pcre2_match error code: %d\n", r);
@@ -1773,6 +1773,19 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
         /* Record smallest span where none of the dingus match */
         *start = start_blank;
         *end = end_blank - 1;
+
+        _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
+                struct _VteCharAttributes *_sattr, *_eattr;
+                _sattr = &g_array_index(terminal->pvt->match_attributes,
+                                        struct _VteCharAttributes,
+                                        start_blank);
+                _eattr = &g_array_index(terminal->pvt->match_attributes,
+                                        struct _VteCharAttributes,
+                                        end_blank - 1);
+                g_printerr("No-match region from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
+                           start_blank, _sattr->column, _sattr->row,
+                           end_blank - 1, _eattr->column, _eattr->row);
+        }
 
 	return NULL;
 }
@@ -1908,6 +1921,19 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
         /* Record smallest span where none of the dingus match */
         *start = start_blank;
         *end = end_blank - 1;
+
+        _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
+                struct _VteCharAttributes *_sattr, *_eattr;
+                _sattr = &g_array_index(terminal->pvt->match_attributes,
+                                        struct _VteCharAttributes,
+                                        start_blank);
+                _eattr = &g_array_index(terminal->pvt->match_attributes,
+                                        struct _VteCharAttributes,
+                                        end_blank - 1);
+                g_printerr("No-match region from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
+                           start_blank, _sattr->column, _sattr->row,
+                           end_blank - 1, _eattr->column, _eattr->row);
+        }
 
 	return NULL;
 }
