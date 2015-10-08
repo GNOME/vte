@@ -2219,7 +2219,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (!match_rowcol_to_offset(terminal, col, row,
+        if (!match_rowcol_to_offset(terminal, col, terminal->pvt->screen->scroll_delta + row,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
@@ -2305,7 +2305,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (!match_rowcol_to_offset(terminal, col, row,
+        if (!match_rowcol_to_offset(terminal, col, terminal->pvt->screen->scroll_delta + row,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
