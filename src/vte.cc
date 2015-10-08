@@ -2173,7 +2173,7 @@ vte_terminal_match_check_event(VteTerminal *terminal,
  * @event: a #GdkEvent
  * @regexes: (array length=n_regexes): an array of #VteRegex
  * @n_regexes: number of items in @regexes
- * @flags: PCRE2 match flags, or 0
+ * @match_flags: PCRE2 match flags, or 0
  * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
  *
  * Checks each regex in @regexes if the text in and around the position of
@@ -2261,7 +2261,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
  * @event: a #GdkEvent
  * @regexes: (array length=n_regexes): an array of #GRegex
  * @n_regexes: number of items in @regexes
- * @gflags: the #GRegexMatchFlags to use when matching the regexes
+ * @match_flags: the #GRegexMatchFlags to use when matching the regexes
  * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
  *
  * Checks each regex in @regexes if the text in and around the position of
