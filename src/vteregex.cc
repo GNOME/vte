@@ -153,7 +153,11 @@ vte_regex_unref(VteRegex *regex)
  * @flags: PCRE2 compile flags
  * @error: (allow-none): return location for a #GError, or %NULL
  *
- * Compiles @pattern into a regex. @flags must include %PCRE2_UTF.
+ * Compiles @pattern into a regex. See man:pcre2pattern(3) for information
+ * about the supported regex language.
+ *
+ * The regex will be compiled using %PCRE2_UTF and possibly other flags, in
+ * addition to the flags supplied in @flags.
  *
  * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
  */
@@ -172,7 +176,6 @@ vte_regex_new(const char *pattern,
         g_return_val_if_fail(pattern != NULL, NULL);
         g_return_val_if_fail(pattern_length >= -1, NULL);
         g_return_val_if_fail(error == NULL || *error == NULL, NULL);
-        g_return_val_if_fail(flags & PCRE2_UTF, NULL);
 
         /* Check library compatibility */
         r = pcre2_config_8(PCRE2_CONFIG_UNICODE, &v);
@@ -184,7 +187,10 @@ vte_regex_new(const char *pattern,
 
         code = pcre2_compile_8((PCRE2_SPTR8)pattern,
                                pattern_length >= 0 ? pattern_length : PCRE2_ZERO_TERMINATED,
-                               (uint32_t)flags | PCRE2_NO_UTF_CHECK,
+                               (uint32_t)flags |
+                               PCRE2_UTF |
+                               (flags & PCRE2_UTF ? PCRE2_NO_UTF_CHECK : 0) |
+                               PCRE2_NEVER_BACKSLASH_C,
                                &errcode, &erroffset,
                                NULL);
 
@@ -207,7 +213,7 @@ vte_regex_new(const char *pattern,
  * @code: a #pcre2_code_8
  *
  * Creates a new #VteRegex for @code. @code must have been compiled with
- * %PCRE2_UTF.
+ * %PCRE2_UTF and %PCRE2_NEVER_BACKSLASH_C.
  *
  * Returns: (transfer full): a newly created #VteRegex, or %NULL if VTE
  *   was not compiled with PCRE2 support.
@@ -224,6 +230,7 @@ vte_regex_new_pcre(pcre2_code_8 *code,
 
         pcre2_pattern_info_8(code, PCRE2_INFO_ALLOPTIONS, &flags);
         g_return_val_if_fail(flags & PCRE2_UTF, NULL);
+        g_return_val_if_fail(flags & PCRE2_NEVER_BACKSLASH_C, NULL);
 
         return regex_new(code);
 #else
