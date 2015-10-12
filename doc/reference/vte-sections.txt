@@ -138,8 +138,6 @@ vte_regex_ref
 vte_regex_unref
 vte_regex_new
 vte_regex_jit
-vte_regex_new_pcre
-vte_regex_get_pcre
 
 <SUBSECTION Standard>
 VTE_TYPE_REGEX

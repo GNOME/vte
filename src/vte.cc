@@ -1660,7 +1660,7 @@ match_check_pcre(VteTerminalPrivate *pvt,
          */
         position = sattr;
         while (position < eattr &&
-               ((r = match_fn(vte_regex_get_pcre(regex),
+               ((r = match_fn(_vte_regex_get_pcre(regex),
                               (PCRE2_SPTR8)line, line_length, /* subject, length */
                               position, /* start offset */
                               match_flags |
@@ -14038,7 +14038,7 @@ vte_terminal_search_rows(VteTerminal *terminal,
                 else
                         match_fn = pcre2_match_8;
 
-                r = match_fn(vte_regex_get_pcre(pvt->search_regex.pcre.regex),
+                r = match_fn(_vte_regex_get_pcre(pvt->search_regex.pcre.regex),
                              (PCRE2_SPTR8)row_text, row_text_length , /* subject, length */
                              0, /* start offset */
                              pvt->search_regex.pcre.match_flags |

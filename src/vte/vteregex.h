@@ -27,10 +27,6 @@
 
 G_BEGIN_DECLS
 
-#if !defined(_PCRE2_H) && !defined(__GI_SCANNER__)
-typedef struct pcre2_real_code_8 pcre2_code_8;
-#endif /* !_PCRE2_H */
-
 typedef struct _VteRegex VteRegex;
 
 #define VTE_TYPE_REGEX (vte_regex_get_type())
@@ -39,8 +35,8 @@ GType vte_regex_get_type (void);
 #define VTE_REGEX_ERROR (vte_regex_error_quark())
 GQuark vte_regex_error_quark (void);
 
-/* This is PCRE2_NO_UTF_CHECK | PCRE2_UTF */
-#define VTE_REGEX_FLAGS_DEFAULT (0x00080000u | 0x40000000u)
+/* This is PCRE2_NO_UTF_CHECK | PCRE2_UTF | PCRE2_NEVER_BACKSLASH_C */
+#define VTE_REGEX_FLAGS_DEFAULT (0x00080000u | 0x40000000u | 0x00100000u)
 
 VteRegex *vte_regex_ref      (VteRegex *regex) _VTE_GNUC_NONNULL(1);
 
@@ -54,15 +50,6 @@ VteRegex *vte_regex_new      (const char *pattern,
 gboolean  vte_regex_jit     (VteRegex *regex,
                              guint32   flags,
                              GError  **error) _VTE_GNUC_NONNULL(1);
-
-#ifndef __GI_SCANNER__
-
-VteRegex *vte_regex_new_pcre (pcre2_code_8 *code,
-                              GError      **error) _VTE_GNUC_NONNULL(1);
-
-const pcre2_code_8 *vte_regex_get_pcre (VteRegex *regex) _VTE_GNUC_NONNULL(1);
-
-#endif
 
 G_END_DECLS
 

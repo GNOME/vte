@@ -27,11 +27,12 @@
 #include "vtemacros.h"
 #include "vteenums.h"
 #include "vteregex.h"
-#include "vteregexinternal.hh"
 
 #ifdef WITH_PCRE2
 #include "vtepcre2.h"
 #endif /* WITH_PCRE2 */
+
+#include "vteregexinternal.hh"
 
 struct _VteRegex {
         volatile int ref_count;
@@ -208,7 +209,8 @@ vte_regex_new(const char *pattern,
 #endif /* WITH_PCRE2 */
 }
 
-/**
+#if 0
+/*
  * vte_regex_new_pcre:
  * @code: a #pcre2_code_8
  *
@@ -238,16 +240,18 @@ vte_regex_new_pcre(pcre2_code_8 *code,
         return NULL;
 #endif
 }
+#endif
 
-/**
- * vte_regex_get_pcre:
+#ifdef WITH_PCRE2
+/*
+ * _vte_regex_get_pcre:
  * @regex: a #VteRegex
  *
  *
  * Returns: the #pcre2_code_8 from @regex
  */
 const pcre2_code_8 *
-vte_regex_get_pcre(VteRegex *regex)
+_vte_regex_get_pcre(VteRegex *regex)
 {
 #ifdef WITH_PCRE2
         g_return_val_if_fail(regex != NULL, NULL);
@@ -257,6 +261,7 @@ vte_regex_get_pcre(VteRegex *regex)
         return NULL;
 #endif
 }
+#endif
 
 /**
  * vte_regex_jit:
