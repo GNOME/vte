@@ -6067,7 +6067,8 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 {
 	VteTerminal *terminal = (VteTerminal *)data;
 	gchar *paste, *p;
-	gsize length;
+        gsize run;
+        unsigned char c;
 
 	if (text != NULL) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
@@ -6079,20 +6080,47 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 		}
 
 		/* Convert newlines to carriage returns, which more software
-		 * is able to cope with (cough, pico, cough). */
-		paste = g_strdup(text);
-		length = strlen(paste);
-		p = paste;
-		while ((p != NULL) && ((gsize)(p - paste) < length)) {
-			p = (char *)memchr(p, '\n', length - (gsize)(p - paste));
-			if (p != NULL) {
-				*p = '\r';
-				p++;
+                 * is able to cope with (cough, pico, cough).
+                 * Filter out control chars except ^H, ^I, ^J, ^M and ^? (as per xterm).
+                 * Also filter out C1 controls: U+0080 (0xC2 0x80) - U+009F (0xC2 0x9F). */
+                p = paste = (gchar *) g_malloc(strlen(text));
+                while (p != NULL && text[0] != '\0') {
+                        run = strcspn(text, "\x01\x02\x03\x04\x05\x06\x07"
+                                            "\x0A\x0B\x0C\x0E\x0F"
+                                            "\x10\x11\x12\x13\x14\x15\x16\x17"
+                                            "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\xC2");
+                        memcpy(p, text, run);
+                        p += run;
+                        text += run;
+                        switch (text[0]) {
+                        case '\x00':
+                                break;
+                        case '\x0A':
+                                *p = '\x0D';
+                                p++;
+                                text++;
+                                break;
+                        case '\xC2':
+                                c = text[1];
+                                if (c >= 0x80 && c <= 0x9F) {
+                                        /* Skip both bytes of a C1 */
+                                        text += 2;
+                                } else {
+                                        /* Move along, nothing to see here */
+                                        *p = '\xC2';
+                                        p++;
+                                        text++;
+                                }
+                                break;
+                        default:
+                                /* Swallow this byte */
+                                text++;
+                                break;
 			}
 		}
 		if (terminal->pvt->bracketed_paste_mode)
 			vte_terminal_feed_child(terminal, "\e[200~", -1);
-		vte_terminal_feed_child(terminal, paste, length);
+                vte_terminal_feed_child(terminal, paste, p - paste);
 		if (terminal->pvt->bracketed_paste_mode)
 			vte_terminal_feed_child(terminal, "\e[201~", -1);
 		g_free(paste);
