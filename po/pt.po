@@ -2,36 +2,41 @@
 # Copyright © 2003, 2004, 2007, 2008, 2010 vte
 # This file is distributed under the same license as the vte package.
 # Duarte Loreto <happyguy_pt@hotmail.com>, 2003, 2004, 2007, 2008, 2010.
-#
+# Pedro Albuquerque <palbuquerque73@gmail.com>, 2015.
 msgid ""
 msgstr ""
 "Project-Id-Version: 2.32\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-08-21 17:45+0100\n"
-"PO-Revision-Date: 2010-08-21 17:45+0000\n"
-"Last-Translator: Duarte Loreto <happyguy_pt@hotmail.com>\n"
-"Language-Team: pt <gnome_pt@yahoogroups.com>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
+"ywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2015-09-29 01:13+0000\n"
+"PO-Revision-Date: 2015-10-13 08:00+0100\n"
+"Last-Translator: Pedro Albuquerque <palbuquerque73@gmail.com>\n"
+"Language-Team: Pedro Albuquerque\n"
+"Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Virtaal 0.7.1\n"
+"X-Project-Style: gnome\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2254
+#: ../src/iso2022.c:795 ../src/iso2022.c:803 ../src/iso2022.c:834
+#: ../src/vte.c:2294
 #, c-format
 msgid "Unable to convert characters from %s to %s."
-msgstr "Incapaz de converter caracteres de %s em %s."
+msgstr "Impossível converter caracteres de %s em %s."
 
-#: ../src/iso2022.c:1464
+#: ../src/iso2022.c:1488
 #, c-format
 msgid "Attempt to set invalid NRC map '%c'."
 msgstr "Tentativa de definição de mapa NRC inválido '%c'."
 
 #. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
+#: ../src/iso2022.c:1518
 msgid "Unrecognized identified coding system."
 msgstr "Sistema de codificação identificado desconhecido."
 
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
+#: ../src/iso2022.c:1577 ../src/iso2022.c:1604
 #, c-format
 msgid "Attempt to set invalid wide NRC map '%c'."
 msgstr "Tentativa de definição de mapa abrangente NRC inválido '%c'."
@@ -42,44 +47,44 @@ msgid "Duplicate (%s/%s)!"
 msgstr "Duplicado (%s/%s)!"
 
 #. Bail back to normal mode.
-#: ../src/vteapp.c:965
+#: ../src/vteapp.c:981
 msgid "Could not open console.\n"
-msgstr "Incapaz de abrir consola.\n"
+msgstr "Impossível abrir consola.\n"
 
-#: ../src/vteapp.c:1056
+#: ../src/vteapp.c:1077
 msgid "Could not parse the geometry spec passed to --geometry"
 msgstr ""
-"Incapaz de processar a especificação de geometria indicada por --geometry"
+"Impossível processar a especificação de geometria indicada por --geometry"
 
-#: ../src/vte.c:1280
+#: ../src/vte.c:1316
 #, c-format
 msgid "Error compiling regular expression \"%s\"."
 msgstr "Erro ao compilar expressão regular \"%s\"."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4362
+#: ../src/vte.c:4613
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erro ao ler do filho: %s."
 
-#: ../src/vte.c:4489
+#: ../src/vte.c:4740
 msgid "Unable to send data to child, invalid charset convertor"
 msgstr ""
-"Incapaz de enviar dados para o filho, conversor de conjunto de caracteres "
+"Impossível enviar dados para o filho, conversor de conjunto de caracteres "
 "inválido"
 
-#: ../src/vte.c:4500 ../src/vte.c:5526
+#: ../src/vte.c:4751 ../src/vte.c:5798
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Erro (%s) a converter dados do filho, a ignorá-los."
+msgstr "Erro (%s) ao converter dados do filho, a ignorá-los."
 
-#: ../src/vte.c:7720
+#: ../src/vte.c:8009
 #, c-format
 msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Erro ao ler tamanho PTY, a utilizar valores por omissão: %s\n"
+msgstr "Erro ao ler tamanho PTY, a utilizar valores predefinidos: %s\n"
 
 #. Aaargh.  We're screwed.
-#: ../src/vte.c:13290
+#: ../src/vte.c:13914
 msgid "_vte_conv_open() failed setting word characters"
 msgstr "_vte_conv_open() falha ao definir caracteres de palavra"
 
