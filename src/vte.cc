@@ -2117,9 +2117,12 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 			NULL;
 	} else {
                 gsize start, end;
+                int ltag;
+
 		ret = vte_terminal_match_check_internal(terminal,
                                                         column, row + delta,
-                                                        tag, &start, &end);
+                                                        tag ? tag : &ltag,
+                                                        &start, &end);
 	}
 	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX) {
 		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
