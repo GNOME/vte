@@ -5973,18 +5973,20 @@ vte_line_is_wrappable(VteTerminal *terminal, glong row)
 	return rowdata && rowdata->attr.soft_wrapped;
 }
 
-/* Check if the given point is in the region between the two points */
+/* Check if the given point is in the region between the two points,
+ * optionally treating the second point as included in the region or not. */
 static gboolean
 vte_cell_is_between(glong col, glong row,
-		    glong acol, glong arow, glong bcol, glong brow)
+		    glong acol, glong arow, glong bcol, glong brow,
+		    gboolean inclusive)
 {
 	/* Negative between never allowed. */
 	if ((arow > brow) || ((arow == brow) && (acol > bcol))) {
 		return FALSE;
 	}
-	/* Degenerate span? */
+	/* Zero-length between only allowed if we're being inclusive. */
 	if ((row == arow) && (row == brow) && (col == acol) && (col == bcol)) {
-		return TRUE;
+		return inclusive;
 	}
 	/* A cell is between two points if it's on a line after the
 	 * specified area starts, or before the line where it ends,
@@ -5999,7 +6001,7 @@ vte_cell_is_between(glong col, glong row,
 			if (col < bcol) {
 				return TRUE;
 			} else {
-				if (col == bcol) {
+				if ((col == bcol) && inclusive) {
 					return TRUE;
 				} else {
 					return FALSE;
@@ -6019,7 +6021,7 @@ vte_cell_is_between(glong col, glong row,
 			if (col < bcol) {
 				return TRUE;
 			} else {
-				if (col == bcol) {
+				if ((col == bcol) && inclusive) {
 					return TRUE;
 				} else {
 					return FALSE;
@@ -6059,7 +6061,7 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 
 	/* Now it boils down to whether or not the point is between the
 	 * begin and endpoint of the selection. */
-	return vte_cell_is_between(col, row, ss.col, ss.row, se.col, se.row);
+	return vte_cell_is_between(col, row, ss.col, ss.row, se.col, se.row, TRUE);
 }
 
 /* Once we get text data, actually paste it in. */
@@ -10387,7 +10389,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 						terminal->pvt->match_start.col,
 						terminal->pvt->match_start.row,
 						terminal->pvt->match_end.col,
-						terminal->pvt->match_end.row);
+						terminal->pvt->match_end.row,
+						TRUE);
 			} else {
 				hilite = FALSE;
 			}
@@ -10457,7 +10460,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 								terminal->pvt->match_start.col,
 								terminal->pvt->match_start.row,
 								terminal->pvt->match_end.col,
-								terminal->pvt->match_end.row);
+								terminal->pvt->match_end.row,
+								TRUE);
 					}
 					if (nhilite != hilite) {
 						break;
