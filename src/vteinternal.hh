@@ -121,7 +121,7 @@ struct _vte_incoming_chunk{
 typedef struct _VteScreen VteScreen;
 struct _VteScreen {
         VteRing row_data[1];	/* buffer contents */
-        long scroll_delta;	/* scroll offset */
+        double scroll_delta;	/* scroll offset */
         long insert_delta;	/* insertion offset */
 
         /* Stuff saved along with the cursor */
@@ -324,6 +324,7 @@ public:
         guint mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
         guint mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
 	long mouse_last_x, mouse_last_y;
+        long mouse_last_col, mouse_last_row;
 	gboolean mouse_autohide;
 	guint mouse_autoscroll_tag;
 	gboolean mouse_xterm_extension;

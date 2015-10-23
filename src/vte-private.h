@@ -112,11 +112,6 @@ void _vte_terminal_handle_sequence(VteTerminal *terminal,
 				   const char *match,
 				   GValueArray *params);
 
-gboolean _vte_terminal_xy_to_grid(VteTerminal *terminal,
-                                  long x,
-                                  long y,
-                                  long *col,
-                                  long *row);
 gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
                                          long w,
                                          long h,

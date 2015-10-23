@@ -511,7 +511,9 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
 	long delta, row_count;
 	guint i, len;
 
-	g_assert(howmuch != 0);
+        /* TODOegmont: Fix this for smooth scrolling */
+        /* g_assert(howmuch != 0); */
+        if (howmuch == 0) return;
 
         row_count = vte_terminal_get_row_count(terminal);
 	if (((howmuch < 0) && (howmuch <= -row_count)) ||
@@ -1381,7 +1383,6 @@ vte_terminal_accessible_get_offset_at_point(AtkText *text,
 	terminal = VTE_TERMINAL (gtk_accessible_get_widget (GTK_ACCESSIBLE (text)));
 
 	atk_component_get_extents (ATK_COMPONENT (text), &base_x, &base_y, &w, &h, coords);
-        /* FIXME: use _vte_terminal_xy_to_grid */
 	char_width = vte_terminal_get_char_width (terminal);
 	char_height = vte_terminal_get_char_height (terminal);
 	x -= base_x;

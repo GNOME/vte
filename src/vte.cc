@@ -383,6 +383,97 @@ _vte_terminal_set_default_attributes(VteTerminal *terminal)
         terminal->pvt->fill_defaults = terminal->pvt->defaults;
 }
 
+/* Height excluding padding, but including additional bottom area if not grid aligned */
+static inline glong
+_vte_terminal_usable_height_px (VteTerminal *terminal)
+{
+        GtkAllocation allocation;
+        gtk_widget_get_allocation (&terminal->widget, &allocation);
+
+        return allocation.height - terminal->pvt->padding.top - terminal->pvt->padding.bottom;
+}
+
+static inline glong
+_vte_terminal_scroll_delta_pixel (VteTerminal *terminal)
+{
+        return round(terminal->pvt->screen->scroll_delta * terminal->pvt->char_height);
+}
+
+/* Pixel is relative to viewport, top padding excluded.
+ * Row is relative to the beginning of the terminal history, like {insert,scroll}_delta. */
+static inline glong
+_vte_terminal_pixel_to_row (VteTerminal *terminal,
+                            glong y)
+{
+        return (_vte_terminal_scroll_delta_pixel(terminal) + y) / terminal->pvt->char_height;
+}
+
+/* Row is relative to the beginning of the terminal history, like {insert,scroll}_delta.
+ * Pixel is relative to viewport, top padding excluded. */
+static inline glong
+_vte_terminal_row_to_pixel (VteTerminal *terminal,
+                            glong row)
+{
+        return row * terminal->pvt->char_height - (glong) round(terminal->pvt->screen->scroll_delta * terminal->pvt->char_height);
+}
+
+static inline glong
+_vte_terminal_first_displayed_row (VteTerminal *terminal)
+{
+        return _vte_terminal_pixel_to_row (terminal, 0);
+}
+
+static inline glong
+_vte_terminal_last_displayed_row (VteTerminal *terminal)
+{
+        glong r;
+
+        /* Get the logical row number displayed at the bottom pixel position */
+        r = _vte_terminal_pixel_to_row (terminal,
+                                        _vte_terminal_usable_height_px (terminal) - 1);
+
+        /* If we have an extra padding at the bottom which is currently unused,
+         * this number is one too big. Adjust here.
+         * E.g. have a terminal of size 80 x 24.5.
+         * Initially the bottom displayed row is (0-based) 23, but r is now 24.
+         * After producing more than a screenful of content and scrolling back
+         * all the way to the top, the bottom displayed row is (0-based) 24. */
+        r = MIN (r, terminal->pvt->screen->insert_delta + terminal->pvt->row_count - 1);
+        return r;
+}
+
+/* x, y are coordinates excluding the padding.
+ * col, row are in 0..width-1, 0..height-1.
+ * Returns FALSE if clicked over scrollback content; output values are unchanged then.
+ */
+static gboolean
+_vte_terminal_mouse_pixels_to_grid (VteTerminal *terminal,
+                                    long x, long y,
+                                    long *col, long *row)
+{
+        VteTerminalPrivate *pvt = terminal->pvt;
+        long c, r, fr, lr;
+
+        /* Confine clicks to the nearest actual cell. This is especially useful for
+         * fullscreen vte so that you can click on the very edge of the screen. */
+        r = _vte_terminal_pixel_to_row(terminal, y);
+        fr = _vte_terminal_first_displayed_row (terminal);
+        lr = _vte_terminal_last_displayed_row (terminal);
+        r = CLAMP (r, fr, lr);
+
+        /* Bail out if clicking on scrollback contents: bug 755187. */
+        if (r < pvt->screen->insert_delta)
+                return FALSE;
+        r -= pvt->screen->insert_delta;
+
+        c = x / pvt->char_width;
+        c = CLAMP (c, 0, pvt->column_count - 1);
+
+        *col = c;
+        *row = r;
+        return TRUE;
+}
+
 /* Cause certain cells to be repainted. */
 void
 _vte_invalidate_cells(VteTerminal *terminal,
@@ -390,7 +481,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		      glong row_start, gint row_count)
 {
 	cairo_rectangle_int_t rect;
-	glong i;
+	GtkAllocation allocation;
 
 	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
                 return;
@@ -404,64 +495,51 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	}
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"Invalidating cells at (%ld,%ld+%ld)x(%d,%d).\n",
+			"Invalidating cells at (%ld,%ld)x(%d,%d).\n",
 			column_start, row_start,
-			(long)terminal->pvt->screen->scroll_delta,
 			column_count, row_count);
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
-
-	/* Subtract the scrolling offset from the row start so that the
-	 * resulting rectangle is relative to the visible portion of the
-	 * buffer. */
-	row_start -= terminal->pvt->screen->scroll_delta;
-
-	/* Ensure the start of region is on screen */
-	if (column_start > terminal->pvt->column_count ||
-			row_start > terminal->pvt->row_count) {
-		return;
-	}
-
-	/* Clamp the start values to reasonable numbers. */
-	i = row_start + row_count;
-	row_start = MAX (0, row_start);
-	row_count = CLAMP (i - row_start, 0, terminal->pvt->row_count);
-
-	i = column_start + column_count;
-	column_start = MAX (0, column_start);
-	column_count = CLAMP (i - column_start, 0 , terminal->pvt->column_count);
 
 	if (!column_count || !row_count) {
 		return;
 	}
+
 	if (column_count == terminal->pvt->column_count &&
 			row_count == terminal->pvt->row_count) {
 		_vte_invalidate_all (terminal);
 		return;
 	}
 
+        gtk_widget_get_allocation (&terminal->widget, &allocation);
+
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border and overlap pixel.
 	 */
-	rect.x = column_start * terminal->pvt->char_width - 1;
-	if (column_start != 0) {
-		rect.x += terminal->pvt->padding.left;
-	}
-	rect.width = (column_start + column_count) * terminal->pvt->char_width + 3 + terminal->pvt->padding.left;
-	if (column_start + column_count == terminal->pvt->column_count) {
-		rect.width += terminal->pvt->padding.right;
-	}
+        rect.x = terminal->pvt->padding.left + column_start * terminal->pvt->char_width - 1;
+        if (rect.x <= 0)
+                rect.x = 0;
+        /* Temporarily misuse rect.width for the end x coordinate... */
+        rect.width = terminal->pvt->padding.left + (column_start + column_count) * terminal->pvt->char_width + 2; /* TODO why 2 and not 1? */
+        if (rect.width >= allocation.width)
+                rect.width = allocation.width;
+        /* ... fix that here */
 	rect.width -= rect.x;
 
-	rect.y = row_start * terminal->pvt->char_height - 1;
-	if (row_start != 0) {
-		rect.y += terminal->pvt->padding.top;
-	}
-	rect.height = (row_start + row_count) * terminal->pvt->char_height + 2 + terminal->pvt->padding.top;
-	if (row_start + row_count == terminal->pvt->row_count) {
-		rect.height += terminal->pvt->padding.bottom;
-	}
-	rect.height -= rect.y;
+        rect.y = terminal->pvt->padding.top + _vte_terminal_row_to_pixel(terminal, row_start) - 1;
+        if (rect.y <= 0)
+                rect.y = 0;
+
+        /* Temporarily misuse rect.height for the end y coordinate... */
+        rect.height = terminal->pvt->padding.top + _vte_terminal_row_to_pixel(terminal, row_start + row_count) + 1;
+        if (rect.height >= allocation.height)
+                rect.height = allocation.height;
+        /* ... fix that here */
+        rect.height -= rect.y;
+
+        /* Ensure the values make sense */
+        if (rect.width <= 0 || rect.height <= 0)
+                return;
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
@@ -1134,12 +1212,21 @@ static void
 vte_terminal_match_contents_refresh(VteTerminal *terminal)
 {
 	GArray *array;
+        long start_row, start_col, end_row, end_col;
+
+        start_row = _vte_terminal_first_displayed_row (terminal);
+        start_col = 0;
+        end_row = _vte_terminal_last_displayed_row (terminal);
+        end_col = terminal->pvt->column_count - 1;
+
 	vte_terminal_match_contents_clear(terminal);
 	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-	terminal->pvt->match_contents = vte_terminal_get_text(terminal,
-							      always_selected,
-							      NULL,
-							      array);
+        terminal->pvt->match_contents = vte_terminal_get_text_range(terminal,
+                                                                    start_row, start_col,
+                                                                    end_row, end_col,
+                                                                    always_selected,
+                                                                    NULL,
+                                                                    array);
 	terminal->pvt->match_attributes = array;
 }
 
@@ -2130,6 +2217,32 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
 	return ret;
 }
 
+static gboolean
+rowcol_from_event(VteTerminal *terminal,
+                  GdkEvent *event,
+                  long *column,
+                  long *row)
+{
+        double x, y;
+
+        if (event == NULL)
+                return FALSE;
+        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
+                return FALSE;
+        if (!gdk_event_get_coords(event, &x, &y))
+                return FALSE;
+
+        x -= terminal->pvt->padding.left;
+        y -= terminal->pvt->padding.top;
+        if (x < 0 || x >= terminal->pvt->column_count * terminal->pvt->char_width ||
+            y < 0 || y >= _vte_terminal_usable_height_px (terminal))
+                return FALSE;
+        *column = x / terminal->pvt->char_width;
+        *row = _vte_terminal_pixel_to_row(terminal, y);
+
+        return TRUE;
+}
+
 /**
  * vte_terminal_match_check_event:
  * @terminal: a #VteTerminal
@@ -2153,21 +2266,15 @@ vte_terminal_match_check_event(VteTerminal *terminal,
                                GdkEvent *event,
                                int *tag)
 {
-        double x, y;
         long col, row;
 
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-        if (event == NULL)
-                return FALSE;
-        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
-                return FALSE;
-        if (!gdk_event_get_coords(event, &x, &y))
-                return FALSE;
-        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+        if (!rowcol_from_event(terminal, event, &col, &row))
                 return FALSE;
 
-        return vte_terminal_match_check(terminal, col, row, tag);
+        /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
+        return vte_terminal_match_check(terminal, col, row - (long) terminal->pvt->screen->scroll_delta, tag);
 }
 
 /**
@@ -2202,7 +2309,6 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
         gboolean any_matches = FALSE;
-        double x, y;
         long col, row;
         guint i;
 
@@ -2211,18 +2317,14 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
-                return FALSE;
-        if (!gdk_event_get_coords(event, &x, &y))
-                return FALSE;
-        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+        if (!rowcol_from_event(terminal, event, &col, &row))
                 return FALSE;
 
 	if (pvt->match_contents == NULL) {
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (!match_rowcol_to_offset(terminal, col, terminal->pvt->screen->scroll_delta + row,
+        if (!match_rowcol_to_offset(terminal, col, row,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
@@ -2288,7 +2390,6 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
         VteTerminalPrivate *pvt = terminal->pvt;
 	gsize offset, sattr, eattr;
         gboolean any_matches = FALSE;
-        double x, y;
         long col, row;
         guint i;
 
@@ -2297,18 +2398,14 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
-                return FALSE;
-        if (!gdk_event_get_coords(event, &x, &y))
-                return FALSE;
-        if (!_vte_terminal_xy_to_grid(terminal, x, y, &col, &row))
+        if (!rowcol_from_event(terminal, event, &col, &row))
                 return FALSE;
 
 	if (pvt->match_contents == NULL) {
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (!match_rowcol_to_offset(terminal, col, terminal->pvt->screen->scroll_delta + row,
+        if (!match_rowcol_to_offset(terminal, col, row,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
@@ -2377,11 +2474,11 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 		terminal->pvt->adjustment_changed_pending = FALSE;
 	}
 	if (terminal->pvt->adjustment_value_changed_pending) {
-		glong v, delta;
+		double v, delta;
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
 		terminal->pvt->adjustment_value_changed_pending = FALSE;
-		v = round (gtk_adjustment_get_value(terminal->pvt->vadjustment));
+		v = gtk_adjustment_get_value(terminal->pvt->vadjustment);
 		if (v != terminal->pvt->screen->scroll_delta) {
 			/* this little dance is so that the scroll_delta is
 			 * updated immediately, but we still handled scrolling
@@ -2404,9 +2501,12 @@ vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
 }
 
 static void
-vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
+vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, double v)
 {
 	if (v != terminal->pvt->screen->scroll_delta) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
+                                 "Adjustment value changed to %f\n",
+                                 v);
 		terminal->pvt->screen->scroll_delta = v;
 		terminal->pvt->adjustment_value_changed_pending = TRUE;
 		add_update_timeout (terminal);
@@ -2414,7 +2514,7 @@ vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, glong v)
 }
 
 static void
-vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, glong v)
+vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, double v)
 {
 	gdouble lower, upper;
 
@@ -2515,10 +2615,15 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 static void
 vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
 {
-	glong destination;
+	double destination;
 	_vte_debug_print(VTE_DEBUG_ADJ, "Scrolling %d lines.\n", lines);
 	/* Calculate the ideal position where we want to be before clamping. */
 	destination = terminal->pvt->screen->scroll_delta;
+        /* Snap to whole cell offset. */
+        if (lines > 0)
+                destination = floor(destination);
+        else if (lines < 0)
+                destination = ceil(destination);
 	destination += lines;
 	/* Tell the scrollbar to adjust itself. */
 	vte_terminal_queue_adjustment_value_changed_clamped (terminal, destination);
@@ -4314,7 +4419,8 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	gboolean cursor_visible;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
-	long wcount, start, delta;
+	long wcount, start;
+        long top_row, bottom_row;
 	gboolean leftovers, modified, bottom, again;
 	gboolean invalidated_text;
 	gboolean in_scroll_region;
@@ -4330,8 +4436,10 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	screen = terminal->pvt->screen;
 
-	delta = screen->scroll_delta;
-	bottom = screen->insert_delta == delta;
+        bottom = screen->insert_delta == (long) screen->scroll_delta;
+
+        top_row = _vte_terminal_first_displayed_row(terminal);
+        bottom_row = _vte_terminal_last_displayed_row(terminal);
 
 	/* Save the current cursor position. */
         cursor = terminal->pvt->cursor;
@@ -4452,7 +4560,9 @@ skip_chunk:
                             && (terminal->pvt->cursor.row >= (screen->insert_delta + terminal->pvt->scrolling_region.start))
                             && (terminal->pvt->cursor.row <= (screen->insert_delta + terminal->pvt->scrolling_region.end));
 
-			delta = screen->scroll_delta;	/* delta may have changed from sequence. */
+                        /* delta may have changed from sequence. */
+                        top_row = _vte_terminal_first_displayed_row(terminal);
+                        bottom_row = _vte_terminal_last_displayed_row(terminal);
 
 			/* if we have moved greatly during the sequence handler, or moved
                          * into a scroll_region from outside it, restart the bbox.
@@ -4465,12 +4575,12 @@ skip_chunk:
                                           terminal->pvt->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 0);
-				bbox_topleft.y = MAX(bbox_topleft.y, delta);
+                                bbox_topleft.y = MAX(bbox_topleft.y, top_row);
 				bbox_bottomright.x = MIN(bbox_bottomright.x,
 						terminal->pvt->column_count);
 				/* lazily apply the +1 to the cursor_row */
 				bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-						delta + terminal->pvt->row_count);
+                                                bottom_row + 1);
 
 				_vte_invalidate_cells(terminal,
 						bbox_topleft.x,
@@ -4557,12 +4667,12 @@ skip_chunk:
                                                  terminal->pvt->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
 					/* Clip off any part of the box which isn't already on-screen. */
 					bbox_topleft.x = MAX(bbox_topleft.x, 0);
-					bbox_topleft.y = MAX(bbox_topleft.y, delta);
+                                        bbox_topleft.y = MAX(bbox_topleft.y, top_row);
 					bbox_bottomright.x = MIN(bbox_bottomright.x,
 							terminal->pvt->column_count);
 					/* lazily apply the +1 to the cursor_row */
 					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-							delta + terminal->pvt->row_count);
+                                                        bottom_row + 1);
 
 					_vte_invalidate_cells(terminal,
 							bbox_topleft.x,
@@ -4677,12 +4787,12 @@ next_match:
 	if (invalidated_text) {
 		/* Clip off any part of the box which isn't already on-screen. */
 		bbox_topleft.x = MAX(bbox_topleft.x, 0);
-		bbox_topleft.y = MAX(bbox_topleft.y, delta);
+                bbox_topleft.y = MAX(bbox_topleft.y, top_row);
 		bbox_bottomright.x = MIN(bbox_bottomright.x,
 				terminal->pvt->column_count);
 		/* lazily apply the +1 to the cursor_row */
 		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-				delta + terminal->pvt->row_count);
+                                bottom_row + 1);
 
 		_vte_invalidate_cells(terminal,
 				bbox_topleft.x,
@@ -4712,8 +4822,7 @@ next_match:
                 rect.x = terminal->pvt->cursor.col *
 			 terminal->pvt->char_width + terminal->pvt->padding.left;
 		rect.width = terminal->pvt->char_width;
-                rect.y = (terminal->pvt->cursor.row - delta) *
-			 terminal->pvt->char_height + terminal->pvt->padding.top;
+                rect.y = _vte_terminal_row_to_pixel(terminal, terminal->pvt->cursor.row) + terminal->pvt->padding.top;
 		rect.height = terminal->pvt->char_height;
 		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
 						   &rect);
@@ -6130,40 +6239,6 @@ vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
 	}
 }
 
-/**
- * _vte_terminal_xy_to_grid:
- * @x: the X coordinate
- * @y: the Y coordinate
- * @col: return location to store the column
- * @row: return location to store the row
- *
- * Translates from widget coordinates to grid coordinates.
- *
- * If the coordinates are outside the grid, returns %FALSE.
- */
-gboolean
-_vte_terminal_xy_to_grid(VteTerminal *terminal,
-                         long x,
-                         long y,
-                         long *col,
-                         long *row)
-{
-        VteTerminalPrivate *pvt = terminal->pvt;
-        long c, r;
-
-        /* FIXMEchpe: is this correct for RTL? */
-        c = (x - pvt->padding.left) / pvt->char_width;
-        r = (y - pvt->padding.top) / pvt->char_height;
-
-        if ((c < 0 || c >= pvt->column_count) ||
-            (r < 0 || r >= pvt->row_count))
-          return FALSE;
-
-        *col = c;
-        *row = r;
-        return TRUE;
-}
-
 /*
  * _vte_terminal_size_to_grid_size:
  * @w: the width in px
@@ -6254,11 +6329,9 @@ vte_terminal_feed_mouse_event(VteTerminal *terminal,
 		cb |= 32;
 	}
 
-	/* Clamp the cursor coordinates. Make them 1-based. */
-	cx = CLAMP(1 + col,
-		   1, terminal->pvt->column_count);
-	cy = CLAMP(1 + row,
-		   1, terminal->pvt->row_count);
+	/* Make coordinates 1-based. */
+	cx = col + 1;
+	cy = row + 1;
 
 	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
 	if (terminal->pvt->mouse_xterm_extension) {
@@ -6283,13 +6356,12 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 					long         x,
 					long         y)
 {
-	int width = terminal->pvt->char_width;
-	int height = terminal->pvt->char_height;
-	long col = (x - terminal->pvt->padding.left) / width;
-        long row = (y - terminal->pvt->padding.top) / height -
-                   (terminal->pvt->screen->insert_delta - terminal->pvt->screen->scroll_delta);
+        long col, row;
 
-        if (row < 0)
+        if (!_vte_terminal_mouse_pixels_to_grid (terminal,
+                                                 x - terminal->pvt->padding.left,
+                                                 y - terminal->pvt->padding.top,
+                                                 &col, &row))
                 return;
 
 	vte_terminal_feed_mouse_event(terminal, button, FALSE /* not drag */, is_release, col, row);
@@ -6367,14 +6439,13 @@ vte_terminal_maybe_send_mouse_button(VteTerminal *terminal,
 static gboolean
 vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 {
-	int width = terminal->pvt->char_width;
-	int height = terminal->pvt->char_height;
-	long col = ((long) event->x - terminal->pvt->padding.left) / width;
-        long row = ((long) event->y - terminal->pvt->padding.top) / height -
-                   (terminal->pvt->screen->insert_delta - terminal->pvt->screen->scroll_delta);
+        long col, row;
         int button;
 
-        if (row < 0)
+        if (!_vte_terminal_mouse_pixels_to_grid (terminal,
+                                                 (long) event->x - terminal->pvt->padding.left,
+                                                 (long) event->y - terminal->pvt->padding.top,
+                                                 &col, &row))
                 return FALSE;
 
 	/* First determine if we even want to send notification. */
@@ -6390,8 +6461,8 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
 			}
 			/* the xterm doc is not clear as to whether
 			 * all-tracking also sends degenerate same-cell events */
-			if (col == terminal->pvt->mouse_last_x / width &&
-			    row == terminal->pvt->mouse_last_y / height)
+                        if (col == terminal->pvt->mouse_last_col &&
+                            row == terminal->pvt->mouse_last_row)
 				return FALSE;
 		}
 		break;
@@ -6446,27 +6517,10 @@ vte_terminal_match_hilite_clear(VteTerminal *terminal)
 static gboolean
 cursor_inside_match (VteTerminal *terminal, long x, long y)
 {
-	gint width = terminal->pvt->char_width;
-	gint height = terminal->pvt->char_height;
-	glong col = x / width;
-	glong row = y / height + terminal->pvt->screen->scroll_delta;
-	if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
-		return row == terminal->pvt->match_start.row &&
-			col >= terminal->pvt->match_start.col &&
-			col <= terminal->pvt->match_end.col;
-	} else {
-		if (row < terminal->pvt->match_start.row ||
-				row > terminal->pvt->match_end.row) {
-			return FALSE;
-		}
-		if (row == terminal->pvt->match_start.row) {
-			return col >= terminal->pvt->match_start.col;
-		}
-		if (row == terminal->pvt->match_end.row) {
-			return col <= terminal->pvt->match_end.col;
-		}
-		return TRUE;
-	}
+	glong col = x / terminal->pvt->char_width;
+	glong row = _vte_terminal_pixel_to_row(terminal, y);
+
+        return rowcol_inside_match(terminal, row, col);
 }
 
 static void
@@ -6503,28 +6557,20 @@ static void
 vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 {
 	gsize start, end;
-        int width, height;
 	char *match;
 	struct _VteCharAttributes *attr;
-	VteScreen *screen;
-	long delta;
-
-	width = terminal->pvt->char_width;
-	height = terminal->pvt->char_height;
 
 	/* Check for matches. */
-	screen = terminal->pvt->screen;
-	delta = screen->scroll_delta;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Match hilite update (%ld, %ld) -> %ld, %ld\n",
 			x, y,
-			x / width,
-			y / height + delta);
+                         x / terminal->pvt->char_width,
+                         _vte_terminal_pixel_to_row(terminal, y));
 
 	match = vte_terminal_match_check_internal(terminal,
-						  x / width,
-						  y / height + delta,
+                                                  x / terminal->pvt->char_width,
+                                                  _vte_terminal_pixel_to_row(terminal, y),
 						  &terminal->pvt->match_tag,
 						  &start,
 						  &end);
@@ -6597,11 +6643,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 static void
 vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 {
-	int width, height;
 	GtkAllocation allocation;
-
-	width = terminal->pvt->char_width;
-	height = terminal->pvt->char_height;
 
 	gtk_widget_get_allocation (&terminal->widget, &allocation);
 
@@ -6612,9 +6654,10 @@ vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 	}
 
 	/* If the pointer hasn't moved to another character cell, then we
-	 * need do nothing. */
-	if (x / width  == terminal->pvt->mouse_last_x / width &&
-	    y / height == terminal->pvt->mouse_last_y / height) {
+	 * need do nothing. Note: Don't use mouse_last_col as that's relative
+	 * to insert_delta, and we care about the absolute row number. */
+	if (x / terminal->pvt->char_width  == terminal->pvt->mouse_last_x / terminal->pvt->char_width &&
+	    _vte_terminal_pixel_to_row(terminal, y) == _vte_terminal_pixel_to_row(terminal, terminal->pvt->mouse_last_y)) {
 		terminal->pvt->show_match = terminal->pvt->match != NULL;
 		return;
 	}
@@ -7309,19 +7352,24 @@ vte_terminal_invalidate_selection (VteTerminal *terminal)
 				terminal->pvt->selection_block_mode);
 }
 
-/* Confine coordinates into the visible area. Padding is alreday subtracted. */
+/* Confine coordinates into the visible area. Padding is already subtracted. */
 static void
 vte_terminal_confine_coordinates (VteTerminal *terminal, long *xp, long *yp)
 {
 	long x = *xp;
 	long y = *yp;
+        long y_stop;
+
+        /* Allow to use the bottom extra padding only if there's content there. */
+        y_stop = MIN(_vte_terminal_usable_height_px (terminal),
+                     _vte_terminal_row_to_pixel(terminal, terminal->pvt->screen->insert_delta + terminal->pvt->row_count));
 
 	if (y < 0) {
 		y = 0;
 		if (!terminal->pvt->selection_block_mode)
 			x = 0;
-	} else if (y >= terminal->pvt->row_count * terminal->pvt->char_height) {
-		y = terminal->pvt->row_count * terminal->pvt->char_height - 1;
+        } else if (y >= y_stop) {
+                y = y_stop - 1;
 		if (!terminal->pvt->selection_block_mode)
 			x = terminal->pvt->column_count * terminal->pvt->char_width - 1;
 	}
@@ -7340,8 +7388,6 @@ static void
 vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
 			     enum vte_selection_type selection_type)
 {
-	long delta;
-
 	if (terminal->pvt->selection_block_mode)
 		selection_type = selection_type_char;
 
@@ -7349,10 +7395,9 @@ vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
 	vte_terminal_confine_coordinates(terminal, &x, &y);
 
 	/* Record that we have the selection, and where it started. */
-	delta = terminal->pvt->screen->scroll_delta;
 	terminal->pvt->has_selection = TRUE;
 	terminal->pvt->selection_last.x = x;
-	terminal->pvt->selection_last.y = y + (terminal->pvt->char_height * delta);
+	terminal->pvt->selection_last.y = _vte_terminal_scroll_delta_pixel(terminal) + y;
 
 	/* Decide whether or not to restart on the next drag. */
 	switch (selection_type) {
@@ -7632,9 +7677,9 @@ static void
 vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			      gboolean always_grow, gboolean force)
 {
-	VteScreen *screen;
 	int width, height;
-	long delta, residual;
+	long residual;
+	long row;
 	struct selection_event_coords *origin, *last, *start, *end;
 	VteVisualPosition old_start, old_end, *sc, *ec, *so, *eo;
 	gboolean invalidate_selected = FALSE;
@@ -7646,14 +7691,10 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	/* Confine coordinates into the visible area. (#563024, #722635c7) */
 	vte_terminal_confine_coordinates(terminal, &x, &y);
 
-	screen = terminal->pvt->screen;
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
 	so = &old_start;
 	eo = &old_end;
-
-	/* Convert the event coordinates to cell coordinates. */
-	delta = screen->scroll_delta;
 
 	/* If we're restarting on a drag, then mark this as the start of
 	 * the selected block. */
@@ -7680,7 +7721,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	origin = &terminal->pvt->selection_origin;
 	if (terminal->pvt->selection_block_mode) {
 		last->x = x;
-		last->y = y + height * delta;
+		last->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
 
 		/* We don't support always_grow in block mode */
 		if (always_grow)
@@ -7698,7 +7739,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	} else {
 		if (!always_grow) {
 			last->x = x;
-			last->y = y + height * delta;
+			last->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
 		}
 
 		if ((origin->y / height < last->y / height) ||
@@ -7717,15 +7758,16 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 		 * closer to the new point. */
 		if (always_grow) {
 			/* New endpoint is before existing selection. */
-			if ((y / height < ((start->y / height) - delta)) ||
-			    ((y / height == ((start->y / height) - delta)) &&
+                        row = _vte_terminal_pixel_to_row(terminal, y);
+			if ((row < start->y / height) ||
+			    ((row == start->y / height) &&
 			     (x / width < start->x / width))) {
 				start->x = x;
-				start->y = y + height * delta;
+				start->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
 			} else {
 				/* New endpoint is after existing selection. */
 				end->x = x;
-				end->y = y + height * delta;
+				end->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
 			}
 		}
 	}
@@ -7922,8 +7964,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
 	}
-	if (terminal->pvt->mouse_last_y >=
-	    terminal->pvt->row_count * terminal->pvt->char_height) {
+	if (terminal->pvt->mouse_last_y >= _vte_terminal_usable_height_px (terminal)) {
 		if (terminal->pvt->vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = terminal->pvt->screen->scroll_delta + 1;
@@ -8001,7 +8042,8 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Motion notify (%ld,%ld) [%ld, %ld].\n",
 			x, y,
-			x / width, y / height + terminal->pvt->screen->scroll_delta);
+			x / width,
+                        _vte_terminal_pixel_to_row(terminal, y));
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
@@ -8060,6 +8102,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	/* Save the pointer coordinates for later use. */
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        _vte_terminal_mouse_pixels_to_grid (terminal,
+                                            x, y,
+                                            &terminal->pvt->mouse_last_col,
+                                            &terminal->pvt->mouse_last_row);
 
 	return handled;
 }
@@ -8069,7 +8115,6 @@ static gint
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal;
-	long height, width, delta;
 	gboolean handled = FALSE;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
@@ -8080,10 +8125,6 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
 
-	height = terminal->pvt->char_height;
-	width = terminal->pvt->char_width;
-	delta = terminal->pvt->screen->scroll_delta;
-
 	vte_terminal_match_hilite(terminal, x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
@@ -8091,15 +8132,15 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
 	/* Convert the event coordinates to cell coordinates. */
-	cellx = x / width;
-	celly = y / height + delta;
+	cellx = x / terminal->pvt->char_width;
+	celly = _vte_terminal_pixel_to_row(terminal, y);
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d single-click at (%ld,%ld)\n",
 				event->button,
-				x, y + terminal->pvt->char_height * delta);
+				x, _vte_terminal_scroll_delta_pixel(terminal) + y);
 		/* Handle this event ourselves. */
 		switch (event->button) {
 		case 1:
@@ -8183,7 +8224,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d double-click at (%ld,%ld)\n",
 				event->button,
-				x, y + (terminal->pvt->char_height * delta));
+				x, _vte_terminal_scroll_delta_pixel(terminal) + y);
 		switch (event->button) {
 		case 1:
 			if (terminal->pvt->selecting_after_threshold) {
@@ -8209,7 +8250,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d triple-click at (%ld,%ld).\n",
 				event->button,
-				x, y + (terminal->pvt->char_height * delta));
+				x, _vte_terminal_scroll_delta_pixel(terminal) + y);
 		switch (event->button) {
 		case 1:
                         if ((terminal->pvt->mouse_handled_buttons & 1) != 0) {
@@ -8233,6 +8274,10 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
                 terminal->pvt->mouse_pressed_buttons |= (1 << (event->button - 1));
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        _vte_terminal_mouse_pixels_to_grid (terminal,
+                                            x, y,
+                                            &terminal->pvt->mouse_last_col,
+                                            &terminal->pvt->mouse_last_row);
 
 	return handled;
 }
@@ -8289,6 +8334,10 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
                 terminal->pvt->mouse_pressed_buttons &= ~(1 << (event->button - 1));
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
+        _vte_terminal_mouse_pixels_to_grid (terminal,
+                                            x, y,
+                                            &terminal->pvt->mouse_last_col,
+                                            &terminal->pvt->mouse_last_row);
 	terminal->pvt->selecting_after_threshold = FALSE;
 
 	return handled;
@@ -8716,22 +8765,22 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 	VteVisualPosition below_viewport;
 	VteVisualPosition below_current_paragraph;
 	VteVisualPosition *markers[7];
-	gboolean was_scrolled_to_top = (screen->scroll_delta == _vte_ring_delta(ring));
-	gboolean was_scrolled_to_bottom = (screen->scroll_delta == screen->insert_delta);
+        gboolean was_scrolled_to_top = ((long) ceil(screen->scroll_delta) == _vte_ring_delta(ring));
+        gboolean was_scrolled_to_bottom = ((long) screen->scroll_delta == screen->insert_delta);
 	glong old_top_lines;
-	glong new_scroll_delta;
+	double new_scroll_delta;
 
         if (terminal->pvt->selection_block_mode && do_rewrap && old_columns != terminal->pvt->column_count)
                 vte_terminal_deselect_all(terminal);
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Resizing %s screen\n"
-			"Old  insert_delta=%ld  scroll_delta=%ld\n"
-                        "     cursor (absolute)  row=%ld  (visual line %ld)  col=%ld\n"
+			"Old  insert_delta=%ld  scroll_delta=%f\n"
+                        "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n",
 			screen == &terminal->pvt->normal_screen ? "normal" : "alternate",
 			screen->insert_delta, screen->scroll_delta,
-                        terminal->pvt->cursor.row, terminal->pvt->cursor.row - screen->scroll_delta + 1, terminal->pvt->cursor.col,
+                        terminal->pvt->cursor.row, terminal->pvt->cursor.col,
                         screen->saved.cursor.row, screen->saved.cursor.col);
 
         cursor_saved_absolute.row = screen->saved.cursor.row + screen->insert_delta;
@@ -8817,6 +8866,8 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 			   TODO: What would be the best behavior if the bottom of the screen is a
 			   soft line break, i.e. only a partial line is visible at the bottom? */
 			new_scroll_delta = below_viewport.row - terminal->pvt->row_count;
+			/* Keep the old fractional part. */
+			new_scroll_delta += screen->scroll_delta - floor(screen->scroll_delta);
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Scroll so bottom row stays\n");
 		}
@@ -8828,11 +8879,11 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
         screen->saved.cursor.col = cursor_saved_absolute.col;
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
-			"New  insert_delta=%ld  scroll_delta=%ld\n"
-                        "     cursor (absolute)  row=%ld  (visual line %ld)  col=%ld\n"
+			"New  insert_delta=%ld  scroll_delta=%f\n"
+                        "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n\n",
 			screen->insert_delta, new_scroll_delta,
-                        terminal->pvt->cursor.row, terminal->pvt->cursor.row - new_scroll_delta + 1, terminal->pvt->cursor.col,
+                        terminal->pvt->cursor.row, terminal->pvt->cursor.col,
                         screen->saved.cursor.row, screen->saved.cursor.col);
 
 	if (screen == terminal->pvt->screen)
@@ -8913,13 +8964,13 @@ vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
 static void
 vte_terminal_handle_scroll(VteTerminal *terminal)
 {
-	long dy, adj;
+	double dy, adj;
 	VteScreen *screen;
 
 	screen = terminal->pvt->screen;
 
 	/* Read the new adjustment value and save the difference. */
-	adj = round (gtk_adjustment_get_value(terminal->pvt->vadjustment));
+	adj = gtk_adjustment_get_value(terminal->pvt->vadjustment);
 	dy = adj - screen->scroll_delta;
 	screen->scroll_delta = adj;
 
@@ -8932,9 +8983,8 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 
 	if (dy != 0) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
-			    "Scrolling by %ld\n", dy);
-		_vte_terminal_scroll_region(terminal, screen->scroll_delta,
-					   terminal->pvt->row_count, -dy);
+			    "Scrolling by %f\n", dy);
+                _vte_invalidate_all(terminal);
 		vte_terminal_emit_text_scrolled(terminal, dy);
 		_vte_terminal_queue_contents_changed(terminal);
 	} else {
@@ -10533,15 +10583,21 @@ vte_terminal_expand_region (VteTerminal *terminal, cairo_region_t *region, const
 	int width, height;
 	int row, col, row_stop, col_stop;
 	cairo_rectangle_int_t rect;
+	GtkAllocation allocation;
 
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
 
+	gtk_widget_get_allocation (&terminal->widget, &allocation);
+
 	/* increase the paint by one pixel on all sides to force the
 	 * inclusion of neighbouring cells */
-	row = MAX(0, (area->y - terminal->pvt->padding.top - 1) / height);
-	row_stop = MIN(howmany(area->height + area->y - terminal->pvt->padding.top + 1, height),
-		       terminal->pvt->row_count);
+        row = _vte_terminal_pixel_to_row(terminal, MAX(0, area->y - terminal->pvt->padding.top - 1));
+        /* Both the value given by MIN() and row_stop are exclusive.
+         * _vte_terminal_pixel_to_row expects an actual value corresponding
+         * to the bottom visible pixel, hence the - 1 + 1 magic. */
+        row_stop = _vte_terminal_pixel_to_row(terminal, MIN(area->height + area->y - terminal->pvt->padding.top + 1,
+                                                            allocation.height - terminal->pvt->padding.bottom) - 1) + 1;
 	if (row_stop <= row) {
 		return;
 	}
@@ -10555,7 +10611,7 @@ vte_terminal_expand_region (VteTerminal *terminal, cairo_region_t *region, const
 	rect.x = col*width + terminal->pvt->padding.left;
 	rect.width = (col_stop - col) * width;
 
-	rect.y = row*height + terminal->pvt->padding.top;
+	rect.y = _vte_terminal_row_to_pixel(terminal, row) + terminal->pvt->padding.top;
 	rect.height = (row_stop - row)*height;
 
 	/* the rect must be cell aligned to avoid overlapping XY bands */
@@ -10575,17 +10631,23 @@ static void
 vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 {
 	VteScreen *screen;
-	int width, height, delta;
+	int width, height;
 	int row, col, row_stop, col_stop;
+	GtkAllocation allocation;
 
 	screen = terminal->pvt->screen;
 
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
 
-	row = MAX(0, (area->y - terminal->pvt->padding.top) / height);
-	row_stop = MIN((area->height + area->y - terminal->pvt->padding.top) / height,
-		       terminal->pvt->row_count);
+	gtk_widget_get_allocation (&terminal->widget, &allocation);
+
+        row = _vte_terminal_pixel_to_row(terminal, MAX(0, area->y - terminal->pvt->padding.top));
+        /* Both the value given by MIN() and row_stop are exclusive.
+         * _vte_terminal_pixel_to_row expects an actual value corresponding
+         * to the bottom visible pixel, hence the - 1 + 1 magic. */
+        row_stop = _vte_terminal_pixel_to_row(terminal, MIN(area->height + area->y - terminal->pvt->padding.top,
+                                                            allocation.height - terminal->pvt->padding.bottom) - 1) + 1;
 	if (row_stop <= row) {
 		return;
 	}
@@ -10609,13 +10671,12 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	delta = screen->scroll_delta;
 	vte_terminal_draw_rows(terminal,
 			      screen,
-			      row + delta, row_stop - row,
+			      row, row_stop - row,
 			      col, col_stop - col,
 			      col * width,
-			      row * height,
+			      _vte_terminal_row_to_pixel(terminal, row),
 			      width,
 			      height);
 }
@@ -10623,11 +10684,10 @@ vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
 static void
 vte_terminal_paint_cursor(VteTerminal *terminal)
 {
-	VteScreen *screen;
 	const VteCell *cell;
 	struct _vte_draw_text_request item;
-	int row, drow, col;
-	long width, height, delta, cursor_width;
+	int drow, col;
+	long width, height, cursor_width;
 	guint fore, back;
 	PangoColor bg;
 	int x, y;
@@ -10636,16 +10696,16 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	if (!terminal->pvt->cursor_visible)
 		return;
 
-	screen = terminal->pvt->screen;
-	delta = screen->scroll_delta;
+        if (terminal->pvt->im_preedit_active)
+                return;
+
         col = terminal->pvt->cursor.col;
         drow = terminal->pvt->cursor.row;
-	row = drow - delta;
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
 
-	if ((CLAMP(col, 0, terminal->pvt->column_count - 1) != col) ||
-	    (CLAMP(row, 0, terminal->pvt->row_count    - 1) != row))
+        /* TODOegmont: clamp on rows? tricky... */
+	if (CLAMP(col, 0, terminal->pvt->column_count - 1) != col)
 		return;
 
 	focus = terminal->pvt->has_focus;
@@ -10666,7 +10726,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns : 1;
 	item.x = col * width;
-	item.y = row * height;
+	item.y = _vte_terminal_row_to_pixel(terminal, drow);
 	cursor_width = item.columns * width;
 	if (cell && cell->c != 0) {
 		guint style;
@@ -10715,22 +10775,12 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 		case VTE_CURSOR_SHAPE_BLOCK:
 
 			if (focus) {
-                                gboolean hilite = FALSE;
-
 				/* just reverse the character under the cursor */
 				vte_terminal_fill_rectangle (terminal,
 							     &bg,
 							     x, y,
 							     cursor_width, height);
 
-                                if (cell && terminal->pvt->show_match) {
-                                        hilite = vte_cell_is_between(col, row,
-                                                        terminal->pvt->match_start.col,
-                                                        terminal->pvt->match_start.row,
-                                                        terminal->pvt->match_end.col,
-                                                        terminal->pvt->match_end.row,
-                                                        TRUE);
-                                }
                                 if (cell && cell->c != 0 && cell->c != ' ') {
                                         vte_terminal_draw_cells(terminal,
                                                         &item, 1,
@@ -10739,7 +10789,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
                                                         cell->attr.italic,
                                                         cell->attr.underline,
                                                         cell->attr.strikethrough,
-                                                        hilite,
+                                                        FALSE,
                                                         FALSE,
                                                         width,
                                                         height);
@@ -10762,24 +10812,17 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 static void
 vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 {
-	VteScreen *screen;
-	int row, col, columns;
-	long width, height, delta;
+	int col, columns;
+	long width, height;
 	int i, len;
 	guint fore, back;
 
 	if (!terminal->pvt->im_preedit)
 		return;
 
-	/* Get going. */
-	screen = terminal->pvt->screen;
-
 	/* Keep local copies of rendering information. */
 	width = terminal->pvt->char_width;
 	height = terminal->pvt->char_height;
-	delta = screen->scroll_delta;
-
-        row = terminal->pvt->cursor.row - delta;
 
 	/* Find out how many columns the pre-edit string takes up. */
 	columns = vte_terminal_preedit_width(terminal, FALSE);
@@ -10804,13 +10847,13 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
                         items[i].columns = _vte_unichar_width(items[i].c,
                                                               terminal->pvt->utf8_ambiguous_width);
 			items[i].x = (col + columns) * width;
-			items[i].y = row * height;
+			items[i].y = _vte_terminal_row_to_pixel(terminal, terminal->pvt->cursor.row);
 			columns += items[i].columns;
 			preedit = g_utf8_next_char(preedit);
 		}
 		_vte_draw_clear(terminal->pvt->draw,
 				col * width + terminal->pvt->padding.left,
-				row * height + terminal->pvt->padding.top,
+				_vte_terminal_row_to_pixel(terminal, terminal->pvt->cursor.row) + terminal->pvt->padding.top,
 				width * columns,
 				height);
                 fore = terminal->pvt->color_defaults.attr.fore;
@@ -10846,6 +10889,7 @@ vte_terminal_draw(GtkWidget *widget,
         cairo_rectangle_int_t clip_rect;
         cairo_region_t *region;
         int allocated_width, allocated_height;
+        int extra_area_for_cursor;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                 return FALSE;
@@ -10868,6 +10912,12 @@ vte_terminal_draw(GtkWidget *widget,
 
 	_vte_draw_clear (terminal->pvt->draw, 0, 0,
 			 allocated_width, allocated_height);
+
+        /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
+         * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
+        cairo_save(cr);
+        cairo_rectangle(cr, 0, terminal->pvt->padding.top, allocated_width, allocated_height - terminal->pvt->padding.top - terminal->pvt->padding.bottom);
+        cairo_clip(cr);
 
 	/* Calculate the bounding rectangle. */
 	{
@@ -10905,9 +10955,20 @@ vte_terminal_draw(GtkWidget *widget,
 		g_free (rectangles);
 	}
 
+	vte_terminal_paint_im_preedit_string(terminal);
+
+        cairo_restore(cr);
+
+        /* Re-clip, allowing 1 more pixel row for the outline cursor. */
+        /* TODOegmont: It's really ugly to do it here. */
+        cairo_save(cr);
+        extra_area_for_cursor = (_vte_terminal_decscusr_cursor_shape(terminal) == VTE_CURSOR_SHAPE_BLOCK && !terminal->pvt->has_focus) ? 1 : 0;
+        cairo_rectangle(cr, 0, terminal->pvt->padding.top - extra_area_for_cursor, allocated_width, allocated_height - terminal->pvt->padding.top - terminal->pvt->padding.bottom + 2 * extra_area_for_cursor);
+        cairo_clip(cr);
+
 	vte_terminal_paint_cursor(terminal);
 
-	vte_terminal_paint_im_preedit_string(terminal);
+	cairo_restore(cr);
 
 	/* Done with various structures. */
 	_vte_draw_set_cairo(terminal->pvt->draw, NULL);
@@ -11025,18 +11086,18 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Scroll speed is %d lines per non-smooth scroll unit\n",
 			(int) v);
-	cnt = v * terminal->pvt->mouse_smooth_scroll_delta;
-	if (cnt == 0)
-		return TRUE;
-	terminal->pvt->mouse_smooth_scroll_delta -= cnt / v;
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Scroll by %d lines, smooth scroll delta set back to %f\n",
-			cnt, terminal->pvt->mouse_smooth_scroll_delta);
-
 	if (terminal->pvt->screen == &terminal->pvt->alternate_screen &&
             terminal->pvt->alternate_screen_scroll) {
 		char *normal;
 		gssize normal_length;
+
+		cnt = v * terminal->pvt->mouse_smooth_scroll_delta;
+		if (cnt == 0)
+			return TRUE;
+		terminal->pvt->mouse_smooth_scroll_delta -= cnt / v;
+		_vte_debug_print(VTE_DEBUG_EVENTS,
+				"Scroll by %d lines, smooth scroll delta set back to %f\n",
+				cnt, terminal->pvt->mouse_smooth_scroll_delta);
 
 		/* In the alternate screen there is no scrolling,
 		 * so fake a few cursor keystrokes. */
@@ -11057,8 +11118,9 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 		g_free (normal);
 	} else {
 		/* Perform a history scroll. */
-		cnt += terminal->pvt->screen->scroll_delta;
-		vte_terminal_queue_adjustment_value_changed_clamped (terminal, cnt);
+		double dcnt = terminal->pvt->screen->scroll_delta + v * terminal->pvt->mouse_smooth_scroll_delta;
+		vte_terminal_queue_adjustment_value_changed_clamped (terminal, dcnt);
+		terminal->pvt->mouse_smooth_scroll_delta = 0;
 	}
 
 	return TRUE;
@@ -12683,7 +12745,8 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
 {
         VteTerminalPrivate *pvt;
         GObject *object;
-        glong scroll_delta, low, high, next;
+        glong low, high, next;
+        double scroll_delta;
 	VteScreen *screen;
 
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
@@ -12971,6 +13034,8 @@ vte_terminal_reset(VteTerminal *terminal,
         pvt->mouse_handled_buttons = 0;
 	pvt->mouse_last_x = 0;
 	pvt->mouse_last_y = 0;
+        pvt->mouse_last_col = 0;
+        pvt->mouse_last_row = 0;
 	pvt->mouse_xterm_extension = FALSE;
 	pvt->mouse_urxvt_extension = FALSE;
 	pvt->mouse_smooth_scroll_delta = 0.;
@@ -14146,10 +14211,10 @@ vte_terminal_search_rows(VteTerminal *terminal,
 	value = gtk_adjustment_get_value(terminal->pvt->vadjustment);
 	page_size = gtk_adjustment_get_page_size(terminal->pvt->vadjustment);
 	if (backward) {
-		if (end_row < value || end_row >= value + page_size)
+		if (end_row < value || end_row > value + page_size - 1)
 			vte_terminal_queue_adjustment_value_changed_clamped (terminal, end_row - page_size + 1);
 	} else {
-		if (start_row < value || start_row >= value + page_size)
+		if (start_row < value || start_row > value + page_size - 1)
 			vte_terminal_queue_adjustment_value_changed_clamped (terminal, start_row);
 	}
 
