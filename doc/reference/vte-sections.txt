@@ -144,6 +144,7 @@ VTE_TYPE_REGEX
 vte_regex_get_type
 VTE_REGEX_ERROR
 vte_regex_error_quark
+</SECTION>
 
 <SECTION>
 <FILE>vte-pty</FILE>
