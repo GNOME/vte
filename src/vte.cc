@@ -2453,10 +2453,7 @@ vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
 			changed = TRUE;
 		}
 
-		/* The upper value is the number of rows which might be visible.  (Add
-		 * one to the cursor offset because it's zero-based.) */
-		v = MAX(_vte_ring_next(screen->row_data),
-                        terminal->pvt->cursor.row + 1);
+		v = terminal->pvt->screen->insert_delta + terminal->pvt->row_count;
 		current = gtk_adjustment_get_upper(terminal->pvt->vadjustment);
 		if (current != v) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
