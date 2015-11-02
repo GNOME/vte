@@ -2570,8 +2570,7 @@ _vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
 	v = gtk_adjustment_get_step_increment(terminal->pvt->vadjustment);
 	if (v != 1) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
-				"Changing step increment from %.0lf to %ld\n",
-				v, terminal->pvt->row_count);
+				"Changing step increment from %.0lf to 1\n", v);
 		gtk_adjustment_set_step_increment(terminal->pvt->vadjustment, 1);
 		changed = TRUE;
 	}
@@ -13653,7 +13652,7 @@ process_timeout (gpointer data)
 		again = TRUE;
 	} else {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Stoping process timeout\n");
+				"Stopping process timeout\n");
 		process_timeout_tag = 0;
 		again = FALSE;
 	}
@@ -13798,7 +13797,7 @@ update_repeat_timeout (gpointer data)
 	 */
 	if (active_terminals == NULL) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Stoping update timeout\n");
+				"Stopping update timeout\n");
 		update_timeout_tag = 0;
 		again = FALSE;
         } else {
