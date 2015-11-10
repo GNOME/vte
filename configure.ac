@@ -53,6 +53,7 @@ AC_SUBST([GTK_API_VERSION])
 ################################################################################
 
 # Check for programs
+PKG_PROG_PKG_CONFIG
 AC_PROG_CC
 AC_PROG_CXX
 AC_USE_SYSTEM_EXTENSIONS
@@ -60,7 +61,7 @@ AC_HEADER_STDC
 AM_PROG_CC_C_O
 AC_PROG_SED
 
-PKG_PROG_PKG_CONFIG
+AX_CXX_COMPILE_STDCXX_11
 
 # Initialize libtool
 LT_PREREQ([2.2])
