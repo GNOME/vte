@@ -868,6 +868,13 @@ main(int argc, char **argv)
 
 	gdk_window_set_debug_updates(debug);
 
+        g_object_set(gtk_settings_get_default(),
+                     "gtk-enable-mnemonics", FALSE,
+                     "gtk-enable-accels",FALSE,
+                     /* Make gtk+ CSD not steal F10 from the terminal */
+                     "gtk-menu-bar-accel", NULL,
+                     NULL);
+
 	/* Create a window to hold the scrolling shell, and hook its
 	 * delete event to the quit function.. */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
