@@ -180,9 +180,13 @@ struct vte_scrolling_region {
 /* Terminal private data. */
 class VteTerminalPrivate {
 public:
-        VteTerminalPrivate() { }
+        VteTerminalPrivate(VteTerminal *t) : m_terminal(t), m_widget(&t->widget) { }
         ~VteTerminalPrivate() { }
+
 public:
+        VteTerminal *m_terminal;
+        GtkWidget *m_widget;
+
         /* Metric and sizing data: dimensions of the window */
         glong row_count;
         glong column_count;

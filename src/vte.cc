@@ -9068,7 +9068,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Initialize private data. */
 	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
-        pvt = terminal->pvt = new (place) VteTerminalPrivate();
+        pvt = terminal->pvt = new (place) VteTerminalPrivate(terminal);
 
 	gtk_widget_set_can_focus(&terminal->widget, TRUE);
 
