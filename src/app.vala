@@ -758,6 +758,12 @@ class App : Gtk.Application
   {
     Object(application_id: "org.gnome.Vte.Test.App",
            flags: ApplicationFlags.NON_UNIQUE);
+
+    var settings = Gtk.Settings.get_default();
+    settings.gtk_enable_mnemonics = false;
+    settings.gtk_enable_accels = false;
+    /* Make gtk+ CSD not steal F10 from the terminal */
+    settings.gtk_menu_bar_accel = null;
   }
 
   protected override void startup()
