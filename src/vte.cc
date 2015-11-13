@@ -477,8 +477,8 @@ _vte_terminal_mouse_pixels_to_grid (VteTerminal *terminal,
 /* Cause certain cells to be repainted. */
 void
 _vte_invalidate_cells(VteTerminal *terminal,
-		      glong column_start, gint column_count,
-		      glong row_start, gint row_count)
+		      glong column_start, gint n_columns,
+		      glong row_start, gint n_rows)
 {
 	cairo_rectangle_int_t rect;
 	GtkAllocation allocation;
@@ -486,7 +486,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
                 return;
 
-	if (!column_count || !row_count) {
+	if (!n_columns || !n_rows) {
 		return;
 	}
 
@@ -497,15 +497,11 @@ _vte_invalidate_cells(VteTerminal *terminal,
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"Invalidating cells at (%ld,%ld)x(%d,%d).\n",
 			column_start, row_start,
-			column_count, row_count);
+			n_columns, n_rows);
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
-	if (!column_count || !row_count) {
-		return;
-	}
-
-	if (column_count == terminal->pvt->column_count &&
-			row_count == terminal->pvt->row_count) {
+	if (n_columns == terminal->pvt->column_count &&
+            n_rows == terminal->pvt->row_count) {
 		_vte_invalidate_all (terminal);
 		return;
 	}
@@ -520,7 +516,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
         if (rect.x <= 0)
                 rect.x = 0;
         /* Temporarily misuse rect.width for the end x coordinate... */
-        rect.width = terminal->pvt->padding.left + (column_start + column_count) * terminal->pvt->char_width + 2; /* TODO why 2 and not 1? */
+        rect.width = terminal->pvt->padding.left + (column_start + n_columns) * terminal->pvt->char_width + 2; /* TODO why 2 and not 1? */
         if (rect.width >= allocation.width)
                 rect.width = allocation.width;
         /* ... fix that here */
@@ -531,7 +527,7 @@ _vte_invalidate_cells(VteTerminal *terminal,
                 rect.y = 0;
 
         /* Temporarily misuse rect.height for the end y coordinate... */
-        rect.height = terminal->pvt->padding.top + _vte_terminal_row_to_pixel(terminal, row_start + row_count) + 1;
+        rect.height = terminal->pvt->padding.top + _vte_terminal_row_to_pixel(terminal, row_start + n_rows) + 1;
         if (rect.height >= allocation.height)
                 rect.height = allocation.height;
         /* ... fix that here */
