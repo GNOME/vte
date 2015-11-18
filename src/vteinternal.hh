@@ -440,6 +440,9 @@ public:
                                vte::grid::row_t sr, vte::grid::row_t er,
                                bool block = false);
         void invalidate_all();
+
+        void invalidate_cursor_once(bool periodic = false);
+        void invalidate_cursor_periodic();
 };
 
 #define m_invalidated_all invalidated_all
@@ -451,3 +454,11 @@ public:
 #define m_active active
 #define m_update_regions update_regions
 #define m_draw draw
+#define m_cursor_blinks cursor_blinks
+#define m_cursor_visible cursor_visible
+#define m_cursor cursor
+#define m_cursor_blink_state cursor_blink_state
+#define m_cursor_blink_time cursor_blink_time
+#define m_cursor_blink_cycle cursor_blink_cycle
+#define m_cursor_blink_timeout cursor_blink_timeout
+#define m_cursor_blink_tag cursor_blink_tag

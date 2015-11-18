@@ -848,85 +848,90 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 void
 _vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
 {
-	const VteCell *cell;
-	gssize preedit_width;
-	glong column, row;
-	gint columns;
-	guint style;
+        terminal->pvt->invalidate_cursor_once(periodic);
+}
 
-        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
+void
+VteTerminalPrivate::invalidate_cursor_once(bool periodic)
+{
+        if (G_UNLIKELY(!gtk_widget_get_realized(m_widget)))
                 return;
 
-	if (terminal->pvt->invalidated_all) {
+	if (m_invalidated_all) {
 		return;
 	}
 
 	if (periodic) {
-		if (!terminal->pvt->cursor_blinks) {
+		if (!m_cursor_blinks) {
 			return;
 		}
 	}
 
-	if (terminal->pvt->cursor_visible) {
-		preedit_width = vte_terminal_preedit_width(terminal, FALSE);
+	if (m_cursor_visible) {
+		auto preedit_width = vte_terminal_preedit_width(m_terminal, FALSE);
+                auto row = m_cursor.row;
+                auto column = m_cursor.col;
+		long columns = 1;
+		column = find_start_column (m_terminal, column, row);
 
-                row = terminal->pvt->cursor.row;
-                column = terminal->pvt->cursor.col;
-		columns = 1;
-		column = find_start_column (terminal, column, row);
-		cell = vte_terminal_find_charcell(terminal, column, row);
+		auto cell = vte_terminal_find_charcell(m_terminal, column, row);
 		if (cell != NULL) {
 			columns = cell->attr.columns;
-			style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
+			auto style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
 			if (cell->c != 0 &&
 					_vte_draw_get_char_width (
-						terminal->pvt->draw,
+						m_draw,
 						cell->c,
 						columns, style) >
-			    terminal->pvt->char_width * columns) {
+			    m_char_width * columns) {
 				columns++;
 			}
 		}
 		columns = MAX(columns, preedit_width);
-		if (column + columns > terminal->pvt->column_count) {
-			column = MAX(0, terminal->pvt->column_count - columns);
+		if (column + columns > m_column_count) {
+			column = MAX(0, m_column_count - columns);
 		}
 
 		_vte_debug_print(VTE_DEBUG_UPDATES,
 				"Invalidating cursor at (%ld,%ld-%ld).\n",
 				row, column, column + columns);
-		_vte_invalidate_cells(terminal,
+		invalidate_cells(
 				     column, columns,
 				     row, 1);
 	}
 }
 
 /* Invalidate the cursor repeatedly. */
+// FIXMEchpe this continually adds and removes the blink timeout. Find a better solution
 static gboolean
-vte_invalidate_cursor_periodic (VteTerminal *terminal)
+invalidate_cursor_periodic_cb(VteTerminalPrivate *that)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        that->invalidate_cursor_periodic();
+        return G_SOURCE_REMOVE;
+}
 
-	pvt->cursor_blink_state = !pvt->cursor_blink_state;
-	pvt->cursor_blink_time += pvt->cursor_blink_cycle;
+void
+VteTerminalPrivate::invalidate_cursor_periodic()
+{
+	m_cursor_blink_state = !m_cursor_blink_state;
+	m_cursor_blink_time += m_cursor_blink_cycle;
 
-	_vte_invalidate_cursor_once(terminal, TRUE);
+        m_cursor_blink_tag = 0;
+	invalidate_cursor_once(true);
 
 	/* only disable the blink if the cursor is currently shown.
 	 * else, wait until next time.
 	 */
-	if (pvt->cursor_blink_time / 1000 >= pvt->cursor_blink_timeout &&
-	    pvt->cursor_blink_state) {
-                pvt->cursor_blink_tag = 0;
-		return FALSE;
+	if (m_cursor_blink_time / 1000 >= m_cursor_blink_timeout &&
+	    m_cursor_blink_state) {
+		return;
         }
 
-	pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-						   terminal->pvt->cursor_blink_cycle,
-						   (GSourceFunc)vte_invalidate_cursor_periodic,
-						   terminal,
-						   NULL);
-	return FALSE;
+	m_cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+                                                m_cursor_blink_cycle,
+                                                (GSourceFunc)invalidate_cursor_periodic_cb,
+                                                this,
+                                                NULL);
 }
 
 /* Emit a "selection_changed" signal. */
@@ -5426,8 +5431,8 @@ add_cursor_timeout (VteTerminal *terminal)
 	terminal->pvt->cursor_blink_time = 0;
 	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
 							     terminal->pvt->cursor_blink_cycle,
-							     (GSourceFunc)vte_invalidate_cursor_periodic,
-							     terminal,
+							     (GSourceFunc)invalidate_cursor_periodic_cb,
+							     terminal->pvt,
 							     NULL);
 }
 
