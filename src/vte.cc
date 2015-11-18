@@ -101,10 +101,6 @@ static gboolean vte_terminal_io_read(GIOChannel *channel,
 static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GIOCondition condition,
 				      VteTerminal *terminal);
-static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
-static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
-static void vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y);
-static void vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y);
 static void vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
@@ -990,7 +986,7 @@ vte_terminal_emit_contents_changed(VteTerminal *terminal)
 		/* Update dingus match set. */
 		terminal->pvt->match_contents_clear();
 		if (terminal->pvt->mouse_cursor_visible) {
-			vte_terminal_match_hilite_update(terminal,
+			terminal->pvt->match_hilite_update(
 					terminal->pvt->mouse_last_x,
 					terminal->pvt->mouse_last_y);
 		}
@@ -1229,7 +1225,7 @@ VteTerminalPrivate::match_contents_clear()
 		g_array_free(m_match_attributes, TRUE);
 		m_match_attributes = nullptr;
 	}
-	vte_terminal_match_hilite_clear(m_terminal);
+	match_hilite_clear();
 }
 
 /* Refresh the cache of the screen contents we keep. */
@@ -1358,7 +1354,7 @@ vte_terminal_match_remove_all(VteTerminal *terminal)
 		}
 	}
 	g_array_set_size(terminal->pvt->match_regexes, 0);
-	vte_terminal_match_hilite_clear(terminal);
+	terminal->pvt->match_hilite_clear();
 }
 
 /**
@@ -1387,7 +1383,7 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 		/* Remove this item and leave a hole in its place. */
                 regex_match_clear (regex);
 	}
-	vte_terminal_match_hilite_clear(terminal);
+	terminal->pvt->match_hilite_clear();
 }
 
 static GdkCursor *
@@ -1533,7 +1529,7 @@ vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSOR;
 	regex->cursor.cursor = cursor ? (GdkCursor *)g_object_ref(cursor) : NULL;
-	vte_terminal_match_hilite_clear(terminal);
+	terminal->pvt->match_hilite_clear();
 }
 
 /**
@@ -1558,7 +1554,7 @@ vte_terminal_match_set_cursor_type(VteTerminal *terminal,
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
 	regex->cursor.cursor_type = cursor_type;
-	vte_terminal_match_hilite_clear(terminal);
+	terminal->pvt->match_hilite_clear();
 }
 
 /**
@@ -1584,7 +1580,7 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_NAME;
 	regex->cursor.cursor_name = g_strdup (cursor_name);
-	vte_terminal_match_hilite_clear(terminal);
+	terminal->pvt->match_hilite_clear();
 }
 
 /*
@@ -6499,77 +6495,79 @@ VteTerminalPrivate::maybe_send_mouse_drag(GdkEventMotion *event)
 }
 
 /* Clear all match hilites. */
-static void
-vte_terminal_match_hilite_clear(VteTerminal *terminal)
+void
+VteTerminalPrivate::match_hilite_clear()
 {
-	long srow, scolumn, erow, ecolumn;
-	srow = terminal->pvt->match_start.row;
-	scolumn = terminal->pvt->match_start.col;
-	erow = terminal->pvt->match_end.row;
-	ecolumn = terminal->pvt->match_end.col;
-	terminal->pvt->match_start.row = -1;
-	terminal->pvt->match_start.col = -1;
-	terminal->pvt->match_end.row = -2;
-	terminal->pvt->match_end.col = -2;
-	if (terminal->pvt->match_tag != -1) {
+	auto srow = m_match_start.row;
+	auto scolumn = m_match_start.col;
+	auto erow = m_match_end.row;
+	auto ecolumn = m_match_end.col;
+	m_match_start.row = -1;
+	m_match_start.col = -1;
+	m_match_end.row = -2;
+	m_match_end.col = -2;
+	if (m_match_tag != -1) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Clearing hilite (%ld,%ld) to (%ld,%ld).\n",
 				srow, scolumn, erow, ecolumn);
-		_vte_invalidate_region (terminal,
-				scolumn, ecolumn, srow, erow, FALSE);
-		terminal->pvt->match_tag = -1;
+		invalidate_region(
+				scolumn, ecolumn, srow, erow, false);
+		m_match_tag = -1;
 	}
-	terminal->pvt->show_match = FALSE;
-	if (terminal->pvt->match) {
-		g_free (terminal->pvt->match);
-		terminal->pvt->match = NULL;
+	m_show_match = FALSE;
+	if (m_match != nullptr) {
+		g_free (m_match);
+		m_match = nullptr;
 	}
 }
 
-static gboolean
-cursor_inside_match (VteTerminal *terminal, long x, long y)
+bool
+VteTerminalPrivate::cursor_inside_match(long x,
+                                        long y)
 {
-	glong col = x / terminal->pvt->char_width;
-	glong row = _vte_terminal_pixel_to_row(terminal, y);
+	glong col = x / m_char_width;
+	glong row = _vte_terminal_pixel_to_row(m_terminal, y);
 
-        return rowcol_inside_match(terminal, row, col);
+        return rowcol_inside_match(m_terminal, row, col);
 }
 
-static void
-vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y)
+void
+VteTerminalPrivate::invalidate_match()
 {
-	if(terminal->pvt->match != NULL && !terminal->pvt->show_match){
-		if (cursor_inside_match (terminal, x, y)) {
-			_vte_invalidate_region (terminal,
-					terminal->pvt->match_start.col,
-					terminal->pvt->match_end.col,
-					terminal->pvt->match_start.row,
-					terminal->pvt->match_end.row,
-					FALSE);
-			terminal->pvt->show_match = TRUE;
+        invalidate_region(m_match_start.col,
+                          m_match_end.col,
+                          m_match_start.row,
+                          m_match_end.row,
+                          false);
+}
+
+void
+VteTerminalPrivate::match_hilite_show(long x,
+                                      long y)
+{
+	if(m_match != nullptr && !m_show_match){
+		if (cursor_inside_match (x, y)) {
+                        invalidate_match();
+			m_show_match = TRUE;
 		}
 	}
 }
-static void
-vte_terminal_match_hilite_hide(VteTerminal *terminal)
+
+void
+VteTerminalPrivate::match_hilite_hide()
 {
-	if(terminal->pvt->match != NULL && terminal->pvt->show_match){
-		_vte_invalidate_region (terminal,
-				terminal->pvt->match_start.col,
-				terminal->pvt->match_end.col,
-				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.row,
-				FALSE);
-		terminal->pvt->show_match = FALSE;
+	if(m_match != nullptr && m_show_match){
+                invalidate_match();
+		m_show_match = FALSE;
 	}
 }
 
-
-static void
-vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
+void
+VteTerminalPrivate::match_hilite_update(long x,
+                                        long y)
 {
 	gsize start, end;
-	char *match;
+	char *new_match;
 	struct _VteCharAttributes *attr;
 
 	/* Check for matches. */
@@ -6577,87 +6575,79 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Match hilite update (%ld, %ld) -> %ld, %ld\n",
 			x, y,
-                         x / terminal->pvt->char_width,
-                         _vte_terminal_pixel_to_row(terminal, y));
+                         x / m_char_width,
+                         _vte_terminal_pixel_to_row(m_terminal, y));
 
-	match = terminal->pvt->match_check_internal(
-                                                  x / terminal->pvt->char_width,
-                                                  _vte_terminal_pixel_to_row(terminal, y),
-						  &terminal->pvt->match_tag,
+	new_match = match_check_internal(
+                                                  x / m_char_width,
+                                                  _vte_terminal_pixel_to_row(m_terminal, y),
+						  &m_match_tag,
 						  &start,
 						  &end);
-	if (terminal->pvt->show_match) {
+	if (m_show_match) {
 		/* Repaint what used to be hilited, if anything. */
-		_vte_invalidate_region(terminal,
-				terminal->pvt->match_start.col,
-				terminal->pvt->match_end.col,
-				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.row,
-				FALSE);
+                invalidate_match();
 	}
 
 	/* Read the new locations. */
 	attr = NULL;
-	if (start < terminal->pvt->match_attributes->len) {
-		attr = &g_array_index(terminal->pvt->match_attributes,
+	if (start < m_match_attributes->len) {
+		attr = &g_array_index(m_match_attributes,
 				struct _VteCharAttributes,
 				start);
-		terminal->pvt->match_start.row = attr->row;
-		terminal->pvt->match_start.col = attr->column;
+		m_match_start.row = attr->row;
+		m_match_start.col = attr->column;
 
 		attr = NULL;
-		if (end < terminal->pvt->match_attributes->len) {
-			attr = &g_array_index(terminal->pvt->match_attributes,
+		if (end < m_match_attributes->len) {
+			attr = &g_array_index(m_match_attributes,
 					struct _VteCharAttributes,
 					end);
-			terminal->pvt->match_end.row = attr->row;
-			terminal->pvt->match_end.col = attr->column;
+			m_match_end.row = attr->row;
+			m_match_end.col = attr->column;
 		}
 	}
 	if (attr == NULL) { /* i.e. if either endpoint is not found */
-		terminal->pvt->match_start.row = -1;
-		terminal->pvt->match_start.col = -1;
-		terminal->pvt->match_end.row = -2;
-		terminal->pvt->match_end.col = -2;
-		g_assert (match == NULL);
+		m_match_start.row = -1;
+		m_match_start.col = -1;
+		m_match_end.row = -2;
+		m_match_end.col = -2;
+		g_assert (m_match == nullptr);// FIXMEchpe this looks bogus. call match_hilite_clear() instead?
 	}
 
-	g_free (terminal->pvt->match);
-	terminal->pvt->match = match;
+	g_free (m_match);
+	m_match = new_match;
 
 	/* If there are no matches, repaint what we had matched before. */
-	if (match == NULL) {
+	if (m_match == nullptr) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"No matches. [(%ld,%ld) to (%ld,%ld)]\n",
-				terminal->pvt->match_start.col,
-				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.col,
-				terminal->pvt->match_end.row);
-		terminal->pvt->show_match = FALSE;
+				m_match_start.col,
+				m_match_start.row,
+				m_match_end.col,
+				m_match_end.row);
+		m_show_match = false;
 	} else {
-		terminal->pvt->show_match = TRUE;
+		m_show_match = true;
 		/* Repaint the newly-hilited area. */
-		_vte_invalidate_region(terminal,
-				terminal->pvt->match_start.col,
-				terminal->pvt->match_end.col,
-				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.row,
-				FALSE);
+                invalidate_match();
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Matched (%ld,%ld) to (%ld,%ld).\n",
-				terminal->pvt->match_start.col,
-				terminal->pvt->match_start.row,
-				terminal->pvt->match_end.col,
-				terminal->pvt->match_end.row);
+				m_match_start.col,
+				m_match_start.row,
+				m_match_end.col,
+				m_match_end.row);
 	}
 }
+
 /* Update the hilited text if the pointer has moved to a new character cell. */
-static void
-vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
+void
+VteTerminalPrivate::match_hilite(long x,
+                                 long y)
 {
 	GtkAllocation allocation;
 
-	gtk_widget_get_allocation (&terminal->widget, &allocation);
+	gtk_widget_get_allocation(m_widget, &allocation);
 
 	/* if the cursor is not above a cell, skip */
 	if (x < 0 || x > allocation.width
@@ -6668,18 +6658,18 @@ vte_terminal_match_hilite(VteTerminal *terminal, long x, long y)
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. Note: Don't use mouse_last_col as that's relative
 	 * to insert_delta, and we care about the absolute row number. */
-	if (x / terminal->pvt->char_width  == terminal->pvt->mouse_last_x / terminal->pvt->char_width &&
-	    _vte_terminal_pixel_to_row(terminal, y) == _vte_terminal_pixel_to_row(terminal, terminal->pvt->mouse_last_y)) {
-		terminal->pvt->show_match = terminal->pvt->match != NULL;
+	if (x / m_char_width  == m_mouse_last_x / m_char_width &&
+	    _vte_terminal_pixel_to_row(m_terminal, y) == _vte_terminal_pixel_to_row(m_terminal, m_mouse_last_y)) {
+		m_show_match = m_match != nullptr;
 		return;
 	}
 
-	if (cursor_inside_match (terminal, x, y)) {
-		terminal->pvt->show_match = terminal->pvt->match != NULL;
+	if (cursor_inside_match(x, y)) {
+		m_show_match = m_match != nullptr;
 		return;
 	}
 
-	vte_terminal_match_hilite_update(terminal, x, y);
+	match_hilite_update(x, y);
 }
 
 static GtkClipboard *
@@ -8060,10 +8050,10 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
         if (terminal->pvt->mouse_pressed_buttons != 0) {
-		vte_terminal_match_hilite_hide (terminal);
+		terminal->pvt->match_hilite_hide();
 	} else {
 		/* Hilite any matches. */
-		vte_terminal_match_hilite(terminal, x, y);
+		terminal->pvt->match_hilite(x, y);
 		/* Show the cursor. */
 		_vte_terminal_set_pointer_visible(terminal, TRUE);
 	}
@@ -8137,7 +8127,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
 
-	vte_terminal_match_hilite(terminal, x, y);
+	terminal->pvt->match_hilite(x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
@@ -8307,7 +8297,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 	x = event->x - terminal->pvt->padding.left;
 	y = event->y - terminal->pvt->padding.top;
 
-	vte_terminal_match_hilite(terminal, x, y);
+	terminal->pvt->match_hilite(x, y);
 
 	_vte_terminal_set_pointer_visible(terminal, TRUE);
 
@@ -8407,7 +8397,7 @@ vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 		/* XXX Do we want to hide the match just because the terminal
 		 * lost keyboard focus, but the pointer *is* still within our
 		 * area top? */
-		vte_terminal_match_hilite_hide (terminal);
+		terminal->pvt->match_hilite_hide();
 		/* Mark the cursor as invisible to disable hilite updating */
 		terminal->pvt->mouse_cursor_visible = FALSE;
                 terminal->pvt->mouse_pressed_buttons = 0;
@@ -8431,7 +8421,7 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 	if (gtk_widget_get_realized (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
 		/* Hilite any matches. */
-		vte_terminal_match_hilite_show(terminal,
+		terminal->pvt->match_hilite_show(
 					       event->x - terminal->pvt->padding.left,
 					       event->y - terminal->pvt->padding.top);
 	}
@@ -8447,7 +8437,7 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 	}
 	if (gtk_widget_get_realized (widget)) {
 		VteTerminal *terminal = VTE_TERMINAL (widget);
-		vte_terminal_match_hilite_hide (terminal);
+		terminal->pvt->match_hilite_hide();
 		/* Mark the cursor as invisible to disable hilite updating,
 		 * whilst the cursor is absent (otherwise we copy the entire
 		 * buffer after each update for nothing...)
@@ -9211,7 +9201,7 @@ vte_terminal_init(VteTerminal *terminal)
 	pvt->match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
         pvt->match_tag = -1;
-	vte_terminal_match_hilite_clear(terminal);
+	pvt->match_hilite_clear(); // FIXMEchpe unnecessary
 
         /* Search data */
         pvt->search_regex.mode = VTE_REGEX_UNDECIDED;
@@ -9387,7 +9377,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	g_object_unref(terminal->pvt->mouse_inviso_cursor);
 	terminal->pvt->mouse_inviso_cursor = NULL;
 
-	vte_terminal_match_hilite_clear(terminal);
+	terminal->pvt->match_hilite_clear();
 
 	/* Shut down input methods. */
 	if (terminal->pvt->im_context != NULL) {

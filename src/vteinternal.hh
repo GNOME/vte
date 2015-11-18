@@ -454,6 +454,17 @@ public:
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
+        void match_hilite_clear();
+        bool cursor_inside_match(long x,
+                                 long y);
+        void match_hilite_show(long x,
+                               long y);
+        void match_hilite_hide();
+        void match_hilite_update(long x,
+                                 long y);
+        void invalidate_match();
+        void match_hilite(long x,
+                          long y);
 
         int regex_match_add(struct vte_match_regex *new_regex_match);
         bool match_rowcol_to_offset(vte::grid::column_t column,
@@ -556,3 +567,10 @@ public:
 #define m_mouse_urxvt_extension mouse_urxvt_extension
 #define m_modifiers modifiers
 #define m_focus_tracking_mode focus_tracking_mode
+#define m_match_start match_start
+#define m_match_end match_end
+#define m_match_tag match_tag
+#define m_show_match show_match
+#define m_match match
+#define m_mouse_last_x mouse_last_x
+#define m_mouse_last_y mouse_last_y
