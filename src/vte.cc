@@ -2918,38 +2918,36 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 
 /* Show or hide the pointer. */
 void
-_vte_terminal_set_pointer_visible(VteTerminal *terminal, gboolean visible)
+VteTerminalPrivate::set_pointer_visible(bool visible)
 {
-	GdkWindow *window;
-	struct vte_match_regex *regex = NULL;
+	m_mouse_cursor_visible = visible;
 
-	terminal->pvt->mouse_cursor_visible = visible;
-
-        if (! gtk_widget_get_realized (&terminal->widget))
+        if (!gtk_widget_get_realized(m_widget))
                 return;
 
-	window = gtk_widget_get_window (&terminal->widget);
+	GdkWindow *window = gtk_widget_get_window(m_widget);
 
-	if (visible || !terminal->pvt->mouse_autohide) {
-		if (terminal->pvt->mouse_tracking_mode) {
+	if (visible || !m_mouse_autohide) {
+		if (m_mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-			gdk_window_set_cursor (window, terminal->pvt->mouse_mousing_cursor);
+			gdk_window_set_cursor(window, m_mouse_mousing_cursor);
 		} else
-		if ( (guint)terminal->pvt->match_tag < terminal->pvt->match_regexes->len) {
-			regex = &g_array_index(terminal->pvt->match_regexes,
+		if ( (guint)m_match_tag < m_match_regexes->len) {
+                        struct vte_match_regex *regex =
+                                &g_array_index(m_match_regexes,
 					       struct vte_match_regex,
-					       terminal->pvt->match_tag);
-                        terminal->pvt->set_cursor_from_regex_match(regex);
+					       m_match_tag);
+                        set_cursor_from_regex_match(regex);
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-			gdk_window_set_cursor (window, terminal->pvt->mouse_default_cursor);
+			gdk_window_set_cursor(window, m_mouse_default_cursor);
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-		gdk_window_set_cursor (window, terminal->pvt->mouse_inviso_cursor);
+		gdk_window_set_cursor (window, m_mouse_inviso_cursor);
 	}
 }
 
@@ -5583,7 +5581,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
-			_vte_terminal_set_pointer_visible(terminal, FALSE);
+			terminal->pvt->set_pointer_visible(false);
 		}
 
 		_vte_debug_print(VTE_DEBUG_EVENTS,
@@ -8055,7 +8053,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 		/* Hilite any matches. */
 		terminal->pvt->match_hilite(x, y);
 		/* Show the cursor. */
-		_vte_terminal_set_pointer_visible(terminal, TRUE);
+		terminal->pvt->set_pointer_visible(true);
 	}
 
 	switch (event->type) {
@@ -8129,7 +8127,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	terminal->pvt->match_hilite(x, y);
 
-	_vte_terminal_set_pointer_visible(terminal, TRUE);
+	terminal->pvt->set_pointer_visible(true);
 
 	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
 
@@ -8299,7 +8297,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	terminal->pvt->match_hilite(x, y);
 
-	_vte_terminal_set_pointer_visible(terminal, TRUE);
+	terminal->pvt->set_pointer_visible(true);
 
 	vte_terminal_stop_autoscroll(terminal);
 
@@ -8374,7 +8372,7 @@ VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
 
 		gtk_im_context_focus_in(m_im_context);
 		invalidate_cursor_once();
-		_vte_terminal_set_pointer_visible(m_terminal, TRUE);
+		set_pointer_visible(true);
                 maybe_feed_focus_event(true);
 	}
 }

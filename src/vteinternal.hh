@@ -453,6 +453,8 @@ public:
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);
 
+        void set_pointer_visible(bool visible);
+
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
@@ -580,3 +582,7 @@ public:
 #define m_im_context im_context
 #define m_mouse_cursor_visible mouse_cursor_visible
 #define m_mouse_handled_buttons mouse_handled_buttons
+#define m_mouse_autohide mouse_autohide
+#define m_mouse_mousing_cursor mouse_mousing_cursor
+#define m_mouse_default_cursor mouse_default_cursor
+#define m_mouse_inviso_cursor mouse_inviso_cursor

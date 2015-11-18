@@ -940,7 +940,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 1002:
 	case 1003:
 		/* Make the pointer visible. */
-		_vte_terminal_set_pointer_visible(terminal, TRUE);
+		terminal->pvt->set_pointer_visible(true);
 		break;
 	case 66:
 		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
