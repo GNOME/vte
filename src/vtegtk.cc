@@ -1716,6 +1716,35 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 	return terminal->pvt->search_wrap_around;
 }
 
+
+/**
+ * vte_terminal_select_all:
+ * @terminal: a #VteTerminal
+ *
+ * Selects all text within the terminal (including the scrollback buffer).
+ */
+void
+vte_terminal_select_all (VteTerminal *terminal)
+{
+	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+        terminal->pvt->select_all();
+}
+
+/**
+ * vte_terminal_unselect_all:
+ * @terminal: a #VteTerminal
+ *
+ * Clears the current selection.
+ */
+void
+vte_terminal_unselect_all(VteTerminal *terminal)
+{
+	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+        terminal->pvt->deselect_all();
+}
+
 /**
  * vte_terminal_set_size:
  * @terminal: a #VteTerminal

@@ -483,6 +483,9 @@ public:
                                          int *natural_height);
         void widget_size_allocate(GtkAllocation *allocation);
 
+        void select_all();
+        void deselect_all();
+
         void ensure_font();
         void update_font();
 
@@ -784,5 +787,6 @@ public:
 #define m_search_wrap_around search_wrap_around
 #define m_input_bytes input_bytes
 #define m_scrolling_restricted scrolling_restricted
+#define m_selecting_had_delta selecting_had_delta
 
 extern GTimer *process_timer;

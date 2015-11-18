@@ -1059,31 +1059,30 @@ vte_terminal_emit_text_scrolled(VteTerminal *terminal, gint delta)
 	g_signal_emit_by_name(terminal, "text-scrolled", delta);
 }
 
-/* Deselect anything which is selected and refresh the screen if needed. */
-static void
-vte_terminal_deselect_all(VteTerminal *terminal)
+void
+VteTerminalPrivate::deselect_all()
 {
-	if (terminal->pvt->has_selection) {
+	if (m_has_selection) {
 		gint sx, sy, ex, ey, extra;
 
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Deselecting all text.\n");
 
-		terminal->pvt->has_selection = FALSE;
+		m_has_selection = FALSE;
 		/* Don't free the current selection, as we need to keep
 		 * hold of it for async copying from the clipboard. */
 
-		vte_terminal_emit_selection_changed(terminal);
+		vte_terminal_emit_selection_changed(m_terminal);
 
-		sx = terminal->pvt->selection_start.col;
-		sy = terminal->pvt->selection_start.row;
-		ex = terminal->pvt->selection_end.col;
-		ey = terminal->pvt->selection_end.row;
-                extra = terminal->pvt->selection_block_mode ? (VTE_TAB_WIDTH_MAX - 1) : 0;
-		_vte_invalidate_region(terminal,
+		sx = m_selection_start.col;
+		sy = m_selection_start.row;
+		ex = m_selection_end.col;
+		ey = m_selection_end.row;
+                extra = m_selection_block_mode ? (VTE_TAB_WIDTH_MAX - 1) : 0;
+		invalidate_region(
 				MIN (sx, ex), MAX (sx, ex) + extra,
 				MIN (sy, ey),   MAX (sy, ey),
-				FALSE);
+				false);
 	}
 }
 
@@ -4659,7 +4658,7 @@ next_match:
 			if ((selection == NULL) ||
 			    (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
 			    (strcmp(selection, terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
-				vte_terminal_deselect_all(terminal);
+				terminal->pvt->deselect_all();
 			}
 			g_free(selection);
 		}
@@ -6517,7 +6516,7 @@ vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
 	if (clipboard == vte_terminal_clipboard_get(terminal, GDK_SELECTION_PRIMARY)) {
 		if (terminal->pvt->has_selection) {
 			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
-			vte_terminal_deselect_all(terminal);
+			terminal->pvt->deselect_all();
 		}
 	}
 }
@@ -7524,7 +7523,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	/* If we're restarting on a drag, then mark this as the start of
 	 * the selected block. */
 	if (terminal->pvt->selecting_restart) {
-		vte_terminal_deselect_all(terminal);
+		terminal->pvt->deselect_all();
 		invalidate_selected = TRUE;
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Selection delayed start at (%ld,%ld).\n",
@@ -7726,49 +7725,31 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			sc->col, sc->row, ec->col, ec->row);
 }
 
-/**
- * vte_terminal_select_all:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::select_all:
  *
  * Selects all text within the terminal (including the scrollback buffer).
  */
 void
-vte_terminal_select_all (VteTerminal *terminal)
+VteTerminalPrivate::select_all()
 {
-	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+	deselect_all();
 
-	vte_terminal_deselect_all (terminal);
+	m_has_selection = TRUE;
+	m_selecting_had_delta = TRUE;
+	m_selecting_restart = FALSE;
 
-	terminal->pvt->has_selection = TRUE;
-	terminal->pvt->selecting_had_delta = TRUE;
-	terminal->pvt->selecting_restart = FALSE;
-
-	terminal->pvt->selection_start.row = _vte_ring_delta (terminal->pvt->screen->row_data);
-	terminal->pvt->selection_start.col = 0;
-	terminal->pvt->selection_end.row = _vte_ring_next (terminal->pvt->screen->row_data);
-	terminal->pvt->selection_end.col = -1;
+	m_selection_start.row = _vte_ring_delta (m_screen->row_data);
+	m_selection_start.col = 0;
+	m_selection_end.row = _vte_ring_next (m_screen->row_data);
+	m_selection_end.col = -1;
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-	vte_terminal_copy_primary(terminal);
-	vte_terminal_emit_selection_changed (terminal);
-	_vte_invalidate_all (terminal);
-}
+	vte_terminal_copy_primary(m_terminal);
+	vte_terminal_emit_selection_changed(m_terminal);
 
-/**
- * vte_terminal_unselect_all:
- * @terminal: a #VteTerminal
- *
- * Clears the current selection.
- */
-void
-vte_terminal_unselect_all(VteTerminal *terminal)
-{
-	g_return_if_fail (VTE_IS_TERMINAL (terminal));
-
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Clearing selection.\n");
-
-	vte_terminal_deselect_all (terminal);
+	invalidate_all();
 }
 
 /* Autoscroll a bit. */
@@ -7989,7 +7970,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 				}
 			}
 			if (start_selecting) {
-				vte_terminal_deselect_all(m_terminal);
+				deselect_all();
 				m_selecting_after_threshold = TRUE;
                                 m_selection_block_mode = !!(m_modifiers & GDK_CONTROL_MASK);
 				handled = true;
@@ -8502,7 +8483,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 	double new_scroll_delta;
 
         if (terminal->pvt->selection_block_mode && do_rewrap && old_columns != terminal->pvt->column_count)
-                vte_terminal_deselect_all(terminal);
+                terminal->pvt->deselect_all();
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Resizing %s screen\n"
@@ -11180,7 +11161,7 @@ vte_terminal_reset(VteTerminal *terminal,
 	vte_terminal_set_encoding(terminal, NULL /* UTF-8 */, NULL);
 	g_assert_cmpstr(pvt->encoding, ==, "UTF-8");
 	/* Reset selection. */
-	vte_terminal_deselect_all(terminal);
+	pvt->deselect_all();
 	pvt->has_selection = FALSE;
 	pvt->selecting = FALSE;
 	pvt->selecting_restart = FALSE;
@@ -11356,7 +11337,7 @@ _vte_terminal_select_text(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-	vte_terminal_deselect_all (terminal);
+	terminal->pvt->deselect_all();
 
 	terminal->pvt->selection_type = selection_type_char;
 	terminal->pvt->selecting_had_delta = TRUE;
@@ -11377,7 +11358,7 @@ _vte_terminal_select_text(VteTerminal *terminal,
 void
 _vte_terminal_remove_selection(VteTerminal *terminal)
 {
-	vte_terminal_deselect_all (terminal);
+	terminal->pvt->deselect_all();
 }
 
 static void
