@@ -462,6 +462,7 @@ public:
         void widget_enter(GdkEventCrossing *event);
         void widget_leave(GdkEventCrossing *event);
         void widget_visibility_notify(GdkEventVisibility *event);
+        void widget_scroll(GdkEventScroll *event);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
@@ -621,3 +622,6 @@ public:
 #define m_selection_block_mode selection_block_mode
 #define m_selecting selecting
 #define m_visibility_state visibility_state
+#define m_mouse_smooth_scroll_delta mouse_smooth_scroll_delta
+#define m_vadjustment vadjustment
+#define m_alternate_screen_scroll alternate_screen_scroll

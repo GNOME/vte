@@ -11047,32 +11047,36 @@ vte_cairo_get_clip_region (cairo_t *cr)
 static gboolean
 vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
-	GtkAdjustment *adj;
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_scroll(event);
+        return TRUE;
+}
+
+void
+VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
+{
 	gdouble delta_x, delta_y;
 	gdouble v;
 	gint cnt, i;
 	int button;
 
-	terminal = VTE_TERMINAL(widget);
-
-	terminal->pvt->read_modifiers((GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
 
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
-		terminal->pvt->mouse_smooth_scroll_delta -= 1.;
+		m_mouse_smooth_scroll_delta -= 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll up\n");
 		break;
 	case GDK_SCROLL_DOWN:
-		terminal->pvt->mouse_smooth_scroll_delta += 1.;
+		m_mouse_smooth_scroll_delta += 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
 		break;
 	case GDK_SCROLL_SMOOTH:
 		gdk_event_get_scroll_deltas ((GdkEvent*) event, &delta_x, &delta_y);
-		terminal->pvt->mouse_smooth_scroll_delta += delta_y;
+		m_mouse_smooth_scroll_delta += delta_y;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Smooth scroll by %f, delta now at %f\n",
-				delta_y, terminal->pvt->mouse_smooth_scroll_delta);
+				delta_y, m_mouse_smooth_scroll_delta);
 		break;
 	default:
 		break;
@@ -11080,72 +11084,69 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */
-	if (terminal->pvt->mouse_tracking_mode) {
-		cnt = terminal->pvt->mouse_smooth_scroll_delta;
+	if (m_mouse_tracking_mode) {
+		cnt = m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
-			return TRUE;
-		terminal->pvt->mouse_smooth_scroll_delta -= cnt;
+			return;
+		m_mouse_smooth_scroll_delta -= cnt;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
-				cnt, terminal->pvt->mouse_smooth_scroll_delta);
+				cnt, m_mouse_smooth_scroll_delta);
 
 		button = cnt > 0 ? 5 : 4;
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
 			/* Encode the parameters and send them to the app. */
-			terminal->pvt->send_mouse_button_internal(
+			send_mouse_button_internal(
 								button,
 								false /* not release */,
 								event->x,
 								event->y);
 		}
-		return TRUE;
+		return;
 	}
 
-	adj = terminal->pvt->vadjustment;
-	v = MAX (1., ceil (gtk_adjustment_get_page_increment (adj) / 10.));
+	v = MAX (1., ceil (gtk_adjustment_get_page_increment (m_vadjustment) / 10.));
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Scroll speed is %d lines per non-smooth scroll unit\n",
 			(int) v);
-	if (terminal->pvt->screen == &terminal->pvt->alternate_screen &&
-            terminal->pvt->alternate_screen_scroll) {
+	if (m_screen == &m_alternate_screen &&
+            m_alternate_screen_scroll) {
 		char *normal;
 		gssize normal_length;
 
-		cnt = v * terminal->pvt->mouse_smooth_scroll_delta;
+		cnt = v * m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
-			return TRUE;
-		terminal->pvt->mouse_smooth_scroll_delta -= cnt / v;
+			return;
+		m_mouse_smooth_scroll_delta -= cnt / v;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll by %d lines, smooth scroll delta set back to %f\n",
-				cnt, terminal->pvt->mouse_smooth_scroll_delta);
+				cnt, m_mouse_smooth_scroll_delta);
 
 		/* In the alternate screen there is no scrolling,
 		 * so fake a few cursor keystrokes. */
 
 		_vte_keymap_map (
 				cnt > 0 ? GDK_KEY_Down : GDK_KEY_Up,
-				terminal->pvt->modifiers,
-				terminal->pvt->cursor_mode == VTE_KEYMODE_APPLICATION,
-				terminal->pvt->keypad_mode == VTE_KEYMODE_APPLICATION,
+				m_modifiers,
+				m_cursor_mode == VTE_KEYMODE_APPLICATION,
+				m_keypad_mode == VTE_KEYMODE_APPLICATION,
 				&normal,
 				&normal_length);
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
-			vte_terminal_feed_child_using_modes (terminal,
+			vte_terminal_feed_child_using_modes (m_terminal,
 					normal, normal_length);
 		}
 		g_free (normal);
 	} else {
 		/* Perform a history scroll. */
-		double dcnt = terminal->pvt->screen->scroll_delta + v * terminal->pvt->mouse_smooth_scroll_delta;
-		vte_terminal_queue_adjustment_value_changed_clamped (terminal, dcnt);
-		terminal->pvt->mouse_smooth_scroll_delta = 0;
+		double dcnt = m_screen->scroll_delta + v * m_mouse_smooth_scroll_delta;
+		vte_terminal_queue_adjustment_value_changed_clamped (m_terminal, dcnt);
+		m_mouse_smooth_scroll_delta = 0;
 	}
-
-	return TRUE;
 }
 
 static void
