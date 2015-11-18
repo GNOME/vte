@@ -445,6 +445,14 @@ public:
         void invalidate_cursor_periodic();
 
         void widget_style_updated();
+
+        int regex_match_add(struct vte_match_regex *new_regex_match);
+        bool match_rowcol_to_offset(vte::grid::column_t column,
+                                    vte::grid::row_t row,
+                                    gsize *offset_ptr,
+                                    gsize *sattr_ptr,
+                                    gsize *eattr_ptr);
+
 };
 
 #define m_invalidated_all invalidated_all
@@ -466,3 +474,6 @@ public:
 #define m_cursor_blink_tag cursor_blink_tag
 #define m_cursor_aspect_ratio cursor_aspect_ratio
 #define m_unscaled_font_desc unscaled_font_desc
+#define m_match_regexes match_regexes
+#define m_match_attributes match_attributes
+#define m_match_contents match_contents

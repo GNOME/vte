@@ -1410,18 +1410,16 @@ vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
 	return cursor;
 }
 
-static int
-vte_terminal_match_add_internal(VteTerminal *terminal,
-                                struct vte_match_regex *new_regex_match)
+int
+VteTerminalPrivate::regex_match_add(struct vte_match_regex *new_regex_match)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
         struct vte_match_regex *regex_match;
         guint ret, len;
 
         /* Search for a hole. */
-        len = pvt->match_regexes->len;
+        len = m_match_regexes->len;
         for (ret = 0; ret < len; ret++) {
-                regex_match = &g_array_index(pvt->match_regexes,
+                regex_match = &g_array_index(m_match_regexes,
                                              struct vte_match_regex,
                                              ret);
                 if (regex_match->tag == -1) {
@@ -1434,12 +1432,12 @@ vte_terminal_match_add_internal(VteTerminal *terminal,
 
         if (ret < len) {
                 /* Overwrite. */
-                g_array_index(pvt->match_regexes,
+                g_array_index(m_match_regexes,
                               struct vte_match_regex,
                               ret) = *new_regex_match;
         } else {
                 /* Append. */
-                g_array_append_vals(pvt->match_regexes, new_regex_match, 1);
+                g_array_append_vals(m_match_regexes, new_regex_match, 1);
         }
 
         return ret;
@@ -1480,7 +1478,7 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
         new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
         new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 
-        return vte_terminal_match_add_internal(terminal, &new_regex_match);
+        return terminal->pvt->regex_match_add(&new_regex_match);
 }
 
 /**
@@ -1517,7 +1515,7 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
         new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
         new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 
-        return vte_terminal_match_add_internal(terminal, &new_regex_match);
+        return terminal->pvt->regex_match_add(&new_regex_match);
 }
 
 /**
@@ -1611,13 +1609,12 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
  * that offset in @offset_ptr, and the start and end of the corresponding
  * line in @sattr_ptr and @eattr_ptr.
  */
-static gboolean
-match_rowcol_to_offset(VteTerminal *terminal,
-                       long column,
-                       long row,
-                       gsize *offset_ptr,
-                       gsize *sattr_ptr,
-                       gsize *eattr_ptr)
+bool
+VteTerminalPrivate::match_rowcol_to_offset(vte::grid::column_t column,
+                                           vte::grid::row_t row,
+                                           gsize *offset_ptr,
+                                           gsize *sattr_ptr,
+                                           gsize *eattr_ptr)
 {
         /* FIXME: use gsize, after making sure the code below doesn't underflow offset */
         gssize offset, sattr, eattr;
@@ -1625,9 +1622,9 @@ match_rowcol_to_offset(VteTerminal *terminal,
 
 	/* Map the pointer position to a portion of the string. */
         // FIXME do a bsearch here?
-	eattr = terminal->pvt->match_attributes->len;
+	eattr = match_attributes->len;
 	for (offset = eattr; offset--; ) {
-		attr = &g_array_index(terminal->pvt->match_attributes,
+		attr = &g_array_index(m_match_attributes,
 				      struct _VteCharAttributes,
 				      offset);
 		if (row < attr->row) {
@@ -1635,7 +1632,7 @@ match_rowcol_to_offset(VteTerminal *terminal,
 		}
 		if (row == attr->row &&
 		    column == attr->column &&
-		    terminal->pvt->match_contents[offset] != ' ') {
+		    m_match_contents[offset] != ' ') {
 			break;
 		}
 	}
@@ -1646,7 +1643,7 @@ match_rowcol_to_offset(VteTerminal *terminal,
 		else {
                         gunichar c;
                         char utf[7];
-                        c = g_utf8_get_char (terminal->pvt->match_contents + offset);
+                        c = g_utf8_get_char (m_match_contents + offset);
                         utf[g_unichar_to_utf8(g_unichar_isprint(c) ? c : 0xFFFD, utf)] = 0;
 
 			g_printerr("Cursor is on character U+%04X '%s' at %" G_GSSIZE_FORMAT ".\n",
@@ -1656,25 +1653,25 @@ match_rowcol_to_offset(VteTerminal *terminal,
 
 	/* If the pointer isn't on a matchable character, bug out. */
 	if (offset < 0) {
-		return FALSE;
+		return false;
 	}
 
 	/* If the pointer is on a newline, bug out. */
-	if ((g_ascii_isspace(terminal->pvt->match_contents[offset])) ||
-	    (terminal->pvt->match_contents[offset] == '\0')) {
+	if ((g_ascii_isspace(m_match_contents[offset])) ||
+	    (m_match_contents[offset] == '\0')) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Cursor is on whitespace.\n");
-		return FALSE;
+		return false;
 	}
 
 	/* Snip off any final newlines. */
-	while (terminal->pvt->match_contents[eattr] == '\n' ||
-			terminal->pvt->match_contents[eattr] == '\0') {
+	while (m_match_contents[eattr] == '\n' ||
+               m_match_contents[eattr] == '\0') {
 		eattr--;
 	}
 	/* and scan forwards to find the end of this line */
-	while (!(terminal->pvt->match_contents[eattr] == '\n' ||
-			terminal->pvt->match_contents[eattr] == '\0')) {
+	while (!(m_match_contents[eattr] == '\n' ||
+                 m_match_contents[eattr] == '\0')) {
 		eattr++;
 	}
 
@@ -1683,7 +1680,7 @@ match_rowcol_to_offset(VteTerminal *terminal,
 		sattr = 0;
 	} else {
 		for (sattr = offset; sattr > 0; sattr--) {
-			attr = &g_array_index(terminal->pvt->match_attributes,
+			attr = &g_array_index(m_match_attributes,
 					      struct _VteCharAttributes,
 					      sattr);
 			if (row > attr->row) {
@@ -1693,21 +1690,21 @@ match_rowcol_to_offset(VteTerminal *terminal,
 	}
 	/* Scan backwards to find the start of this line */
 	while (sattr > 0 &&
-		! (terminal->pvt->match_contents[sattr] == '\n' ||
-		    terminal->pvt->match_contents[sattr] == '\0')) {
+		! (m_match_contents[sattr] == '\n' ||
+                   m_match_contents[sattr] == '\0')) {
 		sattr--;
 	}
 	/* and skip any initial newlines. */
-	while (terminal->pvt->match_contents[sattr] == '\n' ||
-		terminal->pvt->match_contents[sattr] == '\0') {
+	while (m_match_contents[sattr] == '\n' ||
+               m_match_contents[sattr] == '\0') {
 		sattr++;
 	}
 	if (eattr <= sattr) { /* blank line */
-		return FALSE;
+		return false;
 	}
 	if (eattr <= offset || sattr > offset) {
 		/* nothing to match on this line */
-		return FALSE;
+		return false;
 	}
 
         *offset_ptr = offset;
@@ -1716,10 +1713,10 @@ match_rowcol_to_offset(VteTerminal *terminal,
 
         _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                 struct _VteCharAttributes *_sattr, *_eattr;
-                _sattr = &g_array_index(terminal->pvt->match_attributes,
+                _sattr = &g_array_index(m_match_attributes,
                                         struct _VteCharAttributes,
                                         sattr);
-                _eattr = &g_array_index(terminal->pvt->match_attributes,
+                _eattr = &g_array_index(m_match_attributes,
                                         struct _VteCharAttributes,
                                         eattr - 1);
                 g_printerr("Cursor is in line from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
@@ -1727,7 +1724,7 @@ match_rowcol_to_offset(VteTerminal *terminal,
                            eattr - 1, _eattr->column, _eattr->row);
         }
 
-        return TRUE;
+        return true;
 }
 
 #ifdef WITH_PCRE2
@@ -1881,7 +1878,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for pcre match at (%ld,%ld).\n", row, column);
 
-        if (!match_rowcol_to_offset(terminal, column, row,
+        if (!terminal->pvt->match_rowcol_to_offset(column, row,
                                     &offset, &sattr, &eattr))
                 return NULL;
 
@@ -2065,7 +2062,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for gregex match at (%ld,%ld).\n", row, column);
 
-        if (!match_rowcol_to_offset(terminal, column, row,
+        if (!terminal->pvt->match_rowcol_to_offset(column, row,
                                     &offset, &sattr, &eattr))
                 return NULL;
 
@@ -2362,7 +2359,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (!match_rowcol_to_offset(terminal, col, row,
+        if (!pvt->match_rowcol_to_offset(col, row,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
@@ -2443,7 +2440,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
 		vte_terminal_match_contents_refresh(terminal);
 	}
 
-        if (!match_rowcol_to_offset(terminal, col, row,
+        if (!pvt->match_rowcol_to_offset(col, row,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
