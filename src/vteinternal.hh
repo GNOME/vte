@@ -573,6 +573,13 @@ public:
         void feed_focus_event(bool in);
         void maybe_feed_focus_event(bool in);
 
+#ifdef WITH_PCRE2
+        bool search_set_regex (VteRegex *regex,
+                               guint32 flags);
+#endif
+        bool search_set_gregex (GRegex *gregex,
+                                GRegexMatchFlags gflags);
+
         bool search_rows(
 #ifdef WITH_PCRE2
                          pcre2_match_context_8 *match_context,

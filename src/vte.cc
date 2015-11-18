@@ -12542,116 +12542,72 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
 
 /* TODO Add properties & signals */
 
-/**
- * vte_terminal_search_set_regex:
- * @terminal: a #VteTerminal
- * @regex: (allow-none): a #VteRegex, or %NULL
+#ifdef WITH_PCRE2
+
+/*
+ * VteTerminalPrivate::search_set_regex:
+ * @regex: (allow-none): a #VteRegex, or %nullptr
  * @flags: PCRE2 match flags, or 0
  *
- * Sets the regex to search for. Unsets the search regex when passed %NULL.
- *
- * Since: 0.44
+ * Sets the regex to search for. Unsets the search regex when passed %nullptr.
  */
-void
-vte_terminal_search_set_regex (VteTerminal *terminal,
-                               VteRegex    *regex,
-                               guint32      flags)
+bool
+VteTerminalPrivate::search_set_regex (VteRegex *regex,
+                                      guint32 flags)
 {
-        struct vte_regex_and_flags *search_regex;
+        struct vte_regex_and_flags *rx;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        rx = &m_search_regex;
 
-        search_regex = &terminal->pvt->search_regex;
+        if (rx->mode == VTE_REGEX_PCRE2 &&
+            rx->pcre.regex == regex &&
+            rx->pcre.match_flags == flags)
+                return false;
 
-        if (search_regex->mode == VTE_REGEX_PCRE2 &&
-            search_regex->pcre.regex == regex &&
-            search_regex->pcre.match_flags == flags)
-                return;
-
-        regex_and_flags_clear(search_regex);
+        regex_and_flags_clear(rx);
 
         if (regex != NULL) {
-                search_regex->mode = VTE_REGEX_PCRE2;
-                search_regex->pcre.regex = vte_regex_ref(regex);
-                search_regex->pcre.match_flags = flags;
+                rx->mode = VTE_REGEX_PCRE2;
+                rx->pcre.regex = vte_regex_ref(regex);
+                rx->pcre.match_flags = flags;
         }
 
-	_vte_invalidate_all (terminal);
+	invalidate_all();
+
+        return true;
 }
 
-/**
- * vte_terminal_search_get_regex:
- * @terminal: a #VteTerminal
- *
- * Returns: (transfer none): the search #VteRegex regex set in @terminal, or %NULL
- *
- * Since: 0.44
- */
-VteRegex *
-vte_terminal_search_get_regex(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+#endif /* WITH_PCRE2 */
 
-        if (G_LIKELY(terminal->pvt->search_regex.mode == VTE_REGEX_PCRE2))
-                return terminal->pvt->search_regex.pcre.regex;
-        else
-                return NULL;
-}
-
-/**
- * vte_terminal_search_set_gregex:
- * @terminal: a #VteTerminal
- * @gregex: (allow-none): a #GRegex, or %NULL
+/*
+ * VteTerminalPrivate::search_set_gregex:
+ * @gregex: (allow-none): a #GRegex, or %nullptr
  * @gflags: flags from #GRegexMatchFlags
  *
- * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
- *
- * Deprecated: 0.44: use vte_terminal_search_set_regex() instead.
+ * Sets the #GRegex regex to search for. Unsets the search regex when passed %nullptr.
  */
-void
-vte_terminal_search_set_gregex (VteTerminal *terminal,
-				GRegex      *gregex,
-                                GRegexMatchFlags gflags)
+bool
+VteTerminalPrivate::search_set_gregex(GRegex *gregex,
+                                      GRegexMatchFlags gflags)
 {
-        struct vte_regex_and_flags *search_regex;
+        struct vte_regex_and_flags *rx = &m_search_regex;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        if (rx->mode == VTE_REGEX_GREGEX &&
+            rx->gregex.regex == gregex &&
+            rx->gregex.match_flags == gflags)
+                return false;
 
-        search_regex = &terminal->pvt->search_regex;
-
-        if (search_regex->mode == VTE_REGEX_GREGEX &&
-            search_regex->gregex.regex == gregex &&
-            search_regex->gregex.match_flags == gflags)
-                return;
-
-        regex_and_flags_clear(search_regex);
+        regex_and_flags_clear(rx);
 
         if (gregex != NULL) {
-                search_regex->mode = VTE_REGEX_GREGEX;
-                search_regex->gregex.regex = g_regex_ref(gregex);
-                search_regex->gregex.match_flags = gflags;
+                rx->mode = VTE_REGEX_GREGEX;
+                rx->gregex.regex = g_regex_ref(gregex);
+                rx->gregex.match_flags = gflags;
         }
 
-	_vte_invalidate_all (terminal);
-}
+	invalidate_all();
 
-/**
- * vte_terminal_search_get_gregex:
- * @terminal: a #VteTerminal
- *
- * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
- *
- * Deprecated: 0.44: use vte_terminal_search_get_regex() instead.
- */
-GRegex *
-vte_terminal_search_get_gregex (VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-        if (G_LIKELY(terminal->pvt->search_regex.mode == VTE_REGEX_GREGEX))
-                return terminal->pvt->search_regex.gregex.regex;
-        else
-                return NULL;
+        return true;
 }
 
 bool

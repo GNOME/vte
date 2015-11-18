@@ -1545,6 +1545,84 @@ vte_terminal_search_find_next (VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_search_set_regex:
+ * @terminal: a #VteTerminal
+ * @regex: (allow-none): a #VteRegex, or %NULL
+ * @flags: PCRE2 match flags, or 0
+ *
+ * Sets the regex to search for. Unsets the search regex when passed %NULL.
+ *
+ * Since: 0.44
+ */
+void
+vte_terminal_search_set_regex (VteTerminal *terminal,
+                               VteRegex    *regex,
+                               guint32      flags)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        terminal->pvt->search_set_regex(regex, flags);
+}
+
+/**
+ * vte_terminal_search_get_regex:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the search #VteRegex regex set in @terminal, or %NULL
+ *
+ * Since: 0.44
+ */
+VteRegex *
+vte_terminal_search_get_regex(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        if (G_LIKELY(terminal->pvt->search_regex.mode == VTE_REGEX_PCRE2))
+                return terminal->pvt->search_regex.pcre.regex;
+        else
+                return NULL;
+}
+
+/**
+ * vte_terminal_search_set_gregex:
+ * @terminal: a #VteTerminal
+ * @gregex: (allow-none): a #GRegex, or %NULL
+ * @gflags: flags from #GRegexMatchFlags
+ *
+ * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
+ *
+ * Deprecated: 0.44: use vte_terminal_search_set_regex() instead.
+ */
+void
+vte_terminal_search_set_gregex (VteTerminal *terminal,
+				GRegex      *gregex,
+                                GRegexMatchFlags gflags)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        terminal->pvt->search_set_gregex(gregex, gflags);
+}
+
+/**
+ * vte_terminal_search_get_gregex:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
+ *
+ * Deprecated: 0.44: use vte_terminal_search_get_regex() instead.
+ */
+GRegex *
+vte_terminal_search_get_gregex (VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        if (G_LIKELY(terminal->pvt->search_regex.mode == VTE_REGEX_GREGEX))
+                return terminal->pvt->search_regex.gregex.regex;
+        else
+                return NULL;
+}
+
+/**
  * vte_terminal_search_set_wrap_around:
  * @terminal: a #VteTerminal
  * @wrap_around: whether search should wrap
