@@ -2605,19 +2605,6 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
 	}
 }
 
-/**
- * vte_terminal_new:
- *
- * Creates a new terminal widget.
- *
- * Returns: (transfer none) (type Vte.Terminal): a new #VteTerminal object
- */
-GtkWidget *
-vte_terminal_new(void)
-{
-	return (GtkWidget *)g_object_new(VTE_TYPE_TERMINAL, NULL);
-}
-
 /*
  * Get the actually used color from the palette.
  * The return value can be NULL only if entry is one of VTE_CURSOR_BG,

@@ -1515,6 +1515,19 @@ vte_get_user_shell (void)
 /* VteTerminal public API */
 
 /**
+ * vte_terminal_new:
+ *
+ * Creates a new terminal widget.
+ *
+ * Returns: (transfer none) (type Vte.Terminal): a new #VteTerminal object
+ */
+GtkWidget *
+vte_terminal_new(void)
+{
+	return (GtkWidget *)g_object_new(VTE_TYPE_TERMINAL, nullptr);
+}
+
+/**
  * vte_terminal_copy_clipboard:
  * @terminal: a #VteTerminal
  *
