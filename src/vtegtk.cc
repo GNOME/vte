@@ -1653,6 +1653,48 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 	return terminal->pvt->search_wrap_around;
 }
 
+/**
+ * vte_terminal_get_column_count:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the number of columns
+ */
+glong
+vte_terminal_get_column_count(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->pvt->column_count;
+}
+
+/**
+ * vte_terminal_get_current_directory_uri:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the URI of the current directory of the
+ *   process running in the terminal, or %NULL
+ */
+const char *
+vte_terminal_get_current_directory_uri(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        return terminal->pvt->current_directory_uri;
+}
+
+/**
+ * vte_terminal_get_current_file_uri:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the URI of the current file the
+ *   process running in the terminal is operating on, or %NULL if
+ *   not set
+ */
+const char *
+vte_terminal_get_current_file_uri(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        return terminal->pvt->current_file_uri;
+}
+
 /* Just some arbitrary minimum values */
 #define MIN_COLUMNS (16)
 #define MIN_ROWS    (2)
@@ -1730,6 +1772,19 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_get_icon_title:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the icon title
+ */
+const char *
+vte_terminal_get_icon_title(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
+	return terminal->pvt->icon_title;
+}
+
+/**
  * vte_terminal_get_input_enabled:
  * @terminal: a #VteTerminal
  *
@@ -1800,6 +1855,33 @@ vte_terminal_get_pty(VteTerminal *terminal)
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 
         return terminal->pvt->pty;
+}
+
+/**
+ * vte_terminal_get_row_count:
+ * @terminal: a #VteTerminal
+ *
+ *
+ * Returns: the number of rows
+ */
+glong
+vte_terminal_get_row_count(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+	return terminal->pvt->row_count;
+}
+
+/**
+ * vte_terminal_get_window_title:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (transfer none): the window title
+ */
+const char *
+vte_terminal_get_window_title(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
+	return terminal->pvt->window_title;
 }
 
 /**
