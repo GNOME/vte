@@ -576,6 +576,8 @@ public:
         bool process_word_char_exceptions(char const *str,
                                           gunichar **arrayp,
                                           gsize *lenp);
+
+        bool set_input_enabled(bool enabled);
         bool set_word_char_exceptions(char const* exceptions);
 };
 

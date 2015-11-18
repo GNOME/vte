@@ -13001,69 +13001,45 @@ vte_terminal_search_find_next (VteTerminal *terminal)
 	return vte_terminal_search_find (terminal, FALSE);
 }
 
-/**
- * vte_terminal_set_input_enabled:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_input_enabled:
  * @enabled: whether to enable user input
  *
  * Enables or disables user input. When user input is disabled,
  * the terminal's child will not receive any key press, or mouse button
  * press or motion events sent to it.
+ *
+ * Returns: %true iff the setting changed
  */
-void
-vte_terminal_set_input_enabled (VteTerminal *terminal,
-                                gboolean enabled)
+bool
+VteTerminalPrivate::set_input_enabled (bool enabled)
 {
-        VteTerminalPrivate *pvt;
-        GtkWidget *widget;
-        GtkStyleContext *context;
+        if (enabled == m_input_enabled)
+                return false;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        m_input_enabled = enabled;
 
-        pvt = terminal->pvt;
-        widget = &terminal->widget;
-
-        enabled = enabled != FALSE;
-        if (enabled == terminal->pvt->input_enabled)
-                return;
-
-        pvt->input_enabled = enabled;
-
-        context = gtk_widget_get_style_context (widget);
+        auto context = gtk_widget_get_style_context(m_widget);
 
         /* FIXME: maybe hide cursor when input disabled, too? */
 
         if (enabled) {
-                if (gtk_widget_has_focus(widget))
-                        gtk_im_context_focus_in(pvt->im_context);
+                if (gtk_widget_has_focus(m_widget))
+                        gtk_im_context_focus_in(m_im_context);
 
                 gtk_style_context_remove_class (context, GTK_STYLE_CLASS_READ_ONLY);
         } else {
-                vte_terminal_im_reset(terminal);
-                if (gtk_widget_has_focus(widget))
-                        gtk_im_context_focus_out(pvt->im_context);
+                vte_terminal_im_reset(m_terminal);
+                if (gtk_widget_has_focus(m_widget))
+                        gtk_im_context_focus_out(m_im_context);
 
-                _vte_terminal_disconnect_pty_write(terminal);
-                _vte_byte_array_clear(pvt->outgoing);
+                _vte_terminal_disconnect_pty_write(m_terminal);
+                _vte_byte_array_clear(m_outgoing);
 
                 gtk_style_context_add_class (context, GTK_STYLE_CLASS_READ_ONLY);
         }
 
-        g_object_notify(G_OBJECT(terminal), "input-enabled");
-}
-
-/**
- * vte_terminal_get_input_enabled:
- * @terminal: a #VteTerminal
- *
- * Returns whether the terminal allow user input.
- */
-gboolean
-vte_terminal_get_input_enabled (VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-        return terminal->pvt->input_enabled;
+        return true;
 }
 
 bool

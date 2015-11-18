@@ -1589,6 +1589,39 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_get_input_enabled:
+ * @terminal: a #VteTerminal
+ *
+ * Returns whether the terminal allow user input.
+ */
+gboolean
+vte_terminal_get_input_enabled (VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        return terminal->pvt->input_enabled;
+}
+
+/**
+ * vte_terminal_set_input_enabled:
+ * @terminal: a #VteTerminal
+ * @enabled: whether to enable user input
+ *
+ * Enables or disables user input. When user input is disabled,
+ * the terminal's child will not receive any key press, or mouse button
+ * press or motion events sent to it.
+ */
+void
+vte_terminal_set_input_enabled (VteTerminal *terminal,
+                                gboolean enabled)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (terminal->pvt->set_input_enabled(enabled != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_INPUT_ENABLED]);
+}
+
+/**
  * vte_terminal_get_word_char_exceptions:
  * @terminal: a #VteTerminal
  *
