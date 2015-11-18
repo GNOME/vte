@@ -144,7 +144,6 @@ static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
 static void vte_terminal_update_cursor_blinks_internal(VteTerminal *terminal);
-static void _vte_check_cursor_blink(VteTerminal *terminal);
 static VteCursorShape _vte_terminal_decscusr_cursor_shape(VteTerminal *terminal);
 static VteCursorBlinkMode _vte_terminal_decscusr_cursor_blink(VteTerminal *terminal);
 
@@ -4816,12 +4815,12 @@ next_match:
 		if (cursor_visible)
 			_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_invalidate_cursor_once(terminal, FALSE);
-		_vte_check_cursor_blink(terminal);
+		terminal->pvt->check_cursor_blink();
 		/* Signal that the cursor moved. */
 		vte_terminal_queue_cursor_moved(terminal);
 	} else if (cursor_visible != terminal->pvt->cursor_visible) {
 		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
-		_vte_check_cursor_blink(terminal);
+		terminal->pvt->check_cursor_blink();
 	}
 
 	/* Tell the input method where the cursor is. */
@@ -5402,44 +5401,44 @@ VteTerminalPrivate::widget_style_updated()
         }
 }
 
-static void
-add_cursor_timeout (VteTerminal *terminal)
+void
+VteTerminalPrivate::add_cursor_timeout()
 {
-	if (terminal->pvt->cursor_blink_tag)
+	if (m_cursor_blink_tag)
 		return; /* already added */
 
-	terminal->pvt->cursor_blink_time = 0;
-	terminal->pvt->cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-							     terminal->pvt->cursor_blink_cycle,
-							     (GSourceFunc)invalidate_cursor_periodic_cb,
-							     terminal->pvt,
-							     NULL);
+	m_cursor_blink_time = 0;
+	m_cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+                                                m_cursor_blink_cycle,
+                                                (GSourceFunc)invalidate_cursor_periodic_cb,
+                                                this,
+                                                NULL);
 }
 
-static void
-remove_cursor_timeout (VteTerminal *terminal)
+void
+VteTerminalPrivate::remove_cursor_timeout()
 {
-	if (terminal->pvt->cursor_blink_tag == 0)
+	if (m_cursor_blink_tag == 0)
 		return; /* already removed */
 
-	g_source_remove (terminal->pvt->cursor_blink_tag);
-	terminal->pvt->cursor_blink_tag = 0;
-        if (terminal->pvt->cursor_blink_state == FALSE) {
-                _vte_invalidate_cursor_once(terminal, FALSE);
-                terminal->pvt->cursor_blink_state = TRUE;
+	g_source_remove(m_cursor_blink_tag);
+	m_cursor_blink_tag = 0;
+        if (!m_cursor_blink_state) {
+                invalidate_cursor_once();
+                m_cursor_blink_state = true;
         }
 }
 
 /* Activates / disactivates the cursor blink timer to reduce wakeups */
-static void
-_vte_check_cursor_blink(VteTerminal *terminal)
+void
+VteTerminalPrivate::check_cursor_blink()
 {
-	if (terminal->pvt->has_focus &&
-	    terminal->pvt->cursor_blinks &&
-	    terminal->pvt->cursor_visible)
-		add_cursor_timeout(terminal);
+	if (m_has_focus &&
+	    m_cursor_blinks &&
+	    m_cursor_visible)
+		add_cursor_timeout();
 	else
-		remove_cursor_timeout(terminal);
+		remove_cursor_timeout();
 }
 
 void
@@ -5572,8 +5571,8 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		if (terminal->pvt->cursor_blink_tag != 0)
 		{
-			remove_cursor_timeout (terminal);
-			add_cursor_timeout (terminal);
+			terminal->pvt->remove_cursor_timeout();
+			terminal->pvt->add_cursor_timeout();
 		}
 
 		/* Determine if this is just a modifier key. */
@@ -8368,7 +8367,7 @@ VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
 		m_cursor_blink_state = TRUE;
 		m_has_focus = TRUE;
 
-		_vte_check_cursor_blink(m_terminal);
+		check_cursor_blink();
 
 		gtk_im_context_focus_in(m_im_context);
 		invalidate_cursor_once();
@@ -8412,8 +8411,8 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
                 m_mouse_handled_buttons = 0;
 	}
 
-	m_has_focus = FALSE;
-	_vte_check_cursor_blink(m_terminal);
+	m_has_focus = false;
+	check_cursor_blink();
 }
 
 static gboolean
@@ -9428,7 +9427,7 @@ vte_terminal_unrealize(GtkWidget *widget)
 	}
 
 	/* Remove the blink timeout function. */
-	remove_cursor_timeout(terminal);
+	terminal->pvt->remove_cursor_timeout();
 
 	/* Cancel any pending redraws. */
 	remove_update_timeout (terminal);
@@ -12568,7 +12567,7 @@ vte_terminal_update_cursor_blinks_internal(VteTerminal *terminal)
 		return;
 
 	pvt->cursor_blinks = blink;
-	_vte_check_cursor_blink (terminal);
+	pvt->check_cursor_blink();
 }
 
 /**

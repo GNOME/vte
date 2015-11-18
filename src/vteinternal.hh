@@ -448,6 +448,9 @@ public:
 
         void invalidate_cursor_once(bool periodic = false);
         void invalidate_cursor_periodic();
+        void check_cursor_blink();
+        void add_cursor_timeout();
+        void remove_cursor_timeout();
 
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
