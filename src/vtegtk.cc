@@ -1977,6 +1977,36 @@ vte_terminal_get_row_count(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_set_scrollback_lines:
+ * @terminal: a #VteTerminal
+ * @lines: the length of the history buffer
+ *
+ * Sets the length of the scrollback buffer used by the terminal.  The size of
+ * the scrollback buffer will be set to the larger of this value and the number
+ * of visible rows the widget can display, so 0 can safely be used to disable
+ * scrollback.
+ *
+ * A negative value means "infinite scrollback".
+ *
+ * Note that this setting only affects the normal screen buffer.
+ * No scrollback is allowed on the alternate screen buffer.
+ */
+void
+vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(lines >= -1);
+
+        GObject *object = G_OBJECT(terminal);
+        g_object_freeze_notify(object);
+
+        if (terminal->pvt->set_scrollback_lines(lines))
+                g_object_notify_by_pspec(object, pspecs[PROP_SCROLLBACK_LINES]);
+
+        g_object_thaw_notify(object);
+}
+
+/**
  * vte_terminal_get_window_title:
  * @terminal: a #VteTerminal
  *
