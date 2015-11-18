@@ -86,6 +86,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtestream-file.h \
 	vtetree.cc \
 	vtetree.h \
+	vtetypes.cc \
+	vtetypes.hh \
 	vteunistr.cc \
 	vteunistr.h \
 	vteutils.cc \

@@ -480,17 +480,26 @@ _vte_invalidate_cells(VteTerminal *terminal,
 		      glong column_start, gint n_columns,
 		      glong row_start, gint n_rows)
 {
+        terminal->pvt->invalidate_cells(column_start, n_columns, row_start, n_rows);
+}
+
+void
+VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
+                                     int n_columns,
+                                     vte::grid::row_t row_start,
+                                     int n_rows)
+{
 	cairo_rectangle_int_t rect;
 	GtkAllocation allocation;
 
-	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
+	if (G_UNLIKELY (!gtk_widget_get_realized(m_widget)))
                 return;
 
 	if (!n_columns || !n_rows) {
 		return;
 	}
 
-	if (terminal->pvt->invalidated_all) {
+	if (m_invalidated_all) {
 		return;
 	}
 
@@ -500,34 +509,34 @@ _vte_invalidate_cells(VteTerminal *terminal,
 			n_columns, n_rows);
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
-	if (n_columns == terminal->pvt->column_count &&
-            n_rows == terminal->pvt->row_count) {
-		_vte_invalidate_all (terminal);
+	if (n_columns == m_column_count &&
+            n_rows == m_row_count) {
+		invalidate_all();
 		return;
 	}
 
-        gtk_widget_get_allocation (&terminal->widget, &allocation);
+        gtk_widget_get_allocation (m_widget, &allocation);
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border and overlap pixel.
 	 */
-        rect.x = terminal->pvt->padding.left + column_start * terminal->pvt->char_width - 1;
+        rect.x = m_padding.left + column_start * m_char_width - 1;
         if (rect.x <= 0)
                 rect.x = 0;
         /* Temporarily misuse rect.width for the end x coordinate... */
-        rect.width = terminal->pvt->padding.left + (column_start + n_columns) * terminal->pvt->char_width + 2; /* TODO why 2 and not 1? */
+        rect.width = m_padding.left + (column_start + n_columns) * m_char_width + 2; /* TODO why 2 and not 1? */
         if (rect.width >= allocation.width)
                 rect.width = allocation.width;
         /* ... fix that here */
 	rect.width -= rect.x;
 
-        rect.y = terminal->pvt->padding.top + _vte_terminal_row_to_pixel(terminal, row_start) - 1;
+        rect.y = m_padding.top + _vte_terminal_row_to_pixel(m_terminal, row_start) - 1;
         if (rect.y <= 0)
                 rect.y = 0;
 
         /* Temporarily misuse rect.height for the end y coordinate... */
-        rect.height = terminal->pvt->padding.top + _vte_terminal_row_to_pixel(terminal, row_start + n_rows) + 1;
+        rect.height = m_padding.top + _vte_terminal_row_to_pixel(m_terminal, row_start + n_rows) + 1;
         if (rect.height >= allocation.height)
                 rect.height = allocation.height;
         /* ... fix that here */
@@ -541,15 +550,15 @@ _vte_invalidate_cells(VteTerminal *terminal,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
 			rect.x, rect.y, rect.width, rect.height);
 
-	if (terminal->pvt->active != NULL) {
-		terminal->pvt->update_regions = g_slist_prepend (
-				terminal->pvt->update_regions,
+	if (m_active != NULL) {
+                m_update_regions = g_slist_prepend (
+                                                    m_update_regions,
 				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		add_update_timeout (terminal);
+		add_update_timeout (m_terminal);
 	} else {
-		gdk_window_invalidate_rect (gtk_widget_get_window (&terminal->widget), &rect, FALSE);
+		gdk_window_invalidate_rect (gtk_widget_get_window (m_widget), &rect, FALSE);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
@@ -561,64 +570,86 @@ _vte_invalidate_region (VteTerminal *terminal,
 			glong srow, glong erow,
 			gboolean block)
 {
+        terminal->pvt->invalidate_region(scolumn, ecolumn, srow, erow, block);
+}
+
+void
+VteTerminalPrivate::invalidate_region(vte::grid::column_t scolumn,
+                                      vte::grid::column_t ecolumn,
+                                      vte::grid::row_t srow,
+                                      vte::grid::row_t erow,
+                                      bool block)
+{
 	if (block || srow == erow) {
-		_vte_invalidate_cells(terminal,
+		invalidate_cells(
 				scolumn, ecolumn - scolumn + 1,
 				srow, erow - srow + 1);
 	} else {
-		_vte_invalidate_cells(terminal,
+		invalidate_cells(
 				scolumn,
-				terminal->pvt->column_count - scolumn,
+				column_count - scolumn,
 				srow, 1);
-		_vte_invalidate_cells(terminal,
-				0, terminal->pvt->column_count,
+		invalidate_cells(
+				0, column_count,
 				srow + 1, erow - srow - 1);
-		_vte_invalidate_cells(terminal,
+		invalidate_cells(
 				0, ecolumn + 1,
 				erow, 1);
 	}
 }
 
+void
+VteTerminalPrivate::invalidate(vte::grid::span s,
+                               bool block)
+{
+        invalidate_region(s.start_column(), s.end_column(), s.start_row(), s.end_row(), block);
+}
 
 /* Redraw the entire visible portion of the window. */
 void
 _vte_invalidate_all(VteTerminal *terminal)
 {
+        terminal->pvt->invalidate_all();
+}
+
+void
+VteTerminalPrivate::invalidate_all()
+{
 	cairo_rectangle_int_t rect;
 	GtkAllocation allocation;
 
-	g_assert(VTE_IS_TERMINAL(terminal));
-
-	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
+	if (G_UNLIKELY (!gtk_widget_get_realized(m_widget)))
                 return;
 
-	if (terminal->pvt->invalidated_all) {
+	if (m_invalidated_all) {
 		return;
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "*");
 	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
-	gtk_widget_get_allocation (&terminal->widget, &allocation);
+	gtk_widget_get_allocation (m_widget, &allocation);
 
 	/* replace invalid regions with one covering the whole terminal */
-	reset_update_regions (terminal);
+	reset_update_regions (m_terminal);
 	rect.x = rect.y = 0;
 	rect.width = allocation.width;
 	rect.height = allocation.height;
-	terminal->pvt->invalidated_all = TRUE;
+	m_invalidated_all = TRUE;
 
-	if (terminal->pvt->active != NULL) {
-		terminal->pvt->update_regions = g_slist_prepend (NULL,
+        if (m_active != NULL) {
+                m_update_regions = g_slist_prepend (NULL,
 				cairo_region_create_rectangle (&rect));
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		add_update_timeout (terminal);
+		add_update_timeout (m_terminal);
 	} else {
-		gdk_window_invalidate_rect (gtk_widget_get_window (&terminal->widget), &rect, FALSE);
+		gdk_window_invalidate_rect (gtk_widget_get_window (m_widget), &rect, FALSE);
 	}
 }
 
+/* FIXMEchpe: remove this obsolete function. It became useless long ago
+ * when we stopped moving window contents around on scrolling. */
 /* Scroll a rectangular region up or down by a fixed number of lines,
  * negative = up, positive = down. */
 void
@@ -767,19 +798,26 @@ vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
 void
 _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 {
+        terminal->pvt->invalidate_cell(col, row);
+}
+
+void
+VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
+                                    vte::grid::row_t row)
+{
 	const VteRowData *row_data;
 	int columns;
 	guint style;
 
-	if (G_UNLIKELY (!gtk_widget_get_realized(&terminal->widget)))
+	if (G_UNLIKELY (!gtk_widget_get_realized(m_widget)))
                 return;
 
-	if (terminal->pvt->invalidated_all) {
+	if (m_invalidated_all) {
 		return;
 	}
 
 	columns = 1;
-	row_data = _vte_terminal_find_row_data(terminal, row);
+	row_data = _vte_terminal_find_row_data(m_terminal, row);
 	if (row_data != NULL) {
 		const VteCell *cell;
 		cell = _vte_row_data_get (row_data, col);
@@ -791,9 +829,9 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 			style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
 			if (cell->c != 0 &&
 					_vte_draw_get_char_width (
-						terminal->pvt->draw,
+                                                                  m_draw,
 						cell->c, columns, style) >
-					terminal->pvt->char_width * columns) {
+					m_char_width * columns) {
 				columns++;
 			}
 		}
@@ -802,9 +840,8 @@ _vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
 	_vte_debug_print(VTE_DEBUG_UPDATES,
 			"Invalidating cell at (%ld,%ld-%ld).\n",
 			row, col, col + columns);
-	_vte_invalidate_cells(terminal,
-			col, columns,
-			row, 1);
+
+        invalidate_cells(col, columns, row, 1);
 }
 
 /* Cause the cursor to be redrawn. */

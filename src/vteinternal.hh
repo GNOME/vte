@@ -20,6 +20,8 @@
 
 #include <glib.h>
 
+#include "vtetypes.hh"
+
 typedef enum {
         VTE_REGEX_UNDECIDED,
         VTE_REGEX_PCRE2,
@@ -427,4 +429,25 @@ public:
         guint hscroll_policy : 1; /* unused */
 
         guint vscroll_policy : 1;
+
+public:
+
+        void invalidate(vte::grid::span s, bool block = false);
+        void invalidate_cell(vte::grid::column_t column, vte::grid::row_t row);
+        void invalidate_cells(vte::grid::column_t sc, int cc,
+                              vte::grid::row_t sr, int rc);
+        void invalidate_region(vte::grid::column_t sc, vte::grid::column_t ec,
+                               vte::grid::row_t sr, vte::grid::row_t er,
+                               bool block = false);
+        void invalidate_all();
 };
+
+#define m_invalidated_all invalidated_all
+#define m_column_count column_count
+#define m_row_count row_count
+#define m_padding padding
+#define m_char_width char_width
+#define m_char_height char_height
+#define m_active active
+#define m_update_regions update_regions
+#define m_draw draw
