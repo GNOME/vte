@@ -9385,85 +9385,89 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
-	GdkWindow *window;
-	VteTerminal *terminal;
+        VteTerminal *terminal = VTE_TERMINAL (widget);
+        terminal->pvt->widget_unrealize();
+}
 
+void
+VteTerminalPrivate::widget_unrealize()
+{
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
-	terminal = VTE_TERMINAL (widget);
-	window = gtk_widget_get_window (widget);
+	GdkWindow *window = gtk_widget_get_window(m_widget);
 
 	/* Deallocate the cursors. */
-	terminal->pvt->mouse_cursor_visible = FALSE;
-	g_object_unref(terminal->pvt->mouse_default_cursor);
-	terminal->pvt->mouse_default_cursor = NULL;
-	g_object_unref(terminal->pvt->mouse_mousing_cursor);
-	terminal->pvt->mouse_mousing_cursor = NULL;
-	g_object_unref(terminal->pvt->mouse_inviso_cursor);
-	terminal->pvt->mouse_inviso_cursor = NULL;
+	m_mouse_cursor_visible = FALSE;
+	g_object_unref(m_mouse_default_cursor);
+	m_mouse_default_cursor = NULL;
+	g_object_unref(m_mouse_mousing_cursor);
+	m_mouse_mousing_cursor = NULL;
+	g_object_unref(m_mouse_inviso_cursor);
+	m_mouse_inviso_cursor = NULL;
 
-	terminal->pvt->match_hilite_clear();
+	match_hilite_clear();
 
 	/* Shut down input methods. */
-	if (terminal->pvt->im_context != NULL) {
-	        g_signal_handlers_disconnect_by_func (terminal->pvt->im_context,
+	if (m_im_context != nullptr) {
+	        g_signal_handlers_disconnect_by_func (m_im_context,
 						      (void *)vte_terminal_im_preedit_changed,
-						      terminal);
-		vte_terminal_im_reset(terminal);
-		gtk_im_context_set_client_window(terminal->pvt->im_context,
+						      m_terminal);
+		vte_terminal_im_reset(m_terminal);
+		gtk_im_context_set_client_window(m_im_context,
 						 NULL);
-		g_object_unref(terminal->pvt->im_context);
-		terminal->pvt->im_context = NULL;
+		g_object_unref(m_im_context);
+		m_im_context = nullptr;
 	}
-	terminal->pvt->im_preedit_active = FALSE;
-	if (terminal->pvt->im_preedit != NULL) {
-		g_free(terminal->pvt->im_preedit);
-		terminal->pvt->im_preedit = NULL;
+	m_im_preedit_active = FALSE;
+	if (m_im_preedit != nullptr) {
+		g_free(m_im_preedit);
+		m_im_preedit = NULL;
 	}
-	if (terminal->pvt->im_preedit_attrs != NULL) {
-		pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
-		terminal->pvt->im_preedit_attrs = NULL;
+	if (m_im_preedit_attrs != NULL) {
+		pango_attr_list_unref(m_im_preedit_attrs);
+		m_im_preedit_attrs = NULL;
 	}
-	terminal->pvt->im_preedit_cursor = 0;
+	m_im_preedit_cursor = 0;
 
 	/* Clean up our draw structure. */
-	if (terminal->pvt->draw != NULL) {
-		_vte_draw_free(terminal->pvt->draw);
-		terminal->pvt->draw = NULL;
+	if (m_draw != NULL) {
+		_vte_draw_free(m_draw);
+		m_draw = NULL;
 	}
-	terminal->pvt->fontdirty = TRUE;
+	m_fontdirty = TRUE;
 
 	/* Unmap the widget if it hasn't been already. */
-	if (gtk_widget_get_mapped (widget)) {
-		gtk_widget_unmap (widget);
+        // FIXMEchpe this can't happen
+	if (gtk_widget_get_mapped(m_widget)) {
+		gtk_widget_unmap(m_widget);
 	}
 
 	/* Remove the GDK window. */
 	if (window != NULL) {
 		gdk_window_set_user_data (window, NULL);
-		gtk_widget_set_window (widget, NULL);
+		gtk_widget_set_window(m_widget, NULL);
 
 		gdk_window_destroy (window);
 	}
 
 	/* Remove the blink timeout function. */
-	terminal->pvt->remove_cursor_timeout();
+	remove_cursor_timeout();
 
 	/* Cancel any pending redraws. */
-	remove_update_timeout (terminal);
+	remove_update_timeout(m_terminal);
 
 	/* Cancel any pending signals */
-	terminal->pvt->contents_changed_pending = FALSE;
-	terminal->pvt->cursor_moved_pending = FALSE;
-	terminal->pvt->text_modified_flag = FALSE;
-	terminal->pvt->text_inserted_flag = FALSE;
-	terminal->pvt->text_deleted_flag = FALSE;
+	m_contents_changed_pending = FALSE;
+	m_cursor_moved_pending = FALSE;
+	m_text_modified_flag = FALSE;
+	m_text_inserted_flag = FALSE;
+	m_text_deleted_flag = FALSE;
 
 	/* Clear modifiers. */
-	terminal->pvt->modifiers = 0;
+	m_modifiers = 0;
 
 	/* Mark that we no longer have a GDK window. */
-	gtk_widget_set_realized (widget, FALSE);
+	gtk_widget_set_realized(m_widget, FALSE);
 }
 
 static void
@@ -9704,23 +9708,28 @@ vte_terminal_finalize(GObject *object)
 static void
 vte_terminal_realize(GtkWidget *widget)
 {
+        VteTerminal *terminal= VTE_TERMINAL(widget);
+        terminal->pvt->widget_realize();
+}
+
+void
+VteTerminalPrivate::widget_realize()
+{
 	GdkWindow *window;
-	VteTerminal *terminal;
 	GdkWindowAttr attributes;
 	GtkAllocation allocation;
 	guint attributes_mask = 0;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
-	terminal = VTE_TERMINAL(widget);
-	gtk_widget_get_allocation (widget, &allocation);
+	gtk_widget_get_allocation (m_widget, &allocation);
 
 	/* Create the stock cursors. */
-	terminal->pvt->mouse_cursor_visible = TRUE;
-	terminal->pvt->mouse_default_cursor =
-		vte_terminal_cursor_new(terminal, VTE_DEFAULT_CURSOR);
-	terminal->pvt->mouse_mousing_cursor =
-		vte_terminal_cursor_new(terminal, VTE_MOUSING_CURSOR);
+	m_mouse_cursor_visible = TRUE;
+	m_mouse_default_cursor =
+		vte_terminal_cursor_new(m_terminal, VTE_DEFAULT_CURSOR);
+	m_mouse_mousing_cursor =
+		vte_terminal_cursor_new(m_terminal, VTE_MOUSING_CURSOR);
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
@@ -9729,8 +9738,8 @@ vte_terminal_realize(GtkWidget *widget)
 	attributes.width = allocation.width;
 	attributes.height = allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
-	attributes.visual = gtk_widget_get_visual (widget);
-	attributes.event_mask = gtk_widget_get_events(widget) |
+	attributes.visual = gtk_widget_get_visual(m_widget);
+	attributes.event_mask = gtk_widget_get_events(m_widget) |
 				GDK_EXPOSURE_MASK |
 				GDK_VISIBILITY_NOTIFY_MASK |
 				GDK_FOCUS_CHANGE_MASK |
@@ -9744,64 +9753,67 @@ vte_terminal_realize(GtkWidget *widget)
 				GDK_LEAVE_NOTIFY_MASK |
 				GDK_KEY_PRESS_MASK |
 				GDK_KEY_RELEASE_MASK;
-	attributes.cursor = terminal->pvt->mouse_default_cursor;
+	attributes.cursor = m_mouse_default_cursor;
 	attributes_mask = GDK_WA_X |
 			  GDK_WA_Y |
 			  (attributes.visual ? GDK_WA_VISUAL : 0) |
 			  GDK_WA_CURSOR;
 
-	window = gdk_window_new (gtk_widget_get_parent_window (widget),
+	window = gdk_window_new(gtk_widget_get_parent_window (m_widget),
 				 &attributes, attributes_mask);
 
-	gtk_widget_set_window (widget, window);
-	gdk_window_set_user_data (window, widget);
-	gtk_style_context_set_background(gtk_widget_get_style_context(widget), window);
+	gtk_widget_set_window(m_widget, window);
+	gdk_window_set_user_data(window, m_widget);
+        //FIXMEchpe this is obsolete
+	gtk_style_context_set_background(gtk_widget_get_style_context(m_widget), window);
+        //FIXMEchpe move this to class init
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates (TRUE);
 
 	/* Set the realized flag. */
-	gtk_widget_set_realized (widget, TRUE);
+	gtk_widget_set_realized(m_widget, TRUE);
 
 	/* Create rendering data if this is a re-realise */
-        if (terminal->pvt->draw == NULL) {
-                terminal->pvt->draw = _vte_draw_new();
+        if (m_draw == NULL) {
+                m_draw = _vte_draw_new();
         }
 
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
-	if (terminal->pvt->im_context != NULL) {
-		vte_terminal_im_reset(terminal);
-		g_object_unref(terminal->pvt->im_context);
-		terminal->pvt->im_context = NULL;
+	if (m_im_context != nullptr) {
+		vte_terminal_im_reset(m_terminal);
+		g_object_unref(m_im_context);
+		m_im_context = nullptr;
 	}
-	terminal->pvt->im_preedit_active = FALSE;
-	terminal->pvt->im_context = gtk_im_multicontext_new();
-	gtk_im_context_set_client_window (terminal->pvt->im_context, window);
-	g_signal_connect(terminal->pvt->im_context, "commit",
-			 G_CALLBACK(vte_terminal_im_commit), terminal);
-	g_signal_connect(terminal->pvt->im_context, "preedit-start",
+	m_im_preedit_active = FALSE;
+	m_im_context = gtk_im_multicontext_new();
+	gtk_im_context_set_client_window(m_im_context, window);
+	g_signal_connect(m_im_context, "commit",
+			 G_CALLBACK(vte_terminal_im_commit), m_terminal);
+	g_signal_connect(m_im_context, "preedit-start",
 			 G_CALLBACK(vte_terminal_im_preedit_start),
-			 terminal);
-	g_signal_connect(terminal->pvt->im_context, "preedit-changed",
+			 m_terminal);
+	g_signal_connect(m_im_context, "preedit-changed",
 			 G_CALLBACK(vte_terminal_im_preedit_changed),
-			 terminal);
-	g_signal_connect(terminal->pvt->im_context, "preedit-end",
+			 m_terminal);
+	g_signal_connect(m_im_context, "preedit-end",
 			 G_CALLBACK(vte_terminal_im_preedit_end),
-			 terminal);
-	gtk_im_context_set_use_preedit(terminal->pvt->im_context, TRUE);
+			 m_terminal);
+	gtk_im_context_set_use_preedit(m_im_context, TRUE);
 
 	/* Clear modifiers. */
-	terminal->pvt->modifiers = 0;
+	m_modifiers = 0;
 
 	/* Create our invisible cursor. */
-	terminal->pvt->mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(widget), GDK_BLANK_CURSOR);
+	m_mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), GDK_BLANK_CURSOR);
 
         /* Make sure the style is set, bug 727614. */
-        vte_terminal_style_updated (widget);
+        widget_style_updated();
 
-	vte_terminal_ensure_font (terminal);
+	vte_terminal_ensure_font(m_terminal);
 
 	/* Set up the background, *now*. */
-	vte_terminal_background_update(terminal);
+        // FIXMEchpe this is obsolete
+	vte_terminal_background_update(m_terminal);
 }
 
 static inline void

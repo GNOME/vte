@@ -452,6 +452,8 @@ public:
         void add_cursor_timeout();
         void remove_cursor_timeout();
 
+        void widget_realize();
+        void widget_unrealize();
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);
@@ -626,3 +628,16 @@ public:
 #define m_mouse_smooth_scroll_delta mouse_smooth_scroll_delta
 #define m_vadjustment vadjustment
 #define m_alternate_screen_scroll alternate_screen_scroll
+#define m_draw draw
+#define m_im_preedit_string im_preedit_string
+#define m_im_preedit_attrs im_preedit_attrs
+#define m_im_preedit_cursor im_preedit_cursor
+#define m_fontdirty fontdirty
+#define m_contents_changed_pending contents_changed_pending
+#define m_cursor_moved_pending cursor_moved_pending
+#define m_text_modified_flag text_modified_flag
+#define m_text_inserted_flag text_inserted_flag
+#define m_text_deleted_flag text_deleted_flag
+#define m_im_preedit_active im_preedit_active
+#define m_im_preedit im_preedit
+
