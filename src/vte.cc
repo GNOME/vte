@@ -9567,10 +9567,17 @@ VteTerminalPrivate::widget_screen_changed (GdkScreen *previous_screen)
 static void
 vte_terminal_finalize(GObject *object)
 {
-    	GtkWidget *widget = GTK_WIDGET (object);
     	VteTerminal *terminal = VTE_TERMINAL (object);
-        VteTerminalPrivate *pvt = terminal->pvt;
-	GtkClipboard *clipboard;
+
+        terminal->pvt->~VteTerminalPrivate();
+        terminal->pvt = nullptr;
+
+	/* Call the inherited finalize() method. */
+	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
+}
+
+VteTerminalPrivate::~VteTerminalPrivate()
+{
         GtkSettings *settings;
 	struct vte_match_regex *regex;
 	int sel;
@@ -9579,29 +9586,29 @@ vte_terminal_finalize(GObject *object)
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
 
 	/* Free the draw structure. */
-	if (terminal->pvt->draw != NULL) {
-		_vte_draw_free(terminal->pvt->draw);
+	if (m_draw != NULL) {
+		_vte_draw_free(m_draw);
 	}
 
 	/* The NLS maps. */
-	_vte_iso2022_state_free(terminal->pvt->iso2022);
+	_vte_iso2022_state_free(m_iso2022);
 
 	/* Free the font description. */
-        if (pvt->unscaled_font_desc != NULL) {
-                pango_font_description_free(pvt->unscaled_font_desc);
+        if (m_unscaled_font_desc != NULL) {
+                pango_font_description_free(m_unscaled_font_desc);
         }
-	if (terminal->pvt->fontdesc != NULL) {
-		pango_font_description_free(terminal->pvt->fontdesc);
+	if (m_fontdesc != NULL) {
+		pango_font_description_free(m_fontdesc);
 	}
 
 	/* Free matching data. */
-	if (terminal->pvt->match_attributes != NULL) {
-		g_array_free(terminal->pvt->match_attributes, TRUE);
+	if (m_match_attributes != NULL) {
+		g_array_free(m_match_attributes, TRUE);
 	}
-	g_free(terminal->pvt->match_contents);
-	if (terminal->pvt->match_regexes != NULL) {
-		for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
-			regex = &g_array_index(terminal->pvt->match_regexes,
+	g_free(m_match_contents);
+	if (m_match_regexes != NULL) {
+		for (i = 0; i < m_match_regexes->len; i++) {
+			regex = &g_array_index(m_match_regexes,
 					       struct vte_match_regex,
 					       i);
 			/* Skip holes. */
@@ -9610,131 +9617,126 @@ vte_terminal_finalize(GObject *object)
 			}
                         regex_match_clear(regex);
 		}
-		g_array_free(terminal->pvt->match_regexes, TRUE);
+		g_array_free(m_match_regexes, TRUE);
 	}
 
-        regex_and_flags_clear(&terminal->pvt->search_regex);
-	if (terminal->pvt->search_attrs)
-		g_array_free (terminal->pvt->search_attrs, TRUE);
+        regex_and_flags_clear(&m_search_regex);
+	if (m_search_attrs)
+		g_array_free (m_search_attrs, TRUE);
 
 	/* Disconnect from autoscroll requests. */
-	vte_terminal_stop_autoscroll(terminal);
+	vte_terminal_stop_autoscroll(m_terminal);
 
 	/* Cancel pending adjustment change notifications. */
-	terminal->pvt->adjustment_changed_pending = FALSE;
+	m_adjustment_changed_pending = FALSE;
 
 	/* Tabstop information. */
-	if (terminal->pvt->tabstops != NULL) {
-		g_hash_table_destroy(terminal->pvt->tabstops);
+	if (m_tabstops != NULL) {
+		g_hash_table_destroy(m_tabstops);
 	}
 
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
+        GObject *object = G_OBJECT(m_widget);
 	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
-		if (terminal->pvt->selection_text[sel] != NULL) {
-			clipboard = terminal->pvt->clipboard[sel];
-			if (gtk_clipboard_get_owner(clipboard) == object) {
-				gtk_clipboard_set_text(clipboard,
-						       terminal->pvt->selection_text[sel],
+		if (m_selection_text[sel] != NULL) {
+			if (gtk_clipboard_get_owner(m_clipboard[sel]) == object) {
+				gtk_clipboard_set_text(m_clipboard[sel],
+						       m_selection_text[sel],
 						       -1);
 			}
-			g_free(terminal->pvt->selection_text[sel]);
+			g_free(m_selection_text[sel]);
 #ifdef HTML_SELECTION
-			g_free(terminal->pvt->selection_html[sel]);
+			g_free(m_selection_html[sel]);
 #endif
 		}
 	}
 
 	/* Clear the output histories. */
-	_vte_ring_fini(terminal->pvt->normal_screen.row_data);
-	_vte_ring_fini(terminal->pvt->alternate_screen.row_data);
+	_vte_ring_fini(m_normal_screen.row_data);
+	_vte_ring_fini(m_alternate_screen.row_data);
 
 	/* Free conversion descriptors. */
-	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(terminal->pvt->outgoing_conv);
-		terminal->pvt->outgoing_conv = VTE_INVALID_CONV;
+	if (m_outgoing_conv != VTE_INVALID_CONV) {
+		_vte_conv_close(m_outgoing_conv);
+		m_outgoing_conv = VTE_INVALID_CONV;
 	}
 
 	/* Start listening for child-exited signals and ignore them, so that no zombie child is left behind. */
-        if (terminal->pvt->child_watch_source != 0) {
-                g_source_remove (terminal->pvt->child_watch_source);
-                terminal->pvt->child_watch_source = 0;
+        if (m_child_watch_source != 0) {
+                g_source_remove (m_child_watch_source);
+                m_child_watch_source = 0;
                 g_child_watch_add_full(G_PRIORITY_HIGH,
-                                       terminal->pvt->pty_pid,
+                                       m_pty_pid,
                                        (GChildWatchFunc)vte_terminal_child_watch_cb,
                                        NULL, NULL);
         }
 
 	/* Stop processing input. */
-	vte_terminal_stop_processing (terminal);
+	vte_terminal_stop_processing(m_terminal);
 
 	/* Discard any pending data. */
-	_vte_incoming_chunks_release (terminal->pvt->incoming);
-	_vte_byte_array_free(terminal->pvt->outgoing);
-	g_array_free(terminal->pvt->pending, TRUE);
-	_vte_byte_array_free(terminal->pvt->conv_buffer);
+	_vte_incoming_chunks_release(m_incoming);
+	_vte_byte_array_free(m_outgoing);
+	g_array_free(m_pending, TRUE);
+	_vte_byte_array_free(m_conv_buffer);
 
 	/* Stop the child and stop watching for input from the child. */
-	if (terminal->pvt->pty_pid != -1) {
+	if (m_pty_pid != -1) {
 #ifdef HAVE_GETPGID
 		pid_t pgrp;
-		pgrp = getpgid(terminal->pvt->pty_pid);
+		pgrp = getpgid(m_pty_pid);
 		if (pgrp != -1) {
 			kill(-pgrp, SIGHUP);
 		}
 #endif
-		kill(terminal->pvt->pty_pid, SIGHUP);
+		kill(m_pty_pid, SIGHUP);
 	}
-	_vte_terminal_disconnect_pty_read(terminal);
-	_vte_terminal_disconnect_pty_write(terminal);
-	if (terminal->pvt->pty_channel != NULL) {
-		g_io_channel_unref (terminal->pvt->pty_channel);
+	_vte_terminal_disconnect_pty_read(m_terminal);
+	_vte_terminal_disconnect_pty_write(m_terminal);
+	if (m_pty_channel != NULL) {
+		g_io_channel_unref (m_pty_channel);
 	}
-	if (terminal->pvt->pty != NULL) {
-                g_object_unref(terminal->pvt->pty);
+	if (m_pty != NULL) {
+                g_object_unref(m_pty);
 	}
 
 	/* Remove hash tables. */
-	if (terminal->pvt->dec_saved != NULL) {
-		g_hash_table_destroy(terminal->pvt->dec_saved);
+	if (m_dec_saved != NULL) {
+		g_hash_table_destroy(m_dec_saved);
 	}
 
 	/* Clean up emulation structures. */
-	if (terminal->pvt->matcher != NULL) {
-		_vte_matcher_free(terminal->pvt->matcher);
+	if (m_matcher != NULL) {
+		_vte_matcher_free(m_matcher);
 	}
 
-	remove_update_timeout (terminal);
+	remove_update_timeout(m_terminal);
 
 	/* discard title updates */
-        g_free(terminal->pvt->window_title);
-        g_free(terminal->pvt->window_title_changed);
-	g_free(terminal->pvt->icon_title_changed);
-        g_free(terminal->pvt->current_directory_uri_changed);
-        g_free(terminal->pvt->current_directory_uri);
-        g_free(terminal->pvt->current_file_uri_changed);
-        g_free(terminal->pvt->current_file_uri);
+        g_free(m_window_title);
+        g_free(m_window_title_changed);
+	g_free(m_icon_title_changed);
+        g_free(m_current_directory_uri_changed);
+        g_free(m_current_directory_uri);
+        g_free(m_current_file_uri_changed);
+        g_free(m_current_file_uri);
 
         /* Word char exceptions */
-        g_free(terminal->pvt->word_char_exceptions_string);
-        g_free(terminal->pvt->word_char_exceptions);
+        g_free(m_word_char_exceptions_string);
+        g_free(m_word_char_exceptions);
 
 	/* Free public-facing data. */
-	g_free(terminal->pvt->icon_title);
-	if (terminal->pvt->vadjustment != NULL) {
-		g_object_unref(terminal->pvt->vadjustment);
+	g_free(m_icon_title);
+	if (m_vadjustment != NULL) {
+		g_object_unref(m_vadjustment);
 	}
 
-        settings = gtk_widget_get_settings (widget);
+        settings = gtk_widget_get_settings(m_widget);
         g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
                                               0, 0, NULL, NULL,
-                                              terminal);
-
-        terminal->pvt->~VteTerminalPrivate();
-
-	/* Call the inherited finalize() method. */
-	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
+                                              m_terminal);
 }
 
 /* Handle realizing the widget.  Most of this is copy-paste from GGAD. */

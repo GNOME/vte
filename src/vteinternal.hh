@@ -188,7 +188,7 @@ struct vte_scrolling_region {
 class VteTerminalPrivate {
 public:
         VteTerminalPrivate(VteTerminal *t);
-        ~VteTerminalPrivate() { }
+        ~VteTerminalPrivate();
 
 public:
         VteTerminal *m_terminal;
@@ -689,3 +689,21 @@ public:
 #define m_cursor_style cursor_style
 #define m_character_replacement character_replacement
 #define m_fontdesc fontdesc
+#define m_search_attrs search_attrs
+#define m_adjustment_changed_pending adjustment_changed_pending
+#define m_tabstops tabstops
+#define m_selection_text selection_text
+#define m_clipboard clipboard
+#define m_selection_html selection_html
+#define m_child_watch_source child_watch_source
+#define m_pty_channel pty_channel
+#define m_window_title window_title
+#define m_window_title_changed window_title_changed
+#define m_icon_title_changed icon_title_changed
+#define m_current_directory_uri_changed current_directory_uri_changed
+#define m_current_directory_uri current_directory_uri
+#define m_current_file_uri_changed current_file_uri_changed
+#define m_current_file_uri current_file_uri
+#define m_word_char_exceptions_string word_char_exceptions_string
+#define m_word_char_exceptions word_char_exceptions
+#define m_icon_title icon_title
