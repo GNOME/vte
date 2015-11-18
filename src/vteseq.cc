@@ -1024,7 +1024,7 @@ vte_sequence_handler_shift_out (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_bell (VteTerminal *terminal, GValueArray *params)
 {
-	_vte_terminal_beep (terminal);
+	terminal->pvt->beep();
 	g_signal_emit_by_name(terminal, "bell");
 }
 

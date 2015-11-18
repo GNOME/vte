@@ -84,8 +84,6 @@ gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_fragments(VteTerminal *terminal, long start, long end);
-void _vte_terminal_audible_beep(VteTerminal *terminal);
-void _vte_terminal_beep(VteTerminal *terminal);
 PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
 void _vte_terminal_set_color_internal(VteTerminal *terminal,
                                       int idx,

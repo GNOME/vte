@@ -460,6 +460,8 @@ public:
 
         void set_pointer_visible(bool visible);
 
+        void beep();
+
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
@@ -591,3 +593,4 @@ public:
 #define m_mouse_mousing_cursor mouse_mousing_cursor
 #define m_mouse_default_cursor mouse_default_cursor
 #define m_mouse_inviso_cursor mouse_inviso_cursor
+#define m_audible_bell audible_bell

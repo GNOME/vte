@@ -5442,23 +5442,13 @@ VteTerminalPrivate::check_cursor_blink()
 }
 
 void
-_vte_terminal_audible_beep(VteTerminal *terminal)
+VteTerminalPrivate::beep()
 {
-	GdkDisplay *display;
-
-	g_assert(VTE_IS_TERMINAL(terminal));
-	display = gtk_widget_get_display(&terminal->widget);
-	gdk_display_beep(display);
-}
-
-void
-_vte_terminal_beep(VteTerminal *terminal)
-{
-	if (terminal->pvt->audible_bell) {
-		_vte_terminal_audible_beep (terminal);
+	if (m_audible_bell) {
+                GdkDisplay *display = gtk_widget_get_display(m_widget);
+                gdk_display_beep(display);
 	}
 }
-
 
 static guint
 vte_translate_ctrlkey (GdkEventKey *event)
@@ -5564,7 +5554,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
                         if ((terminal->pvt->cursor.col +
 			     (glong) terminal->pvt->bell_margin) ==
 			     terminal->pvt->column_count) {
-				_vte_terminal_beep (terminal);
+				terminal->pvt->beep();
 			}
 		}
 
