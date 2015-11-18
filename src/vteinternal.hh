@@ -512,6 +512,8 @@ public:
                           long y);
 
         int regex_match_add(struct vte_match_regex *new_regex_match);
+        void match_remove(int tag);
+        void match_remove_all();
         bool match_rowcol_to_offset(vte::grid::column_t column,
                                     vte::grid::row_t row,
                                     gsize *offset_ptr,

@@ -1233,21 +1233,14 @@ VteTerminalPrivate::set_cursor_from_regex_match(struct vte_match_regex *regex)
                 g_object_unref(gdk_cursor);
 }
 
-/**
- * vte_terminal_match_remove_all:
- * @terminal: a #VteTerminal
- *
- * Clears the list of regular expressions the terminal uses to highlight text
- * when the user moves the mouse cursor.
- */
 void
-vte_terminal_match_remove_all(VteTerminal *terminal)
+VteTerminalPrivate::match_remove_all()
 {
 	struct vte_match_regex *regex;
 	guint i;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
-		regex = &g_array_index(terminal->pvt->match_regexes,
+
+	for (i = 0; i < m_match_regexes->len; i++) {
+		regex = &g_array_index(m_match_regexes,
 				       struct vte_match_regex,
 				       i);
 		/* Unless this is a hole, clean it up. */
@@ -1255,27 +1248,19 @@ vte_terminal_match_remove_all(VteTerminal *terminal)
                         regex_match_clear (regex);
 		}
 	}
-	g_array_set_size(terminal->pvt->match_regexes, 0);
-	terminal->pvt->match_hilite_clear();
+	g_array_set_size(m_match_regexes, 0);
+
+	match_hilite_clear();
 }
 
-/**
- * vte_terminal_match_remove:
- * @terminal: a #VteTerminal
- * @tag: the tag of the regex to remove
- *
- * Removes the regular expression which is associated with the given @tag from
- * the list of expressions which the terminal will highlight when the user
- * moves the mouse cursor over matching text.
- */
 void
-vte_terminal_match_remove(VteTerminal *terminal, int tag)
+VteTerminalPrivate::match_remove(int tag)
 {
 	struct vte_match_regex *regex;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->match_regexes->len > (guint)tag) {
+
+	if (m_match_regexes->len > (guint)tag) {
 		/* The tag is an index, so find the corresponding struct. */
-		regex = &g_array_index(terminal->pvt->match_regexes,
+		regex = &g_array_index(m_match_regexes,
 				       struct vte_match_regex,
 				       tag);
 		/* If it's already been removed, return. */
@@ -1285,7 +1270,7 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
 		/* Remove this item and leave a hole in its place. */
                 regex_match_clear (regex);
 	}
-	terminal->pvt->match_hilite_clear();
+	match_hilite_clear();
 }
 
 static GdkCursor *

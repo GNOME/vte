@@ -1578,6 +1578,36 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_match_remove:
+ * @terminal: a #VteTerminal
+ * @tag: the tag of the regex to remove
+ *
+ * Removes the regular expression which is associated with the given @tag from
+ * the list of expressions which the terminal will highlight when the user
+ * moves the mouse cursor over matching text.
+ */
+void
+vte_terminal_match_remove(VteTerminal *terminal, int tag)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->match_remove(tag);
+}
+
+/**
+ * vte_terminal_match_remove_all:
+ * @terminal: a #VteTerminal
+ *
+ * Clears the list of regular expressions the terminal uses to highlight text
+ * when the user moves the mouse cursor.
+ */
+void
+vte_terminal_match_remove_all(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->match_remove_all();
+}
+
+/**
  * vte_terminal_search_find_previous:
  * @terminal: a #VteTerminal
  *
