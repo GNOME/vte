@@ -10938,46 +10938,24 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
 	return terminal->pvt->allow_bold;
 }
 
-/**
- * vte_terminal_set_scroll_on_output:
- * @terminal: a #VteTerminal
- * @scroll: whether the terminal should scroll on output
- *
- * Controls whether or not the terminal will forcibly scroll to the bottom of
- * the viewable history when the new data is received from the child.
- */
-void
-vte_terminal_set_scroll_on_output(VteTerminal *terminal, gboolean scroll)
+bool
+VteTerminalPrivate::set_scroll_on_output(bool scroll)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->scroll_on_output = scroll;
+        if (scroll == m_scroll_on_output)
+                return false;
+
+        m_scroll_on_output = scroll;
+        return true;
 }
 
-/**
- * vte_terminal_set_scroll_on_keystroke:
- * @terminal: a #VteTerminal
- * @scroll: whether the terminal should scroll on keystrokes
- *
- * Controls whether or not the terminal will forcibly scroll to the bottom of
- * the viewable history when the user presses a key.  Modifier keys do not
- * trigger this behavior.
- */
-void
-vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
+bool
+VteTerminalPrivate::set_scroll_on_keystroke(bool scroll)
 {
-        VteTerminalPrivate *pvt;
+        if (scroll == m_scroll_on_keystroke)
+                return false;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        scroll = scroll != FALSE;
-        if (scroll == pvt->scroll_on_keystroke)
-                return;
-
-	pvt->scroll_on_keystroke = scroll;
-
-        g_object_notify (G_OBJECT (terminal), "scroll-on-keystroke");
+        m_scroll_on_keystroke = scroll;
+        return true;
 }
 
 bool

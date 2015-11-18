@@ -617,6 +617,8 @@ public:
         bool set_pty(VtePty *pty);
         bool set_rewrap_on_resize(bool rewrap);
         bool set_scrollback_lines(long lines);
+        bool set_scroll_on_keystroke(bool scroll);
+        bool set_scroll_on_output(bool scroll);
         bool set_word_char_exceptions(char const* exceptions);
 
         bool write_contents_sync (GOutputStream *stream,
@@ -684,6 +686,7 @@ public:
 #define m_alternate_screen alternate_screen
 #define m_meta_sends_escape meta_sends_escape
 #define m_scroll_on_keystroke scroll_on_keystroke
+#define m_scroll_on_output scroll_on_output
 #define m_cursor_mode cursor_mode
 #define m_keypad_mode keypad_mode
 #define m_has_selection has_selection
