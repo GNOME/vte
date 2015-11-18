@@ -468,6 +468,11 @@ public:
         bool widget_motion_notify(GdkEventMotion *event);
         void widget_draw(cairo_t *cr);
         void widget_screen_changed (GdkScreen *previous_screen);
+        void widget_get_preferred_width(int *minimum_width,
+                                        int *natural_width);
+        void widget_get_preferred_height(int *minimum_height,
+                                         int *natural_height);
+        void widget_size_allocate(GtkAllocation *allocation);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);

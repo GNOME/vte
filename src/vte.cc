@@ -9264,29 +9264,33 @@ vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *minimum_width,
 				 int       *natural_width)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_get_preferred_width(minimum_width, natural_width);
+}
 
+void
+VteTerminalPrivate::widget_get_preferred_width(int *minimum_width,
+                                               int *natural_width)
+{
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_width()\n");
 
-	terminal = VTE_TERMINAL(widget);
+	vte_terminal_ensure_font(m_terminal);
 
-	vte_terminal_ensure_font (terminal);
+        vte_terminal_refresh_size(m_terminal);
+	*minimum_width = m_char_width * 1;
+        *natural_width = m_char_width * m_column_count;
 
-        vte_terminal_refresh_size(terminal);
-	*minimum_width = terminal->pvt->char_width * 1;
-        *natural_width = terminal->pvt->char_width * terminal->pvt->column_count;
-
-	*minimum_width += terminal->pvt->padding.left +
-                          terminal->pvt->padding.right;
-	*natural_width += terminal->pvt->padding.left +
-                          terminal->pvt->padding.right;
+	*minimum_width += m_padding.left +
+                          m_padding.right;
+	*natural_width += m_padding.left +
+                          m_padding.right;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells.\n",
-                        terminal,
+                        m_terminal,
 			*minimum_width, *natural_width,
-			terminal->pvt->column_count,
-			terminal->pvt->row_count);
+			m_column_count,
+			m_row_count);
 }
 
 static void
@@ -9294,36 +9298,46 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 				  int       *minimum_height,
 				  int       *natural_height)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_get_preferred_height(minimum_height, natural_height);
+}
 
+void
+VteTerminalPrivate::widget_get_preferred_height(int *minimum_height,
+                                                int *natural_height)
+{
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_height()\n");
 
-	terminal = VTE_TERMINAL(widget);
+	vte_terminal_ensure_font(m_terminal);
 
-	vte_terminal_ensure_font (terminal);
+        vte_terminal_refresh_size(m_terminal);
+	*minimum_height = m_char_height * 1;
+        *natural_height = m_char_height * m_row_count;
 
-        vte_terminal_refresh_size(terminal);
-	*minimum_height = terminal->pvt->char_height * 1;
-        *natural_height = terminal->pvt->char_height * terminal->pvt->row_count;
-
-	*minimum_height += terminal->pvt->padding.left +
-			   terminal->pvt->padding.right;
-	*natural_height += terminal->pvt->padding.left +
-			   terminal->pvt->padding.right;
+	*minimum_height += m_padding.left +
+			   m_padding.right;
+	*natural_height += m_padding.left +
+			   m_padding.right;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells.\n",
-                        terminal,
+                        m_terminal,
 			*minimum_height, *natural_height,
-			terminal->pvt->column_count,
-			terminal->pvt->row_count);
+			m_column_count,
+			m_row_count);
 }
 
 /* Accept a given size from GTK+. */
 static void
 vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_size_allocate(allocation);
+}
+
+void
+VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
+{
 	glong width, height;
 	GtkAllocation current_allocation;
 	gboolean repaint, update_scrollback;
@@ -9331,52 +9345,50 @@ vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
 
-	terminal = VTE_TERMINAL(widget);
-
-	width = (allocation->width - (terminal->pvt->padding.left + terminal->pvt->padding.right)) /
-		terminal->pvt->char_width;
-	height = (allocation->height - (terminal->pvt->padding.top + terminal->pvt->padding.bottom)) /
-		 terminal->pvt->char_height;
+	width = (allocation->width - (m_padding.left + m_padding.right)) /
+		m_char_width;
+	height = (allocation->height - (m_padding.top + m_padding.bottom)) /
+		 m_char_height;
 	width = MAX(width, 1);
 	height = MAX(height, 1);
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] Sizing window to %dx%d (%ldx%ld).\n",
-                        terminal,
+                        m_terminal,
 			allocation->width, allocation->height,
 			width, height);
 
-	gtk_widget_get_allocation (widget, &current_allocation);
+	gtk_widget_get_allocation(m_widget, &current_allocation);
 
 	repaint = current_allocation.width != allocation->width
 			|| current_allocation.height != allocation->height;
 	update_scrollback = current_allocation.height != allocation->height;
 
 	/* Set our allocation to match the structure. */
-	gtk_widget_set_allocation (widget, allocation);
+	gtk_widget_set_allocation(m_widget, allocation);
 
-	if (width != terminal->pvt->column_count
-			|| height != terminal->pvt->row_count
+	if (width != m_column_count
+			|| height != m_row_count
 			|| update_scrollback)
 	{
 		/* Set the size of the pseudo-terminal. */
-		vte_terminal_set_size(terminal, width, height);
+		vte_terminal_set_size(m_terminal, width, height);
 
 		/* Notify viewers that the contents have changed. */
-		_vte_terminal_queue_contents_changed(terminal);
+		_vte_terminal_queue_contents_changed(m_terminal);
 	}
 
 	/* Resize the GDK window. */
-	if (gtk_widget_get_realized (widget)) {
-		gdk_window_move_resize (gtk_widget_get_window (widget),
+	if (gtk_widget_get_realized(m_widget)) {
+		gdk_window_move_resize(gtk_widget_get_window(m_widget),
 					allocation->x,
 					allocation->y,
 					allocation->width,
 					allocation->height);
 		/* Force a repaint if we were resized. */
 		if (repaint) {
-			reset_update_regions (terminal);
-			_vte_invalidate_all(terminal);
+			reset_update_regions(m_terminal);
+			invalidate_all();
 		}
 	}
 }
