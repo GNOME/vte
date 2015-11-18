@@ -8682,69 +8682,59 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 		screen->scroll_delta = new_scroll_delta;
 }
 
-/**
- * vte_terminal_set_size:
- * @terminal: a #VteTerminal
- * @columns: the desired number of columns
- * @rows: the desired number of rows
- *
- * Attempts to change the terminal's size in terms of rows and columns.  If
- * the attempt succeeds, the widget will resize itself to the proper size.
- */
 void
-vte_terminal_set_size(VteTerminal *terminal, glong columns, glong rows)
+VteTerminalPrivate::set_size(long columns,
+                             long rows)
 {
 	glong old_columns, old_rows;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Setting PTY size to %ldx%ld.\n",
 			columns, rows);
 
-	old_rows = terminal->pvt->row_count;
-	old_columns = terminal->pvt->column_count;
+	old_rows = m_row_count;
+	old_columns = m_column_count;
 
-	if (terminal->pvt->pty != NULL) {
+	if (m_pty != NULL) {
                 GError *error = NULL;
 
 		/* Try to set the terminal size, and read it back,
 		 * in case something went awry.
                  */
-		if (!vte_pty_set_size(terminal->pvt->pty, rows, columns, &error)) {
+		if (!vte_pty_set_size(m_pty, rows, columns, &error)) {
 			g_warning("%s\n", error->message);
                         g_error_free(error);
 		}
-		vte_terminal_refresh_size(terminal);
+		vte_terminal_refresh_size(m_terminal);
 	} else {
-		terminal->pvt->row_count = rows;
-		terminal->pvt->column_count = columns;
+		m_row_count = rows;
+		m_column_count = columns;
 	}
-	if (old_rows != terminal->pvt->row_count || old_columns != terminal->pvt->column_count) {
-                terminal->pvt->scrolling_restricted = FALSE;
+	if (old_rows != m_row_count || old_columns != m_column_count) {
+                m_scrolling_restricted = FALSE;
 
-                _vte_ring_set_visible_rows(terminal->pvt->normal_screen.row_data, terminal->pvt->row_count);
-                _vte_ring_set_visible_rows(terminal->pvt->alternate_screen.row_data, terminal->pvt->row_count);
+                _vte_ring_set_visible_rows(m_normal_screen.row_data, m_row_count);
+                _vte_ring_set_visible_rows(m_alternate_screen.row_data, m_row_count);
 
 		/* Resize the normal screen and (if rewrapping is enabled) rewrap it even if the alternate screen is visible: bug 415277 */
-		vte_terminal_screen_set_size(terminal, &terminal->pvt->normal_screen, old_columns, old_rows, terminal->pvt->rewrap_on_resize);
+		vte_terminal_screen_set_size(m_terminal, &m_normal_screen, old_columns, old_rows, m_rewrap_on_resize);
 		/* Resize the alternate screen if it's the current one, but never rewrap it: bug 336238 comment 60 */
-		if (terminal->pvt->screen == &terminal->pvt->alternate_screen)
-			vte_terminal_screen_set_size(terminal, &terminal->pvt->alternate_screen, old_columns, old_rows, FALSE);
+		if (m_screen == &m_alternate_screen)
+			vte_terminal_screen_set_size(m_terminal, &m_alternate_screen, old_columns, old_rows, FALSE);
 
                 /* Ensure scrollback buffers cover the screen. */
-                vte_terminal_set_scrollback_lines(terminal,
-                                                  terminal->pvt->scrollback_lines);
+                vte_terminal_set_scrollback_lines(m_terminal,
+                                                  m_scrollback_lines);
                 /* Ensure the cursor is valid */
-                terminal->pvt->cursor.row = CLAMP (terminal->pvt->cursor.row,
-                                                    _vte_ring_delta (terminal->pvt->screen->row_data),
-                                                    MAX (_vte_ring_delta (terminal->pvt->screen->row_data),
-                                                         _vte_ring_next (terminal->pvt->screen->row_data) - 1));
+                m_cursor.row = CLAMP (m_cursor.row,
+                                                    _vte_ring_delta (m_screen->row_data),
+                                                    MAX (_vte_ring_delta (m_screen->row_data),
+                                                         _vte_ring_next (m_screen->row_data) - 1));
 
-		_vte_terminal_adjust_adjustments_full (terminal);
-		gtk_widget_queue_resize_no_redraw (&terminal->widget);
+		_vte_terminal_adjust_adjustments_full(m_terminal);
+		gtk_widget_queue_resize_no_redraw(m_widget);
 		/* Our visible text changed. */
-		vte_terminal_emit_text_modified(terminal);
+		vte_terminal_emit_text_modified(m_terminal);
 	}
 }
 

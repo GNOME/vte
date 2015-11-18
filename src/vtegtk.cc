@@ -1717,6 +1717,26 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_set_size:
+ * @terminal: a #VteTerminal
+ * @columns: the desired number of columns
+ * @rows: the desired number of rows
+ *
+ * Attempts to change the terminal's size in terms of rows and columns.  If
+ * the attempt succeeds, the widget will resize itself to the proper size.
+ */
+void
+vte_terminal_set_size(VteTerminal *terminal,
+                      long columns,
+                      long rows)
+{
+        g_return_if_fail(columns >= 1);
+        g_return_if_fail(rows >= 1);
+
+        terminal->pvt->set_size(columns, rows);
+}
+
+/**
  * vte_terminal_get_allow_bold:
  * @terminal: a #VteTerminal
  *

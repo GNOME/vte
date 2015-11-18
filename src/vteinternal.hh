@@ -601,6 +601,9 @@ public:
         bool search_find(bool backward);
         bool search_set_wrap_around(bool wrap);
 
+        void set_size(long columns,
+                      long rows);
+
         bool process_word_char_exceptions(char const *str,
                                           gunichar **arrayp,
                                           gsize *lenp);
@@ -777,5 +780,6 @@ public:
 #define m_selection_end selection_end
 #define m_search_wrap_around search_wrap_around
 #define m_input_bytes input_bytes
+#define m_scrolling_restricted scrolling_restricted
 
 extern GTimer *process_timer;
