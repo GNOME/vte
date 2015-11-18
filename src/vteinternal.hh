@@ -520,7 +520,8 @@ public:
         bool maybe_send_mouse_button(GdkEventButton *event);
         bool maybe_send_mouse_drag(GdkEventMotion *event);
 
-
+        void feed_focus_event(bool in);
+        void maybe_feed_focus_event(bool in);
 };
 
 #define m_invalidated_all invalidated_all
@@ -554,4 +555,4 @@ public:
 #define m_mouse_xterm_extension mouse_xterm_extension
 #define m_mouse_urxvt_extension mouse_urxvt_extension
 #define m_modifiers modifiers
-
+#define m_focus_tracking_mode focus_tracking_mode

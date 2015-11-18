@@ -608,7 +608,7 @@ vte_set_focus_tracking_mode(VteTerminal *terminal,
         /* We immediately send the terminal a focus event, since otherwise
          * it has no way to know the current status.
          */
-        _vte_terminal_feed_focus_event(terminal, gtk_widget_has_focus(&terminal->widget));
+        terminal->pvt->feed_focus_event(gtk_widget_has_focus(&terminal->widget));
 }
 
 struct decset_t {
