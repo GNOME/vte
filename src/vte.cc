@@ -11753,110 +11753,68 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
         return terminal->pvt->current_file_uri;
 }
 
-/**
- * vte_terminal_set_pty:
- * @terminal: a #VteTerminal
- * @pty: (allow-none): a #VtePty, or %NULL
- *
- * Sets @pty as the PTY to use in @terminal.
- * Use %NULL to unset the PTY.
- */
-void
-vte_terminal_set_pty(VteTerminal *terminal,
-                            VtePty *pty)
+bool
+VteTerminalPrivate::set_pty(VtePty *new_pty)
 {
-        VteTerminalPrivate *pvt;
-        GObject *object;
-        long flags;
-        int pty_master;
+        if (new_pty == m_pty)
+                return false;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(pty == NULL || VTE_IS_PTY(pty));
+        if (m_pty != NULL) {
+                _vte_terminal_disconnect_pty_read(m_terminal);
+                _vte_terminal_disconnect_pty_write(m_terminal);
 
-        pvt = terminal->pvt;
-        if (pvt->pty == pty)
-                return;
-
-        object = G_OBJECT(terminal);
-
-        g_object_freeze_notify(object);
-
-        if (pvt->pty != NULL) {
-                _vte_terminal_disconnect_pty_read(terminal);
-                _vte_terminal_disconnect_pty_write(terminal);
-
-                if (terminal->pvt->pty_channel != NULL) {
-                        g_io_channel_unref (terminal->pvt->pty_channel);
-                        pvt->pty_channel = NULL;
+                if (m_pty_channel != NULL) {
+                        g_io_channel_unref (m_pty_channel);
+                        m_pty_channel = NULL;
                 }
 
 		/* Take one last shot at processing whatever data is pending,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
-		if (terminal->pvt->incoming != NULL) {
-			vte_terminal_process_incoming(terminal);
-			_vte_incoming_chunks_release (terminal->pvt->incoming);
-			terminal->pvt->incoming = NULL;
-			terminal->pvt->input_bytes = 0;
+		if (m_incoming != NULL) {
+			vte_terminal_process_incoming(m_terminal);
+			_vte_incoming_chunks_release (m_incoming);
+			m_incoming = NULL;
+			m_input_bytes = 0;
 		}
-		g_array_set_size(terminal->pvt->pending, 0);
-		vte_terminal_stop_processing (terminal);
+		g_array_set_size(m_pending, 0);
+		vte_terminal_stop_processing(m_terminal);
 
 		/* Clear the outgoing buffer as well. */
-		_vte_byte_array_clear(terminal->pvt->outgoing);
+		_vte_byte_array_clear(m_outgoing);
 
-                g_object_unref(pvt->pty);
-                pvt->pty = NULL;
+                g_object_unref(m_pty);
+                m_pty = NULL;
         }
 
-        if (pty == NULL) {
-                pvt->pty = NULL;
-                g_object_notify(object, "pty");
-                g_object_thaw_notify(object);
-                return;
+        if (new_pty == NULL) {
+                m_pty = NULL;
+                return true;
         }
 
-        pvt->pty = (VtePty *)g_object_ref(pty);
-        pty_master = vte_pty_get_fd(pvt->pty);
+        m_pty = (VtePty *)g_object_ref(new_pty);
+        int pty_master = vte_pty_get_fd(m_pty);
 
-        pvt->pty_channel = g_io_channel_unix_new (pty_master);
-        g_io_channel_set_close_on_unref (pvt->pty_channel, FALSE);
+        m_pty_channel = g_io_channel_unix_new(pty_master);
+        g_io_channel_set_close_on_unref(m_pty_channel, FALSE);
 
         /* FIXMEchpe: vte_pty_open_unix98 does the inverse ... */
         /* Set the pty to be non-blocking. */
-        flags = fcntl(pty_master, F_GETFL);
+        long flags = fcntl(pty_master, F_GETFL);
         if ((flags & O_NONBLOCK) == 0) {
                 fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
         }
 
-        vte_terminal_set_size(terminal,
-                              terminal->pvt->column_count,
-                              terminal->pvt->row_count);
+        vte_terminal_set_size(m_terminal,
+                              m_column_count,
+                              m_row_count);
 
-        _vte_terminal_setup_utf8 (terminal);
+        _vte_terminal_setup_utf8(m_terminal);
 
         /* Open channels to listen for input on. */
-        _vte_terminal_connect_pty_read (terminal);
+        _vte_terminal_connect_pty_read(m_terminal);
 
-        g_object_notify(object, "pty");
-
-        g_object_thaw_notify(object);
-}
-
-/**
- * vte_terminal_get_pty:
- * @terminal: a #VteTerminal
- *
- * Returns the #VtePty of @terminal.
- *
- * Returns: (transfer none): a #VtePty, or %NULL
- */
-VtePty *
-vte_terminal_get_pty(VteTerminal *terminal)
-{
-        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
-
-        return terminal->pvt->pty;
+        return true;
 }
 
 /* We need this bit of glue to ensure that accessible objects will always

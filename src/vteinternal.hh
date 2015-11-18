@@ -604,6 +604,7 @@ public:
                                           gsize *lenp);
 
         bool set_input_enabled(bool enabled);
+        bool set_pty(VtePty *pty);
         bool set_word_char_exceptions(char const* exceptions);
 
         bool write_contents_sync (GOutputStream *stream,
@@ -758,5 +759,6 @@ public:
 #define m_selection_start selection_start
 #define m_selection_end selection_end
 #define m_search_wrap_around search_wrap_around
+#define m_input_bytes input_bytes
 
 extern GTimer *process_timer;

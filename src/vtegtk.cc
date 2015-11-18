@@ -1763,6 +1763,46 @@ vte_terminal_set_input_enabled (VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_set_pty:
+ * @terminal: a #VteTerminal
+ * @pty: (allow-none): a #VtePty, or %NULL
+ *
+ * Sets @pty as the PTY to use in @terminal.
+ * Use %NULL to unset the PTY.
+ */
+void
+vte_terminal_set_pty(VteTerminal *terminal,
+                     VtePty *pty)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(pty == NULL || VTE_IS_PTY(pty));
+
+        GObject *object = G_OBJECT(terminal);
+        g_object_freeze_notify(object);
+
+        if (terminal->pvt->set_pty(pty))
+                g_object_notify_by_pspec(object, pspecs[PROP_PTY]);
+
+        g_object_thaw_notify(object);
+}
+
+/**
+ * vte_terminal_get_pty:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the #VtePty of @terminal.
+ *
+ * Returns: (transfer none): a #VtePty, or %NULL
+ */
+VtePty *
+vte_terminal_get_pty(VteTerminal *terminal)
+{
+        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
+
+        return terminal->pvt->pty;
+}
+
+/**
  * vte_terminal_get_word_char_exceptions:
  * @terminal: a #VteTerminal
  *
