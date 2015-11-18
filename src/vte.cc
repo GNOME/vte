@@ -2040,78 +2040,57 @@ VteTerminalPrivate::regex_match_check(GdkEvent *event,
         return regex_match_check(col, row - (long)m_screen->scroll_delta, tag);
 }
 
-/**
- * vte_terminal_event_check_regex_simple:
- * @terminal: a #VteTerminal
- * @event: a #GdkEvent
- * @regexes: (array length=n_regexes): an array of #VteRegex
- * @n_regexes: number of items in @regexes
- * @match_flags: PCRE2 match flags, or 0
- * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
- *
- * Checks each regex in @regexes if the text in and around the position of
- * the event matches the regular expressions.  If a match exists, the matched
- * text is stored in @matches at the position of the regex in @regexes; otherwise
- * %NULL is stored there.
- *
- * Returns: %TRUE iff any of the regexes produced a match
- *
- * Since: 0.44
- */
-gboolean
-vte_terminal_event_check_regex_simple(VteTerminal *terminal,
-                                      GdkEvent *event,
-                                      VteRegex **regexes,
-                                      gsize n_regexes,
-                                      guint32 match_flags,
-                                      char **matches)
+bool
+VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
+                                            VteRegex **regexes,
+                                            gsize n_regexes,
+                                            guint32 match_flags,
+                                            char **matches)
 {
 #ifdef WITH_PCRE2
-        VteTerminalPrivate *pvt = terminal->pvt;
 	gsize offset, sattr, eattr;
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
-        gboolean any_matches = FALSE;
+        bool any_matches = false;
         long col, row;
         guint i;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(event != NULL, FALSE);
-        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
-        g_return_val_if_fail(matches != NULL, FALSE);
+        g_assert(event);
+        g_assert(regexes != nullptr || n_regexes == 0);
+        g_assert(matches != nullptr);
 
-        if (!rowcol_from_event(terminal, event, &col, &row))
-                return FALSE;
+        if (!rowcol_from_event(m_terminal, event, &col, &row))
+                return false;
 
-	if (pvt->match_contents == NULL) {
-		pvt->match_contents_refresh();
+	if (m_match_contents == nullptr) {
+		match_contents_refresh();
 	}
 
-        if (!pvt->match_rowcol_to_offset(col, row,
+        if (!match_rowcol_to_offset(col, row,
                                     &offset, &sattr, &eattr))
-                return FALSE;
+                return false;
 
-        match_context = terminal->pvt->create_match_context();
-        match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
+        match_context = create_match_context();
+        match_data = pcre2_match_data_create_8(256 /* should be plenty */, nullptr /* general context */);
 
         for (i = 0; i < n_regexes; i++) {
                 gsize start, end, sblank, eblank;
-                char *match;
+                char *match_string;
 
-                g_return_val_if_fail(regexes[i] != NULL, FALSE);
+                g_return_val_if_fail(regexes[i] != nullptr, false);
 
-                if (pvt->match_check_pcre(
+                if (match_check_pcre(
                                      match_data, match_context,
                                      regexes[i], match_flags,
                                      sattr, eattr, offset,
-                                     &match,
+                                     &match_string,
                                      &start, &end,
                                      &sblank, &eblank)) {
-                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched regex with text: %s\n", match);
-                        matches[i] = match;
-                        any_matches = TRUE;
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched regex with text: %s\n", match_string);
+                        matches[i] = match_string;
+                        any_matches = true;
                 } else
-                        matches[i] = NULL;
+                        matches[i] = nullptr;
         }
 
         pcre2_match_data_free_8(match_data);
@@ -2119,76 +2098,54 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
 
         return any_matches;
 #else
-        return FALSE;
+        return false;
 #endif
 }
 
-/**
- * vte_terminal_event_check_gregex_simple:
- * @terminal: a #VteTerminal
- * @event: a #GdkEvent
- * @regexes: (array length=n_regexes): an array of #GRegex
- * @n_regexes: number of items in @regexes
- * @match_flags: the #GRegexMatchFlags to use when matching the regexes
- * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
- *
- * Checks each regex in @regexes if the text in and around the position of
- * the event matches the regular expressions.  If a match exists, the matched
- * text is stored in @matches at the position of the regex in @regexes; otherwise
- * %NULL is stored there.
- *
- * Returns: %TRUE iff any of the regexes produced a match
- *
- * Since: 0.44
- * Deprecated: 0.44: Use vte_terminal_event_check_regex_simple() instead.
- */
-gboolean
-vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
-                                       GdkEvent *event,
-                                       GRegex **regexes,
-                                       gsize n_regexes,
-                                       GRegexMatchFlags match_flags,
-                                       char **matches)
+bool
+VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
+                                            GRegex **regexes,
+                                            gsize n_regexes,
+                                            GRegexMatchFlags match_flags,
+                                            char **matches)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
 	gsize offset, sattr, eattr;
         gboolean any_matches = FALSE;
         long col, row;
         guint i;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(event != NULL, FALSE);
-        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
-        g_return_val_if_fail(matches != NULL, FALSE);
+        g_assert(event);
+        g_assert(regexes != nullptr || n_regexes == 0);
+        g_assert(matches != nullptr);
 
-        if (!rowcol_from_event(terminal, event, &col, &row))
-                return FALSE;
+        if (!rowcol_from_event(m_terminal, event, &col, &row))
+                return false;
 
-	if (pvt->match_contents == NULL) {
-		pvt->match_contents_refresh();
+	if (match_contents == nullptr) {
+		match_contents_refresh();
 	}
 
-        if (!pvt->match_rowcol_to_offset(col, row,
+        if (!match_rowcol_to_offset(col, row,
                                     &offset, &sattr, &eattr))
-                return FALSE;
+                return false;
 
         for (i = 0; i < n_regexes; i++) {
                 gsize start, end, sblank, eblank;
-                char *match;
+                char *match_string;
 
-                g_return_val_if_fail(regexes[i] != NULL, FALSE);
+                g_return_val_if_fail(regexes[i] != nullptr, FALSE);
 
-                if (pvt->match_check_gregex(
+                if (match_check_gregex(
                                        regexes[i], match_flags,
                                        sattr, eattr, offset,
-                                       &match,
+                                       &match_string,
                                        &start, &end,
                                        &sblank, &eblank)) {
-                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched gregex with text: %s\n", match);
-                        matches[i] = match;
-                        any_matches = TRUE;
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched gregex with text: %s\n", match_string);
+                        matches[i] = match_string;
+                        any_matches = true;
                 } else
-                        matches[i] = NULL;
+                        matches[i] = nullptr;
         }
 
         return any_matches;
@@ -2427,71 +2384,57 @@ _vte_terminal_setup_utf8 (VteTerminal *terminal)
         }
 }
 
-/**
- * vte_terminal_set_encoding:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_encoding:
  * @codeset: (allow-none): a valid #GIConv target, or %NULL to use UTF-8
- * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Changes the encoding the terminal will expect data from the child to
  * be encoded with.  For certain terminal types, applications executing in the
  * terminal can change the encoding. If @codeset is %NULL, it uses "UTF-8".
  *
- * Returns: %TRUE if the encoding could be changed to the specified one,
- *  or %FALSE with @error set to %G_CONVERT_ERROR_NO_CONVERSION.
+ * Returns: %true if the encoding could be changed to the specified one
  */
-gboolean
-vte_terminal_set_encoding(VteTerminal *terminal,
-                          const char *codeset,
-                          GError **error)
+bool
+VteTerminalPrivate::set_encoding(char const* codeset)
 {
-        VteTerminalPrivate *pvt;
-        GObject *object;
-	const char *old_codeset;
 	VteConv conv;
-	char *obuf1, *obuf2;
-	gsize bytes_written;
 
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+        GObject *object = G_OBJECT(m_terminal);
 
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-
-	old_codeset = pvt->encoding;
 	if (codeset == NULL) {
                 codeset = "UTF-8";
 	}
-	if ((old_codeset != NULL) && g_str_equal(codeset, old_codeset)) {
+	if ((m_encoding != nullptr) && g_str_equal(codeset, m_encoding)) {
 		/* Nothing to do! */
-		return TRUE;
+		return true;
 	}
 
 	/* Open new conversions. */
 	conv = _vte_conv_open(codeset, "UTF-8");
-	if (conv == VTE_INVALID_CONV) {
-		g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
-                            _("Unable to convert characters from %s to %s."),
-                            "UTF-8", codeset);
-                return FALSE;
-        }
+	if (conv == VTE_INVALID_CONV)
+                return false;
+
+	auto old_codeset = m_encoding;
 
         g_object_freeze_notify(object);
 
-	if (terminal->pvt->outgoing_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(terminal->pvt->outgoing_conv);
+	if (m_outgoing_conv != VTE_INVALID_CONV) {
+		_vte_conv_close(m_outgoing_conv);
 	}
-	terminal->pvt->outgoing_conv = conv;
+	m_outgoing_conv = conv;
 
 	/* Set the terminal's encoding to the new value. */
-	terminal->pvt->encoding = g_intern_string(codeset);
+	m_encoding = g_intern_string(codeset);
 
 	/* Convert any buffered output bytes. */
-	if ((_vte_byte_array_length(terminal->pvt->outgoing) > 0) &&
-	    (old_codeset != NULL)) {
+	if ((_vte_byte_array_length(m_outgoing) > 0) &&
+	    (old_codeset != nullptr)) {
+                char *obuf1, *obuf2;
+                gsize bytes_written;
+
 		/* Convert back to UTF-8. */
-		obuf1 = g_convert((gchar *)terminal->pvt->outgoing->data,
-				  _vte_byte_array_length(terminal->pvt->outgoing),
+		obuf1 = g_convert((char *)m_outgoing->data,
+				  _vte_byte_array_length(m_outgoing),
 				  "UTF-8",
 				  old_codeset,
 				  NULL,
@@ -2507,8 +2450,8 @@ vte_terminal_set_encoding(VteTerminal *terminal,
 					  &bytes_written,
 					  NULL);
 			if (obuf2 != NULL) {
-				_vte_byte_array_clear(terminal->pvt->outgoing);
-				_vte_byte_array_append(terminal->pvt->outgoing,
+				_vte_byte_array_clear(m_outgoing);
+				_vte_byte_array_append(m_outgoing,
 						   obuf2, bytes_written);
 				g_free(obuf2);
 			}
@@ -2517,33 +2460,17 @@ vte_terminal_set_encoding(VteTerminal *terminal,
 	}
 
 	/* Set the encoding for incoming text. */
-	_vte_iso2022_state_set_codeset(terminal->pvt->iso2022,
-				       terminal->pvt->encoding);
+	_vte_iso2022_state_set_codeset(m_iso2022,
+				       m_encoding);
 
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Set terminal encoding to `%s'.\n",
-			terminal->pvt->encoding);
-	vte_terminal_emit_encoding_changed(terminal);
+			m_encoding);
+	vte_terminal_emit_encoding_changed(m_terminal);
 
         g_object_thaw_notify(object);
 
-        return TRUE;
-}
-
-/**
- * vte_terminal_get_encoding:
- * @terminal: a #VteTerminal
- *
- * Determines the name of the encoding in which the terminal expects data to be
- * encoded.
- *
- * Returns: (transfer none): the current encoding for the terminal
- */
-const char *
-vte_terminal_get_encoding(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->encoding;
+        return true;
 }
 
 /**

@@ -511,6 +511,17 @@ public:
         void match_hilite(long x,
                           long y);
 
+        bool regex_match_check_extra(GdkEvent *event,
+                                     VteRegex **regexes,
+                                     gsize n_regexes,
+                                     guint32 match_flags,
+                                     char **matches);
+        bool regex_match_check_extra(GdkEvent *event,
+                                     GRegex **regexes,
+                                     gsize n_regexes,
+                                     GRegexMatchFlags match_flags,
+                                     char **matches);
+
         int regex_match_add(struct vte_match_regex *new_regex_match);
         struct vte_match_regex *regex_match_get(int tag);
         char *regex_match_check(vte::grid::column_t column,
@@ -635,6 +646,7 @@ public:
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
         bool set_delete_binding(VteEraseBinding binding);
+        bool set_encoding(char const* codeset);
         bool set_font_desc(PangoFontDescription const* desc);
         bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);

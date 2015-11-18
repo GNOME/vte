@@ -1710,6 +1710,75 @@ vte_terminal_match_check_event(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_event_check_regex_simple:
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ * @regexes: (array length=n_regexes): an array of #VteRegex
+ * @n_regexes: number of items in @regexes
+ * @match_flags: PCRE2 match flags, or 0
+ * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
+ *
+ * Checks each regex in @regexes if the text in and around the position of
+ * the event matches the regular expressions.  If a match exists, the matched
+ * text is stored in @matches at the position of the regex in @regexes; otherwise
+ * %NULL is stored there.
+ *
+ * Returns: %TRUE iff any of the regexes produced a match
+ *
+ * Since: 0.44
+ */
+gboolean
+vte_terminal_event_check_regex_simple(VteTerminal *terminal,
+                                      GdkEvent *event,
+                                      VteRegex **regexes,
+                                      gsize n_regexes,
+                                      guint32 match_flags,
+                                      char **matches)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(event != NULL, FALSE);
+        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
+        g_return_val_if_fail(matches != NULL, FALSE);
+
+        return terminal->pvt->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
+}
+
+/**
+ * vte_terminal_event_check_gregex_simple:
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ * @regexes: (array length=n_regexes): an array of #GRegex
+ * @n_regexes: number of items in @regexes
+ * @match_flags: the #GRegexMatchFlags to use when matching the regexes
+ * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
+ *
+ * Checks each regex in @regexes if the text in and around the position of
+ * the event matches the regular expressions.  If a match exists, the matched
+ * text is stored in @matches at the position of the regex in @regexes; otherwise
+ * %NULL is stored there.
+ *
+ * Returns: %TRUE iff any of the regexes produced a match
+ *
+ * Since: 0.44
+ * Deprecated: 0.44: Use vte_terminal_event_check_regex_simple() instead.
+ */
+gboolean
+vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
+                                       GdkEvent *event,
+                                       GRegex **regexes,
+                                       gsize n_regexes,
+                                       GRegexMatchFlags match_flags,
+                                       char **matches)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(event != NULL, FALSE);
+        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
+        g_return_val_if_fail(matches != NULL, FALSE);
+
+        return terminal->pvt->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
+}
+
+/**
  * vte_terminal_match_set_cursor:
  * @terminal: a #VteTerminal
  * @tag: the tag of the regex which should use the specified cursor
@@ -2375,6 +2444,58 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 
         if (terminal->pvt->set_delete_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
+}
+
+/**
+ * vte_terminal_get_encoding:
+ * @terminal: a #VteTerminal
+ *
+ * Determines the name of the encoding in which the terminal expects data to be
+ * encoded.
+ *
+ * Returns: (transfer none): the current encoding for the terminal
+ */
+const char *
+vte_terminal_get_encoding(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return terminal->pvt->encoding;
+}
+
+/**
+ * vte_terminal_set_encoding:
+ * @terminal: a #VteTerminal
+ * @codeset: (allow-none): a valid #GIConv target, or %NULL to use UTF-8
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Changes the encoding the terminal will expect data from the child to
+ * be encoded with.  For certain terminal types, applications executing in the
+ * terminal can change the encoding. If @codeset is %NULL, it uses "UTF-8".
+ *
+ * Returns: %TRUE if the encoding could be changed to the specified one,
+ *  or %FALSE with @error set to %G_CONVERT_ERROR_NO_CONVERSION.
+ */
+gboolean
+vte_terminal_set_encoding(VteTerminal *terminal,
+                          const char *codeset,
+                          GError **error)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+        GObject *object = G_OBJECT(terminal);
+        g_object_freeze_notify(object);
+
+        bool rv = terminal->pvt->set_encoding(codeset);
+        if (rv)
+                g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
+        else
+                g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
+                            _("Unable to convert characters from %s to %s."),
+                            "UTF-8", codeset);
+
+        g_object_thaw_notify(object);
+        return rv;
 }
 
 /**
