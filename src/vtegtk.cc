@@ -1846,6 +1846,43 @@ vte_terminal_set_input_enabled (VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_get_mouse_autohide:
+ * @terminal: a #VteTerminal
+ *
+ * Determines the value of the terminal's mouse autohide setting.  When
+ * autohiding is enabled, the mouse cursor will be hidden when the user presses
+ * a key and shown when the user moves the mouse.  This setting can be changed
+ * using vte_terminal_set_mouse_autohide().
+ *
+ * Returns: %TRUE if autohiding is enabled, %FALSE if not
+ */
+gboolean
+vte_terminal_get_mouse_autohide(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->mouse_autohide;
+}
+
+/**
+ * vte_terminal_set_mouse_autohide:
+ * @terminal: a #VteTerminal
+ * @setting: whether the mouse pointer should autohide
+ *
+ * Changes the value of the terminal's mouse autohide setting.  When autohiding
+ * is enabled, the mouse cursor will be hidden when the user presses a key and
+ * shown when the user moves the mouse.  This setting can be read using
+ * vte_terminal_get_mouse_autohide().
+ */
+void
+vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (terminal->pvt->set_mouse_autohide(setting != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_MOUSE_POINTER_AUTOHIDE]);
+}
+
+/**
  * vte_terminal_set_pty:
  * @terminal: a #VteTerminal
  * @pty: (allow-none): a #VtePty, or %NULL
