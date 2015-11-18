@@ -2365,6 +2365,157 @@ vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
 }
 
 /**
+ * vte_terminal_set_color_background:
+ * @terminal: a #VteTerminal
+ * @background: the new background color
+ *
+ * Sets the background color for text which does not have a specific background
+ * color assigned.  Only has effect when no background image is set and when
+ * the terminal is not transparent.
+ */
+void
+vte_terminal_set_color_background(VteTerminal *terminal,
+                                  const GdkRGBA *background)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(background != NULL);
+        terminal->pvt->set_color_background(background);
+}
+
+/**
+ * vte_terminal_set_color_bold:
+ * @terminal: a #VteTerminal
+ * @bold: (allow-none): the new bold color or %NULL
+ *
+ * Sets the color used to draw bold text in the default foreground color.
+ * If @bold is %NULL then the default color is used.
+ */
+void
+vte_terminal_set_color_bold(VteTerminal *terminal,
+                            const GdkRGBA *bold)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->set_color_bold(bold);
+}
+
+/**
+ * vte_terminal_set_color_cursor:
+ * @terminal: a #VteTerminal
+ * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
+ *
+ * Sets the background color for text which is under the cursor.  If %NULL, text
+ * under the cursor will be drawn with foreground and background colors
+ * reversed.
+ */
+void
+vte_terminal_set_color_cursor(VteTerminal *terminal,
+                              const GdkRGBA *cursor_background)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->set_color_cursor(cursor_background);
+}
+
+/**
+ * vte_terminal_set_color_foreground:
+ * @terminal: a #VteTerminal
+ * @foreground: the new foreground color
+ *
+ * Sets the foreground color used to draw normal text.
+ */
+void
+vte_terminal_set_color_foreground(VteTerminal *terminal,
+                                  const GdkRGBA *foreground)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(foreground != NULL);
+        terminal->pvt->set_color_foreground(foreground);
+}
+
+/**
+ * vte_terminal_set_color_highlight:
+ * @terminal: a #VteTerminal
+ * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
+ *
+ * Sets the background color for text which is highlighted.  If %NULL,
+ * it is unset.  If neither highlight background nor highlight foreground are set,
+ * highlighted text (which is usually highlighted because it is selected) will
+ * be drawn with foreground and background colors reversed.
+ */
+void
+vte_terminal_set_color_highlight(VteTerminal *terminal,
+                                 const GdkRGBA *highlight_background)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->set_color_highlight(highlight_background);
+}
+
+/**
+ * vte_terminal_set_color_highlight_foreground:
+ * @terminal: a #VteTerminal
+ * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
+ *
+ * Sets the foreground color for text which is highlighted.  If %NULL,
+ * it is unset.  If neither highlight background nor highlight foreground are set,
+ * highlighted text (which is usually highlighted because it is selected) will
+ * be drawn with foreground and background colors reversed.
+ */
+void
+vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
+                                            const GdkRGBA *highlight_foreground)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->set_color_highlight_foreground(highlight_foreground);
+}
+
+/**
+ * vte_terminal_set_colors:
+ * @terminal: a #VteTerminal
+ * @foreground: (allow-none): the new foreground color, or %NULL
+ * @background: (allow-none): the new background color, or %NULL
+ * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA) (allow-none): the color palette
+ * @palette_size: the number of entries in @palette
+ *
+ * @palette specifies the new values for the 256 palette colors: 8 standard colors,
+ * their 8 bright counterparts, 6x6x6 color cube, and 24 grayscale colors.
+ * Omitted entries will default to a hardcoded value.
+ *
+ * @palette_size must be 0, 8, 16, 232 or 256.
+ *
+ * If @foreground is %NULL and @palette_size is greater than 0, the new foreground
+ * color is taken from @palette[7].  If @background is %NULL and @palette_size is
+ * greater than 0, the new background color is taken from @palette[0].
+ */
+void
+vte_terminal_set_colors(VteTerminal *terminal,
+                        const GdkRGBA *foreground,
+                        const GdkRGBA *background,
+                        const GdkRGBA *palette,
+                        gsize palette_size)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	g_return_if_fail((palette_size == 0) ||
+			 (palette_size == 8) ||
+			 (palette_size == 16) ||
+			 (palette_size == 232) ||
+			 (palette_size == 256));
+
+        terminal->pvt->set_colors(foreground, background, palette, palette_size);
+}
+
+/**
+ * vte_terminal_set_default_colors:
+ * @terminal: a #VteTerminal
+ *
+ * Reset the terminal palette to reasonable compiled-in default color.
+ */
+void
+vte_terminal_set_default_colors(VteTerminal *terminal)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->set_colors(nullptr, nullptr, nullptr, 0);
+}
+
+/**
  * vte_terminal_get_column_count:
  * @terminal: a #VteTerminal
  *

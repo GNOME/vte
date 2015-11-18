@@ -644,6 +644,16 @@ public:
         bool set_allow_bold(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
         bool set_cjk_ambiguous_width(int width);
+        void set_color_background(GdkRGBA const *background);
+        void set_color_bold(GdkRGBA const* bold);
+        void set_color_cursor(GdkRGBA const* cursor_background);
+        void set_color_foreground(GdkRGBA const* foreground);
+        void set_color_highlight(GdkRGBA const *highlight_background);
+        void set_color_highlight_foreground(GdkRGBA const *highlight_foreground);
+        void set_colors(GdkRGBA const *foreground,
+                        GdkRGBA const *background,
+                        GdkRGBA const *palette,
+                        gsize palette_size);
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
         bool set_delete_binding(VteEraseBinding binding);

@@ -3008,60 +3008,48 @@ _pango_color_from_rgba(PangoColor *color,
 	return color;
 }
 
-/**
- * vte_terminal_set_color_bold:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_color_bold:
  * @bold: (allow-none): the new bold color or %NULL
  *
  * Sets the color used to draw bold text in the default foreground color.
  * If @bold is %NULL then the default color is used.
  */
 void
-vte_terminal_set_color_bold(VteTerminal *terminal,
-                                 const GdkRGBA *bold)
+VteTerminalPrivate::set_color_bold(GdkRGBA const* bold)
 {
 	PangoColor color;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	if (bold == NULL)
-	{
-		vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
-					   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
+	if (bold == nullptr) {
+		vte_terminal_generate_bold(_vte_terminal_get_color(m_terminal, VTE_DEFAULT_FG),
+					   _vte_terminal_get_color(m_terminal, VTE_DEFAULT_BG),
 					   1.8,
 					   &color);
-	}
-	else
-	{
+	} else {
 		_pango_color_from_rgba(&color, bold);
 	}
 
-	_vte_terminal_set_color_bold(terminal, &color);
+	_vte_terminal_set_color_bold(m_terminal, &color);
 }
 
-/**
- * vte_terminal_set_color_foreground:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_color_foreground:
  * @foreground: the new foreground color
  *
  * Sets the foreground color used to draw normal text.
  */
 void
-vte_terminal_set_color_foreground(VteTerminal *terminal,
-				       const GdkRGBA *foreground)
+VteTerminalPrivate::set_color_foreground(GdkRGBA const* foreground)
 {
+        g_assert(foreground != nullptr);
+
 	PangoColor color;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(foreground != NULL);
-
-	_vte_terminal_set_color_foreground(terminal,
+	_vte_terminal_set_color_foreground(m_terminal,
                                            _pango_color_from_rgba(&color, foreground));
 }
 
-/**
- * vte_terminal_set_color_background:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_color_background:
  * @background: the new background color
  *
  * Sets the background color for text which does not have a specific background
@@ -3069,22 +3057,18 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
  * the terminal is not transparent.
  */
 void
-vte_terminal_set_color_background(VteTerminal *terminal,
-				       const GdkRGBA *background)
+VteTerminalPrivate::set_color_background(GdkRGBA const *background)
 {
-	PangoColor color;
+        g_assert(background != nullptr);
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(background != NULL);
-
-	_vte_terminal_set_color_background(terminal,
+        PangoColor color;
+	_vte_terminal_set_color_background(m_terminal,
                                            _pango_color_from_rgba(&color, background));
-        _vte_terminal_set_background_alpha(terminal, background->alpha);
+        _vte_terminal_set_background_alpha(m_terminal, background->alpha);
 }
 
-/**
- * vte_terminal_set_color_cursor:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_color_cursor:
  * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
  *
  * Sets the background color for text which is under the cursor.  If %NULL, text
@@ -3092,20 +3076,15 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  * reversed.
  */
 void
-vte_terminal_set_color_cursor(VteTerminal *terminal,
-				   const GdkRGBA *cursor_background)
+VteTerminalPrivate::set_color_cursor(GdkRGBA const* cursor_background)
 {
         PangoColor color;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	_vte_terminal_set_color_cursor(terminal,
+	_vte_terminal_set_color_cursor(m_terminal,
                                        _pango_color_from_rgba(&color, cursor_background));
 }
 
-/**
- * vte_terminal_set_color_highlight:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_color_highlight:
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
  * Sets the background color for text which is highlighted.  If %NULL,
@@ -3114,20 +3093,15 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
  * be drawn with foreground and background colors reversed.
  */
 void
-vte_terminal_set_color_highlight(VteTerminal *terminal,
-				      const GdkRGBA *highlight_background)
+VteTerminalPrivate::set_color_highlight(GdkRGBA const *highlight_background)
 {
 	PangoColor color;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	_vte_terminal_set_color_highlight(terminal,
+	_vte_terminal_set_color_highlight(m_terminal,
                                           _pango_color_from_rgba(&color, highlight_background));
 }
 
 /**
- * vte_terminal_set_color_highlight_foreground:
- * @terminal: a #VteTerminal
+ * VteTerminalPrivate::set_color_highlight_foreground:
  * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
  *
  * Sets the foreground color for text which is highlighted.  If %NULL,
@@ -3136,20 +3110,15 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
  * be drawn with foreground and background colors reversed.
  */
 void
-vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
-						 const GdkRGBA *highlight_foreground)
+VteTerminalPrivate::set_color_highlight_foreground(GdkRGBA const *highlight_foreground)
 {
 	PangoColor color;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	_vte_terminal_set_color_highlight_foreground(terminal,
+	_vte_terminal_set_color_highlight_foreground(m_terminal,
                                                      _pango_color_from_rgba(&color, highlight_foreground));
 }
 
-/**
- * vte_terminal_set_colors:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::set_colors:
  * @foreground: (allow-none): the new foreground color, or %NULL
  * @background: (allow-none): the new background color, or %NULL
  * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA) (allow-none): the color palette
@@ -3166,47 +3135,32 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
  * greater than 0, the new background color is taken from @palette[0].
  */
 void
-vte_terminal_set_colors(VteTerminal *terminal,
-			     const GdkRGBA *foreground,
-			     const GdkRGBA *background,
-			     const GdkRGBA *palette,
-			     gsize palette_size)
+VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
+                               GdkRGBA const *background,
+                               GdkRGBA const *palette_,
+                               gsize palette_size)
 {
 	PangoColor fg, bg, *pal;
 	gsize i;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail((palette_size == 0) ||
-			 (palette_size == 8) ||
-			 (palette_size == 16) ||
-			 (palette_size == 232) ||
-			 (palette_size == 256));
+	g_assert((palette_size == 0) ||
+                 (palette_size == 8) ||
+                 (palette_size == 16) ||
+                 (palette_size == 232) ||
+                 (palette_size == 256));
 
-	pal = g_new (PangoColor, palette_size);
+	pal = g_new(PangoColor, palette_size);
 	for (i = 0; i < palette_size; ++i)
-                _pango_color_from_rgba(&pal[i], &palette[i]);
+                _pango_color_from_rgba(&pal[i], &palette_[i]);
 
-	_vte_terminal_set_colors(terminal,
+	_vte_terminal_set_colors(m_terminal,
                                  _pango_color_from_rgba(&fg, foreground),
                                  _pango_color_from_rgba(&bg, background),
                                  pal, palette_size);
 
-        _vte_terminal_set_background_alpha(terminal, background ? background->alpha : 1.0);
+        _vte_terminal_set_background_alpha(m_terminal, background ? background->alpha : 1.0);
 
 	g_free (pal);
-}
-
-/**
- * vte_terminal_set_default_colors:
- * @terminal: a #VteTerminal
- *
- * Reset the terminal palette to reasonable compiled-in default color.
- */
-void
-vte_terminal_set_default_colors(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_terminal_set_colors(terminal, NULL, NULL, NULL, 0);
 }
 
 /*
