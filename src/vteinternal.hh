@@ -643,6 +643,7 @@ public:
         bool set_audible_bell(bool setting);
         bool set_allow_bold(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
+        bool set_cjk_ambiguous_width(int width);
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
         bool set_delete_binding(VteEraseBinding binding);

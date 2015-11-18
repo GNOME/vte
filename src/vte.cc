@@ -2473,38 +2473,16 @@ VteTerminalPrivate::set_encoding(char const* codeset)
         return true;
 }
 
-/**
- * vte_terminal_set_cjk_ambiguous_width:
- * @terminal: a #VteTerminal
- * @width: either 1 (narrow) or 2 (wide)
- *
- * This setting controls whether ambiguous-width characters are narrow or wide
- * when using the UTF-8 encoding (vte_terminal_set_encoding()). In all other encodings,
- * the width of ambiguous-width characters is fixed.
- */
-void
-vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
+bool
+VteTerminalPrivate::set_cjk_ambiguous_width(int width)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(width == 1 || width == 2);
+        g_assert(width == 1 || width == 2);
 
-        terminal->pvt->utf8_ambiguous_width = width;
-}
+        if (m_utf8_ambiguous_width == width)
+                return false;
 
-/**
- * vte_terminal_get_cjk_ambiguous_width:
- * @terminal: a #VteTerminal
- *
- * Returns whether ambiguous-width characters are narrow or wide when using
- * the UTF-8 encoding (vte_terminal_set_encoding()).
- *
- * Returns: 1 if ambiguous-width characters are narrow, or 2 if they are wide
- */
-int
-vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1);
-        return terminal->pvt->utf8_ambiguous_width;
+        m_utf8_ambiguous_width = width;
+        return true;
 }
 
 static inline VteRowData *
