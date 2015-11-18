@@ -10923,13 +10923,20 @@ vte_terminal_draw(GtkWidget *widget,
                   cairo_t *cr)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
+        terminal->pvt->widget_draw(cr);
+        return FALSE;
+}
+
+void
+VteTerminalPrivate::widget_draw(cairo_t *cr)
+{
         cairo_rectangle_int_t clip_rect;
         cairo_region_t *region;
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
-                return FALSE;
+                return;
 
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
         _vte_debug_print (VTE_DEBUG_WORK, "+");
@@ -10939,21 +10946,21 @@ vte_terminal_draw(GtkWidget *widget,
 
         region = vte_cairo_get_clip_region (cr);
         if (region == NULL)
-                return FALSE;
+                return;
 
-        allocated_width = gtk_widget_get_allocated_width(widget);
-        allocated_height = gtk_widget_get_allocated_height(widget);
+        allocated_width = gtk_widget_get_allocated_width(m_widget);
+        allocated_height = gtk_widget_get_allocated_height(m_widget);
 
 	/* Designate the start of the drawing operation and clear the area. */
-	_vte_draw_set_cairo(terminal->pvt->draw, cr);
+	_vte_draw_set_cairo(m_draw, cr);
 
-	_vte_draw_clear (terminal->pvt->draw, 0, 0,
+	_vte_draw_clear (m_draw, 0, 0,
 			 allocated_width, allocated_height);
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
         cairo_save(cr);
-        cairo_rectangle(cr, 0, terminal->pvt->padding.top, allocated_width, allocated_height - terminal->pvt->padding.top - terminal->pvt->padding.bottom);
+        cairo_rectangle(cr, 0, m_padding.top, allocated_width, allocated_height - m_padding.top - m_padding.bottom);
         cairo_clip(cr);
 
 	/* Calculate the bounding rectangle. */
@@ -10973,7 +10980,7 @@ vte_terminal_draw(GtkWidget *widget,
 			cairo_region_t *rr = cairo_region_create ();
 			/* convert pixels into whole cells */
 			for (n = 0; n < n_rectangles; n++) {
-				vte_terminal_expand_region (terminal, rr, rectangles + n);
+				vte_terminal_expand_region (m_terminal, rr, rectangles + n);
 			}
 			g_free (rectangles);
 
@@ -10987,34 +10994,32 @@ vte_terminal_draw(GtkWidget *widget,
 
 		/* and now paint them */
 		for (n = 0; n < n_rectangles; n++) {
-			vte_terminal_paint_area (terminal, rectangles + n);
+			vte_terminal_paint_area (m_terminal, rectangles + n);
 		}
 		g_free (rectangles);
 	}
 
-	vte_terminal_paint_im_preedit_string(terminal);
+	vte_terminal_paint_im_preedit_string(m_terminal);
 
         cairo_restore(cr);
 
         /* Re-clip, allowing 1 more pixel row for the outline cursor. */
         /* TODOegmont: It's really ugly to do it here. */
         cairo_save(cr);
-        extra_area_for_cursor = (_vte_terminal_decscusr_cursor_shape(terminal) == VTE_CURSOR_SHAPE_BLOCK && !terminal->pvt->has_focus) ? 1 : 0;
-        cairo_rectangle(cr, 0, terminal->pvt->padding.top - extra_area_for_cursor, allocated_width, allocated_height - terminal->pvt->padding.top - terminal->pvt->padding.bottom + 2 * extra_area_for_cursor);
+        extra_area_for_cursor = (_vte_terminal_decscusr_cursor_shape(m_terminal) == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? 1 : 0;
+        cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
         cairo_clip(cr);
 
-	vte_terminal_paint_cursor(terminal);
+	vte_terminal_paint_cursor(m_terminal);
 
 	cairo_restore(cr);
 
 	/* Done with various structures. */
-	_vte_draw_set_cairo(terminal->pvt->draw, NULL);
+	_vte_draw_set_cairo(m_draw, NULL);
 
         cairo_region_destroy (region);
 
-        terminal->pvt->invalidated_all = FALSE;
-
-        return FALSE;
+        m_invalidated_all = FALSE;
 }
 
 /* Handle an expose event by painting the exposed area. */
