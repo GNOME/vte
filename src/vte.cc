@@ -58,11 +58,6 @@
 #include "vtepty.h"
 #include "vtepty-private.h"
 
-#ifdef WITH_PCRE2
-#include "vtepcre2.h"
-#include "vteregexinternal.hh"
-#endif
-
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
@@ -1730,20 +1725,20 @@ VteTerminalPrivate::match_rowcol_to_offset(vte::grid::column_t column,
 #ifdef WITH_PCRE2
 
 /* creates a pcre match context with appropriate limits */
-static pcre2_match_context_8 *
-create_match_context(void)
+pcre2_match_context_8 *
+VteTerminalPrivate::create_match_context()
 {
         pcre2_match_context_8 *match_context;
 
-        match_context = pcre2_match_context_create_8(NULL /* general context */);
+        match_context = pcre2_match_context_create_8(nullptr /* general context */);
         pcre2_set_match_limit_8(match_context, 65536); /* should be plenty */
         pcre2_set_recursion_limit_8(match_context, 64); /* should be plenty */
 
         return match_context;
 }
 
-static gboolean
-match_check_pcre(VteTerminalPrivate *pvt,
+bool
+VteTerminalPrivate::match_check_pcre(
                  pcre2_match_data_8 *match_data,
                  pcre2_match_context_8 *match_context,
                  VteRegex *regex,
@@ -1751,7 +1746,7 @@ match_check_pcre(VteTerminalPrivate *pvt,
                  gsize sattr,
                  gsize eattr,
                  gsize offset,
-                 char **result,
+                 char **result_ptr,
                  gsize *start,
                  gsize *end,
                  gsize *sblank_ptr,
@@ -1770,7 +1765,7 @@ match_check_pcre(VteTerminalPrivate *pvt,
         else
                 match_fn = pcre2_match_8;
 
-        line = pvt->match_contents;
+        line = m_match_contents;
         /* FIXME: what we really want is to pass the whole data to pcre2_match, but
          * limit matching to between sattr and eattr, so that the extra data can
          * satisfy lookahead assertions. This needs new pcre2 API though.
@@ -1807,18 +1802,18 @@ match_check_pcre(VteTerminalPrivate *pvt,
                 }
 
                 _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
-                        gchar *match;
+                        gchar *result;
                         struct _VteCharAttributes *_sattr, *_eattr;
-                        match = g_strndup(line + rm_so, rm_eo - rm_so);
-                        _sattr = &g_array_index(pvt->match_attributes,
+                        result = g_strndup(line + rm_so, rm_eo - rm_so);
+                        _sattr = &g_array_index(m_match_attributes,
                                                 struct _VteCharAttributes,
                                                 rm_so);
-                        _eattr = &g_array_index(pvt->match_attributes,
+                        _eattr = &g_array_index(m_match_attributes,
                                                 struct _VteCharAttributes,
                                                 rm_eo - 1);
                         g_printerr("%s match `%s' from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld) (%" G_GSSIZE_FORMAT ").\n",
                                    r == PCRE2_ERROR_PARTIAL ? "Partial":"Full",
-                                   match,
+                                   result,
                                    rm_so,
                                    _sattr->column,
                                    _sattr->row,
@@ -1826,7 +1821,7 @@ match_check_pcre(VteTerminalPrivate *pvt,
                                    _eattr->column,
                                    _eattr->row,
                                    offset);
-                        g_free(match);
+                        g_free(result);
                 }
 
                 /* advance position */
@@ -1838,10 +1833,10 @@ match_check_pcre(VteTerminalPrivate *pvt,
 
                 /* If the pointer is in this substring, then we're done. */
                 if (ko >= rm_so && ko < rm_eo) {
-                        *result = g_strndup(line + rm_so, rm_eo - rm_so);
+                        *result_ptr = g_strndup(line + rm_so, rm_eo - rm_so);
                         *start = rm_so;
                         *end = rm_eo - 1;
-                        return TRUE;
+                        return true;
                 }
 
                 if (ko >= rm_eo && rm_eo > sblank) {
@@ -1857,30 +1852,29 @@ match_check_pcre(VteTerminalPrivate *pvt,
 
         *sblank_ptr = sblank;
         *eblank_ptr = eblank;
-        return FALSE;
+        return false;
 }
 
-static char *
-vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
-                                       glong column,
-                                       glong row,
-                                       int *tag,
-                                       gsize *start,
-                                       gsize *end)
+char *
+VteTerminalPrivate::match_check_internal_pcre(vte::grid::column_t column,
+                                              vte::grid::row_t row,
+                                              int *tag,
+                                              gsize *start,
+                                              gsize *end)
 {
         struct vte_match_regex *regex;
         guint i;
 	gsize offset, sattr, eattr, start_blank, end_blank;
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
-        char *dingu_match = NULL;
+        char *dingu_match = nullptr;
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for pcre match at (%ld,%ld).\n", row, column);
 
-        if (!terminal->pvt->match_rowcol_to_offset(column, row,
+        if (!match_rowcol_to_offset(column, row,
                                     &offset, &sattr, &eattr))
-                return NULL;
+                return nullptr;
 
 	start_blank = sattr;
 	end_blank = eattr;
@@ -1889,10 +1883,10 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
         match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
 
 	/* Now iterate over each regex we need to match against. */
-	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
+	for (i = 0; i < m_match_regexes->len; i++) {
                 gsize sblank, eblank;
 
-		regex = &g_array_index(terminal->pvt->match_regexes,
+		regex = &g_array_index(m_match_regexes,
 				       struct vte_match_regex,
 				       i);
 		/* Skip holes. */
@@ -1902,8 +1896,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
                 g_assert_cmpint(regex->regex.mode, ==, VTE_REGEX_PCRE2);
 
-                if (match_check_pcre(terminal->pvt,
-                                     match_data, match_context,
+                if (match_check_pcre(match_data, match_context,
                                      regex->regex.pcre.regex,
                                      regex->regex.pcre.match_flags,
                                      sattr, eattr, offset,
@@ -1911,7 +1904,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                                      start, end,
                                      &sblank, &eblank)) {
                         _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", regex->tag);
-                        vte_terminal_set_cursor_from_regex_match(terminal, regex);
+                        vte_terminal_set_cursor_from_regex_match(m_terminal, regex);
                         *tag = regex->tag;
                         break;
                 }
@@ -1924,7 +1917,7 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
                 }
 	}
 
-        if (dingu_match == NULL) {
+        if (dingu_match == nullptr) {
                 /* If we get here, there was no dingu match.
                  * Record smallest span where none of the dingus match.
                  */
@@ -1933,10 +1926,10 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
                 _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                         struct _VteCharAttributes *_sattr, *_eattr;
-                        _sattr = &g_array_index(terminal->pvt->match_attributes,
+                        _sattr = &g_array_index(m_match_attributes,
                                                 struct _VteCharAttributes,
                                                 start_blank);
-                        _eattr = &g_array_index(terminal->pvt->match_attributes,
+                        _eattr = &g_array_index(m_match_attributes,
                                                 struct _VteCharAttributes,
                                                 end_blank - 1);
                         g_printerr("No-match region from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
@@ -1953,14 +1946,13 @@ vte_terminal_match_check_internal_pcre(VteTerminal *terminal,
 
 #endif /* WITH_PCRE2 */
 
-static gboolean
-match_check_gregex(VteTerminalPrivate *pvt,
-                   GRegex *regex,
+bool
+VteTerminalPrivate::match_check_gregex(GRegex *regex,
                    GRegexMatchFlags match_flags,
                    gsize sattr,
                    gsize eattr,
                    gsize offset,
-                   char **result,
+                   char **result_ptr,
                    gsize *start,
                    gsize *end,
                    gsize *sblank_ptr,
@@ -1971,7 +1963,7 @@ match_check_gregex(VteTerminalPrivate *pvt,
         gsize line_length;
         gint sblank = G_MININT, eblank = G_MAXINT;
 
-        line = pvt->match_contents;
+        line = m_match_contents;
         line_length = eattr;
 
         /* We'll only match the first item in the buffer which
@@ -1996,17 +1988,17 @@ match_check_gregex(VteTerminalPrivate *pvt,
                         g_assert(rm_so < (int)eattr);
                         g_assert(rm_eo <= (int)eattr);
                         _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
-                                gchar *match;
+                                gchar *result;
                                 struct _VteCharAttributes *_sattr, *_eattr;
-                                match = g_strndup(line + rm_so, rm_eo - rm_so);
-                                _sattr = &g_array_index(pvt->match_attributes,
+                                result = g_strndup(line + rm_so, rm_eo - rm_so);
+                                _sattr = &g_array_index(m_match_attributes,
 							struct _VteCharAttributes,
 							rm_so);
-                                _eattr = &g_array_index(pvt->match_attributes,
+                                _eattr = &g_array_index(m_match_attributes,
 							struct _VteCharAttributes,
 							rm_eo - 1);
                                 g_printerr("Match `%s' from %d(%ld,%ld) to %d(%ld,%ld) (%" G_GSIZE_FORMAT ").\n",
-                                           match,
+                                           result,
                                            rm_so,
                                            _sattr->column,
                                            _sattr->row,
@@ -2014,7 +2006,7 @@ match_check_gregex(VteTerminalPrivate *pvt,
                                            _eattr->column,
                                            _eattr->row,
                                            offset);
-                                g_free(match);
+                                g_free(result);
 
                         }
                         /* If the pointer is in this substring,
@@ -2022,10 +2014,10 @@ match_check_gregex(VteTerminalPrivate *pvt,
                         if (ko >= rm_so && ko < rm_eo) {
                                 *start = rm_so;
                                 *end = rm_eo - 1;
-                                *result = g_match_info_fetch(match_info, 0);
+                                *result_ptr = g_match_info_fetch(match_info, 0);
 
                                 g_match_info_free(match_info);
-                                return TRUE;
+                                return true;
                         }
 
                         if (ko >= rm_eo && rm_eo > sblank) {
@@ -2043,37 +2035,36 @@ match_check_gregex(VteTerminalPrivate *pvt,
 
         *sblank_ptr = sblank;
         *eblank_ptr = eblank;
-        return FALSE;
+        return false;
 }
 
-static char *
-vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
-                                         long column,
-                                         long row,
-                                         int *tag,
-                                         gsize *start,
-                                         gsize *end)
+char *
+VteTerminalPrivate::match_check_internal_gregex(vte::grid::column_t column,
+                                                vte::grid::row_t row,
+                                                int *tag,
+                                                gsize *start,
+                                                gsize *end)
 {
         guint i;
-	struct vte_match_regex *regex = NULL;
+	struct vte_match_regex *regex = nullptr;
 	gsize sattr, eattr, offset, start_blank, end_blank;
-        char *dingu_match = NULL;
+        char *dingu_match = nullptr;
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for gregex match at (%ld,%ld).\n", row, column);
 
-        if (!terminal->pvt->match_rowcol_to_offset(column, row,
+        if (!match_rowcol_to_offset(column, row,
                                     &offset, &sattr, &eattr))
-                return NULL;
+                return nullptr;
 
 	start_blank = sattr;
 	end_blank = eattr;
 
 	/* Now iterate over each regex we need to match against. */
-	for (i = 0; i < terminal->pvt->match_regexes->len; i++) {
+	for (i = 0; i < m_match_regexes->len; i++) {
                 gsize sblank = 0, eblank = G_MAXSIZE;
 
-		regex = &g_array_index(terminal->pvt->match_regexes,
+		regex = &g_array_index(m_match_regexes,
 				       struct vte_match_regex,
 				       i);
 		/* Skip holes. */
@@ -2083,15 +2074,14 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
                 g_assert_cmpint(regex->regex.mode, ==, VTE_REGEX_GREGEX);
 
-                if (match_check_gregex(terminal->pvt,
-                                       regex->regex.gregex.regex,
+                if (match_check_gregex(regex->regex.gregex.regex,
                                        regex->regex.gregex.match_flags,
                                        sattr, eattr, offset,
                                        &dingu_match,
                                        start, end,
                                        &sblank, &eblank)) {
                         _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", regex->tag);
-                        vte_terminal_set_cursor_from_regex_match(terminal, regex);
+                        vte_terminal_set_cursor_from_regex_match(m_terminal, regex);
                         *tag = regex->tag;
                         break;
                 }
@@ -2104,7 +2094,7 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
                 }
 	}
 
-        if (dingu_match == NULL) {
+        if (dingu_match == nullptr) {
                 /* If we get here, there was no dingu match.
                  * Record smallest span where none of the dingus match.
                  */
@@ -2113,10 +2103,10 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
 
                 _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                         struct _VteCharAttributes *_sattr, *_eattr;
-                        _sattr = &g_array_index(terminal->pvt->match_attributes,
+                        _sattr = &g_array_index(m_match_attributes,
                                                 struct _VteCharAttributes,
                                                 start_blank);
-                        _eattr = &g_array_index(terminal->pvt->match_attributes,
+                        _eattr = &g_array_index(m_match_attributes,
                                                 struct _VteCharAttributes,
                                                 end_blank - 1);
                         g_printerr("No-match region from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
@@ -2144,18 +2134,15 @@ vte_terminal_match_check_internal_gregex(VteTerminal *terminal,
  *
  * Returns: (transfer full): the matched string, or %NULL
  */
-static char *
-vte_terminal_match_check_internal(VteTerminal *terminal,
-                                  long column,
-                                  glong row,
-                                  int *tag,
-                                  gsize *start,
-                                  gsize *end)
+char *
+VteTerminalPrivate::match_check_internal(vte::grid::column_t column,
+                                         vte::grid::row_t row,
+                                         int *tag,
+                                         gsize *start,
+                                         gsize *end)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
-
-	if (pvt->match_contents == NULL) {
-		vte_terminal_match_contents_refresh(terminal);
+	if (m_match_contents == nullptr) {
+		vte_terminal_match_contents_refresh(m_terminal);
 	}
 
         g_assert(tag != NULL);
@@ -2167,13 +2154,13 @@ vte_terminal_match_check_internal(VteTerminal *terminal,
         *end = 0;
 
 #ifdef WITH_PCRE2
-        if (G_LIKELY(pvt->match_regex_mode == VTE_REGEX_PCRE2))
-                return vte_terminal_match_check_internal_pcre(terminal, column, row, tag, start, end);
+        if (G_LIKELY(m_match_regex_mode == VTE_REGEX_PCRE2))
+                return match_check_internal_pcre(column, row, tag, start, end);
 #endif
-        if (pvt->match_regex_mode == VTE_REGEX_GREGEX)
-                return vte_terminal_match_check_internal_gregex(terminal, column, row, tag, start, end);
+        if (m_match_regex_mode == VTE_REGEX_GREGEX)
+                return match_check_internal_gregex(column, row, tag, start, end);
 
-        return NULL;
+        return nullptr;
 }
 
 static gboolean
@@ -2241,7 +2228,7 @@ vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
                 gsize start, end;
                 int ltag;
 
-		ret = vte_terminal_match_check_internal(terminal,
+		ret = terminal->pvt->match_check_internal(
                                                         column, row + delta,
                                                         tag ? tag : &ltag,
                                                         &start, &end);
@@ -2363,7 +2350,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                     &offset, &sattr, &eattr))
                 return FALSE;
 
-        match_context = create_match_context();
+        match_context = terminal->pvt->create_match_context();
         match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
 
         for (i = 0; i < n_regexes; i++) {
@@ -2372,7 +2359,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
 
                 g_return_val_if_fail(regexes[i] != NULL, FALSE);
 
-                if (match_check_pcre(terminal->pvt,
+                if (pvt->match_check_pcre(
                                      match_data, match_context,
                                      regexes[i], match_flags,
                                      sattr, eattr, offset,
@@ -2450,7 +2437,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
 
                 g_return_val_if_fail(regexes[i] != NULL, FALSE);
 
-                if (match_check_gregex(terminal->pvt,
+                if (pvt->match_check_gregex(
                                        regexes[i], match_flags,
                                        sattr, eattr, offset,
                                        &match,
@@ -6603,7 +6590,7 @@ vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y)
                          x / terminal->pvt->char_width,
                          _vte_terminal_pixel_to_row(terminal, y));
 
-	match = vte_terminal_match_check_internal(terminal,
+	match = terminal->pvt->match_check_internal(
                                                   x / terminal->pvt->char_width,
                                                   _vte_terminal_pixel_to_row(terminal, y),
 						  &terminal->pvt->match_tag,
@@ -14331,7 +14318,7 @@ vte_terminal_search_find (VteTerminal *terminal,
 
 #ifdef WITH_PCRE2
         if (G_LIKELY(pvt->search_regex.mode == VTE_REGEX_PCRE2)) {
-                match_context = create_match_context();
+                match_context = pvt->create_match_context();
                 match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
         }
 #endif

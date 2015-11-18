@@ -22,6 +22,11 @@
 
 #include "vtetypes.hh"
 
+#ifdef WITH_PCRE2
+#include "vtepcre2.h"
+#include "vteregexinternal.hh"
+#endif
+
 typedef enum {
         VTE_REGEX_UNDECIDED,
         VTE_REGEX_PCRE2,
@@ -452,6 +457,47 @@ public:
                                     gsize *offset_ptr,
                                     gsize *sattr_ptr,
                                     gsize *eattr_ptr);
+#ifdef WITH_PCRE2
+        pcre2_match_context_8 *create_match_context();
+        bool match_check_pcre(pcre2_match_data_8 *match_data,
+                              pcre2_match_context_8 *match_context,
+                              VteRegex *regex,
+                              guint32 match_flags,
+                              gsize sattr,
+                              gsize eattr,
+                              gsize offset,
+                              char **result,
+                              gsize *start,
+                              gsize *end,
+                              gsize *sblank_ptr,
+                              gsize *eblank_ptr);
+        char *match_check_internal_pcre(vte::grid::column_t column,
+                                        vte::grid::row_t row,
+                                        int *tag,
+                                        gsize *start,
+                                        gsize *end);
+#endif
+        bool match_check_gregex(GRegex *regex,
+                                GRegexMatchFlags match_flags,
+                                gsize sattr,
+                                gsize eattr,
+                                gsize offset,
+                                char **result,
+                                gsize *start,
+                                gsize *end,
+                                gsize *sblank_ptr,
+                                gsize *eblank_ptr);
+        char *match_check_internal_gregex(vte::grid::column_t column,
+                                          vte::grid::row_t row,
+                                          int *tag,
+                                          gsize *start,
+                                          gsize *end);
+
+        char *match_check_internal(vte::grid::column_t column,
+                                   vte::grid::row_t row,
+                                   int *tag,
+                                   gsize *start,
+                                   gsize *end);
 
 };
 
@@ -477,3 +523,4 @@ public:
 #define m_match_regexes match_regexes
 #define m_match_attributes match_attributes
 #define m_match_contents match_contents
+#define m_match_regex_mode match_regex_mode
