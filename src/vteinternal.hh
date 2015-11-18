@@ -463,6 +463,7 @@ public:
         void widget_leave(GdkEventCrossing *event);
         void widget_visibility_notify(GdkEventVisibility *event);
         void widget_scroll(GdkEventScroll *event);
+        bool widget_motion_notify(GdkEventMotion *event);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);

@@ -8015,87 +8015,90 @@ vte_terminal_stop_autoscroll(VteTerminal *terminal)
 static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
-	VteTerminal *terminal = VTE_TERMINAL(widget);
-	int width, height;
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        return terminal->pvt->widget_motion_notify(event);
+}
+
+bool
+VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
+{
 	long x, y;
-	gboolean handled = FALSE;
+	bool handled = false;
 
 	/* check to see if it matters */
-        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
-                return FALSE;
+        // FIXMEchpe this can't happen
+        if (G_UNLIKELY(!gtk_widget_get_realized(m_widget)))
+                return false;
 
-	x = event->x - terminal->pvt->padding.left;
-	y = event->y - terminal->pvt->padding.top;
-	width = terminal->pvt->char_width;
-	height = terminal->pvt->char_height;
+	x = event->x - m_padding.left;
+	y = event->y - m_padding.top;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Motion notify (%ld,%ld) [%ld, %ld].\n",
 			x, y,
-			x / width,
-                        _vte_terminal_pixel_to_row(terminal, y));
+			x / m_char_width,
+                        _vte_terminal_pixel_to_row(m_terminal, y));
 
-	terminal->pvt->read_modifiers((GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
 
-        if (terminal->pvt->mouse_pressed_buttons != 0) {
-		terminal->pvt->match_hilite_hide();
+        if (m_mouse_pressed_buttons != 0) {
+		match_hilite_hide();
 	} else {
 		/* Hilite any matches. */
-		terminal->pvt->match_hilite(x, y);
+		match_hilite(x, y);
 		/* Show the cursor. */
-		terminal->pvt->set_pointer_visible(true);
+		set_pointer_visible(true);
 	}
 
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
-		if (terminal->pvt->selecting_after_threshold) {
-			if (!gtk_drag_check_threshold (widget,
-						       terminal->pvt->mouse_last_x,
-						       terminal->pvt->mouse_last_y,
+		if (m_selecting_after_threshold) {
+			if (!gtk_drag_check_threshold (m_widget,
+						       m_mouse_last_x,
+						       m_mouse_last_y,
 						       x, y))
-				return TRUE;
+				return true;
 
-			vte_terminal_start_selection(terminal,
-						     terminal->pvt->mouse_last_x,
-						     terminal->pvt->mouse_last_y,
+			vte_terminal_start_selection(m_terminal,
+						     m_mouse_last_x,
+						     m_mouse_last_y,
 						     selection_type_char);
 		}
 
-		if (terminal->pvt->selecting &&
-                    (terminal->pvt->mouse_handled_buttons & 1) != 0) {
+		if (m_selecting &&
+                    (m_mouse_handled_buttons & 1) != 0) {
 			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
-			vte_terminal_extend_selection(terminal,
+			vte_terminal_extend_selection(m_terminal,
 						      x, y, FALSE, FALSE);
 
 			/* Start scrolling if we need to. */
-			if (event->y < terminal->pvt->padding.top ||
-			    event->y >= terminal->pvt->row_count * height +
-                                        terminal->pvt->padding.top)
+			if (event->y < m_padding.top ||
+			    event->y >= m_row_count * m_char_height + m_padding.top)
 			{
 				/* Give mouse wigglers something. */
-				vte_terminal_autoscroll(terminal);
+				vte_terminal_autoscroll(m_terminal);
 				/* Start a timed autoscroll if we're not doing it
 				 * already. */
-				vte_terminal_start_autoscroll(terminal);
+				vte_terminal_start_autoscroll(m_terminal);
 			}
 
-			handled = TRUE;
+			handled = true;
 		}
 
-		if (!handled && terminal->pvt->input_enabled)
-			terminal->pvt->maybe_send_mouse_drag(event);
+		if (!handled && m_input_enabled)
+			maybe_send_mouse_drag(event);
 		break;
 	default:
 		break;
 	}
 
 	/* Save the pointer coordinates for later use. */
-	terminal->pvt->mouse_last_x = x;
-	terminal->pvt->mouse_last_y = y;
-        terminal->pvt->mouse_pixels_to_grid (
+	m_mouse_last_x = x;
+	m_mouse_last_y = y;
+        mouse_pixels_to_grid (
                                             x, y,
-                                            &terminal->pvt->mouse_last_col,
-                                            &terminal->pvt->mouse_last_row);
+                                            &m_mouse_last_column,
+                                            &m_mouse_last_row);
 
 	return handled;
 }
