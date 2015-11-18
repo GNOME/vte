@@ -512,8 +512,15 @@ public:
                           long y);
 
         int regex_match_add(struct vte_match_regex *new_regex_match);
-        void match_remove(int tag);
-        void match_remove_all();
+        struct vte_match_regex *regex_match_get(int tag);
+        void regex_match_remove(int tag);
+        void regex_match_remove_all();
+        void regex_match_set_cursor(int tag,
+                                    GdkCursor *gdk_cursor);
+        void regex_match_set_cursor(int tag,
+                                    GdkCursorType cursor_type);
+        void regex_match_set_cursor(int tag,
+                                    char const* cursor_name);
         bool match_rowcol_to_offset(vte::grid::column_t column,
                                     vte::grid::row_t row,
                                     gsize *offset_ptr,

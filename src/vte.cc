@@ -1234,7 +1234,7 @@ VteTerminalPrivate::set_cursor_from_regex_match(struct vte_match_regex *regex)
 }
 
 void
-VteTerminalPrivate::match_remove_all()
+VteTerminalPrivate::regex_match_remove_all()
 {
 	struct vte_match_regex *regex;
 	guint i;
@@ -1254,7 +1254,7 @@ VteTerminalPrivate::match_remove_all()
 }
 
 void
-VteTerminalPrivate::match_remove(int tag)
+VteTerminalPrivate::regex_match_remove(int tag)
 {
 	struct vte_match_regex *regex;
 
@@ -1273,8 +1273,8 @@ VteTerminalPrivate::match_remove(int tag)
 	match_hilite_clear();
 }
 
-static GdkCursor *
-vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
+GdkCursor *
+_vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
 {
 	GdkDisplay *display;
 	GdkCursor *cursor;
@@ -1289,6 +1289,9 @@ VteTerminalPrivate::regex_match_add(struct vte_match_regex *new_regex_match)
 {
         struct vte_match_regex *regex_match;
         guint ret, len;
+
+        g_assert(m_match_regex_mode == VTE_REGEX_UNDECIDED || m_match_regex_mode == new_regex_match->regex.mode);
+        m_match_regex_mode = new_regex_match->regex.mode;
 
         /* Search for a hole. */
         len = m_match_regexes->len;
@@ -1317,157 +1320,58 @@ VteTerminalPrivate::regex_match_add(struct vte_match_regex *new_regex_match)
         return ret;
 }
 
-/**
- * vte_terminal_match_add_gregex:
- * @terminal: a #VteTerminal
- * @gregex: a #GRegex
- * @gflags: the #GRegexMatchFlags to use when matching the regex
- *
- * Adds the regular expression @regex to the list of matching expressions.  When the
- * user moves the mouse cursor over a section of displayed text which matches
- * this expression, the text will be highlighted.
- *
- * Returns: an integer associated with this expression, or -1 if @gregex could not be
- *   transformed into a #VteRegex or @flags were incompatible
- *
- * Deprecated: 0.44: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
- */
-int
-vte_terminal_match_add_gregex(VteTerminal *terminal,
-                              GRegex *gregex,
-                              GRegexMatchFlags gflags)
+struct vte_match_regex *
+VteTerminalPrivate::regex_match_get(int tag)
 {
-	struct vte_match_regex new_regex_match;
+	if ((guint)tag >= m_match_regexes->len)
+                return nullptr;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-        g_return_val_if_fail(gregex != NULL, -1);
-
-        /* Can't mix GRegex and PCRE2 */
-        g_return_val_if_fail(terminal->pvt->match_regex_mode != VTE_REGEX_PCRE2, -1);
-        terminal->pvt->match_regex_mode = VTE_REGEX_GREGEX;
-
-        new_regex_match.regex.mode = VTE_REGEX_GREGEX;
-        new_regex_match.regex.gregex.regex = g_regex_ref(gregex);
-        new_regex_match.regex.gregex.match_flags = gflags;
-        new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
-        new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
-
-        return terminal->pvt->regex_match_add(&new_regex_match);
+	return &g_array_index(m_match_regexes, struct vte_match_regex, tag);
 }
 
-/**
- * vte_terminal_match_add_regex:
- * @terminal: a #VteTerminal
- * @regex: (transfer none): a #VteRegex
- * @flags: PCRE2 match flags, or 0
- *
- * Adds the regular expression @regex to the list of matching expressions.  When the
- * user moves the mouse cursor over a section of displayed text which matches
- * this expression, the text will be highlighted.
- *
- * Returns: an integer associated with this expression
- *
- * Since: 0.44
- */
-int
-vte_terminal_match_add_regex(VteTerminal *terminal,
-                             VteRegex    *regex,
-                             guint32      flags)
-{
-	struct vte_match_regex new_regex_match;
-
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	g_return_val_if_fail(regex != NULL, -1);
-
-        /* Can't mix GRegex and PCRE2 */
-        g_return_val_if_fail(terminal->pvt->match_regex_mode != VTE_REGEX_GREGEX, -1);
-        terminal->pvt->match_regex_mode = VTE_REGEX_PCRE2;
-
-        new_regex_match.regex.mode = VTE_REGEX_PCRE2;
-        new_regex_match.regex.pcre.regex = vte_regex_ref(regex);
-        new_regex_match.regex.pcre.match_flags = flags;
-        new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
-        new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
-
-        return terminal->pvt->regex_match_add(&new_regex_match);
-}
-
-/**
- * vte_terminal_match_set_cursor:
- * @terminal: a #VteTerminal
- * @tag: the tag of the regex which should use the specified cursor
- * @cursor: (allow-none): the #GdkCursor which the terminal should use when the pattern is
- *   highlighted, or %NULL to use the standard cursor
- *
- * Sets which cursor the terminal will use if the pointer is over the pattern
- * specified by @tag.  The terminal keeps a reference to @cursor.
- *
- * Deprecated: 0.40: Use vte_terminal_match_set_cursor_type() or vte_terminal_match_set_cursor_named() instead.
- */
 void
-vte_terminal_match_set_cursor(VteTerminal *terminal, int tag, GdkCursor *cursor)
+VteTerminalPrivate::regex_match_set_cursor(int tag,
+                                           GdkCursor *gdk_cursor)
 {
-	struct vte_match_regex *regex;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail((guint) tag < terminal->pvt->match_regexes->len);
-	regex = &g_array_index(terminal->pvt->match_regexes,
-			       struct vte_match_regex,
-			       tag);
+        struct vte_match_regex *regex = regex_match_get(tag);
+        if (regex == nullptr)
+                return;
+
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSOR;
-	regex->cursor.cursor = cursor ? (GdkCursor *)g_object_ref(cursor) : NULL;
-	terminal->pvt->match_hilite_clear();
+	regex->cursor.cursor = gdk_cursor ? (GdkCursor *)g_object_ref(gdk_cursor) : NULL;
+
+	match_hilite_clear();
 }
 
-/**
- * vte_terminal_match_set_cursor_type:
- * @terminal: a #VteTerminal
- * @tag: the tag of the regex which should use the specified cursor
- * @cursor_type: a #GdkCursorType
- *
- * Sets which cursor the terminal will use if the pointer is over the pattern
- * specified by @tag.
- */
 void
-vte_terminal_match_set_cursor_type(VteTerminal *terminal,
-				   int tag, GdkCursorType cursor_type)
+VteTerminalPrivate::regex_match_set_cursor(int tag,
+                                           GdkCursorType cursor_type)
 {
-	struct vte_match_regex *regex;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_return_if_fail((guint) tag < terminal->pvt->match_regexes->len);
-	regex = &g_array_index(terminal->pvt->match_regexes,
-			       struct vte_match_regex,
-			       tag);
+        struct vte_match_regex *regex = regex_match_get(tag);
+        if (regex == nullptr)
+                return;
+
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
 	regex->cursor.cursor_type = cursor_type;
-	terminal->pvt->match_hilite_clear();
+
+	match_hilite_clear();
 }
 
-/**
- * vte_terminal_match_set_cursor_name:
- * @terminal: a #VteTerminal
- * @tag: the tag of the regex which should use the specified cursor
- * @cursor_name: the name of the cursor
- *
- * Sets which cursor the terminal will use if the pointer is over the pattern
- * specified by @tag.
- */
 void
-vte_terminal_match_set_cursor_name(VteTerminal *terminal,
-				   int tag, const char *cursor_name)
+VteTerminalPrivate::regex_match_set_cursor(int tag,
+                                           char const* cursor_name)
 {
-	struct vte_match_regex *regex;
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(cursor_name != NULL);
-	g_return_if_fail((guint) tag < terminal->pvt->match_regexes->len);
-	regex = &g_array_index(terminal->pvt->match_regexes,
-			       struct vte_match_regex,
-			       tag);
+        struct vte_match_regex *regex = regex_match_get(tag);
+        if (regex == nullptr)
+                return;
+
         regex_match_clear_cursor(regex);
         regex->cursor_mode = VTE_REGEX_CURSOR_NAME;
 	regex->cursor.cursor_name = g_strdup (cursor_name);
-	terminal->pvt->match_hilite_clear();
+
+	match_hilite_clear();
 }
 
 /*
@@ -9164,9 +9068,9 @@ VteTerminalPrivate::widget_realize()
 	/* Create the stock cursors. */
 	m_mouse_cursor_visible = TRUE;
 	m_mouse_default_cursor =
-		vte_terminal_cursor_new(m_terminal, VTE_DEFAULT_CURSOR);
+		_vte_terminal_cursor_new(m_terminal, VTE_DEFAULT_CURSOR);
 	m_mouse_mousing_cursor =
-		vte_terminal_cursor_new(m_terminal, VTE_MOUSING_CURSOR);
+		_vte_terminal_cursor_new(m_terminal, VTE_MOUSING_CURSOR);
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;

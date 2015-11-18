@@ -124,6 +124,7 @@ char *_vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 						 GArray *attributes,
 						 gboolean include_trailing_spaces,
                                                  gsize *ret_len);
+GdkCursor *_vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type);
 
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,
