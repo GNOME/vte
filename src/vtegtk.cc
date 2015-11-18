@@ -2371,6 +2371,26 @@ vte_terminal_get_text_range(VteTerminal *terminal,
                                                  NULL);
 }
 
+/**
+ * vte_terminal_reset:
+ * @terminal: a #VteTerminal
+ * @clear_tabstops: whether to reset tabstops
+ * @clear_history: whether to empty the terminal's scrollback buffer
+ *
+ * Resets as much of the terminal's internal state as possible, discarding any
+ * unprocessed input data, resetting character attributes, cursor state,
+ * national character set state, status line, terminal modes (insert/delete),
+ * selection state, and encoding.
+ *
+ */
+void
+vte_terminal_reset(VteTerminal *terminal,
+                   gboolean clear_tabstops,
+                   gboolean clear_history)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        terminal->pvt->reset(clear_tabstops, clear_history);
+}
 
 /**
  * vte_terminal_set_size:

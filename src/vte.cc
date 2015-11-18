@@ -3100,7 +3100,7 @@ VteTerminalPrivate::set_color_highlight(GdkRGBA const *highlight_background)
                                           _pango_color_from_rgba(&color, highlight_background));
 }
 
-/**
+/*
  * VteTerminalPrivate::set_color_highlight_foreground:
  * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
  *
@@ -10552,9 +10552,8 @@ VteTerminalPrivate::set_mouse_autohide(bool autohide)
         return true;
 }
 
-/**
- * vte_terminal_reset:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::reset:
  * @clear_tabstops: whether to reset tabstops
  * @clear_history: whether to empty the terminal's scrollback buffer
  *
@@ -10565,138 +10564,132 @@ VteTerminalPrivate::set_mouse_autohide(bool autohide)
  *
  */
 void
-vte_terminal_reset(VteTerminal *terminal,
-                   gboolean clear_tabstops,
-                   gboolean clear_history)
+VteTerminalPrivate::reset(bool clear_tabstops,
+                          bool clear_history)
 {
-        VteTerminalPrivate *pvt;
-        int i, sel;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        g_object_freeze_notify(G_OBJECT(terminal));
+        GObject *object = G_OBJECT(m_terminal);
+        g_object_freeze_notify(object);
 
 	/* Clear the output buffer. */
-	_vte_byte_array_clear(pvt->outgoing);
+	_vte_byte_array_clear(m_outgoing);
 	/* Reset charset substitution state. */
-	_vte_iso2022_state_free(pvt->iso2022);
-        pvt->iso2022 = _vte_iso2022_state_new(NULL);
-	_vte_iso2022_state_set_codeset(pvt->iso2022,
-				       pvt->encoding);
+	_vte_iso2022_state_free(m_iso2022);
+        m_iso2022 = _vte_iso2022_state_new(NULL);
+	_vte_iso2022_state_set_codeset(m_iso2022,
+				       m_encoding);
 	/* Reset keypad/cursor key modes. */
-	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
-	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
+	m_keypad_mode = VTE_KEYMODE_NORMAL;
+	m_cursor_mode = VTE_KEYMODE_NORMAL;
         /* Enable autowrap. */
-        pvt->autowrap = TRUE;
+        m_autowrap = TRUE;
 	/* Enable meta-sends-escape. */
-	pvt->meta_sends_escape = TRUE;
+	m_meta_sends_escape = TRUE;
 	/* Disable margin bell. */
-	pvt->margin_bell = FALSE;
+	m_margin_bell = FALSE;
         /* Disable DECCOLM mode. */
-        pvt->deccolm_mode = FALSE;
+        m_deccolm_mode = FALSE;
 	/* Reset saved settings. */
-	if (pvt->dec_saved != NULL) {
-		g_hash_table_destroy(pvt->dec_saved);
-		pvt->dec_saved = g_hash_table_new(NULL, NULL);
+	if (m_dec_saved != NULL) {
+		g_hash_table_destroy(m_dec_saved);
+		m_dec_saved = g_hash_table_new(NULL, NULL);
 	}
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */
-	for (i = 0; i < 256; i++)
-		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
+	for (int i = 0; i < 256; i++)
+		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-	_vte_terminal_set_default_attributes(terminal);
+	_vte_terminal_set_default_attributes(m_terminal);
         /* Reset charset modes. */
-        pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
-        pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
-        pvt->character_replacement = &pvt->character_replacements[0];
+        m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
+        m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
+        m_character_replacement = &m_character_replacements[0];
 	/* Clear the scrollback buffers and reset the cursors. Switch to normal screen. */
 	if (clear_history) {
-                pvt->screen = &pvt->normal_screen;
-                pvt->normal_screen.scroll_delta = pvt->normal_screen.insert_delta =
-                        _vte_ring_reset(pvt->normal_screen.row_data);
-                pvt->alternate_screen.scroll_delta = pvt->alternate_screen.insert_delta =
-                        _vte_ring_reset(pvt->alternate_screen.row_data);
-                pvt->cursor.row = pvt->screen->insert_delta;
-                pvt->cursor.col = 0;
+                m_screen = &m_normal_screen;
+                m_normal_screen.scroll_delta = m_normal_screen.insert_delta =
+                        _vte_ring_reset(m_normal_screen.row_data);
+                m_alternate_screen.scroll_delta = m_alternate_screen.insert_delta =
+                        _vte_ring_reset(m_alternate_screen.row_data);
+                m_cursor.row = m_screen->insert_delta;
+                m_cursor.col = 0;
                 /* Adjust the scrollbar to the new location. */
                 /* Hack: force a change in scroll_delta even if the value remains, so that
                    vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */
-                pvt->screen->scroll_delta = -1;
-                vte_terminal_queue_adjustment_value_changed (terminal, pvt->screen->insert_delta);
-		_vte_terminal_adjust_adjustments_full (terminal);
+                m_screen->scroll_delta = -1;
+                vte_terminal_queue_adjustment_value_changed(m_terminal, m_screen->insert_delta);
+		_vte_terminal_adjust_adjustments_full(m_terminal);
 	}
         /* DECSCUSR cursor style */
-        pvt->cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
+        m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
 	/* Do more stuff we refer to as a "full" reset. */
 	if (clear_tabstops) {
-		vte_terminal_set_default_tabstops(terminal);
+		vte_terminal_set_default_tabstops(m_terminal);
 	}
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
-        pvt->scrolling_restricted = FALSE;
-        pvt->sendrecv_mode = TRUE;
-        pvt->insert_mode = FALSE;
-        pvt->linefeed_mode = FALSE;
-        pvt->origin_mode = FALSE;
-        pvt->reverse_mode = FALSE;
-	pvt->cursor_visible = TRUE;
+        m_scrolling_restricted = FALSE;
+        m_sendrecv_mode = TRUE;
+        m_insert_mode = FALSE;
+        m_linefeed_mode = FALSE;
+        m_origin_mode = FALSE;
+        m_reverse_mode = FALSE;
+	m_cursor_visible = TRUE;
         /* For some reason, xterm doesn't reset alternateScroll, but we do. */
-        pvt->alternate_screen_scroll = TRUE;
+        m_alternate_screen_scroll = TRUE;
 	/* Reset the encoding. */
-	vte_terminal_set_encoding(terminal, NULL /* UTF-8 */, NULL);
-	g_assert_cmpstr(pvt->encoding, ==, "UTF-8");
+	vte_terminal_set_encoding(m_terminal, NULL /* UTF-8 */, NULL);
+	g_assert_cmpstr(m_encoding, ==, "UTF-8");
 	/* Reset selection. */
-	pvt->deselect_all();
-	pvt->has_selection = FALSE;
-	pvt->selecting = FALSE;
-	pvt->selecting_restart = FALSE;
-	pvt->selecting_had_delta = FALSE;
-	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
-		if (pvt->selection_text[sel] != NULL) {
-			g_free(pvt->selection_text[sel]);
-			pvt->selection_text[sel] = NULL;
+	deselect_all();
+	m_has_selection = FALSE;
+	m_selecting = FALSE;
+	m_selecting_restart = FALSE;
+	m_selecting_had_delta = FALSE;
+	for (int sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
+		if (m_selection_text[sel] != NULL) {
+			g_free(m_selection_text[sel]);
+			m_selection_text[sel] = NULL;
 #ifdef HTML_SELECTION
-			g_free(pvt->selection_html[sel]);
-			pvt->selection_html[sel] = NULL;
+			g_free(m_selection_html[sel]);
+			m_selection_html[sel] = NULL;
 #endif
 		}
 	}
-        memset(&pvt->selection_origin, 0,
-               sizeof(pvt->selection_origin));
-        memset(&pvt->selection_last, 0,
-               sizeof(pvt->selection_last));
-        memset(&pvt->selection_start, 0,
-               sizeof(pvt->selection_start));
-        memset(&pvt->selection_end, 0,
-               sizeof(pvt->selection_end));
+        memset(&m_selection_origin, 0,
+               sizeof(m_selection_origin));
+        memset(&m_selection_last, 0,
+               sizeof(m_selection_last));
+        memset(&m_selection_start, 0,
+               sizeof(m_selection_start));
+        memset(&m_selection_end, 0,
+               sizeof(m_selection_end));
 
 	/* Reset mouse motion events. */
-	pvt->mouse_tracking_mode = MOUSE_TRACKING_NONE;
-        pvt->mouse_pressed_buttons = 0;
-        pvt->mouse_handled_buttons = 0;
-	pvt->mouse_last_x = 0;
-	pvt->mouse_last_y = 0;
-        pvt->mouse_last_col = 0;
-        pvt->mouse_last_row = 0;
-	pvt->mouse_xterm_extension = FALSE;
-	pvt->mouse_urxvt_extension = FALSE;
-	pvt->mouse_smooth_scroll_delta = 0.;
+	m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
+        m_mouse_pressed_buttons = 0;
+        m_mouse_handled_buttons = 0;
+	m_mouse_last_x = 0;
+	m_mouse_last_y = 0;
+        m_mouse_last_column = 0;
+        m_mouse_last_row = 0;
+	m_mouse_xterm_extension = FALSE;
+	m_mouse_urxvt_extension = FALSE;
+	m_mouse_smooth_scroll_delta = 0.;
         /* Reset focus tracking */
-        pvt->focus_tracking_mode = FALSE;
+        m_focus_tracking_mode = FALSE;
 	/* Clear modifiers. */
-	pvt->modifiers = 0;
+	m_modifiers = 0;
 	/* Reset miscellaneous stuff. */
-	pvt->bracketed_paste_mode = FALSE;
+	m_bracketed_paste_mode = FALSE;
         /* Reset the saved cursor. */
-        _vte_terminal_save_cursor(terminal, &terminal->pvt->normal_screen);
-        _vte_terminal_save_cursor(terminal, &terminal->pvt->alternate_screen);
+        _vte_terminal_save_cursor(m_terminal, &m_normal_screen);
+        _vte_terminal_save_cursor(m_terminal, &m_alternate_screen);
 	/* Cause everything to be redrawn (or cleared). */
-	vte_terminal_maybe_scroll_to_bottom(terminal);
-	_vte_invalidate_all(terminal);
+	vte_terminal_maybe_scroll_to_bottom(m_terminal);
 
-        g_object_thaw_notify(G_OBJECT(terminal));
+	invalidate_all();
+
+        g_object_thaw_notify(object);
 }
 
 bool

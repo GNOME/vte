@@ -495,6 +495,9 @@ public:
                         GCancellable *cancellable,
                         GError **error);
 
+        void reset(bool clear_tabstops,
+                   bool clear_history);
+
         void feed(char const* data,
                   gssize length);
         void feed_child(char const *text,
@@ -844,5 +847,12 @@ public:
 #define m_input_bytes input_bytes
 #define m_scrolling_restricted scrolling_restricted
 #define m_selecting_had_delta selecting_had_delta
+#define m_insert_mode insert_mode
+#define m_reverse_mode reverse_mode
+#define m_origin_mode origin_mode
+#define m_selection_origin selection_origin
+#define m_selection_last selection_last
+#define m_bracketed_paste_mode bracketed_paste_mode
+#define m_linefeed_mode linefeed_mode
 
 extern GTimer *process_timer;
