@@ -90,31 +90,6 @@ static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
                                           gboolean always_grow, gboolean force);
-static char *vte_terminal_get_text_range_full(VteTerminal *terminal,
-                                              glong start_row, glong start_col,
-                                              glong end_row, glong end_col,
-                                              VteSelectionFunc is_selected,
-                                              gpointer user_data,
-                                              GArray *attributes,
-                                              gsize *ret_len);
-static char *vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
-						       glong start_row,
-						       glong start_col,
-						       glong end_row,
-						       glong end_col,
-						       gboolean wrap,
-						       VteSelectionFunc is_selected,
-						       gpointer data,
-						       GArray *attributes,
-						       gboolean include_trailing_spaces,
-                                                       gsize *ret_len);
-static char *vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
-						 gboolean wrap,
-						 VteSelectionFunc is_selected,
-						 gpointer data,
-						 GArray *attributes,
-						 gboolean include_trailing_spaces,
-                                                 gsize *ret_len);
 static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
 static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
@@ -6595,59 +6570,8 @@ vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoC
 	}
 }
 
-/**
- * VteSelectionFunc:
- * @terminal: terminal in which the cell is.
- * @column: column in which the cell is.
- * @row: row in which the cell is.
- * @data: (closure): user data.
- *
- * Specifies the type of a selection function used to check whether
- * a cell has to be selected or not.
- *
- * Returns: %TRUE if cell has to be selected; %FALSE if otherwise.
- */
-
-/**
- * vte_terminal_get_text_range:
- * @terminal: a #VteTerminal
- * @start_row: first row to search for data
- * @start_col: first column to search for data
- * @end_row: last row to search for data
- * @end_col: last column to search for data
- * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
- * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
- *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * %NULL, characters will only be read if @is_selected returns %TRUE after being
- * passed the column and row, respectively.  A #VteCharAttributes structure
- * is added to @attributes for each byte added to the returned string detailing
- * the character's position, colors, and other characteristics.  The
- * entire scrollback buffer is scanned, so it is possible to read the entire
- * contents of the buffer using this function.
- *
- * Returns: (transfer full): a newly allocated text string, or %NULL.
- */
 char *
-vte_terminal_get_text_range(VteTerminal *terminal,
-			    glong start_row, glong start_col,
-			    glong end_row, glong end_col,
-			    VteSelectionFunc is_selected,
-			    gpointer user_data,
-			    GArray *attributes)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return vte_terminal_get_text_range_full(terminal,
-                                                start_row, start_col,
-                                                end_row, end_col,
-                                                is_selected, user_data,
-                                                attributes,
-                                                NULL);
-}
-
-static char *
-vte_terminal_get_text_range_full(VteTerminal *terminal,
+_vte_terminal_get_text_range_full(VteTerminal *terminal,
                                  glong start_row, glong start_col,
                                  glong end_row, glong end_col,
                                  VteSelectionFunc is_selected,
@@ -6656,7 +6580,7 @@ vte_terminal_get_text_range_full(VteTerminal *terminal,
                                  gsize *ret_len)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return vte_terminal_get_text_range_maybe_wrapped(terminal,
+	return _vte_terminal_get_text_range_maybe_wrapped(terminal,
 							 start_row, start_col,
 							 end_row, end_col,
 							 TRUE,
@@ -6667,8 +6591,8 @@ vte_terminal_get_text_range_full(VteTerminal *terminal,
                                                          ret_len);
 }
 
-static char *
-vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
+char *
+_vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 					  glong start_row, glong start_col,
 					  glong end_row, glong end_col,
 					  gboolean wrap,
@@ -6806,8 +6730,8 @@ vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	return g_string_free(string, FALSE);
 }
 
-static char *
-vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
+char *
+_vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 				    gboolean wrap,
 				    VteSelectionFunc is_selected,
 				    gpointer data,
@@ -6820,7 +6744,7 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 	start_col = 0;
 	end_row = start_row + terminal->pvt->row_count - 1;
 	end_col = terminal->pvt->column_count - 1;
-	return vte_terminal_get_text_range_maybe_wrapped(terminal,
+	return _vte_terminal_get_text_range_maybe_wrapped(terminal,
 							 start_row, start_col,
 							 end_row, end_col,
 							 wrap,
@@ -6829,70 +6753,6 @@ vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
 							 attributes,
 							 include_trailing_spaces,
                                                          ret_len);
-}
-
-/**
- * vte_terminal_get_text:
- * @terminal: a #VteTerminal
- * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
- * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
- *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * %NULL, characters will only be read if @is_selected returns %TRUE after being
- * passed the column and row, respectively.  A #VteCharAttributes structure
- * is added to @attributes for each byte added to the returned string detailing
- * the character's position, colors, and other characteristics.
- *
- * Returns: (transfer full): a newly allocated text string, or %NULL.
- */
-char *
-vte_terminal_get_text(VteTerminal *terminal,
-		      VteSelectionFunc is_selected,
-		      gpointer user_data,
-		      GArray *attributes)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return vte_terminal_get_text_maybe_wrapped(terminal,
-						   TRUE,
-						   is_selected,
-						   user_data,
-						   attributes,
-						   FALSE,
-                                                   NULL);
-}
-
-/**
- * vte_terminal_get_text_include_trailing_spaces:
- * @terminal: a #VteTerminal
- * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
- * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
- *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * %NULL, characters will only be read if @is_selected returns %TRUE after being
- * passed the column and row, respectively.  A #VteCharAttributes structure
- * is added to @attributes for each byte added to the returned string detailing
- * the character's position, colors, and other characteristics. This function
- * differs from vte_terminal_get_text() in that trailing spaces at the end of
- * lines are included.
- *
- * Returns: (transfer full): a newly allocated text string, or %NULL.
- */
-char *
-vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
-					      VteSelectionFunc is_selected,
-					      gpointer user_data,
-					      GArray *attributes)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return vte_terminal_get_text_maybe_wrapped(terminal,
-						   TRUE,
-						   is_selected,
-						   user_data,
-						   attributes,
-						   TRUE,
-                                                   NULL);
 }
 
 /*
@@ -12010,7 +11870,7 @@ VteTerminalPrivate::search_rows(
 	gdouble value, page_size;
 
 
-	row_text = vte_terminal_get_text_range_full(m_terminal, start_row, 0, end_row, -1, NULL, NULL, NULL, &row_text_length);
+	row_text = _vte_terminal_get_text_range_full(m_terminal, start_row, 0, end_row, -1, NULL, NULL, NULL, &row_text_length);
 
 #ifdef WITH_PCRE2
         if (G_LIKELY(m_search_regex.mode == VTE_REGEX_PCRE2)) {

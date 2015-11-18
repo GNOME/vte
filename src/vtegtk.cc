@@ -49,6 +49,8 @@
 
 #include "vtegtk.hh"
 
+#include "vte-private.h"
+
 #if !GLIB_CHECK_VERSION(2, 42, 0)
 #define G_PARAM_EXPLICIT_NOTIFY 0
 #endif
@@ -1768,6 +1770,124 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
                 *row = terminal->pvt->cursor.row;
 	}
 }
+
+/**
+ * VteSelectionFunc:
+ * @terminal: terminal in which the cell is.
+ * @column: column in which the cell is.
+ * @row: row in which the cell is.
+ * @data: (closure): user data.
+ *
+ * Specifies the type of a selection function used to check whether
+ * a cell has to be selected or not.
+ *
+ * Returns: %TRUE if cell has to be selected; %FALSE if otherwise.
+ */
+
+/**
+ * vte_terminal_get_text:
+ * @terminal: a #VteTerminal
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
+ * @user_data: (closure): user data to be passed to the callback
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ *
+ * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * %NULL, characters will only be read if @is_selected returns %TRUE after being
+ * passed the column and row, respectively.  A #VteCharAttributes structure
+ * is added to @attributes for each byte added to the returned string detailing
+ * the character's position, colors, and other characteristics.
+ *
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
+ */
+char *
+vte_terminal_get_text(VteTerminal *terminal,
+		      VteSelectionFunc is_selected,
+		      gpointer user_data,
+		      GArray *attributes)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return _vte_terminal_get_text_maybe_wrapped(terminal,
+                                                    TRUE,
+                                                    is_selected,
+                                                    user_data,
+                                                    attributes,
+                                                    FALSE,
+                                                    NULL);
+}
+
+/**
+ * vte_terminal_get_text_include_trailing_spaces:
+ * @terminal: a #VteTerminal
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
+ * @user_data: (closure): user data to be passed to the callback
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ *
+ * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * %NULL, characters will only be read if @is_selected returns %TRUE after being
+ * passed the column and row, respectively.  A #VteCharAttributes structure
+ * is added to @attributes for each byte added to the returned string detailing
+ * the character's position, colors, and other characteristics. This function
+ * differs from vte_terminal_get_text() in that trailing spaces at the end of
+ * lines are included.
+ *
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
+ */
+char *
+vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
+					      VteSelectionFunc is_selected,
+					      gpointer user_data,
+					      GArray *attributes)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	return _vte_terminal_get_text_maybe_wrapped(terminal,
+                                                    TRUE,
+                                                    is_selected,
+                                                    user_data,
+                                                    attributes,
+                                                    TRUE,
+                                                    NULL);
+}
+
+/**
+ * vte_terminal_get_text_range:
+ * @terminal: a #VteTerminal
+ * @start_row: first row to search for data
+ * @start_col: first column to search for data
+ * @end_row: last row to search for data
+ * @end_col: last column to search for data
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
+ * @user_data: (closure): user data to be passed to the callback
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ *
+ * Extracts a view of the visible part of the terminal.  If @is_selected is not
+ * %NULL, characters will only be read if @is_selected returns %TRUE after being
+ * passed the column and row, respectively.  A #VteCharAttributes structure
+ * is added to @attributes for each byte added to the returned string detailing
+ * the character's position, colors, and other characteristics.  The
+ * entire scrollback buffer is scanned, so it is possible to read the entire
+ * contents of the buffer using this function.
+ *
+ * Returns: (transfer full): a newly allocated text string, or %NULL.
+ */
+char *
+vte_terminal_get_text_range(VteTerminal *terminal,
+			    long start_row,
+                            long start_col,
+			    long end_row,
+                            long end_col,
+			    VteSelectionFunc is_selected,
+			    gpointer user_data,
+			    GArray *attributes)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        return _vte_terminal_get_text_range_full(terminal,
+                                                 start_row, start_col,
+                                                 end_row, end_col,
+                                                 is_selected, user_data,
+                                                 attributes,
+                                                 NULL);
+}
+
 
 /**
  * vte_terminal_set_size:

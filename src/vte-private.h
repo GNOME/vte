@@ -99,6 +99,31 @@ void _vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style)
 char *_vte_terminal_attributes_to_html(VteTerminal *terminal,
                                        const gchar *text,
                                        GArray *attributes);
+char *_vte_terminal_get_text_range_full(VteTerminal *terminal,
+                                              glong start_row, glong start_col,
+                                              glong end_row, glong end_col,
+                                              VteSelectionFunc is_selected,
+                                              gpointer user_data,
+                                              GArray *attributes,
+                                              gsize *ret_len);
+char *_vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
+						       glong start_row,
+						       glong start_col,
+						       glong end_row,
+						       glong end_col,
+						       gboolean wrap,
+						       VteSelectionFunc is_selected,
+						       gpointer data,
+						       GArray *attributes,
+						       gboolean include_trailing_spaces,
+                                                       gsize *ret_len);
+char *_vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
+						 gboolean wrap,
+						 VteSelectionFunc is_selected,
+						 gpointer data,
+						 GArray *attributes,
+						 gboolean include_trailing_spaces,
+                                                 gsize *ret_len);
 
 /* vteseq.c: */
 void _vte_terminal_handle_sequence(VteTerminal *terminal,
