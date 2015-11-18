@@ -453,6 +453,7 @@ public:
 
         void match_contents_clear();
         void match_contents_refresh();
+        void set_cursor_from_regex_match(struct vte_match_regex *regex);
 
         int regex_match_add(struct vte_match_regex *new_regex_match);
         bool match_rowcol_to_offset(vte::grid::column_t column,
