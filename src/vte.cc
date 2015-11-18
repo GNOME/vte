@@ -12500,41 +12500,16 @@ update_timeout (gpointer data)
 	return FALSE;
 }
 
-/**
- * vte_terminal_write_contents_sync:
- * @terminal: a #VteTerminal
- * @stream: a #GOutputStream to write to
- * @flags: a set of #VteWriteFlags
- * @cancellable: (allow-none): a #GCancellable object, or %NULL
- * @error: (allow-none): a #GError location to store the error occuring, or %NULL
- *
- * Write contents of the current contents of @terminal (including any
- * scrollback history) to @stream according to @flags.
- *
- * If @cancellable is not %NULL, then the operation can be cancelled by triggering
- * the cancellable object from another thread. If the operation was cancelled,
- * the error %G_IO_ERROR_CANCELLED will be returned in @error.
- *
- * This is a synchronous operation and will make the widget (and input
- * processing) during the write operation, which may take a long time
- * depending on scrollback history and @stream availability for writing.
- *
- * Returns: %TRUE on success, %FALSE if there was an error
- */
-gboolean
-vte_terminal_write_contents_sync (VteTerminal *terminal,
-                                  GOutputStream *stream,
-                                  VteWriteFlags flags,
-                                  GCancellable *cancellable,
-                                  GError **error)
+bool
+VteTerminalPrivate::write_contents_sync (GOutputStream *stream,
+                                         VteWriteFlags flags,
+                                         GCancellable *cancellable,
+                                         GError **error)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), FALSE);
-	return _vte_ring_write_contents (terminal->pvt->screen->row_data,
+	return _vte_ring_write_contents (m_screen->row_data,
 					 stream, flags,
 					 cancellable, error);
 }
-
 
 /*
  * Buffer search

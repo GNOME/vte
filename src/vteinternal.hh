@@ -605,6 +605,11 @@ public:
 
         bool set_input_enabled(bool enabled);
         bool set_word_char_exceptions(char const* exceptions);
+
+        bool write_contents_sync (GOutputStream *stream,
+                                  VteWriteFlags flags,
+                                  GCancellable *cancellable,
+                                  GError **error);
 };
 
 #define m_invalidated_all invalidated_all
