@@ -459,6 +459,8 @@ public:
         bool widget_key_release(GdkEventKey *event);
         bool widget_button_press(GdkEventButton *event);
         bool widget_button_release(GdkEventButton *event);
+        void widget_enter(GdkEventCrossing *event);
+        void widget_leave(GdkEventCrossing *event);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);

@@ -8419,38 +8419,60 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
 static gboolean
 vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 {
-	gboolean ret = FALSE;
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        gboolean ret = FALSE;
+
 	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event) {
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
 	}
-	if (gtk_widget_get_realized (widget)) {
-		VteTerminal *terminal = VTE_TERMINAL (widget);
-		/* Hilite any matches. */
-		terminal->pvt->match_hilite_show(
-					       event->x - terminal->pvt->padding.left,
-					       event->y - terminal->pvt->padding.top);
-	}
-	return ret;
+
+        terminal->pvt->widget_enter(event);
+
+        return ret;
 }
+
+void
+VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
+
+	if (gtk_widget_get_realized(m_widget)) {
+		/* Hilite any matches. */
+		match_hilite_show(
+					       event->x - m_padding.left,
+					       event->y - m_padding.top);
+	}
+}
+
 static gboolean
 vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 {
+	VteTerminal *terminal = VTE_TERMINAL(widget);
 	gboolean ret = FALSE;
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave.\n");
+
 	if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event) {
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event (widget, event);
 	}
-	if (gtk_widget_get_realized (widget)) {
-		VteTerminal *terminal = VTE_TERMINAL (widget);
-		terminal->pvt->match_hilite_hide();
+
+        terminal->pvt->widget_leave(event);
+
+        return ret;
+}
+
+void
+VteTerminalPrivate::widget_leave(GdkEventCrossing *event)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave.\n");
+
+	if (gtk_widget_get_realized(m_widget)) {
+		match_hilite_hide();
+
 		/* Mark the cursor as invisible to disable hilite updating,
 		 * whilst the cursor is absent (otherwise we copy the entire
 		 * buffer after each update for nothing...)
 		 */
-		terminal->pvt->mouse_cursor_visible = FALSE;
+		m_mouse_cursor_visible = FALSE;
 	}
-	return ret;
 }
 
 static G_GNUC_UNUSED inline const char *
