@@ -200,7 +200,6 @@ Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	$(header_HEADERS) \
 	$(nodist_header_HEADERS) \
-	vte.cc \
 	vtegtk.cc \
 	vtetypebuiltins.cc \
 	pty.cc \
