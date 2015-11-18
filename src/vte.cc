@@ -12654,48 +12654,26 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
                 return NULL;
 }
 
-/**
- * vte_terminal_search_set_wrap_around:
- * @terminal: a #VteTerminal
- * @wrap_around: whether search should wrap
- *
- * Sets whether search should wrap around to the beginning of the
- * terminal content when reaching its end.
- */
-void
-vte_terminal_search_set_wrap_around (VteTerminal *terminal,
-				     gboolean     wrap_around)
+bool
+VteTerminalPrivate::search_set_wrap_around(bool wrap)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        if (wrap == m_search_wrap_around)
+                return false;
 
-	terminal->pvt->search_wrap_around = !!wrap_around;
+        m_search_wrap_around = wrap;
+        return true;
 }
 
-/**
- * vte_terminal_search_get_wrap_around:
- * @terminal: a #VteTerminal
- *
- * Returns: whether searching will wrap around
- */
-gboolean
-vte_terminal_search_get_wrap_around (VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-	return terminal->pvt->search_wrap_around;
-}
-
-static gboolean
-vte_terminal_search_rows(VteTerminal *terminal,
+bool
+VteTerminalPrivate::search_rows(
 #ifdef WITH_PCRE2
-                         pcre2_match_context_8 *match_context,
-                         pcre2_match_data_8 *match_data,
+                                pcre2_match_context_8 *match_context,
+                                pcre2_match_data_8 *match_data,
 #endif
-                         long start_row,
-                         long end_row,
-                         gboolean backward)
+                                vte::grid::row_t start_row,
+                                vte::grid::row_t end_row,
+                                bool backward)
 {
-        VteTerminalPrivate *pvt;
 	char *row_text;
         gsize row_text_length;
 	int start, end;
@@ -12705,42 +12683,41 @@ vte_terminal_search_rows(VteTerminal *terminal,
 	GArray *attrs;
 	gdouble value, page_size;
 
-	pvt = terminal->pvt;
 
-	row_text = vte_terminal_get_text_range_full (terminal, start_row, 0, end_row, -1, NULL, NULL, NULL, &row_text_length);
+	row_text = vte_terminal_get_text_range_full(m_terminal, start_row, 0, end_row, -1, NULL, NULL, NULL, &row_text_length);
 
 #ifdef WITH_PCRE2
-        if (G_LIKELY(pvt->search_regex.mode == VTE_REGEX_PCRE2)) {
+        if (G_LIKELY(m_search_regex.mode == VTE_REGEX_PCRE2)) {
                 int (* match_fn) (const pcre2_code_8 *,
                                   PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
                                   pcre2_match_data_8 *, pcre2_match_context_8 *);
                 gsize *ovector, so, eo;
                 int r;
 
-                if (_vte_regex_get_jited(pvt->search_regex.pcre.regex))
+                if (_vte_regex_get_jited(m_search_regex.pcre.regex))
                         match_fn = pcre2_jit_match_8;
                 else
                         match_fn = pcre2_match_8;
 
-                r = match_fn(_vte_regex_get_pcre(pvt->search_regex.pcre.regex),
+                r = match_fn(_vte_regex_get_pcre(m_search_regex.pcre.regex),
                              (PCRE2_SPTR8)row_text, row_text_length , /* subject, length */
                              0, /* start offset */
-                             pvt->search_regex.pcre.match_flags |
+                             m_search_regex.pcre.match_flags |
                              PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
                              match_data,
                              match_context);
 
                 if (r == PCRE2_ERROR_NOMATCH)
-                        return FALSE;
+                        return false;
                 // FIXME: handle partial matches (PCRE2_ERROR_PARTIAL)
                 if (r < 0)
-                        return FALSE;
+                        return false;
 
                 ovector = pcre2_get_ovector_pointer_8(match_data);
                 so = ovector[0];
                 eo = ovector[1];
                 if (G_UNLIKELY(so == PCRE2_UNSET || eo == PCRE2_UNSET))
-                        return FALSE;
+                        return false;
 
                 start = so;
                 end = eo;
@@ -12751,23 +12728,23 @@ vte_terminal_search_rows(VteTerminal *terminal,
                 GMatchInfo *match_info;
                 GError *error = NULL;
 
-                g_assert_cmpint(pvt->search_regex.mode, ==, VTE_REGEX_GREGEX);
+                g_assert_cmpint(m_search_regex.mode, ==, VTE_REGEX_GREGEX);
 
-                g_regex_match_full (pvt->search_regex.gregex.regex, row_text, row_text_length, 0,
-                                    (GRegexMatchFlags)(pvt->search_regex.gregex.match_flags | G_REGEX_MATCH_NOTEMPTY),
+                g_regex_match_full (m_search_regex.gregex.regex, row_text, row_text_length, 0,
+                                    (GRegexMatchFlags)(m_search_regex.gregex.match_flags | G_REGEX_MATCH_NOTEMPTY),
                                     &match_info, &error);
                 if (error) {
                         g_printerr ("Error while matching: %s\n", error->message);
                         g_error_free (error);
                         g_match_info_free (match_info);
                         g_free (row_text);
-                        return TRUE;
+                        return false;
                 }
 
                 if (!g_match_info_matches (match_info)) {
                         g_match_info_free (match_info);
                         g_free (row_text);
-                        return FALSE;
+                        return false;
                 }
 
                 word = g_match_info_fetch (match_info, 0);
@@ -12779,10 +12756,10 @@ vte_terminal_search_rows(VteTerminal *terminal,
 
 	/* Fetch text again, with attributes */
 	g_free (row_text);
-	if (!pvt->search_attrs)
-		pvt->search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
-	attrs = pvt->search_attrs;
-	row_text = vte_terminal_get_text_range (terminal, start_row, 0, end_row, -1, NULL, NULL, attrs);
+	if (!m_search_attrs)
+		m_search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
+	attrs = m_search_attrs;
+	row_text = vte_terminal_get_text_range(m_terminal, start_row, 0, end_row, -1, NULL, NULL, attrs);
 
 	ca = &g_array_index (attrs, VteCharAttributes, start);
 	start_row = ca->row;
@@ -12794,30 +12771,30 @@ vte_terminal_search_rows(VteTerminal *terminal,
 	g_free (word);
 	g_free (row_text);
 
-	_vte_terminal_select_text (terminal, start_col, start_row, end_col, end_row, 0, 0);
+	_vte_terminal_select_text(m_terminal, start_col, start_row, end_col, end_row, 0, 0);
 	/* Quite possibly the math here should not access adjustment directly... */
-	value = gtk_adjustment_get_value(terminal->pvt->vadjustment);
-	page_size = gtk_adjustment_get_page_size(terminal->pvt->vadjustment);
+	value = gtk_adjustment_get_value(m_vadjustment);
+	page_size = gtk_adjustment_get_page_size(m_vadjustment);
 	if (backward) {
 		if (end_row < value || end_row > value + page_size - 1)
-			vte_terminal_queue_adjustment_value_changed_clamped (terminal, end_row - page_size + 1);
+			vte_terminal_queue_adjustment_value_changed_clamped(m_terminal, end_row - page_size + 1);
 	} else {
 		if (start_row < value || start_row > value + page_size - 1)
-			vte_terminal_queue_adjustment_value_changed_clamped (terminal, start_row);
+			vte_terminal_queue_adjustment_value_changed_clamped(m_terminal, start_row);
 	}
 
-	return TRUE;
+	return true;
 }
 
-static gboolean
-vte_terminal_search_rows_iter (VteTerminal *terminal,
+bool
+VteTerminalPrivate::search_rows_iter(
 #ifdef WITH_PCRE2
-                               pcre2_match_context_8 *match_context,
-                               pcre2_match_data_8 *match_data,
+                                     pcre2_match_context_8 *match_context,
+                                     pcre2_match_data_8 *match_data,
 #endif
-			       long start_row,
-			       long end_row,
-			       gboolean backward)
+                                     vte::grid::row_t start_row,
+                                     vte::grid::row_t end_row,
+                                     bool backward)
 {
 	const VteRowData *row;
 	long iter_start_row, iter_end_row;
@@ -12829,15 +12806,15 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 
 			do {
 				iter_start_row--;
-				row = _vte_terminal_find_row_data (terminal, iter_start_row);
+				row = _vte_terminal_find_row_data(m_terminal, iter_start_row);
 			} while (row && row->attr.soft_wrapped);
 
-			if (vte_terminal_search_rows (terminal,
+			if (search_rows(
 #ifdef WITH_PCRE2
                                                       match_context, match_data,
 #endif
                                                       iter_start_row, iter_end_row, backward))
-				return TRUE;
+				return true;
 		}
 	} else {
 		iter_end_row = start_row;
@@ -12845,40 +12822,35 @@ vte_terminal_search_rows_iter (VteTerminal *terminal,
 			iter_start_row = iter_end_row;
 
 			do {
-				row = _vte_terminal_find_row_data (terminal, iter_end_row);
+				row = _vte_terminal_find_row_data(m_terminal, iter_end_row);
 				iter_end_row++;
 			} while (row && row->attr.soft_wrapped);
 
-			if (vte_terminal_search_rows (terminal,
+			if (search_rows(
 #ifdef WITH_PCRE2
                                                       match_context, match_data,
 #endif
                                                       iter_start_row, iter_end_row, backward))
-				return TRUE;
+				return true;
 		}
 	}
 
-	return FALSE;
+	return false;
 }
 
-static gboolean
-vte_terminal_search_find (VteTerminal *terminal,
-			  gboolean     backward)
+bool
+VteTerminalPrivate::search_find (bool backward)
 {
-        VteTerminalPrivate *pvt;
-	long buffer_start_row, buffer_end_row;
-	long last_start_row, last_end_row;
-        gboolean match_found = TRUE;
+        vte::grid::row_t buffer_start_row, buffer_end_row;
+        vte::grid::row_t last_start_row, last_end_row;
+        bool match_found = false;
 #ifdef WITH_PCRE2
-        pcre2_match_context_8 *match_context = NULL;
-        pcre2_match_data_8 *match_data = NULL;
+        pcre2_match_context_8 *match_context = nullptr;
+        pcre2_match_data_8 *match_data = nullptr;
 #endif
 
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-	pvt = terminal->pvt;
-	if (pvt->search_regex.mode == VTE_REGEX_UNDECIDED)
-		return FALSE;
+	if (m_search_regex.mode == VTE_REGEX_UNDECIDED)
+		return false;
 
 	/* TODO
 	 * Currently We only find one result per extended line, and ignore columns
@@ -12886,21 +12858,21 @@ vte_terminal_search_find (VteTerminal *terminal,
 	 */
 
 #ifdef WITH_PCRE2
-        if (G_LIKELY(pvt->search_regex.mode == VTE_REGEX_PCRE2)) {
-                match_context = pvt->create_match_context();
-                match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
+        if (G_LIKELY(m_search_regex.mode == VTE_REGEX_PCRE2)) {
+                match_context = create_match_context();
+                match_data = pcre2_match_data_create_8(256 /* should be plenty */, nullptr /* general context */);
         }
 #endif
 
-	buffer_start_row = _vte_ring_delta (terminal->pvt->screen->row_data);
-	buffer_end_row = _vte_ring_next (terminal->pvt->screen->row_data);
+	buffer_start_row = _vte_ring_delta (m_screen->row_data);
+	buffer_end_row = _vte_ring_next (m_screen->row_data);
 
-	if (pvt->has_selection) {
-		last_start_row = pvt->selection_start.row;
-		last_end_row = pvt->selection_end.row + 1;
+	if (m_has_selection) {
+		last_start_row = m_selection_start.row;
+		last_end_row = m_selection_end.row + 1;
 	} else {
-		last_start_row = pvt->screen->scroll_delta + terminal->pvt->row_count;
-		last_end_row = pvt->screen->scroll_delta;
+		last_start_row = m_screen->scroll_delta + m_row_count;
+		last_end_row = m_screen->scroll_delta;
 	}
 	last_start_row = MAX (buffer_start_row, last_start_row);
 	last_end_row = MIN (buffer_end_row, last_end_row);
@@ -12908,55 +12880,55 @@ vte_terminal_search_find (VteTerminal *terminal,
 	/* If search fails, we make an empty selection at the last searched
 	 * position... */
 	if (backward) {
-		if (vte_terminal_search_rows_iter (terminal,
+		if (search_rows_iter (
 #ifdef WITH_PCRE2
                                                    match_context, match_data,
 #endif
                                                    buffer_start_row, last_start_row, backward))
 			goto found;
-		if (pvt->search_wrap_around &&
-		    vte_terminal_search_rows_iter (terminal,
+		if (m_search_wrap_around &&
+		    search_rows_iter (
 #ifdef WITH_PCRE2
                                                    match_context, match_data,
 #endif
                                                    last_end_row, buffer_end_row, backward))
 			goto found;
-		if (pvt->has_selection) {
-			if (pvt->search_wrap_around)
-			    _vte_terminal_select_empty_at (terminal,
-							   pvt->selection_start.col,
-							   pvt->selection_start.row);
+		if (m_has_selection) {
+			if (m_search_wrap_around)
+			    _vte_terminal_select_empty_at (m_terminal,
+							   m_selection_start.col,
+							   m_selection_start.row);
 			else
-			    _vte_terminal_select_empty_at (terminal,
+			    _vte_terminal_select_empty_at (m_terminal,
 							   -1,
 							   buffer_start_row - 1);
 		}
-                match_found = FALSE;
+                match_found = false;
 	} else {
-		if (vte_terminal_search_rows_iter (terminal,
+		if (search_rows_iter (
 #ifdef WITH_PCRE2
                                                    match_context, match_data,
 #endif
                                                    last_end_row, buffer_end_row, backward))
 			goto found;
-		if (pvt->search_wrap_around &&
-		    vte_terminal_search_rows_iter (terminal,
+		if (m_search_wrap_around &&
+		    search_rows_iter (
 #ifdef WITH_PCRE2
                                                    match_context, match_data,
 #endif
                                                    buffer_start_row, last_start_row, backward))
 			goto found;
-		if (pvt->has_selection) {
-			if (pvt->search_wrap_around)
-			    _vte_terminal_select_empty_at (terminal,
-							   pvt->selection_end.col + 1,
-							   pvt->selection_end.row);
+		if (m_has_selection) {
+			if (m_search_wrap_around)
+			    _vte_terminal_select_empty_at (m_terminal,
+							   m_selection_end.col + 1,
+							   m_selection_end.row);
 			else
-			    _vte_terminal_select_empty_at (terminal,
+			    _vte_terminal_select_empty_at (m_terminal,
 							   -1,
 							   buffer_end_row);
 		}
-                match_found = FALSE;
+                match_found = false;
 	}
 
  found:
@@ -12969,36 +12941,6 @@ vte_terminal_search_find (VteTerminal *terminal,
 #endif
 
 	return match_found;
-}
-
-/**
- * vte_terminal_search_find_previous:
- * @terminal: a #VteTerminal
- *
- * Searches the previous string matching the search regex set with
- * vte_terminal_search_set_gregex().
- *
- * Returns: %TRUE if a match was found
- */
-gboolean
-vte_terminal_search_find_previous (VteTerminal *terminal)
-{
-	return vte_terminal_search_find (terminal, TRUE);
-}
-
-/**
- * vte_terminal_search_find_next:
- * @terminal: a #VteTerminal
- *
- * Searches the next string matching the search regex set with
- * vte_terminal_search_set_gregex().
- *
- * Returns: %TRUE if a match was found
- */
-gboolean
-vte_terminal_search_find_next (VteTerminal *terminal)
-{
-	return vte_terminal_search_find (terminal, FALSE);
 }
 
 /*

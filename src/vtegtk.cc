@@ -1512,6 +1512,69 @@ vte_get_user_shell (void)
 
 /* VteTerminal public API */
 
+/**
+ * vte_terminal_search_find_previous:
+ * @terminal: a #VteTerminal
+ *
+ * Searches the previous string matching the search regex set with
+ * vte_terminal_search_set_gregex().
+ *
+ * Returns: %TRUE if a match was found
+ */
+gboolean
+vte_terminal_search_find_previous (VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->search_find(true);
+}
+
+/**
+ * vte_terminal_search_find_next:
+ * @terminal: a #VteTerminal
+ *
+ * Searches the next string matching the search regex set with
+ * vte_terminal_search_set_gregex().
+ *
+ * Returns: %TRUE if a match was found
+ */
+gboolean
+vte_terminal_search_find_next (VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->search_find(false);
+}
+
+/**
+ * vte_terminal_search_set_wrap_around:
+ * @terminal: a #VteTerminal
+ * @wrap_around: whether search should wrap
+ *
+ * Sets whether search should wrap around to the beginning of the
+ * terminal content when reaching its end.
+ */
+void
+vte_terminal_search_set_wrap_around (VteTerminal *terminal,
+				     gboolean     wrap_around)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        terminal->pvt->search_set_wrap_around(wrap_around != FALSE);
+}
+
+/**
+ * vte_terminal_search_get_wrap_around:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: whether searching will wrap around
+ */
+gboolean
+vte_terminal_search_get_wrap_around (VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+	return terminal->pvt->search_wrap_around;
+}
+
 /* Just some arbitrary minimum values */
 #define MIN_COLUMNS (16)
 #define MIN_ROWS    (2)

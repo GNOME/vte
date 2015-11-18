@@ -573,6 +573,25 @@ public:
         void feed_focus_event(bool in);
         void maybe_feed_focus_event(bool in);
 
+        bool search_rows(
+#ifdef WITH_PCRE2
+                         pcre2_match_context_8 *match_context,
+                         pcre2_match_data_8 *match_data,
+#endif
+                         vte::grid::row_t start_row,
+                         vte::grid::row_t end_row,
+                         bool backward);
+        bool search_rows_iter(
+#ifdef WITH_PCRE2
+                              pcre2_match_context_8 *match_context,
+                              pcre2_match_data_8 *match_data,
+#endif
+                              vte::grid::row_t start_row,
+                              vte::grid::row_t end_row,
+                              bool backward);
+        bool search_find(bool backward);
+        bool search_set_wrap_around(bool wrap);
+
         bool process_word_char_exceptions(char const *str,
                                           gunichar **arrayp,
                                           gsize *lenp);
@@ -726,5 +745,6 @@ public:
 #define m_icon_title icon_title
 #define m_selection_start selection_start
 #define m_selection_end selection_end
+#define m_search_wrap_around search_wrap_around
 
 extern GTimer *process_timer;
