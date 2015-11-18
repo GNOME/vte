@@ -13066,10 +13066,10 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
         return terminal->pvt->input_enabled;
 }
 
-static gboolean
-process_word_char_exceptions(const char *str,
-                             gunichar **arrayp,
-                             gsize *lenp)
+bool
+VteTerminalPrivate::process_word_char_exceptions(char const *str,
+                                                 gunichar **arrayp,
+                                                 gsize *lenp)
 {
         const char *p;
         gunichar *array, c;
@@ -13114,7 +13114,7 @@ process_word_char_exceptions(const char *str,
                         continue;
 
                 g_free(array);
-                return FALSE;
+                return false;
         }
 
 #if 0
@@ -13129,13 +13129,12 @@ process_word_char_exceptions(const char *str,
 
         *lenp = len;
         *arrayp = array;
-        return TRUE;
+        return true;
 }
 
-/**
- * vte_terminal_set_word_char_exceptions:
- * @terminal: a #VteTerminal
- * @exceptions: a string of ASCII punctuation characters, or %NULL
+/*
+ * VteTerminalPrivate::set_word_char_exceptions:
+ * @exceptions: a string of ASCII punctuation characters, or %nullptr
  *
  * With this function you can provide a set of characters which will
  * be considered parts of a word when doing word-wise selection, in
@@ -13146,53 +13145,28 @@ process_word_char_exceptions(const char *str,
  * must occur only once, and if @exceptions contains the character
  * U+002D HYPHEN-MINUS, it must be at the start of the string.
  *
- * Use %NULL to reset the set of exception characters to the default.
+ * Use %nullptr to reset the set of exception characters to the default.
  *
- * Since: 0.40
+ * Returns: %true if the word char exceptions changed
  */
-void
-vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
-                                      const char *exceptions)
+bool
+VteTerminalPrivate::set_word_char_exceptions(char const* exceptions)
 {
         gunichar *array;
         gsize len;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        if (g_strcmp0(exceptions, terminal->pvt->word_char_exceptions_string) == 0)
-                return;
+        if (g_strcmp0(exceptions, m_word_char_exceptions_string) == 0)
+                return false;
 
         if (!process_word_char_exceptions(exceptions, &array, &len))
-                return;
+                return false;
 
-        g_free(terminal->pvt->word_char_exceptions_string);
-        terminal->pvt->word_char_exceptions_string = g_strdup(exceptions);
+        g_free(m_word_char_exceptions_string);
+        m_word_char_exceptions_string = g_strdup(exceptions);
 
-        g_free(terminal->pvt->word_char_exceptions);
-        terminal->pvt->word_char_exceptions = array;
-        terminal->pvt->word_char_exceptions_len = len;
+        g_free(m_word_char_exceptions);
+        m_word_char_exceptions = array;
+        m_word_char_exceptions_len = len;
 
-        g_object_notify(G_OBJECT(terminal), "word-char-exceptions");
-}
-
-/**
- * vte_terminal_get_word_char_exceptions:
- * @terminal: a #VteTerminal
- *
- * Returns the set of characters which will be considered parts of a word
- * when doing word-wise selection, in addition to the default which only
- * considers alphanumeric characters part of a word.
- *
- * If %NULL, a built-in set is used.
- *
- * Returns: (transfer none): a string, or %NULL
- *
- * Since: 0.40
- */
-const char *
-vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-        return terminal->pvt->word_char_exceptions_string;
+        return true;
 }

@@ -1587,3 +1587,53 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
                                                        GDK_HINT_MIN_SIZE |
                                                        GDK_HINT_BASE_SIZE));
 }
+
+/**
+ * vte_terminal_get_word_char_exceptions:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the set of characters which will be considered parts of a word
+ * when doing word-wise selection, in addition to the default which only
+ * considers alphanumeric characters part of a word.
+ *
+ * If %NULL, a built-in set is used.
+ *
+ * Returns: (transfer none): a string, or %NULL
+ *
+ * Since: 0.40
+ */
+const char *
+vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        return terminal->pvt->word_char_exceptions_string;
+}
+
+/**
+ * vte_terminal_set_word_char_exceptions:
+ * @terminal: a #VteTerminal
+ * @exceptions: a string of ASCII punctuation characters, or %NULL
+ *
+ * With this function you can provide a set of characters which will
+ * be considered parts of a word when doing word-wise selection, in
+ * addition to the default which only considers alphanumeric characters
+ * part of a word.
+ *
+ * The characters in @exceptions must be non-alphanumeric, each character
+ * must occur only once, and if @exceptions contains the character
+ * U+002D HYPHEN-MINUS, it must be at the start of the string.
+ *
+ * Use %NULL to reset the set of exception characters to the default.
+ *
+ * Since: 0.40
+ */
+void
+vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
+                                      const char *exceptions)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (terminal->pvt->set_word_char_exceptions(exceptions))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_WORD_CHAR_EXCEPTIONS]);
+}

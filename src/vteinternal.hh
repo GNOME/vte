@@ -572,6 +572,11 @@ public:
 
         void feed_focus_event(bool in);
         void maybe_feed_focus_event(bool in);
+
+        bool process_word_char_exceptions(char const *str,
+                                          gunichar **arrayp,
+                                          gsize *lenp);
+        bool set_word_char_exceptions(char const* exceptions);
 };
 
 #define m_invalidated_all invalidated_all
@@ -715,6 +720,7 @@ public:
 #define m_current_file_uri current_file_uri
 #define m_word_char_exceptions_string word_char_exceptions_string
 #define m_word_char_exceptions word_char_exceptions
+#define m_word_char_exceptions_len word_char_exceptions_len
 #define m_icon_title icon_title
 #define m_selection_start selection_start
 #define m_selection_end selection_end
