@@ -451,6 +451,9 @@ public:
 
         void widget_style_updated();
 
+        void match_contents_clear();
+        void match_contents_refresh();
+
         int regex_match_add(struct vte_match_regex *new_regex_match);
         bool match_rowcol_to_offset(vte::grid::column_t column,
                                     vte::grid::row_t row,

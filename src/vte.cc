@@ -105,7 +105,6 @@ static void vte_terminal_match_hilite_clear(VteTerminal *terminal);
 static void vte_terminal_match_hilite_hide(VteTerminal *terminal);
 static void vte_terminal_match_hilite_show(VteTerminal *terminal, long x, long y);
 static void vte_terminal_match_hilite_update(VteTerminal *terminal, long x, long y);
-static void vte_terminal_match_contents_clear(VteTerminal *terminal);
 static void vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
 static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
@@ -989,7 +988,7 @@ vte_terminal_emit_contents_changed(VteTerminal *terminal)
 {
 	if (terminal->pvt->contents_changed_pending) {
 		/* Update dingus match set. */
-		vte_terminal_match_contents_clear(terminal);
+		terminal->pvt->match_contents_clear();
 		if (terminal->pvt->mouse_cursor_visible) {
 			vte_terminal_match_hilite_update(terminal,
 					terminal->pvt->mouse_last_x,
@@ -1219,19 +1218,18 @@ vte_terminal_set_default_tabstops(VteTerminal *terminal)
 }
 
 /* Clear the cache of the screen contents we keep. */
-static void
-vte_terminal_match_contents_clear(VteTerminal *terminal)
+void
+VteTerminalPrivate::match_contents_clear()
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->match_contents != NULL) {
-		g_free(terminal->pvt->match_contents);
-		terminal->pvt->match_contents = NULL;
+	if (m_match_contents != nullptr) {
+		g_free(m_match_contents);
+		m_match_contents = nullptr;
 	}
-	if (terminal->pvt->match_attributes != NULL) {
-		g_array_free(terminal->pvt->match_attributes, TRUE);
-		terminal->pvt->match_attributes = NULL;
+	if (m_match_attributes != nullptr) {
+		g_array_free(m_match_attributes, TRUE);
+		m_match_attributes = nullptr;
 	}
-	vte_terminal_match_hilite_clear(terminal);
+	vte_terminal_match_hilite_clear(m_terminal);
 }
 
 /* Refresh the cache of the screen contents we keep. */
@@ -1241,26 +1239,24 @@ always_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
 	return TRUE;
 }
 
-static void
-vte_terminal_match_contents_refresh(VteTerminal *terminal)
+void
+VteTerminalPrivate::match_contents_refresh()
+
 {
-	GArray *array;
-        long start_row, start_col, end_row, end_col;
+        auto start_row = _vte_terminal_first_displayed_row (m_terminal);
+        auto start_col = 0;
+        auto end_row = _vte_terminal_last_displayed_row (m_terminal);
+        auto end_col = m_column_count - 1;
 
-        start_row = _vte_terminal_first_displayed_row (terminal);
-        start_col = 0;
-        end_row = _vte_terminal_last_displayed_row (terminal);
-        end_col = terminal->pvt->column_count - 1;
-
-	vte_terminal_match_contents_clear(terminal);
-	array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-        terminal->pvt->match_contents = vte_terminal_get_text_range(terminal,
+	match_contents_clear();
+	GArray *array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
+        m_match_contents = vte_terminal_get_text_range(m_terminal,
                                                                     start_row, start_col,
                                                                     end_row, end_col,
                                                                     always_selected,
                                                                     NULL,
                                                                     array);
-	terminal->pvt->match_attributes = array;
+	m_match_attributes = array;
 }
 
 static void
@@ -2142,7 +2138,7 @@ VteTerminalPrivate::match_check_internal(vte::grid::column_t column,
                                          gsize *end)
 {
 	if (m_match_contents == nullptr) {
-		vte_terminal_match_contents_refresh(m_terminal);
+		match_contents_refresh();
 	}
 
         g_assert(tag != NULL);
@@ -2343,7 +2339,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                 return FALSE;
 
 	if (pvt->match_contents == NULL) {
-		vte_terminal_match_contents_refresh(terminal);
+		pvt->match_contents_refresh();
 	}
 
         if (!pvt->match_rowcol_to_offset(col, row,
@@ -2424,7 +2420,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
                 return FALSE;
 
 	if (pvt->match_contents == NULL) {
-		vte_terminal_match_contents_refresh(terminal);
+		pvt->match_contents_refresh();
 	}
 
         if (!pvt->match_rowcol_to_offset(col, row,
