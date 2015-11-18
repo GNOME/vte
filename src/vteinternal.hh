@@ -456,6 +456,8 @@ public:
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);
 
+        void read_modifiers(GdkEvent *event);
+
         void set_pointer_visible(bool visible);
 
         void match_contents_clear();

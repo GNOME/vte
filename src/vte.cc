@@ -5492,13 +5492,12 @@ vte_translate_ctrlkey (GdkEventKey *event)
 	return event->keyval;
 }
 
-static void
-vte_terminal_read_modifiers (VteTerminal *terminal,
-			     GdkEvent *event)
+void
+VteTerminalPrivate::read_modifiers(GdkEvent *event)
 {
         GdkKeymap *keymap;
 	GdkModifierType mods;
-        guint modifiers;
+        guint mask;
 
 	/* Read the modifiers. */
 	if (!gdk_event_get_state((GdkEvent*)event, &mods))
@@ -5508,14 +5507,14 @@ vte_terminal_read_modifiers (VteTerminal *terminal,
 
         gdk_keymap_add_virtual_modifiers (keymap, &mods);
 
-        modifiers = (guint)mods;
+        mask = (guint)mods;
 #if 1
         /* HACK! Treat ALT as META; see bug #663779. */
-        if (modifiers & GDK_MOD1_MASK)
-                modifiers |= VTE_META_MASK;
+        if (mask & GDK_MOD1_MASK)
+                mask |= VTE_META_MASK;
 #endif
 
-        terminal->pvt->modifiers = modifiers;
+        m_modifiers = mask;
 }
 
 /* Read and handle a keypress event. */
@@ -5557,7 +5556,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 	if (event->type == GDK_KEY_PRESS) {
 		/* Store a copy of the key. */
 		keyval = event->keyval;
-		vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+		terminal->pvt->read_modifiers((GdkEvent*)event);
 
 		/* If we're in margin bell mode and on the border of the
 		 * margin, bell. */
@@ -5981,7 +5980,7 @@ vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 
 	terminal = VTE_TERMINAL(widget);
 
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	terminal->pvt->read_modifiers((GdkEvent*)event);
 
 	if (gtk_widget_get_realized (&terminal->widget) &&
             terminal->pvt->input_enabled &&
@@ -6405,7 +6404,7 @@ VteTerminalPrivate::maybe_feed_focus_event(bool in)
 bool
 VteTerminalPrivate::maybe_send_mouse_button(GdkEventButton *event)
 {
-	vte_terminal_read_modifiers (m_terminal, (GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
@@ -8044,7 +8043,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 			x / width,
                         _vte_terminal_pixel_to_row(terminal, y));
 
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	terminal->pvt->read_modifiers((GdkEvent*)event);
 
         if (terminal->pvt->mouse_pressed_buttons != 0) {
 		terminal->pvt->match_hilite_hide();
@@ -8128,7 +8127,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	terminal->pvt->set_pointer_visible(true);
 
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	terminal->pvt->read_modifiers((GdkEvent*)event);
 
 	/* Convert the event coordinates to cell coordinates. */
 	cellx = x / terminal->pvt->char_width;
@@ -8300,7 +8299,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	vte_terminal_stop_autoscroll(terminal);
 
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	terminal->pvt->read_modifiers((GdkEvent*)event);
 
 	switch (event->type) {
 	case GDK_BUTTON_RELEASE:
@@ -8359,7 +8358,7 @@ VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
 	gtk_widget_grab_focus(m_widget);
 
 	/* Read the keyboard modifiers, though they're probably garbage. */
-	vte_terminal_read_modifiers(m_terminal, (GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
@@ -8390,7 +8389,8 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
 
 	/* Read the keyboard modifiers, though they're probably garbage. */
-	vte_terminal_read_modifiers(m_terminal, (GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
+
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
 	if (gtk_widget_get_realized(m_widget)) {
@@ -11039,7 +11039,7 @@ vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 
 	terminal = VTE_TERMINAL(widget);
 
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	terminal->pvt->read_modifiers((GdkEvent*)event);
 
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
