@@ -10980,43 +10980,14 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal, gboolean scroll)
         g_object_notify (G_OBJECT (terminal), "scroll-on-keystroke");
 }
 
-/**
- * vte_terminal_set_rewrap_on_resize:
- * @terminal: a #VteTerminal
- * @rewrap: %TRUE if the terminal should rewrap on resize
- *
- * Controls whether or not the terminal will rewrap its contents, including
- * the scrollback history, whenever the terminal's width changes.
- */
-void
-vte_terminal_set_rewrap_on_resize(VteTerminal *terminal, gboolean rewrap)
+bool
+VteTerminalPrivate::set_rewrap_on_resize(bool rewrap)
 {
-        VteTerminalPrivate *pvt;
+        if (rewrap == m_rewrap_on_resize)
+                return false;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        if (rewrap == pvt->rewrap_on_resize)
-                return;
-
-        pvt->rewrap_on_resize = rewrap;
-        g_object_notify (G_OBJECT (terminal), "rewrap-on-resize");
-}
-
-/**
- * vte_terminal_get_rewrap_on_resize:
- * @terminal: a #VteTerminal
- *
- * Checks whether or not the terminal will rewrap its contents upon resize.
- *
- * Returns: %TRUE if rewrapping is enabled, %FALSE if not
- */
-gboolean
-vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->rewrap_on_resize;
+        m_rewrap_on_resize = rewrap;
+        return true;
 }
 
 /* Set up whatever background we wanted. */

@@ -2111,6 +2111,39 @@ vte_terminal_get_pty(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_get_rewrap_on_resize:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not the terminal will rewrap its contents upon resize.
+ *
+ * Returns: %TRUE if rewrapping is enabled, %FALSE if not
+ */
+gboolean
+vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return terminal->pvt->rewrap_on_resize;
+}
+
+/**
+ * vte_terminal_set_rewrap_on_resize:
+ * @terminal: a #VteTerminal
+ * @rewrap: %TRUE if the terminal should rewrap on resize
+ *
+ * Controls whether or not the terminal will rewrap its contents, including
+ * the scrollback history, whenever the terminal's width changes.
+ */
+void
+vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
+                                  gboolean rewrap)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (terminal->pvt->set_rewrap_on_resize(rewrap != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_REWRAP_ON_RESIZE]);
+}
+
+/**
  * vte_terminal_get_row_count:
  * @terminal: a #VteTerminal
  *

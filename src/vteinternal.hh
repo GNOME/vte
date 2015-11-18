@@ -615,6 +615,7 @@ public:
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
         bool set_pty(VtePty *pty);
+        bool set_rewrap_on_resize(bool rewrap);
         bool set_scrollback_lines(long lines);
         bool set_word_char_exceptions(char const* exceptions);
 
