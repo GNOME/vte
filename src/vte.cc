@@ -9501,33 +9501,39 @@ vte_terminal_screen_changed (GtkWidget *widget,
                              GdkScreen *previous_screen)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
-        GdkScreen *screen;
-        GtkSettings *settings;
-
-        screen = gtk_widget_get_screen (widget);
-        if (previous_screen != NULL &&
-            (screen != previous_screen || screen == NULL)) {
-                settings = gtk_settings_get_for_screen (previous_screen);
-                g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
-                                                      0, 0, NULL, NULL,
-                                                      widget);
-        }
 
         if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed) {
                 GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed (widget, previous_screen);
         }
 
-        if (screen == previous_screen || screen == NULL)
+        terminal->pvt->widget_screen_changed(previous_screen);
+}
+
+void
+VteTerminalPrivate::widget_screen_changed (GdkScreen *previous_screen)
+{
+        GtkSettings *settings;
+
+        auto gdk_screen = gtk_widget_get_screen (m_widget);
+        if (previous_screen != NULL &&
+            (gdk_screen != previous_screen || gdk_screen == NULL)) {
+                settings = gtk_settings_get_for_screen (previous_screen);
+                g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
+                                                      0, 0, NULL, NULL,
+                                                      m_widget);
+        }
+
+        if (gdk_screen == previous_screen || gdk_screen == nullptr)
                 return;
 
-        settings = gtk_widget_get_settings (widget);
-        vte_terminal_sync_settings (settings, NULL, terminal);
+        settings = gtk_widget_get_settings(m_widget);
+        vte_terminal_sync_settings(settings, NULL, m_terminal);
         g_signal_connect (settings, "notify::gtk-cursor-blink",
-                          G_CALLBACK (vte_terminal_sync_settings), widget);
+                          G_CALLBACK (vte_terminal_sync_settings), m_widget);
         g_signal_connect (settings, "notify::gtk-cursor-blink-time",
-                          G_CALLBACK (vte_terminal_sync_settings), widget);
+                          G_CALLBACK (vte_terminal_sync_settings), m_widget);
         g_signal_connect (settings, "notify::gtk-cursor-blink-timeout",
-                          G_CALLBACK (vte_terminal_sync_settings), widget);
+                          G_CALLBACK (vte_terminal_sync_settings), m_widget);
 }
 
 /* Perform final cleanups for the widget before it's freed. */

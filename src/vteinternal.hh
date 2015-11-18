@@ -467,6 +467,7 @@ public:
         void widget_scroll(GdkEventScroll *event);
         bool widget_motion_notify(GdkEventMotion *event);
         void widget_draw(cairo_t *cr);
+        void widget_screen_changed (GdkScreen *previous_screen);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
