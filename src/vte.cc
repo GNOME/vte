@@ -3737,40 +3737,8 @@ _vte_terminal_disconnect_pty_write(VteTerminal *terminal)
 	}
 }
 
-/**
- * vte_terminal_pty_new_sync:
- * @terminal: a #VteTerminal
- * @flags: flags from #VtePtyFlags
- * @cancellable: (allow-none): a #GCancellable, or %NULL
- * @error: (allow-none): return location for a #GError, or %NULL
- *
- * Creates a new #VtePty, and sets the emulation property
- * from #VteTerminal:emulation.
- *
- * See vte_pty_new() for more information.
- *
- * Returns: (transfer full): a new #VtePty
- */
-VtePty *
-vte_terminal_pty_new_sync(VteTerminal *terminal,
-                          VtePtyFlags flags,
-                          GCancellable *cancellable,
-                          GError **error)
-{
-        VtePty *pty;
-
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-        pty = vte_pty_new_sync(flags, cancellable, error);
-        if (pty == NULL)
-                return NULL;
-
-        return pty;
-}
-
-/**
- * vte_terminal_watch_child:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::watch_child:
  * @child_pid: a #GPid
  *
  * Watches @child_pid. When the process exists, the #VteTerminal::child-exited
@@ -3788,45 +3756,35 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
  * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
  */
 void
-vte_terminal_watch_child (VteTerminal *terminal,
-                          GPid child_pid)
+VteTerminalPrivate::watch_child (GPid child_pid)
 {
-        VteTerminalPrivate *pvt;
-        GObject *object;
-
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(child_pid != -1);
-
-        pvt = terminal->pvt;
-        g_return_if_fail(pvt->pty != NULL);
-
         // FIXMEchpe: support passing child_pid = -1 to remove the wathch
+        g_assert(child_pid != -1);
+        g_assert(m_pty != nullptr);
 
-        object = G_OBJECT(terminal);
-
+        GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
 
         /* Set this as the child's pid. */
-        pvt->pty_pid = child_pid;
+        m_pty_pid = child_pid;
 
         /* Catch a child-exited signal from the child pid. */
-        if (terminal->pvt->child_watch_source != 0) {
-                g_source_remove (terminal->pvt->child_watch_source);
+        if (m_child_watch_source != 0) {
+                g_source_remove (m_child_watch_source);
         }
-        terminal->pvt->child_watch_source =
+        m_child_watch_source =
                 g_child_watch_add_full(G_PRIORITY_HIGH,
                                        child_pid,
                                        (GChildWatchFunc)vte_terminal_child_watch_cb,
-                                       terminal, NULL);
+                                       m_terminal, NULL);
 
         /* FIXMEchpe: call vte_terminal_set_size here? */
 
         g_object_thaw_notify(object);
 }
 
-/**
- * vte_terminal_spawn_sync:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::spawn_sync:
  * @pty_flags: flags from #VtePtyFlags
  * @working_directory: (allow-none): the name of a directory the command should start
  *   in, or %NULL to use the current working directory
@@ -3856,9 +3814,8 @@ vte_terminal_watch_child (VteTerminal *terminal,
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
  */
-gboolean
-vte_terminal_spawn_sync(VteTerminal *terminal,
-                               VtePtyFlags pty_flags,
+bool
+VteTerminalPrivate::spawn_sync(VtePtyFlags pty_flags,
                                const char *working_directory,
                                char **argv,
                                char **envv,
@@ -3870,22 +3827,21 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                                GError **error)
 {
         guint spawn_flags = (guint)spawn_flags_;
-        VtePty *pty;
+        VtePty *new_pty;
         GPid pid;
 
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(argv != NULL, FALSE);
-        g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
-        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+        g_assert(argv != nullptr);
+        g_assert(child_setup_data == nullptr || child_setup != nullptr);
+        g_assert(error == nullptr || *error == nullptr);
 
-        pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
-        if (pty == NULL)
-                return FALSE;
+        new_pty = vte_terminal_pty_new_sync(m_terminal, pty_flags, cancellable, error);
+        if (new_pty == nullptr)
+                return false;
 
         /* FIXMEchpe: is this flag needed */
         spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
 
-        if (!__vte_pty_spawn(pty,
+        if (!__vte_pty_spawn(new_pty,
                              working_directory,
                              argv,
                              envv,
@@ -3893,18 +3849,18 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                              child_setup, child_setup_data,
                              &pid,
                              error)) {
-                g_object_unref(pty);
-                return FALSE;
+                g_object_unref(new_pty);
+                return false;
         }
 
-        vte_terminal_set_pty(terminal, pty);
-        vte_terminal_watch_child(terminal, pid);
-        g_object_unref (pty);
+        vte_terminal_set_pty(m_terminal, new_pty);
+        vte_terminal_watch_child(m_terminal, pid);
+        g_object_unref (new_pty);
 
         if (child_pid)
                 *child_pid = pid;
 
-        return TRUE;
+        return true;
 }
 
 /* Handle an EOF from the client. */

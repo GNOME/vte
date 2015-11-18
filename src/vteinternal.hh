@@ -483,6 +483,18 @@ public:
                                          int *natural_height);
         void widget_size_allocate(GtkAllocation *allocation);
 
+        void watch_child (GPid child_pid);
+        bool spawn_sync(VtePtyFlags pty_flags,
+                        const char *working_directory,
+                        char **argv,
+                        char **envv,
+                        GSpawnFlags spawn_flags_,
+                        GSpawnChildSetupFunc child_setup,
+                        gpointer child_setup_data,
+                        GPid *child_pid /* out */,
+                        GCancellable *cancellable,
+                        GError **error);
+
         void select_all();
         void deselect_all();
 

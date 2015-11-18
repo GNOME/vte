@@ -2074,6 +2074,127 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_pty_new_sync:
+ * @terminal: a #VteTerminal
+ * @flags: flags from #VtePtyFlags
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Creates a new #VtePty, and sets the emulation property
+ * from #VteTerminal:emulation.
+ *
+ * See vte_pty_new() for more information.
+ *
+ * Returns: (transfer full): a new #VtePty
+ */
+VtePty *
+vte_terminal_pty_new_sync(VteTerminal *terminal,
+                          VtePtyFlags flags,
+                          GCancellable *cancellable,
+                          GError **error)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        VtePty *pty = vte_pty_new_sync(flags, cancellable, error);
+        if (pty == NULL)
+                return NULL;
+
+        return pty;
+}
+
+/**
+ * vte_terminal_watch_child:
+ * @terminal: a #VteTerminal
+ * @child_pid: a #GPid
+ *
+ * Watches @child_pid. When the process exists, the #VteTerminal::child-exited
+ * signal will be called with the child's exit status.
+ *
+ * Prior to calling this function, a #VtePty must have been set in @terminal
+ * using vte_terminal_set_pty().
+ * When the child exits, the terminal's #VtePty will be set to %NULL.
+ *
+ * Note: g_child_watch_add() or g_child_watch_add_full() must not have
+ * been called for @child_pid, nor a #GSource for it been created with
+ * g_child_watch_source_new().
+ *
+ * Note: when using the g_spawn_async() family of functions,
+ * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
+ */
+void
+vte_terminal_watch_child (VteTerminal *terminal,
+                          GPid child_pid)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(child_pid != -1);
+        g_return_if_fail(terminal->pvt->pty != NULL);
+
+        terminal->pvt->watch_child(child_pid);
+}
+
+/**
+ * vte_terminal_spawn_sync:
+ * @terminal: a #VteTerminal
+ * @pty_flags: flags from #VtePtyFlags
+ * @working_directory: (allow-none): the name of a directory the command should start
+ *   in, or %NULL to use the current working directory
+ * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
+ * @spawn_flags: flags from #GSpawnFlags
+ * @child_setup: (allow-none) (scope call): an extra child setup function to run in the child just before exec(), or %NULL
+ * @child_setup_data: user data for @child_setup
+ * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Starts the specified command under a newly-allocated controlling
+ * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
+ * The "TERM" environment variable is automatically set to a default value,
+ * but can be overridden from @envv.
+ * @pty_flags controls logging the session to the specified system log files.
+ *
+ * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
+ *
+ * Note that unless @spawn_flags contains %G_SPAWN_LEAVE_DESCRIPTORS_OPEN, all file
+ * descriptors except stdin/stdout/stderr will be closed before calling exec()
+ * in the child.
+ *
+ * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
+ *
+ * Returns: %TRUE on success, or %FALSE on error with @error filled in
+ */
+gboolean
+vte_terminal_spawn_sync(VteTerminal *terminal,
+                        VtePtyFlags pty_flags,
+                        const char *working_directory,
+                        char **argv,
+                        char **envv,
+                        GSpawnFlags spawn_flags_,
+                        GSpawnChildSetupFunc child_setup,
+                        gpointer child_setup_data,
+                        GPid *child_pid /* out */,
+                        GCancellable *cancellable,
+                        GError **error)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(argv != NULL, FALSE);
+        g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
+        g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+        return terminal->pvt->spawn_sync(pty_flags,
+                                         working_directory,
+                                         argv,
+                                         envv,
+                                         spawn_flags_,
+                                         child_setup,
+                                         child_setup_data,
+                                         child_pid,
+                                         cancellable,
+                                         error);
+}
+
+/**
  * VteSelectionFunc:
  * @terminal: terminal in which the cell is.
  * @column: column in which the cell is.
