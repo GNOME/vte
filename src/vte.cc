@@ -8341,25 +8341,30 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 	_vte_invalidate_all(terminal);
 }
 
-
 static void
 vte_terminal_ensure_font (VteTerminal *terminal)
 {
-	if (terminal->pvt->draw != NULL) {
+        terminal->pvt->ensure_font();
+}
+
+void
+VteTerminalPrivate::ensure_font()
+{
+	if (m_draw != NULL) {
 		/* Load default fonts, if no fonts have been loaded. */
-		if (!terminal->pvt->has_fonts) {
-			vte_terminal_set_font(terminal,
-                                              terminal->pvt->unscaled_font_desc);
+		if (!m_has_fonts) {
+			vte_terminal_set_font(m_terminal,
+                                              m_unscaled_font_desc);
 		}
-		if (terminal->pvt->fontdirty) {
+		if (m_fontdirty) {
 			gint width, height, ascent;
-			terminal->pvt->fontdirty = FALSE;
-			_vte_draw_set_text_font (terminal->pvt->draw,
-                                                 &terminal->widget,
-					terminal->pvt->fontdesc);
-			_vte_draw_get_text_metrics (terminal->pvt->draw,
+			m_fontdirty = FALSE;
+			_vte_draw_set_text_font (m_draw,
+                                                 m_widget,
+					m_fontdesc);
+			_vte_draw_get_text_metrics (m_draw,
 						    &width, &height, &ascent);
-			vte_terminal_apply_metrics(terminal,
+			vte_terminal_apply_metrics(m_terminal,
 						   width, height, ascent, height - ascent);
 		}
 	}
@@ -11641,34 +11646,6 @@ vte_terminal_reset(VteTerminal *terminal,
 	_vte_invalidate_all(terminal);
 
         g_object_thaw_notify(G_OBJECT(terminal));
-}
-
-/**
- * vte_terminal_get_char_width:
- * @terminal: a #VteTerminal
- *
- * Returns: the width of a character cell
- */
-glong
-vte_terminal_get_char_width(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	vte_terminal_ensure_font (terminal);
-	return terminal->pvt->char_width;
-}
-
-/**
- * vte_terminal_get_char_height:
- * @terminal: a #VteTerminal
- *
- * Returns: the height of a character cell
- */
-glong
-vte_terminal_get_char_height(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	vte_terminal_ensure_font (terminal);
-	return terminal->pvt->char_height;
 }
 
 bool

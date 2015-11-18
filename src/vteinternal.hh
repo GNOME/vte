@@ -483,6 +483,8 @@ public:
                                          int *natural_height);
         void widget_size_allocate(GtkAllocation *allocation);
 
+        void ensure_font();
+
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
 
@@ -602,6 +604,9 @@ public:
         bool process_word_char_exceptions(char const *str,
                                           gunichar **arrayp,
                                           gsize *lenp);
+
+        long get_char_height() { ensure_font(); return char_height; }
+        long get_char_width()  { ensure_font(); return char_width;  }
 
         bool set_input_enabled(bool enabled);
         bool set_pty(VtePty *pty);

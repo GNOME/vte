@@ -1654,6 +1654,34 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_get_char_height:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the height of a character cell
+ */
+glong
+vte_terminal_get_char_height(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+        g_return_val_if_fail(gtk_widget_get_realized(&terminal->widget), -1);
+	return terminal->pvt->get_char_height();
+}
+
+/**
+ * vte_terminal_get_char_width:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the width of a character cell
+ */
+glong
+vte_terminal_get_char_width(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
+        g_return_val_if_fail(gtk_widget_get_realized(&terminal->widget), -1);
+	return terminal->pvt->get_char_width();
+}
+
+/**
  * vte_terminal_get_column_count:
  * @terminal: a #VteTerminal
  *
