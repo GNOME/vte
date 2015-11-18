@@ -5408,17 +5408,23 @@ static void
 vte_terminal_style_updated (GtkWidget *widget)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        float aspect;
 
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated (widget);
 
-        vte_terminal_set_font(terminal, terminal->pvt->unscaled_font_desc);
-        vte_terminal_set_padding(terminal);
+        terminal->pvt->widget_style_updated();
+}
 
-        gtk_widget_style_get(widget, "cursor-aspect-ratio", &aspect, NULL);
-        if (!_vte_double_equal(aspect, terminal->pvt->cursor_aspect_ratio)) {
-                terminal->pvt->cursor_aspect_ratio = aspect;
-                _vte_invalidate_cursor_once(terminal, FALSE);
+void
+VteTerminalPrivate::widget_style_updated()
+{
+        vte_terminal_set_font(m_terminal, m_unscaled_font_desc);
+        vte_terminal_set_padding(m_terminal);
+
+        float aspect;
+        gtk_widget_style_get(m_widget, "cursor-aspect-ratio", &aspect, nullptr);
+        if (!_vte_double_equal(aspect, m_cursor_aspect_ratio)) {
+                m_cursor_aspect_ratio = aspect;
+                invalidate_cursor_once();
         }
 }
 

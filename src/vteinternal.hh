@@ -443,6 +443,8 @@ public:
 
         void invalidate_cursor_once(bool periodic = false);
         void invalidate_cursor_periodic();
+
+        void widget_style_updated();
 };
 
 #define m_invalidated_all invalidated_all
@@ -462,3 +464,5 @@ public:
 #define m_cursor_blink_cycle cursor_blink_cycle
 #define m_cursor_blink_timeout cursor_blink_timeout
 #define m_cursor_blink_tag cursor_blink_tag
+#define m_cursor_aspect_ratio cursor_aspect_ratio
+#define m_unscaled_font_desc unscaled_font_desc
