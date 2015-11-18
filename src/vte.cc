@@ -11019,69 +11019,6 @@ vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
 	return terminal->pvt->rewrap_on_resize;
 }
 
-/**
- * vte_terminal_copy_clipboard:
- * @terminal: a #VteTerminal
- *
- * Places the selected text in the terminal in the #GDK_SELECTION_CLIPBOARD
- * selection.
- */
-void
-vte_terminal_copy_clipboard(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_signal_emit (terminal, signals[COPY_CLIPBOARD], 0);
-}
-
-/**
- * vte_terminal_paste_clipboard:
- * @terminal: a #VteTerminal
- *
- * Sends the contents of the #GDK_SELECTION_CLIPBOARD selection to the
- * terminal's child.  If necessary, the data is converted from UTF-8 to the
- * terminal's current encoding. It's called on paste menu item, or when
- * user presses Shift+Insert.
- */
-void
-vte_terminal_paste_clipboard(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_signal_emit (terminal, signals[PASTE_CLIPBOARD], 0);
-}
-
-/**
- * vte_terminal_copy_primary:
- * @terminal: a #VteTerminal
- *
- * Places the selected text in the terminal in the #GDK_SELECTION_PRIMARY
- * selection.
- */
-void
-vte_terminal_copy_primary(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	terminal->pvt->widget_copy(VTE_SELECTION_PRIMARY);
-}
-
-/**
- * vte_terminal_paste_primary:
- * @terminal: a #VteTerminal
- *
- * Sends the contents of the #GDK_SELECTION_PRIMARY selection to the terminal's
- * child.  If necessary, the data is converted from UTF-8 to the terminal's
- * current encoding.  The terminal will call also paste the
- * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
- * mouse button.
- */
-void
-vte_terminal_paste_primary(VteTerminal *terminal)
-{
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
-	terminal->pvt->widget_paste(GDK_SELECTION_PRIMARY);
-}
-
 /* Set up whatever background we wanted. */
 static void
 vte_terminal_background_update(VteTerminal *terminal)
@@ -11113,23 +11050,6 @@ vte_terminal_background_update(VteTerminal *terminal)
 
 	/* Force a redraw for everything. */
 	_vte_invalidate_all (terminal);
-}
-
-/**
- * vte_terminal_get_has_selection:
- * @terminal: a #VteTerminal
- *
- * Checks if the terminal currently contains selected text.  Note that this
- * is different from determining if the terminal is the owner of any
- * #GtkClipboard items.
- *
- * Returns: %TRUE if part of the text in the terminal is selected.
- */
-gboolean
-vte_terminal_get_has_selection(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->has_selection;
 }
 
 static void
