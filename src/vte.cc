@@ -4516,9 +4516,8 @@ out:
 	return again;
 }
 
-/**
- * vte_terminal_feed:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::feed:
  * @data: (array length=length) (element-type guint8): a string in the terminal's current encoding
  * @length: the length of the string, or -1 to use the full length or a nul-terminated string
  *
@@ -4527,22 +4526,23 @@ out:
  * to mess with your users.
  */
 void
-vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length)
+VteTerminalPrivate::feed(char const* data,
+                         gssize length)
 {
-	/* If length == -1, use the length of the data string. */
-	if (length == -1) {
+        g_assert(length == 0 || data != nullptr);
+
+	if (length == -1)
 		length = strlen(data);
-	}
 
 	/* If we have data, modify the incoming buffer. */
 	if (length > 0) {
 		struct _vte_incoming_chunk *chunk;
-		if (terminal->pvt->incoming &&
-				(gsize)length < sizeof (terminal->pvt->incoming->data) - terminal->pvt->incoming->len) {
-			chunk = terminal->pvt->incoming;
+		if (m_incoming &&
+				(gsize)length < sizeof (m_incoming->data) - m_incoming->len) {
+			chunk = m_incoming;
 		} else {
 			chunk = get_chunk ();
-			_vte_terminal_feed_chunks (terminal, chunk);
+			_vte_terminal_feed_chunks(m_terminal, chunk);
 		}
 		do { /* break the incoming data into chunks */
 			gsize rem = sizeof (chunk->data) - chunk->len;
@@ -4556,9 +4556,9 @@ vte_terminal_feed(VteTerminal *terminal, const char *data, gssize length)
 			data += len;
 
 			chunk = get_chunk ();
-			_vte_terminal_feed_chunks (terminal, chunk);
+			_vte_terminal_feed_chunks(m_terminal, chunk);
 		} while (1);
-		vte_terminal_start_processing (terminal);
+		vte_terminal_start_processing(m_terminal);
 	}
 }
 
@@ -4722,9 +4722,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	return;
 }
 
-/**
- * vte_terminal_feed_child:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminal::feed_child:
  * @text: data to send to the child
  * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
@@ -4732,51 +4731,52 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
  * at the keyboard.
  */
 void
-vte_terminal_feed_child(VteTerminal *terminal, const char *text, gssize length)
+VteTerminalPrivate::feed_child(char const *text,
+                               gssize length)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_assert(length == 0 || text != nullptr);
 
-        if (!terminal->pvt->input_enabled)
+        if (!m_input_enabled)
                 return;
 
-	if (length == -1) {
+	if (length == -1)
 		length = strlen(text);
-	}
+
 	if (length > 0) {
-		vte_terminal_send(terminal, "UTF-8", text, length,
+		vte_terminal_send(m_terminal, "UTF-8", text, length,
 				  FALSE, FALSE);
 	}
 }
 
-/**
- * vte_terminal_feed_child_binary:
- * @terminal: a #VteTerminal
+/*
+ * VteTerminalPrivate::feed_child_binary:
  * @data: data to send to the child
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
  */
 void
-vte_terminal_feed_child_binary(VteTerminal *terminal, const guint8 *data, gsize length)
+VteTerminalPrivate::feed_child_binary(guint8 const* data,
+                                      gsize length)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_assert(length == 0 || data != nullptr);
 
-        if (!terminal->pvt->input_enabled)
+        if (!m_input_enabled)
                 return;
 
 	/* Tell observers that we're sending this to the child. */
 	if (length > 0) {
-		vte_terminal_emit_commit(terminal,
+		vte_terminal_emit_commit(m_terminal,
 					 (char*)data, length);
 
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if (terminal->pvt->pty != NULL) {
-			_vte_byte_array_append(terminal->pvt->outgoing,
+		if (m_pty != NULL) {
+			_vte_byte_array_append(m_outgoing,
 					   data, length);
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			_vte_terminal_connect_pty_write(terminal);
+			_vte_terminal_connect_pty_write(m_terminal);
 		}
 	}
 }

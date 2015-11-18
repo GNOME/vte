@@ -2195,6 +2195,66 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_feed:
+ * @terminal: a #VteTerminal
+ * @data: (array length=length) (element-type guint8): a string in the terminal's current encoding
+ * @length: the length of the string, or -1 to use the full length or a nul-terminated string
+ *
+ * Interprets @data as if it were data received from a child process.  This
+ * can either be used to drive the terminal without a child process, or just
+ * to mess with your users.
+ */
+void
+vte_terminal_feed(VteTerminal *terminal,
+                  const char *data,
+                  gssize length)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(length == 0 || data != NULL);
+
+        terminal->pvt->feed(data, length);
+}
+
+/**
+ * vte_terminal_feed_child:
+ * @terminal: a #VteTerminal
+ * @text: data to send to the child
+ * @length: length of @text in bytes, or -1 if @text is NUL-terminated
+ *
+ * Sends a block of UTF-8 text to the child as if it were entered by the user
+ * at the keyboard.
+ */
+void
+vte_terminal_feed_child(VteTerminal *terminal,
+                        const char *text,
+                        gssize length)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(length == 0 || text != NULL);
+
+        terminal->pvt->feed_child(text, length);
+}
+
+/**
+ * vte_terminal_feed_child_binary:
+ * @terminal: a #VteTerminal
+ * @data: data to send to the child
+ * @length: length of @data
+ *
+ * Sends a block of binary data to the child.
+ */
+void
+vte_terminal_feed_child_binary(VteTerminal *terminal,
+                               const guint8 *data,
+                               gsize length)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(length == 0 || data != NULL);
+
+        terminal->pvt->feed_child_binary(data, length);
+}
+
+/**
  * VteSelectionFunc:
  * @terminal: terminal in which the cell is.
  * @column: column in which the cell is.

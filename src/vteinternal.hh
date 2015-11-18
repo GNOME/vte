@@ -495,6 +495,13 @@ public:
                         GCancellable *cancellable,
                         GError **error);
 
+        void feed(char const* data,
+                  gssize length);
+        void feed_child(char const *text,
+                        gssize length);
+        void feed_child_binary(guint8 const* data,
+                               gsize length);
+
         void select_all();
         void deselect_all();
 
