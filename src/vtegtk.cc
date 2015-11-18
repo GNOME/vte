@@ -1926,9 +1926,10 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
                                VteRegex    *regex,
                                guint32      flags)
 {
+#ifdef WITH_PCRE2
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
         terminal->pvt->search_set_regex(regex, flags);
+#endif
 }
 
 /**
