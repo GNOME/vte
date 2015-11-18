@@ -187,7 +187,7 @@ struct vte_scrolling_region {
 /* Terminal private data. */
 class VteTerminalPrivate {
 public:
-        VteTerminalPrivate(VteTerminal *t) : m_terminal(t), m_widget(&t->widget) { }
+        VteTerminalPrivate(VteTerminal *t);
         ~VteTerminalPrivate() { }
 
 public:
@@ -647,4 +647,45 @@ public:
 #define m_text_deleted_flag text_deleted_flag
 #define m_im_preedit_active im_preedit_active
 #define m_im_preedit im_preedit
-
+#define m_hadjustment hadjustment
+#define m_hscroll_policy hscroll_policy
+#define m_vscroll_policy vscroll_policy
+#define m_char_ascent char_ascent
+#define m_char_descent char_descent
+#define m_line_thickness line_thickness
+#define m_underline_position underline_position
+#define m_strikethrough_position strikethrough_position
+#define m_character_replacements character_replacements
+#define m_palette palette
+#define m_utf8_ambiguous_width utf8_ambiguous_width
+#define m_iso2022 iso2022
+#define m_incoming incoming
+#define m_pending pending
+#define m_max_input_bytes max_input_bytes
+#define m_outgoing outgoing
+#define m_outgoing_conv outgoing_conv
+#define m_conv_buffer conv_buffer
+#define m_autowrap autowrap
+#define m_sendrecv_mode sendrecv_mode
+#define m_dec_saved dec_saved
+#define m_matcher matcher
+#define m_pty_input_source pty_input_source
+#define m_pty_output_source pty_output_source
+#define m_pty_pid pty_pid
+#define m_scrollback_lines scrollback_lines
+#define m_clipboard clipboard
+#define m_meta_sends_escape meta_sends_escape
+#define m_bell_margin bell_margin
+#define m_allow_bold allow_bold
+#define m_deccolm_mode deccolm_mode
+#define m_rewrap_on_resize rewrap_on_resize
+#define m_cursor_shape cursor_shape
+#define m_search_regex search_regex
+#define m_background_alpha background_alpha
+#define m_font_scale font_scale
+#define m_has_fonts has_fonts
+#define m_encoding encoding
+#define m_cursor_blink_mode cursor_blink_mode
+#define m_cursor_style cursor_style
+#define m_character_replacement character_replacement
+#define m_fontdesc fontdesc

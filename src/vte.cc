@@ -9092,170 +9092,185 @@ static void
 vte_terminal_init(VteTerminal *terminal)
 {
         void *place;
-	VteTerminalPrivate *pvt;
 	GtkStyleContext *context;
-	int i;
-	GdkDisplay *display;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
-	/* Initialize private data. */
-	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
-        pvt = terminal->pvt = new (place) VteTerminalPrivate(terminal);
-
-	gtk_widget_set_can_focus(&terminal->widget, TRUE);
-
-	gtk_widget_set_app_paintable (&terminal->widget, TRUE);
-
-	/* We do our own redrawing. */
-	gtk_widget_set_redraw_on_allocate (&terminal->widget, FALSE);
-
-	/* Set an adjustment for the application to use to control scrolling. */
-        terminal->pvt->vadjustment = NULL;
-        pvt->hadjustment = NULL;
-        /* GtkScrollable */
-        pvt->hscroll_policy = GTK_SCROLL_NATURAL;
-        pvt->vscroll_policy = GTK_SCROLL_NATURAL;
-
-        vte_terminal_set_hadjustment(terminal, NULL);
-	vte_terminal_set_vadjustment(terminal, NULL);
-
-	/* Set up dummy metrics, value != 0 to avoid division by 0 */
-	terminal->pvt->char_width = 1;
-	terminal->pvt->char_height = 1;
-	terminal->pvt->char_ascent = 1;
-	terminal->pvt->char_descent = 1;
-	terminal->pvt->line_thickness = 1;
-	terminal->pvt->underline_position = 1;
-	terminal->pvt->strikethrough_position = 1;
-
-	/* We allocated zeroed memory, just fill in non-zero stuff. */
-
-	/* Initialize the screens and histories. */
-	_vte_ring_init (pvt->alternate_screen.row_data, terminal->pvt->row_count, FALSE);
-	pvt->screen = &terminal->pvt->alternate_screen;
-	_vte_ring_init (pvt->normal_screen.row_data,  VTE_SCROLLBACK_INIT, TRUE);
-	pvt->screen = &terminal->pvt->normal_screen;
-
-	_vte_terminal_set_default_attributes(terminal);
-
-        /* Initialize charset modes. */
-        pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
-        pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
-        pvt->character_replacement = &pvt->character_replacements[0];
-
-	/* Set up the desired palette. */
-	vte_terminal_set_default_colors(terminal);
-	for (i = 0; i < VTE_PALETTE_SIZE; i++)
-		terminal->pvt->palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
-
-	/* Set up I/O encodings. */
-        pvt->utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
-        pvt->iso2022 = _vte_iso2022_state_new(pvt->encoding);
-	pvt->incoming = NULL;
-	pvt->pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
-	pvt->max_input_bytes = VTE_MAX_INPUT_READ;
-	pvt->cursor_blink_tag = 0;
-	pvt->outgoing = _vte_byte_array_new();
-	pvt->outgoing_conv = VTE_INVALID_CONV;
-	pvt->conv_buffer = _vte_byte_array_new();
-	vte_terminal_set_encoding(terminal, NULL /* UTF-8 */, NULL);
-	g_assert_cmpstr(terminal->pvt->encoding, ==, "UTF-8");
-
-        /* Set up the emulation. */
-	pvt->keypad_mode = VTE_KEYMODE_NORMAL;
-	pvt->cursor_mode = VTE_KEYMODE_NORMAL;
-        pvt->autowrap = TRUE;
-        pvt->sendrecv_mode = TRUE;
-	pvt->dec_saved = g_hash_table_new(NULL, NULL);
-        pvt->matcher = _vte_matcher_new();
-        pvt->alternate_screen_scroll = TRUE;
-
-	/* Setting the terminal type and size requires the PTY master to
-	 * be set up properly first. */
-        pvt->pty = NULL;
-        vte_terminal_set_size(terminal, VTE_COLUMNS, VTE_ROWS);
-	pvt->pty_input_source = 0;
-	pvt->pty_output_source = 0;
-	pvt->pty_pid = -1;
-
-	/* Scrolling options. */
-	pvt->scroll_on_keystroke = TRUE;
-	pvt->alternate_screen_scroll = TRUE;
-        pvt->scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
-	vte_terminal_set_scrollback_lines(terminal, VTE_SCROLLBACK_INIT);
-
-	/* Selection info. */
-	display = gtk_widget_get_display(&terminal->widget);
-	pvt->clipboard[VTE_SELECTION_PRIMARY] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
-	pvt->clipboard[VTE_SELECTION_CLIPBOARD] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
-
-	/* Miscellaneous options. */
-	vte_terminal_set_backspace_binding(terminal, VTE_ERASE_AUTO);
-	vte_terminal_set_delete_binding(terminal, VTE_ERASE_AUTO);
-	pvt->meta_sends_escape = TRUE;
-	pvt->audible_bell = TRUE;
-	pvt->bell_margin = 10;
-	pvt->allow_bold = TRUE;
-        pvt->deccolm_mode = FALSE;
-        pvt->rewrap_on_resize = TRUE;
-	vte_terminal_set_default_tabstops(terminal);
-
-        pvt->input_enabled = TRUE;
-
-	/* Cursor shape. */
-	pvt->cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
-        pvt->cursor_aspect_ratio = 0.04;
-
-	/* Cursor blinking. */
-	pvt->cursor_visible = TRUE;
-	pvt->cursor_blink_timeout = 500;
-        pvt->cursor_blinks = FALSE;
-        pvt->cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
-
-        /* DECSCUSR cursor style (shape and blinking possibly overridden
-         * via escape sequence) */
-        pvt->cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
-
-        /* Initialize the saved cursor. */
-        _vte_terminal_save_cursor(terminal, &terminal->pvt->normal_screen);
-        _vte_terminal_save_cursor(terminal, &terminal->pvt->alternate_screen);
-
-	/* Matching data. */
-        pvt->match_regex_mode = VTE_REGEX_UNDECIDED;
-	pvt->match_regexes = g_array_new(FALSE, TRUE,
-					 sizeof(struct vte_match_regex));
-        pvt->match_tag = -1;
-	pvt->match_hilite_clear(); // FIXMEchpe unnecessary
-
-        /* Search data */
-        pvt->search_regex.mode = VTE_REGEX_UNDECIDED;
-
-	/* Rendering data */
-	pvt->draw = _vte_draw_new();
-
-	/* Set up background information. */
-        pvt->background_alpha = 1.;
-
-        /* Word chars */
-        vte_terminal_set_word_char_exceptions(terminal, WORD_CHAR_EXCEPTIONS_DEFAULT);
-
-        /* Selection */
-	pvt->selection_block_mode = FALSE;
-        pvt->unscaled_font_desc = pvt->fontdesc = NULL;
-        pvt->font_scale = 1.;
-	pvt->has_fonts = FALSE;
-
-	/* Not all backends generate GdkVisibilityNotify, so mark the
-	 * window as unobscured initially. */
-	pvt->visibility_state = GDK_VISIBILITY_UNOBSCURED;
-
-        pvt->padding = default_padding;
-
-        context = gtk_widget_get_style_context (&terminal->widget);
+        context = gtk_widget_get_style_context(&terminal->widget);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+	/* Initialize private data. NOTE: place is zeroed */
+	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+        terminal->pvt = new (place) VteTerminalPrivate(terminal);
+}
+
+VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
+        m_terminal(t),
+        m_widget(&t->widget)
+{
+        // FIXMEchpe temporary workaround until all functions have been converted to members
+        m_terminal->pvt = this;
+
+	int i;
+	GdkDisplay *display;
+
+	/* NOTE! We allocated zeroed memory, just fill in non-zero stuff. */
+
+	gtk_widget_set_can_focus(m_widget, TRUE);
+
+        // FIXMEchpe is this still necessary?
+	gtk_widget_set_app_paintable(m_widget, TRUE);
+
+	/* We do our own redrawing. */
+        // FIXMEchpe still necessary?
+	gtk_widget_set_redraw_on_allocate(m_widget, FALSE);
+
+	/* Set an adjustment for the application to use to control scrolling. */
+        m_vadjustment = nullptr;
+        m_hadjustment = nullptr;
+
+        /* GtkScrollable */
+        m_hscroll_policy = GTK_SCROLL_NATURAL;
+        m_vscroll_policy = GTK_SCROLL_NATURAL;
+
+        vte_terminal_set_hadjustment(m_terminal, NULL);
+	vte_terminal_set_vadjustment(m_terminal, NULL);
+
+	/* Set up dummy metrics, value != 0 to avoid division by 0 */
+	m_char_width = 1;
+	m_char_height = 1;
+	m_char_ascent = 1;
+	m_char_descent = 1;
+	m_line_thickness = 1;
+	m_underline_position = 1;
+	m_strikethrough_position = 1;
+
+        m_row_count = VTE_ROWS;
+        m_column_count = VTE_COLUMNS;
+
+	/* Initialize the screens and histories. */
+	_vte_ring_init (m_alternate_screen.row_data, m_row_count, FALSE);
+	m_screen = &m_alternate_screen;
+	_vte_ring_init (m_normal_screen.row_data, VTE_SCROLLBACK_INIT, TRUE);
+	m_screen = &m_normal_screen;
+
+	_vte_terminal_set_default_attributes(m_terminal);
+
+        /* Initialize charset modes. */
+        m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
+        m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
+        m_character_replacement = &m_character_replacements[0];
+
+	/* Set up the desired palette. */
+	vte_terminal_set_default_colors(m_terminal);
+	for (i = 0; i < VTE_PALETTE_SIZE; i++)
+		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
+
+	/* Set up I/O encodings. */
+        m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
+        m_iso2022 = _vte_iso2022_state_new(m_encoding);
+	m_incoming = nullptr;
+	m_pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
+	m_max_input_bytes = VTE_MAX_INPUT_READ;
+	m_cursor_blink_tag = 0;
+	m_outgoing = _vte_byte_array_new();
+	m_outgoing_conv = VTE_INVALID_CONV;
+	m_conv_buffer = _vte_byte_array_new();
+	vte_terminal_set_encoding(m_terminal, NULL /* UTF-8 */, NULL);
+	g_assert_cmpstr(m_encoding, ==, "UTF-8");
+
+        /* Set up the emulation. */
+	m_keypad_mode = VTE_KEYMODE_NORMAL;
+	m_cursor_mode = VTE_KEYMODE_NORMAL;
+        m_autowrap = TRUE;
+        m_sendrecv_mode = TRUE;
+	m_dec_saved = g_hash_table_new(NULL, NULL);
+        m_matcher = _vte_matcher_new();
+        m_alternate_screen_scroll = TRUE;
+
+	/* Setting the terminal type and size requires the PTY master to
+	 * be set up properly first. */
+        m_pty = nullptr;
+        vte_terminal_set_size(m_terminal, VTE_COLUMNS, VTE_ROWS);
+	m_pty_input_source = 0;
+	m_pty_output_source = 0;
+	m_pty_pid = -1;
+
+	/* Scrolling options. */
+	m_scroll_on_keystroke = TRUE;
+	m_alternate_screen_scroll = TRUE;
+        m_scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
+	vte_terminal_set_scrollback_lines(m_terminal, VTE_SCROLLBACK_INIT);
+
+	/* Selection info. */
+	display = gtk_widget_get_display(m_widget);
+	m_clipboard[VTE_SELECTION_PRIMARY] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
+	m_clipboard[VTE_SELECTION_CLIPBOARD] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
+
+	/* Miscellaneous options. */
+	vte_terminal_set_backspace_binding(m_terminal, VTE_ERASE_AUTO);
+	vte_terminal_set_delete_binding(m_terminal, VTE_ERASE_AUTO);
+	m_meta_sends_escape = TRUE;
+	m_audible_bell = TRUE;
+	m_bell_margin = 10;
+	m_allow_bold = TRUE;
+        m_deccolm_mode = FALSE;
+        m_rewrap_on_resize = TRUE;
+	vte_terminal_set_default_tabstops(m_terminal);
+
+        m_input_enabled = TRUE;
+
+	/* Cursor shape. */
+	m_cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
+        m_cursor_aspect_ratio = 0.04;
+
+	/* Cursor blinking. */
+	m_cursor_visible = TRUE;
+	m_cursor_blink_timeout = 500;
+        m_cursor_blinks = FALSE;
+        m_cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
+
+        /* DECSCUSR cursor style (shape and blinking possibly overridden
+         * via escape sequence) */
+        m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
+
+        /* Initialize the saved cursor. */
+        _vte_terminal_save_cursor(m_terminal, &m_normal_screen);
+        _vte_terminal_save_cursor(m_terminal, &m_alternate_screen);
+
+	/* Matching data. */
+        m_match_regex_mode = VTE_REGEX_UNDECIDED;
+	m_match_regexes = g_array_new(FALSE, TRUE,
+					 sizeof(struct vte_match_regex));
+        m_match_tag = -1;
+	match_hilite_clear(); // FIXMEchpe unnecessary
+
+        /* Search data */
+        m_search_regex.mode = VTE_REGEX_UNDECIDED;
+
+	/* Rendering data */
+	m_draw = _vte_draw_new();
+
+	/* Set up background information. */
+        m_background_alpha = 1.;
+
+        /* Word chars */
+        vte_terminal_set_word_char_exceptions(m_terminal, WORD_CHAR_EXCEPTIONS_DEFAULT);
+
+        /* Selection */
+	m_selection_block_mode = FALSE;
+        m_unscaled_font_desc = nullptr;
+        m_fontdesc = nullptr;
+        m_font_scale = 1.;
+	m_has_fonts = FALSE;
+
+	/* Not all backends generate GdkVisibilityNotify, so mark the
+	 * window as unobscured initially. */
+	m_visibility_state = GDK_VISIBILITY_UNOBSCURED;
+
+        m_padding = default_padding;
 }
 
 /* Tell GTK+ how much space we need. */
