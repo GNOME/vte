@@ -516,6 +516,8 @@ public:
         char *regex_match_check(vte::grid::column_t column,
                                 vte::grid::row_t row,
                                 int *tag);
+        char *regex_match_check(GdkEvent *event,
+                                int *tag);
         void regex_match_remove(int tag);
         void regex_match_remove_all();
         void regex_match_set_cursor(int tag,

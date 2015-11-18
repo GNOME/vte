@@ -2027,38 +2027,17 @@ rowcol_from_event(VteTerminal *terminal,
         return TRUE;
 }
 
-/**
- * vte_terminal_match_check_event:
- * @terminal: a #VteTerminal
- * @event: a #GdkEvent
- * @tag: (out) (allow-none): a location to store the tag, or %NULL
- *
- * Checks if the text in and around the position of the event matches any of the
- * regular expressions previously set using vte_terminal_match_add().  If a
- * match exists, the text string is returned and if @tag is not %NULL, the number
- * associated with the matched regular expression will be stored in @tag.
- *
- * If more than one regular expression has been set with
- * vte_terminal_match_add(), then expressions are checked in the order in
- * which they were added.
- *
- * Returns: (transfer full): a newly allocated string which matches one of the previously
- *   set regular expressions
- */
 char *
-vte_terminal_match_check_event(VteTerminal *terminal,
-                               GdkEvent *event,
-                               int *tag)
+VteTerminalPrivate::regex_match_check(GdkEvent *event,
+                                      int *tag)
 {
         long col, row;
-
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-        if (!rowcol_from_event(terminal, event, &col, &row))
+        if (!rowcol_from_event(m_terminal, event, &col, &row))
                 return FALSE;
 
         /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
-        return vte_terminal_match_check(terminal, col, row - (long) terminal->pvt->screen->scroll_delta, tag);
+        // FIXMEchpe fix this scroll_delta substraction!
+        return regex_match_check(col, row - (long)m_screen->scroll_delta, tag);
 }
 
 /**
