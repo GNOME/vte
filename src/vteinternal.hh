@@ -450,6 +450,8 @@ public:
         void invalidate_cursor_periodic();
 
         void widget_style_updated();
+        void widget_focus_in(GdkEventFocus *event);
+        void widget_focus_out(GdkEventFocus *event);
 
         void match_contents_clear();
         void match_contents_refresh();
@@ -574,3 +576,7 @@ public:
 #define m_match match
 #define m_mouse_last_x mouse_last_x
 #define m_mouse_last_y mouse_last_y
+#define m_has_focus has_focus
+#define m_im_context im_context
+#define m_mouse_cursor_visible mouse_cursor_visible
+#define m_mouse_handled_buttons mouse_handled_buttons

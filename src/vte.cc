@@ -8349,65 +8349,73 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_focus_in(event);
+        return FALSE;
+}
 
+void
+VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
+{
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
-	terminal = VTE_TERMINAL(widget);
-	gtk_widget_grab_focus (widget);
+	gtk_widget_grab_focus(m_widget);
 
 	/* Read the keyboard modifiers, though they're probably garbage. */
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	vte_terminal_read_modifiers(m_terminal, (GdkEvent*)event);
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
-	if (gtk_widget_get_realized (widget)) {
-		terminal->pvt->cursor_blink_state = TRUE;
-		terminal->pvt->has_focus = TRUE;
+	if (gtk_widget_get_realized(m_widget)) {
+		m_cursor_blink_state = TRUE;
+		m_has_focus = TRUE;
 
-		_vte_check_cursor_blink (terminal);
+		_vte_check_cursor_blink(m_terminal);
 
-		gtk_im_context_focus_in(terminal->pvt->im_context);
-		_vte_invalidate_cursor_once(terminal, FALSE);
-		_vte_terminal_set_pointer_visible(terminal, TRUE);
-                terminal->pvt->maybe_feed_focus_event(true);
+		gtk_im_context_focus_in(m_im_context);
+		invalidate_cursor_once();
+		_vte_terminal_set_pointer_visible(m_terminal, TRUE);
+                maybe_feed_focus_event(true);
 	}
-
-	return FALSE;
 }
 
 static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_focus_out(event);
+        return FALSE;
+}
+
+void
+VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
+{
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
-	terminal = VTE_TERMINAL(widget);
+
 	/* Read the keyboard modifiers, though they're probably garbage. */
-	vte_terminal_read_modifiers (terminal, (GdkEvent*) event);
+	vte_terminal_read_modifiers(m_terminal, (GdkEvent*)event);
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
-	if (gtk_widget_get_realized (widget)) {
-                terminal->pvt->maybe_feed_focus_event(false);
+	if (gtk_widget_get_realized(m_widget)) {
+                maybe_feed_focus_event(false);
 
-		_vte_terminal_maybe_end_selection (terminal);
+		_vte_terminal_maybe_end_selection(m_terminal);
 
-		gtk_im_context_focus_out(terminal->pvt->im_context);
-		_vte_invalidate_cursor_once(terminal, FALSE);
+		gtk_im_context_focus_out(m_im_context);
+		invalidate_cursor_once();
 
 		/* XXX Do we want to hide the match just because the terminal
 		 * lost keyboard focus, but the pointer *is* still within our
 		 * area top? */
-		terminal->pvt->match_hilite_hide();
+		match_hilite_hide();
 		/* Mark the cursor as invisible to disable hilite updating */
-		terminal->pvt->mouse_cursor_visible = FALSE;
-                terminal->pvt->mouse_pressed_buttons = 0;
-                terminal->pvt->mouse_handled_buttons = 0;
+		m_mouse_cursor_visible = FALSE;
+                m_mouse_pressed_buttons = 0;
+                m_mouse_handled_buttons = 0;
 	}
 
-	terminal->pvt->has_focus = FALSE;
-	_vte_check_cursor_blink (terminal);
-
-	return FALSE;
+	m_has_focus = FALSE;
+	_vte_check_cursor_blink(m_terminal);
 }
 
 static gboolean
