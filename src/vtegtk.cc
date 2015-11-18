@@ -1984,6 +1984,79 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
 }
 
+/**
+ * vte_terminal_get_font:
+ * @terminal: a #VteTerminal
+ *
+ * Queries the terminal for information about the fonts which will be
+ * used to draw text in the terminal.  The actual font takes the font scale
+ * into account, this is not reflected in the return value, the unscaled
+ * font is returned.
+ *
+ * Returns: (transfer none): a #PangoFontDescription describing the font the
+ * terminal uses to render text at the default font scale of 1.0.
+ */
+const PangoFontDescription *
+vte_terminal_get_font(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+
+        return terminal->pvt->unscaled_font_desc;
+}
+
+/**
+ * vte_terminal_set_font:
+ * @terminal: a #VteTerminal
+ * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
+ *
+ * Sets the font used for rendering all text displayed by the terminal,
+ * overriding any fonts set using gtk_widget_modify_font().  The terminal
+ * will immediately attempt to load the desired font, retrieve its
+ * metrics, and attempt to resize itself to keep the same number of rows
+ * and columns.  The font scale is applied to the specified font.
+ */
+void
+vte_terminal_set_font(VteTerminal *terminal,
+                      const PangoFontDescription *font_desc)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (terminal->pvt->set_font_desc(font_desc))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_DESC]);
+}
+
+/**
+ * vte_terminal_get_font_scale:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the terminal's font scale
+ */
+gdouble
+vte_terminal_get_font_scale(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
+
+        return terminal->pvt->font_scale;
+}
+
+/**
+ * vte_terminal_set_font_scale:
+ * @terminal: a #VteTerminal
+ * @scale: the font scale
+ *
+ * Sets the terminal's font scale to @scale.
+ */
+void
+vte_terminal_set_font_scale(VteTerminal *terminal,
+                            double scale)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
+        if (terminal->pvt->set_font_scale(scale))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_SCALE]);
+}
+
 /* Just some arbitrary minimum values */
 #define MIN_COLUMNS (16)
 #define MIN_ROWS    (2)

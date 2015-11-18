@@ -8370,44 +8370,39 @@ VteTerminalPrivate::ensure_font()
 	}
 }
 
-static void
-vte_terminal_update_font(VteTerminal *terminal)
+void
+VteTerminalPrivate::update_font()
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
-        PangoFontDescription *desc;
-        gdouble size;
-
         /* We'll get called again later */
-        if (pvt->unscaled_font_desc == NULL)
+        if (m_unscaled_font_desc == nullptr)
                 return;
 
-        desc = pango_font_description_copy(pvt->unscaled_font_desc);
+        auto desc = pango_font_description_copy(m_unscaled_font_desc);
 
-        size = pango_font_description_get_size(desc);
+        double size = pango_font_description_get_size(desc);
         if (pango_font_description_get_size_is_absolute(desc)) {
-                pango_font_description_set_absolute_size(desc, pvt->font_scale * size);
+                pango_font_description_set_absolute_size(desc, m_font_scale * size);
         } else {
-                pango_font_description_set_size(desc, pvt->font_scale * size);
+                pango_font_description_set_size(desc, m_font_scale * size);
         }
 
-        if (pvt->fontdesc) {
-                pango_font_description_free(pvt->fontdesc);
+        if (m_fontdesc) {
+                pango_font_description_free(m_fontdesc);
         }
-        pvt->fontdesc = desc;
+        m_fontdesc = desc;
 
-        pvt->fontdirty = TRUE;
-        pvt->has_fonts = TRUE;
+        m_fontdirty = TRUE;
+        m_has_fonts = TRUE;
 
         /* Set the drawing font. */
-        if (gtk_widget_get_realized (&terminal->widget)) {
-                vte_terminal_ensure_font (terminal);
+        if (gtk_widget_get_realized(m_widget)) {
+                ensure_font();
         }
 }
 
-/**
- * vte_terminal_set_font:
- * @terminal: a #VteTerminal
- * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %NULL
+/*
+ * VteTerminalPrivate::set_font_desc:
+ * @font_desc: (allow-none): a #PangoFontDescription for the desired font, or %nullptr
  *
  * Sets the font used for rendering all text displayed by the terminal,
  * overriding any fonts set using gtk_widget_modify_font().  The terminal
@@ -8415,26 +8410,15 @@ vte_terminal_update_font(VteTerminal *terminal)
  * metrics, and attempt to resize itself to keep the same number of rows
  * and columns.  The font scale is applied to the specified font.
  */
-void
-vte_terminal_set_font(VteTerminal *terminal,
-                      const PangoFontDescription *font_desc)
+bool
+VteTerminalPrivate::set_font_desc(PangoFontDescription const* font_desc)
 {
-        GObject *object;
-        GtkStyleContext *context;
-	VteTerminalPrivate *pvt;
-        PangoFontDescription *desc;
-        gboolean same_desc;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        object = G_OBJECT(terminal);
-        pvt = terminal->pvt;
-
 	/* Create an owned font description. */
-        context = gtk_widget_get_style_context(&terminal->widget);
-        gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font", &desc, NULL);
+        auto context = gtk_widget_get_style_context(m_widget);
+        PangoFontDescription *desc;
+        gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font", &desc, nullptr);
 	pango_font_description_set_family_static (desc, "monospace");
-	if (font_desc != NULL) {
+	if (font_desc != nullptr) {
 		pango_font_description_merge (desc, font_desc, TRUE);
 		_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 			if (desc) {
@@ -8449,8 +8433,8 @@ vte_terminal_set_font(VteTerminal *terminal,
 				"Using default monospace font.\n");
 	}
 
-        same_desc = pvt->unscaled_font_desc &&
-                    pango_font_description_equal (pvt->unscaled_font_desc, desc);
+        bool same_desc = m_unscaled_font_desc &&
+                pango_font_description_equal(m_unscaled_font_desc, desc);
 
 	/* Note that we proceed to recreating the font even if the description
 	 * are the same.  This is because maybe screen
@@ -8459,69 +8443,28 @@ vte_terminal_set_font(VteTerminal *terminal,
 	 */
 
 	/* Free the old font description and save the new one. */
-	if (terminal->pvt->unscaled_font_desc != NULL) {
-		pango_font_description_free(terminal->pvt->unscaled_font_desc);
+	if (m_unscaled_font_desc != nullptr) {
+		pango_font_description_free(m_unscaled_font_desc);
 	}
 
-        terminal->pvt->unscaled_font_desc = desc /* adopted */;
+        m_unscaled_font_desc = desc /* adopted */;
 
-        vte_terminal_update_font(terminal);
+        update_font();
 
-        if (!same_desc)
-                g_object_notify(object, "font-desc");
+        return !same_desc;
 }
 
-/**
- * vte_terminal_get_font:
- * @terminal: a #VteTerminal
- *
- * Queries the terminal for information about the fonts which will be
- * used to draw text in the terminal.  The actual font takes the font scale
- * into account, this is not reflected in the return value, the unscaled
- * font is returned.
- *
- * Returns: (transfer none): a #PangoFontDescription describing the font the
- * terminal uses to render text at the default font scale of 1.0.
- */
-const PangoFontDescription *
-vte_terminal_get_font(VteTerminal *terminal)
+bool
+VteTerminalPrivate::set_font_scale(gdouble scale)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        /* FIXME: compare old and new scale in pixel space */
+        if (_vte_double_equal(scale, m_font_scale))
+                return false;
 
-        return terminal->pvt->unscaled_font_desc;
-}
+        m_font_scale = scale;
+        update_font();
 
-/**
- * vte_terminal_set_font_scale:
- * @terminal: a #VteTerminal
- * @scale: the font scale
- *
- * Sets the terminal's font scale to @scale.
- */
-void
-vte_terminal_set_font_scale(VteTerminal *terminal,
-                            gdouble scale)
-{
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        terminal->pvt->font_scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
-        vte_terminal_update_font(terminal);
-
-        g_object_notify(G_OBJECT(terminal), "font-scale");
-}
-
-/**
- * vte_terminal_get_font_scale:
- * @terminal: a #VteTerminal
- *
- * Returns: the terminal's font scale
- */
-gdouble
-vte_terminal_get_font_scale(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
-
-        return terminal->pvt->font_scale;
+        return true;
 }
 
 /* Read and refresh our perception of the size of the PTY. */

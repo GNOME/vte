@@ -484,6 +484,7 @@ public:
         void widget_size_allocate(GtkAllocation *allocation);
 
         void ensure_font();
+        void update_font();
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
@@ -617,6 +618,8 @@ public:
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
         bool set_delete_binding(VteEraseBinding binding);
+        bool set_font_desc(PangoFontDescription const* desc);
+        bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
         bool set_pty(VtePty *pty);
