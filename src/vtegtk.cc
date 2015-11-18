@@ -1746,6 +1746,30 @@ vte_terminal_unselect_all(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_get_cursor_position:
+ * @terminal: a #VteTerminal
+ * @column: (out) (allow-none): a location to store the column, or %NULL
+ * @row: (out) (allow-none): a location to store the row, or %NULL
+ *
+ * Reads the location of the insertion cursor and returns it.  The row
+ * coordinate is absolute.
+ */
+void
+vte_terminal_get_cursor_position(VteTerminal *terminal,
+				 long *column,
+                                 long *row)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+	if (column) {
+                *column = terminal->pvt->cursor.col;
+	}
+	if (row) {
+                *row = terminal->pvt->cursor.row;
+	}
+}
+
+/**
  * vte_terminal_set_size:
  * @terminal: a #VteTerminal
  * @columns: the desired number of columns
