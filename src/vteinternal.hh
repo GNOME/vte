@@ -21,6 +21,9 @@
 #include <glib.h>
 
 #include "vtetypes.hh"
+#include "ring.h"
+#include "vteconv.h"
+#include "buffer.h"
 
 #ifdef WITH_PCRE2
 #include "vtepcre2.h"
@@ -452,6 +455,12 @@ public:
         void add_cursor_timeout();
         void remove_cursor_timeout();
 
+        void widget_paste(GdkAtom board);
+        void widget_copy(VteSelection sel);
+
+        void widget_set_hadjustment(GtkAdjustment *adjustment);
+        void widget_set_vadjustment(GtkAdjustment *adjustment);
+
         void widget_realize();
         void widget_unrealize();
         void widget_style_updated();
@@ -707,3 +716,7 @@ public:
 #define m_word_char_exceptions_string word_char_exceptions_string
 #define m_word_char_exceptions word_char_exceptions
 #define m_icon_title icon_title
+#define m_selection_start selection_start
+#define m_selection_end selection_end
+
+extern GTimer *process_timer;

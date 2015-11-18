@@ -53,10 +53,6 @@
 
 G_BEGIN_DECLS
 
-struct _VteTerminalClassPrivate {
-        GtkStyleProvider *style_provider;
-};
-
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
 void _vte_invalidate_all(VteTerminal *terminal);
 void _vte_invalidate_cells(VteTerminal *terminal,

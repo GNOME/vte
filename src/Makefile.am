@@ -70,6 +70,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtedefines.hh \
 	vtedraw.cc \
 	vtedraw.h \
+	vtegtk.cc \
+	vtegtk.hh \
 	vteint.h \
 	vteinternal.hh \
 	vtepcre2.h \
@@ -199,6 +201,7 @@ Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	$(header_HEADERS) \
 	$(nodist_header_HEADERS) \
 	vte.cc \
+	vtegtk.cc \
 	vtetypebuiltins.cc \
 	pty.cc \
 	$(NULL)
