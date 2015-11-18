@@ -503,6 +503,11 @@ public:
                                    gsize *start,
                                    gsize *end);
 
+        bool mouse_pixels_to_grid (long x,
+                                   long y,
+                                   vte::grid::column_t *col,
+                                   vte::grid::row_t *row);
+
 };
 
 #define m_invalidated_all invalidated_all
@@ -528,3 +533,5 @@ public:
 #define m_match_attributes match_attributes
 #define m_match_contents match_contents
 #define m_match_regex_mode match_regex_mode
+#define m_screen screen
+

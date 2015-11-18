@@ -440,32 +440,32 @@ _vte_terminal_last_displayed_row (VteTerminal *terminal)
  * col, row are in 0..width-1, 0..height-1.
  * Returns FALSE if clicked over scrollback content; output values are unchanged then.
  */
-static gboolean
-_vte_terminal_mouse_pixels_to_grid (VteTerminal *terminal,
-                                    long x, long y,
-                                    long *col, long *row)
+bool
+VteTerminalPrivate::mouse_pixels_to_grid (long x,
+                                          long y,
+                                          vte::grid::column_t *col,
+                                          vte::grid::row_t *row)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
         long c, r, fr, lr;
 
         /* Confine clicks to the nearest actual cell. This is especially useful for
          * fullscreen vte so that you can click on the very edge of the screen. */
-        r = _vte_terminal_pixel_to_row(terminal, y);
-        fr = _vte_terminal_first_displayed_row (terminal);
-        lr = _vte_terminal_last_displayed_row (terminal);
+        r = _vte_terminal_pixel_to_row(m_terminal, y);
+        fr = _vte_terminal_first_displayed_row (m_terminal);
+        lr = _vte_terminal_last_displayed_row (m_terminal);
         r = CLAMP (r, fr, lr);
 
         /* Bail out if clicking on scrollback contents: bug 755187. */
-        if (r < pvt->screen->insert_delta)
-                return FALSE;
-        r -= pvt->screen->insert_delta;
+        if (r < m_screen->insert_delta)
+                return false;
+        r -= m_screen->insert_delta;
 
-        c = x / pvt->char_width;
-        c = CLAMP (c, 0, pvt->column_count - 1);
+        c = x / m_char_width;
+        c = CLAMP (c, 0, m_column_count - 1);
 
         *col = c;
         *row = r;
-        return TRUE;
+        return true;
 }
 
 /* Cause certain cells to be repainted. */
@@ -6376,7 +6376,7 @@ vte_terminal_send_mouse_button_internal(VteTerminal *terminal,
 {
         long col, row;
 
-        if (!_vte_terminal_mouse_pixels_to_grid (terminal,
+        if (!terminal->pvt->mouse_pixels_to_grid (
                                                  x - terminal->pvt->padding.left,
                                                  y - terminal->pvt->padding.top,
                                                  &col, &row))
@@ -6460,7 +6460,7 @@ vte_terminal_maybe_send_mouse_drag(VteTerminal *terminal, GdkEventMotion *event)
         long col, row;
         int button;
 
-        if (!_vte_terminal_mouse_pixels_to_grid (terminal,
+        if (!terminal->pvt->mouse_pixels_to_grid (
                                                  (long) event->x - terminal->pvt->padding.left,
                                                  (long) event->y - terminal->pvt->padding.top,
                                                  &col, &row))
@@ -8120,7 +8120,7 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 	/* Save the pointer coordinates for later use. */
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
-        _vte_terminal_mouse_pixels_to_grid (terminal,
+        terminal->pvt->mouse_pixels_to_grid (
                                             x, y,
                                             &terminal->pvt->mouse_last_col,
                                             &terminal->pvt->mouse_last_row);
@@ -8292,7 +8292,7 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
                 terminal->pvt->mouse_pressed_buttons |= (1 << (event->button - 1));
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
-        _vte_terminal_mouse_pixels_to_grid (terminal,
+        terminal->pvt->mouse_pixels_to_grid (
                                             x, y,
                                             &terminal->pvt->mouse_last_col,
                                             &terminal->pvt->mouse_last_row);
@@ -8352,7 +8352,7 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
                 terminal->pvt->mouse_pressed_buttons &= ~(1 << (event->button - 1));
 	terminal->pvt->mouse_last_x = x;
 	terminal->pvt->mouse_last_y = y;
-        _vte_terminal_mouse_pixels_to_grid (terminal,
+        terminal->pvt->mouse_pixels_to_grid (
                                             x, y,
                                             &terminal->pvt->mouse_last_col,
                                             &terminal->pvt->mouse_last_row);
