@@ -12725,8 +12725,7 @@ _vte_terminal_decscusr_cursor_shape(VteTerminal *terminal)
  * A negative value means "infinite scrollback".
  *
  * Note that this setting only affects the normal screen buffer.
- * For terminal types which have an alternate screen buffer, no scrollback is
- * allowed on the alternate screen buffer.
+ * No scrollback is allowed on the alternate screen buffer.
  */
 void
 vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
