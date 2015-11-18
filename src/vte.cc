@@ -8102,59 +8102,63 @@ vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 }
 
 /* Read and handle a pointing device buttonpress event. */
-static gint
+static gboolean
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
-	VteTerminal *terminal;
-	gboolean handled = FALSE;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        return terminal->pvt->widget_button_press(event);
+}
+
+bool
+VteTerminalPrivate::widget_button_press(GdkEventButton *event)
+{
+	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
 	long cellx, celly;
 	long x,y;
 
-	terminal = VTE_TERMINAL(widget);
+	x = event->x - m_padding.left;
+	y = event->y - m_padding.top;
 
-	x = event->x - terminal->pvt->padding.left;
-	y = event->y - terminal->pvt->padding.top;
+	match_hilite(x, y);
 
-	terminal->pvt->match_hilite(x, y);
+	set_pointer_visible(true);
 
-	terminal->pvt->set_pointer_visible(true);
-
-	terminal->pvt->read_modifiers((GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
 
 	/* Convert the event coordinates to cell coordinates. */
-	cellx = x / terminal->pvt->char_width;
-	celly = _vte_terminal_pixel_to_row(terminal, y);
+	cellx = x / m_char_width;
+	celly = _vte_terminal_pixel_to_row(m_terminal, y);
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d single-click at (%ld,%ld)\n",
 				event->button,
-				x, _vte_terminal_scroll_delta_pixel(terminal) + y);
+				x, _vte_terminal_scroll_delta_pixel(m_terminal) + y);
 		/* Handle this event ourselves. */
 		switch (event->button) {
 		case 1:
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Handling click ourselves.\n");
 			/* Grab focus. */
-			if (! gtk_widget_has_focus (widget)) {
-				gtk_widget_grab_focus(widget);
+			if (!gtk_widget_has_focus(m_widget)) {
+				gtk_widget_grab_focus(m_widget);
 			}
 
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
-			if (terminal->pvt->mouse_tracking_mode) {
-				if (terminal->pvt->modifiers & GDK_SHIFT_MASK) {
+			if (m_mouse_tracking_mode) {
+				if (m_modifiers & GDK_SHIFT_MASK) {
 					start_selecting = TRUE;
 				}
 			} else {
 				/* If the user hit shift, then extend the
 				 * selection instead. */
-				if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) &&
-				    (terminal->pvt->has_selection ||
-				     terminal->pvt->selecting_restart) &&
-				    !vte_cell_is_selected(terminal,
+				if ((m_modifiers & GDK_SHIFT_MASK) &&
+				    (m_has_selection ||
+				     m_selecting_restart) &&
+				    !vte_cell_is_selected(m_terminal,
 							  cellx,
 							  celly,
 							  NULL)) {
@@ -8164,34 +8168,34 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 				}
 			}
 			if (start_selecting) {
-				vte_terminal_deselect_all(terminal);
-				terminal->pvt->selecting_after_threshold = TRUE;
-                                terminal->pvt->selection_block_mode = !!(terminal->pvt->modifiers & GDK_CONTROL_MASK);
-				handled = TRUE;
+				vte_terminal_deselect_all(m_terminal);
+				m_selecting_after_threshold = TRUE;
+                                m_selection_block_mode = !!(m_modifiers & GDK_CONTROL_MASK);
+				handled = true;
 			}
 			if (extend_selecting) {
-				vte_terminal_extend_selection(terminal,
+				vte_terminal_extend_selection(m_terminal,
 							      x, y,
-							      !terminal->pvt->selecting_restart, TRUE);
+							      !m_selecting_restart, TRUE);
 				/* The whole selection code needs to be
 				 * rewritten.  For now, put this here to
 				 * fix bug 614658 */
-				terminal->pvt->selecting = TRUE;
-				handled = TRUE;
+				m_selecting = TRUE;
+				handled = true;
 			}
 			break;
 		/* Paste if the user pressed shift or we're not sending events
 		 * to the app. */
 		case 2:
-			if ((terminal->pvt->modifiers & GDK_SHIFT_MASK) ||
-			    !terminal->pvt->mouse_tracking_mode) {
+			if ((m_modifiers & GDK_SHIFT_MASK) ||
+			    !m_mouse_tracking_mode) {
                                 gboolean do_paste;
 
-                                g_object_get (gtk_widget_get_settings(widget),
+                                g_object_get (gtk_widget_get_settings(m_widget),
                                               "gtk-enable-primary-paste",
                                               &do_paste, NULL);
                                 if (do_paste)
-                                        vte_terminal_paste_primary(terminal);
+                                        vte_terminal_paste_primary(m_terminal);
 				handled = do_paste;
 			}
 			break;
@@ -8201,34 +8205,34 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		}
                 if (event->button >= 1 && event->button <= 3) {
                         if (handled)
-                                terminal->pvt->mouse_handled_buttons |= (1 << (event->button - 1));
+                                m_mouse_handled_buttons |= (1 << (event->button - 1));
                         else
-                                terminal->pvt->mouse_handled_buttons &= ~(1 << (event->button - 1));
+                                m_mouse_handled_buttons &= ~(1 << (event->button - 1));
                 }
 		/* If we haven't done anything yet, try sending the mouse
 		 * event to the app. */
 		if (handled == FALSE) {
-			handled = terminal->pvt->maybe_send_mouse_button(event);
+			handled = maybe_send_mouse_button(event);
 		}
 		break;
 	case GDK_2BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d double-click at (%ld,%ld)\n",
 				event->button,
-				x, _vte_terminal_scroll_delta_pixel(terminal) + y);
+				x, _vte_terminal_scroll_delta_pixel(m_terminal) + y);
 		switch (event->button) {
 		case 1:
-			if (terminal->pvt->selecting_after_threshold) {
-				vte_terminal_start_selection(terminal,
+			if (m_selecting_after_threshold) {
+				vte_terminal_start_selection(m_terminal,
 							     x, y,
 							     selection_type_char);
-				handled = TRUE;
+				handled = true;
 			}
-                        if ((terminal->pvt->mouse_handled_buttons & 1) != 0) {
-				vte_terminal_start_selection(terminal,
+                        if ((mouse_handled_buttons & 1) != 0) {
+				vte_terminal_start_selection(m_terminal,
 							     x, y,
 							     selection_type_word);
-				handled = TRUE;
+				handled = true;
 			}
 			break;
 		case 2:
@@ -8241,14 +8245,14 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Button %d triple-click at (%ld,%ld).\n",
 				event->button,
-				x, _vte_terminal_scroll_delta_pixel(terminal) + y);
+				x, _vte_terminal_scroll_delta_pixel(m_terminal) + y);
 		switch (event->button) {
 		case 1:
-                        if ((terminal->pvt->mouse_handled_buttons & 1) != 0) {
-				vte_terminal_start_selection(terminal,
+                        if ((m_mouse_handled_buttons & 1) != 0) {
+				vte_terminal_start_selection(m_terminal,
 							     x, y,
 							     selection_type_line);
-				handled = TRUE;
+				handled = true;
 			}
 			break;
 		case 2:
@@ -8262,13 +8266,13 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
-                terminal->pvt->mouse_pressed_buttons |= (1 << (event->button - 1));
-	terminal->pvt->mouse_last_x = x;
-	terminal->pvt->mouse_last_y = y;
-        terminal->pvt->mouse_pixels_to_grid (
+                m_mouse_pressed_buttons |= (1 << (event->button - 1));
+	m_mouse_last_x = x;
+	m_mouse_last_y = y;
+        mouse_pixels_to_grid (
                                             x, y,
-                                            &terminal->pvt->mouse_last_col,
-                                            &terminal->pvt->mouse_last_row);
+                                            &m_mouse_last_column,
+                                            &m_mouse_last_row);
 
 	return handled;
 }
@@ -8277,22 +8281,26 @@ vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 static gint
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
-	VteTerminal *terminal;
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        return terminal->pvt->widget_button_release(event);
+}
+
+bool
+VteTerminalPrivate::widget_button_release(GdkEventButton *event)
+{
 	gboolean handled = FALSE;
 	int x, y;
 
-	terminal = VTE_TERMINAL(widget);
+	x = event->x - m_padding.left;
+	y = event->y - m_padding.top;
 
-	x = event->x - terminal->pvt->padding.left;
-	y = event->y - terminal->pvt->padding.top;
+	match_hilite(x, y);
 
-	terminal->pvt->match_hilite(x, y);
+	set_pointer_visible(true);
 
-	terminal->pvt->set_pointer_visible(true);
+	vte_terminal_stop_autoscroll(m_terminal);
 
-	vte_terminal_stop_autoscroll(terminal);
-
-	terminal->pvt->read_modifiers((GdkEvent*)event);
+	read_modifiers((GdkEvent*)event);
 
 	switch (event->type) {
 	case GDK_BUTTON_RELEASE:
@@ -8301,19 +8309,19 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 				event->button, x, y);
 		switch (event->button) {
 		case 1:
-                        if ((terminal->pvt->mouse_handled_buttons & 1) != 0)
-                                handled = _vte_terminal_maybe_end_selection (terminal);
+                        if ((m_mouse_handled_buttons & 1) != 0)
+                                handled = _vte_terminal_maybe_end_selection(m_terminal);
 			break;
 		case 2:
-                        handled = (terminal->pvt->mouse_handled_buttons & 2) != 0;
-                        terminal->pvt->mouse_handled_buttons &= ~2;
+                        handled = (m_mouse_handled_buttons & 2) != 0;
+                        m_mouse_handled_buttons &= ~2;
 			break;
 		case 3:
 		default:
 			break;
 		}
-		if (!handled && terminal->pvt->input_enabled) {
-			handled = terminal->pvt->maybe_send_mouse_button(event);
+		if (!handled && m_input_enabled) {
+			handled = maybe_send_mouse_button(event);
 		}
 		break;
 	default:
@@ -8322,14 +8330,14 @@ vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
-                terminal->pvt->mouse_pressed_buttons &= ~(1 << (event->button - 1));
-	terminal->pvt->mouse_last_x = x;
-	terminal->pvt->mouse_last_y = y;
-        terminal->pvt->mouse_pixels_to_grid (
+                m_mouse_pressed_buttons &= ~(1 << (event->button - 1));
+	m_mouse_last_x = x;
+	m_mouse_last_y = y;
+        mouse_pixels_to_grid (
                                             x, y,
-                                            &terminal->pvt->mouse_last_col,
-                                            &terminal->pvt->mouse_last_row);
-	terminal->pvt->selecting_after_threshold = FALSE;
+                                            &m_mouse_last_column,
+                                            &m_mouse_last_row);
+	m_selecting_after_threshold = FALSE;
 
 	return handled;
 }

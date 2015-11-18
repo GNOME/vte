@@ -457,6 +457,8 @@ public:
         void widget_focus_out(GdkEventFocus *event);
         bool widget_key_press(GdkEventKey *event);
         bool widget_key_release(GdkEventKey *event);
+        bool widget_button_press(GdkEventButton *event);
+        bool widget_button_release(GdkEventButton *event);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
@@ -610,3 +612,8 @@ public:
 #define m_scroll_on_keystroke scroll_on_keystroke
 #define m_cursor_mode cursor_mode
 #define m_keypad_mode keypad_mode
+#define m_has_selection has_selection
+#define m_selecting_restart selecting_restart
+#define m_selecting_after_threshold selecting_after_threshold
+#define m_selection_block_mode selection_block_mode
+#define m_selecting selecting
