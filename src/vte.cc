@@ -11400,59 +11400,24 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
         g_object_thaw_notify(object);
 }
 
-/**
- * vte_terminal_set_backspace_binding:
- * @terminal: a #VteTerminal
- * @binding: a #VteEraseBinding for the backspace key
- *
- * Modifies the terminal's backspace key binding, which controls what
- * string or control sequence the terminal sends to its child when the user
- * presses the backspace key.
- */
-void
-vte_terminal_set_backspace_binding(VteTerminal *terminal,
-				   VteEraseBinding binding)
+bool
+VteTerminalPrivate::set_backspace_binding(VteEraseBinding binding)
 {
-        VteTerminalPrivate *pvt;
+        if (binding == m_backspace_binding)
+                return false;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        if (binding == pvt->backspace_binding)
-                return;
-
-	/* FIXME: should we set the pty mode to match? */
-	pvt->backspace_binding = binding;
-
-        g_object_notify(G_OBJECT(terminal), "backspace-binding");
+	m_backspace_binding = binding;
+        return true;
 }
 
-/**
- * vte_terminal_set_delete_binding:
- * @terminal: a #VteTerminal
- * @binding: a #VteEraseBinding for the delete key
- *
- * Modifies the terminal's delete key binding, which controls what
- * string or control sequence the terminal sends to its child when the user
- * presses the delete key.
- */
-void
-vte_terminal_set_delete_binding(VteTerminal *terminal,
-				VteEraseBinding binding)
+bool
+VteTerminalPrivate::set_delete_binding(VteEraseBinding binding)
 {
-        VteTerminalPrivate *pvt;
+        if (binding == m_delete_binding)
+                return false;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        if (binding == pvt->delete_binding)
-                return;
-
-	pvt->delete_binding = binding;
-
-        g_object_notify(G_OBJECT(terminal), "delete-binding");
+	m_delete_binding = binding;
+        return true;
 }
 
 bool

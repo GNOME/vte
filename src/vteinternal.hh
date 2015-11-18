@@ -608,6 +608,8 @@ public:
         long get_char_height() { ensure_font(); return char_height; }
         long get_char_width()  { ensure_font(); return char_width;  }
 
+        bool set_backspace_binding(VteEraseBinding binding);
+        bool set_delete_binding(VteEraseBinding binding);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
         bool set_pty(VtePty *pty);

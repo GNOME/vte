@@ -1654,6 +1654,26 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_set_backspace_binding:
+ * @terminal: a #VteTerminal
+ * @binding: a #VteEraseBinding for the backspace key
+ *
+ * Modifies the terminal's backspace key binding, which controls what
+ * string or control sequence the terminal sends to its child when the user
+ * presses the backspace key.
+ */
+void
+vte_terminal_set_backspace_binding(VteTerminal *terminal,
+                                   VteEraseBinding binding)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
+
+        if (terminal->pvt->set_backspace_binding(binding))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BACKSPACE_BINDING]);
+}
+
+/**
  * vte_terminal_get_char_height:
  * @terminal: a #VteTerminal
  *
@@ -1721,6 +1741,26 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         return terminal->pvt->current_file_uri;
+}
+
+/**
+ * vte_terminal_set_delete_binding:
+ * @terminal: a #VteTerminal
+ * @binding: a #VteEraseBinding for the delete key
+ *
+ * Modifies the terminal's delete key binding, which controls what
+ * string or control sequence the terminal sends to its child when the user
+ * presses the delete key.
+ */
+void
+vte_terminal_set_delete_binding(VteTerminal *terminal,
+                                VteEraseBinding binding)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
+
+        if (terminal->pvt->set_delete_binding(binding))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
 }
 
 /* Just some arbitrary minimum values */
