@@ -337,7 +337,16 @@ noinst_PROGRAMS += interpret slowcat
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
-check_PROGRAMS = dumpkeys reflect-text-view reflect-vte mev table xticker vteconv vtestream-file
+check_PROGRAMS = \
+	dumpkeys \
+	reflect-text-view \
+	reflect-vte mev \
+	table \
+	xticker \
+	vteconv \
+	vtestream-file \
+	test-vtetypes \
+	$(NULL)
 
 dist_check_SCRIPTS = \
 	check-doc-syntax.sh \
@@ -345,7 +354,14 @@ dist_check_SCRIPTS = \
 	test-vte-sh.sh \
 	$(NULL)
 
-TESTS = table vteconv vtestream-file $(dist_check_SCRIPTS)
+TESTS = \
+	table \
+	test-vtetypes \
+	vteconv \
+	vtestream-file \
+	$(dist_check_SCRIPTS) \
+	$(NULL)
+
 TESTS_ENVIRONMENT = \
 	srcdir="$(srcdir)" \
 	top_builddir="$(top_builddir)" \
@@ -430,6 +446,22 @@ table_CXXFLAGS = \
 table_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
+
+test_vtetypes_SOURCES = \
+	vtetypes.cc \
+	vtetypes.hh \
+	$(NULL)
+test_vtetypes_CPPFLAGS = \
+	-DMAIN \
+	-I$(srcdir) \
+	-I$(builddir) \
+	$(AM_CPPFLAGS)
+test_vtetypes_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(AM_CXXFLAGS)
+test_vtetypes_LDADD = \
+	$(GLIB_LIBS) \
+	$(NULL)
 
 vtestream_file_SOURCES = \
 	vtestream-base.h \
