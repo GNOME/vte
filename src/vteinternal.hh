@@ -461,6 +461,7 @@ public:
         bool widget_button_release(GdkEventButton *event);
         void widget_enter(GdkEventCrossing *event);
         void widget_leave(GdkEventCrossing *event);
+        void widget_visibility_notify(GdkEventVisibility *event);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
@@ -619,3 +620,4 @@ public:
 #define m_selecting_after_threshold selecting_after_threshold
 #define m_selection_block_mode selection_block_mode
 #define m_selecting selecting
+#define m_visibility_state visibility_state

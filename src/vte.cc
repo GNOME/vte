@@ -91,7 +91,6 @@ typedef gunichar wint_t;
 #define I_(string) (g_intern_static_string(string))
 
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
-static void vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state);
 static void vte_terminal_paste(VteTerminal *terminal, GdkAtom board);
 static void vte_terminal_real_copy_clipboard(VteTerminal *terminal);
 static void vte_terminal_real_paste_clipboard(VteTerminal *terminal);
@@ -8488,52 +8487,47 @@ visibility_state_str(GdkVisibilityState state)
 	}
 }
 
-static void
-vte_terminal_set_visibility (VteTerminal *terminal, GdkVisibilityState state)
+void
+VteTerminalPrivate::widget_visibility_notify(GdkEventVisibility *event)
 {
-	_vte_debug_print(VTE_DEBUG_MISC, "change visibility: %s -> %s.\n",
-			visibility_state_str(terminal->pvt->visibility_state),
-			visibility_state_str(state));
+	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_MISC,
+                         "Visibility (%s -> %s).\n",
+			visibility_state_str(m_visibility_state),
+			visibility_state_str(event->state));
 
-	if (state == terminal->pvt->visibility_state) {
+	if (event->state == m_visibility_state) {
 		return;
 	}
 
 	/* fully obscured to visible switch, force the fast path */
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		/* set invalidated_all false, since we didn't really mean it
 		 * when we set it to TRUE when becoming obscured */
-		terminal->pvt->invalidated_all = FALSE;
+		m_invalidated_all = FALSE;
 
 		/* if all unobscured now, invalidate all, otherwise, wait
 		 * for the expose event */
-		if (state == GDK_VISIBILITY_UNOBSCURED) {
-			_vte_invalidate_all (terminal);
+		if (event->state == GDK_VISIBILITY_UNOBSCURED) {
+			invalidate_all();
 		}
 	}
 
-	terminal->pvt->visibility_state = state;
+	visibility_state = event->state;
 
 	/* no longer visible, stop processing display updates */
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		remove_update_timeout (terminal);
+	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		remove_update_timeout(m_terminal);
 		/* if fully obscured, just act like we have invalidated all,
 		 * so no updates are accumulated. */
-		terminal->pvt->invalidated_all = TRUE;
+		m_invalidated_all = TRUE;
 	}
 }
 
 static gboolean
 vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 {
-	VteTerminal *terminal;
-	terminal = VTE_TERMINAL(widget);
-
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Visibility (%s -> %s).\n",
-			visibility_state_str(terminal->pvt->visibility_state),
-			visibility_state_str(event->state));
-	vte_terminal_set_visibility(terminal, event->state);
-
+	VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_visibility_notify(event);
 	return FALSE;
 }
 
