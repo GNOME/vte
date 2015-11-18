@@ -609,6 +609,8 @@ public:
         long get_char_width()  { ensure_font(); return char_width;  }
 
         bool set_backspace_binding(VteEraseBinding binding);
+        bool set_cursor_blink_mode(VteCursorBlinkMode mode);
+        bool set_cursor_shape(VteCursorShape shape);
         bool set_delete_binding(VteEraseBinding binding);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);

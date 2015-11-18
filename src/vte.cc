@@ -11159,86 +11159,28 @@ vte_terminal_update_cursor_blinks_internal(VteTerminal *terminal)
 	pvt->check_cursor_blink();
 }
 
-/**
- * vte_terminal_set_cursor_blink_mode:
- * @terminal: a #VteTerminal
- * @mode: the #VteCursorBlinkMode to use
- *
- * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
- * will use the #GtkSettings::gtk-cursor-blink setting.
- */
-void
-vte_terminal_set_cursor_blink_mode(VteTerminal *terminal, VteCursorBlinkMode mode)
+bool
+VteTerminalPrivate::set_cursor_blink_mode(VteCursorBlinkMode mode)
 {
-        VteTerminalPrivate *pvt;
+        if (mode == m_cursor_blink_mode)
+                return false;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        pvt = terminal->pvt;
+        m_cursor_blink_mode = mode;
+        vte_terminal_update_cursor_blinks_internal(m_terminal);
 
-        if (pvt->cursor_blink_mode == mode)
-                return;
-
-        pvt->cursor_blink_mode = mode;
-
-        vte_terminal_update_cursor_blinks_internal(terminal);
-
-        g_object_notify(G_OBJECT(terminal), "cursor-blink-mode");
+        return true;
 }
 
-/**
- * vte_terminal_get_cursor_blink_mode:
- * @terminal: a #VteTerminal
- *
- * Returns the currently set cursor blink mode.
- *
- * Return value: cursor blink mode.
- */
-VteCursorBlinkMode
-vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
+bool
+VteTerminalPrivate::set_cursor_shape(VteCursorShape shape)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
+        if (shape == m_cursor_shape)
+                return false;
 
-        return terminal->pvt->cursor_blink_mode;
-}
+        m_cursor_shape = shape;
+	invalidate_cursor_once();
 
-/**
- * vte_terminal_set_cursor_shape:
- * @terminal: a #VteTerminal
- * @shape: the #VteCursorShape to use
- *
- * Sets the shape of the cursor drawn.
- */
-void
-vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
-{
-        VteTerminalPrivate *pvt;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        pvt = terminal->pvt;
-
-        if (pvt->cursor_shape == shape)
-                return;
-
-        pvt->cursor_shape = shape;
-	_vte_invalidate_cursor_once(terminal, FALSE);
-
-        g_object_notify(G_OBJECT(terminal), "cursor-shape");
-}
-
-/**
- * vte_terminal_get_cursor_shape:
- * @terminal: a #VteTerminal
- *
- * Returns the currently set cursor shape.
- *
- * Return value: cursor shape.
- */
-VteCursorShape
-vte_terminal_get_cursor_shape(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
-
-        return terminal->pvt->cursor_shape;
+        return true;
 }
 
 /* DECSCUSR set cursor style */

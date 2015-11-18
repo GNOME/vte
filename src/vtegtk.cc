@@ -1744,6 +1744,74 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_get_cursor_blink_mode:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the currently set cursor blink mode.
+ *
+ * Return value: cursor blink mode.
+ */
+VteCursorBlinkMode
+vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
+
+        return terminal->pvt->cursor_blink_mode;
+}
+
+/**
+ * vte_terminal_set_cursor_blink_mode:
+ * @terminal: a #VteTerminal
+ * @mode: the #VteCursorBlinkMode to use
+ *
+ * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
+ * will use the #GtkSettings::gtk-cursor-blink setting.
+ */
+void
+vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
+                                   VteCursorBlinkMode mode)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(mode >= VTE_CURSOR_BLINK_SYSTEM && mode <= VTE_CURSOR_BLINK_OFF);
+
+        if (terminal->pvt->set_cursor_blink_mode(mode))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_BLINK_MODE]);
+}
+
+/**
+ * vte_terminal_get_cursor_shape:
+ * @terminal: a #VteTerminal
+ *
+ * Returns the currently set cursor shape.
+ *
+ * Return value: cursor shape.
+ */
+VteCursorShape
+vte_terminal_get_cursor_shape(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
+
+        return terminal->pvt->cursor_shape;
+}
+
+/**
+ * vte_terminal_set_cursor_shape:
+ * @terminal: a #VteTerminal
+ * @shape: the #VteCursorShape to use
+ *
+ * Sets the shape of the cursor drawn.
+ */
+void
+vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(shape >= VTE_CURSOR_SHAPE_BLOCK && shape <= VTE_CURSOR_SHAPE_UNDERLINE);
+
+        if (terminal->pvt->set_cursor_shape(shape))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_SHAPE]);
+}
+
+/**
  * vte_terminal_set_delete_binding:
  * @terminal: a #VteTerminal
  * @binding: a #VteEraseBinding for the delete key
