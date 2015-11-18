@@ -455,6 +455,8 @@ public:
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);
+        bool widget_key_press(GdkEventKey *event);
+        bool widget_key_release(GdkEventKey *event);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
@@ -595,3 +597,16 @@ public:
 #define m_mouse_default_cursor mouse_default_cursor
 #define m_mouse_inviso_cursor mouse_inviso_cursor
 #define m_audible_bell audible_bell
+#define m_margin_bell margin_bell
+#define m_bell_margin bell_margin
+#define m_im_preedit_active im_preedit_active
+#define m_input_enabled input_enabled
+#define m_backspace_binding backspace_binding
+#define m_delete_binding delete_binding
+#define m_pty pty
+#define m_normal_screen normal_screen
+#define m_alternate_screen alternate_screen
+#define m_meta_sends_escape meta_sends_escape
+#define m_scroll_on_keystroke scroll_on_keystroke
+#define m_cursor_mode cursor_mode
+#define m_keypad_mode keypad_mode
