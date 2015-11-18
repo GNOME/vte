@@ -1651,6 +1651,37 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_match_check:
+ * @terminal: a #VteTerminal
+ * @column: the text column
+ * @row: the text row
+ * @tag: (out) (allow-none): a location to store the tag, or %NULL
+ *
+ * Checks if the text in and around the specified position matches any of the
+ * regular expressions previously set using vte_terminal_match_add().  If a
+ * match exists, the text string is returned and if @tag is not %NULL, the number
+ * associated with the matched regular expression will be stored in @tag.
+ *
+ * If more than one regular expression has been set with
+ * vte_terminal_match_add(), then expressions are checked in the order in
+ * which they were added.
+ *
+ * Returns: (transfer full): a newly allocated string which matches one of the previously
+ *   set regular expressions
+ *
+ * Deprecated: 0.44: Use vte_terminal_match_check_event() instead.
+ */
+char *
+vte_terminal_match_check(VteTerminal *terminal,
+                         long column,
+                         long row,
+			 int *tag)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        return terminal->pvt->regex_match_check(column, row, tag);
+}
+
+/**
  * vte_terminal_match_set_cursor:
  * @terminal: a #VteTerminal
  * @tag: the tag of the regex which should use the specified cursor

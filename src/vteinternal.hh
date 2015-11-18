@@ -513,6 +513,9 @@ public:
 
         int regex_match_add(struct vte_match_regex *new_regex_match);
         struct vte_match_regex *regex_match_get(int tag);
+        char *regex_match_check(vte::grid::column_t column,
+                                vte::grid::row_t row,
+                                int *tag);
         void regex_match_remove(int tag);
         void regex_match_remove_all();
         void regex_match_set_cursor(int tag,

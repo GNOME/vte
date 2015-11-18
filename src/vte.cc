@@ -1968,50 +1968,29 @@ rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
 	}
 }
 
-/**
- * vte_terminal_match_check:
- * @terminal: a #VteTerminal
- * @column: the text column
- * @row: the text row
- * @tag: (out) (allow-none): a location to store the tag, or %NULL
- *
- * Checks if the text in and around the specified position matches any of the
- * regular expressions previously set using vte_terminal_match_add().  If a
- * match exists, the text string is returned and if @tag is not %NULL, the number
- * associated with the matched regular expression will be stored in @tag.
- *
- * If more than one regular expression has been set with
- * vte_terminal_match_add(), then expressions are checked in the order in
- * which they were added.
- *
- * Returns: (transfer full): a newly allocated string which matches one of the previously
- *   set regular expressions
- *
- * Deprecated: 0.44: Use vte_terminal_match_check_event() instead.
- */
 char *
-vte_terminal_match_check(VteTerminal *terminal, glong column, glong row,
-			 int *tag)
+VteTerminalPrivate::regex_match_check(vte::grid::column_t column,
+                                      vte::grid::row_t row,
+                                      int *tag)
 {
-	long delta;
 	char *ret;
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	delta = terminal->pvt->screen->scroll_delta;
+
+	long delta = m_screen->scroll_delta;
 	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
 			"Checking for match at (%ld,%ld).\n",
 			row, column);
-	if (rowcol_inside_match (terminal, row + delta, column)) {
+	if (rowcol_inside_match(m_terminal, row + delta, column)) {
 		if (tag) {
-			*tag = terminal->pvt->match_tag;
+			*tag = m_match_tag;
 		}
-		ret = terminal->pvt->match != NULL ?
-			g_strdup (terminal->pvt->match) :
+		ret = m_match != NULL ?
+			g_strdup (m_match) :
 			NULL;
 	} else {
                 gsize start, end;
                 int ltag;
 
-		ret = terminal->pvt->match_check_internal(
+		ret = match_check_internal(
                                                         column, row + delta,
                                                         tag ? tag : &ltag,
                                                         &start, &end);
