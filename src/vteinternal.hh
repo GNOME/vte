@@ -508,6 +508,19 @@ public:
                                    vte::grid::column_t *col,
                                    vte::grid::row_t *row);
 
+        void feed_mouse_event(int button,
+                              bool is_drag,
+                              bool is_release,
+                              vte::grid::column_t col,
+                              vte::grid::row_t row);
+        void send_mouse_button_internal(int button,
+                                        bool is_release,
+                                        long x,
+                                        long y);
+        bool maybe_send_mouse_button(GdkEventButton *event);
+        bool maybe_send_mouse_drag(GdkEventMotion *event);
+
+
 };
 
 #define m_invalidated_all invalidated_all
@@ -534,4 +547,11 @@ public:
 #define m_match_contents match_contents
 #define m_match_regex_mode match_regex_mode
 #define m_screen screen
+#define m_mouse_tracking_mode mouse_tracking_mode
+#define m_mouse_pressed_buttons mouse_pressed_buttons
+#define m_mouse_last_column mouse_last_col
+#define m_mouse_last_row mouse_last_row
+#define m_mouse_xterm_extension mouse_xterm_extension
+#define m_mouse_urxvt_extension mouse_urxvt_extension
+#define m_modifiers modifiers
 
