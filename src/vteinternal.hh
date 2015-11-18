@@ -457,6 +457,7 @@ public:
         void widget_focus_out(GdkEventFocus *event);
 
         void read_modifiers(GdkEvent *event);
+        guint translate_ctrlkey(GdkEventKey *event);
 
         void set_pointer_visible(bool visible);
 

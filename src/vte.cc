@@ -5450,8 +5450,8 @@ VteTerminalPrivate::beep()
 	}
 }
 
-static guint
-vte_translate_ctrlkey (GdkEventKey *event)
+guint
+VteTerminalPrivate::translate_ctrlkey(GdkEventKey *event)
 {
 	guint keyval;
 	GdkKeymap *keymap;
@@ -5889,7 +5889,7 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
 		/* Shall we do this here or earlier?  See bug 375112 and bug 589557 */
 		if (modifiers & GDK_CONTROL_MASK)
-			keyval = vte_translate_ctrlkey(event);
+			keyval = terminal->pvt->translate_ctrlkey(event);
 
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */
