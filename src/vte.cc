@@ -10851,91 +10851,26 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 	}
 }
 
-/**
- * vte_terminal_set_audible_bell:
- * @terminal: a #VteTerminal
- * @is_audible: %TRUE if the terminal should beep
- *
- * Controls whether or not the terminal will beep when the child outputs the
- * "bl" sequence.
- */
-void
-vte_terminal_set_audible_bell(VteTerminal *terminal, gboolean is_audible)
+bool
+VteTerminalPrivate::set_audible_bell(bool setting)
 {
-        VteTerminalPrivate *pvt;
+        if (setting == m_audible_bell)
+                return false;
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        is_audible = is_audible != FALSE;
-        if (is_audible == pvt->audible_bell)
-                return;
-
-	pvt->audible_bell = is_audible;
-
-        g_object_notify (G_OBJECT (terminal), "audible-bell");
+	m_audible_bell = setting;
+        return true;
 }
 
-/**
- * vte_terminal_get_audible_bell:
- * @terminal: a #VteTerminal
- *
- * Checks whether or not the terminal will beep when the child outputs the
- * "bl" sequence.
- *
- * Returns: %TRUE if audible bell is enabled, %FALSE if not
- */
-gboolean
-vte_terminal_get_audible_bell(VteTerminal *terminal)
+bool
+VteTerminalPrivate::set_allow_bold(bool setting)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->audible_bell;
-}
+        if (setting == m_allow_bold)
+                return false;
 
-/**
- * vte_terminal_set_allow_bold:
- * @terminal: a #VteTerminal
- * @allow_bold: %TRUE if the terminal should attempt to draw bold text
- *
- * Controls whether or not the terminal will attempt to draw bold text,
- * either by using a bold font variant or by repainting text with a different
- * offset.
- *
- */
-void
-vte_terminal_set_allow_bold(VteTerminal *terminal, gboolean allow_bold)
-{
-        VteTerminalPrivate *pvt;
+	m_allow_bold = setting;
+	invalidate_all();
 
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        pvt = terminal->pvt;
-
-        allow_bold = allow_bold != FALSE;
-        if (allow_bold == pvt->allow_bold)
-                return;
-
-	pvt->allow_bold = allow_bold;
-        g_object_notify (G_OBJECT (terminal), "allow-bold");
-
-	_vte_invalidate_all (terminal);
-}
-
-/**
- * vte_terminal_get_allow_bold:
- * @terminal: a #VteTerminal
- *
- * Checks whether or not the terminal will attempt to draw bold text by
- * repainting text with a one-pixel offset.
- *
- * Returns: %TRUE if bolding is enabled, %FALSE if not
- */
-gboolean
-vte_terminal_get_allow_bold(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->allow_bold;
+        return true;
 }
 
 bool

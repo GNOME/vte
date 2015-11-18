@@ -608,6 +608,8 @@ public:
         long get_char_height() { ensure_font(); return char_height; }
         long get_char_width()  { ensure_font(); return char_width;  }
 
+        bool set_audible_bell(bool setting);
+        bool set_allow_bold(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
