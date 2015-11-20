@@ -2241,84 +2241,78 @@ vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, doubl
 	vte_terminal_queue_adjustment_value_changed (terminal, v);
 }
 
-
 void
-_vte_terminal_adjust_adjustments(VteTerminal *terminal)
+VteTerminalPrivate::adjust_adjustments()
 {
-	VteScreen *screen;
-	long delta;
+	g_assert(m_screen != nullptr);
+	g_assert(m_screen->row_data != nullptr);
 
-	g_assert(terminal->pvt->screen != NULL);
-	g_assert(terminal->pvt->screen->row_data != NULL);
-
-	vte_terminal_queue_adjustment_changed(terminal);
+	vte_terminal_queue_adjustment_changed(m_terminal);
 
 	/* The lower value should be the first row in the buffer. */
-	screen = terminal->pvt->screen;
-	delta = _vte_ring_delta(screen->row_data);
+	long delta = _vte_ring_delta(m_screen->row_data);
 	/* Snap the insert delta and the cursor position to be in the visible
 	 * area.  Leave the scrolling delta alone because it will be updated
 	 * when the adjustment changes. */
-	screen->insert_delta = MAX(screen->insert_delta, delta);
-        terminal->pvt->cursor.row = MAX(terminal->pvt->cursor.row,
-                                        screen->insert_delta);
+	screen->insert_delta = MAX(m_screen->insert_delta, delta);
+        m_cursor.row = MAX(m_cursor.row,
+                           m_screen->insert_delta);
 
-	if (screen->scroll_delta > screen->insert_delta) {
-		vte_terminal_queue_adjustment_value_changed(terminal,
-				screen->insert_delta);
+	if (m_screen->scroll_delta > m_screen->insert_delta) {
+		vte_terminal_queue_adjustment_value_changed(m_terminal,
+				m_screen->insert_delta);
 	}
 }
 
 /* Update the adjustment field of the widget.  This function should be called
  * whenever we add rows to or remove rows from the history or switch screens. */
-static void
-_vte_terminal_adjust_adjustments_full (VteTerminal *terminal)
+void
+VteTerminalPrivate::adjust_adjustments_full()
 {
-	gboolean changed = FALSE;
-	gdouble v;
+	bool changed = false;
 
-	g_assert(terminal->pvt->screen != NULL);
-	g_assert(terminal->pvt->screen->row_data != NULL);
+	g_assert(m_screen != NULL);
+	g_assert(m_screen->row_data != NULL);
 
-	_vte_terminal_adjust_adjustments(terminal);
+	adjust_adjustments();
 
-        g_object_freeze_notify(G_OBJECT(terminal->pvt->vadjustment));
+        g_object_freeze_notify(G_OBJECT(m_vadjustment));
 
 	/* The step increment should always be one. */
-	v = gtk_adjustment_get_step_increment(terminal->pvt->vadjustment);
+	double v = gtk_adjustment_get_step_increment(m_vadjustment);
 	if (v != 1) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing step increment from %.0lf to 1\n", v);
-		gtk_adjustment_set_step_increment(terminal->pvt->vadjustment, 1);
-		changed = TRUE;
+		gtk_adjustment_set_step_increment(m_vadjustment, 1);
+		changed = true;
 	}
 
 	/* Set the number of rows the user sees to the number of rows the
 	 * user sees. */
-	v = gtk_adjustment_get_page_size(terminal->pvt->vadjustment);
-	if (v != terminal->pvt->row_count) {
+	v = gtk_adjustment_get_page_size(m_vadjustment);
+	if (v != m_row_count) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page size from %.0f to %ld\n",
-				 v, terminal->pvt->row_count);
-		gtk_adjustment_set_page_size(terminal->pvt->vadjustment,
-					     terminal->pvt->row_count);
-		changed = TRUE;
+				 v, m_row_count);
+		gtk_adjustment_set_page_size(m_vadjustment,
+					     m_row_count);
+		changed = true;
 	}
 
 	/* Clicking in the empty area should scroll one screen, so set the
 	 * page size to the number of visible rows. */
-	v = gtk_adjustment_get_page_increment(terminal->pvt->vadjustment);
-	if (v != terminal->pvt->row_count) {
+	v = gtk_adjustment_get_page_increment(m_vadjustment);
+	if (v != m_row_count) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page increment from "
 				"%.0f to %ld\n",
-				v, terminal->pvt->row_count);
-		gtk_adjustment_set_page_increment(terminal->pvt->vadjustment,
-						  terminal->pvt->row_count);
-		changed = TRUE;
+				v, m_row_count);
+		gtk_adjustment_set_page_increment(m_vadjustment,
+						  m_row_count);
+		changed = true;
 	}
 
-	g_object_thaw_notify(G_OBJECT(terminal->pvt->vadjustment));
+	g_object_thaw_notify(G_OBJECT(m_vadjustment));
 
 	if (changed)
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -2512,7 +2506,7 @@ _vte_terminal_ensure_row (VteTerminal *terminal)
 	delta = v - _vte_ring_next(screen->row_data) + 1;
 	if (delta > 0) {
 		row = vte_terminal_insert_rows (terminal, delta);
-		_vte_terminal_adjust_adjustments(terminal);
+		terminal->pvt->adjust_adjustments();
 	} else {
 		/* Find the row the cursor is in. */
 		row = _vte_ring_index_writable (screen->row_data, v);
@@ -2564,7 +2558,7 @@ _vte_terminal_update_insert_delta(VteTerminal *terminal)
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != screen->insert_delta) {
 		screen->insert_delta = delta;
-		_vte_terminal_adjust_adjustments(terminal);
+		terminal->pvt->adjust_adjustments();
 	}
 }
 
@@ -3300,7 +3294,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				_vte_terminal_scroll_region(terminal, start,
 							    end - start + 1, 1);
 				/* Force scroll. */
-				_vte_terminal_adjust_adjustments(terminal);
+				terminal->pvt->adjust_adjustments();
 			} else {
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
@@ -3344,7 +3338,7 @@ _vte_terminal_drop_scrollback (VteTerminal *terminal)
 
         if (terminal->pvt->screen == &terminal->pvt->normal_screen) {
                 vte_terminal_queue_adjustment_value_changed (terminal, terminal->pvt->normal_screen.insert_delta);
-                _vte_terminal_adjust_adjustments_full (terminal);
+                terminal->pvt->adjust_adjustments_full();
         }
 }
 
@@ -8142,7 +8136,7 @@ VteTerminalPrivate::set_size(long columns,
                                                     MAX (_vte_ring_delta (m_screen->row_data),
                                                          _vte_ring_next (m_screen->row_data) - 1));
 
-		_vte_terminal_adjust_adjustments_full(m_terminal);
+		adjust_adjustments_full();
 		gtk_widget_queue_resize_no_redraw(m_widget);
 		/* Our visible text changed. */
 		vte_terminal_emit_text_modified(m_terminal);
@@ -10516,7 +10510,7 @@ VteTerminalPrivate::set_scrollback_lines(long lines)
         scroll_delta = m_screen->scroll_delta;
 	m_screen->scroll_delta = -1;
 	vte_terminal_queue_adjustment_value_changed(m_terminal, scroll_delta);
-	_vte_terminal_adjust_adjustments_full(m_terminal);
+	adjust_adjustments_full();
 
         return true;
 }
@@ -10617,7 +10611,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
                    vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */
                 m_screen->scroll_delta = -1;
                 vte_terminal_queue_adjustment_value_changed(m_terminal, m_screen->insert_delta);
-		_vte_terminal_adjust_adjustments_full(m_terminal);
+		adjust_adjustments_full();
 	}
         /* DECSCUSR cursor style */
         m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;

@@ -530,6 +530,9 @@ public:
 
         void beep();
 
+        void adjust_adjustments();
+        void adjust_adjustments_full();
+
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);

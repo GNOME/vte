@@ -300,7 +300,7 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
 	 * newly-cleared area and scroll if need be. */
 	screen->insert_delta = initial;
         terminal->pvt->cursor.row = row + screen->insert_delta;
-	_vte_terminal_adjust_adjustments(terminal);
+	terminal->pvt->adjust_adjustments();
 	/* Redraw everything. */
 	_vte_invalidate_all(terminal);
 	/* We've modified the display.  Make a note of it. */
@@ -403,7 +403,7 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 				   scroll_amount);
 
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
+	terminal->pvt->adjust_adjustments();
 
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_inserted_flag = TRUE;
@@ -1778,7 +1778,7 @@ vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
                 terminal->pvt->cursor.row--;
 	}
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
+	terminal->pvt->adjust_adjustments();
 	/* We modified the display, so make a note of it. */
 	terminal->pvt->text_modified_flag = TRUE;
 }
@@ -2616,7 +2616,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
+	terminal->pvt->adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_inserted_flag = TRUE;
 }
@@ -2664,7 +2664,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	/* Update the display. */
 	_vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
-	_vte_terminal_adjust_adjustments(terminal);
+	terminal->pvt->adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_flag = TRUE;
 }
@@ -2831,7 +2831,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		/* Find this row. */
 		while (_vte_ring_next(screen->row_data) <= row)
 			_vte_terminal_ring_append (terminal, FALSE);
-		_vte_terminal_adjust_adjustments(terminal);
+                terminal->pvt->adjust_adjustments();
 		rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
