@@ -486,6 +486,12 @@ public:
                                          int *natural_height);
         void widget_size_allocate(GtkAllocation *allocation);
 
+        void connect_pty_read();
+        void disconnect_pty_read();
+
+        void connect_pty_write();
+        void disconnect_pty_write();
+
         void watch_child (GPid child_pid);
         bool spawn_sync(VtePtyFlags pty_flags,
                         const char *working_directory,

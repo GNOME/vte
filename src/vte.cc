@@ -90,8 +90,6 @@ static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
                                           gboolean always_grow, gboolean force);
-static void _vte_terminal_disconnect_pty_read(VteTerminal *terminal);
-static void _vte_terminal_disconnect_pty_write(VteTerminal *terminal);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 
 static inline gboolean vte_terminal_is_processing (VteTerminal *terminal);
@@ -3660,23 +3658,23 @@ vte_terminal_child_watch_cb(GPid pid,
 static void mark_input_source_invalid(VteTerminal *terminal)
 {
 	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_read\n");
-	terminal->pvt->pty_input_source = 0;
+	terminal->pvt->m_pty_input_source = 0;
 }
-static void
-_vte_terminal_connect_pty_read(VteTerminal *terminal)
-{
-	if (terminal->pvt->pty_channel == NULL) {
-		return;
-	}
 
-	if (terminal->pvt->pty_input_source == 0) {
+void
+VteTerminalPrivate::connect_pty_read()
+{
+	if (m_pty_channel == NULL)
+		return;
+
+	if (m_pty_input_source == 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
-		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_channel,
+		m_pty_input_source =
+			g_io_add_watch_full(m_pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    (GIOCondition)(G_IO_IN | G_IO_HUP),
 					    (GIOFunc) vte_terminal_io_read,
-					    terminal,
+					    m_terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
 }
@@ -3684,56 +3682,56 @@ _vte_terminal_connect_pty_read(VteTerminal *terminal)
 static void mark_output_source_invalid(VteTerminal *terminal)
 {
 	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_write\n");
-	terminal->pvt->pty_output_source = 0;
+	terminal->pvt->m_pty_output_source = 0;
 }
-static void
-_vte_terminal_connect_pty_write(VteTerminal *terminal)
+
+void
+VteTerminalPrivate::connect_pty_write()
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        g_assert(m_pty != nullptr);
+        g_warn_if_fail(m_input_enabled);
 
-        g_assert(pvt->pty != NULL);
-        g_warn_if_fail(pvt->input_enabled);
-
-	if (terminal->pvt->pty_channel == NULL) {
-		pvt->pty_channel =
-			g_io_channel_unix_new(vte_pty_get_fd(pvt->pty));
+	if (m_pty_channel == nullptr) {
+		m_pty_channel =
+			g_io_channel_unix_new(vte_pty_get_fd(m_pty));
 	}
 
-	if (terminal->pvt->pty_output_source == 0) {
-		if (vte_terminal_io_write (terminal->pvt->pty_channel,
-					     G_IO_OUT,
-					     terminal))
+	if (m_pty_output_source == 0) {
+		if (vte_terminal_io_write (m_pty_channel,
+                                           G_IO_OUT,
+                                           m_terminal))
 		{
 			_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_write\n");
-			terminal->pvt->pty_output_source =
-				g_io_add_watch_full(terminal->pvt->pty_channel,
+			m_pty_output_source =
+				g_io_add_watch_full(m_pty_channel,
 						    VTE_CHILD_OUTPUT_PRIORITY,
 						    G_IO_OUT,
 						    (GIOFunc) vte_terminal_io_write,
-						    terminal,
+						    m_terminal,
 						    (GDestroyNotify) mark_output_source_invalid);
 		}
 	}
 }
 
-static void
-_vte_terminal_disconnect_pty_read(VteTerminal *terminal)
+void
+VteTerminalPrivate::disconnect_pty_read()
 {
-	if (terminal->pvt->pty_input_source != 0) {
+	if (m_pty_input_source != 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_read\n");
-		g_source_remove(terminal->pvt->pty_input_source);
-		terminal->pvt->pty_input_source = 0;
+		g_source_remove(m_pty_input_source);
+                // FIXMEchpe the destroy notify should already have done this!
+		m_pty_input_source = 0;
 	}
 }
 
-static void
-_vte_terminal_disconnect_pty_write(VteTerminal *terminal)
+void
+VteTerminalPrivate::disconnect_pty_write()
 {
-	if (terminal->pvt->pty_output_source != 0) {
+	if (m_pty_output_source != 0) {
 		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_write\n");
-
-		g_source_remove(terminal->pvt->pty_output_source);
-		terminal->pvt->pty_output_source = 0;
+		g_source_remove(m_pty_output_source);
+                // FIXMEchpe the destroy notify should already have done this!
+		m_pty_output_source = 0;
 	}
 }
 
@@ -4713,7 +4711,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 			}
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			_vte_terminal_connect_pty_write(terminal);
+			terminal->pvt->connect_pty_write();
 		}
 		if (crcount > 0) {
 			g_free(cooked);
@@ -4776,7 +4774,7 @@ VteTerminalPrivate::feed_child_binary(guint8 const* data,
 					   data, length);
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			_vte_terminal_connect_pty_write(m_terminal);
+			connect_pty_write();
 		}
 	}
 }
@@ -6745,7 +6743,7 @@ VteTerminalPrivate::start_selection(long x,
         vte_terminal_extend_selection(m_terminal, x, y, FALSE, TRUE);
 
 	/* Temporarily stop caring about input from the child. */
-	_vte_terminal_disconnect_pty_read(m_terminal);
+	disconnect_pty_read();
 }
 
 static gboolean
@@ -6762,7 +6760,7 @@ _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 		terminal->pvt->selecting = FALSE;
 
 		/* Reconnect to input from the child if we paused it. */
-		_vte_terminal_connect_pty_read(terminal);
+		terminal->pvt->connect_pty_read();
 
 		return TRUE;
 	}
@@ -8769,8 +8767,8 @@ VteTerminalPrivate::~VteTerminalPrivate()
 #endif
 		kill(m_pty_pid, SIGHUP);
 	}
-	_vte_terminal_disconnect_pty_read(m_terminal);
-	_vte_terminal_disconnect_pty_write(m_terminal);
+	disconnect_pty_read();
+	disconnect_pty_write();
 	if (m_pty_channel != NULL) {
 		g_io_channel_unref (m_pty_channel);
 	}
@@ -10701,8 +10699,8 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
                 return false;
 
         if (m_pty != NULL) {
-                _vte_terminal_disconnect_pty_read(m_terminal);
-                _vte_terminal_disconnect_pty_write(m_terminal);
+                disconnect_pty_read();
+                disconnect_pty_write();
 
                 if (m_pty_channel != NULL) {
                         g_io_channel_unref (m_pty_channel);
@@ -10753,7 +10751,7 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
         _vte_terminal_setup_utf8(m_terminal);
 
         /* Open channels to listen for input on. */
-        _vte_terminal_connect_pty_read(m_terminal);
+        connect_pty_read();
 
         return true;
 }
@@ -11805,7 +11803,7 @@ VteTerminalPrivate::set_input_enabled (bool enabled)
                 if (gtk_widget_has_focus(m_widget))
                         gtk_im_context_focus_out(m_im_context);
 
-                _vte_terminal_disconnect_pty_write(m_terminal);
+                disconnect_pty_write();
                 _vte_byte_array_clear(m_outgoing);
 
                 gtk_style_context_add_class (context, GTK_STYLE_CLASS_READ_ONLY);
