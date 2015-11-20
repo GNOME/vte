@@ -4242,24 +4242,6 @@ next_match:
 			_vte_incoming_chunks_count(m_incoming));
 }
 
-static inline void
-_vte_terminal_enable_input_source (VteTerminal *terminal)
-{
-	if (terminal->pvt->pty_channel == NULL) {
-		return;
-	}
-
-	if (terminal->pvt->pty_input_source == 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
-		terminal->pvt->pty_input_source =
-			g_io_add_watch_full(terminal->pvt->pty_channel,
-					    VTE_CHILD_INPUT_PRIORITY,
-					    (GIOCondition)(G_IO_IN | G_IO_HUP),
-					    (GIOFunc) vte_terminal_io_read,
-					    terminal,
-					    (GDestroyNotify) mark_input_source_invalid);
-	}
-}
 static void
 _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *chunks)
 {
@@ -11018,7 +11000,7 @@ process_timeout (gpointer data)
 				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
 			}
-			_vte_terminal_enable_input_source (terminal);
+			terminal->pvt->connect_pty_read();
 		}
 		if (need_processing (terminal)) {
 			active = TRUE;
@@ -11150,7 +11132,7 @@ update_repeat_timeout (gpointer data)
 				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
 			}
-			_vte_terminal_enable_input_source (terminal);
+			terminal->pvt->connect_pty_read();
 		}
 		terminal->pvt->emit_adjustment_changed();
 		if (need_processing (terminal)) {
@@ -11263,7 +11245,7 @@ update_timeout (gpointer data)
 				vte_terminal_io_read (terminal->pvt->pty_channel,
 						G_IO_IN, terminal);
 			}
-			_vte_terminal_enable_input_source (terminal);
+			terminal->pvt->connect_pty_read();
 		}
 		terminal->pvt->emit_adjustment_changed();
 		if (need_processing (terminal)) {
