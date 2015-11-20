@@ -2349,20 +2349,6 @@ VteTerminalPrivate::maybe_scroll_to_bottom()
 			"Snapping to bottom of screen\n");
 }
 
-static void
-_vte_terminal_setup_utf8 (VteTerminal *terminal)
-{
-        VteTerminalPrivate *pvt = terminal->pvt;
-        GError *error = NULL;
-
-        if (!vte_pty_set_utf8(pvt->pty,
-                              strcmp(terminal->pvt->encoding, "UTF-8") == 0,
-                              &error)) {
-                g_warning ("Failed to set UTF8 mode: %s\n", error->message);
-                g_error_free (error);
-        }
-}
-
 /*
  * VteTerminalPrivate::set_encoding:
  * @codeset: (allow-none): a valid #GIConv target, or %NULL to use UTF-8
@@ -10728,7 +10714,13 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
                               m_column_count,
                               m_row_count);
 
-        _vte_terminal_setup_utf8(m_terminal);
+        GError *error = nullptr;
+        if (!vte_pty_set_utf8(m_pty,
+                              strcmp(m_encoding, "UTF-8") == 0,
+                              &error)) {
+                g_warning ("Failed to set UTF8 mode: %s\n", error->message);
+                g_error_free (error);
+        }
 
         /* Open channels to listen for input on. */
         connect_pty_read();
