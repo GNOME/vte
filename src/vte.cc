@@ -2317,13 +2317,13 @@ VteTerminalPrivate::adjust_adjustments_full()
 }
 
 /* Scroll a fixed number of lines up or down in the current screen. */
-static void
-vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
+void
+VteTerminalPrivate::scroll_lines(long lines)
 {
 	double destination;
-	_vte_debug_print(VTE_DEBUG_ADJ, "Scrolling %d lines.\n", lines);
+	_vte_debug_print(VTE_DEBUG_ADJ, "Scrolling %ld lines.\n", lines);
 	/* Calculate the ideal position where we want to be before clamping. */
-	destination = terminal->pvt->screen->scroll_delta;
+	destination = m_screen->scroll_delta;
         /* Snap to whole cell offset. */
         if (lines > 0)
                 destination = floor(destination);
@@ -2331,30 +2331,20 @@ vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
                 destination = ceil(destination);
 	destination += lines;
 	/* Tell the scrollbar to adjust itself. */
-	terminal->pvt->queue_adjustment_value_changed_clamped(destination);
-}
-
-/* Scroll a fixed number of pages up or down, in the current screen. */
-static void
-vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
-{
-	vte_terminal_scroll_lines(terminal, pages * terminal->pvt->row_count);
+	queue_adjustment_value_changed_clamped(destination);
 }
 
 /* Scroll so that the scroll delta is the minimum value. */
-static void
-vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
+void
+VteTerminalPrivate::maybe_scroll_to_top()
 {
-	terminal->pvt->queue_adjustment_value_changed(
-			_vte_ring_delta(terminal->pvt->screen->row_data));
+	queue_adjustment_value_changed(_vte_ring_delta(m_screen->row_data));
 }
 
-static void
-vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
+void
+VteTerminalPrivate::maybe_scroll_to_bottom()
 {
-	glong delta;
-	delta = terminal->pvt->screen->insert_delta;
-	terminal->pvt->queue_adjustment_value_changed(delta);
+	queue_adjustment_value_changed(m_screen->insert_delta);
 	_vte_debug_print(VTE_DEBUG_ADJ,
 			"Snapping to bottom of screen\n");
 }
@@ -4253,7 +4243,7 @@ next_match:
 		 * we're currently at the bottom of the buffer. */
 		_vte_terminal_update_insert_delta(terminal);
 		if (terminal->pvt->scroll_on_output || bottom) {
-			vte_terminal_maybe_scroll_to_bottom(terminal);
+			terminal->pvt->maybe_scroll_to_bottom();
 		}
 		/* Deselect the current selection if its contents are changed
 		 * by this insertion. */
@@ -4794,7 +4784,7 @@ vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, VteTerminal *termi
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
-		vte_terminal_maybe_scroll_to_bottom(terminal);
+		terminal->pvt->maybe_scroll_to_bottom();
 	}
 }
 
@@ -5254,7 +5244,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 			if (m_screen == &normal_screen &&
 			    m_modifiers & GDK_CONTROL_MASK &&
                             m_modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_scroll_lines(m_terminal, -1);
+				scroll_lines(-1);
 				scrolled = TRUE;
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
@@ -5265,7 +5255,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_CONTROL_MASK &&
                             m_modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_scroll_lines(m_terminal, 1);
+				scroll_lines(1);
 				scrolled = TRUE;
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
@@ -5275,7 +5265,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		case GDK_KEY_Page_Up:
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_scroll_pages(m_terminal, -1);
+				scroll_pages(-1);
 				scrolled = TRUE;
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
@@ -5285,7 +5275,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		case GDK_KEY_Page_Down:
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_scroll_pages(m_terminal, 1);
+				scroll_pages(1);
 				scrolled = TRUE;
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
@@ -5295,7 +5285,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		case GDK_KEY_Home:
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_maybe_scroll_to_top(m_terminal);
+				maybe_scroll_to_top();
 				scrolled = TRUE;
 				handled = TRUE;
 			}
@@ -5304,7 +5294,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		case GDK_KEY_End:
 			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_SHIFT_MASK) {
-				vte_terminal_maybe_scroll_to_bottom(m_terminal);
+				maybe_scroll_to_bottom();
 				scrolled = TRUE;
 				handled = TRUE;
 			}
@@ -5414,7 +5404,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
 		    m_scroll_on_keystroke) {
-			vte_terminal_maybe_scroll_to_bottom(m_terminal);
+			maybe_scroll_to_bottom();
 		}
 		return true;
 	}
@@ -10675,7 +10665,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         _vte_terminal_save_cursor(m_terminal, &m_normal_screen);
         _vte_terminal_save_cursor(m_terminal, &m_alternate_screen);
 	/* Cause everything to be redrawn (or cleared). */
-	vte_terminal_maybe_scroll_to_bottom(m_terminal);
+	maybe_scroll_to_bottom();
 
 	invalidate_all();
 

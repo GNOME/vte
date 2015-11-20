@@ -537,6 +537,11 @@ public:
         void adjust_adjustments();
         void adjust_adjustments_full();
 
+        void scroll_lines(long lines);
+        void scroll_pages(long pages) { scroll_lines(pages * row_count); }
+        void maybe_scroll_to_top();
+        void maybe_scroll_to_bottom();
+
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
