@@ -531,6 +531,9 @@ public:
         void beep();
 
         void emit_adjustment_changed();
+        void emit_commit(char const* text,
+                         gssize length);
+        void emit_selection_changed();
         void queue_adjustment_changed();
         void queue_adjustment_value_changed(double v);
         void queue_adjustment_value_changed_clamped(double v);

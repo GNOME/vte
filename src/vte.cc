@@ -825,19 +825,20 @@ VteTerminalPrivate::invalidate_cursor_periodic()
 }
 
 /* Emit a "selection_changed" signal. */
-static void
-vte_terminal_emit_selection_changed(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_selection_changed()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `selection-changed'.\n");
-	g_signal_emit_by_name(terminal, "selection-changed");
+	g_signal_emit(m_terminal, signals[SIGNAL_SELECTION_CHANGED], 0);
 }
 
 /* Emit a "commit" signal. */
-static void
-vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, gssize length)
+void
+VteTerminalPrivate::emit_commit(char const* text,
+                                gssize length)
 {
-	const char *result = NULL;
+	char const* result = NULL;
 	char *wrapped = NULL;
 
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -847,35 +848,16 @@ vte_terminal_emit_commit(VteTerminal *terminal, const gchar *text, gssize length
 		length = strlen(text);
 		result = text;
 	} else {
+                // FIXMEchpe why use the slice allocator here?
 		result = wrapped = (char *) g_slice_alloc(length + 1);
 		memcpy(wrapped, text, length);
 		wrapped[length] = '\0';
 	}
 
-	g_signal_emit_by_name(terminal, "commit", result, length);
+	g_signal_emit(m_terminal, signals[SIGNAL_COMMIT], 0, result, (guint)length);
 
 	if(wrapped)
 		g_slice_free1(length+1, wrapped);
-}
-
-/* Emit an "encoding-changed" signal. */
-static void
-vte_terminal_emit_encoding_changed(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `encoding-changed'.\n");
-	g_signal_emit_by_name(terminal, "encoding-changed");
-        g_object_notify(G_OBJECT(terminal), "encoding");
-}
-
-/* Emit a "child-exited" signal. */
-static void
-vte_terminal_emit_child_exited(VteTerminal *terminal,
-                               int status)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `child-exited'.\n");
-	g_signal_emit_by_name(terminal, "child-exited", status);
 }
 
 void
@@ -1016,7 +998,7 @@ VteTerminalPrivate::deselect_all()
 		/* Don't free the current selection, as we need to keep
 		 * hold of it for async copying from the clipboard. */
 
-		vte_terminal_emit_selection_changed(m_terminal);
+		emit_selection_changed();
 
 		sx = m_selection_start.col;
 		sy = m_selection_start.row;
@@ -2402,7 +2384,10 @@ VteTerminalPrivate::set_encoding(char const* codeset)
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Set terminal encoding to `%s'.\n",
 			m_encoding);
-	vte_terminal_emit_encoding_changed(m_terminal);
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `encoding-changed'.\n");
+	g_signal_emit(object, signals[SIGNAL_ENCODING_CHANGED], 0);
+        g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
 
         g_object_thaw_notify(object);
 
@@ -3584,7 +3569,9 @@ vte_terminal_child_watch_cb(GPid pid,
                 vte_terminal_set_pty(terminal, NULL);
 
 		/* Tell observers what's happened. */
-		vte_terminal_emit_child_exited(terminal, status);
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `child-exited'.\n");
+                g_signal_emit(object, signals[SIGNAL_CHILD_EXITED], 0, status);
 
                 g_object_thaw_notify(object);
                 g_object_unref(object);
@@ -4582,7 +4569,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		}
 		/* Tell observers that we're sending this to the child. */
 		if (cooked_length > 0) {
-			vte_terminal_emit_commit(terminal,
+			terminal->pvt->emit_commit(
 						 cooked, cooked_length);
 		}
 		/* Echo the text if we've been asked to do so. */
@@ -4678,8 +4665,7 @@ VteTerminalPrivate::feed_child_binary(guint8 const* data,
 
 	/* Tell observers that we're sending this to the child. */
 	if (length > 0) {
-		vte_terminal_emit_commit(m_terminal,
-					 (char*)data, length);
+		emit_commit((char const*)data, length);
 
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
@@ -6669,7 +6655,7 @@ _vte_terminal_maybe_end_selection (VteTerminal *terminal)
 		    !terminal->pvt->selecting_restart &&
 		    terminal->pvt->selecting_had_delta) {
 			vte_terminal_copy_primary(terminal);
-			vte_terminal_emit_selection_changed(terminal);
+			terminal->pvt->emit_selection_changed();
 		}
 		terminal->pvt->selecting = FALSE;
 
@@ -7148,7 +7134,7 @@ VteTerminalPrivate::select_all()
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
 	vte_terminal_copy_primary(m_terminal);
-	vte_terminal_emit_selection_changed(m_terminal);
+	emit_selection_changed();
 
 	invalidate_all();
 }
@@ -10745,7 +10731,7 @@ _vte_terminal_select_text(VteTerminal *terminal,
 	terminal->pvt->selection_end.col = end_col;
 	terminal->pvt->selection_end.row = end_row;
 	vte_terminal_copy_primary(terminal);
-	vte_terminal_emit_selection_changed(terminal);
+	terminal->pvt->emit_selection_changed();
 
 	_vte_invalidate_region (terminal,
 			MIN (start_col, end_col), MAX (start_col, end_col),

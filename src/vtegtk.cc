@@ -659,15 +659,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * This signal is emitted when the terminal detects that a child
          * watched using vte_terminal_watch_child() has exited.
          */
-	g_signal_new(I_("child-exited"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, child_exited),
-		     NULL,
-		     NULL,
-                     g_cclosure_marshal_VOID__INT,
-                     G_TYPE_NONE,
-                     1, G_TYPE_INT);
+        signals[SIGNAL_CHILD_EXITED] =
+                g_signal_new(I_("child-exited"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, child_exited),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__INT,
+                             G_TYPE_NONE,
+                             1, G_TYPE_INT);
 
         /**
          * VteTerminal::window-title-changed:
@@ -741,14 +742,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * as a result of receiving a control sequence which toggled between the
          * local and UTF-8 encodings, or at the parent application's request.
          */
-	g_signal_new(I_("encoding-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, encoding_changed),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_ENCODING_CHANGED] =
+                g_signal_new(I_("encoding-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, encoding_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::commit:
@@ -760,14 +762,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * prepares to send it to the child process.  The signal is emitted even
          * when there is no child process.
          */
-	g_signal_new(I_("commit"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, commit),
-		     NULL,
-		     NULL,
-		     _vte_marshal_VOID__STRING_UINT,
-		     G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
+        signals[SIGNAL_COMMIT] =
+                g_signal_new(I_("commit"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, commit),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__STRING_UINT,
+                             G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
 
         /**
          * VteTerminal::char-size-changed:
@@ -793,14 +796,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted whenever the contents of terminal's selection changes.
          */
-	g_signal_new (I_("selection-changed"),
-		      G_OBJECT_CLASS_TYPE(klass),
-		      G_SIGNAL_RUN_LAST,
-		      G_STRUCT_OFFSET(VteTerminalClass, selection_changed),
-		      NULL,
-		      NULL,
-		      g_cclosure_marshal_VOID__VOID,
-		      G_TYPE_NONE, 0);
+        signals[SIGNAL_SELECTION_CHANGED] =
+                g_signal_new (I_("selection-changed"),
+                              G_OBJECT_CLASS_TYPE(klass),
+                              G_SIGNAL_RUN_LAST,
+                              G_STRUCT_OFFSET(VteTerminalClass, selection_changed),
+                              NULL,
+                              NULL,
+                              g_cclosure_marshal_VOID__VOID,
+                              G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::contents-changed:
