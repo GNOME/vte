@@ -449,6 +449,9 @@ public:
                                bool block = false);
         void invalidate_all();
 
+        void confine_coordinates(long *xp,
+                                 long *yp);
+
         void invalidate_cursor_once(bool periodic = false);
         void invalidate_cursor_periodic();
         void check_cursor_blink();

@@ -6664,30 +6664,31 @@ vte_terminal_invalidate_selection (VteTerminal *terminal)
 }
 
 /* Confine coordinates into the visible area. Padding is already subtracted. */
-static void
-vte_terminal_confine_coordinates (VteTerminal *terminal, long *xp, long *yp)
+void
+VteTerminalPrivate::confine_coordinates(long *xp,
+                                        long *yp)
 {
 	long x = *xp;
 	long y = *yp;
         long y_stop;
 
         /* Allow to use the bottom extra padding only if there's content there. */
-        y_stop = MIN(_vte_terminal_usable_height_px (terminal),
-                     _vte_terminal_row_to_pixel(terminal, terminal->pvt->screen->insert_delta + terminal->pvt->row_count));
+        y_stop = MIN(_vte_terminal_usable_height_px(m_terminal),
+                     _vte_terminal_row_to_pixel(m_terminal, m_screen->insert_delta + m_row_count));
 
 	if (y < 0) {
 		y = 0;
-		if (!terminal->pvt->selection_block_mode)
+		if (!m_selection_block_mode)
 			x = 0;
         } else if (y >= y_stop) {
                 y = y_stop - 1;
-		if (!terminal->pvt->selection_block_mode)
-			x = terminal->pvt->column_count * terminal->pvt->char_width - 1;
+		if (!m_selection_block_mode)
+			x = m_column_count * m_char_width - 1;
 	}
 	if (x < 0) {
 		x = 0;
-	} else if (x >= terminal->pvt->column_count * terminal->pvt->char_width) {
-		x = terminal->pvt->column_count * terminal->pvt->char_width - 1;
+	} else if (x >= m_column_count * m_char_width) {
+		x = m_column_count * m_char_width - 1;
 	}
 
 	*xp = x;
@@ -6703,7 +6704,7 @@ vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
 		selection_type = selection_type_char;
 
 	/* Confine coordinates into the visible area. (#563024, #722635c7) */
-	vte_terminal_confine_coordinates(terminal, &x, &y);
+	terminal->pvt->confine_coordinates(&x, &y);
 
 	/* Record that we have the selection, and where it started. */
 	terminal->pvt->has_selection = TRUE;
@@ -7000,7 +7001,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	width = terminal->pvt->char_width;
 
 	/* Confine coordinates into the visible area. (#563024, #722635c7) */
-	vte_terminal_confine_coordinates(terminal, &x, &y);
+	terminal->pvt->confine_coordinates(&x, &y);
 
 	old_start = terminal->pvt->selection_start;
 	old_end = terminal->pvt->selection_end;
