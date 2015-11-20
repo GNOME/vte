@@ -2837,13 +2837,13 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		/* Clear this row. */
 		_vte_row_data_shrink (rowdata, 0);
 
-		_vte_terminal_emit_text_deleted(terminal);
+		terminal->pvt->emit_text_deleted();
 		/* Fill this row. */
 		cell.c = 'E';
 		cell.attr = basic_cell.cell.attr;
 		cell.attr.columns = 1;
 		_vte_row_data_fill (rowdata, &cell, terminal->pvt->column_count);
-		_vte_terminal_emit_text_inserted(terminal);
+		terminal->pvt->emit_text_inserted();
 	}
 	_vte_invalidate_all(terminal);
 

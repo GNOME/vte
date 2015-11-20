@@ -809,14 +809,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever the visible appearance of the terminal has changed.
          * Used primarily by #VteTerminalAccessible.
          */
-	g_signal_new(I_("contents-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, contents_changed),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_CONTENTS_CHANGED] =
+                g_signal_new(I_("contents-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, contents_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::cursor-moved:
@@ -825,14 +826,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever the cursor moves to a new character cell.  Used
          * primarily by #VteTerminalAccessible.
          */
-	g_signal_new(I_("cursor-moved"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, cursor_moved),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_CURSOR_MOVED] =
+                g_signal_new(I_("cursor-moved"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, cursor_moved),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::deiconify-window:
@@ -1011,14 +1013,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	g_signal_new(I_("text-modified"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, text_modified),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_TEXT_MODIFIED] =
+                g_signal_new(I_("text-modified"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, text_modified),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-inserted:
@@ -1028,14 +1031,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	g_signal_new(I_("text-inserted"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, text_inserted),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_TEXT_INSERTED] =
+                g_signal_new(I_("text-inserted"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, text_inserted),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-deleted:
@@ -1045,14 +1049,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	g_signal_new(I_("text-deleted"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, text_deleted),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_TEXT_DELETED] =
+                g_signal_new(I_("text-deleted"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, text_deleted),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-scrolled:
@@ -1063,14 +1068,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * its accessibility peer. May not be emitted under certain
          * circumstances.
          */
-	g_signal_new(I_("text-scrolled"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, text_scrolled),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__INT,
-		     G_TYPE_NONE, 1, G_TYPE_INT);
+        signals[SIGNAL_TEXT_SCROLLED] =
+                g_signal_new(I_("text-scrolled"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, text_scrolled),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__INT,
+                             G_TYPE_NONE, 1, G_TYPE_INT);
 
         /**
          * VteTerminal::copy-clipboard:

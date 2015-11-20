@@ -878,25 +878,6 @@ vte_terminal_emit_child_exited(VteTerminal *terminal,
 	g_signal_emit_by_name(terminal, "child-exited", status);
 }
 
-/* Emit a "contents_changed" signal. */
-static void
-vte_terminal_emit_contents_changed(VteTerminal *terminal)
-{
-	if (terminal->pvt->contents_changed_pending) {
-		/* Update dingus match set. */
-		terminal->pvt->match_contents_clear();
-		if (terminal->pvt->mouse_cursor_visible) {
-			terminal->pvt->match_hilite_update(
-					terminal->pvt->mouse_last_x,
-					terminal->pvt->mouse_last_y);
-		}
-
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting `contents-changed'.\n");
-		g_signal_emit_by_name(terminal, "contents-changed");
-		terminal->pvt->contents_changed_pending = FALSE;
-	}
-}
 void
 _vte_terminal_queue_contents_changed(VteTerminal *terminal)
 {
@@ -905,23 +886,13 @@ _vte_terminal_queue_contents_changed(VteTerminal *terminal)
 	terminal->pvt->contents_changed_pending = TRUE;
 }
 
-/* Emit a "cursor_moved" signal. */
-static void
-vte_terminal_emit_cursor_moved(VteTerminal *terminal)
-{
-	if (terminal->pvt->cursor_moved_pending) {
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting `cursor-moved'.\n");
-		g_signal_emit_by_name(terminal, "cursor-moved");
-		terminal->pvt->cursor_moved_pending = FALSE;
-	}
-}
-static void
-vte_terminal_queue_cursor_moved(VteTerminal *terminal)
+//FIXMEchpe this has only one caller
+void
+VteTerminalPrivate::queue_cursor_moved()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `cursor-moved'.\n");
-	terminal->pvt->cursor_moved_pending = TRUE;
+	m_cursor_moved_pending = true;
 }
 
 static gboolean
@@ -985,50 +956,51 @@ vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
 
 /* Emit a "text-inserted" signal. */
 void
-_vte_terminal_emit_text_inserted(VteTerminal *terminal)
+VteTerminalPrivate::emit_text_inserted()
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-inserted'.\n");
-	g_signal_emit_by_name(terminal, "text-inserted");
+	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_INSERTED], 0);
 }
 
 /* Emit a "text-deleted" signal. */
 void
-_vte_terminal_emit_text_deleted(VteTerminal *terminal)
+VteTerminalPrivate::emit_text_deleted()
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-deleted'.\n");
-	g_signal_emit_by_name(terminal, "text-deleted");
+	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_DELETED], 0);
 }
 
 /* Emit a "text-modified" signal. */
-static void
-vte_terminal_emit_text_modified(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_text_modified()
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `text-modified'.\n");
-	g_signal_emit_by_name(terminal, "text-modified");
+                         "Emitting `text-modified'.\n");
+	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_MODIFIED], 0);
 }
 
 /* Emit a "text-scrolled" signal. */
-static void
-vte_terminal_emit_text_scrolled(VteTerminal *terminal, gint delta)
+void
+VteTerminalPrivate::emit_text_scrolled(long delta)
 {
-	if (!terminal->pvt->accessible_emit) {
+	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `text-scrolled'(%d).\n", delta);
-	g_signal_emit_by_name(terminal, "text-scrolled", delta);
+			"Emitting `text-scrolled'(%ld).\n", delta);
+        // FIXMEchpe fix signal signature?
+	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_SCROLLED], 0, (int)delta);
 }
 
 void
@@ -3860,30 +3832,6 @@ vte_terminal_im_reset(VteTerminal *terminal)
 	}
 }
 
-/* Emit whichever signals are called for here. */
-static void
-vte_terminal_emit_pending_text_signals(VteTerminal *terminal)
-{
-	if (terminal->pvt->text_modified_flag) {
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting buffered `text-modified'.\n");
-		vte_terminal_emit_text_modified(terminal);
-		terminal->pvt->text_modified_flag = FALSE;
-	}
-	if (terminal->pvt->text_inserted_flag) {
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting buffered `text-inserted'\n");
-		_vte_terminal_emit_text_inserted(terminal);
-		terminal->pvt->text_inserted_flag = FALSE;
-	}
-	if (terminal->pvt->text_deleted_flag) {
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting buffered `text-deleted'\n");
-		_vte_terminal_emit_text_deleted(terminal);
-		terminal->pvt->text_deleted_flag = FALSE;
-	}
-}
-
 /* Process incoming data, first converting it to unicode characters, and then
  * processing control sequences. */
 static void
@@ -4285,7 +4233,7 @@ next_match:
 		_vte_invalidate_cursor_once(terminal, FALSE);
 		terminal->pvt->check_cursor_blink();
 		/* Signal that the cursor moved. */
-		vte_terminal_queue_cursor_moved(terminal);
+		terminal->pvt->queue_cursor_moved();
 	} else if (cursor_visible != terminal->pvt->cursor_visible) {
 		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		terminal->pvt->check_cursor_blink();
@@ -8110,7 +8058,7 @@ VteTerminalPrivate::set_size(long columns,
 		adjust_adjustments_full();
 		gtk_widget_queue_resize_no_redraw(m_widget);
 		/* Our visible text changed. */
-		vte_terminal_emit_text_modified(m_terminal);
+		emit_text_modified();
 	}
 }
 
@@ -8139,7 +8087,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
                 _vte_invalidate_all(terminal);
-		vte_terminal_emit_text_scrolled(terminal, dy);
+		terminal->pvt->emit_text_scrolled(dy);
 		_vte_terminal_queue_contents_changed(terminal);
 	} else {
 		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
@@ -10997,9 +10945,44 @@ VteTerminalPrivate::emit_pending_signals()
         }
 
 	/* Flush any pending "inserted" signals. */
-	vte_terminal_emit_cursor_moved(m_terminal);
-	vte_terminal_emit_pending_text_signals(m_terminal);
-	vte_terminal_emit_contents_changed (m_terminal);
+
+        if (m_cursor_moved_pending) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `cursor-moved'.\n");
+                g_signal_emit(object, signals[SIGNAL_CURSOR_MOVED], 0);
+                m_cursor_moved_pending = false;
+        }
+        if (m_text_modified_flag) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting buffered `text-modified'.\n");
+                emit_text_modified();
+                m_text_modified_flag = false;
+        }
+        if (m_text_inserted_flag) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting buffered `text-inserted'\n");
+                emit_text_inserted();
+                m_text_inserted_flag = false;
+        }
+        if (m_text_deleted_flag) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting buffered `text-deleted'\n");
+                emit_text_deleted();
+                m_text_deleted_flag = false;
+	}
+	if (m_contents_changed_pending) {
+		/* Update dingus match set. */
+		match_contents_clear();
+		if (m_mouse_cursor_visible) {
+			match_hilite_update(m_mouse_last_x,
+                                            m_mouse_last_y);
+		}
+
+		_vte_debug_print(VTE_DEBUG_SIGNALS,
+				"Emitting `contents-changed'.\n");
+		g_signal_emit(m_terminal, signals[SIGNAL_CONTENTS_CHANGED], 0);
+		m_contents_changed_pending = false;
+	}
 
         g_object_thaw_notify(object);
 }

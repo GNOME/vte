@@ -542,6 +542,12 @@ public:
         void maybe_scroll_to_top();
         void maybe_scroll_to_bottom();
 
+        void queue_cursor_moved();
+
+        void emit_text_deleted();
+        void emit_text_inserted();
+        void emit_text_modified();
+        void emit_text_scrolled(long delta);
         void emit_pending_signals();
 
         void match_contents_clear();
@@ -882,5 +888,6 @@ public:
 #define m_linefeed_mode linefeed_mode
 #define m_selection_type selection_type
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
+#define m_accessible_emit accessible_emit
 
 extern GTimer *process_timer;
