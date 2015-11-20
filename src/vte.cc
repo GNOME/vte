@@ -6696,55 +6696,56 @@ VteTerminalPrivate::confine_coordinates(long *xp,
 }
 
 /* Start selection at the location of the event. */
-static void
-vte_terminal_start_selection(VteTerminal *terminal, long x, long y,
-			     enum vte_selection_type selection_type)
+void
+VteTerminalPrivate::start_selection(long x,
+                                    long y,
+                                    enum vte_selection_type type)
 {
-	if (terminal->pvt->selection_block_mode)
-		selection_type = selection_type_char;
+	if (m_selection_block_mode)
+		type = selection_type_char;
 
 	/* Confine coordinates into the visible area. (#563024, #722635c7) */
-	terminal->pvt->confine_coordinates(&x, &y);
+	confine_coordinates(&x, &y);
 
 	/* Record that we have the selection, and where it started. */
-	terminal->pvt->has_selection = TRUE;
-	terminal->pvt->selection_last.x = x;
-	terminal->pvt->selection_last.y = _vte_terminal_scroll_delta_pixel(terminal) + y;
+	m_has_selection = TRUE;
+	m_selection_last.x = x;
+	m_selection_last.y = _vte_terminal_scroll_delta_pixel(m_terminal) + y;
 
 	/* Decide whether or not to restart on the next drag. */
-	switch (selection_type) {
+	switch (type) {
 	case selection_type_char:
 		/* Restart selection once we register a drag. */
-		terminal->pvt->selecting_restart = TRUE;
-		terminal->pvt->has_selection = FALSE;
-		terminal->pvt->selecting_had_delta = FALSE;
+		m_selecting_restart = TRUE;
+		m_has_selection = FALSE;
+		m_selecting_had_delta = FALSE;
 
-		terminal->pvt->selection_origin = terminal->pvt->selection_last;
+		m_selection_origin = m_selection_last;
 		break;
 	case selection_type_word:
 	case selection_type_line:
 		/* Mark the newly-selected areas now. */
-		terminal->pvt->selecting_restart = FALSE;
-		terminal->pvt->has_selection = FALSE;
-		terminal->pvt->selecting_had_delta = FALSE;
+		m_selecting_restart = FALSE;
+		m_has_selection = FALSE;
+		m_selecting_had_delta = FALSE;
 		break;
 	}
 
 	/* Record the selection type. */
-	terminal->pvt->selection_type = selection_type;
-	terminal->pvt->selecting = TRUE;
-	terminal->pvt->selecting_after_threshold = FALSE;
+	m_selection_type = type;
+	m_selecting = TRUE;
+	m_selecting_after_threshold = FALSE;
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,
-			"Selection started at (%ld,%ld).\n",
-			terminal->pvt->selection_start.col,
-			terminal->pvt->selection_start.row);
+                         "Selection started at (%ld,%ld).\n",
+                         m_selection_start.col,
+                         m_selection_start.row);
 
         /* Take care of updating the display. */
-        vte_terminal_extend_selection(terminal, x, y, FALSE, TRUE);
+        vte_terminal_extend_selection(m_terminal, x, y, FALSE, TRUE);
 
 	/* Temporarily stop caring about input from the child. */
-	_vte_terminal_disconnect_pty_read(terminal);
+	_vte_terminal_disconnect_pty_read(m_terminal);
 }
 
 static gboolean
@@ -7355,7 +7356,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 						       x, y))
 				return true;
 
-			vte_terminal_start_selection(m_terminal,
+			start_selection(
 						     m_mouse_last_x,
 						     m_mouse_last_y,
 						     selection_type_char);
@@ -7513,13 +7514,13 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 		switch (event->button) {
 		case 1:
 			if (m_selecting_after_threshold) {
-				vte_terminal_start_selection(m_terminal,
+				start_selection(
 							     x, y,
 							     selection_type_char);
 				handled = true;
 			}
                         if ((mouse_handled_buttons & 1) != 0) {
-				vte_terminal_start_selection(m_terminal,
+				start_selection(
 							     x, y,
 							     selection_type_word);
 				handled = true;
@@ -7539,7 +7540,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 		switch (event->button) {
 		case 1:
                         if ((m_mouse_handled_buttons & 1) != 0) {
-				vte_terminal_start_selection(m_terminal,
+				start_selection(
 							     x, y,
 							     selection_type_line);
 				handled = true;

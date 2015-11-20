@@ -508,6 +508,9 @@ public:
         void feed_child_binary(guint8 const* data,
                                gsize length);
 
+        void start_selection(long x,
+                             long y,
+                             enum vte_selection_type selection_type);
         void select_all();
         void deselect_all();
 
@@ -857,5 +860,6 @@ public:
 #define m_selection_last selection_last
 #define m_bracketed_paste_mode bracketed_paste_mode
 #define m_linefeed_mode linefeed_mode
+#define m_selection_type selection_type
 
 extern GTimer *process_timer;
