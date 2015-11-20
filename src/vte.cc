@@ -84,7 +84,6 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GIOCondition condition,
 				      VteTerminal *terminal);
 static void vte_terminal_background_update(VteTerminal *data);
-static void vte_terminal_process_incoming(VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
@@ -3821,12 +3820,11 @@ vte_terminal_im_reset(VteTerminal *terminal)
 
 /* Process incoming data, first converting it to unicode characters, and then
  * processing control sequences. */
-static void
-vte_terminal_process_incoming(VteTerminal *terminal)
+void
+VteTerminalPrivate::process_incoming()
 {
-	VteScreen *screen;
-	VteVisualPosition cursor;
-	gboolean cursor_visible;
+	VteVisualPosition saved_cursor;
+	gboolean saved_cursor_visible;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
 	long wcount, start;
@@ -3839,33 +3837,31 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks + %d bytes pending.\n",
-			_vte_incoming_chunks_length(terminal->pvt->incoming),
-			_vte_incoming_chunks_count(terminal->pvt->incoming),
-			terminal->pvt->pending->len);
+			_vte_incoming_chunks_length(m_incoming),
+			_vte_incoming_chunks_count(m_incoming),
+			m_pending->len);
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
-	screen = terminal->pvt->screen;
+        bottom = screen->insert_delta == (long)m_screen->scroll_delta;
 
-        bottom = screen->insert_delta == (long) screen->scroll_delta;
-
-        top_row = _vte_terminal_first_displayed_row(terminal);
-        bottom_row = _vte_terminal_last_displayed_row(terminal);
+        top_row = _vte_terminal_first_displayed_row(m_terminal);
+        bottom_row = _vte_terminal_last_displayed_row(m_terminal);
 
 	/* Save the current cursor position. */
-        cursor = terminal->pvt->cursor;
-	cursor_visible = terminal->pvt->cursor_visible;
+        saved_cursor = m_cursor;
+	saved_cursor_visible = m_cursor_visible;
 
-        in_scroll_region = terminal->pvt->scrolling_restricted
-            && (terminal->pvt->cursor.row >= (screen->insert_delta + terminal->pvt->scrolling_region.start))
-            && (terminal->pvt->cursor.row <= (screen->insert_delta + terminal->pvt->scrolling_region.end));
+        in_scroll_region = m_scrolling_restricted
+            && (m_cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
+            && (m_cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
 
 	/* We should only be called when there's data to process. */
-	g_assert(terminal->pvt->incoming ||
-		 (terminal->pvt->pending->len > 0));
+	g_assert(m_incoming ||
+		 (m_pending->len > 0));
 
 	/* Convert the data into unicode characters. */
-	unichars = terminal->pvt->pending;
-	for (chunk = _vte_incoming_chunks_reverse (terminal->pvt->incoming);
+	unichars = m_pending;
+	for (chunk = _vte_incoming_chunks_reverse (m_incoming);
 			chunk != NULL;
 			chunk = next_chunk) {
 		gsize processed;
@@ -3873,7 +3869,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 		if (chunk->len == 0) {
 			goto skip_chunk;
 		}
-		processed = _vte_iso2022_process(terminal->pvt->iso2022,
+		processed = _vte_iso2022_process(m_iso2022,
 				chunk->data, chunk->len,
 				unichars);
 		if (G_UNLIKELY (processed != chunk->len)) {
@@ -3924,7 +3920,7 @@ skip_chunk:
 			chunk->len = 0;
 		}
 	}
-	terminal->pvt->incoming = chunk;
+	m_incoming = chunk;
 
 	/* Compute the number of unicode characters we got. */
 	wbuf = &g_array_index(unichars, gunichar, 0);
@@ -3939,60 +3935,60 @@ skip_chunk:
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
 	while (start < wcount && !leftovers) {
-		const char *match;
+		const char *seq_match;
 		const gunichar *next;
 		GValueArray *params = NULL;
 
 		/* Try to match any control sequences. */
-		_vte_matcher_match(terminal->pvt->matcher,
+		_vte_matcher_match(m_matcher,
 				   &wbuf[start],
 				   wcount - start,
-				   &match,
+				   &seq_match,
 				   &next,
 				   &params);
 		/* We're in one of three possible situations now.
 		 * First, the match string is a non-empty string and next
 		 * points to the first character which isn't part of this
 		 * sequence. */
-		if ((match != NULL) && (match[0] != '\0')) {
+		if ((seq_match != NULL) && (seq_match[0] != '\0')) {
 			gboolean new_in_scroll_region;
 
 			/* Call the right sequence handler for the requested
 			 * behavior. */
-			_vte_terminal_handle_sequence(terminal,
-						      match,
+			_vte_terminal_handle_sequence(m_terminal,
+						      seq_match,
 						      params);
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
 			modified = TRUE;
 
-                        new_in_scroll_region = terminal->pvt->scrolling_restricted
-                            && (terminal->pvt->cursor.row >= (screen->insert_delta + terminal->pvt->scrolling_region.start))
-                            && (terminal->pvt->cursor.row <= (screen->insert_delta + terminal->pvt->scrolling_region.end));
+                        new_in_scroll_region = m_scrolling_restricted
+                            && (m_cursor.row >= (screen->insert_delta + m_scrolling_region.start))
+                            && (m_cursor.row <= (screen->insert_delta + m_scrolling_region.end));
 
                         /* delta may have changed from sequence. */
-                        top_row = _vte_terminal_first_displayed_row(terminal);
-                        bottom_row = _vte_terminal_last_displayed_row(terminal);
+                        top_row = _vte_terminal_first_displayed_row(m_terminal);
+                        bottom_row = _vte_terminal_last_displayed_row(m_terminal);
 
 			/* if we have moved greatly during the sequence handler, or moved
                          * into a scroll_region from outside it, restart the bbox.
                          */
 			if (invalidated_text &&
 					((new_in_scroll_region && !in_scroll_region) ||
-                                         (terminal->pvt->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
-                                          terminal->pvt->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
-                                          terminal->pvt->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
-                                          terminal->pvt->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
+                                         (m_cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
+                                          m_cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
+                                          m_cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
+                                          m_cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 0);
                                 bbox_topleft.y = MAX(bbox_topleft.y, top_row);
 				bbox_bottomright.x = MIN(bbox_bottomright.x,
-						terminal->pvt->column_count);
+						m_column_count);
 				/* lazily apply the +1 to the cursor_row */
 				bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
                                                 bottom_row + 1);
 
-				_vte_invalidate_cells(terminal,
+				invalidate_cells(
 						bbox_topleft.x,
 						bbox_bottomright.x - bbox_topleft.x,
 						bbox_topleft.y,
@@ -4008,7 +4004,7 @@ skip_chunk:
 		/* Second, we have a NULL match, and next points to the very
 		 * next character in the buffer.  Insert the character which
 		 * we're currently examining into the screen. */
-		if (match == NULL) {
+		if (seq_match == NULL) {
 			c = wbuf[start];
 			/* If it's a control character, permute the order, per
 			 * vttest. */
@@ -4021,7 +4017,7 @@ skip_chunk:
 				int i;
 				/* We don't want to permute it if it's another
 				 * control sequence, so check if it is. */
-				_vte_matcher_match(terminal->pvt->matcher,
+				_vte_matcher_match(m_matcher,
 						   next,
 						   wcount - (next - wbuf),
 						   &tmatch,
@@ -4062,29 +4058,29 @@ skip_chunk:
 			}
 
 			bbox_topleft.x = MIN(bbox_topleft.x,
-                                        terminal->pvt->cursor.col);
+                                        m_cursor.col);
 			bbox_topleft.y = MIN(bbox_topleft.y,
-                                        terminal->pvt->cursor.row);
+                                        m_cursor.row);
 
 			/* Insert the character. */
-			if (G_UNLIKELY (_vte_terminal_insert_char(terminal, c,
+			if (G_UNLIKELY (_vte_terminal_insert_char(m_terminal, c,
 						 FALSE, FALSE))) {
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
-                                                (terminal->pvt->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
-                                                 terminal->pvt->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
-                                                 terminal->pvt->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
-                                                 terminal->pvt->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+                                                (m_cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
+                                                 m_cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
+                                                 m_cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
+                                                 m_cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
 					/* Clip off any part of the box which isn't already on-screen. */
 					bbox_topleft.x = MAX(bbox_topleft.x, 0);
                                         bbox_topleft.y = MAX(bbox_topleft.y, top_row);
 					bbox_bottomright.x = MIN(bbox_bottomright.x,
-							terminal->pvt->column_count);
+							m_column_count);
 					/* lazily apply the +1 to the cursor_row */
 					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
                                                         bottom_row + 1);
 
-					_vte_invalidate_cells(terminal,
+					invalidate_cells(
 							bbox_topleft.x,
 							bbox_bottomright.x - bbox_topleft.x,
 							bbox_topleft.y,
@@ -4095,15 +4091,15 @@ skip_chunk:
 				}
 				bbox_topleft.x = MIN(bbox_topleft.x, 0);
 				bbox_topleft.y = MIN(bbox_topleft.y,
-                                                     terminal->pvt->cursor.row);
+                                                     m_cursor.row);
 			}
 			/* Add the cells over which we have moved to the region
 			 * which we need to refresh for the user. */
 			bbox_bottomright.x = MAX(bbox_bottomright.x,
-                                                 terminal->pvt->cursor.col);
+                                                 m_cursor.col);
                         /* cursor.row + 1 (defer until inv.) */
 			bbox_bottomright.y = MAX(bbox_bottomright.y,
-                                                 terminal->pvt->cursor.row);
+                                                 m_cursor.row);
 			invalidated_text = TRUE;
 
 			/* We *don't* emit flush pending signals here. */
@@ -4137,22 +4133,22 @@ skip_chunk:
 			 _vte_ring_delta(screen->row_data));
 		/* The cursor shouldn't be above or below the addressable
 		 * part of the display buffer. */
-                g_assert(terminal->pvt->cursor.row >= terminal->pvt->screen->insert_delta);
+                g_assert(m_cursor.row >= m_screen->insert_delta);
 #endif
 
 next_match:
 		if (G_LIKELY(params != NULL)) {
 			/* Free any parameters we don't care about any more. */
-			_vte_matcher_free_params_array(terminal->pvt->matcher,
+			_vte_matcher_free_params_array(m_matcher,
 					params);
 		}
 	}
 
 	/* Remove most of the processed characters. */
 	if (start < wcount) {
-		g_array_remove_range(terminal->pvt->pending, 0, start);
+		g_array_remove_range(m_pending, 0, start);
 	} else {
-		g_array_set_size(terminal->pvt->pending, 0);
+		g_array_set_size(m_pending, 0);
 		/* If we're out of data, we needn't pause to let the
 		 * controlling application respond to incoming data, because
 		 * the main loop is already going to do that. */
@@ -4161,50 +4157,50 @@ next_match:
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
-		_vte_terminal_update_insert_delta(terminal);
-		if (terminal->pvt->scroll_on_output || bottom) {
-			terminal->pvt->maybe_scroll_to_bottom();
+		_vte_terminal_update_insert_delta(m_terminal);
+		if (m_scroll_on_output || bottom) {
+			maybe_scroll_to_bottom();
 		}
 		/* Deselect the current selection if its contents are changed
 		 * by this insertion. */
-		if (terminal->pvt->has_selection) {
+		if (m_has_selection) {
 			char *selection;
 			selection =
-			vte_terminal_get_text_range(terminal,
-						    terminal->pvt->selection_start.row,
+			vte_terminal_get_text_range(m_terminal,
+						    m_selection_start.row,
 						    0,
-						    terminal->pvt->selection_end.row,
-						    terminal->pvt->column_count,
+						    m_selection_end.row,
+						    m_column_count,
 						    vte_cell_is_selected,
 						    NULL,
 						    NULL);
 			if ((selection == NULL) ||
-			    (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
-			    (strcmp(selection, terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
-				terminal->pvt->deselect_all();
+			    (m_selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
+			    (strcmp(selection, m_selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
+				deselect_all();
 			}
 			g_free(selection);
 		}
 	}
 
-	if (modified || (screen != terminal->pvt->screen)) {
+	if (modified || (screen != m_screen)) {
 		/* Signal that the visible contents changed. */
-		_vte_terminal_queue_contents_changed(terminal);
+		_vte_terminal_queue_contents_changed(m_terminal);
 	}
 
-	terminal->pvt->emit_pending_signals();
+	emit_pending_signals();
 
 	if (invalidated_text) {
 		/* Clip off any part of the box which isn't already on-screen. */
 		bbox_topleft.x = MAX(bbox_topleft.x, 0);
                 bbox_topleft.y = MAX(bbox_topleft.y, top_row);
 		bbox_bottomright.x = MIN(bbox_bottomright.x,
-				terminal->pvt->column_count);
+				m_column_count);
 		/* lazily apply the +1 to the cursor_row */
 		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
                                 bottom_row + 1);
 
-		_vte_invalidate_cells(terminal,
+		invalidate_cells(
 				bbox_topleft.x,
 				bbox_bottomright.x - bbox_topleft.x,
 				bbox_topleft.y,
@@ -4212,29 +4208,29 @@ next_match:
 	}
 
 
-        if ((cursor.col != terminal->pvt->cursor.col) ||
-            (cursor.row != terminal->pvt->cursor.row)) {
+        if ((saved_cursor.col != m_cursor.col) ||
+            (saved_cursor.row != m_cursor.row)) {
 		/* invalidate the old and new cursor positions */
 		if (cursor_visible)
-			_vte_invalidate_cell(terminal, cursor.col, cursor.row);
-		_vte_invalidate_cursor_once(terminal, FALSE);
-		terminal->pvt->check_cursor_blink();
+			invalidate_cell(saved_cursor.col, saved_cursor.row);
+		invalidate_cursor_once();
+		check_cursor_blink();
 		/* Signal that the cursor moved. */
-		terminal->pvt->queue_cursor_moved();
-	} else if (cursor_visible != terminal->pvt->cursor_visible) {
-		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
-		terminal->pvt->check_cursor_blink();
+		queue_cursor_moved();
+	} else if (saved_cursor_visible != m_cursor_visible) {
+		invalidate_cell(saved_cursor.col, saved_cursor.row);
+		check_cursor_blink();
 	}
 
 	/* Tell the input method where the cursor is. */
-	if (gtk_widget_get_realized (&terminal->widget)) {
+	if (gtk_widget_get_realized(m_widget)) {
 		GdkRectangle rect;
-                rect.x = terminal->pvt->cursor.col *
-			 terminal->pvt->char_width + terminal->pvt->padding.left;
-		rect.width = terminal->pvt->char_width;
-                rect.y = _vte_terminal_row_to_pixel(terminal, terminal->pvt->cursor.row) + terminal->pvt->padding.top;
-		rect.height = terminal->pvt->char_height;
-		gtk_im_context_set_cursor_location(terminal->pvt->im_context,
+                rect.x = m_cursor.col *
+			 m_char_width + m_padding.left;
+		rect.width = m_char_width;
+                rect.y = _vte_terminal_row_to_pixel(m_terminal, m_cursor.row) + m_padding.top;
+		rect.height = m_char_height;
+		gtk_im_context_set_cursor_location(m_im_context,
 						   &rect);
 	}
 
@@ -4242,8 +4238,8 @@ next_match:
 	_vte_debug_print (VTE_DEBUG_IO,
 			"%ld chars and %ld bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
 			(long) unichars->len,
-			(long) _vte_incoming_chunks_length(terminal->pvt->incoming),
-			_vte_incoming_chunks_count(terminal->pvt->incoming));
+			(long) _vte_incoming_chunks_length(m_incoming),
+			_vte_incoming_chunks_count(m_incoming));
 }
 
 static inline void
@@ -10610,7 +10606,7 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
 		if (m_incoming != NULL) {
-			vte_terminal_process_incoming(m_terminal);
+			process_incoming();
 			_vte_incoming_chunks_release (m_incoming);
 			m_incoming = NULL;
 			m_input_bytes = 0;
@@ -10978,7 +10974,7 @@ static void time_process_incoming (VteTerminal *terminal)
 	gdouble elapsed;
 	glong target;
 	g_timer_reset (process_timer);
-	vte_terminal_process_incoming (terminal);
+	terminal->pvt->process_incoming();
 	elapsed = g_timer_elapsed (process_timer, NULL) * 1000;
 	target = VTE_MAX_PROCESS_TIME / elapsed * terminal->pvt->input_bytes;
 	terminal->pvt->max_input_bytes =
@@ -11029,7 +11025,7 @@ process_timeout (gpointer data)
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
-				vte_terminal_process_incoming(terminal);
+				terminal->pvt->process_incoming();
 			}
 			terminal->pvt->input_bytes = 0;
 		} else
@@ -11161,7 +11157,7 @@ update_repeat_timeout (gpointer data)
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
-				vte_terminal_process_incoming (terminal);
+				terminal->pvt->process_incoming();
 			}
 			terminal->pvt->input_bytes = 0;
 		} else
@@ -11274,7 +11270,7 @@ update_timeout (gpointer data)
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
 			} else {
-				vte_terminal_process_incoming (terminal);
+				terminal->pvt->process_incoming();
 			}
 			terminal->pvt->input_bytes = 0;
 		} else

@@ -553,6 +553,8 @@ public:
         void emit_text_scrolled(long delta);
         void emit_pending_signals();
 
+        void process_incoming();
+
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
@@ -892,5 +894,6 @@ public:
 #define m_selection_type selection_type
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
+#define m_scrolling_region scrolling_region
 
 extern GTimer *process_timer;
