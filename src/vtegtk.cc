@@ -675,14 +675,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the terminal's %window_title field is modified.
          */
-	g_signal_new(I_("window-title-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, window_title_changed),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_WINDOW_TITLE_CHANGED] =
+                g_signal_new(I_("window-title-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, window_title_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::icon-title-changed:
@@ -690,14 +691,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the terminal's %icon_title field is modified.
          */
-	g_signal_new(I_("icon-title-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, icon_title_changed),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_ICON_TITLE_CHANGED] =
+                g_signal_new(I_("icon-title-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, icon_title_changed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::current-directory-uri-changed:
@@ -705,14 +707,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the current directory URI is modified.
          */
-	g_signal_new(I_("current-directory-uri-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     0,
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED] =
+                g_signal_new(I_("current-directory-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             0,
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::current-file-uri-changed:
@@ -720,14 +723,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the current file URI is modified.
          */
-	g_signal_new(I_("current-file-uri-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     0,
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_CURRENT_FILE_URI_CHANGED] =
+                g_signal_new(I_("current-file-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             0,
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::encoding-changed:

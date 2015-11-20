@@ -85,7 +85,6 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      VteTerminal *terminal);
 static void vte_terminal_background_update(VteTerminal *data);
 static void vte_terminal_process_incoming(VteTerminal *terminal);
-static void vte_terminal_emit_pending_signals(VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
@@ -4258,7 +4257,7 @@ next_match:
 		_vte_terminal_queue_contents_changed(terminal);
 	}
 
-	vte_terminal_emit_pending_signals (terminal);
+	terminal->pvt->emit_pending_signals();
 
 	if (invalidated_text) {
 		/* Clip off any part of the box which isn't already on-screen. */
@@ -10939,97 +10938,68 @@ need_processing (VteTerminal *terminal)
 	return _vte_incoming_chunks_length (terminal->pvt->incoming) != 0;
 }
 
-/* Emit an "icon-title-changed" signal. */
-static void
-vte_terminal_emit_icon_title_changed(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_pending_signals()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `icon-title-changed'.\n");
-	g_signal_emit_by_name(terminal, "icon-title-changed");
-}
+	GdkWindow *window = gtk_widget_get_window(m_widget);
 
-/* Emit a "window-title-changed" signal. */
-static void
-vte_terminal_emit_window_title_changed(VteTerminal *terminal)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `window-title-changed'.\n");
-	g_signal_emit_by_name(terminal, "window-title-changed");
-}
-
-static void
-vte_terminal_emit_current_directory_uri_changed(VteTerminal *terminal)
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                        "Emitting `current-directory-uri-changed'.\n");
-        g_signal_emit_by_name(terminal, "current-directory-uri-changed");
-}
-
-static void
-vte_terminal_emit_current_file_uri_changed(VteTerminal *terminal)
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                        "Emitting `current-file-uri-changed'.\n");
-        g_signal_emit_by_name(terminal, "current-file-uri-changed");
-}
-
-static void
-vte_terminal_emit_pending_signals(VteTerminal *terminal)
-{
-        GObject *object;
-	GdkWindow *window;
-
-	object = G_OBJECT (terminal);
-	window = gtk_widget_get_window (&terminal->widget);
-
+	GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
 
-	terminal->pvt->emit_adjustment_changed();
+	emit_adjustment_changed();
 
-	if (terminal->pvt->window_title_changed) {
-		g_free (terminal->pvt->window_title);
-		terminal->pvt->window_title = terminal->pvt->window_title_changed;
-		terminal->pvt->window_title_changed = NULL;
-
-		if (window)
-			gdk_window_set_title (window, terminal->pvt->window_title);
-		vte_terminal_emit_window_title_changed(terminal);
-                g_object_notify(object, "window-title");
-	}
-
-	if (terminal->pvt->icon_title_changed) {
-		g_free (terminal->pvt->icon_title);
-		terminal->pvt->icon_title = terminal->pvt->icon_title_changed;
-		terminal->pvt->icon_title_changed = NULL;
+	if (m_window_title_changed) {
+		g_free (m_window_title);
+		m_window_title = m_window_title_changed;
+		m_window_title_changed = NULL;
 
 		if (window)
-			gdk_window_set_icon_name (window, terminal->pvt->icon_title);
-		vte_terminal_emit_icon_title_changed(terminal);
-                g_object_notify(object, "icon-title");
+			gdk_window_set_title (window, m_window_title);
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `window-title-changed'.\n");
+                g_signal_emit(object, signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
+                g_object_notify_by_pspec(object, pspecs[PROP_WINDOW_TITLE]);
 	}
 
-	if (terminal->pvt->current_directory_uri_changed) {
-                g_free (terminal->pvt->current_directory_uri);
-                terminal->pvt->current_directory_uri = terminal->pvt->current_directory_uri_changed;
-                terminal->pvt->current_directory_uri_changed = NULL;
+	if (m_icon_title_changed) {
+		g_free (m_icon_title);
+		m_icon_title = m_icon_title_changed;
+		m_icon_title_changed = NULL;
 
-                vte_terminal_emit_current_directory_uri_changed(terminal);
-                g_object_notify(object, "current-directory-uri");
+		if (window)
+			gdk_window_set_icon_name (window, m_icon_title);
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `icon-title-changed'.\n");
+                g_signal_emit(object, signals[SIGNAL_ICON_TITLE_CHANGED], 0);
+                g_object_notify_by_pspec(object, pspecs[PROP_ICON_TITLE]);
+	}
+
+	if (m_current_directory_uri_changed) {
+                g_free (m_current_directory_uri);
+                m_current_directory_uri = m_current_directory_uri_changed;
+                m_current_directory_uri_changed = NULL;
+
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `current-directory-uri-changed'.\n");
+                g_signal_emit(object, signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
+                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_DIRECTORY_URI]);
         }
 
-        if (terminal->pvt->current_file_uri_changed) {
-                g_free (terminal->pvt->current_file_uri);
-                terminal->pvt->current_file_uri = terminal->pvt->current_file_uri_changed;
-                terminal->pvt->current_file_uri_changed = NULL;
+        if (m_current_file_uri_changed) {
+                g_free (m_current_file_uri);
+                m_current_file_uri = m_current_file_uri_changed;
+                m_current_file_uri_changed = NULL;
 
-                vte_terminal_emit_current_file_uri_changed(terminal);
-                g_object_notify(object, "current-file-uri");
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `current-file-uri-changed'.\n");
+                g_signal_emit(object, signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
+                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_FILE_URI]);
         }
 
 	/* Flush any pending "inserted" signals. */
-	vte_terminal_emit_cursor_moved(terminal);
-	vte_terminal_emit_pending_text_signals(terminal);
-	vte_terminal_emit_contents_changed (terminal);
+	vte_terminal_emit_cursor_moved(m_terminal);
+	vte_terminal_emit_pending_text_signals(m_terminal);
+	vte_terminal_emit_contents_changed (m_terminal);
 
         g_object_thaw_notify(object);
 }
@@ -11094,7 +11064,7 @@ process_timeout (gpointer data)
 			}
 			terminal->pvt->input_bytes = 0;
 		} else
-			vte_terminal_emit_pending_signals (terminal);
+			terminal->pvt->emit_pending_signals();
 		if (!active && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -11226,7 +11196,7 @@ update_repeat_timeout (gpointer data)
 			}
 			terminal->pvt->input_bytes = 0;
 		} else
-			vte_terminal_emit_pending_signals (terminal);
+			terminal->pvt->emit_pending_signals();
 
 		again = update_regions (terminal);
 		if (!again) {
@@ -11339,7 +11309,7 @@ update_timeout (gpointer data)
 			}
 			terminal->pvt->input_bytes = 0;
 		} else
-			vte_terminal_emit_pending_signals (terminal);
+			terminal->pvt->emit_pending_signals();
 
 		redraw |= update_regions (terminal);
 	}

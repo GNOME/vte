@@ -542,6 +542,8 @@ public:
         void maybe_scroll_to_top();
         void maybe_scroll_to_bottom();
 
+        void emit_pending_signals();
+
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
