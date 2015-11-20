@@ -2150,95 +2150,93 @@ VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
 }
 
 /* Emit an adjustment changed signal on our adjustment object. */
-static void
-vte_terminal_emit_adjustment_changed(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_adjustment_changed()
 {
-	if (terminal->pvt->adjustment_changed_pending) {
-		VteScreen *screen = terminal->pvt->screen;
-		gboolean changed = FALSE;
+	if (m_adjustment_changed_pending) {
+		bool changed = false;
 		glong v;
 		gdouble current;
 
-		g_object_freeze_notify (G_OBJECT (terminal->pvt->vadjustment));
+		g_object_freeze_notify (G_OBJECT(m_vadjustment));
 
-		v = _vte_ring_delta (screen->row_data);
-		current = gtk_adjustment_get_lower(terminal->pvt->vadjustment);
+		v = _vte_ring_delta (m_screen->row_data);
+		current = gtk_adjustment_get_lower(m_vadjustment);
 		if (current != v) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing lower bound from %.0f to %ld\n",
 					 current, v);
-			gtk_adjustment_set_lower(terminal->pvt->vadjustment, v);
-			changed = TRUE;
+			gtk_adjustment_set_lower(m_vadjustment, v);
+			changed = true;
 		}
 
-		v = terminal->pvt->screen->insert_delta + terminal->pvt->row_count;
-		current = gtk_adjustment_get_upper(terminal->pvt->vadjustment);
+		v = m_screen->insert_delta + m_row_count;
+		current = gtk_adjustment_get_upper(m_vadjustment);
 		if (current != v) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing upper bound from %.0f to %ld\n",
 					 current, v);
-			gtk_adjustment_set_upper(terminal->pvt->vadjustment, v);
-			changed = TRUE;
+			gtk_adjustment_set_upper(m_vadjustment, v);
+			changed = true;
 		}
 
-		g_object_thaw_notify (G_OBJECT (terminal->pvt->vadjustment));
+		g_object_thaw_notify (G_OBJECT (m_vadjustment));
 
 		if (changed)
 			_vte_debug_print(VTE_DEBUG_SIGNALS,
 					"Emitting adjustment_changed.\n");
-		terminal->pvt->adjustment_changed_pending = FALSE;
+		m_adjustment_changed_pending = FALSE;
 	}
-	if (terminal->pvt->adjustment_value_changed_pending) {
+	if (m_adjustment_value_changed_pending) {
 		double v, delta;
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
-		terminal->pvt->adjustment_value_changed_pending = FALSE;
-		v = gtk_adjustment_get_value(terminal->pvt->vadjustment);
-		if (v != terminal->pvt->screen->scroll_delta) {
+		m_adjustment_value_changed_pending = FALSE;
+		v = gtk_adjustment_get_value(m_vadjustment);
+		if (v != m_screen->scroll_delta) {
 			/* this little dance is so that the scroll_delta is
 			 * updated immediately, but we still handled scrolling
 			 * via the adjustment - e.g. user interaction with the
 			 * scrollbar
 			 */
-			delta = terminal->pvt->screen->scroll_delta;
-			terminal->pvt->screen->scroll_delta = v;
-			gtk_adjustment_set_value(terminal->pvt->vadjustment, delta);
+			delta = m_screen->scroll_delta;
+			m_screen->scroll_delta = v;
+			gtk_adjustment_set_value(m_vadjustment, delta);
 		}
 	}
 }
 
 /* Queue an adjustment-changed signal to be delivered when convenient. */
-static inline void
-vte_terminal_queue_adjustment_changed(VteTerminal *terminal)
+// FIXMEchpe this has just one caller, fold it into the call site
+void
+VteTerminalPrivate::queue_adjustment_changed()
 {
-	terminal->pvt->adjustment_changed_pending = TRUE;
-	add_update_timeout (terminal);
+	m_adjustment_changed_pending = true;
+	add_update_timeout(m_terminal);
 }
 
-static void
-vte_terminal_queue_adjustment_value_changed(VteTerminal *terminal, double v)
+void
+VteTerminalPrivate::queue_adjustment_value_changed(double v)
 {
-	if (v != terminal->pvt->screen->scroll_delta) {
+	if (v != m_screen->scroll_delta) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Adjustment value changed to %f\n",
                                  v);
-		terminal->pvt->screen->scroll_delta = v;
-		terminal->pvt->adjustment_value_changed_pending = TRUE;
-		add_update_timeout (terminal);
+		m_screen->scroll_delta = v;
+		m_adjustment_value_changed_pending = true;
+		add_update_timeout(m_terminal);
 	}
 }
 
-static void
-vte_terminal_queue_adjustment_value_changed_clamped(VteTerminal *terminal, double v)
+void
+VteTerminalPrivate::queue_adjustment_value_changed_clamped(double v)
 {
-	gdouble lower, upper;
+	double lower = gtk_adjustment_get_lower(m_vadjustment);
+	double upper = gtk_adjustment_get_upper(m_vadjustment);
 
-	lower = gtk_adjustment_get_lower(terminal->pvt->vadjustment);
-	upper = gtk_adjustment_get_upper(terminal->pvt->vadjustment);
+	v = CLAMP(v, lower, MAX (lower, upper - m_row_count));
 
-	v = CLAMP(v, lower, MAX (lower, upper - terminal->pvt->row_count));
-
-	vte_terminal_queue_adjustment_value_changed (terminal, v);
+	queue_adjustment_value_changed(v);
 }
 
 void
@@ -2247,7 +2245,7 @@ VteTerminalPrivate::adjust_adjustments()
 	g_assert(m_screen != nullptr);
 	g_assert(m_screen->row_data != nullptr);
 
-	vte_terminal_queue_adjustment_changed(m_terminal);
+	queue_adjustment_changed();
 
 	/* The lower value should be the first row in the buffer. */
 	long delta = _vte_ring_delta(m_screen->row_data);
@@ -2259,8 +2257,7 @@ VteTerminalPrivate::adjust_adjustments()
                            m_screen->insert_delta);
 
 	if (m_screen->scroll_delta > m_screen->insert_delta) {
-		vte_terminal_queue_adjustment_value_changed(m_terminal,
-				m_screen->insert_delta);
+		queue_adjustment_value_changed(m_screen->insert_delta);
 	}
 }
 
@@ -2334,7 +2331,7 @@ vte_terminal_scroll_lines(VteTerminal *terminal, gint lines)
                 destination = ceil(destination);
 	destination += lines;
 	/* Tell the scrollbar to adjust itself. */
-	vte_terminal_queue_adjustment_value_changed_clamped (terminal, destination);
+	terminal->pvt->queue_adjustment_value_changed_clamped(destination);
 }
 
 /* Scroll a fixed number of pages up or down, in the current screen. */
@@ -2348,7 +2345,7 @@ vte_terminal_scroll_pages(VteTerminal *terminal, gint pages)
 static void
 vte_terminal_maybe_scroll_to_top(VteTerminal *terminal)
 {
-	vte_terminal_queue_adjustment_value_changed (terminal,
+	terminal->pvt->queue_adjustment_value_changed(
 			_vte_ring_delta(terminal->pvt->screen->row_data));
 }
 
@@ -2357,7 +2354,7 @@ vte_terminal_maybe_scroll_to_bottom(VteTerminal *terminal)
 {
 	glong delta;
 	delta = terminal->pvt->screen->insert_delta;
-	vte_terminal_queue_adjustment_value_changed (terminal, delta);
+	terminal->pvt->queue_adjustment_value_changed(delta);
 	_vte_debug_print(VTE_DEBUG_ADJ,
 			"Snapping to bottom of screen\n");
 }
@@ -3337,7 +3334,7 @@ _vte_terminal_drop_scrollback (VteTerminal *terminal)
                                    terminal->pvt->normal_screen.insert_delta);
 
         if (terminal->pvt->screen == &terminal->pvt->normal_screen) {
-                vte_terminal_queue_adjustment_value_changed (terminal, terminal->pvt->normal_screen.insert_delta);
+                terminal->pvt->queue_adjustment_value_changed(terminal->pvt->normal_screen.insert_delta);
                 terminal->pvt->adjust_adjustments_full();
         }
 }
@@ -7246,7 +7243,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 		if (terminal->pvt->vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = terminal->pvt->screen->scroll_delta - 1;
-			vte_terminal_queue_adjustment_value_changed_clamped (terminal, adj);
+			terminal->pvt->queue_adjustment_value_changed_clamped(adj);
 			extend = TRUE;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
@@ -7255,7 +7252,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 		if (terminal->pvt->vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = terminal->pvt->screen->scroll_delta + 1;
-			vte_terminal_queue_adjustment_value_changed_clamped (terminal, adj);
+			terminal->pvt->queue_adjustment_value_changed_clamped(adj);
 			extend = TRUE;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
@@ -8080,8 +8077,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
                         screen->saved.cursor.row, screen->saved.cursor.col);
 
 	if (screen == terminal->pvt->screen)
-		vte_terminal_queue_adjustment_value_changed (
-				terminal,
+		terminal->pvt->queue_adjustment_value_changed(
 				new_scroll_delta);
 	else
 		screen->scroll_delta = new_scroll_delta;
@@ -10241,7 +10237,7 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 	} else {
 		/* Perform a history scroll. */
 		double dcnt = m_screen->scroll_delta + v * m_mouse_smooth_scroll_delta;
-		vte_terminal_queue_adjustment_value_changed_clamped (m_terminal, dcnt);
+		queue_adjustment_value_changed_clamped(dcnt);
 		m_mouse_smooth_scroll_delta = 0;
 	}
 }
@@ -10509,7 +10505,7 @@ VteTerminalPrivate::set_scrollback_lines(long lines)
 	   vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 676075. */
         scroll_delta = m_screen->scroll_delta;
 	m_screen->scroll_delta = -1;
-	vte_terminal_queue_adjustment_value_changed(m_terminal, scroll_delta);
+	queue_adjustment_value_changed(scroll_delta);
 	adjust_adjustments_full();
 
         return true;
@@ -10610,7 +10606,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
                 /* Hack: force a change in scroll_delta even if the value remains, so that
                    vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */
                 m_screen->scroll_delta = -1;
-                vte_terminal_queue_adjustment_value_changed(m_terminal, m_screen->insert_delta);
+                queue_adjustment_value_changed(m_screen->insert_delta);
 		adjust_adjustments_full();
 	}
         /* DECSCUSR cursor style */
@@ -11006,7 +11002,7 @@ vte_terminal_emit_pending_signals(VteTerminal *terminal)
 
         g_object_freeze_notify(object);
 
-	vte_terminal_emit_adjustment_changed (terminal);
+	terminal->pvt->emit_adjustment_changed();
 
 	if (terminal->pvt->window_title_changed) {
 		g_free (terminal->pvt->window_title);
@@ -11239,7 +11235,7 @@ update_repeat_timeout (gpointer data)
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
-		vte_terminal_emit_adjustment_changed (terminal);
+		terminal->pvt->emit_adjustment_changed();
 		if (need_processing (terminal)) {
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
@@ -11352,7 +11348,7 @@ update_timeout (gpointer data)
 			}
 			_vte_terminal_enable_input_source (terminal);
 		}
-		vte_terminal_emit_adjustment_changed (terminal);
+		terminal->pvt->emit_adjustment_changed();
 		if (need_processing (terminal)) {
 			if (VTE_MAX_PROCESS_TIME) {
 				time_process_incoming (terminal);
@@ -11599,10 +11595,10 @@ VteTerminalPrivate::search_rows(
 	page_size = gtk_adjustment_get_page_size(m_vadjustment);
 	if (backward) {
 		if (end_row < value || end_row > value + page_size - 1)
-			vte_terminal_queue_adjustment_value_changed_clamped(m_terminal, end_row - page_size + 1);
+			queue_adjustment_value_changed_clamped(end_row - page_size + 1);
 	} else {
 		if (start_row < value || start_row > value + page_size - 1)
-			vte_terminal_queue_adjustment_value_changed_clamped(m_terminal, start_row);
+			queue_adjustment_value_changed_clamped(start_row);
 	}
 
 	return true;

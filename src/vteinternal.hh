@@ -530,6 +530,10 @@ public:
 
         void beep();
 
+        void emit_adjustment_changed();
+        void queue_adjustment_changed();
+        void queue_adjustment_value_changed(double v);
+        void queue_adjustment_value_changed_clamped(double v);
         void adjust_adjustments();
         void adjust_adjustments_full();
 
@@ -870,5 +874,6 @@ public:
 #define m_bracketed_paste_mode bracketed_paste_mode
 #define m_linefeed_mode linefeed_mode
 #define m_selection_type selection_type
+#define m_adjustment_value_changed_pending adjustment_value_changed_pending
 
 extern GTimer *process_timer;
