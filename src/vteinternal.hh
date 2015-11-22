@@ -466,6 +466,8 @@ public:
         void add_cursor_timeout();
         void remove_cursor_timeout();
         void update_cursor_blinks();
+        VteCursorBlinkMode decscusr_cursor_blink();
+        VteCursorShape decscusr_cursor_shape();
 
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel);

@@ -95,8 +95,6 @@ static void vte_terminal_add_process_timeout (VteTerminal *terminal);
 static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
-static VteCursorShape _vte_terminal_decscusr_cursor_shape(VteTerminal *terminal);
-static VteCursorBlinkMode _vte_terminal_decscusr_cursor_blink(VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -9723,7 +9721,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	x = item.x;
 	y = item.y;
 
-        switch (_vte_terminal_decscusr_cursor_shape(terminal)) {
+        switch (terminal->pvt->decscusr_cursor_shape()) {
 
 		case VTE_CURSOR_SHAPE_IBEAM: {
                         int stem_width;
@@ -9938,7 +9936,7 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
         /* Re-clip, allowing 1 more pixel row for the outline cursor. */
         /* TODOegmont: It's really ugly to do it here. */
         cairo_save(cr);
-        extra_area_for_cursor = (_vte_terminal_decscusr_cursor_shape(m_terminal) == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? 1 : 0;
+        extra_area_for_cursor = (decscusr_cursor_shape() == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? 1 : 0;
         cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
         cairo_clip(cr);
 
@@ -10183,7 +10181,7 @@ VteTerminalPrivate::update_cursor_blinks()
 {
         bool blink = false;
 
-        switch (_vte_terminal_decscusr_cursor_blink(m_terminal)) {
+        switch (decscusr_cursor_blink()) {
         case VTE_CURSOR_BLINK_SYSTEM:
                 gboolean v;
                 g_object_get(gtk_widget_get_settings(m_widget),
@@ -10246,8 +10244,7 @@ VteTerminalPrivate::set_cursor_style(VteCursorStyle style)
 }
 
 /*
- * _vte_terminal_decscusr_cursor_blink:
- * @terminal: a #VteTerminal
+ * VteTerminalPrivate::decscusr_cursor_blink:
  *
  * Returns the cursor blink mode set by DECSCUSR. If DECSCUSR was never
  * called, or it set the blink mode to terminal default, this returns the
@@ -10255,13 +10252,13 @@ VteTerminalPrivate::set_cursor_style(VteCursorStyle style)
  *
  * Return value: cursor blink mode
  */
-static VteCursorBlinkMode
-_vte_terminal_decscusr_cursor_blink(VteTerminal *terminal)
+VteCursorBlinkMode
+VteTerminalPrivate::decscusr_cursor_blink()
 {
-        switch (terminal->pvt->cursor_style) {
+        switch (m_cursor_style) {
         default:
         case VTE_CURSOR_STYLE_TERMINAL_DEFAULT:
-                return terminal->pvt->cursor_blink_mode;
+                return m_cursor_blink_mode;
         case VTE_CURSOR_STYLE_BLINK_BLOCK:
         case VTE_CURSOR_STYLE_BLINK_UNDERLINE:
         case VTE_CURSOR_STYLE_BLINK_IBEAM:
@@ -10274,7 +10271,7 @@ _vte_terminal_decscusr_cursor_blink(VteTerminal *terminal)
 }
 
 /*
- * _vte_terminal_decscusr_cursor_shape:
+ * VteTerminalPrivate::decscusr_cursor_shape:
  * @terminal: a #VteTerminal
  *
  * Returns the cursor shape set by DECSCUSR. If DECSCUSR was never called,
@@ -10283,13 +10280,13 @@ _vte_terminal_decscusr_cursor_blink(VteTerminal *terminal)
  *
  * Return value: cursor shape
  */
-static VteCursorShape
-_vte_terminal_decscusr_cursor_shape(VteTerminal *terminal)
+VteCursorShape
+VteTerminalPrivate::decscusr_cursor_shape()
 {
-        switch (terminal->pvt->cursor_style) {
+        switch (m_cursor_style) {
         default:
         case VTE_CURSOR_STYLE_TERMINAL_DEFAULT:
-                return terminal->pvt->cursor_shape;
+                return m_cursor_shape;
         case VTE_CURSOR_STYLE_BLINK_BLOCK:
         case VTE_CURSOR_STYLE_STEADY_BLOCK:
                 return VTE_CURSOR_SHAPE_BLOCK;
