@@ -95,7 +95,6 @@ static void vte_terminal_add_process_timeout (VteTerminal *terminal);
 static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
 static void reset_update_regions (VteTerminal *terminal);
-static void vte_terminal_update_cursor_blinks_internal(VteTerminal *terminal);
 static VteCursorShape _vte_terminal_decscusr_cursor_shape(VteTerminal *terminal);
 static VteCursorBlinkMode _vte_terminal_decscusr_cursor_blink(VteTerminal *terminal);
 
@@ -8461,7 +8460,7 @@ vte_terminal_sync_settings (GtkSettings *settings,
         pvt->cursor_blink_cycle = blink_time / 2;
         pvt->cursor_blink_timeout = blink_timeout;
 
-        vte_terminal_update_cursor_blinks_internal(terminal);
+        pvt->update_cursor_blinks();
 }
 
 void
@@ -10179,31 +10178,32 @@ VteTerminalPrivate::widget_background_update()
 	invalidate_all();
 }
 
-static void
-vte_terminal_update_cursor_blinks_internal(VteTerminal *terminal)
+void
+VteTerminalPrivate::update_cursor_blinks()
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
-        gboolean blink = FALSE;
+        bool blink = false;
 
-        switch (_vte_terminal_decscusr_cursor_blink(terminal)) {
+        switch (_vte_terminal_decscusr_cursor_blink(m_terminal)) {
         case VTE_CURSOR_BLINK_SYSTEM:
-                g_object_get(gtk_widget_get_settings(GTK_WIDGET(terminal)),
+                gboolean v;
+                g_object_get(gtk_widget_get_settings(m_widget),
                                                      "gtk-cursor-blink",
-                                                     &blink, NULL);
+                                                     &v, NULL);
+                blink = v != FALSE;
                 break;
         case VTE_CURSOR_BLINK_ON:
-                blink = TRUE;
+                blink = true;
                 break;
         case VTE_CURSOR_BLINK_OFF:
-                blink = FALSE;
+                blink = false;
                 break;
         }
 
-	if (pvt->cursor_blinks == blink)
+	if (m_cursor_blinks == blink)
 		return;
 
-	pvt->cursor_blinks = blink;
-	pvt->check_cursor_blink();
+	m_cursor_blinks = blink;
+	check_cursor_blink();
 }
 
 bool
@@ -10213,7 +10213,7 @@ VteTerminalPrivate::set_cursor_blink_mode(VteCursorBlinkMode mode)
                 return false;
 
         m_cursor_blink_mode = mode;
-        vte_terminal_update_cursor_blinks_internal(m_terminal);
+        update_cursor_blinks();
 
         return true;
 }
@@ -10244,7 +10244,7 @@ _vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style)
 
         pvt->cursor_style = style;
 
-        vte_terminal_update_cursor_blinks_internal(terminal);
+        pvt->update_cursor_blinks();
 
         /* and this will also make cursor shape match the DECSCUSR style */
         terminal->pvt->invalidate_cursor_once();
