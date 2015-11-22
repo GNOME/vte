@@ -562,6 +562,11 @@ public:
         void emit_increase_font_size();
         void emit_decrease_font_size();
 
+        void clear_tabstop(int column); // FIXMEchpe vte::grid::column_t ?
+        bool get_tabstop(int column);
+        void set_tabstop(int column);
+        void set_default_tabstops();
+
         void process_incoming();
 
         void match_contents_clear();

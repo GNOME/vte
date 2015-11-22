@@ -999,57 +999,54 @@ VteTerminalPrivate::deselect_all()
 	}
 }
 
+// FIXMEchpe make m_tabstops a hashset
+
 /* Remove a tabstop. */
 void
-_vte_terminal_clear_tabstop(VteTerminal *terminal, int column)
+VteTerminalPrivate::clear_tabstop(int column)
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->tabstops != NULL) {
+	if (m_tabstops) {
 		/* Remove a tab stop from the hash table. */
-		g_hash_table_remove(terminal->pvt->tabstops,
+		g_hash_table_remove(m_tabstops,
 				    GINT_TO_POINTER(2 * column + 1));
 	}
 }
 
 /* Check if we have a tabstop at a given position. */
-gboolean
-_vte_terminal_get_tabstop(VteTerminal *terminal, int column)
+bool
+VteTerminalPrivate::get_tabstop(int column)
 {
-	gpointer hash;
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->tabstops != NULL) {
-		hash = g_hash_table_lookup(terminal->pvt->tabstops,
+	if (m_tabstops != NULL) {
+		auto hash = g_hash_table_lookup(m_tabstops,
 					   GINT_TO_POINTER(2 * column + 1));
-		return (hash != NULL);
-	} else {
-		return FALSE;
+		return hash != nullptr;
+	}
+
+        return false;
+}
+
+/* Reset the set of tab stops to the default. */
+void
+VteTerminalPrivate::set_tabstop(int column)
+{
+	if (m_tabstops != NULL) {
+		/* Just set a non-NULL pointer for this column number. */
+		g_hash_table_insert(m_tabstops,
+				    GINT_TO_POINTER(2 * column + 1),
+				    m_terminal);
 	}
 }
 
 /* Reset the set of tab stops to the default. */
 void
-_vte_terminal_set_tabstop(VteTerminal *terminal, int column)
+VteTerminalPrivate::set_default_tabstops()
 {
-	g_assert(VTE_IS_TERMINAL(terminal));
-	if (terminal->pvt->tabstops != NULL) {
-		/* Just set a non-NULL pointer for this column number. */
-		g_hash_table_insert(terminal->pvt->tabstops,
-				    GINT_TO_POINTER(2 * column + 1),
-				    terminal);
+	if (m_tabstops) {
+		g_hash_table_destroy(m_tabstops);
 	}
-}
-
-/* Reset the set of tab stops to the default. */
-static void
-vte_terminal_set_default_tabstops(VteTerminal *terminal)
-{
-        int i;
-	if (terminal->pvt->tabstops != NULL) {
-		g_hash_table_destroy(terminal->pvt->tabstops);
-	}
-	terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
-        for (i = 0; i <= VTE_TAB_MAX; i += VTE_TAB_WIDTH) {
-		_vte_terminal_set_tabstop(terminal, i);
+	m_tabstops = g_hash_table_new(nullptr, nullptr);
+        for (int i = 0; i <= VTE_TAB_MAX; i += VTE_TAB_WIDTH) {
+		set_tabstop(i);
 	}
 }
 
@@ -8218,7 +8215,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_allow_bold = TRUE;
         m_deccolm_mode = FALSE;
         m_rewrap_on_resize = TRUE;
-	vte_terminal_set_default_tabstops(m_terminal);
+	set_default_tabstops();
 
         m_input_enabled = TRUE;
 
@@ -8570,7 +8567,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	m_adjustment_changed_pending = FALSE;
 
 	/* Tabstop information. */
-	if (m_tabstops != NULL) {
+	if (m_tabstops) {
 		g_hash_table_destroy(m_tabstops);
 	}
 
@@ -10488,7 +10485,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
 	/* Do more stuff we refer to as a "full" reset. */
 	if (clear_tabstops) {
-		vte_terminal_set_default_tabstops(m_terminal);
+		set_default_tabstops();
 	}
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */

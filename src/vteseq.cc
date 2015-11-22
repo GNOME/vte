@@ -1037,11 +1037,11 @@ vte_sequence_handler_cursor_back_tab (VteTerminal *terminal, GValueArray *params
 	/* Calculate which column is the previous tab stop. */
         newcol = terminal->pvt->cursor.col;
 
-	if (terminal->pvt->tabstops != NULL) {
+	if (terminal->pvt->tabstops) {
 		/* Find the next tabstop. */
 		while (newcol > 0) {
 			newcol--;
-			if (_vte_terminal_get_tabstop(terminal,
+			if (terminal->pvt->get_tabstop(
 						     newcol % terminal->pvt->column_count)) {
 				break;
 			}
@@ -1790,7 +1790,7 @@ vte_sequence_handler_tab_set (VteTerminal *terminal, GValueArray *params)
 	if (terminal->pvt->tabstops == NULL) {
 		terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
 	}
-	_vte_terminal_set_tabstop(terminal,
+	terminal->pvt->set_tabstop(
                                  terminal->pvt->cursor.col);
 }
 
@@ -1808,7 +1808,7 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 	if (terminal->pvt->tabstops != NULL) {
 		/* Find the next tabstop. */
 		for (newcol++; newcol < VTE_TAB_MAX; newcol++) {
-			if (_vte_terminal_get_tabstop(terminal, newcol)) {
+			if (terminal->pvt->get_tabstop(newcol)) {
 				break;
 			}
 		}
@@ -1900,7 +1900,7 @@ vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 	if (param == 0) {
-		_vte_terminal_clear_tabstop(terminal,
+		terminal->pvt->clear_tabstop(
                                            terminal->pvt->cursor.col);
 	} else
 	if (param == 3) {

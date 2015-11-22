@@ -74,9 +74,6 @@ gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 void _vte_terminal_set_default_attributes(VteTerminal *terminal);
-void _vte_terminal_clear_tabstop(VteTerminal *terminal, int column);
-gboolean _vte_terminal_get_tabstop(VteTerminal *terminal, int column);
-void _vte_terminal_set_tabstop(VteTerminal *terminal, int column);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_fragments(VteTerminal *terminal, long start, long end);
 PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
