@@ -302,7 +302,7 @@ _vte_terminal_clear_screen (VteTerminal *terminal)
         terminal->pvt->cursor.row = row + screen->insert_delta;
 	terminal->pvt->adjust_adjustments();
 	/* Redraw everything. */
-	_vte_invalidate_all(terminal);
+	terminal->pvt->invalidate_all();
 	/* We've modified the display.  Make a note of it. */
 	terminal->pvt->text_deleted_flag = TRUE;
 }
@@ -913,7 +913,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		break;
 	case 5:
 		/* Repaint everything in reverse mode. */
-		_vte_invalidate_all(terminal);
+                terminal->pvt->invalidate_all();
 		break;
 	case 6:
 		/* Reposition the cursor in its new home position. */
@@ -932,7 +932,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
 		_vte_terminal_queue_contents_changed(terminal);
-		_vte_invalidate_all (terminal);
+                terminal->pvt->invalidate_all();
 		break;
 	case 9:
 	case 1000:
@@ -2845,7 +2845,7 @@ vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *
 		_vte_row_data_fill (rowdata, &cell, terminal->pvt->column_count);
 		terminal->pvt->emit_text_inserted();
 	}
-	_vte_invalidate_all(terminal);
+	terminal->pvt->invalidate_all();
 
 	/* We modified the display, so make a note of it for completeness. */
 	terminal->pvt->text_modified_flag = TRUE;
@@ -2972,7 +2972,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
         case 7:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Refreshing window.\n");
-                _vte_invalidate_all(terminal);
+                terminal->pvt->invalidate_all();
                 vte_terminal_emit_refresh_window(terminal);
                 break;
         case 8:

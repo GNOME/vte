@@ -494,13 +494,6 @@ VteTerminalPrivate::invalidate(vte::grid::span s,
         invalidate_region(s.start_column(), s.end_column(), s.start_row(), s.end_row(), block);
 }
 
-/* Redraw the entire visible portion of the window. */
-void
-_vte_invalidate_all(VteTerminal *terminal)
-{
-        terminal->pvt->invalidate_all();
-}
-
 void
 VteTerminalPrivate::invalidate_all()
 {
@@ -552,7 +545,7 @@ _vte_terminal_scroll_region (VteTerminal *terminal,
 
 	if (count >= terminal->pvt->row_count) {
 		/* We have to repaint the entire window. */
-		_vte_invalidate_all(terminal);
+		terminal->pvt->invalidate_all();
 	} else {
 		/* We have to repaint the area which is to be
 		 * scrolled. */
@@ -2594,7 +2587,7 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 	if (entry == VTE_CURSOR_BG)
 		_vte_invalidate_cursor_once(terminal, FALSE);
 	else
-		_vte_invalidate_all (terminal);
+		terminal->pvt->invalidate_all();
 }
 
 static void
@@ -7684,7 +7677,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 						    terminal->pvt->char_height);
 	}
 	/* Repaint. */
-	_vte_invalidate_all(terminal);
+	terminal->pvt->invalidate_all();
 }
 
 static void
@@ -8050,7 +8043,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 	if (dy != 0) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
-                _vte_invalidate_all(terminal);
+                terminal->pvt->invalidate_all();
 		terminal->pvt->emit_text_scrolled(dy);
 		_vte_terminal_queue_contents_changed(terminal);
 	} else {
@@ -10211,7 +10204,7 @@ vte_terminal_background_update(VteTerminal *terminal)
         _vte_draw_set_background_solid (terminal->pvt->draw, &color);
 
 	/* Force a redraw for everything. */
-	_vte_invalidate_all (terminal);
+	terminal->pvt->invalidate_all();
 }
 
 static void
