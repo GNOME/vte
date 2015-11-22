@@ -528,6 +528,8 @@ public:
         void start_selection(long x,
                              long y,
                              enum vte_selection_type selection_type);
+        bool maybe_end_selection();
+
         void select_all();
         void deselect_all();
 

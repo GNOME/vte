@@ -5659,7 +5659,7 @@ VteTerminalPrivate::maybe_feed_focus_event(bool in)
 }
 
 /*
- * vte_terminal_maybe_send_mouse_button:
+ * VteTerminalPrivate::maybe_send_mouse_button:
  * @terminal:
  * @event:
  *
@@ -6560,29 +6560,29 @@ VteTerminalPrivate::start_selection(long x,
 	disconnect_pty_read();
 }
 
-static gboolean
-_vte_terminal_maybe_end_selection (VteTerminal *terminal)
+bool
+VteTerminalPrivate::maybe_end_selection()
 {
-	if (terminal->pvt->selecting) {
+	if (m_selecting) {
 		/* Copy only if something was selected. */
-		if (terminal->pvt->has_selection &&
-		    !terminal->pvt->selecting_restart &&
-		    terminal->pvt->selecting_had_delta) {
-			vte_terminal_copy_primary(terminal);
-			terminal->pvt->emit_selection_changed();
+		if (m_has_selection &&
+		    !m_selecting_restart &&
+		    m_selecting_had_delta) {
+			vte_terminal_copy_primary(m_terminal);
+			emit_selection_changed();
 		}
-		terminal->pvt->selecting = FALSE;
+		m_selecting = false;
 
 		/* Reconnect to input from the child if we paused it. */
-		terminal->pvt->connect_pty_read();
+		connect_pty_read();
 
-		return TRUE;
+		return true;
 	}
 
-        if (terminal->pvt->selecting_after_threshold)
-                return TRUE;
+        if (m_selecting_after_threshold)
+                return true;
 
-        return FALSE;
+        return false;
 }
 
 static long
@@ -7383,7 +7383,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 bool
 VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 {
-	gboolean handled = FALSE;
+	bool handled = false;
 	int x, y;
 
 	x = event->x - m_padding.left;
@@ -7405,7 +7405,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 		switch (event->button) {
 		case 1:
                         if ((m_mouse_handled_buttons & 1) != 0)
-                                handled = _vte_terminal_maybe_end_selection(m_terminal);
+                                handled = maybe_end_selection();
 			break;
 		case 2:
                         handled = (m_mouse_handled_buttons & 2) != 0;
@@ -7432,7 +7432,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
                                             x, y,
                                             &m_mouse_last_column,
                                             &m_mouse_last_row);
-	m_selecting_after_threshold = FALSE;
+	m_selecting_after_threshold = false;
 
 	return handled;
 }
@@ -7475,7 +7475,7 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
 	if (gtk_widget_get_realized(m_widget)) {
                 maybe_feed_focus_event(false);
 
-		_vte_terminal_maybe_end_selection(m_terminal);
+		maybe_end_selection();
 
 		gtk_im_context_focus_out(m_im_context);
 		invalidate_cursor_once();
