@@ -328,7 +328,7 @@ _vte_terminal_clear_current_line (VteTerminal *terminal)
                 _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
 				      0, terminal->pvt->column_count,
                                       terminal->pvt->cursor.row, 1);
 	}
@@ -358,7 +358,7 @@ _vte_terminal_clear_above_current (VteTerminal *terminal)
                         _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
-			_vte_invalidate_cells(terminal,
+			terminal->pvt->invalidate_cells(
 					0, terminal->pvt->column_count, i, 1);
 		}
 	}
@@ -1082,7 +1082,7 @@ _vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 	/* Repaint this row. */
-	_vte_invalidate_cells(terminal,
+	terminal->pvt->invalidate_cells(
                               0, terminal->pvt->cursor.col+1,
                               terminal->pvt->cursor.row, 1);
 
@@ -1141,7 +1141,7 @@ _vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 		}
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
 				      0, terminal->pvt->column_count,
 				      i, 1);
 	}
@@ -1182,7 +1182,7 @@ _vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
-	_vte_invalidate_cells(terminal,
+	terminal->pvt->invalidate_cells(
                               terminal->pvt->cursor.col,
 			      terminal->pvt->column_count -
                               terminal->pvt->cursor.col,
@@ -1388,7 +1388,7 @@ _vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 				len = terminal->pvt->column_count;
 			}
 			/* Repaint this row. */
-			_vte_invalidate_cells(terminal,
+			terminal->pvt->invalidate_cells(
 					col, len - col,
                                         terminal->pvt->cursor.row, 1);
 		}
@@ -1483,7 +1483,7 @@ vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *param
 			}
 		}
 		/* Repaint this row. */
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
                                       terminal->pvt->cursor.col, count,
                                       terminal->pvt->cursor.row, 1);
 	}
@@ -1770,7 +1770,7 @@ vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
 		_vte_terminal_ring_insert (terminal, start, TRUE);
 		/* Update the display. */
 		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
 				      0, terminal->pvt->column_count,
 				      start, 2);
 	} else {
@@ -1872,7 +1872,7 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 			}
 		}
 
-		_vte_invalidate_cells (terminal,
+		terminal->pvt->invalidate_cells(
                                 terminal->pvt->cursor.col,
                                 newcol - terminal->pvt->cursor.col,
                                 terminal->pvt->cursor.row, 1);

@@ -359,15 +359,6 @@ VteTerminalPrivate::mouse_pixels_to_grid (long x,
         return true;
 }
 
-/* Cause certain cells to be repainted. */
-void
-_vte_invalidate_cells(VteTerminal *terminal,
-		      glong column_start, gint n_columns,
-		      glong row_start, gint n_rows)
-{
-        terminal->pvt->invalidate_cells(column_start, n_columns, row_start, n_rows);
-}
-
 void
 VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
                                      int n_columns,
@@ -447,15 +438,6 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
-}
-
-static void
-_vte_invalidate_region (VteTerminal *terminal,
-			glong scolumn, glong ecolumn,
-			glong srow, glong erow,
-			gboolean block)
-{
-        terminal->pvt->invalidate_region(scolumn, ecolumn, srow, erow, block);
 }
 
 void
@@ -545,7 +527,7 @@ _vte_terminal_scroll_region (VteTerminal *terminal,
 	} else {
 		/* We have to repaint the area which is to be
 		 * scrolled. */
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
 				     0, terminal->pvt->column_count,
 				     row, count);
 	}
@@ -671,13 +653,6 @@ VteTerminalPrivate::get_preedit_length(bool left_only)
 	}
 
 	return i;
-}
-
-/* Cause the cell to be redrawn. */
-void
-_vte_invalidate_cell(VteTerminal *terminal, glong col, glong row)
-{
-        terminal->pvt->invalidate_cell(col, row);
 }
 
 void
@@ -3111,7 +3086,7 @@ _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                         cell_end->c = ' ';
                         cell_end->attr.fragment = 0;
                         cell_end->attr.columns = 1;
-                        _vte_invalidate_cells(terminal,
+                        terminal->pvt->invalidate_cells(
                                               end, 1,
                                               terminal->pvt->cursor.row, 1);
                 }
@@ -3137,7 +3112,7 @@ _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                                                          "Cleaning CJK left half at %ld\n",
                                                          col);
                                         g_assert(start - col == 1);
-                                        _vte_invalidate_cells(terminal,
+                                        terminal->pvt->invalidate_cells(
                                                               col, 1,
                                                               terminal->pvt->cursor.row, 1);
                                 }
@@ -3194,7 +3169,7 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 				/* Update the display. */
 				_vte_terminal_scroll_region(terminal, start,
 							   end - start + 1, -1);
-				_vte_invalidate_cells(terminal,
+				terminal->pvt->invalidate_cells(
 						      0, terminal->pvt->column_count,
 						      end - 2, 2);
 			}
@@ -3425,7 +3400,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 		/* Always invalidate since we put the mark on the *previous* cell
 		 * and the higher level code doesn't know this. */
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
 				      col - columns,
 				      columns,
 				      row_num, 1);
@@ -3472,7 +3447,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {
-		_vte_invalidate_cells(terminal,
+		terminal->pvt->invalidate_cells(
 				col - columns,
 				insert ? terminal->pvt->column_count : columns,
                                 terminal->pvt->cursor.row, 1);
@@ -6492,7 +6467,7 @@ VteTerminalPrivate::widget_paste(GdkAtom board)
 static void
 vte_terminal_invalidate_selection (VteTerminal *terminal)
 {
-	_vte_invalidate_region (terminal,
+	terminal->pvt->invalidate_region(
 				terminal->pvt->selection_start.col,
 				terminal->pvt->selection_end.col,
 				terminal->pvt->selection_start.row,
@@ -6974,69 +6949,69 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 			/* Update the selection area diff in block mode. */
 
 			/* The top band */
-			_vte_invalidate_region (terminal,
+			terminal->pvt->invalidate_region(
 						MIN(sc->col, so->col),
 						MAX(ec->col, eo->col),
 						MIN(sc->row, so->row),
 						MAX(sc->row, so->row) - 1,
-						TRUE);
+						true);
 			/* The bottom band */
-			_vte_invalidate_region (terminal,
+			terminal->pvt->invalidate_region(
 						MIN(sc->col, so->col),
 						MAX(ec->col, eo->col),
 						MIN(ec->row, eo->row) + 1,
 						MAX(ec->row, eo->row),
-						TRUE);
+						true);
 			/* The left band */
-			_vte_invalidate_region (terminal,
+			terminal->pvt->invalidate_region(
 						MIN(sc->col, so->col),
 						MAX(sc->col, so->col) - 1 + (VTE_TAB_WIDTH_MAX - 1),
 						MIN(sc->row, so->row),
 						MAX(ec->row, eo->row),
-						TRUE);
+						true);
 			/* The right band */
-			_vte_invalidate_region (terminal,
+			terminal->pvt->invalidate_region(
 						MIN(ec->col, eo->col) + 1,
 						MAX(ec->col, eo->col) + (VTE_TAB_WIDTH_MAX - 1),
 						MIN(sc->row, so->row),
 						MAX(ec->row, eo->row),
-						TRUE);
+						true);
 		} else {
 			/* Update the selection area diff in non-block mode. */
 
 			/* The before band */
 			if (sc->row < so->row)
-				_vte_invalidate_region (terminal,
+				terminal->pvt->invalidate_region(
 							sc->col, so->col - 1,
 							sc->row, so->row,
-							FALSE);
+							false);
 			else if (sc->row > so->row)
-				_vte_invalidate_region (terminal,
+				terminal->pvt->invalidate_region(
 							so->col, sc->col - 1,
 							so->row, sc->row,
-							FALSE);
+							false);
 			else
-				_vte_invalidate_region (terminal,
+				terminal->pvt->invalidate_region(
 							MIN(sc->col, so->col), MAX(sc->col, so->col) - 1,
 							sc->row, sc->row,
-							TRUE);
+							true);
 
 			/* The after band */
 			if (ec->row < eo->row)
-				_vte_invalidate_region (terminal,
+				terminal->pvt->invalidate_region(
 							ec->col + 1, eo->col,
 							ec->row, eo->row,
-							FALSE);
+							false);
 			else if (ec->row > eo->row)
-				_vte_invalidate_region (terminal,
+				terminal->pvt->invalidate_region(
 							eo->col + 1, ec->col,
 							eo->row, ec->row,
-							FALSE);
+							false);
 			else
-				_vte_invalidate_region (terminal,
+				terminal->pvt->invalidate_region(
 							MIN(ec->col, eo->col) + 1, MAX(ec->col, eo->col),
 							ec->row, ec->row,
-							TRUE);
+							true);
 		}
 	}
 
@@ -10668,10 +10643,10 @@ _vte_terminal_select_text(VteTerminal *terminal,
 	vte_terminal_copy_primary(terminal);
 	terminal->pvt->emit_selection_changed();
 
-	_vte_invalidate_region (terminal,
+	terminal->pvt->invalidate_region(
 			MIN (start_col, end_col), MAX (start_col, end_col),
 			MIN (start_row, end_row), MAX (start_row, end_row),
-			FALSE);
+			false);
 
 }
 
