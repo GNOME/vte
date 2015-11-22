@@ -585,6 +585,9 @@ public:
                           long y);
         bool rowcol_inside_match(long row,
                                  long col);
+        bool rowcol_from_event(GdkEvent *event,
+                               long *column,
+                               long *row);
 
         bool regex_match_check_extra(GdkEvent *event,
                                      VteRegex **regexes,

@@ -1937,30 +1937,29 @@ VteTerminalPrivate::regex_match_check(vte::grid::column_t column,
 	return ret;
 }
 
-static gboolean
-rowcol_from_event(VteTerminal *terminal,
-                  GdkEvent *event,
-                  long *column,
-                  long *row)
+bool
+VteTerminalPrivate::rowcol_from_event(GdkEvent *event,
+                                      long *column,
+                                      long *row)
 {
         double x, y;
 
         if (event == NULL)
                 return FALSE;
-        if (((GdkEventAny*)event)->window != gtk_widget_get_window(&terminal->widget))
+        if (((GdkEventAny*)event)->window != gtk_widget_get_window(m_widget))
                 return FALSE;
         if (!gdk_event_get_coords(event, &x, &y))
                 return FALSE;
 
-        x -= terminal->pvt->padding.left;
-        y -= terminal->pvt->padding.top;
-        if (x < 0 || x >= terminal->pvt->column_count * terminal->pvt->char_width ||
-            y < 0 || y >= _vte_terminal_usable_height_px (terminal))
-                return FALSE;
-        *column = x / terminal->pvt->char_width;
-        *row = _vte_terminal_pixel_to_row(terminal, y);
+        x -= m_padding.left;
+        y -= m_padding.top;
+        if (x < 0 || x >= m_column_count * m_char_width ||
+            y < 0 || y >= _vte_terminal_usable_height_px(m_terminal))
+                return false;
+        *column = x / m_char_width;
+        *row = _vte_terminal_pixel_to_row(m_terminal, y);
 
-        return TRUE;
+        return true;
 }
 
 char *
@@ -1968,7 +1967,7 @@ VteTerminalPrivate::regex_match_check(GdkEvent *event,
                                       int *tag)
 {
         long col, row;
-        if (!rowcol_from_event(m_terminal, event, &col, &row))
+        if (!rowcol_from_event(event, &col, &row))
                 return FALSE;
 
         /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
@@ -1995,7 +1994,7 @@ VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
         g_assert(regexes != nullptr || n_regexes == 0);
         g_assert(matches != nullptr);
 
-        if (!rowcol_from_event(m_terminal, event, &col, &row))
+        if (!rowcol_from_event(event, &col, &row))
                 return false;
 
 	if (m_match_contents == nullptr) {
@@ -2054,7 +2053,7 @@ VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
         g_assert(regexes != nullptr || n_regexes == 0);
         g_assert(matches != nullptr);
 
-        if (!rowcol_from_event(m_terminal, event, &col, &row))
+        if (!rowcol_from_event(event, &col, &row))
                 return false;
 
 	if (match_contents == nullptr) {
