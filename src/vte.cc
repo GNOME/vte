@@ -83,7 +83,6 @@ static gboolean vte_terminal_io_read(GIOChannel *channel,
 static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      GIOCondition condition,
 				      VteTerminal *terminal);
-static void vte_terminal_background_update(VteTerminal *data);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
@@ -2559,7 +2558,7 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 	/* If we're setting the background color, set the background color
 	 * on the widget as well. */
 	if (entry == VTE_DEFAULT_BG) {
-		vte_terminal_background_update(terminal);
+		terminal->pvt->widget_background_update();
 	}
 
 	/* and redraw */
@@ -2667,26 +2666,20 @@ _vte_terminal_set_color_background(VteTerminal *terminal,
 	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, background);
 }
 
-/*
- * _vte_terminal_set_background_alpha:
- * @terminal: a #VteTerminal
- * @alpha: an alpha value from 0.0 to 1.0
- */
-static void
-_vte_terminal_set_background_alpha(VteTerminal *terminal,
-                                   gdouble alpha)
+bool
+VteTerminalPrivate::set_background_alpha(double alpha)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        g_assert(alpha >= 0. && alpha <= 1.);
 
-        if (_vte_double_equal(alpha, pvt->background_alpha))
-                return;
+        if (_vte_double_equal(alpha, m_background_alpha))
+                return false;
 
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Setting background alpha to %.3f\n", alpha);
+        m_background_alpha = alpha;
+        widget_background_update();
 
-        pvt->background_alpha = alpha;
-
-        vte_terminal_background_update(terminal);
+        return true;
 }
 
 /*
@@ -2956,7 +2949,7 @@ VteTerminalPrivate::set_color_background(GdkRGBA const *background)
         PangoColor color;
 	_vte_terminal_set_color_background(m_terminal,
                                            _pango_color_from_rgba(&color, background));
-        _vte_terminal_set_background_alpha(m_terminal, background->alpha);
+        set_background_alpha(background->alpha);
 }
 
 /*
@@ -3050,7 +3043,7 @@ VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
                                  _pango_color_from_rgba(&bg, background),
                                  pal, palette_size);
 
-        _vte_terminal_set_background_alpha(m_terminal, background ? background->alpha : 1.0);
+        set_background_alpha(background ? background->alpha : 1.0);
 
 	g_free (pal);
 }
@@ -8762,7 +8755,7 @@ VteTerminalPrivate::widget_realize()
 
 	/* Set up the background, *now*. */
         // FIXMEchpe this is obsolete
-	vte_terminal_background_update(m_terminal);
+	widget_background_update();
 }
 
 static inline void
@@ -10153,36 +10146,37 @@ VteTerminalPrivate::set_rewrap_on_resize(bool rewrap)
 }
 
 /* Set up whatever background we wanted. */
-static void
-vte_terminal_background_update(VteTerminal *terminal)
+// FIXMEchpe this is mostly obsolete
+void
+VteTerminalPrivate::widget_background_update()
 {
 	const PangoColor *entry;
 	GdkRGBA color;
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
-	if (! gtk_widget_get_realized (&terminal->widget)) {
+	if (!gtk_widget_get_realized(m_widget)) {
 		return;
 	}
 
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background color.\n");
 
-	entry = _vte_terminal_get_color(terminal, VTE_DEFAULT_BG);
+	entry = _vte_terminal_get_color(m_terminal, VTE_DEFAULT_BG);
 	_vte_debug_print(VTE_DEBUG_STYLE,
 			 "Setting background color to (%d, %d, %d, %.3f).\n",
 			 entry->red, entry->green, entry->blue,
-			 terminal->pvt->background_alpha);
+			 m_background_alpha);
 
 	color.red = entry->red / 65535.;
 	color.green = entry->green / 65535.;
 	color.blue = entry->blue / 65535.;
-        color.alpha = terminal->pvt->background_alpha;
+        color.alpha = m_background_alpha;
 
-        _vte_draw_set_background_solid (terminal->pvt->draw, &color);
+        _vte_draw_set_background_solid(m_draw, &color);
 
 	/* Force a redraw for everything. */
-	terminal->pvt->invalidate_all();
+	invalidate_all();
 }
 
 static void

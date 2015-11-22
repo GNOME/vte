@@ -572,6 +572,8 @@ public:
         void set_tabstop(int column);
         void set_default_tabstops();
 
+        void widget_background_update();
+
         void process_incoming();
 
         void match_contents_clear();
@@ -726,6 +728,7 @@ public:
         bool set_audible_bell(bool setting);
         bool set_allow_bold(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
+        bool set_background_alpha(double alpha);
         bool set_cjk_ambiguous_width(int width);
         void set_color_background(GdkRGBA const *background);
         void set_color_bold(GdkRGBA const* bold);
