@@ -150,7 +150,7 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	int tag;
 	GtkBorder padding;
         gboolean has_extra_match;
-        char *extra_match;
+        char *extra_match = NULL;
 
 	switch (event->button) {
 	case 3:
