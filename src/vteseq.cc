@@ -2876,7 +2876,7 @@ vte_sequence_handler_set_cursor_style (VteTerminal *terminal, GValueArray *param
                 }
         }
 
-        _vte_terminal_set_cursor_style(terminal, (VteCursorStyle)style);
+        terminal->pvt->set_cursor_style((VteCursorStyle)style);
 }
 
 /* Perform a soft reset. */

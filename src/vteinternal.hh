@@ -743,6 +743,7 @@ public:
                         gsize palette_size);
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
+        bool set_cursor_style(VteCursorStyle style);
         bool set_delete_binding(VteEraseBinding binding);
         bool set_encoding(char const* codeset);
         bool set_font_desc(PangoFontDescription const* desc);

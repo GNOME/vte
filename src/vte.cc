@@ -10231,23 +10231,18 @@ VteTerminalPrivate::set_cursor_shape(VteCursorShape shape)
 }
 
 /* DECSCUSR set cursor style */
-void
-_vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style)
+bool
+VteTerminalPrivate::set_cursor_style(VteCursorStyle style)
 {
-        VteTerminalPrivate *pvt;
+        if (m_cursor_style == style)
+                return false;
 
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        pvt = terminal->pvt;
-
-        if (pvt->cursor_style == style)
-                return;
-
-        pvt->cursor_style = style;
-
-        pvt->update_cursor_blinks();
-
+        m_cursor_style = style;
+        update_cursor_blinks();
         /* and this will also make cursor shape match the DECSCUSR style */
-        terminal->pvt->invalidate_cursor_once();
+        invalidate_cursor_once();
+
+        return true;
 }
 
 /*
