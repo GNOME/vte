@@ -2390,12 +2390,12 @@ VteTerminalPrivate::set_cjk_ambiguous_width(int width)
         return true;
 }
 
-static inline VteRowData *
-vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
+VteRowData *
+VteTerminalPrivate::insert_rows (guint cnt)
 {
 	VteRowData *row;
 	do {
-		row = _vte_terminal_ring_append (terminal, FALSE);
+		row = _vte_terminal_ring_append(m_terminal, FALSE);
 	} while(--cnt);
 	return row;
 }
@@ -2404,38 +2404,30 @@ vte_terminal_insert_rows (VteTerminal *terminal, guint cnt)
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
 VteRowData *
-_vte_terminal_ensure_row (VteTerminal *terminal)
+VteTerminalPrivate::ensure_row()
 {
 	VteRowData *row;
-	VteScreen *screen;
-	gint delta;
-	glong v;
-
-	/* Must make sure we're in a sane area. */
-	screen = terminal->pvt->screen;
-        v = terminal->pvt->cursor.row;
 
 	/* Figure out how many rows we need to add. */
-	delta = v - _vte_ring_next(screen->row_data) + 1;
+        //FIXMEchpe use long, not int
+	int delta = m_cursor.row - _vte_ring_next(m_screen->row_data) + 1;
 	if (delta > 0) {
-		row = vte_terminal_insert_rows (terminal, delta);
-		terminal->pvt->adjust_adjustments();
+		row = insert_rows(delta);
+		adjust_adjustments();
 	} else {
 		/* Find the row the cursor is in. */
-		row = _vte_ring_index_writable (screen->row_data, v);
+		row = _vte_ring_index_writable(m_screen->row_data, m_cursor.row);
 	}
 	g_assert(row != NULL);
 
 	return row;
 }
 
-static VteRowData *
-vte_terminal_ensure_cursor(VteTerminal *terminal)
+VteRowData *
+VteTerminalPrivate::ensure_cursor()
 {
-	VteRowData *row;
-
-	row = _vte_terminal_ensure_row (terminal);
-        _vte_row_data_fill (row, &basic_cell.cell, terminal->pvt->cursor.col);
+	VteRowData *row = ensure_row();
+        _vte_row_data_fill(row, &basic_cell.cell, m_cursor.col);
 
 	return row;
 }
@@ -2443,35 +2435,30 @@ vte_terminal_ensure_cursor(VteTerminal *terminal)
 /* Update the insert delta so that the screen which includes it also
  * includes the end of the buffer. */
 void
-_vte_terminal_update_insert_delta(VteTerminal *terminal)
+VteTerminalPrivate::update_insert_delta()
 {
-	long delta, rows;
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
-
 	/* The total number of lines.  Add one to the cursor offset
 	 * because it's zero-based. */
-	rows = _vte_ring_next (screen->row_data);
-        delta = terminal->pvt->cursor.row - rows + 1;
+	auto rows = _vte_ring_next(m_screen->row_data);
+        auto delta = m_cursor.row - rows + 1;
 	if (G_UNLIKELY (delta > 0)) {
-		vte_terminal_insert_rows (terminal, delta);
-		rows = _vte_ring_next (screen->row_data);
+		insert_rows(delta);
+		rows = _vte_ring_next(m_screen->row_data);
 	}
 
 	/* Make sure that the bottom row is visible, and that it's in
 	 * the buffer (even if it's empty).  This usually causes the
 	 * top row to become a history-only row. */
-	delta = screen->insert_delta;
-	delta = MIN(delta, rows - terminal->pvt->row_count);
+	delta = m_screen->insert_delta;
+	delta = MIN(delta, rows - m_row_count);
 	delta = MAX(delta,
-                    terminal->pvt->cursor.row - (terminal->pvt->row_count - 1));
-	delta = MAX(delta, _vte_ring_delta(screen->row_data));
+                    m_cursor.row - (m_row_count - 1));
+	delta = MAX(delta, _vte_ring_delta(m_screen->row_data));
 
 	/* Adjust the insert delta and scroll if needed. */
-	if (delta != screen->insert_delta) {
-		screen->insert_delta = delta;
-		terminal->pvt->adjust_adjustments();
+	if (delta != m_screen->insert_delta) {
+		m_screen->insert_delta = delta;
+		adjust_adjustments();
 	}
 }
 
@@ -3093,7 +3080,7 @@ void
 _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                                 long start, long end)
 {
-        VteRowData *row = _vte_terminal_ensure_row (terminal);
+        VteRowData *row = terminal->pvt->ensure_row();
         const VteCell *cell_start;
         VteCell *cell_end, *cell_col;
         gboolean cell_start_is_fragment;
@@ -3224,14 +3211,13 @@ _vte_terminal_cursor_down (VteTerminal *terminal)
 		} else {
 			/* Scroll up with history. */
                         terminal->pvt->cursor.row++;
-			_vte_terminal_update_insert_delta(terminal);
+			terminal->pvt->update_insert_delta();
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
 #if 0           /* Disable for now: see bug 754596. */
                 if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG) {
-			VteRowData *rowdata;
-			rowdata = _vte_terminal_ensure_row (terminal);
+			VteRowData *rowdata = terminal->pvt->ensure_row();
                         _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
 		}
 #endif
@@ -3370,7 +3356,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* XXX clear to the end of line */
                         col = terminal->pvt->cursor.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = _vte_terminal_ensure_row (terminal);
+			row = terminal->pvt->ensure_row();
 			row->attr.soft_wrapped = 1;
 			_vte_terminal_cursor_down (terminal);
 		} else {
@@ -3458,7 +3444,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	row = vte_terminal_ensure_cursor (terminal);
+	row = terminal->pvt->ensure_cursor();
 	g_assert(row != NULL);
 
 	if (insert) {
@@ -4142,7 +4128,7 @@ next_match:
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
-		_vte_terminal_update_insert_delta(m_terminal);
+		update_insert_delta();
 		if (m_scroll_on_output || bottom) {
 			maybe_scroll_to_bottom();
 		}

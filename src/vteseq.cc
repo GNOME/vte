@@ -435,7 +435,7 @@ vte_sequence_handler_normal_screen (VteTerminal *terminal, GValueArray *params)
         terminal->pvt->cursor.row += terminal->pvt->screen->insert_delta;
 
         /* Make sure the ring is large enough */
-        _vte_terminal_ensure_row(terminal);
+        terminal->pvt->ensure_row();
 }
 
 /* Switch to alternate screen. */
@@ -448,7 +448,7 @@ vte_sequence_handler_alternate_screen (VteTerminal *terminal, GValueArray *param
         terminal->pvt->cursor.row += terminal->pvt->screen->insert_delta;
 
         /* Make sure the ring is large enough */
-        _vte_terminal_ensure_row(terminal);
+        terminal->pvt->ensure_row();
 }
 
 /* Switch to normal screen and restore cursor (in this order). */
@@ -1065,7 +1065,7 @@ _vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
         _vte_terminal_ensure_cursor_is_onscreen(terminal);
 
 	/* Get the data for the row which the cursor points to. */
-	rowdata = _vte_terminal_ensure_row(terminal);
+	rowdata = terminal->pvt->ensure_row();
         /* Clean up Tab/CJK fragments. */
         _vte_terminal_cleanup_fragments (terminal, 0, terminal->pvt->cursor.col + 1);
 	/* Clear the data up to the current column with the default
@@ -1165,7 +1165,7 @@ _vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	/* _vte_terminal_ensure_cursor_is_onscreen(terminal); */
 
 	/* Get the data for the row which the cursor points to. */
-	rowdata = _vte_terminal_ensure_row(terminal);
+	rowdata = terminal->pvt->ensure_row();
 	g_assert(rowdata != NULL);
         if ((glong) _vte_row_data_length (rowdata) > terminal->pvt->cursor.col) {
                 /* Clean up Tab/CJK fragments. */
@@ -1461,7 +1461,7 @@ vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *param
 	}
 
 	/* Clear out the given number of characters. */
-	rowdata = _vte_terminal_ensure_row(terminal);
+	rowdata = terminal->pvt->ensure_row();
         if (_vte_ring_next(screen->row_data) > terminal->pvt->cursor.row) {
 		g_assert(rowdata != NULL);
                 /* Clean up Tab/CJK fragments. */
@@ -1822,7 +1822,7 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 
 	/* but make sure we don't move cursor back (bug #340631) */
 	if (col < newcol) {
-		VteRowData *rowdata = _vte_terminal_ensure_row (terminal);
+		VteRowData *rowdata = terminal->pvt->ensure_row();
 
 		/* Smart tab handling: bug 353610
 		 *
