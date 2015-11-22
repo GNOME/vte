@@ -727,13 +727,6 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
         invalidate_cells(col, columns, row, 1);
 }
 
-/* Cause the cursor to be redrawn. */
-void
-_vte_invalidate_cursor_once(VteTerminal *terminal, gboolean periodic)
-{
-        terminal->pvt->invalidate_cursor_once(periodic);
-}
-
 void
 VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 {
@@ -2586,7 +2579,7 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 
 	/* and redraw */
 	if (entry == VTE_CURSOR_BG)
-		_vte_invalidate_cursor_once(terminal, FALSE);
+		terminal->pvt->invalidate_cursor_once();
 	else
 		terminal->pvt->invalidate_all();
 }
@@ -4712,7 +4705,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 
 	/* Queue the area where the current preedit string is being displayed
 	 * for repainting. */
-	_vte_invalidate_cursor_once(terminal, FALSE);
+	terminal->pvt->invalidate_cursor_once();
 
 	g_free(terminal->pvt->im_preedit);
 	terminal->pvt->im_preedit = str;
@@ -4724,7 +4717,7 @@ vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
 
 	terminal->pvt->im_preedit_cursor = cursor;
 
-	_vte_invalidate_cursor_once(terminal, FALSE);
+	terminal->pvt->invalidate_cursor_once();
 }
 
 static void
@@ -10276,7 +10269,7 @@ _vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style)
         vte_terminal_update_cursor_blinks_internal(terminal);
 
         /* and this will also make cursor shape match the DECSCUSR style */
-        _vte_invalidate_cursor_once(terminal, FALSE);
+        terminal->pvt->invalidate_cursor_once();
 }
 
 /*
