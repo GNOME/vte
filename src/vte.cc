@@ -1881,25 +1881,26 @@ VteTerminalPrivate::match_check_internal(vte::grid::column_t column,
         return nullptr;
 }
 
-static gboolean
-rowcol_inside_match (VteTerminal *terminal, glong row, glong col)
+bool
+VteTerminalPrivate::rowcol_inside_match(long row,
+                                        long col)
 {
-	if (terminal->pvt->match_start.row == terminal->pvt->match_end.row) {
-		return row == terminal->pvt->match_start.row &&
-			col >= terminal->pvt->match_start.col &&
-			col <= terminal->pvt->match_end.col;
+	if (m_match_start.row == m_match_end.row) {
+		return row == m_match_start.row &&
+			col >= m_match_start.col &&
+			col <= m_match_end.col;
 	} else {
-		if (row < terminal->pvt->match_start.row ||
-				row > terminal->pvt->match_end.row) {
-			return FALSE;
+		if (row < m_match_start.row ||
+				row > m_match_end.row) {
+			return false;
 		}
-		if (row == terminal->pvt->match_start.row) {
-			return col >= terminal->pvt->match_start.col;
+		if (row == m_match_start.row) {
+			return col >= m_match_start.col;
 		}
-		if (row == terminal->pvt->match_end.row) {
-			return col <= terminal->pvt->match_end.col;
+		if (row == m_match_end.row) {
+			return col <= m_match_end.col;
 		}
-		return TRUE;
+		return true;
 	}
 }
 
@@ -1914,7 +1915,7 @@ VteTerminalPrivate::regex_match_check(vte::grid::column_t column,
 	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
 			"Checking for match at (%ld,%ld).\n",
 			row, column);
-	if (rowcol_inside_match(m_terminal, row + delta, column)) {
+	if (rowcol_inside_match(row + delta, column)) {
 		if (tag) {
 			*tag = m_match_tag;
 		}
@@ -5840,7 +5841,7 @@ VteTerminalPrivate::cursor_inside_match(long x,
 	glong col = x / m_char_width;
 	glong row = _vte_terminal_pixel_to_row(m_terminal, y);
 
-        return rowcol_inside_match(m_terminal, row, col);
+        return rowcol_inside_match(row, col);
 }
 
 void

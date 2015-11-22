@@ -583,6 +583,8 @@ public:
         void invalidate_match();
         void match_hilite(long x,
                           long y);
+        bool rowcol_inside_match(long row,
+                                 long col);
 
         bool regex_match_check_extra(GdkEvent *event,
                                      VteRegex **regexes,
