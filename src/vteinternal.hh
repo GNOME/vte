@@ -449,6 +449,9 @@ public:
                                bool block = false);
         void invalidate_all();
 
+        gssize get_preedit_width(bool left_only);
+        gssize get_preedit_length(bool left_only);
+
         void confine_coordinates(long *xp,
                                  long *yp);
 

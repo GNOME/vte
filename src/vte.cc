@@ -630,23 +630,23 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 
 /* Determine the width of the portion of the preedit string which lies
  * to the left of the cursor, or the entire string, in columns. */
-static gssize
-vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
+// FIXMEchpe this is for the view, so use int not gssize
+// FIXMEchpe this is only ever called with left_only=false, so remove the param
+gssize
+VteTerminalPrivate::get_preedit_width(bool left_only)
 {
-	gunichar c;
-	int i;
 	gssize ret = 0;
-	const char *preedit = NULL;
 
-	if (terminal->pvt->im_preedit != NULL) {
-		preedit = terminal->pvt->im_preedit;
-		for (i = 0;
+	if (m_im_preedit != NULL) {
+		char const *preedit = m_im_preedit;
+		for (int i = 0;
+                     // FIXMEchpe preddit is != NULL at the start, and next_char never returns NULL either
 		     (preedit != NULL) &&
 		     (preedit[0] != '\0') &&
-		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
+		     (!left_only || (i < m_im_preedit_cursor));
 		     i++) {
-			c = g_utf8_get_char(preedit);
-                        ret += _vte_unichar_width(c, terminal->pvt->utf8_ambiguous_width);
+                        gunichar c = g_utf8_get_char(preedit);
+                        ret += _vte_unichar_width(c, m_utf8_ambiguous_width);
 			preedit = g_utf8_next_char(preedit);
 		}
 	}
@@ -656,18 +656,19 @@ vte_terminal_preedit_width(VteTerminal *terminal, gboolean left_only)
 
 /* Determine the length of the portion of the preedit string which lies
  * to the left of the cursor, or the entire string, in gunichars. */
-static gssize
-vte_terminal_preedit_length(VteTerminal *terminal, gboolean left_only)
+// FIXMEchpe this returns gssize but inside it uses int...
+gssize
+VteTerminalPrivate::get_preedit_length(bool left_only)
 {
 	int i = 0;
-	const char *preedit = NULL;
 
-	if (terminal->pvt->im_preedit != NULL) {
-		preedit = terminal->pvt->im_preedit;
+	if (m_im_preedit != NULL) {
+		char const *preedit = m_im_preedit;
 		for (i = 0;
+                     // FIXMEchpe useless check, see above
 		     (preedit != NULL) &&
 		     (preedit[0] != '\0') &&
-		     (!left_only || (i < terminal->pvt->im_preedit_cursor));
+		     (!left_only || (i < m_im_preedit_cursor));
 		     i++) {
 			preedit = g_utf8_next_char(preedit);
 		}
@@ -750,7 +751,7 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 	}
 
 	if (m_cursor_visible) {
-		auto preedit_width = vte_terminal_preedit_width(m_terminal, FALSE);
+		auto preedit_width = get_preedit_width(false);
                 auto row = m_cursor.row;
                 auto column = m_cursor.col;
 		long columns = 1;
@@ -9833,8 +9834,8 @@ vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
 	height = terminal->pvt->char_height;
 
 	/* Find out how many columns the pre-edit string takes up. */
-	columns = vte_terminal_preedit_width(terminal, FALSE);
-	len = vte_terminal_preedit_length(terminal, FALSE);
+	columns = terminal->pvt->get_preedit_width(false);
+	len = terminal->pvt->get_preedit_length(false);
 
 	/* If the pre-edit string won't fit on the screen if we start
 	 * drawing it at the cursor's position, move it left. */
