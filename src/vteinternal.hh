@@ -559,6 +559,8 @@ public:
         void emit_pending_signals();
         void emit_char_size_changed(int width,
                                     int height);
+        void emit_increase_font_size();
+        void emit_decrease_font_size();
 
         void process_incoming();
 

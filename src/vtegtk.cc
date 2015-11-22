@@ -987,6 +987,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the user hits the '+' key while holding the Control key.
          */
+        signals[SIGNAL_INCREASE_FONT_SIZE] =
 	g_signal_new(I_("increase-font-size"),
 		     G_OBJECT_CLASS_TYPE(klass),
 		     G_SIGNAL_RUN_LAST,
@@ -1002,14 +1003,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted when the user hits the '-' key while holding the Control key.
          */
-	g_signal_new(I_("decrease-font-size"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, decrease_font_size),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_DECREASE_FONT_SIZE] =
+                g_signal_new(I_("decrease-font-size"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, decrease_font_size),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-modified:

@@ -906,21 +906,21 @@ VteTerminalPrivate::emit_char_size_changed(int width,
 }
 
 /* Emit an "increase-font-size" signal. */
-static void
-vte_terminal_emit_increase_font_size(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_increase_font_size()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `increase-font-size'.\n");
-	g_signal_emit_by_name(terminal, "increase-font-size");
+	g_signal_emit(m_terminal, signals[SIGNAL_INCREASE_FONT_SIZE], 0);
 }
 
 /* Emit a "decrease-font-size" signal. */
-static void
-vte_terminal_emit_decrease_font_size(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_decrease_font_size()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `decrease-font-size'.\n");
-	g_signal_emit_by_name(terminal, "decrease-font-size");
+	g_signal_emit(m_terminal, signals[SIGNAL_DECREASE_FONT_SIZE], 0);
 }
 
 /* Emit a "text-inserted" signal. */
@@ -5190,12 +5190,12 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 			if (m_modifiers & (GDK_SHIFT_MASK | GDK_CONTROL_MASK)) {
 				switch (keyval) {
 				case GDK_KEY_KP_Add:
-					vte_terminal_emit_increase_font_size(m_terminal);
+					emit_increase_font_size();
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 					break;
 				case GDK_KEY_KP_Subtract:
-					vte_terminal_emit_decrease_font_size(m_terminal);
+					emit_decrease_font_size();
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 					break;
