@@ -26,6 +26,7 @@
 #pragma once
 
 enum {
+        SIGNAL_CHAR_SIZE_CHANGED,
         SIGNAL_CHILD_EXITED,
         SIGNAL_COMMIT,
         SIGNAL_CONTENTS_CHANGED,

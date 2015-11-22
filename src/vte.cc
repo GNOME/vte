@@ -894,15 +894,15 @@ VteTerminalPrivate::queue_eof()
 }
 
 /* Emit a "char-size-changed" signal. */
-static void
-vte_terminal_emit_char_size_changed(VteTerminal *terminal,
-				    guint width, guint height)
+void
+VteTerminalPrivate::emit_char_size_changed(int width,
+                                           int height)
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `char-size-changed'.\n");
-	g_signal_emit_by_name(terminal, "char-size-changed",
-			      width, height);
-/*         g_object_notify(G_OBJECT(terminal), "char-size"); */
+        /* FIXME on next API break, change the signature */
+	g_signal_emit(m_terminal, signals[SIGNAL_CHAR_SIZE_CHANGED], 0,
+			      (guint)width, (guint)height);
 }
 
 /* Emit an "increase-font-size" signal. */
@@ -7667,7 +7667,7 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 	}
 	/* Emit a signal that the font changed. */
 	if (cresize) {
-		vte_terminal_emit_char_size_changed(terminal,
+		terminal->pvt->emit_char_size_changed(
 						    terminal->pvt->char_width,
 						    terminal->pvt->char_height);
 	}

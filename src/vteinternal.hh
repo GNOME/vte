@@ -557,6 +557,8 @@ public:
         void emit_text_modified();
         void emit_text_scrolled(long delta);
         void emit_pending_signals();
+        void emit_char_size_changed(int width,
+                                    int height);
 
         void process_incoming();
 

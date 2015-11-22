@@ -782,14 +782,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted whenever selection of a new font causes the values of the
          * %char_width or %char_height fields to change.
          */
-	g_signal_new(I_("char-size-changed"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, char_size_changed),
-		     NULL,
-		     NULL,
-		     _vte_marshal_VOID__UINT_UINT,
-		     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+        signals[SIGNAL_CHAR_SIZE_CHANGED] =
+                g_signal_new(I_("char-size-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, char_size_changed),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__UINT_UINT,
+                             G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
         /**
          * VteTerminal::selection-changed:
