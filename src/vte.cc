@@ -847,11 +847,11 @@ VteTerminalPrivate::emit_commit(char const* text,
 }
 
 void
-_vte_terminal_queue_contents_changed(VteTerminal *terminal)
+VteTerminalPrivate::queue_contents_changed()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `contents-changed'.\n");
-	terminal->pvt->contents_changed_pending = TRUE;
+	m_contents_changed_pending = true;
 }
 
 //FIXMEchpe this has only one caller
@@ -4172,7 +4172,7 @@ next_match:
 
 	if (modified || (screen != m_screen)) {
 		/* Signal that the visible contents changed. */
-		_vte_terminal_queue_contents_changed(m_terminal);
+		queue_contents_changed();
 	}
 
 	emit_pending_signals();
@@ -8039,7 +8039,7 @@ vte_terminal_handle_scroll(VteTerminal *terminal)
 			    "Scrolling by %f\n", dy);
                 terminal->pvt->invalidate_all();
 		terminal->pvt->emit_text_scrolled(dy);
-		_vte_terminal_queue_contents_changed(terminal);
+		terminal->pvt->queue_contents_changed();
 	} else {
 		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
 	}
@@ -8362,7 +8362,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 		vte_terminal_set_size(m_terminal, width, height);
 
 		/* Notify viewers that the contents have changed. */
-		_vte_terminal_queue_contents_changed(m_terminal);
+		queue_contents_changed();
 	}
 
 	/* Resize the GDK window. */

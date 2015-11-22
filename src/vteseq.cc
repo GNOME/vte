@@ -931,7 +931,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 					 terminal->pvt->screen->scroll_delta);
 		vte_terminal_set_scrollback_lines(terminal,
 				terminal->pvt->scrollback_lines);
-		_vte_terminal_queue_contents_changed(terminal);
+		terminal->pvt->queue_contents_changed();
                 terminal->pvt->invalidate_all();
 		break;
 	case 9:

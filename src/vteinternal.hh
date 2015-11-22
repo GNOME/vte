@@ -549,6 +549,7 @@ public:
         void maybe_scroll_to_bottom();
 
         void queue_cursor_moved();
+        void queue_contents_changed();
 
         void emit_text_deleted();
         void emit_text_inserted();
