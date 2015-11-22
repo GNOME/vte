@@ -550,6 +550,7 @@ public:
 
         void queue_cursor_moved();
         void queue_contents_changed();
+        void queue_eof();
 
         void emit_text_deleted();
         void emit_text_inserted();

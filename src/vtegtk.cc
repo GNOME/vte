@@ -642,14 +642,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * is running in the terminal.  This signal is frequently (but not
          * always) emitted with a #VteTerminal::child-exited signal.
          */
-	g_signal_new(I_("eof"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, eof),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_EOF] =
+                g_signal_new(I_("eof"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, eof),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::child-exited:

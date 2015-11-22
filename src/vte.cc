@@ -872,7 +872,7 @@ vte_terminal_emit_eof(VteTerminal *terminal)
 	gdk_threads_enter ();
         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-	g_signal_emit_by_name(terminal, "eof");
+	g_signal_emit(terminal, signals[SIGNAL_EOF], 0);
 
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave ();
@@ -881,14 +881,15 @@ vte_terminal_emit_eof(VteTerminal *terminal)
 	return FALSE;
 }
 /* Emit a "eof" signal. */
-static void
-vte_terminal_queue_eof(VteTerminal *terminal)
+// FIXMEchpe any particular reason not to handle this immediately?
+void
+VteTerminalPrivate::queue_eof()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `eof'.\n");
 	g_idle_add_full (G_PRIORITY_HIGH,
 		(GSourceFunc) vte_terminal_emit_eof,
-		g_object_ref (terminal),
+		g_object_ref(m_terminal),
 		g_object_unref);
 }
 
@@ -3783,7 +3784,7 @@ vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
         vte_terminal_set_pty(terminal, NULL);
 
 	/* Emit a signal that we read an EOF. */
-	vte_terminal_queue_eof(terminal);
+	terminal->pvt->queue_eof();
 
         g_object_thaw_notify(object);
 }
