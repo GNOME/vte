@@ -72,7 +72,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtedraw.h \
 	vtegtk.cc \
 	vtegtk.hh \
-	vteint.h \
 	vteinternal.hh \
 	vtepcre2.h \
 	vtepty-private.h \

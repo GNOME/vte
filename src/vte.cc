@@ -47,7 +47,6 @@
 #include "marshal.h"
 #include "matcher.h"
 #include "vteaccess.h"
-#include "vteint.h"
 #include "vtepty.h"
 #include "vtepty-private.h"
 #include "vtegtk.hh"
