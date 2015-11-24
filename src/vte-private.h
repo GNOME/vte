@@ -78,10 +78,6 @@ void _vte_terminal_set_default_attributes(VteTerminal *terminal);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 void _vte_terminal_cleanup_fragments(VteTerminal *terminal, long start, long end);
 PangoColor *_vte_terminal_get_color(const VteTerminal *terminal, int idx);
-void _vte_terminal_set_color_internal(VteTerminal *terminal,
-                                      int idx,
-                                      int source,
-                                      const PangoColor *color);
 
 void _vte_terminal_feed_focus_event(VteTerminal *terminal, gboolean in);
 

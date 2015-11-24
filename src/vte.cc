@@ -2485,12 +2485,14 @@ _vte_terminal_get_color(const VteTerminal *terminal, int entry)
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
 void
-_vte_terminal_set_color_internal(VteTerminal *terminal,
-                                 int entry,
-                                 int source,
-                                 const PangoColor *proposed)
+VteTerminalPrivate::set_color_internal(int entry,
+                                       int source,
+                                       PangoColor const* proposed)
 {
-	VtePaletteColor *palette_color = &terminal->pvt->palette[entry];
+        if (entry < 0 || entry >= VTE_PALETTE_SIZE)
+                return;
+
+	VtePaletteColor *palette_color = &m_palette[entry];
 
 	/* Save the requested color. */
 	if (proposed != NULL) {
@@ -2522,21 +2524,20 @@ _vte_terminal_set_color_internal(VteTerminal *terminal,
 	}
 
 	/* If we're not realized yet, there's nothing else to do. */
-	if (! gtk_widget_get_realized (&terminal->widget)) {
+	if (!gtk_widget_get_realized(m_widget))
 		return;
-	}
 
 	/* If we're setting the background color, set the background color
 	 * on the widget as well. */
 	if (entry == VTE_DEFAULT_BG) {
-		terminal->pvt->widget_background_update();
+		widget_background_update();
 	}
 
 	/* and redraw */
 	if (entry == VTE_CURSOR_BG)
-		terminal->pvt->invalidate_cursor_once();
+		invalidate_cursor_once();
 	else
-		terminal->pvt->invalidate_all();
+		invalidate_all();
 }
 
 static void
@@ -2599,7 +2600,7 @@ _vte_terminal_set_color_bold(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set bold color to (%04x,%04x,%04x).\n",
 			bold->red, bold->green, bold->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_BOLD_FG, VTE_COLOR_SOURCE_API, bold);
+	terminal->pvt->set_color_internal(VTE_BOLD_FG, VTE_COLOR_SOURCE_API, bold);
 }
 
 /*
@@ -2616,7 +2617,7 @@ _vte_terminal_set_color_foreground(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set foreground color to (%04x,%04x,%04x).\n",
 			foreground->red, foreground->green, foreground->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, foreground);
+	terminal->pvt->set_color_internal(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, foreground);
 }
 
 /*
@@ -2634,7 +2635,7 @@ _vte_terminal_set_color_background(VteTerminal *terminal,
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set background color to (%04x,%04x,%04x).\n",
 			background->red, background->green, background->blue);
-	_vte_terminal_set_color_internal(terminal, VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, background);
+	terminal->pvt->set_color_internal(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, background);
 }
 
 bool
@@ -2676,7 +2677,7 @@ _vte_terminal_set_color_cursor(VteTerminal *terminal,
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Reset cursor color.\n");
 	}
-	_vte_terminal_set_color_internal(terminal, VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, cursor_background);
+	terminal->pvt->set_color_internal(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, cursor_background);
 }
 
 /*
@@ -2703,7 +2704,7 @@ _vte_terminal_set_color_highlight(VteTerminal *terminal,
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Reset highlight background color.\n");
 	}
-	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, highlight_background);
+	terminal->pvt->set_color_internal(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, highlight_background);
 }
 
 /*
@@ -2730,7 +2731,7 @@ _vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
 		_vte_debug_print(VTE_DEBUG_MISC,
 				"Reset highlight foreground color.\n");
 	}
-	_vte_terminal_set_color_internal(terminal, VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, highlight_foreground);
+	terminal->pvt->set_color_internal(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, highlight_foreground);
 }
 
 /*
@@ -2846,7 +2847,7 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Set up the color entry. */
-		_vte_terminal_set_color_internal(terminal, i, VTE_COLOR_SOURCE_API, unset ? NULL : &color);
+		terminal->pvt->set_color_internal(i, VTE_COLOR_SOURCE_API, unset ? NULL : &color);
 	}
 }
 

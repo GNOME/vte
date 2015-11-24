@@ -730,6 +730,10 @@ public:
         long get_char_height() { ensure_font(); return char_height; }
         long get_char_width()  { ensure_font(); return char_width;  }
 
+        void set_color_internal(int entry,
+                                int source,
+                                PangoColor const* proposed);
+
         bool set_audible_bell(bool setting);
         bool set_allow_bold(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
