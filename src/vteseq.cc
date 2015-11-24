@@ -1590,7 +1590,7 @@ static void
 vte_sequence_handler_next_line (VteTerminal *terminal, GValueArray *params)
 {
         terminal->pvt->cursor.col = 0;
-	_vte_terminal_cursor_down (terminal);
+	terminal->pvt->cursor_down();
 }
 
 /* No-op. */
@@ -1741,7 +1741,7 @@ vte_sequence_handler_line_feed (VteTerminal *terminal, GValueArray *params)
 {
         _vte_terminal_ensure_cursor_is_onscreen(terminal);
 
-	_vte_terminal_cursor_down (terminal);
+	terminal->pvt->cursor_down();
 }
 
 /* Cursor up 1 line, with scrolling. */

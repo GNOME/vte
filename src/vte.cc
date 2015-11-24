@@ -3126,68 +3126,65 @@ VteTerminalPrivate::cleanup_fragments(long start,
 
 /* Cursor down, with scrolling. */
 void
-_vte_terminal_cursor_down (VteTerminal *terminal)
+VteTerminalPrivate::cursor_down()
 {
 	long start, end;
-	VteScreen *screen;
 
-	screen = terminal->pvt->screen;
-
-        if (terminal->pvt->scrolling_restricted) {
-                start = screen->insert_delta + terminal->pvt->scrolling_region.start;
-                end = screen->insert_delta + terminal->pvt->scrolling_region.end;
+        if (m_scrolling_restricted) {
+                start = m_screen->insert_delta + m_scrolling_region.start;
+                end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
-		start = screen->insert_delta;
-		end = start + terminal->pvt->row_count - 1;
+		start = m_screen->insert_delta;
+		end = start + m_row_count - 1;
 	}
-        if (terminal->pvt->cursor.row == end) {
-                if (terminal->pvt->scrolling_restricted) {
-			if (start == screen->insert_delta) {
+        if (m_cursor.row == end) {
+                if (m_scrolling_restricted) {
+			if (start == m_screen->insert_delta) {
 				/* Scroll this line into the scrollback
 				 * buffer by inserting a line at the next
 				 * line and scrolling the area up. */
-				screen->insert_delta++;
-                                terminal->pvt->cursor.row++;
+				m_screen->insert_delta++;
+                                m_cursor.row++;
 				/* update start and end, as they are relative
 				 * to insert_delta. */
 				start++;
 				end++;
-                                _vte_terminal_ring_insert (terminal, terminal->pvt->cursor.row, FALSE);
+                                _vte_terminal_ring_insert(m_terminal, m_cursor.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
-				_vte_terminal_scroll_region(terminal, start,
+				_vte_terminal_scroll_region(m_terminal, start,
 							    end - start + 1, 1);
 				/* Force scroll. */
-				terminal->pvt->adjust_adjustments();
+				adjust_adjustments();
 			} else {
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
-				_vte_terminal_ring_remove (terminal, start);
-				_vte_terminal_ring_insert (terminal, end, TRUE);
+				_vte_terminal_ring_remove(m_terminal, start);
+				_vte_terminal_ring_insert(m_terminal, end, TRUE);
 				/* Update the display. */
-				_vte_terminal_scroll_region(terminal, start,
+				_vte_terminal_scroll_region(m_terminal, start,
 							   end - start + 1, -1);
-				terminal->pvt->invalidate_cells(
-						      0, terminal->pvt->column_count,
+				invalidate_cells(
+						      0, m_column_count,
 						      end - 2, 2);
 			}
 		} else {
 			/* Scroll up with history. */
-                        terminal->pvt->cursor.row++;
-			terminal->pvt->update_insert_delta();
+                        m_cursor.row++;
+			update_insert_delta();
 		}
 
 		/* Match xterm and fill the new row when scrolling. */
 #if 0           /* Disable for now: see bug 754596. */
-                if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG) {
-			VteRowData *rowdata = terminal->pvt->ensure_row();
-                        _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
+                if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+			VteRowData *rowdata = ensure_row();
+                        _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
 		}
 #endif
 	} else {
 		/* Otherwise, just move the cursor down. */
-                terminal->pvt->cursor.row++;
+                m_cursor.row++;
 	}
 }
 
@@ -3322,7 +3319,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 			/* Mark this line as soft-wrapped. */
 			row = terminal->pvt->ensure_row();
 			row->attr.soft_wrapped = 1;
-			_vte_terminal_cursor_down (terminal);
+			terminal->pvt->cursor_down();
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = terminal->pvt->cursor.col =
