@@ -1656,7 +1656,7 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
                                 terminal->pvt->set_color_internal(idx, VTE_COLOR_SOURCE_ESCAPE, &color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
-				PangoColor *c = _vte_terminal_get_color(terminal, idx);
+				PangoColor const* c = terminal->pvt->get_color(idx);
 				g_assert(c != NULL);
 				g_snprintf (buf, sizeof (buf),
 					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
@@ -3129,9 +3129,9 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 			terminal->pvt->set_color_internal(index, VTE_COLOR_SOURCE_ESCAPE, &color);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
-			PangoColor *c = _vte_terminal_get_color(terminal, index);
+			PangoColor const* c = terminal->pvt->get_color(index);
 			if (c == NULL && index_fallback != -1)
-				c = _vte_terminal_get_color(terminal, index_fallback);
+				c = terminal->pvt->get_color(index_fallback);
 			g_assert(c != NULL);
 			g_snprintf (buf, sizeof (buf),
 				    _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",

@@ -730,6 +730,7 @@ public:
         long get_char_height() { ensure_font(); return char_height; }
         long get_char_width()  { ensure_font(); return char_width;  }
 
+        PangoColor const* get_color(int entry) const;
         void set_color_internal(int entry,
                                 int source,
                                 PangoColor const* proposed);

@@ -2472,15 +2472,15 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
  * The return value can be NULL only if entry is one of VTE_CURSOR_BG,
  * VTE_HIGHLIGHT_BG or VTE_HIGHLIGHT_FG.
  */
-PangoColor *
-_vte_terminal_get_color(const VteTerminal *terminal, int entry)
+PangoColor const*
+VteTerminalPrivate::get_color(int entry) const
 {
-	VtePaletteColor *palette_color = &terminal->pvt->palette[entry];
+	VtePaletteColor const* palette_color = &m_palette[entry];
 	guint source;
 	for (source = 0; source < G_N_ELEMENTS(palette_color->sources); source++)
 		if (palette_color->sources[source].is_set)
 			return &palette_color->sources[source].color;
-	return NULL;
+	return nullptr;
 }
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
@@ -2825,8 +2825,8 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_BOLD_FG:
-				vte_terminal_generate_bold(_vte_terminal_get_color(terminal, VTE_DEFAULT_FG),
-							   _vte_terminal_get_color(terminal, VTE_DEFAULT_BG),
+				vte_terminal_generate_bold(terminal->pvt->get_color(VTE_DEFAULT_FG),
+							   terminal->pvt->get_color(VTE_DEFAULT_BG),
 							   1.8,
 							   &color);
 				break;
@@ -2878,8 +2878,8 @@ VteTerminalPrivate::set_color_bold(GdkRGBA const* bold)
 	PangoColor color;
 
 	if (bold == nullptr) {
-		vte_terminal_generate_bold(_vte_terminal_get_color(m_terminal, VTE_DEFAULT_FG),
-					   _vte_terminal_get_color(m_terminal, VTE_DEFAULT_BG),
+		vte_terminal_generate_bold(get_color(VTE_DEFAULT_FG),
+					   get_color(VTE_DEFAULT_BG),
 					   1.8,
 					   &color);
 	} else {
@@ -6015,7 +6015,7 @@ vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoC
 	if (index >= VTE_LEGACY_COLORS_OFFSET && index < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE)
 		index -= VTE_LEGACY_COLORS_OFFSET;
 	if (index < VTE_PALETTE_SIZE) {
-		memcpy(color, _vte_terminal_get_color(terminal, index), sizeof(PangoColor));
+		memcpy(color, terminal->pvt->get_color(index), sizeof(PangoColor));
                 if (dim) {
                         /* magic formula taken from xterm */
                         color->red = color->red * 2 / 3;
@@ -8785,11 +8785,11 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	if (selected) {
 		/* XXX what if hightlight back is same color as current back? */
 		gboolean do_swap = TRUE;
-		if (_vte_terminal_get_color(terminal, VTE_HIGHLIGHT_BG) != NULL) {
+		if (terminal->pvt->get_color(VTE_HIGHLIGHT_BG) != NULL) {
 			back = VTE_HIGHLIGHT_BG;
 			do_swap = FALSE;
 		}
-		if (_vte_terminal_get_color(terminal, VTE_HIGHLIGHT_FG) != NULL) {
+		if (terminal->pvt->get_color(VTE_HIGHLIGHT_FG) != NULL) {
 			fore = VTE_HIGHLIGHT_FG;
 			do_swap = FALSE;
 		}
@@ -8800,7 +8800,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	/* Cursor: use cursor back, or inverse */
 	if (cursor) {
 		/* XXX what if cursor back is same color as current back? */
-		if (_vte_terminal_get_color(terminal, VTE_CURSOR_BG) != NULL)
+		if (terminal->pvt->get_color(VTE_CURSOR_BG) != NULL)
 			back = VTE_CURSOR_BG;
 		else
 			swap (&fore, &back);
@@ -10134,7 +10134,7 @@ VteTerminalPrivate::widget_background_update()
 	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
 			"Updating background color.\n");
 
-	entry = _vte_terminal_get_color(m_terminal, VTE_DEFAULT_BG);
+	entry = get_color(VTE_DEFAULT_BG);
 	_vte_debug_print(VTE_DEBUG_STYLE,
 			 "Setting background color to (%d, %d, %d, %.3f).\n",
 			 entry->red, entry->green, entry->blue,
