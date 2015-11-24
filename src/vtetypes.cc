@@ -17,6 +17,8 @@
 
 #include "config.h"
 
+#include <glib.h>
+
 #include "vtetypes.hh"
 
 #include <type_traits>
@@ -29,6 +31,81 @@ static_assert(sizeof(vte::grid::span) == 4 * sizeof(long), "vte::grid::span size
 
 static_assert(std::is_pod<vte::color::rgb>::value, "vte::color::rgb not POD");
 static_assert(sizeof(vte::color::rgb) == sizeof(PangoColor), "vte::color::rgb size wrong");
+
+/* Colours mix */
+vte::color::rgb::rgb(vte::color::rgb const& foreground,
+                     vte::color::rgb const& background,
+                     double factor)
+{
+        double fy, fcb, fcr, by, bcb, bcr, r, g, b;
+	fy =   0.2990 * foreground.red +
+               0.5870 * foreground.green +
+               0.1140 * foreground.blue;
+        fcb = -0.1687 * foreground.red +
+              -0.3313 * foreground.green +
+               0.5000 * foreground.blue;
+        fcr =  0.5000 * foreground.red +
+              -0.4187 * foreground.green +
+              -0.0813 * foreground.blue;
+        by =   0.2990 * background.red +
+               0.5870 * background.green +
+               0.1140 * background.blue;
+        bcb = -0.1687 * background.red +
+              -0.3313 * background.green +
+               0.5000 * background.blue;
+        bcr =  0.5000 * background.red +
+              -0.4187 * background.green +
+              -0.0813 * background.blue;
+        fy = (factor * fy) + ((1.0 - factor) * by);
+        fcb = (factor * fcb) + ((1.0 - factor) * bcb);
+        fcr = (factor * fcr) + ((1.0 - factor) * bcr);
+        r = fy + 1.402 * fcr;
+        g = fy + 0.34414 * fcb - 0.71414 * fcr;
+        b = fy + 1.722 * fcb;
+        red = CLAMP(r, 0, 0xffff);
+        green = CLAMP(g, 0, 0xffff);
+        blue = CLAMP(b, 0, 0xffff);
+}
+
+vte::color::rgb::rgb(GdkRGBA const* rgba) {
+        g_assert(rgba);
+        /* FIXME: equal distribution! */
+        red   = rgba->red   * 65535.;
+        green = rgba->green * 65535.;
+        blue  = rgba->blue  * 65535.;
+}
+
+bool
+vte::color::rgb::parse(char const* spec)
+{
+	char *spec_copy = (char *)spec;
+	bool retval = false;
+
+	/* gdk_color_parse doesnt handle all XParseColor formats.  It only
+	 * supports the #RRRGGGBBB format, not the rgb:RRR/GGG/BBB format.
+	 * See: man XParseColor */
+
+	if (g_ascii_strncasecmp(spec_copy, "rgb:", 4) == 0) {
+		char *cur, *ptr;
+
+		spec_copy = g_strdup(spec);
+		cur = spec_copy;
+		ptr = spec_copy + 3;
+
+		*cur++ = '#';
+		while (*ptr++)
+			if (*ptr != '/')
+				*cur++ = *ptr;
+		*cur++ = '\0';
+	}
+
+	retval = pango_color_parse(this, spec_copy) != FALSE;
+
+	if (spec_copy != spec)
+		g_free(spec_copy);
+
+	return retval;
+}
 
 #ifdef MAIN
 

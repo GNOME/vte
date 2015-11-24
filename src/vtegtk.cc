@@ -2599,7 +2599,8 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(background != NULL);
-        terminal->pvt->set_color_background(background);
+        terminal->pvt->set_color_background(vte::color::rgb(background));
+        terminal->pvt->set_background_alpha(background->alpha);
 }
 
 /**
@@ -2615,7 +2616,10 @@ vte_terminal_set_color_bold(VteTerminal *terminal,
                             const GdkRGBA *bold)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->set_color_bold(bold);
+        if (bold)
+                terminal->pvt->set_color_bold(vte::color::rgb(bold));
+        else
+                terminal->pvt->reset_color_bold();
 }
 
 /**
@@ -2632,7 +2636,10 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
                               const GdkRGBA *cursor_background)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->set_color_cursor(cursor_background);
+        if (cursor_background)
+                terminal->pvt->set_color_cursor_background(vte::color::rgb(cursor_background));
+        else
+                terminal->pvt->reset_color_cursor_background();
 }
 
 /**
@@ -2648,7 +2655,7 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(foreground != NULL);
-        terminal->pvt->set_color_foreground(foreground);
+        terminal->pvt->set_color_foreground(vte::color::rgb(foreground));
 }
 
 /**
@@ -2666,7 +2673,10 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
                                  const GdkRGBA *highlight_background)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->set_color_highlight(highlight_background);
+        if (highlight_background)
+                terminal->pvt->set_color_highlight_background(vte::color::rgb(highlight_background));
+        else
+                terminal->pvt->reset_color_highlight_background();
 }
 
 /**
@@ -2684,7 +2694,10 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
                                             const GdkRGBA *highlight_foreground)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->set_color_highlight_foreground(highlight_foreground);
+        if (highlight_foreground)
+                terminal->pvt->set_color_highlight_foreground(vte::color::rgb(highlight_foreground));
+        else
+                terminal->pvt->reset_color_highlight_foreground();
 }
 
 /**

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <pango/pango.h>
+#include <gdk/gdk.h>
 
 namespace vte {
 
@@ -94,9 +95,18 @@ namespace color {
         public:
                 rgb() = default;
                 rgb(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }
-                rgb(PangoColor const& a, PangoColor const& b, double f);
+                rgb(GdkRGBA const* c);
+
+                rgb(rgb const& a, rgb const& b, double f);
+                rgb(rgb const* a, rgb const* b, double f) : rgb(*a, *b, f) { }
+
+                bool parse(char const* spec);
 
                 void from_pango(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }
+
+                inline bool operator == (rgb const& rhs) const {
+                        return red == rhs.red && green == rhs.green && blue == rhs.blue;
+                }
         };
 
 } /* namespace color */

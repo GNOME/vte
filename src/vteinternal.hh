@@ -737,21 +737,27 @@ public:
         long get_char_width()  { ensure_font(); return char_width;  }
 
         vte::color::rgb const* get_color(int entry) const;
-        void set_color_internal(int entry,
-                                int source,
-                                vte::color::rgb const* proposed);
+        void set_color(int entry,
+                       int source,
+                       vte::color::rgb const& proposed);
+        void reset_color(int entry,
+                         int source);
 
         bool set_audible_bell(bool setting);
         bool set_allow_bold(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
         bool set_background_alpha(double alpha);
         bool set_cjk_ambiguous_width(int width);
-        void set_color_background(GdkRGBA const *background);
-        void set_color_bold(GdkRGBA const* bold);
-        void set_color_cursor(GdkRGBA const* cursor_background);
-        void set_color_foreground(GdkRGBA const* foreground);
-        void set_color_highlight(GdkRGBA const *highlight_background);
-        void set_color_highlight_foreground(GdkRGBA const *highlight_foreground);
+        void set_color_background(vte::color::rgb const &color);
+        void set_color_bold(vte::color::rgb const& color);
+        void reset_color_bold();
+        void set_color_cursor_background(vte::color::rgb const& color);
+        void reset_color_cursor_background();
+        void set_color_foreground(vte::color::rgb const& color);
+        void set_color_highlight_background(vte::color::rgb const& color);
+        void reset_color_highlight_background();
+        void set_color_highlight_foreground(vte::color::rgb const& color);
+        void reset_color_highlight_foreground();
         void set_colors(GdkRGBA const *foreground,
                         GdkRGBA const *background,
                         GdkRGBA const *palette,

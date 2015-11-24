@@ -2485,43 +2485,25 @@ VteTerminalPrivate::get_color(int entry) const
 
 /* Set up a palette entry with a more-or-less match for the requested color. */
 void
-VteTerminalPrivate::set_color_internal(int entry,
-                                       int source,
-                                       vte::color::rgb const* proposed)
+VteTerminalPrivate::set_color(int entry,
+                              int source,
+                              vte::color::rgb const& proposed)
 {
-        if (entry < 0 || entry >= VTE_PALETTE_SIZE)
-                return;
+        g_assert(entry >= 0 && entry < VTE_PALETTE_SIZE);
 
 	VtePaletteColor *palette_color = &m_palette[entry];
 
-	/* Save the requested color. */
-	if (proposed != NULL) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Set %s color[%d] to (%04x,%04x,%04x).\n",
-				source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
-				entry, proposed->red, proposed->green, proposed->blue);
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color[%d] to (%04x,%04x,%04x).\n",
+                         source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
+                         entry, proposed.red, proposed.green, proposed.blue);
 
-		if (palette_color->sources[source].is_set &&
-		    palette_color->sources[source].color.red == proposed->red &&
-		    palette_color->sources[source].color.green == proposed->green &&
-		    palette_color->sources[source].color.blue == proposed->blue) {
-			return;
-		}
-		palette_color->sources[source].is_set = TRUE;
-		palette_color->sources[source].color.red = proposed->red;
-		palette_color->sources[source].color.green = proposed->green;
-		palette_color->sources[source].color.blue = proposed->blue;
-	} else {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Reset %s color[%d].\n",
-				source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
-				entry);
-
-		if (!palette_color->sources[source].is_set) {
-			return;
-		}
-		palette_color->sources[source].is_set = FALSE;
-	}
+        if (palette_color->sources[source].is_set &&
+            palette_color->sources[source].color == proposed) {
+                return;
+        }
+        palette_color->sources[source].is_set = TRUE;
+        palette_color->sources[source].color = proposed;
 
 	/* If we're not realized yet, there's nothing else to do. */
 	if (!gtk_widget_get_realized(m_widget))
@@ -2540,102 +2522,39 @@ VteTerminalPrivate::set_color_internal(int entry,
 		invalidate_all();
 }
 
-static void
-vte_terminal_generate_bold(vte::color::rgb const* foreground,
-			   vte::color::rgb const* background,
-			   double factor,
-                           vte::color::rgb *bold /* (out) (callee allocates) */)
+void
+VteTerminalPrivate::reset_color(int entry,
+                                int source)
 {
-	double fy, fcb, fcr, by, bcb, bcr, r, g, b;
-	g_assert(foreground != NULL);
-	g_assert(background != NULL);
-	g_assert(bold != NULL);
-	fy =   0.2990 * foreground->red +
-	       0.5870 * foreground->green +
-	       0.1140 * foreground->blue;
-	fcb = -0.1687 * foreground->red +
-	      -0.3313 * foreground->green +
-	       0.5000 * foreground->blue;
-	fcr =  0.5000 * foreground->red +
-	      -0.4187 * foreground->green +
-	      -0.0813 * foreground->blue;
-	by =   0.2990 * background->red +
-	       0.5870 * background->green +
-	       0.1140 * background->blue;
-	bcb = -0.1687 * background->red +
-	      -0.3313 * background->green +
-	       0.5000 * background->blue;
-	bcr =  0.5000 * background->red +
-	      -0.4187 * background->green +
-	      -0.0813 * background->blue;
-	fy = (factor * fy) + ((1.0 - factor) * by);
-	fcb = (factor * fcb) + ((1.0 - factor) * bcb);
-	fcr = (factor * fcr) + ((1.0 - factor) * bcr);
-	r = fy + 1.402 * fcr;
-	g = fy + 0.34414 * fcb - 0.71414 * fcr;
-	b = fy + 1.722 * fcb;
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Calculated bold (%d, %d, %d) = (%lf,%lf,%lf)",
-			foreground->red, foreground->green, foreground->blue,
-			r, g, b);
-	bold->red = CLAMP(r, 0, 0xffff);
-	bold->green = CLAMP(g, 0, 0xffff);
-	bold->blue = CLAMP(b, 0, 0xffff);
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"= (%04x,%04x,%04x).\n",
-			bold->red, bold->green, bold->blue);
-}
+        g_assert(entry >= 0 && entry < VTE_PALETTE_SIZE);
 
-/*
- * _vte_terminal_set_color_bold:
- * @terminal: a #VteTerminal
- * @bold: the new bold color
- *
- * Sets the color used to draw bold text in the default foreground color.
- */
-static void
-_vte_terminal_set_color_bold(VteTerminal *terminal,
-                             vte::color::rgb const* bold)
-{
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set bold color to (%04x,%04x,%04x).\n",
-			bold->red, bold->green, bold->blue);
-	terminal->pvt->set_color_internal(VTE_BOLD_FG, VTE_COLOR_SOURCE_API, bold);
-}
+	VtePaletteColor *palette_color = &m_palette[entry];
 
-/*
- * _vte_terminal_set_color_foreground:
- * @terminal: a #VteTerminal
- * @foreground: the new foreground color
- *
- * Sets the foreground color used to draw normal text
- */
-static void
-_vte_terminal_set_color_foreground(VteTerminal *terminal,
-                                   vte::color::rgb const* foreground)
-{
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set foreground color to (%04x,%04x,%04x).\n",
-			foreground->red, foreground->green, foreground->blue);
-	terminal->pvt->set_color_internal(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, foreground);
-}
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Reset %s color[%d].\n",
+                         source == VTE_COLOR_SOURCE_ESCAPE ? "escape" : "API",
+                         entry);
 
-/*
- * _vte_terminal_set_color_background:
- * @terminal: a #VteTerminal
- * @background: the new background color
- *
- * Sets the background color for text which does not have a specific background
- * color assigned.  Only has effect when no background image is set.
- */
-static void
-_vte_terminal_set_color_background(VteTerminal *terminal,
-                                   vte::color::rgb const* background)
-{
-	_vte_debug_print(VTE_DEBUG_MISC,
-			"Set background color to (%04x,%04x,%04x).\n",
-			background->red, background->green, background->blue);
-	terminal->pvt->set_color_internal(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, background);
+        if (!palette_color->sources[source].is_set) {
+                return;
+        }
+        palette_color->sources[source].is_set = FALSE;
+
+	/* If we're not realized yet, there's nothing else to do. */
+	if (!gtk_widget_get_realized(m_widget))
+		return;
+
+	/* If we're setting the background color, set the background color
+	 * on the widget as well. */
+	if (entry == VTE_DEFAULT_BG) {
+		widget_background_update();
+	}
+
+	/* and redraw */
+	if (entry == VTE_CURSOR_BG)
+		invalidate_cursor_once();
+	else
+		invalidate_all();
 }
 
 bool
@@ -2652,86 +2571,6 @@ VteTerminalPrivate::set_background_alpha(double alpha)
         widget_background_update();
 
         return true;
-}
-
-/*
- * _vte_terminal_set_color_cursor:
- * @terminal: a #VteTerminal
- * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
- *
- * Sets the background color for text which is under the cursor.  If %NULL, text
- * under the cursor will be drawn with foreground and background colors
- * reversed.
- */
-static void
-_vte_terminal_set_color_cursor(VteTerminal *terminal,
-                               vte::color::rgb const* cursor_background)
-{
-	if (cursor_background != NULL) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Set cursor color to (%04x,%04x,%04x).\n",
-				cursor_background->red,
-				cursor_background->green,
-				cursor_background->blue);
-	} else {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Reset cursor color.\n");
-	}
-	terminal->pvt->set_color_internal(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, cursor_background);
-}
-
-/*
- * _vte_terminal_set_color_highlight:
- * @terminal: a #VteTerminal
- * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
- *
- * Sets the background color for text which is highlighted.  If %NULL,
- * it is unset.  If neither highlight background nor highlight foreground are set,
- * highlighted text (which is usually highlighted because it is selected) will
- * be drawn with foreground and background colors reversed.
- */
-static void
-_vte_terminal_set_color_highlight(VteTerminal *terminal,
-                                  vte::color::rgb const* highlight_background)
-{
-	if (highlight_background != NULL) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Set highlight background color to (%04x,%04x,%04x).\n",
-				highlight_background->red,
-				highlight_background->green,
-				highlight_background->blue);
-	} else {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Reset highlight background color.\n");
-	}
-	terminal->pvt->set_color_internal(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, highlight_background);
-}
-
-/*
- * _vte_terminal_set_color_highlight_foreground:
- * @terminal: a #VteTerminal
- * @highlight_foreground: (allow-none): the new color to use for highlighted text, or %NULL
- *
- * Sets the foreground color for text which is highlighted.  If %NULL,
- * it is unset.  If neither highlight background nor highlight foreground are set,
- * highlighted text (which is usually highlighted because it is selected) will
- * be drawn with foreground and background colors reversed.
- */
-static void
-_vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
-                                             vte::color::rgb const* highlight_foreground)
-{
-	if (highlight_foreground != NULL) {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Set highlight foreground color to (%04x,%04x,%04x).\n",
-				highlight_foreground->red,
-				highlight_foreground->green,
-				highlight_foreground->blue);
-	} else {
-		_vte_debug_print(VTE_DEBUG_MISC,
-				"Reset highlight foreground color.\n");
-	}
-	terminal->pvt->set_color_internal(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, highlight_foreground);
 }
 
 /*
@@ -2825,10 +2664,9 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_BOLD_FG:
-				vte_terminal_generate_bold(terminal->pvt->get_color(VTE_DEFAULT_FG),
-							   terminal->pvt->get_color(VTE_DEFAULT_BG),
-							   1.8,
-							   &color);
+                                color = vte::color::rgb(terminal->pvt->get_color(VTE_DEFAULT_FG),
+                                                        terminal->pvt->get_color(VTE_DEFAULT_BG),
+                                                        1.8);
 				break;
 			case VTE_HIGHLIGHT_BG:
 				unset = TRUE;
@@ -2847,7 +2685,10 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 		}
 
 		/* Set up the color entry. */
-		terminal->pvt->set_color_internal(i, VTE_COLOR_SOURCE_API, unset ? NULL : &color);
+                if (unset)
+                        terminal->pvt->reset_color(i, VTE_COLOR_SOURCE_API);
+                else
+                        terminal->pvt->set_color(i, VTE_COLOR_SOURCE_API, color);
 	}
 }
 
@@ -2873,20 +2714,23 @@ _pango_color_from_rgba(vte::color::rgb *color,
  * If @bold is %NULL then the default color is used.
  */
 void
-VteTerminalPrivate::set_color_bold(GdkRGBA const* bold)
+VteTerminalPrivate::set_color_bold(vte::color::rgb const& color)
 {
-	vte::color::rgb color;
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "bold",
+                         color.red, color.green, color.blue);
+        set_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_API, color);
+}
 
-	if (bold == nullptr) {
-		vte_terminal_generate_bold(get_color(VTE_DEFAULT_FG),
-					   get_color(VTE_DEFAULT_BG),
-					   1.8,
-					   &color);
-	} else {
-		_pango_color_from_rgba(&color, bold);
-	}
-
-	_vte_terminal_set_color_bold(m_terminal, &color);
+void
+VteTerminalPrivate::reset_color_bold()
+{
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Reset %s color.\n", "bold");
+        set_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_API,
+                  vte::color::rgb(get_color(VTE_DEFAULT_FG),
+                                  get_color(VTE_DEFAULT_BG),
+                                  1.8));
 }
 
 /*
@@ -2896,13 +2740,12 @@ VteTerminalPrivate::set_color_bold(GdkRGBA const* bold)
  * Sets the foreground color used to draw normal text.
  */
 void
-VteTerminalPrivate::set_color_foreground(GdkRGBA const* foreground)
+VteTerminalPrivate::set_color_foreground(vte::color::rgb const& color)
 {
-        g_assert(foreground != nullptr);
-
-	vte::color::rgb color;
-	_vte_terminal_set_color_foreground(m_terminal,
-                                           _pango_color_from_rgba(&color, foreground));
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "foreground",
+                         color.red, color.green, color.blue);
+	set_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_API, color);
 }
 
 /*
@@ -2914,14 +2757,12 @@ VteTerminalPrivate::set_color_foreground(GdkRGBA const* foreground)
  * the terminal is not transparent.
  */
 void
-VteTerminalPrivate::set_color_background(GdkRGBA const *background)
+VteTerminalPrivate::set_color_background(vte::color::rgb const& color)
 {
-        g_assert(background != nullptr);
-
-        vte::color::rgb color;
-	_vte_terminal_set_color_background(m_terminal,
-                                           _pango_color_from_rgba(&color, background));
-        set_background_alpha(background->alpha);
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "background",
+                         color.red, color.green, color.blue);
+	set_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_API, color);
 }
 
 /*
@@ -2933,15 +2774,24 @@ VteTerminalPrivate::set_color_background(GdkRGBA const *background)
  * reversed.
  */
 void
-VteTerminalPrivate::set_color_cursor(GdkRGBA const* cursor_background)
+VteTerminalPrivate::set_color_cursor_background(vte::color::rgb const& color)
 {
-        vte::color::rgb color;
-	_vte_terminal_set_color_cursor(m_terminal,
-                                       _pango_color_from_rgba(&color, cursor_background));
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "cursor background",
+                         color.red, color.green, color.blue);
+	set_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API, color);
+}
+
+void
+VteTerminalPrivate::reset_color_cursor_background()
+{
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Reset %s color.\n", "cursor background");
+        reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API);
 }
 
 /*
- * VteTerminalPrivate::set_color_highlight:
+ * VteTerminalPrivate::set_color_highlight_background:
  * @highlight_background: (allow-none): the new color to use for highlighted text, or %NULL
  *
  * Sets the background color for text which is highlighted.  If %NULL,
@@ -2950,11 +2800,20 @@ VteTerminalPrivate::set_color_cursor(GdkRGBA const* cursor_background)
  * be drawn with foreground and background colors reversed.
  */
 void
-VteTerminalPrivate::set_color_highlight(GdkRGBA const *highlight_background)
+VteTerminalPrivate::set_color_highlight_background(vte::color::rgb const& color)
 {
-	vte::color::rgb color;
-	_vte_terminal_set_color_highlight(m_terminal,
-                                          _pango_color_from_rgba(&color, highlight_background));
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "highlight background",
+                         color.red, color.green, color.blue);
+	set_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API, color);
+}
+
+void
+VteTerminalPrivate::reset_color_highlight_background()
+{
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Reset %s color.\n", "highlight background");
+        reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_API);
 }
 
 /*
@@ -2967,11 +2826,20 @@ VteTerminalPrivate::set_color_highlight(GdkRGBA const *highlight_background)
  * be drawn with foreground and background colors reversed.
  */
 void
-VteTerminalPrivate::set_color_highlight_foreground(GdkRGBA const *highlight_foreground)
+VteTerminalPrivate::set_color_highlight_foreground(vte::color::rgb const& color)
 {
-	vte::color::rgb color;
-	_vte_terminal_set_color_highlight_foreground(m_terminal,
-                                                     _pango_color_from_rgba(&color, highlight_foreground));
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "highlight foreground",
+                         color.red, color.green, color.blue);
+	set_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API, color);
+}
+
+void
+VteTerminalPrivate::reset_color_highlight_foreground()
+{
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Reset %s color.\n", "highlight foreground");
+        reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API);
 }
 
 /*
