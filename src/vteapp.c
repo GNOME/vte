@@ -636,7 +636,8 @@ main(int argc, char **argv)
 	char *cursor_shape_string = NULL;
 	char *scrollbar_policy_string = NULL;
         char *border_width_string = NULL;
-        char *cursor_color_string = NULL;
+        char *cursor_foreground_color_string = NULL;
+        char *cursor_background_color_string = NULL;
         char *highlight_foreground_color_string = NULL;
         char *highlight_background_color_string = NULL;
         char **dingus = NULL;
@@ -741,9 +742,14 @@ main(int argc, char **argv)
 			"Cursor blink mode (system|on|off)", "MODE"
 		},
 		{
-			"cursor-color", 0, 0,
-			G_OPTION_ARG_STRING, &cursor_color_string,
-			"Enable a colored cursor", NULL
+			"cursor-background-color", 0, 0,
+			G_OPTION_ARG_STRING, &cursor_background_color_string,
+			"Enable a colored cursor background", NULL
+		},
+		{
+			"cursor-foreground-color", 0, 0,
+			G_OPTION_ARG_STRING, &cursor_foreground_color_string,
+			"Enable a colored cursor foreground", NULL
 		},
 		{
 			"cursor-shape", 0, 0,
@@ -989,11 +995,17 @@ main(int argc, char **argv)
 
 	vte_terminal_set_colors(terminal, &fore, &back, NULL, 0);
 
-	if (cursor_color_string) {
+	if (cursor_foreground_color_string) {
                 GdkRGBA rgba;
-                if (parse_color (cursor_color_string, &rgba))
+                if (parse_color (cursor_foreground_color_string, &rgba))
+                        vte_terminal_set_color_cursor_foreground(terminal, &rgba);
+                g_free(cursor_foreground_color_string);
+	}
+	if (cursor_background_color_string) {
+                GdkRGBA rgba;
+                if (parse_color (cursor_background_color_string, &rgba))
                         vte_terminal_set_color_cursor(terminal, &rgba);
-                g_free(cursor_color_string);
+                g_free(cursor_background_color_string);
 	}
 	if (highlight_foreground_color_string) {
                 GdkRGBA rgba;

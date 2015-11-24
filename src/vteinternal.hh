@@ -753,6 +753,8 @@ public:
         void reset_color_bold();
         void set_color_cursor_background(vte::color::rgb const& color);
         void reset_color_cursor_background();
+        void set_color_cursor_foreground(vte::color::rgb const& color);
+        void reset_color_cursor_foreground();
         void set_color_foreground(vte::color::rgb const& color);
         void set_color_highlight_background(vte::color::rgb const& color);
         void reset_color_highlight_background();

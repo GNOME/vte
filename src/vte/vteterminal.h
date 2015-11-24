@@ -211,6 +211,8 @@ void vte_terminal_set_color_background(VteTerminal *terminal,
                                        const GdkRGBA *background) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 void vte_terminal_set_color_cursor(VteTerminal *terminal,
                                    const GdkRGBA *cursor_background) _VTE_GNUC_NONNULL(1);
+void vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
+                                              const GdkRGBA *cursor_foreground) _VTE_GNUC_NONNULL(1);
 void vte_terminal_set_color_highlight(VteTerminal *terminal,
                                       const GdkRGBA *highlight_background) _VTE_GNUC_NONNULL(1);
 void vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,

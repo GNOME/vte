@@ -2470,7 +2470,7 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
 /*
  * Get the actually used color from the palette.
  * The return value can be NULL only if entry is one of VTE_CURSOR_BG,
- * VTE_HIGHLIGHT_BG or VTE_HIGHLIGHT_FG.
+ * VTE_CURSOR_FG, VTE_HIGHLIGHT_BG or VTE_HIGHLIGHT_FG.
  */
 vte::color::rgb const*
 VteTerminalPrivate::get_color(int entry) const
@@ -2516,7 +2516,7 @@ VteTerminalPrivate::set_color(int entry,
 	}
 
 	/* and redraw */
-	if (entry == VTE_CURSOR_BG)
+	if (entry == VTE_CURSOR_BG || entry == VTE_CURSOR_FG)
 		invalidate_cursor_once();
 	else
 		invalidate_all();
@@ -2551,7 +2551,7 @@ VteTerminalPrivate::reset_color(int entry,
 	}
 
 	/* and redraw */
-	if (entry == VTE_CURSOR_BG)
+	if (entry == VTE_CURSOR_BG || entry == VTE_CURSOR_FG)
 		invalidate_cursor_once();
 	else
 		invalidate_all();
@@ -2677,6 +2677,9 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 			case VTE_CURSOR_BG:
 				unset = TRUE;
 				break;
+			case VTE_CURSOR_FG:
+				unset = TRUE;
+				break;
 			}
 
 		/* Override from the supplied palette if there is one. */
@@ -2766,7 +2769,7 @@ VteTerminalPrivate::set_color_background(vte::color::rgb const& color)
 }
 
 /*
- * VteTerminalPrivate::set_color_cursor:
+ * VteTerminalPrivate::set_color_cursor_background:
  * @cursor_background: (allow-none): the new color to use for the text cursor, or %NULL
  *
  * Sets the background color for text which is under the cursor.  If %NULL, text
@@ -2788,6 +2791,31 @@ VteTerminalPrivate::reset_color_cursor_background()
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "cursor background");
         reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_API);
+}
+
+/*
+ * VteTerminalPrivate::set_color_cursor_foreground:
+ * @cursor_foreground: (allow-none): the new color to use for the text cursor, or %NULL
+ *
+ * Sets the foreground color for text which is under the cursor.  If %NULL, text
+ * under the cursor will be drawn with foreground and background colors
+ * reversed.
+ */
+void
+VteTerminalPrivate::set_color_cursor_foreground(vte::color::rgb const& color)
+{
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Set %s color to (%04x,%04x,%04x).\n", "cursor foreground",
+                         color.red, color.green, color.blue);
+	set_color(VTE_CURSOR_FG, VTE_COLOR_SOURCE_API, color);
+}
+
+void
+VteTerminalPrivate::reset_color_cursor_foreground()
+{
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Reset %s color.\n", "cursor foreground");
+        reset_color(VTE_CURSOR_FG, VTE_COLOR_SOURCE_API);
 }
 
 /*
@@ -8664,10 +8692,17 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	/* Cursor: use cursor back, or inverse */
 	if (cursor) {
 		/* XXX what if cursor back is same color as current back? */
-		if (terminal->pvt->get_color(VTE_CURSOR_BG) != NULL)
-			back = VTE_CURSOR_BG;
-		else
-			swap (&fore, &back);
+                gboolean do_swap = TRUE;
+                if (terminal->pvt->get_color(VTE_CURSOR_BG) != NULL) {
+                        back = VTE_CURSOR_BG;
+                        do_swap = FALSE;
+                }
+                if (terminal->pvt->get_color(VTE_CURSOR_FG) != NULL) {
+                        fore = VTE_CURSOR_FG;
+                        do_swap = FALSE;
+                }
+                if (do_swap)
+                        swap (&fore, &back);
 	}
 
 	/* Invisible? */

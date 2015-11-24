@@ -3145,17 +3145,17 @@ vte_sequence_handler_reset_background_color (VteTerminal *terminal, GValueArray 
 	terminal->pvt->reset_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
-/* Change the color of the cursor, BEL terminated */
+/* Change the color of the cursor background, BEL terminated */
 static void
-vte_sequence_handler_change_cursor_color_bel (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_cursor_background_color_bel (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_change_special_color_internal (terminal, params,
 							    VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL);
 }
 
-/* Change the color of the cursor, ST terminated */
+/* Change the color of the cursor background, ST terminated */
 static void
-vte_sequence_handler_change_cursor_color_st (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_change_cursor_background_color_st (VteTerminal *terminal, GValueArray *params)
 {
 	vte_sequence_handler_change_special_color_internal (terminal, params,
 							    VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST);
@@ -3163,7 +3163,7 @@ vte_sequence_handler_change_cursor_color_st (VteTerminal *terminal, GValueArray 
 
 /* Reset the color of the cursor */
 static void
-vte_sequence_handler_reset_cursor_color (VteTerminal *terminal, GValueArray *params)
+vte_sequence_handler_reset_cursor_background_color (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_ESCAPE);
 }

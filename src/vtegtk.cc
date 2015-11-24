@@ -2643,6 +2643,28 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_set_color_cursor_foreground:
+ * @terminal: a #VteTerminal
+ * @cursor_foreground: (allow-none): the new color to use for the text cursor, or %NULL
+ *
+ * Sets the foreground color for text which is under the cursor.  If %NULL, text
+ * under the cursor will be drawn with foreground and background colors
+ * reversed.
+ *
+ * Since: 0.44
+ */
+void
+vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
+                                         const GdkRGBA *cursor_foreground)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        if (cursor_foreground)
+                terminal->pvt->set_color_cursor_foreground(vte::color::rgb(cursor_foreground));
+        else
+                terminal->pvt->reset_color_cursor_foreground();
+}
+
+/**
  * vte_terminal_set_color_foreground:
  * @terminal: a #VteTerminal
  * @foreground: the new foreground color

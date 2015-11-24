@@ -352,7 +352,8 @@ class Window : Gtk.ApplicationWindow
     terminal.set_colors(App.Options.get_color_fg(),
                         App.Options.get_color_bg(),
                         null);
-    terminal.set_color_cursor(App.Options.get_color_cursor());
+    terminal.set_color_cursor(App.Options.get_color_cursor_background());
+    terminal.set_color_cursor_foreground(App.Options.get_color_cursor_foreground());
     terminal.set_color_highlight(App.Options.get_color_hl_bg());
     terminal.set_color_highlight_foreground(App.Options.get_color_hl_fg());
 
@@ -786,7 +787,8 @@ class App : Gtk.Application
     public static string? command = null;
     private static string? cjk_ambiguous_width_string = null;
     private static string? cursor_blink_mode_string = null;
-    private static string? cursor_color_string = null;
+    private static string? cursor_background_color_string = null;
+    private static string? cursor_foreground_color_string = null;
     private static string? cursor_shape_string = null;
     public static string[]? dingus = null;
     public static bool debug = false;
@@ -897,9 +899,14 @@ class App : Gtk.Application
       return color;
     }
 
-    public static Gdk.RGBA? get_color_cursor()
+    public static Gdk.RGBA? get_color_cursor_background()
     {
-      return get_color(cursor_color_string);
+      return get_color(cursor_background_color_string);
+    }
+
+    public static Gdk.RGBA? get_color_cursor_foreground()
+    {
+      return get_color(cursor_foreground_color_string);
     }
 
     public static Gdk.RGBA? get_color_hl_bg()
@@ -954,8 +961,10 @@ class App : Gtk.Application
         "Specify the cjk ambiguous width to use for UTF-8 encoding", "NARROW|WIDE" },
       { "cursor-blink", 0, 0, OptionArg.STRING, ref cursor_blink_mode_string,
         "Cursor blink mode (system|on|off)", "MODE" },
-      { "cursor-color", 0, 0, OptionArg.STRING, ref cursor_color_string,
-        "Enable a colored cursor", null },
+      { "cursor-background-color", 0, 0, OptionArg.STRING, ref cursor_background_color_string,
+        "Enable a colored cursor background", null },
+      { "cursor-foreground-color", 0, 0, OptionArg.STRING, ref cursor_foreground_color_string,
+        "Enable a colored cursor foreground", null },
       { "cursor-shape", 0, 0, OptionArg.STRING, ref cursor_shape_string,
         "Set cursor shape (block|underline|ibeam)", null },
       { "dingu", 'D', 0, OptionArg.STRING_ARRAY, ref dingus,

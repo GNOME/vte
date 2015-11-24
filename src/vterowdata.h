@@ -35,7 +35,8 @@ G_BEGIN_DECLS
 #define VTE_HIGHLIGHT_FG		259
 #define VTE_HIGHLIGHT_BG		260
 #define VTE_CURSOR_BG			261
-#define VTE_PALETTE_SIZE		262
+#define VTE_CURSOR_FG                   262
+#define VTE_PALETTE_SIZE		263
 
 /*
  * VteCellAttr: A single cell style attributes
