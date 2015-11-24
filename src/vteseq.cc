@@ -2520,7 +2520,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		break;
         case 3:
                 /* Drop the scrollback. */
-                _vte_terminal_drop_scrollback (terminal);
+                terminal->pvt->drop_scrollback();
                 break;
 	default:
 		break;

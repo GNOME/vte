@@ -3190,15 +3190,15 @@ VteTerminalPrivate::cursor_down()
 
 /* Drop the scrollback. */
 void
-_vte_terminal_drop_scrollback (VteTerminal *terminal)
+VteTerminalPrivate::drop_scrollback()
 {
         /* Only for normal screen; alternate screen doesn't have a scrollback. */
-        _vte_ring_drop_scrollback (terminal->pvt->normal_screen.row_data,
-                                   terminal->pvt->normal_screen.insert_delta);
+        _vte_ring_drop_scrollback (m_normal_screen.row_data,
+                                   m_normal_screen.insert_delta);
 
-        if (terminal->pvt->screen == &terminal->pvt->normal_screen) {
-                terminal->pvt->queue_adjustment_value_changed(terminal->pvt->normal_screen.insert_delta);
-                terminal->pvt->adjust_adjustments_full();
+        if (m_screen == &m_normal_screen) {
+                queue_adjustment_value_changed(m_normal_screen.insert_delta);
+                adjust_adjustments_full();
         }
 }
 

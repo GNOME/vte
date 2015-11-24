@@ -449,6 +449,7 @@ public:
                                long end);
 
         void cursor_down();
+        void drop_scrollback();
 
         void invalidate(vte::grid::span s, bool block = false);
         void invalidate_cell(vte::grid::column_t column, vte::grid::row_t row);
