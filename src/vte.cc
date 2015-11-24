@@ -2472,7 +2472,7 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
  * The return value can be NULL only if entry is one of VTE_CURSOR_BG,
  * VTE_HIGHLIGHT_BG or VTE_HIGHLIGHT_FG.
  */
-PangoColor const*
+vte::color::rgb const*
 VteTerminalPrivate::get_color(int entry) const
 {
 	VtePaletteColor const* palette_color = &m_palette[entry];
@@ -2487,7 +2487,7 @@ VteTerminalPrivate::get_color(int entry) const
 void
 VteTerminalPrivate::set_color_internal(int entry,
                                        int source,
-                                       PangoColor const* proposed)
+                                       vte::color::rgb const* proposed)
 {
         if (entry < 0 || entry >= VTE_PALETTE_SIZE)
                 return;
@@ -2541,10 +2541,10 @@ VteTerminalPrivate::set_color_internal(int entry,
 }
 
 static void
-vte_terminal_generate_bold(const PangoColor *foreground,
-			   const PangoColor *background,
+vte_terminal_generate_bold(vte::color::rgb const* foreground,
+			   vte::color::rgb const* background,
 			   double factor,
-                           PangoColor *bold /* (out) (callee allocates) */)
+                           vte::color::rgb *bold /* (out) (callee allocates) */)
 {
 	double fy, fcb, fcr, by, bcb, bcr, r, g, b;
 	g_assert(foreground != NULL);
@@ -2595,7 +2595,7 @@ vte_terminal_generate_bold(const PangoColor *foreground,
  */
 static void
 _vte_terminal_set_color_bold(VteTerminal *terminal,
-                             const PangoColor *bold)
+                             vte::color::rgb const* bold)
 {
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set bold color to (%04x,%04x,%04x).\n",
@@ -2612,7 +2612,7 @@ _vte_terminal_set_color_bold(VteTerminal *terminal,
  */
 static void
 _vte_terminal_set_color_foreground(VteTerminal *terminal,
-                                   const PangoColor *foreground)
+                                   vte::color::rgb const* foreground)
 {
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set foreground color to (%04x,%04x,%04x).\n",
@@ -2630,7 +2630,7 @@ _vte_terminal_set_color_foreground(VteTerminal *terminal,
  */
 static void
 _vte_terminal_set_color_background(VteTerminal *terminal,
-                                   const PangoColor *background)
+                                   vte::color::rgb const* background)
 {
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set background color to (%04x,%04x,%04x).\n",
@@ -2665,7 +2665,7 @@ VteTerminalPrivate::set_background_alpha(double alpha)
  */
 static void
 _vte_terminal_set_color_cursor(VteTerminal *terminal,
-                               const PangoColor *cursor_background)
+                               vte::color::rgb const* cursor_background)
 {
 	if (cursor_background != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
@@ -2692,7 +2692,7 @@ _vte_terminal_set_color_cursor(VteTerminal *terminal,
  */
 static void
 _vte_terminal_set_color_highlight(VteTerminal *terminal,
-                                  const PangoColor *highlight_background)
+                                  vte::color::rgb const* highlight_background)
 {
 	if (highlight_background != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
@@ -2719,7 +2719,7 @@ _vte_terminal_set_color_highlight(VteTerminal *terminal,
  */
 static void
 _vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
-                                             const PangoColor *highlight_foreground)
+                                             vte::color::rgb const* highlight_foreground)
 {
 	if (highlight_foreground != NULL) {
 		_vte_debug_print(VTE_DEBUG_MISC,
@@ -2754,13 +2754,13 @@ _vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
  */
 static void
 _vte_terminal_set_colors(VteTerminal *terminal,
-                         const PangoColor *foreground,
-                         const PangoColor *background,
-                         const PangoColor *palette,
+                         vte::color::rgb const* foreground,
+                         vte::color::rgb const* background,
+                         vte::color::rgb const* palette,
                          gsize palette_size)
 {
 	gsize i;
-	PangoColor color;
+	vte::color::rgb color;
 	gboolean unset = FALSE;
 
 	_vte_debug_print(VTE_DEBUG_MISC,
@@ -2851,8 +2851,8 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 	}
 }
 
-static PangoColor *
-_pango_color_from_rgba(PangoColor *color,
+static vte::color::rgb *
+_pango_color_from_rgba(vte::color::rgb *color,
                        const GdkRGBA *rgba)
 {
         if (rgba == NULL)
@@ -2875,7 +2875,7 @@ _pango_color_from_rgba(PangoColor *color,
 void
 VteTerminalPrivate::set_color_bold(GdkRGBA const* bold)
 {
-	PangoColor color;
+	vte::color::rgb color;
 
 	if (bold == nullptr) {
 		vte_terminal_generate_bold(get_color(VTE_DEFAULT_FG),
@@ -2900,7 +2900,7 @@ VteTerminalPrivate::set_color_foreground(GdkRGBA const* foreground)
 {
         g_assert(foreground != nullptr);
 
-	PangoColor color;
+	vte::color::rgb color;
 	_vte_terminal_set_color_foreground(m_terminal,
                                            _pango_color_from_rgba(&color, foreground));
 }
@@ -2918,7 +2918,7 @@ VteTerminalPrivate::set_color_background(GdkRGBA const *background)
 {
         g_assert(background != nullptr);
 
-        PangoColor color;
+        vte::color::rgb color;
 	_vte_terminal_set_color_background(m_terminal,
                                            _pango_color_from_rgba(&color, background));
         set_background_alpha(background->alpha);
@@ -2935,7 +2935,7 @@ VteTerminalPrivate::set_color_background(GdkRGBA const *background)
 void
 VteTerminalPrivate::set_color_cursor(GdkRGBA const* cursor_background)
 {
-        PangoColor color;
+        vte::color::rgb color;
 	_vte_terminal_set_color_cursor(m_terminal,
                                        _pango_color_from_rgba(&color, cursor_background));
 }
@@ -2952,7 +2952,7 @@ VteTerminalPrivate::set_color_cursor(GdkRGBA const* cursor_background)
 void
 VteTerminalPrivate::set_color_highlight(GdkRGBA const *highlight_background)
 {
-	PangoColor color;
+	vte::color::rgb color;
 	_vte_terminal_set_color_highlight(m_terminal,
                                           _pango_color_from_rgba(&color, highlight_background));
 }
@@ -2969,7 +2969,7 @@ VteTerminalPrivate::set_color_highlight(GdkRGBA const *highlight_background)
 void
 VteTerminalPrivate::set_color_highlight_foreground(GdkRGBA const *highlight_foreground)
 {
-	PangoColor color;
+	vte::color::rgb color;
 	_vte_terminal_set_color_highlight_foreground(m_terminal,
                                                      _pango_color_from_rgba(&color, highlight_foreground));
 }
@@ -2997,7 +2997,7 @@ VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
                                GdkRGBA const *palette_,
                                gsize palette_size)
 {
-	PangoColor fg, bg, *pal;
+	vte::color::rgb fg, bg, *pal;
 	gsize i;
 
 	g_assert((palette_size == 0) ||
@@ -3006,7 +3006,7 @@ VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
                  (palette_size == 232) ||
                  (palette_size == 256));
 
-	pal = g_new(PangoColor, palette_size);
+	pal = g_new(vte::color::rgb, palette_size);
 	for (i = 0; i < palette_size; ++i)
                 _pango_color_from_rgba(&pal[i], &palette_[i]);
 
@@ -6000,7 +6000,7 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 
 /* Convert the internal color code (either index or RGB, see vte-private.h) into RGB. */
 static void
-vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoColor *color)
+vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, vte::color::rgb *color)
 {
         gboolean dim = FALSE;
         if (!(index & VTE_RGB_COLOR) && (index & VTE_DIM_COLOR)) {
@@ -6011,7 +6011,7 @@ vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, PangoC
 	if (index >= VTE_LEGACY_COLORS_OFFSET && index < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE)
 		index -= VTE_LEGACY_COLORS_OFFSET;
 	if (index < VTE_PALETTE_SIZE) {
-		memcpy(color, terminal->pvt->get_color(index), sizeof(PangoColor));
+		memcpy(color, terminal->pvt->get_color(index), sizeof(vte::color::rgb));
                 if (dim) {
                         /* magic formula taken from xterm */
                         color->red = color->red * 2 / 3;
@@ -6063,7 +6063,7 @@ _vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
-	PangoColor fore, back;
+	vte::color::rgb fore, back;
 
 	if (!is_selected)
 		is_selected = always_selected;
@@ -6255,7 +6255,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal,
 		g_string_append(string, "</b>");
 	}
 	if (attr->fore != VTE_DEFAULT_FG || attr->reverse) {
-		PangoColor color;
+		vte::color::rgb color;
                 char *tag;
 
                 vte_terminal_get_rgb_from_index(terminal, attr->fore, &color);
@@ -6268,7 +6268,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal,
 		g_string_append(string, "</font>");
 	}
 	if (attr->back != VTE_DEFAULT_BG || attr->reverse) {
-		PangoColor color;
+		vte::color::rgb color;
                 char *tag;
 
                 vte_terminal_get_rgb_from_index(terminal, attr->back, &color);
@@ -8835,7 +8835,7 @@ vte_terminal_determine_cursor_colors (VteTerminal *terminal,
 
 static void
 vte_terminal_fill_rectangle(VteTerminal *terminal,
-			    const PangoColor *color,
+			    vte::color::rgb const* color,
 			    gint x,
 			    gint y,
 			    gint width,
@@ -8850,7 +8850,7 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 
 static void
 vte_terminal_draw_line(VteTerminal *terminal,
-		       const PangoColor *color,
+		       vte::color::rgb const* color,
 		       gint x,
 		       gint y,
 		       gint xp,
@@ -8863,7 +8863,7 @@ vte_terminal_draw_line(VteTerminal *terminal,
 
 static void
 vte_terminal_draw_rectangle(VteTerminal *terminal,
-			    const PangoColor *color,
+			    vte::color::rgb const* color,
 			    gint x,
 			    gint y,
 			    gint width,
@@ -8888,7 +8888,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 {
 	int i, x, y;
 	gint columns = 0;
-	PangoColor fg, bg;
+	vte::color::rgb fg, bg;
 
 	g_assert(n > 0);
 	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
@@ -8998,7 +8998,7 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 	int i, sumlen = 0;
 	struct _fudge_cell_props{
 		gboolean saw_fg, saw_bg;
-		PangoColor fg, bg;
+		vte::color::rgb fg, bg;
 		guint index;
 	}*props = g_newa (struct _fudge_cell_props, n);
 
@@ -9290,7 +9290,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					j += cell ? cell->attr.columns : 1;
 				}
 				if (back != VTE_DEFAULT_BG) {
-					PangoColor bg;
+					vte::color::rgb bg;
 					gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
 											VTE_DRAW_BOLD) ? 0 : bold;
 					vte_terminal_get_rgb_from_index(terminal, back, &bg);
@@ -9319,7 +9319,7 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 				vte_terminal_determine_colors(terminal, NULL, selected, &fore, &back);
 				if (back != VTE_DEFAULT_BG) {
-					PangoColor bg;
+					vte::color::rgb bg;
 					vte_terminal_get_rgb_from_index(terminal, back, &bg);
 					_vte_draw_fill_rectangle (terminal->pvt->draw,
 								  x + i *column_width,
@@ -9636,7 +9636,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 	int drow, col;
 	long width, height, cursor_width;
 	guint fore, back;
-	PangoColor bg;
+	vte::color::rgb bg;
 	int x, y;
 	gboolean blink, selected, focus;
 
@@ -10118,7 +10118,7 @@ VteTerminalPrivate::set_rewrap_on_resize(bool rewrap)
 void
 VteTerminalPrivate::widget_background_update()
 {
-	const PangoColor *entry;
+	vte::color::rgb const* entry;
 	GdkRGBA color;
 
 	/* If we're not realized yet, don't worry about it, because we get

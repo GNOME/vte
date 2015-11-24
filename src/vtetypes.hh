@@ -17,7 +17,10 @@
 
 #pragma once
 
+#include <pango/pango.h>
+
 namespace vte {
+
 namespace grid {
 
         typedef long row_t;
@@ -80,4 +83,22 @@ namespace grid {
         };
 
 } /* namespace grid */
+
+namespace color {
+
+        /* 24-bit (8 bit per channel) packed colour */
+        /* FIXME: we could actually support 10 bit per channel */
+        typedef guint32 packed;
+
+        class rgb : public PangoColor {
+        public:
+                rgb() = default;
+                rgb(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }
+                rgb(PangoColor const& a, PangoColor const& b, double f);
+
+                void from_pango(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }
+        };
+
+} /* namespace color */
+
 } /* namespace vte */

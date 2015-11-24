@@ -925,7 +925,7 @@ _vte_draw_has_bold (struct _vte_draw *draw, guint style)
 
 static void
 _vte_draw_set_source_color_alpha (struct _vte_draw *draw,
-                                  const PangoColor *color,
+                                  vte::color::rgb const* color,
                                   guchar            alpha)
 {
         g_assert(draw->cr);
@@ -950,7 +950,7 @@ _vte_draw_unichar_is_local_graphic(vteunistr c)
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static void
-_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, const PangoColor *fg,
+_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color::rgb const* fg,
                                 gint x, gint y,
                                 gint column_width, gint columns, gint row_height)
 {
@@ -1410,7 +1410,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, const Pango
 static void
 _vte_draw_text_internal (struct _vte_draw *draw,
 			 struct _vte_draw_text_request *requests, gsize n_requests,
-			 const PangoColor *color, guchar alpha, guint style)
+			 vte::color::rgb const* color, guchar alpha, guint style)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
@@ -1484,7 +1484,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       const PangoColor *color, guchar alpha, guint style)
+	       vte::color::rgb const* color, guchar alpha, guint style)
 {
         g_assert(draw->cr);
 
@@ -1543,7 +1543,7 @@ _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, guint style)
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       const PangoColor *color, guchar alpha, guint style)
+	       vte::color::rgb const* color, guchar alpha, guint style)
 {
 	gboolean has_char;
 
@@ -1565,7 +1565,7 @@ _vte_draw_char (struct _vte_draw *draw,
 void
 _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 const PangoColor *color, guchar alpha)
+			 vte::color::rgb const* color, guchar alpha)
 {
         g_assert(draw->cr);
 
@@ -1585,7 +1585,7 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 void
 _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 const PangoColor *color, guchar alpha)
+			 vte::color::rgb const* color, guchar alpha)
 {
         g_assert(draw->cr);
 

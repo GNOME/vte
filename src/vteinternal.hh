@@ -93,7 +93,7 @@ typedef enum _VteKeymode {
 
 typedef struct _VtePaletteColor {
 	struct {
-		PangoColor color;
+		vte::color::rgb color;
 		gboolean is_set;
 	} sources[2];
 } VtePaletteColor;
@@ -736,10 +736,10 @@ public:
         long get_char_height() { ensure_font(); return char_height; }
         long get_char_width()  { ensure_font(); return char_width;  }
 
-        PangoColor const* get_color(int entry) const;
+        vte::color::rgb const* get_color(int entry) const;
         void set_color_internal(int entry,
                                 int source,
-                                PangoColor const* proposed);
+                                vte::color::rgb const* proposed);
 
         bool set_audible_bell(bool setting);
         bool set_allow_bold(bool setting);

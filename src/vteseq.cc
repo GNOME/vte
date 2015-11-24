@@ -115,7 +115,7 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 }
 
 static gboolean
-vte_parse_color (const char *spec, PangoColor *color)
+vte_parse_color (const char *spec, vte::color::rgb *color)
 {
 	gchar *spec_copy = (gchar *) spec;
 	gboolean retval = FALSE;
@@ -1626,7 +1626,7 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
 {
 	gchar **pairs, *str = NULL;
 	GValue *value;
-	PangoColor color;
+	vte::color::rgb color;
 	guint idx, i;
 
 	if (params != NULL && params->n_values > 0) {
@@ -1656,7 +1656,7 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
                                 terminal->pvt->set_color_internal(idx, VTE_COLOR_SOURCE_ESCAPE, &color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
-				PangoColor const* c = terminal->pvt->get_color(idx);
+				vte::color::rgb const* c = terminal->pvt->get_color(idx);
 				g_assert(c != NULL);
 				g_snprintf (buf, sizeof (buf),
 					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
@@ -3112,7 +3112,7 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 {
 	gchar *name = NULL;
 	GValue *value;
-	PangoColor color;
+	vte::color::rgb color;
 
 	if (params != NULL && params->n_values > 0) {
 		value = g_value_array_get_nth (params, 0);
@@ -3129,7 +3129,7 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 			terminal->pvt->set_color_internal(index, VTE_COLOR_SOURCE_ESCAPE, &color);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
-			PangoColor const* c = terminal->pvt->get_color(index);
+			vte::color::rgb const* c = terminal->pvt->get_color(index);
 			if (c == NULL && index_fallback != -1)
 				c = terminal->pvt->get_color(index_fallback);
 			g_assert(c != NULL);

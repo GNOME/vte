@@ -27,6 +27,8 @@ static_assert(sizeof(vte::grid::coords) == 2 * sizeof(long), "vte::grid::coords 
 static_assert(std::is_pod<vte::grid::span>::value, "vte::grid::span not POD");
 static_assert(sizeof(vte::grid::span) == 4 * sizeof(long), "vte::grid::span size wrong");
 
+static_assert(std::is_pod<vte::color::rgb>::value, "vte::color::rgb not POD");
+static_assert(sizeof(vte::color::rgb) == sizeof(PangoColor), "vte::color::rgb size wrong");
 
 #ifdef MAIN
 
@@ -175,6 +177,11 @@ test_grid_span (void)
         g_assert_false(s8.box_contains(coords(3, 42)));
 }
 
+static void
+test_color_rgb (void)
+{
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -182,6 +189,7 @@ main(int argc, char *argv[])
 
         g_test_add_func("/vte/c++/grid/coords", test_grid_coords);
         g_test_add_func("/vte/c++/grid/span", test_grid_span);
+        g_test_add_func("/vte/c++/color/rgb", test_color_rgb);
 
         return g_test_run();
 }

@@ -25,6 +25,7 @@
 #include <gtk/gtk.h>
 #include <cairo.h>
 #include "vteunistr.h"
+#include "vtetypes.hh"
 
 G_BEGIN_DECLS
 
@@ -89,18 +90,18 @@ gboolean _vte_draw_has_bold (struct _vte_draw *draw, guint style);
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    const PangoColor *color, guchar alpha, guint style);
+		    vte::color::rgb const* color, guchar alpha, guint style);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
-			const PangoColor *color, guchar alpha, guint style);
+			vte::color::rgb const* color, guchar alpha, guint style);
 gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, guint style);
 
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      const PangoColor *color, guchar alpha);
+			      vte::color::rgb const* color, guchar alpha);
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      const PangoColor *color, guchar alpha);
+			      vte::color::rgb const* color, guchar alpha);
 
 G_END_DECLS
 
