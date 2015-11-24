@@ -445,6 +445,9 @@ public:
         VteRowData *ensure_cursor();
         void update_insert_delta();
 
+        void cleanup_fragments(long start,
+                               long end);
+
         void invalidate(vte::grid::span s, bool block = false);
         void invalidate_cell(vte::grid::column_t column, vte::grid::row_t row);
         void invalidate_cells(vte::grid::column_t sc, int cc,

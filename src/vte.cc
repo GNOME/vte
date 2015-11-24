@@ -3021,8 +3021,7 @@ VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
 }
 
 /*
- * _vte_terminal_cleanup_fragments:
- * @terminal: a #VteTerminal
+ * VteTerminalPrivate::cleanup_fragments:
  * @start: the starting column, inclusive
  * @end: the end column, exclusive
  *
@@ -3042,10 +3041,10 @@ VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
  * because the caller can't reasonably be expected to take care of this.
  */
 void
-_vte_terminal_cleanup_fragments(VteTerminal *terminal,
-                                long start, long end)
+VteTerminalPrivate::cleanup_fragments(long start,
+                                      long end)
 {
-        VteRowData *row = terminal->pvt->ensure_row();
+        VteRowData *row = ensure_row();
         const VteCell *cell_start;
         VteCell *cell_end, *cell_col;
         gboolean cell_start_is_fragment;
@@ -3086,9 +3085,9 @@ _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                         cell_end->c = ' ';
                         cell_end->attr.fragment = 0;
                         cell_end->attr.columns = 1;
-                        terminal->pvt->invalidate_cells(
+                        invalidate_cells(
                                               end, 1,
-                                              terminal->pvt->cursor.row, 1);
+                                              m_cursor.row, 1);
                 }
         }
 
@@ -3112,9 +3111,9 @@ _vte_terminal_cleanup_fragments(VteTerminal *terminal,
                                                          "Cleaning CJK left half at %ld\n",
                                                          col);
                                         g_assert(start - col == 1);
-                                        terminal->pvt->invalidate_cells(
+                                        invalidate_cells(
                                                               col, 1,
-                                                              terminal->pvt->cursor.row, 1);
+                                                              m_cursor.row, 1);
                                 }
                                 keep_going = FALSE;
                         }
@@ -3413,11 +3412,11 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	g_assert(row != NULL);
 
 	if (insert) {
-                _vte_terminal_cleanup_fragments (terminal, col, col);
+                terminal->pvt->cleanup_fragments(col, col);
 		for (i = 0; i < columns; i++)
                         _vte_row_data_insert (row, col + i, &terminal->pvt->color_defaults);
 	} else {
-                _vte_terminal_cleanup_fragments (terminal, col, col + columns);
+                terminal->pvt->cleanup_fragments(col, col + columns);
 		_vte_row_data_fill (row, &basic_cell.cell, col + columns);
 	}
 
@@ -3442,7 +3441,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		col++;
 	}
 	if (_vte_row_data_length (row) > terminal->pvt->column_count)
-		_vte_terminal_cleanup_fragments (terminal, terminal->pvt->column_count, _vte_row_data_length (row));
+		terminal->pvt->cleanup_fragments(terminal->pvt->column_count, _vte_row_data_length (row));
 	_vte_row_data_shrink (row, terminal->pvt->column_count);
 
 	/* Signal that this part of the window needs drawing. */
