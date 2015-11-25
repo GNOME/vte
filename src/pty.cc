@@ -759,6 +759,20 @@ _vte_pty_getpt(GError **error)
                 return -1;
         }
 
+        /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
+         * notifying us of stop/start (^S/^Q) events. */
+        int one = 1;
+        rv = ioctl(fd, TIOCPKT, &one);
+        if (rv < 0) {
+                int errsv = errno;
+                g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errno));
+                close(fd);
+                errno = errsv;
+                return -1;
+        }
+
 	return fd;
 }
 
