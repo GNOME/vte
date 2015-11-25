@@ -460,10 +460,10 @@ test_vtetypes_CPPFLAGS = \
 	-I$(builddir) \
 	$(AM_CPPFLAGS)
 test_vtetypes_CXXFLAGS = \
-	$(GLIB_CFLAGS) \
+	$(VTE_CFLAGS) \
 	$(AM_CXXFLAGS)
 test_vtetypes_LDADD = \
-	$(GLIB_LIBS) \
+	$(VTE_LIBS) \
 	$(NULL)
 
 vtestream_file_SOURCES = \
