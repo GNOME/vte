@@ -614,7 +614,8 @@ main(int argc, char **argv)
 		(char *) "FOO=BAR", (char *) "BOO=BIZ",
 #endif
 		NULL};
-        char *transparent = NULL;
+        int transparency_percent = 0;
+        gboolean no_argb_visual = FALSE;
         char *encoding = NULL;
         char *cjk_ambiguous_width = NULL;
 	gboolean audible = FALSE,
@@ -677,8 +678,8 @@ main(int argc, char **argv)
 		},
 		{
 			"transparent", 'T', 0,
-			G_OPTION_ARG_STRING, &transparent,
-			"Enable the use of a transparent background", "ALPHA"
+			G_OPTION_ARG_INT, &transparency_percent,
+                        "Enable the use of a transparent background", "0..100",
 		},
 		{
 			"double-buffer", '2', G_OPTION_FLAG_REVERSE,
@@ -776,6 +777,12 @@ main(int argc, char **argv)
 			"reverse", 0, 0,
 			G_OPTION_ARG_NONE, &reverse,
 			"Reverse foreground/background colors", NULL
+		},
+		{
+			"no-argb-visual", 0, 0,
+			G_OPTION_ARG_NONE, &no_argb_visual,
+                        "Don't use an ARGB visual",
+			NULL
 		},
 		{
 			"no-geometry-hints", 'G', G_OPTION_FLAG_REVERSE,
@@ -895,10 +902,17 @@ main(int argc, char **argv)
         }
 
 	/* Set ARGB visual */
-	screen = gtk_widget_get_screen (window);
-	visual = gdk_screen_get_rgba_visual(screen);
-	if (visual)
-		gtk_widget_set_visual(GTK_WIDGET(window), visual);
+        if (transparency_percent != 0) {
+                if (!no_argb_visual) {
+                        screen = gtk_widget_get_screen (window);
+                        visual = gdk_screen_get_rgba_visual(screen);
+                        if (visual)
+                                gtk_widget_set_visual(GTK_WIDGET(window), visual);
+                }
+
+                /* Without this transparency doesn't work; see bug #729884. */
+                gtk_widget_set_app_paintable(GTK_WIDGET(window), TRUE);
+        }
 
 	if (use_scrolled_window) {
 		scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -988,9 +1002,8 @@ main(int argc, char **argv)
 	vte_terminal_set_scrollback_lines(terminal, lines);
 	vte_terminal_set_mouse_autohide(terminal, TRUE);
 
-	if (transparent != NULL) {
-                back.alpha = g_ascii_strtod (transparent, NULL);
-                g_free (transparent);
+	if (transparency_percent != 0) {
+                back.alpha = (double)(100 - CLAMP(transparency_percent, 0, 100)) / 100.;
         }
 
 	vte_terminal_set_colors(terminal, &fore, &back, NULL, 0);
