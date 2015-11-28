@@ -926,14 +926,14 @@ _vte_draw_has_bold (struct _vte_draw *draw, guint style)
 static void
 _vte_draw_set_source_color_alpha (struct _vte_draw *draw,
                                   vte::color::rgb const* color,
-                                  guchar            alpha)
+                                  double alpha)
 {
         g_assert(draw->cr);
 	cairo_set_source_rgba (draw->cr,
 			      color->red / 65535.,
 			      color->green / 65535.,
 			      color->blue / 65535.,
-			      alpha / 255.);
+			      alpha);
 }
 
 /* Check if a unicode character is actually a graphic character we draw
@@ -1410,7 +1410,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
 static void
 _vte_draw_text_internal (struct _vte_draw *draw,
 			 struct _vte_draw_text_request *requests, gsize n_requests,
-			 vte::color::rgb const* color, guchar alpha, guint style)
+			 vte::color::rgb const* color, double alpha, guint style)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = NULL;
@@ -1484,7 +1484,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
-	       vte::color::rgb const* color, guchar alpha, guint style)
+	       vte::color::rgb const* color, double alpha, guint style)
 {
         g_assert(draw->cr);
 
@@ -1496,7 +1496,7 @@ _vte_draw_text (struct _vte_draw *draw,
 			g_string_append_unichar (string, requests[n].c);
 		}
 		str = g_string_free (string, FALSE);
-		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d,%d), %s - %s)\n",
+		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d,%.3f), %s - %s)\n",
 				str, n_requests, color->red, color->green, color->blue, alpha,
 				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
 				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
@@ -1543,12 +1543,12 @@ _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, guint style)
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
-	       vte::color::rgb const* color, guchar alpha, guint style)
+	       vte::color::rgb const* color, double alpha, guint style)
 {
 	gboolean has_char;
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_char ('%c', color=(%d,%d,%d,%d), %s, %s)\n",
+			"draw_char ('%c', color=(%d,%d,%d,%.3f), %s, %s)\n",
 			request->c,
 			color->red, color->green, color->blue,
 			alpha,
@@ -1565,12 +1565,12 @@ _vte_draw_char (struct _vte_draw *draw,
 void
 _vte_draw_draw_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 vte::color::rgb const* color, guchar alpha)
+			 vte::color::rgb const* color, double alpha)
 {
         g_assert(draw->cr);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
+			"draw_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
 			x,y,width,height,
 			color->red, color->green, color->blue,
 			alpha);
@@ -1585,12 +1585,12 @@ _vte_draw_draw_rectangle (struct _vte_draw *draw,
 void
 _vte_draw_fill_rectangle (struct _vte_draw *draw,
 			 gint x, gint y, gint width, gint height,
-			 vte::color::rgb const* color, guchar alpha)
+			 vte::color::rgb const* color, double alpha)
 {
         g_assert(draw->cr);
 
 	_vte_debug_print (VTE_DEBUG_DRAW,
-			"draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%d))\n",
+			"draw_fill_rectangle (%d, %d, %d, %d, color=(%d,%d,%d,%.3f))\n",
 			x,y,width,height,
 			color->red, color->green, color->blue,
 			alpha);

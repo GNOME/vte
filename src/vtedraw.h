@@ -44,7 +44,7 @@ G_BEGIN_DECLS
    returned by pango_layout would be screwed up for Chinese and Japanese
    fonts without Hangul */
 #define VTE_DRAW_DOUBLE_WIDE_IDEOGRAPHS 0x4e00, 0x4e8c, 0x4e09, 0x56db, 0x4e94
-#define VTE_DRAW_OPAQUE 0xff
+#define VTE_DRAW_OPAQUE (1.0)
 #define VTE_DRAW_MAX_LENGTH 1024
 
 #define VTE_DRAW_NORMAL 0
@@ -90,18 +90,18 @@ gboolean _vte_draw_has_bold (struct _vte_draw *draw, guint style);
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
-		    vte::color::rgb const* color, guchar alpha, guint style);
+		    vte::color::rgb const* color, double alpha, guint style);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
-			vte::color::rgb const* color, guchar alpha, guint style);
+			vte::color::rgb const* color, double alpha, guint style);
 gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, guint style);
 
 void _vte_draw_fill_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      vte::color::rgb const* color, guchar alpha);
+			      vte::color::rgb const* color, double alpha);
 void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
-			      vte::color::rgb const* color, guchar alpha);
+			      vte::color::rgb const* color, double alpha);
 
 G_END_DECLS
 
