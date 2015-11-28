@@ -459,6 +459,7 @@ public:
         void invalidate_region(vte::grid::column_t sc, vte::grid::column_t ec,
                                vte::grid::row_t sr, vte::grid::row_t er,
                                bool block = false);
+        void invalidate_selection();
         void invalidate_all();
 
         gssize get_preedit_width(bool left_only);

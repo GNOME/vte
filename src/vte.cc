@@ -6403,15 +6403,14 @@ VteTerminalPrivate::widget_paste(GdkAtom board)
 	}
 }
 
-static void
-vte_terminal_invalidate_selection (VteTerminal *terminal)
+void
+VteTerminalPrivate::invalidate_selection()
 {
-	terminal->pvt->invalidate_region(
-				terminal->pvt->selection_start.col,
-				terminal->pvt->selection_end.col,
-				terminal->pvt->selection_start.row,
-				terminal->pvt->selection_end.row,
-				terminal->pvt->selection_block_mode);
+        invalidate_region(m_selection_start.col,
+                          m_selection_end.col,
+                          m_selection_start.row,
+                          m_selection_end.row,
+                          m_selection_block_mode);
 }
 
 /* Confine coordinates into the visible area. Padding is already subtracted. */
@@ -6784,7 +6783,7 @@ VteTerminalPrivate::extend_selection(long x,
 
 		/* We don't support always_grow in block mode */
 		if (always_grow)
-			vte_terminal_invalidate_selection(m_terminal);
+			invalidate_selection();
 
 		if (origin->y <= last->y) {
 			/* The origin point is "before" the last point. */
@@ -6950,7 +6949,7 @@ VteTerminalPrivate::extend_selection(long x,
 
 	if (invalidate_selected || !had_selection) {
 		_vte_debug_print(VTE_DEBUG_SELECTION, "Invalidating selection.");
-		vte_terminal_invalidate_selection(m_terminal);
+		invalidate_selection();
 	}
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,
