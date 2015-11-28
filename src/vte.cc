@@ -5295,11 +5295,10 @@ VteTerminalPrivate::is_same_class(vte::grid::column_t acol,
 }
 
 /* Check if we soft-wrapped on the given line. */
-static gboolean
-vte_line_is_wrappable(VteTerminal *terminal, glong row)
+bool
+VteTerminalPrivate::line_is_wrappable(vte::grid::row_t row) const
 {
-	const VteRowData *rowdata;
-	rowdata = _vte_terminal_find_row_data(terminal, row);
+	const VteRowData *rowdata = _vte_terminal_find_row_data(m_terminal, row);
 	return rowdata && rowdata->attr.soft_wrapped;
 }
 
@@ -6116,7 +6115,7 @@ _vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		else if (is_selected(terminal, terminal->pvt->column_count, row, data)) {
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
-			if (!vte_line_is_wrappable(terminal, row)) {
+			if (!terminal->pvt->line_is_wrappable(row)) {
 				string = g_string_append_c(string, '\n');
 			}
 		}
@@ -6646,7 +6645,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (vte_line_is_wrappable(terminal, j - 1) &&
+				if (terminal->pvt->line_is_wrappable(j - 1) &&
 				    terminal->pvt->is_same_class(
 						   terminal->pvt->column_count - 1,
 						   j - 1,
@@ -6692,7 +6691,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (vte_line_is_wrappable(terminal, j) &&
+				if (terminal->pvt->line_is_wrappable(j) &&
 				    terminal->pvt->is_same_class(
 						   terminal->pvt->column_count - 1,
 						   j,
@@ -6714,7 +6713,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		/* Now back up as far as we can go. */
 		j = sc->row;
 		while (_vte_ring_contains (screen->row_data, j - 1) &&
-		       vte_line_is_wrappable(terminal, j - 1)) {
+		       terminal->pvt->line_is_wrappable(j - 1)) {
 			j--;
 			sc->row = j;
 		}
@@ -6727,7 +6726,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
                 }
 		j = ec->row;
 		while (_vte_ring_contains (screen->row_data, j) &&
-		       vte_line_is_wrappable(terminal, j)) {
+		       terminal->pvt->line_is_wrappable(j)) {
 			j++;
 			ec->row = j;
 		}

@@ -541,6 +541,8 @@ public:
                            vte::grid::column_t bcol,
                            vte::grid::row_t brow) const;
 
+        inline bool line_is_wrappable(vte::grid::row_t row) const;
+
         void start_selection(long x,
                              long y,
                              enum vte_selection_type selection_type);
