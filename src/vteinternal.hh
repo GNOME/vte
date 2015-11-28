@@ -561,6 +561,8 @@ public:
         void ensure_font();
         void update_font();
 
+        void refresh_size();
+
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
 

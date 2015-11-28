@@ -7673,22 +7673,20 @@ VteTerminalPrivate::set_font_scale(gdouble scale)
 }
 
 /* Read and refresh our perception of the size of the PTY. */
-static void
-vte_terminal_refresh_size(VteTerminal *terminal)
+void
+VteTerminalPrivate::refresh_size()
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
-	int rows, columns;
-        GError *error = NULL;
-
-        if (pvt->pty == NULL)
+        if (!m_pty)
                 return;
 
-        if (vte_pty_get_size(pvt->pty, &rows, &columns, &error)) {
-                terminal->pvt->row_count = rows;
-                terminal->pvt->column_count = columns;
+	int rows, columns;
+        if (vte_pty_get_size(m_pty, &rows, &columns, NULL)) {
+                m_row_count = rows;
+                m_column_count = columns;
         } else {
-                g_warning(_("Error reading PTY size, using defaults: %s\n"), error->message);
-                g_error_free(error);
+                /* Error reading PTY size, use defaults */
+                m_row_count = VTE_ROWS;
+                m_column_count = VTE_COLUMNS;
 	}
 }
 
@@ -7852,7 +7850,7 @@ VteTerminalPrivate::set_size(long columns,
 			g_warning("%s\n", error->message);
                         g_error_free(error);
 		}
-		vte_terminal_refresh_size(m_terminal);
+		refresh_size();
 	} else {
 		m_row_count = rows;
 		m_column_count = columns;
@@ -8152,7 +8150,8 @@ VteTerminalPrivate::widget_get_preferred_width(int *minimum_width,
 
 	ensure_font();
 
-        vte_terminal_refresh_size(m_terminal);
+        refresh_size();
+
 	*minimum_width = m_char_width * 1;
         *natural_width = m_char_width * m_column_count;
 
@@ -8177,7 +8176,8 @@ VteTerminalPrivate::widget_get_preferred_height(int *minimum_height,
 
 	ensure_font();
 
-        vte_terminal_refresh_size(m_terminal);
+        refresh_size();
+
 	*minimum_height = m_char_height * 1;
         *natural_height = m_char_height * m_row_count;
 
