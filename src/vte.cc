@@ -7691,8 +7691,11 @@ VteTerminalPrivate::refresh_size()
 }
 
 /* Resize the given screen (normal or alternate) of the terminal. */
-static void
-vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old_columns, glong old_rows, gboolean do_rewrap)
+void
+VteTerminalPrivate::screen_set_size(VteScreen *screen_,
+                                    long old_columns,
+                                    long old_rows,
+                                    bool do_rewrap)
 {
 	VteRing *ring = screen_->row_data;
 	VteVisualPosition cursor_saved_absolute;
@@ -7704,24 +7707,24 @@ vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old
 	glong old_top_lines;
 	double new_scroll_delta;
 
-        if (terminal->pvt->selection_block_mode && do_rewrap && old_columns != terminal->pvt->column_count)
-                terminal->pvt->deselect_all();
+        if (m_selection_block_mode && do_rewrap && old_columns != m_column_count)
+                deselect_all();
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"Resizing %s screen_\n"
 			"Old  insert_delta=%ld  scroll_delta=%f\n"
                         "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n",
-			screen_ == &terminal->pvt->normal_screen ? "normal" : "alternate",
+			screen_ == &m_normal_screen ? "normal" : "alternate",
 			screen_->insert_delta, screen_->scroll_delta,
-                        terminal->pvt->cursor.row, terminal->pvt->cursor.col,
+                        m_cursor.row, m_cursor.col,
                         screen_->saved.cursor.row, screen_->saved.cursor.col);
 
         cursor_saved_absolute.row = screen_->saved.cursor.row + screen_->insert_delta;
         cursor_saved_absolute.col = screen_->saved.cursor.col;
 	below_viewport.row = screen_->scroll_delta + old_rows;
 	below_viewport.col = 0;
-        below_current_paragraph.row = terminal->pvt->cursor.row + 1;
+        below_current_paragraph.row = m_cursor.row + 1;
 	while (below_current_paragraph.row < _vte_ring_next(ring)
 	    && _vte_ring_index(ring, below_current_paragraph.row - 1)->attr.soft_wrapped) {
 		below_current_paragraph.row++;
@@ -7731,34 +7734,34 @@ vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old
         markers[0] = &cursor_saved_absolute;
         markers[1] = &below_viewport;
         markers[2] = &below_current_paragraph;
-        if (screen_ == terminal->pvt->screen)
+        if (screen_ == m_screen)
                 /* Tracking the current cursor only makes sense on the active screen_. */
-                markers[3] = &terminal->pvt->cursor;
-                if (terminal->pvt->has_selection) {
+                markers[3] = &m_cursor;
+                if (m_has_selection) {
                         /* selection_end is inclusive, make it non-inclusive, see bug 722635. */
-                        terminal->pvt->selection_end.col++;
-                        markers[4] = &terminal->pvt->selection_start;
-                        markers[5] = &terminal->pvt->selection_end;
+                        m_selection_end.col++;
+                        markers[4] = &m_selection_start;
+                        markers[5] = &m_selection_end;
 	}
 
 	old_top_lines = below_current_paragraph.row - screen_->insert_delta;
 
-	if (do_rewrap && old_columns != terminal->pvt->column_count)
-		_vte_ring_rewrap(ring, terminal->pvt->column_count, markers);
+	if (do_rewrap && old_columns != m_column_count)
+		_vte_ring_rewrap(ring, m_column_count, markers);
 
-	if (_vte_ring_length(ring) > terminal->pvt->row_count) {
+	if (_vte_ring_length(ring) > m_row_count) {
 		/* The content won't fit without scrollbars. Before figuring out the position, we might need to
 		   drop some lines from the ring if the cursor is not at the bottom, as XTerm does. See bug 708213.
 		   This code is really tricky, see ../doc/rewrap.txt for details! */
 		glong new_top_lines, drop1, drop2, drop3, drop;
-		screen_->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
+		screen_->insert_delta = _vte_ring_next(ring) - m_row_count;
 		new_top_lines = below_current_paragraph.row - screen_->insert_delta;
-		drop1 = _vte_ring_length(ring) - terminal->pvt->row_count;
+		drop1 = _vte_ring_length(ring) - m_row_count;
 		drop2 = _vte_ring_next(ring) - below_current_paragraph.row;
 		drop3 = old_top_lines - new_top_lines;
 		drop = MIN(MIN(drop1, drop2), drop3);
 		if (drop > 0) {
-			int new_ring_next = screen_->insert_delta + terminal->pvt->row_count - drop;
+			int new_ring_next = screen_->insert_delta + m_row_count - drop;
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Dropping %ld [== MIN(%ld, %ld, %ld)] rows at the bottom\n",
 					drop, drop1, drop2, drop3);
@@ -7766,13 +7769,13 @@ vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old
 		}
 	}
 
-	if (screen_ == terminal->pvt->screen && terminal->pvt->has_selection) {
+	if (screen_ == m_screen && m_has_selection) {
 		/* Make selection_end inclusive again, see above. */
-		terminal->pvt->selection_end.col--;
+		m_selection_end.col--;
 	}
 
 	/* Figure out new insert and scroll deltas */
-	if (_vte_ring_length(ring) <= terminal->pvt->row_count) {
+	if (_vte_ring_length(ring) <= m_row_count) {
 		/* Everything fits without scrollbars. Align at top. */
 		screen_->insert_delta = _vte_ring_delta(ring);
 		new_scroll_delta = screen_->insert_delta;
@@ -7780,7 +7783,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old
 				"Everything fits without scrollbars\n");
 	} else {
 		/* Scrollbar required. Can't afford unused lines at bottom. */
-		screen_->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
+		screen_->insert_delta = _vte_ring_next(ring) - m_row_count;
 		if (was_scrolled_to_bottom) {
 			/* Was scrolled to bottom, keep this way. */
 			new_scroll_delta = screen_->insert_delta;
@@ -7799,7 +7802,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old
 			   line break will stay there.
 			   TODO: What would be the best behavior if the bottom of the screen_ is a
 			   soft line break, i.e. only a partial line is visible at the bottom? */
-			new_scroll_delta = below_viewport.row - terminal->pvt->row_count;
+			new_scroll_delta = below_viewport.row - m_row_count;
 			/* Keep the old fractional part. */
 			new_scroll_delta += screen_->scroll_delta - floor(screen_->scroll_delta);
 			_vte_debug_print(VTE_DEBUG_RESIZE,
@@ -7817,12 +7820,11 @@ vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old
                         "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n\n",
 			screen_->insert_delta, new_scroll_delta,
-                        terminal->pvt->cursor.row, terminal->pvt->cursor.col,
+                        m_cursor.row, m_cursor.col,
                         screen_->saved.cursor.row, screen_->saved.cursor.col);
 
-	if (screen_ == terminal->pvt->screen)
-		terminal->pvt->queue_adjustment_value_changed(
-				new_scroll_delta);
+	if (screen_ == m_screen)
+		queue_adjustment_value_changed(new_scroll_delta);
 	else
 		screen_->scroll_delta = new_scroll_delta;
 }
@@ -7862,10 +7864,10 @@ VteTerminalPrivate::set_size(long columns,
                 _vte_ring_set_visible_rows(m_alternate_screen.row_data, m_row_count);
 
 		/* Resize the normal screen and (if rewrapping is enabled) rewrap it even if the alternate screen is visible: bug 415277 */
-		vte_terminal_screen_set_size(m_terminal, &m_normal_screen, old_columns, old_rows, m_rewrap_on_resize);
+		screen_set_size(&m_normal_screen, old_columns, old_rows, m_rewrap_on_resize);
 		/* Resize the alternate screen if it's the current one, but never rewrap it: bug 336238 comment 60 */
 		if (m_screen == &m_alternate_screen)
-			vte_terminal_screen_set_size(m_terminal, &m_alternate_screen, old_columns, old_rows, FALSE);
+			screen_set_size(&m_alternate_screen, old_columns, old_rows, false);
 
                 /* Ensure scrollback buffers cover the screen. */
                 vte_terminal_set_scrollback_lines(m_terminal,

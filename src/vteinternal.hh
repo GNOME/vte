@@ -558,6 +558,10 @@ public:
         void update_font();
 
         void refresh_size();
+        void screen_set_size(VteScreen *screen_,
+                             long old_columns,
+                             long old_rows,
+                             bool do_rewrap);
 
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
