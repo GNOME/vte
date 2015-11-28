@@ -7692,15 +7692,15 @@ VteTerminalPrivate::refresh_size()
 
 /* Resize the given screen (normal or alternate) of the terminal. */
 static void
-vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old_columns, glong old_rows, gboolean do_rewrap)
+vte_terminal_screen_set_size(VteTerminal *terminal,VteScreen *screen_, glong old_columns, glong old_rows, gboolean do_rewrap)
 {
-	VteRing *ring = screen->row_data;
+	VteRing *ring = screen_->row_data;
 	VteVisualPosition cursor_saved_absolute;
 	VteVisualPosition below_viewport;
 	VteVisualPosition below_current_paragraph;
 	VteVisualPosition *markers[7];
-        gboolean was_scrolled_to_top = ((long) ceil(screen->scroll_delta) == _vte_ring_delta(ring));
-        gboolean was_scrolled_to_bottom = ((long) screen->scroll_delta == screen->insert_delta);
+        gboolean was_scrolled_to_top = ((long) ceil(screen_->scroll_delta) == _vte_ring_delta(ring));
+        gboolean was_scrolled_to_bottom = ((long) screen_->scroll_delta == screen_->insert_delta);
 	glong old_top_lines;
 	double new_scroll_delta;
 
@@ -7708,18 +7708,18 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
                 terminal->pvt->deselect_all();
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
-			"Resizing %s screen\n"
+			"Resizing %s screen_\n"
 			"Old  insert_delta=%ld  scroll_delta=%f\n"
                         "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n",
-			screen == &terminal->pvt->normal_screen ? "normal" : "alternate",
-			screen->insert_delta, screen->scroll_delta,
+			screen_ == &terminal->pvt->normal_screen ? "normal" : "alternate",
+			screen_->insert_delta, screen_->scroll_delta,
                         terminal->pvt->cursor.row, terminal->pvt->cursor.col,
-                        screen->saved.cursor.row, screen->saved.cursor.col);
+                        screen_->saved.cursor.row, screen_->saved.cursor.col);
 
-        cursor_saved_absolute.row = screen->saved.cursor.row + screen->insert_delta;
-        cursor_saved_absolute.col = screen->saved.cursor.col;
-	below_viewport.row = screen->scroll_delta + old_rows;
+        cursor_saved_absolute.row = screen_->saved.cursor.row + screen_->insert_delta;
+        cursor_saved_absolute.col = screen_->saved.cursor.col;
+	below_viewport.row = screen_->scroll_delta + old_rows;
 	below_viewport.col = 0;
         below_current_paragraph.row = terminal->pvt->cursor.row + 1;
 	while (below_current_paragraph.row < _vte_ring_next(ring)
@@ -7731,8 +7731,8 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
         markers[0] = &cursor_saved_absolute;
         markers[1] = &below_viewport;
         markers[2] = &below_current_paragraph;
-        if (screen == terminal->pvt->screen)
-                /* Tracking the current cursor only makes sense on the active screen. */
+        if (screen_ == terminal->pvt->screen)
+                /* Tracking the current cursor only makes sense on the active screen_. */
                 markers[3] = &terminal->pvt->cursor;
                 if (terminal->pvt->has_selection) {
                         /* selection_end is inclusive, make it non-inclusive, see bug 722635. */
@@ -7741,7 +7741,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
                         markers[5] = &terminal->pvt->selection_end;
 	}
 
-	old_top_lines = below_current_paragraph.row - screen->insert_delta;
+	old_top_lines = below_current_paragraph.row - screen_->insert_delta;
 
 	if (do_rewrap && old_columns != terminal->pvt->column_count)
 		_vte_ring_rewrap(ring, terminal->pvt->column_count, markers);
@@ -7751,14 +7751,14 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 		   drop some lines from the ring if the cursor is not at the bottom, as XTerm does. See bug 708213.
 		   This code is really tricky, see ../doc/rewrap.txt for details! */
 		glong new_top_lines, drop1, drop2, drop3, drop;
-		screen->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
-		new_top_lines = below_current_paragraph.row - screen->insert_delta;
+		screen_->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
+		new_top_lines = below_current_paragraph.row - screen_->insert_delta;
 		drop1 = _vte_ring_length(ring) - terminal->pvt->row_count;
 		drop2 = _vte_ring_next(ring) - below_current_paragraph.row;
 		drop3 = old_top_lines - new_top_lines;
 		drop = MIN(MIN(drop1, drop2), drop3);
 		if (drop > 0) {
-			int new_ring_next = screen->insert_delta + terminal->pvt->row_count - drop;
+			int new_ring_next = screen_->insert_delta + terminal->pvt->row_count - drop;
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Dropping %ld [== MIN(%ld, %ld, %ld)] rows at the bottom\n",
 					drop, drop1, drop2, drop3);
@@ -7766,7 +7766,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 		}
 	}
 
-	if (screen == terminal->pvt->screen && terminal->pvt->has_selection) {
+	if (screen_ == terminal->pvt->screen && terminal->pvt->has_selection) {
 		/* Make selection_end inclusive again, see above. */
 		terminal->pvt->selection_end.col--;
 	}
@@ -7774,16 +7774,16 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 	/* Figure out new insert and scroll deltas */
 	if (_vte_ring_length(ring) <= terminal->pvt->row_count) {
 		/* Everything fits without scrollbars. Align at top. */
-		screen->insert_delta = _vte_ring_delta(ring);
-		new_scroll_delta = screen->insert_delta;
+		screen_->insert_delta = _vte_ring_delta(ring);
+		new_scroll_delta = screen_->insert_delta;
 		_vte_debug_print(VTE_DEBUG_RESIZE,
 				"Everything fits without scrollbars\n");
 	} else {
 		/* Scrollbar required. Can't afford unused lines at bottom. */
-		screen->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
+		screen_->insert_delta = _vte_ring_next(ring) - terminal->pvt->row_count;
 		if (was_scrolled_to_bottom) {
 			/* Was scrolled to bottom, keep this way. */
-			new_scroll_delta = screen->insert_delta;
+			new_scroll_delta = screen_->insert_delta;
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Scroll to bottom\n");
 		} else if (was_scrolled_to_top) {
@@ -7795,36 +7795,36 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
 			/* Try to scroll so that the bottom visible row stays.
 			   More precisely, the character below the bottom left corner stays in that
 			   (invisible) row.
-			   So if the bottom of the screen was at a hard line break then that hard
+			   So if the bottom of the screen_ was at a hard line break then that hard
 			   line break will stay there.
-			   TODO: What would be the best behavior if the bottom of the screen is a
+			   TODO: What would be the best behavior if the bottom of the screen_ is a
 			   soft line break, i.e. only a partial line is visible at the bottom? */
 			new_scroll_delta = below_viewport.row - terminal->pvt->row_count;
 			/* Keep the old fractional part. */
-			new_scroll_delta += screen->scroll_delta - floor(screen->scroll_delta);
+			new_scroll_delta += screen_->scroll_delta - floor(screen_->scroll_delta);
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Scroll so bottom row stays\n");
 		}
 	}
 
-	/* Don't clamp, they'll be clamped when restored. Until then remember off-screen values
-	   since they might become on-screen again on subsequent resizes. */
-        screen->saved.cursor.row = cursor_saved_absolute.row - screen->insert_delta;
-        screen->saved.cursor.col = cursor_saved_absolute.col;
+	/* Don't clamp, they'll be clamped when restored. Until then remember off-screen_ values
+	   since they might become on-screen_ again on subsequent resizes. */
+        screen_->saved.cursor.row = cursor_saved_absolute.row - screen_->insert_delta;
+        screen_->saved.cursor.col = cursor_saved_absolute.col;
 
 	_vte_debug_print(VTE_DEBUG_RESIZE,
 			"New  insert_delta=%ld  scroll_delta=%f\n"
                         "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n\n",
-			screen->insert_delta, new_scroll_delta,
+			screen_->insert_delta, new_scroll_delta,
                         terminal->pvt->cursor.row, terminal->pvt->cursor.col,
-                        screen->saved.cursor.row, screen->saved.cursor.col);
+                        screen_->saved.cursor.row, screen_->saved.cursor.col);
 
-	if (screen == terminal->pvt->screen)
+	if (screen_ == terminal->pvt->screen)
 		terminal->pvt->queue_adjustment_value_changed(
 				new_scroll_delta);
 	else
-		screen->scroll_delta = new_scroll_delta;
+		screen_->scroll_delta = new_scroll_delta;
 }
 
 void
