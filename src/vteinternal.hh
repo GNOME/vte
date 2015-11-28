@@ -563,6 +563,8 @@ public:
                              long old_rows,
                              bool do_rewrap);
 
+        void vadjustment_value_changed();
+
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
 

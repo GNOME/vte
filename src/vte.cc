@@ -7887,31 +7887,32 @@ VteTerminalPrivate::set_size(long columns,
 
 /* Redraw the widget. */
 static void
-vte_terminal_vadjustment_value_changed_cb(VteTerminal *terminal)
+vte_terminal_vadjustment_value_changed_cb(VteTerminalPrivate *that)
 {
-	double dy, adj;
-	VteScreen *screen;
+        that->vadjustment_value_changed();
+}
 
-	screen = terminal->pvt->screen;
-
+void
+VteTerminalPrivate::vadjustment_value_changed()
+{
 	/* Read the new adjustment value and save the difference. */
-	adj = gtk_adjustment_get_value(terminal->pvt->vadjustment);
-	dy = adj - screen->scroll_delta;
-	screen->scroll_delta = adj;
+	double adj = gtk_adjustment_get_value(m_vadjustment);
+	double dy = adj - m_screen->scroll_delta;
+	m_screen->scroll_delta = adj;
 
 	/* Sanity checks. */
-        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
+        if (G_UNLIKELY(!gtk_widget_get_realized(m_widget)))
                 return;
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
 		return;
-	}
 
+        /* FIXME: do this check in pixel space */
 	if (dy != 0) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
-                terminal->pvt->invalidate_all();
-		terminal->pvt->emit_text_scrolled(dy);
-		terminal->pvt->queue_contents_changed();
+                invalidate_all();
+		emit_text_scrolled(dy);
+		queue_contents_changed();
 	} else {
 		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
 	}
@@ -7947,7 +7948,7 @@ VteTerminalPrivate::widget_set_vadjustment(GtkAdjustment *adjustment)
 		/* Disconnect our signal handlers from this object. */
 		g_signal_handlers_disconnect_by_func(m_vadjustment,
 						     (void*)vte_terminal_vadjustment_value_changed_cb,
-						     m_terminal);
+						     this);
 		g_object_unref(m_vadjustment);
 	}
 
@@ -7958,7 +7959,7 @@ VteTerminalPrivate::widget_set_vadjustment(GtkAdjustment *adjustment)
 	g_signal_connect_swapped(m_vadjustment,
 				 "value-changed",
 				 G_CALLBACK(vte_terminal_vadjustment_value_changed_cb),
-				 m_terminal);
+				 this);
 }
 
 void
@@ -8545,7 +8546,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		/* Disconnect our signal handlers from this object. */
 		g_signal_handlers_disconnect_by_func(m_vadjustment,
 						     (void*)vte_terminal_vadjustment_value_changed_cb,
-						     m_terminal);
+						     this);
 		g_object_unref(m_vadjustment);
 	}
 
