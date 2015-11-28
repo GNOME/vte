@@ -5242,17 +5242,15 @@ static const guint8 word_char_by_category[] = {
 };
 
 /*
- * _vte_terminal_is_word_char:
- * @terminal: a #VteTerminal
+ * VteTerminalPrivate::is_word_char:
  * @c: a candidate Unicode code point
  *
  * Checks if a particular character is considered to be part of a word or not.
  *
  * Returns: %TRUE if the character is considered to be part of a word
  */
-gboolean
-_vte_terminal_is_word_char(VteTerminal *terminal,
-                           gunichar c)
+bool
+VteTerminalPrivate::is_word_char(gunichar c) const
 {
         const guint8 v = word_char_by_category[g_unichar_type(c)];
 
@@ -5261,8 +5259,8 @@ _vte_terminal_is_word_char(VteTerminal *terminal,
 
         /* Do we have an exception? */
         return bsearch(&c,
-                       terminal->pvt->word_char_exceptions,
-                       terminal->pvt->word_char_exceptions_len,
+                       m_word_char_exceptions,
+                       m_word_char_exceptions_len,
                        sizeof(gunichar),
                        compare_unichar_p) != NULL;
 }
@@ -5276,7 +5274,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 	const VteCell *pcell = NULL;
 	gboolean word_char;
 	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
-		word_char = _vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c));
+		word_char = terminal->pvt->is_word_char(_vte_unistr_get_base (pcell->c));
 
 		/* Lets not group non-wordchars together (bug #25290) */
 		if (!word_char)
@@ -5286,7 +5284,7 @@ vte_same_class(VteTerminal *terminal, glong acol, glong arow,
 		if (pcell == NULL || pcell->c == 0) {
 			return FALSE;
 		}
-		if (word_char != _vte_terminal_is_word_char(terminal, _vte_unistr_get_base (pcell->c))) {
+		if (word_char != terminal->pvt->is_word_char(_vte_unistr_get_base (pcell->c))) {
 			return FALSE;
 		}
 		return TRUE;

@@ -535,6 +535,8 @@ public:
         void feed_child_binary(guint8 const* data,
                                gsize length);
 
+        bool is_word_char(gunichar c) const;
+
         void start_selection(long x,
                              long y,
                              enum vte_selection_type selection_type);
