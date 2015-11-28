@@ -7887,7 +7887,7 @@ VteTerminalPrivate::set_size(long columns,
 
 /* Redraw the widget. */
 static void
-vte_terminal_handle_scroll(VteTerminal *terminal)
+vte_terminal_vadjustment_value_changed_cb(VteTerminal *terminal)
 {
 	double dy, adj;
 	VteScreen *screen;
@@ -7946,7 +7946,7 @@ VteTerminalPrivate::widget_set_vadjustment(GtkAdjustment *adjustment)
 	if (m_vadjustment != nullptr) {
 		/* Disconnect our signal handlers from this object. */
 		g_signal_handlers_disconnect_by_func(m_vadjustment,
-						     (void*)vte_terminal_handle_scroll,
+						     (void*)vte_terminal_vadjustment_value_changed_cb,
 						     m_terminal);
 		g_object_unref(m_vadjustment);
 	}
@@ -7957,7 +7957,7 @@ VteTerminalPrivate::widget_set_vadjustment(GtkAdjustment *adjustment)
 	/* We care about the offset, not the top or bottom. */
 	g_signal_connect_swapped(m_vadjustment,
 				 "value-changed",
-				 G_CALLBACK(vte_terminal_handle_scroll),
+				 G_CALLBACK(vte_terminal_vadjustment_value_changed_cb),
 				 m_terminal);
 }
 
@@ -8542,6 +8542,10 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	/* Free public-facing data. */
 	g_free(m_icon_title);
 	if (m_vadjustment != NULL) {
+		/* Disconnect our signal handlers from this object. */
+		g_signal_handlers_disconnect_by_func(m_vadjustment,
+						     (void*)vte_terminal_vadjustment_value_changed_cb,
+						     m_terminal);
 		g_object_unref(m_vadjustment);
 	}
 
