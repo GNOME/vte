@@ -7084,7 +7084,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 
         if (m_mouse_pressed_buttons != 0) {
 		match_hilite_hide();
-	} else {
+	} else if (x != m_mouse_last_x || y != m_mouse_last_y) {
 		/* Hilite any matches. */
 		match_hilite(x, y);
 		/* Show the cursor. */
