@@ -548,6 +548,12 @@ public:
                              enum vte_selection_type selection_type);
         bool maybe_end_selection();
 
+        void extend_selection_expand();
+        void extend_selection(long x,
+                              long y,
+                              bool always_grow,
+                              bool force);
+
         void select_all();
         void deselect_all();
 

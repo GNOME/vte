@@ -90,8 +90,6 @@ static gboolean vte_terminal_io_write(GIOChannel *channel,
 				      VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
-static void vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
-                                          gboolean always_grow, gboolean force);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 
 static inline gboolean vte_terminal_is_processing (VteTerminal *terminal);
@@ -6495,7 +6493,7 @@ VteTerminalPrivate::start_selection(long x,
                          m_selection_start.row);
 
         /* Take care of updating the display. */
-        vte_terminal_extend_selection(m_terminal, x, y, FALSE, TRUE);
+        extend_selection(x, y, false, true);
 
 	/* Temporarily stop caring about input from the child. */
 	disconnect_pty_read();
@@ -6536,28 +6534,26 @@ math_div (long a, long b)
 }
 
 /* Helper */
-static void
-vte_terminal_extend_selection_expand (VteTerminal *terminal)
+void
+VteTerminalPrivate::extend_selection_expand()
 {
 	long i, j;
-	VteScreen *screen;
 	const VteRowData *rowdata;
 	const VteCell *cell;
 	VteVisualPosition *sc, *ec;
 
-	if (terminal->pvt->selection_block_mode)
+	if (m_selection_block_mode)
 		return;
 
-	screen = terminal->pvt->screen;
-	sc = &terminal->pvt->selection_start;
-	ec = &terminal->pvt->selection_end;
+	sc = &m_selection_start;
+	ec = &m_selection_end;
 
 	/* Extend the selection to handle end-of-line cases, word, and line
 	 * selection.  We do this here because calculating it once is cheaper
 	 * than recalculating for each cell as we render it. */
 
 	/* Handle end-of-line at the start-cell. */
-	rowdata = _vte_terminal_find_row_data(terminal, sc->row);
+	rowdata = _vte_terminal_find_row_data(m_terminal, sc->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the first line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
@@ -6569,21 +6565,21 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
                 i = 0;
 	}
         if (sc->col > i) {
-                if (terminal->pvt->selection_type == selection_type_char) {
+                if (m_selection_type == selection_type_char) {
                         /* If the start point is neither over the used cells, nor over the first
                          * unused one, then move it to the next line. This way you can still start
                          * selecting at the newline character by clicking over the first unused cell.
                          * See bug 725909. */
                         sc->col = -1;
                         sc->row++;
-                } else if (terminal->pvt->selection_type == selection_type_word) {
+                } else if (m_selection_type == selection_type_word) {
                         sc->col = i;
                 }
         }
-        sc->col = find_start_column (terminal, sc->col, sc->row);
+        sc->col = find_start_column(m_terminal, sc->col, sc->row);
 
 	/* Handle end-of-line at the end-cell. */
-	rowdata = _vte_terminal_find_row_data(terminal, ec->row);
+	rowdata = _vte_terminal_find_row_data(m_terminal, ec->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the last line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
@@ -6605,11 +6601,10 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			ec->row++;
 		}
 	}
-	ec->col = find_end_column (terminal, ec->col, ec->row);
-
+	ec->col = find_end_column(m_terminal, ec->col, ec->row);
 
 	/* Now extend again based on selection type. */
-	switch (terminal->pvt->selection_type) {
+	switch (m_selection_type) {
 	case selection_type_char:
 		/* Nothing more to do. */
 		break;
@@ -6618,19 +6613,19 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		 * look at is of the same class as the current start point. */
 		i = sc->col;
 		j = sc->row;
-		while (_vte_ring_contains (screen->row_data, j)) {
+		while (_vte_ring_contains (m_screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data, j);
+			rowdata = _vte_ring_index(m_screen->row_data, j);
 			if (rowdata == NULL) {
 				break;
 			}
 			/* Back up. */
 			for (i = (j == sc->row) ?
 				 sc->col :
-				 terminal->pvt->column_count;
+				 m_column_count;
 			     i > 0;
 			     i--) {
-				if (terminal->pvt->is_same_class(
+				if (is_same_class(
 						   i - 1,
 						   j,
 						   i,
@@ -6645,15 +6640,15 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (terminal->pvt->line_is_wrappable(j - 1) &&
-				    terminal->pvt->is_same_class(
-						   terminal->pvt->column_count - 1,
+				if (line_is_wrappable(j - 1) &&
+				    is_same_class(
+						   m_column_count - 1,
 						   j - 1,
 						   0,
 						   j)) {
 					/* Move on to the previous line. */
 					j--;
-					sc->col = terminal->pvt->column_count - 1;
+					sc->col = m_column_count - 1;
 					sc->row = j;
 				} else {
 					break;
@@ -6664,9 +6659,9 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		 * look at is of the same class as the current end point. */
 		i = ec->col;
 		j = ec->row;
-		while (_vte_ring_contains (screen->row_data, j)) {
+		while (_vte_ring_contains (m_screen->row_data, j)) {
 			/* Get the data for the row we're looking at. */
-			rowdata = _vte_ring_index(screen->row_data, j);
+			rowdata = _vte_ring_index(m_screen->row_data, j);
 			if (rowdata == NULL) {
 				break;
 			}
@@ -6674,9 +6669,9 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 			for (i = (j == ec->row) ?
 				 ec->col :
 				 0;
-			     i < terminal->pvt->column_count - 1;
+			     i < m_column_count - 1;
 			     i++) {
-				if (terminal->pvt->is_same_class(
+				if (is_same_class(
 						   i,
 						   j,
 						   i + 1,
@@ -6687,13 +6682,13 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 					break;
 				}
 			}
-			if (i < terminal->pvt->column_count - 1) {
+			if (i < m_column_count - 1) {
 				/* We hit a stopping point, so stop. */
 				break;
 			} else {
-				if (terminal->pvt->line_is_wrappable(j) &&
-				    terminal->pvt->is_same_class(
-						   terminal->pvt->column_count - 1,
+				if (line_is_wrappable(j) &&
+				    is_same_class(
+						   m_column_count - 1,
 						   j,
 						   0,
 						   j + 1)) {
@@ -6712,8 +6707,8 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 		sc->col = 0;
 		/* Now back up as far as we can go. */
 		j = sc->row;
-		while (_vte_ring_contains (screen->row_data, j - 1) &&
-		       terminal->pvt->line_is_wrappable(j - 1)) {
+		while (_vte_ring_contains (m_screen->row_data, j - 1) &&
+		       line_is_wrappable(j - 1)) {
 			j--;
 			sc->row = j;
 		}
@@ -6725,8 +6720,8 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
                         ec->row--;
                 }
 		j = ec->row;
-		while (_vte_ring_contains (screen->row_data, j) &&
-		       terminal->pvt->line_is_wrappable(j)) {
+		while (_vte_ring_contains (m_screen->row_data, j) &&
+		       line_is_wrappable(j)) {
 			j++;
 			ec->row = j;
 		}
@@ -6739,11 +6734,12 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 }
 
 /* Extend selection to include the given event coordinates. */
-static void
-vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
-			      gboolean always_grow, gboolean force)
+void
+VteTerminalPrivate::extend_selection(long x,
+                                     long y,
+                                     bool always_grow,
+                                     bool force)
 {
-	int width, height;
 	long residual;
 	long row;
 	struct selection_event_coords *origin, *last, *start, *end;
@@ -6751,47 +6747,44 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
 
-	height = terminal->pvt->char_height;
-	width = terminal->pvt->char_width;
-
 	/* Confine coordinates into the visible area. (#563024, #722635c7) */
-	terminal->pvt->confine_coordinates(&x, &y);
+	confine_coordinates(&x, &y);
 
-	old_start = terminal->pvt->selection_start;
-	old_end = terminal->pvt->selection_end;
+	old_start = m_selection_start;
+	old_end = m_selection_end;
 	so = &old_start;
 	eo = &old_end;
 
 	/* If we're restarting on a drag, then mark this as the start of
 	 * the selected block. */
-	if (terminal->pvt->selecting_restart) {
-		terminal->pvt->deselect_all();
+	if (m_selecting_restart) {
+		deselect_all();
 		invalidate_selected = TRUE;
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Selection delayed start at (%ld,%ld).\n",
-				terminal->pvt->selection_origin.x / width,
-				terminal->pvt->selection_origin.y / height);
+				m_selection_origin.x / m_char_width,
+				m_selection_origin.y / m_char_height);
 	}
 
 	/* Recognize that we've got a selected block. */
-	had_selection = terminal->pvt->has_selection;
-	terminal->pvt->has_selection = TRUE;
-	terminal->pvt->selecting_had_delta = TRUE;
-	terminal->pvt->selecting_restart = FALSE;
+	had_selection = m_has_selection;
+	m_has_selection = TRUE;
+	m_selecting_had_delta = TRUE;
+	m_selecting_restart = FALSE;
 
 	/* If we're not in always-grow mode, update the last location of
 	 * the selection. */
-	last = &terminal->pvt->selection_last;
+	last = &m_selection_last;
 
 	/* Map the origin and last selected points to a start and end. */
-	origin = &terminal->pvt->selection_origin;
-	if (terminal->pvt->selection_block_mode) {
+	origin = &m_selection_origin;
+	if (m_selection_block_mode) {
 		last->x = x;
-		last->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
+		last->y = _vte_terminal_scroll_delta_pixel(m_terminal) + y;
 
 		/* We don't support always_grow in block mode */
 		if (always_grow)
-			vte_terminal_invalidate_selection (terminal);
+			vte_terminal_invalidate_selection(m_terminal);
 
 		if (origin->y <= last->y) {
 			/* The origin point is "before" the last point. */
@@ -6805,12 +6798,12 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	} else {
 		if (!always_grow) {
 			last->x = x;
-			last->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
+			last->y = _vte_terminal_scroll_delta_pixel(m_terminal) + y;
 		}
 
-		if ((origin->y / height < last->y / height) ||
-		    ((origin->y / height == last->y / height) &&
-		     (origin->x / width < last->x / width ))) {
+		if ((origin->y / m_char_height < last->y / m_char_height) ||
+		    ((origin->y / m_char_height == last->y / m_char_height) &&
+		     (origin->x / m_char_width < last->x / m_char_width ))) {
 			/* The origin point is "before" the last point. */
 			start = origin;
 			end = last;
@@ -6824,16 +6817,16 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 		 * closer to the new point. */
 		if (always_grow) {
 			/* New endpoint is before existing selection. */
-                        row = _vte_terminal_pixel_to_row(terminal, y);
-			if ((row < start->y / height) ||
-			    ((row == start->y / height) &&
-			     (x / width < start->x / width))) {
+                        row = _vte_terminal_pixel_to_row(m_terminal, y);
+			if ((row < start->y / m_char_height) ||
+			    ((row == start->y / m_char_height) &&
+			     (x / m_char_width < start->x / m_char_width))) {
 				start->x = x;
-				start->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
+				start->y = _vte_terminal_scroll_delta_pixel(m_terminal) + y;
 			} else {
 				/* New endpoint is after existing selection. */
 				end->x = x;
-				end->y = _vte_terminal_scroll_delta_pixel(terminal) + y;
+				end->y = _vte_terminal_scroll_delta_pixel(m_terminal) + y;
 			}
 		}
 	}
@@ -6846,14 +6839,14 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 
 	/* Recalculate the selection area in terms of cell positions. */
 
-	sc = &terminal->pvt->selection_start;
-	ec = &terminal->pvt->selection_end;
+	sc = &m_selection_start;
+	ec = &m_selection_end;
 
-	sc->row = MAX (0, start->y / height);
-	ec->row = MAX (0, end->y   / height);
+	sc->row = MAX (0, start->y / m_char_height);
+	ec->row = MAX (0, end->y   / m_char_height);
 
 	/* Sort x using row cell coordinates */
-	if ((terminal->pvt->selection_block_mode || sc->row == ec->row) && (start->x > end->x)) {
+	if ((m_selection_block_mode || sc->row == ec->row) && (start->x > end->x)) {
 		struct selection_event_coords *tmp;
 		tmp = start;
 		start = end;
@@ -6869,12 +6862,11 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 	 * math_div and no MAX, to allow selecting no cells in the line,
 	 * ie. ec->col = -1, which is essentially equal to copying the
 	 * newline from previous line but no chars from current line. */
-	residual = (width + 1) / 3;
-	sc->col = math_div (start->x + residual, width);
-	ec->col = math_div (end->x - residual, width);
+	residual = (m_char_width + 1) / 3;
+	sc->col = math_div (start->x + residual, m_char_width);
+	ec->col = math_div (end->x - residual, m_char_width);
 
-
-	vte_terminal_extend_selection_expand (terminal);
+	extend_selection_expand();
 
 	if (!invalidate_selected && !force &&
 	    0 == memcmp (sc, so, sizeof (*sc)) &&
@@ -6886,32 +6878,32 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 
 	if (had_selection) {
 
-		if (terminal->pvt->selection_block_mode) {
+		if (m_selection_block_mode) {
 			/* Update the selection area diff in block mode. */
 
 			/* The top band */
-			terminal->pvt->invalidate_region(
+			invalidate_region(
 						MIN(sc->col, so->col),
 						MAX(ec->col, eo->col),
 						MIN(sc->row, so->row),
 						MAX(sc->row, so->row) - 1,
 						true);
 			/* The bottom band */
-			terminal->pvt->invalidate_region(
+			invalidate_region(
 						MIN(sc->col, so->col),
 						MAX(ec->col, eo->col),
 						MIN(ec->row, eo->row) + 1,
 						MAX(ec->row, eo->row),
 						true);
 			/* The left band */
-			terminal->pvt->invalidate_region(
+			invalidate_region(
 						MIN(sc->col, so->col),
 						MAX(sc->col, so->col) - 1 + (VTE_TAB_WIDTH_MAX - 1),
 						MIN(sc->row, so->row),
 						MAX(ec->row, eo->row),
 						true);
 			/* The right band */
-			terminal->pvt->invalidate_region(
+			invalidate_region(
 						MIN(ec->col, eo->col) + 1,
 						MAX(ec->col, eo->col) + (VTE_TAB_WIDTH_MAX - 1),
 						MIN(sc->row, so->row),
@@ -6922,34 +6914,34 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 
 			/* The before band */
 			if (sc->row < so->row)
-				terminal->pvt->invalidate_region(
+				invalidate_region(
 							sc->col, so->col - 1,
 							sc->row, so->row,
 							false);
 			else if (sc->row > so->row)
-				terminal->pvt->invalidate_region(
+				invalidate_region(
 							so->col, sc->col - 1,
 							so->row, sc->row,
 							false);
 			else
-				terminal->pvt->invalidate_region(
+				invalidate_region(
 							MIN(sc->col, so->col), MAX(sc->col, so->col) - 1,
 							sc->row, sc->row,
 							true);
 
 			/* The after band */
 			if (ec->row < eo->row)
-				terminal->pvt->invalidate_region(
+				invalidate_region(
 							ec->col + 1, eo->col,
 							ec->row, eo->row,
 							false);
 			else if (ec->row > eo->row)
-				terminal->pvt->invalidate_region(
+				invalidate_region(
 							eo->col + 1, ec->col,
 							eo->row, ec->row,
 							false);
 			else
-				terminal->pvt->invalidate_region(
+				invalidate_region(
 							MIN(ec->col, eo->col) + 1, MAX(ec->col, eo->col),
 							ec->row, ec->row,
 							true);
@@ -6958,7 +6950,7 @@ vte_terminal_extend_selection(VteTerminal *terminal, long x, long y,
 
 	if (invalidate_selected || !had_selection) {
 		_vte_debug_print(VTE_DEBUG_SELECTION, "Invalidating selection.");
-		vte_terminal_invalidate_selection (terminal);
+		vte_terminal_invalidate_selection(m_terminal);
 	}
 
 	_vte_debug_print(VTE_DEBUG_SELECTION,
@@ -7037,7 +7029,7 @@ vte_terminal_autoscroll(VteTerminal *terminal)
 			x = terminal->pvt->column_count * terminal->pvt->char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
-		vte_terminal_extend_selection(terminal, x, y, FALSE, TRUE);
+                terminal->pvt->extend_selection(x, y, false, true);
 	} else {
 		/* Stop autoscrolling. */
 		terminal->pvt->mouse_autoscroll_tag = 0;
@@ -7118,8 +7110,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		if (m_selecting &&
                     (m_mouse_handled_buttons & 1) != 0) {
 			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
-			vte_terminal_extend_selection(m_terminal,
-						      x, y, FALSE, FALSE);
+			extend_selection(x, y, false, false);
 
 			/* Start scrolling if we need to. */
 			if (event->y < m_padding.top ||
@@ -7218,9 +7209,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 				handled = true;
 			}
 			if (extend_selecting) {
-				vte_terminal_extend_selection(m_terminal,
-							      x, y,
-							      !m_selecting_restart, TRUE);
+				extend_selection(x, y, !m_selecting_restart, true);
 				/* The whole selection code needs to be
 				 * rewritten.  For now, put this here to
 				 * fix bug 614658 */
