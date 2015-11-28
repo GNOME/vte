@@ -2855,7 +2855,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
 	char buf[128];
 	long param, arg1, arg2;
 	gint width, height;
-	guint i;
 
 	widget = &terminal->widget;
 
@@ -2900,7 +2899,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          "%ld,%ld.\n", arg1, arg2);
                         vte_terminal_emit_move_window(terminal,
                                                       arg1, arg2);
-                        i += 2;
                 }
                 break;
         case 4:
@@ -2914,7 +2912,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                         vte_terminal_emit_resize_window(terminal,
                                                         arg2 / terminal->pvt->char_width,
                                                         arg1 / terminal->pvt->char_height);
-                        i += 2;
                 }
                 break;
         case 5:
@@ -2938,7 +2935,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          "(to %ld columns, %ld rows).\n",
                                          arg2, arg1);
                         vte_terminal_emit_resize_window(terminal, arg2, arg1);
-                        i += 2;
                 }
                 break;
         case 9:
@@ -2956,7 +2952,6 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                 default:
                         break;
                 }
-                i++;
                 break;
         case 11:
                 /* If we're unmapped, then we're iconified. */
