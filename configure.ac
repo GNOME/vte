@@ -252,21 +252,31 @@ VTE_DEFAULT_TERM=xterm-256color
 AC_DEFINE_UNQUOTED(VTE_DEFAULT_TERM,"$VTE_DEFAULT_TERM",[The default value $TERM is set to.])
 
 # Check for headers.
-AC_CHECK_HEADERS(sys/select.h sys/syslimits.h sys/termios.h sys/wait.h stropts.h termios.h util.h wchar.h)
+AC_CHECK_HEADERS([sys/select.h sys/syslimits.h sys/termios.h sys/wait.h stropts.h termios.h util.h wchar.h pty.h])
 AC_HEADER_TIOCGWINSZ
 
-# Check for PTY handling functions.
-AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid getpt grantpt unlockpt posix_openpt ptsname ptsname_r tcgetattr tcsetattr])
+# Check for how to open a new PTY. We support posix_openpt and BSDs openpty
+
+LIBUTIL=
+AC_CHECK_FUNCS([posix_openpt grantpt unlockpt ptsname],[],[
+   # Try BSD
+   AC_SEARCH_LIBS([openpty],[util],[have_openpty=yes],
+   [AC_MSG_ERROR([have neither UNIX98 PTY nor BSD openpty])])
+
+   if test "$ac_cv_search_openpty" != "none required"; then
+     LIBUTIL="$ac_cv_search_openpty"
+   fi
+   AC_DEFINE(HAVE_OPENPTY,1,[Define if you have the openpty function.])
+])
+
+AC_SUBST([LIBUTIL])
+
+# Misc PTY handling functions
+AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid ptsname_r tcgetattr tcsetattr])
 
 # Misc I/O routines.
 AC_CHECK_FUNCS([pread pwrite])
 
-# Pull in the right libraries for various functions which might not be
-# bundled into an exploded libc.
-AC_CHECK_FUNC(openpty,[have_openpty=1],AC_CHECK_LIB(util,openpty,[have_openpty=1; LIBS="$LIBS -lutil"]))
-if test x$have_openpty = x1 ; then
-	AC_DEFINE(HAVE_OPENPTY,1,[Define if you have the openpty function.])
-fi
 AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
 AC_CHECK_FUNCS([ceil floor round])
 
