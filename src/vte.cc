@@ -7552,12 +7552,6 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 	terminal->pvt->invalidate_all();
 }
 
-static void
-vte_terminal_ensure_font (VteTerminal *terminal)
-{
-        terminal->pvt->ensure_font();
-}
-
 void
 VteTerminalPrivate::ensure_font()
 {
@@ -8156,7 +8150,7 @@ VteTerminalPrivate::widget_get_preferred_width(int *minimum_width,
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_width()\n");
 
-	vte_terminal_ensure_font(m_terminal);
+	ensure_font();
 
         vte_terminal_refresh_size(m_terminal);
 	*minimum_width = m_char_width * 1;
@@ -8181,7 +8175,7 @@ VteTerminalPrivate::widget_get_preferred_height(int *minimum_height,
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_height()\n");
 
-	vte_terminal_ensure_font(m_terminal);
+	ensure_font();
 
         vte_terminal_refresh_size(m_terminal);
 	*minimum_height = m_char_height * 1;
@@ -8652,7 +8646,7 @@ VteTerminalPrivate::widget_realize()
         /* Make sure the style is set, bug 727614. */
         widget_style_updated();
 
-	vte_terminal_ensure_font(m_terminal);
+	ensure_font();
 
 	/* Set up the background, *now*. */
         // FIXMEchpe this is obsolete
