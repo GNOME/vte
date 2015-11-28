@@ -6741,7 +6741,7 @@ VteTerminalPrivate::extend_selection(long x,
 {
 	long residual;
 	long row;
-	struct selection_event_coords *origin, *last, *start, *end;
+        vte::view::coords *origin, *last, *start, *end;
 	VteVisualPosition old_start, old_end, *sc, *ec, *so, *eo;
 	gboolean invalidate_selected = FALSE;
 	gboolean had_selection;
@@ -6846,7 +6846,7 @@ VteTerminalPrivate::extend_selection(long x,
 
 	/* Sort x using row cell coordinates */
 	if ((m_selection_block_mode || sc->row == ec->row) && (start->x > end->x)) {
-		struct selection_event_coords *tmp;
+                vte::view::coords *tmp;
 		tmp = start;
 		start = end;
 		end = tmp;

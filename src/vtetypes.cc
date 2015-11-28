@@ -29,6 +29,9 @@ static_assert(sizeof(vte::grid::coords) == 2 * sizeof(long), "vte::grid::coords 
 static_assert(std::is_pod<vte::grid::span>::value, "vte::grid::span not POD");
 static_assert(sizeof(vte::grid::span) == 4 * sizeof(long), "vte::grid::span size wrong");
 
+static_assert(std::is_pod<vte::view::coords>::value, "vte::view::coords not POD");
+static_assert(sizeof(vte::view::coords) == 2 * sizeof(vte::view::coord_t), "vte::view::coords size wrong");
+
 static_assert(std::is_pod<vte::color::rgb>::value, "vte::color::rgb not POD");
 static_assert(sizeof(vte::color::rgb) == sizeof(PangoColor), "vte::color::rgb size wrong");
 
@@ -255,6 +258,34 @@ test_grid_span (void)
 }
 
 static void
+test_view_coords (void)
+{
+        /* Default constructor */
+        vte::view::coords p1;
+
+        /* Construction and assignment */
+        vte::view::coords p2(256, 512);
+
+        /* Comparision operators */
+
+        vte::view::coords p3 = p2;
+        vte::view::coords p4(1024, 2048);
+        vte::view::coords p5 = p4;
+
+        g_assert_true(p3 == p2);
+        g_assert_false(p3 != p2);
+        g_assert_true(p3 != p4);
+        g_assert_false(p3 == p4);
+
+        /* Swap */
+
+        p5.swap(p3);
+        g_assert_true(p3 == p4);
+        g_assert_true(p5 == p2);
+}
+
+
+static void
 test_color_rgb (void)
 {
 }
@@ -267,6 +298,7 @@ main(int argc, char *argv[])
         g_test_add_func("/vte/c++/grid/coords", test_grid_coords);
         g_test_add_func("/vte/c++/grid/span", test_grid_span);
         g_test_add_func("/vte/c++/color/rgb", test_color_rgb);
+        g_test_add_func("/vte/c++/view/coords", test_view_coords);
 
         return g_test_run();
 }

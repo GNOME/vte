@@ -85,6 +85,28 @@ namespace grid {
 
 } /* namespace grid */
 
+
+namespace view {
+
+        /* FIXMEchpe: actually 32-bit int would be sufficient here */
+        typedef long coord_t;
+
+        struct coords {
+        public:
+                coords() = default;
+                coords(coord_t x_, coord_t y_) : x(x_), y(y_) { }
+
+                inline bool operator == (coords const& rhs) const { return x == rhs.x && y == rhs.y; }
+                inline bool operator != (coords const& rhs) const { return x != rhs.x || y != rhs.y; }
+
+                void swap(coords &rhs) { coords tmp = rhs; rhs = *this; *this = tmp; }
+        public:
+                coord_t x;
+                coord_t y;
+};
+
+} /* namespace view */
+
 namespace color {
 
         /* 24-bit (8 bit per channel) packed colour */

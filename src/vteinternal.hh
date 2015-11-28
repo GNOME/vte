@@ -180,10 +180,6 @@ typedef enum {
         LAST_VTE_TARGET
 } VteSelectionTarget;
 
-struct selection_event_coords {
-        long x, y;
-};
-
 struct vte_scrolling_region {
         int start, end;
 };
@@ -275,7 +271,7 @@ public:
 	gboolean selecting_had_delta;
 	gboolean selection_block_mode;
 	enum vte_selection_type selection_type;
-	struct selection_event_coords selection_origin, selection_last;
+        vte::view::coords selection_origin, selection_last;
 	VteVisualPosition selection_start, selection_end;
 
 	/* Clipboard data information. */
