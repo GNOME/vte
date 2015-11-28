@@ -501,6 +501,8 @@ public:
                                          int *natural_height);
         void widget_size_allocate(GtkAllocation *allocation);
 
+        void widget_settings_notify();
+
         void connect_pty_read();
         void disconnect_pty_read();
 

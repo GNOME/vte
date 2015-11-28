@@ -8321,29 +8321,34 @@ VteTerminalPrivate::widget_unrealize()
 }
 
 static void
-vte_terminal_sync_settings (GtkSettings *settings,
-                            GParamSpec *pspec,
-                            VteTerminal *terminal)
+vte_terminal_settings_notify_cb (GtkSettings *settings,
+                                 GParamSpec *pspec,
+                                 VteTerminalPrivate *that)
 {
-        VteTerminalPrivate *pvt = terminal->pvt;
+        that->widget_settings_notify();
+}
+
+void
+VteTerminalPrivate::widget_settings_notify()
+{
         gboolean blink;
         int blink_time = 1000;
         int blink_timeout = G_MAXINT;
 
-        g_object_get(G_OBJECT (settings),
+        g_object_get(gtk_widget_get_settings(m_widget),
                      "gtk-cursor-blink", &blink,
                      "gtk-cursor-blink-time", &blink_time,
                      "gtk-cursor-blink-timeout", &blink_timeout,
                      NULL);
 
         _vte_debug_print(VTE_DEBUG_MISC,
-                         "Cursor blinking settings setting: blink=%d time=%d timeout=%d\n",
+                         "Cursor blinking settings: blink=%d time=%d timeout=%d\n",
                          blink, blink_time, blink_timeout);
 
-        pvt->cursor_blink_cycle = blink_time / 2;
-        pvt->cursor_blink_timeout = blink_timeout;
+        m_cursor_blink_cycle = blink_time / 2;
+        m_cursor_blink_timeout = blink_timeout;
 
-        pvt->update_cursor_blinks();
+        update_cursor_blinks();
 }
 
 void
@@ -8357,25 +8362,25 @@ VteTerminalPrivate::widget_screen_changed (GdkScreen *previous_screen)
                 settings = gtk_settings_get_for_screen (previous_screen);
                 g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
                                                       0, 0, NULL, NULL,
-                                                      m_widget);
+                                                      this);
         }
 
         if (gdk_screen == previous_screen || gdk_screen == nullptr)
                 return;
 
+        widget_settings_notify();
+
         settings = gtk_widget_get_settings(m_widget);
-        vte_terminal_sync_settings(settings, NULL, m_terminal);
         g_signal_connect (settings, "notify::gtk-cursor-blink",
-                          G_CALLBACK (vte_terminal_sync_settings), m_widget);
+                          G_CALLBACK (vte_terminal_settings_notify_cb), this);
         g_signal_connect (settings, "notify::gtk-cursor-blink-time",
-                          G_CALLBACK (vte_terminal_sync_settings), m_widget);
+                          G_CALLBACK (vte_terminal_settings_notify_cb), this);
         g_signal_connect (settings, "notify::gtk-cursor-blink-timeout",
-                          G_CALLBACK (vte_terminal_sync_settings), m_widget);
+                          G_CALLBACK (vte_terminal_settings_notify_cb), this);
 }
 
 VteTerminalPrivate::~VteTerminalPrivate()
 {
-        GtkSettings *settings;
 	struct vte_match_regex *regex;
 	int sel;
 	guint i;
@@ -8534,10 +8539,9 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		g_object_unref(m_vadjustment);
 	}
 
-        settings = gtk_widget_get_settings(m_widget);
-        g_signal_handlers_disconnect_matched (settings, G_SIGNAL_MATCH_DATA,
+        g_signal_handlers_disconnect_matched (gtk_widget_get_settings(m_widget), G_SIGNAL_MATCH_DATA,
                                               0, 0, NULL, NULL,
-                                              m_terminal);
+                                              this);
 }
 
 void
