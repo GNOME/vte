@@ -53,12 +53,6 @@
 
 #include <new> /* placement new */
 
-/* Some sanity checks */
-/* FIXMEchpe: move this to there when splitting _vte_incoming_chunk into its own file */
-static_assert(sizeof(struct _vte_incoming_chunk) <= VTE_INPUT_CHUNK_SIZE, "_vte_incoming_chunk too large");
-static_assert(offsetof(struct _vte_incoming_chunk, data) == offsetof(struct _vte_incoming_chunk, dataminusone) + 1, "_vte_incoming_chunk layout wrong");
-
-
 #ifndef HAVE_ROUND
 static inline double round(double x) {
 	if(x - floor(x) < 0.5) {
@@ -3426,7 +3420,7 @@ VteTerminalPrivate::connect_pty_read()
 		m_pty_input_source =
 			g_io_add_watch_full(m_pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
-					    (GIOCondition)(G_IO_IN | G_IO_PRI | G_IO_HUP),
+					    (GIOCondition)(G_IO_IN | G_IO_HUP),
 					    (GIOFunc) vte_terminal_io_read,
 					    m_terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
@@ -3487,20 +3481,6 @@ VteTerminalPrivate::disconnect_pty_write()
                 // FIXMEchpe the destroy notify should already have done this!
 		m_pty_output_source = 0;
 	}
-}
-
-void
-VteTerminalPrivate::pty_termios_changed()
-{
-        _vte_debug_print(VTE_DEBUG_IO, "Termios changed\n");
-}
-
-void
-VteTerminalPrivate::pty_scroll_lock_changed(bool locked)
-{
-        _vte_debug_print(VTE_DEBUG_IO, "Output %s (^%c)\n",
-                         locked ? "stopped" : "started",
-                         locked ? 'Q' : 'S');
 }
 
 /*
@@ -4114,7 +4094,7 @@ vte_terminal_io_read(GIOChannel *channel,
 	eof = condition & G_IO_HUP;
 
 	/* Read some data in from this channel. */
-	if (condition & (G_IO_IN | G_IO_PRI)) {
+	if (condition & G_IO_IN) {
 		struct _vte_incoming_chunk *chunk, *chunks = NULL;
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
@@ -4149,16 +4129,7 @@ vte_terminal_io_read(GIOChannel *channel,
 			bp = chunk->data + chunk->len;
 			len = 0;
 			do {
-                                /* We'd like to read (fd, bp, rem); but due to TIOCPKT mode
-                                 * there's an extra input byte returned at the beginning.
-                                 * We need to see what that byte is, but otherwise drop it
-                                 * and write continuously to chunk->data.
-                                 */
-                                char pkt_header;
-                                char save = bp[-1];
-                                int ret = read (fd, bp - 1, rem + 1);
-                                pkt_header = bp[-1];
-                                bp[-1] = save;
+				int ret = read (fd, bp, rem);
 				switch (ret){
 					case -1:
 						err = errno;
@@ -4167,27 +4138,6 @@ vte_terminal_io_read(GIOChannel *channel,
 						eof = TRUE;
 						goto out;
 					default:
-                                                ret--;
-
-                                                if (pkt_header & TIOCPKT_IOCTL) {
-                                                        /* We'd like to always be informed when the termios change,
-                                                         * so we can e.g. detect when no-echo is en/disabled and
-                                                         * change the cursor/input method/etc., but unfortunately
-                                                         * the kernel only sends this flag when (old or new) 'local flags'
-                                                         * include EXTPROC, which is not used often, and due to its side
-                                                         * effects, cannot be enabled by vte by default.
-                                                         *
-                                                         * FIXME: improve the kernel! see discussion in bug 755371
-                                                         * starting at comment 12
-                                                         */
-                                                        terminal->pvt->pty_termios_changed();
-                                                }
-                                                if (pkt_header & TIOCPKT_STOP) {
-                                                        terminal->pvt->pty_scroll_lock_changed(true);
-                                                } else if (pkt_header & TIOCPKT_START) {
-                                                        terminal->pvt->pty_scroll_lock_changed(false);
-                                                }
-
 						bp += ret;
 						rem -= ret;
 						len += ret;
