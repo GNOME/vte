@@ -536,6 +536,10 @@ public:
                                gsize length);
 
         bool is_word_char(gunichar c) const;
+        bool is_same_class(vte::grid::column_t acol,
+                           vte::grid::row_t arow,
+                           vte::grid::column_t bcol,
+                           vte::grid::row_t brow) const;
 
         void start_selection(long x,
                              long y,

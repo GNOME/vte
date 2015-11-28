@@ -5267,29 +5267,31 @@ VteTerminalPrivate::is_word_char(gunichar c) const
 
 /* Check if the characters in the two given locations are in the same class
  * (word vs. non-word characters). */
-static gboolean
-vte_same_class(VteTerminal *terminal, glong acol, glong arow,
-	       glong bcol, glong brow)
+bool
+VteTerminalPrivate::is_same_class(vte::grid::column_t acol,
+                                  vte::grid::row_t arow,
+                                  vte::grid::column_t bcol,
+                                  vte::grid::row_t brow) const
 {
 	const VteCell *pcell = NULL;
-	gboolean word_char;
-	if ((pcell = vte_terminal_find_charcell(terminal, acol, arow)) != NULL && pcell->c != 0) {
-		word_char = terminal->pvt->is_word_char(_vte_unistr_get_base (pcell->c));
+	bool word_char;
+	if ((pcell = vte_terminal_find_charcell(m_terminal, acol, arow)) != nullptr && pcell->c != 0) {
+		word_char = is_word_char(_vte_unistr_get_base(pcell->c));
 
 		/* Lets not group non-wordchars together (bug #25290) */
 		if (!word_char)
-			return FALSE;
+			return false;
 
-		pcell = vte_terminal_find_charcell(terminal, bcol, brow);
+		pcell = vte_terminal_find_charcell(m_terminal, bcol, brow);
 		if (pcell == NULL || pcell->c == 0) {
-			return FALSE;
+			return false;
 		}
-		if (word_char != terminal->pvt->is_word_char(_vte_unistr_get_base (pcell->c))) {
-			return FALSE;
+		if (word_char != is_word_char(_vte_unistr_get_base(pcell->c))) {
+			return false;
 		}
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 /* Check if we soft-wrapped on the given line. */
@@ -6629,7 +6631,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				 terminal->pvt->column_count;
 			     i > 0;
 			     i--) {
-				if (vte_same_class(terminal,
+				if (terminal->pvt->is_same_class(
 						   i - 1,
 						   j,
 						   i,
@@ -6645,7 +6647,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				break;
 			} else {
 				if (vte_line_is_wrappable(terminal, j - 1) &&
-				    vte_same_class(terminal,
+				    terminal->pvt->is_same_class(
 						   terminal->pvt->column_count - 1,
 						   j - 1,
 						   0,
@@ -6675,7 +6677,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				 0;
 			     i < terminal->pvt->column_count - 1;
 			     i++) {
-				if (vte_same_class(terminal,
+				if (terminal->pvt->is_same_class(
 						   i,
 						   j,
 						   i + 1,
@@ -6691,7 +6693,7 @@ vte_terminal_extend_selection_expand (VteTerminal *terminal)
 				break;
 			} else {
 				if (vte_line_is_wrappable(terminal, j) &&
-				    vte_same_class(terminal,
+				    terminal->pvt->is_same_class(
 						   terminal->pvt->column_count - 1,
 						   j,
 						   0,
