@@ -7962,22 +7962,6 @@ VteTerminalPrivate::widget_set_vadjustment(GtkAdjustment *adjustment)
 				 this);
 }
 
-void
-_vte_terminal_inline_error_message(VteTerminal *terminal, const char *format, ...)
-{
-	va_list ap;
-	char *str;
-
-	va_start (ap, format);
-	str = g_strdup_vprintf (format, ap);
-	va_end (ap);
-
-	vte_terminal_feed (terminal, "*** VTE ***: ", 13);
-	vte_terminal_feed (terminal, str, -1);
-	vte_terminal_feed (terminal, "\r\n", 2);
-	g_free (str);
-}
-
 VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_terminal(t),
         m_widget(&t->widget)
