@@ -448,6 +448,10 @@ public:
         void cursor_down();
         void drop_scrollback();
 
+        bool insert_char(gunichar c,
+                         bool insert,
+                         bool invalidate_now);
+
         void invalidate(vte::grid::span s, bool block = false);
         void invalidate_cell(vte::grid::column_t column, vte::grid::row_t row);
         void invalidate_cells(vte::grid::column_t sc, int cc,
@@ -972,5 +976,8 @@ public:
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
 #define m_scrolling_region scrolling_region
+#define m_color_defaults color_defaults
+#define m_fill_defaults fill_defaults
+#define m_defaults defaults
 
 extern GTimer *process_timer;

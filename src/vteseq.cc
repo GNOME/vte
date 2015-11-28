@@ -1465,7 +1465,7 @@ _vte_sequence_handler_insert_character (VteTerminal *terminal, GValueArray *para
 
         save = terminal->pvt->cursor;
 
-	_vte_terminal_insert_char(terminal, ' ', TRUE, TRUE);
+	terminal->pvt->insert_char(' ', true, true);
 
         terminal->pvt->cursor = save;
 }

@@ -69,9 +69,6 @@ void _vte_terminal_cursor_down (VteTerminal *terminal);
 void _vte_terminal_drop_scrollback (VteTerminal *terminal);
 void _vte_terminal_restore_cursor (VteTerminal *terminal, VteScreen *screen);
 void _vte_terminal_save_cursor (VteTerminal *terminal, VteScreen *screen);
-gboolean _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
-			       gboolean force_insert_mode,
-			       gboolean invalidate_cells);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 void _vte_terminal_set_default_attributes(VteTerminal *terminal);

@@ -3144,16 +3144,16 @@ _vte_terminal_save_cursor (VteTerminal *terminal, VteScreen *screen)
 }
 
 /* Insert a single character into the stored data array. */
-gboolean
-_vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
-			 gboolean insert, gboolean invalidate_now)
+bool
+VteTerminalPrivate::insert_char(gunichar c,
+                                bool insert,
+                                bool invalidate_now)
 {
 	VteCellAttr attr;
 	VteRowData *row;
 	long col;
 	int columns, i;
-	VteScreen *screen;
-	gboolean line_wrapped = FALSE; /* cursor moved before char inserted */
+	bool line_wrapped = false; /* cursor moved before char inserted */
 
         /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
         static gunichar line_drawing_map[31] = {
@@ -3190,52 +3190,50 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
                 0x00b7,  /* ~ => bullet */
         };
 
-	screen = terminal->pvt->screen;
-        insert |= terminal->pvt->insert_mode;
+        insert |= m_insert_mode;
 	invalidate_now |= insert;
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
-        if (G_UNLIKELY (*terminal->pvt->character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING)) {
+        if (G_UNLIKELY (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING)) {
                 if (c >= 96 && c <= 126)
                         c = line_drawing_map[c - 96];
-        } else if (G_UNLIKELY (*terminal->pvt->character_replacement == VTE_CHARACTER_REPLACEMENT_BRITISH)) {
+        } else if (G_UNLIKELY (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_BRITISH)) {
                 if (G_UNLIKELY (c == '#'))
                         c = 0x00a3;  /* pound sign */
         }
 
 	/* Figure out how many columns this character should occupy. */
-        columns = _vte_unichar_width(c, terminal->pvt->utf8_ambiguous_width);
+        columns = _vte_unichar_width(c, m_utf8_ambiguous_width);
 
 	/* If we're autowrapping here, do it. */
-        col = terminal->pvt->cursor.col;
-	if (G_UNLIKELY (columns && col + columns > terminal->pvt->column_count)) {
-		if (terminal->pvt->autowrap) {
+        col = m_cursor.col;
+	if (G_UNLIKELY (columns && col + columns > m_column_count)) {
+		if (m_autowrap) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
 			/* XXX clear to the end of line */
-                        col = terminal->pvt->cursor.col = 0;
+                        col = m_cursor.col = 0;
 			/* Mark this line as soft-wrapped. */
-			row = terminal->pvt->ensure_row();
+			row = ensure_row();
 			row->attr.soft_wrapped = 1;
-			terminal->pvt->cursor_down();
+			cursor_down();
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
-                        col = terminal->pvt->cursor.col =
-				terminal->pvt->column_count - columns;
+                        col = m_cursor.col =
+				m_column_count - columns;
 		}
-		line_wrapped = TRUE;
+		line_wrapped = true;
 	}
 
 	_vte_debug_print(VTE_DEBUG_PARSE,
 			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld; ",
 			(long)c, c < 256 ? c : ' ',
-                         (int)terminal->pvt->color_defaults.attr.fore,
-                         (int)terminal->pvt->color_defaults.attr.back,
-                        col, columns, (long)terminal->pvt->cursor.row,
-			(long)screen->insert_delta);
-
+                         (int)m_color_defaults.attr.fore,
+                         (int)m_color_defaults.attr.back,
+                        col, columns, (long)m_cursor.row,
+			(long)m_screen->insert_delta);
 
 	if (G_UNLIKELY (columns == 0)) {
 
@@ -3246,7 +3244,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 		_vte_debug_print(VTE_DEBUG_PARSE, "combining U+%04X", c);
 
-                row_num = terminal->pvt->cursor.row;
+                row_num = m_cursor.row;
 		row = NULL;
 		if (G_UNLIKELY (col == 0)) {
 			/* We are at first column.  See if the previous line softwrapped.
@@ -3254,7 +3252,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 			if (G_LIKELY (row_num > 0)) {
 				row_num--;
-				row = _vte_terminal_find_row_data_writable (terminal, row_num);
+				row = _vte_terminal_find_row_data_writable(m_terminal, row_num);
 
 				if (row) {
 					if (!row->attr.soft_wrapped)
@@ -3264,7 +3262,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 				}
 			}
 		} else {
-			row = _vte_terminal_find_row_data_writable (terminal, row_num);
+			row = _vte_terminal_find_row_data_writable(m_terminal, row_num);
 		}
 
 		if (G_UNLIKELY (!row || !col))
@@ -3296,7 +3294,7 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 
 		/* Always invalidate since we put the mark on the *previous* cell
 		 * and the higher level code doesn't know this. */
-		terminal->pvt->invalidate_cells(
+		invalidate_cells(
 				      col - columns,
 				      columns,
 				      row_num, 1);
@@ -3305,21 +3303,21 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 	}
 
 	/* Make sure we have enough rows to hold this data. */
-	row = terminal->pvt->ensure_cursor();
+	row = ensure_cursor();
 	g_assert(row != NULL);
 
 	if (insert) {
-                terminal->pvt->cleanup_fragments(col, col);
+                cleanup_fragments(col, col);
 		for (i = 0; i < columns; i++)
-                        _vte_row_data_insert (row, col + i, &terminal->pvt->color_defaults);
+                        _vte_row_data_insert (row, col + i, &m_color_defaults);
 	} else {
-                terminal->pvt->cleanup_fragments(col, col + columns);
+                cleanup_fragments(col, col + columns);
 		_vte_row_data_fill (row, &basic_cell.cell, col + columns);
 	}
 
-        attr = terminal->pvt->defaults.attr;
-        attr.fore = terminal->pvt->color_defaults.attr.fore;
-        attr.back = terminal->pvt->color_defaults.attr.back;
+        attr = m_defaults.attr;
+        attr.fore = m_color_defaults.attr.fore;
+        attr.back = m_color_defaults.attr.back;
 	attr.columns = columns;
 
 	{
@@ -3337,28 +3335,28 @@ _vte_terminal_insert_char(VteTerminal *terminal, gunichar c,
 		pcell->attr = attr;
 		col++;
 	}
-	if (_vte_row_data_length (row) > terminal->pvt->column_count)
-		terminal->pvt->cleanup_fragments(terminal->pvt->column_count, _vte_row_data_length (row));
-	_vte_row_data_shrink (row, terminal->pvt->column_count);
+	if (_vte_row_data_length (row) > m_column_count)
+		cleanup_fragments(m_column_count, _vte_row_data_length (row));
+	_vte_row_data_shrink (row, m_column_count);
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {
-		terminal->pvt->invalidate_cells(
+		invalidate_cells(
 				col - columns,
-				insert ? terminal->pvt->column_count : columns,
-                                terminal->pvt->cursor.row, 1);
+				insert ? m_column_count : columns,
+                                m_cursor.row, 1);
 	}
 
-        terminal->pvt->cursor.col = col;
+        m_cursor.col = col;
 
 done:
 	/* We added text, so make a note of it. */
-	terminal->pvt->text_inserted_flag = TRUE;
+	m_text_inserted_flag = TRUE;
 
 not_inserted:
 	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSE,
 			"insertion delta => %ld.\n",
-			(long)screen->insert_delta);
+			(long)m_screen->insert_delta);
 	return line_wrapped;
 }
 
@@ -3909,8 +3907,8 @@ skip_chunk:
                                         m_cursor.row);
 
 			/* Insert the character. */
-			if (G_UNLIKELY (_vte_terminal_insert_char(m_terminal, c,
-						 FALSE, FALSE))) {
+                        // FIXMEchpe should not use UNLIKELY here
+			if (G_UNLIKELY(insert_char(c, false, false))) {
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
                                                 (m_cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
@@ -4435,10 +4433,10 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 				int len;
 				len = g_utf8_strlen(cooked, cooked_length);
 				for (i = 0; i < len; i++) {
-					_vte_terminal_insert_char(terminal,
+					terminal->pvt->insert_char(
 								 ucs4[i],
-								 FALSE,
-								 TRUE);
+								 false,
+								 true);
 				}
 				g_free(ucs4);
 			}
