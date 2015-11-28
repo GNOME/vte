@@ -52,15 +52,15 @@ display_control_sequence(const char *name, GValueArray *params)
 			}
 			if (G_VALUE_HOLDS_LONG(value)) {
 				l = g_value_get_long(value);
-				g_printerr("%ld", l);
+				g_printerr("LONG(%ld)", l);
 			} else
 			if (G_VALUE_HOLDS_STRING(value)) {
 				s = g_value_get_string(value);
-				g_printerr("\"%s\"", s);
+				g_printerr("STRING(\"%s\")", s);
 			} else
 			if (G_VALUE_HOLDS_POINTER(value)) {
 				w = (const gunichar *)g_value_get_pointer(value);
-				g_printerr("\"%ls\"", (const wchar_t*) w);
+				g_printerr("WSTRING(\"%ls\")", (const wchar_t*) w);
 			}
 		}
 	}
