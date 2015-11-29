@@ -636,17 +636,21 @@ fd_set_nonblock(int fd,
 }
 
 /*
- * _vte_pty_getpt:
+ * _vte_pty_open_unix98:
+ * @pty: a #VtePty
  * @error: a location to store a #GError, or %NULL
  *
- * Opens a file descriptor for the next available PTY master.
- * Sets the descriptor to blocking mode!
+ * Opens a new file descriptor to a new PTY master.
  *
- * Returns: a new file descriptor, or %-1 on failure
+ * Returns: %TRUE on success, %FALSE on failure with @error filled in
  */
-static int
-_vte_pty_getpt(GError **error)
+static gboolean
+_vte_pty_open_unix98(VtePty *pty,
+                     GError **error)
 {
+        VtePtyPrivate *priv = pty->priv;
+
+	/* Attempt to open the master. */
 	int fd = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
         if (fd == -1 && errno == EINVAL) {
                 /* Try without CLOEXEC and apply the flag afterwards */
@@ -693,32 +697,6 @@ _vte_pty_getpt(GError **error)
                 return -1;
         }
 
-	return fd;
-}
-
-/*
- * _vte_pty_open_unix98:
- * @pty: a #VtePty
- * @error: a location to store a #GError, or %NULL
- *
- * Opens a new file descriptor to a new PTY master.
- *
- * Returns: %TRUE on success, %FALSE on failure with @error filled in
- */
-static gboolean
-_vte_pty_open_unix98(VtePty *pty,
-                     GError **error)
-{
-        VtePtyPrivate *priv = pty->priv;
-	int fd;
-
-	/* Attempt to open the master. */
-	fd = _vte_pty_getpt(error);
-	if (fd == -1)
-                return FALSE;
-
-	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
-
         /* Read the slave number and unlock it. */
         if (grantpt(fd) != 0) {
                 int errsv = errno;
@@ -737,6 +715,8 @@ _vte_pty_open_unix98(VtePty *pty,
                 errno = errsv;
                 return FALSE;
         }
+
+	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
 
         priv->pty_fd = fd;
 
