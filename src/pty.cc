@@ -621,27 +621,15 @@ vte_pty_get_size(VtePty *pty,
 static int
 _vte_pty_getpt(GError **error)
 {
-	int fd, flags, rv;
-#if defined(HAVE_POSIX_OPENPT)
-	fd = posix_openpt(O_RDWR | O_NOCTTY);
-#elif defined(HAVE_GETPT)
-	/* Call the system's function for allocating a pty. */
-	fd = getpt();
-#else
-	/* Try to allocate a pty by accessing the pty master multiplex. */
-	fd = open("/dev/ptmx", O_RDWR | O_NOCTTY);
-	if ((fd == -1) && (errno == ENOENT)) {
-		fd = open("/dev/ptc", O_RDWR | O_NOCTTY); /* AIX */
-	}
-#endif
+	int fd = posix_openpt(O_RDWR | O_NOCTTY);
         if (fd == -1) {
                 g_set_error (error, VTE_PTY_ERROR,
                              VTE_PTY_ERROR_PTY98_FAILED,
-                             "%s failed: %s", "getpt", g_strerror(errno));
+                             "%s failed: %s", "posix_openpt", g_strerror(errno));
                 return -1;
         }
 
-        rv = fcntl(fd, F_GETFL, 0);
+        int rv = fcntl(fd, F_GETFL, 0);
         if (rv < 0) {
                 int errsv = errno;
                 g_set_error(error, VTE_PTY_ERROR,
@@ -654,7 +642,7 @@ _vte_pty_getpt(GError **error)
 
 	/* Set it to blocking. */
         /* FIXMEchpe: why?? vte_terminal_set_pty does the inverse... */
-        flags = rv & ~(O_NONBLOCK);
+        int flags = rv & ~(O_NONBLOCK);
         rv = fcntl(fd, F_SETFL, flags);
         if (rv < 0) {
                 int errsv = errno;

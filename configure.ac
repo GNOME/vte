@@ -272,7 +272,7 @@ AC_CHECK_FUNCS([posix_openpt grantpt unlockpt ptsname],[],[
 AC_SUBST([LIBUTIL])
 
 # Misc PTY handling functions
-AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid ptsname_r tcgetattr tcsetattr])
+AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid tcgetattr tcsetattr])
 
 # Misc I/O routines.
 AC_CHECK_FUNCS([pread pwrite])
