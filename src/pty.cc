@@ -617,6 +617,25 @@ fd_set_cloexec(int fd)
         return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
+static gboolean
+fd_set_cpkt(int fd,
+            GError **error)
+{
+        /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
+         * notifying us of stop/start (^S/^Q) events. */
+        int one = 1;
+        if (ioctl(fd, TIOCPKT, &one) < 0) {
+                int errsv = errno;
+                g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                close(fd);
+                errno = errsv;
+                return FALSE;
+        }
+        return TRUE;
+}
+
 static bool
 fd_set_nonblocking(int fd,
                    GError **error)
@@ -678,14 +697,8 @@ _vte_pty_open_unix98(VtePty *pty,
                 return -1;
         }
 
-        /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
-         * notifying us of stop/start (^S/^Q) events. */
-        int one = 1;
-        if (ioctl(fd, TIOCPKT, &one) < 0) {
+        if (!fd_set_cpkt(fd, error)) {
                 int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 close(fd);
                 errno = errsv;
                 return -1;
@@ -764,16 +777,11 @@ _vte_pty_open_bsd(VtePty *pty,
                 return FALSE;
         }
 
-        /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
-         * notifying us of stop/start (^S/^Q) events. */
-        int one = 1;
-        if (ioctl(parentfd, TIOCPKT, &one) < 0) {
+        if (!fd_set_cpkt(parentfd, error)) {
                 int errsv = errno;
-                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
-                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 close(parentfd);
                 errno = errsv;
-                return FALSE;
+                return -1;
         }
 
 	priv->pty_fd = parentfd;
@@ -882,7 +890,8 @@ vte_pty_initable_init (GInitable *initable,
         /* If we already have a (foreign) FD, we're done. */
         if (priv->foreign) {
                 g_assert(priv->pty_fd != -1);
-                ret = fd_set_nonblocking(priv->pty_fd, error);
+                ret = fd_set_nonblocking(priv->pty_fd, error) &&
+                      fd_set_cpkt(priv->pty_fd, error);
         } else {
 #if defined(HAVE_UNIX98_PTY)
                 ret = _vte_pty_open_unix98(pty, error);
