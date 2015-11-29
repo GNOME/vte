@@ -617,73 +617,50 @@ fd_set_cloexec(int fd)
         return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
-static gboolean
-fd_set_cpkt(int fd,
-            GError **error)
+static int
+fd_set_nonblocking(int fd)
+{
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags < 0)
+                return -1;
+        if ((flags & O_NONBLOCK) != 0)
+                return 0;
+        return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+static int
+fd_set_cpkt(int fd)
 {
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
         int one = 1;
-        if (ioctl(fd, TIOCPKT, &one) < 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                close(fd);
-                errno = errsv;
-                return FALSE;
-        }
-        return TRUE;
-}
-
-static bool
-fd_set_nonblocking(int fd,
-                   GError **error)
-{
-        int flags = fcntl(fd, F_GETFL, 0);
-        if (flags >= 0 &&
-            (flags & O_NONBLOCK) == 0)
-                flags = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-
-        if (flags < 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
-                errno = errsv;
-                return FALSE;
-        }
-        return TRUE;
+        return ioctl(fd, TIOCPKT, &one);
 }
 
 #if defined(HAVE_UNIX98_PTY)
 
 /*
- * _vte_pty_open_unix98:
+ * _vte_pty_open_posix:
  * @pty: a #VtePty
  * @error: a location to store a #GError, or %NULL
  *
  * Opens a new file descriptor to a new PTY master.
  *
- * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ * Returns: the new PTY's master FD, or -1
  */
-static gboolean
-_vte_pty_open_unix98(VtePty *pty,
-                     GError **error)
+static int
+_vte_pty_open_posix(void)
 {
-        VtePtyPrivate *priv = pty->priv;
-
 	/* Attempt to open the master. */
 	int fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
         if (fd == -1 && errno == EINVAL) {
                 /* Try without CLOEXEC and apply the flag afterwards */
-                fd = posix_openpt(O_RDWR | O_NOCTTY);
+                fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
                 if (fd != -1 &&
                     fd_set_cloexec(fd) < 0) {
                         int errsv = errno;
-                        g_set_error (error, VTE_PTY_ERROR,
-                                     VTE_PTY_ERROR_PTY98_FAILED,
-                                     "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                        _vte_debug_print(VTE_DEBUG_PTY,
+                                         "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                         close(fd);
                         errno = errsv;
                         return -1;
@@ -691,14 +668,17 @@ _vte_pty_open_unix98(VtePty *pty,
         }
 
         if (fd == -1) {
-                g_set_error (error, VTE_PTY_ERROR,
-                             VTE_PTY_ERROR_PTY98_FAILED,
-                             "%s failed: %s", "posix_openpt", g_strerror(errno));
+                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "posix_openpt", g_strerror(errsv));
+                errno = errsv;
                 return -1;
         }
 
-        if (!fd_set_cpkt(fd, error)) {
+        if (fd_set_cpkt(fd) < 0) {
                 int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 close(fd);
                 errno = errsv;
                 return -1;
@@ -707,27 +687,25 @@ _vte_pty_open_unix98(VtePty *pty,
         /* Read the slave number and unlock it. */
         if (grantpt(fd) != 0) {
                 int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "grantpt", g_strerror(errsv));
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "grantpt", g_strerror(errsv));
                 close(fd);
                 errno = errsv;
-                return FALSE;
+                return -1;
         }
 
 	if (unlockpt(fd) != 0) {
                 int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "unlockpt", g_strerror(errsv));
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "unlockpt", g_strerror(errsv));
                 close(fd);
                 errno = errsv;
-                return FALSE;
+                return -1;
         }
 
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
 
-        priv->pty_fd = fd;
-
-        return TRUE;
+        return fd;
 }
 
 #elif defined(HAVE_OPENPTY)
@@ -739,59 +717,94 @@ _vte_pty_open_unix98(VtePty *pty,
  *
  * Opens new file descriptors to a new PTY master and slave.
  *
- * Returns: %TRUE on success, %FALSE on failure with @error filled in
+ * Returns: the new PTY's master FD, or -1
  */
-static gboolean
-_vte_pty_open_bsd(VtePty *pty,
-                  GError **error)
+static int
+_vte_pty_open_bsd(void)
 {
-	VtePtyPrivate *priv = pty->priv;
 	int parentfd, childfd;
-
 	if (openpty(&parentfd, &childfd, NULL, NULL, NULL) != 0) {
 		int errsv = errno;
-		g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-			    "%s failed: %s", "openpty", g_strerror(errsv));
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "openpty", g_strerror(errsv));
 		errno = errsv;
-		return FALSE;
+		return -1;
 	}
 
         /* We'll reacquire it in vte_pty_child_setup */
         (void)close(childfd);
 
-#ifdef FD_CLOEXEC
         if (fd_set_cloexec(parentfd) < 0) {
                 int errsv = errno;
-                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
-                            "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                close(parentfd);
-                errno = errsv;
-                return FALSE;
-        }
-#endif
-
-        if (!fd_set_nonblocking(parentfd, error)) {
-                int errsv = errno;
-                close(parentfd);
-                errno = errsv;
-                return FALSE;
-        }
-
-        if (!fd_set_cpkt(parentfd, error)) {
-                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                 close(parentfd);
                 errno = errsv;
                 return -1;
         }
 
-	priv->pty_fd = parentfd;
+        if (fd_set_nonblocking(parentfd) < 0) {
+                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
+                close(parentfd);
+                errno = errsv;
+                return -1;
+        }
 
-	return TRUE;
+        if (fd_set_cpkt(parentfd) < 0) {
+                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                close(parentfd);
+                errno = errsv;
+                return -1;
+        }
+
+	return parentfd;
 }
 
 #else
 #error Have neither UNIX98 PTY nor BSD openpty!
 #endif /* HAVE_UNIX98_PTY */
+
+static int
+_vte_pty_open_foreign(int fd)
+{
+        if (fd == -1) {
+                errno = EBADFD;
+                return -1;
+        }
+
+        if (fd_set_cpkt(fd) < 0) {
+                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                close(fd);
+                errno = errsv;
+                return -1;
+        }
+
+        if (fd_set_cloexec(fd) < 0) {
+                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                close(fd);
+                errno = errsv;
+                return -1;
+        }
+
+        if (fd_set_nonblocking(fd) < 0) {
+                int errsv = errno;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
+                close(fd);
+                errno = errsv;
+                return -1;
+        }
+
+        return fd;
+}
 
 /**
  * vte_pty_set_utf8:
@@ -879,7 +892,7 @@ vte_pty_initable_init (GInitable *initable,
 {
         VtePty *pty = VTE_PTY (initable);
         VtePtyPrivate *priv = pty->priv;
-        gboolean ret = FALSE;
+        int fd;
 
         if (cancellable != NULL) {
                 g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
@@ -887,26 +900,28 @@ vte_pty_initable_init (GInitable *initable,
                 return FALSE;
         }
 
-        /* If we already have a (foreign) FD, we're done. */
         if (priv->foreign) {
-                g_assert(priv->pty_fd != -1);
-                ret = fd_set_nonblocking(priv->pty_fd, error) &&
-                      fd_set_cpkt(priv->pty_fd, error);
+                fd = _vte_pty_open_foreign(priv->pty_fd);
         } else {
 #if defined(HAVE_UNIX98_PTY)
-                ret = _vte_pty_open_unix98(pty, error);
+                fd = _vte_pty_open_posix();
 #elif defined(HAVE_OPENPTY)
-                ret = _vte_pty_open_bsd(pty, error);
+                fd = _vte_pty_open_bsd();
 #else
 #error Have neither UNIX98 PTY nor BSD openpty!
 #endif
         }
 
-	_vte_debug_print(VTE_DEBUG_PTY,
-			"vte_pty_initable_init returning %s with ptyfd = %d\n",
-			ret ? "TRUE" : "FALSE", priv->pty_fd);
+        if (fd == -1) {
+                int errsv = errno;
+                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                            "Failed to open PTY: %s", g_strerror(errsv));
+                errno = errsv;
+                return FALSE;
+        }
 
-	return ret;
+        priv->pty_fd = fd;
+        return TRUE;
 }
 
 static void
