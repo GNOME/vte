@@ -57,7 +57,7 @@
 #ifdef HAVE_PTY_H
 #include <pty.h>
 #endif
-#ifdef HAVE_STROPTS_H
+#if defined(__sun) && defined(HAVE_STROPTS_H)
 #include <stropts.h>
 #endif
 #include <glib.h>
@@ -66,10 +66,8 @@
 
 #include <glib/gi18n-lib.h>
 
-#if defined(HAVE_PTSNAME_R) || defined(HAVE_PTSNAME) || defined(TIOCGPTN)
+#if defined(HAVE_POSIX_OPENPT) && defined(HAVE_GRANTPT) && defined(HAVE_UNLOCKPT)
 #define HAVE_UNIX98_PTY
-#else
-#undef HAVE_UNIX98_PTY
 #endif
 
 #define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
@@ -183,18 +181,7 @@ _vte_pty_reset_signal_handlers(void)
 
 typedef struct _VtePtyPrivate VtePtyPrivate;
 
-enum TtyOpenMode {
-        TTY_OPEN_BY_NAME,
-        TTY_OPEN_BY_FD
-};
-
 typedef struct {
-        enum TtyOpenMode mode;
-	union {
-		const char *name;
-		int fd;
-	} tty;
-
 	GSpawnChildSetupFunc extra_child_setup;
 	gpointer extra_child_setup_data;
 } VtePtyChildSetupData;
@@ -212,6 +199,7 @@ struct _VtePty {
 struct _VtePtyPrivate {
         VtePtyFlags flags;
         int pty_fd;
+        char *pty_name;
 
         VtePtyChildSetupData child_setup_data;
 
@@ -222,6 +210,8 @@ struct _VtePtyPrivate {
 struct _VtePtyClass {
         GObjectClass parent_class;
 };
+
+static char *_vte_pty_ptsname(int master);
 
 /**
  * vte_pty_child_setup:
@@ -234,46 +224,24 @@ vte_pty_child_setup (VtePty *pty)
 {
         VtePtyPrivate *priv = pty->priv;
 	VtePtyChildSetupData *data = &priv->child_setup_data;
-	int fd = -1;
-	const char *tty = NULL;
-        char version[7];
 
-        if (priv->foreign) {
-                fd = priv->pty_fd;
-        } else {
-                /* Save the name of the pty -- we'll need it later to acquire
-                * it as our controlling terminal.
-                */
-                switch (data->mode) {
-                        case TTY_OPEN_BY_NAME:
-                                tty = data->tty.name;
-                                break;
-                        case TTY_OPEN_BY_FD:
-                                fd = data->tty.fd;
-                                tty = ttyname(fd);
-                                break;
-                }
+        int masterfd = priv->pty_fd;
+        if (masterfd == -1)
+                _exit(127);
 
-                _vte_debug_print (VTE_DEBUG_PTY,
-                                "Setting up child pty: name = %s, fd = %d\n",
-                                        tty ? tty : "(none)", fd);
+        char *name = _vte_pty_ptsname(masterfd);
+        if (name == nullptr)
+                _exit(127);
 
+        _vte_debug_print (VTE_DEBUG_PTY,
+                          "Setting up child pty: master FD = %d name = %s\n",
+                          masterfd, name);
 
-                /* Try to reopen the pty to acquire it as our controlling terminal. */
-                /* FIXMEchpe: why not just use the passed fd in TTY_OPEN_BY_FD mode? */
-                if (tty != NULL) {
-                        int i = open(tty, O_RDWR);
-                        if (i != -1) {
-                                if (fd != -1){
-                                        close(fd);
-                                }
-                                fd = i;
-                        }
-                }
+        int fd = open(name, O_RDWR);
+        if (fd == -1) {
+                _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
+                _exit(127);
         }
-
-	if (fd == -1)
-		_exit (127);
 
 	/* Start a new session and become process-group leader. */
 #if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
@@ -287,7 +255,7 @@ vte_pty_child_setup (VtePty *pty)
 	ioctl(fd, TIOCSCTTY, fd);
 #endif
 
-#ifdef HAVE_STROPTS_H
+#if defined(__sun) && defined(HAVE_STROPTS_H)
 	if (isastream (fd) == 1) {
 		if ((ioctl(fd, I_FIND, "ptem") == 0) &&
 				(ioctl(fd, I_PUSH, "ptem") == -1)) {
@@ -339,6 +307,7 @@ vte_pty_child_setup (VtePty *pty)
          * By the way, we'd need to set the one from there, if any. */
         g_setenv("TERM", VTE_DEFAULT_TERM, TRUE);
 
+        char version[7];
         g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
         g_setenv ("VTE_VERSION", version, TRUE);
 
@@ -638,8 +607,6 @@ vte_pty_get_size(VtePty *pty,
 	}
 }
 
-#if defined(HAVE_UNIX98_PTY)
-
 /*
  * _vte_pty_ptsname:
  * @master: file descriptor to the PTY master
@@ -649,8 +616,7 @@ vte_pty_get_size(VtePty *pty,
  *   PTY slave device, or %NULL on failure with @error filled in
  */
 static char *
-_vte_pty_ptsname(int master,
-                 GError **error)
+_vte_pty_ptsname(int master)
 {
 #if defined(HAVE_PTSNAME_R)
 	gsize len = 1024;
@@ -668,6 +634,7 @@ _vte_pty_ptsname(int master,
 			break;
 		default:
                         errsv = errno;
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname_r");
 			g_free(buf);
                         errno = errsv;
 			buf = NULL;
@@ -676,8 +643,6 @@ _vte_pty_ptsname(int master,
 		len *= 2;
 	} while ((i != 0) && (errno == ERANGE));
 
-        g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                    "%s failed: %s", "ptsname_r", g_strerror(errno));
         return NULL;
 #elif defined(HAVE_PTSNAME)
 	char *p;
@@ -686,8 +651,7 @@ _vte_pty_ptsname(int master,
 		return g_strdup(p);
 	}
 
-        g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                    "%s failed: %s", "ptsname", g_strerror(errno));
+        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
         return NULL;
 #elif defined(TIOCGPTN)
 	int pty = 0;
@@ -697,13 +661,14 @@ _vte_pty_ptsname(int master,
 		return g_strdup_printf("/dev/pts/%d", pty);
 	}
 
-        g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                    "%s failed: %s", "ioctl(TIOCGPTN)", g_strerror(errno));
+        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTN)");
         return NULL;
 #else
 #error no ptsname implementation for this platform
 #endif
 }
+
+#if defined(HAVE_UNIX98_PTY)
 
 /*
  * _vte_pty_getpt:
@@ -843,7 +808,6 @@ _vte_pty_open_unix98(VtePty *pty,
 {
         VtePtyPrivate *priv = pty->priv;
 	int fd;
-	char *buf;
 
 	/* Attempt to open the master. */
 	fd = _vte_pty_getpt(error);
@@ -853,8 +817,7 @@ _vte_pty_open_unix98(VtePty *pty,
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
 
         /* Read the slave number and unlock it. */
-        if ((buf = _vte_pty_ptsname(fd, error)) == NULL ||
-            !_vte_pty_grantpt(fd, error) ||
+        if (!_vte_pty_grantpt(fd, error) ||
             !_vte_pty_unlockpt(fd, error)) {
                 int errsv = errno;
                 _vte_debug_print(VTE_DEBUG_PTY,
@@ -865,8 +828,6 @@ _vte_pty_open_unix98(VtePty *pty,
         }
 
         priv->pty_fd = fd;
-        priv->child_setup_data.mode = TTY_OPEN_BY_NAME;
-        priv->child_setup_data.tty.name = buf;
 
         return TRUE;
 }
@@ -897,6 +858,9 @@ _vte_pty_open_bsd(VtePty *pty,
 		return FALSE;
 	}
 
+        /* We'll reacquire it in vte_pty_child_setup */
+        (void)close(childfd);
+
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
         int one = 1;
@@ -905,14 +869,11 @@ _vte_pty_open_bsd(VtePty *pty,
                 g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
                             "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 close(parentfd);
-                close(childfd);
                 errno = errsv;
                 return FALSE;
         }
 
 	priv->pty_fd = parentfd;
-	priv->child_setup_data.mode = TTY_OPEN_BY_FD;
-	priv->child_setup_data.tty.fd = childfd;
 
 	return TRUE;
 }
@@ -1064,12 +1025,6 @@ vte_pty_finalize (GObject *object)
 {
         VtePty *pty = VTE_PTY (object);
         VtePtyPrivate *priv = pty->priv;
-
-        if (priv->child_setup_data.mode == TTY_OPEN_BY_FD &&
-            priv->child_setup_data.tty.fd != -1) {
-                /* Close the child FD */
-                close(priv->child_setup_data.tty.fd);
-        }
 
         /* Close the master FD */
         if (priv->pty_fd != -1) {
