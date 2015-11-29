@@ -125,8 +125,7 @@ typedef struct _vte_incoming_chunk _vte_incoming_chunk_t;
 struct _vte_incoming_chunk{
         _vte_incoming_chunk_t *next;
         guint len;
-        guchar dataminusone;    /* Hack: Keep it right before data, so that data[-1] is valid and usable */
-        guchar data[VTE_INPUT_CHUNK_SIZE - 2 * sizeof(void *) - 1];
+        guchar data[VTE_INPUT_CHUNK_SIZE - 2 * sizeof(void *)];
 };
 
 typedef struct _VteScreen VteScreen;
@@ -512,9 +511,6 @@ public:
 
         void connect_pty_write();
         void disconnect_pty_write();
-
-        void pty_termios_changed();
-        void pty_scroll_lock_changed(bool locked);
 
         void watch_child (GPid child_pid);
         bool spawn_sync(VtePtyFlags pty_flags,

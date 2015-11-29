@@ -762,19 +762,6 @@ _vte_pty_getpt(GError **error)
                 return -1;
         }
 
-        /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
-         * notifying us of stop/start (^S/^Q) events. */
-        int one = 1;
-        if (ioctl(fd, TIOCPKT, &one) < 0)
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                close(fd);
-                errno = errsv;
-                return -1;
-        }
-
 	return fd;
 }
 
@@ -896,19 +883,6 @@ _vte_pty_open_bsd(VtePty *pty,
 		errno = errsv;
 		return FALSE;
 	}
-
-        /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
-         * notifying us of stop/start (^S/^Q) events. */
-        int one = 1;
-        if (ioctl(parentfd, TIOCPKT, &one) < 0) {
-                int errsv = errno;
-                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
-                            "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                close(parentfd);
-                close(childfd);
-                errno = errsv;
-                return FALSE;
-        }
 
 	priv->pty_fd = parentfd;
 	priv->child_setup_data.mode = TTY_OPEN_BY_FD;
