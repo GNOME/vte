@@ -607,7 +607,33 @@ vte_pty_get_size(VtePty *pty,
 	}
 }
 
+static int
+fd_set_cloexec(int fd)
+{
+        int flags = fcntl(fd, F_GETFD, 0);
+        if (flags < 0)
+                return flags;
+
+        return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+}
+
 #if defined(HAVE_UNIX98_PTY)
+
+static int
+fd_set_nonblock(int fd,
+                bool set)
+{
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags < 0)
+                return flags;
+
+        if (set)
+                flags |= O_NONBLOCK;
+        else
+                flags &= ~(O_NONBLOCK);
+
+        return fcntl(fd, F_SETFL, flags);
+}
 
 /*
  * _vte_pty_getpt:
@@ -621,7 +647,22 @@ vte_pty_get_size(VtePty *pty,
 static int
 _vte_pty_getpt(GError **error)
 {
-	int fd = posix_openpt(O_RDWR | O_NOCTTY);
+	int fd = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+        if (fd == -1 && errno == EINVAL) {
+                /* Try without CLOEXEC and apply the flag afterwards */
+                fd = posix_openpt(O_RDWR | O_NOCTTY);
+                if (fd != -1 &&
+                    fd_set_cloexec(fd) < 0) {
+                        int errsv = errno;
+                        g_set_error (error, VTE_PTY_ERROR,
+                                     VTE_PTY_ERROR_PTY98_FAILED,
+                                     "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                        close(fd);
+                        errno = errsv;
+                        return -1;
+                }
+        }
+
         if (fd == -1) {
                 g_set_error (error, VTE_PTY_ERROR,
                              VTE_PTY_ERROR_PTY98_FAILED,
@@ -629,26 +670,11 @@ _vte_pty_getpt(GError **error)
                 return -1;
         }
 
-        int rv = fcntl(fd, F_GETFL, 0);
-        if (rv < 0) {
+        if (fd_set_nonblock(fd, false) != 0) {
                 int errsv = errno;
                 g_set_error(error, VTE_PTY_ERROR,
                             VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "fcntl(F_GETFL)", g_strerror(errno));
-                close(fd);
-                errno = errsv;
-                return -1;
-        }
-
-	/* Set it to blocking. */
-        /* FIXMEchpe: why?? vte_terminal_set_pty does the inverse... */
-        int flags = rv & ~(O_NONBLOCK);
-        rv = fcntl(fd, F_SETFL, flags);
-        if (rv < 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "fcntl(F_SETFL)", g_strerror(errno));
+                            "%s failed: %s", "Unsetting O_NONBLOCK flag", g_strerror(errsv));
                 close(fd);
                 errno = errsv;
                 return -1;
@@ -745,6 +771,17 @@ _vte_pty_open_bsd(VtePty *pty,
 
         /* We'll reacquire it in vte_pty_child_setup */
         (void)close(childfd);
+
+#ifdef FD_CLOEXEC
+        if (fd_set_cloexec(parentfd) < 0) {
+                int errsv = errno;
+                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                            "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                close(parentfd);
+                errno = errsv;
+                return FALSE;
+        }
+#endif
 
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
