@@ -765,7 +765,7 @@ _vte_pty_getpt(GError **error)
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
         int one = 1;
-        if (ioctl(fd, TIOCPKT, &one) < 0) {
+        if (ioctl(fd, TIOCPKT, &one) < 0)
                 int errsv = errno;
                 g_set_error(error, VTE_PTY_ERROR,
                             VTE_PTY_ERROR_PTY98_FAILED,
