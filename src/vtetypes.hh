@@ -145,6 +145,27 @@ namespace util {
                 int m_errsv;
         };
 
+        class smart_fd {
+        public:
+                smart_fd() : m_fd(-1) { }
+                explicit smart_fd(int fd) : m_fd(fd) { }
+                ~smart_fd() { if (m_fd != -1) { restore_errno errsv; close(m_fd); } }
+
+                inline smart_fd& operator = (int rhs) { if (m_fd != -1) { restore_errno errsv; close(m_fd); } m_fd = rhs; return *this; }
+                inline smart_fd& operator = (smart_fd& rhs) { if (&rhs != this) { m_fd = rhs.m_fd; rhs.m_fd = -1; } return *this; }
+                inline operator int () const { return m_fd; }
+                inline operator int* () { g_assert(m_fd == -1); return &m_fd; }
+
+                int steal() { auto d = m_fd; m_fd = -1; return d; }
+
+                /* Prevent accidents */
+                smart_fd(smart_fd const&) = delete;
+                smart_fd& operator = (smart_fd const&) = delete;
+
+        private:
+                int m_fd;
+        };
+
 } /* namespace util */
 
 } /* namespace vte */

@@ -35,6 +35,8 @@ static_assert(sizeof(vte::view::coords) == 2 * sizeof(vte::view::coord_t), "vte:
 static_assert(std::is_pod<vte::color::rgb>::value, "vte::color::rgb not POD");
 static_assert(sizeof(vte::color::rgb) == sizeof(PangoColor), "vte::color::rgb size wrong");
 
+static_assert(sizeof(vte::util::smart_fd) == sizeof(int), "vte::util::smart_fd size wrong");
+
 /* Colours mix */
 vte::color::rgb::rgb(vte::color::rgb const& foreground,
                      vte::color::rgb const& background,
@@ -301,6 +303,27 @@ test_util_restore_errno(void)
         g_assert_cmpint(errno, ==, -42);
 }
 
+static void
+test_util_smart_fd(void)
+{
+        vte::util::smart_fd fd2;
+        g_assert_true(fd2 == -1);
+
+        fd2 = 42;
+        g_assert_true(fd2 == 42);
+
+        vte::util::smart_fd fd3(STDERR_FILENO);
+        g_assert_true(fd3 != -1);
+        g_assert_true(fd3 == STDERR_FILENO);
+
+        g_assert_cmpint(fd3.steal(), ==, STDERR_FILENO);
+        g_assert_true(fd3 == -1);
+
+        int *v = fd3;
+        *v = 42;
+        g_assert_true(fd3 == 42);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -311,6 +334,7 @@ main(int argc, char *argv[])
         g_test_add_func("/vte/c++/color/rgb", test_color_rgb);
         g_test_add_func("/vte/c++/view/coords", test_view_coords);
         g_test_add_func("/vte/c++/util/restore-errno", test_util_restore_errno);
+        g_test_add_func("/vte/c++/util/smart-fd", test_util_smart_fd);
 
         return g_test_run();
 }
