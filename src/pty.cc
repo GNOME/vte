@@ -211,8 +211,6 @@ struct _VtePtyClass {
         GObjectClass parent_class;
 };
 
-static char *_vte_pty_ptsname(int master);
-
 /**
  * vte_pty_child_setup:
  * @pty: a #VtePty
@@ -229,9 +227,11 @@ vte_pty_child_setup (VtePty *pty)
         if (masterfd == -1)
                 _exit(127);
 
-        char *name = _vte_pty_ptsname(masterfd);
-        if (name == nullptr)
-                _exit(127);
+	char *name = ptsname(masterfd);
+        if (name == nullptr) {
+		_vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
+		_exit(127);
+	}
 
         _vte_debug_print (VTE_DEBUG_PTY,
                           "Setting up child pty: master FD = %d name = %s\n",
@@ -605,67 +605,6 @@ vte_pty_get_size(VtePty *pty,
 
                 return FALSE;
 	}
-}
-
-/*
- * _vte_pty_ptsname:
- * @master: file descriptor to the PTY master
- * @error: a location to store a #GError, or %NULL
- *
- * Returns: a newly allocated string containing the file name of the
- *   PTY slave device, or %NULL on failure with @error filled in
- */
-static char *
-_vte_pty_ptsname(int master)
-{
-#if defined(HAVE_PTSNAME_R)
-	gsize len = 1024;
-	char *buf = NULL;
-	int i, errsv;
-	do {
-		buf = (char *) g_malloc0(len);
-		i = ptsname_r(master, buf, len - 1);
-		switch (i) {
-		case 0:
-			/* Return the allocated buffer with the name in it. */
-			_vte_debug_print(VTE_DEBUG_PTY,
-					"PTY slave is `%s'.\n", buf);
-			return buf;
-			break;
-		default:
-                        errsv = errno;
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname_r");
-			g_free(buf);
-                        errno = errsv;
-			buf = NULL;
-			break;
-		}
-		len *= 2;
-	} while ((i != 0) && (errno == ERANGE));
-
-        return NULL;
-#elif defined(HAVE_PTSNAME)
-	char *p;
-	if ((p = ptsname(master)) != NULL) {
-		_vte_debug_print(VTE_DEBUG_PTY, "PTY slave is `%s'.\n", p);
-		return g_strdup(p);
-	}
-
-        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
-        return NULL;
-#elif defined(TIOCGPTN)
-	int pty = 0;
-	if (ioctl(master, TIOCGPTN, &pty) == 0) {
-		_vte_debug_print(VTE_DEBUG_PTY,
-				"PTY slave is `/dev/pts/%d'.\n", pty);
-		return g_strdup_printf("/dev/pts/%d", pty);
-	}
-
-        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTN)");
-        return NULL;
-#else
-#error no ptsname implementation for this platform
-#endif
 }
 
 #if defined(HAVE_UNIX98_PTY)
