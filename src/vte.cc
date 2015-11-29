@@ -10466,15 +10466,12 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
         m_pty = (VtePty *)g_object_ref(new_pty);
         int pty_master = vte_pty_get_fd(m_pty);
 
+        /* Ensure the FD is non-blocking */
+        int flags = fcntl(pty_master, F_GETFL);
+        g_warn_if_fail(flags >= 0 && (flags & O_NONBLOCK) == O_NONBLOCK);
+
         m_pty_channel = g_io_channel_unix_new(pty_master);
         g_io_channel_set_close_on_unref(m_pty_channel, FALSE);
-
-        /* FIXMEchpe: vte_pty_open_unix98 does the inverse ... */
-        /* Set the pty to be non-blocking. */
-        long flags = fcntl(pty_master, F_GETFL);
-        if ((flags & O_NONBLOCK) == 0) {
-                fcntl(pty_master, F_SETFL, flags | O_NONBLOCK);
-        }
 
         vte_terminal_set_size(m_terminal,
                               m_column_count,

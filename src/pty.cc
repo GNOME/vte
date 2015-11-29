@@ -617,23 +617,27 @@ fd_set_cloexec(int fd)
         return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
-#if defined(HAVE_UNIX98_PTY)
-
-static int
-fd_set_nonblock(int fd,
-                bool set)
+static bool
+fd_set_nonblocking(int fd,
+                   GError **error)
 {
         int flags = fcntl(fd, F_GETFL, 0);
-        if (flags < 0)
-                return flags;
+        if (flags >= 0 &&
+            (flags & O_NONBLOCK) == 0)
+                flags = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
-        if (set)
-                flags |= O_NONBLOCK;
-        else
-                flags &= ~(O_NONBLOCK);
-
-        return fcntl(fd, F_SETFL, flags);
+        if (flags < 0) {
+                int errsv = errno;
+                g_set_error(error, VTE_PTY_ERROR,
+                            VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
+                errno = errsv;
+                return FALSE;
+        }
+        return TRUE;
 }
+
+#if defined(HAVE_UNIX98_PTY)
 
 /*
  * _vte_pty_open_unix98:
@@ -651,7 +655,7 @@ _vte_pty_open_unix98(VtePty *pty,
         VtePtyPrivate *priv = pty->priv;
 
 	/* Attempt to open the master. */
-	int fd = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+	int fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
         if (fd == -1 && errno == EINVAL) {
                 /* Try without CLOEXEC and apply the flag afterwards */
                 fd = posix_openpt(O_RDWR | O_NOCTTY);
@@ -671,16 +675,6 @@ _vte_pty_open_unix98(VtePty *pty,
                 g_set_error (error, VTE_PTY_ERROR,
                              VTE_PTY_ERROR_PTY98_FAILED,
                              "%s failed: %s", "posix_openpt", g_strerror(errno));
-                return -1;
-        }
-
-        if (fd_set_nonblock(fd, false) != 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR,
-                            VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "Unsetting O_NONBLOCK flag", g_strerror(errsv));
-                close(fd);
-                errno = errsv;
                 return -1;
         }
 
@@ -762,6 +756,13 @@ _vte_pty_open_bsd(VtePty *pty,
                 return FALSE;
         }
 #endif
+
+        if (!fd_set_nonblocking(parentfd, error)) {
+                int errsv = errno;
+                close(parentfd);
+                errno = errsv;
+                return FALSE;
+        }
 
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
@@ -881,16 +882,16 @@ vte_pty_initable_init (GInitable *initable,
         /* If we already have a (foreign) FD, we're done. */
         if (priv->foreign) {
                 g_assert(priv->pty_fd != -1);
-                return TRUE;
-        }
-
+                ret = fd_set_nonblocking(priv->pty_fd, error);
+        } else {
 #if defined(HAVE_UNIX98_PTY)
-        ret = _vte_pty_open_unix98(pty, error);
+                ret = _vte_pty_open_unix98(pty, error);
 #elif defined(HAVE_OPENPTY)
-        ret = _vte_pty_open_bsd(pty, error);
+                ret = _vte_pty_open_bsd(pty, error);
 #else
 #error Have neither UNIX98 PTY nor BSD openpty!
 #endif
+        }
 
 	_vte_debug_print(VTE_DEBUG_PTY,
 			"vte_pty_initable_init returning %s with ptyfd = %d\n",
