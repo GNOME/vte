@@ -682,56 +682,6 @@ _vte_pty_getpt(GError **error)
 	return fd;
 }
 
-static gboolean
-_vte_pty_grantpt(int master,
-                 GError **error)
-{
-#ifdef HAVE_GRANTPT
-        int rv;
-
-        rv = grantpt(master);
-        if (rv != 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "grantpt", g_strerror(errsv));
-                errno = errsv;
-                return FALSE;
-        }
-#endif
-        return TRUE;
-}
-
-static gboolean
-_vte_pty_unlockpt(int fd,
-                  GError **error)
-{
-        int rv;
-#ifdef HAVE_UNLOCKPT
-	rv = unlockpt(fd);
-        if (rv != 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "unlockpt", g_strerror(errsv));
-                errno = errsv;
-                return FALSE;
-        }
-        return TRUE;
-#elif defined(TIOCSPTLCK)
-	int zero = 0;
-	rv = ioctl(fd, TIOCSPTLCK, &zero);
-        if (rv != 0) {
-                int errsv = errno;
-                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
-                            "%s failed: %s", "ioctl(TIOCSPTLCK)", g_strerror(errsv));
-                errno = errsv;
-                return FALSE;
-        }
-        return TRUE;
-#else
-#error no unlockpt implementation for this platform
-#endif
-}
-
 /*
  * _vte_pty_open_unix98:
  * @pty: a #VtePty
@@ -756,11 +706,19 @@ _vte_pty_open_unix98(VtePty *pty,
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
 
         /* Read the slave number and unlock it. */
-        if (!_vte_pty_grantpt(fd, error) ||
-            !_vte_pty_unlockpt(fd, error)) {
+        if (grantpt(fd) != 0) {
                 int errsv = errno;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                "PTY setup failed, bailing.\n");
+                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "grantpt", g_strerror(errsv));
+                close(fd);
+                errno = errsv;
+                return FALSE;
+        }
+
+	if (unlockpt(fd) != 0) {
+                int errsv = errno;
+                g_set_error(error, VTE_PTY_ERROR, VTE_PTY_ERROR_PTY98_FAILED,
+                            "%s failed: %s", "unlockpt", g_strerror(errsv));
                 close(fd);
                 errno = errsv;
                 return FALSE;
