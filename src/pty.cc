@@ -647,7 +647,8 @@ static int
 _vte_pty_open_posix(void)
 {
 	/* Attempt to open the master. */
-	int fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
+        vte::util::smart_fd fd;
+        fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
         if (fd == -1 && errno == EINVAL) {
                 /* Try without CLOEXEC and apply the flag afterwards */
                 fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -656,7 +657,6 @@ _vte_pty_open_posix(void)
                         vte::util::restore_errno errsv;
                         _vte_debug_print(VTE_DEBUG_PTY,
                                          "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                        close(fd);
                         return -1;
                 }
         }
@@ -672,7 +672,6 @@ _vte_pty_open_posix(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                close(fd);
                 return -1;
         }
 
@@ -681,7 +680,6 @@ _vte_pty_open_posix(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "grantpt", g_strerror(errsv));
-                close(fd);
                 return -1;
         }
 
@@ -689,13 +687,12 @@ _vte_pty_open_posix(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "unlockpt", g_strerror(errsv));
-                close(fd);
                 return -1;
         }
 
-	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd);
+	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", (int)fd);
 
-        return fd;
+        return fd.steal();
 }
 
 #elif defined(HAVE_OPENPTY)
@@ -712,8 +709,9 @@ _vte_pty_open_posix(void)
 static int
 _vte_pty_open_bsd(void)
 {
-	int parentfd, childfd;
-	if (openpty(&parentfd, &childfd, NULL, NULL, NULL) != 0) {
+        vte::util::smart_fd parentfd;
+	int childfd;
+	if (openpty(parentfd, &childfd, NULL, NULL, NULL) != 0) {
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "openpty", g_strerror(errsv));
@@ -727,7 +725,6 @@ _vte_pty_open_bsd(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                close(parentfd);
                 return -1;
         }
 
@@ -735,7 +732,6 @@ _vte_pty_open_bsd(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
-                close(parentfd);
                 return -1;
         }
 
@@ -743,11 +739,10 @@ _vte_pty_open_bsd(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                close(parentfd);
                 return -1;
         }
 
-	return parentfd;
+	return parentfd.steal();
 }
 
 #else
@@ -755,8 +750,9 @@ _vte_pty_open_bsd(void)
 #endif /* HAVE_UNIX98_PTY */
 
 static int
-_vte_pty_open_foreign(int fd)
+_vte_pty_open_foreign(int masterfd)
 {
+        vte::util::smart_fd fd(masterfd);
         if (fd == -1) {
                 errno = EBADFD;
                 return -1;
@@ -766,7 +762,6 @@ _vte_pty_open_foreign(int fd)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                close(fd);
                 return -1;
         }
 
@@ -774,7 +769,6 @@ _vte_pty_open_foreign(int fd)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                close(fd);
                 return -1;
         }
 
@@ -782,11 +776,10 @@ _vte_pty_open_foreign(int fd)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
-                close(fd);
                 return -1;
         }
 
-        return fd;
+        return fd.steal();
 }
 
 /**
@@ -873,7 +866,6 @@ vte_pty_initable_init (GInitable *initable,
 {
         VtePty *pty = VTE_PTY (initable);
         VtePtyPrivate *priv = pty->priv;
-        int fd;
 
         if (cancellable != NULL) {
                 g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
@@ -882,25 +874,24 @@ vte_pty_initable_init (GInitable *initable,
         }
 
         if (priv->foreign) {
-                fd = _vte_pty_open_foreign(priv->pty_fd);
+                priv->pty_fd = _vte_pty_open_foreign(priv->pty_fd);
         } else {
 #if defined(HAVE_UNIX98_PTY)
-                fd = _vte_pty_open_posix();
+                priv->pty_fd = _vte_pty_open_posix();
 #elif defined(HAVE_OPENPTY)
-                fd = _vte_pty_open_bsd();
+                priv->pty_fd = _vte_pty_open_bsd();
 #else
 #error Have neither UNIX98 PTY nor BSD openpty!
 #endif
         }
 
-        if (fd == -1) {
+        if (priv->pty_fd == -1) {
                 vte::util::restore_errno errsv;
                 g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
                             "Failed to open PTY: %s", g_strerror(errsv));
                 return FALSE;
         }
 
-        priv->pty_fd = fd;
         return TRUE;
 }
 
