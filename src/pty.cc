@@ -632,6 +632,33 @@ fd_set_cpkt(int fd)
         return ioctl(fd, TIOCPKT, &one);
 }
 
+static int
+fd_setup(int fd)
+{
+        if (fd_set_cloexec(fd) < 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                return -1;
+        }
+
+        if (fd_set_nonblocking(fd) < 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
+                return -1;
+        }
+
+        if (fd_set_cpkt(fd) < 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                return -1;
+        }
+
+        return 0;
+}
+
 #if defined(HAVE_UNIX98_PTY)
 
 /*
@@ -709,38 +736,16 @@ _vte_pty_open_posix(void)
 static int
 _vte_pty_open_bsd(void)
 {
-        vte::util::smart_fd parentfd;
-	int childfd;
-	if (openpty(parentfd, &childfd, NULL, NULL, NULL) != 0) {
+        vte::util::smart_fd parentfd, childfd;
+	if (openpty(parentfd, childfd, NULL, NULL, NULL) != 0) {
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "openpty", g_strerror(errsv));
 		return -1;
 	}
 
-        /* We'll reacquire it in vte_pty_child_setup */
-        (void)close(childfd);
-
-        if (fd_set_cloexec(parentfd) < 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+        if (fd_setup(parentfd) < 0)
                 return -1;
-        }
-
-        if (fd_set_nonblocking(parentfd) < 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
-                return -1;
-        }
-
-        if (fd_set_cpkt(parentfd) < 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                return -1;
-        }
 
 	return parentfd.steal();
 }
@@ -750,7 +755,7 @@ _vte_pty_open_bsd(void)
 #endif /* HAVE_UNIX98_PTY */
 
 static int
-_vte_pty_open_foreign(int masterfd)
+_vte_pty_open_foreign(int masterfd /* consumed */)
 {
         vte::util::smart_fd fd(masterfd);
         if (fd == -1) {
@@ -758,26 +763,8 @@ _vte_pty_open_foreign(int masterfd)
                 return -1;
         }
 
-        if (fd_set_cpkt(fd) < 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+        if (fd_setup(fd) < 0)
                 return -1;
-        }
-
-        if (fd_set_cloexec(fd) < 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                return -1;
-        }
-
-        if (fd_set_nonblocking(fd) < 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
-                return -1;
-        }
 
         return fd.steal();
 }
