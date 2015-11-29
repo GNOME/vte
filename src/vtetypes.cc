@@ -290,6 +290,17 @@ test_color_rgb (void)
 {
 }
 
+static void
+test_util_restore_errno(void)
+{
+        errno = -42;
+        {
+                vte::util::restore_errno errsv;
+                errno = 36;
+        }
+        g_assert_cmpint(errno, ==, -42);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -299,6 +310,7 @@ main(int argc, char *argv[])
         g_test_add_func("/vte/c++/grid/span", test_grid_span);
         g_test_add_func("/vte/c++/color/rgb", test_color_rgb);
         g_test_add_func("/vte/c++/view/coords", test_view_coords);
+        g_test_add_func("/vte/c++/util/restore-errno", test_util_restore_errno);
 
         return g_test_run();
 }

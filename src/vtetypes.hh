@@ -19,6 +19,7 @@
 
 #include <pango/pango.h>
 #include <gdk/gdk.h>
+#include <errno.h>
 
 namespace vte {
 
@@ -132,5 +133,18 @@ namespace color {
         };
 
 } /* namespace color */
+
+namespace util {
+
+        class restore_errno {
+        public:
+                restore_errno() { m_errsv = errno; }
+                ~restore_errno() { errno = m_errsv; }
+                operator int () const { return m_errsv; }
+        private:
+                int m_errsv;
+        };
+
+} /* namespace util */
 
 } /* namespace vte */
