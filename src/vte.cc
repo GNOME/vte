@@ -4641,35 +4641,24 @@ VteTerminalPrivate::im_preedit_changed()
 	invalidate_cursor_once();
 }
 
-static void
-vte_terminal_set_padding(VteTerminal *terminal)
-{
-        VteTerminalPrivate *pvt = terminal->pvt;
-        GtkWidget *widget = GTK_WIDGET(terminal);
-        GtkBorder padding;
-
-        gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                      gtk_widget_get_state_flags(widget),
-                                      &padding);
-
-        _vte_debug_print(VTE_DEBUG_MISC,
-                         "Setting padding to (%d,%d,%d,%d)\n",
-                         padding.left, padding.right,
-                         padding.top, padding.bottom);
-
-        if (memcmp(&padding, &pvt->padding, sizeof(GtkBorder)) == 0)
-                return;
-
-        pvt->padding = padding;
-
-        gtk_widget_queue_resize(widget);
-}
-
 void
 VteTerminalPrivate::widget_style_updated()
 {
         vte_terminal_set_font(m_terminal, m_unscaled_font_desc);
-        vte_terminal_set_padding(m_terminal);
+
+        GtkBorder new_padding;
+        gtk_style_context_get_padding(gtk_widget_get_style_context(m_widget),
+                                      gtk_widget_get_state_flags(m_widget),
+                                      &new_padding);
+        if (memcmp(&new_padding, &m_padding, sizeof(GtkBorder)) != 0) {
+                _vte_debug_print(VTE_DEBUG_MISC,
+                                 "Setting padding to (%d,%d,%d,%d)\n",
+                                 new_padding.left, new_padding.right,
+                                 new_padding.top, new_padding.bottom);
+
+                m_padding = new_padding;
+                gtk_widget_queue_resize(m_widget);
+        }
 
         float aspect;
         gtk_widget_style_get(m_widget, "cursor-aspect-ratio", &aspect, nullptr);
@@ -4677,6 +4666,7 @@ VteTerminalPrivate::widget_style_updated()
                 m_cursor_aspect_ratio = aspect;
                 invalidate_cursor_once();
         }
+
 }
 
 void
