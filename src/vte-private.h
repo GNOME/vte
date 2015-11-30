@@ -67,8 +67,6 @@ void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
 void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
 void _vte_terminal_cursor_down (VteTerminal *terminal);
 void _vte_terminal_drop_scrollback (VteTerminal *terminal);
-void _vte_terminal_restore_cursor (VteTerminal *terminal, VteScreen *screen);
-void _vte_terminal_save_cursor (VteTerminal *terminal, VteScreen *screen);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);

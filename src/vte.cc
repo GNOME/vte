@@ -3100,43 +3100,43 @@ VteTerminalPrivate::drop_scrollback()
 
 /* Restore cursor on a screen. */
 void
-_vte_terminal_restore_cursor (VteTerminal *terminal, VteScreen *screen)
+VteTerminalPrivate::restore_cursor(VteScreen *screen__)
 {
-        terminal->pvt->cursor.col = screen->saved.cursor.col;
-        terminal->pvt->cursor.row = screen->insert_delta + CLAMP(screen->saved.cursor.row,
-                                                                 0, terminal->pvt->row_count - 1);
+        m_cursor.col = screen__->saved.cursor.col;
+        m_cursor.row = screen__->insert_delta + CLAMP(screen__->saved.cursor.row,
+                                                      0, m_row_count - 1);
 
-        terminal->pvt->reverse_mode = screen->saved.reverse_mode;
-        terminal->pvt->origin_mode = screen->saved.origin_mode;
-        terminal->pvt->sendrecv_mode = screen->saved.sendrecv_mode;
-        terminal->pvt->insert_mode = screen->saved.insert_mode;
-        terminal->pvt->linefeed_mode = screen->saved.linefeed_mode;
-        terminal->pvt->defaults = screen->saved.defaults;
-        terminal->pvt->color_defaults = screen->saved.color_defaults;
-        terminal->pvt->fill_defaults = screen->saved.fill_defaults;
-        terminal->pvt->character_replacements[0] = screen->saved.character_replacements[0];
-        terminal->pvt->character_replacements[1] = screen->saved.character_replacements[1];
-        terminal->pvt->character_replacement = screen->saved.character_replacement;
+        m_reverse_mode = screen__->saved.reverse_mode;
+        m_origin_mode = screen__->saved.origin_mode;
+        m_sendrecv_mode = screen__->saved.sendrecv_mode;
+        m_insert_mode = screen__->saved.insert_mode;
+        m_linefeed_mode = screen__->saved.linefeed_mode;
+        m_defaults = screen__->saved.defaults;
+        m_color_defaults = screen__->saved.color_defaults;
+        m_fill_defaults = screen__->saved.fill_defaults;
+        m_character_replacements[0] = screen__->saved.character_replacements[0];
+        m_character_replacements[1] = screen__->saved.character_replacements[1];
+        m_character_replacement = screen__->saved.character_replacement;
 }
 
-/* Save cursor on a screen. */
+/* Save cursor on a screen__. */
 void
-_vte_terminal_save_cursor (VteTerminal *terminal, VteScreen *screen)
+VteTerminalPrivate::save_cursor(VteScreen *screen__)
 {
-        screen->saved.cursor.col = terminal->pvt->cursor.col;
-        screen->saved.cursor.row = terminal->pvt->cursor.row - screen->insert_delta;
+        screen__->saved.cursor.col = m_cursor.col;
+        screen__->saved.cursor.row = m_cursor.row - screen__->insert_delta;
 
-        screen->saved.reverse_mode = terminal->pvt->reverse_mode;
-        screen->saved.origin_mode = terminal->pvt->origin_mode;
-        screen->saved.sendrecv_mode = terminal->pvt->sendrecv_mode;
-        screen->saved.insert_mode = terminal->pvt->insert_mode;
-        screen->saved.linefeed_mode = terminal->pvt->linefeed_mode;
-        screen->saved.defaults = terminal->pvt->defaults;
-        screen->saved.color_defaults = terminal->pvt->color_defaults;
-        screen->saved.fill_defaults = terminal->pvt->fill_defaults;
-        screen->saved.character_replacements[0] = terminal->pvt->character_replacements[0];
-        screen->saved.character_replacements[1] = terminal->pvt->character_replacements[1];
-        screen->saved.character_replacement = terminal->pvt->character_replacement;
+        screen__->saved.reverse_mode = m_reverse_mode;
+        screen__->saved.origin_mode = m_origin_mode;
+        screen__->saved.sendrecv_mode = m_sendrecv_mode;
+        screen__->saved.insert_mode = m_insert_mode;
+        screen__->saved.linefeed_mode = m_linefeed_mode;
+        screen__->saved.defaults = m_defaults;
+        screen__->saved.color_defaults = m_color_defaults;
+        screen__->saved.fill_defaults = m_fill_defaults;
+        screen__->saved.character_replacements[0] = m_character_replacements[0];
+        screen__->saved.character_replacements[1] = m_character_replacements[1];
+        screen__->saved.character_replacement = m_character_replacement;
 }
 
 /* Insert a single character into the stored data array. */
@@ -8123,8 +8123,8 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
 
         /* Initialize the saved cursor. */
-        _vte_terminal_save_cursor(m_terminal, &m_normal_screen);
-        _vte_terminal_save_cursor(m_terminal, &m_alternate_screen);
+        save_cursor(&m_normal_screen);
+        save_cursor(&m_alternate_screen);
 
 	/* Matching data. */
         m_match_regex_mode = VTE_REGEX_UNDECIDED;
@@ -10444,8 +10444,8 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	/* Reset miscellaneous stuff. */
 	m_bracketed_paste_mode = FALSE;
         /* Reset the saved cursor. */
-        _vte_terminal_save_cursor(m_terminal, &m_normal_screen);
-        _vte_terminal_save_cursor(m_terminal, &m_alternate_screen);
+        save_cursor(&m_normal_screen);
+        save_cursor(&m_alternate_screen);
 	/* Cause everything to be redrawn (or cleared). */
 	maybe_scroll_to_bottom();
 

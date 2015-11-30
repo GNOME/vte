@@ -455,6 +455,9 @@ public:
         void cursor_down();
         void drop_scrollback();
 
+        void restore_cursor(VteScreen *screen__);
+        void save_cursor(VteScreen *screen__);
+
         bool insert_char(gunichar c,
                          bool insert,
                          bool invalidate_now);

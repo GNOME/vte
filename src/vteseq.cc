@@ -370,7 +370,7 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 static void
 vte_sequence_handler_restore_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        _vte_terminal_restore_cursor(terminal, terminal->pvt->screen);
+        terminal->pvt->restore_cursor(terminal->pvt->screen);
         _vte_terminal_ensure_cursor_is_onscreen(terminal);
 }
 
@@ -378,7 +378,7 @@ vte_sequence_handler_restore_cursor (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_save_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        _vte_terminal_save_cursor(terminal, terminal->pvt->screen);
+        terminal->pvt->save_cursor(terminal->pvt->screen);
 }
 
 /* Switch to normal screen. */
