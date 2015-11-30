@@ -2528,7 +2528,6 @@ glong
 vte_terminal_get_char_height(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-        g_return_val_if_fail(gtk_widget_get_realized(&terminal->widget), -1);
 	return terminal->pvt->get_char_height();
 }
 
@@ -2542,7 +2541,6 @@ glong
 vte_terminal_get_char_width(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-        g_return_val_if_fail(gtk_widget_get_realized(&terminal->widget), -1);
 	return terminal->pvt->get_char_width();
 }
 
