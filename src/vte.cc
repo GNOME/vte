@@ -4366,10 +4366,12 @@ VteTerminalPrivate::pty_io_write(GIOChannel *channel,
 }
 
 /* Convert some arbitrarily-encoded data to send to the child. */
-static void
-vte_terminal_send(VteTerminal *terminal, const char *encoding,
-		  const void *data, gssize length,
-		  gboolean local_echo, gboolean newline_stuff)
+void
+VteTerminalPrivate::send_child(char const* encoding__,
+                               guint8 const* data,
+                               gssize length,
+                               bool local_echo,
+                               bool newline_stuff)
 {
 	gsize icount, ocount;
 	const guchar *ibuf;
@@ -4378,15 +4380,14 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	VteConv conv;
 	long crcount, cooked_length, i;
 
-	g_assert(VTE_IS_TERMINAL(terminal));
-	g_assert(encoding && strcmp(encoding, "UTF-8") == 0);
+	g_assert(encoding__ && strcmp(encoding__, "UTF-8") == 0);
 
-        if (!terminal->pvt->input_enabled)
+        if (!m_input_enabled)
                 return;
 
 	conv = VTE_INVALID_CONV;
-	if (strcmp(encoding, "UTF-8") == 0) {
-		conv = terminal->pvt->outgoing_conv;
+	if (strcmp(encoding__, "UTF-8") == 0) {
+		conv = m_outgoing_conv;
 	}
 	if (conv == VTE_INVALID_CONV) {
 		g_warning (_("Unable to send data to child, invalid charset convertor"));
@@ -4396,8 +4397,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 	icount = length;
 	ibuf = (const guchar *)data;
 	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
-	_vte_byte_array_set_minimum_size(terminal->pvt->conv_buffer, ocount);
-	obuf = obufptr = terminal->pvt->conv_buffer->data;
+	_vte_byte_array_set_minimum_size(m_conv_buffer, ocount);
+	obuf = obufptr = m_conv_buffer->data;
 
 	if (_vte_conv(conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
 		g_warning(_("Error (%s) converting data for child, dropping."),
@@ -4435,8 +4436,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		}
 		/* Tell observers that we're sending this to the child. */
 		if (cooked_length > 0) {
-			terminal->pvt->emit_commit(
-						 cooked, cooked_length);
+			emit_commit(cooked, cooked_length);
 		}
 		/* Echo the text if we've been asked to do so. */
 		if ((cooked_length > 0) && local_echo) {
@@ -4447,7 +4447,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 				int len;
 				len = g_utf8_strlen(cooked, cooked_length);
 				for (i = 0; i < len; i++) {
-					terminal->pvt->insert_char(
+					insert_char(
 								 ucs4[i],
 								 false,
 								 true);
@@ -4457,8 +4457,8 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 		}
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if ((cooked_length > 0) && (terminal->pvt->pty != NULL)) {
-			_vte_byte_array_append(terminal->pvt->outgoing,
+		if ((cooked_length > 0) && (m_pty != NULL)) {
+			_vte_byte_array_append(m_outgoing,
 					   cooked, cooked_length);
 			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
 				for (i = 0; i < cooked_length; i++) {
@@ -4478,7 +4478,7 @@ vte_terminal_send(VteTerminal *terminal, const char *encoding,
 			}
 			/* If we need to start waiting for the child pty to
 			 * become available for writing, set that up here. */
-			terminal->pvt->connect_pty_write();
+			connect_pty_write();
 		}
 		if (crcount > 0) {
 			g_free(cooked);
@@ -4508,8 +4508,7 @@ VteTerminalPrivate::feed_child(char const *text,
 		length = strlen(text);
 
 	if (length > 0) {
-		vte_terminal_send(m_terminal, "UTF-8", text, length,
-				  FALSE, FALSE);
+		send_child("UTF-8", (guint8 const*)text, length, false, false);
 	}
 }
 
@@ -4553,9 +4552,9 @@ vte_terminal_feed_child_using_modes(VteTerminal *terminal,
 		length = strlen(data);
 	}
 	if (length > 0) {
-		vte_terminal_send(terminal, "UTF-8", data, length,
-                                  !terminal->pvt->sendrecv_mode,
-                                  terminal->pvt->linefeed_mode);
+		terminal->pvt->send_child("UTF-8", (guint8 const*)data, length,
+                                          !terminal->pvt->sendrecv_mode,
+                                          terminal->pvt->linefeed_mode);
 	}
 }
 

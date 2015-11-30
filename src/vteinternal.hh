@@ -541,6 +541,11 @@ public:
                          GIOCondition condition);
         bool pty_io_write(GIOChannel *channel,
                           GIOCondition condition);
+        void send_child(char const* encoding,
+                        guint8 const* data,
+                        gssize length,
+                        bool local_echo,
+                        bool newline_stuff);
 
         void watch_child (GPid child_pid);
         void child_watch_done(GPid pid,
