@@ -546,6 +546,8 @@ public:
                          GIOCondition condition);
         bool pty_io_write(GIOChannel *channel,
                           GIOCondition condition);
+
+        void feed_chunks(struct _vte_incoming_chunk *chunks);
         void send_child(char const* data,
                         gssize length,
                         bool local_echo,

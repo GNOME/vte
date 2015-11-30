@@ -4078,8 +4078,8 @@ next_match:
 			_vte_incoming_chunks_count(m_incoming));
 }
 
-static void
-_vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *chunks)
+void
+VteTerminalPrivate::feed_chunks(struct _vte_incoming_chunk *chunks)
 {
 	struct _vte_incoming_chunk *last;
 
@@ -4088,9 +4088,10 @@ _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *ch
 			_vte_incoming_chunks_count(chunks));
 
 	for (last = chunks; last->next != NULL; last = last->next) ;
-	last->next = terminal->pvt->incoming;
-	terminal->pvt->incoming = chunks;
+	last->next = m_incoming;
+	m_incoming = chunks;
 }
+
 /* Read and handle data from the child. */
 static gboolean
 vte_terminal_io_read_cb(GIOChannel *channel,
@@ -4204,7 +4205,7 @@ out:
 		}
 
 		if (chunks != NULL) {
-			_vte_terminal_feed_chunks(m_terminal, chunks);
+			feed_chunks(chunks);
 		}
 		if (!vte_terminal_is_processing(m_terminal)) {
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
@@ -4292,7 +4293,7 @@ VteTerminalPrivate::feed(char const* data,
 			chunk = m_incoming;
 		} else {
 			chunk = get_chunk ();
-			_vte_terminal_feed_chunks(m_terminal, chunk);
+			feed_chunks(chunk);
 		}
 		do { /* break the incoming data into chunks */
 			gsize rem = sizeof (chunk->data) - chunk->len;
@@ -4306,7 +4307,7 @@ VteTerminalPrivate::feed(char const* data,
 			data += len;
 
 			chunk = get_chunk ();
-			_vte_terminal_feed_chunks(m_terminal, chunk);
+			feed_chunks(chunk);
 		} while (1);
 		vte_terminal_start_processing(m_terminal);
 	}
