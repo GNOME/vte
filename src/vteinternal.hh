@@ -536,6 +536,8 @@ public:
         void pty_termios_changed();
         void pty_scroll_lock_changed(bool locked);
 
+        void pty_channel_eof();
+
         void watch_child (GPid child_pid);
         void child_watch_done(GPid pid,
                               int status);

@@ -3633,17 +3633,17 @@ VteTerminalPrivate::spawn_sync(VtePtyFlags pty_flags,
 }
 
 /* Handle an EOF from the client. */
-static void
-vte_terminal_eof(GIOChannel *channel, VteTerminal *terminal)
+void
+VteTerminalPrivate::pty_channel_eof()
 {
-        GObject *object = G_OBJECT(terminal);
+        GObject *object = G_OBJECT(m_terminal);
 
         g_object_freeze_notify(object);
 
-        vte_terminal_set_pty(terminal, NULL);
+        set_pty(nullptr);
 
 	/* Emit a signal that we read an EOF. */
-	terminal->pvt->queue_eof();
+	queue_eof();
 
         g_object_thaw_notify(object);
 }
@@ -4254,13 +4254,13 @@ out:
 			gdk_threads_enter ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-			vte_terminal_eof (channel, terminal);
+			terminal->pvt->pty_channel_eof();
 
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_leave ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 		} else {
-			vte_terminal_eof (channel, terminal);
+			terminal->pvt->pty_channel_eof();
 		}
 
 		again = FALSE;
