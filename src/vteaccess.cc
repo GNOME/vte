@@ -1474,7 +1474,7 @@ vte_terminal_accessible_remove_selection(AtkText *text,
 
 	terminal = VTE_TERMINAL (widget);
 	if (selection_number == 0 && vte_terminal_get_has_selection (terminal)) {
-		_vte_terminal_remove_selection (terminal);
+		terminal->pvt->deselect_all();
 		return TRUE;
 	} else {
 		return FALSE;
@@ -1502,7 +1502,7 @@ vte_terminal_accessible_set_selection(AtkText *text, gint selection_number,
 		return FALSE;
 	}
 	if (vte_terminal_get_has_selection (terminal)) {
-		_vte_terminal_remove_selection (terminal);
+		terminal->pvt->deselect_all();
 	}
 
 	return vte_terminal_accessible_add_selection (text, start_offset, end_offset);

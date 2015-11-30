@@ -10621,12 +10621,6 @@ _vte_terminal_select_text(VteTerminal *terminal,
 
 }
 
-void
-_vte_terminal_remove_selection(VteTerminal *terminal)
-{
-	terminal->pvt->deselect_all();
-}
-
 static void
 _vte_terminal_select_empty_at(VteTerminal *terminal,
 			      long col, long row)
