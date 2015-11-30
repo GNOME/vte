@@ -4536,27 +4536,28 @@ VteTerminalPrivate::feed_child_binary(guint8 const* data,
 	}
 }
 
-static void
-vte_terminal_feed_child_using_modes(VteTerminal *terminal,
-				    const char *data, glong length)
+void
+VteTerminalPrivate::feed_child_using_modes(char const* data,
+                                           gssize length)
 {
-	if (length == ((gssize)-1)) {
+	if (length == -1)
 		length = strlen(data);
-	}
-	if (length > 0) {
-		terminal->pvt->send_child(data, length,
-                                          !terminal->pvt->sendrecv_mode,
-                                          terminal->pvt->linefeed_mode);
-	}
+
+	if (length > 0)
+		send_child(data, length,
+                           !m_sendrecv_mode,
+                           m_linefeed_mode);
 }
 
 /* Send text from the input method to the child. */
 static void
-vte_terminal_im_commit(GtkIMContext *im_context, gchar *text, VteTerminal *terminal)
+vte_terminal_im_commit(GtkIMContext *im_context,
+                       char const* text,
+                       VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method committed `%s'.\n", text);
-	vte_terminal_feed_child_using_modes(terminal, text, -1);
+	terminal->pvt->feed_child_using_modes(text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
 	if (terminal->pvt->scroll_on_keystroke) {
@@ -5171,9 +5172,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 							1);
 			}
 			if (normal_length > 0) {
-				vte_terminal_feed_child_using_modes(m_terminal,
-								    normal,
-								    normal_length);
+				feed_child_using_modes(normal, normal_length);
 			}
 			g_free(normal);
 		}
@@ -10016,8 +10015,7 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
-			vte_terminal_feed_child_using_modes (m_terminal,
-					normal, normal_length);
+			feed_child_using_modes(normal, normal_length);
 		}
 		g_free (normal);
 	} else {

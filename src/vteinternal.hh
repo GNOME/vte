@@ -545,6 +545,8 @@ public:
                         gssize length,
                         bool local_echo,
                         bool newline_stuff);
+        void feed_child_using_modes(char const* data,
+                                    gssize length);
 
         void watch_child (GPid child_pid);
         void child_watch_done(GPid pid,
