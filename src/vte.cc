@@ -3367,42 +3367,49 @@ vte_terminal_child_watch_cb(GPid pid,
 		return;
 	}
 
-	if (pid == terminal->pvt->pty_pid) {
-                GObject *object = G_OBJECT(terminal);
+        g_object_ref(terminal);
+        terminal->pvt->child_watch_done(pid, status);
+        g_object_unref(terminal);
+        /* Note: terminal may be destroyed at this point */
+}
 
-                g_object_ref(object);
-                g_object_freeze_notify(object);
+void
+VteTerminalPrivate::child_watch_done(GPid pid,
+                                     int status)
+{
+	if (pid != m_pty_pid)
+                return;
 
-		_VTE_DEBUG_IF (VTE_DEBUG_LIFECYCLE) {
-			g_printerr ("Child[%d] exited with status %d\n",
-					pid, status);
+        GObject *object = G_OBJECT(m_terminal);
+        g_object_ref(object);
+        g_object_freeze_notify(object);
+
+        _VTE_DEBUG_IF (VTE_DEBUG_LIFECYCLE) {
+                g_printerr ("Child[%d] exited with status %d\n",
+                            pid, status);
 #ifdef HAVE_SYS_WAIT_H
-			if (WIFEXITED (status)) {
-				g_printerr ("Child[%d] exit code %d.\n",
-						pid, WEXITSTATUS (status));
-			}else if (WIFSIGNALED (status)) {
-				g_printerr ("Child[%d] dies with signal %d.\n",
-						pid, WTERMSIG (status));
-			}
+                if (WIFEXITED (status)) {
+                        g_printerr ("Child[%d] exit code %d.\n",
+                                    pid, WEXITSTATUS (status));
+                } else if (WIFSIGNALED (status)) {
+                        g_printerr ("Child[%d] dies with signal %d.\n",
+                                    pid, WTERMSIG (status));
+                }
 #endif
-		}
+        }
 
-		terminal->pvt->child_watch_source = 0;
-		terminal->pvt->pty_pid = -1;
+        m_child_watch_source = 0;
+        m_pty_pid = -1;
 
-		/* Close out the PTY. */
-                vte_terminal_set_pty(terminal, NULL);
+        /* Close out the PTY. */
+        set_pty(nullptr);
 
-		/* Tell observers what's happened. */
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting `child-exited'.\n");
-                g_signal_emit(object, signals[SIGNAL_CHILD_EXITED], 0, status);
+        /* Tell observers what's happened. */
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                         "Emitting `child-exited'.\n");
+        g_signal_emit(object, signals[SIGNAL_CHILD_EXITED], 0, status);
 
-                g_object_thaw_notify(object);
-                g_object_unref(object);
-
-                /* Note: terminal may be destroyed at this point */
-	}
+        g_object_thaw_notify(object);
 }
 
 static void mark_input_source_invalid(VteTerminal *terminal)

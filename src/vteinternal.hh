@@ -537,6 +537,9 @@ public:
         void pty_scroll_lock_changed(bool locked);
 
         void watch_child (GPid child_pid);
+        void child_watch_done(GPid pid,
+                              int status);
+
         bool spawn_sync(VtePtyFlags pty_flags,
                         const char *working_directory,
                         char **argv,
