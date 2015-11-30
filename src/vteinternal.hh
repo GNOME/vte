@@ -437,6 +437,13 @@ public:
 
 public:
 
+        inline vte::view::coord_t usable_height_px() const;
+        inline vte::view::coord_t scroll_delta_pixel() const;
+        inline vte::grid::row_t pixel_to_row(vte::view::coord_t y) const;
+        inline vte::view::coord_t row_to_pixel(vte::grid::row_t row) const;
+        inline vte::grid::row_t first_displayed_row() const;
+        inline vte::grid::row_t last_displayed_row() const;
+
         inline VteRowData *insert_rows (guint cnt);
         VteRowData *ensure_row();
         VteRowData *ensure_cursor();
