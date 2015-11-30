@@ -71,7 +71,6 @@ void _vte_terminal_restore_cursor (VteTerminal *terminal, VteScreen *screen);
 void _vte_terminal_save_cursor (VteTerminal *terminal, VteScreen *screen);
 void _vte_terminal_scroll_region(VteTerminal *terminal,
 				 long row, glong count, glong delta);
-void _vte_terminal_set_default_attributes(VteTerminal *terminal);
 void _vte_terminal_update_insert_delta(VteTerminal *terminal);
 
 void _vte_terminal_feed_focus_event(VteTerminal *terminal, gboolean in);

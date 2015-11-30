@@ -264,11 +264,9 @@ _vte_terminal_ring_remove (VteTerminal *terminal, glong position)
 
 /* Reset defaults for character insertion. */
 void
-_vte_terminal_set_default_attributes(VteTerminal *terminal)
+VteTerminalPrivate::reset_default_attributes()
 {
-        terminal->pvt->defaults = basic_cell.cell;
-        terminal->pvt->color_defaults = terminal->pvt->defaults;
-        terminal->pvt->fill_defaults = terminal->pvt->defaults;
+        m_defaults = m_color_defaults = m_fill_defaults = basic_cell.cell;
 }
 
 /* Height excluding padding, but including additional bottom area if not grid aligned */
@@ -8027,7 +8025,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	_vte_ring_init (m_normal_screen.row_data, VTE_SCROLLBACK_INIT, TRUE);
 	m_screen = &m_normal_screen;
 
-	_vte_terminal_set_default_attributes(m_terminal);
+	reset_default_attributes();
 
         /* Initialize charset modes. */
         m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
@@ -10347,7 +10345,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-	_vte_terminal_set_default_attributes(m_terminal);
+	reset_default_attributes();
         /* Reset charset modes. */
         m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
         m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;

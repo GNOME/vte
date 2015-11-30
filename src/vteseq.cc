@@ -1999,7 +1999,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 		param = g_value_get_long(value);
 		switch (param) {
 		case 0:
-			_vte_terminal_set_default_attributes(terminal);
+			terminal->pvt->reset_default_attributes();
 			break;
 		case 1:
                         terminal->pvt->defaults.attr.bold = 1;
@@ -2143,7 +2143,7 @@ vte_sequence_handler_character_attributes (VteTerminal *terminal, GValueArray *p
 	}
 	/* If we had no parameters, default to the defaults. */
 	if (i == 0) {
-		_vte_terminal_set_default_attributes(terminal);
+		terminal->pvt->reset_default_attributes();
 	}
 	/* Save the new colors. */
         terminal->pvt->color_defaults.attr.fore =

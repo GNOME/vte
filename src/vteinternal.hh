@@ -600,6 +600,8 @@ public:
         void select_all();
         void deselect_all();
 
+        void reset_default_attributes();
+
         void ensure_font();
         void update_font();
 
