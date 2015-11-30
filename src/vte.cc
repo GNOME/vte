@@ -1050,19 +1050,13 @@ void
 VteTerminalPrivate::match_contents_refresh()
 
 {
-        auto start_row = _vte_terminal_first_displayed_row (m_terminal);
-        auto start_col = 0;
-        auto end_row = _vte_terminal_last_displayed_row (m_terminal);
-        auto end_col = m_column_count - 1;
-
 	match_contents_clear();
 	GArray *array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-        m_match_contents = vte_terminal_get_text_range(m_terminal,
-                                                                    start_row, start_col,
-                                                                    end_row, end_col,
-                                                                    always_selected,
-                                                                    NULL,
-                                                                    array);
+        m_match_contents = get_text_displayed(true /* wrap */,
+                                              false /* include trailing whitespace */,
+                                              nullptr, nullptr,
+                                              array,
+                                              nullptr);
 	m_match_attributes = array;
 }
 
@@ -4008,16 +4002,16 @@ next_match:
 		/* Deselect the current selection if its contents are changed
 		 * by this insertion. */
 		if (m_has_selection) {
-			char *selection;
-			selection =
-			vte_terminal_get_text_range(m_terminal,
-						    m_selection_start.row,
-						    0,
-						    m_selection_end.row,
-						    m_column_count,
-						    vte_cell_is_selected,
-						    NULL,
-						    NULL);
+                        //FIXMEchpe: this is atrocious
+			char *selection = get_text(m_selection_start.row,
+                                                   0,
+                                                   m_selection_end.row,
+                                                   m_column_count,
+                                                   true /* wrap */,
+                                                   false /* include trailing whitespace */,
+                                                   vte_cell_is_selected, nullptr,
+                                                   nullptr,
+                                                   nullptr);
 			if ((selection == NULL) ||
 			    (m_selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
 			    (strcmp(selection, m_selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
@@ -5969,38 +5963,20 @@ vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, vte::c
 }
 
 char *
-_vte_terminal_get_text_range_full(VteTerminal *terminal,
-                                 glong start_row, glong start_col,
-                                 glong end_row, glong end_col,
-                                 VteSelectionFunc is_selected,
-                                 gpointer user_data,
-                                 GArray *attributes,
-                                 gsize *ret_len)
+VteTerminalPrivate::get_text(vte::grid::row_t start_row,
+                             vte::grid::column_t start_col,
+                             vte::grid::row_t end_row,
+                             vte::grid::column_t end_col,
+                             bool wrap,
+                             bool include_trailing_spaces,
+                             VteSelectionFunc is_selected,
+                             gpointer data,
+                             GArray *attributes,
+                             gsize *ret_len)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return _vte_terminal_get_text_range_maybe_wrapped(terminal,
-							 start_row, start_col,
-							 end_row, end_col,
-							 TRUE,
-							 is_selected,
-							 user_data,
-							 attributes,
-							 FALSE,
-                                                         ret_len);
-}
-
-char *
-_vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
-					  glong start_row, glong start_col,
-					  glong end_row, glong end_col,
-					  gboolean wrap,
-					  VteSelectionFunc is_selected,
-					  gpointer data,
-					  GArray *attributes,
-					  gboolean include_trailing_spaces,
-                                          gsize *ret_len)
-{
-	glong col, row, last_empty, last_emptycol, last_nonempty, last_nonemptycol;
+        vte::grid::row_t row;
+        vte::grid::column_t col, last_emptycol, last_nonemptycol;
+        gsize last_empty, last_nonempty;
 	const VteCell *pcell = NULL;
 	GString *string;
 	struct _VteCharAttributes attr;
@@ -6017,7 +5993,7 @@ _vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 
 	col = start_col;
 	for (row = start_row; row < end_row + 1; row++, col = 0) {
-		const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+		const VteRowData *row_data = _vte_terminal_find_row_data (m_terminal, row);
 		last_empty = last_nonempty = string->len;
 		last_emptycol = last_nonemptycol = -1;
 
@@ -6032,10 +6008,10 @@ _vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
 				 * the selection. */
-				if (!pcell->attr.fragment && is_selected(terminal, col, row, data)) {
+				if (!pcell->attr.fragment && is_selected(m_terminal, col, row, data)) {
 					/* Store the attributes of this character. */
-					vte_terminal_get_rgb_from_index(terminal, pcell->attr.fore, &fore);
-					vte_terminal_get_rgb_from_index(terminal, pcell->attr.back, &back);
+					vte_terminal_get_rgb_from_index(m_terminal, pcell->attr.fore, &fore);
+					vte_terminal_get_rgb_from_index(m_terminal, pcell->attr.back, &back);
 					attr.fore.red = fore.red;
 					attr.fore.green = fore.green;
 					attr.fore.blue = fore.blue;
@@ -6100,18 +6076,18 @@ _vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 		}
 
 		/* Adjust column, in case we want to append a newline */
-		attr.column = MAX(terminal->pvt->column_count, attr.column + 1);
+		attr.column = MAX(m_column_count, attr.column + 1);
 
 		/* Add a newline in block mode. */
-		if (terminal->pvt->selection_block_mode) {
+		if (m_selection_block_mode) {
 			string = g_string_append_c(string, '\n');
 		}
 		/* Else, if the last visible column on this line was selected and
 		 * not soft-wrapped, append a newline. */
-		else if (is_selected(terminal, terminal->pvt->column_count, row, data)) {
+		else if (is_selected(m_terminal, m_column_count, row, data)) {
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
-			if (!terminal->pvt->line_is_wrappable(row)) {
+			if (!line_is_wrappable(row)) {
 				string = g_string_append_c(string, '\n');
 			}
 		}
@@ -6129,28 +6105,38 @@ _vte_terminal_get_text_range_maybe_wrapped(VteTerminal *terminal,
 }
 
 char *
-_vte_terminal_get_text_maybe_wrapped(VteTerminal *terminal,
-				    gboolean wrap,
-				    VteSelectionFunc is_selected,
-				    gpointer data,
-				    GArray *attributes,
-				    gboolean include_trailing_spaces,
-                                    gsize *ret_len)
+VteTerminalPrivate::get_text_displayed(bool wrap,
+                                       bool include_trailing_spaces,
+                                       VteSelectionFunc is_selected,
+                                       gpointer data,
+                                       GArray *attributes,
+                                       gsize *ret_len)
 {
-	long start_row, start_col, end_row, end_col;
-	start_row = terminal->pvt->screen->scroll_delta;
-	start_col = 0;
-	end_row = start_row + terminal->pvt->row_count - 1;
-	end_col = terminal->pvt->column_count - 1;
-	return _vte_terminal_get_text_range_maybe_wrapped(terminal,
-							 start_row, start_col,
-							 end_row, end_col,
-							 wrap,
-							 is_selected,
-							 data,
-							 attributes,
-							 include_trailing_spaces,
-                                                         ret_len);
+        return get_text(_vte_terminal_first_displayed_row(m_terminal), 0,
+                        _vte_terminal_last_displayed_row(m_terminal), m_column_count - 1,
+                        wrap, include_trailing_spaces,
+                        is_selected, data,
+                        attributes,
+                        ret_len);
+}
+
+/* This is distinct from just using first/last_displayed_row since a11y
+ * doesn't know about sub-row displays.
+ */
+char *
+VteTerminalPrivate::get_text_displayed_a11y(bool wrap,
+                                            bool include_trailing_spaces,
+                                            VteSelectionFunc is_selected,
+                                            gpointer data,
+                                            GArray *attributes,
+                                            gsize *ret_len)
+{
+        return get_text(m_screen->scroll_delta, 0,
+                        m_screen->scroll_delta + m_row_count - 1, m_column_count - 1,
+                        wrap, include_trailing_spaces,
+                        is_selected, data,
+                        attributes,
+                        ret_len);
 }
 
 /*
@@ -6331,15 +6317,15 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(m_selection_text[sel]);
-	m_selection_text[sel] =
-		vte_terminal_get_text_range(m_terminal,
-					    m_selection_start.row,
-					    0,
-					    m_selection_end.row,
-					    m_column_count,
-					    vte_cell_is_selected,
-					    NULL,
-					    attributes);
+	m_selection_text[sel] = get_text(m_selection_start.row,
+                                         0,
+                                         m_selection_end.row,
+                                         m_column_count,
+                                         true /* wrap */,
+                                         false /* include trailing whitespace */,
+                                         vte_cell_is_selected, nullptr,
+                                         attributes,
+                                         nullptr);
 #ifdef HTML_SELECTION
 	g_free(m_selection_html[sel]);
 	m_selection_html[sel] =
@@ -11253,7 +11239,13 @@ VteTerminalPrivate::search_rows(
 	gdouble value, page_size;
 
 
-	row_text = _vte_terminal_get_text_range_full(m_terminal, start_row, 0, end_row, -1, NULL, NULL, NULL, &row_text_length);
+	row_text = get_text(start_row, 0,
+                            end_row, -1,
+                            true /* wrap */,
+                            false /* include trailing whitespace */, /* FIXMEchpe maybe do include it since the match may depend on it? */
+                            nullptr, nullptr,
+                            nullptr,
+                            &row_text_length);
 
 #ifdef WITH_PCRE2
         if (G_LIKELY(m_search_regex.mode == VTE_REGEX_PCRE2)) {
@@ -11328,7 +11320,13 @@ VteTerminalPrivate::search_rows(
 	if (!m_search_attrs)
 		m_search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
 	attrs = m_search_attrs;
-	row_text = vte_terminal_get_text_range(m_terminal, start_row, 0, end_row, -1, NULL, NULL, attrs);
+	row_text = get_text(start_row, 0,
+                            end_row, -1,
+                            true /* wrap */,
+                            false /* include trailing whitespace */, /* FIXMEchpe maybe true? */
+                            nullptr, nullptr,
+                            attrs,
+                            nullptr);
 
 	ca = &g_array_index (attrs, VteCharAttributes, start);
 	start_row = ca->row;

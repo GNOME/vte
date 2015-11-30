@@ -2308,13 +2308,11 @@ vte_terminal_get_text(VteTerminal *terminal,
 		      GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return _vte_terminal_get_text_maybe_wrapped(terminal,
-                                                    TRUE,
-                                                    is_selected,
-                                                    user_data,
-                                                    attributes,
-                                                    FALSE,
-                                                    NULL);
+	return terminal->pvt->get_text_displayed(true /* wrap */,
+                                                 false /* include trailing whitespace */,
+                                                 is_selected, user_data,
+                                                 attributes,
+                                                 nullptr);
 }
 
 /**
@@ -2341,13 +2339,11 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 					      GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return _vte_terminal_get_text_maybe_wrapped(terminal,
-                                                    TRUE,
-                                                    is_selected,
-                                                    user_data,
-                                                    attributes,
-                                                    TRUE,
-                                                    NULL);
+	return terminal->pvt->get_text_displayed(true /* wrap */,
+                                                 true /* include trailing whitespace */,
+                                                 is_selected, user_data,
+                                                 attributes,
+                                                 nullptr);
 }
 
 /**
@@ -2382,12 +2378,13 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			    GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return _vte_terminal_get_text_range_full(terminal,
-                                                 start_row, start_col,
-                                                 end_row, end_col,
-                                                 is_selected, user_data,
-                                                 attributes,
-                                                 NULL);
+	return terminal->pvt->get_text(start_row, start_col,
+                                       end_row, end_col,
+                                       true /* wrap */,
+                                       true /* include trailing whitespace */,
+                                       is_selected, user_data,
+                                       attributes,
+                                       nullptr);
 }
 
 /**

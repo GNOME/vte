@@ -141,13 +141,6 @@ xy_from_offset (VteTerminalAccessiblePrivate *priv,
 	*y = cur_y;
 }
 
-/* "Oh yeah, that's selected.  Sure." callback. */
-static gboolean
-all_selected(VteTerminal *terminal, glong column, glong row, gpointer data)
-{
-	return TRUE;
-}
-
 static void
 emit_text_caret_moved(GObject *object, glong caret)
 {
@@ -284,16 +277,17 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		priv->snapshot_linebreaks = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
-		tmp = vte_terminal_get_text_include_trailing_spaces(terminal,
-								    all_selected,
-								    NULL,
-								    priv->snapshot_attributes);
+                gsize tmp_len;
+		tmp = terminal->pvt->get_text_displayed_a11y(true /* wrap */,
+                                                             true /* include trailing whitespace */,
+                                                             nullptr, nullptr,
+                                                             priv->snapshot_attributes,
+                                                             &tmp_len);
 		if (tmp == NULL) {
 			/* Aaargh!  We're screwed. */
 			return;
 		}
-		priv->snapshot_text = g_string_new_len(tmp,
-						       priv->snapshot_attributes->len);
+		priv->snapshot_text = g_string_new_len(tmp, tmp_len);
 		g_free(tmp);
 
 		/* Get the offsets to the beginnings of each character. */
