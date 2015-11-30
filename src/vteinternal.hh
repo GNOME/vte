@@ -552,6 +552,11 @@ public:
         void child_watch_done(GPid pid,
                               int status);
 
+        void im_commit(char const* text);
+        void im_preedit_start();
+        void im_preedit_end();
+        void im_preedit_changed();
+
         bool spawn_sync(VtePtyFlags pty_flags,
                         const char *working_directory,
                         char **argv,

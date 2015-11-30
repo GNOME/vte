@@ -4551,66 +4551,94 @@ VteTerminalPrivate::feed_child_using_modes(char const* data,
 
 /* Send text from the input method to the child. */
 static void
-vte_terminal_im_commit(GtkIMContext *im_context,
-                       char const* text,
-                       VteTerminal *terminal)
+vte_terminal_im_commit_cb(GtkIMContext *im_context,
+                          char const* text,
+                          VteTerminalPrivate *that)
+{
+        that->im_commit(text);
+}
+
+void
+VteTerminalPrivate::im_commit(char const* text)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method committed `%s'.\n", text);
-	terminal->pvt->feed_child_using_modes(text, -1);
+	feed_child_using_modes(text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
-	if (terminal->pvt->scroll_on_keystroke) {
-		terminal->pvt->maybe_scroll_to_bottom();
+	if (m_scroll_on_keystroke) {
+		maybe_scroll_to_bottom();
 	}
 }
 
 /* We've started pre-editing. */
 static void
-vte_terminal_im_preedit_start(GtkIMContext *im_context, VteTerminal *terminal)
+vte_terminal_im_preedit_start_cb(GtkIMContext *im_context,
+                                 VteTerminalPrivate *that)
+{
+        that->im_preedit_start();
+}
+
+void
+VteTerminalPrivate::im_preedit_start()
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit started.\n");
-	terminal->pvt->im_preedit_active = TRUE;
+	m_im_preedit_active = true;
 }
 
 /* We've stopped pre-editing. */
 static void
-vte_terminal_im_preedit_end(GtkIMContext *im_context, VteTerminal *terminal)
+vte_terminal_im_preedit_end_cb(GtkIMContext *im_context,
+                               VteTerminalPrivate *that)
+{
+        that->im_preedit_end();
+}
+
+void
+VteTerminalPrivate::im_preedit_end()
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit ended.\n");
-	terminal->pvt->im_preedit_active = FALSE;
+	m_im_preedit_active = false;
 }
 
 /* The pre-edit string changed. */
 static void
-vte_terminal_im_preedit_changed(GtkIMContext *im_context, VteTerminal *terminal)
+vte_terminal_im_preedit_changed_cb(GtkIMContext *im_context,
+                                   VteTerminalPrivate *that)
+{
+        that->im_preedit_changed();
+}
+
+void
+VteTerminalPrivate::im_preedit_changed()
 {
 	gchar *str;
 	PangoAttrList *attrs;
-	gint cursor;
+	gint cursorpos;
 
-	gtk_im_context_get_preedit_string(im_context, &str, &attrs, &cursor);
+	gtk_im_context_get_preedit_string(im_context, &str, &attrs, &cursorpos);
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit changed (%s,%d).\n",
-			str, cursor);
+			str, cursorpos);
 
 	/* Queue the area where the current preedit string is being displayed
 	 * for repainting. */
-	terminal->pvt->invalidate_cursor_once();
+	invalidate_cursor_once();
 
-	g_free(terminal->pvt->im_preedit);
-	terminal->pvt->im_preedit = str;
+	g_free(m_im_preedit);
+	m_im_preedit = str;
 
-	if (terminal->pvt->im_preedit_attrs != NULL) {
-		pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
+	if (m_im_preedit_attrs != NULL) {
+		pango_attr_list_unref(m_im_preedit_attrs);
 	}
-	terminal->pvt->im_preedit_attrs = attrs;
+	m_im_preedit_attrs = attrs;
 
-	terminal->pvt->im_preedit_cursor = cursor;
+	m_im_preedit_cursor = cursorpos;
 
-	terminal->pvt->invalidate_cursor_once();
+        /* Invalidate again with the new cursor position */
+	invalidate_cursor_once();
 }
 
 static void
@@ -8298,9 +8326,9 @@ VteTerminalPrivate::widget_unrealize()
 
 	/* Shut down input methods. */
 	if (m_im_context != nullptr) {
-	        g_signal_handlers_disconnect_by_func (m_im_context,
-						      (void *)vte_terminal_im_preedit_changed,
-						      m_terminal);
+	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
+                                                     0, 0, NULL, NULL,
+                                                     this);
 		vte_terminal_im_reset(m_terminal);
 		gtk_im_context_set_client_window(m_im_context,
 						 NULL);
@@ -8648,7 +8676,11 @@ VteTerminalPrivate::widget_realize()
 
 	/* Set up input method support.  FIXME: do we need to handle the
 	 * "retrieve-surrounding" and "delete-surrounding" events? */
+        // FIXMEchpe this shouldn't ever be true:
 	if (m_im_context != nullptr) {
+	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
+                                                     0, 0, NULL, NULL,
+                                                     this);
 		vte_terminal_im_reset(m_terminal);
 		g_object_unref(m_im_context);
 		m_im_context = nullptr;
@@ -8657,16 +8689,13 @@ VteTerminalPrivate::widget_realize()
 	m_im_context = gtk_im_multicontext_new();
 	gtk_im_context_set_client_window(m_im_context, window);
 	g_signal_connect(m_im_context, "commit",
-			 G_CALLBACK(vte_terminal_im_commit), m_terminal);
+			 G_CALLBACK(vte_terminal_im_commit_cb), this);
 	g_signal_connect(m_im_context, "preedit-start",
-			 G_CALLBACK(vte_terminal_im_preedit_start),
-			 m_terminal);
+			 G_CALLBACK(vte_terminal_im_preedit_start_cb), this);
 	g_signal_connect(m_im_context, "preedit-changed",
-			 G_CALLBACK(vte_terminal_im_preedit_changed),
-			 m_terminal);
+			 G_CALLBACK(vte_terminal_im_preedit_changed_cb), this);
 	g_signal_connect(m_im_context, "preedit-end",
-			 G_CALLBACK(vte_terminal_im_preedit_end),
-			 m_terminal);
+			 G_CALLBACK(vte_terminal_im_preedit_end_cb), this);
 	gtk_im_context_set_use_preedit(m_im_context, TRUE);
 
 	/* Clear modifiers. */
