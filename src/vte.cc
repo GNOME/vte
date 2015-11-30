@@ -5411,68 +5411,79 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 
 /* Once we get text data, actually paste it in. */
 static void
-vte_terminal_paste_cb(GtkClipboard *clipboard, const gchar *text, gpointer data)
+vte_terminal_paste_cb(GtkClipboard *clipboard,
+                      char const* text,
+                      gpointer data)
 {
-	VteTerminal *terminal = (VteTerminal *)data;
+        VteTerminalPrivate *that = static_cast<VteTerminalPrivate*>(data);
+        that->widget_paste_received(text);
+}
+
+void
+VteTerminalPrivate::widget_paste_received(char const* text)
+{
 	gchar *paste, *p;
         gsize run;
         unsigned char c;
 
-	if (text != NULL) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Pasting %" G_GSIZE_FORMAT " UTF-8 bytes.\n",
-				strlen(text));
-		if (!g_utf8_validate(text, -1, NULL)) {
-			g_warning(_("Error (%s) converting data for child, dropping."), g_strerror(EINVAL));
-			return;
-		}
+	if (text == nullptr)
+                return;
 
-		/* Convert newlines to carriage returns, which more software
-                 * is able to cope with (cough, pico, cough).
-                 * Filter out control chars except ^H, ^I, ^J, ^M and ^? (as per xterm).
-                 * Also filter out C1 controls: U+0080 (0xC2 0x80) - U+009F (0xC2 0x9F). */
-                p = paste = (gchar *) g_malloc(strlen(text));
-                while (p != NULL && text[0] != '\0') {
-                        run = strcspn(text, "\x01\x02\x03\x04\x05\x06\x07"
-                                            "\x0A\x0B\x0C\x0E\x0F"
-                                            "\x10\x11\x12\x13\x14\x15\x16\x17"
-                                            "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\xC2");
-                        memcpy(p, text, run);
-                        p += run;
-                        text += run;
-                        switch (text[0]) {
-                        case '\x00':
-                                break;
-                        case '\x0A':
-                                *p = '\x0D';
+        gsize len = strlen(text);
+        _vte_debug_print(VTE_DEBUG_SELECTION,
+                         "Pasting %" G_GSIZE_FORMAT " UTF-8 bytes.\n", len);
+        // FIXMEchpe this cannot happen ever
+        if (!g_utf8_validate(text, len, NULL)) {
+                g_warning("Paste not valid UTF-8, dropping.");
+                return;
+        }
+
+        /* Convert newlines to carriage returns, which more software
+         * is able to cope with (cough, pico, cough).
+         * Filter out control chars except ^H, ^I, ^J, ^M and ^? (as per xterm).
+         * Also filter out C1 controls: U+0080 (0xC2 0x80) - U+009F (0xC2 0x9F). */
+        p = paste = (gchar *) g_malloc(len + 1);
+        while (p != nullptr && text[0] != '\0') {
+                run = strcspn(text, "\x01\x02\x03\x04\x05\x06\x07"
+                              "\x0A\x0B\x0C\x0E\x0F"
+                              "\x10\x11\x12\x13\x14\x15\x16\x17"
+                              "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\xC2");
+                memcpy(p, text, run);
+                p += run;
+                text += run;
+                switch (text[0]) {
+                case '\x00':
+                        break;
+                case '\x0A':
+                        *p = '\x0D';
+                        p++;
+                        text++;
+                        break;
+                case '\xC2':
+                        c = text[1];
+                        if (c >= 0x80 && c <= 0x9F) {
+                                /* Skip both bytes of a C1 */
+                                text += 2;
+                        } else {
+                                /* Move along, nothing to see here */
+                                *p = '\xC2';
                                 p++;
                                 text++;
-                                break;
-                        case '\xC2':
-                                c = text[1];
-                                if (c >= 0x80 && c <= 0x9F) {
-                                        /* Skip both bytes of a C1 */
-                                        text += 2;
-                                } else {
-                                        /* Move along, nothing to see here */
-                                        *p = '\xC2';
-                                        p++;
-                                        text++;
-                                }
-                                break;
-                        default:
-                                /* Swallow this byte */
-                                text++;
-                                break;
-			}
-		}
-		if (terminal->pvt->bracketed_paste_mode)
-			vte_terminal_feed_child(terminal, "\e[200~", -1);
-                vte_terminal_feed_child(terminal, paste, p - paste);
-		if (terminal->pvt->bracketed_paste_mode)
-			vte_terminal_feed_child(terminal, "\e[201~", -1);
-		g_free(paste);
-	}
+                        }
+                        break;
+                default:
+                        /* Swallow this byte */
+                        text++;
+                        break;
+                }
+        }
+        if (m_bracketed_paste_mode)
+                feed_child("\e[200~", -1);
+        // FIXMEchpe add a way to avoid the extra string copy done here
+        feed_child(paste, p - paste);
+        if (m_bracketed_paste_mode)
+                feed_child("\e[201~", -1);
+        g_free(paste);
 }
 
 /*
@@ -6440,9 +6451,10 @@ VteTerminalPrivate::widget_paste(GdkAtom board)
 	if (clip != nullptr) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Requesting clipboard contents.\n");
+                // FIXME FIXMEchpe!! we need to invalidate this request when the widget is destroyed before receiving the text!
 		gtk_clipboard_request_text(clip,
 					   vte_terminal_paste_cb,
-					   m_terminal);
+					   this);
 	}
 }
 

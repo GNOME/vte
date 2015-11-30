@@ -489,6 +489,7 @@ public:
 
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel);
+        void widget_paste_received(char const* text);
 
         void widget_set_hadjustment(GtkAdjustment *adjustment);
         void widget_set_vadjustment(GtkAdjustment *adjustment);
