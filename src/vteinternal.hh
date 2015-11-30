@@ -546,7 +546,17 @@ public:
 
         inline bool line_is_wrappable(vte::grid::row_t row) const;
 
-        char *get_text(vte::grid::row_t start_row,
+        GString* get_text(vte::grid::row_t start_row,
+                          vte::grid::column_t start_col,
+                          vte::grid::row_t end_row,
+                          vte::grid::column_t end_col,
+                          bool wrap,
+                          bool include_trailing_spaces,
+                          VteSelectionFunc is_selected,
+                          gpointer data,
+                          GArray *attributes);
+
+        char* get_text(vte::grid::row_t start_row,
                        vte::grid::column_t start_col,
                        vte::grid::row_t end_row,
                        vte::grid::column_t end_col,
@@ -557,19 +567,24 @@ public:
                        GArray *attributes,
                        gsize *ret_len);
 
-        char *get_text_displayed(bool wrap,
+        GString* get_text_displayed(bool wrap,
+                                    bool include_trailing_spaces,
+                                    VteSelectionFunc is_selected,
+                                    gpointer data,
+                                    GArray *attributes);
+
+        char* get_text_displayed(bool wrap,
                                  bool include_trailing_spaces,
                                  VteSelectionFunc is_selected,
                                  gpointer data,
                                  GArray *attributes,
                                  gsize *ret_len);
 
-        char *get_text_displayed_a11y(bool wrap,
-                                      bool include_trailing_spaces,
-                                      VteSelectionFunc is_selected,
-                                      gpointer data,
-                                      GArray *attributes,
-                                      gsize *ret_len);
+        GString* get_text_displayed_a11y(bool wrap,
+                                         bool include_trailing_spaces,
+                                         VteSelectionFunc is_selected,
+                                         gpointer data,
+                                         GArray *attributes);
 
         void start_selection(long x,
                              long y,

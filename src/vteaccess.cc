@@ -198,7 +198,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
         VteTerminal *terminal;
 	struct _VteCharAttributes attrs;
-	char *next, *tmp;
+	char *next;
 	long row, offset, caret;
 	long ccol, crow;
 	guint i;
@@ -277,18 +277,10 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		priv->snapshot_linebreaks = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
-                gsize tmp_len;
-		tmp = terminal->pvt->get_text_displayed_a11y(true /* wrap */,
-                                                             true /* include trailing whitespace */,
-                                                             nullptr, nullptr,
-                                                             priv->snapshot_attributes,
-                                                             &tmp_len);
-		if (tmp == NULL) {
-			/* Aaargh!  We're screwed. */
-			return;
-		}
-		priv->snapshot_text = g_string_new_len(tmp, tmp_len);
-		g_free(tmp);
+		priv->snapshot_text = terminal->pvt->get_text_displayed_a11y(true /* wrap */,
+                                                                             true /* include trailing whitespace */,
+                                                                             nullptr, nullptr,
+                                                                             priv->snapshot_attributes);
 
 		/* Get the offsets to the beginnings of each character. */
 		i = 0;

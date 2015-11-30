@@ -5974,6 +5974,27 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
                              GArray *attributes,
                              gsize *ret_len)
 {
+        GString *text = get_text(start_row, start_col,
+                                 end_row, end_col,
+                                 wrap, include_trailing_spaces,
+                                 is_selected, data,
+                                 attributes);
+        if (ret_len)
+                *ret_len = text->len;
+        return static_cast<char*>(g_string_free(text, FALSE));
+}
+
+GString*
+VteTerminalPrivate::get_text(vte::grid::row_t start_row,
+                             vte::grid::column_t start_col,
+                             vte::grid::row_t end_row,
+                             vte::grid::column_t end_col,
+                             bool wrap,
+                             bool include_trailing_spaces,
+                             VteSelectionFunc is_selected,
+                             gpointer data,
+                             GArray *attributes)
+{
         vte::grid::row_t row;
         vte::grid::column_t col, last_emptycol, last_nonemptycol;
         gsize last_empty, last_nonempty;
@@ -6099,9 +6120,7 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 	}
 	/* Sanity check. */
 	g_assert(attributes == NULL || string->len == attributes->len);
-        if (ret_len)
-                *ret_len = string->len;
-	return g_string_free(string, FALSE);
+        return string;
 }
 
 char *
@@ -6112,31 +6131,43 @@ VteTerminalPrivate::get_text_displayed(bool wrap,
                                        GArray *attributes,
                                        gsize *ret_len)
 {
+        GString *text = get_text_displayed(wrap, include_trailing_spaces,
+                                           is_selected, data,
+                                           attributes);
+        if (ret_len)
+                *ret_len = text->len;
+        return static_cast<char*>(g_string_free(text, FALSE));
+}
+
+GString*
+VteTerminalPrivate::get_text_displayed(bool wrap,
+                                       bool include_trailing_spaces,
+                                       VteSelectionFunc is_selected,
+                                       gpointer data,
+                                       GArray *attributes)
+{
         return get_text(_vte_terminal_first_displayed_row(m_terminal), 0,
                         _vte_terminal_last_displayed_row(m_terminal), m_column_count - 1,
                         wrap, include_trailing_spaces,
                         is_selected, data,
-                        attributes,
-                        ret_len);
+                        attributes);
 }
 
 /* This is distinct from just using first/last_displayed_row since a11y
  * doesn't know about sub-row displays.
  */
-char *
+GString*
 VteTerminalPrivate::get_text_displayed_a11y(bool wrap,
                                             bool include_trailing_spaces,
                                             VteSelectionFunc is_selected,
                                             gpointer data,
-                                            GArray *attributes,
-                                            gsize *ret_len)
+                                            GArray *attributes)
 {
         return get_text(m_screen->scroll_delta, 0,
                         m_screen->scroll_delta + m_row_count - 1, m_column_count - 1,
                         wrap, include_trailing_spaces,
                         is_selected, data,
-                        attributes,
-                        ret_len);
+                        attributes);
 }
 
 /*
