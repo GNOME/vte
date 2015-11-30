@@ -490,6 +490,8 @@ public:
         void widget_set_hadjustment(GtkAdjustment *adjustment);
         void widget_set_vadjustment(GtkAdjustment *adjustment);
 
+        GdkCursor *widget_cursor_new(GdkCursorType cursor_type) const;
+
         void widget_realize();
         void widget_unrealize();
         void widget_style_updated();

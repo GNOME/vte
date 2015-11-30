@@ -1184,14 +1184,9 @@ VteTerminalPrivate::regex_match_remove(int tag)
 }
 
 GdkCursor *
-_vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type)
+VteTerminalPrivate::widget_cursor_new(GdkCursorType cursor_type) const
 {
-	GdkDisplay *display;
-	GdkCursor *cursor;
-
-	display = gtk_widget_get_display(&terminal->widget);
-	cursor = gdk_cursor_new_for_display(display, cursor_type);
-	return cursor;
+	return gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type);
 }
 
 int
@@ -8593,10 +8588,8 @@ VteTerminalPrivate::widget_realize()
 
 	/* Create the stock cursors. */
 	m_mouse_cursor_visible = TRUE;
-	m_mouse_default_cursor =
-		_vte_terminal_cursor_new(m_terminal, VTE_DEFAULT_CURSOR);
-	m_mouse_mousing_cursor =
-		_vte_terminal_cursor_new(m_terminal, VTE_MOUSING_CURSOR);
+	m_mouse_default_cursor = widget_cursor_new(VTE_DEFAULT_CURSOR);
+	m_mouse_mousing_cursor = widget_cursor_new(VTE_MOUSING_CURSOR);
 
 	/* Create a GDK window for the widget. */
 	attributes.window_type = GDK_WINDOW_CHILD;
@@ -8671,7 +8664,7 @@ VteTerminalPrivate::widget_realize()
 	m_modifiers = 0;
 
 	/* Create our invisible cursor. */
-	m_mouse_inviso_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), GDK_BLANK_CURSOR);
+	m_mouse_inviso_cursor = widget_cursor_new(GDK_BLANK_CURSOR);
 
         /* Make sure the style is set, bug 727614. */
         widget_style_updated();
