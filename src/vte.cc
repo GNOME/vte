@@ -6213,7 +6213,8 @@ VteTerminalPrivate::get_text_displayed_a11y(bool wrap,
 }
 
 char *
-VteTerminalPrivate::get_selected_text(GArray *attributes)
+VteTerminalPrivate::get_selected_text(GArray *attributes,
+                                      gsize *len_ptr)
 {
 	return get_text(m_selection_start.row,
                         0,
@@ -6223,7 +6224,7 @@ VteTerminalPrivate::get_selected_text(GArray *attributes)
                         false /* include trailing whitespace */,
                         vte_cell_is_selected, nullptr,
                         attributes,
-                        nullptr);
+                        len_ptr);
 }
 
 /*
@@ -6231,9 +6232,10 @@ VteTerminalPrivate::get_selected_text(GArray *attributes)
  * attributes that tend to change from character to character or are otherwise
  * strange (in particular: fragment, columns).
  */
-static gboolean
-vte_terminal_cellattr_equal(const VteCellAttr *attr1,
-                            const VteCellAttr *attr2)
+// FIXMEchpe: make VteCellAttr a class with operator==
+static bool
+vte_terminal_cellattr_equal(VteCellAttr const *attr1,
+                            VteCellAttr const* attr2)
 {
 	return (attr1->bold          == attr2->bold      &&
 	        attr1->fore          == attr2->fore      &&
@@ -6250,19 +6252,18 @@ vte_terminal_cellattr_equal(const VteCellAttr *attr1,
  * old-style HTML (and not CSS) for better compatibility with, for example,
  * evolution's mail editor component.
  */
-static gchar *
-vte_terminal_cellattr_to_html(VteTerminal *terminal,
-                              const VteCellAttr *attr,
-                              const gchar *text)
+char *
+VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
+                                     char const* text) const
 {
 	GString *string;
 	guint fore, back;
 
 	string = g_string_new(text);
 
-	vte_terminal_determine_colors_internal (terminal, attr,
-					        FALSE, FALSE,
-						&fore, &back);
+	vte_terminal_determine_colors_internal(m_terminal, attr,
+                                               FALSE, FALSE,
+                                               &fore, &back);
 
 	if (attr->bold) {
 		g_string_prepend(string, "<b>");
@@ -6272,7 +6273,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal,
 		vte::color::rgb color;
                 char *tag;
 
-                vte_terminal_get_rgb_from_index(terminal, attr->fore, &color);
+                vte_terminal_get_rgb_from_index(m_terminal, attr->fore, &color);
 		tag = g_strdup_printf("<font color=\"#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
@@ -6285,7 +6286,7 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal,
 		vte::color::rgb color;
                 char *tag;
 
-                vte_terminal_get_rgb_from_index(terminal, attr->back, &color);
+                vte_terminal_get_rgb_from_index(m_terminal, attr->back, &color);
 		tag = g_strdup_printf("<span style=\"background-color:#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
@@ -6315,22 +6316,17 @@ vte_terminal_cellattr_to_html(VteTerminal *terminal,
  * Similar to vte_terminal_find_charcell, but takes a VteCharAttribute for
  * indexing and returns the VteCellAttr.
  */
-static const VteCellAttr *
-vte_terminal_char_to_cell_attr(VteTerminal *terminal,
-                               VteCharAttributes *attr)
+VteCellAttr const*
+VteTerminalPrivate::char_to_cell_attr(VteCharAttributes const* attr) const
 {
-	const VteCell *cell;
-
-	cell = vte_terminal_find_charcell(terminal, attr->column, attr->row);
+	VteCell const *cell = vte_terminal_find_charcell(m_terminal, attr->column, attr->row);
 	if (cell)
 		return &cell->attr;
-	return NULL;
+	return nullptr;
 }
 
-
 /*
- * _vte_terminal_attributes_to_html:
- * @terminal: a #VteTerminal
+ * VteTerminalPrivate::attributes_to_html:
  * @text: A string as returned by the vte_terminal_get_* family of functions.
  * @attrs: (array) (element-type Vte.CharAttributes): text attributes, as created by vte_terminal_get_*
  *
@@ -6342,22 +6338,22 @@ vte_terminal_char_to_cell_attr(VteTerminal *terminal,
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
-_vte_terminal_attributes_to_html(VteTerminal *terminal,
-                                 const gchar *text,
-                                 GArray *attrs)
+VteTerminalPrivate::attributes_to_html(char const* text,
+                                       gsize len,
+                                       GArray *attrs)
 {
 	GString *string;
 	guint from,to;
 	const VteCellAttr *attr;
 	char *escaped, *marked;
 
-	g_assert(strlen(text) == attrs->len);
+	g_assert(len == attrs->len);
 
 	/* Initial size fits perfectly if the text has no attributes and no
 	 * characters that need to be escaped
          */
-	string = g_string_sized_new (strlen(text) + 11);
-	
+	string = g_string_sized_new (len + 11);
+
 	g_string_append(string, "<pre>");
 	/* Find streches with equal attributes. Newlines are treated specially,
 	 * so that the <span> do not cover multiple lines.
@@ -6369,17 +6365,17 @@ _vte_terminal_attributes_to_html(VteTerminal *terminal,
 			g_string_append_c(string, '\n');
 			from = ++to;
 		} else {
-			attr = vte_terminal_char_to_cell_attr(terminal,
+			attr = char_to_cell_attr(
 				&g_array_index(attrs, VteCharAttributes, from));
 			while (text[to] != '\0' && text[to] != '\n' &&
 			       vte_terminal_cellattr_equal(attr,
-					vte_terminal_char_to_cell_attr(terminal,
+                                                           char_to_cell_attr(
 						&g_array_index(attrs, VteCharAttributes, to))))
 			{
 				to++;
 			}
 			escaped = g_markup_escape_text(text + from, to - from);
-			marked = vte_terminal_cellattr_to_html(terminal, attr, escaped);
+			marked = cellattr_to_html(attr, escaped);
 			g_string_append(string, marked);
 			g_free(escaped);
 			g_free(marked);
@@ -6404,13 +6400,12 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(m_selection_text[sel]);
-	m_selection_text[sel] = get_selected_text(attributes);
+        gsize len;
+	m_selection_text[sel] = get_selected_text(attributes, &len);
 #ifdef HTML_SELECTION
 	g_free(m_selection_html[sel]);
-	m_selection_html[sel] =
-		_vte_terminal_attributes_to_html(m_terminal,
-                                                 m_selection_text[sel],
-                                                 attributes);
+	m_selection_html[sel] = attributes_to_html(m_selection_text[sel], len,
+                                                   attributes);
 #endif
 
 	g_array_free (attributes, TRUE);

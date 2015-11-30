@@ -631,7 +631,16 @@ public:
                                          gpointer data,
                                          GArray *attributes);
 
-        char *get_selected_text(GArray *attributes = nullptr);
+        char *get_selected_text(GArray *attributes = nullptr,
+                                gsize *len_ptr = nullptr);
+
+        char *cellattr_to_html(VteCellAttr const* attr,
+                               char const* text) const;
+        VteCellAttr const* char_to_cell_attr(VteCharAttributes const* attr) const;
+
+        char *attributes_to_html(char const* text,
+                                 gsize len,
+                                 GArray *attrs);
 
         void start_selection(long x,
                              long y,
