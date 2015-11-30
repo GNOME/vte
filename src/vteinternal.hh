@@ -537,6 +537,10 @@ public:
         void pty_scroll_lock_changed(bool locked);
 
         void pty_channel_eof();
+        bool pty_io_read(GIOChannel *channel,
+                         GIOCondition condition);
+        bool pty_io_write(GIOChannel *channel,
+                          GIOCondition condition);
 
         void watch_child (GPid child_pid);
         void child_watch_done(GPid pid,
@@ -1047,5 +1051,6 @@ public:
 #define m_color_defaults color_defaults
 #define m_fill_defaults fill_defaults
 #define m_defaults defaults
+#define m_pty_input_active pty_input_active
 
 extern GTimer *process_timer;

@@ -82,12 +82,12 @@ typedef gunichar wint_t;
 #define I_(string) (g_intern_static_string(string))
 
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
-static gboolean vte_terminal_io_read(GIOChannel *channel,
-				     GIOCondition condition,
-				     VteTerminal *terminal);
-static gboolean vte_terminal_io_write(GIOChannel *channel,
-				      GIOCondition condition,
-				      VteTerminal *terminal);
+static gboolean vte_terminal_io_read_cb(GIOChannel *channel,
+                                        GIOCondition condition,
+                                        VteTerminal *terminal);
+static gboolean vte_terminal_io_write_cb(GIOChannel *channel,
+                                         GIOCondition condition,
+                                         VteTerminal *terminal);
 static gboolean vte_cell_is_selected(VteTerminal *terminal,
 				     glong col, glong row, gpointer data);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
@@ -3430,7 +3430,7 @@ VteTerminalPrivate::connect_pty_read()
 			g_io_add_watch_full(m_pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    (GIOCondition)(G_IO_IN | G_IO_PRI | G_IO_HUP),
-					    (GIOFunc) vte_terminal_io_read,
+					    (GIOFunc)vte_terminal_io_read_cb,
 					    m_terminal,
 					    (GDestroyNotify) mark_input_source_invalid);
 	}
@@ -3454,16 +3454,14 @@ VteTerminalPrivate::connect_pty_write()
 	}
 
 	if (m_pty_output_source == 0) {
-		if (vte_terminal_io_write (m_pty_channel,
-                                           G_IO_OUT,
-                                           m_terminal))
+		if (pty_io_write (m_pty_channel, G_IO_OUT))
 		{
 			_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_write\n");
 			m_pty_output_source =
 				g_io_add_watch_full(m_pty_channel,
 						    VTE_CHILD_OUTPUT_PRIORITY,
 						    G_IO_OUT,
-						    (GIOFunc) vte_terminal_io_write,
+						    (GIOFunc)vte_terminal_io_write_cb,
 						    m_terminal,
 						    (GDestroyNotify) mark_output_source_invalid);
 		}
@@ -4103,9 +4101,16 @@ _vte_terminal_feed_chunks (VteTerminal *terminal, struct _vte_incoming_chunk *ch
 }
 /* Read and handle data from the child. */
 static gboolean
-vte_terminal_io_read(GIOChannel *channel,
-		     GIOCondition condition,
-		     VteTerminal *terminal)
+vte_terminal_io_read_cb(GIOChannel *channel,
+                        GIOCondition condition,
+                        VteTerminal *terminal)
+{
+        return terminal->pvt->pty_io_read(channel, condition);
+}
+
+bool
+VteTerminalPrivate::pty_io_read(GIOChannel *channel,
+                                GIOCondition condition)
 {
 	int err = 0;
 	gboolean eof, again = TRUE;
@@ -4131,16 +4136,16 @@ vte_terminal_io_read(GIOChannel *channel,
 		 *    maximum number of bytes we can read/process in between
 		 *    updates.
 		 */
-		max_bytes = terminal->pvt->active ?
+		max_bytes = m_active ?
 		            g_list_length (active_terminals) - 1 : 0;
 		if (max_bytes) {
-			max_bytes = terminal->pvt->max_input_bytes / max_bytes;
+			max_bytes = m_max_input_bytes / max_bytes;
 		} else {
-			max_bytes = terminal->pvt->max_input_bytes;
+			max_bytes = m_max_input_bytes;
 		}
-		bytes = terminal->pvt->input_bytes;
+		bytes = m_input_bytes;
 
-		chunk = terminal->pvt->incoming;
+		chunk = m_incoming;
 		do {
 			if (!chunk || chunk->len >= 3*sizeof (chunk->data)/4) {
 				chunk = get_chunk ();
@@ -4182,12 +4187,12 @@ vte_terminal_io_read(GIOChannel *channel,
                                                          * FIXME: improve the kernel! see discussion in bug 755371
                                                          * starting at comment 12
                                                          */
-                                                        terminal->pvt->pty_termios_changed();
+                                                        pty_termios_changed();
                                                 }
                                                 if (pkt_header & TIOCPKT_STOP) {
-                                                        terminal->pvt->pty_scroll_lock_changed(true);
+                                                        pty_scroll_lock_changed(true);
                                                 } else if (pkt_header & TIOCPKT_START) {
-                                                        terminal->pvt->pty_scroll_lock_changed(false);
+                                                        pty_scroll_lock_changed(false);
                                                 }
 
 						bp += ret;
@@ -4207,26 +4212,26 @@ out:
 		}
 
 		if (chunks != NULL) {
-			_vte_terminal_feed_chunks (terminal, chunks);
+			_vte_terminal_feed_chunks(m_terminal, chunks);
 		}
-		if (!vte_terminal_is_processing (terminal)) {
+		if (!vte_terminal_is_processing(m_terminal)) {
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-			vte_terminal_add_process_timeout (terminal);
+			vte_terminal_add_process_timeout(m_terminal);
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_leave ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 		}
-		terminal->pvt->pty_input_active = len != 0;
-		terminal->pvt->input_bytes = bytes;
+		m_pty_input_active = len != 0;
+		m_input_bytes = bytes;
 		again = bytes < max_bytes;
 
 		_vte_debug_print (VTE_DEBUG_IO, "read %d/%d bytes, again? %s, active? %s\n",
 				bytes, max_bytes,
 				again ? "yes" : "no",
-				terminal->pvt->pty_input_active ? "yes" : "no");
+				m_pty_input_active ? "yes" : "no");
 	}
 
 	/* Error? */
@@ -4249,18 +4254,18 @@ out:
 	/* If we detected an eof condition, signal one. */
 	if (eof) {
 		/* potential deadlock ... */
-		if (!vte_terminal_is_processing (terminal)) {
+		if (!vte_terminal_is_processing(m_terminal)) {
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-			terminal->pvt->pty_channel_eof();
+			pty_channel_eof();
 
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_leave ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 		} else {
-			terminal->pvt->pty_channel_eof();
+			pty_channel_eof();
 		}
 
 		again = FALSE;
@@ -4317,9 +4322,16 @@ VteTerminalPrivate::feed(char const* data,
 
 /* Send locally-encoded characters to the child. */
 static gboolean
-vte_terminal_io_write(GIOChannel *channel,
-		      GIOCondition condition,
-		      VteTerminal *terminal)
+vte_terminal_io_write_cb(GIOChannel *channel,
+                         GIOCondition condition,
+                         VteTerminal *terminal)
+{
+        return terminal->pvt->pty_io_write(channel, condition);
+}
+
+bool
+VteTerminalPrivate::pty_io_write(GIOChannel *channel,
+                                 GIOCondition condition)
 {
 	gssize count;
 	int fd;
@@ -4327,24 +4339,24 @@ vte_terminal_io_write(GIOChannel *channel,
 
 	fd = g_io_channel_unix_get_fd(channel);
 
-	count = write(fd, terminal->pvt->outgoing->data,
-		      _vte_byte_array_length(terminal->pvt->outgoing));
+	count = write(fd, m_outgoing->data,
+		      _vte_byte_array_length(m_outgoing));
 	if (count != -1) {
 		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
 			gssize i;
 			for (i = 0; i < count; i++) {
 				g_printerr("Wrote %c%c\n",
-					((guint8)terminal->pvt->outgoing->data[i]) >= 32 ?
+					((guint8)m_outgoing->data[i]) >= 32 ?
 					' ' : '^',
-					((guint8)terminal->pvt->outgoing->data[i]) >= 32 ?
-					terminal->pvt->outgoing->data[i] :
-					((guint8)terminal->pvt->outgoing->data[i])  + 64);
+					((guint8)m_outgoing->data[i]) >= 32 ?
+					m_outgoing->data[i] :
+					((guint8)m_outgoing->data[i])  + 64);
 			}
 		}
-		_vte_byte_array_consume(terminal->pvt->outgoing, count);
+		_vte_byte_array_consume(m_outgoing, count);
 	}
 
-	if (_vte_byte_array_length(terminal->pvt->outgoing) == 0) {
+	if (_vte_byte_array_length(m_outgoing) == 0) {
 		leave_open = FALSE;
 	} else {
 		leave_open = TRUE;
@@ -10886,8 +10898,8 @@ process_timeout (gpointer data)
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_channel,
-						G_IO_IN, terminal);
+				terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
+                                                           G_IO_IN);
 			}
 			terminal->pvt->connect_pty_read();
 		}
@@ -11018,8 +11030,8 @@ update_repeat_timeout (gpointer data)
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_channel,
-						G_IO_IN, terminal);
+				terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
+                                                            G_IO_IN);
 			}
 			terminal->pvt->connect_pty_read();
 		}
@@ -11131,8 +11143,8 @@ update_timeout (gpointer data)
 			if (terminal->pvt->pty_input_active ||
 					terminal->pvt->pty_input_source == 0) {
 				terminal->pvt->pty_input_active = FALSE;
-				vte_terminal_io_read (terminal->pvt->pty_channel,
-						G_IO_IN, terminal);
+				terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
+                                                           G_IO_IN);
 			}
 			terminal->pvt->connect_pty_read();
 		}
