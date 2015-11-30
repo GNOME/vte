@@ -7000,77 +7000,90 @@ VteTerminalPrivate::select_all()
 
 /* Autoscroll a bit. */
 static gboolean
-vte_terminal_autoscroll(VteTerminal *terminal)
+vte_terminal_autoscroll_cb(VteTerminalPrivate *that)
 {
-	gboolean extend = FALSE;
+        return that->autoscroll() ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
+}
+
+/*
+ * VteTerminalPrivate::autoscroll():
+ *
+ * Returns: %true to continue autoscrolling, %false to stop
+ */
+bool
+VteTerminalPrivate::autoscroll()
+{
+	bool extend = false;
 	long x, y, xmax, ymax;
 	glong adj;
 
 	/* Provide an immediate effect for mouse wigglers. */
-	if (terminal->pvt->mouse_last_y < 0) {
-		if (terminal->pvt->vadjustment) {
+	if (m_mouse_last_y < 0) {
+		if (m_vadjustment) {
 			/* Try to scroll up by one line. */
-			adj = terminal->pvt->screen->scroll_delta - 1;
-			terminal->pvt->queue_adjustment_value_changed_clamped(adj);
-			extend = TRUE;
+			adj = m_screen->scroll_delta - 1;
+			queue_adjustment_value_changed_clamped(adj);
+			extend = true;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
 	}
-	if (terminal->pvt->mouse_last_y >= terminal->pvt->usable_height_px()) {
-		if (terminal->pvt->vadjustment) {
+	if (m_mouse_last_y >= usable_height_px()) {
+		if (m_vadjustment) {
 			/* Try to scroll up by one line. */
-			adj = terminal->pvt->screen->scroll_delta + 1;
-			terminal->pvt->queue_adjustment_value_changed_clamped(adj);
-			extend = TRUE;
+			adj = m_screen->scroll_delta + 1;
+			queue_adjustment_value_changed_clamped(adj);
+			extend = true;
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
 	}
 	if (extend) {
 		/* Don't select off-screen areas.  That just confuses people. */
-		xmax = terminal->pvt->column_count * terminal->pvt->char_width;
-		ymax = terminal->pvt->row_count * terminal->pvt->char_height;
+		xmax = m_column_count * m_char_width;
+		ymax = m_row_count * m_char_height;
 
-		x = CLAMP(terminal->pvt->mouse_last_x, 0, xmax);
-		y = CLAMP(terminal->pvt->mouse_last_y, 0, ymax);
+		x = CLAMP(m_mouse_last_x, 0, xmax);
+		y = CLAMP(m_mouse_last_y, 0, ymax);
 		/* If we clamped the Y, mess with the X to get the entire
 		 * lines. */
-		if (terminal->pvt->mouse_last_y < 0 && !terminal->pvt->selection_block_mode) {
+		if (m_mouse_last_y < 0 && !m_selection_block_mode) {
 			x = 0;
 		}
-		if (terminal->pvt->mouse_last_y >= ymax && !terminal->pvt->selection_block_mode) {
-			x = terminal->pvt->column_count * terminal->pvt->char_width;
+		if (m_mouse_last_y >= ymax && !m_selection_block_mode) {
+			x = m_column_count * m_char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
-                terminal->pvt->extend_selection(x, y, false, true);
+                extend_selection(x, y, false, true);
 	} else {
 		/* Stop autoscrolling. */
-		terminal->pvt->mouse_autoscroll_tag = 0;
+		m_mouse_autoscroll_tag = 0;
 	}
-	return (terminal->pvt->mouse_autoscroll_tag != 0);
+	return (m_mouse_autoscroll_tag != 0);
 }
 
 /* Start autoscroll. */
-static void
-vte_terminal_start_autoscroll(VteTerminal *terminal)
+void
+VteTerminalPrivate::start_autoscroll()
 {
-	if (terminal->pvt->mouse_autoscroll_tag == 0) {
-		terminal->pvt->mouse_autoscroll_tag =
-			g_timeout_add_full(G_PRIORITY_LOW,
-					   666 / terminal->pvt->row_count,
-					   (GSourceFunc)vte_terminal_autoscroll,
-					   terminal,
-					   NULL);
-	}
+	if (m_mouse_autoscroll_tag != 0)
+                return;
+
+        m_mouse_autoscroll_tag =
+                g_timeout_add_full(G_PRIORITY_LOW,
+                                   666 / m_row_count, // FIXME WTF?
+                                   (GSourceFunc)vte_terminal_autoscroll_cb,
+                                   this,
+                                   NULL);// FIXME make sure m_mouse_autoscroll_tag is nulled!
 }
 
 /* Stop autoscroll. */
-static void
-vte_terminal_stop_autoscroll(VteTerminal *terminal)
+void
+VteTerminalPrivate::stop_autoscroll()
 {
-	if (terminal->pvt->mouse_autoscroll_tag != 0) {
-		g_source_remove(terminal->pvt->mouse_autoscroll_tag);
-		terminal->pvt->mouse_autoscroll_tag = 0;
-	}
+	if (m_mouse_autoscroll_tag == 0)
+                return;
+
+        g_source_remove(m_mouse_autoscroll_tag);
+        m_mouse_autoscroll_tag = 0;
 }
 
 bool
@@ -7129,10 +7142,11 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 			    event->y >= m_row_count * m_char_height + m_padding.top)
 			{
 				/* Give mouse wigglers something. */
-				vte_terminal_autoscroll(m_terminal);
+                                stop_autoscroll();
+				autoscroll();
 				/* Start a timed autoscroll if we're not doing it
 				 * already. */
-				vte_terminal_start_autoscroll(m_terminal);
+				start_autoscroll();
 			}
 
 			handled = true;
@@ -7335,7 +7349,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 
 	set_pointer_visible(true);
 
-	vte_terminal_stop_autoscroll(m_terminal);
+	stop_autoscroll();
 
 	read_modifiers((GdkEvent*)event);
 
@@ -8440,7 +8454,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		g_array_free (m_search_attrs, TRUE);
 
 	/* Disconnect from autoscroll requests. */
-	vte_terminal_stop_autoscroll(m_terminal);
+	stop_autoscroll();
 
 	/* Cancel pending adjustment change notifications. */
 	m_adjustment_changed_pending = FALSE;

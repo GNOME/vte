@@ -337,7 +337,7 @@ public:
 	long mouse_last_x, mouse_last_y;
         long mouse_last_col, mouse_last_row;
 	gboolean mouse_autohide;
-	guint mouse_autoscroll_tag;
+	guint m_mouse_autoscroll_tag;
 	gboolean mouse_xterm_extension;
 	gboolean mouse_urxvt_extension;
 	double mouse_smooth_scroll_delta;
@@ -513,6 +513,10 @@ public:
         void widget_size_allocate(GtkAllocation *allocation);
 
         void widget_settings_notify();
+
+        bool autoscroll();
+        void start_autoscroll();
+        void stop_autoscroll();
 
         void connect_pty_read();
         void disconnect_pty_read();
