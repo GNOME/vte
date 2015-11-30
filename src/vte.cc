@@ -838,22 +838,29 @@ VteTerminalPrivate::queue_cursor_moved()
 }
 
 static gboolean
-vte_terminal_emit_eof(VteTerminal *terminal)
+vte_terminal_emit_eof_cb(VteTerminal *terminal)
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `eof'.\n");
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter ();
         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-	g_signal_emit(terminal, signals[SIGNAL_EOF], 0);
+        terminal->pvt->emit_eof();
 
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave ();
         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-	return FALSE;
+        return G_SOURCE_REMOVE;
 }
+
+void
+VteTerminalPrivate::emit_eof()
+{
+	_vte_debug_print(VTE_DEBUG_SIGNALS,
+			"Emitting `eof'.\n");
+	g_signal_emit(m_terminal, signals[SIGNAL_EOF], 0);
+}
+
 /* Emit a "eof" signal. */
 // FIXMEchpe any particular reason not to handle this immediately?
 void
@@ -862,7 +869,7 @@ VteTerminalPrivate::queue_eof()
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Queueing `eof'.\n");
 	g_idle_add_full (G_PRIORITY_HIGH,
-		(GSourceFunc) vte_terminal_emit_eof,
+		(GSourceFunc) vte_terminal_emit_eof_cb,
 		g_object_ref(m_terminal),
 		g_object_unref);
 }
