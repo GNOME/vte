@@ -355,7 +355,7 @@ _vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
 	}
 
 	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, start, end - start + 1,
+	terminal->pvt->scroll_region(start, end - start + 1,
 				   scroll_amount);
 
 	/* Adjust the scrollbars if necessary. */
@@ -1725,7 +1725,7 @@ vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
 		_vte_terminal_ring_remove (terminal, end);
 		_vte_terminal_ring_insert (terminal, start, TRUE);
 		/* Update the display. */
-		_vte_terminal_scroll_region(terminal, start, end - start + 1, 1);
+		terminal->pvt->scroll_region(start, end - start + 1, 1);
 		terminal->pvt->invalidate_cells(
 				      0, terminal->pvt->column_count,
 				      start, 2);
@@ -2570,7 +2570,7 @@ vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 	}
         terminal->pvt->cursor.col = 0;
 	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, row, end - row + 1, param);
+	terminal->pvt->scroll_region(row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
 	terminal->pvt->adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -2618,7 +2618,7 @@ vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 	}
         terminal->pvt->cursor.col = 0;
 	/* Update the display. */
-	_vte_terminal_scroll_region(terminal, row, end - row + 1, -param);
+	terminal->pvt->scroll_region(row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
 	terminal->pvt->adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */

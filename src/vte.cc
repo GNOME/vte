@@ -515,22 +515,23 @@ VteTerminalPrivate::invalidate_all()
 /* Scroll a rectangular region up or down by a fixed number of lines,
  * negative = up, positive = down. */
 void
-_vte_terminal_scroll_region (VteTerminal *terminal,
-			     long row, glong count, glong delta)
+VteTerminalPrivate::scroll_region (long row,
+                                   long count,
+                                   long delta)
 {
 	if ((delta == 0) || (count == 0)) {
 		/* Shenanigans! */
 		return;
 	}
 
-	if (count >= terminal->pvt->row_count) {
+	if (count >= m_row_count) {
 		/* We have to repaint the entire window. */
-		terminal->pvt->invalidate_all();
+		invalidate_all();
 	} else {
 		/* We have to repaint the area which is to be
 		 * scrolled. */
-		terminal->pvt->invalidate_cells(
-				     0, terminal->pvt->column_count,
+		invalidate_cells(
+				     0, m_column_count,
 				     row, count);
 	}
 }
@@ -3045,7 +3046,7 @@ VteTerminalPrivate::cursor_down()
                                 _vte_terminal_ring_insert(m_terminal, m_cursor.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
-				_vte_terminal_scroll_region(m_terminal, start,
+				scroll_region(start,
 							    end - start + 1, 1);
 				/* Force scroll. */
 				adjust_adjustments();
@@ -3056,7 +3057,7 @@ VteTerminalPrivate::cursor_down()
 				_vte_terminal_ring_remove(m_terminal, start);
 				_vte_terminal_ring_insert(m_terminal, end, TRUE);
 				/* Update the display. */
-				_vte_terminal_scroll_region(m_terminal, start,
+				scroll_region(start,
 							   end - start + 1, -1);
 				invalidate_cells(
 						      0, m_column_count,

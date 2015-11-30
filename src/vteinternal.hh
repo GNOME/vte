@@ -518,6 +518,10 @@ public:
         void start_autoscroll();
         void stop_autoscroll();
 
+        void scroll_region (long row,
+                            long count,
+                            long delta);
+
         void connect_pty_read();
         void disconnect_pty_read();
 
