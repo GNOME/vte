@@ -541,8 +541,7 @@ public:
                          GIOCondition condition);
         bool pty_io_write(GIOChannel *channel,
                           GIOCondition condition);
-        void send_child(char const* encoding,
-                        guint8 const* data,
+        void send_child(char const* data,
                         gssize length,
                         bool local_echo,
                         bool newline_stuff);

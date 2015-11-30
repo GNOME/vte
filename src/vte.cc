@@ -4365,10 +4365,9 @@ VteTerminalPrivate::pty_io_write(GIOChannel *channel,
 	return leave_open;
 }
 
-/* Convert some arbitrarily-encoded data to send to the child. */
+/* Convert some UTF-8 data to send to the child. */
 void
-VteTerminalPrivate::send_child(char const* encoding__,
-                               guint8 const* data,
+VteTerminalPrivate::send_child(char const* data,
                                gssize length,
                                bool local_echo,
                                bool newline_stuff)
@@ -4380,19 +4379,12 @@ VteTerminalPrivate::send_child(char const* encoding__,
 	VteConv conv;
 	long crcount, cooked_length, i;
 
-	g_assert(encoding__ && strcmp(encoding__, "UTF-8") == 0);
-
         if (!m_input_enabled)
                 return;
 
-	conv = VTE_INVALID_CONV;
-	if (strcmp(encoding__, "UTF-8") == 0) {
-		conv = m_outgoing_conv;
-	}
-	if (conv == VTE_INVALID_CONV) {
-		g_warning (_("Unable to send data to child, invalid charset convertor"));
-		return;
-	}
+        conv = m_outgoing_conv;
+	if (conv == VTE_INVALID_CONV)
+                return;
 
 	icount = length;
 	ibuf = (const guchar *)data;
@@ -4508,7 +4500,7 @@ VteTerminalPrivate::feed_child(char const *text,
 		length = strlen(text);
 
 	if (length > 0) {
-		send_child("UTF-8", (guint8 const*)text, length, false, false);
+		send_child(text, length, false, false);
 	}
 }
 
@@ -4552,7 +4544,7 @@ vte_terminal_feed_child_using_modes(VteTerminal *terminal,
 		length = strlen(data);
 	}
 	if (length > 0) {
-		terminal->pvt->send_child("UTF-8", (guint8 const*)data, length,
+		terminal->pvt->send_child(data, length,
                                           !terminal->pvt->sendrecv_mode,
                                           terminal->pvt->linefeed_mode);
 	}
