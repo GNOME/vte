@@ -5889,7 +5889,7 @@ VteTerminalPrivate::match_hilite(long x,
 	}
 
 	/* If the pointer hasn't moved to another character cell, then we
-	 * need do nothing. Note: Don't use mouse_last_col as that's relative
+	 * need do nothing. Note: Don't use mouse_last_row as that's relative
 	 * to insert_delta, and we care about the absolute row number. */
 	if (x / m_char_width  == m_mouse_last_x / m_char_width &&
 	    pixel_to_row(y) == pixel_to_row(m_mouse_last_y)) {
