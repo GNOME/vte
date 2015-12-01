@@ -631,6 +631,8 @@ public:
                                          gpointer data,
                                          GArray *attributes);
 
+        char *get_selected_text(GArray *attributes = nullptr);
+
         void start_selection(long x,
                              long y,
                              enum vte_selection_type selection_type);

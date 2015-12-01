@@ -4009,15 +4009,7 @@ next_match:
 		 * by this insertion. */
 		if (m_has_selection) {
                         //FIXMEchpe: this is atrocious
-			char *selection = get_text(m_selection_start.row,
-                                                   0,
-                                                   m_selection_end.row,
-                                                   m_column_count,
-                                                   true /* wrap */,
-                                                   false /* include trailing whitespace */,
-                                                   vte_cell_is_selected, nullptr,
-                                                   nullptr,
-                                                   nullptr);
+			char *selection = get_selected_text();
 			if ((selection == NULL) ||
 			    (m_selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
 			    (strcmp(selection, m_selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
@@ -6220,6 +6212,20 @@ VteTerminalPrivate::get_text_displayed_a11y(bool wrap,
                         attributes);
 }
 
+char *
+VteTerminalPrivate::get_selected_text(GArray *attributes)
+{
+	return get_text(m_selection_start.row,
+                        0,
+                        m_selection_end.row,
+                        m_column_count,
+                        true /* wrap */,
+                        false /* include trailing whitespace */,
+                        vte_cell_is_selected, nullptr,
+                        attributes,
+                        nullptr);
+}
+
 /*
  * Compares the visual attributes of a VteCellAttr for equality, but ignores
  * attributes that tend to change from character to character or are otherwise
@@ -6398,15 +6404,7 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
 	g_free(m_selection_text[sel]);
-	m_selection_text[sel] = get_text(m_selection_start.row,
-                                         0,
-                                         m_selection_end.row,
-                                         m_column_count,
-                                         true /* wrap */,
-                                         false /* include trailing whitespace */,
-                                         vte_cell_is_selected, nullptr,
-                                         attributes,
-                                         nullptr);
+	m_selection_text[sel] = get_selected_text(attributes);
 #ifdef HTML_SELECTION
 	g_free(m_selection_html[sel]);
 	m_selection_html[sel] =
