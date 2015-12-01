@@ -5905,50 +5905,60 @@ VteTerminalPrivate::match_hilite(long x,
 	match_hilite_update(x, y);
 }
 
-static GtkClipboard *
-vte_terminal_clipboard_get(VteTerminal *terminal, GdkAtom board)
-{
-	GdkDisplay *display;
-	display = gtk_widget_get_display(&terminal->widget);
-	return gtk_clipboard_get_for_display(display, board);
-}
-
 /* Note that the clipboard has cleared. */
 static void
-vte_terminal_clear_cb(GtkClipboard *clipboard, gpointer owner)
+vte_terminal_clipboard_clear_cb(GtkClipboard *clipboard,
+                                gpointer owner)
 {
-	VteTerminal *terminal = (VteTerminal *)owner;
+	VteTerminal *terminal = static_cast<VteTerminal*>(owner);
+        terminal->pvt->widget_clipboard_cleared(clipboard);
+}
 
-	if (clipboard == vte_terminal_clipboard_get(terminal, GDK_SELECTION_PRIMARY)) {
-		if (terminal->pvt->has_selection) {
+void
+VteTerminalPrivate::widget_clipboard_cleared(GtkClipboard *clipboard_)
+{
+	if (clipboard_ == m_clipboard[VTE_SELECTION_PRIMARY]) {
+		if (m_has_selection) {
 			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
-			terminal->pvt->deselect_all();
+			deselect_all();
 		}
 	}
 }
 
 /* Supply the selected text to the clipboard. */
 static void
-vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
-		     guint info, gpointer owner)
+vte_terminal_copy_cb(GtkClipboard *clipboard,
+                     GtkSelectionData *data,
+		     guint info,
+                     gpointer owner)
 {
 	VteTerminal *terminal = (VteTerminal *)owner;
+        terminal->pvt->widget_clipboard_requested(clipboard, data, info);
+}
+
+void
+VteTerminalPrivate::widget_clipboard_requested(GtkClipboard *target_clipboard,
+                                               GtkSelectionData *data,
+                                               guint info)
+{
 	int sel;
 
 	for (sel = 0; sel < LAST_VTE_SELECTION; sel++) {
-		if (clipboard == terminal->pvt->clipboard[sel] && terminal->pvt->selection_text[sel] != NULL) {
+		if (target_clipboard == m_clipboard[sel] &&
+                    m_selection_text[sel] != nullptr) {
 			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 				int i;
 				g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.)\n",
 					sel,
-					strlen(terminal->pvt->selection_text[sel]));
-				for (i = 0; terminal->pvt->selection_text[sel][i] != '\0'; i++) {
+					strlen(m_selection_text[sel]));
+				for (i = 0; m_selection_text[sel][i] != '\0'; i++) {
 					g_printerr("0x%04x\n",
-						terminal->pvt->selection_text[sel][i]);
+						m_selection_text[sel][i]);
 				}
 			}
 			if (info == VTE_TARGET_TEXT) {
-				gtk_selection_data_set_text(data, terminal->pvt->selection_text[sel], -1);
+                                // FIXMEchpe cache the strlen instead of passing -1 here, and below
+				gtk_selection_data_set_text(data, m_selection_text[sel], -1);
 			} else if (info == VTE_TARGET_HTML) {
 #ifdef HTML_SELECTION
 				gsize len;
@@ -5956,8 +5966,9 @@ vte_terminal_copy_cb(GtkClipboard *clipboard, GtkSelectionData *data,
 
 				/* Mozilla asks that we start our text/html with the Unicode byte order mark */
 				/* (Comment found in gtkimhtml.c of pidgin fame) */
-				selection = g_convert(terminal->pvt->selection_html[sel],
+				selection = g_convert(m_selection_html[sel],
 					-1, "UTF-16", "UTF-8", NULL, &len, NULL);
+                                // FIXMEchpe this makes yet another copy of the data... :(
 				gtk_selection_data_set(data,
 					gdk_atom_intern("text/html", FALSE),
 					16,
@@ -6434,7 +6445,7 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 					     targets,
 					     n_targets,
 					     vte_terminal_copy_cb,
-					     vte_terminal_clear_cb,
+					     vte_terminal_clipboard_clear_cb,
 					     G_OBJECT(m_terminal));
 		gtk_clipboard_set_can_store(m_clipboard[sel], NULL, 0);
 	}
@@ -6447,7 +6458,7 @@ VteTerminalPrivate::widget_paste(GdkAtom board)
         if (!m_input_enabled)
                 return;
 
-	auto clip = vte_terminal_clipboard_get(m_terminal, board);
+	auto clip = gtk_clipboard_get_for_display(gtk_widget_get_display(m_widget), board);
 	if (clip != nullptr) {
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Requesting clipboard contents.\n");
