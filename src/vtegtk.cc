@@ -2286,6 +2286,21 @@ vte_terminal_feed_child_binary(VteTerminal *terminal,
  * Returns: %TRUE if cell has to be selected; %FALSE if otherwise.
  */
 
+static void
+warn_if_callback(VteSelectionFunc func)
+{
+        if (!func)
+                return;
+
+#ifndef VTE_DEBUG
+        static gboolean warned = FALSE;
+        if (warned)
+                return;
+        warned = TRUE;
+#endif
+        g_warning ("VteSelectionFunc callback ignored.\n");
+}
+
 /**
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
@@ -2308,9 +2323,9 @@ vte_terminal_get_text(VteTerminal *terminal,
 		      GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        warn_if_callback(is_selected);
 	return terminal->pvt->get_text_displayed(true /* wrap */,
                                                  false /* include trailing whitespace */,
-                                                 is_selected, user_data,
                                                  attributes,
                                                  nullptr);
 }
@@ -2339,9 +2354,9 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 					      GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        warn_if_callback(is_selected);
 	return terminal->pvt->get_text_displayed(true /* wrap */,
                                                  true /* include trailing whitespace */,
-                                                 is_selected, user_data,
                                                  attributes,
                                                  nullptr);
 }
@@ -2378,11 +2393,12 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			    GArray *attributes)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        warn_if_callback(is_selected);
 	return terminal->pvt->get_text(start_row, start_col,
                                        end_row, end_col,
+                                       false /* block */,
                                        true /* wrap */,
                                        true /* include trailing whitespace */,
-                                       is_selected, user_data,
                                        attributes,
                                        nullptr);
 }

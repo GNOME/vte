@@ -597,40 +597,32 @@ public:
                           vte::grid::column_t start_col,
                           vte::grid::row_t end_row,
                           vte::grid::column_t end_col,
+                          bool block,
                           bool wrap,
                           bool include_trailing_spaces,
-                          VteSelectionFunc is_selected,
-                          gpointer data,
                           GArray *attributes);
 
         char* get_text(vte::grid::row_t start_row,
                        vte::grid::column_t start_col,
                        vte::grid::row_t end_row,
                        vte::grid::column_t end_col,
+                       bool block,
                        bool wrap,
                        bool include_trailing_spaces,
-                       VteSelectionFunc is_selected,
-                       gpointer data,
                        GArray *attributes,
                        gsize *ret_len);
 
         GString* get_text_displayed(bool wrap,
                                     bool include_trailing_spaces,
-                                    VteSelectionFunc is_selected,
-                                    gpointer data,
                                     GArray *attributes);
 
         char* get_text_displayed(bool wrap,
                                  bool include_trailing_spaces,
-                                 VteSelectionFunc is_selected,
-                                 gpointer data,
                                  GArray *attributes,
                                  gsize *ret_len);
 
         GString* get_text_displayed_a11y(bool wrap,
                                          bool include_trailing_spaces,
-                                         VteSelectionFunc is_selected,
-                                         gpointer data,
                                          GArray *attributes);
 
         char *get_selected_text(GArray *attributes = nullptr,
