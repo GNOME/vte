@@ -528,6 +528,7 @@ public:
                                  GdkRectangle const* area) const;
         void paint_area(GdkRectangle const* area);
         void paint_cursor();
+        void paint_im_preedit_string();
 
         bool autoscroll();
         void start_autoscroll();

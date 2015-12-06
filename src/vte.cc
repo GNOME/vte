@@ -9767,64 +9767,64 @@ VteTerminalPrivate::paint_cursor()
 	}
 }
 
-static void
-vte_terminal_paint_im_preedit_string(VteTerminal *terminal)
+void
+VteTerminalPrivate::paint_im_preedit_string()
 {
 	int col, columns;
 	long width, height;
 	int i, len;
 	guint fore, back;
 
-	if (!terminal->pvt->im_preedit)
+	if (!m_im_preedit)
 		return;
 
 	/* Keep local copies of rendering information. */
-	width = terminal->pvt->char_width;
-	height = terminal->pvt->char_height;
+	width = m_char_width;
+	height = m_char_height;
 
 	/* Find out how many columns the pre-edit string takes up. */
-	columns = terminal->pvt->get_preedit_width(false);
-	len = terminal->pvt->get_preedit_length(false);
+	columns = get_preedit_width(false);
+	len = get_preedit_length(false);
 
 	/* If the pre-edit string won't fit on the screen if we start
 	 * drawing it at the cursor's position, move it left. */
-        col = terminal->pvt->cursor.col;
-	if (col + columns > terminal->pvt->column_count) {
-		col = MAX(0, terminal->pvt->column_count - columns);
+        col = m_cursor.col;
+	if (col + columns > m_column_count) {
+		col = MAX(0, m_column_count - columns);
 	}
 
 	/* Draw the preedit string, boxed. */
 	if (len > 0) {
 		struct _vte_draw_text_request *items;
-		const char *preedit = terminal->pvt->im_preedit;
+		const char *preedit = m_im_preedit;
 		int preedit_cursor;
 
 		items = g_new(struct _vte_draw_text_request, len);
 		for (i = columns = 0; i < len; i++) {
 			items[i].c = g_utf8_get_char(preedit);
                         items[i].columns = _vte_unichar_width(items[i].c,
-                                                              terminal->pvt->utf8_ambiguous_width);
+                                                              m_utf8_ambiguous_width);
 			items[i].x = (col + columns) * width;
-			items[i].y = terminal->pvt->row_to_pixel(terminal->pvt->cursor.row);
+			items[i].y = row_to_pixel(m_cursor.row);
 			columns += items[i].columns;
 			preedit = g_utf8_next_char(preedit);
 		}
-		_vte_draw_clear(terminal->pvt->draw,
-				col * width + terminal->pvt->padding.left,
-				terminal->pvt->row_to_pixel(terminal->pvt->cursor.row) + terminal->pvt->padding.top,
+		_vte_draw_clear(m_draw,
+				col * width + m_padding.left,
+				row_to_pixel(m_cursor.row) + m_padding.top,
 				width * columns,
 				height);
-                fore = terminal->pvt->color_defaults.attr.fore;
-                back = terminal->pvt->color_defaults.attr.back;
-		vte_terminal_draw_cells_with_attributes(terminal,
+                fore = m_color_defaults.attr.fore;
+                back = m_color_defaults.attr.back;
+		vte_terminal_draw_cells_with_attributes(m_terminal,
 							items, len,
-							terminal->pvt->im_preedit_attrs,
+							m_im_preedit_attrs,
 							TRUE,
 							width, height);
-		preedit_cursor = terminal->pvt->im_preedit_cursor;
+		preedit_cursor = m_im_preedit_cursor;
 		if (preedit_cursor >= 0 && preedit_cursor < len) {
 			/* Cursored letter in reverse. */
-			vte_terminal_draw_cells(terminal,
+			vte_terminal_draw_cells(m_terminal,
 						&items[preedit_cursor], 1,
 						back, fore, TRUE, TRUE,
 						FALSE,
@@ -9911,7 +9911,7 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 		g_free (rectangles);
 	}
 
-	vte_terminal_paint_im_preedit_string(m_terminal);
+	paint_im_preedit_string();
 
         cairo_restore(cr);
 
