@@ -563,6 +563,9 @@ public:
         void im_preedit_start();
         void im_preedit_end();
         void im_preedit_changed();
+        bool im_retrieve_surrounding();
+        bool im_delete_surrounding(int offset,
+                                   int n_chars);
         void im_reset();
 
         bool spawn_sync(VtePtyFlags pty_flags,

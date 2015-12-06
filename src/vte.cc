@@ -4626,6 +4626,42 @@ VteTerminalPrivate::im_preedit_changed()
 	invalidate_cursor_once();
 }
 
+static gboolean
+vte_terminal_im_retrieve_surrounding_cb(GtkIMContext *im_context,
+                                        VteTerminalPrivate *that)
+{
+        return that->im_retrieve_surrounding();
+}
+
+bool
+VteTerminalPrivate::im_retrieve_surrounding()
+{
+        /* FIXME: implement this! Bug #726191 */
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Input method retrieve-surrounding.\n");
+        return false;
+}
+
+static gboolean
+vte_terminal_im_delete_surrounding_cb(GtkIMContext *im_context,
+                                      int offset,
+                                      int n_chars,
+                                      VteTerminalPrivate *that)
+{
+        return that->im_delete_surrounding(offset, n_chars);
+}
+
+bool
+VteTerminalPrivate::im_delete_surrounding(int offset,
+                                          int n_chars)
+{
+        /* FIXME: implement this! Bug #726191 */
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Input method delete-surrounding offset %d n-chars %d.\n",
+                         offset, n_chars);
+        return false;
+}
+
 void
 VteTerminalPrivate::widget_style_updated()
 {
@@ -8658,8 +8694,6 @@ VteTerminalPrivate::widget_realize()
                 m_draw = _vte_draw_new();
         }
 
-	/* Set up input method support.  FIXME: do we need to handle the
-	 * "retrieve-surrounding" and "delete-surrounding" events? */
         // FIXMEchpe this shouldn't ever be true:
 	if (m_im_context != nullptr) {
 	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
@@ -8681,6 +8715,10 @@ VteTerminalPrivate::widget_realize()
 			 G_CALLBACK(vte_terminal_im_preedit_changed_cb), this);
 	g_signal_connect(m_im_context, "preedit-end",
 			 G_CALLBACK(vte_terminal_im_preedit_end_cb), this);
+	g_signal_connect(m_im_context, "retrieve-surrounding",
+			 G_CALLBACK(vte_terminal_im_retrieve_surrounding_cb), this);
+	g_signal_connect(m_im_context, "delete-surrounding",
+			 G_CALLBACK(vte_terminal_im_delete_surrounding_cb), this);
 	gtk_im_context_set_use_preedit(m_im_context, TRUE);
 
 	/* Clear modifiers. */
