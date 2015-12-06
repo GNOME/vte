@@ -9009,11 +9009,12 @@ vte_terminal_draw_cells(VteTerminal *terminal,
  * is using "black-on-white" to signify "inverse".  Pick up on that state and
  * fix things.  Do this here, so that if we suddenly get red-on-black, we'll do
  * the right thing. */
-static void
-_vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
-				 VteCell *cells, gssize n)
+void
+VteTerminalPrivate::fudge_pango_colors(GSList *attributes,
+                                       VteCell *cells,
+                                       gsize n)
 {
-	int i, sumlen = 0;
+	gsize i, sumlen = 0;
 	struct _fudge_cell_props{
 		gboolean saw_fg, saw_bg;
 		vte::color::rgb fg, bg;
@@ -9072,8 +9073,8 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 				(props[i].bg.red == 0) &&
 				(props[i].bg.green == 0) &&
 				(props[i].bg.blue == 0)) {
-                        cells[i].attr.fore = terminal->pvt->color_defaults.attr.fore;
-                        cells[i].attr.back = terminal->pvt->color_defaults.attr.back;
+                        cells[i].attr.fore = m_color_defaults.attr.fore;
+                        cells[i].attr.back = m_color_defaults.attr.back;
 			cells[i].attr.reverse = TRUE;
 		}
 	}
@@ -9171,7 +9172,7 @@ VteTerminalPrivate::translate_pango_cells(PangoAttrList *attrs,
 					apply_pango_attr(attr, cells, n_cells);
 				}
 				attr = (PangoAttribute *)list->data;
-				_vte_terminal_fudge_pango_colors(m_terminal,
+				fudge_pango_colors(
 								 list,
 								 cells +
 								 attr->start_index,
