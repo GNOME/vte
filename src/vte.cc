@@ -9080,9 +9080,10 @@ _vte_terminal_fudge_pango_colors(VteTerminal *terminal, GSList *attributes,
 }
 
 /* Apply the attribute given in the PangoAttribute to the list of cells. */
-static void
-_vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
-			       VteCell *cells, guint n_cells)
+void
+VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
+                                     VteCell *cells,
+                                     gsize n_cells)
 {
 	guint i, ival;
 	PangoAttrInt *attrint;
@@ -9167,10 +9168,7 @@ VteTerminalPrivate::translate_pango_cells(PangoAttrList *attrs,
 				     listiter != NULL;
 				     listiter = g_slist_next(listiter)) {
 					attr = (PangoAttribute *)listiter->data;
-					_vte_terminal_apply_pango_attr(m_terminal,
-								       attr,
-								       cells,
-								       n_cells);
+					apply_pango_attr(attr, cells, n_cells);
 				}
 				attr = (PangoAttribute *)list->data;
 				_vte_terminal_fudge_pango_colors(m_terminal,

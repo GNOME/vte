@@ -529,6 +529,9 @@ public:
         void paint_area(GdkRectangle const* area);
         void paint_cursor();
         void paint_im_preedit_string();
+        void apply_pango_attr(PangoAttribute *attr,
+                              VteCell *cells,
+                              gsize n_cells);
         void translate_pango_cells(PangoAttrList *attrs,
                                    VteCell *cells,
                                    gsize n_cells);
