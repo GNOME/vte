@@ -9590,58 +9590,52 @@ VteTerminalPrivate::expand_cairo_region(cairo_region_t *region,
 			rect.x, rect.y, rect.width, rect.height);
 }
 
-static void
-vte_terminal_paint_area (VteTerminal *terminal, const GdkRectangle *area)
+void
+VteTerminalPrivate::paint_area(GdkRectangle const* area)
 {
-	VteScreen *screen;
-	int width, height;
-	int row, col, row_stop, col_stop;
+        vte::grid::row_t row, row_stop;
+        vte::grid::column_t col, col_stop;
 	GtkAllocation allocation;
 
-	screen = terminal->pvt->screen;
+	gtk_widget_get_allocation(m_widget, &allocation);
 
-	width = terminal->pvt->char_width;
-	height = terminal->pvt->char_height;
-
-	gtk_widget_get_allocation (&terminal->widget, &allocation);
-
-        row = terminal->pvt->pixel_to_row(MAX(0, area->y - terminal->pvt->padding.top));
+        row = pixel_to_row(MAX(0, area->y - m_padding.top));
         /* Both the value given by MIN() and row_stop are exclusive.
          * _vte_terminal_pixel_to_row expects an actual value corresponding
          * to the bottom visible pixel, hence the - 1 + 1 magic. */
-        row_stop = terminal->pvt->pixel_to_row(MIN(area->height + area->y - terminal->pvt->padding.top,
-                                                            allocation.height - terminal->pvt->padding.bottom) - 1) + 1;
+        row_stop = pixel_to_row(MIN(area->height + area->y - m_padding.top,
+                                    allocation.height - m_padding.bottom) - 1) + 1;
 	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, (area->x - terminal->pvt->padding.left) / width);
-	col_stop = MIN((area->width + area->x - terminal->pvt->padding.left) / width,
-		       terminal->pvt->column_count);
+	col = MAX(0, (area->x - m_padding.left) / m_char_width);
+	col_stop = MIN((area->width + area->x - m_padding.left) / m_char_width,
+		       m_column_count);
 	if (col_stop <= col) {
 		return;
 	}
 	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"vte_terminal_paint_area"
+			"paint_area"
 			"	(%d,%d)x(%d,%d) pixels,"
-			" (%d,%d)x(%d,%d) cells"
-			" [(%d,%d)x(%d,%d) pixels]\n",
+			" (%ld,%ld)x(%ld,%ld) cells"
+			" [(%ld,%ld)x(%ld,%ld) pixels]\n",
 			area->x, area->y, area->width, area->height,
 			col, row, col_stop - col, row_stop - row,
-			col * width + terminal->pvt->padding.left,
-			row * height + terminal->pvt->padding.top,
-			(col_stop - col) * width,
-			(row_stop - row) * height);
+			col * m_char_width + m_padding.left,
+			row * m_char_height + m_padding.top,
+			(col_stop - col) * m_char_width,
+			(row_stop - row) * m_char_height);
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	vte_terminal_draw_rows(terminal,
-			      screen,
+	vte_terminal_draw_rows(m_terminal,
+			      m_screen,
 			      row, row_stop - row,
 			      col, col_stop - col,
-			      col * width,
-			      terminal->pvt->row_to_pixel(row),
-			      width,
-			      height);
+			      col * m_char_width,
+			      row_to_pixel(row),
+			      m_char_width,
+			      m_char_height);
 }
 
 static void
@@ -9911,7 +9905,7 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 
 		/* and now paint them */
 		for (n = 0; n < n_rectangles; n++) {
-			vte_terminal_paint_area (m_terminal, rectangles + n);
+			paint_area(rectangles + n);
 		}
 		g_free (rectangles);
 	}

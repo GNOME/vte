@@ -526,6 +526,7 @@ public:
 
         void expand_cairo_region(cairo_region_t *region,
                                  GdkRectangle const* area) const;
+        void paint_area(GdkRectangle const* area);
 
         bool autoscroll();
         void start_autoscroll();
