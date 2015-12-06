@@ -8895,14 +8895,21 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 }
 
 /* Draw a string of characters with similar attributes. */
-static void
-vte_terminal_draw_cells(VteTerminal *terminal,
-			struct _vte_draw_text_request *items, gssize n,
-			guint fore, guint back, gboolean clear,
-			gboolean draw_default_bg,
-			gboolean bold, gboolean italic, gboolean underline,
-			gboolean strikethrough, gboolean hilite, gboolean boxed,
-			gint column_width, gint row_height)
+void
+VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
+                               gssize n,
+                               guint fore,
+                               guint back,
+                               bool clear,
+                               bool draw_default_bg,
+                               bool bold,
+                               bool italic,
+                               bool underline,
+                               bool strikethrough,
+                               bool hilite,
+                               bool boxed,
+                               int column_width,
+                               int row_height)
 {
 	int i, x, y;
 	gint columns = 0;
@@ -8923,9 +8930,9 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		g_free (tmp);
 	}
 
-	bold = bold && terminal->pvt->allow_bold;
-	vte_terminal_get_rgb_from_index(terminal, fore, &fg);
-	vte_terminal_get_rgb_from_index(terminal, back, &bg);
+	bold = bold && m_allow_bold;
+	vte_terminal_get_rgb_from_index(m_terminal, fore, &fg);
+	vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
 
 	i = 0;
 	do {
@@ -8934,30 +8941,30 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 		y = items[i].y;
 		for (; i < n && items[i].y == y; i++) {
 			/* Adjust for the border. */
-			items[i].x += terminal->pvt->padding.left;
-			items[i].y += terminal->pvt->padding.top;
+			items[i].x += m_padding.left;
+			items[i].y += m_padding.top;
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-			gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
+			gint bold_offset = _vte_draw_has_bold(m_draw,
 									VTE_DRAW_BOLD) ? 0 : bold;
-			_vte_draw_fill_rectangle(terminal->pvt->draw,
-					x + terminal->pvt->padding.left,
-                                        y + terminal->pvt->padding.top,
+			_vte_draw_fill_rectangle(m_draw,
+					x + m_padding.left,
+                                        y + m_padding.top,
 					columns * column_width + bold_offset, row_height,
 					&bg, VTE_DRAW_OPAQUE);
 		}
 	} while (i < n);
 
-	_vte_draw_text(terminal->pvt->draw,
+	_vte_draw_text(m_draw,
 			items, n,
 			&fg, VTE_DRAW_OPAQUE,
 			_vte_draw_get_style(bold, italic));
 
 	for (i = 0; i < n; i++) {
 		/* Deadjust for the border. */
-		items[i].x -= terminal->pvt->padding.left;
-		items[i].y -= terminal->pvt->padding.top;
+		items[i].x -= m_padding.left;
+		items[i].y -= m_padding.top;
 	}
 
 	/* Draw whatever SFX are required. */
@@ -8970,23 +8977,23 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 				columns += items[i].columns;
 			}
 			if (underline) {
-				vte_terminal_draw_line(terminal,
+				vte_terminal_draw_line(m_terminal,
 						&fg,
 						x,
-						y + terminal->pvt->underline_position,
+						y + m_underline_position,
 						x + (columns * column_width) - 1,
-						y + terminal->pvt->underline_position + terminal->pvt->line_thickness - 1);
+						y + m_underline_position + m_line_thickness - 1);
 			}
 			if (strikethrough) {
-				vte_terminal_draw_line(terminal,
+				vte_terminal_draw_line(m_terminal,
 						&fg,
 						x,
-						y + terminal->pvt->strikethrough_position,
+						y + m_strikethrough_position,
 						x + (columns * column_width) - 1,
-						y + terminal->pvt->strikethrough_position + terminal->pvt->line_thickness - 1);
+						y + m_strikethrough_position + m_line_thickness - 1);
 			}
 			if (hilite) {
-				vte_terminal_draw_line(terminal,
+				vte_terminal_draw_line(m_terminal,
 						&fg,
 						x,
 						y + row_height - 1,
@@ -8994,7 +9001,7 @@ vte_terminal_draw_cells(VteTerminal *terminal,
 						y + row_height - 1);
 			}
 			if (boxed) {
-				vte_terminal_draw_rectangle(terminal,
+				vte_terminal_draw_rectangle(m_terminal,
 						&fg,
 						x, y,
 						MAX(0, (columns * column_width)),
@@ -9215,7 +9222,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 	translate_pango_cells(attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
 		vte_terminal_determine_colors(m_terminal, &cells[j], FALSE, &fore, &back);
-		vte_terminal_draw_cells(m_terminal, items + i, 1,
+		draw_cells(items + i, 1,
 					fore,
 					back,
 					TRUE, draw_default_bg,
@@ -9519,7 +9526,7 @@ fg_next_row:
 			} while (TRUE);
 fg_draw:
 			/* Draw the cells. */
-			vte_terminal_draw_cells(m_terminal,
+			draw_cells(
 					items,
 					item_count,
 					fore, back, FALSE, FALSE,
@@ -9739,7 +9746,7 @@ VteTerminalPrivate::paint_cursor()
 							     cursor_width, height);
 
                                 if (cell && cell->c != 0 && cell->c != ' ') {
-                                        vte_terminal_draw_cells(m_terminal,
+                                        draw_cells(
                                                         &item, 1,
                                                         fore, back, TRUE, FALSE,
                                                         cell->attr.bold,
@@ -9823,7 +9830,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 		preedit_cursor = m_im_preedit_cursor;
 		if (preedit_cursor >= 0 && preedit_cursor < len) {
 			/* Cursored letter in reverse. */
-			vte_terminal_draw_cells(m_terminal,
+			draw_cells(
 						&items[preedit_cursor], 1,
 						back, fore, TRUE, TRUE,
 						FALSE,

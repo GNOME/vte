@@ -529,6 +529,20 @@ public:
         void paint_area(GdkRectangle const* area);
         void paint_cursor();
         void paint_im_preedit_string();
+        void draw_cells(struct _vte_draw_text_request *items,
+                        gssize n,
+                        guint fore,
+                        guint back,
+                        bool clear,
+                        bool draw_default_bg,
+                        bool bold,
+                        bool italic,
+                        bool underline,
+                        bool strikethrough,
+                        bool hilite,
+                        bool boxed,
+                        int column_width,
+                        int row_height);
         void fudge_pango_colors(GSList *attributes,
                                 VteCell *cells,
                                 gsize n);
