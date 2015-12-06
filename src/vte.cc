@@ -4667,9 +4667,9 @@ VteTerminalPrivate::widget_style_updated()
 {
         vte_terminal_set_font(m_terminal, m_unscaled_font_desc);
 
+        auto context = gtk_widget_get_style_context(m_widget);
         GtkBorder new_padding;
-        gtk_style_context_get_padding(gtk_widget_get_style_context(m_widget),
-                                      gtk_widget_get_state_flags(m_widget),
+        gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
                                       &new_padding);
         if (memcmp(&new_padding, &m_padding, sizeof(GtkBorder)) != 0) {
                 _vte_debug_print(VTE_DEBUG_MISC,
@@ -7706,9 +7706,14 @@ bool
 VteTerminalPrivate::set_font_desc(PangoFontDescription const* font_desc)
 {
 	/* Create an owned font description. */
-        auto context = gtk_widget_get_style_context(m_widget);
         PangoFontDescription *desc;
+
+        auto context = gtk_widget_get_style_context(m_widget);
+        gtk_style_context_save(context);
+        gtk_style_context_set_state (context, GTK_STATE_FLAG_NORMAL);
         gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font", &desc, nullptr);
+        gtk_style_context_restore(context);
+
 	pango_font_description_set_family_static (desc, "monospace");
 	if (font_desc != nullptr) {
 		pango_font_description_merge (desc, font_desc, TRUE);

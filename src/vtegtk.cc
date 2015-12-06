@@ -3072,8 +3072,8 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
 
         pvt = terminal->pvt;
 
-        gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                      gtk_widget_get_state_flags(widget),
+        auto context = gtk_widget_get_style_context(widget);
+        gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
                                       &padding);
 
         hints->base_width  = padding.left + padding.right;
