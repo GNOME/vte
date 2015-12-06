@@ -9144,14 +9144,10 @@ _vte_terminal_apply_pango_attr(VteTerminal *terminal, PangoAttribute *attr,
  * so that all ranges in the attribute list can be mapped into the array, which
  * typically means that the cell array should have the same length as the
  * string (byte-wise) which the attributes describe. */
-static void
-_vte_terminal_pango_attribute_destroy(gpointer attr, gpointer data)
-{
-	pango_attribute_destroy((PangoAttribute *)attr);
-}
-static void
-_vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
-				    VteCell *cells, guint n_cells)
+void
+VteTerminalPrivate::translate_pango_cells(PangoAttrList *attrs,
+                                          VteCell *cells,
+                                          gsize n_cells)
 {
 	PangoAttribute *attr;
 	PangoAttrIterator *attriter;
@@ -9159,7 +9155,7 @@ _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
 	guint i;
 
 	for (i = 0; i < n_cells; i++) {
-                cells[i] = terminal->pvt->fill_defaults;
+                cells[i] = m_fill_defaults;
 	}
 
 	attriter = pango_attr_list_get_iterator(attrs);
@@ -9171,21 +9167,21 @@ _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
 				     listiter != NULL;
 				     listiter = g_slist_next(listiter)) {
 					attr = (PangoAttribute *)listiter->data;
-					_vte_terminal_apply_pango_attr(terminal,
+					_vte_terminal_apply_pango_attr(m_terminal,
 								       attr,
 								       cells,
 								       n_cells);
 				}
 				attr = (PangoAttribute *)list->data;
-				_vte_terminal_fudge_pango_colors(terminal,
+				_vte_terminal_fudge_pango_colors(m_terminal,
 								 list,
 								 cells +
 								 attr->start_index,
 								 attr->end_index -
 								 attr->start_index);
 				g_slist_foreach(list,
-						_vte_terminal_pango_attribute_destroy,
-						NULL);
+                                                (GFunc)pango_attribute_destroy,
+						nullptr);
 				g_slist_free(list);
 			}
 		} while (pango_attr_iterator_next(attriter) == TRUE);
@@ -9217,7 +9213,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
 	cells = g_new(VteCell, cell_count);
-	_vte_terminal_translate_pango_cells(m_terminal, attrs, cells, cell_count);
+	translate_pango_cells(attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
 		vte_terminal_determine_colors(m_terminal, &cells[j], FALSE, &fore, &back);
 		vte_terminal_draw_cells(m_terminal, items + i, 1,
