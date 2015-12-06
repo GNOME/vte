@@ -524,6 +524,9 @@ public:
 
         void widget_settings_notify();
 
+        void expand_cairo_region(cairo_region_t *region,
+                                 GdkRectangle const* area) const;
+
         bool autoscroll();
         void start_autoscroll();
         void stop_autoscroll();
