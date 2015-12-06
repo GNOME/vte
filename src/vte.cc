@@ -9196,30 +9196,31 @@ _vte_terminal_translate_pango_cells(VteTerminal *terminal, PangoAttrList *attrs,
 /* Draw the listed items using the given attributes.  Tricky because the
  * attribute string is indexed by byte in the UTF-8 representation of the string
  * of characters.  Because we draw a character at a time, this is slower. */
-static void
-vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
-					struct _vte_draw_text_request *items,
-					gssize n,
-					PangoAttrList *attrs,
-					gboolean draw_default_bg,
-					gint column_width, gint height)
+void
+VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *items,
+                                               gssize n,
+                                               PangoAttrList *attrs,
+                                               bool draw_default_bg,
+                                               gint column_width,
+                                               gint height)
 {
-	int i, j, cell_count;
+        int i, j, cell_count;
 	VteCell *cells;
 	char scratch_buf[VTE_UTF8_BPC];
 	guint fore, back;
 
 	/* Note: since this function is only called with the pre-edit text,
 	 * all the items contain gunichar only, not vteunistr. */
+        // FIXMEchpe is that really true for all input methods?
 
 	for (i = 0, cell_count = 0; i < n; i++) {
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
 	cells = g_new(VteCell, cell_count);
-	_vte_terminal_translate_pango_cells(terminal, attrs, cells, cell_count);
+	_vte_terminal_translate_pango_cells(m_terminal, attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
-		vte_terminal_determine_colors(terminal, &cells[j], FALSE, &fore, &back);
-		vte_terminal_draw_cells(terminal, items + i, 1,
+		vte_terminal_determine_colors(m_terminal, &cells[j], FALSE, &fore, &back);
+		vte_terminal_draw_cells(m_terminal, items + i, 1,
 					fore,
 					back,
 					TRUE, draw_default_bg,
@@ -9819,7 +9820,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 				height);
                 fore = m_color_defaults.attr.fore;
                 back = m_color_defaults.attr.back;
-		vte_terminal_draw_cells_with_attributes(m_terminal,
+		draw_cells_with_attributes(
 							items, len,
 							m_im_preedit_attrs,
 							TRUE,

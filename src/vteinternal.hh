@@ -529,6 +529,12 @@ public:
         void paint_area(GdkRectangle const* area);
         void paint_cursor();
         void paint_im_preedit_string();
+        void draw_cells_with_attributes(struct _vte_draw_text_request *items,
+                                        gssize n,
+                                        PangoAttrList *attrs,
+                                        bool draw_default_bg,
+                                        int column_width,
+                                        int height);
         void draw_rows(VteScreen *screen,
                        vte::grid::row_t start_row,
                        long row_count,
