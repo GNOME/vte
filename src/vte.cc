@@ -9638,79 +9638,80 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 			      m_char_height);
 }
 
-static void
-vte_terminal_paint_cursor(VteTerminal *terminal)
+void
+VteTerminalPrivate::paint_cursor()
 {
 	const VteCell *cell;
 	struct _vte_draw_text_request item;
-	int drow, col;
+        vte::grid::row_t drow;
+        vte::grid::column_t col;
 	long width, height, cursor_width;
 	guint fore, back;
 	vte::color::rgb bg;
 	int x, y;
 	gboolean blink, selected, focus;
 
-	if (!terminal->pvt->cursor_visible)
+	if (!m_cursor_visible)
 		return;
 
-        if (terminal->pvt->im_preedit_active)
+        if (m_im_preedit_active)
                 return;
 
-        col = terminal->pvt->cursor.col;
-        drow = terminal->pvt->cursor.row;
-	width = terminal->pvt->char_width;
-	height = terminal->pvt->char_height;
+        col = m_cursor.col;
+        drow = m_cursor.row;
+	width = m_char_width;
+	height = m_char_height;
 
         /* TODOegmont: clamp on rows? tricky... */
-	if (CLAMP(col, 0, terminal->pvt->column_count - 1) != col)
+	if (CLAMP(col, 0, m_column_count - 1) != col)
 		return;
 
-	focus = terminal->pvt->has_focus;
-	blink = terminal->pvt->cursor_blink_state;
+	focus = m_has_focus;
+	blink = m_cursor_blink_state;
 
 	if (focus && !blink)
 		return;
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-	cell = vte_terminal_find_charcell(terminal, col, drow);
+	cell = vte_terminal_find_charcell(m_terminal, col, drow);
         while (cell != NULL && cell->attr.fragment && cell->c != '\t' && col > 0) {
 		col--;
-		cell = vte_terminal_find_charcell(terminal, col, drow);
+		cell = vte_terminal_find_charcell(m_terminal, col, drow);
 	}
 
 	/* Draw the cursor. */
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns : 1;
 	item.x = col * width;
-	item.y = terminal->pvt->row_to_pixel(drow);
+	item.y = row_to_pixel(drow);
 	cursor_width = item.columns * width;
 	if (cell && cell->c != 0) {
 		guint style;
 		gint cw;
 		style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
-		cw = _vte_draw_get_char_width (terminal->pvt->draw, cell->c,
+		cw = _vte_draw_get_char_width (m_draw, cell->c,
 					cell->attr.columns, style);
 		cursor_width = MAX(cursor_width, cw);
 	}
 
-	selected = vte_cell_is_selected(terminal, col, drow, NULL);
+	selected = vte_cell_is_selected(m_terminal, col, drow, NULL);
 
-	vte_terminal_determine_cursor_colors(terminal, cell, selected, &fore, &back);
-	vte_terminal_get_rgb_from_index(terminal, back, &bg);
+	vte_terminal_determine_cursor_colors(m_terminal, cell, selected, &fore, &back);
+	vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
 
 	x = item.x;
 	y = item.y;
 
-        switch (terminal->pvt->decscusr_cursor_shape()) {
+        switch (decscusr_cursor_shape()) {
 
 		case VTE_CURSOR_SHAPE_IBEAM: {
                         int stem_width;
 
-                        stem_width = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
+                        stem_width = (int) (((float) height) * m_cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
-		 	
-			vte_terminal_fill_rectangle(terminal, &bg,
+
+			vte_terminal_fill_rectangle(m_terminal, &bg,
 						     x, y, stem_width, height);
 			break;
                 }
@@ -9720,10 +9721,10 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 			/* use height (not width) so underline and ibeam will
 			 * be equally visible */
-                        line_height = (int) (((float) height) * terminal->pvt->cursor_aspect_ratio + 0.5);
+                        line_height = (int) (((float) height) * m_cursor_aspect_ratio + 0.5);
                         line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
-			vte_terminal_fill_rectangle(terminal, &bg,
+			vte_terminal_fill_rectangle(m_terminal, &bg,
 						     x, y + height - line_height,
 						     cursor_width, line_height);
 			break;
@@ -9733,13 +9734,13 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 			if (focus) {
 				/* just reverse the character under the cursor */
-				vte_terminal_fill_rectangle (terminal,
+				vte_terminal_fill_rectangle(m_terminal,
 							     &bg,
 							     x, y,
 							     cursor_width, height);
 
                                 if (cell && cell->c != 0 && cell->c != ' ') {
-                                        vte_terminal_draw_cells(terminal,
+                                        vte_terminal_draw_cells(m_terminal,
                                                         &item, 1,
                                                         fore, back, TRUE, FALSE,
                                                         cell->attr.bold,
@@ -9754,7 +9755,7 @@ vte_terminal_paint_cursor(VteTerminal *terminal)
 
 			} else {
 				/* draw a box around the character */
-				vte_terminal_draw_rectangle (terminal,
+				vte_terminal_draw_rectangle(m_terminal,
 							    &bg,
 							     x - VTE_LINE_WIDTH,
 							     y - VTE_LINE_WIDTH,
@@ -9921,7 +9922,7 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
         cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
         cairo_clip(cr);
 
-	vte_terminal_paint_cursor(m_terminal);
+	paint_cursor();
 
 	cairo_restore(cr);
 
