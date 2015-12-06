@@ -3639,20 +3639,20 @@ VteTerminalPrivate::pty_channel_eof()
 }
 
 /* Reset the input method context. */
-static void
-vte_terminal_im_reset(VteTerminal *terminal)
+void
+VteTerminalPrivate::im_reset()
 {
-	if (gtk_widget_get_realized (&terminal->widget)) {
-		gtk_im_context_reset(terminal->pvt->im_context);
-		if (terminal->pvt->im_preedit != NULL) {
-			g_free(terminal->pvt->im_preedit);
-			terminal->pvt->im_preedit = NULL;
-		}
-		if (terminal->pvt->im_preedit_attrs != NULL) {
-			pango_attr_list_unref(terminal->pvt->im_preedit_attrs);
-			terminal->pvt->im_preedit_attrs = NULL;
-		}
-	}
+	if (gtk_widget_get_realized(m_widget) && m_im_context)
+		gtk_im_context_reset(m_im_context);
+
+        if (m_im_preedit) {
+                g_free(m_im_preedit);
+                m_im_preedit = nullptr;
+        }
+        if (m_im_preedit_attrs) {
+                pango_attr_list_unref(m_im_preedit_attrs);
+                m_im_preedit_attrs = nullptr;
+        }
 }
 
 /* Process incoming data, first converting it to unicode characters, and then
@@ -8313,7 +8313,7 @@ VteTerminalPrivate::widget_unrealize()
 	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
                                                      0, 0, NULL, NULL,
                                                      this);
-		vte_terminal_im_reset(m_terminal);
+		im_reset();
 		gtk_im_context_set_client_window(m_im_context,
 						 NULL);
 		g_object_unref(m_im_context);
@@ -8665,7 +8665,8 @@ VteTerminalPrivate::widget_realize()
 	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
                                                      0, 0, NULL, NULL,
                                                      this);
-		vte_terminal_im_reset(m_terminal);
+		im_reset();
+		gtk_im_context_set_client_window(m_im_context, nullptr);
 		g_object_unref(m_im_context);
 		m_im_context = nullptr;
 	}
@@ -11597,7 +11598,7 @@ VteTerminalPrivate::set_input_enabled (bool enabled)
 
                 gtk_style_context_remove_class (context, GTK_STYLE_CLASS_READ_ONLY);
         } else {
-                vte_terminal_im_reset(m_terminal);
+                im_reset();
                 if (gtk_widget_has_focus(m_widget))
                         gtk_im_context_focus_out(m_im_context);
 

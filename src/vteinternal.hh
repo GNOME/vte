@@ -563,6 +563,7 @@ public:
         void im_preedit_start();
         void im_preedit_end();
         void im_preedit_changed();
+        void im_reset();
 
         bool spawn_sync(VtePtyFlags pty_flags,
                         const char *working_directory,
