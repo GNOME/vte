@@ -529,6 +529,15 @@ public:
         void paint_area(GdkRectangle const* area);
         void paint_cursor();
         void paint_im_preedit_string();
+        void draw_rows(VteScreen *screen,
+                       vte::grid::row_t start_row,
+                       long row_count,
+                       vte::grid::column_t start_column,
+                       long column_count,
+                       gint start_x,
+                       gint start_y,
+                       gint column_width,
+                       gint row_height);
 
         bool autoscroll();
         void start_autoscroll();

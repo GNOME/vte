@@ -9237,16 +9237,21 @@ vte_terminal_draw_cells_with_attributes(VteTerminal *terminal,
 /* Paint the contents of a given row at the given location.  Take advantage
  * of multiple-draw APIs by finding runs of characters with identical
  * attributes and bundling them together. */
-static void
-vte_terminal_draw_rows(VteTerminal *terminal,
-		      VteScreen *screen,
-		      gint start_row, gint row_count,
-		      gint start_column, gint column_count,
-		      gint start_x, gint start_y,
-		      gint column_width, gint row_height)
+void
+VteTerminalPrivate::draw_rows(VteScreen *screen_,
+                              vte::grid::row_t start_row,
+                              vte::grid::row_t end_row,
+                              vte::grid::column_t start_column,
+                              vte::grid::column_t end_column,
+                              gint start_x,
+                              gint start_y,
+                              gint column_width,
+                              gint row_height)
 {
 	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
-	gint i, j, row, rows, x, y, end_column;
+        vte::grid::row_t row, rows;
+        vte::grid::column_t i, j;
+        long x, y;
 	guint fore, nfore, back, nback;
 	gboolean underline, nunderline, bold, nbold, italic, nitalic, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
@@ -9256,15 +9261,14 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 
 	/* adjust for the absolute start of row */
 	start_x -= start_column * column_width;
-	end_column = start_column + column_count;
 
 	/* clear the background */
-	x = start_x + terminal->pvt->padding.left;
-	y = start_y + terminal->pvt->padding.top;
+	x = start_x + m_padding.left;
+	y = start_y + m_padding.top;
 	row = start_row;
-	rows = row_count;
+	rows = end_row - start_row;
 	do {
-		row_data = _vte_terminal_find_row_data(terminal, row);
+		row_data = _vte_terminal_find_row_data(m_terminal, row);
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
 		i = start_column;
@@ -9280,8 +9284,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				/* Get the character cell's contents. */
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
-				selected = vte_cell_is_selected(terminal, i, row, NULL);
-				vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
+				selected = vte_cell_is_selected(m_terminal, i, row, NULL);
+				vte_terminal_determine_colors(m_terminal, cell, selected, &fore, &back);
 
 				bold = cell && cell->attr.bold;
 				j = i + (cell ? cell->attr.columns : 1);
@@ -9299,8 +9303,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_cell_is_selected(terminal, j, row, NULL);
-					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
+					selected = vte_cell_is_selected(m_terminal, j, row, NULL);
+					vte_terminal_determine_colors(m_terminal, cell, selected, &nfore, &nback);
 					if (nback != back) {
 						break;
 					}
@@ -9309,11 +9313,11 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
-					gint bold_offset = _vte_draw_has_bold(terminal->pvt->draw,
+					gint bold_offset = _vte_draw_has_bold(m_draw,
 											VTE_DRAW_BOLD) ? 0 : bold;
-					vte_terminal_get_rgb_from_index(terminal, back, &bg);
+					vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
 					_vte_draw_fill_rectangle (
-							terminal->pvt->draw,
+							m_draw,
 							x + i * column_width,
 							y,
 							(j - i) * column_width + bold_offset,
@@ -9326,20 +9330,20 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 			} while (i < end_column);
 		} else {
 			do {
-				selected = vte_cell_is_selected(terminal, i, row, NULL);
+				selected = vte_cell_is_selected(m_terminal, i, row, NULL);
 				j = i + 1;
 				while (j < end_column){
-					nselected = vte_cell_is_selected(terminal, j, row, NULL);
+					nselected = vte_cell_is_selected(m_terminal, j, row, NULL);
 					if (nselected != selected) {
 						break;
 					}
 					j++;
 				}
-				vte_terminal_determine_colors(terminal, NULL, selected, &fore, &back);
+				vte_terminal_determine_colors(m_terminal, NULL, selected, &fore, &back);
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
-					vte_terminal_get_rgb_from_index(terminal, back, &bg);
-					_vte_draw_fill_rectangle (terminal->pvt->draw,
+					vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
+					_vte_draw_fill_rectangle (m_draw,
 								  x + i *column_width,
 								  y,
 								  (j - i)  * column_width,
@@ -9357,10 +9361,10 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 	/* render the text */
 	y = start_y;
 	row = start_row;
-	rows = row_count;
+	rows = end_row - start_row;
 	item_count = 1;
 	do {
-		row_data = _vte_terminal_find_row_data(terminal, row);
+		row_data = _vte_terminal_find_row_data(m_terminal, row);
 		if (row_data == NULL) {
 			goto fg_skip_row;
 		}
@@ -9395,18 +9399,18 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 				}
 			}
 			/* Find the colors for this cell. */
-			selected = vte_cell_is_selected(terminal, i, row, NULL);
-			vte_terminal_determine_colors(terminal, cell, selected, &fore, &back);
+			selected = vte_cell_is_selected(m_terminal, i, row, NULL);
+			vte_terminal_determine_colors(m_terminal, cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
 			bold = cell->attr.bold;
 			italic = cell->attr.italic;
-			if (terminal->pvt->show_match) {
+			if (m_show_match) {
 				hilite = vte_cell_is_between(i, row,
-						terminal->pvt->match_start.col,
-						terminal->pvt->match_start.row,
-						terminal->pvt->match_end.col,
-						terminal->pvt->match_end.row);
+						m_match_start.col,
+						m_match_start.row,
+						m_match_end.col,
+						m_match_end.row);
 			} else {
 				hilite = FALSE;
 			}
@@ -9447,8 +9451,8 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_cell_is_selected(terminal, j, row, NULL);
-					vte_terminal_determine_colors(terminal, cell, selected, &nfore, &nback);
+					selected = vte_cell_is_selected(m_terminal, j, row, NULL);
+					vte_terminal_determine_colors(m_terminal, cell, selected, &nfore, &nback);
 					if (nfore != fore) {
 						break;
 					}
@@ -9471,12 +9475,12 @@ vte_terminal_draw_rows(VteTerminal *terminal,
 					}
 					/* Break up matched/not-matched text. */
 					nhilite = FALSE;
-					if (terminal->pvt->show_match) {
+					if (m_show_match) {
 						nhilite = vte_cell_is_between(j, row,
-								terminal->pvt->match_start.col,
-								terminal->pvt->match_start.row,
-								terminal->pvt->match_end.col,
-								terminal->pvt->match_end.row);
+								m_match_start.col,
+								m_match_start.row,
+								m_match_end.col,
+								m_match_end.row);
 					}
 					if (nhilite != hilite) {
 						break;
@@ -9504,7 +9508,7 @@ fg_next_row:
 						/* restart on the next row */
 						row++;
 						y += row_height;
-						row_data = _vte_terminal_find_row_data(terminal, row);
+						row_data = _vte_terminal_find_row_data(m_terminal, row);
 					} while (row_data == NULL);
 
 					/* Back up in case this is a
@@ -9519,7 +9523,7 @@ fg_next_row:
 			} while (TRUE);
 fg_draw:
 			/* Draw the cells. */
-			vte_terminal_draw_cells(terminal,
+			vte_terminal_draw_cells(m_terminal,
 					items,
 					item_count,
 					fore, back, FALSE, FALSE,
@@ -9628,10 +9632,9 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
-	vte_terminal_draw_rows(m_terminal,
-			      m_screen,
-			      row, row_stop - row,
-			      col, col_stop - col,
+	draw_rows(m_screen,
+			      row, row_stop,
+			      col, col_stop,
 			      col * m_char_width,
 			      row_to_pixel(row),
 			      m_char_width,
