@@ -451,7 +451,7 @@ class Window : Gtk.ApplicationWindow
     Shell.parse_argv(command, out argv);
     launch_idle_id = GLib.Idle.add(() => {
         try {
-          terminal.spawn_sync(App.Options.get_pty_flags(),
+          terminal.spawn_sync(Vte.PtyFlags.DEFAULT,
                               App.Options.working_directory,
                               argv,
                               App.Options.environment,
@@ -486,7 +486,7 @@ class Window : Gtk.ApplicationWindow
     Vte.Pty pty;
     Posix.pid_t pid;
 
-    pty = new Vte.Pty.sync(App.Options.get_pty_flags(), null);
+    pty = new Vte.Pty.sync(Vte.PtyFlags.DEFAULT, null);
 
     pid = Posix.fork();
 
@@ -819,7 +819,6 @@ class App : Gtk.Application
     public static bool no_shell = false;
     public static bool object_notifications = false;
     public static string? output_filename = null;
-    private static string? pty_flags_string = null;
     public static bool reverse = false;
     public static int scrollback_lines = 512;
     public static int transparency_percent = 0;
@@ -840,6 +839,7 @@ class App : Gtk.Application
       return value;
     }
 
+    /*
     private static uint parse_flags(Type type, string str)
     {
       uint value = 0;
@@ -859,6 +859,7 @@ class App : Gtk.Application
       }
       return value;
     }
+    */
 
     public static int get_cjk_ambiguous_width()
     {
@@ -950,17 +951,6 @@ class App : Gtk.Application
       return value;
     }
 
-    public static Vte.PtyFlags get_pty_flags()
-    {
-      Vte.PtyFlags flags;
-      if (pty_flags_string != null)
-        flags = (Vte.PtyFlags)parse_flags(typeof(Vte.CursorShape),
-                                          pty_flags_string);
-      else
-        flags = Vte.PtyFlags.DEFAULT;
-      return flags;
-    }
-
     public static const OptionEntry[] entries = {
       { "audible-bell", 'a', 0, OptionArg.NONE, ref audible,
         "Use audible terminal bell", null },
@@ -1016,8 +1006,6 @@ class App : Gtk.Application
         "Print VteTerminal object notifications", null },
       { "output-file", 0, 0, OptionArg.FILENAME, ref output_filename,
         "Save terminal contents to file at exit", null },
-      { "pty-flags", 0, 0, OptionArg.STRING, ref pty_flags_string,
-        "PTY flags set from default|no-utmp|no-wtmp|no-lastlog|no-helper|no-fallback", null },
       { "reverse", 0, 0, OptionArg.NONE, ref reverse,
         "Reverse foreground/background colors", null },
       { "scrollback-lines", 'n', 0, OptionArg.INT, ref scrollback_lines,
