@@ -207,6 +207,7 @@ class Window : Gtk.ApplicationWindow
   private Gtk.Clipboard clipboard;
   private GLib.Pid child_pid;
   private SearchPopover search_popover;
+  private uint launch_idle_id;
 
   private string[] builtin_dingus = {
     "(((gopher|news|telnet|nntp|file|http|ftp|https)://)|(www|ftp)[-A-Za-z0-9]*\\.)[-A-Za-z0-9\\.]+(:[0-9]*)?",
@@ -448,15 +449,23 @@ class Window : Gtk.ApplicationWindow
     string[] argv;
 
     Shell.parse_argv(command, out argv);
-    terminal.spawn_sync(App.Options.get_pty_flags(),
-                        App.Options.working_directory,
-                        argv,
-                        App.Options.environment,
-                        GLib.SpawnFlags.SEARCH_PATH,
-                        null, /* child setup */
-                        out child_pid,
-                        null /* cancellable */);
-    print("Fork succeeded, PID %d\n", child_pid);
+    launch_idle_id = GLib.Idle.add(() => {
+        try {
+          terminal.spawn_sync(App.Options.get_pty_flags(),
+                              App.Options.working_directory,
+                              argv,
+                              App.Options.environment,
+                              GLib.SpawnFlags.SEARCH_PATH,
+                              null, /* child setup */
+                              out child_pid,
+                              null /* cancellable */);
+          print("Fork succeeded, PID %d\n", child_pid);
+        } catch (Error e) {
+          printerr("Failed to fork: %s\n", e.message);
+        }
+        launch_idle_id = 0;
+        return false;
+      });
   }
 
   private void launch_shell() throws Error
