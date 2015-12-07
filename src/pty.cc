@@ -228,6 +228,19 @@ vte_pty_child_setup (VtePty *pty)
         if (masterfd == -1)
                 _exit(127);
 
+#ifdef HAVE_UNIX98_PTY
+        /* Read the slave number and unlock it. */
+        if (grantpt(masterfd) != 0) {
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "grantpt");
+                _exit(127);
+        }
+
+	if (unlockpt(masterfd) != 0) {
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "unlockpt");
+                _exit(127);
+        }
+#endif
+
 	char *name = ptsname(masterfd);
         if (name == nullptr) {
 		_vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
@@ -699,21 +712,6 @@ _vte_pty_open_posix(void)
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                return -1;
-        }
-
-        /* Read the slave number and unlock it. */
-        if (grantpt(fd) != 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "grantpt", g_strerror(errsv));
-                return -1;
-        }
-
-	if (unlockpt(fd) != 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "unlockpt", g_strerror(errsv));
                 return -1;
         }
 
