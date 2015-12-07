@@ -45,6 +45,7 @@
 #include <sys/syslimits.h>
 #endif
 #include <signal.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,107 +79,6 @@
 #endif
 
 #define I_(string) (g_intern_static_string(string))
-
-/* Reset the handlers for all known signals to their defaults.  The parent
- * (or one of the libraries it links to) may have changed one to be ignored. */
-static void
-_vte_pty_reset_signal_handlers(void)
-{
-#ifdef SIGHUP
-	signal(SIGHUP,  SIG_DFL);
-#endif
-	signal(SIGINT,  SIG_DFL);
-	signal(SIGQUIT, SIG_DFL);
-	signal(SIGILL,  SIG_DFL);
-	signal(SIGABRT, SIG_DFL);
-	signal(SIGFPE,  SIG_DFL);
-#ifdef SIGKILL
-	signal(SIGKILL, SIG_DFL);
-#endif
-	signal(SIGSEGV, SIG_DFL);
-#ifdef SIGPIPE
-	signal(SIGPIPE, SIG_DFL);
-#endif
-#ifdef SIGALRM
-	signal(SIGALRM, SIG_DFL);
-#endif
-	signal(SIGTERM, SIG_DFL);
-#ifdef SIGCHLD
-	signal(SIGCHLD, SIG_DFL);
-#endif
-#ifdef SIGCONT
-	signal(SIGCONT, SIG_DFL);
-#endif
-#ifdef SIGSTOP
-	signal(SIGSTOP, SIG_DFL);
-#endif
-#ifdef SIGTSTP
-	signal(SIGTSTP, SIG_DFL);
-#endif
-#ifdef SIGTTIN
-	signal(SIGTTIN, SIG_DFL);
-#endif
-#ifdef SIGTTOU
-	signal(SIGTTOU, SIG_DFL);
-#endif
-#ifdef SIGBUS
-	signal(SIGBUS,  SIG_DFL);
-#endif
-#ifdef SIGPOLL
-	signal(SIGPOLL, SIG_DFL);
-#endif
-#ifdef SIGPROF
-	signal(SIGPROF, SIG_DFL);
-#endif
-#ifdef SIGSYS
-	signal(SIGSYS,  SIG_DFL);
-#endif
-#ifdef SIGTRAP
-	signal(SIGTRAP, SIG_DFL);
-#endif
-#ifdef SIGURG
-	signal(SIGURG,  SIG_DFL);
-#endif
-#ifdef SIGVTALARM
-	signal(SIGVTALARM, SIG_DFL);
-#endif
-#ifdef SIGXCPU
-	signal(SIGXCPU, SIG_DFL);
-#endif
-#ifdef SIGXFSZ
-	signal(SIGXFSZ, SIG_DFL);
-#endif
-#ifdef SIGIOT
-	signal(SIGIOT,  SIG_DFL);
-#endif
-#ifdef SIGEMT
-	signal(SIGEMT,  SIG_DFL);
-#endif
-#ifdef SIGSTKFLT
-	signal(SIGSTKFLT, SIG_DFL);
-#endif
-#ifdef SIGIO
-	signal(SIGIO,   SIG_DFL);
-#endif
-#ifdef SIGCLD
-	signal(SIGCLD,  SIG_DFL);
-#endif
-#ifdef SIGPWR
-	signal(SIGPWR,  SIG_DFL);
-#endif
-#ifdef SIGINFO
-	signal(SIGINFO, SIG_DFL);
-#endif
-#ifdef SIGLOST
-	signal(SIGLOST, SIG_DFL);
-#endif
-#ifdef SIGWINCH
-	signal(SIGWINCH, SIG_DFL);
-#endif
-#ifdef SIGUNUSED
-	signal(SIGUNUSED, SIG_DFL);
-#endif
-}
 
 typedef struct _VtePtyPrivate VtePtyPrivate;
 
@@ -223,6 +123,19 @@ vte_pty_child_setup (VtePty *pty)
 {
         VtePtyPrivate *priv = pty->priv;
 	VtePtyChildSetupData *data = &priv->child_setup_data;
+
+        /* Unblock all signals */
+        sigset_t set;
+        sigemptyset(&set);
+        if (pthread_sigmask(SIG_SETMASK, &set, nullptr) == -1) {
+                _vte_debug_print(VTE_DEBUG_PTY, "Failed to unblock signals: %m");
+                _exit(127);
+        }
+
+        /* Reset the handlers for all signals to their defaults.  The parent
+         * (or one of the libraries it links to) may have changed one to be ignored. */
+        for (int n = 1; n < SIGUNUSED; n++)
+                signal(n, SIG_DFL);
 
         int masterfd = priv->pty_fd;
         if (masterfd == -1)
@@ -311,10 +224,6 @@ vte_pty_child_setup (VtePty *pty)
 			fd != STDERR_FILENO) {
 		close(fd);
 	}
-
-	/* Reset our signals -- our parent may have done any number of
-	 * weird things to them. */
-	_vte_pty_reset_signal_handlers();
 
         /* Now set the TERM environment variable */
         /* FIXME: Setting environment here seems to have no effect, the merged envp2 will override on exec.
