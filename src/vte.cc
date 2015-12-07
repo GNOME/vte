@@ -7589,12 +7589,13 @@ VteTerminalPrivate::widget_visibility_notify(GdkEventVisibility *event)
 }
 
 /* Apply the changed metrics, and queue a resize if need be. */
-static void
-vte_terminal_apply_metrics(VteTerminal *terminal,
-			   gint width, gint height, gint ascent, gint descent)
+void
+VteTerminalPrivate::apply_font_metrics(int width,
+                                       int height,
+                                       int ascent,
+                                       int descent)
 {
-	gboolean resize = FALSE, cresize = FALSE;
-	gint line_thickness;
+	bool resize = false, cresize = false;
 
 	/* Sanity check for broken font changes. */
 	width = MAX(width, 1);
@@ -7603,40 +7604,38 @@ vte_terminal_apply_metrics(VteTerminal *terminal,
 	descent = MAX(descent, 1);
 
 	/* Change settings, and keep track of when we've changed anything. */
-	if (width != terminal->pvt->char_width) {
-		resize = cresize = TRUE;
-		terminal->pvt->char_width = width;
+	if (width != m_char_width) {
+		resize = cresize = true;
+		m_char_width = width;
 	}
-	if (height != terminal->pvt->char_height) {
-		resize = cresize = TRUE;
-		terminal->pvt->char_height = height;
+	if (height != m_char_height) {
+		resize = cresize = true;
+		m_char_height = height;
 	}
-	if (ascent != terminal->pvt->char_ascent) {
-		resize = TRUE;
-		terminal->pvt->char_ascent = ascent;
+	if (ascent != m_char_ascent) {
+		resize = true;
+		m_char_ascent = ascent;
 	}
-	if (descent != terminal->pvt->char_descent) {
-		resize = TRUE;
-		terminal->pvt->char_descent = descent;
+	if (descent != m_char_descent) {
+		resize = true;
+		m_char_descent = descent;
 	}
-	terminal->pvt->line_thickness = line_thickness = MAX (MIN ((height - ascent) / 2, height / 14), 1);
-	terminal->pvt->underline_position = MIN (ascent + line_thickness, height - line_thickness);
-	terminal->pvt->strikethrough_position =  ascent - height / 4;
+	m_line_thickness = MAX (MIN ((height - ascent) / 2, height / 14), 1);
+	m_underline_position = MIN (ascent + m_line_thickness, height - m_line_thickness);
+	m_strikethrough_position =  ascent - height / 4;
 
 	/* Queue a resize if anything's changed. */
 	if (resize) {
-		if (gtk_widget_get_realized (&terminal->widget)) {
-			gtk_widget_queue_resize_no_redraw(&terminal->widget);
+		if (gtk_widget_get_realized(m_widget)) {
+			gtk_widget_queue_resize_no_redraw(m_widget);
 		}
 	}
 	/* Emit a signal that the font changed. */
 	if (cresize) {
-		terminal->pvt->emit_char_size_changed(
-						    terminal->pvt->char_width,
-						    terminal->pvt->char_height);
+		emit_char_size_changed(m_char_width, m_char_height);
 	}
 	/* Repaint. */
-	terminal->pvt->invalidate_all();
+	invalidate_all();
 }
 
 void
@@ -7656,8 +7655,7 @@ VteTerminalPrivate::ensure_font()
 					m_fontdesc);
 			_vte_draw_get_text_metrics (m_draw,
 						    &width, &height, &ascent);
-			vte_terminal_apply_metrics(m_terminal,
-						   width, height, ascent, height - ascent);
+			apply_font_metrics(width, height, ascent, height - ascent);
 		}
 	}
 }

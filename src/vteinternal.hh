@@ -702,6 +702,10 @@ public:
 
         void ensure_font();
         void update_font();
+        void apply_font_metrics(int width,
+                                int height,
+                                int ascent,
+                                int descent);
 
         void refresh_size();
         void screen_set_size(VteScreen *screen_,
