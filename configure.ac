@@ -68,6 +68,8 @@ AC_SYS_LARGEFILE
 # Initialize libtool
 LT_PREREQ([2.2])
 LT_INIT
+LT_LANG([C])
+LT_LANG([C++])
 
 AM_CONDITIONAL([HAVE_GCC],[test "$GCC" = "yes"])
 AM_CONDITIONAL([HAVE_GXX],[test "$GXX" = "yes"])
