@@ -762,8 +762,6 @@ class Window : Gtk.ApplicationWindow
 
 class App : Gtk.Application
 {
-  private Window window;
-
   public App()
   {
     Object(application_id: "org.gnome.Vte.Test.App",
@@ -780,14 +778,18 @@ class App : Gtk.Application
   {
     base.startup();
 
-    window = new Window(this);
-    window.launch();
+    for (uint i = 0; i < App.Options.n_windows; i++)
+      new Window(this);
   }
 
   protected override void activate()
   {
-    window.apply_geometry();
-    window.present();
+    foreach (Gtk.Window win in this.get_windows()) {
+      var window = win as Window;
+      window.apply_geometry();
+      window.present();
+      window.launch();
+    }
   }
 
   public struct Options
@@ -823,6 +825,7 @@ class App : Gtk.Application
     public static int scrollback_lines = 512;
     public static int transparency_percent = 0;
     public static bool version = false;
+    public static int n_windows = 1;
     public static string? word_char_exceptions = null;
     public static string? working_directory = null;
 
@@ -1014,6 +1017,8 @@ class App : Gtk.Application
         "Enable the use of a transparent background", "0..100" },
       { "version", 0, 0, OptionArg.NONE, ref version,
         "Show version", null },
+      { "windows", 0, 0, OptionArg.INT, ref n_windows,
+        "Open multiple windows (default: 1)", "NUMBER" },
       { "word-char-exceptions", 0, 0, OptionArg.STRING, ref word_char_exceptions,
         "Specify the word char exceptions", "CHARS" },
       { "working-directory", 'w', 0, OptionArg.FILENAME, ref working_directory,
