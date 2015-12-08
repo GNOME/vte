@@ -666,7 +666,7 @@ _vte_pty_open_foreign(int masterfd /* consumed */)
 {
         vte::util::smart_fd fd(masterfd);
         if (fd == -1) {
-                errno = EBADFD;
+                errno = EBADF;
                 return -1;
         }
 
