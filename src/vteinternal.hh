@@ -351,8 +351,16 @@ public:
 	GArray *match_regexes;
 	char *match;
 	int match_tag;
-	VteVisualPosition match_start, match_end;
-	gboolean show_match;
+        /* If m_match non-null, then m_match_span contains the region of the match.
+         * If m_match is null, and m_match_span is not .empty(), then it contains
+         * the minimal region around the last checked coordinates that don't contain
+         * a match for any of the dingu regexes.
+         */
+        vte::grid::span m_match_span;
+        /* Whether the match is being highlighted.
+         * Only used if m_match is non-null.
+         */
+	bool m_show_match;
 
 	/* Search data. */
         struct vte_regex_and_flags search_regex;
@@ -462,7 +470,8 @@ public:
                          bool insert,
                          bool invalidate_now);
 
-        void invalidate(vte::grid::span s, bool block = false);
+        void invalidate(vte::grid::span const& s, bool block = false);
+        void invalidate_match_span();
         void invalidate_cell(vte::grid::column_t column, vte::grid::row_t row);
         void invalidate_cells(vte::grid::column_t sc, int cc,
                               vte::grid::row_t sr, int rc);
@@ -772,11 +781,8 @@ public:
         void match_hilite_hide();
         void match_hilite_update(long x,
                                  long y);
-        void invalidate_match();
         void match_hilite(long x,
                           long y);
-        bool rowcol_inside_match(long row,
-                                 long col);
         bool rowcol_from_event(GdkEvent *event,
                                long *column,
                                long *row);
@@ -992,10 +998,7 @@ public:
 #define m_mouse_urxvt_extension mouse_urxvt_extension
 #define m_modifiers modifiers
 #define m_focus_tracking_mode focus_tracking_mode
-#define m_match_start match_start
-#define m_match_end match_end
 #define m_match_tag match_tag
-#define m_show_match show_match
 #define m_match match
 #define m_mouse_last_x mouse_last_x
 #define m_mouse_last_y mouse_last_y

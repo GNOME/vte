@@ -66,6 +66,7 @@ namespace grid {
                 span(coords const& s, coords const& e) : m_start(s), m_end(e) { }
                 span(row_t sr, column_t sc, row_t er, column_t ec) : m_start(sr, sc), m_end(er, ec) { }
 
+                inline void set(coords const&s, coords const& e) { m_start = s; m_end = e; }
                 inline void set_start(coords const& s) { m_start = s; }
                 inline void set_end(coords const& e) { m_end = e; }
 
@@ -86,6 +87,8 @@ namespace grid {
                 inline bool contains(coords const& p) const { return m_start <= p && p <= m_end; }
                 inline bool box_contains(coords const& p) const { return m_start.row() <= p.row() && p.row() <= m_end.row() &&
                                                                          m_start.column() <= p.column() && p.column() <= m_end.column(); }
+
+                inline bool contains(row_t row, column_t column) { return contains(coords(row, column)); }
 
                 IFDEF_DEBUG(char const* to_string() const);
 

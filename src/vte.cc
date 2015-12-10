@@ -468,7 +468,7 @@ VteTerminalPrivate::invalidate_region(vte::grid::column_t scolumn,
 }
 
 void
-VteTerminalPrivate::invalidate(vte::grid::span s,
+VteTerminalPrivate::invalidate(vte::grid::span const& s,
                                bool block)
 {
         invalidate_region(s.start_column(), s.end_column(), s.start_row(), s.end_row(), block);
@@ -1035,6 +1035,7 @@ VteTerminalPrivate::set_default_tabstops()
 void
 VteTerminalPrivate::match_contents_clear()
 {
+	match_hilite_clear();
 	if (m_match_contents != nullptr) {
 		g_free(m_match_contents);
 		m_match_contents = nullptr;
@@ -1043,7 +1044,6 @@ VteTerminalPrivate::match_contents_clear()
 		g_array_free(m_match_attributes, TRUE);
 		m_match_attributes = nullptr;
 	}
-	match_hilite_clear();
 }
 
 void
@@ -1213,6 +1213,8 @@ VteTerminalPrivate::regex_match_add(struct vte_match_regex *new_regex_match)
                 /* Append. */
                 g_array_append_vals(m_match_regexes, new_regex_match, 1);
         }
+
+        /* FIXMEchpe: match_hilite_clear() so we can redo the highlighting with the new regex added? */
 
         return ret;
 }
@@ -1843,29 +1845,6 @@ VteTerminalPrivate::match_check_internal(vte::grid::column_t column,
         return nullptr;
 }
 
-bool
-VteTerminalPrivate::rowcol_inside_match(long row,
-                                        long col)
-{
-	if (m_match_start.row == m_match_end.row) {
-		return row == m_match_start.row &&
-			col >= m_match_start.col &&
-			col <= m_match_end.col;
-	} else {
-		if (row < m_match_start.row ||
-				row > m_match_end.row) {
-			return false;
-		}
-		if (row == m_match_start.row) {
-			return col >= m_match_start.col;
-		}
-		if (row == m_match_end.row) {
-			return col <= m_match_end.col;
-		}
-		return true;
-	}
-}
-
 char *
 VteTerminalPrivate::regex_match_check(vte::grid::column_t column,
                                       vte::grid::row_t row,
@@ -1877,7 +1856,7 @@ VteTerminalPrivate::regex_match_check(vte::grid::column_t column,
 	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
 			"Checking for match at (%ld,%ld).\n",
 			row, column);
-	if (rowcol_inside_match(row + delta, column)) {
+        if (m_match_span.contains(row + delta, column)) {
 		if (tag) {
 			*tag = m_match_tag;
 		}
@@ -5748,27 +5727,20 @@ VteTerminalPrivate::maybe_send_mouse_drag(GdkEventMotion *event)
 	return true;
 }
 
-/* Clear all match hilites. */
+/*
+ * VteTerminalPrivate::match_hilite_clear:
+ *
+ * Reset match variables and invalidate the old match region if highlighted.
+ */
 void
 VteTerminalPrivate::match_hilite_clear()
 {
-	auto srow = m_match_start.row;
-	auto scolumn = m_match_start.col;
-	auto erow = m_match_end.row;
-	auto ecolumn = m_match_end.col;
-	m_match_start.row = -1;
-	m_match_start.col = -1;
-	m_match_end.row = -2;
-	m_match_end.col = -2;
-	if (m_match_tag != -1) {
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Clearing hilite (%ld,%ld) to (%ld,%ld).\n",
-				srow, scolumn, erow, ecolumn);
-		invalidate_region(
-				scolumn, ecolumn, srow, erow, false);
-		m_match_tag = -1;
-	}
-	m_show_match = FALSE;
+        match_hilite_hide();
+
+        m_show_match = false;
+        m_match_span.clear();
+        m_match_tag = -1;
+
 	if (m_match != nullptr) {
 		g_free (m_match);
 		m_match = nullptr;
@@ -5782,119 +5754,118 @@ VteTerminalPrivate::cursor_inside_match(long x,
 	glong col = x / m_char_width;
 	glong row = pixel_to_row(y);
 
-        return rowcol_inside_match(row, col);
+        return m_match_span.contains(row, col);
 }
 
 void
-VteTerminalPrivate::invalidate_match()
+VteTerminalPrivate::invalidate_match_span()
 {
-        invalidate_region(m_match_start.col,
-                          m_match_end.col,
-                          m_match_start.row,
-                          m_match_end.row,
-                          false);
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Invalidating match span %s\n", m_match_span.to_string());
+        invalidate(m_match_span);
 }
 
+/*
+ * VteTerminalPrivate::match_hilite_show:
+ *
+ * Sets the match to display highlighted, if there is a match, and
+ * the coordinates are in the match area m_match_span.
+ */
 void
 VteTerminalPrivate::match_hilite_show(long x,
                                       long y)
 {
-	if(m_match != nullptr && !m_show_match){
-		if (cursor_inside_match (x, y)) {
-                        invalidate_match();
-			m_show_match = TRUE;
-		}
-	}
+	if (!m_match || m_show_match)
+                return;
+
+        if (!cursor_inside_match (x, y))
+                return;
+
+        invalidate_match_span();
+        m_show_match = true;
 }
 
+/*
+ * VteTerminalPrivate::match_hilite_hide:
+ *
+ * If there is a match, hide the display highlight.
+ */
 void
 VteTerminalPrivate::match_hilite_hide()
 {
-	if(m_match != nullptr && m_show_match){
-                invalidate_match();
-		m_show_match = FALSE;
-	}
+        if (!m_match || !m_show_match)
+                return;
+
+        invalidate_match_span();
+        m_show_match = false;
 }
 
+/*
+ * VteTerminalPrivate::match_hilite_update:
+ *
+ * Checks the coordinates for dingu matches, setting m_match_span to
+ * the match region or the no-matches region, and if there is a match,
+ * sets it to display highlighted.
+ */
 void
 VteTerminalPrivate::match_hilite_update(long x,
                                         long y)
 {
-	gsize start, end;
-	char *new_match;
-	struct _VteCharAttributes *attr;
-
 	/* Check for matches. */
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Match hilite update (%ld, %ld) -> %ld, %ld\n",
+                         "Match hilite update (%ld, %ld) -> %ld, %ld\n",
 			x, y,
                          x / m_char_width,
                          pixel_to_row(y));
 
-	new_match = match_check_internal(
+        /* Reset match variables and invalidate the old match region if highlighted */
+        match_hilite_clear();
+
+	gsize start, end;
+	auto new_match = match_check_internal(
                                                   x / m_char_width,
                                                   pixel_to_row(y),
 						  &m_match_tag,
 						  &start,
 						  &end);
-	if (m_show_match) {
-		/* Repaint what used to be hilited, if anything. */
-                invalidate_match();
-	}
 
 	/* Read the new locations. */
-	attr = NULL;
-	if (start < m_match_attributes->len) {
-		attr = &g_array_index(m_match_attributes,
-				struct _VteCharAttributes,
-				start);
-		m_match_start.row = attr->row;
-		m_match_start.col = attr->column;
+	if (start < m_match_attributes->len &&
+            end < m_match_attributes->len) {
+                struct _VteCharAttributes const *sa, *ea;
+		sa = &g_array_index(m_match_attributes,
+                                   struct _VteCharAttributes,
+                                   start);
+                ea = &g_array_index(m_match_attributes,
+                                    struct _VteCharAttributes,
+                                    end);
 
-		attr = NULL;
-		if (end < m_match_attributes->len) {
-			attr = &g_array_index(m_match_attributes,
-					struct _VteCharAttributes,
-					end);
-			m_match_end.row = attr->row;
-			m_match_end.col = attr->column;
-		}
-	}
-	if (attr == NULL) { /* i.e. if either endpoint is not found */
-		m_match_start.row = -1;
-		m_match_start.col = -1;
-		m_match_end.row = -2;
-		m_match_end.col = -2;
-		g_assert (m_match == nullptr);// FIXMEchpe this looks bogus. call match_hilite_clear() instead?
+                m_match_span = vte::grid::span(sa->row, sa->column, ea->row, ea->column);
 	}
 
-	g_free (m_match);
+        g_assert(!m_match); /* from match_hilite_clear() above */
 	m_match = new_match;
 
-	/* If there are no matches, repaint what we had matched before. */
-	if (m_match == nullptr) {
+	if (m_match) {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"No matches. [(%ld,%ld) to (%ld,%ld)]\n",
-				m_match_start.col,
-				m_match_start.row,
-				m_match_end.col,
-				m_match_end.row);
-		m_show_match = false;
-	} else {
-		m_show_match = true;
-		/* Repaint the newly-hilited area. */
-                invalidate_match();
+				"Matched %s.\n", m_match_span.to_string());
+                invalidate_match_span();
+                m_show_match = true;
+        } else {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Matched (%ld,%ld) to (%ld,%ld).\n",
-				m_match_start.col,
-				m_match_start.row,
-				m_match_end.col,
-				m_match_end.row);
+                                 "No matches %s.\n", m_match_span.to_string());
 	}
 }
 
-/* Update the hilited text if the pointer has moved to a new character cell. */
+/*
+ * VteTerminalPrivate::match_hilite:
+ *
+ * Checks if the coordinates are in the match or no-matches region
+ * (m_match_span) and if so, updates the match highlighting.
+ * If the coordinates are outside that region, does full match checking
+ * with match_hilite_update().
+ */
 void
 VteTerminalPrivate::match_hilite(long x,
                                  long y)
@@ -8191,6 +8162,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_match_regexes = g_array_new(FALSE, TRUE,
 					 sizeof(struct vte_match_regex));
         m_match_tag = -1;
+        m_match_span.clear();
 	match_hilite_clear(); // FIXMEchpe unnecessary
 
         /* Search data */
@@ -9412,13 +9384,9 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			bold = cell->attr.bold;
 			italic = cell->attr.italic;
 			if (m_show_match) {
-				hilite = vte_cell_is_between(i, row,
-						m_match_start.col,
-						m_match_start.row,
-						m_match_end.col,
-						m_match_end.row);
+				hilite = m_match_span.contains(row, i);
 			} else {
-				hilite = FALSE;
+				hilite = false;
 			}
 
 			items[0].c = cell->c;
@@ -9480,13 +9448,9 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 						break;
 					}
 					/* Break up matched/not-matched text. */
-					nhilite = FALSE;
+					nhilite = false;
 					if (m_show_match) {
-						nhilite = vte_cell_is_between(j, row,
-								m_match_start.col,
-								m_match_start.row,
-								m_match_end.col,
-								m_match_end.row);
+						nhilite = m_match_span.contains(row, j);
 					}
 					if (nhilite != hilite) {
 						break;
