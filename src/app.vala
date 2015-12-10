@@ -778,13 +778,16 @@ class App : Gtk.Application
   {
     base.startup();
 
-    for (uint i = 0; i < App.Options.n_windows; i++)
+    for (uint i = 0; i < App.Options.n_windows.clamp(0, 16); i++)
       new Window(this);
   }
 
   protected override void activate()
   {
     foreach (Gtk.Window win in this.get_windows()) {
+      if (!(win is Window))
+        continue;
+
       var window = win as Window;
       window.apply_geometry();
       window.present();
