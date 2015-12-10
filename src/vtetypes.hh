@@ -21,6 +21,12 @@
 #include <gdk/gdk.h>
 #include <errno.h>
 
+#ifdef VTE_DEBUG
+#define IFDEF_DEBUG(str) str
+#else
+#define IFDEF_DEBUG(str)
+#endif
+
 namespace vte {
 
 namespace grid {
@@ -46,6 +52,8 @@ namespace grid {
                 inline bool operator <= (coords const& rhs) const { return m_row < rhs.m_row || (m_row == rhs.m_row && m_column <= rhs.m_column); }
                 inline bool operator >  (coords const& rhs) const { return m_row > rhs.m_row || (m_row == rhs.m_row && m_column >  rhs.m_column); }
                 inline bool operator >= (coords const& rhs) const { return m_row > rhs.m_row || (m_row == rhs.m_row && m_column >= rhs.m_column); }
+
+                IFDEF_DEBUG(char const* to_string() const);
 
         private:
                 row_t m_row;
@@ -79,6 +87,8 @@ namespace grid {
                 inline bool box_contains(coords const& p) const { return m_start.row() <= p.row() && p.row() <= m_end.row() &&
                                                                          m_start.column() <= p.column() && p.column() <= m_end.column(); }
 
+                IFDEF_DEBUG(char const* to_string() const);
+
         private:
                 coords m_start;
                 coords m_end;
@@ -101,6 +111,9 @@ namespace view {
                 inline bool operator != (coords const& rhs) const { return x != rhs.x || y != rhs.y; }
 
                 void swap(coords &rhs) { coords tmp = rhs; rhs = *this; *this = tmp; }
+
+                IFDEF_DEBUG(char const* to_string() const);
+
         public:
                 coord_t x;
                 coord_t y;
@@ -130,6 +143,8 @@ namespace color {
                 inline bool operator == (rgb const& rhs) const {
                         return red == rhs.red && green == rhs.green && blue == rhs.blue;
                 }
+
+                IFDEF_DEBUG(char const* to_string() const);
         };
 
 } /* namespace color */
