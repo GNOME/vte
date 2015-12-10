@@ -68,6 +68,11 @@
 
 #include <glib/gi18n-lib.h>
 
+/* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
+#ifndef NSIG
+#define NSIG (8 * sizeof(sigset_t))
+#endif
+
 #if defined(HAVE_POSIX_OPENPT) && defined(HAVE_GRANTPT) && defined(HAVE_UNLOCKPT)
 #define HAVE_UNIX98_PTY
 #endif
@@ -134,7 +139,7 @@ vte_pty_child_setup (VtePty *pty)
 
         /* Reset the handlers for all signals to their defaults.  The parent
          * (or one of the libraries it links to) may have changed one to be ignored. */
-        for (int n = 1; n < SIGUNUSED; n++)
+        for (int n = 1; n < NSIG; n++)
                 signal(n, SIG_DFL);
 
         int masterfd = priv->pty_fd;
