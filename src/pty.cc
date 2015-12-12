@@ -139,8 +139,12 @@ vte_pty_child_setup (VtePty *pty)
 
         /* Reset the handlers for all signals to their defaults.  The parent
          * (or one of the libraries it links to) may have changed one to be ignored. */
-        for (int n = 1; n < NSIG; n++)
+        for (int n = 1; n < NSIG; n++) {
+                if (n == SIGSTOP || n == SIGKILL)
+                        continue;
+
                 signal(n, SIG_DFL);
+        }
 
         int masterfd = priv->pty_fd;
         if (masterfd == -1)
