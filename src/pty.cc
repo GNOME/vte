@@ -607,17 +607,20 @@ _vte_pty_open_posix(void)
 	/* Attempt to open the master. */
         vte::util::smart_fd fd;
         fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
+#ifndef __linux__
+        /* Other kernels may not support CLOEXEC or NONBLOCK above, so try to fall back */
+        bool need_cloexec = false, need_nonblocking = false;
         if (fd == -1 && errno == EINVAL) {
-                /* Try without CLOEXEC and apply the flag afterwards */
-                fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
-                if (fd != -1 &&
-                    fd_set_cloexec(fd) < 0) {
-                        vte::util::restore_errno errsv;
-                        _vte_debug_print(VTE_DEBUG_PTY,
-                                         "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                        return -1;
+                /* Try without NONBLOCK and apply the flag afterward */
+                need_nonblocking = true;
+                fd = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+                if (fd == -1 && errno == EINVAL) {
+                        /* Try without CLOEXEC and apply the flag afterwards */
+                        need_cloexec = true;
+                        fd = posix_openpt(O_RDWR | O_NOCTTY);
                 }
         }
+#endif /* !linux */
 
         if (fd == -1) {
                 vte::util::restore_errno errsv;
@@ -625,6 +628,22 @@ _vte_pty_open_posix(void)
                                  "%s failed: %s", "posix_openpt", g_strerror(errsv));
                 return -1;
         }
+
+#ifndef __linux__
+        if (need_cloexec && fd_set_cloexec(fd) < 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                return -1;
+        }
+
+        if (need_nonblocking && fd_set_nonblocking(fd) < 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "%s failed: %s", "Setting NONBLOCK flag", g_strerror(errsv));
+                return -1;
+        }
+#endif /* !linux */
 
         if (fd_set_cpkt(fd) < 0) {
                 vte::util::restore_errno errsv;
