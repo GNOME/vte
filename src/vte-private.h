@@ -44,7 +44,7 @@
 #include "buffer.h"
 #include "debug.h"
 #include "vteconv.h"
-#include "vtedraw.h"
+#include "vtedraw.hh"
 #include "ring.h"
 #include "caps.h"
 

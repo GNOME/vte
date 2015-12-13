@@ -24,7 +24,7 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include "debug.h"
-#include "vtedraw.h"
+#include "vtedraw.hh"
 #include "vte-private.h"
 
 #include <pango/pangocairo.h>
