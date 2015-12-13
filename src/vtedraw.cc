@@ -29,6 +29,16 @@
 
 #include <pango/pangocairo.h>
 
+#define VTE_DRAW_SINGLE_WIDE_CHARACTERS	\
+					" !\"#$%&'()*+,-./" \
+					"0123456789" \
+					":;<=>?@" \
+					"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+					"[\\]^_`" \
+					"abcdefghijklmnopqrstuvwxyz" \
+					"{|}~" \
+					""
+
 
 /* Overview:
  *
