@@ -53,8 +53,6 @@ guint _vte_draw_get_style(gboolean bold, gboolean italic);
 struct _vte_draw *_vte_draw_new(void);
 void _vte_draw_free(struct _vte_draw *draw);
 
-cairo_t *_vte_draw_get_context (struct _vte_draw *draw);
-
 void _vte_draw_set_cairo(struct _vte_draw *draw,
                          cairo_t *cr);
 
