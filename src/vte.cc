@@ -4913,8 +4913,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 
 	/* Let the input method at this one first. */
 	if (!steal && m_input_enabled) {
-		if (gtk_widget_get_realized(m_widget) &&
-                    gtk_im_context_filter_keypress(m_im_context, event)) {
+		if (m_im_context && gtk_im_context_filter_keypress(m_im_context, event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Keypress taken by IM.\n");
 			return true;
@@ -5209,8 +5208,8 @@ VteTerminalPrivate::widget_key_release(GdkEventKey *event)
 {
 	read_modifiers((GdkEvent*)event);
 
-	if (gtk_widget_get_realized(m_widget) &&
-            m_input_enabled &&
+	if (m_input_enabled &&
+            m_im_context &&
             gtk_im_context_filter_keypress(m_im_context, event))
                 return true;
 
@@ -7123,11 +7122,6 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 	long x, y;
 	bool handled = false;
 
-	/* check to see if it matters */
-        // FIXMEchpe this can't happen
-        if (G_UNLIKELY(!gtk_widget_get_realized(m_widget)))
-                return false;
-
 	x = event->x - m_padding.left;
 	y = event->y - m_padding.top;
 
@@ -7486,12 +7480,9 @@ VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
 
-	if (gtk_widget_get_realized(m_widget)) {
-		/* Hilite any matches. */
-		match_hilite_show(
-					       event->x - m_padding.left,
-					       event->y - m_padding.top);
-	}
+        /* Hilite any matches. */
+        match_hilite_show(event->x - m_padding.left,
+                          event->y - m_padding.top);
 }
 
 void
@@ -7499,15 +7490,13 @@ VteTerminalPrivate::widget_leave(GdkEventCrossing *event)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave.\n");
 
-	if (gtk_widget_get_realized(m_widget)) {
-		match_hilite_hide();
+        match_hilite_hide();
 
-		/* Mark the cursor as invisible to disable hilite updating,
-		 * whilst the cursor is absent (otherwise we copy the entire
-		 * buffer after each update for nothing...)
-		 */
-		m_mouse_cursor_visible = FALSE;
-	}
+        /* Mark the cursor as invisible to disable hilite updating,
+         * whilst the cursor is absent (otherwise we copy the entire
+         * buffer after each update for nothing...)
+         */
+        m_mouse_cursor_visible = FALSE;
 }
 
 static G_GNUC_UNUSED inline const char *
