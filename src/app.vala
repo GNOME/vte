@@ -138,7 +138,8 @@ class SearchPopover : Gtk.Popover
             regex.jit(0x00000001u /* PCRE2_JIT_COMPLETE */);
             regex.jit(0x00000002u /* PCRE2_JIT_PARTIAL_SOFT */);
           } catch (Error e) {
-            printerr("JITing regex \"%s\" failed: %s\n", pattern, e.message);
+            if (e.code != -45 /* PCRE2_ERROR_JIT_BADOPTION */) /* JIT not supported */
+              printerr("JITing regex \"%s\" failed: %s\n", pattern, e.message);
           }
         } else
 #endif /* WITH_PCRE2 */
