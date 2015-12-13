@@ -73,10 +73,6 @@
 #define NSIG (8 * sizeof(sigset_t))
 #endif
 
-#if defined(HAVE_POSIX_OPENPT) && defined(HAVE_GRANTPT) && defined(HAVE_UNLOCKPT)
-#define HAVE_UNIX98_PTY
-#endif
-
 #define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
 
 #if !GLIB_CHECK_VERSION(2, 42, 0)
@@ -150,7 +146,6 @@ vte_pty_child_setup (VtePty *pty)
         if (masterfd == -1)
                 _exit(127);
 
-#ifdef HAVE_UNIX98_PTY
         /* Read the slave number and unlock it. */
         if (grantpt(masterfd) != 0) {
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "grantpt");
@@ -161,7 +156,6 @@ vte_pty_child_setup (VtePty *pty)
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "unlockpt");
                 _exit(127);
         }
-#endif
 
 	char *name = ptsname(masterfd);
         if (name == nullptr) {
@@ -590,8 +584,6 @@ fd_setup(int fd)
         return 0;
 }
 
-#if defined(HAVE_UNIX98_PTY)
-
 /*
  * _vte_pty_open_posix:
  * @pty: a #VtePty
@@ -656,38 +648,6 @@ _vte_pty_open_posix(void)
 
         return fd.steal();
 }
-
-#elif defined(HAVE_OPENPTY)
-
-/*
- * _vte_pty_open_bsd:
- * @pty: a #VtePty
- * @error: a location to store a #GError, or %NULL
- *
- * Opens new file descriptors to a new PTY master and slave.
- *
- * Returns: the new PTY's master FD, or -1
- */
-static int
-_vte_pty_open_bsd(void)
-{
-        vte::util::smart_fd parentfd, childfd;
-	if (openpty(parentfd, childfd, NULL, NULL, NULL) != 0) {
-                vte::util::restore_errno errsv;
-                _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "openpty", g_strerror(errsv));
-		return -1;
-	}
-
-        if (fd_setup(parentfd) < 0)
-                return -1;
-
-	return parentfd.steal();
-}
-
-#else
-#error Have neither UNIX98 PTY nor BSD openpty!
-#endif /* HAVE_UNIX98_PTY */
 
 static int
 _vte_pty_open_foreign(int masterfd /* consumed */)
@@ -798,13 +758,7 @@ vte_pty_initable_init (GInitable *initable,
         if (priv->foreign) {
                 priv->pty_fd = _vte_pty_open_foreign(priv->pty_fd);
         } else {
-#if defined(HAVE_UNIX98_PTY)
                 priv->pty_fd = _vte_pty_open_posix();
-#elif defined(HAVE_OPENPTY)
-                priv->pty_fd = _vte_pty_open_bsd();
-#else
-#error Have neither UNIX98 PTY nor BSD openpty!
-#endif
         }
 
         if (priv->pty_fd == -1) {

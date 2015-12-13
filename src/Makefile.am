@@ -128,7 +128,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
 	$(AM_LDFLAGS)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
-	$(LIBUTIL) \
 	$(VTE_LIBS)
 
 # Try hard to avoid linking to libstd++ by using the C linker instead of the C++ linker

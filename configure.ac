@@ -261,19 +261,8 @@ AC_HEADER_TIOCGWINSZ
 
 # Check for how to open a new PTY. We support posix_openpt and BSDs openpty
 
-LIBUTIL=
-AC_CHECK_FUNCS([posix_openpt grantpt unlockpt ptsname],[],[
-   # Try BSD
-   AC_SEARCH_LIBS([openpty],[util],[have_openpty=yes],
-   [AC_MSG_ERROR([have neither UNIX98 PTY nor BSD openpty])])
-
-   if test "$ac_cv_search_openpty" != "none required"; then
-     LIBUTIL="$ac_cv_search_openpty"
-   fi
-   AC_DEFINE(HAVE_OPENPTY,1,[Define if you have the openpty function.])
-])
-
-AC_SUBST([LIBUTIL])
+AC_CHECK_FUNCS([posix_openpt grantpt unlockpt ptsname],[],
+  [AC_MSG_ERROR([no support for Unix98 PTY found])])
 
 # Misc PTY handling functions
 AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid tcgetattr tcsetattr])
