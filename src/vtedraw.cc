@@ -742,8 +742,6 @@ guint _vte_draw_get_style(gboolean bold, gboolean italic) {
 }
 
 struct _vte_draw {
-	GtkWidget *widget;
-
 	struct font_info *fonts[4];
 	cairo_pattern_t *bg_pattern;
 
