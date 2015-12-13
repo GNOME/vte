@@ -671,7 +671,7 @@ font_info_get_unistr_info (struct font_info *info,
 
 	g_string_set_size (info->string, 0);
 	_vte_unistr_append_to_string (c, info->string);
-	pango_layout_set_text (info->layout, info->string->str, -1);
+	pango_layout_set_text (info->layout, info->string->str, info->string->len);
 	pango_layout_get_extents (info->layout, NULL, &logical);
 
 	uinfo->width = PANGO_PIXELS_CEIL (logical.width);
