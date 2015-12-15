@@ -8814,49 +8814,6 @@ vte_terminal_determine_cursor_colors (VteTerminal *terminal,
 						       fore, back);
 }
 
-static void
-vte_terminal_fill_rectangle(VteTerminal *terminal,
-			    vte::color::rgb const* color,
-			    gint x,
-			    gint y,
-			    gint width,
-			    gint height)
-{
-	_vte_draw_fill_rectangle(terminal->pvt->draw,
-				 x,
-                                 y,
-				 width, height,
-				 color, VTE_DRAW_OPAQUE);
-}
-
-static void
-vte_terminal_draw_line(VteTerminal *terminal,
-		       vte::color::rgb const* color,
-		       gint x,
-		       gint y,
-		       gint xp,
-		       gint yp)
-{
-	vte_terminal_fill_rectangle(terminal, color,
-				    x, y,
-				    MAX(VTE_LINE_WIDTH, xp - x + 1), MAX(VTE_LINE_WIDTH, yp - y + 1));
-}
-
-static void
-vte_terminal_draw_rectangle(VteTerminal *terminal,
-			    vte::color::rgb const* color,
-			    gint x,
-			    gint y,
-			    gint width,
-			    gint height)
-{
-	_vte_draw_draw_rectangle(terminal->pvt->draw,
-				 x,
-                                 y,
-				 width, height,
-				 color, VTE_DRAW_OPAQUE);
-}
-
 /* Draw a string of characters with similar attributes. */
 void
 VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
@@ -8931,35 +8888,38 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 				columns += items[i].columns;
 			}
 			if (underline) {
-				vte_terminal_draw_line(m_terminal,
-						&fg,
+                                _vte_draw_draw_line(m_draw,
 						x,
 						y + m_underline_position,
 						x + (columns * column_width) - 1,
-						y + m_underline_position + m_line_thickness - 1);
+                                                    y + m_underline_position + m_line_thickness - 1,
+                                                    VTE_LINE_WIDTH,
+                                                    &fg, VTE_DRAW_OPAQUE);
 			}
 			if (strikethrough) {
-				vte_terminal_draw_line(m_terminal,
-						&fg,
+                                _vte_draw_draw_line(m_draw,
 						x,
 						y + m_strikethrough_position,
 						x + (columns * column_width) - 1,
-						y + m_strikethrough_position + m_line_thickness - 1);
+                                                       y + m_strikethrough_position + m_line_thickness - 1,
+                                                       VTE_LINE_WIDTH,
+                                                       &fg, VTE_DRAW_OPAQUE);
 			}
 			if (hilite) {
-				vte_terminal_draw_line(m_terminal,
-						&fg,
+                                _vte_draw_draw_line(m_draw,
 						x,
 						y + row_height - 1,
 						x + (columns * column_width) - 1,
-						y + row_height - 1);
+                                                       y + row_height - 1,
+                                                       VTE_LINE_WIDTH,
+                                                       &fg, VTE_DRAW_OPAQUE);
 			}
 			if (boxed) {
-				vte_terminal_draw_rectangle(m_terminal,
-						&fg,
+                                _vte_draw_draw_rectangle(m_draw,
 						x, y,
 						MAX(0, (columns * column_width)),
-						MAX(0, row_height));
+                                                         MAX(0, row_height),
+                                                         &fg, VTE_DRAW_OPAQUE);
 			}
 		}while (i < n);
 	}
@@ -9659,8 +9619,9 @@ VteTerminalPrivate::paint_cursor()
                         stem_width = (int) (((float) height) * m_cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
 
-			vte_terminal_fill_rectangle(m_terminal, &bg,
-						     x, y, stem_width, height);
+                        _vte_draw_fill_rectangle(m_draw,
+                                                    x, y, stem_width, height,
+                                                 &bg, VTE_DRAW_OPAQUE);
 			break;
                 }
 
@@ -9672,9 +9633,10 @@ VteTerminalPrivate::paint_cursor()
                         line_height = (int) (((float) height) * m_cursor_aspect_ratio + 0.5);
                         line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
 
-			vte_terminal_fill_rectangle(m_terminal, &bg,
+                        _vte_draw_fill_rectangle(m_draw,
 						     x, y + height - line_height,
-						     cursor_width, line_height);
+                                                 cursor_width, line_height,
+                                                 &bg, VTE_DRAW_OPAQUE);
 			break;
                 }
 
@@ -9682,10 +9644,10 @@ VteTerminalPrivate::paint_cursor()
 
 			if (focus) {
 				/* just reverse the character under the cursor */
-				vte_terminal_fill_rectangle(m_terminal,
-							     &bg,
+                                _vte_draw_fill_rectangle(m_draw,
 							     x, y,
-							     cursor_width, height);
+                                                         cursor_width, height,
+                                                         &bg, VTE_DRAW_OPAQUE);
 
                                 if (cell && cell->c != 0 && cell->c != ' ') {
                                         draw_cells(
@@ -9703,12 +9665,12 @@ VteTerminalPrivate::paint_cursor()
 
 			} else {
 				/* draw a box around the character */
-				vte_terminal_draw_rectangle(m_terminal,
-							    &bg,
+                                _vte_draw_draw_rectangle(m_draw,
 							     x - VTE_LINE_WIDTH,
 							     y - VTE_LINE_WIDTH,
 							     cursor_width + 2*VTE_LINE_WIDTH,
-							     height + 2*VTE_LINE_WIDTH);
+                                                         height + 2*VTE_LINE_WIDTH,
+                                                         &bg, VTE_DRAW_OPAQUE);
 			}
 
 			break;

@@ -1602,3 +1602,16 @@ _vte_draw_fill_rectangle (struct _vte_draw *draw,
 	_vte_draw_set_source_color_alpha (draw, color, alpha);
 	cairo_fill (draw->cr);
 }
+
+
+void
+_vte_draw_draw_line(struct _vte_draw *draw,
+                    gint x, gint y, gint xp, gint yp,
+                    int line_width,
+                    vte::color::rgb const *color, double alpha)
+{
+	_vte_draw_fill_rectangle(draw,
+                                 x, y,
+                                 MAX(line_width, xp - x + 1), MAX(line_width, yp - y + 1),
+                                 color, alpha);
+}

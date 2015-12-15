@@ -86,6 +86,11 @@ void _vte_draw_draw_rectangle(struct _vte_draw *draw,
 			      gint x, gint y, gint width, gint height,
 			      vte::color::rgb const* color, double alpha);
 
+void _vte_draw_draw_line(struct _vte_draw *draw,
+                         gint x, gint y, gint xp, gint yp,
+                         int line_width,
+                         vte::color::rgb const *color, double alpha);
+
 G_END_DECLS
 
 #endif
