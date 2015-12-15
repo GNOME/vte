@@ -496,7 +496,13 @@ public:
         VteCursorBlinkMode decscusr_cursor_blink();
         VteCursorShape decscusr_cursor_shape();
 
+        cairo_rectangle_int_t m_allocated_rect;
+        void set_allocated_rect(cairo_rectangle_int_t const& r) { m_allocated_rect = r; }
+
         inline bool widget_realized() const { return gtk_widget_get_realized(m_widget); }
+        inline cairo_rectangle_int_t const& get_allocated_rect() const { return m_allocated_rect; }
+        inline vte::view::coord_t get_allocated_width() const { return m_allocated_rect.width; }
+        inline vte::view::coord_t get_allocated_height() const { return m_allocated_rect.height; }
 
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel);

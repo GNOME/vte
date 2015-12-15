@@ -114,7 +114,7 @@ namespace view {
         public:
                 coord_t x;
                 coord_t y;
-};
+        };
 
 } /* namespace view */
 

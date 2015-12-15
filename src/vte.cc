@@ -272,7 +272,7 @@ VteTerminalPrivate::reset_default_attributes()
 inline vte::view::coord_t
 VteTerminalPrivate::usable_height_px() const
 {
-        return gtk_widget_get_allocated_height(m_widget) - m_padding.top - m_padding.bottom;
+        return get_allocated_height() - m_padding.top - m_padding.bottom;
 }
 
 //FIXMEchpe this function is bad
@@ -367,7 +367,6 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
                                      int n_rows)
 {
 	cairo_rectangle_int_t rect;
-	GtkAllocation allocation;
 
 	if (G_UNLIKELY (!widget_realized()))
                 return;
@@ -392,7 +391,7 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 		return;
 	}
 
-        gtk_widget_get_allocation (m_widget, &allocation);
+        auto allocation = get_allocated_rect();
 
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell.
@@ -477,7 +476,6 @@ void
 VteTerminalPrivate::invalidate_all()
 {
 	cairo_rectangle_int_t rect;
-	GtkAllocation allocation;
 
 	if (G_UNLIKELY (!widget_realized()))
                 return;
@@ -489,7 +487,7 @@ VteTerminalPrivate::invalidate_all()
 	_vte_debug_print (VTE_DEBUG_WORK, "*");
 	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
-	gtk_widget_get_allocation (m_widget, &allocation);
+        auto allocation = get_allocated_rect();
 
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_regions (m_terminal);
@@ -5868,9 +5866,7 @@ void
 VteTerminalPrivate::match_hilite(long x,
                                  long y)
 {
-	GtkAllocation allocation;
-
-	gtk_widget_get_allocation(m_widget, &allocation);
+        auto allocation = get_allocated_rect();
 
 	/* if the cursor is not above a cell, skip */
 	if (x < 0 || x > allocation.width
@@ -8018,6 +8014,11 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         // FIXMEchpe temporary workaround until all functions have been converted to members
         m_terminal->pvt = this;
 
+        /* Inits allocation to 1x1 @ -1,-1 */
+        cairo_rectangle_int_t allocation;
+        gtk_widget_get_allocation(m_widget, &allocation);
+        set_allocated_rect(allocation);
+
 	int i;
 	GdkDisplay *display;
 
@@ -8235,7 +8236,6 @@ void
 VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 {
 	glong width, height;
-	GtkAllocation current_allocation;
 	gboolean repaint, update_scrollback;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
@@ -8254,7 +8254,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 			allocation->width, allocation->height,
 			width, height);
 
-	gtk_widget_get_allocation(m_widget, &current_allocation);
+        auto current_allocation = get_allocated_rect();
 
 	repaint = current_allocation.width != allocation->width
 			|| current_allocation.height != allocation->height;
@@ -8262,6 +8262,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 
 	/* Set our allocation to match the structure. */
 	gtk_widget_set_allocation(m_widget, allocation);
+        set_allocated_rect(*allocation);
 
 	if (width != m_column_count
 			|| height != m_row_count
@@ -8599,12 +8600,11 @@ VteTerminalPrivate::widget_realize()
 {
 	GdkWindow *window;
 	GdkWindowAttr attributes;
-	GtkAllocation allocation;
 	guint attributes_mask = 0;
 
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
-	gtk_widget_get_allocation (m_widget, &allocation);
+        auto allocation = get_allocated_rect();
 
 	/* Create the stock cursors. */
 	m_mouse_cursor_visible = TRUE;
@@ -9511,9 +9511,8 @@ VteTerminalPrivate::expand_cairo_region(cairo_region_t *region,
         vte::grid::row_t row, row_stop;
         vte::grid::column_t col, col_stop;
 	cairo_rectangle_int_t rect;
-	GtkAllocation allocation;
 
-	gtk_widget_get_allocation(m_widget, &allocation);
+        auto allocation = get_allocated_rect();
 
 	/* increase the paint by one pixel on all sides to force the
 	 * inclusion of neighbouring cells */
@@ -9557,9 +9556,8 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 {
         vte::grid::row_t row, row_stop;
         vte::grid::column_t col, col_stop;
-	GtkAllocation allocation;
 
-	gtk_widget_get_allocation(m_widget, &allocation);
+        auto allocation = get_allocated_rect();
 
         row = pixel_to_row(MAX(0, area->y - m_padding.top));
         /* Both the value given by MIN() and row_stop are exclusive.
@@ -9821,8 +9819,8 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
         if (region == NULL)
                 return;
 
-        allocated_width = gtk_widget_get_allocated_width(m_widget);
-        allocated_height = gtk_widget_get_allocated_height(m_widget);
+        allocated_width = get_allocated_width();
+        allocated_height = get_allocated_height();
 
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_set_cairo(m_draw, cr);
