@@ -8823,8 +8823,8 @@ vte_terminal_fill_rectangle(VteTerminal *terminal,
 			    gint height)
 {
 	_vte_draw_fill_rectangle(terminal->pvt->draw,
-				 x + terminal->pvt->padding.left,
-                                 y + terminal->pvt->padding.top,
+				 x,
+                                 y,
 				 width, height,
 				 color, VTE_DRAW_OPAQUE);
 }
@@ -8851,8 +8851,8 @@ vte_terminal_draw_rectangle(VteTerminal *terminal,
 			    gint height)
 {
 	_vte_draw_draw_rectangle(terminal->pvt->draw,
-				 x + terminal->pvt->padding.left,
-                                 y + terminal->pvt->padding.top,
+				 x,
+                                 y,
 				 width, height,
 				 color, VTE_DRAW_OPAQUE);
 }
@@ -8903,17 +8903,14 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 		x = items[i].x;
 		y = items[i].y;
 		for (; i < n && items[i].y == y; i++) {
-			/* Adjust for the border. */
-			items[i].x += m_padding.left;
-			items[i].y += m_padding.top;
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
 			gint bold_offset = _vte_draw_has_bold(m_draw,
 									VTE_DRAW_BOLD) ? 0 : bold;
 			_vte_draw_fill_rectangle(m_draw,
-					x + m_padding.left,
-                                        y + m_padding.top,
+					x,
+                                        y,
 					columns * column_width + bold_offset, row_height,
 					&bg, VTE_DRAW_OPAQUE);
 		}
@@ -8923,12 +8920,6 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			items, n,
 			&fg, VTE_DRAW_OPAQUE,
 			_vte_draw_get_style(bold, italic));
-
-	for (i = 0; i < n; i++) {
-		/* Deadjust for the border. */
-		items[i].x -= m_padding.left;
-		items[i].y -= m_padding.top;
-	}
 
 	/* Draw whatever SFX are required. */
 	if (underline | strikethrough | hilite | boxed) {
@@ -9229,8 +9220,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 	start_x -= start_column * column_width;
 
 	/* clear the background */
-	x = start_x + m_padding.left;
-	y = start_y + m_padding.top;
+	x = start_x;
+	y = start_y;
 	row = start_row;
 	rows = end_row - start_row;
 	do {
@@ -9557,19 +9548,17 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
         vte::grid::row_t row, row_stop;
         vte::grid::column_t col, col_stop;
 
-        auto allocation = get_allocated_rect();
-
-        row = pixel_to_row(MAX(0, area->y - m_padding.top));
+        row = pixel_to_row(MAX(0, area->y));
         /* Both the value given by MIN() and row_stop are exclusive.
          * _vte_terminal_pixel_to_row expects an actual value corresponding
          * to the bottom visible pixel, hence the - 1 + 1 magic. */
-        row_stop = pixel_to_row(MIN(area->height + area->y - m_padding.top,
-                                    allocation.height - m_padding.top - m_padding.bottom) - 1) + 1;
+        row_stop = pixel_to_row(MIN(area->height + area->y,
+                                    get_allocated_height() - m_padding.top - m_padding.bottom) - 1) + 1;
 	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, (area->x - m_padding.left) / m_char_width);
-	col_stop = MIN((area->width + area->x - m_padding.left) / m_char_width,
+	col = MAX(0, area->x / m_char_width);
+	col_stop = MIN((area->width + area->x) / m_char_width,
 		       m_column_count);
 	if (col_stop <= col) {
 		return;
@@ -9581,8 +9570,8 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 			" [(%ld,%ld)x(%ld,%ld) pixels]\n",
 			area->x, area->y, area->width, area->height,
 			col, row, col_stop - col, row_stop - row,
-			col * m_char_width + m_padding.left,
-			row * m_char_height + m_padding.top,
+			col * m_char_width,
+			row * m_char_height,
 			(col_stop - col) * m_char_width,
 			(row_stop - row) * m_char_height);
 
@@ -9769,8 +9758,8 @@ VteTerminalPrivate::paint_im_preedit_string()
 			preedit = g_utf8_next_char(preedit);
 		}
 		_vte_draw_clear(m_draw,
-				col * width + m_padding.left,
-				row_to_pixel(m_cursor.row) + m_padding.top,
+				col * width,
+				row_to_pixel(m_cursor.row),
 				width * columns,
 				height);
                 fore = m_color_defaults.attr.fore;
@@ -9834,6 +9823,8 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
         cairo_rectangle(cr, 0, m_padding.top, allocated_width, allocated_height - m_padding.top - m_padding.bottom);
         cairo_clip(cr);
 
+        cairo_translate(cr, m_padding.left, m_padding.top);
+
 	/* Calculate the bounding rectangle. */
 	{
 		cairo_rectangle_int_t *rectangles;
@@ -9865,6 +9856,8 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 
 		/* and now paint them */
 		for (n = 0; n < n_rectangles; n++) {
+                        rectangles[n].x -= m_padding.left;
+                        rectangles[n].y -= m_padding.top;
 			paint_area(rectangles + n);
 		}
 		g_free (rectangles);
@@ -9880,6 +9873,8 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
         extra_area_for_cursor = (decscusr_cursor_shape() == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? 1 : 0;
         cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
         cairo_clip(cr);
+
+        cairo_translate(cr, m_padding.left, m_padding.top);
 
 	paint_cursor();
 
