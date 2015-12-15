@@ -9521,7 +9521,7 @@ VteTerminalPrivate::expand_cairo_region(cairo_region_t *region,
          * _vte_terminal_pixel_to_row expects an actual value corresponding
          * to the bottom visible pixel, hence the - 1 + 1 magic. */
         row_stop = pixel_to_row(MIN(area->height + area->y - m_padding.top + 1,
-                                    allocation.height - m_padding.bottom) - 1) + 1;
+                                    allocation.height - m_padding.top - m_padding.bottom) - 1) + 1;
 	if (row_stop <= row) {
 		return;
 	}
@@ -9564,7 +9564,7 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
          * _vte_terminal_pixel_to_row expects an actual value corresponding
          * to the bottom visible pixel, hence the - 1 + 1 magic. */
         row_stop = pixel_to_row(MIN(area->height + area->y - m_padding.top,
-                                    allocation.height - m_padding.bottom) - 1) + 1;
+                                    allocation.height - m_padding.top - m_padding.bottom) - 1) + 1;
 	if (row_stop <= row) {
 		return;
 	}
