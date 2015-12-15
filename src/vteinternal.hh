@@ -774,8 +774,6 @@ public:
         void set_tabstop(int column);
         void set_default_tabstops();
 
-        void widget_background_update();
-
         void process_incoming();
 
         void match_contents_clear();

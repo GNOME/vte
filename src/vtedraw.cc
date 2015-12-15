@@ -743,7 +743,6 @@ guint _vte_draw_get_style(gboolean bold, gboolean italic) {
 
 struct _vte_draw {
 	struct font_info *fonts[4];
-	cairo_pattern_t *bg_pattern;
 
 	cairo_t *cr;
 };
@@ -766,11 +765,6 @@ _vte_draw_free (struct _vte_draw *draw)
 {
 	gint style;
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_free\n");
-
-	if (draw->bg_pattern != NULL) {
-		cairo_pattern_destroy (draw->bg_pattern);
-		draw->bg_pattern = NULL;
-	}
 
 	/* Free all fonts (make sure to destroy every font only once)*/
 	for (style = 3; style >= 0; style--) {
@@ -799,31 +793,30 @@ _vte_draw_set_cairo (struct _vte_draw *draw,
         }
 }
 
-void
-_vte_draw_set_background_solid(struct _vte_draw *draw,
-                               const GdkRGBA *color)
+static void
+_vte_draw_set_source_color_alpha (struct _vte_draw *draw,
+                                  vte::color::rgb const* color,
+                                  double alpha)
 {
-	if (draw->bg_pattern)
-		cairo_pattern_destroy (draw->bg_pattern);
-
-	draw->bg_pattern = cairo_pattern_create_rgba (color->red,
-						      color->green,
-						      color->blue,
-						      color->alpha);
+        g_assert(draw->cr);
+	cairo_set_source_rgba (draw->cr,
+			      color->red / 65535.,
+			      color->green / 65535.,
+			      color->blue / 65535.,
+			      alpha);
 }
 
 void
-_vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height)
+_vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height,
+                 vte::color::rgb const* color, double alpha)
 {
-	g_return_if_fail (draw->bg_pattern != NULL);
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
 			  x,y,width, height);
 
         g_assert(draw->cr);
 	cairo_rectangle (draw->cr, x, y, width, height);
 	cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
-	cairo_set_source (draw->cr, draw->bg_pattern);
+	_vte_draw_set_source_color_alpha(draw, color, alpha);
 	cairo_fill (draw->cr);
 }
 
@@ -923,19 +916,6 @@ gboolean
 _vte_draw_has_bold (struct _vte_draw *draw, guint style)
 {
 	return (draw->fonts[style ^ VTE_DRAW_BOLD] != draw->fonts[style]);
-}
-
-static void
-_vte_draw_set_source_color_alpha (struct _vte_draw *draw,
-                                  vte::color::rgb const* color,
-                                  double alpha)
-{
-        g_assert(draw->cr);
-	cairo_set_source_rgba (draw->cr,
-			      color->red / 65535.,
-			      color->green / 65535.,
-			      color->blue / 65535.,
-			      alpha);
 }
 
 /* Check if a unicode character is actually a graphic character we draw

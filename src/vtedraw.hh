@@ -56,11 +56,9 @@ void _vte_draw_free(struct _vte_draw *draw);
 void _vte_draw_set_cairo(struct _vte_draw *draw,
                          cairo_t *cr);
 
-void _vte_draw_set_background_solid(struct _vte_draw *draw,
-                                    const GdkRGBA *color);
-
 void _vte_draw_clear(struct _vte_draw *draw,
-		     gint x, gint y, gint width, gint height);
+		     gint x, gint y, gint width, gint height,
+                     vte::color::rgb const* color, double alpha);
 
 void _vte_draw_set_text_font(struct _vte_draw *draw,
                              GtkWidget *widget,

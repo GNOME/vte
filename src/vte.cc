@@ -2477,12 +2477,6 @@ VteTerminalPrivate::set_color(int entry,
 	if (!widget_realized())
 		return;
 
-	/* If we're setting the background color, set the background color
-	 * on the widget as well. */
-	if (entry == VTE_DEFAULT_BG) {
-		widget_background_update();
-	}
-
 	/* and redraw */
 	if (entry == VTE_CURSOR_BG || entry == VTE_CURSOR_FG)
 		invalidate_cursor_once();
@@ -2512,12 +2506,6 @@ VteTerminalPrivate::reset_color(int entry,
 	if (!widget_realized())
 		return;
 
-	/* If we're setting the background color, set the background color
-	 * on the widget as well. */
-	if (entry == VTE_DEFAULT_BG) {
-		widget_background_update();
-	}
-
 	/* and redraw */
 	if (entry == VTE_CURSOR_BG || entry == VTE_CURSOR_FG)
 		invalidate_cursor_once();
@@ -2536,7 +2524,8 @@ VteTerminalPrivate::set_background_alpha(double alpha)
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Setting background alpha to %.3f\n", alpha);
         m_background_alpha = alpha;
-        widget_background_update();
+
+        invalidate_all();
 
         return true;
 }
@@ -8694,10 +8683,6 @@ VteTerminalPrivate::widget_realize()
         widget_style_updated();
 
 	ensure_font();
-
-	/* Set up the background, *now*. */
-        // FIXMEchpe this is obsolete
-	widget_background_update();
 }
 
 static inline void
@@ -9723,7 +9708,8 @@ VteTerminalPrivate::paint_im_preedit_string()
 				col * width,
 				row_to_pixel(m_cursor.row),
 				width * columns,
-				height);
+				height,
+                                get_color(VTE_DEFAULT_BG), m_background_alpha);
                 fore = m_color_defaults.attr.fore;
                 back = m_color_defaults.attr.back;
 		draw_cells_with_attributes(
@@ -9777,7 +9763,8 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 	_vte_draw_set_cairo(m_draw, cr);
 
 	_vte_draw_clear (m_draw, 0, 0,
-			 allocated_width, allocated_height);
+			 allocated_width, allocated_height,
+                         get_color(VTE_DEFAULT_BG), m_background_alpha);
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
@@ -10037,40 +10024,6 @@ VteTerminalPrivate::set_rewrap_on_resize(bool rewrap)
 
         m_rewrap_on_resize = rewrap;
         return true;
-}
-
-/* Set up whatever background we wanted. */
-// FIXMEchpe this is mostly obsolete
-void
-VteTerminalPrivate::widget_background_update()
-{
-	vte::color::rgb const* entry;
-	GdkRGBA color;
-
-	/* If we're not realized yet, don't worry about it, because we get
-	 * called when we realize. */
-	if (!widget_realized()) {
-		return;
-	}
-
-	_vte_debug_print(VTE_DEBUG_MISC|VTE_DEBUG_EVENTS,
-			"Updating background color.\n");
-
-	entry = get_color(VTE_DEFAULT_BG);
-	_vte_debug_print(VTE_DEBUG_STYLE,
-			 "Setting background color to (%d, %d, %d, %.3f).\n",
-			 entry->red, entry->green, entry->blue,
-			 m_background_alpha);
-
-	color.red = entry->red / 65535.;
-	color.green = entry->green / 65535.;
-	color.blue = entry->blue / 65535.;
-        color.alpha = m_background_alpha;
-
-        _vte_draw_set_background_solid(m_draw, &color);
-
-	/* Force a redraw for everything. */
-	invalidate_all();
 }
 
 void
