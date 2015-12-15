@@ -131,24 +131,17 @@ debug_get_buf(void)
         return buf + offset * DEBUG_STRING_SIZE;
 }
 
-#endif /* VTE_DEBUG */
-
 char const*
 vte::grid::coords::to_string() const
 {
-#ifdef VTE_DEBUG
         char *buf = debug_get_buf();
         g_snprintf(buf, DEBUG_STRING_SIZE, "grid[%ld,%ld]", row(), column());
         return buf;
-#else
-        return 0;
-#endif
 }
 
 char const*
 vte::grid::span::to_string() const
 {
-#ifdef VTE_DEBUG
         if (empty())
                 return "grid[empty]";
 
@@ -156,34 +149,25 @@ vte::grid::span::to_string() const
         g_snprintf(buf, DEBUG_STRING_SIZE, "grid[%ld,%ld .. %ld,%ld]",
                    start_row(), start_column(), end_row(), end_column());
         return buf;
-#else
-        return 0;
-#endif
 }
 
 char const*
 vte::view::coords::to_string() const
 {
-#ifdef VTE_DEBUG
         char *buf = debug_get_buf();
         g_snprintf(buf, DEBUG_STRING_SIZE, "view[%ld,%ld]", x, y);
         return buf;
-#else
-        return 0;
-#endif
 }
 
 char const*
 vte::color::rgb::to_string() const
 {
-#ifdef VTE_DEBUG
         char *buf = debug_get_buf();
         g_snprintf(buf, DEBUG_STRING_SIZE, "rgb(%04x,%04x,%04x)", red, green, blue);
         return buf;
-#else
-        return 0;
-#endif
 }
+
+#endif /* VTE_DEBUG */
 
 #ifdef MAIN
 
