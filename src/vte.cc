@@ -1,4 +1,3 @@
-/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 8; tab-width: 8 -*- */
 /*
  * Copyright (C) 2001-2004,2009,2010 Red Hat, Inc.
  * Copyright © 2008, 2009, 2010 Christian Persch
@@ -370,7 +369,7 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 	cairo_rectangle_int_t rect;
 	GtkAllocation allocation;
 
-	if (G_UNLIKELY (!gtk_widget_get_realized(m_widget)))
+	if (G_UNLIKELY (!widget_realized()))
                 return;
 
 	if (!n_columns || !n_rows) {
@@ -480,7 +479,7 @@ VteTerminalPrivate::invalidate_all()
 	cairo_rectangle_int_t rect;
 	GtkAllocation allocation;
 
-	if (G_UNLIKELY (!gtk_widget_get_realized(m_widget)))
+	if (G_UNLIKELY (!widget_realized()))
                 return;
 
 	if (m_invalidated_all) {
@@ -666,7 +665,7 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 	int columns;
 	guint style;
 
-	if (G_UNLIKELY (!gtk_widget_get_realized(m_widget)))
+	if (G_UNLIKELY (!widget_realized()))
                 return;
 
 	if (m_invalidated_all) {
@@ -704,7 +703,7 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 void
 VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 {
-        if (G_UNLIKELY(!gtk_widget_get_realized(m_widget)))
+        if (G_UNLIKELY(!widget_realized()))
                 return;
 
 	if (m_invalidated_all) {
@@ -1108,7 +1107,7 @@ VteTerminalPrivate::set_cursor_from_regex_match(struct vte_match_regex *regex)
 {
         GdkCursor *gdk_cursor = nullptr;
 
-        if (!gtk_widget_get_realized(m_widget))
+        if (!widget_realized())
                 return;
 
         switch (regex->cursor_mode) {
@@ -2409,7 +2408,7 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
 {
 	m_mouse_cursor_visible = visible;
 
-        if (!gtk_widget_get_realized(m_widget))
+        if (!widget_realized())
                 return;
 
 	GdkWindow *window = gtk_widget_get_window(m_widget);
@@ -2477,7 +2476,7 @@ VteTerminalPrivate::set_color(int entry,
         palette_color->sources[source].color = proposed;
 
 	/* If we're not realized yet, there's nothing else to do. */
-	if (!gtk_widget_get_realized(m_widget))
+	if (!widget_realized())
 		return;
 
 	/* If we're setting the background color, set the background color
@@ -2512,7 +2511,7 @@ VteTerminalPrivate::reset_color(int entry,
         palette_color->sources[source].is_set = FALSE;
 
 	/* If we're not realized yet, there's nothing else to do. */
-	if (!gtk_widget_get_realized(m_widget))
+	if (!widget_realized())
 		return;
 
 	/* If we're setting the background color, set the background color
@@ -3621,7 +3620,7 @@ VteTerminalPrivate::pty_channel_eof()
 void
 VteTerminalPrivate::im_reset()
 {
-	if (gtk_widget_get_realized(m_widget) && m_im_context)
+	if (widget_realized() && m_im_context)
 		gtk_im_context_reset(m_im_context);
 
         if (m_im_preedit) {
@@ -4030,7 +4029,7 @@ next_match:
 	}
 
 	/* Tell the input method where the cursor is. */
-	if (gtk_widget_get_realized(m_widget)) {
+	if (widget_realized()) {
 		GdkRectangle rect;
                 rect.x = m_cursor.col *
 			 m_char_width + m_padding.left;
@@ -7430,7 +7429,7 @@ VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
-	if (gtk_widget_get_realized(m_widget)) {
+	if (widget_realized()) {
 		m_cursor_blink_state = TRUE;
 		m_has_focus = TRUE;
 
@@ -7453,7 +7452,7 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
-	if (gtk_widget_get_realized(m_widget)) {
+	if (widget_realized()) {
                 maybe_feed_focus_event(false);
 
 		maybe_end_selection();
@@ -7586,7 +7585,7 @@ VteTerminalPrivate::apply_font_metrics(int width,
 
 	/* Queue a resize if anything's changed. */
 	if (resize) {
-		if (gtk_widget_get_realized(m_widget)) {
+		if (widget_realized()) {
 			gtk_widget_queue_resize_no_redraw(m_widget);
 		}
 	}
@@ -7645,7 +7644,7 @@ VteTerminalPrivate::update_font()
         m_has_fonts = TRUE;
 
         /* Set the drawing font. */
-        if (gtk_widget_get_realized(m_widget)) {
+        if (widget_realized()) {
                 ensure_font();
         }
 }
@@ -7951,7 +7950,7 @@ VteTerminalPrivate::vadjustment_value_changed()
 	m_screen->scroll_delta = adj;
 
 	/* Sanity checks. */
-        if (G_UNLIKELY(!gtk_widget_get_realized(m_widget)))
+        if (G_UNLIKELY(!widget_realized()))
                 return;
 	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
 		return;
@@ -8276,7 +8275,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 	}
 
 	/* Resize the GDK window. */
-	if (gtk_widget_get_realized(m_widget)) {
+	if (widget_realized()) {
 		gdk_window_move_resize(gtk_widget_get_window(m_widget),
 					allocation->x,
 					allocation->y,
@@ -10095,7 +10094,7 @@ VteTerminalPrivate::widget_background_update()
 
 	/* If we're not realized yet, don't worry about it, because we get
 	 * called when we realize. */
-	if (!gtk_widget_get_realized(m_widget)) {
+	if (!widget_realized()) {
 		return;
 	}
 
@@ -10953,7 +10952,7 @@ update_regions (VteTerminal *terminal)
 	cairo_region_t *region;
 	GdkWindow *window;
 
-        if (G_UNLIKELY(!gtk_widget_get_realized(&terminal->widget)))
+        if (G_UNLIKELY(!terminal->pvt->widget_realized()))
                 return FALSE;
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
 		reset_update_regions (terminal);

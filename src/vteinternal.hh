@@ -496,6 +496,8 @@ public:
         VteCursorBlinkMode decscusr_cursor_blink();
         VteCursorShape decscusr_cursor_shape();
 
+        inline bool widget_realized() const { return gtk_widget_get_realized(m_widget); }
+
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel);
         void widget_paste_received(char const* text);
