@@ -6124,7 +6124,7 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 		}
 		/* Else, if the last visible column on this line was in range and
 		 * not soft-wrapped, append a newline. */
-		else if (m_column_count <= line_last_column) {
+		else if (row < end_row) {
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
 			if (!line_is_wrappable(row)) {
@@ -6161,7 +6161,7 @@ VteTerminalPrivate::get_text_displayed(bool wrap,
                                        GArray *attributes)
 {
         return get_text(first_displayed_row(), 0,
-                        last_displayed_row(), m_column_count - 1,
+                        last_displayed_row() + 1, -1,
                         false /* block */, wrap, include_trailing_spaces,
                         attributes);
 }
@@ -6175,7 +6175,7 @@ VteTerminalPrivate::get_text_displayed_a11y(bool wrap,
                                             GArray *attributes)
 {
         return get_text(m_screen->scroll_delta, 0,
-                        m_screen->scroll_delta + m_row_count - 1, m_column_count - 1,
+                        m_screen->scroll_delta + m_row_count - 1 + 1, -1,
                         false /* block */, wrap, include_trailing_spaces,
                         attributes);
 }
