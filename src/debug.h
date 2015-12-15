@@ -82,6 +82,7 @@ _vte_debug_on(guint flags)
 #define _VTE_DEBUG_IF(flags) if (0)
 #endif
 
+#ifdef VTE_DEBUG
 #if defined(__GNUC__) && G_HAVE_GNUC_VARARGS
 #define _vte_debug_print(flags, fmt, ...) \
 	G_STMT_START { _VTE_DEBUG_IF(flags) g_printerr(fmt, ##__VA_ARGS__); } G_STMT_END
@@ -98,6 +99,9 @@ static void _vte_debug_print(guint flags, const char *fmt, ...)
 	}
 }
 #endif
+#else
+#define _vte_debug_print(args...) do { } while(0)
+#endif /* VTE_DEBUG */
 
 G_END_DECLS
 
