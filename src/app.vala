@@ -390,6 +390,14 @@ class Window : Gtk.ApplicationWindow
 
           regex = new Vte.Regex(dingus[i], dingus[i].length,
                                 0x40080008u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_CASELESS */);
+          try {
+            regex.jit(0x00000001u /* PCRE2_JIT_COMPLETE */);
+            regex.jit(0x00000002u /* PCRE2_JIT_PARTIAL_SOFT */);
+          } catch (Error e) {
+            if (e.code != -45 /* PCRE2_ERROR_JIT_BADOPTION */) /* JIT not supported */
+              printerr("JITing regex \"%s\" failed: %s\n", dingus[i], e.message);
+          }
+
           tag = terminal.match_add_regex(regex, 0);
         } else 
 #endif
