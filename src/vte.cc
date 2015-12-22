@@ -10754,6 +10754,36 @@ static void time_process_incoming (VteTerminal *terminal)
 		(terminal->pvt->max_input_bytes + target) / 2;
 }
 
+static gboolean
+process_terminal(VteTerminal *terminal,
+                 bool emit_adj_changed)
+{
+        gboolean active;
+
+        if (terminal->pvt->pty_channel != NULL) {
+                if (terminal->pvt->pty_input_active ||
+                    terminal->pvt->pty_input_source == 0) {
+                        terminal->pvt->pty_input_active = FALSE;
+                        terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
+                                                   G_IO_IN);
+                }
+                terminal->pvt->connect_pty_read();
+        }
+        if (emit_adj_changed)
+                terminal->pvt->emit_adjustment_changed();
+        active = need_processing (terminal);
+        if (active) {
+                if (VTE_MAX_PROCESS_TIME) {
+                        time_process_incoming (terminal);
+                } else {
+                        terminal->pvt->process_incoming();
+                }
+                terminal->pvt->input_bytes = 0;
+        } else
+                terminal->pvt->emit_pending_signals();
+
+        return active;
+}
 
 /* This function is called after DISPLAY_TIMEOUT ms.
  * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
@@ -10777,32 +10807,17 @@ process_timeout (gpointer data)
 
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = (VteTerminal *)l->data;
-		gboolean active = FALSE;
+		gboolean active;
 
 		next = g_list_next (l);
 
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_channel != NULL) {
-			if (terminal->pvt->pty_input_active ||
-					terminal->pvt->pty_input_source == 0) {
-				terminal->pvt->pty_input_active = FALSE;
-				terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
-                                                           G_IO_IN);
-			}
-			terminal->pvt->connect_pty_read();
-		}
-		if (need_processing (terminal)) {
-			active = TRUE;
-			if (VTE_MAX_PROCESS_TIME) {
-				time_process_incoming (terminal);
-			} else {
-				terminal->pvt->process_incoming();
-			}
-			terminal->pvt->input_bytes = 0;
-		} else
-			terminal->pvt->emit_pending_signals();
+
+                // FIXMEchpe find out why we don't emit_adjustment_changed() here!!
+                active = process_terminal(terminal, false);
+
 		if (!active && terminal->pvt->update_regions == NULL) {
 			if (terminal->pvt->active != NULL) {
 				_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -10916,25 +10931,8 @@ update_repeat_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_channel != NULL) {
-			if (terminal->pvt->pty_input_active ||
-					terminal->pvt->pty_input_source == 0) {
-				terminal->pvt->pty_input_active = FALSE;
-				terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
-                                                            G_IO_IN);
-			}
-			terminal->pvt->connect_pty_read();
-		}
-		terminal->pvt->emit_adjustment_changed();
-		if (need_processing (terminal)) {
-			if (VTE_MAX_PROCESS_TIME) {
-				time_process_incoming (terminal);
-			} else {
-				terminal->pvt->process_incoming();
-			}
-			terminal->pvt->input_bytes = 0;
-		} else
-			terminal->pvt->emit_pending_signals();
+
+                process_terminal(terminal, true);
 
 		again = update_regions (terminal);
 		if (!again) {
@@ -11029,25 +11027,8 @@ update_timeout (gpointer data)
 		if (l != active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
-		if (terminal->pvt->pty_channel != NULL) {
-			if (terminal->pvt->pty_input_active ||
-					terminal->pvt->pty_input_source == 0) {
-				terminal->pvt->pty_input_active = FALSE;
-				terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
-                                                           G_IO_IN);
-			}
-			terminal->pvt->connect_pty_read();
-		}
-		terminal->pvt->emit_adjustment_changed();
-		if (need_processing (terminal)) {
-			if (VTE_MAX_PROCESS_TIME) {
-				time_process_incoming (terminal);
-			} else {
-				terminal->pvt->process_incoming();
-			}
-			terminal->pvt->input_bytes = 0;
-		} else
-			terminal->pvt->emit_pending_signals();
+
+                process_terminal(terminal, true);
 
 		redraw |= update_regions (terminal);
 	}
