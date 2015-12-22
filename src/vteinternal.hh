@@ -480,6 +480,8 @@ public:
         void invalidate_selection();
         void invalidate_all();
 
+        void reset_update_regions();
+
         gssize get_preedit_width(bool left_only);
         gssize get_preedit_length(bool left_only);
 

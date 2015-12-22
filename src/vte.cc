@@ -96,7 +96,6 @@ static inline void vte_terminal_start_processing (VteTerminal *terminal);
 static void vte_terminal_add_process_timeout (VteTerminal *terminal);
 static void add_update_timeout (VteTerminal *terminal);
 static void remove_update_timeout (VteTerminal *terminal);
-static void reset_update_regions (VteTerminal *terminal);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -483,7 +482,7 @@ VteTerminalPrivate::invalidate_all()
         auto allocation = get_allocated_rect();
 
 	/* replace invalid regions with one covering the whole terminal */
-	reset_update_regions (m_terminal);
+	reset_update_regions();
 	rect.x = rect.y = 0;
 	rect.width = allocation.width;
 	rect.height = allocation.height;
@@ -8266,7 +8265,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 					allocation->height);
 		/* Force a repaint if we were resized. */
 		if (repaint) {
-			reset_update_regions(m_terminal);
+			reset_update_regions();
 			invalidate_all();
 		}
 	}
@@ -10549,19 +10548,20 @@ add_update_timeout (VteTerminal *terminal)
 	}
 
 }
-static void
-reset_update_regions (VteTerminal *terminal)
+
+void
+VteTerminalPrivate::reset_update_regions()
 {
-	if (terminal->pvt->update_regions != NULL) {
-		g_slist_foreach (terminal->pvt->update_regions,
-				(GFunc)cairo_region_destroy, NULL);
-		g_slist_free (terminal->pvt->update_regions);
-		terminal->pvt->update_regions = NULL;
+	if (m_update_regions) {
+		g_slist_foreach (m_update_regions, (GFunc)cairo_region_destroy, nullptr);
+		g_slist_free(m_update_regions);
+		m_update_regions = nullptr;
 	}
-	/* the invalidated_all flag also marks whether to skip processing
-	 * due to the widget being invisible */
-	terminal->pvt->invalidated_all =
-		terminal->pvt->visibility_state==GDK_VISIBILITY_FULLY_OBSCURED;
+
+	/* The invalidated_all flag also marks whether to skip processing
+	 * due to the widget being invisible.
+         */
+	m_invalidated_all = m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED;
 }
 
 static void
@@ -10596,7 +10596,7 @@ remove_from_active_list (VteTerminal *terminal)
 static void
 remove_update_timeout (VteTerminal *terminal)
 {
-	reset_update_regions (terminal);
+	terminal->pvt->reset_update_regions();
 	remove_from_active_list (terminal);
 }
 
@@ -10856,7 +10856,7 @@ update_regions (VteTerminal *terminal)
         if (G_UNLIKELY(!terminal->pvt->widget_realized()))
                 return FALSE;
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		reset_update_regions (terminal);
+		terminal->pvt->reset_update_regions();
 		return FALSE;
 	}
 
