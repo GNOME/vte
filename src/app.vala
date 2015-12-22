@@ -299,6 +299,7 @@ class Window : Gtk.ApplicationWindow
     }
 
     /* Signals */
+    terminal.popup_menu.connect(popup_menu_cb);
     terminal.button_press_event.connect(button_press_event_cb);
     terminal.char_size_changed.connect(char_size_changed_cb);
     terminal.child_exited.connect(child_exited_cb);
@@ -615,10 +616,21 @@ class Window : Gtk.ApplicationWindow
     destroy();
   }
 
+  private bool popup_menu_cb()
+  {
+    return show_context_menu(0, Gtk.get_current_event_time(), null);
+  }
+
   private bool button_press_event_cb(Gtk.Widget widget, Gdk.EventButton event)
   {
     if (event.button != 3)
       return false;
+
+    return show_context_menu(event.button, event.time, event);
+  }
+
+  private bool show_context_menu(uint button, uint32 timestamp, Gdk.Event? event)
+  {
     if (App.Options.no_context_menu)
       return false;
 
@@ -626,16 +638,20 @@ class Window : Gtk.ApplicationWindow
     menu.append("_Copy", "win.copy");
 
 #if VALA_0_24
-    var match = terminal.match_check_event(event, null);
-    if (match != null)
-      menu.append("Copy _Match", "win.copy-match::" + match);
+    if (event != null) {
+      var match = terminal.match_check_event(event, null);
+      if (match != null)
+        menu.append("Copy _Match", "win.copy-match::" + match);
+    }
 #endif
 
     menu.append("_Paste", "win.paste");
 
     var popup = new Gtk.Menu.from_model(menu);
     popup.attach_to_widget(this, null);
-    popup.popup(null, null, null, event.button, event.time);
+    popup.popup(null, null, null, button, timestamp);
+    if (button == 0)
+      popup.select_first(true);
 
     return false;
   }
