@@ -220,7 +220,7 @@ public:
 	struct _vte_iso2022_state *iso2022;
 	_vte_incoming_chunk_t *incoming;/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	GSList *update_regions;
+	GArray *m_update_rects;         /* dirty rectangles */
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
 	GList *active;                  /* is the terminal processing data */
 	glong input_bytes;
@@ -480,7 +480,7 @@ public:
         void invalidate_selection();
         void invalidate_all();
 
-        void reset_update_regions();
+        void reset_update_rects();
 
         gssize get_preedit_width(bool left_only);
         gssize get_preedit_length(bool left_only);
@@ -990,7 +990,6 @@ public:
 #define m_char_width char_width
 #define m_char_height char_height
 #define m_active active
-#define m_update_regions update_regions
 #define m_draw draw
 #define m_cursor_blinks cursor_blinks
 #define m_cursor_visible cursor_visible

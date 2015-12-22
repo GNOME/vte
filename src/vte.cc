@@ -419,9 +419,7 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 			rect.x, rect.y, rect.width, rect.height);
 
 	if (m_active != NULL) {
-                m_update_regions = g_slist_prepend (
-                                                    m_update_regions,
-				cairo_region_create_rectangle (&rect));
+                g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (m_terminal);
@@ -482,15 +480,14 @@ VteTerminalPrivate::invalidate_all()
         auto allocation = get_allocated_rect();
 
 	/* replace invalid regions with one covering the whole terminal */
-	reset_update_regions();
+	reset_update_rects();
 	rect.x = rect.y = 0;
 	rect.width = allocation.width;
 	rect.height = allocation.height;
 	m_invalidated_all = TRUE;
 
         if (m_active != NULL) {
-                m_update_regions = g_slist_prepend (NULL,
-				cairo_region_create_rectangle (&rect));
+                g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (m_terminal);
@@ -8013,6 +8010,12 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         // FIXMEchpe still necessary?
 	gtk_widget_set_redraw_on_allocate(m_widget, FALSE);
 
+        m_invalidated_all = false;
+        m_update_rects = g_array_sized_new(FALSE /* zero terminated */,
+                                           FALSE /* clear */,
+                                           sizeof(cairo_rectangle_int_t),
+                                           32 /* preallocated size */);
+
 	/* Set an adjustment for the application to use to control scrolling. */
         m_vadjustment = nullptr;
         m_hadjustment = nullptr;
@@ -8265,7 +8268,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 					allocation->height);
 		/* Force a repaint if we were resized. */
 		if (repaint) {
-			reset_update_regions();
+			reset_update_rects();
 			invalidate_all();
 		}
 	}
@@ -8574,6 +8577,9 @@ VteTerminalPrivate::~VteTerminalPrivate()
         g_signal_handlers_disconnect_matched (gtk_widget_get_settings(m_widget), G_SIGNAL_MATCH_DATA,
                                               0, 0, NULL, NULL,
                                               this);
+
+        /* Update rects */
+        g_array_free(m_update_rects, TRUE /* free segment */);
 }
 
 void
@@ -10557,13 +10563,9 @@ add_update_timeout (VteTerminal *terminal)
 }
 
 void
-VteTerminalPrivate::reset_update_regions()
+VteTerminalPrivate::reset_update_rects()
 {
-	if (m_update_regions) {
-		g_slist_foreach (m_update_regions, (GFunc)cairo_region_destroy, nullptr);
-		g_slist_free(m_update_regions);
-		m_update_regions = nullptr;
-	}
+        g_array_set_size(m_update_rects, 0);
 
 	/* The invalidated_all flag also marks whether to skip processing
 	 * due to the widget being invisible.
@@ -10575,7 +10577,7 @@ static gboolean
 remove_from_active_list(VteTerminal *terminal)
 {
 	if (terminal->pvt->active == NULL ||
-            terminal->pvt->update_regions != NULL)
+            terminal->pvt->m_update_rects->len != 0)
                 return FALSE;
 
         _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing terminal from active list\n");
@@ -10607,7 +10609,7 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 static void
 remove_update_timeout (VteTerminal *terminal)
 {
-	terminal->pvt->reset_update_regions();
+	terminal->pvt->reset_update_rects();
         vte_terminal_stop_processing(terminal);
 }
 
@@ -10862,42 +10864,34 @@ process_timeout (gpointer data)
 static gboolean
 update_regions (VteTerminal *terminal)
 {
-	GSList *l;
-	cairo_region_t *region;
 	GdkWindow *window;
 
         if (G_UNLIKELY(!terminal->pvt->widget_realized()))
                 return FALSE;
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		terminal->pvt->reset_update_regions();
+		terminal->pvt->reset_update_rects();
 		return FALSE;
 	}
 
-	if (G_UNLIKELY (!terminal->pvt->update_regions))
+	if (G_UNLIKELY (!terminal->pvt->m_update_rects->len))
 		return FALSE;
 
-
-	l = terminal->pvt->update_regions;
-	if (g_slist_next (l) != NULL) {
-		/* amalgamate into one super-region */
-		region = cairo_region_create ();
-		do {
-                        cairo_region_t *r = (cairo_region_t *)l->data;
-			cairo_region_union (region, r);
-			cairo_region_destroy (r);
-		} while ((l = g_slist_next (l)) != NULL);
-	} else {
-		region = (cairo_region_t *)l->data;
+        auto region = cairo_region_create();
+        auto n_rects = terminal->pvt->m_update_rects->len;
+        for (guint i = 0; i < n_rects; i++) {
+                cairo_rectangle_int_t *rect = &g_array_index(terminal->pvt->m_update_rects, cairo_rectangle_int_t, i);
+                cairo_region_union_rectangle(region, rect);
 	}
-	g_slist_free (terminal->pvt->update_regions);
-	terminal->pvt->update_regions = NULL;
+        g_array_set_size(terminal->pvt->m_update_rects, 0);
+
 	terminal->pvt->invalidated_all = FALSE;
 
 	/* and perform the merge with the window visible area */
 	window = gtk_widget_get_window (&terminal->widget);
 	gdk_window_invalidate_region (window, region, FALSE);
-	gdk_window_process_updates (window, FALSE);
 	cairo_region_destroy (region);
+
+	gdk_window_process_updates (window, FALSE);
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
 
