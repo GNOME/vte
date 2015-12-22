@@ -10642,12 +10642,6 @@ vte_terminal_start_processing (VteTerminal *terminal)
 	}
 }
 
-static inline gboolean
-need_processing (VteTerminal *terminal)
-{
-	return _vte_incoming_chunks_length (terminal->pvt->incoming) != 0;
-}
-
 void
 VteTerminalPrivate::emit_pending_signals()
 {
@@ -10778,7 +10772,7 @@ process_terminal(VteTerminal *terminal,
         }
         if (emit_adj_changed)
                 terminal->pvt->emit_adjustment_changed();
-        active = need_processing (terminal);
+        active = _vte_incoming_chunks_length (terminal->pvt->incoming) != 0;
         if (active) {
                 if (VTE_MAX_PROCESS_TIME) {
                         time_process_incoming (terminal);
