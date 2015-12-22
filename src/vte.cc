@@ -10522,6 +10522,17 @@ _vte_terminal_select_empty_at(VteTerminal *terminal,
 }
 
 static void
+remove_process_timeout_source(void)
+{
+	if (process_timeout_tag == 0)
+                return;
+
+        _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing process timeout\n");
+        g_source_remove (process_timeout_tag);
+        process_timeout_tag = 0;
+}
+
+static void
 add_update_timeout (VteTerminal *terminal)
 {
 	if (update_timeout_tag == 0) {
@@ -10533,13 +10544,9 @@ add_update_timeout (VteTerminal *terminal)
 					update_timeout, NULL,
 					NULL);
 	}
-	if (in_process_timeout == FALSE &&
-			process_timeout_tag != 0) {
-		_vte_debug_print (VTE_DEBUG_TIMEOUT,
-				"Removing process timeout\n");
-		g_source_remove (process_timeout_tag);
-		process_timeout_tag = 0;
-	}
+	if (!in_process_timeout) {
+                remove_process_timeout_source();
+        }
 	if (terminal->pvt->active == NULL) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
 				"Adding terminal to active list\n");
@@ -10564,40 +10571,44 @@ VteTerminalPrivate::reset_update_regions()
 	m_invalidated_all = m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED;
 }
 
-static void
-remove_from_active_list (VteTerminal *terminal)
+static gboolean
+remove_from_active_list(VteTerminal *terminal)
 {
-	if (terminal->pvt->active != NULL
-			&& terminal->pvt->update_regions == NULL) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-			"Removing terminal from active list\n");
-		active_terminals = g_list_delete_link (active_terminals,
-				terminal->pvt->active);
-		terminal->pvt->active = NULL;
+	if (terminal->pvt->active == NULL ||
+            terminal->pvt->update_regions != NULL)
+                return FALSE;
 
-		if (active_terminals == NULL) {
-			if (in_process_timeout == FALSE &&
-					process_timeout_tag != 0) {
-				_vte_debug_print(VTE_DEBUG_TIMEOUT,
-						"Removing process timeout\n");
-				g_source_remove (process_timeout_tag);
-				process_timeout_tag = 0;
-			}
-			if (in_update_timeout == FALSE &&
-					update_timeout_tag != 0) {
-				_vte_debug_print(VTE_DEBUG_TIMEOUT,
-						"Removing update timeout\n");
-				g_source_remove (update_timeout_tag);
-				update_timeout_tag = 0;
-			}
-		}
-	}
+        _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing terminal from active list\n");
+        active_terminals = g_list_delete_link (active_terminals, terminal->pvt->active);
+        terminal->pvt->active = NULL;
+        return TRUE;
 }
+
+static void
+vte_terminal_stop_processing (VteTerminal *terminal)
+{
+        if (!remove_from_active_list(terminal))
+                return;
+
+        if (active_terminals != NULL)
+                return;
+
+        if (!in_process_timeout) {
+                remove_process_timeout_source();
+        }
+        if (in_update_timeout == FALSE &&
+            update_timeout_tag != 0) {
+                _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing update timeout\n");
+                g_source_remove (update_timeout_tag);
+                update_timeout_tag = 0;
+        }
+}
+
 static void
 remove_update_timeout (VteTerminal *terminal)
 {
 	terminal->pvt->reset_update_regions();
-	remove_from_active_list (terminal);
+        vte_terminal_stop_processing(terminal);
 }
 
 static void
@@ -10627,12 +10638,6 @@ vte_terminal_start_processing (VteTerminal *terminal)
 	if (!vte_terminal_is_processing (terminal)) {
 		vte_terminal_add_process_timeout (terminal);
 	}
-}
-
-static void
-vte_terminal_stop_processing (VteTerminal *terminal)
-{
-	remove_from_active_list (terminal);
 }
 
 static inline gboolean
@@ -10818,15 +10823,8 @@ process_timeout (gpointer data)
                 // FIXMEchpe find out why we don't emit_adjustment_changed() here!!
                 active = process_terminal(terminal, false);
 
-		if (!active && terminal->pvt->update_regions == NULL) {
-			if (terminal->pvt->active != NULL) {
-				_vte_debug_print(VTE_DEBUG_TIMEOUT,
-						"Removing terminal from active list [process]\n");
-				active_terminals = g_list_delete_link (
-						active_terminals,
-						terminal->pvt->active);
-				terminal->pvt->active = NULL;
-			}
+		if (!active) {
+                        remove_from_active_list(terminal);
 		}
 	}
 
@@ -10936,14 +10934,7 @@ update_repeat_timeout (gpointer data)
 
 		again = update_regions (terminal);
 		if (!again) {
-			if (terminal->pvt->active != NULL) {
-				_vte_debug_print(VTE_DEBUG_TIMEOUT,
-						"Removing terminal from active list [update]\n");
-				active_terminals = g_list_delete_link (
-						active_terminals,
-						terminal->pvt->active);
-				terminal->pvt->active = NULL;
-			}
+                        remove_from_active_list(terminal);
 		}
 	}
 
@@ -11012,12 +11003,7 @@ update_timeout (gpointer data)
 			"Update timeout:  %d active\n",
 			g_list_length (active_terminals));
 
-	if (process_timeout_tag != 0) {
-		_vte_debug_print(VTE_DEBUG_TIMEOUT,
-				"Removing process timeout\n");
-		g_source_remove (process_timeout_tag);
-		process_timeout_tag = 0;
-	}
+        remove_process_timeout_source();
 
 	for (l = active_terminals; l != NULL; l = next) {
 		VteTerminal *terminal = (VteTerminal *)l->data;
