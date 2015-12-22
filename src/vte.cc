@@ -7141,9 +7141,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 			extend_selection(x, y, false, false);
 
 			/* Start scrolling if we need to. */
-			if (event->y < m_padding.top ||
-			    event->y >= m_row_count * m_char_height + m_padding.top)
-			{
+			if (y < 0 || y >= m_view_usable_extents.height()) {
 				/* Give mouse wigglers something. */
                                 stop_autoscroll();
 				autoscroll();
