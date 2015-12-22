@@ -268,13 +268,6 @@ VteTerminalPrivate::reset_default_attributes()
         m_defaults = m_color_defaults = m_fill_defaults = basic_cell.cell;
 }
 
-/* Height excluding padding, but including additional bottom area if not grid aligned */
-inline vte::view::coord_t
-VteTerminalPrivate::usable_height_px() const
-{
-        return get_allocated_height() - m_padding.top - m_padding.bottom;
-}
-
 //FIXMEchpe this function is bad
 inline vte::view::coord_t
 VteTerminalPrivate::scroll_delta_pixel() const
@@ -318,7 +311,7 @@ inline vte::grid::row_t
 VteTerminalPrivate::last_displayed_row() const
 {
         /* Get the logical row number displayed at the bottom pixel position */
-        auto r = pixel_to_row(usable_height_px() - 1);
+        auto r = pixel_to_row(m_view_usable_extents.height() - 1);
 
         /* If we have an extra padding at the bottom which is currently unused,
          * this number is one too big. Adjust here.
@@ -1892,7 +1885,7 @@ VteTerminalPrivate::rowcol_from_event(GdkEvent *event,
         x -= m_padding.left;
         y -= m_padding.top;
         if (x < 0 || x >= m_column_count * m_char_width ||
-            y < 0 || y >= usable_height_px())
+            y < 0 || y >= m_view_usable_extents.height())
                 return false;
         *column = x / m_char_width;
         *row = pixel_to_row(y);
@@ -4643,6 +4636,7 @@ VteTerminalPrivate::widget_style_updated()
                                  new_padding.top, new_padding.bottom);
 
                 m_padding = new_padding;
+                update_view_extents();
                 gtk_widget_queue_resize(m_widget);
         }
 
@@ -5493,8 +5487,8 @@ _vte_terminal_size_to_grid_size(VteTerminal *terminal,
         VteTerminalPrivate *pvt = terminal->pvt;
         long n_cols, n_rows;
 
-        n_cols = (w - pvt->padding.left - pvt->padding.right) / pvt->char_width;
-        n_rows = (h - pvt->padding.top -pvt->padding.bottom) / pvt->char_height;
+        n_cols = (w - pvt->m_padding.left - pvt->m_padding.right) / pvt->char_width;
+        n_rows = (h - pvt->m_padding.top -pvt->m_padding.bottom) / pvt->char_height;
 
         if (n_cols <= 0 || n_rows <= 0)
                 return FALSE;
@@ -6450,7 +6444,7 @@ VteTerminalPrivate::confine_coordinates(long *xp,
         long y_stop;
 
         /* Allow to use the bottom extra padding only if there's content there. */
-        y_stop = MIN(usable_height_px(),
+        y_stop = MIN(m_view_usable_extents.height(),
                      row_to_pixel(m_screen->insert_delta + m_row_count));
 
 	if (y < 0) {
@@ -7041,7 +7035,7 @@ VteTerminalPrivate::autoscroll()
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
 	}
-	if (m_mouse_last_y >= usable_height_px()) {
+	if (m_mouse_last_y >= m_view_usable_extents.height()) {
 		if (m_vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = m_screen->scroll_delta + 1;
@@ -8167,6 +8161,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_visibility_state = GDK_VISIBILITY_UNOBSCURED;
 
         m_padding = default_padding;
+        update_view_extents();
 }
 
 void

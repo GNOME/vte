@@ -99,13 +99,12 @@ namespace grid {
 
 } /* namespace grid */
 
-
 namespace view {
 
         /* FIXMEchpe: actually 32-bit int would be sufficient here */
         typedef long coord_t;
 
-        struct coords {
+        class coords {
         public:
                 coords() = default;
                 coords(coord_t x_, coord_t y_) : x(x_), y(y_) { }
@@ -120,6 +119,24 @@ namespace view {
         public:
                 coord_t x;
                 coord_t y;
+        };
+
+        class extents {
+        public:
+                extents() = default;
+                extents(coord_t w, coord_t h) : m_width(w), m_height(h) { }
+
+                inline coord_t width() const { return m_width; }
+                inline coord_t height() const { return m_height; }
+
+                inline bool operator == (extents const& rhs) const { return m_width == rhs.m_width && m_height == rhs.m_height; }
+                inline bool operator != (extents const& rhs) const { return m_width != rhs.m_width || m_height != rhs.m_height; }
+
+                IFDEF_DEBUG(char const* to_string() const);
+
+        private:
+                coord_t m_width;
+                coord_t m_height;
         };
 
 } /* namespace view */

@@ -160,6 +160,14 @@ vte::view::coords::to_string() const
 }
 
 char const*
+vte::view::extents::to_string() const
+{
+        char *buf = debug_get_buf();
+        g_snprintf(buf, DEBUG_STRING_SIZE, "view::extents[%ld x %ld]", width(), height());
+        return buf;
+}
+
+char const*
 vte::color::rgb::to_string() const
 {
         char *buf = debug_get_buf();

@@ -2970,8 +2970,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                       &width, &height);
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "3;%d;%dt",
-                           width + terminal->pvt->padding.left,
-                           height + terminal->pvt->padding.top);
+                           width + terminal->pvt->m_padding.left,
+                           height + terminal->pvt->m_padding.top);
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting window location"
                                  "(%d++,%d++).\n",

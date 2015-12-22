@@ -434,7 +434,7 @@ public:
 	glong strikethrough_position;
 
         /* Style stuff */
-        GtkBorder padding;
+        GtkBorder m_padding;
 
         /* GtkScrollable impl */
         GtkAdjustment *hadjustment; /* unused */
@@ -445,7 +445,6 @@ public:
 
 public:
 
-        inline vte::view::coord_t usable_height_px() const;
         inline vte::view::coord_t scroll_delta_pixel() const;
         inline vte::grid::row_t pixel_to_row(vte::view::coord_t y) const;
         inline vte::view::coord_t row_to_pixel(vte::grid::row_t row) const;
@@ -496,8 +495,19 @@ public:
         VteCursorBlinkMode decscusr_cursor_blink();
         VteCursorShape decscusr_cursor_shape();
 
+        /* The allocation of the widget */
         cairo_rectangle_int_t m_allocated_rect;
-        void set_allocated_rect(cairo_rectangle_int_t const& r) { m_allocated_rect = r; }
+        /* The usable view area. This is the allocation, minus the padding, but
+         * including additional right/bottom area if the allocation is not grid aligned.
+         */
+        vte::view::extents m_view_usable_extents;
+
+        void set_allocated_rect(cairo_rectangle_int_t const& r) { m_allocated_rect = r; update_view_extents(); }
+        void update_view_extents() {
+                m_view_usable_extents =
+                        vte::view::extents(m_allocated_rect.width - m_padding.left - m_padding.right,
+                                           m_allocated_rect.height - m_padding.top - m_padding.bottom);
+        }
 
         inline bool widget_realized() const { return gtk_widget_get_realized(m_widget); }
         inline cairo_rectangle_int_t const& get_allocated_rect() const { return m_allocated_rect; }
@@ -975,7 +985,6 @@ public:
 #define m_invalidated_all invalidated_all
 #define m_column_count column_count
 #define m_row_count row_count
-#define m_padding padding
 #define m_char_width char_width
 #define m_char_height char_height
 #define m_active active
