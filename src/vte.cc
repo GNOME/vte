@@ -5692,8 +5692,6 @@ VteTerminalPrivate::maybe_feed_focus_event(bool in)
 bool
 VteTerminalPrivate::maybe_send_mouse_button(GdkEventButton *event)
 {
-	read_modifiers((GdkEvent*)event);
-
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		if (m_mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_CLICK) {
