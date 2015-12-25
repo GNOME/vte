@@ -338,9 +338,11 @@ public:
 				    but we need to guarantee its type. */
         guint mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
         guint mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
-        /* The last known position the mouse pointer from an event */
+        /* The last known position the mouse pointer from an event. We don't store
+         * this in grid coordinates because we want also to check if they were outside
+         * the viewable area.
+         */
         vte::view::coords m_mouse_last_position;
-        long mouse_last_col, mouse_last_row;
 	gboolean mouse_autohide;
 	guint m_mouse_autoscroll_tag;
 	gboolean mouse_xterm_extension;
@@ -531,6 +533,7 @@ public:
 
         vte::grid::coords confine_grid_coords(vte::grid::coords const& rowcol) const;
         vte::grid::coords confined_grid_coords_from_event(GdkEvent const* event) const;
+        vte::grid::coords confined_grid_coords_from_view_coords(vte::view::coords const& pos) const;
 
         void confine_coordinates(long *xp,
                                  long *yp);
@@ -894,11 +897,6 @@ public:
                                    gsize *start,
                                    gsize *end);
 
-        bool mouse_pixels_to_grid (long x,
-                                   long y,
-                                   vte::grid::column_t *col,
-                                   vte::grid::row_t *row);
-
         bool feed_mouse_event(vte::grid::coords const& unconfined_rowcol,
                               int button,
                               bool is_drag,
@@ -1021,8 +1019,6 @@ public:
 #define m_match_regex_mode match_regex_mode
 #define m_mouse_tracking_mode mouse_tracking_mode
 #define m_mouse_pressed_buttons mouse_pressed_buttons
-#define m_mouse_last_column mouse_last_col
-#define m_mouse_last_row mouse_last_row
 #define m_mouse_xterm_extension mouse_xterm_extension
 #define m_mouse_urxvt_extension mouse_urxvt_extension
 #define m_modifiers modifiers

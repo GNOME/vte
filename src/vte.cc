@@ -322,28 +322,6 @@ VteTerminalPrivate::last_displayed_row() const
         return r;
 }
 
-/* x, y are coordinates excluding the padding.
- * col, row are in 0..width-1, 0..height-1.
- * Returns FALSE if clicked over scrollback content; output values are unchanged then.
- */
-bool
-VteTerminalPrivate::mouse_pixels_to_grid (long x,
-                                          long y,
-                                          vte::grid::column_t *col,
-                                          vte::grid::row_t *row)
-{
-        auto rowcol = grid_coords_from_view_coords(vte::view::coords(x, y));
-        rowcol = confine_grid_coords(rowcol);
-
-        /* Don't allow clicking on scrollback contents: bug 755187. */
-        if (grid_coords_in_scrollback(rowcol))
-                return false;
-
-        *col = rowcol.column();
-        *row = rowcol.row() - m_screen->insert_delta;
-        return true;
-}
-
 void
 VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
                                      int n_columns,
@@ -1880,7 +1858,7 @@ VteTerminalPrivate::grid_coords_from_event(GdkEvent const* event) const
 }
 
 /*
- * VteTerminalPrivate::grid_coords_from_event:
+ * VteTerminalPrivate::confined_grid_coords_from_event:
  * @event: a #GdkEvent
  *
  * Like grid_coords_from_event(), but also confines the coordinates
@@ -1889,14 +1867,13 @@ VteTerminalPrivate::grid_coords_from_event(GdkEvent const* event) const
 vte::grid::coords
 VteTerminalPrivate::confined_grid_coords_from_event(GdkEvent const* event) const
 {
-        auto rowcol = grid_coords_from_view_coords(view_coords_from_event(event));
-        return confine_grid_coords(rowcol);
+        auto pos = view_coords_from_event(event);
+        return confined_grid_coords_from_view_coords(pos);
 }
 
 /*
  * VteTerminalPrivate::grid_coords_from_view_coords:
  * @pos: the view coordinates
- * @rowcol: the grid coordinates
  *
  * Translates view coordinates to grid coordinates. If the view coordinates point to
  * cells that are not visible, may return any value < 0 or >= m_column_count, and
@@ -1916,6 +1893,20 @@ VteTerminalPrivate::grid_coords_from_view_coords(vte::view::coords const& pos) c
         vte::grid::row_t row = pixel_to_row(pos.y);
 
         return vte::grid::coords(row, col);
+}
+
+/*
+ * VteTerminalPrivate::confined_grid_coords_from_view_coords:
+ * @pos: the view coordinates
+ *
+ * Like grid_coords_from_view_coords(), but also confines the coordinates
+ * to an actual cell in the visible area.
+ */
+vte::grid::coords
+VteTerminalPrivate::confined_grid_coords_from_view_coords(vte::view::coords const& pos) const
+{
+        auto rowcol = grid_coords_from_view_coords(pos);
+        return confine_grid_coords(rowcol);
 }
 
 /*
@@ -5749,7 +5740,7 @@ VteTerminalPrivate::maybe_send_mouse_drag(vte::grid::coords const& unconfined_ro
 			 * all-tracking also sends degenerate same-cell events;
                          * we don't.
                          */
-                        if (rowcol == vte::grid::coords(m_mouse_last_row, m_mouse_last_column))
+                        if (rowcol == confined_grid_coords_from_view_coords(m_mouse_last_position))
 				return false;
 		}
 		break;
@@ -5917,25 +5908,16 @@ VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
 void
 VteTerminalPrivate::match_hilite(vte::view::coords const& pos)
 {
-        auto x = pos.x;
-        auto y = pos.y;
-
 	/* if the cursor is not above a cell, skip */
-	if (x < 0 || x >= m_view_usable_extents.width() ||
-            y < 0 || y >= m_view_usable_extents.height()) {
+        if (!view_coords_visible(pos))
 		return;
-	}
 
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. Note: Don't use mouse_last_row as that's relative
 	 * to insert_delta, and we care about the absolute row number. */
-	if (x / m_char_width  == m_mouse_last_position.x / m_char_width &&
-	    pixel_to_row(y) == pixel_to_row(m_mouse_last_position.y)) {
-		m_show_match = m_match != nullptr;
-		return;
-	}
-
-	if (cursor_inside_match(pos)) {
+	if (grid_coords_from_view_coords(pos) ==
+            confined_grid_coords_from_view_coords(m_mouse_last_position) ||
+            cursor_inside_match(pos)) {
 		m_show_match = m_match != nullptr;
 		return;
 	}
@@ -7229,9 +7211,6 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 
 	/* Save the pointer coordinates for later use. */
 	m_mouse_last_position = pos;
-        mouse_pixels_to_grid (pos.x, pos.y,
-                                            &m_mouse_last_column,
-                                            &m_mouse_last_row);
 
 	return handled;
 }
@@ -7385,9 +7364,6 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons |= (1 << (event->button - 1));
 	m_mouse_last_position = pos;
-        mouse_pixels_to_grid (pos.x, pos.y,
-                                            &m_mouse_last_column,
-                                            &m_mouse_last_row);
 
 	return handled;
 }
@@ -7439,9 +7415,6 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons &= ~(1 << (event->button - 1));
 	m_mouse_last_position = pos;
-        mouse_pixels_to_grid (pos.x, pos.y,
-                                            &m_mouse_last_column,
-                                            &m_mouse_last_row);
 	m_selecting_after_threshold = false;
 
 	return handled;
@@ -10402,9 +10375,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
         m_mouse_pressed_buttons = 0;
         m_mouse_handled_buttons = 0;
-	m_mouse_last_position = vte::view::coords(0, 0);
-        m_mouse_last_column = 0;
-        m_mouse_last_row = 0;
+	m_mouse_last_position = vte::view::coords(-1, -1);
 	m_mouse_xterm_extension = FALSE;
 	m_mouse_urxvt_extension = FALSE;
 	m_mouse_smooth_scroll_delta = 0.;
