@@ -1849,28 +1849,119 @@ VteTerminalPrivate::regex_match_check(vte::grid::column_t column,
 	return ret;
 }
 
+/*
+ * VteTerminalPrivate::view_coords_from_event:
+ * @event: a #GdkEvent
+ *
+ * Translates the event coordinates to view coordinates, by
+ * subtracting the padding and window offset.
+ * Coordinates < 0 or >= m_usable_view_extents.width() or .height()
+ * mean that the event coordinates are outside the usable area
+ * at that side; use view_coords_visible() to check for that.
+ */
+vte::view::coords
+VteTerminalPrivate::view_coords_from_event(GdkEvent const* event) const
+{
+        double x, y;
+        if (event == nullptr ||
+            ((reinterpret_cast<GdkEventAny const*>(event))->window != gtk_widget_get_window(m_widget)) ||
+            !gdk_event_get_coords(event, &x, &y))
+                return vte::view::coords(-1, -1);
+
+        return vte::view::coords(x - m_padding.left, y - m_padding.top);
+}
+
+/*
+ * VteTerminalPrivate::grid_coords_from_event:
+ * @event: a #GdkEvent
+ *
+ * Translates the event coordinates to view coordinates, by
+ * subtracting the padding and window offset.
+ * Coordinates < 0 or >= m_usable_view_extents.width() or .height()
+ * mean that the event coordinates are outside the usable area
+ * at that side; use grid_coords_visible() to check for that.
+ */
+vte::grid::coords
+VteTerminalPrivate::grid_coords_from_event(GdkEvent const* event) const
+{
+        return grid_coords_from_view_coords(view_coords_from_event(event));
+}
+
+/*
+ * VteTerminalPrivate::grid_coords_from_view_coords:
+ * @pos: the view coordinates
+ * @rowcol: the grid coordinates
+ *
+ * Translates view coordinates to grid coordinates. If the view coordinates point to
+ * cells that are not visible, may return any value < 0 or >= m_column_count, and
+ * < first_displayed_row() or > last_displayed_row(), resp.
+ */
+vte::grid::coords
+VteTerminalPrivate::grid_coords_from_view_coords(vte::view::coords const& pos) const
+{
+        vte::grid::column_t col;
+        if (pos.x >= 0 && pos.x < m_view_usable_extents.width())
+                col = pos.x / m_char_width;
+        else if (pos.x < 0)
+                col = -1;
+        else
+                col = m_column_count;
+
+        vte::grid::row_t row = pixel_to_row(pos.y);
+
+        return vte::grid::coords(row, col);
+}
+
+/*
+ * VteTerminalPrivate::view_coords_from_grid_coords:
+ * @rowcol: the grid coordinates
+ *
+ * Translates grid coordinates to view coordinates. If the view coordinates are
+ * outside the usable area, may return any value < 0 or >= m_usable_view_extents.
+ *
+ * Returns: %true if the coordinates are inside the usable area
+ */
+vte::view::coords
+VteTerminalPrivate::view_coords_from_grid_coords(vte::grid::coords const& rowcol) const
+{
+        return vte::view::coords(rowcol.column() * m_char_width,
+                                 row_to_pixel(rowcol.row()));
+}
+
+bool
+VteTerminalPrivate::view_coords_visible(vte::view::coords const& pos) const
+{
+        return pos.x >= 0 && pos.x < m_view_usable_extents.width() &&
+               pos.y >= 0 && pos.y < m_view_usable_extents.height();
+}
+
+bool
+VteTerminalPrivate::grid_coords_visible(vte::grid::coords const& rowcol) const
+{
+        return rowcol.column() >= 0 &&
+               rowcol.column() < m_column_count &&
+               rowcol.row() >= first_displayed_row() &&
+               rowcol.row() <= last_displayed_row();
+}
+
+vte::grid::coords
+VteTerminalPrivate::confine_grid_coords(vte::grid::coords& rowcol) const
+{
+        return vte::grid::coords(CLAMP(rowcol.row(), first_displayed_row(), last_displayed_row()),
+                                 CLAMP(rowcol.column(), 0, m_column_count - 1));
+}
+
 bool
 VteTerminalPrivate::rowcol_from_event(GdkEvent *event,
                                       long *column,
                                       long *row)
 {
-        double x, y;
-
-        if (event == NULL)
-                return FALSE;
-        if (((GdkEventAny*)event)->window != gtk_widget_get_window(m_widget))
-                return FALSE;
-        if (!gdk_event_get_coords(event, &x, &y))
-                return FALSE;
-
-        x -= m_padding.left;
-        y -= m_padding.top;
-        if (x < 0 || x >= m_column_count * m_char_width ||
-            y < 0 || y >= m_view_usable_extents.height())
+        auto rowcol = grid_coords_from_event(event);
+        if (!grid_coords_visible(rowcol))
                 return false;
-        *column = x / m_char_width;
-        *row = pixel_to_row(y);
 
+        *column = rowcol.column();
+        *row = rowcol.row();
         return true;
 }
 

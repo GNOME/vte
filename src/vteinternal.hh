@@ -488,9 +488,6 @@ public:
         gssize get_preedit_width(bool left_only);
         gssize get_preedit_length(bool left_only);
 
-        void confine_coordinates(long *xp,
-                                 long *yp);
-
         void invalidate_cursor_once(bool periodic = false);
         void invalidate_cursor_periodic();
         void check_cursor_blink();
@@ -518,6 +515,21 @@ public:
         inline cairo_rectangle_int_t const& get_allocated_rect() const { return m_allocated_rect; }
         inline vte::view::coord_t get_allocated_width() const { return m_allocated_rect.width; }
         inline vte::view::coord_t get_allocated_height() const { return m_allocated_rect.height; }
+
+        vte::view::coords view_coords_from_event(GdkEvent const* event) const;
+        vte::grid::coords grid_coords_from_event(GdkEvent const* event) const;
+
+        vte::view::coords view_coords_from_grid_coords(vte::grid::coords const& rowcol) const;
+        vte::grid::coords grid_coords_from_view_coords(vte::view::coords const& pos) const;
+
+        bool view_coords_visible(vte::view::coords const& pos) const;
+        bool grid_coords_visible(vte::grid::coords const& rowcol) const;
+
+        vte::grid::coords confine_grid_coords(vte::grid::coords& rowcol) const;
+
+        void confine_coordinates(long *xp,
+                                 long *yp);
+
 
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel);
