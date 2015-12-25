@@ -332,23 +332,15 @@ VteTerminalPrivate::mouse_pixels_to_grid (long x,
                                           vte::grid::column_t *col,
                                           vte::grid::row_t *row)
 {
-        /* Confine clicks to the nearest actual cell. This is especially useful for
-         * fullscreen vte so that you can click on the very edge of the screen. */
-        auto r = pixel_to_row(y);
-        auto fr = first_displayed_row();
-        auto lr = last_displayed_row();
-        r = CLAMP (r, fr, lr);
+        auto rowcol = grid_coords_from_view_coords(vte::view::coords(x, y));
+        rowcol = confine_grid_coords(rowcol);
 
-        /* Bail out if clicking on scrollback contents: bug 755187. */
-        if (r < m_screen->insert_delta)
+        /* Don't allow clicking on scrollback contents: bug 755187. */
+        if (rowcol.row() < m_screen->insert_delta)
                 return false;
-        r -= m_screen->insert_delta;
 
-        vte::grid::column_t c = x / m_char_width;
-        c = CLAMP (c, 0, m_column_count - 1);
-
-        *col = c;
-        *row = r;
+        *col = rowcol.column();
+        *row = rowcol.row() - m_screen->insert_delta;
         return true;
 }
 
@@ -1947,7 +1939,13 @@ VteTerminalPrivate::grid_coords_visible(vte::grid::coords const& rowcol) const
 vte::grid::coords
 VteTerminalPrivate::confine_grid_coords(vte::grid::coords& rowcol) const
 {
-        return vte::grid::coords(CLAMP(rowcol.row(), first_displayed_row(), last_displayed_row()),
+        /* Confine clicks to the nearest actual cell. This is especially useful for
+         * fullscreen vte so that you can click on the very edge of the screen.
+         */
+        auto first_row = first_displayed_row();
+        auto last_row = last_displayed_row();
+
+        return vte::grid::coords(CLAMP(rowcol.row(), first_row, last_row),
                                  CLAMP(rowcol.column(), 0, m_column_count - 1));
 }
 
