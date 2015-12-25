@@ -1951,7 +1951,7 @@ VteTerminalPrivate::grid_coords_visible(vte::grid::coords const& rowcol) const
 }
 
 vte::grid::coords
-VteTerminalPrivate::confine_grid_coords(vte::grid::coords& rowcol) const
+VteTerminalPrivate::confine_grid_coords(vte::grid::coords const& rowcol) const
 {
         /* Confine clicks to the nearest actual cell. This is especially useful for
          * fullscreen vte so that you can click on the very edge of the screen.
@@ -5582,17 +5582,23 @@ _vte_terminal_size_to_grid_size(VteTerminal *terminal,
         return TRUE;
 }
 
-void
-VteTerminalPrivate::feed_mouse_event(int button,
+bool
+VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
+                                     int button,
                                      bool is_drag,
-                                     bool is_release,
-                                     vte::grid::column_t col,
-                                     vte::grid::row_t row)
+                                     bool is_release)
 {
 	unsigned char cb = 0;
-	long cx, cy;
 	char buf[LINE_MAX];
 	gint len = 0;
+
+        /* Don't send events on scrollback contents: bug 755187. */
+        if (grid_coords_in_scrollback(rowcol))
+                return false;
+
+	/* Make coordinates 1-based. */
+	auto cx = rowcol.column() + 1;
+	auto cy = rowcol.row() - m_screen->insert_delta + 1;
 
 	/* Encode the button information in cb. */
 	switch (button) {
@@ -5638,10 +5644,6 @@ VteTerminalPrivate::feed_mouse_event(int button,
 		cb |= 32;
 	}
 
-	/* Make coordinates 1-based. */
-	cx = col + 1;
-	cy = row + 1;
-
 	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
 	if (m_mouse_xterm_extension) {
 		/* xterm's extended mode (1006) */
@@ -5656,22 +5658,8 @@ VteTerminalPrivate::feed_mouse_event(int button,
 
 	/* Send event direct to the child, this is binary not text data */
 	vte_terminal_feed_child_binary(m_terminal, (guint8*) buf, len);
-}
 
-void
-VteTerminalPrivate::send_mouse_button_internal(int button,
-                                               bool is_release,
-                                               long x,
-                                               long y)
-{
-        long col, row;
-
-        if (!mouse_pixels_to_grid (x - m_padding.left,
-                                   y - m_padding.top,
-                                   &col, &row))
-                return;
-
-	feed_mouse_event(button, false /* not drag */, is_release, col, row);
+        return true;
 }
 
 void
@@ -5702,9 +5690,11 @@ VteTerminalPrivate::maybe_feed_focus_event(bool in)
  * Returns: %TRUE iff the event was consumed
  */
 bool
-VteTerminalPrivate::maybe_send_mouse_button(GdkEventButton *event)
+VteTerminalPrivate::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
+                                            GdkEventType event_type,
+                                            int event_button)
 {
-	switch (event->type) {
+	switch (event_type) {
 	case GDK_BUTTON_PRESS:
 		if (m_mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_CLICK) {
 			return false;
@@ -5721,11 +5711,11 @@ VteTerminalPrivate::maybe_send_mouse_button(GdkEventButton *event)
 		break;
 	}
 
-	send_mouse_button_internal(
-						event->button,
-						event->type == GDK_BUTTON_RELEASE,
-						event->x, event->y);
-	return true;
+        auto rowcol = confine_grid_coords(unconfined_rowcol);
+        return feed_mouse_event(rowcol,
+                                event_button,
+                                false /* not drag */,
+                                event_type == GDK_BUTTON_RELEASE);
 }
 
 /*
@@ -5739,18 +5729,13 @@ VteTerminalPrivate::maybe_send_mouse_button(GdkEventButton *event)
  * Returns: %TRUE iff the event was consumed
  */
 bool
-VteTerminalPrivate::maybe_send_mouse_drag(GdkEventMotion *event)
+VteTerminalPrivate::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
+                                          GdkEventType event_type)
 {
-        long col, row;
-        int button;
-
-        if (!mouse_pixels_to_grid ((long) event->x - m_padding.left,
-                                   (long) event->y - m_padding.top,
-                                                 &col, &row))
-                return false;
+        auto rowcol = confine_grid_coords(unconfined_rowcol);
 
 	/* First determine if we even want to send notification. */
-	switch (event->type) {
+	switch (event_type) {
 	case GDK_MOTION_NOTIFY:
 		if (m_mouse_tracking_mode < MOUSE_TRACKING_CELL_MOTION_TRACKING)
 			return false;
@@ -5760,10 +5745,11 @@ VteTerminalPrivate::maybe_send_mouse_drag(GdkEventMotion *event)
                         if (m_mouse_pressed_buttons == 0) {
 				return false;
 			}
-			/* the xterm doc is not clear as to whether
-			 * all-tracking also sends degenerate same-cell events */
-                        if (col == m_mouse_last_column &&
-                            row == m_mouse_last_row)
+			/* The xterm doc is not clear as to whether
+			 * all-tracking also sends degenerate same-cell events;
+                         * we don't.
+                         */
+                        if (rowcol == vte::grid::coords(m_mouse_last_row, m_mouse_last_column))
 				return false;
 		}
 		break;
@@ -5773,6 +5759,7 @@ VteTerminalPrivate::maybe_send_mouse_drag(GdkEventMotion *event)
 	}
 
         /* As per xterm, report the leftmost pressed button - if any. */
+        int button;
         if (m_mouse_pressed_buttons & 1)
                 button = 1;
         else if (m_mouse_pressed_buttons & 2)
@@ -5782,10 +5769,10 @@ VteTerminalPrivate::maybe_send_mouse_drag(GdkEventMotion *event)
         else
                 button = 0;
 
-        feed_mouse_event(button,
-                         true /* drag */, false /* not release */,
-                         col, row);
-	return true;
+        return feed_mouse_event(rowcol,
+                                button,
+                                true /* drag */,
+                                false /* not release */);
 }
 
 /*
@@ -7234,7 +7221,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		}
 
 		if (!handled && m_input_enabled)
-			maybe_send_mouse_drag(event);
+			maybe_send_mouse_drag(rowcol, event->type);
 		break;
 	default:
 		break;
@@ -7345,7 +7332,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 		/* If we haven't done anything yet, try sending the mouse
 		 * event to the app. */
 		if (handled == FALSE) {
-			handled = maybe_send_mouse_button(event);
+			handled = maybe_send_mouse_button(rowcol, event->type, event->button);
 		}
 		break;
 	case GDK_2BUTTON_PRESS:
@@ -7441,7 +7428,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 			break;
 		}
 		if (!handled && m_input_enabled) {
-			handled = maybe_send_mouse_button(event);
+			handled = maybe_send_mouse_button(rowcol, event->type, event->button);
 		}
 		break;
 	default:
@@ -9947,7 +9934,10 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 	gint cnt, i;
 	int button;
 
-	read_modifiers((GdkEvent*)event);
+        GdkEvent *base_event = reinterpret_cast<GdkEvent*>(event);
+        auto rowcol = confined_grid_coords_from_event(base_event);
+
+	read_modifiers(base_event);
 
 	switch (event->direction) {
 	case GDK_SCROLL_UP:
@@ -9985,11 +9975,10 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
 			/* Encode the parameters and send them to the app. */
-			send_mouse_button_internal(
-								button,
-								false /* not release */,
-								event->x,
-								event->y);
+                        feed_mouse_event(rowcol,
+                                         button,
+                                         false /* not drag */,
+                                         false /* not release */);
 		}
 		return;
 	}

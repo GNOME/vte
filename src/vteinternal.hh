@@ -529,7 +529,7 @@ public:
 
         inline bool grid_coords_in_scrollback(vte::grid::coords const& rowcol) const { return rowcol.row() < m_screen->insert_delta; }
 
-        vte::grid::coords confine_grid_coords(vte::grid::coords& rowcol) const;
+        vte::grid::coords confine_grid_coords(vte::grid::coords const& rowcol) const;
         vte::grid::coords confined_grid_coords_from_event(GdkEvent const* event) const;
 
         void confine_coordinates(long *xp,
@@ -899,17 +899,15 @@ public:
                                    vte::grid::column_t *col,
                                    vte::grid::row_t *row);
 
-        void feed_mouse_event(int button,
+        bool feed_mouse_event(vte::grid::coords const& unconfined_rowcol,
+                              int button,
                               bool is_drag,
-                              bool is_release,
-                              vte::grid::column_t col,
-                              vte::grid::row_t row);
-        void send_mouse_button_internal(int button,
-                                        bool is_release,
-                                        long x,
-                                        long y);
-        bool maybe_send_mouse_button(GdkEventButton *event);
-        bool maybe_send_mouse_drag(GdkEventMotion *event);
+                              bool is_release);
+        bool maybe_send_mouse_button(vte::grid::coords const& rowcol,
+                                     GdkEventType event_type,
+                                     int event_button);
+        bool maybe_send_mouse_drag(vte::grid::coords const& rowcol,
+                                   GdkEventType event_type);
 
         void feed_focus_event(bool in);
         void maybe_feed_focus_event(bool in);
