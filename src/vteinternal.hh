@@ -530,6 +530,7 @@ public:
         inline bool grid_coords_in_scrollback(vte::grid::coords const& rowcol) const { return rowcol.row() < m_screen->insert_delta; }
 
         vte::grid::coords confine_grid_coords(vte::grid::coords& rowcol) const;
+        vte::grid::coords confined_grid_coords_from_event(GdkEvent const* event) const;
 
         void confine_coordinates(long *xp,
                                  long *yp);

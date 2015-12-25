@@ -1880,6 +1880,20 @@ VteTerminalPrivate::grid_coords_from_event(GdkEvent const* event) const
 }
 
 /*
+ * VteTerminalPrivate::grid_coords_from_event:
+ * @event: a #GdkEvent
+ *
+ * Like grid_coords_from_event(), but also confines the coordinates
+ * to an actual cell in the visible area.
+ */
+vte::grid::coords
+VteTerminalPrivate::confined_grid_coords_from_event(GdkEvent const* event) const
+{
+        auto rowcol = grid_coords_from_view_coords(view_coords_from_event(event));
+        return confine_grid_coords(rowcol);
+}
+
+/*
  * VteTerminalPrivate::grid_coords_from_view_coords:
  * @pos: the view coordinates
  * @rowcol: the grid coordinates
