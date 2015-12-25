@@ -5918,11 +5918,10 @@ VteTerminalPrivate::match_hilite(vte::view::coords const& pos)
 {
         auto x = pos.x;
         auto y = pos.y;
-        auto allocation = get_allocated_rect();
 
 	/* if the cursor is not above a cell, skip */
-	if (x < 0 || x > allocation.width
-			|| y < 0 || y > allocation.height) {
+	if (x < 0 || x >= m_view_usable_extents.width() ||
+            y < 0 || y >= m_view_usable_extents.height()) {
 		return;
 	}
 
