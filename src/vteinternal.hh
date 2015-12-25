@@ -807,15 +807,12 @@ public:
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
         void match_hilite_clear();
-        bool cursor_inside_match(long x,
-                                 long y);
-        void match_hilite_show(long x,
-                               long y);
+        bool cursor_inside_match(vte::view::coords const& pos);
+        void match_hilite_show(vte::view::coords const& pos);
         void match_hilite_hide();
-        void match_hilite_update(long x,
-                                 long y);
-        void match_hilite(long x,
-                          long y);
+        void match_hilite_update(vte::view::coords const& pos);
+        void match_hilite(vte::view::coords const& pos);
+
         bool rowcol_from_event(GdkEvent *event,
                                long *column,
                                long *row);

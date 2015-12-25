@@ -5797,11 +5797,10 @@ VteTerminalPrivate::match_hilite_clear()
 }
 
 bool
-VteTerminalPrivate::cursor_inside_match(long x,
-                                        long y)
+VteTerminalPrivate::cursor_inside_match(vte::view::coords const& pos)
 {
-	glong col = x / m_char_width;
-	glong row = pixel_to_row(y);
+	glong col = pos.x / m_char_width;
+	glong row = pixel_to_row(pos.y);
 
         return m_match_span.contains(row, col);
 }
@@ -5821,13 +5820,12 @@ VteTerminalPrivate::invalidate_match_span()
  * the coordinates are in the match area m_match_span.
  */
 void
-VteTerminalPrivate::match_hilite_show(long x,
-                                      long y)
+VteTerminalPrivate::match_hilite_show(vte::view::coords const& pos)
 {
 	if (!m_match || m_show_match)
                 return;
 
-        if (!cursor_inside_match (x, y))
+        if (!cursor_inside_match(pos))
                 return;
 
         invalidate_match_span();
@@ -5857,9 +5855,11 @@ VteTerminalPrivate::match_hilite_hide()
  * sets it to display highlighted.
  */
 void
-VteTerminalPrivate::match_hilite_update(long x,
-                                        long y)
+VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
 {
+        auto x = pos.x;
+        auto y = pos.y;
+
 	/* Check for matches. */
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
@@ -5916,9 +5916,10 @@ VteTerminalPrivate::match_hilite_update(long x,
  * with match_hilite_update().
  */
 void
-VteTerminalPrivate::match_hilite(long x,
-                                 long y)
+VteTerminalPrivate::match_hilite(vte::view::coords const& pos)
 {
+        auto x = pos.x;
+        auto y = pos.y;
         auto allocation = get_allocated_rect();
 
 	/* if the cursor is not above a cell, skip */
@@ -5936,12 +5937,12 @@ VteTerminalPrivate::match_hilite(long x,
 		return;
 	}
 
-	if (cursor_inside_match(x, y)) {
+	if (cursor_inside_match(pos)) {
 		m_show_match = m_match != nullptr;
 		return;
 	}
 
-	match_hilite_update(x, y);
+	match_hilite_update(pos);
 }
 
 /* Note that the clipboard has cleared. */
@@ -7186,7 +7187,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		match_hilite_hide();
 	} else if (vte::view::coords(x, y) != m_mouse_last_position) {
 		/* Hilite any matches. */
-		match_hilite(x, y);
+		match_hilite(vte::view::coords(x, y));
 		/* Show the cursor. */
 		set_pointer_visible(true);
 	}
@@ -7251,7 +7252,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 	x = event->x - m_padding.left;
 	y = event->y - m_padding.top;
 
-	match_hilite(x, y);
+	match_hilite(vte::view::coords(x, y));
 
 	set_pointer_visible(true);
 
@@ -7414,7 +7415,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 	x = event->x - m_padding.left;
 	y = event->y - m_padding.top;
 
-	match_hilite(x, y);
+	match_hilite(vte::view::coords(x, y));
 
 	set_pointer_visible(true);
 
@@ -7524,8 +7525,8 @@ VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
 
         /* Hilite any matches. */
-        match_hilite_show(event->x - m_padding.left,
-                          event->y - m_padding.top);
+        match_hilite_show(vte::view::coords(event->x - m_padding.left,
+                                            event->y - m_padding.top));
 }
 
 void
@@ -10788,8 +10789,7 @@ VteTerminalPrivate::emit_pending_signals()
 		/* Update dingus match set. */
 		match_contents_clear();
 		if (m_mouse_cursor_visible) {
-			match_hilite_update(m_mouse_last_position.x,
-                                            m_mouse_last_position.y);
+			match_hilite_update(m_mouse_last_position);
 		}
 
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
