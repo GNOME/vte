@@ -7243,28 +7243,25 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 {
 	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
-	long cellx, celly;
-	long x,y;
 
-	x = event->x - m_padding.left;
-	y = event->y - m_padding.top;
+        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
+        auto pos = view_coords_from_event(base_event);
 
-	match_hilite(vte::view::coords(x, y));
+	match_hilite(pos);
 
 	set_pointer_visible(true);
 
-	read_modifiers((GdkEvent*)event);
+	read_modifiers(base_event);
 
 	/* Convert the event coordinates to cell coordinates. */
-	cellx = x / m_char_width;
-	celly = pixel_to_row(y);
+        auto rowcol = grid_coords_from_view_coords(pos);
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d single-click at (%ld,%ld)\n",
-				event->button,
-				x, scroll_delta_pixel() + y);
+                                 "Button %d single-click at %s\n",
+                                 event->button,
+                                 rowcol.to_string());
 		/* Handle this event ourselves. */
 		switch (event->button) {
 		case 1:
@@ -7288,8 +7285,8 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 				    (m_has_selection ||
 				     m_selecting_restart) &&
 				    !vte_cell_is_selected(m_terminal,
-							  cellx,
-							  celly,
+							  rowcol.column(),
+							  rowcol.row(),
 							  NULL)) {
 					extend_selecting = TRUE;
 				} else {
@@ -7303,7 +7300,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 				handled = true;
 			}
 			if (extend_selecting) {
-				extend_selection(x, y, !m_selecting_restart, true);
+				extend_selection(pos.x, pos.y, !m_selecting_restart, true);
 				/* The whole selection code needs to be
 				 * rewritten.  For now, put this here to
 				 * fix bug 614658 */
@@ -7344,21 +7341,19 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 		break;
 	case GDK_2BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d double-click at (%ld,%ld)\n",
-				event->button,
-				x, scroll_delta_pixel() + y);
+                                 "Button %d double-click at %s\n",
+                                 event->button,
+                                 rowcol.to_string());
 		switch (event->button) {
 		case 1:
 			if (m_selecting_after_threshold) {
-				start_selection(
-							     x, y,
-							     selection_type_char);
+				start_selection(pos.x, pos.y,
+                                                selection_type_char);
 				handled = true;
 			}
                         if ((mouse_handled_buttons & 1) != 0) {
-				start_selection(
-							     x, y,
-							     selection_type_word);
+				start_selection(pos.x, pos.y,
+                                                selection_type_word);
 				handled = true;
 			}
 			break;
@@ -7370,15 +7365,14 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 		break;
 	case GDK_3BUTTON_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d triple-click at (%ld,%ld).\n",
-				event->button,
-				x, scroll_delta_pixel() + y);
+                                 "Button %d triple-click at %s\n",
+                                 event->button,
+                                 rowcol.to_string());
 		switch (event->button) {
 		case 1:
                         if ((m_mouse_handled_buttons & 1) != 0) {
-				start_selection(
-							     x, y,
-							     selection_type_line);
+				start_selection(pos.x, pos.y,
+                                                selection_type_line);
 				handled = true;
 			}
 			break;
@@ -7394,9 +7388,8 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons |= (1 << (event->button - 1));
-	m_mouse_last_position = vte::view::coords(x, y);
-        mouse_pixels_to_grid (
-                                            x, y,
+	m_mouse_last_position = pos;
+        mouse_pixels_to_grid (pos.x, pos.y,
                                             &m_mouse_last_column,
                                             &m_mouse_last_row);
 
