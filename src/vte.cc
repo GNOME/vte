@@ -9424,50 +9424,37 @@ fg_out:
 }
 
 void
-VteTerminalPrivate::expand_cairo_region(cairo_region_t *region,
-                                        GdkRectangle const* area) const
+VteTerminalPrivate::expand_rectangle(cairo_rectangle_int_t& rect) const
 {
-        vte::grid::row_t row, row_stop;
-        vte::grid::column_t col, col_stop;
-	cairo_rectangle_int_t rect;
-
-        auto allocation = get_allocated_rect();
-
 	/* increase the paint by one pixel on all sides to force the
 	 * inclusion of neighbouring cells */
-        row = pixel_to_row(MAX(0, area->y - m_padding.top - 1));
+        vte::grid::row_t row = pixel_to_row(MAX(0, rect.y - 1));
         /* Both the value given by MIN() and row_stop are exclusive.
          * _vte_terminal_pixel_to_row expects an actual value corresponding
          * to the bottom visible pixel, hence the - 1 + 1 magic. */
-        row_stop = pixel_to_row(MIN(area->height + area->y - m_padding.top + 1,
-                                    allocation.height - m_padding.top - m_padding.bottom) - 1) + 1;
-	if (row_stop <= row) {
-		return;
-	}
-	col = MAX(0, (area->x - m_padding.left - 1) / m_char_width);
-	col_stop = MIN(howmany(area->width + area->x - m_padding.left + 1, m_char_width),
-		       m_column_count);
-	if (col_stop <= col) {
-		return;
-	}
+        vte::grid::row_t row_stop = pixel_to_row(MIN(rect.height + rect.y + 1, m_view_usable_extents.height()) - 1) + 1;
+        if (row_stop <= row)
+                return;
 
-	rect.x = col * m_char_width + m_padding.left;
-	rect.width = (col_stop - col) * m_char_width;
+        vte::grid::column_t col = MAX(0, (rect.x - 1) / m_char_width);
+        vte::grid::column_t col_stop = MIN(howmany(rect.width + rect.x + 1, m_char_width), m_column_count);
+        if (col_stop <= col)
+                return;
 
-	rect.y = row_to_pixel(row) + m_padding.top;
-	rect.height = (row_stop - row) * m_char_height;
+        cairo_rectangle_int_t old_rect = rect;
+        rect.x = col * m_char_width;
+        rect.width = (col_stop - col) * m_char_width;
+        rect.y = row_to_pixel(row);
+        rect.height = (row_stop - row) * m_char_height;
 
-	/* the rect must be cell aligned to avoid overlapping XY bands */
-	cairo_region_union_rectangle(region, &rect);
-
-	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"expand_cairo_region"
-			"	(%d,%d)x(%d,%d) pixels,"
-			" (%ld,%ld)x(%ld,%ld) cells"
-			" [(%d,%d)x(%d,%d) pixels]\n",
-			area->x, area->y, area->width, area->height,
-			col, row, col_stop - col, row_stop - row,
-			rect.x, rect.y, rect.width, rect.height);
+        _vte_debug_print (VTE_DEBUG_UPDATES,
+                          "expand_rectangle"
+                          "	(%d,%d)x(%d,%d) pixels,"
+                          " (%ld,%ld)x(%ld,%ld) cells"
+                          " [(%d,%d)x(%d,%d) pixels]\n",
+                          old_rect.x, old_rect.y, old_rect.width, old_rect.height,
+                          col, row, col_stop - col, row_stop - row,
+                          rect.x, rect.y, rect.width, rect.height);
 }
 
 void
@@ -9757,43 +9744,44 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 
         cairo_translate(cr, m_padding.left, m_padding.top);
 
-	/* Calculate the bounding rectangle. */
-	{
-		cairo_rectangle_int_t *rectangles;
-		gint n, n_rectangles;
-		n_rectangles = cairo_region_num_rectangles (region);
-		rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
-		for (n = 0; n < n_rectangles; n++) {
-			cairo_region_get_rectangle (region, n, &rectangles[n]);
-		}
+        /* Transform to view coordinates */
+        cairo_region_translate(region, -m_padding.left, -m_padding.top);
 
-		/* don't bother to enlarge an invalidate all */
-		if (!(n_rectangles == 1
-		      && rectangles[0].width == allocated_width
-		      && rectangles[0].height == allocated_height)) {
-			cairo_region_t *rr = cairo_region_create ();
-			/* convert pixels into whole cells */
-			for (n = 0; n < n_rectangles; n++) {
-				expand_cairo_region(rr, rectangles + n);
-			}
-			g_free (rectangles);
+        cairo_rectangle_int_t *rectangles;
+        int n, n_rectangles;
+        n_rectangles = cairo_region_num_rectangles (region);
+        rectangles = g_new(cairo_rectangle_int_t, n_rectangles);
+        for (n = 0; n < n_rectangles; n++) {
+                cairo_region_get_rectangle (region, n, &rectangles[n]);
+        }
 
-			n_rectangles = cairo_region_num_rectangles (rr);
-			rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
-			for (n = 0; n < n_rectangles; n++) {
-				cairo_region_get_rectangle (rr, n, &rectangles[n]);
-			}
-			cairo_region_destroy (rr);
-		}
+        /* don't bother to enlarge an invalidate all */
+        if (!(n_rectangles == 1
+              && rectangles[0].width == allocated_width
+              && rectangles[0].height == allocated_height)) {
+                cairo_region_t *rr = cairo_region_create ();
+                /* Expand the rectangles so that they cover whole cells,
+                 * to avoid overlapping XY bands.
+                 */
+                for (n = 0; n < n_rectangles; n++) {
+                        expand_rectangle(rectangles[n]);
+                        cairo_region_union_rectangle(rr, &rectangles[n]);
+                }
+                g_free(rectangles);
 
-		/* and now paint them */
-		for (n = 0; n < n_rectangles; n++) {
-                        rectangles[n].x -= m_padding.left;
-                        rectangles[n].y -= m_padding.top;
-			paint_area(rectangles + n);
-		}
-		g_free (rectangles);
-	}
+                n_rectangles = cairo_region_num_rectangles (rr);
+                rectangles = g_new (cairo_rectangle_int_t, n_rectangles);
+                for (n = 0; n < n_rectangles; n++) {
+                        cairo_region_get_rectangle(rr, n, &rectangles[n]);
+                }
+                cairo_region_destroy(rr);
+        }
+
+        /* and now paint them */
+        for (n = 0; n < n_rectangles; n++) {
+                paint_area(&rectangles[n]);
+        }
+        g_free (rectangles);
 
 	paint_im_preedit_string();
 

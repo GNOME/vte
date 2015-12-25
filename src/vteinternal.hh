@@ -556,8 +556,7 @@ public:
 
         void widget_settings_notify();
 
-        void expand_cairo_region(cairo_region_t *region,
-                                 GdkRectangle const* area) const;
+        void expand_rectangle(cairo_rectangle_int_t& rect) const;
         void paint_area(GdkRectangle const* area);
         void paint_cursor();
         void paint_im_preedit_string();
