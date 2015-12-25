@@ -7166,25 +7166,23 @@ VteTerminalPrivate::stop_autoscroll()
 bool
 VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 {
-        long x, y;
 	bool handled = false;
 
-        x = event->x - m_padding.left;
-        y = event->y - m_padding.top;
+        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
+        auto pos = view_coords_from_event(base_event);
+        auto rowcol = grid_coords_from_view_coords(pos);
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Motion notify (%ld,%ld) [%ld, %ld].\n",
-                         x, y,
-                         x / m_char_width,
-                         pixel_to_row(y));
+                         "Motion notify %s %s\n",
+                         pos.to_string(), rowcol.to_string());
 
-	read_modifiers((GdkEvent*)event);
+	read_modifiers(base_event);
 
         if (m_mouse_pressed_buttons != 0) {
 		match_hilite_hide();
-	} else if (vte::view::coords(x, y) != m_mouse_last_position) {
+	} else if (pos != m_mouse_last_position) {
 		/* Hilite any matches. */
-		match_hilite(vte::view::coords(x, y));
+		match_hilite(pos);
 		/* Show the cursor. */
 		set_pointer_visible(true);
 	}
@@ -7195,7 +7193,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 			if (!gtk_drag_check_threshold (m_widget,
 						       m_mouse_last_position.x,
 						       m_mouse_last_position.y,
-						       x, y))
+						       pos.x, pos.y))
 				return true;
 
 			start_selection(m_mouse_last_position.x,
@@ -7206,10 +7204,10 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		if (m_selecting &&
                     (m_mouse_handled_buttons & 1) != 0) {
 			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
-			extend_selection(x, y, false, false);
+			extend_selection(pos.x, pos.y, false, false);
 
 			/* Start scrolling if we need to. */
-			if (y < 0 || y >= m_view_usable_extents.height()) {
+			if (pos.y < 0 || pos.y >= m_view_usable_extents.height()) {
 				/* Give mouse wigglers something. */
                                 stop_autoscroll();
 				autoscroll();
@@ -7229,9 +7227,8 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 	}
 
 	/* Save the pointer coordinates for later use. */
-	m_mouse_last_position = vte::view::coords(x, y);
-        mouse_pixels_to_grid (
-                                            x, y,
+	m_mouse_last_position = pos;
+        mouse_pixels_to_grid (pos.x, pos.y,
                                             &m_mouse_last_column,
                                             &m_mouse_last_row);
 
@@ -7246,15 +7243,13 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
+        auto rowcol = grid_coords_from_view_coords(pos);
 
 	match_hilite(pos);
 
 	set_pointer_visible(true);
 
 	read_modifiers(base_event);
-
-	/* Convert the event coordinates to cell coordinates. */
-        auto rowcol = grid_coords_from_view_coords(pos);
 
 	switch (event->type) {
 	case GDK_BUTTON_PRESS:
@@ -7400,24 +7395,24 @@ bool
 VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 {
 	bool handled = false;
-	int x, y;
 
-	x = event->x - m_padding.left;
-	y = event->y - m_padding.top;
+        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
+        auto pos = view_coords_from_event(base_event);
+        auto rowcol = grid_coords_from_view_coords(pos);
 
-	match_hilite(vte::view::coords(x, y));
+	match_hilite(pos);
 
 	set_pointer_visible(true);
 
 	stop_autoscroll();
 
-	read_modifiers((GdkEvent*)event);
+	read_modifiers(base_event);
 
 	switch (event->type) {
 	case GDK_BUTTON_RELEASE:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Button %d released at (%d,%d).\n",
-				event->button, x, y);
+                                 "Button %d released at %s\n",
+                                 event->button, rowcol.to_string());
 		switch (event->button) {
 		case 1:
                         if ((m_mouse_handled_buttons & 1) != 0)
@@ -7442,9 +7437,8 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons &= ~(1 << (event->button - 1));
-	m_mouse_last_position = vte::view::coords(x, y);
-        mouse_pixels_to_grid (
-                                            x, y,
+	m_mouse_last_position = pos;
+        mouse_pixels_to_grid (pos.x, pos.y,
                                             &m_mouse_last_column,
                                             &m_mouse_last_row);
 	m_selecting_after_threshold = false;
@@ -7512,17 +7506,22 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
 void
 VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter.\n");
+        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
+        auto pos = view_coords_from_event(base_event);
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter at %s\n", pos.to_string());
 
         /* Hilite any matches. */
-        match_hilite_show(vte::view::coords(event->x - m_padding.left,
-                                            event->y - m_padding.top));
+        match_hilite_show(pos);
 }
 
 void
 VteTerminalPrivate::widget_leave(GdkEventCrossing *event)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave.\n");
+        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
+        auto pos = view_coords_from_event(base_event);
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave at %s\n", pos.to_string());
 
         match_hilite_hide();
 
