@@ -336,7 +336,7 @@ VteTerminalPrivate::mouse_pixels_to_grid (long x,
         rowcol = confine_grid_coords(rowcol);
 
         /* Don't allow clicking on scrollback contents: bug 755187. */
-        if (rowcol.row() < m_screen->insert_delta)
+        if (grid_coords_in_scrollback(rowcol))
                 return false;
 
         *col = rowcol.column();

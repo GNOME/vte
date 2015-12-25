@@ -239,6 +239,7 @@ public:
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
 	struct _VteScreen normal_screen, alternate_screen, *screen;
+#define m_screen screen
 
         /* Values we save along with the cursor */
         VteVisualPosition cursor;	/* relative to the insertion delta */
@@ -525,6 +526,8 @@ public:
 
         bool view_coords_visible(vte::view::coords const& pos) const;
         bool grid_coords_visible(vte::grid::coords const& rowcol) const;
+
+        inline bool grid_coords_in_scrollback(vte::grid::coords const& rowcol) const { return rowcol.row() < m_screen->insert_delta; }
 
         vte::grid::coords confine_grid_coords(vte::grid::coords& rowcol) const;
 
@@ -1017,7 +1020,6 @@ public:
 #define m_match_attributes match_attributes
 #define m_match_contents match_contents
 #define m_match_regex_mode match_regex_mode
-#define m_screen screen
 #define m_mouse_tracking_mode mouse_tracking_mode
 #define m_mouse_pressed_buttons mouse_pressed_buttons
 #define m_mouse_last_column mouse_last_col
