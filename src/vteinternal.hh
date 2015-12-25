@@ -337,7 +337,8 @@ public:
 				    but we need to guarantee its type. */
         guint mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
         guint mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
-	long mouse_last_x, mouse_last_y;
+        /* The last known position the mouse pointer from an event */
+        vte::view::coords m_mouse_last_position;
         long mouse_last_col, mouse_last_row;
 	gboolean mouse_autohide;
 	guint m_mouse_autoscroll_tag;
@@ -1030,8 +1031,6 @@ public:
 #define m_focus_tracking_mode focus_tracking_mode
 #define m_match_tag match_tag
 #define m_match match
-#define m_mouse_last_x mouse_last_x
-#define m_mouse_last_y mouse_last_y
 #define m_has_focus has_focus
 #define m_im_context im_context
 #define m_mouse_cursor_visible mouse_cursor_visible

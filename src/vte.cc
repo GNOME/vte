@@ -5930,8 +5930,8 @@ VteTerminalPrivate::match_hilite(long x,
 	/* If the pointer hasn't moved to another character cell, then we
 	 * need do nothing. Note: Don't use mouse_last_row as that's relative
 	 * to insert_delta, and we care about the absolute row number. */
-	if (x / m_char_width  == m_mouse_last_x / m_char_width &&
-	    pixel_to_row(y) == pixel_to_row(m_mouse_last_y)) {
+	if (x / m_char_width  == m_mouse_last_position.x / m_char_width &&
+	    pixel_to_row(y) == pixel_to_row(m_mouse_last_position.y)) {
 		m_show_match = m_match != nullptr;
 		return;
 	}
@@ -7096,7 +7096,7 @@ VteTerminalPrivate::autoscroll()
 	glong adj;
 
 	/* Provide an immediate effect for mouse wigglers. */
-	if (m_mouse_last_y < 0) {
+	if (m_mouse_last_position.y < 0) {
 		if (m_vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = m_screen->scroll_delta - 1;
@@ -7105,7 +7105,7 @@ VteTerminalPrivate::autoscroll()
 		}
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
 	}
-	if (m_mouse_last_y >= m_view_usable_extents.height()) {
+	if (m_mouse_last_position.y >= m_view_usable_extents.height()) {
 		if (m_vadjustment) {
 			/* Try to scroll up by one line. */
 			adj = m_screen->scroll_delta + 1;
@@ -7115,18 +7115,19 @@ VteTerminalPrivate::autoscroll()
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
 	}
 	if (extend) {
+                // FIXMEchpe use confine_view_coords here
 		/* Don't select off-screen areas.  That just confuses people. */
 		xmax = m_column_count * m_char_width;
 		ymax = m_row_count * m_char_height;
 
-		x = CLAMP(m_mouse_last_x, 0, xmax);
-		y = CLAMP(m_mouse_last_y, 0, ymax);
+		x = CLAMP(m_mouse_last_position.x, 0, xmax);
+		y = CLAMP(m_mouse_last_position.y, 0, ymax);
 		/* If we clamped the Y, mess with the X to get the entire
 		 * lines. */
-		if (m_mouse_last_y < 0 && !m_selection_block_mode) {
+		if (m_mouse_last_position.y < 0 && !m_selection_block_mode) {
 			x = 0;
 		}
-		if (m_mouse_last_y >= ymax && !m_selection_block_mode) {
+		if (m_mouse_last_position.y >= ymax && !m_selection_block_mode) {
 			x = m_column_count * m_char_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
@@ -7167,23 +7168,23 @@ VteTerminalPrivate::stop_autoscroll()
 bool
 VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 {
-	long x, y;
+        long x, y;
 	bool handled = false;
 
-	x = event->x - m_padding.left;
-	y = event->y - m_padding.top;
+        x = event->x - m_padding.left;
+        y = event->y - m_padding.top;
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Motion notify (%ld,%ld) [%ld, %ld].\n",
-			x, y,
-			x / m_char_width,
-                        pixel_to_row(y));
+                         "Motion notify (%ld,%ld) [%ld, %ld].\n",
+                         x, y,
+                         x / m_char_width,
+                         pixel_to_row(y));
 
 	read_modifiers((GdkEvent*)event);
 
         if (m_mouse_pressed_buttons != 0) {
 		match_hilite_hide();
-	} else if (x != m_mouse_last_x || y != m_mouse_last_y) {
+	} else if (vte::view::coords(x, y) != m_mouse_last_position) {
 		/* Hilite any matches. */
 		match_hilite(x, y);
 		/* Show the cursor. */
@@ -7194,15 +7195,14 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 	case GDK_MOTION_NOTIFY:
 		if (m_selecting_after_threshold) {
 			if (!gtk_drag_check_threshold (m_widget,
-						       m_mouse_last_x,
-						       m_mouse_last_y,
+						       m_mouse_last_position.x,
+						       m_mouse_last_position.y,
 						       x, y))
 				return true;
 
-			start_selection(
-						     m_mouse_last_x,
-						     m_mouse_last_y,
-						     selection_type_char);
+			start_selection(m_mouse_last_position.x,
+                                        m_mouse_last_position.y,
+                                        selection_type_char);
 		}
 
 		if (m_selecting &&
@@ -7231,8 +7231,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 	}
 
 	/* Save the pointer coordinates for later use. */
-	m_mouse_last_x = x;
-	m_mouse_last_y = y;
+	m_mouse_last_position = vte::view::coords(x, y);
         mouse_pixels_to_grid (
                                             x, y,
                                             &m_mouse_last_column,
@@ -7397,8 +7396,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons |= (1 << (event->button - 1));
-	m_mouse_last_x = x;
-	m_mouse_last_y = y;
+	m_mouse_last_position = vte::view::coords(x, y);
         mouse_pixels_to_grid (
                                             x, y,
                                             &m_mouse_last_column,
@@ -7453,8 +7451,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons &= ~(1 << (event->button - 1));
-	m_mouse_last_x = x;
-	m_mouse_last_y = y;
+	m_mouse_last_position = vte::view::coords(x, y);
         mouse_pixels_to_grid (
                                             x, y,
                                             &m_mouse_last_column,
@@ -10412,8 +10409,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
         m_mouse_pressed_buttons = 0;
         m_mouse_handled_buttons = 0;
-	m_mouse_last_x = 0;
-	m_mouse_last_y = 0;
+	m_mouse_last_position = vte::view::coords(0, 0);
         m_mouse_last_column = 0;
         m_mouse_last_row = 0;
 	m_mouse_xterm_extension = FALSE;
@@ -10792,8 +10788,8 @@ VteTerminalPrivate::emit_pending_signals()
 		/* Update dingus match set. */
 		match_contents_clear();
 		if (m_mouse_cursor_visible) {
-			match_hilite_update(m_mouse_last_x,
-                                            m_mouse_last_y);
+			match_hilite_update(m_mouse_last_position.x,
+                                            m_mouse_last_position.y);
 		}
 
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
