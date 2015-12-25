@@ -106,7 +106,6 @@ AC_CHECK_DECLS(bind_textdomain_codeset,,,[#include "libintl.h"])
 
 m4_define([compiler_flags_common],[ dnl
   -pipe dnl
-  -Waggregate-return dnl
   -Wall dnl
   -Wcast-align dnl
   -Wendif-labels dnl
@@ -145,6 +144,7 @@ m4_define([compiler_flags_common],[ dnl
 ])
 
 m4_define([compiler_flags_only_c],[ dnl
+  -Waggregate-return dnl
   -Wimplicit dnl
   -Wnested-externs dnl
   -Wold-style-definition dnl
