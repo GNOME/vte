@@ -358,14 +358,14 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
                                      vte::grid::row_t row_start,
                                      int n_rows)
 {
-	cairo_rectangle_int_t rect;
-
 	if (G_UNLIKELY (!widget_realized()))
                 return;
 
-	if (!n_columns || !n_rows) {
-		return;
-	}
+        /* FIXMEchpe: == 0 is fine, but somehow sometimes we
+         * get an actual negative n_columns value passed!?
+         */
+        if (n_columns <= 0 || n_rows <= 0)
+                return;
 
 	if (m_invalidated_all) {
 		return;
@@ -383,36 +383,19 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 		return;
 	}
 
-        auto allocation = get_allocated_rect();
-
+        cairo_rectangle_int_t rect;
 	/* Convert the column and row start and end to pixel values
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border and overlap pixel.
 	 */
-        rect.x = m_padding.left + column_start * m_char_width - 1;
-        if (rect.x <= 0)
-                rect.x = 0;
-        /* Temporarily misuse rect.width for the end x coordinate... */
-        rect.width = m_padding.left + (column_start + n_columns) * m_char_width + 2; /* TODO why 2 and not 1? */
-        if (rect.width >= allocation.width)
-                rect.width = allocation.width;
-        /* ... fix that here */
-	rect.width -= rect.x;
+        rect.x = column_start * m_char_width - 1;
+        /* The extra + 1 is for the faux-bold overdraw */
+        int xend = (column_start + n_columns) * m_char_width + 1 + 1;
+        rect.width = xend - rect.x;
 
-        rect.y = m_padding.top + row_to_pixel(row_start) - 1;
-        if (rect.y <= 0)
-                rect.y = 0;
-
-        /* Temporarily misuse rect.height for the end y coordinate... */
-        rect.height = m_padding.top + row_to_pixel(row_start + n_rows) + 1;
-        if (rect.height >= allocation.height)
-                rect.height = allocation.height;
-        /* ... fix that here */
-        rect.height -= rect.y;
-
-        /* Ensure the values make sense */
-        if (rect.width <= 0 || rect.height <= 0)
-                return;
+        rect.y = row_to_pixel(row_start) - 1;
+        int yend = row_to_pixel(row_start + n_rows) + 1;
+        rect.height = yend - rect.y;
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
@@ -424,6 +407,8 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 		 * case updates are coming in really soon. */
 		add_update_timeout (m_terminal);
 	} else {
+                rect.x += m_padding.left;
+                rect.y += m_padding.top;
 		gdk_window_invalidate_rect (gtk_widget_get_window (m_widget), &rect, FALSE);
 	}
 
@@ -4009,7 +3994,7 @@ next_match:
 		GdkRectangle rect;
                 rect.x = m_cursor.col *
 			 m_char_width + m_padding.left;
-		rect.width = m_char_width;
+		rect.width = m_char_width; // FIXMEchpe: if columns > 1 ?
                 rect.y = row_to_pixel(m_cursor.row) + m_padding.top;
 		rect.height = m_char_height;
 		gtk_im_context_set_cursor_location(m_im_context,
@@ -10877,8 +10862,11 @@ update_regions (VteTerminal *terminal)
                 cairo_region_union_rectangle(region, rect);
 	}
         g_array_set_size(terminal->pvt->m_update_rects, 0);
-
 	terminal->pvt->invalidated_all = FALSE;
+
+        cairo_region_translate(region,
+                               terminal->pvt->m_padding.left,
+                               terminal->pvt->m_padding.top);
 
 	/* and perform the merge with the window visible area */
 	window = gtk_widget_get_window (&terminal->widget);

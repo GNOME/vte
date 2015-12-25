@@ -220,7 +220,10 @@ public:
 	struct _vte_iso2022_state *iso2022;
 	_vte_incoming_chunk_t *incoming;/* pending bytestream */
 	GArray *pending;		/* pending characters */
-	GArray *m_update_rects;         /* dirty rectangles */
+        /* Array of dirty rectangles in view coordinates; need to
+         * add allocation origin and padding when passing to gtk.
+         */
+	GArray *m_update_rects;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
 	GList *active;                  /* is the terminal processing data */
 	glong input_bytes;
