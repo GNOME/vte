@@ -233,10 +233,13 @@ class Window : Gtk.ApplicationWindow
 
     /* Create terminal and connect scrollbar */
     terminal = new Vte.Terminal();
-    terminal.margin_start = 20;
-    terminal.margin_end = 20;
-    terminal.margin_top = 30;
-    terminal.margin_bottom = 30;
+    var margin = App.Options.extra_margin;
+    if (margin > 0) {
+      terminal.margin_start =
+        terminal.margin_end =
+        terminal.margin_top =
+        terminal.margin_bottom = margin;
+    }
 
     scrollbar.set_adjustment(terminal.get_vadjustment());
 
@@ -841,6 +844,7 @@ class App : Gtk.Application
     public static bool debug = false;
     public static string? encoding = null;
     public static string[]? environment = null;
+    public static int extra_margin = 0;
     public static string? font_string = null;
     public static string? geometry = null;
     private static string? hl_bg_color_string = null;
@@ -1013,6 +1017,8 @@ class App : Gtk.Application
         "Specify the terminal encoding to use", null },
       { "env", 0, 0, OptionArg.STRING_ARRAY, ref environment,
         "Add environment variable to the child\'s environment", "VAR=VALUE" },
+      { "extra-margin", 0, 0, OptionArg.INT, ref extra_margin,
+        "Add extra margin around the terminal widget", "MARGIN" },
       { "font", 'f', 0, OptionArg.STRING, ref font_string,
         "Specify a font to use", null },
       { "gregex", 0, 0, OptionArg.NONE, ref no_pcre,
