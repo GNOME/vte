@@ -191,9 +191,9 @@ vte_regex_new(const char *pattern,
                                &errcode, &erroffset,
                                NULL);
 
-        if (code == 0) {
+        if (code == nullptr) {
                 set_gerror_from_pcre_error(errcode, error);
-                g_prefix_error(error, "Failed to compile pattern to regex at %" G_GSIZE_FORMAT ":",
+                g_prefix_error(error, "Failed to compile pattern to regex at offset %" G_GSIZE_FORMAT ":",
                                erroffset);
                 return NULL;
         }

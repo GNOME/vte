@@ -156,17 +156,20 @@ class SearchPopover : Gtk.Popover
         }
 
         regex_pattern = pattern;
+        search_entry.set_tooltip_text(null);
       } catch (Error e) {
 #if WITH_PCRE2
         regex = null;
 #endif
         gregex = null;
+        search_entry.set_tooltip_text(e.message);
       }
     } else {
 #if WITH_PCRE2
       regex = null;
 #endif
       gregex = null;
+      search_entry.set_tooltip_text(null);
     }
 
 #if WITH_PCRE2
