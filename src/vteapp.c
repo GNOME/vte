@@ -574,7 +574,7 @@ add_dingus (VteTerminal *terminal,
                                               &error);
                 else
 #endif
-                        gregex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE, 0, &error);
+                        gregex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE | G_REGEX_MULTILINE, 0, &error);
 
                 if (error) {
                         g_warning("Failed to compile regex '%s': %s\n",

@@ -401,7 +401,7 @@ class Window : Gtk.ApplicationWindow
           Vte.Regex regex;
 
           regex = new Vte.Regex(dingus[i], dingus[i].length,
-                                0x40080008u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_CASELESS */);
+                                0x40080408u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_CASELESS | PCRE2_MULTILINE */);
           try {
             regex.jit(0x00000001u /* PCRE2_JIT_COMPLETE */);
             regex.jit(0x00000002u /* PCRE2_JIT_PARTIAL_SOFT */);
@@ -416,7 +416,10 @@ class Window : Gtk.ApplicationWindow
         {
           GLib.Regex regex;
 
-          regex = new GLib.Regex(dingus[i], GLib.RegexCompileFlags.OPTIMIZE, 0);
+          regex = new GLib.Regex(dingus[i],
+                                 GLib.RegexCompileFlags.OPTIMIZE |
+                                 GLib.RegexCompileFlags.MULTILINE,
+                                 0);
           tag = terminal.match_add_gregex(regex, 0);
         }
 

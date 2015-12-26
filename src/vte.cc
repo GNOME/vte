@@ -1408,8 +1408,7 @@ VteTerminalPrivate::match_check_pcre(
                               (PCRE2_SPTR8)line, line_length, /* subject, length */
                               position, /* start offset */
                               match_flags |
-                              PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */ |
-                              PCRE2_MULTILINE,
+                              PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
                               match_data,
                               match_context)) >= 0 || r == PCRE2_ERROR_PARTIAL)) {
                 gsize ko = offset;

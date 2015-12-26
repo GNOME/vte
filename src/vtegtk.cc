@@ -1667,6 +1667,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
         /* Can't mix GRegex and PCRE2 */
         g_return_val_if_fail(terminal->pvt->m_match_regex_mode != VTE_REGEX_PCRE2, -1);
 
+        g_warn_if_fail(g_regex_get_compile_flags(gregex) & G_REGEX_MULTILINE);
+
         new_regex_match.regex.mode = VTE_REGEX_GREGEX;
         new_regex_match.regex.gregex.regex = g_regex_ref(gregex);
         new_regex_match.regex.gregex.match_flags = gflags;
