@@ -284,6 +284,8 @@ vte_terminal_draw(GtkWidget *widget,
 static void
 vte_terminal_realize(GtkWidget *widget)
 {
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->realize(widget);
+
         VteTerminal *terminal= VTE_TERMINAL(widget);
         terminal->pvt->widget_realize();
 }
@@ -293,8 +295,31 @@ vte_terminal_unrealize(GtkWidget *widget)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
         terminal->pvt->widget_unrealize();
+
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->unrealize(widget);
 }
 
+static void
+vte_terminal_map(GtkWidget *widget)
+{
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_map()\n");
+
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->map(widget);
+
+        terminal->pvt->widget_map();
+}
+
+static void
+vte_terminal_unmap(GtkWidget *widget)
+{
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unmap()\n");
+
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        terminal->pvt->widget_unmap();
+
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->unmap(widget);
+}
 
 static void
 vte_terminal_screen_changed (GtkWidget *widget,
@@ -325,6 +350,8 @@ vte_terminal_init(VteTerminal *terminal)
 	/* Initialize private data. NOTE: place is zeroed */
 	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
         terminal->pvt = new (place) VteTerminalPrivate(terminal);
+
+        gtk_widget_set_has_window(&terminal->widget, FALSE);
 }
 
 static void
@@ -557,6 +584,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	}
 #endif
 
+	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);
+
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 #ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
@@ -572,6 +601,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gobject_class->get_property = vte_terminal_get_property;
         gobject_class->set_property = vte_terminal_set_property;
 	widget_class->realize = vte_terminal_realize;
+	widget_class->unrealize = vte_terminal_unrealize;
+        widget_class->map = vte_terminal_map;
+        widget_class->unmap = vte_terminal_unmap;
 	widget_class->scroll_event = vte_terminal_scroll;
         widget_class->draw = vte_terminal_draw;
 	widget_class->key_press_event = vte_terminal_key_press;
@@ -584,7 +616,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->focus_in_event = vte_terminal_focus_in;
 	widget_class->focus_out_event = vte_terminal_focus_out;
 	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
-	widget_class->unrealize = vte_terminal_unrealize;
 	widget_class->style_updated = vte_terminal_style_updated;
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;

@@ -194,6 +194,9 @@ public:
         VteTerminal *m_terminal;
         GtkWidget *m_widget;
 
+        /* Event window */
+        GdkWindow *m_event_window;
+
         /* Metric and sizing data: dimensions of the window */
         glong row_count;
         glong column_count;
@@ -554,6 +557,8 @@ public:
 
         void widget_realize();
         void widget_unrealize();
+        void widget_map();
+        void widget_unmap();
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);

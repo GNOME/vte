@@ -377,9 +377,12 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 		 * case updates are coming in really soon. */
 		add_update_timeout (m_terminal);
 	} else {
-                rect.x += m_padding.left;
-                rect.y += m_padding.top;
-		gdk_window_invalidate_rect (gtk_widget_get_window (m_widget), &rect, FALSE);
+                auto allocation = get_allocated_rect();
+                rect.x += allocation.x + m_padding.left;
+                rect.y += allocation.y + m_padding.top;
+                cairo_region_t *region = cairo_region_create_rectangle(&rect);
+		gtk_widget_queue_draw_region(m_widget, region);
+                cairo_region_destroy(region);
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
@@ -420,8 +423,6 @@ VteTerminalPrivate::invalidate(vte::grid::span const& s,
 void
 VteTerminalPrivate::invalidate_all()
 {
-	cairo_rectangle_int_t rect;
-
 	if (G_UNLIKELY (!widget_realized()))
                 return;
 
@@ -432,22 +433,24 @@ VteTerminalPrivate::invalidate_all()
 	_vte_debug_print (VTE_DEBUG_WORK, "*");
 	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
-        auto allocation = get_allocated_rect();
-
 	/* replace invalid regions with one covering the whole terminal */
 	reset_update_rects();
-	rect.x = rect.y = 0;
-	rect.width = allocation.width;
-	rect.height = allocation.height;
 	m_invalidated_all = TRUE;
 
         if (m_active != NULL) {
+                auto allocation = get_allocated_rect();
+                cairo_rectangle_int_t rect;
+                rect.x = -m_padding.left;
+                rect.y = -m_padding.top;
+                rect.width = allocation.width;
+                rect.height = allocation.height;
+
                 g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout (m_terminal);
 	} else {
-		gdk_window_invalidate_rect (gtk_widget_get_window (m_widget), &rect, FALSE);
+                gtk_widget_queue_draw(m_widget);
 	}
 }
 
@@ -1070,7 +1073,7 @@ VteTerminalPrivate::set_cursor_from_regex_match(struct vte_match_regex *regex)
 			return;
         }
 
-	gdk_window_set_cursor(gtk_widget_get_window(m_widget), gdk_cursor);
+	gdk_window_set_cursor(m_event_window, gdk_cursor);
 
         if (gdk_cursor)
                 g_object_unref(gdk_cursor);
@@ -1836,7 +1839,7 @@ VteTerminalPrivate::view_coords_from_event(GdkEvent const* event) const
 {
         double x, y;
         if (event == nullptr ||
-            ((reinterpret_cast<GdkEventAny const*>(event))->window != gtk_widget_get_window(m_widget)) ||
+            ((reinterpret_cast<GdkEventAny const*>(event))->window != m_event_window) ||
             !gdk_event_get_coords(event, &x, &y))
                 return vte::view::coords(-1, -1);
 
@@ -2479,13 +2482,11 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
         if (!widget_realized())
                 return;
 
-	GdkWindow *window = gtk_widget_get_window(m_widget);
-
 	if (visible || !m_mouse_autohide) {
 		if (m_mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-			gdk_window_set_cursor(window, m_mouse_mousing_cursor);
+			gdk_window_set_cursor(m_event_window, m_mouse_mousing_cursor);
 		} else
 		if ( (guint)m_match_tag < m_match_regexes->len) {
                         struct vte_match_regex *regex =
@@ -2496,12 +2497,12 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-			gdk_window_set_cursor(window, m_mouse_default_cursor);
+			gdk_window_set_cursor(m_event_window, m_mouse_default_cursor);
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-		gdk_window_set_cursor (window, m_mouse_inviso_cursor);
+		gdk_window_set_cursor(m_event_window, m_mouse_inviso_cursor);
 	}
 }
 
@@ -8298,7 +8299,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 
 	/* Resize the GDK window. */
 	if (widget_realized()) {
-		gdk_window_move_resize(gtk_widget_get_window(m_widget),
+		gdk_window_move_resize(m_event_window,
 					allocation->x,
 					allocation->y,
 					allocation->width,
@@ -8315,8 +8316,6 @@ void
 VteTerminalPrivate::widget_unrealize()
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
-
-	GdkWindow *window = gtk_widget_get_window(m_widget);
 
 	/* Deallocate the cursors. */
 	m_mouse_cursor_visible = FALSE;
@@ -8364,14 +8363,6 @@ VteTerminalPrivate::widget_unrealize()
 		gtk_widget_unmap(m_widget);
 	}
 
-	/* Remove the GDK window. */
-	if (window != NULL) {
-		gdk_window_set_user_data (window, NULL);
-		gtk_widget_set_window(m_widget, NULL);
-
-		gdk_window_destroy (window);
-	}
-
 	/* Remove the blink timeout function. */
 	remove_cursor_timeout();
 
@@ -8388,8 +8379,10 @@ VteTerminalPrivate::widget_unrealize()
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
-	/* Mark that we no longer have a GDK window. */
-	gtk_widget_set_realized(m_widget, FALSE);
+        /* Destroy the even window */
+        gtk_widget_unregister_window(m_widget, m_event_window);
+        gdk_window_destroy(m_event_window);
+        m_event_window = nullptr;
 }
 
 static void
@@ -8622,10 +8615,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
 void
 VteTerminalPrivate::widget_realize()
 {
-	GdkWindow *window;
-	GdkWindowAttr attributes;
-	guint attributes_mask = 0;
-
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
         auto allocation = get_allocated_rect();
@@ -8634,14 +8623,16 @@ VteTerminalPrivate::widget_realize()
 	m_mouse_cursor_visible = TRUE;
 	m_mouse_default_cursor = widget_cursor_new(VTE_DEFAULT_CURSOR);
 	m_mouse_mousing_cursor = widget_cursor_new(VTE_MOUSING_CURSOR);
+	m_mouse_inviso_cursor = widget_cursor_new(GDK_BLANK_CURSOR);
 
 	/* Create a GDK window for the widget. */
+	GdkWindowAttr attributes;
 	attributes.window_type = GDK_WINDOW_CHILD;
 	attributes.x = allocation.x;
 	attributes.y = allocation.y;
 	attributes.width = allocation.width;
 	attributes.height = allocation.height;
-	attributes.wclass = GDK_INPUT_OUTPUT;
+	attributes.wclass = GDK_INPUT_ONLY;
 	attributes.visual = gtk_widget_get_visual(m_widget);
 	attributes.event_mask = gtk_widget_get_events(m_widget) |
 				GDK_EXPOSURE_MASK |
@@ -8658,23 +8649,14 @@ VteTerminalPrivate::widget_realize()
 				GDK_KEY_PRESS_MASK |
 				GDK_KEY_RELEASE_MASK;
 	attributes.cursor = m_mouse_default_cursor;
-	attributes_mask = GDK_WA_X |
-			  GDK_WA_Y |
-			  (attributes.visual ? GDK_WA_VISUAL : 0) |
-			  GDK_WA_CURSOR;
+	guint attributes_mask = GDK_WA_X |
+                                GDK_WA_Y |
+                                (attributes.visual ? GDK_WA_VISUAL : 0) |
+                                GDK_WA_CURSOR;
 
-	window = gdk_window_new(gtk_widget_get_parent_window (m_widget),
-				 &attributes, attributes_mask);
-
-	gtk_widget_set_window(m_widget, window);
-	gdk_window_set_user_data(window, m_widget);
-        //FIXMEchpe this is obsolete
-	gtk_style_context_set_background(gtk_widget_get_style_context(m_widget), window);
-        //FIXMEchpe move this to class init
-	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates (TRUE);
-
-	/* Set the realized flag. */
-	gtk_widget_set_realized(m_widget, TRUE);
+	m_event_window = gdk_window_new(gtk_widget_get_parent_window (m_widget),
+                                        &attributes, attributes_mask);
+        gtk_widget_register_window(m_widget, m_event_window);
 
 	/* Create rendering data if this is a re-realise */
         if (m_draw == NULL) {
@@ -8693,7 +8675,7 @@ VteTerminalPrivate::widget_realize()
 	}
 	m_im_preedit_active = FALSE;
 	m_im_context = gtk_im_multicontext_new();
-	gtk_im_context_set_client_window(m_im_context, window);
+	gtk_im_context_set_client_window(m_im_context, m_event_window);
 	g_signal_connect(m_im_context, "commit",
 			 G_CALLBACK(vte_terminal_im_commit_cb), this);
 	g_signal_connect(m_im_context, "preedit-start",
@@ -8711,13 +8693,24 @@ VteTerminalPrivate::widget_realize()
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
-	/* Create our invisible cursor. */
-	m_mouse_inviso_cursor = widget_cursor_new(GDK_BLANK_CURSOR);
-
         /* Make sure the style is set, bug 727614. */
         widget_style_updated();
 
 	ensure_font();
+}
+
+void
+VteTerminalPrivate::widget_map()
+{
+        if (m_event_window)
+                gdk_window_show_unraised(m_event_window);
+}
+
+void
+VteTerminalPrivate::widget_unmap()
+{
+        if (m_event_window)
+                gdk_window_hide(m_event_window);
 }
 
 static inline void
@@ -10669,8 +10662,6 @@ vte_terminal_start_processing (VteTerminal *terminal)
 void
 VteTerminalPrivate::emit_pending_signals()
 {
-	GdkWindow *window = gtk_widget_get_window(m_widget);
-
 	GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
 
@@ -10681,8 +10672,6 @@ VteTerminalPrivate::emit_pending_signals()
 		m_window_title = m_window_title_changed;
 		m_window_title_changed = NULL;
 
-		if (window)
-			gdk_window_set_title (window, m_window_title);
                 _vte_debug_print(VTE_DEBUG_SIGNALS,
                                  "Emitting `window-title-changed'.\n");
                 g_signal_emit(object, signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
@@ -10694,8 +10683,6 @@ VteTerminalPrivate::emit_pending_signals()
 		m_icon_title = m_icon_title_changed;
 		m_icon_title_changed = NULL;
 
-		if (window)
-			gdk_window_set_icon_name (window, m_icon_title);
                 _vte_debug_print(VTE_DEBUG_SIGNALS,
                                  "Emitting `icon-title-changed'.\n");
                 g_signal_emit(object, signals[SIGNAL_ICON_TITLE_CHANGED], 0);
@@ -10881,8 +10868,6 @@ process_timeout (gpointer data)
 static gboolean
 update_regions (VteTerminal *terminal)
 {
-	GdkWindow *window;
-
         if (G_UNLIKELY(!terminal->pvt->widget_realized()))
                 return FALSE;
 	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
@@ -10902,16 +10887,16 @@ update_regions (VteTerminal *terminal)
         g_array_set_size(terminal->pvt->m_update_rects, 0);
 	terminal->pvt->invalidated_all = FALSE;
 
+        auto allocation = terminal->pvt->get_allocated_rect();
         cairo_region_translate(region,
-                               terminal->pvt->m_padding.left,
-                               terminal->pvt->m_padding.top);
+                               allocation.x + terminal->pvt->m_padding.left,
+                               allocation.y + terminal->pvt->m_padding.top);
 
 	/* and perform the merge with the window visible area */
-	window = gtk_widget_get_window (&terminal->widget);
-	gdk_window_invalidate_region (window, region, FALSE);
+        gtk_widget_queue_draw_region(&terminal->widget, region);
 	cairo_region_destroy (region);
 
-	gdk_window_process_updates (window, FALSE);
+	gdk_window_process_updates(gtk_widget_get_window(&terminal->widget), FALSE);
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
 

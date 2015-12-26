@@ -233,6 +233,11 @@ class Window : Gtk.ApplicationWindow
 
     /* Create terminal and connect scrollbar */
     terminal = new Vte.Terminal();
+    terminal.margin_start = 20;
+    terminal.margin_end = 20;
+    terminal.margin_top = 30;
+    terminal.margin_bottom = 30;
+
     scrollbar.set_adjustment(terminal.get_vadjustment());
 
     /* Create actions */
