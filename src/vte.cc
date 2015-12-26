@@ -1597,7 +1597,7 @@ VteTerminalPrivate::match_check_gregex(GRegex *regex,
         if (!g_regex_match_full(regex,
                                 line, line_length, /* subject, length */
                                 sattr, /* start position */
-                                GRegexMatchFlags(match_flags | G_REGEX_MULTILINE),
+                                match_flags,
                                 &match_info,
                                 NULL)) {
                 g_match_info_free(match_info);
