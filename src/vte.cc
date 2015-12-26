@@ -11172,7 +11172,7 @@ VteTerminalPrivate::search_rows(
 
 
 	row_text = get_text(start_row, 0,
-                            end_row, -1,
+                            end_row + 1, -1,
                             false /* block */,
                             true /* wrap */,
                             false /* include trailing whitespace */, /* FIXMEchpe maybe do include it since the match may depend on it? */
@@ -11253,7 +11253,7 @@ VteTerminalPrivate::search_rows(
 		m_search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
 	attrs = m_search_attrs;
 	row_text = get_text(start_row, 0,
-                            end_row, -1,
+                            end_row + 1, -1,
                             false /* block */,
                             true /* wrap */,
                             false /* include trailing whitespace */, /* FIXMEchpe maybe true? */
