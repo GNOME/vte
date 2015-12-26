@@ -187,7 +187,8 @@ vte_regex_new(const char *pattern,
                                (uint32_t)flags |
                                PCRE2_UTF |
                                (flags & PCRE2_UTF ? PCRE2_NO_UTF_CHECK : 0) |
-                               PCRE2_NEVER_BACKSLASH_C,
+                               PCRE2_NEVER_BACKSLASH_C |
+                               PCRE2_USE_OFFSET_LIMIT,
                                &errcode, &erroffset,
                                NULL);
 

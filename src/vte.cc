@@ -1398,13 +1398,15 @@ VteTerminalPrivate::match_check_pcre(
         /* Iterate throught the matches until we either find one which contains the
          * offset, or we get no more matches.
          */
+        pcre2_set_offset_limit_8(match_context, eattr);
         position = sattr;
         while (position < eattr &&
                ((r = match_fn(_vte_regex_get_pcre(regex),
                               (PCRE2_SPTR8)line, line_length, /* subject, length */
                               position, /* start offset */
                               match_flags |
-                              PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
+                              PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */ |
+                              PCRE2_MULTILINE,
                               match_data,
                               match_context)) >= 0 || r == PCRE2_ERROR_PARTIAL)) {
                 gsize ko = offset;
@@ -1595,7 +1597,7 @@ VteTerminalPrivate::match_check_gregex(GRegex *regex,
         if (!g_regex_match_full(regex,
                                 line, line_length, /* subject, length */
                                 sattr, /* start position */
-                                match_flags,
+                                GRegexMatchFlags(match_flags | G_REGEX_MULTILINE),
                                 &match_info,
                                 NULL)) {
                 g_match_info_free(match_info);
