@@ -76,17 +76,13 @@ static gboolean
 set_gerror_from_pcre_error(int errcode,
                            GError **error)
 {
-        if (errcode < 0) {
-                PCRE2_UCHAR8 buf[128];
-                int n;
+        PCRE2_UCHAR8 buf[128];
+        int n;
 
-                n = pcre2_get_error_message_8(errcode, buf, sizeof (buf));
-                g_assert(n >= 0);
-                g_set_error_literal(error, VTE_REGEX_ERROR, errcode, (const char*)buf);
-                return FALSE;
-        }
-
-        return TRUE;
+        n = pcre2_get_error_message_8(errcode, buf, sizeof (buf));
+        g_assert(n >= 0);
+        g_set_error_literal(error, VTE_REGEX_ERROR, errcode, (const char*)buf);
+        return FALSE;
 }
 
 #else

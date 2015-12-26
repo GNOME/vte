@@ -125,7 +125,7 @@ typedef enum {
  *   built without PCRE2 support
  *
  * An enum type for regex errors. In addition to the values listed above,
- * any PCRE2_ERR* value (which areall negative values) may occur.
+ * any PCRE2 error values may occur.
  *
  * Since: 0.44
  */
