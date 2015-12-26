@@ -278,8 +278,10 @@ vte_regex_jit(VteRegex *regex,
         g_return_val_if_fail(regex != NULL, FALSE);
 
         r = pcre2_jit_compile_8(regex->code, flags);
+        if (r < 0)
+                return set_gerror_from_pcre_error(r, error);
 
-        return set_gerror_from_pcre_error(r, error);
+        return TRUE;
 #else
         return set_unsupported_error(error);
 #endif /* WITH_PCRE2 */
