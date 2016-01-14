@@ -1149,6 +1149,7 @@ public:
                                               char const* terminator);
         inline void seq_reverse_index();
         inline void seq_tab_set();
+        inline void seq_tab();
 };
 
 #define m_invalidated_all invalidated_all

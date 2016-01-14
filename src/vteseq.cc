@@ -1876,17 +1876,24 @@ VteTerminalPrivate::seq_tab_set()
 static void
 vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 {
-	long old_len, newcol, col;
+        terminal->pvt->seq_tab();
+}
+
+void
+VteTerminalPrivate::seq_tab()
+{
+	long old_len;
+        vte::grid::column_t newcol, col;
 
 	/* Calculate which column is the next tab stop. */
-        newcol = col = terminal->pvt->cursor.col;
+        newcol = col = m_cursor.col;
 
 	g_assert (col >= 0);
 
-	if (terminal->pvt->tabstops != NULL) {
+	if (m_tabstops != NULL) {
 		/* Find the next tabstop. */
 		for (newcol++; newcol < VTE_TAB_MAX; newcol++) {
-			if (terminal->pvt->get_tabstop(newcol)) {
+			if (get_tabstop(newcol)) {
 				break;
 			}
 		}
@@ -1894,13 +1901,13 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 
 	/* If we have no tab stops or went past the end of the line, stop
 	 * at the right-most column. */
-	if (newcol >= terminal->pvt->column_count) {
-		newcol = terminal->pvt->column_count - 1;
+	if (newcol >= m_column_count) {
+		newcol = m_column_count - 1;
 	}
 
 	/* but make sure we don't move cursor back (bug #340631) */
 	if (col < newcol) {
-		VteRowData *rowdata = terminal->pvt->ensure_row();
+		VteRowData *rowdata = ensure_row();
 
 		/* Smart tab handling: bug 353610
 		 *
@@ -1914,7 +1921,7 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 		 */
 
 		old_len = _vte_row_data_length (rowdata);
-                _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, newcol);
+                _vte_row_data_fill (rowdata, &m_fill_defaults, newcol);
 
 		/* Insert smart tab if there's nothing in the line after
 		 * us.  Though, there may be empty cells (with non-default
@@ -1950,11 +1957,9 @@ vte_sequence_handler_tab (VteTerminal *terminal, GValueArray *params)
 			}
 		}
 
-		terminal->pvt->invalidate_cells(
-                                terminal->pvt->cursor.col,
-                                newcol - terminal->pvt->cursor.col,
-                                terminal->pvt->cursor.row, 1);
-                terminal->pvt->cursor.col = newcol;
+		invalidate_cells(m_cursor.col, newcol - m_cursor.col,
+                                 m_cursor.row, 1);
+                m_cursor.col = newcol;
 	}
 }
 
