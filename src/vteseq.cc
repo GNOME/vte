@@ -572,7 +572,13 @@ static void
 vte_reset_mouse_smooth_scroll_delta(VteTerminal *terminal,
                                     GValueArray *params)
 {
-	terminal->pvt->mouse_smooth_scroll_delta = 0.;
+        terminal->pvt->set_mouse_smooth_scroll_delta(0.);
+}
+
+void
+VteTerminalPrivate::set_mouse_smooth_scroll_delta(double value)
+{
+	m_mouse_smooth_scroll_delta = value;
 }
 
 static void

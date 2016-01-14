@@ -1119,6 +1119,7 @@ public:
                                     bool window_title);
         inline void seq_set_mode_internal(long setting,
                                           bool value);
+        inline void set_mouse_smooth_scroll_delta(double value);
 };
 
 #define m_invalidated_all invalidated_all
