@@ -21,10 +21,14 @@
 
 #include <glib.h>
 
+#include "vte/vtemacros.h"
+
 G_BEGIN_DECLS
 
+_VTE_PUBLIC
 char *vte_get_user_shell(void);
 
+_VTE_PUBLIC
 const char *vte_get_features (void);
 
 G_END_DECLS

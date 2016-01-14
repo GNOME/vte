@@ -25,13 +25,14 @@
 
 #include <gio/gio.h>
 
-#include "vteenums.h"
-#include "vtemacros.h"
+#include "vte/vteenums.h"
+#include "vte/vtemacros.h"
 
 G_BEGIN_DECLS
 
 #define VTE_SPAWN_NO_PARENT_ENVV (1 << 25)
 
+_VTE_PUBLIC
 GQuark vte_pty_error_quark (void);
 
 /**
@@ -54,30 +55,38 @@ GQuark vte_pty_error_quark (void);
 typedef struct _VtePty        VtePty;
 typedef struct _VtePtyClass   VtePtyClass;
 
+_VTE_PUBLIC
 GType vte_pty_get_type (void);
 
+_VTE_PUBLIC
 VtePty *vte_pty_new_sync (VtePtyFlags flags,
                           GCancellable *cancellable,
                           GError **error);
 
+_VTE_PUBLIC
 VtePty *vte_pty_new_foreign_sync (int fd,
                                   GCancellable *cancellable,
                                   GError **error);
 
+_VTE_PUBLIC
 int vte_pty_get_fd (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
 void vte_pty_child_setup (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
 gboolean vte_pty_get_size (VtePty *pty,
                            int *rows,
                            int *columns,
                            GError **error) _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
 gboolean vte_pty_set_size (VtePty *pty,
                            int rows,
                            int columns,
                            GError **error) _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
 gboolean vte_pty_set_utf8 (VtePty *pty,
                            gboolean utf8,
                            GError **error) _VTE_GNUC_NONNULL(1);

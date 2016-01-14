@@ -35,4 +35,6 @@
 #define _VTE_GNUC_NONNULL(position)
 #endif
 
+#define _VTE_PUBLIC __attribute__((__visibility__("default"))) extern
+
 #endif /* __VTE_VTE_MACROS_H__ */

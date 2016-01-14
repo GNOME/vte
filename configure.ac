@@ -154,6 +154,8 @@ m4_define([compiler_flags_only_c],[ dnl
 m4_define([compiler_flags_only_cxx],[ dnl
   -fno-rtti dnl
   -fno-exceptions dnl
+  -fvisibility=hidden dnl
+  -fvisibility-inlines-hidden dnl
 ])
 
 CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[compiler_flags_common compiler_flags_only_c])
@@ -161,6 +163,10 @@ CC_CHECK_FLAGS_APPEND([AM_CFLAGS],[CFLAGS],[compiler_flags_common compiler_flags
 AC_LANG_PUSH([C++])
 CC_CHECK_FLAGS_APPEND([AM_CXXFLAGS],[CXXFLAGS],[compiler_flags_common compiler_flags_only_cxx])
 AC_LANG_POP([C++])
+
+if test "$cc_cv_cxx_CXXFLAGS__fvisibility_hidden" != "yes"; then
+  AC_MSG_ERROR([$CXX doesn't support required flag -fvisibility=hidden])
+fi
 
 ##########################################################
 # Check for -Bsymbolic-functions linker flag used to avoid

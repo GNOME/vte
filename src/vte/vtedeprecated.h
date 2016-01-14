@@ -32,21 +32,25 @@
 G_BEGIN_DECLS
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 int vte_terminal_match_add_gregex(VteTerminal *terminal,
                                   GRegex *gregex,
                                   GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 void vte_terminal_match_set_cursor(VteTerminal *terminal,
                                    int tag,
                                    GdkCursor *cursor) _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 char *vte_terminal_match_check(VteTerminal *terminal,
 			       glong column, glong row,
 			       int *tag) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 gboolean vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
                                                 GdkEvent *event,
                                                 GRegex **regexes,
@@ -55,14 +59,17 @@ gboolean vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
                                                 char **matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *gregex,
                                                GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
+_VTE_PUBLIC
 void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
 G_END_DECLS
