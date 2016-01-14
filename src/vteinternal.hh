@@ -1104,6 +1104,7 @@ public:
         inline void ensure_cursor_is_onscreen();
         inline void seq_home_cursor();
         inline void seq_clear_screen();
+        inline void seq_clear_current_line();
 };
 
 #define m_invalidated_all invalidated_all
