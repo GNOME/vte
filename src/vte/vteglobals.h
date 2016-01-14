@@ -21,7 +21,7 @@
 
 #include <glib.h>
 
-#include "vte/vtemacros.h"
+#include "vtemacros.h"
 
 G_BEGIN_DECLS
 

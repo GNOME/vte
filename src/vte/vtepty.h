@@ -25,8 +25,8 @@
 
 #include <gio/gio.h>
 
-#include "vte/vteenums.h"
-#include "vte/vtemacros.h"
+#include "vteenums.h"
+#include "vtemacros.h"
 
 G_BEGIN_DECLS
 

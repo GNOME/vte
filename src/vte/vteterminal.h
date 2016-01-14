@@ -28,10 +28,10 @@
 #include <pango/pango.h>
 #include <gtk/gtk.h>
 
-#include "vte/vteenums.h"
-#include "vte/vtemacros.h"
-#include "vte/vtepty.h"
-#include "vte/vteregex.h"
+#include "vteenums.h"
+#include "vtemacros.h"
+#include "vtepty.h"
+#include "vteregex.h"
 
 #if defined(VTE_COMPILATION) && defined(__cplusplus)
 class VteTerminalPrivate;
