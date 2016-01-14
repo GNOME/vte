@@ -309,47 +309,42 @@ VteTerminalPrivate::seq_clear_above_current()
 }
 
 /* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
-static void
-_vte_terminal_scroll_text (VteTerminal *terminal, int scroll_amount)
+void
+VteTerminalPrivate::seq_scroll_text(vte::grid::row_t scroll_amount)
 {
-	long start, end, i;
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
-
-        if (terminal->pvt->scrolling_restricted) {
-                start = screen->insert_delta + terminal->pvt->scrolling_region.start;
-                end = screen->insert_delta + terminal->pvt->scrolling_region.end;
+        vte::grid::row_t start, end;
+        if (m_scrolling_restricted) {
+                start = m_screen->insert_delta + m_scrolling_region.start;
+                end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
-		start = screen->insert_delta;
-		end = start + terminal->pvt->row_count - 1;
+                start = m_screen->insert_delta;
+                end = start + m_row_count - 1;
 	}
 
-	while (_vte_ring_next(screen->row_data) <= end)
-		_vte_terminal_ring_append (terminal, FALSE);
+        while (_vte_ring_next(m_screen->row_data) <= end)
+                _vte_terminal_ring_append(m_terminal, FALSE);
 
 	if (scroll_amount > 0) {
-		for (i = 0; i < scroll_amount; i++) {
-			_vte_terminal_ring_remove (terminal, end);
-			_vte_terminal_ring_insert (terminal, start, TRUE);
+		for (auto i = 0; i < scroll_amount; i++) {
+                        _vte_terminal_ring_remove(m_terminal, end);
+                        _vte_terminal_ring_insert(m_terminal, start, TRUE);
 		}
 	} else {
-		for (i = 0; i < -scroll_amount; i++) {
-			_vte_terminal_ring_remove (terminal, start);
-			_vte_terminal_ring_insert (terminal, end, TRUE);
+		for (auto i = 0; i < -scroll_amount; i++) {
+                        _vte_terminal_ring_remove(m_terminal, start);
+                        _vte_terminal_ring_insert(m_terminal, end, TRUE);
 		}
 	}
 
 	/* Update the display. */
-	terminal->pvt->scroll_region(start, end - start + 1,
-				   scroll_amount);
+        scroll_region(start, end - start + 1, scroll_amount);
 
 	/* Adjust the scrollbars if necessary. */
-	terminal->pvt->adjust_adjustments();
+        adjust_adjustments();
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_inserted_flag = TRUE;
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_inserted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Restore cursor. */
@@ -1558,7 +1553,7 @@ vte_sequence_handler_scroll_down (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 
-	_vte_terminal_scroll_text (terminal, val);
+	terminal->pvt->seq_scroll_text(val);
 }
 
 /* Internal helper for changing color in the palette */
@@ -1674,7 +1669,7 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 		}
 	}
 
-	_vte_terminal_scroll_text (terminal, -val);
+	terminal->pvt->seq_scroll_text(-val);
 }
 
 /* Cursor down 1 line, with scrolling. */

@@ -1106,6 +1106,7 @@ public:
         inline void seq_clear_screen();
         inline void seq_clear_current_line();
         inline void seq_clear_above_current();
+        inline void seq_scroll_text(vte::grid::row_t scroll_amount);
 };
 
 #define m_invalidated_all invalidated_all
