@@ -119,6 +119,7 @@ m4_define([compiler_flags_common],[ dnl
   -Wextra dnl
   -Wfloat-equal dnl
   -Wlogical-op dnl
+  -Wmisleading-indentation dnl
   -Wmissing-declarations dnl
   -Wmissing-include-dirs dnl
   -Wmissing-format-attribute dnl
