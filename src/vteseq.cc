@@ -1690,14 +1690,10 @@ static void
 vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *params,
 					    const char *terminator)
 {
-	gchar **pairs, *str = NULL;
-	GValue *value;
-	vte::color::rgb color;
-	guint idx, i;
-
 	if (params != NULL && params->n_values > 0) {
-		value = g_value_array_get_nth (params, 0);
+                GValue* value = g_value_array_get_nth (params, 0);
 
+                char *str = NULL;
 		if (G_VALUE_HOLDS_STRING (value))
 			str = g_value_dup_string (value);
 		else if (G_VALUE_HOLDS_POINTER (value))
@@ -1706,11 +1702,22 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
 		if (! str)
 			return;
 
-		pairs = g_strsplit (str, ";", 0);
-		if (! pairs) {
-			g_free (str);
+                terminal->pvt->seq_change_color_internal(str, terminator);
+                g_free(str);
+        }
+}
+
+void
+VteTerminalPrivate::seq_change_color_internal(char const* str,
+                                              char const* terminator)
+{
+        {
+                vte::color::rgb color;
+                guint idx, i;
+
+		char **pairs = g_strsplit (str, ";", 0);
+		if (! pairs)
 			return;
-		}
 
 		for (i = 0; pairs[i] && pairs[i + 1]; i += 2) {
 			idx = strtoul (pairs[i], (char **) NULL, 10);
@@ -1719,25 +1726,24 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
 				continue;
 
 			if (color.parse(pairs[i + 1])) {
-                                terminal->pvt->set_color(idx, VTE_COLOR_SOURCE_ESCAPE, color);
+                                set_color(idx, VTE_COLOR_SOURCE_ESCAPE, color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
-				vte::color::rgb const* c = terminal->pvt->get_color(idx);
+				auto c = get_color(idx);
 				g_assert(c != NULL);
 				g_snprintf (buf, sizeof (buf),
 					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
 					    idx, c->red, c->green, c->blue, terminator);
-				vte_terminal_feed_child (terminal, buf, -1);
+				feed_child(buf, -1);
 			}
 		}
 
-		g_free (str);
 		g_strfreev (pairs);
 
 		/* emit the refresh as the palette has changed and previous
 		 * renders need to be updated. */
-		terminal->pvt->emit_refresh_window();
-	}
+		emit_refresh_window();
+        }
 }
 
 /* Change color in the palette, BEL terminated */
