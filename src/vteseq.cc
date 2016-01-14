@@ -443,16 +443,15 @@ VteTerminalPrivate::seq_save_cursor_and_alternate_screen()
 }
 
 /* Set icon/window titles. */
-static void
-vte_sequence_handler_set_title_internal(VteTerminal *terminal,
-					GValueArray *params,
-					gboolean icon_title,
-					gboolean window_title)
+void
+VteTerminalPrivate::seq_set_title_internal(GValueArray *params,
+                                           bool change_icon_title,
+                                           bool change_window_title)
 {
 	GValue *value;
 	char *title = NULL;
 
-	if (icon_title == FALSE && window_title == FALSE)
+        if (change_icon_title == FALSE && change_window_title == FALSE)
 		return;
 
 	/* Get the string parameter's value. */
@@ -467,7 +466,7 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			title = g_value_dup_string(value);
 		} else
 		if (G_VALUE_HOLDS_POINTER(value)) {
-			title = vte_ucs4_to_utf8 (terminal, (const guchar *)g_value_get_pointer (value));
+                        title = vte_ucs4_to_utf8(m_terminal, (const guchar *)g_value_get_pointer (value));
 		}
 		if (title != NULL) {
 			char *p, *validated;
@@ -485,14 +484,14 @@ vte_sequence_handler_set_title_internal(VteTerminal *terminal,
 			}
 
 			/* Emit the signal */
-			if (window_title) {
-				g_free (terminal->pvt->window_title_changed);
-				terminal->pvt->window_title_changed = g_strdup (validated);
+                        if (change_window_title) {
+                                g_free(m_window_title_changed);
+                                m_window_title_changed = g_strdup(validated);
 			}
 
-			if (icon_title) {
-				g_free (terminal->pvt->icon_title_changed);
-				terminal->pvt->icon_title_changed = g_strdup (validated);
+                        if (change_icon_title) {
+                                g_free(m_icon_title_changed);
+                                m_icon_title_changed = g_strdup(validated);
 			}
 
 			g_free (validated);
@@ -2243,20 +2242,20 @@ vte_sequence_handler_send_secondary_device_attributes (VteTerminal *terminal, GV
 static void
 vte_sequence_handler_set_icon_title (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_set_title_internal(terminal, params, TRUE, FALSE);
+	terminal->pvt->seq_set_title_internal(params, true, false);
 }
 
 static void
 vte_sequence_handler_set_window_title (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_set_title_internal(terminal, params, FALSE, TRUE);
+	terminal->pvt->seq_set_title_internal(params, false, true);
 }
 
 /* Set both the window and icon titles to the same string. */
 static void
 vte_sequence_handler_set_icon_and_window_title (VteTerminal *terminal, GValueArray *params)
 {
-	vte_sequence_handler_set_title_internal(terminal, params, TRUE, TRUE);
+	terminal->pvt->seq_set_title_internal(params, true, true);
 }
 
 static void

@@ -1114,6 +1114,9 @@ public:
         inline void seq_restore_cursor();
         inline void seq_normal_screen_and_restore_cursor();
         inline void seq_save_cursor_and_alternate_screen();
+        void seq_set_title_internal(GValueArray *params,
+                                    bool icon_title,
+                                    bool window_title);
 };
 
 #define m_invalidated_all invalidated_all
