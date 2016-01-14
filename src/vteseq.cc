@@ -1377,39 +1377,41 @@ vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray 
 static void
 _vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 {
-	VteScreen *screen;
+        terminal->pvt->seq_dc();
+}
+
+void
+VteTerminalPrivate::seq_dc()
+{
 	VteRowData *rowdata;
 	long col;
 
-        terminal->pvt->ensure_cursor_is_onscreen();
+        ensure_cursor_is_onscreen();
 
-	screen = terminal->pvt->screen;
-
-        if (_vte_ring_next(screen->row_data) > terminal->pvt->cursor.row) {
+        if (_vte_ring_next(m_screen->row_data) > m_cursor.row) {
 		long len;
 		/* Get the data for the row which the cursor points to. */
-                rowdata = _vte_ring_index_writable (screen->row_data, terminal->pvt->cursor.row);
+                rowdata = _vte_ring_index_writable(m_screen->row_data, m_cursor.row);
 		g_assert(rowdata != NULL);
-                col = terminal->pvt->cursor.col;
+                col = m_cursor.col;
 		len = _vte_row_data_length (rowdata);
 		/* Remove the column. */
 		if (col < len) {
                         /* Clean up Tab/CJK fragments. */
-                        terminal->pvt->cleanup_fragments(col, col + 1);
+                        cleanup_fragments(col, col + 1);
 			_vte_row_data_remove (rowdata, col);
-                        if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG) {
-                                _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
-				len = terminal->pvt->column_count;
+                        if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+                                _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
+                                len = m_column_count;
 			}
 			/* Repaint this row. */
-			terminal->pvt->invalidate_cells(
-					col, len - col,
-                                        terminal->pvt->cursor.row, 1);
+                        invalidate_cells(col, len - col,
+                                         m_cursor.row, 1);
 		}
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Delete N characters at the current cursor position. */
