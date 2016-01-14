@@ -351,15 +351,27 @@ VteTerminalPrivate::seq_scroll_text(vte::grid::row_t scroll_amount)
 static void
 vte_sequence_handler_restore_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->restore_cursor(terminal->pvt->screen);
-        terminal->pvt->ensure_cursor_is_onscreen();
+        terminal->pvt->seq_restore_cursor();
+}
+
+void
+VteTerminalPrivate::seq_restore_cursor()
+{
+        restore_cursor(m_screen);
+        ensure_cursor_is_onscreen();
 }
 
 /* Save cursor. */
 static void
 vte_sequence_handler_save_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->save_cursor(terminal->pvt->screen);
+        terminal->pvt->seq_save_cursor();
+}
+
+void
+VteTerminalPrivate::seq_save_cursor()
+{
+        save_cursor(m_screen);
 }
 
 /* Switch to normal screen. */
@@ -406,16 +418,28 @@ VteTerminalPrivate::seq_alternate_screen()
 static void
 vte_sequence_handler_normal_screen_and_restore_cursor (VteTerminal *terminal, GValueArray *params)
 {
-        vte_sequence_handler_normal_screen (terminal, params);
-        vte_sequence_handler_restore_cursor (terminal, params);
+        terminal->pvt->seq_normal_screen_and_restore_cursor();
+}
+
+void
+VteTerminalPrivate::seq_normal_screen_and_restore_cursor()
+{
+        seq_normal_screen();
+        seq_restore_cursor();
 }
 
 /* Save cursor and switch to alternate screen (in this order). */
 static void
 vte_sequence_handler_save_cursor_and_alternate_screen (VteTerminal *terminal, GValueArray *params)
 {
-        vte_sequence_handler_save_cursor (terminal, params);
-        vte_sequence_handler_alternate_screen (terminal, params);
+        terminal->pvt->seq_save_cursor_and_alternate_screen();
+}
+
+void
+VteTerminalPrivate::seq_save_cursor_and_alternate_screen()
+{
+        seq_save_cursor();
+        seq_alternate_screen();
 }
 
 /* Set icon/window titles. */

@@ -1110,6 +1110,10 @@ public:
         inline void seq_switch_screen(VteScreen *new_screen);
         inline void seq_normal_screen();
         inline void seq_alternate_screen();
+        inline void seq_save_cursor();
+        inline void seq_restore_cursor();
+        inline void seq_normal_screen_and_restore_cursor();
+        inline void seq_save_cursor_and_alternate_screen();
 };
 
 #define m_invalidated_all invalidated_all
