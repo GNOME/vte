@@ -1074,6 +1074,8 @@ class App : Gtk.Application
 
   public static int main(string[] argv)
   {
+    Intl.setlocale (LocaleCategory.ALL, "");
+
     if (Environment.get_variable("VTE_CJK_WIDTH") != null) {
       printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
     }
