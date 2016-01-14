@@ -1237,6 +1237,12 @@ VteTerminalPrivate::get_cursor_row() const
         return row;
 }
 
+vte::grid::column_t
+VteTerminalPrivate::get_cursor_column() const
+{
+        return m_cursor.col;
+}
+
 /*
  * VteTerminalPrivate::set_cursor_coords:
  * @row: the row. 0-based and relative to the scrolling region
@@ -1573,11 +1579,17 @@ vte_sequence_handler_index (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_backspace (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->ensure_cursor_is_onscreen();
+        terminal->pvt->seq_backspace();
+}
 
-        if (terminal->pvt->cursor.col > 0) {
+void
+VteTerminalPrivate::seq_backspace()
+{
+        ensure_cursor_is_onscreen();
+
+        if (m_cursor.col > 0) {
 		/* There's room to move left, so do so. */
-                terminal->pvt->cursor.col--;
+                m_cursor.col--;
 	}
 }
 
@@ -1588,40 +1600,54 @@ vte_sequence_handler_cursor_backward (VteTerminal *terminal, GValueArray *params
         GValue *value;
         long val;
 
-        terminal->pvt->ensure_cursor_is_onscreen();
-
         val = 1;
         if (params != NULL && params->n_values >= 1) {
                 value = g_value_array_get_nth(params, 0);
                 if (G_VALUE_HOLDS_LONG(value)) {
-                        val = MAX(g_value_get_long(value), 1);
+                        val = g_value_get_long(value);
                 }
         }
-        terminal->pvt->cursor.col = MAX(terminal->pvt->cursor.col - val, 0);
+
+        terminal->pvt->seq_cursor_forward(val);
+}
+
+void
+VteTerminalPrivate::seq_cursor_backward(vte::grid::column_t columns)
+{
+        ensure_cursor_is_onscreen();
+
+        auto col = get_cursor_column();
+        columns = CLAMP(columns, 1, col);
+        set_cursor_column(col - columns);
 }
 
 /* Cursor right N columns. */
 static void
 vte_sequence_handler_cursor_forward (VteTerminal *terminal, GValueArray *params)
 {
-        GValue *value;
-        long val;
-
-        terminal->pvt->ensure_cursor_is_onscreen();
-
-        val = 1;
+        long val = 1;
         if (params != NULL && params->n_values >= 1) {
-                value = g_value_array_get_nth(params, 0);
+                GValue* value = g_value_array_get_nth(params, 0);
                 if (G_VALUE_HOLDS_LONG(value)) {
-                        val = CLAMP(g_value_get_long(value),
-                                    1, terminal->pvt->column_count);
+                        val = g_value_get_long(value);
                 }
         }
+
+        terminal->pvt->seq_cursor_forward(val);
+}
+
+void
+VteTerminalPrivate::seq_cursor_forward(vte::grid::column_t columns)
+{
+        columns = CLAMP(columns, 1, m_column_count);
+
+        ensure_cursor_is_onscreen();
+
         /* The cursor can be further to the right, don't move in that case. */
-        if (terminal->pvt->cursor.col < terminal->pvt->column_count) {
+        auto col = get_cursor_column();
+        if (col < m_column_count) {
 		/* There's room to move right. */
-                terminal->pvt->cursor.col = MIN(terminal->pvt->cursor.col + val,
-                                                terminal->pvt->column_count - 1);
+                set_cursor_column(col + columns);
 	}
 }
 
@@ -1629,7 +1655,7 @@ vte_sequence_handler_cursor_forward (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_next_line (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->cursor.col = 0;
+        terminal->pvt->set_cursor_column(0);
 	terminal->pvt->cursor_down();
 }
 
