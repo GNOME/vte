@@ -187,7 +187,7 @@ namespace util {
                 ~smart_fd() { if (m_fd != -1) { restore_errno errsv; close(m_fd); } }
 
                 inline smart_fd& operator = (int rhs) { if (m_fd != -1) { restore_errno errsv; close(m_fd); } m_fd = rhs; return *this; }
-                inline smart_fd& operator = (smart_fd& rhs) { if (&rhs != this) { m_fd = rhs.m_fd; rhs.m_fd = -1; } return *this; }
+                inline smart_fd& operator = (smart_fd& rhs) { if (&rhs != this) { if (m_fd != -1) { restore_errno errsv; close(m_fd); } m_fd = rhs.m_fd; rhs.m_fd = -1; } return *this; }
                 inline operator int () const { return m_fd; }
                 inline operator int* () { g_assert(m_fd == -1); return &m_fd; }
 
@@ -195,7 +195,9 @@ namespace util {
 
                 /* Prevent accidents */
                 smart_fd(smart_fd const&) = delete;
+                smart_fd(smart_fd&&) = delete;
                 smart_fd& operator = (smart_fd const&) = delete;
+                smart_fd& operator = (smart_fd&&) = delete;
 
         private:
                 int m_fd;
