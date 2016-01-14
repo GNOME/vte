@@ -2375,13 +2375,19 @@ vte_sequence_handler_set_scrolling_region_to_end (VteTerminal *terminal, GValueA
         vte_sequence_handler_set_scrolling_region (terminal, params);
 }
 
+void
+VteTerminalPrivate::set_keypad_mode(VteKeymode mode)
+{
+        m_keypad_mode = mode;
+}
+
 /* Set the application or normal keypad. */
 static void
 vte_sequence_handler_application_keypad (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_debug_print(VTE_DEBUG_KEYBOARD,
 			"Entering application keypad mode.\n");
-	terminal->pvt->keypad_mode = VTE_KEYMODE_APPLICATION;
+	terminal->pvt->set_keypad_mode(VTE_KEYMODE_APPLICATION);
 }
 
 static void
@@ -2389,7 +2395,7 @@ vte_sequence_handler_normal_keypad (VteTerminal *terminal, GValueArray *params)
 {
 	_vte_debug_print(VTE_DEBUG_KEYBOARD,
 			"Leaving application keypad mode.\n");
-	terminal->pvt->keypad_mode = VTE_KEYMODE_NORMAL;
+	terminal->pvt->set_keypad_mode(VTE_KEYMODE_NORMAL);
 }
 
 /* Same as cursor_character_absolute, not widely supported. */

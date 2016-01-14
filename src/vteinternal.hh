@@ -1129,6 +1129,8 @@ public:
         inline void seq_ce();
         void set_cursor_column(vte::grid::column_t col);
         void set_cursor_row(vte::grid::row_t row);
+
+        inline void set_keypad_mode(VteKeymode mode);
 };
 
 #define m_invalidated_all invalidated_all
