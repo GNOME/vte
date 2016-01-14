@@ -1100,7 +1100,9 @@ public:
                                   GCancellable *cancellable,
                                   GError **error);
 
-        void ensure_cursor_is_onscreen();
+        /* Sequence handlers and their helper functions */
+        inline void ensure_cursor_is_onscreen();
+        inline void seq_home_cursor();
 };
 
 #define m_invalidated_all invalidated_all

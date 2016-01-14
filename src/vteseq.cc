@@ -224,22 +224,18 @@ VteTerminalPrivate::ensure_cursor_is_onscreen()
                 m_cursor.col = m_column_count - 1;
 }
 
-static void
-_vte_terminal_home_cursor (VteTerminal *terminal)
+void
+VteTerminalPrivate::seq_home_cursor()
 {
-        long origin;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-
-        if (terminal->pvt->origin_mode &&
-            terminal->pvt->scrolling_restricted) {
-                origin = terminal->pvt->scrolling_region.start;
+        vte::grid::row_t origin;
+        if (m_origin_mode && m_scrolling_restricted) {
+                origin = m_scrolling_region.start;
         } else {
                 origin = 0;
         }
 
-        terminal->pvt->cursor.row = screen->insert_delta + origin;
-        terminal->pvt->cursor.col = 0;
+        m_cursor.row = m_screen->insert_delta + origin;
+        m_cursor.col = 0;
 }
 
 /* Clear the entire screen. */
@@ -867,7 +863,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
                                                         set ? 132 : 80,
                                                         terminal->pvt->row_count);
                         _vte_terminal_clear_screen(terminal);
-                        _vte_terminal_home_cursor(terminal);
+                        terminal->pvt->seq_home_cursor();
                 }
 		break;
 	case 5:
@@ -876,7 +872,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		break;
 	case 6:
 		/* Reposition the cursor in its new home position. */
-                _vte_terminal_home_cursor (terminal);
+                terminal->pvt->seq_home_cursor();
 		break;
 	case 47:
 	case 1047:
@@ -1226,7 +1222,7 @@ vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *p
 	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
                 terminal->pvt->scrolling_restricted = FALSE;
-                _vte_terminal_home_cursor (terminal);
+                terminal->pvt->seq_home_cursor();
 		return;
 	}
 	/* Extract the two values. */
@@ -1268,7 +1264,7 @@ vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *p
 			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
 	}
 
-        _vte_terminal_home_cursor (terminal);
+        terminal->pvt->seq_home_cursor();
 }
 
 /* Move the cursor to the beginning of the Nth next line, no scrolling. */
