@@ -1158,6 +1158,8 @@ public:
         inline void seq_erase_in_line(long param);
         inline void seq_insert_lines(vte::grid::row_t param);
         inline void seq_delete_lines(vte::grid::row_t param);
+        inline void seq_device_status_report(long param);
+        inline void seq_dec_device_status_report(long param);
 };
 
 #define m_invalidated_all invalidated_all

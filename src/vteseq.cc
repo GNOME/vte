@@ -2806,103 +2806,105 @@ VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
 static void
 vte_sequence_handler_device_status_report (VteTerminal *terminal, GValueArray *params)
 {
-	GValue *value;
-	VteScreen *screen;
-        long param, rowval, origin, rowmax;
-	char buf[128];
-
-	screen = terminal->pvt->screen;
-
 	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
+		GValue* value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
-			switch (param) {
+			auto param = g_value_get_long(value);
+                        terminal->pvt->seq_device_status_report(param);
+                }
+        }
+}
+
+void
+VteTerminalPrivate::seq_device_status_report(long param)
+{
+        switch (param) {
 			case 5:
 				/* Send a thumbs-up sequence. */
-				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "0n", -1);
+				feed_child(_VTE_CAP_CSI "0n", -1);
 				break;
 			case 6:
 				/* Send the cursor position. */
-                                if (terminal->pvt->origin_mode &&
-                                    terminal->pvt->scrolling_restricted) {
-                                        origin = terminal->pvt->scrolling_region.start;
-                                        rowmax = terminal->pvt->scrolling_region.end;
+                                vte::grid::row_t rowval, origin, rowmax;
+                                if (m_origin_mode &&
+                                    m_scrolling_restricted) {
+                                        origin = m_scrolling_region.start;
+                                        rowmax = m_scrolling_region.end;
                                 } else {
                                         origin = 0;
-                                        rowmax = terminal->pvt->row_count - 1;
+                                        rowmax = m_row_count - 1;
                                 }
-                                rowval = terminal->pvt->cursor.row - screen->insert_delta - origin;
+                                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
+                                rowval = m_cursor.row - m_screen->insert_delta - origin;
                                 rowval = CLAMP(rowval, 0, rowmax);
-				g_snprintf(buf, sizeof(buf),
+                                char buf[128];
+                                g_snprintf(buf, sizeof(buf),
 					   _VTE_CAP_CSI "%ld;%ldR",
                                            rowval + 1,
-                                           CLAMP(terminal->pvt->cursor.col + 1,
-                                                 1, terminal->pvt->column_count));
-				vte_terminal_feed_child(terminal, buf, -1);
+                                           CLAMP(m_cursor.col + 1, 1, m_column_count));
+				feed_child(buf, -1);
 				break;
 			default:
 				break;
-			}
-		}
-	}
+        }
 }
 
 /* DEC-style device status reports. */
 static void
 vte_sequence_handler_dec_device_status_report (VteTerminal *terminal, GValueArray *params)
 {
-	GValue *value;
-	VteScreen *screen;
-        long param, rowval, origin, rowmax;
-	char buf[128];
-
-	screen = terminal->pvt->screen;
-
 	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
+		GValue* value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
+			auto param = g_value_get_long(value);
+                        terminal->pvt->seq_dec_device_status_report(param);
+                }
+        }
+}
+
+void
+VteTerminalPrivate::seq_dec_device_status_report(long param)
+{
 			switch (param) {
 			case 6:
 				/* Send the cursor position. */
-                                if (terminal->pvt->origin_mode &&
-                                    terminal->pvt->scrolling_restricted) {
-                                        origin = terminal->pvt->scrolling_region.start;
-                                        rowmax = terminal->pvt->scrolling_region.end;
+                                vte::grid::row_t rowval, origin, rowmax;
+                                if (m_origin_mode &&
+                                    m_scrolling_restricted) {
+                                        origin = m_scrolling_region.start;
+                                        rowmax = m_scrolling_region.end;
                                 } else {
                                         origin = 0;
-                                        rowmax = terminal->pvt->row_count - 1;
+                                        rowmax = m_row_count - 1;
                                 }
-                                rowval = terminal->pvt->cursor.row - screen->insert_delta - origin;
+                                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
+                                rowval = m_cursor.row - m_screen->insert_delta - origin;
                                 rowval = CLAMP(rowval, 0, rowmax);
+                                char buf[128];
 				g_snprintf(buf, sizeof(buf),
 					   _VTE_CAP_CSI "?%ld;%ldR",
                                            rowval + 1,
-                                           CLAMP(terminal->pvt->cursor.col + 1,
-                                                 1, terminal->pvt->column_count));
-				vte_terminal_feed_child(terminal, buf, -1);
+                                           CLAMP(m_cursor.col + 1, 1, m_column_count));
+				feed_child(buf, -1);
 				break;
 			case 15:
 				/* Send printer status -- 10 = ready,
 				 * 11 = not ready.  We don't print. */
-				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "?11n", -1);
+				feed_child(_VTE_CAP_CSI "?11n", -1);
 				break;
 			case 25:
 				/* Send UDK status -- 20 = locked,
 				 * 21 = not locked.  I don't even know what
 				 * that means, but punt anyway. */
-				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "?20n", -1);
+				feed_child(_VTE_CAP_CSI "?20n", -1);
 				break;
 			case 26:
 				/* Send keyboard status.  50 = no locator. */
-				vte_terminal_feed_child(terminal, _VTE_CAP_CSI "?50n", -1);
+				feed_child(_VTE_CAP_CSI "?50n", -1);
 				break;
 			default:
 				break;
 			}
-		}
-	}
 }
 
 /* Restore a certain terminal attribute. */
