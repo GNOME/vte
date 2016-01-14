@@ -1160,6 +1160,7 @@ public:
         inline void seq_delete_lines(vte::grid::row_t param);
         inline void seq_device_status_report(long param);
         inline void seq_dec_device_status_report(long param);
+        inline void seq_screen_alignment_test();
 };
 
 #define m_invalidated_all invalidated_all

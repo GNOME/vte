@@ -2952,37 +2952,37 @@ vte_sequence_handler_save_mode (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_screen_alignment_test (VteTerminal *terminal, GValueArray *params)
 {
-	long row;
-	VteRowData *rowdata;
-	VteScreen *screen;
-	VteCell cell;
+        terminal->pvt->seq_screen_alignment_test();
+}
 
-	screen = terminal->pvt->screen;
-
-	for (row = terminal->pvt->screen->insert_delta;
-	     row < terminal->pvt->screen->insert_delta + terminal->pvt->row_count;
+void
+VteTerminalPrivate::seq_screen_alignment_test()
+{
+	for (auto row = m_screen->insert_delta;
+	     row < m_screen->insert_delta + m_row_count;
 	     row++) {
 		/* Find this row. */
-		while (_vte_ring_next(screen->row_data) <= row)
-			_vte_terminal_ring_append (terminal, FALSE);
-                terminal->pvt->adjust_adjustments();
-		rowdata = _vte_ring_index_writable (screen->row_data, row);
+                while (_vte_ring_next(m_screen->row_data) <= row)
+                        _vte_terminal_ring_append(m_terminal, FALSE);
+                adjust_adjustments();
+                auto rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
 		_vte_row_data_shrink (rowdata, 0);
 
-		terminal->pvt->emit_text_deleted();
+                emit_text_deleted();
 		/* Fill this row. */
+                VteCell cell;
 		cell.c = 'E';
 		cell.attr = basic_cell.cell.attr;
 		cell.attr.columns = 1;
-		_vte_row_data_fill (rowdata, &cell, terminal->pvt->column_count);
-		terminal->pvt->emit_text_inserted();
+                _vte_row_data_fill(rowdata, &cell, m_column_count);
+                emit_text_inserted();
 	}
-	terminal->pvt->invalidate_all();
+        invalidate_all();
 
 	/* We modified the display, so make a note of it for completeness. */
-	terminal->pvt->text_modified_flag = TRUE;
+        m_text_modified_flag = TRUE;
 }
 
 /* DECSCUSR set cursor style */
