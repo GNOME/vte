@@ -217,11 +217,11 @@ VteTerminalPrivate::emit_resize_window(guint columns,
  * rightmost column whenever necessary (that is, before handling any of the
  * sequences that disable the special cased mode in xterm).  (Bug 731155.)
  */
-static void
-_vte_terminal_ensure_cursor_is_onscreen (VteTerminal *terminal)
+void
+VteTerminalPrivate::ensure_cursor_is_onscreen()
 {
-        if (G_UNLIKELY (terminal->pvt->cursor.col >= terminal->pvt->column_count))
-                terminal->pvt->cursor.col = terminal->pvt->column_count - 1;
+        if (G_UNLIKELY (m_cursor.col >= m_column_count))
+                m_cursor.col = m_column_count - 1;
 }
 
 static void
@@ -374,7 +374,7 @@ static void
 vte_sequence_handler_restore_cursor (VteTerminal *terminal, GValueArray *params)
 {
         terminal->pvt->restore_cursor(terminal->pvt->screen);
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 }
 
 /* Save cursor. */
@@ -1021,7 +1021,7 @@ _vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
 	long i;
 	VteCell *pcell;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	/* Get the data for the row which the cursor points to. */
 	rowdata = terminal->pvt->ensure_row();
@@ -1057,7 +1057,7 @@ _vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
 	glong i;
 	VteScreen *screen;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear the rest of the
@@ -1121,7 +1121,7 @@ _vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
 	 * influence the text flow, and serves as a perfect workaround against a new line
 	 * getting painted with the active background color (except for a possible flicker).
 	 */
-	/* _vte_terminal_ensure_cursor_is_onscreen(terminal); */
+	/* terminal->pvt->ensure_cursor_is_onscreen(); */
 
 	/* Get the data for the row which the cursor points to. */
 	rowdata = terminal->pvt->ensure_row();
@@ -1296,7 +1296,7 @@ vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray 
         long val = 1, origin, rowmax;
 	screen = terminal->pvt->screen;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
@@ -1326,7 +1326,7 @@ _vte_sequence_handler_dc (VteTerminal *terminal, GValueArray *params)
 	VteRowData *rowdata;
 	long col;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	screen = terminal->pvt->screen;
 
@@ -1373,7 +1373,7 @@ vte_sequence_handler_cursor_down (VteTerminal *terminal, GValueArray *params)
         GValue *value;
         long val;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	screen = terminal->pvt->screen;
 
@@ -1406,7 +1406,7 @@ vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *param
 	VteCell *cell;
 	long col, i, count;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	screen = terminal->pvt->screen;
 
@@ -1464,7 +1464,7 @@ _vte_sequence_handler_insert_character (VteTerminal *terminal, GValueArray *para
 {
 	VteVisualPosition save;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
         save = terminal->pvt->cursor;
 
@@ -1492,7 +1492,7 @@ vte_sequence_handler_index (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_backspace (VteTerminal *terminal, GValueArray *params)
 {
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
         if (terminal->pvt->cursor.col > 0) {
 		/* There's room to move left, so do so. */
@@ -1507,7 +1507,7 @@ vte_sequence_handler_cursor_backward (VteTerminal *terminal, GValueArray *params
         GValue *value;
         long val;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
         val = 1;
         if (params != NULL && params->n_values >= 1) {
@@ -1526,7 +1526,7 @@ vte_sequence_handler_cursor_forward (VteTerminal *terminal, GValueArray *params)
         GValue *value;
         long val;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
         val = 1;
         if (params != NULL && params->n_values >= 1) {
@@ -1565,7 +1565,7 @@ vte_sequence_handler_scroll_down (VteTerminal *terminal, GValueArray *params)
 	long val = 1;
 	GValue *value;
 
-        /* No _vte_terminal_ensure_cursor_is_onscreen() here as per xterm */
+        /* No ensure_cursor_is_onscreen() here as per xterm */
 
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
@@ -1681,7 +1681,7 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 	long val = 1;
 	GValue *value;
 
-        /* No _vte_terminal_ensure_cursor_is_onscreen() here as per xterm */
+        /* No ensure_cursor_is_onscreen() here as per xterm */
 
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
@@ -1698,7 +1698,7 @@ vte_sequence_handler_scroll_up (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_line_feed (VteTerminal *terminal, GValueArray *params)
 {
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	terminal->pvt->cursor_down();
 }
@@ -1710,7 +1710,7 @@ vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
 	long start, end;
 	VteScreen *screen;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	screen = terminal->pvt->screen;
 
@@ -1879,7 +1879,7 @@ vte_sequence_handler_cursor_up (VteTerminal *terminal, GValueArray *params)
         GValue *value;
         long val;
 
-        _vte_terminal_ensure_cursor_is_onscreen(terminal);
+        terminal->pvt->ensure_cursor_is_onscreen();
 
 	screen = terminal->pvt->screen;
 

@@ -1099,6 +1099,8 @@ public:
                                   VteWriteFlags flags,
                                   GCancellable *cancellable,
                                   GError **error);
+
+        void ensure_cursor_is_onscreen();
 };
 
 #define m_invalidated_all invalidated_all
