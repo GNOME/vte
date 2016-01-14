@@ -3240,13 +3240,10 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 						    int index, int index_fallback, int osc,
 						    const char *terminator)
 {
-	gchar *name = NULL;
-	GValue *value;
-	vte::color::rgb color;
-
 	if (params != NULL && params->n_values > 0) {
-		value = g_value_array_get_nth (params, 0);
+		GValue* value = g_value_array_get_nth (params, 0);
 
+                char *name = nullptr;
 		if (G_VALUE_HOLDS_STRING (value))
 			name = g_value_dup_string (value);
 		else if (G_VALUE_HOLDS_POINTER (value))
@@ -3255,22 +3252,33 @@ vte_sequence_handler_change_special_color_internal (VteTerminal *terminal, GValu
 		if (! name)
 			return;
 
+                terminal->pvt->seq_change_special_color_internal(name, index, index_fallback, osc, terminator);
+                g_free(name);
+        }
+}
+
+void
+VteTerminalPrivate::seq_change_special_color_internal(char const* name,
+                                                      int index,
+                                                      int index_fallback,
+                                                      int osc,
+                                                      char const *terminator)
+{
+	vte::color::rgb color;
+
 		if (color.parse(name))
-			terminal->pvt->set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
+			set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
 		else if (strcmp (name, "?") == 0) {
 			gchar buf[128];
-			vte::color::rgb const* c = terminal->pvt->get_color(index);
+			auto c = get_color(index);
 			if (c == NULL && index_fallback != -1)
-				c = terminal->pvt->get_color(index_fallback);
+				c = get_color(index_fallback);
 			g_assert(c != NULL);
 			g_snprintf (buf, sizeof (buf),
 				    _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",
 				    osc, c->red, c->green, c->blue, terminator);
-			vte_terminal_feed_child (terminal, buf, -1);
+			feed_child(buf, -1);
 		}
-
-		g_free (name);
-	}
 }
 
 /* Change the default foreground cursor, BEL terminated */

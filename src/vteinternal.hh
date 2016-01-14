@@ -1164,6 +1164,11 @@ public:
         inline void seq_window_manipulation(long param,
                                             long arg1,
                                             long arg2);
+        inline void seq_change_special_color_internal(char const* name,
+                                                      int index,
+                                                      int index_fallback,
+                                                      int osc,
+                                                      char const *terminator);
 };
 
 #define m_invalidated_all invalidated_all
