@@ -366,26 +366,40 @@ vte_sequence_handler_save_cursor (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_normal_screen (VteTerminal *terminal, GValueArray *params)
 {
+        terminal->pvt->seq_normal_screen();
+}
+
+void
+VteTerminalPrivate::seq_normal_screen()
+{
+        seq_switch_screen(&m_normal_screen);
+}
+
+void
+VteTerminalPrivate::seq_switch_screen(VteScreen *new_screen)
+{
+        /* if (new_screen == m_screen) return; ? */
+
         /* cursor.row includes insert_delta, adjust accordingly */
-        terminal->pvt->cursor.row -= terminal->pvt->screen->insert_delta;
-        terminal->pvt->screen = &terminal->pvt->normal_screen;
-        terminal->pvt->cursor.row += terminal->pvt->screen->insert_delta;
+        m_cursor.row -= m_screen->insert_delta;
+        m_screen = new_screen;
+        m_cursor.row += m_screen->insert_delta;
 
         /* Make sure the ring is large enough */
-        terminal->pvt->ensure_row();
+        ensure_row();
 }
 
 /* Switch to alternate screen. */
 static void
 vte_sequence_handler_alternate_screen (VteTerminal *terminal, GValueArray *params)
 {
-        /* cursor.row includes insert_delta, adjust accordingly */
-        terminal->pvt->cursor.row -= terminal->pvt->screen->insert_delta;
-        terminal->pvt->screen = &terminal->pvt->alternate_screen;
-        terminal->pvt->cursor.row += terminal->pvt->screen->insert_delta;
+        terminal->pvt->seq_alternate_screen();
+}
 
-        /* Make sure the ring is large enough */
-        terminal->pvt->ensure_row();
+void
+VteTerminalPrivate::seq_alternate_screen()
+{
+        seq_switch_screen(&m_alternate_screen);
 }
 
 /* Switch to normal screen and restore cursor (in this order). */
