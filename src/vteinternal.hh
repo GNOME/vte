@@ -1154,6 +1154,8 @@ public:
         inline void set_current_directory_uri_changed(char* uri /* adopted */);
         inline void set_current_file_uri_changed(char* uri /* adopted */);
         inline void set_keypad_mode(VteKeymode mode);
+        inline void seq_erase_in_display(long param);
+        inline void seq_erase_in_line(long param);
 };
 
 #define m_invalidated_all invalidated_all

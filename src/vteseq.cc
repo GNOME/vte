@@ -2602,92 +2602,100 @@ vte_sequence_handler_decreset (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *params)
 {
-	GValue *value;
-	long param;
-	guint i;
 	/* The default parameter is 0. */
-	param = 0;
+	long param = 0;
         /* Pull out the first parameter. */
-	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
-		value = g_value_array_get_nth(params, i);
+	for (guint i = 0; (params != NULL) && (i < params->n_values); i++) {
+                GValue* value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
 			continue;
 		}
 		param = g_value_get_long(value);
                 break;
 	}
+
+        terminal->pvt->seq_erase_in_display(param);
+}
+
+void
+VteTerminalPrivate::seq_erase_in_display(long param)
+{
 	/* Clear the right area. */
 	switch (param) {
 	case 0:
 		/* Clear below the current line. */
-                terminal->pvt->seq_cd();
+                seq_cd();
 		break;
 	case 1:
 		/* Clear above the current line. */
-		terminal->pvt->seq_clear_above_current();
+                seq_clear_above_current();
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
-                terminal->pvt->seq_cb();
+                seq_cb();
 		break;
 	case 2:
 		/* Clear the entire screen. */
-		terminal->pvt->seq_clear_screen();
+                seq_clear_screen();
 		break;
         case 3:
                 /* Drop the scrollback. */
-                terminal->pvt->drop_scrollback();
+                drop_scrollback();
                 break;
 	default:
 		break;
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Erase certain parts of the current line in the display. */
 static void
 vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 {
-	GValue *value;
-	long param;
-	guint i;
 	/* The default parameter is 0. */
-	param = 0;
+	long param = 0;
         /* Pull out the first parameter. */
-	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
-		value = g_value_array_get_nth(params, i);
+	for (guint i = 0; (params != NULL) && (i < params->n_values); i++) {
+                GValue* value = g_value_array_get_nth(params, i);
 		if (!G_VALUE_HOLDS_LONG(value)) {
 			continue;
 		}
 		param = g_value_get_long(value);
                 break;
 	}
+
+        terminal->pvt->seq_erase_in_line(param);
+}
+
+void
+VteTerminalPrivate::seq_erase_in_line(long param)
+{
 	/* Clear the right area. */
 	switch (param) {
 	case 0:
 		/* Clear to end of the line. */
-                terminal->pvt->seq_ce();
+                seq_ce();
 		break;
 	case 1:
 		/* Clear to start of the line. */
-                terminal->pvt->seq_cb();
+                seq_cb();
 		break;
 	case 2:
 		/* Clear the entire line. */
-		terminal->pvt->seq_clear_current_line();
+                seq_clear_current_line();
 		break;
 	default:
 		break;
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Perform a full-bore reset. */
 static void
 vte_sequence_handler_full_reset (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_reset(terminal, TRUE, TRUE);
+	terminal->pvt->reset(true, true);
 }
 
 /* Insert a certain number of lines below the current cursor. */
