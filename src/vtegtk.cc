@@ -57,6 +57,8 @@
 
 #define I_(string) (g_intern_static_string(string))
 
+#define VTE_TERMINAL_CSS_NAME "vte"
+
 guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
 GTimer *process_timer;
@@ -621,6 +623,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
 	widget_class->size_allocate = vte_terminal_size_allocate;
         widget_class->screen_changed = vte_terminal_screen_changed;
+
+#if GTK_CHECK_VERSION(3, 19, 5)
+        gtk_widget_class_set_css_name(widget_class, VTE_TERMINAL_CSS_NAME);
+#endif
 
 	/* Initialize default handlers. */
 	klass->eof = NULL;
