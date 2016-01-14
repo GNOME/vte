@@ -1127,6 +1127,8 @@ public:
         inline void seq_cb();
         inline void seq_cd();
         inline void seq_ce();
+        void set_cursor_column(vte::grid::column_t col);
+        void set_cursor_row(vte::grid::row_t row);
 };
 
 #define m_invalidated_all invalidated_all

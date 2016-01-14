@@ -1190,7 +1190,19 @@ vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArr
 		}
 	}
 
-        terminal->pvt->cursor.col = val;
+        terminal->pvt->set_cursor_column(val);
+}
+
+void
+VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
+{
+        m_cursor.col = col;
+}
+
+void
+VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
+{
+        m_cursor.row = row;
 }
 
 /* Move the cursor to the given position, 1-based. */
