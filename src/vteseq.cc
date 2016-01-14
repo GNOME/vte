@@ -1053,39 +1053,35 @@ VteTerminalPrivate::seq_cursor_back_tab()
 }
 
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
-static void
-_vte_sequence_handler_cb (VteTerminal *terminal, GValueArray *params)
+void
+VteTerminalPrivate::seq_cb()
 {
-	VteRowData *rowdata;
-	long i;
-	VteCell *pcell;
-
-        terminal->pvt->ensure_cursor_is_onscreen();
+        ensure_cursor_is_onscreen();
 
 	/* Get the data for the row which the cursor points to. */
-	rowdata = terminal->pvt->ensure_row();
+	auto rowdata = ensure_row();
         /* Clean up Tab/CJK fragments. */
-        terminal->pvt->cleanup_fragments(0, terminal->pvt->cursor.col + 1);
+        cleanup_fragments(0, m_cursor.col + 1);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
-        for (i = 0; i <= terminal->pvt->cursor.col; i++) {
-		if (i < (glong) _vte_row_data_length (rowdata)) {
+        vte::grid::column_t i;
+        for (i = 0; i <= m_cursor.col; i++) {
+                if (i < (glong) _vte_row_data_length (rowdata)) {
 			/* Muck with the cell in this location. */
-			pcell = _vte_row_data_get_writable (rowdata, i);
-                        *pcell = terminal->pvt->color_defaults;
+                        auto pcell = _vte_row_data_get_writable(rowdata, i);
+                        *pcell = m_color_defaults;
 		} else {
 			/* Add new cells until we have one here. */
-                        _vte_row_data_append (rowdata, &terminal->pvt->color_defaults);
+                        _vte_row_data_append (rowdata, &m_color_defaults);
 		}
 	}
 	/* Repaint this row. */
-	terminal->pvt->invalidate_cells(
-                              0, terminal->pvt->cursor.col+1,
-                              terminal->pvt->cursor.row, 1);
+        invalidate_cells(0, m_cursor.col+1,
+                         m_cursor.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Clear to the right of the cursor and below the current line. */
@@ -2510,7 +2506,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		terminal->pvt->seq_clear_above_current();
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
-                _vte_sequence_handler_cb (terminal, NULL);
+                terminal->pvt->seq_cb();
 		break;
 	case 2:
 		/* Clear the entire screen. */
@@ -2553,7 +2549,7 @@ vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 		break;
 	case 1:
 		/* Clear to start of the line. */
-                _vte_sequence_handler_cb (terminal, NULL);
+                terminal->pvt->seq_cb();
 		break;
 	case 2:
 		/* Clear the entire line. */
