@@ -239,27 +239,23 @@ VteTerminalPrivate::seq_home_cursor()
 }
 
 /* Clear the entire screen. */
-static void
-_vte_terminal_clear_screen (VteTerminal *terminal)
+void
+VteTerminalPrivate::seq_clear_screen()
 {
-	long i, initial, row;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	initial = screen->insert_delta;
-        row = terminal->pvt->cursor.row - screen->insert_delta;
-	initial = _vte_ring_next(screen->row_data);
+        auto row = m_cursor.row - screen->insert_delta;
+        auto initial = _vte_ring_next(m_screen->row_data);
 	/* Add a new screen's worth of rows. */
-	for (i = 0; i < terminal->pvt->row_count; i++)
-		_vte_terminal_ring_append (terminal, TRUE);
+        for (auto i = 0; i < m_row_count; i++)
+                _vte_terminal_ring_append(m_terminal, TRUE);
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
-	screen->insert_delta = initial;
-        terminal->pvt->cursor.row = row + screen->insert_delta;
-	terminal->pvt->adjust_adjustments();
+        m_screen->insert_delta = initial;
+        m_cursor.row = row + m_screen->insert_delta;
+        adjust_adjustments();
 	/* Redraw everything. */
-	terminal->pvt->invalidate_all();
+        invalidate_all();
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Clear the current line. */
@@ -862,7 +858,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
                         terminal->pvt->emit_resize_window(
                                                         set ? 132 : 80,
                                                         terminal->pvt->row_count);
-                        _vte_terminal_clear_screen(terminal);
+                        terminal->pvt->seq_clear_screen();
                         terminal->pvt->seq_home_cursor();
                 }
 		break;
@@ -879,7 +875,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 1049:
                 /* Clear the alternate screen if we're switching to it */
 		if (set) {
-			_vte_terminal_clear_screen (terminal);
+			terminal->pvt->seq_clear_screen();
 		}
 		/* Reset scrollbars and repaint everything. */
 		gtk_adjustment_set_value(terminal->pvt->vadjustment,
@@ -2471,7 +2467,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		break;
 	case 2:
 		/* Clear the entire screen. */
-		_vte_terminal_clear_screen (terminal);
+		terminal->pvt->seq_clear_screen();
 		break;
         case 3:
                 /* Drop the scrollback. */

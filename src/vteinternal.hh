@@ -1103,6 +1103,7 @@ public:
         /* Sequence handlers and their helper functions */
         inline void ensure_cursor_is_onscreen();
         inline void seq_home_cursor();
+        inline void seq_clear_screen();
 };
 
 #define m_invalidated_all invalidated_all
