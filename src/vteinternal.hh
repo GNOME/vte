@@ -895,6 +895,18 @@ public:
                                     int height);
         void emit_increase_font_size();
         void emit_decrease_font_size();
+        void emit_bell();
+        void emit_deiconify_window();
+        void emit_iconify_window();
+        void emit_raise_window();
+        void emit_lower_window();
+        void emit_maximize_window();
+        void emit_refresh_window();
+        void emit_restore_window();
+        void emit_move_window(guint x,
+                              guint y);
+        void emit_resize_window(guint columns,
+                                guint rows);
 
         void clear_tabstop(int column); // FIXMEchpe vte::grid::column_t ?
         bool get_tabstop(int column);

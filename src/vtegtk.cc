@@ -885,14 +885,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("deiconify-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, deiconify_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_DEICONIFY_WINDOW] =
+                g_signal_new(I_("deiconify-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, deiconify_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::iconify-window:
@@ -900,14 +901,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("iconify-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, iconify_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_ICONIFY_WINDOW] =
+                g_signal_new(I_("iconify-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, iconify_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::raise-window:
@@ -915,14 +917,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("raise-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, raise_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_RAISE_WINDOW] =
+                g_signal_new(I_("raise-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, raise_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::lower-window:
@@ -930,14 +933,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("lower-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, lower_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_LOWER_WINDOW] =
+                g_signal_new(I_("lower-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, lower_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::refresh-window:
@@ -945,14 +949,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("refresh-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, refresh_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_REFRESH_WINDOW] =
+                g_signal_new(I_("refresh-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, refresh_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::restore-window:
@@ -960,14 +965,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("restore-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, restore_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_RESTORE_WINDOW] =
+                g_signal_new(I_("restore-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, restore_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::maximize-window:
@@ -975,14 +981,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("maximize-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, maximize_window),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+        signals[SIGNAL_MAXIMIZE_WINDOW] =
+                g_signal_new(I_("maximize-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, maximize_window),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::resize-window:
@@ -992,14 +999,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("resize-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, resize_window),
-		     NULL,
-		     NULL,
-		     _vte_marshal_VOID__UINT_UINT,
-		     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+        signals[SIGNAL_RESIZE_WINDOW] =
+                g_signal_new(I_("resize-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, resize_window),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__UINT_UINT,
+                             G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
         /**
          * VteTerminal::move-window:
@@ -1009,14 +1017,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted at the child application's request.
          */
-	g_signal_new(I_("move-window"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, move_window),
-		     NULL,
-		     NULL,
-		     _vte_marshal_VOID__UINT_UINT,
-		     G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+        signals[SIGNAL_MOVE_WINDOW] =
+                g_signal_new(I_("move-window"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, move_window),
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__UINT_UINT,
+                             G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
 
         /**
          * VteTerminal::increase-font-size:
@@ -1025,14 +1034,14 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * Emitted when the user hits the '+' key while holding the Control key.
          */
         signals[SIGNAL_INCREASE_FONT_SIZE] =
-	g_signal_new(I_("increase-font-size"),
-		     G_OBJECT_CLASS_TYPE(klass),
-		     G_SIGNAL_RUN_LAST,
-		     G_STRUCT_OFFSET(VteTerminalClass, increase_font_size),
-		     NULL,
-		     NULL,
-		     g_cclosure_marshal_VOID__VOID,
-		     G_TYPE_NONE, 0);
+                g_signal_new(I_("increase-font-size"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, increase_font_size),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::decrease-font-size:
@@ -1162,14 +1171,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * This signal is emitted when the a child sends a bell request to the
          * terminal.
          */
-        g_signal_new(I_("bell"),
-                     G_OBJECT_CLASS_TYPE(klass),
-                     G_SIGNAL_RUN_LAST,
-                     G_STRUCT_OFFSET(VteTerminalClass, bell),
-                     NULL,
-                     NULL,
-                     g_cclosure_marshal_VOID__VOID,
-                     G_TYPE_NONE, 0);
+        signals[SIGNAL_BELL] =
+                g_signal_new(I_("bell"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, bell),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal:allow-bold:

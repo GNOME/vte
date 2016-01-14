@@ -28,6 +28,8 @@
 
 #include <vte/vte.h>
 #include "vte-private.h"
+#include "vteinternal.hh"
+#include "vtegtk.hh"
 
 #define BEL "\007"
 #define ST _VTE_CAP_ST
@@ -114,86 +116,87 @@ vte_ucs4_to_utf8 (VteTerminal *terminal, const guchar *in)
 	return out;
 }
 
-/* Emit a "deiconify-window" signal. */
-static void
-vte_terminal_emit_deiconify_window(VteTerminal *terminal)
+/* Emit a "bell" signal. */
+void
+VteTerminalPrivate::emit_bell()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `deiconify-window'.\n");
-	g_signal_emit_by_name(terminal, "deiconify-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `bell'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_BELL], 0);
+}
+
+
+/* Emit a "deiconify-window" signal. */
+void
+VteTerminalPrivate::emit_deiconify_window()
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `deiconify-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_DEICONIFY_WINDOW], 0);
 }
 
 /* Emit a "iconify-window" signal. */
-static void
-vte_terminal_emit_iconify_window(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_iconify_window()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `iconify-window'.\n");
-	g_signal_emit_by_name(terminal, "iconify-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `iconify-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_ICONIFY_WINDOW], 0);
 }
 
 /* Emit a "raise-window" signal. */
-static void
-vte_terminal_emit_raise_window(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_raise_window()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `raise-window'.\n");
-	g_signal_emit_by_name(terminal, "raise-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `raise-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_RAISE_WINDOW], 0);
 }
 
 /* Emit a "lower-window" signal. */
-static void
-vte_terminal_emit_lower_window(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_lower_window()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `lower-window'.\n");
-	g_signal_emit_by_name(terminal, "lower-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `lower-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_LOWER_WINDOW], 0);
 }
 
 /* Emit a "maximize-window" signal. */
-static void
-vte_terminal_emit_maximize_window(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_maximize_window()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `maximize-window'.\n");
-	g_signal_emit_by_name(terminal, "maximize-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `maximize-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_MAXIMIZE_WINDOW], 0);
 }
 
 /* Emit a "refresh-window" signal. */
-static void
-vte_terminal_emit_refresh_window(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_refresh_window()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `refresh-window'.\n");
-	g_signal_emit_by_name(terminal, "refresh-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `refresh-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_REFRESH_WINDOW], 0);
 }
 
 /* Emit a "restore-window" signal. */
-static void
-vte_terminal_emit_restore_window(VteTerminal *terminal)
+void
+VteTerminalPrivate::emit_restore_window()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `restore-window'.\n");
-	g_signal_emit_by_name(terminal, "restore-window");
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `restore-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_RESTORE_WINDOW], 0);
 }
 
 /* Emit a "move-window" signal.  (Pixels.) */
-static void
-vte_terminal_emit_move_window(VteTerminal *terminal, guint x, guint y)
+void
+VteTerminalPrivate::emit_move_window(guint x,
+                                     guint y)
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `move-window'.\n");
-	g_signal_emit_by_name(terminal, "move-window", x, y);
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `move-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_MOVE_WINDOW], 0, x, y);
 }
 
 /* Emit a "resize-window" signal.  (Grid size.) */
-static void
-vte_terminal_emit_resize_window(VteTerminal *terminal,
-				guint columns, guint rows)
+void
+VteTerminalPrivate::emit_resize_window(guint columns,
+                                       guint rows)
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `resize-window'.\n");
-	g_signal_emit_by_name(terminal, "resize-window", columns, rows);
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `resize-window'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_RESIZE_WINDOW], 0, columns, rows);
 }
 
 
@@ -860,7 +863,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 3:
                 /* 3: DECCOLM set/reset to 132/80 columns mode, clear screen and cursor home */
                 if (terminal->pvt->deccolm_mode) {
-                        vte_terminal_emit_resize_window(terminal,
+                        terminal->pvt->emit_resize_window(
                                                         set ? 132 : 80,
                                                         terminal->pvt->row_count);
                         _vte_terminal_clear_screen(terminal);
@@ -981,7 +984,7 @@ static void
 vte_sequence_handler_bell (VteTerminal *terminal, GValueArray *params)
 {
 	terminal->pvt->beep();
-	g_signal_emit_by_name(terminal, "bell");
+        terminal->pvt->emit_bell();
 }
 
 /* Backtab. */
@@ -1626,7 +1629,7 @@ vte_sequence_handler_change_color_internal (VteTerminal *terminal, GValueArray *
 
 		/* emit the refresh as the palette has changed and previous
 		 * renders need to be updated. */
-		vte_terminal_emit_refresh_window (terminal);
+		terminal->pvt->emit_refresh_window();
 	}
 }
 
@@ -2885,20 +2888,19 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
         case 1:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Deiconifying window.\n");
-                vte_terminal_emit_deiconify_window(terminal);
+                terminal->pvt->emit_deiconify_window();
                 break;
         case 2:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Iconifying window.\n");
-                vte_terminal_emit_iconify_window(terminal);
+                terminal->pvt->emit_iconify_window();
                 break;
         case 3:
                 if ((arg1 != -1) && (arg2 != -1)) {
                         _vte_debug_print(VTE_DEBUG_PARSE,
                                          "Moving window to "
                                          "%ld,%ld.\n", arg1, arg2);
-                        vte_terminal_emit_move_window(terminal,
-                                                      arg1, arg2);
+                        terminal->pvt->emit_move_window(arg1, arg2);
                 }
                 break;
         case 4:
@@ -2909,24 +2911,24 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          arg2, arg1,
                                          arg2 / terminal->pvt->char_width,
                                          arg1 / terminal->pvt->char_height);
-                        vte_terminal_emit_resize_window(terminal,
+                        terminal->pvt->emit_resize_window(
                                                         arg2 / terminal->pvt->char_width,
                                                         arg1 / terminal->pvt->char_height);
                 }
                 break;
         case 5:
                 _vte_debug_print(VTE_DEBUG_PARSE, "Raising window.\n");
-                vte_terminal_emit_raise_window(terminal);
+                terminal->pvt->emit_raise_window();
                 break;
         case 6:
                 _vte_debug_print(VTE_DEBUG_PARSE, "Lowering window.\n");
-                vte_terminal_emit_lower_window(terminal);
+                terminal->pvt->emit_lower_window();
                 break;
         case 7:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Refreshing window.\n");
                 terminal->pvt->invalidate_all();
-                vte_terminal_emit_refresh_window(terminal);
+                terminal->pvt->emit_refresh_window();
                 break;
         case 8:
                 if ((arg1 != -1) && (arg2 != -1)) {
@@ -2934,7 +2936,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          "Resizing window "
                                          "(to %ld columns, %ld rows).\n",
                                          arg2, arg1);
-                        vte_terminal_emit_resize_window(terminal, arg2, arg1);
+                        terminal->pvt->emit_resize_window(arg2, arg1);
                 }
                 break;
         case 9:
@@ -2942,12 +2944,12 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                 case 0:
                         _vte_debug_print(VTE_DEBUG_PARSE,
                                          "Restoring window.\n");
-                        vte_terminal_emit_restore_window(terminal);
+                        terminal->pvt->emit_restore_window();
                         break;
                 case 1:
                         _vte_debug_print(VTE_DEBUG_PARSE,
                                          "Maximizing window.\n");
-                        vte_terminal_emit_maximize_window(terminal);
+                        terminal->pvt->emit_maximize_window();
                         break;
                 default:
                         break;
@@ -3047,7 +3049,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          param);
                         /* Resize to the specified number of
                          * rows. */
-                        vte_terminal_emit_resize_window(terminal,
+                        terminal->pvt->emit_resize_window(
                                                         terminal->pvt->column_count,
                                                         param);
                 }
