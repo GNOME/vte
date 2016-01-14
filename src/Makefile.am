@@ -182,7 +182,7 @@ include $(INTROSPECTION_MAKEFILE)
 
 Vte-@VTE_API_VERSION@.gir: libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
-Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(builddir)/vte
+Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(builddir)
 Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte-$(VTE_API_VERSION).la
 Vte_@VTE_API_VERSION_U@_gir_EXPORT_PACKAGES = vte-$(VTE_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
@@ -241,8 +241,8 @@ testvte_SOURCES = \
 testvte_CPPFLAGS = \
 	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
 	-DGDK_DISABLE_DEPRECATION_WARNINGS \
-	-I$(srcdir)/vte \
-	-I$(builddir)/vte \
+	-I$(srcdir) \
+	-I$(builddir) \
 	$(AM_CPPFLAGS)
 
 testvte_CFLAGS = \
