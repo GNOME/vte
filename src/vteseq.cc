@@ -944,60 +944,75 @@ vte_sequence_handler_nop (VteTerminal *terminal, GValueArray *params)
 {
 }
 
+void
+VteTerminalPrivate::set_character_replacements(unsigned slot,
+                                               VteCharacterReplacement replacement)
+{
+        g_assert(slot < G_N_ELEMENTS(m_character_replacements));
+        m_character_replacements[slot] = replacement;
+}
+
 /* G0 character set is a pass-thru (no mapping). */
 static void
 vte_sequence_handler_designate_g0_plain (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
+        terminal->pvt->set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_NONE);
 }
 
 /* G0 character set is DEC Special Character and Line Drawing Set. */
 static void
 vte_sequence_handler_designate_g0_line_drawing (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_LINE_DRAWING;
+        terminal->pvt->set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
 }
 
 /* G0 character set is British (# is converted to £). */
 static void
 vte_sequence_handler_designate_g0_british (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacements[0] = VTE_CHARACTER_REPLACEMENT_BRITISH;
+        terminal->pvt->set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_BRITISH);
 }
 
 /* G1 character set is a pass-thru (no mapping). */
 static void
 vte_sequence_handler_designate_g1_plain (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
+        terminal->pvt->set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_NONE);
 }
 
 /* G1 character set is DEC Special Character and Line Drawing Set. */
 static void
 vte_sequence_handler_designate_g1_line_drawing (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_LINE_DRAWING;
+        terminal->pvt->set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
 }
 
 /* G1 character set is British (# is converted to £). */
 static void
 vte_sequence_handler_designate_g1_british (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacements[1] = VTE_CHARACTER_REPLACEMENT_BRITISH;
+        terminal->pvt->set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_BRITISH);
+}
+
+void
+VteTerminalPrivate::set_character_replacement(unsigned slot)
+{
+        g_assert(slot < G_N_ELEMENTS(m_character_replacements));
+        m_character_replacement = &m_character_replacements[slot];
 }
 
 /* SI (shift in): switch to G0 character set. */
 static void
 vte_sequence_handler_shift_in (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacement = &terminal->pvt->character_replacements[0];
+        terminal->pvt->set_character_replacement(0);
 }
 
 /* SO (shift out): switch to G1 character set. */
 static void
 vte_sequence_handler_shift_out (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->character_replacement = &terminal->pvt->character_replacements[1];
+        terminal->pvt->set_character_replacement(1);
 }
 
 /* Beep. */
