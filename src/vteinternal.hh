@@ -1147,7 +1147,8 @@ public:
         inline void set_keypad_mode(VteKeymode mode);
         inline void seq_change_color_internal(char const* str,
                                               char const* terminator);
-
+        inline void seq_reverse_index();
+        inline void seq_tab_set();
 };
 
 #define m_invalidated_all invalidated_all

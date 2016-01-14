@@ -1820,50 +1820,56 @@ vte_sequence_handler_line_feed (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_reverse_index (VteTerminal *terminal, GValueArray *params)
 {
-	long start, end;
-	VteScreen *screen;
+        terminal->pvt->seq_reverse_index();
+}
 
-        terminal->pvt->ensure_cursor_is_onscreen();
+void
+VteTerminalPrivate::seq_reverse_index()
+{
+        ensure_cursor_is_onscreen();
 
-	screen = terminal->pvt->screen;
-
-        if (terminal->pvt->scrolling_restricted) {
-                start = terminal->pvt->scrolling_region.start + screen->insert_delta;
-                end = terminal->pvt->scrolling_region.end + screen->insert_delta;
+        vte::grid::row_t start, end;
+        if (m_scrolling_restricted) {
+                start = m_scrolling_region.start + m_screen->insert_delta;
+                end = m_scrolling_region.end + m_screen->insert_delta;
 	} else {
-		start = terminal->pvt->screen->insert_delta;
-		end = start + terminal->pvt->row_count - 1;
+                start = m_screen->insert_delta;
+                end = start + m_row_count - 1;
 	}
 
-        if (terminal->pvt->cursor.row == start) {
+        if (m_cursor.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		_vte_terminal_ring_remove (terminal, end);
-		_vte_terminal_ring_insert (terminal, start, TRUE);
+		_vte_terminal_ring_remove(m_terminal, end);
+		_vte_terminal_ring_insert(m_terminal, start, TRUE);
 		/* Update the display. */
-		terminal->pvt->scroll_region(start, end - start + 1, 1);
-		terminal->pvt->invalidate_cells(
-				      0, terminal->pvt->column_count,
-				      start, 2);
+		scroll_region(start, end - start + 1, 1);
+                invalidate_cells(0, m_column_count,
+                                 start, 2);
 	} else {
 		/* Otherwise, just move the cursor up. */
-                terminal->pvt->cursor.row--;
+                m_cursor.row--;
 	}
 	/* Adjust the scrollbars if necessary. */
-	terminal->pvt->adjust_adjustments();
+        adjust_adjustments();
 	/* We modified the display, so make a note of it. */
-	terminal->pvt->text_modified_flag = TRUE;
+        m_text_modified_flag = TRUE;
 }
 
 /* Set tab stop in the current column. */
 static void
 vte_sequence_handler_tab_set (VteTerminal *terminal, GValueArray *params)
 {
-	if (terminal->pvt->tabstops == NULL) {
-		terminal->pvt->tabstops = g_hash_table_new(NULL, NULL);
+        terminal->pvt->seq_tab_set();
+}
+
+void
+VteTerminalPrivate::seq_tab_set()
+{
+	if (m_tabstops == NULL) {
+		m_tabstops = g_hash_table_new(NULL, NULL);
 	}
-	terminal->pvt->set_tabstop(
-                                 terminal->pvt->cursor.col);
+	set_tabstop(m_cursor.col);
 }
 
 /* Tab. */
