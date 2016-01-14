@@ -2411,8 +2411,14 @@ vte_sequence_handler_set_current_directory_uri (VteTerminal *terminal, GValueArr
                 }
         }
 
-        g_free(terminal->pvt->current_directory_uri_changed);
-        terminal->pvt->current_directory_uri_changed = uri;
+        terminal->pvt->set_current_directory_uri_changed(uri);
+}
+
+void
+VteTerminalPrivate::set_current_directory_uri_changed(char* uri /* adopted */)
+{
+        g_free(m_current_directory_uri_changed);
+        m_current_directory_uri_changed = uri;
 }
 
 static void
@@ -2445,8 +2451,14 @@ vte_sequence_handler_set_current_file_uri (VteTerminal *terminal, GValueArray *p
                 }
         }
 
-        g_free(terminal->pvt->current_file_uri_changed);
-        terminal->pvt->current_file_uri_changed = uri;
+        terminal->pvt->set_current_file_uri_changed(uri);
+}
+
+void
+VteTerminalPrivate::set_current_file_uri_changed(char* uri /* adopted */)
+{
+        g_free(m_current_file_uri_changed);
+        m_current_file_uri_changed = uri;
 }
 
 /* Restrict the scrolling region. */

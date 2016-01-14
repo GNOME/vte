@@ -1144,7 +1144,6 @@ public:
         inline void seq_backspace();
         inline void seq_cursor_backward(vte::grid::column_t columns);
         inline void seq_cursor_forward(vte::grid::column_t columns);
-        inline void set_keypad_mode(VteKeymode mode);
         inline void seq_change_color_internal(char const* str,
                                               char const* terminator);
         inline void seq_reverse_index();
@@ -1152,6 +1151,9 @@ public:
         inline void seq_tab();
         inline void seq_tab_clear(long param);
         inline void seq_send_secondary_device_attributes();
+        inline void set_current_directory_uri_changed(char* uri /* adopted */);
+        inline void set_current_file_uri_changed(char* uri /* adopted */);
+        inline void set_keypad_mode(VteKeymode mode);
 };
 
 #define m_invalidated_all invalidated_all
