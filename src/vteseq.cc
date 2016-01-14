@@ -3017,7 +3017,7 @@ vte_sequence_handler_set_cursor_style (VteTerminal *terminal, GValueArray *param
 static void
 vte_sequence_handler_soft_reset (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_reset(terminal, FALSE, FALSE);
+	terminal->pvt->reset(false, false);
 }
 
 /* Window manipulation control sequences.  Most of these are considered
@@ -3027,24 +3027,16 @@ vte_sequence_handler_soft_reset (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *params)
 {
-	GdkScreen *gscreen;
-	GValue *value;
-	GtkWidget *widget;
-	char buf[128];
-	long param, arg1, arg2;
-	gint width, height;
-
-	widget = &terminal->widget;
-
         if (params == NULL || params->n_values == 0) {
                 return;
         }
-        value = g_value_array_get_nth(params, 0);
+        GValue* value = g_value_array_get_nth(params, 0);
         if (!G_VALUE_HOLDS_LONG(value)) {
                 return;
         }
-        param = g_value_get_long(value);
+        auto param = g_value_get_long(value);
 
+        long arg1, arg2;
         arg1 = arg2 = -1;
         if (params->n_values > 1) {
                 value = g_value_array_get_nth(params, 1);
@@ -3059,23 +3051,35 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                 }
         }
 
+        terminal->pvt->seq_window_manipulation(param, arg1, arg2);
+}
+
+void
+VteTerminalPrivate::seq_window_manipulation(long param,
+                                            long arg1,
+                                            long arg2)
+{
+	GdkScreen *gscreen;
+	char buf[128];
+	int width, height;
+
         switch (param) {
         case 1:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Deiconifying window.\n");
-                terminal->pvt->emit_deiconify_window();
+                emit_deiconify_window();
                 break;
         case 2:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Iconifying window.\n");
-                terminal->pvt->emit_iconify_window();
+                emit_iconify_window();
                 break;
         case 3:
                 if ((arg1 != -1) && (arg2 != -1)) {
                         _vte_debug_print(VTE_DEBUG_PARSE,
                                          "Moving window to "
                                          "%ld,%ld.\n", arg1, arg2);
-                        terminal->pvt->emit_move_window(arg1, arg2);
+                        emit_move_window(arg1, arg2);
                 }
                 break;
         case 4:
@@ -3084,26 +3088,25 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          "Resizing window "
                                          "(to %ldx%ld pixels, grid size %ldx%ld).\n",
                                          arg2, arg1,
-                                         arg2 / terminal->pvt->char_width,
-                                         arg1 / terminal->pvt->char_height);
-                        terminal->pvt->emit_resize_window(
-                                                        arg2 / terminal->pvt->char_width,
-                                                        arg1 / terminal->pvt->char_height);
+                                         arg2 / m_char_width,
+                                         arg1 / m_char_height);
+                        emit_resize_window(arg2 / m_char_width,
+                                           arg1 / m_char_height);
                 }
                 break;
         case 5:
                 _vte_debug_print(VTE_DEBUG_PARSE, "Raising window.\n");
-                terminal->pvt->emit_raise_window();
+                emit_raise_window();
                 break;
         case 6:
                 _vte_debug_print(VTE_DEBUG_PARSE, "Lowering window.\n");
-                terminal->pvt->emit_lower_window();
+                emit_lower_window();
                 break;
         case 7:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Refreshing window.\n");
-                terminal->pvt->invalidate_all();
-                terminal->pvt->emit_refresh_window();
+                invalidate_all();
+                emit_refresh_window();
                 break;
         case 8:
                 if ((arg1 != -1) && (arg2 != -1)) {
@@ -3111,7 +3114,7 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          "Resizing window "
                                          "(to %ld columns, %ld rows).\n",
                                          arg2, arg1);
-                        terminal->pvt->emit_resize_window(arg2, arg1);
+                        emit_resize_window(arg2, arg1);
                 }
                 break;
         case 9:
@@ -3119,12 +3122,12 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                 case 0:
                         _vte_debug_print(VTE_DEBUG_PARSE,
                                          "Restoring window.\n");
-                        terminal->pvt->emit_restore_window();
+                        emit_restore_window();
                         break;
                 case 1:
                         _vte_debug_print(VTE_DEBUG_PARSE,
                                          "Maximizing window.\n");
-                        terminal->pvt->emit_maximize_window();
+                        emit_maximize_window();
                         break;
                 default:
                         break;
@@ -3134,40 +3137,40 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                 /* If we're unmapped, then we're iconified. */
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "%dt",
-                           1 + !gtk_widget_get_mapped(widget));
+                           1 + !gtk_widget_get_mapped(m_widget));
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting window state %s.\n",
-                                 gtk_widget_get_mapped(widget) ?
+                                 gtk_widget_get_mapped(m_widget) ?
                                  "non-iconified" : "iconified");
-                vte_terminal_feed_child(terminal, buf, -1);
+                feed_child(buf, -1);
                 break;
         case 13:
                 /* Send window location, in pixels. */
-                gdk_window_get_origin(gtk_widget_get_window(widget),
+                gdk_window_get_origin(gtk_widget_get_window(m_widget),
                                       &width, &height);
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "3;%d;%dt",
-                           width + terminal->pvt->m_padding.left,
-                           height + terminal->pvt->m_padding.top);
+                           width + m_padding.left,
+                           height + m_padding.top);
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting window location"
                                  "(%d++,%d++).\n",
                                  width, height);
-                vte_terminal_feed_child(terminal, buf, -1);
+                feed_child(buf, -1);
                 break;
         case 14:
                 /* Send window size, in pixels. */
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "4;%d;%dt",
-                           (int)(terminal->pvt->row_count * terminal->pvt->char_height),
-                           (int)(terminal->pvt->column_count * terminal->pvt->char_width));
+                           (int)(m_row_count * m_char_height),
+                           (int)(m_column_count * m_char_width));
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting window size "
                                  "(%dx%d)\n",
-                                 (int)(terminal->pvt->row_count * terminal->pvt->char_height),
-                                 (int)(terminal->pvt->column_count * terminal->pvt->char_width));
+                                 (int)(m_row_count * m_char_height),
+                                 (int)(m_column_count * m_char_width));
 
-                vte_terminal_feed_child(terminal, buf, -1);
+                feed_child(buf, -1);
                 break;
         case 18:
                 /* Send widget size, in cells. */
@@ -3175,21 +3178,21 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                  "Reporting widget size.\n");
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "8;%ld;%ldt",
-                           terminal->pvt->row_count,
-                           terminal->pvt->column_count);
-                vte_terminal_feed_child(terminal, buf, -1);
+                           m_row_count,
+                           m_column_count);
+                feed_child(buf, -1);
                 break;
         case 19:
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting screen size.\n");
-                gscreen = gtk_widget_get_screen(widget);
+                gscreen = gtk_widget_get_screen(m_widget);
                 height = gdk_screen_get_height(gscreen);
                 width = gdk_screen_get_width(gscreen);
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "9;%ld;%ldt",
-                           height / terminal->pvt->char_height,
-                           width / terminal->pvt->char_width);
-                vte_terminal_feed_child(terminal, buf, -1);
+                           height / m_char_height,
+                           width / m_char_width);
+                feed_child(buf, -1);
                 break;
         case 20:
                 /* Report a static icon title, since the real
@@ -3199,10 +3202,10 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                    and CVE-2003-0070. */
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting fake icon title.\n");
-                /* never use terminal->pvt->icon_title here! */
+                /* never use m_icon_title here! */
                 g_snprintf (buf, sizeof (buf),
                             _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST);
-                vte_terminal_feed_child(terminal, buf, -1);
+                feed_child(buf, -1);
                 break;
         case 21:
                 /* Report a static window title, since the real
@@ -3212,10 +3215,10 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                    and CVE-2003-0070. */
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting fake window title.\n");
-                /* never use terminal->pvt->window_title here! */
+                /* never use m_window_title here! */
                 g_snprintf (buf, sizeof (buf),
                             _VTE_CAP_OSC "lTerminal" _VTE_CAP_ST);
-                vte_terminal_feed_child(terminal, buf, -1);
+                feed_child(buf, -1);
                 break;
         default:
                 if (param >= 24) {
@@ -3224,9 +3227,8 @@ vte_sequence_handler_window_manipulation (VteTerminal *terminal, GValueArray *pa
                                          param);
                         /* Resize to the specified number of
                          * rows. */
-                        terminal->pvt->emit_resize_window(
-                                                        terminal->pvt->column_count,
-                                                        param);
+                        emit_resize_window(m_column_count,
+                                           param);
                 }
                 break;
         }

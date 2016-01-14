@@ -1161,6 +1161,9 @@ public:
         inline void seq_device_status_report(long param);
         inline void seq_dec_device_status_report(long param);
         inline void seq_screen_alignment_test();
+        inline void seq_window_manipulation(long param,
+                                            long arg1,
+                                            long arg2);
 };
 
 #define m_invalidated_all invalidated_all
