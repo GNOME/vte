@@ -1123,6 +1123,7 @@ public:
         inline void set_character_replacements(unsigned slot,
                                                VteCharacterReplacement replacement);
         inline void set_character_replacement(unsigned slot);
+        inline void seq_cursor_back_tab();
 };
 
 #define m_invalidated_all invalidated_all

@@ -1027,17 +1027,20 @@ vte_sequence_handler_bell (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_cursor_back_tab (VteTerminal *terminal, GValueArray *params)
 {
-	long newcol;
+        terminal->pvt->seq_cursor_back_tab();
+}
 
+void
+VteTerminalPrivate::seq_cursor_back_tab()
+{
 	/* Calculate which column is the previous tab stop. */
-        newcol = terminal->pvt->cursor.col;
+        auto newcol = m_cursor.col;
 
-	if (terminal->pvt->tabstops) {
+	if (m_tabstops) {
 		/* Find the next tabstop. */
 		while (newcol > 0) {
 			newcol--;
-			if (terminal->pvt->get_tabstop(
-						     newcol % terminal->pvt->column_count)) {
+                        if (get_tabstop(newcol % m_column_count)) {
 				break;
 			}
 		}
@@ -1046,7 +1049,7 @@ vte_sequence_handler_cursor_back_tab (VteTerminal *terminal, GValueArray *params
 	/* Warp the cursor. */
 	_vte_debug_print(VTE_DEBUG_PARSE,
 			"Moving cursor to column %ld.\n", (long)newcol);
-        terminal->pvt->cursor.col = newcol;
+        m_cursor.col = newcol;
 }
 
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
