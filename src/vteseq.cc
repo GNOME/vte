@@ -1221,6 +1221,23 @@ VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
 }
 
 /*
+ * VteTerminalPrivate::get_cursor_row:
+ *
+ * Returns: the relative cursor row, 0-based and relative to the scrolling region
+ * if set (regardless of origin mode).
+ */
+vte::grid::row_t
+VteTerminalPrivate::get_cursor_row() const
+{
+        auto row = m_cursor.row - m_screen->insert_delta;
+        /* Note that we do NOT check m_origin_mode here! */
+        if (m_scrolling_restricted) {
+                row -= m_scrolling_region.start;
+        }
+        return row;
+}
+
+/*
  * VteTerminalPrivate::set_cursor_coords:
  * @row: the row. 0-based and relative to the scrolling region
  * @col: the column. 0-based from 0 to m_column_count - 1
@@ -1425,31 +1442,34 @@ vte_sequence_handler_delete_characters (VteTerminal *terminal, GValueArray *para
 static void
 vte_sequence_handler_cursor_down (VteTerminal *terminal, GValueArray *params)
 {
-        long end;
-	VteScreen *screen;
-        GValue *value;
-        long val;
-
-        terminal->pvt->ensure_cursor_is_onscreen();
-
-	screen = terminal->pvt->screen;
-
-        if (terminal->pvt->scrolling_restricted) {
-                end = screen->insert_delta + terminal->pvt->scrolling_region.end;
-	} else {
-                end = screen->insert_delta + terminal->pvt->row_count - 1;
-	}
-
-        val = 1;
+        long val = 1;
         if (params != NULL && params->n_values >= 1) {
-                value = g_value_array_get_nth(params, 0);
+                GValue* value = g_value_array_get_nth(params, 0);
                 if (G_VALUE_HOLDS_LONG(value)) {
-                        val = CLAMP(g_value_get_long(value),
-                                    1, terminal->pvt->row_count);
+                        val = g_value_get_long(value);
                 }
         }
 
-        terminal->pvt->cursor.row = MIN(terminal->pvt->cursor.row + val, end);
+        terminal->pvt->seq_cursor_down(val);
+}
+
+void
+VteTerminalPrivate::seq_cursor_down(vte::grid::row_t rows)
+{
+        rows = CLAMP(rows, 1, m_row_count);
+
+        // FIXMEchpe why not do this afterwards?
+        ensure_cursor_is_onscreen();
+
+        vte::grid::row_t end;
+        // FIXMEchpe why not check m_origin_mode here?
+        if (m_scrolling_restricted) {
+                end = m_screen->insert_delta + m_scrolling_region.end;
+	} else {
+                end = m_screen->insert_delta + m_row_count - 1;
+	}
+
+        m_cursor.row = MIN(m_cursor.row + rows, end);
 }
 
 /* Erase characters starting at the cursor position (overwriting N with
@@ -1931,31 +1951,34 @@ vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_cursor_up (VteTerminal *terminal, GValueArray *params)
 {
-	VteScreen *screen;
-	long start;
-        GValue *value;
-        long val;
-
-        terminal->pvt->ensure_cursor_is_onscreen();
-
-	screen = terminal->pvt->screen;
-
-        if (terminal->pvt->scrolling_restricted) {
-                start = screen->insert_delta + terminal->pvt->scrolling_region.start;
-	} else {
-		start = screen->insert_delta;
-	}
-
-        val = 1;
+        long val = 1;
         if (params != NULL && params->n_values >= 1) {
-                value = g_value_array_get_nth(params, 0);
+                GValue* value = g_value_array_get_nth(params, 0);
                 if (G_VALUE_HOLDS_LONG(value)) {
-                        val = CLAMP(g_value_get_long(value),
-                                    1, terminal->pvt->row_count);
+                        val = g_value_get_long(value);
                 }
         }
 
-        terminal->pvt->cursor.row = MAX(terminal->pvt->cursor.row - val, start);
+        terminal->pvt->seq_cursor_up(val);
+}
+
+void
+VteTerminalPrivate::seq_cursor_up(vte::grid::row_t rows)
+{
+        rows = CLAMP(rows, 1, m_row_count);
+
+        //FIXMEchpe why not do this afterward?
+        ensure_cursor_is_onscreen();
+
+        vte::grid::row_t start;
+        //FIXMEchpe why not check m_origin_mode here?
+        if (m_scrolling_restricted) {
+                start = m_screen->insert_delta + m_scrolling_region.start;
+	} else {
+		start = m_screen->insert_delta;
+	}
+
+        m_cursor.row = MAX(m_cursor.row - rows, start);
 }
 
 /* Vertical tab. */

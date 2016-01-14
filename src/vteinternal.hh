@@ -1132,9 +1132,12 @@ public:
         inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
         inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
                                       vte::grid::column_t column);
+        inline vte::grid::row_t get_cursor_row() const;
         inline void reset_scrolling_region();
         inline void set_scrolling_region(vte::grid::row_t start /* relative */,
                                          vte::grid::row_t end /* relative */);
+        inline void seq_cursor_up(vte::grid::row_t rows);
+        inline void seq_cursor_down(vte::grid::row_t rows);
 
         inline void set_keypad_mode(VteKeymode mode);
 };
