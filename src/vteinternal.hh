@@ -1156,6 +1156,8 @@ public:
         inline void set_keypad_mode(VteKeymode mode);
         inline void seq_erase_in_display(long param);
         inline void seq_erase_in_line(long param);
+        inline void seq_insert_lines(vte::grid::row_t param);
+        inline void seq_delete_lines(vte::grid::row_t param);
 };
 
 #define m_invalidated_all invalidated_all

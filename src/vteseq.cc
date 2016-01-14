@@ -2702,94 +2702,103 @@ vte_sequence_handler_full_reset (VteTerminal *terminal, GValueArray *params)
 static void
 vte_sequence_handler_insert_lines (VteTerminal *terminal, GValueArray *params)
 {
-	GValue *value;
-	VteScreen *screen;
-	long param, end, row, i, limit;
-	screen = terminal->pvt->screen;
 	/* The default is one. */
-	param = 1;
+	long param = 1;
 	/* Extract any parameters. */
 	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
+		GValue* value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			param = g_value_get_long(value);
 		}
 	}
+
+        terminal->pvt->seq_insert_lines(param);
+}
+
+void
+VteTerminalPrivate::seq_insert_lines(vte::grid::row_t param)
+{
+        vte::grid::row_t end, i;
+
 	/* Find the region we're messing with. */
-        row = terminal->pvt->cursor.row;
-        if (terminal->pvt->scrolling_restricted) {
-                end = screen->insert_delta + terminal->pvt->scrolling_region.end;
+        auto row = m_cursor.row;
+        if (m_scrolling_restricted) {
+                end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
-		end = screen->insert_delta + terminal->pvt->row_count - 1;
+                end = m_screen->insert_delta + m_row_count - 1;
 	}
 
 	/* Only allow to insert as many lines as there are between this row
          * and the end of the scrolling region. See bug #676090.
          */
-        limit = end - row + 1;
+        auto limit = end - row + 1;
         param = MIN (param, limit);
 
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-		_vte_terminal_ring_remove (terminal, end);
-		_vte_terminal_ring_insert (terminal, row, TRUE);
+                _vte_terminal_ring_remove(m_terminal, end);
+                _vte_terminal_ring_insert(m_terminal, row, TRUE);
 	}
-        terminal->pvt->cursor.col = 0;
+        m_cursor.col = 0;
 	/* Update the display. */
-	terminal->pvt->scroll_region(row, end - row + 1, param);
+        scroll_region(row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
-	terminal->pvt->adjust_adjustments();
+        adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_inserted_flag = TRUE;
+        m_text_inserted_flag = TRUE;
 }
 
 /* Delete certain lines from the scrolling region. */
 static void
 vte_sequence_handler_delete_lines (VteTerminal *terminal, GValueArray *params)
 {
-	GValue *value;
-	VteScreen *screen;
-	long param, end, row, i, limit;
-
-	screen = terminal->pvt->screen;
 	/* The default is one. */
-	param = 1;
+	long param = 1;
 	/* Extract any parameters. */
 	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
+		GValue* value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			param = g_value_get_long(value);
 		}
 	}
+
+        terminal->pvt->seq_delete_lines(param);
+}
+
+void
+VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
+{
+        vte::grid::row_t end, i;
+
 	/* Find the region we're messing with. */
-        row = terminal->pvt->cursor.row;
-        if (terminal->pvt->scrolling_restricted) {
-                end = screen->insert_delta + terminal->pvt->scrolling_region.end;
+        auto row = m_cursor.row;
+        if (m_scrolling_restricted) {
+                end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
-		end = screen->insert_delta + terminal->pvt->row_count - 1;
+                end = m_screen->insert_delta + m_row_count - 1;
 	}
 
         /* Only allow to delete as many lines as there are between this row
          * and the end of the scrolling region. See bug #676090.
          */
-        limit = end - row + 1;
+        auto limit = end - row + 1;
         param = MIN (param, limit);
 
 	/* Clear them from below the current cursor. */
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-		_vte_terminal_ring_remove (terminal, row);
-		_vte_terminal_ring_insert (terminal, end, TRUE);
+                _vte_terminal_ring_remove(m_terminal, row);
+                _vte_terminal_ring_insert(m_terminal, end, TRUE);
 	}
-        terminal->pvt->cursor.col = 0;
+        m_cursor.col = 0;
 	/* Update the display. */
-	terminal->pvt->scroll_region(row, end - row + 1, -param);
+        scroll_region(row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
-	terminal->pvt->adjust_adjustments();
+        adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Device status reports. The possible reports are the cursor position and
