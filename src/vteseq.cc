@@ -1140,42 +1140,37 @@ VteTerminalPrivate::seq_cd()
 }
 
 /* Clear from the cursor position to the end of the line. */
-static void
-_vte_sequence_handler_ce (VteTerminal *terminal, GValueArray *params)
+void
+VteTerminalPrivate::seq_ce()
 {
-	VteRowData *rowdata;
-
 	/* If we were to strictly emulate xterm, we'd ensure the cursor is onscreen.
 	 * But due to https://bugzilla.gnome.org/show_bug.cgi?id=740789 we intentionally
 	 * deviate and do instead what konsole does. This way emitting a \e[K doesn't
 	 * influence the text flow, and serves as a perfect workaround against a new line
 	 * getting painted with the active background color (except for a possible flicker).
 	 */
-	/* terminal->pvt->ensure_cursor_is_onscreen(); */
+	/* ensure_cursor_is_onscreen(); */
 
 	/* Get the data for the row which the cursor points to. */
-	rowdata = terminal->pvt->ensure_row();
+        auto rowdata = ensure_row();
 	g_assert(rowdata != NULL);
-        if ((glong) _vte_row_data_length (rowdata) > terminal->pvt->cursor.col) {
+        if ((glong) _vte_row_data_length(rowdata) > m_cursor.col) {
                 /* Clean up Tab/CJK fragments. */
-                terminal->pvt->cleanup_fragments(terminal->pvt->cursor.col, _vte_row_data_length (rowdata));
+                cleanup_fragments(m_cursor.col, _vte_row_data_length(rowdata));
                 /* Remove the data at the end of the array until the current column
                  * is the end of the array. */
-                _vte_row_data_shrink (rowdata, terminal->pvt->cursor.col);
+                _vte_row_data_shrink(rowdata, m_cursor.col);
 		/* We've modified the display.  Make a note of it. */
-		terminal->pvt->text_deleted_flag = TRUE;
+		m_text_deleted_flag = TRUE;
 	}
-        if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG) {
+        if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
 		/* Add enough cells to fill out the row. */
-                _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
+                _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
-	terminal->pvt->invalidate_cells(
-                              terminal->pvt->cursor.col,
-			      terminal->pvt->column_count -
-                              terminal->pvt->cursor.col,
-                              terminal->pvt->cursor.row, 1);
+	invalidate_cells(m_cursor.col, m_column_count - m_cursor.col,
+                         m_cursor.row, 1);
 }
 
 /* Move the cursor to the given column (horizontal position), 1-based. */
@@ -2540,7 +2535,7 @@ vte_sequence_handler_erase_in_line (VteTerminal *terminal, GValueArray *params)
 	switch (param) {
 	case 0:
 		/* Clear to end of the line. */
-                _vte_sequence_handler_ce (terminal, NULL);
+                terminal->pvt->seq_ce();
 		break;
 	case 1:
 		/* Clear to start of the line. */

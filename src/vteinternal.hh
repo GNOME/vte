@@ -1126,6 +1126,7 @@ public:
         inline void seq_cursor_back_tab();
         inline void seq_cb();
         inline void seq_cd();
+        inline void seq_ce();
 };
 
 #define m_invalidated_all invalidated_all
