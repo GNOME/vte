@@ -3600,10 +3600,6 @@ VteTerminalPrivate::watch_child (GPid child_pid)
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
  *
- * Note that unless @spawn_flags contains %G_SPAWN_LEAVE_DESCRIPTORS_OPEN, all file
- * descriptors except stdin/stdout/stderr will be closed before calling exec()
- * in the child.
- *
  * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
@@ -3634,6 +3630,12 @@ VteTerminalPrivate::spawn_sync(VtePtyFlags pty_flags,
 
         /* FIXMEchpe: is this flag needed */
         spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
+
+        /* We do NOT support this flag. If you want to have some FD open in the child
+         * process, simply use a child setup function that unsets the CLOEXEC flag
+         * on that FD.
+         */
+        spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
 
         if (!__vte_pty_spawn(new_pty,
                              working_directory,

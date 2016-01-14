@@ -2208,9 +2208,10 @@ vte_terminal_watch_child (VteTerminal *terminal,
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
  *
- * Note that unless @spawn_flags contains %G_SPAWN_LEAVE_DESCRIPTORS_OPEN, all file
- * descriptors except stdin/stdout/stderr will be closed before calling exec()
- * in the child.
+ * Note that all open file descriptors will be closed in the child. If you want
+ * to keep some file descriptor open for use in the child process, you need to
+ * use a child setup function that unsets the FD_CLOEXEC flag on that file
+ * descriptor.
  *
  * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *
