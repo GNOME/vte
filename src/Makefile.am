@@ -130,15 +130,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
 	$(VTE_LIBS)
 
-# Try hard to avoid linking to libstd++ by using the C linker instead of the C++ linker
-if HAVE_GXX
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LINK = \
-	$(LINK) \
-	$(libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CFLAGS) \
-	$(libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS) \
-	$(NULL)
-endif # HAVE_GXX
-
 # Generated sources
 
 VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-n.cc
@@ -353,7 +344,6 @@ check_PROGRAMS = \
 
 dist_check_SCRIPTS = \
 	check-doc-syntax.sh \
-	check-libstdc++.sh \
 	test-vte-sh.sh \
 	$(NULL)
 
