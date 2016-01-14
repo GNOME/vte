@@ -1117,6 +1117,8 @@ public:
         void seq_set_title_internal(GValueArray *params,
                                     bool icon_title,
                                     bool window_title);
+        inline void seq_set_mode_internal(long setting,
+                                          bool value);
 };
 
 #define m_invalidated_all invalidated_all

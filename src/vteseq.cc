@@ -501,21 +501,21 @@ VteTerminalPrivate::seq_set_title_internal(GValueArray *params,
 }
 
 /* Toggle a terminal mode. */
-static void
-vte_sequence_handler_set_mode_internal(VteTerminal *terminal,
-				       long setting, gboolean value)
+void
+VteTerminalPrivate::seq_set_mode_internal(long setting,
+                                          bool value)
 {
 	switch (setting) {
 	case 2:		/* keyboard action mode (?) */
 		break;
 	case 4:		/* insert/overtype mode */
-                terminal->pvt->insert_mode = value;
+                m_insert_mode = value;
 		break;
 	case 12:	/* send/receive mode (local echo) */
-                terminal->pvt->sendrecv_mode = value;
+                m_sendrecv_mode = value;
 		break;
 	case 20:	/* automatic newline / normal linefeed mode */
-                terminal->pvt->linefeed_mode = value;
+                m_linefeed_mode = value;
 		break;
 	default:
 		break;
@@ -2393,7 +2393,7 @@ vte_sequence_handler_set_mode (VteTerminal *terminal, GValueArray *params)
 			continue;
 		}
 		setting = g_value_get_long(value);
-		vte_sequence_handler_set_mode_internal(terminal, setting, TRUE);
+		terminal->pvt->seq_set_mode_internal(setting, true);
 	}
 }
 
@@ -2413,7 +2413,7 @@ vte_sequence_handler_reset_mode (VteTerminal *terminal, GValueArray *params)
 			continue;
 		}
 		setting = g_value_get_long(value);
-		vte_sequence_handler_set_mode_internal(terminal, setting, FALSE);
+		terminal->pvt->seq_set_mode_internal(setting, false);
 	}
 }
 
