@@ -285,32 +285,27 @@ VteTerminalPrivate::seq_clear_current_line()
 }
 
 /* Clear above the current line. */
-static void
-_vte_terminal_clear_above_current (VteTerminal *terminal)
+void
+VteTerminalPrivate::seq_clear_above_current()
 {
-	VteRowData *rowdata;
-	long i;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-        for (i = screen->insert_delta; i < terminal->pvt->cursor.row; i++) {
-		if (_vte_ring_next(screen->row_data) > i) {
+        for (auto i = m_screen->insert_delta; i < m_cursor.row; i++) {
+                if (_vte_ring_next(m_screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
-			rowdata = _vte_ring_index_writable (screen->row_data, i);
+                        auto rowdata = _vte_ring_index_writable(m_screen->row_data, i);
 			g_assert(rowdata != NULL);
 			/* Remove it. */
 			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
-                        _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
+                        _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
-			terminal->pvt->invalidate_cells(
-					0, terminal->pvt->column_count, i, 1);
+			invalidate_cells(0, m_column_count, i, 1);
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
@@ -2456,7 +2451,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 		break;
 	case 1:
 		/* Clear above the current line. */
-		_vte_terminal_clear_above_current (terminal);
+		terminal->pvt->seq_clear_above_current();
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
                 _vte_sequence_handler_cb (terminal, NULL);
