@@ -59,20 +59,42 @@
 
 #define VTE_TERMINAL_CSS_NAME "vte"
 
+struct _VteTerminalClassPrivate {
+        GtkStyleProvider *style_provider;
+};
+
+#ifdef VTE_DEBUG
+G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+                        G_ADD_PRIVATE(VteTerminal)
+                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL)
+                        if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
+                                g_printerr("vte_terminal_get_type()\n");
+                        })
+#else
+G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
+                        G_ADD_PRIVATE(VteTerminal)
+                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
+#endif
+
+#define IMPL(t) (reinterpret_cast<VteTerminalPrivate*>(vte_terminal_get_instance_private(t)))
+
 guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
 GTimer *process_timer;
 
-struct _VteTerminalClassPrivate {
-        GtkStyleProvider *style_provider;
-};
+VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal)
+{
+        return IMPL(terminal);
+}
 
 static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
-        terminal->pvt->widget_set_hadjustment(adjustment);
+        IMPL(terminal)->widget_set_hadjustment(adjustment);
 }
 
 static void
@@ -80,14 +102,14 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
-        terminal->pvt->widget_set_vadjustment(adjustment);
+        IMPL(terminal)->widget_set_vadjustment(adjustment);
 }
 
 static void
 vte_terminal_set_hscroll_policy(VteTerminal *terminal,
                                 GtkScrollablePolicy policy)
 {
-        terminal->pvt->hscroll_policy = policy;
+        IMPL(terminal)->hscroll_policy = policy;
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
 
@@ -96,33 +118,20 @@ static void
 vte_terminal_set_vscroll_policy(VteTerminal *terminal,
                                 GtkScrollablePolicy policy)
 {
-        terminal->pvt->vscroll_policy = policy;
+        IMPL(terminal)->vscroll_policy = policy;
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
-
-#ifdef VTE_DEBUG
-G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL)
-                        if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
-                                g_printerr("vte_terminal_get_type()\n");
-                        })
-#else
-G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-                        g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
-#endif
 
 static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
-	terminal->pvt->widget_copy(VTE_SELECTION_CLIPBOARD);
+	IMPL(terminal)->widget_copy(VTE_SELECTION_CLIPBOARD);
 }
 
 static void
 vte_terminal_real_paste_clipboard(VteTerminal *terminal)
 {
-	terminal->pvt->widget_paste(GDK_SELECTION_CLIPBOARD);
+	IMPL(terminal)->widget_paste(GDK_SELECTION_CLIPBOARD);
 }
 
 static void
@@ -132,7 +141,7 @@ vte_terminal_style_updated (GtkWidget *widget)
 
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated (widget);
 
-        terminal->pvt->widget_style_updated();
+        IMPL(terminal)->widget_style_updated();
 }
 
 static gboolean
@@ -156,42 +165,42 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 	}
 
-        return terminal->pvt->widget_key_press(event);
+        return IMPL(terminal)->widget_key_press(event);
 }
 
 static gboolean
 vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return terminal->pvt->widget_key_release(event);
+        return IMPL(terminal)->widget_key_release(event);
 }
 
 static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
         VteTerminal *terminal = VTE_TERMINAL(widget);
-        return terminal->pvt->widget_motion_notify(event);
+        return IMPL(terminal)->widget_motion_notify(event);
 }
 
 static gboolean
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return terminal->pvt->widget_button_press(event);
+        return IMPL(terminal)->widget_button_press(event);
 }
 
 static gboolean
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return terminal->pvt->widget_button_release(event);
+        return IMPL(terminal)->widget_button_release(event);
 }
 
 static gboolean
 vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_scroll(event);
+        IMPL(terminal)->widget_scroll(event);
         return TRUE;
 }
 
@@ -199,7 +208,7 @@ static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_focus_in(event);
+        IMPL(terminal)->widget_focus_in(event);
         return FALSE;
 }
 
@@ -207,7 +216,7 @@ static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_focus_out(event);
+        IMPL(terminal)->widget_focus_out(event);
         return FALSE;
 }
 
@@ -221,7 +230,7 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
 	}
 
-        terminal->pvt->widget_enter(event);
+        IMPL(terminal)->widget_enter(event);
 
         return ret;
 }
@@ -236,7 +245,7 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event (widget, event);
 	}
 
-        terminal->pvt->widget_leave(event);
+        IMPL(terminal)->widget_leave(event);
 
         return ret;
 }
@@ -245,7 +254,7 @@ static gboolean
 vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_visibility_notify(event);
+        IMPL(terminal)->widget_visibility_notify(event);
 	return FALSE;
 }
 
@@ -255,7 +264,7 @@ vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *natural_width)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_get_preferred_width(minimum_width, natural_width);
+        IMPL(terminal)->widget_get_preferred_width(minimum_width, natural_width);
 }
 
 static void
@@ -264,14 +273,14 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 				  int       *natural_height)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_get_preferred_height(minimum_height, natural_height);
+        IMPL(terminal)->widget_get_preferred_height(minimum_height, natural_height);
 }
 
 static void
 vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_size_allocate(allocation);
+        IMPL(terminal)->widget_size_allocate(allocation);
 }
 
 static gboolean
@@ -279,7 +288,7 @@ vte_terminal_draw(GtkWidget *widget,
                   cairo_t *cr)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
-        terminal->pvt->widget_draw(cr);
+        IMPL(terminal)->widget_draw(cr);
         return FALSE;
 }
 
@@ -289,14 +298,14 @@ vte_terminal_realize(GtkWidget *widget)
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->realize(widget);
 
         VteTerminal *terminal= VTE_TERMINAL(widget);
-        terminal->pvt->widget_realize();
+        IMPL(terminal)->widget_realize();
 }
 
 static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
-        terminal->pvt->widget_unrealize();
+        IMPL(terminal)->widget_unrealize();
 
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->unrealize(widget);
 }
@@ -309,7 +318,7 @@ vte_terminal_map(GtkWidget *widget)
         VteTerminal *terminal = VTE_TERMINAL(widget);
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->map(widget);
 
-        terminal->pvt->widget_map();
+        IMPL(terminal)->widget_map();
 }
 
 static void
@@ -318,7 +327,7 @@ vte_terminal_unmap(GtkWidget *widget)
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unmap()\n");
 
         VteTerminal *terminal = VTE_TERMINAL(widget);
-        terminal->pvt->widget_unmap();
+        IMPL(terminal)->widget_unmap();
 
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->unmap(widget);
 }
@@ -333,7 +342,7 @@ vte_terminal_screen_changed (GtkWidget *widget,
                 GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed (widget, previous_screen);
         }
 
-        terminal->pvt->widget_screen_changed(previous_screen);
+        IMPL(terminal)->widget_screen_changed(previous_screen);
 }
 
 static void
@@ -361,7 +370,7 @@ vte_terminal_finalize(GObject *object)
 {
     	VteTerminal *terminal = VTE_TERMINAL (object);
 
-        terminal->pvt->~VteTerminalPrivate();
+        IMPL(terminal)->~VteTerminalPrivate();
         terminal->pvt = nullptr;
 
 	/* Call the inherited finalize() method. */
@@ -375,21 +384,21 @@ vte_terminal_get_property (GObject *object,
                            GParamSpec *pspec)
 {
         VteTerminal *terminal = VTE_TERMINAL (object);
-        VteTerminalPrivate *pvt = terminal->pvt;
+        auto impl = IMPL(terminal);
 
 	switch (prop_id)
                 {
                 case PROP_HADJUSTMENT:
-                        g_value_set_object (value, pvt->hadjustment);
+                        g_value_set_object (value, impl->hadjustment);
                         break;
                 case PROP_VADJUSTMENT:
-                        g_value_set_object (value, terminal->pvt->vadjustment);
+                        g_value_set_object (value, impl->vadjustment);
                         break;
                 case PROP_HSCROLL_POLICY:
-                        g_value_set_enum (value, pvt->hscroll_policy);
+                        g_value_set_enum (value, impl->hscroll_policy);
                         break;
                 case PROP_VSCROLL_POLICY:
-                        g_value_set_enum (value, pvt->vscroll_policy);
+                        g_value_set_enum (value, impl->vscroll_policy);
                         break;
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
@@ -398,7 +407,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
                 case PROP_BACKSPACE_BINDING:
-                        g_value_set_enum (value, pvt->backspace_binding);
+                        g_value_set_enum (value, impl->backspace_binding);
                         break;
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         g_value_set_int (value, vte_terminal_get_cjk_ambiguous_width (terminal));
@@ -416,7 +425,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_enum (value, vte_terminal_get_cursor_shape (terminal));
                         break;
                 case PROP_DELETE_BINDING:
-                        g_value_set_enum (value, pvt->delete_binding);
+                        g_value_set_enum (value, impl->delete_binding);
                         break;
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
@@ -443,13 +452,13 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
                         break;
                 case PROP_SCROLLBACK_LINES:
-                        g_value_set_uint (value, pvt->scrollback_lines);
+                        g_value_set_uint (value, impl->scrollback_lines);
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
-                        g_value_set_boolean (value, pvt->scroll_on_keystroke);
+                        g_value_set_boolean (value, impl->scroll_on_keystroke);
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
-                        g_value_set_boolean (value, pvt->scroll_on_output);
+                        g_value_set_boolean (value, impl->scroll_on_output);
                         break;
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
@@ -592,8 +601,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 #ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 #endif
-
-	g_type_class_add_private(klass, sizeof (VteTerminalPrivate));
 
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);
@@ -1618,7 +1625,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	terminal->pvt->widget_copy(VTE_SELECTION_PRIMARY);
+	IMPL(terminal)->widget_copy(VTE_SELECTION_PRIMARY);
 }
 
 /**
@@ -1652,7 +1659,7 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
-	terminal->pvt->widget_paste(GDK_SELECTION_PRIMARY);
+	IMPL(terminal)->widget_paste(GDK_SELECTION_PRIMARY);
 }
 
 /**
@@ -1680,8 +1687,9 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
         g_return_val_if_fail(gregex != NULL, -1);
 
+        auto impl = IMPL(terminal);
         /* Can't mix GRegex and PCRE2 */
-        g_return_val_if_fail(terminal->pvt->m_match_regex_mode != VTE_REGEX_PCRE2, -1);
+        g_return_val_if_fail(impl->m_match_regex_mode != VTE_REGEX_PCRE2, -1);
 
         g_warn_if_fail(g_regex_get_compile_flags(gregex) & G_REGEX_MULTILINE);
 
@@ -1691,7 +1699,7 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
         new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
         new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 
-        return terminal->pvt->regex_match_add(&new_regex_match);
+        return impl->regex_match_add(&new_regex_match);
 }
 
 /**
@@ -1718,8 +1726,9 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	g_return_val_if_fail(regex != NULL, -1);
 
+        auto impl = IMPL(terminal);
         /* Can't mix GRegex and PCRE2 */
-        g_return_val_if_fail(terminal->pvt->m_match_regex_mode != VTE_REGEX_GREGEX, -1);
+        g_return_val_if_fail(impl->m_match_regex_mode != VTE_REGEX_GREGEX, -1);
 
         new_regex_match.regex.mode = VTE_REGEX_PCRE2;
         new_regex_match.regex.pcre.regex = vte_regex_ref(regex);
@@ -1727,7 +1736,7 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
         new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
         new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 
-        return terminal->pvt->regex_match_add(&new_regex_match);
+        return impl->regex_match_add(&new_regex_match);
 }
 
 /**
@@ -1758,7 +1767,7 @@ vte_terminal_match_check(VteTerminal *terminal,
 			 int *tag)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return terminal->pvt->regex_match_check(column, row, tag);
+        return IMPL(terminal)->regex_match_check(column, row, tag);
 }
 
 
@@ -1786,7 +1795,7 @@ vte_terminal_match_check_event(VteTerminal *terminal,
                                int *tag)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        return terminal->pvt->regex_match_check(event, tag);
+        return IMPL(terminal)->regex_match_check(event, tag);
 }
 
 /**
@@ -1820,7 +1829,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        return terminal->pvt->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
+        return IMPL(terminal)->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
 }
 
 /**
@@ -1855,7 +1864,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        return terminal->pvt->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
+        return IMPL(terminal)->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
 }
 
 /**
@@ -1876,7 +1885,7 @@ vte_terminal_match_set_cursor(VteTerminal *terminal,
                               GdkCursor *cursor)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->regex_match_set_cursor(tag, cursor);
+        IMPL(terminal)->regex_match_set_cursor(tag, cursor);
 }
 
 /**
@@ -1894,7 +1903,7 @@ vte_terminal_match_set_cursor_type(VteTerminal *terminal,
                                    GdkCursorType cursor_type)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->regex_match_set_cursor(tag, cursor_type);
+        IMPL(terminal)->regex_match_set_cursor(tag, cursor_type);
 }
 
 /**
@@ -1912,7 +1921,7 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
                                    const char *cursor_name)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->regex_match_set_cursor(tag, cursor_name);
+        IMPL(terminal)->regex_match_set_cursor(tag, cursor_name);
 }
 
 
@@ -1929,7 +1938,7 @@ void
 vte_terminal_match_remove(VteTerminal *terminal, int tag)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->regex_match_remove(tag);
+        IMPL(terminal)->regex_match_remove(tag);
 }
 
 /**
@@ -1943,7 +1952,7 @@ void
 vte_terminal_match_remove_all(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->regex_match_remove_all();
+        IMPL(terminal)->regex_match_remove_all();
 }
 
 /**
@@ -1959,7 +1968,7 @@ gboolean
 vte_terminal_search_find_previous (VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->search_find(true);
+	return IMPL(terminal)->search_find(true);
 }
 
 /**
@@ -1975,7 +1984,7 @@ gboolean
 vte_terminal_search_find_next (VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->search_find(false);
+	return IMPL(terminal)->search_find(false);
 }
 
 /**
@@ -1995,7 +2004,7 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
 {
 #ifdef WITH_PCRE2
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->search_set_regex(regex, flags);
+        IMPL(terminal)->search_set_regex(regex, flags);
 #endif
 }
 
@@ -2012,8 +2021,9 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        if (G_LIKELY(terminal->pvt->search_regex.mode == VTE_REGEX_PCRE2))
-                return terminal->pvt->search_regex.pcre.regex;
+        auto impl = IMPL(terminal);
+        if (G_LIKELY(impl->search_regex.mode == VTE_REGEX_PCRE2))
+                return impl->search_regex.pcre.regex;
         else
                 return NULL;
 }
@@ -2035,7 +2045,7 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        terminal->pvt->search_set_gregex(gregex, gflags);
+        IMPL(terminal)->search_set_gregex(gregex, gflags);
 }
 
 /**
@@ -2051,8 +2061,9 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        if (G_LIKELY(terminal->pvt->search_regex.mode == VTE_REGEX_GREGEX))
-                return terminal->pvt->search_regex.gregex.regex;
+        auto impl = IMPL(terminal);
+        if (G_LIKELY(impl->search_regex.mode == VTE_REGEX_GREGEX))
+                return impl->search_regex.gregex.regex;
         else
                 return NULL;
 }
@@ -2071,7 +2082,7 @@ vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        terminal->pvt->search_set_wrap_around(wrap_around != FALSE);
+        IMPL(terminal)->search_set_wrap_around(wrap_around != FALSE);
 }
 
 /**
@@ -2085,7 +2096,7 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-	return terminal->pvt->search_wrap_around;
+	return IMPL(terminal)->search_wrap_around;
 }
 
 
@@ -2100,7 +2111,7 @@ vte_terminal_select_all (VteTerminal *terminal)
 {
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
-        terminal->pvt->select_all();
+        IMPL(terminal)->select_all();
 }
 
 /**
@@ -2114,7 +2125,7 @@ vte_terminal_unselect_all(VteTerminal *terminal)
 {
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
-        terminal->pvt->deselect_all();
+        IMPL(terminal)->deselect_all();
 }
 
 /**
@@ -2133,11 +2144,12 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
+        auto impl = IMPL(terminal);
 	if (column) {
-                *column = terminal->pvt->cursor.col;
+                *column = impl->m_cursor.col;
 	}
 	if (row) {
-                *row = terminal->pvt->cursor.row;
+                *row = impl->m_cursor.row;
 	}
 }
 
@@ -2195,9 +2207,11 @@ vte_terminal_watch_child (VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(child_pid != -1);
-        g_return_if_fail(terminal->pvt->pty != NULL);
 
-        terminal->pvt->watch_child(child_pid);
+        auto impl = IMPL(terminal);
+        g_return_if_fail(impl->pty != NULL);
+
+        impl->watch_child(child_pid);
 }
 
 /**
@@ -2251,7 +2265,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        return terminal->pvt->spawn_sync(pty_flags,
+        return IMPL(terminal)->spawn_sync(pty_flags,
                                          working_directory,
                                          argv,
                                          envv,
@@ -2281,7 +2295,7 @@ vte_terminal_feed(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || data != NULL);
 
-        terminal->pvt->feed(data, length);
+        IMPL(terminal)->feed(data, length);
 }
 
 /**
@@ -2301,7 +2315,7 @@ vte_terminal_feed_child(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || text != NULL);
 
-        terminal->pvt->feed_child(text, length);
+        IMPL(terminal)->feed_child(text, length);
 }
 
 /**
@@ -2320,7 +2334,7 @@ vte_terminal_feed_child_binary(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || data != NULL);
 
-        terminal->pvt->feed_child_binary(data, length);
+        IMPL(terminal)->feed_child_binary(data, length);
 }
 
 /**
@@ -2374,7 +2388,7 @@ vte_terminal_get_text(VteTerminal *terminal,
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
-	return terminal->pvt->get_text_displayed(true /* wrap */,
+	return IMPL(terminal)->get_text_displayed(true /* wrap */,
                                                  false /* include trailing whitespace */,
                                                  attributes,
                                                  nullptr);
@@ -2405,7 +2419,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
-	return terminal->pvt->get_text_displayed(true /* wrap */,
+	return IMPL(terminal)->get_text_displayed(true /* wrap */,
                                                  true /* include trailing whitespace */,
                                                  attributes,
                                                  nullptr);
@@ -2444,7 +2458,7 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
-	return terminal->pvt->get_text(start_row, start_col,
+	return IMPL(terminal)->get_text(start_row, start_col,
                                        end_row, end_col,
                                        false /* block */,
                                        true /* wrap */,
@@ -2471,7 +2485,7 @@ vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_history)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->reset(clear_tabstops, clear_history);
+        IMPL(terminal)->reset(clear_tabstops, clear_history);
 }
 
 /**
@@ -2491,7 +2505,7 @@ vte_terminal_set_size(VteTerminal *terminal,
         g_return_if_fail(columns >= 1);
         g_return_if_fail(rows >= 1);
 
-        terminal->pvt->set_size(columns, rows);
+        IMPL(terminal)->set_size(columns, rows);
 }
 
 /**
@@ -2507,7 +2521,7 @@ gboolean
 vte_terminal_get_allow_bold(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->allow_bold;
+	return IMPL(terminal)->allow_bold;
 }
 
 /**
@@ -2526,7 +2540,7 @@ vte_terminal_set_allow_bold(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_allow_bold(allow_bold != FALSE))
+        if (IMPL(terminal)->set_allow_bold(allow_bold != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ALLOW_BOLD]);
 }
 
@@ -2543,7 +2557,7 @@ gboolean
 vte_terminal_get_audible_bell(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->audible_bell;
+	return IMPL(terminal)->audible_bell;
 }
 
 /**
@@ -2560,7 +2574,7 @@ vte_terminal_set_audible_bell(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_audible_bell(is_audible != FALSE))
+        if (IMPL(terminal)->set_audible_bell(is_audible != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_AUDIBLE_BELL]);
 }
 
@@ -2580,7 +2594,7 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
 
-        if (terminal->pvt->set_backspace_binding(binding))
+        if (IMPL(terminal)->set_backspace_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BACKSPACE_BINDING]);
 }
 
@@ -2594,7 +2608,7 @@ glong
 vte_terminal_get_char_height(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return terminal->pvt->get_char_height();
+	return IMPL(terminal)->get_char_height();
 }
 
 /**
@@ -2607,7 +2621,7 @@ glong
 vte_terminal_get_char_width(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return terminal->pvt->get_char_width();
+	return IMPL(terminal)->get_char_width();
 }
 
 /**
@@ -2623,7 +2637,7 @@ int
 vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1);
-        return terminal->pvt->utf8_ambiguous_width;
+        return IMPL(terminal)->utf8_ambiguous_width;
 }
 
 /**
@@ -2641,7 +2655,7 @@ vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(width == 1 || width == 2);
 
-        if (terminal->pvt->set_cjk_ambiguous_width(width))
+        if (IMPL(terminal)->set_cjk_ambiguous_width(width))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CJK_AMBIGUOUS_WIDTH]);
 }
 
@@ -2660,8 +2674,10 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(background != NULL);
-        terminal->pvt->set_color_background(vte::color::rgb(background));
-        terminal->pvt->set_background_alpha(background->alpha);
+
+        auto impl = IMPL(terminal);
+        impl->set_color_background(vte::color::rgb(background));
+        impl->set_background_alpha(background->alpha);
 }
 
 /**
@@ -2677,10 +2693,12 @@ vte_terminal_set_color_bold(VteTerminal *terminal,
                             const GdkRGBA *bold)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        auto impl = IMPL(terminal);
         if (bold)
-                terminal->pvt->set_color_bold(vte::color::rgb(bold));
+                impl->set_color_bold(vte::color::rgb(bold));
         else
-                terminal->pvt->reset_color_bold();
+                impl->reset_color_bold();
 }
 
 /**
@@ -2697,10 +2715,12 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
                               const GdkRGBA *cursor_background)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        auto impl = IMPL(terminal);
         if (cursor_background)
-                terminal->pvt->set_color_cursor_background(vte::color::rgb(cursor_background));
+                impl->set_color_cursor_background(vte::color::rgb(cursor_background));
         else
-                terminal->pvt->reset_color_cursor_background();
+                impl->reset_color_cursor_background();
 }
 
 /**
@@ -2719,10 +2739,12 @@ vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
                                          const GdkRGBA *cursor_foreground)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        auto impl = IMPL(terminal);
         if (cursor_foreground)
-                terminal->pvt->set_color_cursor_foreground(vte::color::rgb(cursor_foreground));
+                impl->set_color_cursor_foreground(vte::color::rgb(cursor_foreground));
         else
-                terminal->pvt->reset_color_cursor_foreground();
+                impl->reset_color_cursor_foreground();
 }
 
 /**
@@ -2738,7 +2760,7 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(foreground != NULL);
-        terminal->pvt->set_color_foreground(vte::color::rgb(foreground));
+        IMPL(terminal)->set_color_foreground(vte::color::rgb(foreground));
 }
 
 /**
@@ -2756,10 +2778,12 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
                                  const GdkRGBA *highlight_background)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        auto impl = IMPL(terminal);
         if (highlight_background)
-                terminal->pvt->set_color_highlight_background(vte::color::rgb(highlight_background));
+                impl->set_color_highlight_background(vte::color::rgb(highlight_background));
         else
-                terminal->pvt->reset_color_highlight_background();
+                impl->reset_color_highlight_background();
 }
 
 /**
@@ -2777,10 +2801,12 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
                                             const GdkRGBA *highlight_foreground)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        auto impl = IMPL(terminal);
         if (highlight_foreground)
-                terminal->pvt->set_color_highlight_foreground(vte::color::rgb(highlight_foreground));
+                impl->set_color_highlight_foreground(vte::color::rgb(highlight_foreground));
         else
-                terminal->pvt->reset_color_highlight_foreground();
+                impl->reset_color_highlight_foreground();
 }
 
 /**
@@ -2815,7 +2841,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size == 232) ||
 			 (palette_size == 256));
 
-        terminal->pvt->set_colors(foreground, background, palette, palette_size);
+        IMPL(terminal)->set_colors(foreground, background, palette, palette_size);
 }
 
 /**
@@ -2828,7 +2854,7 @@ void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        terminal->pvt->set_colors(nullptr, nullptr, nullptr, 0);
+        IMPL(terminal)->set_colors(nullptr, nullptr, nullptr, 0);
 }
 
 /**
@@ -2841,7 +2867,7 @@ glong
 vte_terminal_get_column_count(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return terminal->pvt->column_count;
+	return IMPL(terminal)->column_count;
 }
 
 /**
@@ -2855,7 +2881,7 @@ const char *
 vte_terminal_get_current_directory_uri(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return terminal->pvt->current_directory_uri;
+        return IMPL(terminal)->current_directory_uri;
 }
 
 /**
@@ -2870,7 +2896,7 @@ const char *
 vte_terminal_get_current_file_uri(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return terminal->pvt->current_file_uri;
+        return IMPL(terminal)->current_file_uri;
 }
 
 /**
@@ -2886,7 +2912,7 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
 
-        return terminal->pvt->cursor_blink_mode;
+        return IMPL(terminal)->cursor_blink_mode;
 }
 
 /**
@@ -2904,7 +2930,7 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(mode >= VTE_CURSOR_BLINK_SYSTEM && mode <= VTE_CURSOR_BLINK_OFF);
 
-        if (terminal->pvt->set_cursor_blink_mode(mode))
+        if (IMPL(terminal)->set_cursor_blink_mode(mode))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_BLINK_MODE]);
 }
 
@@ -2921,7 +2947,7 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
 
-        return terminal->pvt->cursor_shape;
+        return IMPL(terminal)->cursor_shape;
 }
 
 /**
@@ -2937,7 +2963,7 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(shape >= VTE_CURSOR_SHAPE_BLOCK && shape <= VTE_CURSOR_SHAPE_UNDERLINE);
 
-        if (terminal->pvt->set_cursor_shape(shape))
+        if (IMPL(terminal)->set_cursor_shape(shape))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_SHAPE]);
 }
 
@@ -2957,7 +2983,7 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
 
-        if (terminal->pvt->set_delete_binding(binding))
+        if (IMPL(terminal)->set_delete_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
 }
 
@@ -2974,7 +3000,7 @@ const char *
 vte_terminal_get_encoding(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return terminal->pvt->encoding;
+	return IMPL(terminal)->encoding;
 }
 
 /**
@@ -3001,7 +3027,7 @@ vte_terminal_set_encoding(VteTerminal *terminal,
         GObject *object = G_OBJECT(terminal);
         g_object_freeze_notify(object);
 
-        bool rv = terminal->pvt->set_encoding(codeset);
+        bool rv = IMPL(terminal)->set_encoding(codeset);
         if (rv)
                 g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
         else
@@ -3030,7 +3056,7 @@ vte_terminal_get_font(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return terminal->pvt->unscaled_font_desc;
+        return IMPL(terminal)->unscaled_font_desc;
 }
 
 /**
@@ -3050,7 +3076,7 @@ vte_terminal_set_font(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_font_desc(font_desc))
+        if (IMPL(terminal)->set_font_desc(font_desc))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_DESC]);
 }
 
@@ -3065,7 +3091,7 @@ vte_terminal_get_font_scale(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
 
-        return terminal->pvt->font_scale;
+        return IMPL(terminal)->font_scale;
 }
 
 /**
@@ -3082,7 +3108,7 @@ vte_terminal_set_font_scale(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
-        if (terminal->pvt->set_font_scale(scale))
+        if (IMPL(terminal)->set_font_scale(scale))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_SCALE]);
 }
 
@@ -3111,7 +3137,6 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
                                 int min_rows,
                                 int min_columns)
 {
-        VteTerminalPrivate *pvt;
         GtkWidget *widget;
         GtkBorder padding;
 
@@ -3120,7 +3145,7 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
         widget = &terminal->widget;
         g_return_if_fail(gtk_widget_get_realized(widget));
 
-        pvt = terminal->pvt;
+        auto impl = IMPL(terminal);
 
         auto context = gtk_widget_get_style_context(widget);
         gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
@@ -3128,8 +3153,8 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
 
         hints->base_width  = padding.left + padding.right;
         hints->base_height = padding.top  + padding.bottom;
-        hints->width_inc   = pvt->char_width;
-        hints->height_inc  = pvt->char_height;
+        hints->width_inc   = impl->char_width;
+        hints->height_inc  = impl->char_height;
         hints->min_width   = hints->base_width  + hints->width_inc  * min_columns;
         hints->min_height  = hints->base_height + hints->height_inc * min_rows;
 }
@@ -3176,7 +3201,7 @@ gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->has_selection;
+	return IMPL(terminal)->has_selection;
 }
 
 /**
@@ -3189,7 +3214,7 @@ const char *
 vte_terminal_get_icon_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return terminal->pvt->icon_title;
+	return IMPL(terminal)->icon_title;
 }
 
 /**
@@ -3203,7 +3228,7 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-        return terminal->pvt->input_enabled;
+        return IMPL(terminal)->input_enabled;
 }
 
 /**
@@ -3221,7 +3246,7 @@ vte_terminal_set_input_enabled (VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_input_enabled(enabled != FALSE))
+        if (IMPL(terminal)->set_input_enabled(enabled != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_INPUT_ENABLED]);
 }
 
@@ -3240,7 +3265,7 @@ gboolean
 vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->mouse_autohide;
+	return IMPL(terminal)->mouse_autohide;
 }
 
 /**
@@ -3258,7 +3283,7 @@ vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_mouse_autohide(setting != FALSE))
+        if (IMPL(terminal)->set_mouse_autohide(setting != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_MOUSE_POINTER_AUTOHIDE]);
 }
 
@@ -3280,7 +3305,7 @@ vte_terminal_set_pty(VteTerminal *terminal,
         GObject *object = G_OBJECT(terminal);
         g_object_freeze_notify(object);
 
-        if (terminal->pvt->set_pty(pty))
+        if (IMPL(terminal)->set_pty(pty))
                 g_object_notify_by_pspec(object, pspecs[PROP_PTY]);
 
         g_object_thaw_notify(object);
@@ -3299,7 +3324,7 @@ vte_terminal_get_pty(VteTerminal *terminal)
 {
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 
-        return terminal->pvt->pty;
+        return IMPL(terminal)->pty;
 }
 
 /**
@@ -3314,7 +3339,7 @@ gboolean
 vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return terminal->pvt->rewrap_on_resize;
+	return IMPL(terminal)->rewrap_on_resize;
 }
 
 /**
@@ -3331,7 +3356,7 @@ vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_rewrap_on_resize(rewrap != FALSE))
+        if (IMPL(terminal)->set_rewrap_on_resize(rewrap != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_REWRAP_ON_RESIZE]);
 }
 
@@ -3346,7 +3371,7 @@ glong
 vte_terminal_get_row_count(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return terminal->pvt->row_count;
+	return IMPL(terminal)->row_count;
 }
 
 /**
@@ -3373,7 +3398,7 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
         GObject *object = G_OBJECT(terminal);
         g_object_freeze_notify(object);
 
-        if (terminal->pvt->set_scrollback_lines(lines))
+        if (IMPL(terminal)->set_scrollback_lines(lines))
                 g_object_notify_by_pspec(object, pspecs[PROP_SCROLLBACK_LINES]);
 
         g_object_thaw_notify(object);
@@ -3394,7 +3419,7 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_scroll_on_keystroke(scroll != FALSE))
+        if (IMPL(terminal)->set_scroll_on_keystroke(scroll != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_OUTPUT]);
 }
 
@@ -3412,7 +3437,7 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal,
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_scroll_on_output(scroll != FALSE))
+        if (IMPL(terminal)->set_scroll_on_output(scroll != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_OUTPUT]);
 }
 
@@ -3426,7 +3451,7 @@ const char *
 vte_terminal_get_window_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return terminal->pvt->window_title;
+	return IMPL(terminal)->window_title;
 }
 
 /**
@@ -3448,7 +3473,7 @@ vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return terminal->pvt->word_char_exceptions_string;
+        return IMPL(terminal)->word_char_exceptions_string;
 }
 
 /**
@@ -3475,7 +3500,7 @@ vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (terminal->pvt->set_word_char_exceptions(exceptions))
+        if (IMPL(terminal)->set_word_char_exceptions(exceptions))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_WORD_CHAR_EXCEPTIONS]);
 }
 
@@ -3510,5 +3535,5 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), FALSE);
 
-        return terminal->pvt->write_contents_sync(stream, flags, cancellable, error);
+        return IMPL(terminal)->write_contents_sync(stream, flags, cancellable, error);
 }
