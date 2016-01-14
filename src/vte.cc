@@ -5658,6 +5658,12 @@ VteTerminalPrivate::feed_focus_event(bool in)
 }
 
 void
+VteTerminalPrivate::feed_focus_event_initial()
+{
+        feed_focus_event(gtk_widget_has_focus(m_widget));
+}
+
+void
 VteTerminalPrivate::maybe_feed_focus_event(bool in)
 {
         if (m_focus_tracking_mode)

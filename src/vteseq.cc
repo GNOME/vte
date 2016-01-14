@@ -580,7 +580,7 @@ vte_set_focus_tracking_mode(VteTerminal *terminal,
         /* We immediately send the terminal a focus event, since otherwise
          * it has no way to know the current status.
          */
-        terminal->pvt->feed_focus_event(gtk_widget_has_focus(&terminal->widget));
+        terminal->pvt->feed_focus_event_initial();
 }
 
 struct decset_t {
@@ -866,6 +866,13 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		}
 	} while (0);
 
+        terminal->pvt->seq_decset_internal_post(setting, set);
+}
+
+void
+VteTerminalPrivate::seq_decset_internal_post(long setting,
+                                             bool set)
+{
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
 	case 1:
@@ -875,36 +882,34 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 		break;
 	case 3:
                 /* 3: DECCOLM set/reset to 132/80 columns mode, clear screen and cursor home */
-                if (terminal->pvt->deccolm_mode) {
-                        terminal->pvt->emit_resize_window(
-                                                        set ? 132 : 80,
-                                                        terminal->pvt->row_count);
-                        terminal->pvt->seq_clear_screen();
-                        terminal->pvt->seq_home_cursor();
+                if (m_deccolm_mode) {
+                        emit_resize_window(set ? 132 : 80,
+                                           m_row_count);
+                        seq_clear_screen();
+                        seq_home_cursor();
                 }
 		break;
 	case 5:
 		/* Repaint everything in reverse mode. */
-                terminal->pvt->invalidate_all();
+                invalidate_all();
 		break;
 	case 6:
 		/* Reposition the cursor in its new home position. */
-                terminal->pvt->seq_home_cursor();
+                seq_home_cursor();
 		break;
 	case 47:
 	case 1047:
 	case 1049:
                 /* Clear the alternate screen if we're switching to it */
 		if (set) {
-			terminal->pvt->seq_clear_screen();
+			seq_clear_screen();
 		}
 		/* Reset scrollbars and repaint everything. */
-		gtk_adjustment_set_value(terminal->pvt->vadjustment,
-					 terminal->pvt->screen->scroll_delta);
-		vte_terminal_set_scrollback_lines(terminal,
-				terminal->pvt->scrollback_lines);
-		terminal->pvt->queue_contents_changed();
-                terminal->pvt->invalidate_all();
+		gtk_adjustment_set_value(m_vadjustment,
+					 m_screen->scroll_delta);
+		set_scrollback_lines(m_scrollback_lines);
+                queue_contents_changed();
+                invalidate_all();
 		break;
 	case 9:
 	case 1000:
@@ -912,7 +917,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	case 1002:
 	case 1003:
 		/* Make the pointer visible. */
-		terminal->pvt->set_pointer_visible(true);
+                set_pointer_visible(true);
 		break;
 	case 66:
 		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
@@ -924,11 +929,7 @@ vte_sequence_handler_decset_internal(VteTerminal *terminal,
 	}
 }
 
-
-
-
 /* THE HANDLERS */
-
 
 /* Do nothing. */
 static void

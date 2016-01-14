@@ -1013,6 +1013,7 @@ public:
                                    GdkEventType event_type);
 
         void feed_focus_event(bool in);
+        void feed_focus_event_initial();
         void maybe_feed_focus_event(bool in);
 
 #ifdef WITH_PCRE2
@@ -1120,6 +1121,8 @@ public:
         inline void seq_set_mode_internal(long setting,
                                           bool value);
         inline void set_mouse_smooth_scroll_delta(double value);
+        inline void seq_decset_internal_post(long setting,
+                                             bool set);
         inline void set_character_replacements(unsigned slot,
                                                VteCharacterReplacement replacement);
         inline void set_character_replacement(unsigned slot);
