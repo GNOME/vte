@@ -1251,19 +1251,23 @@ vte_sequence_handler_carriage_return (VteTerminal *terminal, GValueArray *params
         terminal->pvt->cursor.col = 0;
 }
 
+void
+VteTerminalPrivate::reset_scrolling_region()
+{
+        m_scrolling_restricted = FALSE;
+        seq_home_cursor();
+}
+
 /* Restrict scrolling and updates to a subset of the visible lines. */
 static void
 vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *params)
 {
-	long start=-1, end=-1, rows;
+	long start=-1, end=-1;
 	GValue *value;
-	VteScreen *screen;
 
 	/* We require two parameters.  Anything less is a reset. */
-	screen = terminal->pvt->screen;
 	if ((params == NULL) || (params->n_values < 2)) {
-                terminal->pvt->scrolling_restricted = FALSE;
-                terminal->pvt->seq_home_cursor();
+                terminal->pvt->reset_scrolling_region();
 		return;
 	}
 	/* Extract the two values. */
@@ -1275,37 +1279,44 @@ vte_sequence_handler_set_scrolling_region (VteTerminal *terminal, GValueArray *p
 	if (G_VALUE_HOLDS_LONG(value)) {
                 end = g_value_get_long(value) - 1;
 	}
-	rows = terminal->pvt->row_count;
+
+        terminal->pvt->set_scrolling_region(start, end);
+}
+
+void
+VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
+                                         vte::grid::row_t end /* relative */)
+{
         /* A (1-based) value of 0 means default. */
         if (start == -1) {
 		start = 0;
 	}
         if (end == -1) {
-                end = rows - 1;
+                end = m_row_count - 1;
         }
         /* Bail out on garbage, require at least 2 rows, as per xterm. */
-        if (start < 0 || start >= rows - 1 || end < start + 1) {
+        if (start < 0 || start >= m_row_count - 1 || end < start + 1) {
                 return;
         }
-        if (end >= rows) {
-		end = rows - 1;
+        if (end >= m_row_count) {
+                end = m_row_count - 1;
 	}
 
 	/* Set the right values. */
-        terminal->pvt->scrolling_region.start = start;
-        terminal->pvt->scrolling_region.end = end;
-        terminal->pvt->scrolling_restricted = TRUE;
-        if (terminal->pvt->scrolling_region.start == 0 &&
-            terminal->pvt->scrolling_region.end == rows - 1) {
+        m_scrolling_region.start = start;
+        m_scrolling_region.end = end;
+        m_scrolling_restricted = TRUE;
+        if (m_scrolling_region.start == 0 &&
+            m_scrolling_region.end == m_row_count - 1) {
 		/* Special case -- run wild, run free. */
-                terminal->pvt->scrolling_restricted = FALSE;
+                m_scrolling_restricted = FALSE;
 	} else {
 		/* Maybe extend the ring -- bug 710483 */
-		while (_vte_ring_next(screen->row_data) < screen->insert_delta + rows)
-			_vte_ring_insert(screen->row_data, _vte_ring_next(screen->row_data));
+                while (_vte_ring_next(screen->row_data) < m_screen->insert_delta + m_row_count)
+                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
 	}
 
-        terminal->pvt->seq_home_cursor();
+        seq_home_cursor();
 }
 
 /* Move the cursor to the beginning of the Nth next line, no scrolling. */

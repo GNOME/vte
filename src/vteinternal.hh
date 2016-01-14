@@ -1127,8 +1127,11 @@ public:
         inline void seq_cb();
         inline void seq_cd();
         inline void seq_ce();
-        void set_cursor_column(vte::grid::column_t col);
-        void set_cursor_row(vte::grid::row_t row);
+        inline void set_cursor_column(vte::grid::column_t col);
+        inline void set_cursor_row(vte::grid::row_t row);
+        inline void reset_scrolling_region();
+        inline void set_scrolling_region(vte::grid::row_t start /* relative */,
+                                         vte::grid::row_t end /* relative */);
 
         inline void set_keypad_mode(VteKeymode mode);
 };
