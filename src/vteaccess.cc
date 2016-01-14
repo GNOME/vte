@@ -40,6 +40,12 @@
 #endif
 #include <glib/gi18n-lib.h>
 
+#define TERMINAL_FROM_ACCESSIBLE(a) (VTE_TERMINAL(gtk_accessible_get_widget(GTK_ACCESSIBLE(a))))
+
+#define IMPL(t) (_vte_terminal_get_impl(t))
+#define IMPL_FROM_WIDGET(w) (IMPL(VTE_TERMINAL(w)))
+#define IMPL_FROM_ACCESSIBLE(a) (IMPL_FROM_WIDGET(gtk_accessible_get_widget(GTK_ACCESSIBLE(a))))
+
 enum {
         ACTION_MENU,
         LAST_ACTION
@@ -196,7 +202,6 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
                                                       GArray **old_characters)
 {
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
-        VteTerminal *terminal;
 	struct _VteCharAttributes attrs;
 	char *next;
 	long row, offset, caret;
@@ -229,7 +234,8 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 	}
 
 	/* Re-read the contents of the widget if the contents have changed. */
-	terminal = VTE_TERMINAL(gtk_accessible_get_widget(GTK_ACCESSIBLE(accessible)));
+        VteTerminal* terminal = TERMINAL_FROM_ACCESSIBLE(accessible);
+        auto impl = IMPL(terminal);
 	if (priv->snapshot_contents_invalid) {
 		/* Free the outdated snapshot data, unless the caller
 		 * wants it. */
@@ -277,7 +283,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		priv->snapshot_linebreaks = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
-		priv->snapshot_text = terminal->pvt->get_text_displayed_a11y(true /* wrap */,
+		priv->snapshot_text = impl->get_text_displayed_a11y(true /* wrap */,
                                                                              true /* include trailing whitespace */,
                                                                              priv->snapshot_attributes);
 
@@ -890,14 +896,13 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 {
         VteTerminalAccessible *accessible = VTE_TERMINAL_ACCESSIBLE(text);
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
-        VteTerminal *terminal;
 	gunichar current, prev, next;
 	guint start, end, line;
 
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
 
-        terminal = VTE_TERMINAL(gtk_accessible_get_widget (GTK_ACCESSIBLE(text)));
+        auto impl = IMPL_FROM_ACCESSIBLE(text);
 
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Getting %s %s at %d of %d.\n",
@@ -931,7 +936,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Back up to the previous non-word-word transition. */
 			while (offset > 0) {
 				prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-				if (terminal->pvt->is_word_char(prev)) {
+				if (impl->is_word_char(prev)) {
 					offset--;
 				} else {
 					break;
@@ -945,7 +950,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_previous) {
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (!terminal->pvt->is_word_char(prev)) {
+					if (!impl->is_word_char(prev)) {
 						offset--;
 					} else {
 						break;
@@ -953,7 +958,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (terminal->pvt->is_word_char(prev)) {
+					if (impl->is_word_char(prev)) {
 						offset--;
 					} else {
 						break;
@@ -968,7 +973,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_next) {
 				while (offset < (int) priv->snapshot_characters->len) {
 					next = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (terminal->pvt->is_word_char(next)) {
+					if (impl->is_word_char(next)) {
 						offset++;
 					} else {
 						break;
@@ -976,7 +981,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 				while (offset < (int) priv->snapshot_characters->len) {
 					next = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (!terminal->pvt->is_word_char(next)) {
+					if (!impl->is_word_char(next)) {
 						offset++;
 					} else {
 						break;
@@ -987,7 +992,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Now find the end of this word. */
 			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (terminal->pvt->is_word_char(current)) {
+				if (impl->is_word_char(current)) {
 					offset++;
 				} else {
 					break;
@@ -997,7 +1002,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Now find the next non-word-word transition */
 			while (offset < (int) priv->snapshot_characters->len) {
 				next = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (!terminal->pvt->is_word_char(next)) {
+				if (!impl->is_word_char(next)) {
 					offset++;
 				} else {
 					break;
@@ -1010,8 +1015,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			current = vte_terminal_accessible_get_character_at_offset(text, offset);
 			while (offset > 0) {
 				prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-				if (terminal->pvt->is_word_char(prev) &&
-				    !terminal->pvt->is_word_char(current)) {
+				if (impl->is_word_char(prev) &&
+				    !impl->is_word_char(current)) {
 					break;
 				} else {
 					offset--;
@@ -1026,7 +1031,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_previous) {
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (terminal->pvt->is_word_char(prev)) {
+					if (impl->is_word_char(prev)) {
 						offset--;
 					} else {
 						break;
@@ -1035,8 +1040,8 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
 				while (offset > 0) {
 					prev = vte_terminal_accessible_get_character_at_offset(text, offset - 1);
-					if (terminal->pvt->is_word_char(prev) &&
-					    !terminal->pvt->is_word_char(current)) {
+					if (impl->is_word_char(prev) &&
+					    !impl->is_word_char(current)) {
 						break;
 					} else {
 						offset--;
@@ -1052,7 +1057,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			if (direction == direction_next) {
 				while (offset < (int) priv->snapshot_characters->len) {
 					current = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (!terminal->pvt->is_word_char(current)) {
+					if (!impl->is_word_char(current)) {
 						offset++;
 					} else {
 						break;
@@ -1060,7 +1065,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 				}
 				while (offset < (int) priv->snapshot_characters->len) {
 					current = vte_terminal_accessible_get_character_at_offset(text, offset);
-					if (terminal->pvt->is_word_char(current)) {
+					if (impl->is_word_char(current)) {
 						offset++;
 					} else {
 						break;
@@ -1071,7 +1076,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			/* Now find the next word end. */
 			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (!terminal->pvt->is_word_char(current)) {
+				if (!impl->is_word_char(current)) {
 					offset++;
 				} else {
 					break;
@@ -1079,7 +1084,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			}
 			while (offset < (int) priv->snapshot_characters->len) {
 				current = vte_terminal_accessible_get_character_at_offset(text, offset);
-				if (terminal->pvt->is_word_char(current)) {
+				if (impl->is_word_char(current)) {
 					offset++;
 				} else {
 					break;
@@ -1473,8 +1478,9 @@ vte_terminal_accessible_remove_selection(AtkText *text,
 	}
 
 	terminal = VTE_TERMINAL (widget);
+        auto impl = IMPL_FROM_WIDGET(widget);
 	if (selection_number == 0 && vte_terminal_get_has_selection (terminal)) {
-		terminal->pvt->deselect_all();
+		impl->deselect_all();
 		return TRUE;
 	} else {
 		return FALSE;
@@ -1498,11 +1504,12 @@ vte_terminal_accessible_set_selection(AtkText *text, gint selection_number,
 	}
 
 	terminal = VTE_TERMINAL (widget);
+        auto impl = IMPL_FROM_WIDGET(widget);
 	if (selection_number != 0) {
 		return FALSE;
 	}
 	if (vte_terminal_get_has_selection (terminal)) {
-		terminal->pvt->deselect_all();
+		impl->deselect_all();
 	}
 
 	return vte_terminal_accessible_add_selection (text, start_offset, end_offset);
