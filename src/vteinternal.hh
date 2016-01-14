@@ -1128,7 +1128,9 @@ public:
         inline void seq_cd();
         inline void seq_ce();
         inline void set_cursor_column(vte::grid::column_t col);
-        inline void set_cursor_row(vte::grid::row_t row);
+        inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
+        inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
+                                      vte::grid::column_t column);
         inline void reset_scrolling_region();
         inline void set_scrolling_region(vte::grid::row_t start /* relative */,
                                          vte::grid::row_t end /* relative */);

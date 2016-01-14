@@ -227,15 +227,7 @@ VteTerminalPrivate::ensure_cursor_is_onscreen()
 void
 VteTerminalPrivate::seq_home_cursor()
 {
-        vte::grid::row_t origin;
-        if (m_origin_mode && m_scrolling_restricted) {
-                origin = m_scrolling_region.start;
-        } else {
-                origin = 0;
-        }
-
-        m_cursor.row = m_screen->insert_delta + origin;
-        m_cursor.col = 0;
+        set_cursor_coords(0, 0);
 }
 
 /* Clear the entire screen. */
@@ -1049,7 +1041,7 @@ VteTerminalPrivate::seq_cursor_back_tab()
 	/* Warp the cursor. */
 	_vte_debug_print(VTE_DEBUG_PARSE,
 			"Moving cursor to column %ld.\n", (long)newcol);
-        m_cursor.col = newcol;
+        set_cursor_column(newcol);
 }
 
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
@@ -1184,25 +1176,66 @@ vte_sequence_handler_cursor_character_absolute (VteTerminal *terminal, GValueArr
 	if ((params != NULL) && (params->n_values > 0)) {
 		value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-                        val = CLAMP(g_value_get_long(value) - 1,
-				    0,
-				    terminal->pvt->column_count - 1);
+                        val = g_value_get_long(value) - 1;
 		}
 	}
 
         terminal->pvt->set_cursor_column(val);
 }
 
+/*
+ * VteTerminalPrivate::set_cursor_column:
+ * @col: the column. 0-based from 0 to m_column_count - 1
+ *
+ * Sets the cursor column to @col, clamped to the range 0..m_column_count-1.
+ */
 void
 VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
 {
-        m_cursor.col = col;
+        m_cursor.col = CLAMP(col, 0, m_column_count - 1);
 }
 
+/*
+ * VteTerminalPrivate::set_cursor_row:
+ * @row: the row. 0-based and relative to the scrolling region
+ *
+ * Sets the cursor row to @row. @row is relative to the scrolling region
+ * (0 if restricted scrolling is off).
+ */
 void
 VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
 {
-        m_cursor.row = row;
+        vte::grid::row_t start_row, end_row;
+        if (m_origin_mode &&
+            m_scrolling_restricted) {
+                start_row = m_scrolling_region.start;
+                end_row = m_scrolling_region.end;
+        } else {
+                start_row = 0;
+                end_row = m_row_count - 1;
+        }
+        row += start_row;
+        row = CLAMP(row, start_row, end_row);
+
+        m_cursor.row = row + m_screen->insert_delta;
+}
+
+/*
+ * VteTerminalPrivate::set_cursor_coords:
+ * @row: the row. 0-based and relative to the scrolling region
+ * @col: the column. 0-based from 0 to m_column_count - 1
+ *
+ * Sets the cursor row to @row. @row is relative to the scrolling region
+ * (0 if restricted scrolling is off).
+ *
+ * Sets the cursor column to @col, clamped to the range 0..m_column_count-1.
+ */
+void
+VteTerminalPrivate::set_cursor_coords(vte::grid::row_t row,
+                                      vte::grid::column_t column)
+{
+        set_cursor_column(column);
+        set_cursor_row(row);
 }
 
 /* Move the cursor to the given position, 1-based. */
@@ -1210,45 +1243,33 @@ static void
 vte_sequence_handler_cursor_position (VteTerminal *terminal, GValueArray *params)
 {
 	GValue *row, *col;
-        long rowval, colval, origin, rowmax;
-	VteScreen *screen;
-
-	screen = terminal->pvt->screen;
 
 	/* We need at least two parameters. */
+        vte::grid::row_t rowval = 0;
+        vte::grid::column_t colval = 0;
 	rowval = colval = 0;
 	if (params != NULL && params->n_values >= 1) {
 		/* The first is the row, the second is the column. */
 		row = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(row)) {
-                        if (terminal->pvt->origin_mode &&
-                            terminal->pvt->scrolling_restricted) {
-                                origin = terminal->pvt->scrolling_region.start;
-                                rowmax = terminal->pvt->scrolling_region.end;
-			} else {
-				origin = 0;
-                                rowmax = terminal->pvt->row_count - 1;
-			}
-                        rowval = g_value_get_long(row) - 1 + origin;
-                        rowval = CLAMP(rowval, origin, rowmax);
+                        rowval = g_value_get_long(row) - 1;
 		}
 		if (params->n_values >= 2) {
 			col = g_value_array_get_nth(params, 1);
 			if (G_VALUE_HOLDS_LONG(col)) {
                                 colval = g_value_get_long(col) - 1;
-				colval = CLAMP(colval, 0, terminal->pvt->column_count - 1);
 			}
 		}
 	}
-        terminal->pvt->cursor.row = rowval + screen->insert_delta;
-        terminal->pvt->cursor.col = colval;
+
+        terminal->pvt->set_cursor_coords(rowval, colval);
 }
 
 /* Carriage return. */
 static void
 vte_sequence_handler_carriage_return (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->cursor.col = 0;
+        terminal->pvt->set_cursor_column(0);
 }
 
 void
