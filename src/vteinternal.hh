@@ -1150,6 +1150,8 @@ public:
         inline void seq_reverse_index();
         inline void seq_tab_set();
         inline void seq_tab();
+        inline void seq_tab_clear(long param);
+        inline void seq_send_secondary_device_attributes();
 };
 
 #define m_invalidated_all invalidated_all

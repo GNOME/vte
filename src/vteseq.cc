@@ -1982,14 +1982,19 @@ vte_sequence_handler_tab_clear (VteTerminal *terminal, GValueArray *params)
 			param = g_value_get_long(value);
 		}
 	}
+
+        terminal->pvt->seq_tab_clear(param);
+}
+
+void
+VteTerminalPrivate::seq_tab_clear(long param)
+{
 	if (param == 0) {
-		terminal->pvt->clear_tabstop(
-                                           terminal->pvt->cursor.col);
-	} else
-	if (param == 3) {
-		if (terminal->pvt->tabstops != NULL) {
-			g_hash_table_destroy(terminal->pvt->tabstops);
-			terminal->pvt->tabstops = NULL;
+		clear_tabstop(m_cursor.col);
+	} else if (param == 3) {
+		if (m_tabstops != nullptr) {
+			g_hash_table_destroy(m_tabstops);
+			m_tabstops = nullptr;
 		}
 	}
 }
@@ -2304,14 +2309,14 @@ vte_sequence_handler_cursor_position_top_row (VteTerminal *terminal, GValueArray
 static void
 vte_sequence_handler_request_terminal_parameters (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_feed_child(terminal, "\e[?x", -1);
+	terminal->pvt->feed_child("\e[?x", -1);
 }
 
 /* Request terminal attributes. */
 static void
 vte_sequence_handler_return_terminal_status (VteTerminal *terminal, GValueArray *params)
 {
-	vte_terminal_feed_child(terminal, "", 0);
+	terminal->pvt->feed_child("", 0);
 }
 
 /* Send primary device attributes. */
@@ -2319,7 +2324,7 @@ static void
 vte_sequence_handler_send_primary_device_attributes (VteTerminal *terminal, GValueArray *params)
 {
 	/* Claim to be a VT220 with only national character set support. */
-        vte_terminal_feed_child(terminal, "\e[?62;c", -1);
+        terminal->pvt->feed_child("\e[?62;c", -1);
 }
 
 /* Send terminal ID. */
@@ -2332,6 +2337,12 @@ vte_sequence_handler_return_terminal_id (VteTerminal *terminal, GValueArray *par
 /* Send secondary device attributes. */
 static void
 vte_sequence_handler_send_secondary_device_attributes (VteTerminal *terminal, GValueArray *params)
+{
+        terminal->pvt->seq_send_secondary_device_attributes();
+}
+
+void
+VteTerminalPrivate::seq_send_secondary_device_attributes()
 {
 	char **version;
 	char buf[128];
@@ -2347,7 +2358,7 @@ vte_sequence_handler_send_secondary_device_attributes (VteTerminal *terminal, GV
 		g_strfreev(version);
 	}
 	g_snprintf(buf, sizeof (buf), _VTE_CAP_ESC "[>1;%ld;0c", ver);
-	vte_terminal_feed_child(terminal, buf, -1);
+	feed_child(buf, -1);
 }
 
 /* Set one or the other. */
