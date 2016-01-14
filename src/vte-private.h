@@ -83,11 +83,6 @@ char *_vte_terminal_attributes_to_html(VteTerminal *terminal,
                                        GArray *attributes);
 GdkCursor *_vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type);
 
-/* vteseq.c: */
-void _vte_terminal_handle_sequence(VteTerminal *terminal,
-				   const char *match,
-				   GValueArray *params);
-
 gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
                                          long w,
                                          long h,

@@ -1102,6 +1102,10 @@ public:
                                   GError **error);
 
         /* Sequence handlers and their helper functions */
+        void handle_sequence(char const* match,
+                             GValueArray *params);
+        char* ucs4_to_utf8(guchar const* in);
+
         inline void ensure_cursor_is_onscreen();
         inline void seq_home_cursor();
         inline void seq_clear_screen();

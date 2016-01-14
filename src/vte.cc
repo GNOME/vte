@@ -3828,9 +3828,8 @@ skip_chunk:
 
 			/* Call the right sequence handler for the requested
 			 * behavior. */
-			_vte_terminal_handle_sequence(m_terminal,
-						      seq_match,
-						      params);
+			handle_sequence(seq_match, params);
+
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
 			modified = TRUE;
