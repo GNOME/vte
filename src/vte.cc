@@ -8075,7 +8075,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
         markers[0] = &cursor_saved_absolute;
         markers[1] = &below_viewport;
         markers[2] = &below_current_paragraph;
-        if (screen == terminal->pvt->screen)
+        if (screen == terminal->pvt->screen) {
                 /* Tracking the current cursor only makes sense on the active screen. */
                 markers[3] = &terminal->pvt->cursor;
                 if (terminal->pvt->has_selection) {
@@ -8083,6 +8083,7 @@ vte_terminal_screen_set_size(VteTerminal *terminal, VteScreen *screen, glong old
                         terminal->pvt->selection_end.col++;
                         markers[4] = &terminal->pvt->selection_start;
                         markers[5] = &terminal->pvt->selection_end;
+		}
 	}
 
 	old_top_lines = below_current_paragraph.row - screen->insert_delta;
