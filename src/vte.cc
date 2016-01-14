@@ -5467,16 +5467,6 @@ vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
 	return vte_cell_is_between(col, row, ss.col, ss.row, se.col, se.row);
 }
 
-/* Once we get text data, actually paste it in. */
-static void
-vte_terminal_paste_cb(GtkClipboard *clipboard,
-                      char const* text,
-                      gpointer data)
-{
-        VteTerminalPrivate *that = static_cast<VteTerminalPrivate*>(data);
-        that->widget_paste_received(text);
-}
-
 void
 VteTerminalPrivate::widget_paste_received(char const* text)
 {
@@ -6469,14 +6459,12 @@ VteTerminalPrivate::widget_paste(GdkAtom board)
                 return;
 
 	auto clip = gtk_clipboard_get_for_display(gtk_widget_get_display(m_widget), board);
-	if (clip != nullptr) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Requesting clipboard contents.\n");
-                // FIXME FIXMEchpe!! we need to invalidate this request when the widget is destroyed before receiving the text!
-		gtk_clipboard_request_text(clip,
-					   vte_terminal_paste_cb,
-					   this);
-	}
+	if (!clip)
+                return;
+
+        _vte_debug_print(VTE_DEBUG_SELECTION, "Requesting clipboard contents.\n");
+
+        m_paste_request.request_text(clip, &VteTerminalPrivate::widget_paste_received, this);
 }
 
 void

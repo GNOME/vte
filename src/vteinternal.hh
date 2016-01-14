@@ -184,6 +184,92 @@ struct vte_scrolling_region {
         int start, end;
 };
 
+template <class T>
+class ClipboardTextRequestGtk {
+public:
+        typedef void (T::* Callback)(char const*);
+
+        ClipboardTextRequestGtk() : m_request(nullptr) { }
+        ~ClipboardTextRequestGtk() { cancel(); }
+
+        void request_text(GtkClipboard *clipboard,
+                          Callback callback,
+                          T* that)
+        {
+                cancel();
+                new Request(clipboard, callback, that, &m_request);
+        }
+
+private:
+
+        class Request {
+        public:
+                Request(GtkClipboard *clipboard,
+                        Callback callback,
+                        T* that,
+                        Request** location) :
+                        m_callback(callback),
+                        m_that(that),
+                        m_location(location)
+                {
+                        /* We need to store this here instead of doing it after the |new| above,
+                         * since gtk_clipboard_request_text may dispatch the callback
+                         * immediately or only later, with no way to know this beforehand.
+                         */
+                        *m_location = this;
+                        gtk_clipboard_request_text(clipboard, text_received, this);
+                }
+
+                ~Request()
+                {
+                        invalidate();
+                }
+
+                void cancel()
+                {
+                        invalidate();
+                        m_that = nullptr;
+                        m_location = nullptr;
+                }
+
+        private:
+                Callback m_callback;
+                T *m_that;
+                Request** m_location;
+
+                void invalidate()
+                {
+                        if (m_that && m_location)
+                                *m_location = nullptr;
+                }
+
+                void dispatch(char const *text)
+                {
+                        if (m_that) {
+                                g_assert(m_location == nullptr || *m_location == this);
+
+                                (m_that->*m_callback)(text);
+                        }
+                }
+
+                static void text_received(GtkClipboard *clipboard, char const* text, gpointer data) {
+                        Request* request = reinterpret_cast<Request*>(data);
+                        request->dispatch(text);
+                        delete request;
+                }
+        };
+
+private:
+        void cancel()
+        {
+                if (m_request)
+                        m_request->cancel();
+                g_assert(m_request == nullptr);
+        }
+
+        Request *m_request;
+};
+
 /* Terminal private data. */
 class VteTerminalPrivate {
 public:
@@ -287,6 +373,8 @@ public:
 	char *selection_html[LAST_VTE_SELECTION];
 #endif
 	GtkClipboard *clipboard[LAST_VTE_SELECTION];
+
+        ClipboardTextRequestGtk<VteTerminalPrivate> m_paste_request;
 
 	/* Miscellaneous options. */
 	VteEraseBinding backspace_binding, delete_binding;
