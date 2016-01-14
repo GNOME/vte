@@ -1138,6 +1138,9 @@ public:
                                          vte::grid::row_t end /* relative */);
         inline void seq_cursor_up(vte::grid::row_t rows);
         inline void seq_cursor_down(vte::grid::row_t rows);
+        inline void seq_erase_characters(long count);
+        inline void seq_insert_blank_character();
+
 
         inline void set_keypad_mode(VteKeymode mode);
 };

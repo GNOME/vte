@@ -1477,55 +1477,57 @@ VteTerminalPrivate::seq_cursor_down(vte::grid::row_t rows)
 static void
 vte_sequence_handler_erase_characters (VteTerminal *terminal, GValueArray *params)
 {
-	VteScreen *screen;
-	VteRowData *rowdata;
-	GValue *value;
-	VteCell *cell;
-	long col, i, count;
-
-        terminal->pvt->ensure_cursor_is_onscreen();
-
-	screen = terminal->pvt->screen;
-
 	/* If we got a parameter, use it. */
-	count = 1;
+	long count = 1;
 	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
+                GValue* value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
 			count = g_value_get_long(value);
 		}
 	}
 
+        terminal->pvt->seq_erase_characters(count);
+}
+
+void
+VteTerminalPrivate::seq_erase_characters(long count)
+{
+        // FIXMEchpe clamp @count to 0..m_column_count? or at least something sane like MAXSHORT?
+
+	VteCell *cell;
+	long col, i;
+
+        ensure_cursor_is_onscreen();
+
 	/* Clear out the given number of characters. */
-	rowdata = terminal->pvt->ensure_row();
-        if (_vte_ring_next(screen->row_data) > terminal->pvt->cursor.row) {
+	auto rowdata = ensure_row();
+        if (_vte_ring_next(m_screen->row_data) > m_cursor.row) {
 		g_assert(rowdata != NULL);
                 /* Clean up Tab/CJK fragments. */
-                terminal->pvt->cleanup_fragments(terminal->pvt->cursor.col, terminal->pvt->cursor.col + count);
+                cleanup_fragments(m_cursor.col, m_cursor.col + count);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */
 		for (i = 0; i < count; i++) {
-                        col = terminal->pvt->cursor.col + i;
+                        col = m_cursor.col + i;
 			if (col >= 0) {
 				if (col < (glong) _vte_row_data_length (rowdata)) {
 					/* Replace this cell with the current
 					 * defaults. */
 					cell = _vte_row_data_get_writable (rowdata, col);
-                                        *cell = terminal->pvt->color_defaults;
+                                        *cell = m_color_defaults;
 				} else {
 					/* Add new cells until we have one here. */
-                                        _vte_row_data_fill (rowdata, &terminal->pvt->color_defaults, col + 1);
+                                        _vte_row_data_fill (rowdata, &m_color_defaults, col + 1);
 				}
 			}
 		}
 		/* Repaint this row. */
-		terminal->pvt->invalidate_cells(
-                                      terminal->pvt->cursor.col, count,
-                                      terminal->pvt->cursor.row, 1);
+                invalidate_cells(m_cursor.col, count,
+                                 m_cursor.row, 1);
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+        m_text_deleted_flag = TRUE;
 }
 
 /* Form-feed / next-page. */
@@ -1539,15 +1541,17 @@ vte_sequence_handler_form_feed (VteTerminal *terminal, GValueArray *params)
 static void
 _vte_sequence_handler_insert_character (VteTerminal *terminal, GValueArray *params)
 {
-	VteVisualPosition save;
+        terminal->pvt->seq_insert_blank_character();
+}
 
-        terminal->pvt->ensure_cursor_is_onscreen();
+void
+VteTerminalPrivate::seq_insert_blank_character()
+{
+        ensure_cursor_is_onscreen();
 
-        save = terminal->pvt->cursor;
-
-	terminal->pvt->insert_char(' ', true, true);
-
-        terminal->pvt->cursor = save;
+        auto save = m_cursor;
+        insert_char(' ', true, true);
+        m_cursor = save;
 }
 
 /* Insert N blank characters. */
