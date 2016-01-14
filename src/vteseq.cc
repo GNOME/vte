@@ -1344,7 +1344,7 @@ VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
 static void
 vte_sequence_handler_cursor_next_line (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->cursor.col = 0;
+        terminal->pvt->set_cursor_column(0);
         vte_sequence_handler_cursor_down (terminal, params);
 }
 
@@ -1352,7 +1352,7 @@ vte_sequence_handler_cursor_next_line (VteTerminal *terminal, GValueArray *param
 static void
 vte_sequence_handler_cursor_preceding_line (VteTerminal *terminal, GValueArray *params)
 {
-        terminal->pvt->cursor.col = 0;
+        terminal->pvt->set_cursor_column(0);
         vte_sequence_handler_cursor_up (terminal, params);
 }
 
@@ -1360,31 +1360,17 @@ vte_sequence_handler_cursor_preceding_line (VteTerminal *terminal, GValueArray *
 static void
 vte_sequence_handler_line_position_absolute (VteTerminal *terminal, GValueArray *params)
 {
-	VteScreen *screen;
-	GValue *value;
-        long val = 1, origin, rowmax;
-	screen = terminal->pvt->screen;
-
-        terminal->pvt->ensure_cursor_is_onscreen();
-
+        long val = 0;
 	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
+		GValue* value = g_value_array_get_nth(params, 0);
 		if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value);
+                        val = g_value_get_long(value) - 1;
 		}
 	}
 
-        if (terminal->pvt->origin_mode &&
-            terminal->pvt->scrolling_restricted) {
-                origin = terminal->pvt->scrolling_region.start;
-                rowmax = terminal->pvt->scrolling_region.end;
-        } else {
-                origin = 0;
-                rowmax = terminal->pvt->row_count - 1;
-        }
-        val = val - 1 + origin;
-        val = CLAMP(val, origin, rowmax);
-        terminal->pvt->cursor.row = screen->insert_delta + val;
+        // FIXMEchpe shouldn't we ensure_cursor_is_onscreen AFTER setting the new cursor row?
+        terminal->pvt->ensure_cursor_is_onscreen();
+        terminal->pvt->set_cursor_row(val);
 }
 
 /* Delete a character at the current cursor position. */
