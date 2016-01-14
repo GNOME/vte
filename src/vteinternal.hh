@@ -1125,6 +1125,7 @@ public:
         inline void set_character_replacement(unsigned slot);
         inline void seq_cursor_back_tab();
         inline void seq_cb();
+        inline void seq_cd();
 };
 
 #define m_invalidated_all invalidated_all

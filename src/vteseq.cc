@@ -1085,63 +1085,58 @@ VteTerminalPrivate::seq_cb()
 }
 
 /* Clear to the right of the cursor and below the current line. */
-static void
-_vte_sequence_handler_cd (VteTerminal *terminal, GValueArray *params)
+void
+VteTerminalPrivate::seq_cd()
 {
-	VteRowData *rowdata;
-	glong i;
-	VteScreen *screen;
+        ensure_cursor_is_onscreen();
 
-        terminal->pvt->ensure_cursor_is_onscreen();
-
-	screen = terminal->pvt->screen;
 	/* If the cursor is actually on the screen, clear the rest of the
 	 * row the cursor is on and all of the rows below the cursor. */
-        i = terminal->pvt->cursor.row;
-	if (i < _vte_ring_next(screen->row_data)) {
+        VteRowData *rowdata;
+        auto i = m_cursor.row;
+	if (i < _vte_ring_next(m_screen->row_data)) {
 		/* Get the data for the row we're clipping. */
-		rowdata = _vte_ring_index_writable (screen->row_data, i);
+                rowdata = _vte_ring_index_writable(m_screen->row_data, i);
                 /* Clean up Tab/CJK fragments. */
-                if ((glong) _vte_row_data_length (rowdata) > terminal->pvt->cursor.col)
-                        terminal->pvt->cleanup_fragments(terminal->pvt->cursor.col, _vte_row_data_length (rowdata));
+                if ((glong) _vte_row_data_length(rowdata) > m_cursor.col)
+                        cleanup_fragments(m_cursor.col, _vte_row_data_length(rowdata));
 		/* Clear everything to the right of the cursor. */
 		if (rowdata)
-                        _vte_row_data_shrink (rowdata, terminal->pvt->cursor.col);
+                        _vte_row_data_shrink(rowdata, m_cursor.col);
 	}
 	/* Now for the rest of the lines. */
-        for (i = terminal->pvt->cursor.row + 1;
-	     i < _vte_ring_next(screen->row_data);
+        for (i = m_cursor.row + 1;
+	     i < _vte_ring_next(m_screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
-		rowdata = _vte_ring_index_writable (screen->row_data, i);
+		rowdata = _vte_ring_index_writable(m_screen->row_data, i);
 		/* Remove it. */
 		if (rowdata)
 			_vte_row_data_shrink (rowdata, 0);
 	}
 	/* Now fill the cleared areas. */
-        for (i = terminal->pvt->cursor.row;
-	     i < screen->insert_delta + terminal->pvt->row_count;
+        for (i = m_cursor.row;
+	     i < m_screen->insert_delta + m_row_count;
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
-		if (_vte_ring_contains (screen->row_data, i)) {
-			rowdata = _vte_ring_index_writable (screen->row_data, i);
+		if (_vte_ring_contains(m_screen->row_data, i)) {
+			rowdata = _vte_ring_index_writable (m_screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_terminal_ring_append (terminal, FALSE);
+			rowdata = _vte_terminal_ring_append(m_terminal, FALSE);
 		}
 		/* Pad out the row. */
-                if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG) {
-                        _vte_row_data_fill (rowdata, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
+                if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+                        _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 		}
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		terminal->pvt->invalidate_cells(
-				      0, terminal->pvt->column_count,
-				      i, 1);
+		invalidate_cells(0, m_column_count,
+                                 i, 1);
 	}
 
 	/* We've modified the display.  Make a note of it. */
-	terminal->pvt->text_deleted_flag = TRUE;
+	m_text_deleted_flag = TRUE;
 }
 
 /* Clear from the cursor position to the end of the line. */
@@ -2499,7 +2494,7 @@ vte_sequence_handler_erase_in_display (VteTerminal *terminal, GValueArray *param
 	switch (param) {
 	case 0:
 		/* Clear below the current line. */
-                _vte_sequence_handler_cd (terminal, NULL);
+                terminal->pvt->seq_cd();
 		break;
 	case 1:
 		/* Clear above the current line. */
