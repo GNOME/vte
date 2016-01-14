@@ -7788,7 +7788,7 @@ VteTerminalPrivate::screen_set_size(VteScreen *screen_,
         markers[0] = &cursor_saved_absolute;
         markers[1] = &below_viewport;
         markers[2] = &below_current_paragraph;
-        if (screen_ == m_screen)
+        if (screen_ == m_screen) {
                 /* Tracking the current cursor only makes sense on the active screen_. */
                 markers[3] = &m_cursor;
                 if (m_has_selection) {
@@ -7796,6 +7796,7 @@ VteTerminalPrivate::screen_set_size(VteScreen *screen_,
                         m_selection_end.col++;
                         markers[4] = &m_selection_start;
                         markers[5] = &m_selection_end;
+                }
 	}
 
 	old_top_lines = below_current_paragraph.row - screen_->insert_delta;
