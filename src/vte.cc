@@ -8036,9 +8036,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 
 	gtk_widget_set_can_focus(m_widget, TRUE);
 
-        // FIXMEchpe is this still necessary?
-	gtk_widget_set_app_paintable(m_widget, TRUE);
-
 	/* We do our own redrawing. */
         // FIXMEchpe still necessary?
 	gtk_widget_set_redraw_on_allocate(m_widget, FALSE);
