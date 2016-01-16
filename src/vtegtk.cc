@@ -21,6 +21,12 @@
  * @short_description: A terminal widget implementation
  *
  * A VteTerminal is a terminal emulator implemented as a GTK3 widget.
+ *
+ * Note that altough #VteTerminal implements the #GtkScrollable interface,
+ * you should not place a #VteTerminal inside a #GtkScrolledWindow
+ * container, since they are incompatible. Instead, pack the terminal in
+ * a horizontal #GtkBox together with a #GtkScrollbar which uses the
+ * #GtkAdjustment returned from gtk_scrollable_get_vadjustment().
  */
 
 #include "config.h"
