@@ -3163,6 +3163,17 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
         hints->height_inc  = impl->char_height;
         hints->min_width   = hints->base_width  + hints->width_inc  * min_columns;
         hints->min_height  = hints->base_height + hints->height_inc * min_rows;
+
+	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
+                         "[Terminal %p] Geometry char       width %ld height %ld\n"
+                         "                       base       width %d height %d\n"
+                         "                       increments width %d height %d\n"
+                         "                       minimum    width %d height %d\n",
+                         terminal,
+                         impl->char_width, impl->char_height,
+                         hints->base_width, hints->base_height,
+                         hints->width_inc, hints->height_inc,
+                         hints->min_width, hints->min_height);
 }
 
 /**
