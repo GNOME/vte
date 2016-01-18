@@ -1609,7 +1609,7 @@ vte_sequence_handler_cursor_backward (VteTerminalPrivate *that, GValueArray *par
                 }
         }
 
-        that->seq_cursor_forward(val);
+        that->seq_cursor_backward(val);
 }
 
 void
