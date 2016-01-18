@@ -1193,6 +1193,7 @@ vte_sequence_handler_cursor_character_absolute (VteTerminalPrivate *that, GValue
 void
 VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
 {
+        if (col < 0 || col >= m_column_count) g_printerr("cursor-col outside: %ld (0..%ld)\n", col, m_column_count);
         m_cursor.col = CLAMP(col, 0, m_column_count - 1);
 }
 
@@ -1618,6 +1619,7 @@ VteTerminalPrivate::seq_cursor_backward(vte::grid::column_t columns)
         ensure_cursor_is_onscreen();
 
         auto col = get_cursor_column();
+        if (columns != CLAMP(columns,1,col))g_printerr("oversize %ld %ld\n", columns, col);
         columns = CLAMP(columns, 1, col);
         set_cursor_column(col - columns);
 }
