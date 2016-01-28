@@ -220,8 +220,8 @@ VteTerminalPrivate::emit_resize_window(guint columns,
 void
 VteTerminalPrivate::ensure_cursor_is_onscreen()
 {
-        if (G_UNLIKELY (m_cursor.col >= m_column_count))
-                m_cursor.col = m_column_count - 1;
+        if (G_UNLIKELY (m_screen->cursor.col >= m_column_count))
+                m_screen->cursor.col = m_column_count - 1;
 }
 
 void
@@ -234,7 +234,7 @@ VteTerminalPrivate::seq_home_cursor()
 void
 VteTerminalPrivate::seq_clear_screen()
 {
-        auto row = m_cursor.row - screen->insert_delta;
+        auto row = m_screen->cursor.row - screen->insert_delta;
         auto initial = _vte_ring_next(m_screen->row_data);
 	/* Add a new screen's worth of rows. */
         for (auto i = 0; i < m_row_count; i++)
@@ -242,7 +242,7 @@ VteTerminalPrivate::seq_clear_screen()
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
         m_screen->insert_delta = initial;
-        m_cursor.row = row + m_screen->insert_delta;
+        m_screen->cursor.row = row + m_screen->insert_delta;
         adjust_adjustments();
 	/* Redraw everything. */
         invalidate_all();
@@ -258,9 +258,9 @@ VteTerminalPrivate::seq_clear_current_line()
 
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-        if (_vte_ring_next(m_screen->row_data) > m_cursor.row) {
+        if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
 		/* Get the data for the row which the cursor points to. */
-                rowdata = _vte_ring_index_writable(m_screen->row_data, m_cursor.row);
+                rowdata = _vte_ring_index_writable(m_screen->row_data, m_screen->cursor.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
 		_vte_row_data_shrink (rowdata, 0);
@@ -269,7 +269,7 @@ VteTerminalPrivate::seq_clear_current_line()
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
 		invalidate_cells(0, m_column_count,
-                                 m_cursor.row, 1);
+                                 m_screen->cursor.row, 1);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -282,7 +282,7 @@ VteTerminalPrivate::seq_clear_above_current()
 {
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-        for (auto i = m_screen->insert_delta; i < m_cursor.row; i++) {
+        for (auto i = m_screen->insert_delta; i < m_screen->cursor.row; i++) {
                 if (_vte_ring_next(m_screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
                         auto rowdata = _vte_ring_index_writable(m_screen->row_data, i);
@@ -385,9 +385,9 @@ VteTerminalPrivate::seq_switch_screen(VteScreen *new_screen)
         /* if (new_screen == m_screen) return; ? */
 
         /* cursor.row includes insert_delta, adjust accordingly */
-        m_cursor.row -= m_screen->insert_delta;
+        auto cr = m_screen->cursor.row - m_screen->insert_delta;
         m_screen = new_screen;
-        m_cursor.row += m_screen->insert_delta;
+        m_screen->cursor.row = cr + m_screen->insert_delta;
 
         /* Make sure the ring is large enough */
         ensure_row();
@@ -557,7 +557,7 @@ vte_sequence_handler_multiple_r(VteTerminalPrivate *that,
                                 VteTerminalSequenceHandler handler)
 {
         vte_sequence_handler_multiple_limited(that, params, handler,
-                                              that->column_count - that->cursor.col);
+                                              that->column_count - that->m_screen->cursor.col);
 }
 
 static void
@@ -1027,7 +1027,7 @@ void
 VteTerminalPrivate::seq_cursor_back_tab()
 {
 	/* Calculate which column is the previous tab stop. */
-        auto newcol = m_cursor.col;
+        auto newcol = m_screen->cursor.col;
 
 	if (m_tabstops) {
 		/* Find the next tabstop. */
@@ -1054,12 +1054,12 @@ VteTerminalPrivate::seq_cb()
 	/* Get the data for the row which the cursor points to. */
 	auto rowdata = ensure_row();
         /* Clean up Tab/CJK fragments. */
-        cleanup_fragments(0, m_cursor.col + 1);
+        cleanup_fragments(0, m_screen->cursor.col + 1);
 	/* Clear the data up to the current column with the default
 	 * attributes.  If there is no such character cell, we need
 	 * to add one. */
         vte::grid::column_t i;
-        for (i = 0; i <= m_cursor.col; i++) {
+        for (i = 0; i <= m_screen->cursor.col; i++) {
                 if (i < (glong) _vte_row_data_length (rowdata)) {
 			/* Muck with the cell in this location. */
                         auto pcell = _vte_row_data_get_writable(rowdata, i);
@@ -1070,8 +1070,8 @@ VteTerminalPrivate::seq_cb()
 		}
 	}
 	/* Repaint this row. */
-        invalidate_cells(0, m_cursor.col+1,
-                         m_cursor.row, 1);
+        invalidate_cells(0, m_screen->cursor.col+1,
+                         m_screen->cursor.row, 1);
 
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
@@ -1086,19 +1086,19 @@ VteTerminalPrivate::seq_cd()
 	/* If the cursor is actually on the screen, clear the rest of the
 	 * row the cursor is on and all of the rows below the cursor. */
         VteRowData *rowdata;
-        auto i = m_cursor.row;
+        auto i = m_screen->cursor.row;
 	if (i < _vte_ring_next(m_screen->row_data)) {
 		/* Get the data for the row we're clipping. */
                 rowdata = _vte_ring_index_writable(m_screen->row_data, i);
                 /* Clean up Tab/CJK fragments. */
-                if ((glong) _vte_row_data_length(rowdata) > m_cursor.col)
-                        cleanup_fragments(m_cursor.col, _vte_row_data_length(rowdata));
+                if ((glong) _vte_row_data_length(rowdata) > m_screen->cursor.col)
+                        cleanup_fragments(m_screen->cursor.col, _vte_row_data_length(rowdata));
 		/* Clear everything to the right of the cursor. */
 		if (rowdata)
-                        _vte_row_data_shrink(rowdata, m_cursor.col);
+                        _vte_row_data_shrink(rowdata, m_screen->cursor.col);
 	}
 	/* Now for the rest of the lines. */
-        for (i = m_cursor.row + 1;
+        for (i = m_screen->cursor.row + 1;
 	     i < _vte_ring_next(m_screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
@@ -1108,7 +1108,7 @@ VteTerminalPrivate::seq_cd()
 			_vte_row_data_shrink (rowdata, 0);
 	}
 	/* Now fill the cleared areas. */
-        for (i = m_cursor.row;
+        for (i = m_screen->cursor.row;
 	     i < m_screen->insert_delta + m_row_count;
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
@@ -1147,12 +1147,12 @@ VteTerminalPrivate::seq_ce()
 	/* Get the data for the row which the cursor points to. */
         auto rowdata = ensure_row();
 	g_assert(rowdata != NULL);
-        if ((glong) _vte_row_data_length(rowdata) > m_cursor.col) {
+        if ((glong) _vte_row_data_length(rowdata) > m_screen->cursor.col) {
                 /* Clean up Tab/CJK fragments. */
-                cleanup_fragments(m_cursor.col, _vte_row_data_length(rowdata));
+                cleanup_fragments(m_screen->cursor.col, _vte_row_data_length(rowdata));
                 /* Remove the data at the end of the array until the current column
                  * is the end of the array. */
-                _vte_row_data_shrink(rowdata, m_cursor.col);
+                _vte_row_data_shrink(rowdata, m_screen->cursor.col);
 		/* We've modified the display.  Make a note of it. */
 		m_text_deleted_flag = TRUE;
 	}
@@ -1162,8 +1162,8 @@ VteTerminalPrivate::seq_ce()
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
-	invalidate_cells(m_cursor.col, m_column_count - m_cursor.col,
-                         m_cursor.row, 1);
+	invalidate_cells(m_screen->cursor.col, m_column_count - m_screen->cursor.col,
+                         m_screen->cursor.row, 1);
 }
 
 /* Move the cursor to the given column (horizontal position), 1-based. */
@@ -1193,7 +1193,7 @@ vte_sequence_handler_cursor_character_absolute (VteTerminalPrivate *that, GValue
 void
 VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
 {
-        m_cursor.col = CLAMP(col, 0, m_column_count - 1);
+        m_screen->cursor.col = CLAMP(col, 0, m_column_count - 1);
 }
 
 /*
@@ -1218,7 +1218,7 @@ VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
         row += start_row;
         row = CLAMP(row, start_row, end_row);
 
-        m_cursor.row = row + m_screen->insert_delta;
+        m_screen->cursor.row = row + m_screen->insert_delta;
 }
 
 /*
@@ -1230,7 +1230,7 @@ VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
 vte::grid::row_t
 VteTerminalPrivate::get_cursor_row() const
 {
-        auto row = m_cursor.row - m_screen->insert_delta;
+        auto row = m_screen->cursor.row - m_screen->insert_delta;
         /* Note that we do NOT check m_origin_mode here! */
         if (m_scrolling_restricted) {
                 row -= m_scrolling_region.start;
@@ -1241,7 +1241,7 @@ VteTerminalPrivate::get_cursor_row() const
 vte::grid::column_t
 VteTerminalPrivate::get_cursor_column() const
 {
-        return m_cursor.col;
+        return m_screen->cursor.col;
 }
 
 /*
@@ -1412,12 +1412,12 @@ VteTerminalPrivate::seq_dc()
 
         ensure_cursor_is_onscreen();
 
-        if (_vte_ring_next(m_screen->row_data) > m_cursor.row) {
+        if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
 		long len;
 		/* Get the data for the row which the cursor points to. */
-                rowdata = _vte_ring_index_writable(m_screen->row_data, m_cursor.row);
+                rowdata = _vte_ring_index_writable(m_screen->row_data, m_screen->cursor.row);
 		g_assert(rowdata != NULL);
-                col = m_cursor.col;
+                col = m_screen->cursor.col;
 		len = _vte_row_data_length (rowdata);
 		/* Remove the column. */
 		if (col < len) {
@@ -1430,7 +1430,7 @@ VteTerminalPrivate::seq_dc()
 			}
 			/* Repaint this row. */
                         invalidate_cells(col, len - col,
-                                         m_cursor.row, 1);
+                                         m_screen->cursor.row, 1);
 		}
 	}
 
@@ -1476,7 +1476,7 @@ VteTerminalPrivate::seq_cursor_down(vte::grid::row_t rows)
                 end = m_screen->insert_delta + m_row_count - 1;
 	}
 
-        m_cursor.row = MIN(m_cursor.row + rows, end);
+        m_screen->cursor.row = MIN(m_screen->cursor.row + rows, end);
 }
 
 /* Erase characters starting at the cursor position (overwriting N with
@@ -1508,14 +1508,14 @@ VteTerminalPrivate::seq_erase_characters(long count)
 
 	/* Clear out the given number of characters. */
 	auto rowdata = ensure_row();
-        if (_vte_ring_next(m_screen->row_data) > m_cursor.row) {
+        if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
 		g_assert(rowdata != NULL);
                 /* Clean up Tab/CJK fragments. */
-                cleanup_fragments(m_cursor.col, m_cursor.col + count);
+                cleanup_fragments(m_screen->cursor.col, m_screen->cursor.col + count);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */
 		for (i = 0; i < count; i++) {
-                        col = m_cursor.col + i;
+                        col = m_screen->cursor.col + i;
 			if (col >= 0) {
 				if (col < (glong) _vte_row_data_length (rowdata)) {
 					/* Replace this cell with the current
@@ -1529,8 +1529,8 @@ VteTerminalPrivate::seq_erase_characters(long count)
 			}
 		}
 		/* Repaint this row. */
-                invalidate_cells(m_cursor.col, count,
-                                 m_cursor.row, 1);
+                invalidate_cells(m_screen->cursor.col, count,
+                                 m_screen->cursor.row, 1);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -1556,9 +1556,9 @@ VteTerminalPrivate::seq_insert_blank_character()
 {
         ensure_cursor_is_onscreen();
 
-        auto save = m_cursor;
+        auto save = m_screen->cursor;
         insert_char(' ', true, true);
-        m_cursor = save;
+        m_screen->cursor = save;
 }
 
 /* Insert N blank characters. */
@@ -1588,9 +1588,9 @@ VteTerminalPrivate::seq_backspace()
 {
         ensure_cursor_is_onscreen();
 
-        if (m_cursor.col > 0) {
+        if (m_screen->cursor.col > 0) {
 		/* There's room to move left, so do so. */
-                m_cursor.col--;
+                m_screen->cursor.col--;
 	}
 }
 
@@ -1838,7 +1838,7 @@ VteTerminalPrivate::seq_reverse_index()
                 end = start + m_row_count - 1;
 	}
 
-        if (m_cursor.row == start) {
+        if (m_screen->cursor.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
 		_vte_terminal_ring_remove(m_terminal, end);
@@ -1849,7 +1849,7 @@ VteTerminalPrivate::seq_reverse_index()
                                  start, 2);
 	} else {
 		/* Otherwise, just move the cursor up. */
-                m_cursor.row--;
+                m_screen->cursor.row--;
 	}
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
@@ -1870,7 +1870,7 @@ VteTerminalPrivate::seq_tab_set()
 	if (m_tabstops == NULL) {
 		m_tabstops = g_hash_table_new(NULL, NULL);
 	}
-	set_tabstop(m_cursor.col);
+	set_tabstop(m_screen->cursor.col);
 }
 
 /* Tab. */
@@ -1887,7 +1887,7 @@ VteTerminalPrivate::seq_tab()
         vte::grid::column_t newcol, col;
 
 	/* Calculate which column is the next tab stop. */
-        newcol = col = m_cursor.col;
+        newcol = col = m_screen->cursor.col;
 
 	g_assert (col >= 0);
 
@@ -1958,9 +1958,9 @@ VteTerminalPrivate::seq_tab()
 			}
 		}
 
-		invalidate_cells(m_cursor.col, newcol - m_cursor.col,
-                                 m_cursor.row, 1);
-                m_cursor.col = newcol;
+		invalidate_cells(m_screen->cursor.col, newcol - m_screen->cursor.col,
+                                 m_screen->cursor.row, 1);
+                m_screen->cursor.col = newcol;
 	}
 }
 
@@ -1991,7 +1991,7 @@ void
 VteTerminalPrivate::seq_tab_clear(long param)
 {
 	if (param == 0) {
-		clear_tabstop(m_cursor.col);
+		clear_tabstop(m_screen->cursor.col);
 	} else if (param == 3) {
 		if (m_tabstops != nullptr) {
 			g_hash_table_destroy(m_tabstops);
@@ -2031,7 +2031,7 @@ VteTerminalPrivate::seq_cursor_up(vte::grid::row_t rows)
 		start = m_screen->insert_delta;
 	}
 
-        m_cursor.row = MAX(m_cursor.row - rows, start);
+        m_screen->cursor.row = MAX(m_screen->cursor.row - rows, start);
 }
 
 /* Vertical tab. */
@@ -2722,7 +2722,7 @@ VteTerminalPrivate::seq_insert_lines(vte::grid::row_t param)
         vte::grid::row_t end, i;
 
 	/* Find the region we're messing with. */
-        auto row = m_cursor.row;
+        auto row = m_screen->cursor.row;
         if (m_scrolling_restricted) {
                 end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
@@ -2741,7 +2741,7 @@ VteTerminalPrivate::seq_insert_lines(vte::grid::row_t param)
                 _vte_terminal_ring_remove(m_terminal, end);
                 _vte_terminal_ring_insert(m_terminal, row, TRUE);
 	}
-        m_cursor.col = 0;
+        m_screen->cursor.col = 0;
 	/* Update the display. */
         scroll_region(row, end - row + 1, param);
 	/* Adjust the scrollbars if necessary. */
@@ -2773,7 +2773,7 @@ VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
         vte::grid::row_t end, i;
 
 	/* Find the region we're messing with. */
-        auto row = m_cursor.row;
+        auto row = m_screen->cursor.row;
         if (m_scrolling_restricted) {
                 end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
@@ -2793,7 +2793,7 @@ VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
                 _vte_terminal_ring_remove(m_terminal, row);
                 _vte_terminal_ring_insert(m_terminal, end, TRUE);
 	}
-        m_cursor.col = 0;
+        m_screen->cursor.col = 0;
 	/* Update the display. */
         scroll_region(row, end - row + 1, -param);
 	/* Adjust the scrollbars if necessary. */
@@ -2836,13 +2836,13 @@ VteTerminalPrivate::seq_device_status_report(long param)
                                         rowmax = m_row_count - 1;
                                 }
                                 // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
-                                rowval = m_cursor.row - m_screen->insert_delta - origin;
+                                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
                                 rowval = CLAMP(rowval, 0, rowmax);
                                 char buf[128];
                                 g_snprintf(buf, sizeof(buf),
 					   _VTE_CAP_CSI "%ld;%ldR",
                                            rowval + 1,
-                                           CLAMP(m_cursor.col + 1, 1, m_column_count));
+                                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
 				feed_child(buf, -1);
 				break;
 			default:
@@ -2879,13 +2879,13 @@ VteTerminalPrivate::seq_dec_device_status_report(long param)
                                         rowmax = m_row_count - 1;
                                 }
                                 // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
-                                rowval = m_cursor.row - m_screen->insert_delta - origin;
+                                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
                                 rowval = CLAMP(rowval, 0, rowmax);
                                 char buf[128];
 				g_snprintf(buf, sizeof(buf),
 					   _VTE_CAP_CSI "?%ld;%ldR",
                                            rowval + 1,
-                                           CLAMP(m_cursor.col + 1, 1, m_column_count));
+                                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
 				feed_child(buf, -1);
 				break;
 			case 15:

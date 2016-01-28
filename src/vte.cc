@@ -663,8 +663,8 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 
 	if (m_cursor_visible) {
 		auto preedit_width = get_preedit_width(false);
-                auto row = m_cursor.row;
-                auto column = m_cursor.col;
+                auto row = m_screen->cursor.row;
+                auto column = m_screen->cursor.col;
 		long columns = 1;
 		column = find_start_column (m_terminal, column, row);
 
@@ -2200,8 +2200,8 @@ VteTerminalPrivate::adjust_adjustments()
 	 * area.  Leave the scrolling delta alone because it will be updated
 	 * when the adjustment changes. */
 	screen->insert_delta = MAX(m_screen->insert_delta, delta);
-        m_cursor.row = MAX(m_cursor.row,
-                           m_screen->insert_delta);
+        m_screen->cursor.row = MAX(m_screen->cursor.row,
+                                   m_screen->insert_delta);
 
 	if (m_screen->scroll_delta > m_screen->insert_delta) {
 		queue_adjustment_value_changed(m_screen->insert_delta);
@@ -2420,13 +2420,13 @@ VteTerminalPrivate::ensure_row()
 
 	/* Figure out how many rows we need to add. */
         //FIXMEchpe use long, not int
-	int delta = m_cursor.row - _vte_ring_next(m_screen->row_data) + 1;
+	int delta = m_screen->cursor.row - _vte_ring_next(m_screen->row_data) + 1;
 	if (delta > 0) {
 		row = insert_rows(delta);
 		adjust_adjustments();
 	} else {
 		/* Find the row the cursor is in. */
-		row = _vte_ring_index_writable(m_screen->row_data, m_cursor.row);
+		row = _vte_ring_index_writable(m_screen->row_data, m_screen->cursor.row);
 	}
 	g_assert(row != NULL);
 
@@ -2437,7 +2437,7 @@ VteRowData *
 VteTerminalPrivate::ensure_cursor()
 {
 	VteRowData *row = ensure_row();
-        _vte_row_data_fill(row, &basic_cell.cell, m_cursor.col);
+        _vte_row_data_fill(row, &basic_cell.cell, m_screen->cursor.col);
 
 	return row;
 }
@@ -2450,7 +2450,7 @@ VteTerminalPrivate::update_insert_delta()
 	/* The total number of lines.  Add one to the cursor offset
 	 * because it's zero-based. */
 	auto rows = _vte_ring_next(m_screen->row_data);
-        auto delta = m_cursor.row - rows + 1;
+        auto delta = m_screen->cursor.row - rows + 1;
 	if (G_UNLIKELY (delta > 0)) {
 		insert_rows(delta);
 		rows = _vte_ring_next(m_screen->row_data);
@@ -2462,7 +2462,7 @@ VteTerminalPrivate::update_insert_delta()
 	delta = m_screen->insert_delta;
 	delta = MIN(delta, rows - m_row_count);
 	delta = MAX(delta,
-                    m_cursor.row - (m_row_count - 1));
+                    m_screen->cursor.row - (m_row_count - 1));
 	delta = MAX(delta, _vte_ring_delta(m_screen->row_data));
 
 	/* Adjust the insert delta and scroll if needed. */
@@ -3010,7 +3010,7 @@ VteTerminalPrivate::cleanup_fragments(long start,
                         cell_end->attr.columns = 1;
                         invalidate_cells(
                                               end, 1,
-                                              m_cursor.row, 1);
+                                              m_screen->cursor.row, 1);
                 }
         }
 
@@ -3036,7 +3036,7 @@ VteTerminalPrivate::cleanup_fragments(long start,
                                         g_assert(start - col == 1);
                                         invalidate_cells(
                                                               col, 1,
-                                                              m_cursor.row, 1);
+                                                              m_screen->cursor.row, 1);
                                 }
                                 keep_going = FALSE;
                         }
@@ -3060,19 +3060,19 @@ VteTerminalPrivate::cursor_down()
 		start = m_screen->insert_delta;
 		end = start + m_row_count - 1;
 	}
-        if (m_cursor.row == end) {
+        if (m_screen->cursor.row == end) {
                 if (m_scrolling_restricted) {
 			if (start == m_screen->insert_delta) {
 				/* Scroll this line into the scrollback
 				 * buffer by inserting a line at the next
 				 * line and scrolling the area up. */
 				m_screen->insert_delta++;
-                                m_cursor.row++;
+                                m_screen->cursor.row++;
 				/* update start and end, as they are relative
 				 * to insert_delta. */
 				start++;
 				end++;
-                                _vte_terminal_ring_insert(m_terminal, m_cursor.row, FALSE);
+                                _vte_terminal_ring_insert(m_terminal, m_screen->cursor.row, FALSE);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				scroll_region(start,
@@ -3094,7 +3094,7 @@ VteTerminalPrivate::cursor_down()
 			}
 		} else {
 			/* Scroll up with history. */
-                        m_cursor.row++;
+                        m_screen->cursor.row++;
 			update_insert_delta();
 		}
 
@@ -3107,7 +3107,7 @@ VteTerminalPrivate::cursor_down()
 #endif
 	} else {
 		/* Otherwise, just move the cursor down. */
-                m_cursor.row++;
+                m_screen->cursor.row++;
 	}
 }
 
@@ -3129,9 +3129,9 @@ VteTerminalPrivate::drop_scrollback()
 void
 VteTerminalPrivate::restore_cursor(VteScreen *screen__)
 {
-        m_cursor.col = screen__->saved.cursor.col;
-        m_cursor.row = screen__->insert_delta + CLAMP(screen__->saved.cursor.row,
-                                                      0, m_row_count - 1);
+        screen__->cursor.col = screen__->saved.cursor.col;
+        screen__->cursor.row = screen__->insert_delta + CLAMP(screen__->saved.cursor.row,
+                                                              0, m_row_count - 1);
 
         m_reverse_mode = screen__->saved.reverse_mode;
         m_origin_mode = screen__->saved.origin_mode;
@@ -3150,8 +3150,8 @@ VteTerminalPrivate::restore_cursor(VteScreen *screen__)
 void
 VteTerminalPrivate::save_cursor(VteScreen *screen__)
 {
-        screen__->saved.cursor.col = m_cursor.col;
-        screen__->saved.cursor.row = m_cursor.row - screen__->insert_delta;
+        screen__->saved.cursor.col = screen__->cursor.col;
+        screen__->saved.cursor.row = screen__->cursor.row - screen__->insert_delta;
 
         screen__->saved.reverse_mode = m_reverse_mode;
         screen__->saved.origin_mode = m_origin_mode;
@@ -3230,21 +3230,21 @@ VteTerminalPrivate::insert_char(gunichar c,
         columns = _vte_unichar_width(c, m_utf8_ambiguous_width);
 
 	/* If we're autowrapping here, do it. */
-        col = m_cursor.col;
+        col = m_screen->cursor.col;
 	if (G_UNLIKELY (columns && col + columns > m_column_count)) {
 		if (m_autowrap) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
 			/* XXX clear to the end of line */
-                        col = m_cursor.col = 0;
+                        col = m_screen->cursor.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row = ensure_row();
 			row->attr.soft_wrapped = 1;
 			cursor_down();
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
-                        col = m_cursor.col =
+                        col = m_screen->cursor.col =
 				m_column_count - columns;
 		}
 		line_wrapped = true;
@@ -3255,7 +3255,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 			(long)c, c < 256 ? c : ' ',
                          (int)m_color_defaults.attr.fore,
                          (int)m_color_defaults.attr.back,
-                        col, columns, (long)m_cursor.row,
+                        col, columns, (long)m_screen->cursor.row,
 			(long)m_screen->insert_delta);
 
 	if (G_UNLIKELY (columns == 0)) {
@@ -3267,7 +3267,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 
 		_vte_debug_print(VTE_DEBUG_PARSE, "combining U+%04X", c);
 
-                row_num = m_cursor.row;
+                row_num = m_screen->cursor.row;
 		row = NULL;
 		if (G_UNLIKELY (col == 0)) {
 			/* We are at first column.  See if the previous line softwrapped.
@@ -3367,10 +3367,10 @@ VteTerminalPrivate::insert_char(gunichar c,
 		invalidate_cells(
 				col - columns,
 				insert ? m_column_count : columns,
-                                m_cursor.row, 1);
+                                m_screen->cursor.row, 1);
 	}
 
-        m_cursor.col = col;
+        m_screen->cursor.col = col;
 
 done:
 	/* We added text, so make a note of it. */
@@ -3721,12 +3721,12 @@ VteTerminalPrivate::process_incoming()
         auto bottom_row = last_displayed_row();
 
 	/* Save the current cursor position. */
-        saved_cursor = m_cursor;
+        saved_cursor = m_screen->cursor;
 	saved_cursor_visible = m_cursor_visible;
 
         in_scroll_region = m_scrolling_restricted
-            && (m_cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
-            && (m_cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
+            && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
+            && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
 
 	/* We should only be called when there's data to process. */
 	g_assert(m_incoming ||
@@ -3835,8 +3835,8 @@ skip_chunk:
 			modified = TRUE;
 
                         new_in_scroll_region = m_scrolling_restricted
-                            && (m_cursor.row >= (screen->insert_delta + m_scrolling_region.start))
-                            && (m_cursor.row <= (screen->insert_delta + m_scrolling_region.end));
+                            && (m_screen->cursor.row >= (screen->insert_delta + m_scrolling_region.start))
+                            && (m_screen->cursor.row <= (screen->insert_delta + m_scrolling_region.end));
 
                         /* delta may have changed from sequence. */
                         top_row = first_displayed_row();
@@ -3847,10 +3847,10 @@ skip_chunk:
                          */
 			if (invalidated_text &&
 					((new_in_scroll_region && !in_scroll_region) ||
-                                         (m_cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
-                                          m_cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
-                                          m_cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
-                                          m_cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
+                                         (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
+                                          m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
+                                          m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
+                                          m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
 				/* Clip off any part of the box which isn't already on-screen. */
 				bbox_topleft.x = MAX(bbox_topleft.x, 0);
                                 bbox_topleft.y = MAX(bbox_topleft.y, top_row);
@@ -3930,19 +3930,19 @@ skip_chunk:
 			}
 
 			bbox_topleft.x = MIN(bbox_topleft.x,
-                                        m_cursor.col);
+                                             m_screen->cursor.col);
 			bbox_topleft.y = MIN(bbox_topleft.y,
-                                        m_cursor.row);
+                                             m_screen->cursor.row);
 
 			/* Insert the character. */
                         // FIXMEchpe should not use UNLIKELY here
 			if (G_UNLIKELY(insert_char(c, false, false))) {
 				/* line wrapped, correct bbox */
 				if (invalidated_text &&
-                                                (m_cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
-                                                 m_cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
-                                                 m_cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
-                                                 m_cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+                                                (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
+                                                 m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
+                                                 m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
+                                                 m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
 					/* Clip off any part of the box which isn't already on-screen. */
 					bbox_topleft.x = MAX(bbox_topleft.x, 0);
                                         bbox_topleft.y = MAX(bbox_topleft.y, top_row);
@@ -3963,15 +3963,15 @@ skip_chunk:
 				}
 				bbox_topleft.x = MIN(bbox_topleft.x, 0);
 				bbox_topleft.y = MIN(bbox_topleft.y,
-                                                     m_cursor.row);
+                                                     m_screen->cursor.row);
 			}
 			/* Add the cells over which we have moved to the region
 			 * which we need to refresh for the user. */
 			bbox_bottomright.x = MAX(bbox_bottomright.x,
-                                                 m_cursor.col);
+                                                 m_screen->cursor.col);
                         /* cursor.row + 1 (defer until inv.) */
 			bbox_bottomright.y = MAX(bbox_bottomright.y,
-                                                 m_cursor.row);
+                                                 m_screen->cursor.row);
 			invalidated_text = TRUE;
 
 			/* We *don't* emit flush pending signals here. */
@@ -4005,7 +4005,7 @@ skip_chunk:
 			 _vte_ring_delta(screen->row_data));
 		/* The cursor shouldn't be above or below the addressable
 		 * part of the display buffer. */
-                g_assert(m_cursor.row >= m_screen->insert_delta);
+                g_assert(m_screen->cursor.row >= m_screen->insert_delta);
 #endif
 
 next_match:
@@ -4072,8 +4072,8 @@ next_match:
 	}
 
 
-        if ((saved_cursor.col != m_cursor.col) ||
-            (saved_cursor.row != m_cursor.row)) {
+        if ((saved_cursor.col != m_screen->cursor.col) ||
+            (saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
 		if (cursor_visible)
 			invalidate_cell(saved_cursor.col, saved_cursor.row);
@@ -4089,10 +4089,9 @@ next_match:
 	/* Tell the input method where the cursor is. */
 	if (widget_realized()) {
 		GdkRectangle rect;
-                rect.x = m_cursor.col *
-			 m_char_width + m_padding.left;
+                rect.x = m_screen->cursor.col * m_char_width + m_padding.left;
 		rect.width = m_char_width; // FIXMEchpe: if columns > 1 ?
-                rect.y = row_to_pixel(m_cursor.row) + m_padding.top;
+                rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
 		rect.height = m_char_height;
 		gtk_im_context_set_cursor_location(m_im_context,
 						   &rect);
@@ -4856,7 +4855,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		/* If we're in margin bell mode and on the border of the
 		 * margin, bell. */
 		if (m_margin_bell) {
-                        if ((m_cursor.col +
+                        if ((m_screen->cursor.col +
 			     (glong) m_bell_margin) == m_column_count) {
 				beep();
 			}
@@ -7771,14 +7770,14 @@ VteTerminalPrivate::screen_set_size(VteScreen *screen_,
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n",
 			screen_ == &m_normal_screen ? "normal" : "alternate",
 			screen_->insert_delta, screen_->scroll_delta,
-                        m_cursor.row, m_cursor.col,
+                        screen_->cursor.row, screen_->cursor.col,
                         screen_->saved.cursor.row, screen_->saved.cursor.col);
 
         cursor_saved_absolute.row = screen_->saved.cursor.row + screen_->insert_delta;
         cursor_saved_absolute.col = screen_->saved.cursor.col;
 	below_viewport.row = screen_->scroll_delta + old_rows;
 	below_viewport.col = 0;
-        below_current_paragraph.row = m_cursor.row + 1;
+        below_current_paragraph.row = screen_->cursor.row + 1;
 	while (below_current_paragraph.row < _vte_ring_next(ring)
 	    && _vte_ring_index(ring, below_current_paragraph.row - 1)->attr.soft_wrapped) {
 		below_current_paragraph.row++;
@@ -7788,15 +7787,12 @@ VteTerminalPrivate::screen_set_size(VteScreen *screen_,
         markers[0] = &cursor_saved_absolute;
         markers[1] = &below_viewport;
         markers[2] = &below_current_paragraph;
-        if (screen_ == m_screen) {
-                /* Tracking the current cursor only makes sense on the active screen_. */
-                markers[3] = &m_cursor;
-                if (m_has_selection) {
-                        /* selection_end is inclusive, make it non-inclusive, see bug 722635. */
-                        m_selection_end.col++;
-                        markers[4] = &m_selection_start;
-                        markers[5] = &m_selection_end;
-                }
+        markers[3] = &screen_->cursor;
+        if (m_has_selection) {
+                /* selection_end is inclusive, make it non-inclusive, see bug 722635. */
+                m_selection_end.col++;
+                markers[4] = &m_selection_start;
+                markers[5] = &m_selection_end;
 	}
 
 	old_top_lines = below_current_paragraph.row - screen_->insert_delta;
@@ -7824,7 +7820,7 @@ VteTerminalPrivate::screen_set_size(VteScreen *screen_,
 		}
 	}
 
-	if (screen_ == m_screen && m_has_selection) {
+	if (m_has_selection) {
 		/* Make selection_end inclusive again, see above. */
 		m_selection_end.col--;
 	}
@@ -7875,7 +7871,7 @@ VteTerminalPrivate::screen_set_size(VteScreen *screen_,
                         "     cursor (absolute)  row=%ld  col=%ld\n"
 			"     cursor_saved (relative to insert_delta)  row=%ld  col=%ld\n\n",
 			screen_->insert_delta, new_scroll_delta,
-                        m_cursor.row, m_cursor.col,
+                        screen_->cursor.row, screen_->cursor.col,
                         screen_->saved.cursor.row, screen_->saved.cursor.col);
 
 	if (screen_ == m_screen)
@@ -7928,10 +7924,10 @@ VteTerminalPrivate::set_size(long columns,
                 vte_terminal_set_scrollback_lines(m_terminal,
                                                   m_scrollback_lines);
                 /* Ensure the cursor is valid */
-                m_cursor.row = CLAMP (m_cursor.row,
-                                                    _vte_ring_delta (m_screen->row_data),
-                                                    MAX (_vte_ring_delta (m_screen->row_data),
-                                                         _vte_ring_next (m_screen->row_data) - 1));
+                m_screen->cursor.row = CLAMP (m_screen->cursor.row,
+                                              _vte_ring_delta (m_screen->row_data),
+                                              MAX (_vte_ring_delta (m_screen->row_data),
+                                                   _vte_ring_next (m_screen->row_data) - 1));
 
 		adjust_adjustments_full();
 		gtk_widget_queue_resize_no_redraw(m_widget);
@@ -9557,8 +9553,8 @@ VteTerminalPrivate::paint_cursor()
         if (m_im_preedit_active)
                 return;
 
-        col = m_cursor.col;
-        drow = m_cursor.row;
+        col = m_screen->cursor.col;
+        drow = m_screen->cursor.row;
 	width = m_char_width;
 	height = m_char_height;
 
@@ -9690,7 +9686,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 
 	/* If the pre-edit string won't fit on the screen if we start
 	 * drawing it at the cursor's position, move it left. */
-        col = m_cursor.col;
+        col = m_screen->cursor.col;
 	if (col + columns > m_column_count) {
 		col = MAX(0, m_column_count - columns);
 	}
@@ -9707,13 +9703,13 @@ VteTerminalPrivate::paint_im_preedit_string()
                         items[i].columns = _vte_unichar_width(items[i].c,
                                                               m_utf8_ambiguous_width);
 			items[i].x = (col + columns) * width;
-			items[i].y = row_to_pixel(m_cursor.row);
+			items[i].y = row_to_pixel(m_screen->cursor.row);
 			columns += items[i].columns;
 			preedit = g_utf8_next_char(preedit);
 		}
 		_vte_draw_clear(m_draw,
 				col * width,
-				row_to_pixel(m_cursor.row),
+				row_to_pixel(m_screen->cursor.row),
 				width * columns,
 				height,
                                 get_color(VTE_DEFAULT_BG), m_background_alpha);
@@ -10183,7 +10179,7 @@ VteTerminalPrivate::set_scrollback_lines(long lines)
         /* The main screen gets the full scrollback buffer. */
         scrn = &m_normal_screen;
         lines = MAX (lines, m_row_count);
-        next = MAX (m_cursor.row + 1,
+        next = MAX (m_screen->cursor.row + 1,
                     _vte_ring_next (scrn->row_data));
         _vte_ring_resize (scrn->row_data, lines);
         low = _vte_ring_delta (scrn->row_data);
@@ -10302,10 +10298,12 @@ VteTerminalPrivate::reset(bool clear_tabstops,
                 m_screen = &m_normal_screen;
                 m_normal_screen.scroll_delta = m_normal_screen.insert_delta =
                         _vte_ring_reset(m_normal_screen.row_data);
+                m_normal_screen.cursor.row = m_normal_screen.insert_delta;
+                m_normal_screen.cursor.col = 0;
                 m_alternate_screen.scroll_delta = m_alternate_screen.insert_delta =
                         _vte_ring_reset(m_alternate_screen.row_data);
-                m_cursor.row = m_screen->insert_delta;
-                m_cursor.col = 0;
+                m_alternate_screen.cursor.row = m_alternate_screen.insert_delta;
+                m_alternate_screen.cursor.col = 0;
                 /* Adjust the scrollbar to the new location. */
                 /* Hack: force a change in scroll_delta even if the value remains, so that
                    vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */

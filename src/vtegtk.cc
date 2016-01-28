@@ -2152,10 +2152,10 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 
         auto impl = IMPL(terminal);
 	if (column) {
-                *column = impl->m_cursor.col;
+                *column = impl->m_screen->cursor.col;
 	}
 	if (row) {
-                *row = impl->m_cursor.row;
+                *row = impl->m_screen->cursor.row;
 	}
 }
 
