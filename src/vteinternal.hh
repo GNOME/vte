@@ -102,12 +102,13 @@ struct _vte_incoming_chunk{
 typedef struct _VteScreen VteScreen;
 struct _VteScreen {
         VteRing row_data[1];	/* buffer contents */
+        VteVisualPosition cursor;  /* absolute value, from the beginning of the terminal history */
         long scroll_delta;	/* scroll offset */
         long insert_delta;	/* insertion offset */
 
         /* Stuff saved along with the cursor */
         struct {
-                VteVisualPosition cursor;
+                VteVisualPosition cursor;  /* onscreen coordinate, that is, relative to insert_delta */
                 gboolean reverse_mode;
                 gboolean origin_mode;
                 gboolean sendrecv_mode;
@@ -208,7 +209,6 @@ public:
 	struct _VteScreen normal_screen, alternate_screen, *screen;
 
         /* Values we save along with the cursor */
-        VteVisualPosition cursor;	/* relative to the insertion delta */
         gboolean reverse_mode;	/* reverse mode */
         gboolean origin_mode;	/* origin mode */
         gboolean sendrecv_mode;	/* sendrecv mode */
