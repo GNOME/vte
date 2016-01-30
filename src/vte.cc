@@ -5939,29 +5939,30 @@ VteTerminalPrivate::widget_clipboard_requested(GtkClipboard *target_clipboard,
 }
 
 /* Convert the internal color code (either index or RGB, see vte-private.h) into RGB. */
-static void
-vte_terminal_get_rgb_from_index(const VteTerminal *terminal, guint index, vte::color::rgb *color)
+void
+VteTerminalPrivate::rgb_from_index(guint index,
+                                   vte::color::rgb& color) const
 {
-        gboolean dim = FALSE;
+        bool dim = false;
         if (!(index & VTE_RGB_COLOR) && (index & VTE_DIM_COLOR)) {
                 index &= ~VTE_DIM_COLOR;
-                dim = TRUE;
+                dim = true;
         }
 
 	if (index >= VTE_LEGACY_COLORS_OFFSET && index < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_FULL_COLOR_SET_SIZE)
 		index -= VTE_LEGACY_COLORS_OFFSET;
 	if (index < VTE_PALETTE_SIZE) {
-		memcpy(color, terminal->pvt->get_color(index), sizeof(vte::color::rgb));
+                color = *get_color(index);
                 if (dim) {
                         /* magic formula taken from xterm */
-                        color->red = color->red * 2 / 3;
-                        color->green = color->green * 2 / 3;
-                        color->blue = color->blue * 2 / 3;
+                        color.red = color.red * 2 / 3;
+                        color.green = color.green * 2 / 3;
+                        color.blue = color.blue * 2 / 3;
                 }
 	} else if (index & VTE_RGB_COLOR) {
-		color->red = ((index >> 16) & 0xFF) * 257;
-		color->green = ((index >> 8) & 0xFF) * 257;
-		color->blue = (index & 0xFF) * 257;
+		color.red = ((index >> 16) & 0xFF) * 257;
+		color.green = ((index >> 8) & 0xFF) * 257;
+		color.blue = (index & 0xFF) * 257;
 	} else {
 		g_assert_not_reached();
 	}
@@ -6034,8 +6035,8 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 				 * the selection. */
 				if (!pcell->attr.fragment) {
 					/* Store the attributes of this character. */
-					vte_terminal_get_rgb_from_index(m_terminal, pcell->attr.fore, &fore);
-					vte_terminal_get_rgb_from_index(m_terminal, pcell->attr.back, &back);
+					rgb_from_index(pcell->attr.fore, fore);
+					rgb_from_index(pcell->attr.back, back);
 					attr.fore.red = fore.red;
 					attr.fore.green = fore.green;
 					attr.fore.blue = fore.blue;
@@ -6221,7 +6222,7 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		vte::color::rgb color;
                 char *tag;
 
-                vte_terminal_get_rgb_from_index(m_terminal, attr->fore, &color);
+                rgb_from_index(attr->fore, color);
 		tag = g_strdup_printf("<font color=\"#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
@@ -6234,7 +6235,7 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		vte::color::rgb color;
                 char *tag;
 
-                vte_terminal_get_rgb_from_index(m_terminal, attr->back, &color);
+                rgb_from_index(attr->back, color);
 		tag = g_strdup_printf("<span style=\"background-color:#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
@@ -8787,8 +8788,8 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 	}
 
 	bold = bold && m_allow_bold;
-	vte_terminal_get_rgb_from_index(m_terminal, fore, &fg);
-	vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
+	rgb_from_index(fore, fg);
+	rgb_from_index(back, bg);
 
 	i = 0;
 	do {
@@ -9168,7 +9169,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					vte::color::rgb bg;
 					gint bold_offset = _vte_draw_has_bold(m_draw,
 											VTE_DRAW_BOLD) ? 0 : bold;
-					vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
+					rgb_from_index(back, bg);
 					_vte_draw_fill_rectangle (
 							m_draw,
 							x + i * column_width,
@@ -9195,7 +9196,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				vte_terminal_determine_colors(m_terminal, NULL, selected, &fore, &back);
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
-					vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
+					rgb_from_index(back, bg);
 					_vte_draw_fill_rectangle (m_draw,
 								  x + i *column_width,
 								  y,
@@ -9529,7 +9530,7 @@ VteTerminalPrivate::paint_cursor()
 	selected = cell_is_selected(col, drow);
 
 	vte_terminal_determine_cursor_colors(m_terminal, cell, selected, &fore, &back);
-	vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
+	rgb_from_index(back, bg);
 
 	x = item.x;
 	y = item.y;

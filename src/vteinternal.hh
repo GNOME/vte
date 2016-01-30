@@ -820,6 +820,9 @@ public:
         char *get_selected_text(GArray *attributes = nullptr,
                                 gsize *len_ptr = nullptr);
 
+        inline void rgb_from_index(guint index,
+                                   vte::color::rgb& color) const;
+
         char *cellattr_to_html(VteCellAttr const* attr,
                                char const* text) const;
         VteCellAttr const* char_to_cell_attr(VteCharAttributes const* attr) const;
