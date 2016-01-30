@@ -1076,10 +1076,11 @@ public:
         void reset_color_highlight_background();
         void set_color_highlight_foreground(vte::color::rgb const& color);
         void reset_color_highlight_foreground();
-        void set_colors(GdkRGBA const *foreground,
-                        GdkRGBA const *background,
-                        GdkRGBA const *palette,
+        void set_colors(vte::color::rgb const *foreground,
+                        vte::color::rgb const *background,
+                        vte::color::rgb const *palette,
                         gsize palette_size);
+        void set_colors_default();
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
         bool set_cursor_style(VteCursorStyle style);

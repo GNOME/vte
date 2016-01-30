@@ -2847,7 +2847,25 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size == 232) ||
 			 (palette_size == 256));
 
-        IMPL(terminal)->set_colors(foreground, background, palette, palette_size);
+        vte::color::rgb fg;
+        if (foreground)
+                fg = vte::color::rgb(foreground);
+        vte::color::rgb bg;
+        if (background)
+                bg = vte::color::rgb(background);
+
+        vte::color::rgb* pal = nullptr;
+        if (palette_size) {
+                pal = g_new0(vte::color::rgb, palette_size);
+                for (gsize i = 0; i < palette_size; ++i)
+                        pal[i] = vte::color::rgb(palette[i]);
+        }
+
+        auto impl = IMPL(terminal);
+        impl->set_colors(foreground ? &fg : nullptr,
+                         background ? &bg : nullptr,
+                         pal, palette_size);
+        impl->set_background_alpha(background ? background->alpha : 1.0);
 }
 
 /**
@@ -2860,7 +2878,7 @@ void
 vte_terminal_set_default_colors(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->set_colors(nullptr, nullptr, nullptr, 0);
+        IMPL(terminal)->set_colors_default();
 }
 
 /**

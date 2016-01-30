@@ -152,6 +152,7 @@ namespace color {
                 rgb() = default;
                 rgb(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }
                 rgb(GdkRGBA const* c);
+                rgb(GdkRGBA const& c) : rgb(&c) { }
 
                 rgb(rgb const& a, rgb const& b, double f);
                 rgb(rgb const* a, rgb const* b, double f) : rgb(*a, *b, f) { }

@@ -2600,12 +2600,18 @@ VteTerminalPrivate::set_background_alpha(double alpha)
         return true;
 }
 
+void
+VteTerminalPrivate::set_colors_default()
+{
+        set_colors(nullptr, nullptr, nullptr, 0);
+}
+
 /*
- * _vte_terminal_set_colors:
+ * VteTerminalPrivate::set_colors:
  * @terminal: a #VteTerminal
  * @foreground: (allow-none): the new foreground color, or %NULL
  * @background: (allow-none): the new background color, or %NULL
- * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.Color): the color palette
+ * @palette: (array length=palette_size zero-terminated=0): the color palette
  * @palette_size: the number of entries in @palette
  *
  * @palette specifies the new values for the 256 palette colors: 8 standard colors,
@@ -2618,17 +2624,12 @@ VteTerminalPrivate::set_background_alpha(double alpha)
  * color is taken from @palette[7].  If @background is %NULL and @palette_size is
  * greater than 0, the new background color is taken from @palette[0].
  */
-static void
-_vte_terminal_set_colors(VteTerminal *terminal,
-                         vte::color::rgb const* foreground,
-                         vte::color::rgb const* background,
-                         vte::color::rgb const* palette,
-                         gsize palette_size)
+void
+VteTerminalPrivate::set_colors(vte::color::rgb const* foreground,
+                               vte::color::rgb const* background,
+                               vte::color::rgb const* new_palette,
+                               gsize palette_size)
 {
-	gsize i;
-	vte::color::rgb color;
-	gboolean unset = FALSE;
-
 	_vte_debug_print(VTE_DEBUG_MISC,
 			"Set color palette [%" G_GSIZE_FORMAT " elements].\n",
 			palette_size);
@@ -2636,18 +2637,18 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 	/* Accept NULL as the default foreground and background colors if we
 	 * got a palette. */
 	if ((foreground == NULL) && (palette_size >= 8)) {
-		foreground = &palette[7];
+		foreground = &new_palette[7];
 	}
 	if ((background == NULL) && (palette_size >= 8)) {
-		background = &palette[0];
+		background = &new_palette[0];
 	}
-
-	memset(&color, 0, sizeof(color));
 
 	/* Initialize each item in the palette if we got any entries to work
 	 * with. */
-	for (i=0; i < G_N_ELEMENTS(terminal->pvt->palette); i++) {
-		unset = FALSE;
+	for (gsize i = 0; i < G_N_ELEMENTS(m_palette); i++) {
+                vte::color::rgb color;
+		bool unset = false;
+
 		if (i < 16) {
 			color.blue = (i & 4) ? 0xc000 : 0;
 			color.green = (i & 2) ? 0xc000 : 0;
@@ -2673,7 +2674,7 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 		}
 		else switch (i) {
 			case VTE_DEFAULT_BG:
-				if (background != NULL) {
+				if (background) {
 					color = *background;
 				} else {
 					color.red = 0;
@@ -2682,7 +2683,7 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_DEFAULT_FG:
-				if (foreground != NULL) {
+				if (foreground) {
 					color = *foreground;
 				} else {
 					color.red = 0xc000;
@@ -2691,49 +2692,35 @@ _vte_terminal_set_colors(VteTerminal *terminal,
 				}
 				break;
 			case VTE_BOLD_FG:
-                                color = vte::color::rgb(terminal->pvt->get_color(VTE_DEFAULT_FG),
-                                                        terminal->pvt->get_color(VTE_DEFAULT_BG),
+                                color = vte::color::rgb(get_color(VTE_DEFAULT_FG),
+                                                        get_color(VTE_DEFAULT_BG),
                                                         1.8);
 				break;
 			case VTE_HIGHLIGHT_BG:
-				unset = TRUE;
+				unset = true;
 				break;
 			case VTE_HIGHLIGHT_FG:
-				unset = TRUE;
+				unset = true;
 				break;
 			case VTE_CURSOR_BG:
-				unset = TRUE;
+				unset = true;
 				break;
 			case VTE_CURSOR_FG:
-				unset = TRUE;
+				unset = true;
 				break;
 			}
 
 		/* Override from the supplied palette if there is one. */
 		if (i < palette_size) {
-			color = palette[i];
+			color = new_palette[i];
 		}
 
 		/* Set up the color entry. */
                 if (unset)
-                        terminal->pvt->reset_color(i, VTE_COLOR_SOURCE_API);
+                        reset_color(i, VTE_COLOR_SOURCE_API);
                 else
-                        terminal->pvt->set_color(i, VTE_COLOR_SOURCE_API, color);
+                        set_color(i, VTE_COLOR_SOURCE_API, color);
 	}
-}
-
-static vte::color::rgb *
-_pango_color_from_rgba(vte::color::rgb *color,
-                       const GdkRGBA *rgba)
-{
-        if (rgba == NULL)
-                return NULL;
-
-        color->red = rgba->red * 65535.;
-        color->green = rgba->green * 65535.;
-        color->blue = rgba->blue * 65535.;
-
-	return color;
 }
 
 /*
@@ -2895,52 +2882,6 @@ VteTerminalPrivate::reset_color_highlight_foreground()
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "highlight foreground");
         reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_API);
-}
-
-/*
- * VteTerminalPrivate::set_colors:
- * @foreground: (allow-none): the new foreground color, or %NULL
- * @background: (allow-none): the new background color, or %NULL
- * @palette: (array length=palette_size zero-terminated=0) (element-type Gdk.RGBA) (allow-none): the color palette
- * @palette_size: the number of entries in @palette
- *
- * @palette specifies the new values for the 256 palette colors: 8 standard colors,
- * their 8 bright counterparts, 6x6x6 color cube, and 24 grayscale colors.
- * Omitted entries will default to a hardcoded value.
- *
- * @palette_size must be 0, 8, 16, 232 or 256.
- *
- * If @foreground is %NULL and @palette_size is greater than 0, the new foreground
- * color is taken from @palette[7].  If @background is %NULL and @palette_size is
- * greater than 0, the new background color is taken from @palette[0].
- */
-void
-VteTerminalPrivate::set_colors(GdkRGBA const *foreground,
-                               GdkRGBA const *background,
-                               GdkRGBA const *palette_,
-                               gsize palette_size)
-{
-	vte::color::rgb fg, bg, *pal;
-	gsize i;
-
-	g_assert((palette_size == 0) ||
-                 (palette_size == 8) ||
-                 (palette_size == 16) ||
-                 (palette_size == 232) ||
-                 (palette_size == 256));
-
-	pal = g_new(vte::color::rgb, palette_size);
-	for (i = 0; i < palette_size; ++i)
-                _pango_color_from_rgba(&pal[i], &palette_[i]);
-
-	_vte_terminal_set_colors(m_terminal,
-                                 _pango_color_from_rgba(&fg, foreground),
-                                 _pango_color_from_rgba(&bg, background),
-                                 pal, palette_size);
-
-        set_background_alpha(background ? background->alpha : 1.0);
-
-	g_free (pal);
 }
 
 /*
@@ -8079,7 +8020,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_character_replacement = &m_character_replacements[0];
 
 	/* Set up the desired palette. */
-	vte_terminal_set_default_colors(m_terminal);
+	set_colors_default();
 	for (i = 0; i < VTE_PALETTE_SIZE; i++)
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
