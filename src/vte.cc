@@ -98,11 +98,6 @@ static void remove_update_timeout (VteTerminal *terminal);
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
 static cairo_region_t *vte_cairo_get_clip_region (cairo_t *cr);
-static void vte_terminal_determine_colors_internal(VteTerminal *terminal,
-                                                   const VteCellAttr *attr,
-                                                   gboolean selected,
-                                                   gboolean cursor,
-                                                   guint *pfore, guint *pback);
 
 /* these static variables are guarded by the GDK mutex */
 static guint process_timeout_tag = 0;
@@ -6210,9 +6205,7 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 
 	string = g_string_new(text);
 
-	vte_terminal_determine_colors_internal(m_terminal, attr,
-                                               FALSE, FALSE,
-                                               &fore, &back);
+	determine_colors(attr, false, false, &fore, &back);
 
 	if (attr->bold) {
 		g_string_prepend(string, "<b>");
@@ -8644,12 +8637,13 @@ swap (guint *a, guint *b)
 	tmp = *a, *a = *b, *b = tmp;
 }
 
-static void
-vte_terminal_determine_colors_internal(VteTerminal *terminal,
-				       const VteCellAttr *attr,
-				       gboolean selected,
-				       gboolean cursor,
-				       guint *pfore, guint *pback)
+// FIXMEchpe probably @attr should be passed by ref
+void
+VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
+                                     bool is_selected,
+                                     bool is_cursor,
+                                     guint *pfore,
+                                     guint *pback) const
 {
 	guint fore, back;
 
@@ -8660,7 +8654,7 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	back = attr->back;
 
 	/* Reverse-mode switches default fore and back colors */
-        if (G_UNLIKELY (terminal->pvt->reverse_mode)) {
+        if (G_UNLIKELY (m_reverse_mode)) {
 		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_DEFAULT_BG;
 		if (back == VTE_DEFAULT_BG)
@@ -8689,32 +8683,32 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	}
 
 	/* Selection: use hightlight back/fore, or inverse */
-	if (selected) {
+	if (is_selected) {
 		/* XXX what if hightlight back is same color as current back? */
-		gboolean do_swap = TRUE;
-		if (terminal->pvt->get_color(VTE_HIGHLIGHT_BG) != NULL) {
+		bool do_swap = true;
+		if (get_color(VTE_HIGHLIGHT_BG) != NULL) {
 			back = VTE_HIGHLIGHT_BG;
-			do_swap = FALSE;
+			do_swap = false;
 		}
-		if (terminal->pvt->get_color(VTE_HIGHLIGHT_FG) != NULL) {
+		if (get_color(VTE_HIGHLIGHT_FG) != NULL) {
 			fore = VTE_HIGHLIGHT_FG;
-			do_swap = FALSE;
+			do_swap = false;
 		}
 		if (do_swap)
 			swap (&fore, &back);
 	}
 
 	/* Cursor: use cursor back, or inverse */
-	if (cursor) {
+	if (is_cursor) {
 		/* XXX what if cursor back is same color as current back? */
-                gboolean do_swap = TRUE;
-                if (terminal->pvt->get_color(VTE_CURSOR_BG) != NULL) {
+                bool do_swap = true;
+                if (get_color(VTE_CURSOR_BG) != NULL) {
                         back = VTE_CURSOR_BG;
-                        do_swap = FALSE;
+                        do_swap = false;
                 }
-                if (terminal->pvt->get_color(VTE_CURSOR_FG) != NULL) {
+                if (get_color(VTE_CURSOR_FG) != NULL) {
                         fore = VTE_CURSOR_FG;
-                        do_swap = FALSE;
+                        do_swap = false;
                 }
                 if (do_swap)
                         swap (&fore, &back);
@@ -8729,26 +8723,26 @@ vte_terminal_determine_colors_internal(VteTerminal *terminal,
 	*pback = back;
 }
 
-static inline void
-vte_terminal_determine_colors (VteTerminal *terminal,
-			       const VteCell *cell,
-			       gboolean highlight,
-			       guint *fore, guint *back)
+void
+VteTerminalPrivate::determine_colors(VteCell const* cell,
+                                     bool highlight,
+                                     guint *fore,
+                                     guint *back) const
 {
-	vte_terminal_determine_colors_internal (terminal, cell ? &cell->attr : &basic_cell.cell.attr,
-						       highlight, FALSE,
-						       fore, back);
+	determine_colors(cell ? &cell->attr : &basic_cell.cell.attr,
+                         highlight, false /* not cursor */,
+                         fore, back);
 }
 
-static inline void
-vte_terminal_determine_cursor_colors (VteTerminal *terminal,
-				      const VteCell *cell,
-				      gboolean highlight,
-				      guint *fore, guint *back)
+void
+VteTerminalPrivate::determine_cursor_colors(VteCell const* cell,
+                                            bool highlight,
+                                            guint *fore,
+                                            guint *back) const
 {
-	vte_terminal_determine_colors_internal (terminal, cell ? &cell->attr : &basic_cell.cell.attr,
-						       highlight, TRUE,
-						       fore, back);
+	determine_colors(cell ? &cell->attr : &basic_cell.cell.attr,
+                         highlight, true /* cursor */,
+                         fore, back);
 }
 
 /* Draw a string of characters with similar attributes. */
@@ -9072,7 +9066,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 	cells = g_new(VteCell, cell_count);
 	translate_pango_cells(attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
-		vte_terminal_determine_colors(m_terminal, &cells[j], FALSE, &fore, &back);
+		determine_colors(&cells[j], false, &fore, &back);
 		draw_cells(items + i, 1,
 					fore,
 					back,
@@ -9139,7 +9133,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
 				selected = cell_is_selected(i, row);
-				vte_terminal_determine_colors(m_terminal, cell, selected, &fore, &back);
+				determine_colors(cell, selected, &fore, &back);
 
 				bold = cell && cell->attr.bold;
 				j = i + (cell ? cell->attr.columns : 1);
@@ -9158,7 +9152,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					 * compare visual attributes to the first character
 					 * in this chunk. */
 					selected = cell_is_selected(j, row);
-					vte_terminal_determine_colors(m_terminal, cell, selected, &nfore, &nback);
+					determine_colors(cell, selected, &nfore, &nback);
 					if (nback != back) {
 						break;
 					}
@@ -9193,7 +9187,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					}
 					j++;
 				}
-				vte_terminal_determine_colors(m_terminal, NULL, selected, &fore, &back);
+				determine_colors(nullptr, selected, &fore, &back);
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
 					rgb_from_index(back, bg);
@@ -9254,7 +9248,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			}
 			/* Find the colors for this cell. */
 			selected = cell_is_selected(i, row);
-			vte_terminal_determine_colors(m_terminal, cell, selected, &fore, &back);
+			determine_colors(cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
 			bold = cell->attr.bold;
@@ -9302,7 +9296,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					 * compare visual attributes to the first character
 					 * in this chunk. */
 					selected = cell_is_selected(j, row);
-					vte_terminal_determine_colors(m_terminal, cell, selected, &nfore, &nback);
+					determine_colors(cell, selected, &nfore, &nback);
 					if (nfore != fore) {
 						break;
 					}
@@ -9528,8 +9522,7 @@ VteTerminalPrivate::paint_cursor()
 	}
 
 	selected = cell_is_selected(col, drow);
-
-	vte_terminal_determine_cursor_colors(m_terminal, cell, selected, &fore, &back);
+	determine_cursor_colors(cell, selected, &fore, &back);
 	rgb_from_index(back, bg);
 
 	x = item.x;
