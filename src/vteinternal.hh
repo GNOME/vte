@@ -543,10 +543,11 @@ public:
 
 public:
 
-        inline VteRowData* ring_insert(vte::grid::row_t position,
+        // FIXMEchpe inline!
+        /* inline */ VteRowData* ring_insert(vte::grid::row_t position,
                                        bool fill);
-        inline VteRowData* ring_append(bool fill);
-        inline void ring_remove(vte::grid::row_t position);
+        /* inline */ VteRowData* ring_append(bool fill);
+        /* inline */ void ring_remove(vte::grid::row_t position);
         inline VteRowData const* find_row_data(vte::grid::row_t row) const;
         inline VteRowData* find_row_data_writable(vte::grid::row_t row) const;
         inline VteCell const* find_charcell(vte::grid::column_t col,
