@@ -224,33 +224,36 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 	} while (--final_size);
 }
 
-
-VteRowData *
-_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill)
+// FIXMEchpe replace this with a method on VteRing
+VteRowData*
+VteTerminalPrivate::ring_insert(vte::grid::row_t position,
+                                bool fill)
 {
 	VteRowData *row;
-	VteRing *ring = terminal->pvt->screen->row_data;
+	VteRing *ring = m_screen->row_data;
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
 		row = _vte_ring_append (ring);
-                if (terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG)
-                        _vte_row_data_fill (row, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
+                if (m_fill_defaults.attr.back != VTE_DEFAULT_BG)
+                        _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
 	}
 	row = _vte_ring_insert (ring, position);
-        if (fill && terminal->pvt->fill_defaults.attr.back != VTE_DEFAULT_BG)
-                _vte_row_data_fill (row, &terminal->pvt->fill_defaults, terminal->pvt->column_count);
+        if (fill && m_fill_defaults.attr.back != VTE_DEFAULT_BG)
+                _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
 	return row;
 }
 
-VteRowData *
-_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill)
+// FIXMEchpe replace this with a method on VteRing
+VteRowData*
+VteTerminalPrivate::ring_append(bool fill)
 {
-	return _vte_terminal_ring_insert (terminal, _vte_ring_next (terminal->pvt->screen->row_data), fill);
+	return ring_insert(_vte_ring_next(m_screen->row_data), fill);
 }
 
+// FIXMEchpe replace this with a method on VteRing
 void
-_vte_terminal_ring_remove (VteTerminal *terminal, glong position)
+VteTerminalPrivate::ring_remove(vte::grid::row_t position)
 {
-	_vte_ring_remove (terminal->pvt->screen->row_data, position);
+	_vte_ring_remove(m_screen->row_data, position);
 }
 
 /* Reset defaults for character insertion. */
@@ -2393,16 +2396,16 @@ VteTerminalPrivate::set_cjk_ambiguous_width(int width)
         return true;
 }
 
+// FIXMEchpe replace this with a method on VteRing
 VteRowData *
 VteTerminalPrivate::insert_rows (guint cnt)
 {
 	VteRowData *row;
 	do {
-		row = _vte_terminal_ring_append(m_terminal, FALSE);
+		row = ring_append(false);
 	} while(--cnt);
 	return row;
 }
-
 
 /* Make sure we have enough rows and columns to hold data at the current
  * cursor position. */
@@ -3006,7 +3009,7 @@ VteTerminalPrivate::cursor_down()
 				 * to insert_delta. */
 				start++;
 				end++;
-                                _vte_terminal_ring_insert(m_terminal, m_screen->cursor.row, FALSE);
+                                ring_insert(m_screen->cursor.row, false);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
 				scroll_region(start,
@@ -3017,8 +3020,8 @@ VteTerminalPrivate::cursor_down()
 				/* If we're at the bottom of the scrolling
 				 * region, add a line at the top to scroll the
 				 * bottom off. */
-				_vte_terminal_ring_remove(m_terminal, start);
-				_vte_terminal_ring_insert(m_terminal, end, TRUE);
+				ring_remove(start);
+				ring_insert(end, true);
 				/* Update the display. */
 				scroll_region(start,
 							   end - start + 1, -1);

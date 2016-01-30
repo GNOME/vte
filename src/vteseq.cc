@@ -238,7 +238,7 @@ VteTerminalPrivate::seq_clear_screen()
         auto initial = _vte_ring_next(m_screen->row_data);
 	/* Add a new screen's worth of rows. */
         for (auto i = 0; i < m_row_count; i++)
-                _vte_terminal_ring_append(m_terminal, TRUE);
+                ring_append(true);
 	/* Move the cursor and insertion delta to the first line in the
 	 * newly-cleared area and scroll if need be. */
         m_screen->insert_delta = initial;
@@ -314,17 +314,17 @@ VteTerminalPrivate::seq_scroll_text(vte::grid::row_t scroll_amount)
 	}
 
         while (_vte_ring_next(m_screen->row_data) <= end)
-                _vte_terminal_ring_append(m_terminal, FALSE);
+                ring_append(false);
 
 	if (scroll_amount > 0) {
 		for (auto i = 0; i < scroll_amount; i++) {
-                        _vte_terminal_ring_remove(m_terminal, end);
-                        _vte_terminal_ring_insert(m_terminal, start, TRUE);
+                        ring_remove(end);
+                        ring_insert(start, true);
 		}
 	} else {
 		for (auto i = 0; i < -scroll_amount; i++) {
-                        _vte_terminal_ring_remove(m_terminal, start);
-                        _vte_terminal_ring_insert(m_terminal, end, TRUE);
+                        ring_remove(start);
+                        ring_insert(end, true);
 		}
 	}
 
@@ -1116,7 +1116,7 @@ VteTerminalPrivate::seq_cd()
 			rowdata = _vte_ring_index_writable (m_screen->row_data, i);
 			g_assert(rowdata != NULL);
 		} else {
-			rowdata = _vte_terminal_ring_append(m_terminal, FALSE);
+			rowdata = ring_append(false);
 		}
 		/* Pad out the row. */
                 if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
@@ -1841,8 +1841,8 @@ VteTerminalPrivate::seq_reverse_index()
         if (m_screen->cursor.row == start) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		_vte_terminal_ring_remove(m_terminal, end);
-		_vte_terminal_ring_insert(m_terminal, start, TRUE);
+		ring_remove(end);
+		ring_insert(start, true);
 		/* Update the display. */
 		scroll_region(start, end - start + 1, 1);
                 invalidate_cells(0, m_column_count,
@@ -2738,8 +2738,8 @@ VteTerminalPrivate::seq_insert_lines(vte::grid::row_t param)
 	for (i = 0; i < param; i++) {
 		/* Clear a line off the end of the region and add one to the
 		 * top of the region. */
-                _vte_terminal_ring_remove(m_terminal, end);
-                _vte_terminal_ring_insert(m_terminal, row, TRUE);
+                ring_remove(end);
+                ring_insert(row, true);
 	}
         m_screen->cursor.col = 0;
 	/* Update the display. */
@@ -2790,8 +2790,8 @@ VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
 	for (i = 0; i < param; i++) {
 		/* Insert a line at the end of the region and remove one from
 		 * the top of the region. */
-                _vte_terminal_ring_remove(m_terminal, row);
-                _vte_terminal_ring_insert(m_terminal, end, TRUE);
+                ring_remove(row);
+                ring_insert(end, true);
 	}
         m_screen->cursor.col = 0;
 	/* Update the display. */
@@ -2964,7 +2964,7 @@ VteTerminalPrivate::seq_screen_alignment_test()
 	     row++) {
 		/* Find this row. */
                 while (_vte_ring_next(m_screen->row_data) <= row)
-                        _vte_terminal_ring_append(m_terminal, FALSE);
+                        ring_append(false);
                 adjust_adjustments();
                 auto rowdata = _vte_ring_index_writable (screen->row_data, row);
 		g_assert(rowdata != NULL);

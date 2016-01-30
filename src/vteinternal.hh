@@ -543,6 +543,11 @@ public:
 
 public:
 
+        inline VteRowData* ring_insert(vte::grid::row_t position,
+                                       bool fill);
+        inline VteRowData* ring_append(bool fill);
+        inline void ring_remove(vte::grid::row_t position);
+
         inline vte::view::coord_t scroll_delta_pixel() const;
         inline vte::grid::row_t pixel_to_row(vte::view::coord_t y) const;
         inline vte::view::coord_t row_to_pixel(vte::grid::row_t row) const;

@@ -58,10 +58,6 @@ VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal);
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
 
-VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill);
-VteRowData *_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill);
-void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
-
 gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
                                          long w,
                                          long h,
