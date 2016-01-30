@@ -667,7 +667,7 @@ class Window : Gtk.ApplicationWindow
     if (button == 0)
       popup.select_first(true);
 
-    return false;
+    return true;
   }
 
   private void char_size_changed_cb(Vte.Terminal terminal, uint width, uint height)
