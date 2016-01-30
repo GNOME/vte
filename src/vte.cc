@@ -10397,50 +10397,6 @@ VteTerminalPrivate::subscribe_accessible_events()
 	m_accessible_emit = true;
 }
 
-char *
-_vte_terminal_get_selection(VteTerminal *terminal)
-{
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-
-	return g_strdup (terminal->pvt->selection_text[VTE_SELECTION_PRIMARY]);
-}
-
-void
-_vte_terminal_get_start_selection(VteTerminal *terminal, long *col, long *row)
-{
-	VteVisualPosition ss;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	ss = terminal->pvt->selection_start;
-
-	if (col) {
-		*col = ss.col;
-	}
-
-	if (row) {
-		*row = ss.row;
-	}
-}
-
-void
-_vte_terminal_get_end_selection(VteTerminal *terminal, long *col, long *row)
-{
-	VteVisualPosition se;
-
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-	se = terminal->pvt->selection_end;
-
-	if (col) {
-		*col = se.col;
-	}
-
-	if (row) {
-		*row = se.row;
-	}
-}
-
 void
 _vte_terminal_select_text(VteTerminal *terminal,
 			  long start_col, long start_row,
