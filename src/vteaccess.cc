@@ -712,7 +712,8 @@ vte_terminal_accessible_initialize (AtkObject *obj, gpointer data)
 
 	ATK_OBJECT_CLASS (_vte_terminal_accessible_parent_class)->initialize (obj, data);
 
-	_vte_terminal_accessible_ref(terminal);
+        auto impl = IMPL(terminal);
+        impl->subscribe_accessible_events();
 
 	g_signal_connect(terminal, "text-inserted",
 			 G_CALLBACK(vte_terminal_accessible_text_modified),

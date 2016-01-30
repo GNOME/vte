@@ -10392,10 +10392,9 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
 /* We need this bit of glue to ensure that accessible objects will always
  * get signals. */
 void
-_vte_terminal_accessible_ref(VteTerminal *terminal)
+VteTerminalPrivate::subscribe_accessible_events()
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	terminal->pvt->accessible_emit = TRUE;
+	m_accessible_emit = true;
 }
 
 char *

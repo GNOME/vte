@@ -54,7 +54,6 @@
 G_BEGIN_DECLS
 
 VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal);
-void _vte_terminal_accessible_ref(VteTerminal *terminal);
 char* _vte_terminal_get_selection(VteTerminal *terminal);
 void _vte_terminal_get_start_selection(VteTerminal *terminal, long *x, long *y);
 void _vte_terminal_get_end_selection(VteTerminal *terminal, long *x, long *y);

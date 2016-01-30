@@ -1177,6 +1177,8 @@ public:
                                                       int index_fallback,
                                                       int osc,
                                                       char const *terminator);
+
+        void subscribe_accessible_events();
 };
 
 #define m_invalidated_all invalidated_all
