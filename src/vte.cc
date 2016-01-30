@@ -10398,36 +10398,33 @@ VteTerminalPrivate::subscribe_accessible_events()
 }
 
 void
-_vte_terminal_select_text(VteTerminal *terminal,
-			  long start_col, long start_row,
-			  long end_col, long end_row,
-			  int start_offset, int end_offset)
+VteTerminalPrivate::select_text(vte::grid::column_t start_col,
+                                vte::grid::row_t start_row,
+                                vte::grid::column_t end_col,
+                                vte::grid::row_t end_row)
 {
-	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+	deselect_all();
 
-	terminal->pvt->deselect_all();
+	m_selection_type = selection_type_char;
+	m_selecting_had_delta = true;
+	m_selection_start.col = start_col;
+	m_selection_start.row = start_row;
+	m_selection_end.col = end_col;
+	m_selection_end.row = end_row;
+        widget_copy(VTE_SELECTION_PRIMARY);
+	emit_selection_changed();
 
-	terminal->pvt->selection_type = selection_type_char;
-	terminal->pvt->selecting_had_delta = TRUE;
-	terminal->pvt->selection_start.col = start_col;
-	terminal->pvt->selection_start.row = start_row;
-	terminal->pvt->selection_end.col = end_col;
-	terminal->pvt->selection_end.row = end_row;
-	vte_terminal_copy_primary(terminal);
-	terminal->pvt->emit_selection_changed();
-
-	terminal->pvt->invalidate_region(
-			MIN (start_col, end_col), MAX (start_col, end_col),
-			MIN (start_row, end_row), MAX (start_row, end_row),
-			false);
+	invalidate_region(MIN (start_col, end_col), MAX (start_col, end_col),
+                          MIN (start_row, end_row), MAX (start_row, end_row),
+                          false);
 
 }
 
-static void
-_vte_terminal_select_empty_at(VteTerminal *terminal,
-			      long col, long row)
+void
+VteTerminalPrivate::select_empty(vte::grid::column_t col,
+                                 vte::grid::row_t row)
 {
-	_vte_terminal_select_text(terminal, col, row, col - 1, row, 0, 0);
+        select_text(col, row, col - 1, row);
 }
 
 static void
@@ -11143,7 +11140,7 @@ VteTerminalPrivate::search_rows(
 	g_free (word);
 	g_free (row_text);
 
-	_vte_terminal_select_text(m_terminal, start_col, start_row, end_col, end_row, 0, 0);
+	select_text(start_col, start_row, end_col, end_row);
 	/* Quite possibly the math here should not access adjustment directly... */
 	value = gtk_adjustment_get_value(m_vadjustment);
 	page_size = gtk_adjustment_get_page_size(m_vadjustment);
@@ -11267,13 +11264,9 @@ VteTerminalPrivate::search_find (bool backward)
 			goto found;
 		if (m_has_selection) {
 			if (m_search_wrap_around)
-			    _vte_terminal_select_empty_at (m_terminal,
-							   m_selection_start.col,
-							   m_selection_start.row);
+			    select_empty(m_selection_start.col, m_selection_start.row);
 			else
-			    _vte_terminal_select_empty_at (m_terminal,
-							   -1,
-							   buffer_start_row - 1);
+			    select_empty(-1, buffer_start_row - 1);
 		}
                 match_found = false;
 	} else {
@@ -11292,13 +11285,9 @@ VteTerminalPrivate::search_find (bool backward)
 			goto found;
 		if (m_has_selection) {
 			if (m_search_wrap_around)
-			    _vte_terminal_select_empty_at (m_terminal,
-							   m_selection_end.col + 1,
-							   m_selection_end.row);
+                                select_empty(m_selection_end.col + 1, m_selection_end.row);
 			else
-			    _vte_terminal_select_empty_at (m_terminal,
-							   -1,
-							   buffer_end_row);
+                                select_empty(-1, buffer_end_row);
 		}
                 match_found = false;
 	}

@@ -1179,6 +1179,12 @@ public:
                                                       char const *terminator);
 
         void subscribe_accessible_events();
+        void select_text(vte::grid::column_t start_col,
+                         vte::grid::row_t start_row,
+                         vte::grid::column_t end_col,
+                         vte::grid::row_t end_row);
+        void select_empty(vte::grid::column_t col,
+                          vte::grid::row_t row);
 };
 
 #define m_invalidated_all invalidated_all

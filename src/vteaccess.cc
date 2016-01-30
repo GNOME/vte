@@ -1441,8 +1441,6 @@ vte_terminal_accessible_add_selection(AtkText *text,
         VteTerminalAccessible *accessible = VTE_TERMINAL_ACCESSIBLE(text);
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
 	GtkWidget *widget;
-	VteTerminal *terminal;
-	gint start_x, start_y, end_x, end_y;
 
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
@@ -1452,12 +1450,10 @@ vte_terminal_accessible_add_selection(AtkText *text,
 		return FALSE;
 	}
 
-	terminal = VTE_TERMINAL (widget);
-	g_assert(!vte_terminal_get_has_selection (terminal));
-
+	int start_x, start_y, end_x, end_y;
 	xy_from_offset (priv, start_offset, &start_x, &start_y);
 	xy_from_offset (priv, end_offset, &end_x, &end_y);
-	_vte_terminal_select_text (terminal, start_x, start_y, end_x, end_y, start_offset, end_offset);
+	IMPL_FROM_WIDGET(widget)->select_text(start_x, start_y, end_x, end_y);
 	return TRUE;
 }
 
