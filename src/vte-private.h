@@ -62,27 +62,10 @@ void _vte_terminal_select_text(VteTerminal *terminal, long start_x, long start_y
 
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
-void _vte_terminal_queue_contents_changed(VteTerminal *terminal);
-void _vte_terminal_emit_text_deleted(VteTerminal *terminal);
-void _vte_terminal_emit_text_inserted(VteTerminal *terminal);
-void _vte_terminal_cursor_down (VteTerminal *terminal);
-void _vte_terminal_drop_scrollback (VteTerminal *terminal);
-void _vte_terminal_scroll_region(VteTerminal *terminal,
-				 long row, glong count, glong delta);
-void _vte_terminal_update_insert_delta(VteTerminal *terminal);
-
-void _vte_terminal_feed_focus_event(VteTerminal *terminal, gboolean in);
 
 VteRowData *_vte_terminal_ring_insert (VteTerminal *terminal, glong position, gboolean fill);
 VteRowData *_vte_terminal_ring_append (VteTerminal *terminal, gboolean fill);
 void _vte_terminal_ring_remove (VteTerminal *terminal, glong position);
-
-void _vte_terminal_set_cursor_style(VteTerminal *terminal, VteCursorStyle style);
-
-char *_vte_terminal_attributes_to_html(VteTerminal *terminal,
-                                       const gchar *text,
-                                       GArray *attributes);
-GdkCursor *_vte_terminal_cursor_new(VteTerminal *terminal, GdkCursorType cursor_type);
 
 gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
                                          long w,
