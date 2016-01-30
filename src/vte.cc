@@ -477,51 +477,56 @@ VteTerminalPrivate::scroll_region (long row,
 }
 
 /* Find the row in the given position in the backscroll buffer. */
-static inline const VteRowData *
-_vte_terminal_find_row_data (VteTerminal *terminal, glong row)
+// FIXMEchpe replace this with a method on VteRing
+VteRowData const*
+VteTerminalPrivate::find_row_data(vte::grid::row_t row) const
 {
-	const VteRowData *rowdata = NULL;
-	VteScreen *screen = terminal->pvt->screen;
-	if (G_LIKELY (_vte_ring_contains (screen->row_data, row))) {
-		rowdata = _vte_ring_index (screen->row_data, row);
+	VteRowData const* rowdata = nullptr;
+
+	if (G_LIKELY(_vte_ring_contains(m_screen->row_data, row))) {
+		rowdata = _vte_ring_index(m_screen->row_data, row);
 	}
 	return rowdata;
 }
 
 /* Find the row in the given position in the backscroll buffer. */
-static inline VteRowData *
-_vte_terminal_find_row_data_writable (VteTerminal *terminal, glong row)
+// FIXMEchpe replace this with a method on VteRing
+VteRowData*
+VteTerminalPrivate::find_row_data_writable(vte::grid::row_t row) const
 {
-	VteRowData *rowdata = NULL;
-	VteScreen *screen = terminal->pvt->screen;
-	if (G_LIKELY (_vte_ring_contains (screen->row_data, row))) {
-		rowdata = _vte_ring_index_writable (screen->row_data, row);
+	VteRowData *rowdata = nullptr;
+
+	if (G_LIKELY (_vte_ring_contains(m_screen->row_data, row))) {
+		rowdata = _vte_ring_index_writable(m_screen->row_data, row);
 	}
 	return rowdata;
 }
 
 /* Find the character an the given position in the backscroll buffer. */
-static const VteCell *
-vte_terminal_find_charcell(VteTerminal *terminal, gulong col, glong row)
+// FIXMEchpe replace this with a method on VteRing
+VteCell const*
+VteTerminalPrivate::find_charcell(vte::grid::column_t col,
+                                  vte::grid::row_t row) const
 {
-	const VteRowData *rowdata;
-	const VteCell *ret = NULL;
-	VteScreen *screen;
-	screen = terminal->pvt->screen;
-	if (_vte_ring_contains (screen->row_data, row)) {
-		rowdata = _vte_ring_index (screen->row_data, row);
+	VteRowData const* rowdata;
+	VteCell const* ret = nullptr;
+
+	if (_vte_ring_contains(m_screen->row_data, row)) {
+		rowdata = _vte_ring_index(m_screen->row_data, row);
 		ret = _vte_row_data_get (rowdata, col);
 	}
 	return ret;
 }
 
-static glong
-find_start_column (VteTerminal *terminal, glong col, glong row)
+// FIXMEchpe replace this with a method on VteRing
+vte::grid::column_t
+VteTerminalPrivate::find_start_column(vte::grid::column_t col,
+                                      vte::grid::row_t row) const
 {
-	const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	VteRowData const* row_data = find_row_data(row);
 	if (G_UNLIKELY (col < 0))
 		return col;
-	if (row_data != NULL) {
+	if (row_data != nullptr) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
 		while (col > 0 && cell != NULL && cell->attr.fragment) {
 			cell = _vte_row_data_get (row_data, --col);
@@ -529,10 +534,13 @@ find_start_column (VteTerminal *terminal, glong col, glong row)
 	}
 	return MAX(col, 0);
 }
-static glong
-find_end_column (VteTerminal *terminal, glong col, glong row)
+
+// FIXMEchpe replace this with a method on VteRing
+vte::grid::column_t
+VteTerminalPrivate::find_end_column(vte::grid::column_t col,
+                                    vte::grid::row_t row) const
 {
-	const VteRowData *row_data = _vte_terminal_find_row_data (terminal, row);
+	VteRowData const* row_data = find_row_data(row);
 	gint columns = 0;
 	if (G_UNLIKELY (col < 0))
 		return col;
@@ -545,9 +553,9 @@ find_end_column (VteTerminal *terminal, glong col, glong row)
 			columns = cell->attr.columns - 1;
 		}
 	}
-	return MIN(col + columns, terminal->pvt->column_count);
+        // FIXMEchp m__column_count - 1 ?
+	return MIN(col + columns, m_column_count);
 }
-
 
 /* Determine the width of the portion of the preedit string which lies
  * to the left of the cursor, or the entire string, in columns. */
@@ -602,7 +610,6 @@ void
 VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
                                     vte::grid::row_t row)
 {
-	const VteRowData *row_data;
 	int columns;
 	guint style;
 
@@ -614,7 +621,7 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 	}
 
 	columns = 1;
-	row_data = _vte_terminal_find_row_data(m_terminal, row);
+	auto row_data = find_row_data(row);
 	if (row_data != NULL) {
 		const VteCell *cell;
 		cell = _vte_row_data_get (row_data, col);
@@ -662,9 +669,9 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
                 auto row = m_screen->cursor.row;
                 auto column = m_screen->cursor.col;
 		long columns = 1;
-		column = find_start_column (m_terminal, column, row);
+		column = find_start_column(column, row);
 
-		auto cell = vte_terminal_find_charcell(m_terminal, column, row);
+		auto cell = find_charcell(column, row);
 		if (cell != NULL) {
 			columns = cell->attr.columns;
 			auto style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
@@ -3212,7 +3219,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 
 			if (G_LIKELY (row_num > 0)) {
 				row_num--;
-				row = _vte_terminal_find_row_data_writable(m_terminal, row_num);
+				row = find_row_data_writable(row_num);
 
 				if (row) {
 					if (!row->attr.soft_wrapped)
@@ -3222,7 +3229,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 				}
 			}
 		} else {
-			row = _vte_terminal_find_row_data_writable(m_terminal, row_num);
+			row = find_row_data_writable(row_num);
 		}
 
 		if (G_UNLIKELY (!row || !col))
@@ -5284,16 +5291,16 @@ VteTerminalPrivate::is_same_class(vte::grid::column_t acol,
                                   vte::grid::column_t bcol,
                                   vte::grid::row_t brow) const
 {
-	const VteCell *pcell = NULL;
+	VteCell const* pcell = nullptr;
 	bool word_char;
-	if ((pcell = vte_terminal_find_charcell(m_terminal, acol, arow)) != nullptr && pcell->c != 0) {
+	if ((pcell = find_charcell(acol, arow)) != nullptr && pcell->c != 0) {
 		word_char = is_word_char(_vte_unistr_get_base(pcell->c));
 
 		/* Lets not group non-wordchars together (bug #25290) */
 		if (!word_char)
 			return false;
 
-		pcell = vte_terminal_find_charcell(m_terminal, bcol, brow);
+		pcell = find_charcell(bcol, brow);
 		if (pcell == NULL || pcell->c == 0) {
 			return false;
 		}
@@ -5306,10 +5313,11 @@ VteTerminalPrivate::is_same_class(vte::grid::column_t acol,
 }
 
 /* Check if we soft-wrapped on the given line. */
+// FIXMEchpe replace this with a method on VteRing
 bool
 VteTerminalPrivate::line_is_wrappable(vte::grid::row_t row) const
 {
-	const VteRowData *rowdata = _vte_terminal_find_row_data(m_terminal, row);
+	VteRowData const* rowdata = find_row_data(row);
 	return rowdata && rowdata->attr.soft_wrapped;
 }
 
@@ -6011,7 +6019,7 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
         vte::grid::column_t col = start_col;
         vte::grid::row_t row;
 	for (row = start_row; row < end_row + 1; row++, col = next_first_column) {
-		const VteRowData *row_data = _vte_terminal_find_row_data (m_terminal, row);
+		VteRowData const* row_data = find_row_data(row);
                 gsize last_empty, last_nonempty;
                 vte::grid::column_t last_emptycol, last_nonemptycol;
                 vte::grid::column_t line_last_column = (block || row == end_row) ? end_col : G_MAXLONG;
@@ -6258,13 +6266,13 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 }
 
 /*
- * Similar to vte_terminal_find_charcell, but takes a VteCharAttribute for
+ * Similar to find_charcell(), but takes a VteCharAttribute for
  * indexing and returns the VteCellAttr.
  */
 VteCellAttr const*
 VteTerminalPrivate::char_to_cell_attr(VteCharAttributes const* attr) const
 {
-	VteCell const *cell = vte_terminal_find_charcell(m_terminal, attr->column, attr->row);
+	VteCell const* cell = find_charcell(attr->column, attr->row);
 	if (cell)
 		return &cell->attr;
 	return nullptr;
@@ -6539,7 +6547,6 @@ void
 VteTerminalPrivate::extend_selection_expand()
 {
 	long i, j;
-	const VteRowData *rowdata;
 	const VteCell *cell;
 	VteVisualPosition *sc, *ec;
 
@@ -6554,7 +6561,7 @@ VteTerminalPrivate::extend_selection_expand()
 	 * than recalculating for each cell as we render it. */
 
 	/* Handle end-of-line at the start-cell. */
-	rowdata = _vte_terminal_find_row_data(m_terminal, sc->row);
+	VteRowData const* rowdata = find_row_data(sc->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the first line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
@@ -6577,10 +6584,10 @@ VteTerminalPrivate::extend_selection_expand()
                         sc->col = i;
                 }
         }
-        sc->col = find_start_column(m_terminal, sc->col, sc->row);
+        sc->col = find_start_column(sc->col, sc->row);
 
 	/* Handle end-of-line at the end-cell. */
-	rowdata = _vte_terminal_find_row_data(m_terminal, ec->row);
+	rowdata = find_row_data(ec->row);
 	if (rowdata != NULL) {
 		/* Find the last non-empty character on the last line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
@@ -6602,7 +6609,7 @@ VteTerminalPrivate::extend_selection_expand()
 			ec->row++;
 		}
 	}
-	ec->col = find_end_column(m_terminal, ec->col, ec->row);
+	ec->col = find_end_column(ec->col, ec->row);
 
 	/* Now extend again based on selection type. */
 	switch (m_selection_type) {
@@ -9108,7 +9115,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
 	const VteCell *cell;
-	const VteRowData *row_data;
+	VteRowData const* row_data;
 
 	/* adjust for the absolute start of row */
 	start_x -= start_column * column_width;
@@ -9119,7 +9126,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 	row = start_row;
 	rows = end_row - start_row;
 	do {
-		row_data = _vte_terminal_find_row_data(m_terminal, row);
+		row_data = find_row_data(row);
 		/* Back up in case this is a multicolumn character,
 		 * making the drawing area a little wider. */
 		i = start_column;
@@ -9215,7 +9222,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 	rows = end_row - start_row;
 	item_count = 1;
 	do {
-		row_data = _vte_terminal_find_row_data(m_terminal, row);
+		row_data = find_row_data(row);
 		if (row_data == NULL) {
 			goto fg_skip_row;
 		}
@@ -9351,7 +9358,7 @@ fg_next_row:
 						/* restart on the next row */
 						row++;
 						y += row_height;
-						row_data = _vte_terminal_find_row_data(m_terminal, row);
+						row_data = find_row_data(row);
 					} while (row_data == NULL);
 
 					/* Back up in case this is a
@@ -9470,7 +9477,6 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 void
 VteTerminalPrivate::paint_cursor()
 {
-	const VteCell *cell;
 	struct _vte_draw_text_request item;
         vte::grid::row_t drow;
         vte::grid::column_t col;
@@ -9503,10 +9509,10 @@ VteTerminalPrivate::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-	cell = vte_terminal_find_charcell(m_terminal, col, drow);
+	auto cell = find_charcell(col, drow);
         while (cell != NULL && cell->attr.fragment && cell->c != '\t' && col > 0) {
 		col--;
-		cell = vte_terminal_find_charcell(m_terminal, col, drow);
+		cell = find_charcell(col, drow);
 	}
 
 	/* Draw the cursor. */
@@ -11166,7 +11172,7 @@ VteTerminalPrivate::search_rows_iter(
 
 			do {
 				iter_start_row--;
-				row = _vte_terminal_find_row_data(m_terminal, iter_start_row);
+				row = find_row_data(iter_start_row);
 			} while (row && row->attr.soft_wrapped);
 
 			if (search_rows(
@@ -11182,7 +11188,7 @@ VteTerminalPrivate::search_rows_iter(
 			iter_start_row = iter_end_row;
 
 			do {
-				row = _vte_terminal_find_row_data(m_terminal, iter_end_row);
+				row = find_row_data(iter_end_row);
 				iter_end_row++;
 			} while (row && row->attr.soft_wrapped);
 
