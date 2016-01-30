@@ -842,6 +842,9 @@ public:
         void select_all();
         void deselect_all();
 
+        bool cell_is_selected(vte::grid::column_t col,
+                              vte::grid::row_t) const;
+
         void reset_default_attributes();
 
         void ensure_font();

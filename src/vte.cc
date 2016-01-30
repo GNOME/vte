@@ -87,8 +87,6 @@ static gboolean vte_terminal_io_read_cb(GIOChannel *channel,
 static gboolean vte_terminal_io_write_cb(GIOChannel *channel,
                                          GIOCondition condition,
                                          VteTerminal *terminal);
-static gboolean vte_cell_is_selected(VteTerminal *terminal,
-				     glong col, glong row, gpointer data);
 static void vte_terminal_stop_processing (VteTerminal *terminal);
 
 static inline gboolean vte_terminal_is_processing (VteTerminal *terminal);
@@ -5377,28 +5375,26 @@ vte_cell_is_between(glong col, glong row,
 }
 
 /* Check if a cell is selected or not. */
-static gboolean
-vte_cell_is_selected(VteTerminal *terminal, glong col, glong row, gpointer data)
+// FIXMEchpe: replace this by just using vte::grid::span for selection and then this simply becomes .contains()
+bool
+VteTerminalPrivate::cell_is_selected(vte::grid::column_t col,
+                                     vte::grid::row_t row) const
 {
-	VteVisualPosition ss, se;
-
 	/* If there's nothing selected, it's an easy question to answer. */
-	if (!terminal->pvt->has_selection) {
-		return FALSE;
-	}
+	if (!m_has_selection)
+		return false;
 
 	/* If the selection is obviously bogus, then it's also very easy. */
-	ss = terminal->pvt->selection_start;
-	se = terminal->pvt->selection_end;
+	auto const& ss = m_selection_start;
+	auto const& se = m_selection_end;
 	if ((ss.row < 0) || (se.row < 0)) {
-		return FALSE;
+		return false;
 	}
 
 	/* Limit selection in block mode. */
-	if (terminal->pvt->selection_block_mode) {
-		if (col < ss.col || col > se.col) {
-			return FALSE;
-		}
+	if (m_selection_block_mode) {
+		if (col < ss.col || col > se.col)
+			return false;
 	}
 
 	/* Now it boils down to whether or not the point is between the
@@ -7196,10 +7192,8 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 				if ((m_modifiers & GDK_SHIFT_MASK) &&
 				    (m_has_selection ||
 				     m_selecting_restart) &&
-				    !vte_cell_is_selected(m_terminal,
-							  rowcol.column(),
-							  rowcol.row(),
-							  NULL)) {
+				    !cell_is_selected(rowcol.column(),
+                                                      rowcol.row())) {
 					extend_selecting = TRUE;
 				} else {
 					start_selecting = TRUE;
@@ -9143,7 +9137,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				/* Get the character cell's contents. */
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
-				selected = vte_cell_is_selected(m_terminal, i, row, NULL);
+				selected = cell_is_selected(i, row);
 				vte_terminal_determine_colors(m_terminal, cell, selected, &fore, &back);
 
 				bold = cell && cell->attr.bold;
@@ -9162,7 +9156,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_cell_is_selected(m_terminal, j, row, NULL);
+					selected = cell_is_selected(j, row);
 					vte_terminal_determine_colors(m_terminal, cell, selected, &nfore, &nback);
 					if (nback != back) {
 						break;
@@ -9189,10 +9183,10 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			} while (i < end_column);
 		} else {
 			do {
-				selected = vte_cell_is_selected(m_terminal, i, row, NULL);
+				selected = cell_is_selected(i, row);
 				j = i + 1;
 				while (j < end_column){
-					nselected = vte_cell_is_selected(m_terminal, j, row, NULL);
+					nselected = cell_is_selected(j, row);
 					if (nselected != selected) {
 						break;
 					}
@@ -9258,7 +9252,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				}
 			}
 			/* Find the colors for this cell. */
-			selected = vte_cell_is_selected(m_terminal, i, row, NULL);
+			selected = cell_is_selected(i, row);
 			vte_terminal_determine_colors(m_terminal, cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
@@ -9306,7 +9300,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					/* Resolve attributes to colors where possible and
 					 * compare visual attributes to the first character
 					 * in this chunk. */
-					selected = vte_cell_is_selected(m_terminal, j, row, NULL);
+					selected = cell_is_selected(j, row);
 					vte_terminal_determine_colors(m_terminal, cell, selected, &nfore, &nback);
 					if (nfore != fore) {
 						break;
@@ -9532,7 +9526,7 @@ VteTerminalPrivate::paint_cursor()
 		cursor_width = MAX(cursor_width, cw);
 	}
 
-	selected = vte_cell_is_selected(m_terminal, col, drow, NULL);
+	selected = cell_is_selected(col, drow);
 
 	vte_terminal_determine_cursor_colors(m_terminal, cell, selected, &fore, &back);
 	vte_terminal_get_rgb_from_index(m_terminal, back, &bg);
