@@ -3659,6 +3659,8 @@ VteTerminalPrivate::process_incoming()
 			m_pending->len);
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
+        auto previous_screen = m_screen;
+
         bottom = screen->insert_delta == (long)m_screen->scroll_delta;
 
         auto top_row = first_displayed_row();
@@ -3777,6 +3779,8 @@ skip_chunk:
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
 			modified = TRUE;
+
+                        // FIXME m_screen may be != previous_screen, check for that!
 
                         new_in_scroll_region = m_scrolling_restricted
                             && (m_screen->cursor.row >= (screen->insert_delta + m_scrolling_region.start))
@@ -3945,11 +3949,11 @@ skip_chunk:
 #ifdef VTE_DEBUG
 		/* Some safety checks: ensure the visible parts of the buffer
 		 * are all in the buffer. */
-		g_assert(screen->insert_delta >=
-			 _vte_ring_delta(screen->row_data));
+		g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
+
 		/* The cursor shouldn't be above or below the addressable
 		 * part of the display buffer. */
-                g_assert(m_screen->cursor.row >= m_screen->insert_delta);
+                g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
 #endif
 
 next_match:
@@ -3991,7 +3995,7 @@ next_match:
 		}
 	}
 
-	if (modified || (screen != m_screen)) {
+	if (modified || (m_screen != previous_screen)) {
 		/* Signal that the visible contents changed. */
 		queue_contents_changed();
 	}
