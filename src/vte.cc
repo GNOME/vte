@@ -788,7 +788,7 @@ vte_terminal_emit_eof_cb(VteTerminal *terminal)
 	gdk_threads_enter ();
         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-        terminal->pvt->emit_eof();
+        _vte_terminal_get_impl(terminal)->emit_eof();
 
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_leave ();
