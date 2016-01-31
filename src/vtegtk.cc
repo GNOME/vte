@@ -2642,7 +2642,7 @@ int
 vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1);
-        return IMPL(terminal)->utf8_ambiguous_width;
+        return IMPL(terminal)->m_utf8_ambiguous_width;
 }
 
 /**
@@ -3023,7 +3023,7 @@ const char *
 vte_terminal_get_encoding(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return IMPL(terminal)->encoding;
+	return IMPL(terminal)->m_encoding;
 }
 
 /**

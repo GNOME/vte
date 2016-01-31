@@ -305,29 +305,30 @@ public:
         guint m_child_watch_source;
 
 	/* Input data queues. */
-	const char *encoding;		/* the pty's encoding */
-        int utf8_ambiguous_width;
-	struct _vte_iso2022_state *iso2022;
-	_vte_incoming_chunk_t *incoming;/* pending bytestream */
-	GArray *pending;		/* pending characters */
+        const char *m_encoding;            /* the pty's encoding */
+        int m_utf8_ambiguous_width;
+        struct _vte_iso2022_state *m_iso2022;
+        _vte_incoming_chunk_t *m_incoming; /* pending bytestream */
+        GArray *m_pending;                 /* pending characters */
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
          */
-	GArray *m_update_rects;
-	gboolean invalidated_all;	/* pending refresh of entire terminal */
+        GArray *m_update_rects;
+        gboolean m_invalidated_all;       /* pending refresh of entire terminal */
         /* If non-nullptr, contains the GList element for @this in g_active_terminals
          * and means that this terminal is processing data.
          */
-	GList *m_active_terminals_link;
-	glong input_bytes;
-	glong max_input_bytes;
+        GList *m_active_terminals_link;
+        // FIXMEchpe should these two be g[s]size ?
+        glong m_input_bytes;
+        glong m_max_input_bytes;
 
 	/* Output data queue. */
-	VteByteArray *outgoing;	/* pending input characters */
-	VteConv outgoing_conv;
+        VteByteArray *m_outgoing; /* pending input characters */
+        VteConv m_outgoing_conv;
 
 	/* IConv buffer. */
-	VteByteArray *conv_buffer;
+        VteByteArray *m_conv_buffer;
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
@@ -1230,7 +1231,6 @@ public:
                           vte::grid::row_t row);
 };
 
-#define m_invalidated_all invalidated_all
 #define m_char_width char_width
 #define m_char_height char_height
 #define m_draw draw
@@ -1306,14 +1306,6 @@ public:
 #define m_strikethrough_position strikethrough_position
 #define m_character_replacements character_replacements
 #define m_palette palette
-#define m_utf8_ambiguous_width utf8_ambiguous_width
-#define m_iso2022 iso2022
-#define m_incoming incoming
-#define m_pending pending
-#define m_max_input_bytes max_input_bytes
-#define m_outgoing outgoing
-#define m_outgoing_conv outgoing_conv
-#define m_conv_buffer conv_buffer
 #define m_sendrecv_mode sendrecv_mode
 #define m_scrollback_lines scrollback_lines
 #define m_clipboard clipboard
@@ -1327,7 +1319,6 @@ public:
 #define m_background_alpha background_alpha
 #define m_font_scale font_scale
 #define m_has_fonts has_fonts
-#define m_encoding encoding
 #define m_cursor_blink_mode cursor_blink_mode
 #define m_cursor_style cursor_style
 #define m_character_replacement character_replacement
@@ -1352,7 +1343,6 @@ public:
 #define m_selection_start selection_start
 #define m_selection_end selection_end
 #define m_search_wrap_around search_wrap_around
-#define m_input_bytes input_bytes
 #define m_scrolling_restricted scrolling_restricted
 #define m_selecting_had_delta selecting_had_delta
 #define m_insert_mode insert_mode
