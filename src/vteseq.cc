@@ -616,7 +616,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 #define PRIV_OFFSET(member) (G_STRUCT_OFFSET(VteTerminalPrivate, member))
 #define SCREEN_OFFSET(member) (-G_STRUCT_OFFSET(VteScreen, member))
 		/* 1: Application/normal cursor keys. */
-		{1, 0, PRIV_OFFSET(cursor_mode), 0,
+		{1, 0, PRIV_OFFSET(m_cursor_mode), 0,
 		 VTE_KEYMODE_NORMAL,
 		 VTE_KEYMODE_APPLICATION,
 		 NULL, NULL,},
@@ -639,7 +639,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		 TRUE,
 		 NULL, NULL,},
 		/* 7: Wraparound mode. */
-                {7, PRIV_OFFSET(autowrap), 0, 0,
+                {7, PRIV_OFFSET(m_autowrap), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
@@ -684,7 +684,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
                  vte_sequence_handler_normal_screen,
                  vte_sequence_handler_alternate_screen,},
 		/* 66: Keypad mode. */
-		{66, PRIV_OFFSET(keypad_mode), 0, 0,
+		{66, PRIV_OFFSET(m_keypad_mode), 0, 0,
 		 VTE_KEYMODE_NORMAL,
 		 VTE_KEYMODE_APPLICATION,
 		 NULL, NULL,},
@@ -818,7 +818,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 
 		/* Read the old setting. */
 		if (restore) {
-			p = g_hash_table_lookup(that->dec_saved,
+			p = g_hash_table_lookup(that->m_dec_saved,
 						GINT_TO_POINTER(setting));
 			set = (p != NULL);
 			_vte_debug_print(VTE_DEBUG_PARSE,
@@ -839,7 +839,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 			_vte_debug_print(VTE_DEBUG_PARSE,
 					"Setting %d is %s, saving.\n",
 					setting, set ? "set" : "unset");
-			g_hash_table_insert(that->dec_saved,
+			g_hash_table_insert(that->m_dec_saved,
 					    GINT_TO_POINTER(setting),
 					    GINT_TO_POINTER(set));
 		}

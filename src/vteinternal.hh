@@ -289,11 +289,11 @@ public:
         vte::grid::column_t m_column_count;
 
 	/* Emulation setup data. */
-	struct _vte_matcher *matcher;	/* control sequence matcher */
-        gboolean autowrap;              /* auto wraparound at right margin */
-	int keypad_mode, cursor_mode;	/* these would be VteKeymodes, but we
+        struct _vte_matcher *m_matcher;   /* control sequence matcher */
+        gboolean m_autowrap;              /* auto wraparound at right margin */
+        int m_keypad_mode, m_cursor_mode; /* these would be VteKeymodes, but we
 					   need to guarantee its type */
-	GHashTable *dec_saved;
+        GHashTable *m_dec_saved;
 
 	/* PTY handling data. */
 	VtePty *pty;
@@ -1276,8 +1276,6 @@ public:
 #define m_meta_sends_escape meta_sends_escape
 #define m_scroll_on_keystroke scroll_on_keystroke
 #define m_scroll_on_output scroll_on_output
-#define m_cursor_mode cursor_mode
-#define m_keypad_mode keypad_mode
 #define m_has_selection has_selection
 #define m_selecting_restart selecting_restart
 #define m_selecting_after_threshold selecting_after_threshold
@@ -1317,10 +1315,7 @@ public:
 #define m_outgoing outgoing
 #define m_outgoing_conv outgoing_conv
 #define m_conv_buffer conv_buffer
-#define m_autowrap autowrap
 #define m_sendrecv_mode sendrecv_mode
-#define m_dec_saved dec_saved
-#define m_matcher matcher
 #define m_pty_input_source pty_input_source
 #define m_pty_output_source pty_output_source
 #define m_pty_pid pty_pid
