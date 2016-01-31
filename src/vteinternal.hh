@@ -600,6 +600,8 @@ public:
         void time_process_incoming();
         void process_incoming();
         bool process(bool emit_adj_changed);
+        inline bool is_processing() const { return m_active_terminals_link != nullptr; }
+        void start_processing();
 
         gssize get_preedit_width(bool left_only);
         gssize get_preedit_length(bool left_only);

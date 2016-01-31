@@ -87,13 +87,10 @@ static gboolean vte_terminal_io_read_cb(GIOChannel *channel,
 static gboolean vte_terminal_io_write_cb(GIOChannel *channel,
                                          GIOCondition condition,
                                          VteTerminal *terminal);
-static void vte_terminal_stop_processing (VteTerminal *terminal);
-
-static inline gboolean vte_terminal_is_processing (VteTerminal *terminal);
-static inline void vte_terminal_start_processing (VteTerminal *terminal);
-static void vte_terminal_add_process_timeout (VteTerminal *terminal);
-static void add_update_timeout (VteTerminal *terminal);
-static void remove_update_timeout (VteTerminal *terminal);
+static void stop_processing(VteTerminalPrivate *that);
+static void add_process_timeout(VteTerminalPrivate *that);
+static void add_update_timeout(VteTerminalPrivate *that);
+static void remove_update_timeout(VteTerminalPrivate *that);
 
 static gboolean process_timeout (gpointer data);
 static gboolean update_timeout (gpointer data);
@@ -371,7 +368,7 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
                 g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		add_update_timeout (m_terminal);
+		add_update_timeout(this);
 	} else {
                 auto allocation = get_allocated_rect();
                 rect.x += allocation.x + m_padding.left;
@@ -444,7 +441,7 @@ VteTerminalPrivate::invalidate_all()
                 g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
-		add_update_timeout (m_terminal);
+		add_update_timeout(this);
 	} else {
                 gtk_widget_queue_draw(m_widget);
 	}
@@ -2162,7 +2159,7 @@ void
 VteTerminalPrivate::queue_adjustment_changed()
 {
 	m_adjustment_changed_pending = true;
-	add_update_timeout(m_terminal);
+	add_update_timeout(this);
 }
 
 void
@@ -2174,7 +2171,7 @@ VteTerminalPrivate::queue_adjustment_value_changed(double v)
                                  v);
 		m_screen->scroll_delta = v;
 		m_adjustment_value_changed_pending = true;
-		add_update_timeout(m_terminal);
+		add_update_timeout(this);
 	}
 }
 
@@ -4184,12 +4181,13 @@ out:
 		if (chunks != NULL) {
 			feed_chunks(chunks);
 		}
-		if (!vte_terminal_is_processing(m_terminal)) {
+		if (!is_processing()) {
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
 
-			vte_terminal_add_process_timeout(m_terminal);
+			add_process_timeout(this);
+
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_leave ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
@@ -4224,7 +4222,7 @@ out:
 	/* If we detected an eof condition, signal one. */
 	if (eof) {
 		/* potential deadlock ... */
-		if (!vte_terminal_is_processing(m_terminal)) {
+		if (!is_processing()) {
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
                         G_GNUC_END_IGNORE_DEPRECATIONS;
@@ -4286,7 +4284,8 @@ VteTerminalPrivate::feed(char const* data,
 			chunk = get_chunk ();
 			feed_chunks(chunk);
 		} while (1);
-		vte_terminal_start_processing(m_terminal);
+
+		start_processing();
 	}
 }
 
@@ -7456,7 +7455,7 @@ VteTerminalPrivate::widget_visibility_notify(GdkEventVisibility *event)
 
 	/* no longer visible, stop processing display updates */
 	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		remove_update_timeout(m_terminal);
+		remove_update_timeout(this);
 		/* if fully obscured, just act like we have invalidated all,
 		 * so no updates are accumulated. */
 		m_invalidated_all = TRUE;
@@ -8267,7 +8266,7 @@ VteTerminalPrivate::widget_unrealize()
 	remove_cursor_timeout();
 
 	/* Cancel any pending redraws. */
-	remove_update_timeout(m_terminal);
+	remove_update_timeout(this);
 
 	/* Cancel any pending signals */
 	m_contents_changed_pending = FALSE;
@@ -8441,7 +8440,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
         }
 
 	/* Stop processing input. */
-	vte_terminal_stop_processing(m_terminal);
+	stop_processing(this);
 
 	/* Discard any pending data. */
 	_vte_incoming_chunks_release(m_incoming);
@@ -8479,7 +8478,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		_vte_matcher_free(m_matcher);
 	}
 
-	remove_update_timeout(m_terminal);
+	remove_update_timeout(this);
 
 	/* discard title updates */
         g_free(m_window_title);
@@ -10317,7 +10316,7 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
 			m_input_bytes = 0;
 		}
 		g_array_set_size(m_pending, 0);
-		vte_terminal_stop_processing(m_terminal);
+		stop_processing(this);
 
 		/* Clear the outgoing buffer as well. */
 		_vte_byte_array_clear(m_outgoing);
@@ -10409,7 +10408,7 @@ remove_process_timeout_source(void)
 }
 
 static void
-add_update_timeout (VteTerminal *terminal)
+add_update_timeout(VteTerminalPrivate *that)
 {
 	if (update_timeout_tag == 0) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
@@ -10423,13 +10422,12 @@ add_update_timeout (VteTerminal *terminal)
 	if (!in_process_timeout) {
                 remove_process_timeout_source();
         }
-	if (terminal->pvt->m_active_terminals_link == nullptr) {
+	if (that->m_active_terminals_link == nullptr) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
 				"Adding terminal to active list\n");
-		terminal->pvt->m_active_terminals_link = g_active_terminals =
-			g_list_prepend(g_active_terminals, terminal->pvt);
+		that->m_active_terminals_link = g_active_terminals =
+			g_list_prepend(g_active_terminals, that);
 	}
-
 }
 
 void
@@ -10443,23 +10441,23 @@ VteTerminalPrivate::reset_update_rects()
 	m_invalidated_all = m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED;
 }
 
-static gboolean
+static bool
 remove_from_active_list(VteTerminalPrivate *that)
 {
 	if (that->m_active_terminals_link == nullptr ||
             that->m_update_rects->len != 0)
-                return FALSE;
+                return false;
 
         _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing terminal from active list\n");
         g_active_terminals = g_list_delete_link(g_active_terminals, that->m_active_terminals_link);
         that->m_active_terminals_link = nullptr;
-        return TRUE;
+        return true;
 }
 
 static void
-vte_terminal_stop_processing (VteTerminal *terminal)
+stop_processing(VteTerminalPrivate *that)
 {
-        if (!remove_from_active_list(terminal->pvt))
+        if (!remove_from_active_list(that))
                 return;
 
         if (g_active_terminals != nullptr)
@@ -10477,19 +10475,19 @@ vte_terminal_stop_processing (VteTerminal *terminal)
 }
 
 static void
-remove_update_timeout (VteTerminal *terminal)
+remove_update_timeout(VteTerminalPrivate *that)
 {
-	terminal->pvt->reset_update_rects();
-        vte_terminal_stop_processing(terminal);
+	that->reset_update_rects();
+        stop_processing(that);
 }
 
 static void
-vte_terminal_add_process_timeout (VteTerminal *terminal)
+add_process_timeout(VteTerminalPrivate *that)
 {
 	_vte_debug_print(VTE_DEBUG_TIMEOUT,
 			"Adding terminal to active list\n");
-	terminal->pvt->m_active_terminals_link = g_active_terminals =
-		g_list_prepend(g_active_terminals, terminal->pvt);
+	that->m_active_terminals_link = g_active_terminals =
+		g_list_prepend(g_active_terminals, that);
 	if (update_timeout_tag == 0 &&
 			process_timeout_tag == 0) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -10499,18 +10497,12 @@ vte_terminal_add_process_timeout (VteTerminal *terminal)
 					process_timeout, NULL);
 	}
 }
-static inline gboolean
-vte_terminal_is_processing (VteTerminal *terminal)
-{
-	return terminal->pvt->m_active_terminals_link != nullptr;
-}
 
-static inline void
-vte_terminal_start_processing (VteTerminal *terminal)
+void
+VteTerminalPrivate::start_processing()
 {
-	if (!vte_terminal_is_processing (terminal)) {
-		vte_terminal_add_process_timeout (terminal);
-	}
+	if (!is_processing())
+		add_process_timeout(this);
 }
 
 void
