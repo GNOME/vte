@@ -3507,7 +3507,7 @@ vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return IMPL(terminal)->word_char_exceptions_string;
+        return IMPL(terminal)->m_word_char_exceptions_string;
 }
 
 /**

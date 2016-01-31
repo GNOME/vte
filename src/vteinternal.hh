@@ -354,9 +354,9 @@ public:
         VteCharacterReplacement *m_character_replacement;     /* pointer to the active one */
 
         /* Word chars */
-        char *word_char_exceptions_string;
-        gunichar *word_char_exceptions;
-        gsize word_char_exceptions_len;
+        char *m_word_char_exceptions_string;
+        gunichar *m_word_char_exceptions;
+        gsize m_word_char_exceptions_len;
 
 	/* Selection information. */
 	gboolean has_selection;
@@ -1329,9 +1329,6 @@ public:
 #define m_current_directory_uri current_directory_uri
 #define m_current_file_uri_changed current_file_uri_changed
 #define m_current_file_uri current_file_uri
-#define m_word_char_exceptions_string word_char_exceptions_string
-#define m_word_char_exceptions word_char_exceptions
-#define m_word_char_exceptions_len word_char_exceptions_len
 #define m_icon_title icon_title
 #define m_selection_start selection_start
 #define m_selection_end selection_end
