@@ -115,7 +115,7 @@ static void
 vte_terminal_set_hscroll_policy(VteTerminal *terminal,
                                 GtkScrollablePolicy policy)
 {
-        IMPL(terminal)->hscroll_policy = policy;
+        IMPL(terminal)->m_hscroll_policy = policy;
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
 
@@ -124,7 +124,7 @@ static void
 vte_terminal_set_vscroll_policy(VteTerminal *terminal,
                                 GtkScrollablePolicy policy)
 {
-        IMPL(terminal)->vscroll_policy = policy;
+        IMPL(terminal)->m_vscroll_policy = policy;
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
 
@@ -394,16 +394,16 @@ vte_terminal_get_property (GObject *object,
 	switch (prop_id)
                 {
                 case PROP_HADJUSTMENT:
-                        g_value_set_object (value, impl->hadjustment);
+                        g_value_set_object (value, impl->m_hadjustment);
                         break;
                 case PROP_VADJUSTMENT:
-                        g_value_set_object (value, impl->vadjustment);
+                        g_value_set_object (value, impl->m_vadjustment);
                         break;
                 case PROP_HSCROLL_POLICY:
-                        g_value_set_enum (value, impl->hscroll_policy);
+                        g_value_set_enum (value, impl->m_hscroll_policy);
                         break;
                 case PROP_VSCROLL_POLICY:
-                        g_value_set_enum (value, impl->vscroll_policy);
+                        g_value_set_enum (value, impl->m_vscroll_policy);
                         break;
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));

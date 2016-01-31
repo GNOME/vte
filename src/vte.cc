@@ -7463,7 +7463,7 @@ VteTerminalPrivate::widget_visibility_notify(GdkEventVisibility *event)
 		}
 	}
 
-	visibility_state = event->state;
+	m_visibility_state = event->state;
 
 	/* no longer visible, stop processing display updates */
 	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {

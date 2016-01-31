@@ -520,29 +520,28 @@ public:
         char* m_current_file_uri_changed;
 
 	/* Background */
-        gdouble background_alpha;
+        double m_background_alpha;
 
 	/* Key modifiers. */
-	guint modifiers;
+        guint m_modifiers;
 
 	/* Obscured? state. */
-	GdkVisibilityState visibility_state;
+        GdkVisibilityState m_visibility_state;
 
 	/* Font stuff. */
         gboolean m_has_fonts;
-	glong line_thickness;
-	glong underline_position;
-	glong strikethrough_position;
+        long m_line_thickness;
+        long m_underline_position;
+        long m_strikethrough_position;
 
         /* Style stuff */
         GtkBorder m_padding;
 
         /* GtkScrollable impl */
-        GtkAdjustment *hadjustment; /* unused */
-        GtkAdjustment *vadjustment;
-        guint hscroll_policy : 1; /* unused */
-
-        guint vscroll_policy : 1;
+        GtkAdjustment* m_hadjustment; /* unused */
+        GtkAdjustment* m_vadjustment;
+        guint m_hscroll_policy : 1; /* unused */
+        guint m_vscroll_policy : 1;
 
 public:
 
@@ -1227,16 +1226,5 @@ public:
         void select_empty(vte::grid::column_t col,
                           vte::grid::row_t row);
 };
-
-#define m_modifiers modifiers
-#define m_visibility_state visibility_state
-#define m_vadjustment vadjustment
-#define m_hadjustment hadjustment
-#define m_hscroll_policy hscroll_policy
-#define m_vscroll_policy vscroll_policy
-#define m_line_thickness line_thickness
-#define m_underline_position underline_position
-#define m_strikethrough_position strikethrough_position
-#define m_background_alpha background_alpha
 
 extern GTimer *process_timer;
