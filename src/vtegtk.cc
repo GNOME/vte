@@ -2027,8 +2027,8 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
         auto impl = IMPL(terminal);
-        if (G_LIKELY(impl->search_regex.mode == VTE_REGEX_PCRE2))
-                return impl->search_regex.pcre.regex;
+        if (G_LIKELY(impl->m_search_regex.mode == VTE_REGEX_PCRE2))
+                return impl->m_search_regex.pcre.regex;
         else
                 return NULL;
 }
@@ -2067,8 +2067,8 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
         auto impl = IMPL(terminal);
-        if (G_LIKELY(impl->search_regex.mode == VTE_REGEX_GREGEX))
-                return impl->search_regex.gregex.regex;
+        if (G_LIKELY(impl->m_search_regex.mode == VTE_REGEX_GREGEX))
+                return impl->m_search_regex.gregex.regex;
         else
                 return NULL;
 }
@@ -2101,7 +2101,7 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-	return IMPL(terminal)->search_wrap_around;
+	return IMPL(terminal)->m_search_wrap_around;
 }
 
 

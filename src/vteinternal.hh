@@ -465,9 +465,9 @@ public:
         bool m_show_match;
 
 	/* Search data. */
-        struct vte_regex_and_flags search_regex;
-	gboolean search_wrap_around;
-	GArray *search_attrs; /* Cache attrs */
+        struct vte_regex_and_flags m_search_regex;
+        gboolean m_search_wrap_around;
+        GArray* m_search_attrs; /* Cache attrs */
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
@@ -1256,12 +1256,10 @@ public:
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
 #define m_palette palette
-#define m_search_regex search_regex
 #define m_background_alpha background_alpha
 #define m_font_scale font_scale
 #define m_has_fonts has_fonts
 #define m_fontdesc fontdesc
-#define m_search_attrs search_attrs
 #define m_adjustment_changed_pending adjustment_changed_pending
 #define m_window_title window_title
 #define m_window_title_changed window_title_changed
@@ -1271,7 +1269,6 @@ public:
 #define m_current_file_uri_changed current_file_uri_changed
 #define m_current_file_uri current_file_uri
 #define m_icon_title icon_title
-#define m_search_wrap_around search_wrap_around
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
 
