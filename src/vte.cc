@@ -10606,16 +10606,14 @@ VteTerminalPrivate::emit_pending_signals()
         g_object_thaw_notify(object);
 }
 
-static void time_process_incoming (VteTerminal *terminal)
+void
+VteTerminalPrivate::time_process_incoming()
 {
-	gdouble elapsed;
-	glong target;
-	g_timer_reset (process_timer);
-	terminal->pvt->process_incoming();
-	elapsed = g_timer_elapsed (process_timer, NULL) * 1000;
-	target = VTE_MAX_PROCESS_TIME / elapsed * terminal->pvt->input_bytes;
-	terminal->pvt->max_input_bytes =
-		(terminal->pvt->max_input_bytes + target) / 2;
+	g_timer_reset(process_timer);
+	process_incoming();
+	auto elapsed = g_timer_elapsed(process_timer, NULL) * 1000;
+	gssize target = VTE_MAX_PROCESS_TIME / elapsed * m_input_bytes;
+	m_max_input_bytes = (m_max_input_bytes + target) / 2;
 }
 
 bool
@@ -10636,7 +10634,7 @@ VteTerminalPrivate::process(bool emit_adj_changed)
         is_active = _vte_incoming_chunks_length(m_incoming) != 0;
         if (is_active) {
                 if (VTE_MAX_PROCESS_TIME) {
-                        time_process_incoming(m_terminal);
+                        time_process_incoming();
                 } else {
                         process_incoming();
                 }

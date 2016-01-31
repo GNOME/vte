@@ -594,6 +594,7 @@ public:
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
+        void time_process_incoming();
         void process_incoming();
         bool process(bool emit_adj_changed);
 
