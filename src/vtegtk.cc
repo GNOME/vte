@@ -2890,7 +2890,7 @@ glong
 vte_terminal_get_column_count(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return IMPL(terminal)->column_count;
+	return IMPL(terminal)->m_column_count;
 }
 
 /**
@@ -3405,7 +3405,7 @@ glong
 vte_terminal_get_row_count(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
-	return IMPL(terminal)->row_count;
+	return IMPL(terminal)->m_row_count;
 }
 
 /**

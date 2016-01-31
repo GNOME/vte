@@ -389,10 +389,10 @@ VteTerminalPrivate::invalidate_region(vte::grid::column_t scolumn,
 	} else {
 		invalidate_cells(
 				scolumn,
-				column_count - scolumn,
+				m_column_count - scolumn,
 				srow, 1);
 		invalidate_cells(
-				0, column_count,
+				0, m_column_count,
 				srow + 1, erow - srow - 1);
 		invalidate_cells(
 				0, ecolumn + 1,

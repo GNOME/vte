@@ -285,8 +285,8 @@ public:
         GdkWindow *m_event_window;
 
         /* Metric and sizing data: dimensions of the window */
-        glong row_count;
-        glong column_count;
+        vte::grid::row_t m_row_count;
+        vte::grid::column_t m_column_count;
 
 	/* Emulation setup data. */
 	struct _vte_matcher *matcher;	/* control sequence matcher */
@@ -923,7 +923,7 @@ public:
         void adjust_adjustments_full();
 
         void scroll_lines(long lines);
-        void scroll_pages(long pages) { scroll_lines(pages * row_count); }
+        void scroll_pages(long pages) { scroll_lines(pages * m_row_count); }
         void maybe_scroll_to_top();
         void maybe_scroll_to_bottom();
 
@@ -1231,8 +1231,6 @@ public:
 };
 
 #define m_invalidated_all invalidated_all
-#define m_column_count column_count
-#define m_row_count row_count
 #define m_char_width char_width
 #define m_char_height char_height
 #define m_draw draw

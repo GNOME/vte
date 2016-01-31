@@ -557,7 +557,7 @@ vte_sequence_handler_multiple_r(VteTerminalPrivate *that,
                                 VteTerminalSequenceHandler handler)
 {
         vte_sequence_handler_multiple_limited(that, params, handler,
-                                              that->column_count - that->m_screen->cursor.col);
+                                              that->m_column_count - that->m_screen->cursor.col);
 }
 
 static void
