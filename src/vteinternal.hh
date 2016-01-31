@@ -501,14 +501,13 @@ public:
         PangoAttrList *m_im_preedit_attrs;
         int m_im_preedit_cursor;
 
-	gboolean accessible_emit;
+        gboolean m_accessible_emit;
 
-	/* Adjustment updates pending. */
-	gboolean adjustment_changed_pending;
-	gboolean adjustment_value_changed_pending;
-
-	gboolean cursor_moved_pending;
-	gboolean contents_changed_pending;
+        /* Adjustment updates pending. */
+        gboolean m_adjustment_changed_pending;
+        gboolean m_adjustment_value_changed_pending;
+        gboolean m_cursor_moved_pending;
+        gboolean m_contents_changed_pending;
 
 	/* window name changes */
         gchar *window_title;
@@ -1232,8 +1231,6 @@ public:
 #define m_modifiers modifiers
 #define m_visibility_state visibility_state
 #define m_vadjustment vadjustment
-#define m_contents_changed_pending contents_changed_pending
-#define m_cursor_moved_pending cursor_moved_pending
 #define m_hadjustment hadjustment
 #define m_hscroll_policy hscroll_policy
 #define m_vscroll_policy vscroll_policy
@@ -1241,7 +1238,6 @@ public:
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
 #define m_background_alpha background_alpha
-#define m_adjustment_changed_pending adjustment_changed_pending
 #define m_window_title window_title
 #define m_window_title_changed window_title_changed
 #define m_icon_title_changed icon_title_changed
@@ -1250,7 +1246,5 @@ public:
 #define m_current_file_uri_changed current_file_uri_changed
 #define m_current_file_uri current_file_uri
 #define m_icon_title icon_title
-#define m_adjustment_value_changed_pending adjustment_value_changed_pending
-#define m_accessible_emit accessible_emit
 
 extern GTimer *process_timer;
