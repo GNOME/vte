@@ -780,6 +780,7 @@ public:
         bool im_delete_surrounding(int offset,
                                    int n_chars);
         void im_reset();
+        void im_update_cursor();
 
         bool spawn_sync(VtePtyFlags pty_flags,
                         const char *working_directory,

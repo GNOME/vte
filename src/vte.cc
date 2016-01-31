@@ -4050,15 +4050,7 @@ next_match:
 	}
 
 	/* Tell the input method where the cursor is. */
-	if (widget_realized()) {
-		GdkRectangle rect;
-                rect.x = m_screen->cursor.col * m_char_width + m_padding.left;
-		rect.width = m_char_width; // FIXMEchpe: if columns > 1 ?
-                rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
-		rect.height = m_char_height;
-		gtk_im_context_set_cursor_location(m_im_context,
-						   &rect);
-	}
+        im_update_cursor();
 
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
@@ -4606,6 +4598,9 @@ VteTerminalPrivate::im_preedit_changed()
 
         /* Invalidate again with the new cursor position */
 	invalidate_cursor_once();
+
+        /* And tell the input method where the cursor is on the screen */
+        im_update_cursor();
 }
 
 static gboolean
@@ -4642,6 +4637,20 @@ VteTerminalPrivate::im_delete_surrounding(int offset,
                          "Input method delete-surrounding offset %d n-chars %d.\n",
                          offset, n_chars);
         return false;
+}
+
+void
+VteTerminalPrivate::im_update_cursor()
+{
+	if (!widget_realized())
+                return;
+
+        cairo_rectangle_int_t rect;
+        rect.x = m_screen->cursor.col * m_char_width + m_padding.left;
+        rect.width = m_char_width; // FIXMEchpe: if columns > 1 ?
+        rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
+        rect.height = m_char_height;
+        gtk_im_context_set_cursor_location(m_im_context, &rect);
 }
 
 void
