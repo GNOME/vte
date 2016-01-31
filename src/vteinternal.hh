@@ -447,12 +447,12 @@ public:
         gboolean m_focus_tracking_mode;
 
 	/* State variables for handling match checks. */
-	char *match_contents;
-	GArray *match_attributes;
-        VteRegexMode match_regex_mode;
-	GArray *match_regexes;
-	char *match;
-	int match_tag;
+        char* m_match_contents;
+        GArray* m_match_attributes;
+        VteRegexMode m_match_regex_mode;
+        GArray* m_match_regexes;
+        char* m_match;
+        int m_match_tag;
         /* If m_match non-null, then m_match_span contains the region of the match.
          * If m_match is null, and m_match_span is not .empty(), then it contains
          * the minimal region around the last checked coordinates that don't contain
@@ -462,7 +462,7 @@ public:
         /* Whether the match is being highlighted.
          * Only used if m_match is non-null.
          */
-	bool m_show_match;
+        bool m_show_match;
 
 	/* Search data. */
         struct vte_regex_and_flags search_regex;
@@ -1233,13 +1233,7 @@ public:
 #define m_char_height char_height
 #define m_draw draw
 #define m_unscaled_font_desc unscaled_font_desc
-#define m_match_regexes match_regexes
-#define m_match_attributes match_attributes
-#define m_match_contents match_contents
-#define m_match_regex_mode match_regex_mode
 #define m_modifiers modifiers
-#define m_match_tag match_tag
-#define m_match match
 #define m_im_context im_context
 #define m_im_preedit_active im_preedit_active
 #define m_visibility_state visibility_state

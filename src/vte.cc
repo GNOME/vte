@@ -1237,7 +1237,7 @@ VteTerminalPrivate::match_rowcol_to_offset(vte::grid::column_t column,
 
 	/* Map the pointer position to a portion of the string. */
         // FIXME do a bsearch here?
-	eattr = match_attributes->len;
+	eattr = m_match_attributes->len;
 	for (offset = eattr; offset--; ) {
 		attr = &g_array_index(m_match_attributes,
 				      struct _VteCharAttributes,
@@ -2060,7 +2060,7 @@ VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
         if (!rowcol_from_event(event, &col, &row))
                 return false;
 
-	if (match_contents == nullptr) {
+	if (m_match_contents == nullptr) {
 		match_contents_refresh();
 	}
 
