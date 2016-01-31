@@ -5479,39 +5479,6 @@ VteTerminalPrivate::widget_paste_received(char const* text)
         g_free(paste);
 }
 
-/*
- * _vte_terminal_size_to_grid_size:
- * @w: the width in px
- * @h: the height in px
- * @col: return location to store the column count
- * @row: return location to store the row count
- *
- * Translates from widget size to grid size.
- *
- * If the given width or height are insufficient to show even
- * one column or row (i.e due to padding), returns %FALSE.
- */
-gboolean
-_vte_terminal_size_to_grid_size(VteTerminal *terminal,
-                                long w,
-                                long h,
-                                long *cols,
-                                long *rows)
-{
-        VteTerminalPrivate *pvt = terminal->pvt;
-        long n_cols, n_rows;
-
-        n_cols = (w - pvt->m_padding.left - pvt->m_padding.right) / pvt->char_width;
-        n_rows = (h - pvt->m_padding.top -pvt->m_padding.bottom) / pvt->char_height;
-
-        if (n_cols <= 0 || n_rows <= 0)
-                return FALSE;
-
-        *cols = n_cols;
-        *rows = n_rows;
-        return TRUE;
-}
-
 bool
 VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                                      int button,

@@ -1569,19 +1569,24 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 				 gint width, gint height)
 {
         VteTerminalAccessible *accessible = VTE_TERMINAL_ACCESSIBLE(component);
-	VteTerminal *terminal;
-	long columns, rows;
 	GtkWidget *widget;
 
 	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE(accessible));
-	if (widget == NULL) {
+	if (widget == NULL)
 		return FALSE;
-	}
-	terminal = VTE_TERMINAL(widget);
+
+        VteTerminal *terminal = VTE_TERMINAL(widget);
+        auto impl = IMPL(terminal);
 
         /* If the size is an exact multiple of the cell size, use that,
          * otherwise round down. */
-        (void) _vte_terminal_size_to_grid_size(terminal, width, height, &columns, &rows);
+        width -= impl->m_padding.left + impl->m_padding.right;
+        height -= impl->m_padding.top + impl->m_padding.bottom;
+
+        auto columns = width / impl->m_char_width;
+        auto rows = height / impl->m_char_height;
+        if (columns <= 0 || rows <= 0)
+                return FALSE;
 
 	vte_terminal_set_size(terminal, columns, rows);
 	return (vte_terminal_get_row_count (terminal) == rows) &&

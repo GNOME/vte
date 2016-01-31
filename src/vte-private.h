@@ -58,12 +58,6 @@ VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal);
 VteRowData *_vte_terminal_ensure_row(VteTerminal *terminal);
 VteRowData * _vte_new_row_data(VteTerminal *terminal);
 
-gboolean _vte_terminal_size_to_grid_size(VteTerminal *terminal,
-                                         long w,
-                                         long h,
-                                         long *cols,
-                                         long *rows);
-
 static inline bool
 _vte_double_equal(double a,
                   double b)
