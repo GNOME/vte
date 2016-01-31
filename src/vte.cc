@@ -10715,43 +10715,42 @@ process_timeout (gpointer data)
 	return again;
 }
 
-
-static gboolean
-update_regions (VteTerminal *terminal)
+bool
+VteTerminalPrivate::invalidate_dirty_rects_and_process_updates()
 {
-        if (G_UNLIKELY(!terminal->pvt->widget_realized()))
-                return FALSE;
-	if (terminal->pvt->visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		terminal->pvt->reset_update_rects();
-		return FALSE;
+        if (G_UNLIKELY(!widget_realized()))
+                return false;
+	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
+		reset_update_rects();
+		return false;
 	}
 
-	if (G_UNLIKELY (!terminal->pvt->m_update_rects->len))
-		return FALSE;
+	if (G_UNLIKELY (!m_update_rects->len))
+		return false;
 
         auto region = cairo_region_create();
-        auto n_rects = terminal->pvt->m_update_rects->len;
+        auto n_rects = m_update_rects->len;
         for (guint i = 0; i < n_rects; i++) {
-                cairo_rectangle_int_t *rect = &g_array_index(terminal->pvt->m_update_rects, cairo_rectangle_int_t, i);
+                cairo_rectangle_int_t *rect = &g_array_index(m_update_rects, cairo_rectangle_int_t, i);
                 cairo_region_union_rectangle(region, rect);
 	}
-        g_array_set_size(terminal->pvt->m_update_rects, 0);
-	terminal->pvt->invalidated_all = FALSE;
+        g_array_set_size(m_update_rects, 0);
+	m_invalidated_all = false;
 
-        auto allocation = terminal->pvt->get_allocated_rect();
+        auto allocation = get_allocated_rect();
         cairo_region_translate(region,
-                               allocation.x + terminal->pvt->m_padding.left,
-                               allocation.y + terminal->pvt->m_padding.top);
+                               allocation.x + m_padding.left,
+                               allocation.y + m_padding.top);
 
 	/* and perform the merge with the window visible area */
-        gtk_widget_queue_draw_region(&terminal->widget, region);
+        gtk_widget_queue_draw_region(m_widget, region);
 	cairo_region_destroy (region);
 
-	gdk_window_process_updates(gtk_widget_get_window(&terminal->widget), FALSE);
+	gdk_window_process_updates(gtk_widget_get_window(m_widget), FALSE);
 
 	_vte_debug_print (VTE_DEBUG_WORK, "-");
 
-	return TRUE;
+	return true;
 }
 
 static gboolean
@@ -10782,7 +10781,7 @@ update_repeat_timeout (gpointer data)
 
                 process_terminal(terminal, true);
 
-		again = update_regions (terminal);
+		again = terminal->pvt->invalidate_dirty_rects_and_process_updates();
 		if (!again) {
                         remove_from_active_list(terminal);
 		}
@@ -10866,7 +10865,7 @@ update_timeout (gpointer data)
 
                 process_terminal(terminal, true);
 
-		redraw |= update_regions (terminal);
+		redraw |= terminal->pvt->invalidate_dirty_rects_and_process_updates();
 	}
 
 	if (redraw) {
