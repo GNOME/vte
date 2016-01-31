@@ -104,7 +104,7 @@ static guint process_timeout_tag = 0;
 static gboolean in_process_timeout;
 static guint update_timeout_tag = 0;
 static gboolean in_update_timeout;
-static GList *active_terminals;
+static GList *g_active_terminals;
 
 static int
 _vte_unichar_width(gunichar c, int utf8_ambiguous_width)
@@ -367,7 +367,7 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 			"Invalidating pixels at (%d,%d)x(%d,%d).\n",
 			rect.x, rect.y, rect.width, rect.height);
 
-	if (m_active != NULL) {
+	if (m_active_terminals_link != nullptr) {
                 g_array_append_val(m_update_rects, rect);
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
@@ -433,7 +433,7 @@ VteTerminalPrivate::invalidate_all()
 	reset_update_rects();
 	m_invalidated_all = TRUE;
 
-        if (m_active != NULL) {
+        if (m_active_terminals_link != nullptr) {
                 auto allocation = get_allocated_rect();
                 cairo_rectangle_int_t rect;
                 rect.x = -m_padding.left;
@@ -4106,8 +4106,8 @@ VteTerminalPrivate::pty_io_read(GIOChannel *channel,
 		 *    maximum number of bytes we can read/process in between
 		 *    updates.
 		 */
-		max_bytes = m_active ?
-		            g_list_length (active_terminals) - 1 : 0;
+		max_bytes = m_active_terminals_link != nullptr ?
+		            g_list_length(g_active_terminals) - 1 : 0;
 		if (max_bytes) {
 			max_bytes = m_max_input_bytes / max_bytes;
 		} else {
@@ -10423,11 +10423,11 @@ add_update_timeout (VteTerminal *terminal)
 	if (!in_process_timeout) {
                 remove_process_timeout_source();
         }
-	if (terminal->pvt->active == NULL) {
+	if (terminal->pvt->m_active_terminals_link == nullptr) {
 		_vte_debug_print (VTE_DEBUG_TIMEOUT,
 				"Adding terminal to active list\n");
-		terminal->pvt->active = active_terminals =
-			g_list_prepend (active_terminals, terminal);
+		terminal->pvt->m_active_terminals_link = g_active_terminals =
+			g_list_prepend(g_active_terminals, terminal->pvt);
 	}
 
 }
@@ -10444,25 +10444,25 @@ VteTerminalPrivate::reset_update_rects()
 }
 
 static gboolean
-remove_from_active_list(VteTerminal *terminal)
+remove_from_active_list(VteTerminalPrivate *that)
 {
-	if (terminal->pvt->active == NULL ||
-            terminal->pvt->m_update_rects->len != 0)
+	if (that->m_active_terminals_link == nullptr ||
+            that->m_update_rects->len != 0)
                 return FALSE;
 
         _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing terminal from active list\n");
-        active_terminals = g_list_delete_link (active_terminals, terminal->pvt->active);
-        terminal->pvt->active = NULL;
+        g_active_terminals = g_list_delete_link(g_active_terminals, that->m_active_terminals_link);
+        that->m_active_terminals_link = nullptr;
         return TRUE;
 }
 
 static void
 vte_terminal_stop_processing (VteTerminal *terminal)
 {
-        if (!remove_from_active_list(terminal))
+        if (!remove_from_active_list(terminal->pvt))
                 return;
 
-        if (active_terminals != NULL)
+        if (g_active_terminals != nullptr)
                 return;
 
         if (!in_process_timeout) {
@@ -10488,8 +10488,8 @@ vte_terminal_add_process_timeout (VteTerminal *terminal)
 {
 	_vte_debug_print(VTE_DEBUG_TIMEOUT,
 			"Adding terminal to active list\n");
-	terminal->pvt->active = active_terminals =
-		g_list_prepend (active_terminals, terminal);
+	terminal->pvt->m_active_terminals_link = g_active_terminals =
+		g_list_prepend(g_active_terminals, terminal->pvt);
 	if (update_timeout_tag == 0 &&
 			process_timeout_tag == 0) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -10502,8 +10502,9 @@ vte_terminal_add_process_timeout (VteTerminal *terminal)
 static inline gboolean
 vte_terminal_is_processing (VteTerminal *terminal)
 {
-	return terminal->pvt->active != NULL;
+	return terminal->pvt->m_active_terminals_link != nullptr;
 }
+
 static inline void
 vte_terminal_start_processing (VteTerminal *terminal)
 {
@@ -10662,30 +10663,30 @@ process_timeout (gpointer data)
 
 	_vte_debug_print (VTE_DEBUG_WORK, "<");
 	_vte_debug_print (VTE_DEBUG_TIMEOUT,
-			"Process timeout:  %d active\n",
-			g_list_length (active_terminals));
+                          "Process timeout:  %d active\n",
+                          g_list_length(g_active_terminals));
 
-	for (l = active_terminals; l != NULL; l = next) {
-		VteTerminal *terminal = (VteTerminal *)l->data;
-		gboolean active;
+	for (l = g_active_terminals; l != NULL; l = next) {
+		VteTerminalPrivate *that = reinterpret_cast<VteTerminalPrivate*>(l->data);
+		bool active;
 
-		next = g_list_next (l);
+		next = l->next;
 
-		if (l != active_terminals) {
+		if (l != g_active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 
                 // FIXMEchpe find out why we don't emit_adjustment_changed() here!!
-                active = terminal->pvt->process(false);
+                active = that->process(false);
 
 		if (!active) {
-                        remove_from_active_list(terminal);
+                        remove_from_active_list(that);
 		}
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, ">");
 
-	if (active_terminals && update_timeout_tag == 0) {
+	if (g_active_terminals != nullptr && update_timeout_tag == 0) {
 		again = TRUE;
 	} else {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
@@ -10755,7 +10756,7 @@ static gboolean
 update_repeat_timeout (gpointer data)
 {
 	GList *l, *next;
-	gboolean again;
+	bool again;
 
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter();
@@ -10765,28 +10766,28 @@ update_repeat_timeout (gpointer data)
 
 	_vte_debug_print (VTE_DEBUG_WORK, "[");
 	_vte_debug_print (VTE_DEBUG_TIMEOUT,
-			"Repeat timeout:  %d active\n",
-			g_list_length (active_terminals));
+                          "Repeat timeout:  %d active\n",
+                          g_list_length(g_active_terminals));
 
-	for (l = active_terminals; l != NULL; l = next) {
-		VteTerminal *terminal = (VteTerminal *)l->data;
+	for (l = g_active_terminals; l != NULL; l = next) {
+		VteTerminalPrivate *that = reinterpret_cast<VteTerminalPrivate*>(l->data);
 
-		next = g_list_next (l);
+                next = l->next;
 
-		if (l != active_terminals) {
+		if (l != g_active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 
-                terminal->pvt->process(true);
+                that->process(true);
 
-		again = terminal->pvt->invalidate_dirty_rects_and_process_updates();
+		again = that->invalidate_dirty_rects_and_process_updates();
 		if (!again) {
-                        remove_from_active_list(terminal);
+                        remove_from_active_list(that);
 		}
 	}
 
 
-	if (active_terminals != NULL) {
+	if (g_active_terminals != nullptr) {
 		/* remove the idle source, and draw non-Terminals
 		 * (except for gdk/{directfb,quartz}!)
 		 */
@@ -10800,18 +10801,18 @@ update_repeat_timeout (gpointer data)
          * reinstall a new one because we need to delay by the amount of time
          * it took to repaint the screen: bug 730732.
 	 */
-	if (active_terminals == NULL) {
+	if (g_active_terminals == nullptr) {
 		_vte_debug_print(VTE_DEBUG_TIMEOUT,
 				"Stopping update timeout\n");
 		update_timeout_tag = 0;
-		again = FALSE;
+		again = false;
         } else {
                 update_timeout_tag =
                         g_timeout_add_full (G_PRIORITY_DEFAULT_IDLE,
                                             VTE_UPDATE_REPEAT_TIMEOUT,
                                             update_repeat_timeout, NULL,
                                             NULL);
-                again = TRUE;
+                again = true;
 	}
 
 	in_update_timeout = FALSE;
@@ -10847,23 +10848,23 @@ update_timeout (gpointer data)
 
 	_vte_debug_print (VTE_DEBUG_WORK, "{");
 	_vte_debug_print (VTE_DEBUG_TIMEOUT,
-			"Update timeout:  %d active\n",
-			g_list_length (active_terminals));
+                          "Update timeout:  %d active\n",
+                          g_list_length(g_active_terminals));
 
         remove_process_timeout_source();
 
-	for (l = active_terminals; l != NULL; l = next) {
-		VteTerminal *terminal = (VteTerminal *)l->data;
+	for (l = g_active_terminals; l != NULL; l = next) {
+		VteTerminalPrivate *that = reinterpret_cast<VteTerminalPrivate*>(l->data);
 
-		next = g_list_next (l);
+                next = l->next;
 
-		if (l != active_terminals) {
+		if (l != g_active_terminals) {
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 
-                terminal->pvt->process(true);
+                that->process(true);
 
-		redraw |= terminal->pvt->invalidate_dirty_rects_and_process_updates();
+		redraw |= that->invalidate_dirty_rects_and_process_updates();
 	}
 
 	if (redraw) {

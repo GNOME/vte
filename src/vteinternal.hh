@@ -315,7 +315,10 @@ public:
          */
 	GArray *m_update_rects;
 	gboolean invalidated_all;	/* pending refresh of entire terminal */
-	GList *active;                  /* is the terminal processing data */
+        /* If non-nullptr, contains the GList element for @this in g_active_terminals
+         * and means that this terminal is processing data.
+         */
+	GList *m_active_terminals_link;
 	glong input_bytes;
 	glong max_input_bytes;
 
@@ -1227,7 +1230,6 @@ public:
 #define m_row_count row_count
 #define m_char_width char_width
 #define m_char_height char_height
-#define m_active active
 #define m_draw draw
 #define m_cursor_blinks cursor_blinks
 #define m_cursor_visible cursor_visible
