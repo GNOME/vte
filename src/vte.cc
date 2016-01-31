@@ -81,12 +81,6 @@ typedef gunichar wint_t;
 #define I_(string) (g_intern_static_string(string))
 
 static int _vte_unichar_width(gunichar c, int utf8_ambiguous_width);
-static gboolean vte_terminal_io_read_cb(GIOChannel *channel,
-                                        GIOCondition condition,
-                                        VteTerminal *terminal);
-static gboolean vte_terminal_io_write_cb(GIOChannel *channel,
-                                         GIOCondition condition,
-                                         VteTerminal *terminal);
 static void stop_processing(VteTerminalPrivate *that);
 static void add_process_timeout(VteTerminalPrivate *that);
 static void add_update_timeout(VteTerminalPrivate *that);
@@ -3382,10 +3376,20 @@ VteTerminalPrivate::child_watch_done(GPid pid,
         g_object_thaw_notify(object);
 }
 
-static void mark_input_source_invalid(VteTerminal *terminal)
+static void
+mark_input_source_invalid_cb(VteTerminalPrivate *that)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_read\n");
-	terminal->pvt->m_pty_input_source = 0;
+	_vte_debug_print (VTE_DEBUG_IO, "removed poll of io_read_cb\n");
+	that->m_pty_input_source = 0;
+}
+
+/* Read and handle data from the child. */
+static gboolean
+io_read_cb(GIOChannel *channel,
+           GIOCondition condition,
+           VteTerminalPrivate *that)
+{
+        return that->pty_io_read(channel, condition);
 }
 
 void
@@ -3400,16 +3404,26 @@ VteTerminalPrivate::connect_pty_read()
 			g_io_add_watch_full(m_pty_channel,
 					    VTE_CHILD_INPUT_PRIORITY,
 					    (GIOCondition)(G_IO_IN | G_IO_PRI | G_IO_HUP),
-					    (GIOFunc)vte_terminal_io_read_cb,
-					    m_terminal,
-					    (GDestroyNotify) mark_input_source_invalid);
+					    (GIOFunc)io_read_cb,
+					    this,
+					    (GDestroyNotify)mark_input_source_invalid_cb);
 	}
 }
 
-static void mark_output_source_invalid(VteTerminal *terminal)
+static void
+mark_output_source_invalid_cb(VteTerminalPrivate *that)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "removed poll of vte_terminal_io_write\n");
-	terminal->pvt->m_pty_output_source = 0;
+	_vte_debug_print (VTE_DEBUG_IO, "removed poll of io_write_cb\n");
+	that->m_pty_output_source = 0;
+}
+
+/* Send locally-encoded characters to the child. */
+static gboolean
+io_write_cb(GIOChannel *channel,
+            GIOCondition condition,
+            VteTerminalPrivate *that)
+{
+        return that->pty_io_write(channel, condition);
 }
 
 void
@@ -3431,9 +3445,9 @@ VteTerminalPrivate::connect_pty_write()
 				g_io_add_watch_full(m_pty_channel,
 						    VTE_CHILD_OUTPUT_PRIORITY,
 						    G_IO_OUT,
-						    (GIOFunc)vte_terminal_io_write_cb,
-						    m_terminal,
-						    (GDestroyNotify) mark_output_source_invalid);
+						    (GIOFunc)io_write_cb,
+						    this,
+						    (GDestroyNotify)mark_output_source_invalid_cb);
 		}
 	}
 }
@@ -4068,15 +4082,6 @@ VteTerminalPrivate::feed_chunks(struct _vte_incoming_chunk *chunks)
 	m_incoming = chunks;
 }
 
-/* Read and handle data from the child. */
-static gboolean
-vte_terminal_io_read_cb(GIOChannel *channel,
-                        GIOCondition condition,
-                        VteTerminal *terminal)
-{
-        return terminal->pvt->pty_io_read(channel, condition);
-}
-
 bool
 VteTerminalPrivate::pty_io_read(GIOChannel *channel,
                                 GIOCondition condition)
@@ -4289,15 +4294,6 @@ VteTerminalPrivate::feed(char const* data,
 
 		start_processing();
 	}
-}
-
-/* Send locally-encoded characters to the child. */
-static gboolean
-vte_terminal_io_write_cb(GIOChannel *channel,
-                         GIOCondition condition,
-                         VteTerminal *terminal)
-{
-        return terminal->pvt->pty_io_write(channel, condition);
 }
 
 bool
