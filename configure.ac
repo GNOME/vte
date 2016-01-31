@@ -245,7 +245,7 @@ if test "$with_pcre2" = "yes"; then
   PCRE2_PKGS="libpcre2-8 >= $PCRE2_REQUIRED"
 
   PKG_CHECK_MODULES([PCRE2],[$PCRE2_PKGS],,
-    [AC_MSG_ERROR([PCRE2 requested but libpcre2-8 not found. Use --without-pcre2 to disable PCRE2])])
+    [AC_MSG_ERROR([libpcre2-8 version $PCRE2_REQUIRED requested but not found. Use --without-pcre2 to disable PCRE2])])
 
   AC_DEFINE([WITH_PCRE2],[1],[Define to 1 to enable pcre2 support])
 fi
