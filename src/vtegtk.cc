@@ -2935,7 +2935,7 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
 
-        return IMPL(terminal)->cursor_blink_mode;
+        return IMPL(terminal)->m_cursor_blink_mode;
 }
 
 /**
@@ -2970,7 +2970,7 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
 
-        return IMPL(terminal)->cursor_shape;
+        return IMPL(terminal)->m_cursor_shape;
 }
 
 /**

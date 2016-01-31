@@ -407,23 +407,23 @@ public:
         gboolean m_scrolling_restricted;
 
 	/* Cursor shape, as set via API */
-	VteCursorShape cursor_shape;
-        float cursor_aspect_ratio;
+        VteCursorShape m_cursor_shape;
+        double m_cursor_aspect_ratio;
 
 	/* Cursor blinking, as set in dconf. */
-        VteCursorBlinkMode cursor_blink_mode;
-	gboolean cursor_blink_state;
-	guint cursor_blink_tag;           /* cursor blinking timeout ID */
-        gint cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
-	gint cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
-        gboolean cursor_blinks;           /* whether the cursor is actually blinking */
-	gint64 cursor_blink_time;         /* how long the cursor has been blinking yet */
-	gboolean cursor_visible;
-	gboolean has_focus;               /* is the terminal window focused */
+        VteCursorBlinkMode m_cursor_blink_mode;
+        gboolean m_cursor_blink_state;
+        guint m_cursor_blink_tag;           /* cursor blinking timeout ID */
+        gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
+        gint m_cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
+        gboolean m_cursor_blinks;           /* whether the cursor is actually blinking */
+        gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
+        gboolean m_cursor_visible;
+        gboolean m_has_focus;               /* is the terminal window focused */
 
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
-        VteCursorStyle cursor_style;
+        VteCursorStyle m_cursor_style;
 
 	/* Input device options. */
         gboolean input_enabled;
@@ -1232,14 +1232,6 @@ public:
 #define m_char_width char_width
 #define m_char_height char_height
 #define m_draw draw
-#define m_cursor_blinks cursor_blinks
-#define m_cursor_visible cursor_visible
-#define m_cursor_blink_state cursor_blink_state
-#define m_cursor_blink_time cursor_blink_time
-#define m_cursor_blink_cycle cursor_blink_cycle
-#define m_cursor_blink_timeout cursor_blink_timeout
-#define m_cursor_blink_tag cursor_blink_tag
-#define m_cursor_aspect_ratio cursor_aspect_ratio
 #define m_unscaled_font_desc unscaled_font_desc
 #define m_match_regexes match_regexes
 #define m_match_attributes match_attributes
@@ -1253,7 +1245,6 @@ public:
 #define m_focus_tracking_mode focus_tracking_mode
 #define m_match_tag match_tag
 #define m_match match
-#define m_has_focus has_focus
 #define m_im_context im_context
 #define m_mouse_cursor_visible mouse_cursor_visible
 #define m_mouse_handled_buttons mouse_handled_buttons
@@ -1284,13 +1275,10 @@ public:
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
 #define m_palette palette
-#define m_cursor_shape cursor_shape
 #define m_search_regex search_regex
 #define m_background_alpha background_alpha
 #define m_font_scale font_scale
 #define m_has_fonts has_fonts
-#define m_cursor_blink_mode cursor_blink_mode
-#define m_cursor_style cursor_style
 #define m_fontdesc fontdesc
 #define m_search_attrs search_attrs
 #define m_adjustment_changed_pending adjustment_changed_pending

@@ -656,7 +656,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		/* 18: print form feed. */
 		/* 19: set print extent to full screen. */
 		/* 25: Cursor visible. */
-		{25, PRIV_OFFSET(cursor_visible), 0, 0,
+		{25, PRIV_OFFSET(m_cursor_visible), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
