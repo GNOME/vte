@@ -1425,8 +1425,8 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 	if (!impl->m_has_selection)
 		return NULL;
 
-        auto start_sel = impl->selection_start;
-        auto end_sel = impl->selection_end;
+        auto start_sel = impl->m_selection_start;
+        auto end_sel = impl->m_selection_end;
 
 	*start_offset = offset_from_xy (priv, start_sel.col, start_sel.row);
 	*end_offset = offset_from_xy (priv, end_sel.col, end_sel.row);

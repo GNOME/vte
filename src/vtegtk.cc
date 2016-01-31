@@ -3235,7 +3235,7 @@ gboolean
 vte_terminal_get_has_selection(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return IMPL(terminal)->has_selection;
+	return IMPL(terminal)->m_has_selection;
 }
 
 /**

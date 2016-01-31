@@ -359,24 +359,24 @@ public:
         gsize m_word_char_exceptions_len;
 
 	/* Selection information. */
-	gboolean has_selection;
-	gboolean selecting;
-	gboolean selecting_after_threshold;
-	gboolean selecting_restart;
-	gboolean selecting_had_delta;
-	gboolean selection_block_mode;
-	enum vte_selection_type selection_type;
-        vte::view::coords selection_origin, selection_last;
-	VteVisualPosition selection_start, selection_end;
+        gboolean m_has_selection;
+        gboolean m_selecting;
+        gboolean m_selecting_after_threshold;
+        gboolean m_selecting_restart;
+        gboolean m_selecting_had_delta;
+        gboolean m_selection_block_mode;
+        enum vte_selection_type m_selection_type;
+        vte::view::coords m_selection_origin, m_selection_last;
+        VteVisualPosition m_selection_start, m_selection_end;
 
 	/* Clipboard data information. */
         // FIXMEchpe check if this can make m_has_selection obsolete!
         bool m_selection_owned[LAST_VTE_SELECTION];
-	char *selection_text[LAST_VTE_SELECTION];
+        char *m_selection_text[LAST_VTE_SELECTION];
 #ifdef HTML_SELECTION
-	char *selection_html[LAST_VTE_SELECTION];
+        char *m_selection_html[LAST_VTE_SELECTION];
 #endif
-	GtkClipboard *clipboard[LAST_VTE_SELECTION];
+        GtkClipboard *m_clipboard[LAST_VTE_SELECTION];
 
         ClipboardTextRequestGtk<VteTerminalPrivate> m_paste_request;
 
@@ -1271,11 +1271,6 @@ public:
 #define m_meta_sends_escape meta_sends_escape
 #define m_scroll_on_keystroke scroll_on_keystroke
 #define m_scroll_on_output scroll_on_output
-#define m_has_selection has_selection
-#define m_selecting_restart selecting_restart
-#define m_selecting_after_threshold selecting_after_threshold
-#define m_selection_block_mode selection_block_mode
-#define m_selecting selecting
 #define m_visibility_state visibility_state
 #define m_mouse_smooth_scroll_delta mouse_smooth_scroll_delta
 #define m_vadjustment vadjustment
@@ -1302,7 +1297,6 @@ public:
 #define m_strikethrough_position strikethrough_position
 #define m_palette palette
 #define m_scrollback_lines scrollback_lines
-#define m_clipboard clipboard
 #define m_meta_sends_escape meta_sends_escape
 #define m_bell_margin bell_margin
 #define m_allow_bold allow_bold
@@ -1319,9 +1313,6 @@ public:
 #define m_search_attrs search_attrs
 #define m_adjustment_changed_pending adjustment_changed_pending
 #define m_tabstops tabstops
-#define m_selection_text selection_text
-#define m_clipboard clipboard
-#define m_selection_html selection_html
 #define m_window_title window_title
 #define m_window_title_changed window_title_changed
 #define m_icon_title_changed icon_title_changed
@@ -1330,15 +1321,9 @@ public:
 #define m_current_file_uri_changed current_file_uri_changed
 #define m_current_file_uri current_file_uri
 #define m_icon_title icon_title
-#define m_selection_start selection_start
-#define m_selection_end selection_end
 #define m_search_wrap_around search_wrap_around
 #define m_scrolling_restricted scrolling_restricted
-#define m_selecting_had_delta selecting_had_delta
-#define m_selection_origin selection_origin
-#define m_selection_last selection_last
 #define m_bracketed_paste_mode bracketed_paste_mode
-#define m_selection_type selection_type
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
 #define m_scrolling_region scrolling_region
