@@ -366,7 +366,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Initialize private data. NOTE: place is zeroed */
 	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
-        terminal->pvt = new (place) VteTerminalPrivate(terminal);
+        new (place) VteTerminalPrivate(terminal);
 
         gtk_widget_set_has_window(&terminal->widget, FALSE);
 }
@@ -377,7 +377,6 @@ vte_terminal_finalize(GObject *object)
     	VteTerminal *terminal = VTE_TERMINAL (object);
 
         IMPL(terminal)->~VteTerminalPrivate();
-        terminal->pvt = nullptr;
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);

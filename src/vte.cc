@@ -7930,9 +7930,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_terminal(t),
         m_widget(&t->widget)
 {
-        // FIXMEchpe temporary workaround until all functions have been converted to members
-        m_terminal->pvt = this;
-
         /* Inits allocation to 1x1 @ -1,-1 */
         cairo_rectangle_int_t allocation;
         gtk_widget_get_allocation(m_widget, &allocation);

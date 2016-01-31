@@ -127,7 +127,6 @@ vte_terminal_event_check_gregex_simple
 
 <SUBSECTION Private>
 VteCharAttributes
-VteTerminalPrivate
 VteTerminalClassPrivate
 </SECTION>
 
