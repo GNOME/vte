@@ -471,22 +471,22 @@ public:
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
-        PangoFontDescription *unscaled_font_desc;
-	PangoFontDescription *fontdesc;
-        gdouble font_scale;
-	gboolean fontdirty;
-        glong char_ascent;
-        glong char_descent;
+        PangoFontDescription *m_unscaled_font_desc;
+        PangoFontDescription *m_fontdesc;
+        gdouble m_font_scale;
+        gboolean m_fontdirty;
+        glong m_char_ascent;
+        glong m_char_descent;
         /* dimensions of character cells */
-        glong char_width;
-        glong char_height;
+        glong m_char_width;
+        glong m_char_height;
 
 	/* Data used when rendering the text which reflects server resources
 	 * and data, which should be dropped when unrealizing and (re)created
 	 * when realizing. */
-	struct _vte_draw *draw;
+        struct _vte_draw *m_draw;
 
-	VtePaletteColor palette[VTE_PALETTE_SIZE];
+        VtePaletteColor m_palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
         gboolean m_mouse_cursor_visible;
@@ -530,7 +530,7 @@ public:
 	GdkVisibilityState visibility_state;
 
 	/* Font stuff. */
-	gboolean has_fonts;
+        gboolean m_has_fonts;
 	glong line_thickness;
 	glong underline_position;
 	glong strikethrough_position;
@@ -1091,8 +1091,8 @@ public:
                                           gunichar **arrayp,
                                           gsize *lenp);
 
-        long get_char_height() { ensure_font(); return char_height; }
-        long get_char_width()  { ensure_font(); return char_width;  }
+        long get_char_height() { ensure_font(); return m_char_height; }
+        long get_char_width()  { ensure_font(); return m_char_width;  }
 
         vte::color::rgb const* get_color(int entry) const;
         void set_color(int entry,
@@ -1229,20 +1229,14 @@ public:
                           vte::grid::row_t row);
 };
 
-#define m_char_width char_width
-#define m_char_height char_height
-#define m_draw draw
-#define m_unscaled_font_desc unscaled_font_desc
 #define m_modifiers modifiers
 #define m_im_context im_context
 #define m_im_preedit_active im_preedit_active
 #define m_visibility_state visibility_state
 #define m_vadjustment vadjustment
-#define m_draw draw
 #define m_im_preedit_string im_preedit_string
 #define m_im_preedit_attrs im_preedit_attrs
 #define m_im_preedit_cursor im_preedit_cursor
-#define m_fontdirty fontdirty
 #define m_contents_changed_pending contents_changed_pending
 #define m_cursor_moved_pending cursor_moved_pending
 #define m_im_preedit_active im_preedit_active
@@ -1250,16 +1244,10 @@ public:
 #define m_hadjustment hadjustment
 #define m_hscroll_policy hscroll_policy
 #define m_vscroll_policy vscroll_policy
-#define m_char_ascent char_ascent
-#define m_char_descent char_descent
 #define m_line_thickness line_thickness
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
-#define m_palette palette
 #define m_background_alpha background_alpha
-#define m_font_scale font_scale
-#define m_has_fonts has_fonts
-#define m_fontdesc fontdesc
 #define m_adjustment_changed_pending adjustment_changed_pending
 #define m_window_title window_title
 #define m_window_title_changed window_title_changed

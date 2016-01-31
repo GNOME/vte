@@ -3079,7 +3079,7 @@ vte_terminal_get_font(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return IMPL(terminal)->unscaled_font_desc;
+        return IMPL(terminal)->m_unscaled_font_desc;
 }
 
 /**
@@ -3114,7 +3114,7 @@ vte_terminal_get_font_scale(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
 
-        return IMPL(terminal)->font_scale;
+        return IMPL(terminal)->m_font_scale;
 }
 
 /**
@@ -3176,8 +3176,8 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
 
         hints->base_width  = padding.left + padding.right;
         hints->base_height = padding.top  + padding.bottom;
-        hints->width_inc   = impl->char_width;
-        hints->height_inc  = impl->char_height;
+        hints->width_inc   = impl->m_char_width;
+        hints->height_inc  = impl->m_char_height;
         hints->min_width   = hints->base_width  + hints->width_inc  * min_columns;
         hints->min_height  = hints->base_height + hints->height_inc * min_rows;
 
@@ -3187,7 +3187,7 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
                          "                       increments width %d height %d\n"
                          "                       minimum    width %d height %d\n",
                          terminal,
-                         impl->char_width, impl->char_height,
+                         impl->m_char_width, impl->m_char_height,
                          hints->base_width, hints->base_height,
                          hints->width_inc, hints->height_inc,
                          hints->min_width, hints->min_height);
