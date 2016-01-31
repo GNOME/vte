@@ -332,8 +332,7 @@ public:
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
-	struct _VteScreen normal_screen, alternate_screen, *screen;
-#define m_screen screen
+        struct _VteScreen m_normal_screen, m_alternate_screen, *m_screen;
 
         /* Values we save along with the cursor */
         gboolean reverse_mode;	/* reverse mode */
@@ -1270,8 +1269,6 @@ public:
 #define m_input_enabled input_enabled
 #define m_backspace_binding backspace_binding
 #define m_delete_binding delete_binding
-#define m_normal_screen normal_screen
-#define m_alternate_screen alternate_screen
 #define m_meta_sends_escape meta_sends_escape
 #define m_scroll_on_keystroke scroll_on_keystroke
 #define m_scroll_on_output scroll_on_output

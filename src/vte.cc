@@ -2193,7 +2193,7 @@ VteTerminalPrivate::adjust_adjustments()
 	/* Snap the insert delta and the cursor position to be in the visible
 	 * area.  Leave the scrolling delta alone because it will be updated
 	 * when the adjustment changes. */
-	screen->insert_delta = MAX(m_screen->insert_delta, delta);
+	m_screen->insert_delta = MAX(m_screen->insert_delta, delta);
         m_screen->cursor.row = MAX(m_screen->cursor.row,
                                    m_screen->insert_delta);
 
@@ -3674,7 +3674,7 @@ VteTerminalPrivate::process_incoming()
 
         auto previous_screen = m_screen;
 
-        bottom = screen->insert_delta == (long)m_screen->scroll_delta;
+        bottom = m_screen->insert_delta == (long)m_screen->scroll_delta;
 
         auto top_row = first_displayed_row();
         auto bottom_row = last_displayed_row();
@@ -3796,8 +3796,8 @@ skip_chunk:
                         // FIXME m_screen may be != previous_screen, check for that!
 
                         new_in_scroll_region = m_scrolling_restricted
-                            && (m_screen->cursor.row >= (screen->insert_delta + m_scrolling_region.start))
-                            && (m_screen->cursor.row <= (screen->insert_delta + m_scrolling_region.end));
+                            && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
+                            && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
 
                         /* delta may have changed from sequence. */
                         top_row = first_displayed_row();
@@ -5048,7 +5048,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		/* Keypad/motion keys. */
 		case GDK_KEY_KP_Up:
 		case GDK_KEY_Up:
-			if (m_screen == &normal_screen &&
+			if (m_screen == &m_normal_screen &&
 			    m_modifiers & GDK_CONTROL_MASK &&
                             m_modifiers & GDK_SHIFT_MASK) {
 				scroll_lines(-1);

@@ -234,7 +234,7 @@ VteTerminalPrivate::seq_home_cursor()
 void
 VteTerminalPrivate::seq_clear_screen()
 {
-        auto row = m_screen->cursor.row - screen->insert_delta;
+        auto row = m_screen->cursor.row - m_screen->insert_delta;
         auto initial = _vte_ring_next(m_screen->row_data);
 	/* Add a new screen's worth of rows. */
         for (auto i = 0; i < m_row_count; i++)
@@ -803,7 +803,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		}
 
 #define STRUCT_MEMBER_P(type,total_offset) \
-                (type) (total_offset >= 0 ? G_STRUCT_MEMBER_P(that, total_offset) : G_STRUCT_MEMBER_P(that->screen, -total_offset))
+                (type) (total_offset >= 0 ? G_STRUCT_MEMBER_P(that, total_offset) : G_STRUCT_MEMBER_P(that->m_screen, -total_offset))
 
                 if (key.boffset) {
                         bvalue = STRUCT_MEMBER_P(gboolean*, key.boffset);
@@ -1357,7 +1357,7 @@ VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
                 m_scrolling_restricted = FALSE;
 	} else {
 		/* Maybe extend the ring -- bug 710483 */
-                while (_vte_ring_next(screen->row_data) < m_screen->insert_delta + m_row_count)
+                while (_vte_ring_next(m_screen->row_data) < m_screen->insert_delta + m_row_count)
                         _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
 	}
 
@@ -2966,7 +2966,7 @@ VteTerminalPrivate::seq_screen_alignment_test()
                 while (_vte_ring_next(m_screen->row_data) <= row)
                         ring_append(false);
                 adjust_adjustments();
-                auto rowdata = _vte_ring_index_writable (screen->row_data, row);
+                auto rowdata = _vte_ring_index_writable (m_screen->row_data, row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
 		_vte_row_data_shrink (rowdata, 0);
