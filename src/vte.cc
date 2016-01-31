@@ -3325,18 +3325,20 @@ not_inserted:
 }
 
 static void
-vte_terminal_child_watch_cb(GPid pid,
-                            int status,
-                            VteTerminal *terminal)
+child_watch_cb(GPid pid,
+               int status,
+               VteTerminalPrivate *that)
 {
-	if (terminal == NULL) {
-		/* The child outlived VteTerminal. Do nothing, we're happy that Glib
+	if (that == NULL) {
+		/* The child outlived us. Do nothing, we're happy that Glib
 		 * read its exit data and hence it's no longer there as zombie. */
 		return;
 	}
 
+        auto terminal = that->m_terminal;
+        /* keep the VteTerminalPrivate in a death grip */
         g_object_ref(terminal);
-        terminal->pvt->child_watch_done(pid, status);
+        that->child_watch_done(pid, status);
         g_object_unref(terminal);
         /* Note: terminal may be destroyed at this point */
 }
@@ -3510,8 +3512,8 @@ VteTerminalPrivate::watch_child (GPid child_pid)
         m_child_watch_source =
                 g_child_watch_add_full(G_PRIORITY_HIGH,
                                        child_pid,
-                                       (GChildWatchFunc)vte_terminal_child_watch_cb,
-                                       m_terminal, NULL);
+                                       (GChildWatchFunc)child_watch_cb,
+                                       this, nullptr);
 
         /* FIXMEchpe: call vte_terminal_set_size here? */
 
@@ -8435,7 +8437,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
                 m_child_watch_source = 0;
                 g_child_watch_add_full(G_PRIORITY_HIGH,
                                        m_pty_pid,
-                                       (GChildWatchFunc)vte_terminal_child_watch_cb,
+                                       (GChildWatchFunc)child_watch_cb,
                                        NULL, NULL);
         }
 
