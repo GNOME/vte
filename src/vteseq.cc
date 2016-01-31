@@ -726,7 +726,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		 TRUE,
 		 NULL, NULL,},
 		/* 1007: Alternate screen scroll. */
-		{1007, PRIV_OFFSET(alternate_screen_scroll), 0, 0,
+		{1007, PRIV_OFFSET(m_alternate_screen_scroll), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},

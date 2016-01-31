@@ -397,15 +397,14 @@ public:
         gboolean m_bracketed_paste_mode;
 
 	/* Scrolling options. */
-	gboolean scroll_background;
-	gboolean scroll_on_output;
-	gboolean scroll_on_keystroke;
-	gboolean alternate_screen_scroll;
-	long scrollback_lines;
+        gboolean m_scroll_on_output;
+        gboolean m_scroll_on_keystroke;
+        gboolean m_alternate_screen_scroll;
+        vte::grid::row_t m_scrollback_lines;
 
         /* Restricted scrolling */
-        struct vte_scrolling_region scrolling_region;     /* the region we scroll in */
-        gboolean scrolling_restricted;
+        struct vte_scrolling_region m_scrolling_region;     /* the region we scroll in */
+        gboolean m_scrolling_restricted;
 
 	/* Cursor shape, as set via API */
 	VteCursorShape cursor_shape;
@@ -1264,12 +1263,9 @@ public:
 #define m_mouse_inviso_cursor mouse_inviso_cursor
 #define m_im_preedit_active im_preedit_active
 #define m_input_enabled input_enabled
-#define m_scroll_on_keystroke scroll_on_keystroke
-#define m_scroll_on_output scroll_on_output
 #define m_visibility_state visibility_state
 #define m_mouse_smooth_scroll_delta mouse_smooth_scroll_delta
 #define m_vadjustment vadjustment
-#define m_alternate_screen_scroll alternate_screen_scroll
 #define m_draw draw
 #define m_im_preedit_string im_preedit_string
 #define m_im_preedit_attrs im_preedit_attrs
@@ -1288,7 +1284,6 @@ public:
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
 #define m_palette palette
-#define m_scrollback_lines scrollback_lines
 #define m_cursor_shape cursor_shape
 #define m_search_regex search_regex
 #define m_background_alpha background_alpha
@@ -1308,9 +1303,7 @@ public:
 #define m_current_file_uri current_file_uri
 #define m_icon_title icon_title
 #define m_search_wrap_around search_wrap_around
-#define m_scrolling_restricted scrolling_restricted
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
-#define m_scrolling_region scrolling_region
 
 extern GTimer *process_timer;

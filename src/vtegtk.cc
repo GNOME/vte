@@ -457,13 +457,13 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
                         break;
                 case PROP_SCROLLBACK_LINES:
-                        g_value_set_uint (value, impl->scrollback_lines);
+                        g_value_set_uint (value, impl->m_scrollback_lines);
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
-                        g_value_set_boolean (value, impl->scroll_on_keystroke);
+                        g_value_set_boolean (value, impl->m_scroll_on_keystroke);
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
-                        g_value_set_boolean (value, impl->scroll_on_output);
+                        g_value_set_boolean (value, impl->m_scroll_on_output);
                         break;
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
