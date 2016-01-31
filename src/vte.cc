@@ -4019,7 +4019,8 @@ next_match:
 				bbox_bottomright.y - bbox_topleft.y);
 	}
 
-
+        // FIXMEchpe: also need to take into account if the number of columns the cursor 
+        // occupies has changed due to the cell it's on being changed...
         if ((saved_cursor.col != m_screen->cursor.col) ||
             (saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
@@ -4030,6 +4031,7 @@ next_match:
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
 	} else if (saved_cursor_visible != m_cursor_visible) {
+                // FIXMEchpe need to invalidate like invalidate_cursor_once() just for the saved_cursor coords!
 		invalidate_cell(saved_cursor.col, saved_cursor.row);
 		check_cursor_blink();
 	}
@@ -10616,35 +10618,33 @@ static void time_process_incoming (VteTerminal *terminal)
 		(terminal->pvt->max_input_bytes + target) / 2;
 }
 
-static gboolean
-process_terminal(VteTerminal *terminal,
-                 bool emit_adj_changed)
+bool
+VteTerminalPrivate::process(bool emit_adj_changed)
 {
-        gboolean active;
+        bool is_active;
 
-        if (terminal->pvt->pty_channel != NULL) {
-                if (terminal->pvt->pty_input_active ||
-                    terminal->pvt->pty_input_source == 0) {
-                        terminal->pvt->pty_input_active = FALSE;
-                        terminal->pvt->pty_io_read(terminal->pvt->pty_channel,
-                                                   G_IO_IN);
+        if (m_pty_channel) {
+                if (m_pty_input_active ||
+                    m_pty_input_source == 0) {
+                        m_pty_input_active = false;
+                        pty_io_read(m_pty_channel, G_IO_IN);
                 }
-                terminal->pvt->connect_pty_read();
+                connect_pty_read();
         }
         if (emit_adj_changed)
-                terminal->pvt->emit_adjustment_changed();
-        active = _vte_incoming_chunks_length (terminal->pvt->incoming) != 0;
-        if (active) {
+                emit_adjustment_changed();
+        is_active = _vte_incoming_chunks_length(m_incoming) != 0;
+        if (is_active) {
                 if (VTE_MAX_PROCESS_TIME) {
-                        time_process_incoming (terminal);
+                        time_process_incoming(m_terminal);
                 } else {
-                        terminal->pvt->process_incoming();
+                        process_incoming();
                 }
-                terminal->pvt->input_bytes = 0;
+                m_input_bytes = 0;
         } else
-                terminal->pvt->emit_pending_signals();
+                emit_pending_signals();
 
-        return active;
+        return is_active;
 }
 
 /* This function is called after DISPLAY_TIMEOUT ms.
@@ -10678,7 +10678,7 @@ process_timeout (gpointer data)
 		}
 
                 // FIXMEchpe find out why we don't emit_adjustment_changed() here!!
-                active = process_terminal(terminal, false);
+                active = terminal->pvt->process(false);
 
 		if (!active) {
                         remove_from_active_list(terminal);
@@ -10779,7 +10779,7 @@ update_repeat_timeout (gpointer data)
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 
-                process_terminal(terminal, true);
+                terminal->pvt->process(true);
 
 		again = terminal->pvt->invalidate_dirty_rects_and_process_updates();
 		if (!again) {
@@ -10863,7 +10863,7 @@ update_timeout (gpointer data)
 			_vte_debug_print (VTE_DEBUG_WORK, "T");
 		}
 
-                process_terminal(terminal, true);
+                terminal->pvt->process(true);
 
 		redraw |= terminal->pvt->invalidate_dirty_rects_and_process_updates();
 	}

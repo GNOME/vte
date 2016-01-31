@@ -594,6 +594,8 @@ public:
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
+        void process_incoming();
+        bool process(bool emit_adj_changed);
 
         gssize get_preedit_width(bool left_only);
         gssize get_preedit_length(bool left_only);
@@ -946,8 +948,6 @@ public:
         bool get_tabstop(int column);
         void set_tabstop(int column);
         void set_default_tabstops();
-
-        void process_incoming();
 
         void match_contents_clear();
         void match_contents_refresh();
