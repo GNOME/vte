@@ -2214,7 +2214,7 @@ vte_terminal_watch_child (VteTerminal *terminal,
         g_return_if_fail(child_pid != -1);
 
         auto impl = IMPL(terminal);
-        g_return_if_fail(impl->pty != NULL);
+        g_return_if_fail(impl->m_pty != NULL);
 
         impl->watch_child(child_pid);
 }
@@ -3358,7 +3358,7 @@ vte_terminal_get_pty(VteTerminal *terminal)
 {
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 
-        return IMPL(terminal)->pty;
+        return IMPL(terminal)->m_pty;
 }
 
 /**

@@ -296,13 +296,13 @@ public:
         GHashTable *m_dec_saved;
 
 	/* PTY handling data. */
-	VtePty *pty;
-	GIOChannel *pty_channel;	/* master channel */
-	guint pty_input_source;
-	guint pty_output_source;
-	gboolean pty_input_active;
-	GPid pty_pid;			/* pid of child using pty slave */
-	guint child_watch_source;
+        VtePty *m_pty;
+        GIOChannel *m_pty_channel;      /* master channel */
+        guint m_pty_input_source;
+        guint m_pty_output_source;
+        gboolean m_pty_input_active;
+        GPid m_pty_pid;	                /* pid of child using pty slave */
+        guint m_child_watch_source;
 
 	/* Input data queues. */
 	const char *encoding;		/* the pty's encoding */
@@ -1270,7 +1270,6 @@ public:
 #define m_input_enabled input_enabled
 #define m_backspace_binding backspace_binding
 #define m_delete_binding delete_binding
-#define m_pty pty
 #define m_normal_screen normal_screen
 #define m_alternate_screen alternate_screen
 #define m_meta_sends_escape meta_sends_escape
@@ -1316,9 +1315,6 @@ public:
 #define m_outgoing_conv outgoing_conv
 #define m_conv_buffer conv_buffer
 #define m_sendrecv_mode sendrecv_mode
-#define m_pty_input_source pty_input_source
-#define m_pty_output_source pty_output_source
-#define m_pty_pid pty_pid
 #define m_scrollback_lines scrollback_lines
 #define m_clipboard clipboard
 #define m_meta_sends_escape meta_sends_escape
@@ -1342,8 +1338,6 @@ public:
 #define m_selection_text selection_text
 #define m_clipboard clipboard
 #define m_selection_html selection_html
-#define m_child_watch_source child_watch_source
-#define m_pty_channel pty_channel
 #define m_window_title window_title
 #define m_window_title_changed window_title_changed
 #define m_icon_title_changed icon_title_changed
@@ -1375,6 +1369,5 @@ public:
 #define m_color_defaults color_defaults
 #define m_fill_defaults fill_defaults
 #define m_defaults defaults
-#define m_pty_input_active pty_input_active
 
 extern GTimer *process_timer;
