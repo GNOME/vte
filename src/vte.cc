@@ -7245,7 +7245,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
                                                 selection_type_char);
 				handled = true;
 			}
-                        if ((mouse_handled_buttons & 1) != 0) {
+                        if ((m_mouse_handled_buttons & 1) != 0) {
 				start_selection(pos.x, pos.y,
                                                 selection_type_word);
 				handled = true;

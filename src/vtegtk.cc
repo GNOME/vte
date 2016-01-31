@@ -3262,7 +3262,7 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-        return IMPL(terminal)->input_enabled;
+        return IMPL(terminal)->m_input_enabled;
 }
 
 /**
@@ -3299,7 +3299,7 @@ gboolean
 vte_terminal_get_mouse_autohide(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return IMPL(terminal)->mouse_autohide;
+	return IMPL(terminal)->m_mouse_autohide;
 }
 
 /**

@@ -426,25 +426,25 @@ public:
         VteCursorStyle m_cursor_style;
 
 	/* Input device options. */
-        gboolean input_enabled;
-	time_t last_keypress_time;
+        gboolean m_input_enabled;
+        time_t m_last_keypress_time;
 
-	int mouse_tracking_mode; /* this is of type MouseTrackingMode,
-				    but we need to guarantee its type. */
-        guint mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
-        guint mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
+        int m_mouse_tracking_mode; /* this is of type MouseTrackingMode,
+                                      but we need to guarantee its type. */
+        guint m_mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
+        guint m_mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
         /* The last known position the mouse pointer from an event. We don't store
          * this in grid coordinates because we want also to check if they were outside
          * the viewable area.
          */
         vte::view::coords m_mouse_last_position;
-	gboolean mouse_autohide;
-	guint m_mouse_autoscroll_tag;
-	gboolean mouse_xterm_extension;
-	gboolean mouse_urxvt_extension;
-	double mouse_smooth_scroll_delta;
+        gboolean m_mouse_autohide;
+        guint m_mouse_autoscroll_tag;
+        gboolean m_mouse_xterm_extension;
+        gboolean m_mouse_urxvt_extension;
+        double m_mouse_smooth_scroll_delta;
 
-        gboolean focus_tracking_mode;
+        gboolean m_focus_tracking_mode;
 
 	/* State variables for handling match checks. */
 	char *match_contents;
@@ -489,10 +489,10 @@ public:
 	VtePaletteColor palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
-	gboolean mouse_cursor_visible;
-	GdkCursor *mouse_default_cursor,
-		  *mouse_mousing_cursor,
-		  *mouse_inviso_cursor;
+        gboolean m_mouse_cursor_visible;
+        GdkCursor* m_mouse_default_cursor;
+        GdkCursor* m_mouse_mousing_cursor;
+	GdkCursor* m_mouse_inviso_cursor;
 
 	/* Input method support. */
 	GtkIMContext *im_context;
@@ -1237,25 +1237,12 @@ public:
 #define m_match_attributes match_attributes
 #define m_match_contents match_contents
 #define m_match_regex_mode match_regex_mode
-#define m_mouse_tracking_mode mouse_tracking_mode
-#define m_mouse_pressed_buttons mouse_pressed_buttons
-#define m_mouse_xterm_extension mouse_xterm_extension
-#define m_mouse_urxvt_extension mouse_urxvt_extension
 #define m_modifiers modifiers
-#define m_focus_tracking_mode focus_tracking_mode
 #define m_match_tag match_tag
 #define m_match match
 #define m_im_context im_context
-#define m_mouse_cursor_visible mouse_cursor_visible
-#define m_mouse_handled_buttons mouse_handled_buttons
-#define m_mouse_autohide mouse_autohide
-#define m_mouse_mousing_cursor mouse_mousing_cursor
-#define m_mouse_default_cursor mouse_default_cursor
-#define m_mouse_inviso_cursor mouse_inviso_cursor
 #define m_im_preedit_active im_preedit_active
-#define m_input_enabled input_enabled
 #define m_visibility_state visibility_state
-#define m_mouse_smooth_scroll_delta mouse_smooth_scroll_delta
 #define m_vadjustment vadjustment
 #define m_draw draw
 #define m_im_preedit_string im_preedit_string
