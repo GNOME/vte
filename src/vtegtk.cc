@@ -2904,7 +2904,7 @@ const char *
 vte_terminal_get_current_directory_uri(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return IMPL(terminal)->current_directory_uri;
+        return IMPL(terminal)->m_current_directory_uri;
 }
 
 /**
@@ -2919,7 +2919,7 @@ const char *
 vte_terminal_get_current_file_uri(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return IMPL(terminal)->current_file_uri;
+        return IMPL(terminal)->m_current_file_uri;
 }
 
 /**
@@ -3248,7 +3248,7 @@ const char *
 vte_terminal_get_icon_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return IMPL(terminal)->icon_title;
+	return IMPL(terminal)->m_icon_title;
 }
 
 /**
@@ -3485,7 +3485,7 @@ const char *
 vte_terminal_get_window_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return IMPL(terminal)->window_title;
+	return IMPL(terminal)->m_window_title;
 }
 
 /**

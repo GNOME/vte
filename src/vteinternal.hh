@@ -510,14 +510,14 @@ public:
         gboolean m_contents_changed_pending;
 
 	/* window name changes */
-        gchar *window_title;
-	gchar *window_title_changed;
-        gchar *icon_title;
-	gchar *icon_title_changed;
-        gchar *current_directory_uri;
-        gchar *current_directory_uri_changed;
-        gchar *current_file_uri;
-        gchar *current_file_uri_changed;
+        char* m_window_title;
+        char* m_window_title_changed;
+        char* m_icon_title;
+        char* m_icon_title_changed;
+        char* m_current_directory_uri;
+        char* m_current_directory_uri_changed;
+        char* m_current_file_uri;
+        char* m_current_file_uri_changed;
 
 	/* Background */
         gdouble background_alpha;
@@ -1238,13 +1238,5 @@ public:
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
 #define m_background_alpha background_alpha
-#define m_window_title window_title
-#define m_window_title_changed window_title_changed
-#define m_icon_title_changed icon_title_changed
-#define m_current_directory_uri_changed current_directory_uri_changed
-#define m_current_directory_uri current_directory_uri
-#define m_current_file_uri_changed current_file_uri_changed
-#define m_current_file_uri current_file_uri
-#define m_icon_title icon_title
 
 extern GTimer *process_timer;
