@@ -1229,7 +1229,7 @@ VteTerminalPrivate::regex_match_set_cursor(int tag,
  * @sattr_ptr: (out):
  * @ettr_ptr: (out):
  *
- * Maps (row, column) to an offset in pvt->match_attributes, and returns
+ * Maps (row, column) to an offset in m_match_attributes, and returns
  * that offset in @offset_ptr, and the start and end of the corresponding
  * line in @sattr_ptr and @eattr_ptr.
  */
@@ -1757,7 +1757,7 @@ VteTerminalPrivate::match_check_internal_gregex(vte::grid::column_t column,
  * @start: (out):
  * @end: (out):
  *
- * Checks pvt->match_contents for dingu matches, and returns the tag, start, and
+ * Checks m_match_contents for dingu matches, and returns the tag, start, and
  * end of the match in @tag, @start, @end. If no match occurs, @tag will be set to
  * -1, and if they are nonzero, @start and @end mark the smallest span in the @row
  * in which none of the dingus match.
