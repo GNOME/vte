@@ -5838,11 +5838,11 @@ VteTerminalPrivate::match_hilite(vte::view::coords const& pos)
 
 /* Note that the clipboard has cleared. */
 static void
-vte_terminal_clipboard_clear_cb(GtkClipboard *clipboard,
-                                gpointer owner)
+clipboard_clear_cb(GtkClipboard *clipboard,
+                   gpointer user_data)
 {
-	VteTerminal *terminal = static_cast<VteTerminal*>(owner);
-        terminal->pvt->widget_clipboard_cleared(clipboard);
+	VteTerminalPrivate *that = reinterpret_cast<VteTerminalPrivate*>(user_data);
+        that->widget_clipboard_cleared(clipboard);
 }
 
 void
@@ -5853,18 +5853,21 @@ VteTerminalPrivate::widget_clipboard_cleared(GtkClipboard *clipboard_)
 			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
 			deselect_all();
 		}
-	}
+                m_selection_owned[VTE_SELECTION_PRIMARY] = false;
+	} else if (clipboard_ == m_clipboard[VTE_SELECTION_CLIPBOARD]) {
+                m_selection_owned[VTE_SELECTION_CLIPBOARD] = false;
+        }
 }
 
 /* Supply the selected text to the clipboard. */
 static void
-vte_terminal_copy_cb(GtkClipboard *clipboard,
-                     GtkSelectionData *data,
-		     guint info,
-                     gpointer owner)
+clipboard_copy_cb(GtkClipboard *clipboard,
+                  GtkSelectionData *data,
+                  guint info,
+                  gpointer user_data)
 {
-	VteTerminal *terminal = (VteTerminal *)owner;
-        terminal->pvt->widget_clipboard_requested(clipboard, data, info);
+	VteTerminalPrivate *that = reinterpret_cast<VteTerminalPrivate*>(user_data);
+        that->widget_clipboard_requested(clipboard, data, info);
 }
 
 void
@@ -6357,13 +6360,14 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 			gtk_target_list_unref (list);
 		}
 
-		gtk_clipboard_set_with_owner(m_clipboard[sel],
-					     targets,
-					     n_targets,
-					     vte_terminal_copy_cb,
-					     vte_terminal_clipboard_clear_cb,
-					     G_OBJECT(m_terminal));
+		gtk_clipboard_set_with_data(m_clipboard[sel],
+                                            targets,
+                                            n_targets,
+                                            clipboard_copy_cb,
+                                            clipboard_clear_cb,
+                                            this);
 		gtk_clipboard_set_can_store(m_clipboard[sel], NULL, 0);
+                m_selection_owned[sel] = true;
 	}
 }
 
@@ -8032,6 +8036,8 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	display = gtk_widget_get_display(m_widget);
 	m_clipboard[VTE_SELECTION_PRIMARY] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
 	m_clipboard[VTE_SELECTION_CLIPBOARD] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
+        m_selection_owned[VTE_SELECTION_PRIMARY] = false;
+        m_selection_owned[VTE_SELECTION_CLIPBOARD] = false;
 
 	/* Miscellaneous options. */
 	vte_terminal_set_backspace_binding(m_terminal, VTE_ERASE_AUTO);
@@ -8402,10 +8408,9 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
-        GObject *object = G_OBJECT(m_widget);
 	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
 		if (m_selection_text[sel] != NULL) {
-			if (gtk_clipboard_get_owner(m_clipboard[sel]) == object) {
+			if (m_selection_owned[sel]) {
 				gtk_clipboard_set_text(m_clipboard[sel],
 						       m_selection_text[sel],
 						       -1);
@@ -10254,6 +10259,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 			m_selection_html[sel] = NULL;
 #endif
 		}
+                m_selection_owned[sel] = false;
 	}
         memset(&m_selection_origin, 0,
                sizeof(m_selection_origin));

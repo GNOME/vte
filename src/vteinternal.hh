@@ -371,6 +371,8 @@ public:
 	VteVisualPosition selection_start, selection_end;
 
 	/* Clipboard data information. */
+        // FIXMEchpe check if this can make m_has_selection obsolete!
+        bool m_selection_owned[LAST_VTE_SELECTION];
 	char *selection_text[LAST_VTE_SELECTION];
 #ifdef HTML_SELECTION
 	char *selection_html[LAST_VTE_SELECTION];
