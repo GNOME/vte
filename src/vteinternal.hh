@@ -495,11 +495,11 @@ public:
 	GdkCursor* m_mouse_inviso_cursor;
 
 	/* Input method support. */
-	GtkIMContext *im_context;
-	gboolean im_preedit_active;
-	char *im_preedit;
-	PangoAttrList *im_preedit_attrs;
-	int im_preedit_cursor;
+        GtkIMContext *m_im_context;
+        gboolean m_im_preedit_active;
+        char *m_im_preedit;
+        PangoAttrList *m_im_preedit_attrs;
+        int m_im_preedit_cursor;
 
 	gboolean accessible_emit;
 
@@ -1230,17 +1230,10 @@ public:
 };
 
 #define m_modifiers modifiers
-#define m_im_context im_context
-#define m_im_preedit_active im_preedit_active
 #define m_visibility_state visibility_state
 #define m_vadjustment vadjustment
-#define m_im_preedit_string im_preedit_string
-#define m_im_preedit_attrs im_preedit_attrs
-#define m_im_preedit_cursor im_preedit_cursor
 #define m_contents_changed_pending contents_changed_pending
 #define m_cursor_moved_pending cursor_moved_pending
-#define m_im_preedit_active im_preedit_active
-#define m_im_preedit im_preedit
 #define m_hadjustment hadjustment
 #define m_hscroll_policy hscroll_policy
 #define m_vscroll_policy vscroll_policy

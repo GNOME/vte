@@ -4578,7 +4578,7 @@ VteTerminalPrivate::im_preedit_changed()
 	PangoAttrList *attrs;
 	gint cursorpos;
 
-	gtk_im_context_get_preedit_string(im_context, &str, &attrs, &cursorpos);
+	gtk_im_context_get_preedit_string(m_im_context, &str, &attrs, &cursorpos);
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method pre-edit changed (%s,%d).\n",
 			str, cursorpos);
