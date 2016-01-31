@@ -381,19 +381,20 @@ public:
         ClipboardTextRequestGtk<VteTerminalPrivate> m_paste_request;
 
 	/* Miscellaneous options. */
-	VteEraseBinding backspace_binding, delete_binding;
-	gboolean meta_sends_escape;
-	gboolean audible_bell;
-	gboolean margin_bell;
-	guint bell_margin;
-	gboolean allow_bold;
-        gboolean deccolm_mode; /* DECCOLM allowed */
-	GHashTable *tabstops;
-	gboolean text_modified_flag;
-	gboolean text_inserted_flag;
-	gboolean text_deleted_flag;
-	gboolean rewrap_on_resize;
-	gboolean bracketed_paste_mode;
+        VteEraseBinding m_backspace_binding;
+        VteEraseBinding m_delete_binding;
+        gboolean m_meta_sends_escape;
+        gboolean m_audible_bell;
+        gboolean m_margin_bell;
+        guint m_bell_margin;
+        gboolean m_allow_bold;
+        gboolean m_deccolm_mode; /* DECCOLM allowed */
+        GHashTable *m_tabstops;
+        gboolean m_text_modified_flag;
+        gboolean m_text_inserted_flag;
+        gboolean m_text_deleted_flag;
+        gboolean m_rewrap_on_resize;
+        gboolean m_bracketed_paste_mode;
 
 	/* Scrolling options. */
 	gboolean scroll_background;
@@ -1261,14 +1262,8 @@ public:
 #define m_mouse_mousing_cursor mouse_mousing_cursor
 #define m_mouse_default_cursor mouse_default_cursor
 #define m_mouse_inviso_cursor mouse_inviso_cursor
-#define m_audible_bell audible_bell
-#define m_margin_bell margin_bell
-#define m_bell_margin bell_margin
 #define m_im_preedit_active im_preedit_active
 #define m_input_enabled input_enabled
-#define m_backspace_binding backspace_binding
-#define m_delete_binding delete_binding
-#define m_meta_sends_escape meta_sends_escape
 #define m_scroll_on_keystroke scroll_on_keystroke
 #define m_scroll_on_output scroll_on_output
 #define m_visibility_state visibility_state
@@ -1282,9 +1277,6 @@ public:
 #define m_fontdirty fontdirty
 #define m_contents_changed_pending contents_changed_pending
 #define m_cursor_moved_pending cursor_moved_pending
-#define m_text_modified_flag text_modified_flag
-#define m_text_inserted_flag text_inserted_flag
-#define m_text_deleted_flag text_deleted_flag
 #define m_im_preedit_active im_preedit_active
 #define m_im_preedit im_preedit
 #define m_hadjustment hadjustment
@@ -1297,11 +1289,6 @@ public:
 #define m_strikethrough_position strikethrough_position
 #define m_palette palette
 #define m_scrollback_lines scrollback_lines
-#define m_meta_sends_escape meta_sends_escape
-#define m_bell_margin bell_margin
-#define m_allow_bold allow_bold
-#define m_deccolm_mode deccolm_mode
-#define m_rewrap_on_resize rewrap_on_resize
 #define m_cursor_shape cursor_shape
 #define m_search_regex search_regex
 #define m_background_alpha background_alpha
@@ -1312,7 +1299,6 @@ public:
 #define m_fontdesc fontdesc
 #define m_search_attrs search_attrs
 #define m_adjustment_changed_pending adjustment_changed_pending
-#define m_tabstops tabstops
 #define m_window_title window_title
 #define m_window_title_changed window_title_changed
 #define m_icon_title_changed icon_title_changed
@@ -1323,7 +1309,6 @@ public:
 #define m_icon_title icon_title
 #define m_search_wrap_around search_wrap_around
 #define m_scrolling_restricted scrolling_restricted
-#define m_bracketed_paste_mode bracketed_paste_mode
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
 #define m_scrolling_region scrolling_region

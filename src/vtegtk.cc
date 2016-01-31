@@ -412,7 +412,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
                 case PROP_BACKSPACE_BINDING:
-                        g_value_set_enum (value, impl->backspace_binding);
+                        g_value_set_enum (value, impl->m_backspace_binding);
                         break;
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         g_value_set_int (value, vte_terminal_get_cjk_ambiguous_width (terminal));
@@ -430,7 +430,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_enum (value, vte_terminal_get_cursor_shape (terminal));
                         break;
                 case PROP_DELETE_BINDING:
-                        g_value_set_enum (value, impl->delete_binding);
+                        g_value_set_enum (value, impl->m_delete_binding);
                         break;
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
@@ -2526,7 +2526,7 @@ gboolean
 vte_terminal_get_allow_bold(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return IMPL(terminal)->allow_bold;
+	return IMPL(terminal)->m_allow_bold;
 }
 
 /**
@@ -2562,7 +2562,7 @@ gboolean
 vte_terminal_get_audible_bell(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return IMPL(terminal)->audible_bell;
+	return IMPL(terminal)->m_audible_bell;
 }
 
 /**
@@ -3373,7 +3373,7 @@ gboolean
 vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-	return IMPL(terminal)->rewrap_on_resize;
+	return IMPL(terminal)->m_rewrap_on_resize;
 }
 
 /**

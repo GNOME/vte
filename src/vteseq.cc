@@ -666,14 +666,14 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		{35, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 38: enter Tektronix mode. */
                 /* 40: Enable DECCOLM mode. */
-                {40, PRIV_OFFSET(deccolm_mode), 0, 0,
+                {40, PRIV_OFFSET(m_deccolm_mode), 0, 0,
                  FALSE,
                  TRUE,
                  NULL, NULL,},
 		/* 41: more(1) fix. */
 		/* 42: Enable NLS replacements. */
 		/* 44: Margin bell. */
-		{44, PRIV_OFFSET(margin_bell), 0, 0,
+		{44, PRIV_OFFSET(m_margin_bell), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
@@ -742,7 +742,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		/* 1035: disallowed, don't know what to do with it. */
 		{1035, 0, 0, 0, 0, 0, NULL, NULL,},
 		/* 1036: Meta-sends-escape. */
-		{1036, PRIV_OFFSET(meta_sends_escape), 0, 0,
+		{1036, PRIV_OFFSET(m_meta_sends_escape), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
@@ -768,7 +768,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
                  vte_sequence_handler_normal_screen_and_restore_cursor,
                  vte_sequence_handler_save_cursor_and_alternate_screen,},
 		/* 2004: Bracketed paste mode. */
-		{2004, PRIV_OFFSET(bracketed_paste_mode), 0, 0,
+		{2004, PRIV_OFFSET(m_bracketed_paste_mode), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
