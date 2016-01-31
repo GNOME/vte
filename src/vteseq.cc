@@ -628,13 +628,13 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
                  TRUE,
                  NULL, NULL,},
 		/* 5: Reverse video. */
-                {5, PRIV_OFFSET(reverse_mode), 0, 0,
+                {5, PRIV_OFFSET(m_reverse_mode), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
 		/* 6: Origin mode: when enabled, cursor positioning is
 		 * relative to the scrolling region. */
-                {6, PRIV_OFFSET(origin_mode), 0, 0,
+                {6, PRIV_OFFSET(m_origin_mode), 0, 0,
 		 FALSE,
 		 TRUE,
 		 NULL, NULL,},
@@ -2121,9 +2121,9 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 				continue;
 			if (G_LIKELY (color != -1)) {
 				if (param0 == 38) {
-                                        that->defaults.attr.fore = color;
+                                        that->m_defaults.attr.fore = color;
 				} else {
-                                        that->defaults.attr.back = color;
+                                        that->m_defaults.attr.back = color;
 				}
 			}
 			continue;
@@ -2138,51 +2138,51 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 			that->reset_default_attributes();
 			break;
 		case 1:
-                        that->defaults.attr.bold = 1;
+                        that->m_defaults.attr.bold = 1;
 			break;
 		case 2:
-                        that->defaults.attr.dim = 1;
+                        that->m_defaults.attr.dim = 1;
 			break;
 		case 3:
-                        that->defaults.attr.italic = 1;
+                        that->m_defaults.attr.italic = 1;
 			break;
 		case 4:
-                        that->defaults.attr.underline = 1;
+                        that->m_defaults.attr.underline = 1;
 			break;
 		case 5:
-                        that->defaults.attr.blink = 1;
+                        that->m_defaults.attr.blink = 1;
 			break;
 		case 7:
-                        that->defaults.attr.reverse = 1;
+                        that->m_defaults.attr.reverse = 1;
 			break;
 		case 8:
-                        that->defaults.attr.invisible = 1;
+                        that->m_defaults.attr.invisible = 1;
 			break;
 		case 9:
-                        that->defaults.attr.strikethrough = 1;
+                        that->m_defaults.attr.strikethrough = 1;
 			break;
 		case 21: /* Error in old versions of linux console. */
 		case 22: /* ECMA 48. */
-                        that->defaults.attr.bold = 0;
-                        that->defaults.attr.dim = 0;
+                        that->m_defaults.attr.bold = 0;
+                        that->m_defaults.attr.dim = 0;
 			break;
 		case 23:
-                        that->defaults.attr.italic = 0;
+                        that->m_defaults.attr.italic = 0;
 			break;
 		case 24:
-                        that->defaults.attr.underline = 0;
+                        that->m_defaults.attr.underline = 0;
 			break;
 		case 25:
-                        that->defaults.attr.blink = 0;
+                        that->m_defaults.attr.blink = 0;
 			break;
 		case 27:
-                        that->defaults.attr.reverse = 0;
+                        that->m_defaults.attr.reverse = 0;
 			break;
 		case 28:
-                        that->defaults.attr.invisible = 0;
+                        that->m_defaults.attr.invisible = 0;
 			break;
 		case 29:
-                        that->defaults.attr.strikethrough = 0;
+                        that->m_defaults.attr.strikethrough = 0;
 			break;
 		case 30:
 		case 31:
@@ -2192,7 +2192,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 35:
 		case 36:
 		case 37:
-                        that->defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 30;
+                        that->m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 30;
 			break;
 		case 38:
 		case 48:
@@ -2228,9 +2228,9 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 				}
 				if (G_LIKELY (color != -1)) {
 					if (param == 38) {
-                                                that->defaults.attr.fore = color;
+                                                that->m_defaults.attr.fore = color;
 					} else {
-                                                that->defaults.attr.back = color;
+                                                that->m_defaults.attr.back = color;
 					}
 				}
 			}
@@ -2238,7 +2238,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		}
 		case 39:
 			/* default foreground */
-                        that->defaults.attr.fore = VTE_DEFAULT_FG;
+                        that->m_defaults.attr.fore = VTE_DEFAULT_FG;
 			break;
 		case 40:
 		case 41:
@@ -2248,12 +2248,12 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 45:
 		case 46:
 		case 47:
-                        that->defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 40;
+                        that->m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 40;
 			break;
 	     /* case 48: was handled above at 38 to avoid code duplication */
 		case 49:
 			/* default background */
-                        that->defaults.attr.back = VTE_DEFAULT_BG;
+                        that->m_defaults.attr.back = VTE_DEFAULT_BG;
 			break;
 		case 90:
 		case 91:
@@ -2263,7 +2263,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 95:
 		case 96:
 		case 97:
-                        that->defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 90 + VTE_COLOR_BRIGHT_OFFSET;
+                        that->m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 90 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		case 100:
 		case 101:
@@ -2273,7 +2273,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 105:
 		case 106:
 		case 107:
-                        that->defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 100 + VTE_COLOR_BRIGHT_OFFSET;
+                        that->m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 100 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		}
 	}
@@ -2282,14 +2282,10 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		that->reset_default_attributes();
 	}
 	/* Save the new colors. */
-        that->color_defaults.attr.fore =
-                that->defaults.attr.fore;
-        that->color_defaults.attr.back =
-                that->defaults.attr.back;
-        that->fill_defaults.attr.fore =
-                that->defaults.attr.fore;
-        that->fill_defaults.attr.back =
-                that->defaults.attr.back;
+        that->m_color_defaults.attr.fore = that->m_defaults.attr.fore;
+        that->m_color_defaults.attr.back = that->m_defaults.attr.back;
+        that->m_fill_defaults.attr.fore = that->m_defaults.attr.fore;
+        that->m_fill_defaults.attr.back = that->m_defaults.attr.back;
 }
 
 /* Move the cursor to the given column in the top row, 1-based. */

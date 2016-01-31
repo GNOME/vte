@@ -335,24 +335,23 @@ public:
         struct _VteScreen m_normal_screen, m_alternate_screen, *m_screen;
 
         /* Values we save along with the cursor */
-        gboolean reverse_mode;	/* reverse mode */
-        gboolean origin_mode;	/* origin mode */
-        gboolean sendrecv_mode;	/* sendrecv mode */
-        gboolean insert_mode;	/* insert mode */
-        gboolean linefeed_mode;	/* linefeed mode */
-        VteCell defaults;	/* default characteristics
-                                   for insertion of any new
-                                   characters */
-        VteCell color_defaults;	/* original defaults
-                                   plus the current
-                                   fore/back */
-        VteCell fill_defaults;	/* original defaults
-                                   plus the current
-                                   fore/back with no
-                                   character data */
-        VteCharacterReplacement character_replacements[2];  /* charsets in the G0 and G1 slots */
-        VteCharacterReplacement *character_replacement;     /* pointer to the active one */
-
+        gboolean m_reverse_mode;  /* reverse mode */
+        gboolean m_origin_mode;   /* origin mode */
+        gboolean m_sendrecv_mode; /* sendrecv mode */
+        gboolean m_insert_mode;   /* insert mode */
+        gboolean m_linefeed_mode; /* linefeed mode */
+        VteCell m_defaults;       /* default characteristics
+                                     for insertion of any new
+                                     characters */
+        VteCell m_color_defaults; /* original defaults
+                                     plus the current
+                                     fore/back */
+        VteCell m_fill_defaults;  /* original defaults
+                                     plus the current
+                                     fore/back with no
+                                     character data */
+        VteCharacterReplacement m_character_replacements[2];  /* charsets in the G0 and G1 slots */
+        VteCharacterReplacement *m_character_replacement;     /* pointer to the active one */
 
         /* Word chars */
         char *word_char_exceptions_string;
@@ -1301,9 +1300,7 @@ public:
 #define m_line_thickness line_thickness
 #define m_underline_position underline_position
 #define m_strikethrough_position strikethrough_position
-#define m_character_replacements character_replacements
 #define m_palette palette
-#define m_sendrecv_mode sendrecv_mode
 #define m_scrollback_lines scrollback_lines
 #define m_clipboard clipboard
 #define m_meta_sends_escape meta_sends_escape
@@ -1318,7 +1315,6 @@ public:
 #define m_has_fonts has_fonts
 #define m_cursor_blink_mode cursor_blink_mode
 #define m_cursor_style cursor_style
-#define m_character_replacement character_replacement
 #define m_fontdesc fontdesc
 #define m_search_attrs search_attrs
 #define m_adjustment_changed_pending adjustment_changed_pending
@@ -1342,19 +1338,12 @@ public:
 #define m_search_wrap_around search_wrap_around
 #define m_scrolling_restricted scrolling_restricted
 #define m_selecting_had_delta selecting_had_delta
-#define m_insert_mode insert_mode
-#define m_reverse_mode reverse_mode
-#define m_origin_mode origin_mode
 #define m_selection_origin selection_origin
 #define m_selection_last selection_last
 #define m_bracketed_paste_mode bracketed_paste_mode
-#define m_linefeed_mode linefeed_mode
 #define m_selection_type selection_type
 #define m_adjustment_value_changed_pending adjustment_value_changed_pending
 #define m_accessible_emit accessible_emit
 #define m_scrolling_region scrolling_region
-#define m_color_defaults color_defaults
-#define m_fill_defaults fill_defaults
-#define m_defaults defaults
 
 extern GTimer *process_timer;
