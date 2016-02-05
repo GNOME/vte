@@ -20,11 +20,26 @@
 #include <config.h>
 
 #include <math.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <math.h>
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#endif
 
 #include <glib.h>
+#include <glib/gi18n-lib.h>
 
 #include <vte/vte.h>
-#include "vte-private.h"
+#include "vteinternal.hh"
+#include "buffer.h"
+#include "debug.h"
+#include "vteconv.h"
+#include "vtedraw.hh"
+#include "ring.h"
+#include "caps.h"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
@@ -5926,7 +5941,7 @@ VteTerminalPrivate::widget_clipboard_requested(GtkClipboard *target_clipboard,
 	}
 }
 
-/* Convert the internal color code (either index or RGB, see vte-private.h) into RGB. */
+/* Convert the internal color code (either index or RGB) into RGB. */
 void
 VteTerminalPrivate::rgb_from_index(guint index,
                                    vte::color::rgb& color) const

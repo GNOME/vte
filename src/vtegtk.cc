@@ -55,8 +55,6 @@
 
 #include "vtegtk.hh"
 
-#include "vte-private.h"
-
 #if !GLIB_CHECK_VERSION(2, 42, 0)
 #define G_PARAM_EXPLICIT_NOTIFY 0
 #endif

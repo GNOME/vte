@@ -20,6 +20,7 @@
 
 #include <glib.h>
 
+#include "vtedefines.hh"
 #include "vtetypes.hh"
 #include "ring.h"
 #include "vteconv.h"
@@ -1228,3 +1229,15 @@ public:
 };
 
 extern GTimer *process_timer;
+
+VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal);
+
+static inline bool
+_vte_double_equal(double a,
+                  double b)
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+        return a == b;
+#pragma GCC diagnostic pop
+}

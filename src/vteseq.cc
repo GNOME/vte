@@ -16,9 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "config.h"
 
-#include <config.h>
-
+#include <string.h>
 #include <limits.h>
 #ifdef HAVE_SYS_SYSLIMITS_H
 #include <sys/syslimits.h>
@@ -27,9 +27,10 @@
 #include <glib.h>
 
 #include <vte/vte.h>
-#include "vte-private.h"
 #include "vteinternal.hh"
 #include "vtegtk.hh"
+#include "caps.h"
+#include "debug.h"
 
 #define BEL "\007"
 #define ST _VTE_CAP_ST

@@ -62,7 +62,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	table.cc \
 	table.h \
 	vte.cc \
-	vte-private.h \
 	vteaccess.cc \
 	vteaccess.h \
 	vteconv.cc \

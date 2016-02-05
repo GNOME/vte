@@ -16,16 +16,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "config.h"
 
-#include <config.h>
-
-#include <sys/param.h>
+#include <math.h>
+#include <stdlib.h>
 #include <string.h>
-#include <gtk/gtk.h>
+#include <sys/param.h>
+
 #include <glib.h>
-#include "debug.h"
+#include <gtk/gtk.h>
+
 #include "vtedraw.hh"
-#include "vte-private.h"
+#include "vtedefines.hh"
+#include "debug.h"
 
 #include <pango/pangocairo.h>
 
@@ -39,6 +42,15 @@
 					"{|}~" \
 					""
 
+static inline bool
+_vte_double_equal(double a,
+                  double b)
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+        return a == b;
+#pragma GCC diagnostic pop
+}
 
 /* Overview:
  *

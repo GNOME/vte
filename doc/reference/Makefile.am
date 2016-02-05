@@ -92,8 +92,7 @@ IGNORE_HFILES = \
 	trie.h \
 	vteconv.h \
 	vtedraw.h \
-	vteint.h \
-	vte-private.h \
+	vteinternal.hh \
 	vterowdata.h \
 	vteseq-list.h \
 	vtestream-base.h \

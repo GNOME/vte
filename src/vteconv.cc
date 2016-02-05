@@ -26,12 +26,7 @@
 #include <glib.h>
 #include "buffer.h"
 #include "vteconv.h"
-
-#ifdef VTE_COMPILATION
-#include "vte-private.h"
-#else
-#define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
-#endif
+#include "vtedefines.hh"
 
 typedef size_t (*convert_func)(GIConv converter,
 			  const guchar **inbuf,

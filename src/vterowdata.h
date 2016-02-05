@@ -57,7 +57,7 @@ typedef struct _VteCellAttr {
 	guint64 italic: 1;
 	guint64 fore: 25;	/* Index into color palette, or direct RGB, */
 	/* 4-byte boundary */
-	guint64 back: 25;	/* see vte-private.h */
+	guint64 back: 25;	/* see vtedefines.hh */
 
 	guint64 underline: 1;
 	guint64 strikethrough: 1;

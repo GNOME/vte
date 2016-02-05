@@ -33,7 +33,7 @@
 #include "debug.h"
 #include <vte/vte.h>
 #include "vteaccess.h"
-#include "vte-private.h"
+#include "vteinternal.hh"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
