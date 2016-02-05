@@ -776,7 +776,7 @@ VteTerminalPrivate::queue_cursor_moved()
 }
 
 static gboolean
-vte_terminal_emit_eof_cb(VteTerminal *terminal)
+emit_eof_idle_cb(VteTerminal *terminal)
 {
         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 	gdk_threads_enter ();
@@ -804,12 +804,11 @@ VteTerminalPrivate::emit_eof()
 void
 VteTerminalPrivate::queue_eof()
 {
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Queueing `eof'.\n");
-	g_idle_add_full (G_PRIORITY_HIGH,
-		(GSourceFunc) vte_terminal_emit_eof_cb,
-		g_object_ref(m_terminal),
-		g_object_unref);
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Queueing `eof'.\n");
+        g_idle_add_full(G_PRIORITY_HIGH,
+                        (GSourceFunc)emit_eof_idle_cb,
+                        g_object_ref(m_terminal),
+                        g_object_unref);
 }
 
 /* Emit a "char-size-changed" signal. */
