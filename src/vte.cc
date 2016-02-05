@@ -20,6 +20,8 @@
 #include <config.h>
 
 #include <math.h>
+#include <search.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <errno.h>

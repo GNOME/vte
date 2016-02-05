@@ -18,6 +18,8 @@
 
 #include "config.h"
 
+#include <search.h>
+#include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #ifdef HAVE_SYS_SYSLIMITS_H
