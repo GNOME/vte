@@ -23,20 +23,12 @@
 
 #include "vteunistr.h"
 #include "vtemacros.h"
+#include "vtedefines.hh"
 
 G_BEGIN_DECLS
 
 #define VTE_TAB_WIDTH_BITS		4  /* Has to be able to store the value of 8. */
 #define VTE_TAB_WIDTH_MAX		((1 << VTE_TAB_WIDTH_BITS) - 1)
-
-#define VTE_DEFAULT_FG			256
-#define VTE_DEFAULT_BG			257
-#define VTE_BOLD_FG			258
-#define VTE_HIGHLIGHT_FG		259
-#define VTE_HIGHLIGHT_BG		260
-#define VTE_CURSOR_BG			261
-#define VTE_CURSOR_FG                   262
-#define VTE_PALETTE_SIZE		263
 
 /*
  * VteCellAttr: A single cell style attributes

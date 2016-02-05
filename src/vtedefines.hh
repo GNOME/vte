@@ -53,7 +53,15 @@
 #define VTE_COLOR_BRIGHT_OFFSET		8
 #define VTE_DIM_COLOR			(1 << 10)
 #define VTE_RGB_COLOR			(1 << 24)
-/* More color defines in vterowdata.h */
+
+#define VTE_DEFAULT_FG			256
+#define VTE_DEFAULT_BG			257
+#define VTE_BOLD_FG			258
+#define VTE_HIGHLIGHT_FG		259
+#define VTE_HIGHLIGHT_BG		260
+#define VTE_CURSOR_BG			261
+#define VTE_CURSOR_FG                   262
+#define VTE_PALETTE_SIZE		263
 
 #define VTE_SCROLLBACK_INIT		512
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
