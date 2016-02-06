@@ -61,7 +61,7 @@
 
 #define I_(string) (g_intern_static_string(string))
 
-#define VTE_TERMINAL_CSS_NAME "vte"
+#define VTE_TERMINAL_CSS_NAME "vte-terminal"
 
 struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
@@ -1472,7 +1472,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
-                                         "VteTerminal {\n"
+                                         "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
                                          "padding: 1px 1px 1px 1px;\n"
                                          "background-color: @theme_base_color;\n"
                                          "color: @theme_fg_color;\n"
