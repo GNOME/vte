@@ -294,6 +294,9 @@ __vte_pty_merge_environ (char **envp,
 
         g_hash_table_replace (table, g_strdup ("VTE_VERSION"), g_strdup_printf ("%u", VTE_VERSION_NUMERIC));
 
+	/* Always set this ourself, not allowing replacing from envp */
+	g_hash_table_replace(table, g_strdup("COLORTERM"), g_strdup("truecolor"));
+
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
         g_hash_table_iter_init(&iter, table);
         while (g_hash_table_iter_next(&iter, (void**) &name, (void**) &value)) {
