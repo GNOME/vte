@@ -127,22 +127,6 @@ VteTerminalClassPrivate
 </SECTION>
 
 <SECTION>
-<FILE>vte-regex</FILE>
-<TITLE>VteRegex</TITLE>
-VteRegex
-vte_regex_ref
-vte_regex_unref
-vte_regex_new
-vte_regex_jit
-
-<SUBSECTION Standard>
-VTE_TYPE_REGEX
-vte_regex_get_type
-VTE_REGEX_ERROR
-vte_regex_error_quark
-</SECTION>
-
-<SECTION>
 <FILE>vte-pty</FILE>
 <TITLE>Vte PTY</TITLE>
 VtePtyFlags
