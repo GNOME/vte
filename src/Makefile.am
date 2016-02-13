@@ -25,9 +25,10 @@ nodist_header_HEADERS = \
 	vte/vteversion.h \
 	$(NULL)
 
-lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
+shlibdir = $(libdir)
+shlib_PROGRAMS = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.so.@VTE_SO_MAJOR@.@VTE_SO_MINOR@.@VTE_SO_REVISION@
 
-EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
+EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_SOURCES = \
 	box_drawing_generate.sh \
 	marshal.list \
 	vteseq-n.gperf \
@@ -36,7 +37,7 @@ EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtetypebuiltins.h.template \
 	$(NULL)
 
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_SOURCES = \
 	vte/vte.h \
 	vte/vtedeprecated.h \
 	vte/vteenums.h \
@@ -94,7 +95,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteutils.h \
 	$(NULL)
 
-nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
+nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_SOURCES = \
 	box_drawing.h \
 	marshal.cc \
 	marshal.h \
@@ -104,7 +105,7 @@ nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vte/vteversion.h \
 	$(NULL)
 
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_CPPFLAGS = \
 	-DG_LOG_DOMAIN=\"Vte\" \
 	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
 	-DDATADIR='"$(datadir)"' \
@@ -116,16 +117,17 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-I$(builddir)/vte \
 	$(AM_CPPFLAGS)
 
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CXXFLAGS = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_CXXFLAGS = \
 	$(VTE_CFLAGS) \
-	$(AM_CXXFLAGS)
+	$(AM_CXXFLAGS) \
+	-fPIC -DPIC
 
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LDFLAGS = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_LDFLAGS = \
 	$(VTE_CXXLDFLAGS) \
-	-version-info $(LT_VERSION_INFO) \
+	-shared -Wl,-soname=libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR) \
 	$(AM_LDFLAGS)
 
-libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
+libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_so_@VTE_SO_MAJOR@_@VTE_SO_MINOR@_@VTE_SO_REVISION@_LDADD = \
 	$(VTE_LIBS)
 
 # Generated sources
@@ -170,6 +172,19 @@ vteseq-list.h: vteseq-n.gperf
 vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate-source --c-name _vte $<
 
+# Library symlinks
+
+libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR) libvte-$(VTE_API_VERSION).so: libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION)
+	$(AM_V_GEN)$(LN_S) -f libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION) $@
+
+install-data-hook:
+	$(LN_S) -f libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION) $(DESTDIR)$(shlibdir)/libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR)
+	$(LN_S) -f libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION) $(DESTDIR)$(shlibdir)/libvte-$(VTE_API_VERSION).so
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(shlibdir)/libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR)
+	rm -f $(DESTDIR)$(shlibdir)/libvte-$(VTE_API_VERSION).so
+
 # introspection
 
 INTROSPECTION_GIRS =
@@ -179,10 +194,10 @@ INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
 if HAVE_INTROSPECTION
 include $(INTROSPECTION_MAKEFILE)
 
-Vte-@VTE_API_VERSION@.gir: libvte-$(VTE_API_VERSION).la
+Vte-@VTE_API_VERSION@.gir: libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION)
 Vte_@VTE_API_VERSION_U@_gir_INCLUDES = Pango-1.0 Gdk-$(GTK_API_VERSION) Gtk-$(GTK_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_CFLAGS = $(VTE_CFLAGS) -DVTE_COMPILATION -I$(builddir)/vte -I$(srcdir)/vte
-Vte_@VTE_API_VERSION_U@_gir_LIBS = libvte-$(VTE_API_VERSION).la
+Vte_@VTE_API_VERSION_U@_gir_LIBS = vte-$(VTE_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_EXPORT_PACKAGES = vte-$(VTE_API_VERSION)
 Vte_@VTE_API_VERSION_U@_gir_SCANNERFLAGS = --c-include "vte/vte.h"
 Vte_@VTE_API_VERSION_U@_gir_FILES = \
@@ -249,7 +264,7 @@ testvte_CFLAGS = \
 	$(AM_CFLAGS)
 
 testvte_LDADD = \
-	libvte-$(VTE_API_VERSION).la \
+	libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION) \
 	$(VTE_LIBS)
 
 # VALA Test application
@@ -296,7 +311,7 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDFLAGS = \
 	$(NULL)
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
-	libvte-$(VTE_API_VERSION).la \
+	libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION) \
 	$(VTE_LIBS) \
 	$(NULL)
 
@@ -367,7 +382,7 @@ reflect_text_view_LDADD = $(VTE_LIBS)
 reflect_vte_CPPFLAGS = -DUSE_VTE  -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
 reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
-reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
+reflect_vte_LDADD = libvte-$(VTE_API_VERSION).so.$(VTE_SO_MAJOR).$(VTE_SO_MINOR).$(VTE_SO_REVISION)
 
 interpret_SOURCES = \
 	buffer.h \

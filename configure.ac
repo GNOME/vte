@@ -23,15 +23,16 @@ fi
 AM_MAINTAINER_MODE([enable])
 
 ################################################################################
-# Libtool versioning
+# Library versioning
 ################################################################################
-m4_define([lt_revision], m4_if(m4_eval(version_minor%2),1,0,version_micro))
-m4_define([lt_age], m4_eval(version_minor*100+version_micro-lt_revision))
-m4_define([lt_current], m4_eval(version_major+lt_age))
-m4_define([lt_triplet],lt_current:lt_revision:lt_age)
 
-LT_VERSION_INFO="lt_triplet()"
-AC_SUBST([LT_VERSION_INFO])
+m4_define([so_revision], m4_if(m4_eval(version_minor%2),1,0,version_micro))
+m4_define([so_version_major],version_major)
+m4_define([so_version_minor],m4_eval(version_minor*100+version_micro-so_revision))
+
+AC_SUBST([VTE_SO_MAJOR],so_version_major)
+AC_SUBST([VTE_SO_MINOR],so_version_minor)
+AC_SUBST([VTE_SO_REVISION],so_revision)
 
 ################################################################################
 # GTK+
@@ -60,16 +61,12 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_HEADER_STDC
 AM_PROG_CC_C_O
 AC_PROG_SED
+AC_PROG_LN_S
+AC_PROG_RANLIB
 
 AX_CXX_COMPILE_STDCXX([11])
 
 AC_SYS_LARGEFILE
-
-# Initialize libtool
-LT_PREREQ([2.2])
-LT_INIT
-LT_LANG([C])
-LT_LANG([C++])
 
 AM_CONDITIONAL([HAVE_GCC],[test "$GCC" = "yes"])
 AM_CONDITIONAL([HAVE_GXX],[test "$GXX" = "yes"])
