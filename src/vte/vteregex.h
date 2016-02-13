@@ -33,30 +33,24 @@ typedef struct _VteRegex VteRegex;
 
 #define VTE_TYPE_REGEX (vte_regex_get_type())
 
-_VTE_PUBLIC
 GType vte_regex_get_type (void);
 
 #define VTE_REGEX_ERROR (vte_regex_error_quark())
 
-_VTE_PUBLIC
 GQuark vte_regex_error_quark (void);
 
 /* This is PCRE2_NO_UTF_CHECK | PCRE2_UTF | PCRE2_NEVER_BACKSLASH_C */
 #define VTE_REGEX_FLAGS_DEFAULT (0x00080000u | 0x40000000u | 0x00100000u)
 
-_VTE_PUBLIC
 VteRegex *vte_regex_ref      (VteRegex *regex) _VTE_GNUC_NONNULL(1);
 
-_VTE_PUBLIC
 VteRegex *vte_regex_unref    (VteRegex *regex) _VTE_GNUC_NONNULL(1);
 
-_VTE_PUBLIC
 VteRegex *vte_regex_new      (const char *pattern,
                               gssize      pattern_length,
                               guint32     flags,
                               GError    **error) _VTE_GNUC_NONNULL(1);
 
-_VTE_PUBLIC
 gboolean  vte_regex_jit     (VteRegex *regex,
                              guint32   flags,
                              GError  **error) _VTE_GNUC_NONNULL(1);
