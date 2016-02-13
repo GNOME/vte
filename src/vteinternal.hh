@@ -302,7 +302,7 @@ public:
         guint m_pty_input_source;
         guint m_pty_output_source;
         gboolean m_pty_input_active;
-        GPid m_pty_pid;	                /* pid of child using pty slave */
+        GPid m_pty_pid;	                /* pid of child process */
         guint m_child_watch_source;
 
 	/* Input data queues. */

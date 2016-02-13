@@ -142,11 +142,10 @@ vte_pty_child_setup (VtePty *pty)
                 signal(n, SIG_DFL);
         }
 
-        int masterfd = priv->pty_fd;
+        auto masterfd = priv->pty_fd;
         if (masterfd == -1)
                 _exit(127);
 
-        /* Read the slave number and unlock it. */
         if (grantpt(masterfd) != 0) {
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "grantpt");
                 _exit(127);
@@ -220,8 +219,7 @@ vte_pty_child_setup (VtePty *pty)
 		}
 	}
 
-	/* Close the original slave descriptor, unless it's one of the stdio
-	 * descriptors. */
+	/* Close the original FD, unless it's one of the stdio descriptors */
 	if (fd != STDIN_FILENO &&
 			fd != STDOUT_FILENO &&
 			fd != STDERR_FILENO) {
