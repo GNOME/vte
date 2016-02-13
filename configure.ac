@@ -234,11 +234,7 @@ AM_CONDITIONAL([WITH_GNUTLS],[test "$with_gnutls" = "yes"])
 
 # PCRE2
 
-AC_MSG_CHECKING([whether PCRE2 support is requested])
-AC_ARG_WITH([pcre2],
-  [AS_HELP_STRING([--without-pcre2],[Disable pcre2 support])],
-  [],[with_pcre2=yes])
-AC_MSG_RESULT([$with_pcre2])
+with_pcre2=no
 
 PCRE2_PKGS=
 if test "$with_pcre2" = "yes"; then

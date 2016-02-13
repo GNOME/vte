@@ -22,3 +22,11 @@ gboolean _vte_regex_get_jited(VteRegex *regex);
 #ifdef WITH_PCRE2
 const pcre2_code_8 *_vte_regex_get_pcre (VteRegex *regex);
 #endif
+
+typedef enum {
+        /* Negative values are PCRE2 errors */
+
+        /* VTE specific values */
+        VTE_REGEX_ERROR_INCOMPATIBLE  = G_MAXINT-1,
+        VTE_REGEX_ERROR_NOT_SUPPORTED = G_MAXINT
+} VteRegexError;

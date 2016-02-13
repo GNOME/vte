@@ -63,9 +63,6 @@
       <xi:include href="xml/vte-terminal.xml"/>
     </chapter>
     <chapter>
-      <xi:include href="xml/vte-regex.xml"/>
-    </chapter>
-    <chapter>
       <xi:include href="xml/vte-pty.xml"/>
     </chapter>
     <chapter>

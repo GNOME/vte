@@ -31,7 +31,6 @@
 #include "vteenums.h"
 #include "vtemacros.h"
 #include "vtepty.h"
-#include "vteregex.h"
 
 G_BEGIN_DECLS
 
@@ -338,9 +337,9 @@ void vte_terminal_get_cursor_position(VteTerminal *terminal,
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
 _VTE_PUBLIC
-int vte_terminal_match_add_regex(VteTerminal *terminal,
-                                 VteRegex *regex,
-                                 guint32 flags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+int vte_terminal_match_add_gregex(VteTerminal *terminal,
+                                  GRegex *gregex,
+                                  GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 /* Set the cursor to be used when the pointer is over a given match. */
 _VTE_PUBLIC
 void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
@@ -364,19 +363,20 @@ char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
                                      int *tag) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
 _VTE_PUBLIC
-gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
-                                               GdkEvent *event,
-                                               VteRegex **regexes,
-                                               gsize n_regexes,
-                                               guint32 match_flags,
-                                               char **matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+gboolean vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
+                                                GdkEvent *event,
+                                                GRegex **regexes,
+                                                gsize n_regexes,
+                                                GRegexMatchFlags match_flags,
+                                                char **matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_PUBLIC
-void      vte_terminal_search_set_regex      (VteTerminal *terminal,
-                                              VteRegex    *regex,
-                                              guint32      flags) _VTE_GNUC_NONNULL(1);
+void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
+					       GRegex      *gregex,
+                                               GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
-VteRegex *vte_terminal_search_get_regex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 _VTE_PUBLIC
 void      vte_terminal_search_set_wrap_around (VteTerminal *terminal,
 					       gboolean     wrap_around) _VTE_GNUC_NONNULL(1);
