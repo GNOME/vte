@@ -31,8 +31,6 @@
 #include "vteregexinternal.hh"
 #endif
 
-#include "vteregex.h"
-
 typedef enum {
         VTE_REGEX_UNDECIDED,
         VTE_REGEX_PCRE2,

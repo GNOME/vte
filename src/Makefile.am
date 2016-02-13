@@ -16,6 +16,7 @@ header_HEADERS = \
 	vte/vteglobals.h \
 	vte/vtemacros.h \
 	vte/vtepty.h \
+	vte/vteregex.h \
 	vte/vteterminal.h \
 	$(NULL)
 
@@ -302,9 +303,9 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
 if HAVE_GTK_3_16
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += -D GTK_3_16
 endif
-#if WITH_PCRE2
-#vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += -D WITH_PCRE2
-#endif
+if WITH_PCRE2
+vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += -D WITH_PCRE2
+endif
 
 CLEANFILES += \
 	app.c \

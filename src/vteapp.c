@@ -31,7 +31,6 @@
 #include "debug.h"
 
 #undef VTE_DISABLE_DEPRECATED
-#undef WITH_PCRE2
 #include <vte/vte.h>
 
 #ifdef WITH_PCRE2

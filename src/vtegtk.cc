@@ -84,25 +84,6 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
 
 #define IMPL(t) (reinterpret_cast<VteTerminalPrivate*>(vte_terminal_get_instance_private(t)))
 
-
-int vte_terminal_match_add_regex(VteTerminal *terminal,
-                                 VteRegex *regex,
-                                 guint32 flags);
-
-gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
-                                               GdkEvent *event,
-                                               VteRegex **regexes,
-                                               gsize n_regexes,
-                                               guint32 match_flags,
-                                               char **matches);
-
-void      vte_terminal_search_set_regex      (VteTerminal *terminal,
-                                              VteRegex    *regex,
-                                              guint32      flags);
-
-VteRegex *vte_terminal_search_get_regex      (VteTerminal *terminal);
-
-
 guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
 GTimer *process_timer;
@@ -1696,6 +1677,8 @@ vte_terminal_paste_primary(VteTerminal *terminal)
  *
  * Returns: an integer associated with this expression, or -1 if @gregex could not be
  *   transformed into a #VteRegex or @flags were incompatible
+ *
+ * Deprecated: 0.44: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
  */
 int
 vte_terminal_match_add_gregex(VteTerminal *terminal,
@@ -1867,6 +1850,9 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
  * %NULL is stored there.
  *
  * Returns: %TRUE iff any of the regexes produced a match
+ *
+ * Since: 0.44
+ * Deprecated: 0.44: Use vte_terminal_event_check_regex_simple() instead.
  */
 gboolean
 vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
@@ -2052,6 +2038,8 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
  * @gflags: flags from #GRegexMatchFlags
  *
  * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
+ *
+ * Deprecated: 0.44: use vte_terminal_search_set_regex() instead.
  */
 void
 vte_terminal_search_set_gregex (VteTerminal *terminal,
@@ -2068,6 +2056,8 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
+ *
+ * Deprecated: 0.44: use vte_terminal_search_get_regex() instead.
  */
 GRegex *
 vte_terminal_search_get_gregex (VteTerminal *terminal)
