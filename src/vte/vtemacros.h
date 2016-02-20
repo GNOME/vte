@@ -29,10 +29,14 @@
 #define _VTE_GNUC_PACKED
 #endif  /* !__GNUC__ */
 
+#ifdef VTE_COMPILATION
+#define _VTE_GNUC_NONNULL(position)
+#else
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 2)
 #define _VTE_GNUC_NONNULL(position) __attribute__((__nonnull__(position)))
 #else
 #define _VTE_GNUC_NONNULL(position)
+#endif
 #endif
 
 #define _VTE_PUBLIC __attribute__((__visibility__("default"))) extern
