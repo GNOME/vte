@@ -5874,8 +5874,12 @@ clipboard_clear_cb(GtkClipboard *clipboard,
 void
 VteTerminalPrivate::widget_clipboard_cleared(GtkClipboard *clipboard_)
 {
+        if (m_changing_selection)
+                return;
+
 	if (clipboard_ == m_clipboard[VTE_SELECTION_PRIMARY]) {
-		if (m_has_selection) {
+		if (m_selection_owned[VTE_SELECTION_PRIMARY] &&
+                    m_has_selection) {
 			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
 			deselect_all();
 		}
@@ -6386,12 +6390,15 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 			gtk_target_list_unref (list);
 		}
 
+                m_changing_selection = true;
 		gtk_clipboard_set_with_data(m_clipboard[sel],
                                             targets,
                                             n_targets,
                                             clipboard_copy_cb,
                                             clipboard_clear_cb,
                                             this);
+                m_changing_selection = false;
+
 		gtk_clipboard_set_can_store(m_clipboard[sel], NULL, 0);
                 m_selection_owned[sel] = true;
 	}
