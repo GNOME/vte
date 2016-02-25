@@ -373,6 +373,7 @@ public:
 	/* Clipboard data information. */
         // FIXMEchpe check if this can make m_has_selection obsolete!
         bool m_selection_owned[LAST_VTE_SELECTION];
+        bool m_changing_selection;
         char *m_selection_text[LAST_VTE_SELECTION];
 #ifdef HTML_SELECTION
         char *m_selection_html[LAST_VTE_SELECTION];
