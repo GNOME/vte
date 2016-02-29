@@ -19,7 +19,7 @@
  * SECTION: vte-regex
  * @short_description: Regex for matching and searching. Uses PCRE2 internally.
  *
- * Since: 0.44
+ * Since: 0.46
  */
 
 #include "config.h"

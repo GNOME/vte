@@ -1678,7 +1678,7 @@ vte_terminal_paste_primary(VteTerminal *terminal)
  * Returns: an integer associated with this expression, or -1 if @gregex could not be
  *   transformed into a #VteRegex or @flags were incompatible
  *
- * Deprecated: 0.44: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
+ * Deprecated: 0.46: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
  */
 int
 vte_terminal_match_add_gregex(VteTerminal *terminal,
@@ -1717,7 +1717,7 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
  *
  * Returns: an integer associated with this expression
  *
- * Since: 0.44
+ * Since: 0.46
  */
 int
 vte_terminal_match_add_regex(VteTerminal *terminal,
@@ -1761,7 +1761,7 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
  * Returns: (transfer full): a newly allocated string which matches one of the previously
  *   set regular expressions
  *
- * Deprecated: 0.44: Use vte_terminal_match_check_event() instead.
+ * Deprecated: 0.46: Use vte_terminal_match_check_event() instead.
  */
 char *
 vte_terminal_match_check(VteTerminal *terminal,
@@ -1817,7 +1817,7 @@ vte_terminal_match_check_event(VteTerminal *terminal,
  *
  * Returns: %TRUE iff any of the regexes produced a match
  *
- * Since: 0.44
+ * Since: 0.46
  */
 gboolean
 vte_terminal_event_check_regex_simple(VteTerminal *terminal,
@@ -1852,7 +1852,7 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
  * Returns: %TRUE iff any of the regexes produced a match
  *
  * Since: 0.44
- * Deprecated: 0.44: Use vte_terminal_event_check_regex_simple() instead.
+ * Deprecated: 0.46: Use vte_terminal_event_check_regex_simple() instead.
  */
 gboolean
 vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
@@ -1998,7 +1998,7 @@ vte_terminal_search_find_next (VteTerminal *terminal)
  *
  * Sets the regex to search for. Unsets the search regex when passed %NULL.
  *
- * Since: 0.44
+ * Since: 0.46
  */
 void
 vte_terminal_search_set_regex (VteTerminal *terminal,
@@ -2017,7 +2017,7 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
  *
  * Returns: (transfer none): the search #VteRegex regex set in @terminal, or %NULL
  *
- * Since: 0.44
+ * Since: 0.46
  */
 VteRegex *
 vte_terminal_search_get_regex(VteTerminal *terminal)
@@ -2039,7 +2039,7 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
  *
  * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
  *
- * Deprecated: 0.44: use vte_terminal_search_set_regex() instead.
+ * Deprecated: 0.46: use vte_terminal_search_set_regex() instead.
  */
 void
 vte_terminal_search_set_gregex (VteTerminal *terminal,
@@ -2057,7 +2057,7 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
  *
  * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
  *
- * Deprecated: 0.44: use vte_terminal_search_get_regex() instead.
+ * Deprecated: 0.46: use vte_terminal_search_get_regex() instead.
  */
 GRegex *
 vte_terminal_search_get_gregex (VteTerminal *terminal)

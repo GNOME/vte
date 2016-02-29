@@ -127,7 +127,7 @@ typedef enum {
  * An enum type for regex errors. In addition to the values listed above,
  * any PCRE2 error values may occur.
  *
- * Since: 0.44
+ * Since: 0.46
  */
 typedef enum {
         /* Negative values are PCRE2 errors */
