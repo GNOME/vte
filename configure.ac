@@ -153,6 +153,7 @@ m4_define([compiler_flags_only_c],[ dnl
 ])
 
 m4_define([compiler_flags_only_cxx],[ dnl
+  -Wstrict-null-sentinel dnl
   -fno-rtti dnl
   -fno-exceptions dnl
   -fvisibility=hidden dnl
