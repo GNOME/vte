@@ -651,7 +651,7 @@ font_info_create_for_screen (GdkScreen                  *screen,
 {
 	GtkSettings *settings = gtk_settings_get_for_screen (screen);
 	int fontconfig_timestamp;
-	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, NULL);
+	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
 	return font_info_create_for_context (gdk_pango_context_get_for_screen (screen),
 					     desc, language, fontconfig_timestamp);
 }

@@ -7234,7 +7234,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 
                                 g_object_get (gtk_widget_get_settings(m_widget),
                                               "gtk-enable-primary-paste",
-                                              &do_paste, NULL);
+                                              &do_paste, nullptr);
                                 if (do_paste)
                                         vte_terminal_paste_primary(m_terminal);
 				handled = do_paste;
@@ -8337,7 +8337,7 @@ VteTerminalPrivate::widget_settings_notify()
                      "gtk-cursor-blink", &blink,
                      "gtk-cursor-blink-time", &blink_time,
                      "gtk-cursor-blink-timeout", &blink_timeout,
-                     NULL);
+                     (void *)NULL);
 
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Cursor blinking settings: blink=%d time=%d timeout=%d\n",
@@ -9985,7 +9985,7 @@ VteTerminalPrivate::update_cursor_blinks()
                 gboolean v;
                 g_object_get(gtk_widget_get_settings(m_widget),
                                                      "gtk-cursor-blink",
-                                                     &v, NULL);
+                                                     &v, nullptr);
                 blink = v != FALSE;
                 break;
         case VTE_CURSOR_BLINK_ON:
