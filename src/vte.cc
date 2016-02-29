@@ -8337,7 +8337,7 @@ VteTerminalPrivate::widget_settings_notify()
                      "gtk-cursor-blink", &blink,
                      "gtk-cursor-blink-time", &blink_time,
                      "gtk-cursor-blink-timeout", &blink_timeout,
-                     (void *)NULL);
+                     nullptr);
 
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Cursor blinking settings: blink=%d time=%d timeout=%d\n",
