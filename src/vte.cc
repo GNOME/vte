@@ -3672,6 +3672,7 @@ VteTerminalPrivate::process_incoming()
 {
 	VteVisualPosition saved_cursor;
 	gboolean saved_cursor_visible;
+        VteCursorStyle saved_cursor_style;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
 	long wcount, start;
@@ -3698,6 +3699,7 @@ VteTerminalPrivate::process_incoming()
 	/* Save the current cursor position. */
         saved_cursor = m_screen->cursor;
 	saved_cursor_visible = m_cursor_visible;
+        saved_cursor_style = m_cursor_style;
 
         in_scroll_region = m_scrolling_restricted
             && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
@@ -4060,7 +4062,8 @@ next_match:
 		check_cursor_blink();
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
-	} else if (saved_cursor_visible != m_cursor_visible) {
+        } else if ((saved_cursor_visible != m_cursor_visible) ||
+                   (saved_cursor_style != m_cursor_style)) {
                 // FIXMEchpe need to invalidate like invalidate_cursor_once() just for the saved_cursor coords!
 		invalidate_cell(saved_cursor.col, saved_cursor.row);
 		check_cursor_blink();
