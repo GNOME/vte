@@ -3701,6 +3701,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	VteScreen *screen;
 	VteVisualPosition cursor;
 	gboolean cursor_visible;
+        VteCursorStyle cursor_style;
 	GdkPoint bbox_topleft, bbox_bottomright;
 	gunichar *wbuf, c;
 	long wcount, start, delta;
@@ -3725,6 +3726,7 @@ vte_terminal_process_incoming(VteTerminal *terminal)
 	/* Save the current cursor position. */
         cursor = screen->cursor;
 	cursor_visible = terminal->pvt->cursor_visible;
+        cursor_style = terminal->pvt->cursor_style;
 
         in_scroll_region = terminal->pvt->scrolling_restricted
             && (screen->cursor.row >= (screen->insert_delta + terminal->pvt->scrolling_region.start))
@@ -4085,7 +4087,8 @@ next_match:
 		_vte_check_cursor_blink(terminal);
 		/* Signal that the cursor moved. */
 		vte_terminal_queue_cursor_moved(terminal);
-	} else if (cursor_visible != terminal->pvt->cursor_visible) {
+        } else if ((cursor_visible != terminal->pvt->cursor_visible) ||
+                   (cursor_style != terminal->pvt->cursor_style)) {
 		_vte_invalidate_cell(terminal, cursor.col, cursor.row);
 		_vte_check_cursor_blink(terminal);
 	}
