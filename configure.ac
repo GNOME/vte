@@ -215,8 +215,6 @@ fi
 
 AM_CONDITIONAL([WITH_GNUTLS],[test "$with_gnutls" = "yes"])
 
-AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
-
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
