@@ -255,8 +255,6 @@ AM_CONDITIONAL([WITH_PCRE2],[test "$with_pcre2" = "yes"])
 
 # GLIB tools
 
-AC_DEFINE(GDK_MULTIHEAD_SAFE,1,[Force use of GDK multihead-safe APIs.])
-
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
 AC_PATH_PROG([GLIB_MKENUMS],[glib-mkenums])
 
