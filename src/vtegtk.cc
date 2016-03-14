@@ -636,6 +636,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 #if GTK_CHECK_VERSION(3, 19, 5)
         gtk_widget_class_set_css_name(widget_class, VTE_TERMINAL_CSS_NAME);
+#else
+        /* Bug #763538 */
+        if (gtk_check_version(3, 19, 5) == nullptr)
+                g_printerr("VTE needs to be recompiled against a newer gtk+ version.\n");
 #endif
 
 	/* Initialize default handlers. */
