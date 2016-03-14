@@ -951,6 +951,8 @@ public:
                               guint y);
         void emit_resize_window(guint columns,
                                 guint rows);
+        void emit_copy_clipboard();
+        void emit_paste_clipboard();
 
         void clear_tabstop(int column); // FIXMEchpe vte::grid::column_t ?
         bool get_tabstop(int column);

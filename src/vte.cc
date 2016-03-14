@@ -908,6 +908,20 @@ VteTerminalPrivate::emit_text_scrolled(long delta)
 }
 
 void
+VteTerminalPrivate::emit_copy_clipboard()
+{
+	_vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting 'copy-clipboard'.\n");
+	g_signal_emit(m_terminal, signals[SIGNAL_COPY_CLIPBOARD], 0);
+}
+
+void
+VteTerminalPrivate::emit_paste_clipboard()
+{
+	_vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting 'paste-clipboard'.\n");
+	g_signal_emit(m_terminal, signals[SIGNAL_PASTE_CLIPBOARD], 0);
+}
+
+void
 VteTerminalPrivate::deselect_all()
 {
 	if (m_has_selection) {
@@ -3545,7 +3559,7 @@ VteTerminalPrivate::watch_child (GPid child_pid)
                                        (GChildWatchFunc)child_watch_cb,
                                        this, nullptr);
 
-        /* FIXMEchpe: call vte_terminal_set_size here? */
+        /* FIXMEchpe: call set_size() here? */
 
         g_object_thaw_notify(object);
 }
@@ -3622,9 +3636,9 @@ VteTerminalPrivate::spawn_sync(VtePtyFlags pty_flags,
                 return false;
         }
 
-        vte_terminal_set_pty(m_terminal, new_pty);
-        vte_terminal_watch_child(m_terminal, pid);
+        set_pty(new_pty);
         g_object_unref (new_pty);
+        watch_child(pid);
 
         if (child_pid)
                 *child_pid = pid;
@@ -4677,7 +4691,7 @@ VteTerminalPrivate::im_update_cursor()
 void
 VteTerminalPrivate::widget_style_updated()
 {
-        vte_terminal_set_font(m_terminal, m_unscaled_font_desc);
+        set_font_desc(m_unscaled_font_desc);
 
         auto context = gtk_widget_get_style_context(m_widget);
         GtkBorder new_padding;
@@ -5052,16 +5066,16 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		case GDK_KEY_Insert:
 			if (m_modifiers & GDK_SHIFT_MASK) {
 				if (m_modifiers & GDK_CONTROL_MASK) {
-					vte_terminal_paste_clipboard(m_terminal);
+                                        emit_paste_clipboard();
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				} else {
-					vte_terminal_paste_primary(m_terminal);
+                                        widget_paste(GDK_SELECTION_PRIMARY);
 					handled = TRUE;
 					suppress_meta_esc = TRUE;
 				}
 			} else if (m_modifiers & GDK_CONTROL_MASK) {
-				vte_terminal_copy_clipboard(m_terminal);
+                                emit_copy_clipboard();
 				handled = TRUE;
 				suppress_meta_esc = TRUE;
 			}
@@ -5218,9 +5232,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
 			    (m_modifiers & VTE_META_MASK)) {
-				vte_terminal_feed_child(m_terminal,
-							_VTE_CAP_ESC,
-							1);
+				feed_child(_VTE_CAP_ESC, 1);
 			}
 			if (normal_length > 0) {
 				feed_child_using_modes(normal, normal_length);
@@ -5583,7 +5595,7 @@ VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined
 	}
 
 	/* Send event direct to the child, this is binary not text data */
-	vte_terminal_feed_child_binary(m_terminal, (guint8*) buf, len);
+	feed_child_binary((guint8*) buf, len);
 
         return true;
 }
@@ -5595,7 +5607,7 @@ VteTerminalPrivate::feed_focus_event(bool in)
         gsize len;
 
         len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%c", in ? 'I' : 'O');
-        vte_terminal_feed_child_binary(m_terminal, (guint8 *)buf, len);
+        feed_child_binary((guint8 *)buf, len);
 }
 
 void
@@ -6527,7 +6539,7 @@ VteTerminalPrivate::maybe_end_selection()
 		if (m_has_selection &&
 		    !m_selecting_restart &&
 		    m_selecting_had_delta) {
-			vte_terminal_copy_primary(m_terminal);
+                        widget_copy(VTE_SELECTION_PRIMARY);
 			emit_selection_changed();
 		}
 		m_selecting = false;
@@ -6999,7 +7011,7 @@ VteTerminalPrivate::select_all()
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-	vte_terminal_copy_primary(m_terminal);
+        widget_copy(VTE_SELECTION_PRIMARY);
 	emit_selection_changed();
 
 	invalidate_all();
@@ -7240,7 +7252,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
                                               "gtk-enable-primary-paste",
                                               &do_paste, nullptr);
                                 if (do_paste)
-                                        vte_terminal_paste_primary(m_terminal);
+                                        widget_paste(GDK_SELECTION_PRIMARY);
 				handled = do_paste;
 			}
 			break;
@@ -7557,8 +7569,7 @@ VteTerminalPrivate::ensure_font()
 	if (m_draw != NULL) {
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!m_has_fonts) {
-			vte_terminal_set_font(m_terminal,
-                                              m_unscaled_font_desc);
+			set_font_desc(m_unscaled_font_desc);
 		}
 		if (m_fontdirty) {
 			gint width, height, ascent;
@@ -7871,8 +7882,8 @@ VteTerminalPrivate::set_size(long columns,
 			screen_set_size(&m_alternate_screen, old_columns, old_rows, false);
 
                 /* Ensure scrollback buffers cover the screen. */
-                vte_terminal_set_scrollback_lines(m_terminal,
-                                                  m_scrollback_lines);
+                set_scrollback_lines(m_scrollback_lines);
+
                 /* Ensure the cursor is valid */
                 m_screen->cursor.row = CLAMP (m_screen->cursor.row,
                                               _vte_ring_delta (m_screen->row_data),
@@ -8040,7 +8051,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_outgoing = _vte_byte_array_new();
 	m_outgoing_conv = VTE_INVALID_CONV;
 	m_conv_buffer = _vte_byte_array_new();
-	vte_terminal_set_encoding(m_terminal, NULL /* UTF-8 */, NULL);
+	set_encoding(nullptr /* UTF-8 */);
 	g_assert_cmpstr(m_encoding, ==, "UTF-8");
 
         /* Set up the emulation. */
@@ -8055,7 +8066,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         m_pty = nullptr;
-        vte_terminal_set_size(m_terminal, VTE_COLUMNS, VTE_ROWS);
+        set_size(VTE_COLUMNS, VTE_ROWS);
 	m_pty_input_source = 0;
 	m_pty_output_source = 0;
 	m_pty_pid = -1;
@@ -8064,7 +8075,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_scroll_on_keystroke = TRUE;
 	m_alternate_screen_scroll = TRUE;
         m_scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
-	vte_terminal_set_scrollback_lines(m_terminal, VTE_SCROLLBACK_INIT);
+	set_scrollback_lines(VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
 	display = gtk_widget_get_display(m_widget);
@@ -8074,8 +8085,8 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_selection_owned[VTE_SELECTION_CLIPBOARD] = false;
 
 	/* Miscellaneous options. */
-	vte_terminal_set_backspace_binding(m_terminal, VTE_ERASE_AUTO);
-	vte_terminal_set_delete_binding(m_terminal, VTE_ERASE_AUTO);
+	set_backspace_binding(VTE_ERASE_AUTO);
+	set_delete_binding(VTE_ERASE_AUTO);
 	m_meta_sends_escape = TRUE;
 	m_audible_bell = TRUE;
 	m_bell_margin = 10;
@@ -8122,7 +8133,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_background_alpha = 1.;
 
         /* Word chars */
-        vte_terminal_set_word_char_exceptions(m_terminal, WORD_CHAR_EXCEPTIONS_DEFAULT);
+        set_word_char_exceptions(WORD_CHAR_EXCEPTIONS_DEFAULT);
 
         /* Selection */
 	m_selection_block_mode = FALSE;
@@ -8228,7 +8239,7 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 			|| update_scrollback)
 	{
 		/* Set the size of the pseudo-terminal. */
-		vte_terminal_set_size(m_terminal, width, height);
+		set_size(width, height);
 
 		/* Notify viewers that the contents have changed. */
 		queue_contents_changed();
@@ -10276,7 +10287,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         /* For some reason, xterm doesn't reset alternateScroll, but we do. */
         m_alternate_screen_scroll = TRUE;
 	/* Reset the encoding. */
-	vte_terminal_set_encoding(m_terminal, NULL /* UTF-8 */, NULL);
+	set_encoding(nullptr /* UTF-8 */);
 	g_assert_cmpstr(m_encoding, ==, "UTF-8");
 	/* Reset selection. */
 	deselect_all();
@@ -10378,9 +10389,7 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
         m_pty_channel = g_io_channel_unix_new(pty_master);
         g_io_channel_set_close_on_unref(m_pty_channel, FALSE);
 
-        vte_terminal_set_size(m_terminal,
-                              m_column_count,
-                              m_row_count);
+        set_size(m_column_count, m_row_count);
 
         GError *error = nullptr;
         if (!vte_pty_set_utf8(m_pty,

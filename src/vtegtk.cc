@@ -1152,7 +1152,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted whenever vte_terminal_copy_clipboard() is called.
          */
-	signals[COPY_CLIPBOARD] =
+	signals[SIGNAL_COPY_CLIPBOARD] =
                 g_signal_new(I_("copy-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     (GSignalFlags)(G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION),
@@ -1168,7 +1168,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Emitted whenever vte_terminal_paste_clipboard() is called.
          */
-	signals[PASTE_CLIPBOARD] =
+	signals[SIGNAL_PASTE_CLIPBOARD] =
                 g_signal_new(I_("paste-clipboard"),
 			     G_OBJECT_CLASS_TYPE(klass),
 			     (GSignalFlags)(G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION),
@@ -1617,7 +1617,8 @@ void
 vte_terminal_copy_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_signal_emit (terminal, signals[COPY_CLIPBOARD], 0);
+
+        IMPL(terminal)->emit_copy_clipboard();
 }
 
 /**
@@ -1648,7 +1649,8 @@ void
 vte_terminal_paste_clipboard(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-	g_signal_emit (terminal, signals[PASTE_CLIPBOARD], 0);
+
+        IMPL(terminal)->emit_paste_clipboard();
 }
 
 /**
