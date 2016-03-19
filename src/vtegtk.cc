@@ -54,6 +54,7 @@
 #include "vteaccess.h"
 
 #include "vtegtk.hh"
+#include "vteregexinternal.hh"
 
 #if !GLIB_CHECK_VERSION(2, 42, 0)
 #define G_PARAM_EXPLICIT_NOTIFY 0
