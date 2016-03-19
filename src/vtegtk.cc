@@ -1734,6 +1734,7 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
 
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	g_return_val_if_fail(regex != NULL, -1);
+        g_return_val_if_fail(_vte_regex_has_purpose(regex, VteRegexPurpose::match), -1);
 
         auto impl = IMPL(terminal);
         /* Can't mix GRegex and PCRE2 */
@@ -1836,6 +1837,8 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(event != NULL, FALSE);
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
+        for (gsize i = 0; i < n_regexes; i++)
+                g_return_val_if_fail(_vte_regex_has_purpose(regexes[i], VteRegexPurpose::match), -1);
         g_return_val_if_fail(matches != NULL, FALSE);
 
         return IMPL(terminal)->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
@@ -1947,6 +1950,7 @@ void
 vte_terminal_match_remove(VteTerminal *terminal, int tag)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(tag != -1);
         IMPL(terminal)->regex_match_remove(tag);
 }
 
@@ -2013,6 +2017,8 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
 {
 #ifdef WITH_PCRE2
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(regex == NULL || _vte_regex_has_purpose(regex, VteRegexPurpose::search));
+
         IMPL(terminal)->search_set_regex(regex, flags);
 #endif
 }

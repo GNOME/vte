@@ -132,7 +132,7 @@ class SearchPopover : Gtk.Popover
             flags |= 0x00000008u; /* PCRE2_CASELESS */
           if (multiline)
             flags |= 0x00000400u; /* PCRE2_MULTILINE */
-          regex = new Vte.Regex(pattern, pattern.length, flags);
+          regex = new Vte.Regex.for_search(pattern, pattern.length, flags);
 
           try {
             regex.jit(0x00000001u /* PCRE2_JIT_COMPLETE */);
@@ -400,8 +400,8 @@ class Window : Gtk.ApplicationWindow
         if (!App.Options.no_pcre) {
           Vte.Regex regex;
 
-          regex = new Vte.Regex(dingus[i], dingus[i].length,
-                                0x40080408u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_CASELESS | PCRE2_MULTILINE */);
+          regex = new Vte.Regex.for_match(dingus[i], dingus[i].length,
+                                          0x40080408u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_CASELESS | PCRE2_MULTILINE */);
           try {
             regex.jit(0x00000001u /* PCRE2_JIT_COMPLETE */);
             regex.jit(0x00000002u /* PCRE2_JIT_PARTIAL_SOFT */);

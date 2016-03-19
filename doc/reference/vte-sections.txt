@@ -136,7 +136,8 @@ VteTerminalClassPrivate
 VteRegex
 vte_regex_ref
 vte_regex_unref
-vte_regex_new
+vte_regex_new_for_match
+vte_regex_new_for_search
 vte_regex_jit
 
 <SUBSECTION Standard>

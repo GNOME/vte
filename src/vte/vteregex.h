@@ -51,10 +51,16 @@ _VTE_PUBLIC
 VteRegex *vte_regex_unref    (VteRegex *regex) _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-VteRegex *vte_regex_new      (const char *pattern,
-                              gssize      pattern_length,
-                              guint32     flags,
-                              GError    **error) _VTE_GNUC_NONNULL(1);
+VteRegex *vte_regex_new_for_match (const char *pattern,
+                                   gssize      pattern_length,
+                                   guint32     flags,
+                                   GError    **error) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+VteRegex *vte_regex_new_for_search (const char *pattern,
+                                    gssize      pattern_length,
+                                    guint32     flags,
+                                    GError    **error) _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean  vte_regex_jit     (VteRegex *regex,

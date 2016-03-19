@@ -36,6 +36,7 @@
 
 struct _VteRegex {
         volatile int ref_count;
+        VteRegexPurpose purpose;
 #ifdef WITH_PCRE2
         pcre2_code_8 *code;
 #endif /* WITH_PCRE2 */
@@ -54,12 +55,14 @@ struct _VteRegex {
 #ifdef WITH_PCRE2
 
 static VteRegex *
-regex_new(pcre2_code_8 *code)
+regex_new(pcre2_code_8 *code,
+          VteRegexPurpose purpose)
 {
         VteRegex *regex;
 
         regex = g_slice_new(VteRegex);
         regex->ref_count = 1;
+        regex->purpose = purpose;
         regex->code = code;
 
         return regex;
@@ -142,24 +145,9 @@ vte_regex_unref(VteRegex *regex)
         return NULL;
 }
 
-/**
- * vte_regex_new:
- * @pattern: a regex pattern string
- * @pattern_length: the length of @pattern in bytes, or -1 if the
- *  string is NUL-terminated and the length is unknown
- * @flags: PCRE2 compile flags
- * @error: (allow-none): return location for a #GError, or %NULL
- *
- * Compiles @pattern into a regex. See man:pcre2pattern(3) for information
- * about the supported regex language.
- *
- * The regex will be compiled using %PCRE2_UTF and possibly other flags, in
- * addition to the flags supplied in @flags.
- *
- * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
- */
-VteRegex *
-vte_regex_new(const char *pattern,
+static VteRegex *
+vte_regex_new(VteRegexPurpose purpose,
+              const char *pattern,
               gssize      pattern_length,
               guint32     flags,
               GError    **error)
@@ -199,11 +187,74 @@ vte_regex_new(const char *pattern,
                 return NULL;
         }
 
-        return regex_new(code);
+        return regex_new(code, purpose);
 #else
         set_unsupported_error(error);
         return NULL;
 #endif /* WITH_PCRE2 */
+}
+
+/**
+ * vte_regex_new_for_match:
+ * @pattern: a regex pattern string
+ * @pattern_length: the length of @pattern in bytes, or -1 if the
+ *  string is NUL-terminated and the length is unknown
+ * @flags: PCRE2 compile flags
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Compiles @pattern into a regex for use as a match regex
+ * with vte_terminal_match_add_regex() or
+ * vte_terminal_event_check_regex_simple().
+ *
+ * See man:pcre2pattern(3) for information
+ * about the supported regex language.
+ *
+ * The regex will be compiled using %PCRE2_UTF and possibly other flags, in
+ * addition to the flags supplied in @flags.
+ *
+ * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
+ */
+VteRegex *
+vte_regex_new_for_match(const char *pattern,
+                        gssize      pattern_length,
+                        guint32     flags,
+                        GError    **error)
+{
+        return vte_regex_new(VteRegexPurpose::match,
+                             pattern, pattern_length,
+                             flags,
+                             error);
+}
+
+/**
+ * vte_regex_new_for_search:
+ * @pattern: a regex pattern string
+ * @pattern_length: the length of @pattern in bytes, or -1 if the
+ *  string is NUL-terminated and the length is unknown
+ * @flags: PCRE2 compile flags
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Compiles @pattern into a regex for use as a search regex
+ * with vte_terminal_search_set_regex().
+ *
+ * See man:pcre2pattern(3) for information
+ * about the supported regex language.
+ *
+ * The regex will be compiled using %PCRE2_UTF and possibly other flags, in
+ * addition to the flags supplied in @flags.
+ *
+ * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
+ */
+VteRegex *
+vte_regex_new_for_search(const char *pattern,
+                         gssize      pattern_length,
+                         guint32     flags,
+                         GError    **error)
+{
+        return vte_regex_new(VteRegexPurpose::search,
+                             pattern, pattern_length,
+                             flags,
+                             error);
 }
 
 #if 0
@@ -238,6 +289,13 @@ vte_regex_new_pcre(pcre2_code_8 *code,
 #endif
 }
 #endif
+
+gboolean
+_vte_regex_has_purpose(VteRegex *regex,
+                       VteRegexPurpose purpose)
+{
+        return regex->purpose == purpose;
+}
 
 #ifdef WITH_PCRE2
 /*

@@ -171,7 +171,7 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 		}
 #ifdef WITH_PCRE2
                 if (!use_gregex) {
-                        VteRegex *regex = vte_regex_new("\\d+", -1, PCRE2_UTF, NULL);
+                        VteRegex *regex = vte_regex_new_for_match("\\d+", -1, PCRE2_UTF, NULL);
                         has_extra_match = vte_terminal_event_check_regex_simple(terminal,
                                                                                 (GdkEvent*)event,
                                                                                 &regex, 1,
@@ -569,9 +569,9 @@ add_dingus (VteTerminal *terminal,
                 VteRegex *regex = NULL;
 
                 if (!use_gregex)
-                        regex = vte_regex_new(dingus[i], -1,
-                                              PCRE2_UTF | PCRE2_NO_UTF_CHECK,
-                                              &error);
+                        regex = vte_regex_new_for_match(dingus[i], -1,
+                                                        PCRE2_UTF | PCRE2_NO_UTF_CHECK,
+                                                        &error);
                 else
 #endif
                         gregex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE | G_REGEX_MULTILINE, 0, &error);

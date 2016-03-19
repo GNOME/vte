@@ -17,6 +17,14 @@
 
 #pragma once
 
+enum class VteRegexPurpose {
+        match,
+        search
+};
+
+gboolean _vte_regex_has_purpose(VteRegex *regex,
+                                VteRegexPurpose purpose);
+
 gboolean _vte_regex_get_jited(VteRegex *regex);
 
 #ifdef WITH_PCRE2
