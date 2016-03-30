@@ -4055,8 +4055,7 @@ next_match:
         if ((saved_cursor.col != m_screen->cursor.col) ||
             (saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
-                // FIXMEchpe shouldn't this be old_cursor_visible with an 'auto old_cursor_visible = ...'above?
-		if (m_cursor_visible)
+		if (saved_cursor_visible)
 			invalidate_cell(saved_cursor.col, saved_cursor.row);
 		invalidate_cursor_once();
 		check_cursor_blink();
@@ -4064,7 +4063,6 @@ next_match:
 		queue_cursor_moved();
         } else if ((saved_cursor_visible != m_cursor_visible) ||
                    (saved_cursor_style != m_cursor_style)) {
-                // FIXMEchpe need to invalidate like invalidate_cursor_once() just for the saved_cursor coords!
 		invalidate_cell(saved_cursor.col, saved_cursor.row);
 		check_cursor_blink();
 	}
