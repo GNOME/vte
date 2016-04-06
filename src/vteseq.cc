@@ -1928,36 +1928,24 @@ VteTerminalPrivate::seq_tab()
                 _vte_row_data_fill (rowdata, &basic_cell.cell, newcol);
 
 		/* Insert smart tab if there's nothing in the line after
-		 * us.  Though, there may be empty cells (with non-default
-		 * background color for example.
+		 * us, not even empty cells (with non-default background
+		 * color for example).
 		 *
-		 * Notable bugs here: 545924 and 597242 */
-		{
+		 * Notable bugs here: 545924, 597242, 764330 */
+		if (col >= old_len && newcol - col <= VTE_TAB_WIDTH_MAX) {
 			glong i;
-			gboolean found = FALSE;
-			for (i = old_len; i > col; i--) {
-				const VteCell *cell = _vte_row_data_get (rowdata, i - 1);
-				if (cell->attr.fragment || cell->c != 0) {
-					found = TRUE;
-					break;
-				}
-			}
-			/* Nothing found on the line after us, turn this into
-			 * a smart tab */
-			if (!found && newcol - col <= VTE_TAB_WIDTH_MAX) {
-				VteCell *cell = _vte_row_data_get_writable (rowdata, col);
-				VteCell tab = *cell;
-				tab.attr.columns = newcol - col;
-				tab.c = '\t';
-				/* Save tab char */
-				*cell = tab;
-				/* And adjust the fragments */
-				for (i = col + 1; i < newcol; i++) {
-					cell = _vte_row_data_get_writable (rowdata, i);
-					cell->c = '\t';
-					cell->attr.columns = 1;
-					cell->attr.fragment = 1;
-				}
+			VteCell *cell = _vte_row_data_get_writable (rowdata, col);
+			VteCell tab = *cell;
+			tab.attr.columns = newcol - col;
+			tab.c = '\t';
+			/* Save tab char */
+			*cell = tab;
+			/* And adjust the fragments */
+			for (i = col + 1; i < newcol; i++) {
+				cell = _vte_row_data_get_writable (rowdata, i);
+				cell->c = '\t';
+				cell->attr.columns = 1;
+				cell->attr.fragment = 1;
 			}
 		}
 
