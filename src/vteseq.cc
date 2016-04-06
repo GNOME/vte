@@ -1925,7 +1925,7 @@ VteTerminalPrivate::seq_tab()
 		 */
 
 		old_len = _vte_row_data_length (rowdata);
-                _vte_row_data_fill (rowdata, &m_fill_defaults, newcol);
+                _vte_row_data_fill (rowdata, &basic_cell.cell, newcol);
 
 		/* Insert smart tab if there's nothing in the line after
 		 * us.  Though, there may be empty cells (with non-default
