@@ -364,12 +364,15 @@ AM_PROG_VALAC([0.18.0],[],[
 
 if test "$enable_test_application" = "yes"; then
   PKG_CHECK_MODULES([GTK_3_16],[gtk+-3.0 >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
+  AM_PROG_VALAC([0.31.1],[have_vala_0_31=yes],[have_vala_0_31=no])
 else
   have_gtk_3_16=no
+  have_vala_0_31=no
 fi
 
 AM_CONDITIONAL([ENABLE_TEST_APPLICATION],[test "$enable_test_application" = "yes"])
 AM_CONDITIONAL([HAVE_GTK_3_16],[test "$have_gtk_3_16" = "yes"])
+AM_CONDITIONAL([HAVE_VALA_0_31],[test "$have_vala_0_31" = "yes"])
 
 # ***************
 # Auxiliary tools
