@@ -67,6 +67,10 @@ gboolean  vte_regex_jit     (VteRegex *regex,
                              guint32   flags,
                              GError  **error) _VTE_GNUC_NONNULL(1);
 
+#if GLIB_CHECK_VERSION(2, 44, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteRegex, vte_regex_unref)
+#endif
+
 G_END_DECLS
 
 #endif /* __VTE_VTE_REGEX_H__ */
