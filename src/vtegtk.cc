@@ -364,7 +364,7 @@ vte_terminal_init(VteTerminal *terminal)
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
 	/* Initialize private data. NOTE: place is zeroed */
-	place = G_TYPE_INSTANCE_GET_PRIVATE (terminal, VTE_TYPE_TERMINAL, VteTerminalPrivate);
+	place = vte_terminal_get_instance_private(terminal);
         new (place) VteTerminalPrivate(terminal);
 
         gtk_widget_set_has_window(&terminal->widget, FALSE);
