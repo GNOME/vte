@@ -781,6 +781,7 @@ vte_pty_initable_iface_init (GInitableIface  *iface)
 /* GObjectClass impl */
 
 G_DEFINE_TYPE_WITH_CODE (VtePty, vte_pty, G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (VtePty)
                          G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE, vte_pty_initable_iface_init))
 
 static void
@@ -788,7 +789,7 @@ vte_pty_init (VtePty *pty)
 {
         VtePtyPrivate *priv;
 
-        priv = pty->priv = G_TYPE_INSTANCE_GET_PRIVATE (pty, VTE_TYPE_PTY, VtePtyPrivate);
+        priv = pty->priv = (VtePtyPrivate *)vte_pty_get_instance_private (pty);
 
         priv->flags = VTE_PTY_DEFAULT;
         priv->pty_fd = -1;
@@ -860,8 +861,6 @@ static void
 vte_pty_class_init (VtePtyClass *klass)
 {
         GObjectClass *object_class = G_OBJECT_CLASS (klass);
-
-        g_type_class_add_private(object_class, sizeof(VtePtyPrivate));
 
         object_class->set_property = vte_pty_set_property;
         object_class->get_property = vte_pty_get_property;
