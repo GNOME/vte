@@ -383,15 +383,19 @@ AM_CONDITIONAL([HAVE_VALA_0_31],[test "$have_vala_0_31" = "yes"])
 # ***************
 
 AC_ARG_VAR([GLIB_COMPILE_RESOURCES],[the glib-compile-resources programme])
-AC_PATH_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[])
 if test -z "$GLIB_COMPILE_RESOURCES"; then
-  AC_MSG_ERROR([glib-compile-resources not found])
+  AC_PATH_PROG([GLIB_COMPILE_RESOURCES],[glib-compile-resources],[])
+  if test -z "$GLIB_COMPILE_RESOURCES"; then
+    AC_MSG_ERROR([glib-compile-resources not found])
+  fi
 fi
 
 AC_ARG_VAR([XMLLINT],[the xmllint programme])
-AC_PATH_PROG([XMLLINT],[xmllint],[])
 if test -z "$XMLLINT"; then
-  AC_MSG_ERROR([xmllint not found])
+  AC_PATH_PROG([XMLLINT],[xmllint],[])
+  if test -z "$XMLLINT"; then
+    AC_MSG_ERROR([xmllint not found])
+  fi
 fi
 
 ################################################################################
