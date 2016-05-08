@@ -799,7 +799,7 @@ main(int argc, char **argv)
 		{
 			"scrollbar-policy", 'P', 0,
 			G_OPTION_ARG_STRING, &scrollbar_policy_string,
-			"Set the policy for the vertical scroolbar in the scrolled window (always|auto|never; default:always)",
+			"Set the policy for the vertical scrollbar in the scrolled window (always|auto|never; default:always)",
 			NULL
 		},
 		{
