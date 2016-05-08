@@ -3384,6 +3384,13 @@ vte_sequence_handler_reset_highlight_foreground_color (VteTerminalPrivate *that,
 	that->reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
+/* URXVT generic OSC 777 */
+
+static void
+vte_sequence_handler_urxvt_777(VteTerminalPrivate *that, GValueArray *params)
+{
+        /* Accept but ignore this for compatibility with downstream-patched vte (bug #711059)*/
+}
 
 /* Lookup tables */
 
