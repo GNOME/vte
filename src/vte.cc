@@ -6032,6 +6032,9 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 	string = g_string_new(NULL);
 	memset(&attr, 0, sizeof(attr));
 
+        if (start_col < 0)
+                start_col = 0;
+
         vte::grid::column_t next_first_column = block ? start_col : 0;
         vte::grid::column_t col = start_col;
         vte::grid::row_t row;
