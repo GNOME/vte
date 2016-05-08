@@ -11209,7 +11209,7 @@ VteTerminalPrivate::search_find (bool backward)
 {
         vte::grid::row_t buffer_start_row, buffer_end_row;
         vte::grid::row_t last_start_row, last_end_row;
-        bool match_found = false;
+        bool match_found = true;
 #ifdef WITH_PCRE2
         pcre2_match_context_8 *match_context = nullptr;
         pcre2_match_data_8 *match_data = nullptr;
