@@ -8062,7 +8062,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_sendrecv_mode = TRUE;
 	m_dec_saved = g_hash_table_new(NULL, NULL);
         m_matcher = _vte_matcher_new();
-        m_alternate_screen_scroll = TRUE;
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
