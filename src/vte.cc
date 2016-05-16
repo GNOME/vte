@@ -10213,8 +10213,12 @@ VteTerminalPrivate::set_mouse_autohide(bool autohide)
  */
 void
 VteTerminalPrivate::reset(bool clear_tabstops,
-                          bool clear_history)
+                          bool clear_history,
+                          bool from_api)
 {
+        if (from_api && !m_input_enabled)
+                return;
+
         GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
 
