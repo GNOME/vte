@@ -8148,6 +8148,16 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 
         m_padding = default_padding;
         update_view_extents();
+
+#ifndef WITH_GNUTLS
+{
+        char buf[1024];
+        auto len = g_snprintf(buf, sizeof(buf), "\e[1m\e[31m%s:\e[39m %s\e[0m\n",
+                              _("WARNING"),
+                              _("GNUTLS not enabled; data will be written to disk unencrypted!"));
+        feed(buf, len);
+ }
+#endif
 }
 
 void
