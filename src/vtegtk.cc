@@ -2501,7 +2501,7 @@ vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_history)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->reset(clear_tabstops, clear_history);
+        IMPL(terminal)->reset(clear_tabstops, clear_history, true);
 }
 
 /**

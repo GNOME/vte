@@ -793,7 +793,8 @@ public:
                         GError **error);
 
         void reset(bool clear_tabstops,
-                   bool clear_history);
+                   bool clear_history,
+                   bool from_api = false);
 
         void feed(char const* data,
                   gssize length);
