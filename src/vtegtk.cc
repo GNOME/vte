@@ -89,6 +89,15 @@ guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
 GTimer *process_timer;
 
+static bool
+valid_color(GdkRGBA const* color)
+{
+        return color->red >= 0. && color->red <= 1. &&
+               color->green >= 0. && color->green <= 1. &&
+               color->blue >= 0. && color->blue <= 1. &&
+               color->alpha >= 0. && color->alpha <= 1.;
+}
+
 VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal)
 {
         return IMPL(terminal);
@@ -2690,6 +2699,7 @@ vte_terminal_set_color_background(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(background != NULL);
+        g_return_if_fail(valid_color(background));
 
         auto impl = IMPL(terminal);
         impl->set_color_background(vte::color::rgb(background));
@@ -2709,6 +2719,7 @@ vte_terminal_set_color_bold(VteTerminal *terminal,
                             const GdkRGBA *bold)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(bold == nullptr || valid_color(bold));
 
         auto impl = IMPL(terminal);
         if (bold)
@@ -2731,6 +2742,7 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
                               const GdkRGBA *cursor_background)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(cursor_background == nullptr || valid_color(cursor_background));
 
         auto impl = IMPL(terminal);
         if (cursor_background)
@@ -2755,6 +2767,7 @@ vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
                                          const GdkRGBA *cursor_foreground)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(cursor_foreground == nullptr || valid_color(cursor_foreground));
 
         auto impl = IMPL(terminal);
         if (cursor_foreground)
@@ -2775,7 +2788,9 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
                                   const GdkRGBA *foreground)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(foreground != NULL);
+        g_return_if_fail(foreground != nullptr);
+        g_return_if_fail(valid_color(foreground));
+
         IMPL(terminal)->set_color_foreground(vte::color::rgb(foreground));
 }
 
@@ -2794,6 +2809,7 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
                                  const GdkRGBA *highlight_background)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(highlight_background == nullptr || valid_color(highlight_background));
 
         auto impl = IMPL(terminal);
         if (highlight_background)
@@ -2817,6 +2833,7 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
                                             const GdkRGBA *highlight_foreground)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(highlight_foreground == nullptr || valid_color(highlight_foreground));
 
         auto impl = IMPL(terminal);
         if (highlight_foreground)
@@ -2856,6 +2873,10 @@ vte_terminal_set_colors(VteTerminal *terminal,
 			 (palette_size == 16) ||
 			 (palette_size == 232) ||
 			 (palette_size == 256));
+        g_return_if_fail(foreground == nullptr || valid_color(foreground));
+        g_return_if_fail(background == nullptr || valid_color(background));
+        for (gsize i = 0; i < palette_size; ++i)
+                g_return_if_fail(valid_color(&palette[i]));
 
         vte::color::rgb fg;
         if (foreground)
