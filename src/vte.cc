@@ -8189,10 +8189,10 @@ VteTerminalPrivate::widget_get_preferred_height(int *minimum_height,
 	*minimum_height = m_char_height * 1;
         *natural_height = m_char_height * m_row_count;
 
-	*minimum_height += m_padding.left +
-			   m_padding.right;
-	*natural_height += m_padding.left +
-			   m_padding.right;
+	*minimum_height += m_padding.top +
+			   m_padding.bottom;
+	*natural_height += m_padding.top +
+			   m_padding.bottom;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells.\n",
