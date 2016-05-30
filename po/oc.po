@@ -7,9 +7,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.14.1\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&key"
-"words=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-04-29 14:51+0000\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2016-05-22 09:57+0000\n"
 "PO-Revision-Date: 2016-05-05 21:50+0200\n"
 "Last-Translator: Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot En Òc\n"
@@ -22,7 +22,7 @@ msgstr ""
 "X-Project-Style: gnome\n"
 
 #: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3069
+#: ../src/vtegtk.cc:3090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir los caractèrs %s en %s."
@@ -37,6 +37,14 @@ msgstr "Error al moment de la lectura del filh : « %s »."
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Error (%s) al moment de la conversion de donadas pel filh, abandon."
+
+#: ../src/vte.cc:8156
+msgid "WARNING"
+msgstr ""
+
+#: ../src/vte.cc:8157
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr ""
 
 #~ msgid "Copy"
 #~ msgstr "Copiar"
