@@ -169,3 +169,4 @@ struct vteseq_n_struct {
 "set-current-directory-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_directory_uri)
 "set-current-file-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_file_uri)
 "urxvt-777", VTE_SEQUENCE_HANDLER(vte_sequence_handler_urxvt_777)
+"iterm2-1337", VTE_SEQUENCE_HANDLER(vte_sequence_handler_iterm2_1337)
