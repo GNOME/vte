@@ -2897,6 +2897,7 @@ vte_terminal_set_colors(VteTerminal *terminal,
                          background ? &bg : nullptr,
                          pal, palette_size);
         impl->set_background_alpha(background ? background->alpha : 1.0);
+        g_free(pal);
 }
 
 /**
