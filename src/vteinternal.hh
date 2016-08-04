@@ -32,12 +32,6 @@
 #endif
 
 typedef enum {
-        VTE_REGEX_UNDECIDED,
-        VTE_REGEX_PCRE2,
-        VTE_REGEX_GREGEX
-} VteRegexMode;
-
-typedef enum {
         VTE_REGEX_CURSOR_GDKCURSOR,
         VTE_REGEX_CURSOR_GDKCURSORTYPE,
         VTE_REGEX_CURSOR_NAME
@@ -54,17 +48,8 @@ typedef enum {
 } MouseTrackingMode;
 
 struct vte_regex_and_flags {
-        VteRegexMode mode;
-        union { /* switched on @mode */
-                struct {
-                        VteRegex *regex;
-                        guint32 match_flags;
-                } pcre;
-                struct {
-                        GRegex *regex;
-                        GRegexMatchFlags match_flags;
-                } gregex;
-        };
+        VteRegex *regex;
+        guint32 match_flags;
 };
 
 /* A match regex, with a tag. */
@@ -451,7 +436,6 @@ public:
 	/* State variables for handling match checks. */
         char* m_match_contents;
         GArray* m_match_attributes;
-        VteRegexMode m_match_regex_mode;
         GArray* m_match_regexes;
         char* m_match;
         int m_match_tag;
@@ -979,11 +963,6 @@ public:
                                      gsize n_regexes,
                                      guint32 match_flags,
                                      char **matches);
-        bool regex_match_check_extra(GdkEvent *event,
-                                     GRegex **regexes,
-                                     gsize n_regexes,
-                                     GRegexMatchFlags match_flags,
-                                     char **matches);
 
         int regex_match_add(struct vte_match_regex *new_regex_match);
         struct vte_match_regex *regex_match_get(int tag);
@@ -1025,21 +1004,6 @@ public:
                                         gsize *start,
                                         gsize *end);
 #endif
-        bool match_check_gregex(GRegex *regex,
-                                GRegexMatchFlags match_flags,
-                                gsize sattr,
-                                gsize eattr,
-                                gsize offset,
-                                char **result,
-                                gsize *start,
-                                gsize *end,
-                                gsize *sblank_ptr,
-                                gsize *eblank_ptr);
-        char *match_check_internal_gregex(vte::grid::column_t column,
-                                          vte::grid::row_t row,
-                                          int *tag,
-                                          gsize *start,
-                                          gsize *end);
 
         char *match_check_internal(vte::grid::column_t column,
                                    vte::grid::row_t row,
@@ -1065,8 +1029,6 @@ public:
         bool search_set_regex (VteRegex *regex,
                                guint32 flags);
 #endif
-        bool search_set_gregex (GRegex *gregex,
-                                GRegexMatchFlags gflags);
 
         bool search_rows(
 #ifdef WITH_PCRE2

@@ -1692,7 +1692,7 @@ vte_terminal_paste_primary(VteTerminal *terminal)
  * this expression, the text will be highlighted.
  *
  * Returns: an integer associated with this expression, or -1 if @gregex could not be
- *   transformed into a #VteRegex or @flags were incompatible
+ *   transformed into a #VteRegex or @gflags were incompatible
  *
  * Deprecated: 0.46: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
  */
@@ -1701,24 +1701,17 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
                               GRegex *gregex,
                               GRegexMatchFlags gflags)
 {
-	struct vte_match_regex new_regex_match;
-
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
         g_return_val_if_fail(gregex != NULL, -1);
-
-        auto impl = IMPL(terminal);
-        /* Can't mix GRegex and PCRE2 */
-        g_return_val_if_fail(impl->m_match_regex_mode != VTE_REGEX_PCRE2, -1);
-
         g_warn_if_fail(g_regex_get_compile_flags(gregex) & G_REGEX_MULTILINE);
 
-        new_regex_match.regex.mode = VTE_REGEX_GREGEX;
-        new_regex_match.regex.gregex.regex = g_regex_ref(gregex);
-        new_regex_match.regex.gregex.match_flags = gflags;
-        new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
-        new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
+        auto regex = _vte_regex_new_gregex(VteRegexPurpose::match, gregex);
+        if (regex == NULL)
+                return -1;
 
-        return impl->regex_match_add(&new_regex_match);
+        auto rv = vte_terminal_match_add_regex(terminal, regex,
+                                               _vte_regex_translate_gregex_match_flags(gflags));
+        vte_regex_unref(regex);
+        return rv;
 }
 
 /**
@@ -1747,12 +1740,9 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
         g_return_val_if_fail(_vte_regex_has_purpose(regex, VteRegexPurpose::match), -1);
 
         auto impl = IMPL(terminal);
-        /* Can't mix GRegex and PCRE2 */
-        g_return_val_if_fail(impl->m_match_regex_mode != VTE_REGEX_GREGEX, -1);
 
-        new_regex_match.regex.mode = VTE_REGEX_PCRE2;
-        new_regex_match.regex.pcre.regex = vte_regex_ref(regex);
-        new_regex_match.regex.pcre.match_flags = flags;
+        new_regex_match.regex.regex = vte_regex_ref(regex);
+        new_regex_match.regex.match_flags = flags;
         new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
         new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
 
@@ -1863,12 +1853,9 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
  * @match_flags: the #GRegexMatchFlags to use when matching the regexes
  * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
  *
- * Checks each regex in @regexes if the text in and around the position of
- * the event matches the regular expressions.  If a match exists, the matched
- * text is stored in @matches at the position of the regex in @regexes; otherwise
- * %NULL is stored there.
+ * This function does nothing.
  *
- * Returns: %TRUE iff any of the regexes produced a match
+ * Returns: %FALSE
  *
  * Since: 0.44
  * Deprecated: 0.46: Use vte_terminal_event_check_regex_simple() instead.
@@ -1886,7 +1873,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        return IMPL(terminal)->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
+        return FALSE;
 }
 
 /**
@@ -1983,7 +1970,7 @@ vte_terminal_match_remove_all(VteTerminal *terminal)
  * @terminal: a #VteTerminal
  *
  * Searches the previous string matching the search regex set with
- * vte_terminal_search_set_gregex().
+ * vte_terminal_search_set_regex().
  *
  * Returns: %TRUE if a match was found
  */
@@ -1999,7 +1986,7 @@ vte_terminal_search_find_previous (VteTerminal *terminal)
  * @terminal: a #VteTerminal
  *
  * Searches the next string matching the search regex set with
- * vte_terminal_search_set_gregex().
+ * vte_terminal_search_set_regex().
  *
  * Returns: %TRUE if a match was found
  */
@@ -2047,10 +2034,7 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
         auto impl = IMPL(terminal);
-        if (G_LIKELY(impl->m_search_regex.mode == VTE_REGEX_PCRE2))
-                return impl->m_search_regex.pcre.regex;
-        else
-                return NULL;
+        return impl->m_search_regex.regex;
 }
 
 /**
@@ -2068,16 +2052,22 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
 				GRegex      *gregex,
                                 GRegexMatchFlags gflags)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        VteRegex *regex = nullptr;
+        if (gregex)
+                regex = _vte_regex_new_gregex(VteRegexPurpose::search, gregex);
 
-        IMPL(terminal)->search_set_gregex(gregex, gflags);
+        vte_terminal_search_set_regex(terminal, regex,
+                                      _vte_regex_translate_gregex_match_flags(gflags));
+
+        if (regex)
+                vte_regex_unref(regex);
 }
 
 /**
  * vte_terminal_search_get_gregex:
  * @terminal: a #VteTerminal
  *
- * Returns: (transfer none): the search #GRegex regex set in @terminal, or %NULL
+ * Returns: (transfer none): %NULL
  *
  * Deprecated: 0.46: use vte_terminal_search_get_regex() instead.
  */
@@ -2086,11 +2076,7 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        auto impl = IMPL(terminal);
-        if (G_LIKELY(impl->m_search_regex.mode == VTE_REGEX_GREGEX))
-                return impl->m_search_regex.gregex.regex;
-        else
-                return NULL;
+        return NULL;
 }
 
 /**
@@ -2305,7 +2291,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
 /**
  * vte_terminal_feed:
  * @terminal: a #VteTerminal
- * @data: (array length=length) (element-type guint8): a string in the terminal's current encoding
+ * @data: (array length=length) (element-type guint8) (allow-none): a string in the terminal's current encoding
  * @length: the length of the string, or -1 to use the full length or a nul-terminated string
  *
  * Interprets @data as if it were data received from a child process.  This
@@ -2326,7 +2312,7 @@ vte_terminal_feed(VteTerminal *terminal,
 /**
  * vte_terminal_feed_child:
  * @terminal: a #VteTerminal
- * @text: data to send to the child
+ * @text: (element-type utf8) (allow-none): data to send to the child
  * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
  * Sends a block of UTF-8 text to the child as if it were entered by the user
@@ -2346,7 +2332,7 @@ vte_terminal_feed_child(VteTerminal *terminal,
 /**
  * vte_terminal_feed_child_binary:
  * @terminal: a #VteTerminal
- * @data: data to send to the child
+ * @data: (array length=length) (element-type guint8) (allow-none): data to send to the child
  * @length: length of @data
  *
  * Sends a block of binary data to the child.

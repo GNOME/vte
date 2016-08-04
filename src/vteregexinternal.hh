@@ -30,3 +30,9 @@ gboolean _vte_regex_get_jited(VteRegex *regex);
 #ifdef WITH_PCRE2
 const pcre2_code_8 *_vte_regex_get_pcre (VteRegex *regex);
 #endif
+
+/* GRegex translation */
+VteRegex *_vte_regex_new_gregex(VteRegexPurpose purpose,
+                                GRegex *gregex);
+
+guint32 _vte_regex_translate_gregex_match_flags(GRegexMatchFlags flags);
