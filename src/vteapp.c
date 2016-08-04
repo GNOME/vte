@@ -33,9 +33,7 @@
 #undef VTE_DISABLE_DEPRECATED
 #include <vte/vte.h>
 
-#ifdef WITH_PCRE2
 #include "vtepcre2.h"
-#endif
 
 #include <glib/gi18n.h>
 
@@ -48,9 +46,7 @@ static const char *builtin_dingus[] = {
   NULL
 };
 
-#ifdef WITH_PCRE2
 static gboolean use_gregex = FALSE;
-#endif
 
 static void
 window_title_changed(GtkWidget *widget, gpointer win)
@@ -169,7 +165,6 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 				vte_terminal_match_remove(terminal, tag);
 			}
 		}
-#ifdef WITH_PCRE2
                 if (!use_gregex) {
                         VteRegex *regex = vte_regex_new_for_match("\\d+", -1, PCRE2_UTF, NULL);
                         has_extra_match = vte_terminal_event_check_regex_simple(terminal,
@@ -178,9 +173,7 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
                                                                                 0,
                                                                                 &extra_match);
                         vte_regex_unref(regex);
-                } else
-#endif
-                {
+                } else {
                         GRegex *regex = g_regex_new("\\d+", 0, 0, NULL);
                         has_extra_match = vte_terminal_event_check_gregex_simple(terminal,
                                                                                  (GdkEvent*)event,
@@ -565,7 +558,6 @@ add_dingus (VteTerminal *terminal,
         for (i = 0; dingus[i]; ++i) {
                 GRegex *gregex = NULL;
                 GError *error = NULL;
-#ifdef WITH_PCRE2
                 VteRegex *regex = NULL;
 
                 if (!use_gregex)
@@ -573,7 +565,6 @@ add_dingus (VteTerminal *terminal,
                                                         PCRE2_UTF | PCRE2_NO_UTF_CHECK,
                                                         &error);
                 else
-#endif
                         gregex = g_regex_new(dingus[i], G_REGEX_OPTIMIZE | G_REGEX_MULTILINE, 0, &error);
 
                 if (error) {
@@ -583,17 +574,13 @@ add_dingus (VteTerminal *terminal,
                         continue;
                 }
 
-#ifdef WITH_PCRE2
                 if (!use_gregex)
                         id = vte_terminal_match_add_regex(terminal, regex, 0);
                 else
-#endif
                         id = vte_terminal_match_add_gregex(terminal, gregex, 0);
 
-#ifdef WITH_PCRE2
                 if (regex)
                         vte_regex_unref(regex);
-#endif
                 if (gregex)
                         g_regex_unref (gregex);
 
@@ -659,13 +646,11 @@ main(int argc, char **argv)
 			G_OPTION_ARG_STRING_ARRAY, &dingus,
 			"Add regex highlight", NULL
 		},
-#ifdef WITH_PCRE2
 		{
 			"gregex", 0, 0,
 			G_OPTION_ARG_NONE, &use_gregex,
 			"Use GRegex instead of PCRE2", NULL
 		},
-#endif
 		{
 			"no-rewrap", 'R', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &rewrap,

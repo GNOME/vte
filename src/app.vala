@@ -39,9 +39,7 @@ class SearchPopover : Gtk.Popover
   private bool regex_multiline = false;
   private string? regex_pattern = null;
   private GLib.Regex? regex_gregex = null;
-#if WITH_PCRE2
   private Vte.Regex? regex_regex = null;
-#endif
 
   public SearchPopover(Vte.Terminal term,
                        Gtk.Widget relative_to)
@@ -73,11 +71,8 @@ class SearchPopover : Gtk.Popover
 
   private bool have_regex()
   {
-    return regex_gregex != null
-#if WITH_PCRE2
-      || regex_regex != null
-#endif
-      ;
+    return regex_gregex != null ||
+      regex_regex != null;
   }
 
   private void update_sensitivity()
@@ -95,9 +90,7 @@ class SearchPopover : Gtk.Popover
     bool caseless = false;
     bool multiline = false;
     GLib.Regex? gregex = null;
-#if WITH_PCRE2
     Vte.Regex? regex = null;
-#endif
 
     search_text = search_entry.get_text();
     caseless = !match_case_checkbutton.active;
@@ -123,7 +116,6 @@ class SearchPopover : Gtk.Popover
 
     if (search_text.length != 0) {
       try {
-#if WITH_PCRE2
         if (!App.Options.no_pcre) {
           uint32 flags;
 
@@ -141,9 +133,7 @@ class SearchPopover : Gtk.Popover
             if (e.code != -45 /* PCRE2_ERROR_JIT_BADOPTION */) /* JIT not supported */
               printerr("JITing regex \"%s\" failed: %s\n", pattern, e.message);
           }
-        } else
-#endif /* WITH_PCRE2 */
-        {
+        } else {
           GLib.RegexCompileFlags flags;
 
           flags = GLib.RegexCompileFlags.OPTIMIZE;
@@ -158,25 +148,19 @@ class SearchPopover : Gtk.Popover
         regex_pattern = pattern;
         search_entry.set_tooltip_text(null);
       } catch (Error e) {
-#if WITH_PCRE2
         regex = null;
-#endif
         gregex = null;
         search_entry.set_tooltip_text(e.message);
       }
     } else {
-#if WITH_PCRE2
       regex = null;
-#endif
       gregex = null;
       search_entry.set_tooltip_text(null);
     }
 
-#if WITH_PCRE2
     if (!App.Options.no_pcre)
       terminal.search_set_regex(regex, 0);
     else
-#endif
       terminal.search_set_gregex(gregex, 0);
 
     update_sensitivity();
@@ -396,7 +380,7 @@ class Window : Gtk.ApplicationWindow
     for (int i = 0; i < dingus.length; ++i) {
       try {
         int tag;
-#if WITH_PCRE2
+
         if (!App.Options.no_pcre) {
           Vte.Regex regex;
 
@@ -411,9 +395,7 @@ class Window : Gtk.ApplicationWindow
           }
 
           tag = terminal.match_add_regex(regex, 0);
-        } else 
-#endif
-        {
+        } else {
           GLib.Regex regex;
 
           regex = new GLib.Regex(dingus[i],

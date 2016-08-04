@@ -233,26 +233,6 @@ fi
 
 AM_CONDITIONAL([WITH_GNUTLS],[test "$with_gnutls" = "yes"])
 
-# PCRE2
-
-AC_MSG_CHECKING([whether PCRE2 support is requested])
-AC_ARG_WITH([pcre2],
-  [AS_HELP_STRING([--without-pcre2],[Disable pcre2 support])],
-  [],[with_pcre2=yes])
-AC_MSG_RESULT([$with_pcre2])
-
-PCRE2_PKGS=
-if test "$with_pcre2" = "yes"; then
-  PCRE2_PKGS="libpcre2-8 >= $PCRE2_REQUIRED"
-
-  PKG_CHECK_MODULES([PCRE2],[$PCRE2_PKGS],,
-    [AC_MSG_ERROR([libpcre2-8 version $PCRE2_REQUIRED requested but not found. Use --without-pcre2 to disable PCRE2])])
-
-  AC_DEFINE([WITH_PCRE2],[1],[Define to 1 to enable pcre2 support])
-fi
-
-AM_CONDITIONAL([WITH_PCRE2],[test "$with_pcre2" = "yes"])
-
 # GLIB tools
 
 AC_PATH_PROG([GLIB_GENMARSHAL],[glib-genmarshal])
@@ -281,7 +261,7 @@ AC_CHECK_FUNCS([ceil floor round])
 
 # Search for the required modules.
 
-VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 zlib $GNUTLS_PKGS $PCRE2_PKGS"
+VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 zlib libpcre2-8 >= $PCRE2_REQUIRED $GNUTLS_PKGS"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
 
@@ -448,7 +428,6 @@ cat <<EOF | tee -a config.log
 
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	GNUTLS: $with_gnutls
-        PCRE2: $with_pcre2
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
 	Introspection: $enable_introspection

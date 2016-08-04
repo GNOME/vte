@@ -1365,8 +1365,6 @@ VteTerminalPrivate::match_rowcol_to_offset(vte::grid::column_t column,
         return true;
 }
 
-#ifdef WITH_PCRE2
-
 /* creates a pcre match context with appropriate limits */
 pcre2_match_context_8 *
 VteTerminalPrivate::create_match_context()
@@ -1586,8 +1584,6 @@ VteTerminalPrivate::match_check_internal_pcre(vte::grid::column_t column,
 	return dingu_match;
 }
 
-#endif /* WITH_PCRE2 */
-
 /*
  * vte_terminal_match_check_internal:
  * @terminal:
@@ -1623,11 +1619,7 @@ VteTerminalPrivate::match_check_internal(vte::grid::column_t column,
         *start = 0;
         *end = 0;
 
-#ifdef WITH_PCRE2
         return match_check_internal_pcre(column, row, tag, start, end);
-#else
-        return nullptr;
-#endif
 }
 
 char *
@@ -1832,7 +1824,6 @@ VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
                                             guint32 match_flags,
                                             char **matches)
 {
-#ifdef WITH_PCRE2
 	gsize offset, sattr, eattr;
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
@@ -1882,9 +1873,6 @@ VteTerminalPrivate::regex_match_check_extra(GdkEvent *event,
         pcre2_match_context_free_8(match_context);
 
         return any_matches;
-#else
-        return false;
-#endif
 }
 
 /* Emit an adjustment changed signal on our adjustment object. */
@@ -10729,8 +10717,6 @@ VteTerminalPrivate::write_contents_sync (GOutputStream *stream,
 
 /* TODO Add properties & signals */
 
-#ifdef WITH_PCRE2
-
 /*
  * VteTerminalPrivate::search_set_regex:
  * @regex: (allow-none): a #VteRegex, or %nullptr
@@ -10762,8 +10748,6 @@ VteTerminalPrivate::search_set_regex (VteRegex *regex,
         return true;
 }
 
-#endif /* WITH_PCRE2 */
-
 bool
 VteTerminalPrivate::search_set_wrap_around(bool wrap)
 {
@@ -10775,11 +10759,8 @@ VteTerminalPrivate::search_set_wrap_around(bool wrap)
 }
 
 bool
-VteTerminalPrivate::search_rows(
-#ifdef WITH_PCRE2
-                                pcre2_match_context_8 *match_context,
+VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
                                 pcre2_match_data_8 *match_data,
-#endif
                                 vte::grid::row_t start_row,
                                 vte::grid::row_t end_row,
                                 bool backward)
@@ -10802,44 +10783,40 @@ VteTerminalPrivate::search_rows(
                             nullptr,
                             &row_text_length);
 
-#ifdef WITH_PCRE2
-                int (* match_fn) (const pcre2_code_8 *,
-                                  PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
-                                  pcre2_match_data_8 *, pcre2_match_context_8 *);
-                gsize *ovector, so, eo;
-                int r;
+        int (* match_fn) (const pcre2_code_8 *,
+                          PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
+                          pcre2_match_data_8 *, pcre2_match_context_8 *);
+        gsize *ovector, so, eo;
+        int r;
 
-                if (_vte_regex_get_jited(m_search_regex.regex))
-                        match_fn = pcre2_jit_match_8;
-                else
-                        match_fn = pcre2_match_8;
+        if (_vte_regex_get_jited(m_search_regex.regex))
+                match_fn = pcre2_jit_match_8;
+        else
+                match_fn = pcre2_match_8;
 
-                r = match_fn(_vte_regex_get_pcre(m_search_regex.regex),
-                             (PCRE2_SPTR8)row_text, row_text_length , /* subject, length */
-                             0, /* start offset */
-                             m_search_regex.match_flags |
-                             PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
-                             match_data,
-                             match_context);
+        r = match_fn(_vte_regex_get_pcre(m_search_regex.regex),
+                     (PCRE2_SPTR8)row_text, row_text_length , /* subject, length */
+                     0, /* start offset */
+                     m_search_regex.match_flags |
+                     PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
+                     match_data,
+                     match_context);
 
-                if (r == PCRE2_ERROR_NOMATCH)
-                        return false;
-                // FIXME: handle partial matches (PCRE2_ERROR_PARTIAL)
-                if (r < 0)
-                        return false;
-
-                ovector = pcre2_get_ovector_pointer_8(match_data);
-                so = ovector[0];
-                eo = ovector[1];
-                if (G_UNLIKELY(so == PCRE2_UNSET || eo == PCRE2_UNSET))
-                        return false;
-
-                start = so;
-                end = eo;
-                word = g_strndup(row_text, end - start);
-#else
+        if (r == PCRE2_ERROR_NOMATCH)
                 return false;
-#endif /* WITH_PCRE2 */
+        // FIXME: handle partial matches (PCRE2_ERROR_PARTIAL)
+        if (r < 0)
+                return false;
+
+        ovector = pcre2_get_ovector_pointer_8(match_data);
+        so = ovector[0];
+        eo = ovector[1];
+        if (G_UNLIKELY(so == PCRE2_UNSET || eo == PCRE2_UNSET))
+                return false;
+
+        start = so;
+        end = eo;
+        word = g_strndup(row_text, end - start);
 
 	/* Fetch text again, with attributes */
 	g_free (row_text);
@@ -10880,11 +10857,8 @@ VteTerminalPrivate::search_rows(
 }
 
 bool
-VteTerminalPrivate::search_rows_iter(
-#ifdef WITH_PCRE2
-                                     pcre2_match_context_8 *match_context,
+VteTerminalPrivate::search_rows_iter(pcre2_match_context_8 *match_context,
                                      pcre2_match_data_8 *match_data,
-#endif
                                      vte::grid::row_t start_row,
                                      vte::grid::row_t end_row,
                                      bool backward)
@@ -10902,11 +10876,8 @@ VteTerminalPrivate::search_rows_iter(
 				row = find_row_data(iter_start_row);
 			} while (row && row->attr.soft_wrapped);
 
-			if (search_rows(
-#ifdef WITH_PCRE2
-                                                      match_context, match_data,
-#endif
-                                                      iter_start_row, iter_end_row, backward))
+			if (search_rows(match_context, match_data,
+                                        iter_start_row, iter_end_row, backward))
 				return true;
 		}
 	} else {
@@ -10919,11 +10890,8 @@ VteTerminalPrivate::search_rows_iter(
 				iter_end_row++;
 			} while (row && row->attr.soft_wrapped);
 
-			if (search_rows(
-#ifdef WITH_PCRE2
-                                                      match_context, match_data,
-#endif
-                                                      iter_start_row, iter_end_row, backward))
+			if (search_rows(match_context, match_data,
+                                        iter_start_row, iter_end_row, backward))
 				return true;
 		}
 	}
@@ -10937,20 +10905,17 @@ VteTerminalPrivate::search_find (bool backward)
         vte::grid::row_t buffer_start_row, buffer_end_row;
         vte::grid::row_t last_start_row, last_end_row;
         bool match_found = true;
-#ifdef WITH_PCRE2
-        pcre2_match_context_8 *match_context = nullptr;
-        pcre2_match_data_8 *match_data = nullptr;
-#endif
+
+        if (m_search_regex.regex == nullptr)
+                return false;
 
 	/* TODO
 	 * Currently We only find one result per extended line, and ignore columns
 	 * Moreover, the whole search thing is implemented very inefficiently.
 	 */
 
-#ifdef WITH_PCRE2
-        match_context = create_match_context();
-        match_data = pcre2_match_data_create_8(256 /* should be plenty */, nullptr /* general context */);
-#endif
+        auto match_context = create_match_context();
+        auto match_data = pcre2_match_data_create_8(256 /* should be plenty */, nullptr /* general context */);
 
 	buffer_start_row = _vte_ring_delta (m_screen->row_data);
 	buffer_end_row = _vte_ring_next (m_screen->row_data);
@@ -10968,18 +10933,12 @@ VteTerminalPrivate::search_find (bool backward)
 	/* If search fails, we make an empty selection at the last searched
 	 * position... */
 	if (backward) {
-		if (search_rows_iter (
-#ifdef WITH_PCRE2
-                                                   match_context, match_data,
-#endif
-                                                   buffer_start_row, last_start_row, backward))
+		if (search_rows_iter (match_context, match_data,
+                                      buffer_start_row, last_start_row, backward))
 			goto found;
 		if (m_search_wrap_around &&
-		    search_rows_iter (
-#ifdef WITH_PCRE2
-                                                   match_context, match_data,
-#endif
-                                                   last_end_row, buffer_end_row, backward))
+		    search_rows_iter (match_context, match_data,
+                                      last_end_row, buffer_end_row, backward))
 			goto found;
 		if (m_has_selection) {
 			if (m_search_wrap_around)
@@ -10989,18 +10948,12 @@ VteTerminalPrivate::search_find (bool backward)
 		}
                 match_found = false;
 	} else {
-		if (search_rows_iter (
-#ifdef WITH_PCRE2
-                                                   match_context, match_data,
-#endif
-                                                   last_end_row, buffer_end_row, backward))
+		if (search_rows_iter (match_context, match_data,
+                                      last_end_row, buffer_end_row, backward))
 			goto found;
 		if (m_search_wrap_around &&
-		    search_rows_iter (
-#ifdef WITH_PCRE2
-                                                   match_context, match_data,
-#endif
-                                                   buffer_start_row, last_start_row, backward))
+		    search_rows_iter (match_context, match_data,
+                                      buffer_start_row, last_start_row, backward))
 			goto found;
 		if (m_has_selection) {
 			if (m_search_wrap_around)
@@ -11013,12 +10966,8 @@ VteTerminalPrivate::search_find (bool backward)
 
  found:
 
-#ifdef WITH_PCRE2
-        if (match_data)
-                pcre2_match_data_free_8(match_data);
-        if (match_context)
-                pcre2_match_context_free_8(match_context);
-#endif
+        pcre2_match_data_free_8(match_data);
+        pcre2_match_context_free_8(match_context);
 
 	return match_found;
 }

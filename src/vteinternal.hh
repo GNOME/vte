@@ -26,10 +26,8 @@
 #include "vteconv.h"
 #include "buffer.h"
 
-#ifdef WITH_PCRE2
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
-#endif
 
 typedef enum {
         VTE_REGEX_CURSOR_GDKCURSOR,
@@ -984,7 +982,7 @@ public:
                                     gsize *offset_ptr,
                                     gsize *sattr_ptr,
                                     gsize *eattr_ptr);
-#ifdef WITH_PCRE2
+
         pcre2_match_context_8 *create_match_context();
         bool match_check_pcre(pcre2_match_data_8 *match_data,
                               pcre2_match_context_8 *match_context,
@@ -1003,7 +1001,6 @@ public:
                                         int *tag,
                                         gsize *start,
                                         gsize *end);
-#endif
 
         char *match_check_internal(vte::grid::column_t column,
                                    vte::grid::row_t row,
@@ -1025,24 +1022,16 @@ public:
         void feed_focus_event_initial();
         void maybe_feed_focus_event(bool in);
 
-#ifdef WITH_PCRE2
         bool search_set_regex (VteRegex *regex,
                                guint32 flags);
-#endif
 
-        bool search_rows(
-#ifdef WITH_PCRE2
-                         pcre2_match_context_8 *match_context,
+        bool search_rows(pcre2_match_context_8 *match_context,
                          pcre2_match_data_8 *match_data,
-#endif
                          vte::grid::row_t start_row,
                          vte::grid::row_t end_row,
                          bool backward);
-        bool search_rows_iter(
-#ifdef WITH_PCRE2
-                              pcre2_match_context_8 *match_context,
+        bool search_rows_iter(pcre2_match_context_8 *match_context,
                               pcre2_match_data_8 *match_data,
-#endif
                               vte::grid::row_t start_row,
                               vte::grid::row_t end_row,
                               bool backward);

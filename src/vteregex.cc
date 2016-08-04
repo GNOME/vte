@@ -27,30 +27,19 @@
 #include "vtemacros.h"
 #include "vteenums.h"
 #include "vteregex.h"
-
-#ifdef WITH_PCRE2
 #include "vtepcre2.h"
-#endif /* WITH_PCRE2 */
 
 #include "vteregexinternal.hh"
 
 struct _VteRegex {
         volatile int ref_count;
         VteRegexPurpose purpose;
-#ifdef WITH_PCRE2
         pcre2_code_8 *code;
-#endif /* WITH_PCRE2 */
 };
 
-#ifdef WITH_PCRE2
 #define DEFAULT_COMPILE_OPTIONS (PCRE2_UTF)
 #define JIT_OPTIONS (PCRE2_JIT_COMPLETE)
 #define DEFAULT_MATCH_OPTIONS (0)
-#else
-#define DEFAULT_COMPILE_OPTIONS (0
-#define JIT_OPTIONS (0)
-#define DEFAULT_MATCH_OPTIONS (0)
-#endif /* WITH_PCRE2 */
 
 /* GRegex translation */
 
@@ -80,8 +69,6 @@ translate_flags(FlagTranslation const* const table,
 }
 
 /* internal */
-
-#ifdef WITH_PCRE2
 
 static VteRegex *
 regex_new(pcre2_code_8 *code,
@@ -117,18 +104,6 @@ set_gerror_from_pcre_error(int errcode,
         return FALSE;
 }
 
-#else
-
-static gboolean
-set_unsupported_error(GError **error)
-{
-        g_set_error_literal(error, VTE_REGEX_ERROR, VTE_REGEX_ERROR_NOT_SUPPORTED,
-                            "PCRE2 not supported");
-        return FALSE;
-}
-
-#endif /* WITH_PCRE2 */
-
 G_DEFINE_BOXED_TYPE(VteRegex, vte_regex,
                     vte_regex_ref, (GBoxedFreeFunc)vte_regex_unref)
 
@@ -147,9 +122,8 @@ vte_regex_ref(VteRegex *regex)
 {
         g_return_val_if_fail (regex, NULL);
 
-#ifdef WITH_PCRE2
         g_atomic_int_inc (&regex->ref_count);
-#endif
+
         return regex;
 }
 
@@ -167,10 +141,9 @@ vte_regex_unref(VteRegex *regex)
 {
         g_return_val_if_fail (regex, NULL);
 
-#ifdef WITH_PCRE2
         if (g_atomic_int_dec_and_test (&regex->ref_count))
                 regex_free (regex);
-#endif
+
         return NULL;
 }
 
@@ -181,7 +154,6 @@ vte_regex_new(VteRegexPurpose purpose,
               guint32     flags,
               GError    **error)
 {
-#ifdef WITH_PCRE2
         pcre2_code_8 *code;
         int r, errcode;
         guint32 v;
@@ -217,10 +189,6 @@ vte_regex_new(VteRegexPurpose purpose,
         }
 
         return regex_new(code, purpose);
-#else
-        set_unsupported_error(error);
-        return NULL;
-#endif /* WITH_PCRE2 */
 }
 
 VteRegex *
@@ -231,7 +199,6 @@ _vte_regex_new_gregex(VteRegexPurpose purpose,
 
         guint32 pflags = 0;
 
-#ifdef WITH_PCRE2
         static FlagTranslation const table[] = {
                 { G_REGEX_CASELESS,        PCRE2_CASELESS        },
                 { G_REGEX_MULTILINE,       PCRE2_MULTILINE       },
@@ -252,7 +219,6 @@ _vte_regex_new_gregex(VteRegexPurpose purpose,
         if (gflags != 0) {
                 g_warning("Incompatible GRegex compile flags left untranslated: %08x", gflags);
         }
-#endif
 
         GError *err = nullptr;
         auto regex = vte_regex_new(purpose, g_regex_get_pattern(gregex), -1, pflags, &err);
@@ -362,7 +328,6 @@ VteRegex *
 vte_regex_new_pcre(pcre2_code_8 *code,
                    GError      **error)
 {
-#ifdef WITH_PCRE2
         guint32 flags;
 
         g_return_val_if_fail(code != NULL, NULL);
@@ -373,10 +338,6 @@ vte_regex_new_pcre(pcre2_code_8 *code,
         g_return_val_if_fail(flags & PCRE2_NEVER_BACKSLASH_C, NULL);
 
         return regex_new(code);
-#else
-        set_unsupported_error(error);
-        return NULL;
-#endif
 }
 #endif
 
@@ -387,7 +348,6 @@ _vte_regex_has_purpose(VteRegex *regex,
         return regex->purpose == purpose;
 }
 
-#ifdef WITH_PCRE2
 /*
  * _vte_regex_get_pcre:
  * @regex: a #VteRegex
@@ -398,15 +358,10 @@ _vte_regex_has_purpose(VteRegex *regex,
 const pcre2_code_8 *
 _vte_regex_get_pcre(VteRegex *regex)
 {
-#ifdef WITH_PCRE2
         g_return_val_if_fail(regex != NULL, NULL);
 
         return regex->code;
-#else
-        return NULL;
-#endif
 }
-#endif
 
 /**
  * vte_regex_jit:
@@ -421,7 +376,6 @@ vte_regex_jit(VteRegex *regex,
               guint     flags,
               GError  **error)
 {
-#ifdef WITH_PCRE2
         int r;
 
         g_return_val_if_fail(regex != NULL, FALSE);
@@ -431,9 +385,6 @@ vte_regex_jit(VteRegex *regex,
                 return set_gerror_from_pcre_error(r, error);
 
         return TRUE;
-#else
-        return set_unsupported_error(error);
-#endif /* WITH_PCRE2 */
 }
 
 /*
@@ -447,7 +398,6 @@ vte_regex_jit(VteRegex *regex,
 gboolean
 _vte_regex_get_jited(VteRegex *regex)
 {
-#ifdef WITH_PCRE2
         PCRE2_SIZE s;
         int r;
 
@@ -456,7 +406,4 @@ _vte_regex_get_jited(VteRegex *regex)
         r = pcre2_pattern_info_8(regex->code, PCRE2_INFO_JITSIZE, &s);
 
         return r == 0 && s != 0;
-#else
-        return FALSE;
-#endif
 }

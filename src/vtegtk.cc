@@ -1517,12 +1517,6 @@ vte_get_features (void)
 #else
                 "-GNUTLS"
 #endif
-                " "
-#ifdef WITH_PCRE2
-                "+PCRE2"
-#else
-                "-PCRE2"
-#endif
                 ;
 }
 
@@ -2012,12 +2006,10 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
                                VteRegex    *regex,
                                guint32      flags)
 {
-#ifdef WITH_PCRE2
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(regex == NULL || _vte_regex_has_purpose(regex, VteRegexPurpose::search));
 
         IMPL(terminal)->search_set_regex(regex, flags);
-#endif
 }
 
 /**
