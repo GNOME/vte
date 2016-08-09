@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.he\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-05-16 05:06+0300\n"
-"PO-Revision-Date: 2014-05-16 05:08+0300\n"
-"Last-Translator: Yosef Or Boczko <yoseforb@gnome.org>\n"
+"POT-Creation-Date: 2016-08-09 20:35+0300\n"
+"PO-Revision-Date: 2016-08-09 20:35+0300\n"
+"Last-Translator: Yosef Or Boczko <yoseforb@gmail.com>\n"
 "Language-Team: עברית <>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
@@ -20,75 +20,66 @@ msgstr ""
 "X-Generator: Gtranslator 2.91.6\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "העתקה"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "הדבקה"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "איפוס (Ctrl לאיפוס וניקוי)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "איפוס"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "הפעלה/השבתת אפשור קלט"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "קלט"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:2021
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3069
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "לא ניתן להמיר תווים מ־%s ל־%s."
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "מנסה לקבוע מפת NRC לא תקנית '%c'."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "מערכת זיהוי קודים לא מוכרת."
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "ניסיון לקבוע מפת NRC רחבה לא תקנית '%c'."
-
-#: ../src/trie.c:409
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "כפול (%s/%s)!"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4247
+#: ../src/vte.cc:4003
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "שגיאה בקריאה מהילד: %s."
 
-#: ../src/vte.c:4383
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Unable to send data to child, invalid charset convertor"
-
-#: ../src/vte.c:4394 ../src/vte.c:5433
+#: ../src/vte.cc:4142
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "שגיאה (%s) בהמרת מידע לילד, זורק."
 
-#: ../src/vte.c:7732
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "שגיאה בקריאת גודל ה־PTY, משתמש בברירת המחדל: %s.\n"
+#: ../src/vte.cc:7911
+msgid "WARNING"
+msgstr "WARNING"
+
+#: ../src/vte.cc:7912
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GNUTLS not enabled; data will be written to disk unencrypted!"
+
+#~ msgid "Copy"
+#~ msgstr "העתקה"
+
+#~ msgid "Paste"
+#~ msgstr "הדבקה"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "איפוס (Ctrl לאיפוס וניקוי)"
+
+#~ msgid "Reset"
+#~ msgstr "איפוס"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "הפעלה/השבתת אפשור קלט"
+
+#~ msgid "Input"
+#~ msgstr "קלט"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "מנסה לקבוע מפת NRC לא תקנית '%c'."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "מערכת זיהוי קודים לא מוכרת."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "ניסיון לקבוע מפת NRC רחבה לא תקנית '%c'."
+
+#~ msgid "Duplicate (%s/%s)!"
+#~ msgstr "כפול (%s/%s)!"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr "Unable to send data to child, invalid charset convertor"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "שגיאה בקריאת גודל ה־PTY, משתמש בברירת המחדל: %s.\n"
 
 #~ msgid "Could not open console.\n"
 #~ msgstr "Could not open console.\n"
