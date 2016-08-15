@@ -1,3 +1,9 @@
+0.45.90
+=======
+
+* VTE now depends on PCRE2, and GRegex (which uses PCRE1 internally)
+use is deprecated.
+
 0.37.0
 ======
 * New API: vte-2.91
