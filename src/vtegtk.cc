@@ -3248,7 +3248,11 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
 
         vte_terminal_get_geometry_hints(terminal, &hints, MIN_ROWS, MIN_COLUMNS);
         gtk_window_set_geometry_hints(window,
+#if GTK_CHECK_VERSION (3, 19, 5)
+                                      NULL,
+#else
                                       &terminal->widget,
+#endif
                                       &hints,
                                       (GdkWindowHints)(GDK_HINT_RESIZE_INC |
                                                        GDK_HINT_MIN_SIZE |
