@@ -3130,7 +3130,6 @@ VteTerminalPrivate::child_watch_done(GPid pid,
                 return;
 
         GObject *object = G_OBJECT(m_terminal);
-        g_object_ref(object);
         g_object_freeze_notify(object);
 
         _VTE_DEBUG_IF (VTE_DEBUG_LIFECYCLE) {
