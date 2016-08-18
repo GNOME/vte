@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: vte.master.id\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-01 22:51+0000\n"
-"PO-Revision-Date: 2014-09-04 11:26+0700\n"
+"POT-Creation-Date: 2016-08-15 12:39+0000\n"
+"PO-Revision-Date: 2016-08-18 11:50+0700\n"
 "Last-Translator: Andika Triwidada <andika@gmail.com>\n"
 "Language-Team: GNOME Indonesian Translation Team <gnome-l10n-id@googlegroups."
 "com>\n"
@@ -18,81 +18,71 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.6.9\n"
+"X-Generator: Poedit 1.6.10\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "Salin"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "Tempel"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "Reset (gunakan Ctrl untuk mereset dan membersihkan)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "Reset"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "Jungkitkan pengaturan pemfungsian masukan"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "Masukan"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:2003
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3069
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Tidak dapat mengkonversi karakter dari %s ke %s."
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Mencoba untuk mengeset peta NRC '%c' yang salah."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "Tidak mengenali sistem koding yang telah diidentifikasi."
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Mencoba untuk mengeset peta luas NRC '%c' yang salah."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "Tidak dapat membuka konsol.\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr ""
-"Tidak dapat mengurai spesifikasi geometri yang diberikan pada --geometry"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4169
+#: ../src/vte.cc:4003
 #, c-format
 msgid "Error reading from child: %s."
-msgstr "Galat sewaktu membaca anakan: %s."
+msgstr "Galat sewaktu membaca dari anak: %s."
 
-#: ../src/vte.c:4305
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr ""
-"Tidak dapat mengirim data menuju anakan, pengkonversi set karakter salah"
-
-#: ../src/vte.c:4316 ../src/vte.c:5365
+#: ../src/vte.cc:4142
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
-msgstr "Galat (%s) sewaktu mengkonversi data untuk anakan, proses dihentikan."
+msgstr "Galat (%s) sewaktu mengkonversi data untuk anak, dibuang."
 
-#: ../src/vte.c:7678
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Galat sewaktu membaca ukuran PTY, beralih ke nilai baku: %s\n"
+#: ../src/vte.cc:7911
+msgid "WARNING"
+msgstr "PERINGATAN"
+
+#: ../src/vte.cc:7912
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GNUTLS tidak difungsikanl; data akan ditulis ke disk tanpa enkripsi!"
+
+#~ msgid "Copy"
+#~ msgstr "Salin"
+
+#~ msgid "Paste"
+#~ msgstr "Tempel"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "Reset (gunakan Ctrl untuk mereset dan membersihkan)"
+
+#~ msgid "Reset"
+#~ msgstr "Reset"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "Jungkitkan pengaturan pemfungsian masukan"
+
+#~ msgid "Input"
+#~ msgstr "Masukan"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Mencoba untuk mengeset peta NRC '%c' yang salah."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Tidak mengenali sistem koding yang telah diidentifikasi."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Mencoba untuk mengeset peta luas NRC '%c' yang salah."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Tidak dapat membuka konsol.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr ""
+#~ "Tidak dapat mengurai spesifikasi geometri yang diberikan pada --geometry"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "Tidak dapat mengirim data menuju anakan, pengkonversi set karakter salah"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "Galat sewaktu membaca ukuran PTY, beralih ke nilai baku: %s\n"
