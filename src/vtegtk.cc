@@ -1231,7 +1231,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:backspace-binding:
          *
-         * *Controls what string or control sequence the terminal sends to its child
+         * Controls what string or control sequence the terminal sends to its child
          * when the user presses the backspace key.
          */
         pspecs[PROP_BACKSPACE_BINDING] =
