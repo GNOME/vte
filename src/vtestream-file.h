@@ -1065,7 +1065,6 @@ static void
 _vte_file_stream_init (VteFileStream *stream)
 {
         stream->boa = (VteBoa *)g_object_new (VTE_TYPE_BOA, NULL);
-        _vte_boa_init (stream->boa);
 
         stream->rbuf = (char *)g_malloc(VTE_BOA_BLOCKSIZE);
         stream->wbuf = (char *)g_malloc(VTE_BOA_BLOCKSIZE);
