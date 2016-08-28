@@ -1,18 +1,18 @@
 # Serbian translation of vte
-# Courtesy of Prevod.org team (http://www.prevod.org/) -- 2003—2014.
+# Courtesy of Prevod.org team (http://www.prevod.org/) -- 2003—2016.
 # This file is distributed under the same license as the vte package.
 # Maintainer: Вељко М. Станојевић <veljko@vms.homelinux.net>
 # Милош Поповић <gpopac@gmail.com>, 2010.
-# Мирослав Николић <miroslavnikolic@rocketmail.com>, 2011—2014.
+# Мирослав Николић <miroslavnikolic@rocketmail.com>, 2011—2016.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
-"ywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-17 10:52+0000\n"
-"PO-Revision-Date: 2014-09-17 21:36+0200\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&key"
+"words=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2016-08-15 12:39+0000\n"
+"PO-Revision-Date: 2016-08-28 11:36+0200\n"
 "Last-Translator: Мирослав Николић <miroslavnikolic@rocketmail.com>\n"
-"Language-Team: Serbian <gnom@prevod.org>\n"
+"Language-Team: српски <gnome-sr@googlegroups.org>\n"
 "Language: sr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -21,81 +21,72 @@ msgstr ""
 "n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Project-Style: gnome\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "Умножи"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "Убаци"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "Врати (користите Ктрл да повратите и очистите)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "Врати"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "Окида подешавања укључена улазом"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "Улаз"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1998
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3069
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Не могу да пребацим знакове из „%s“ у „%s“."
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Покушај постављања погрешне НРЦ мапе „%c“."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "Пронађен је непознат кодни систем."
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Покушај постављања погрешне широке НРЦ мапе „%c“."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "Нисам успео да отворим конзолу.\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr ""
-"Не могу да рашчланим одредницу геометрије прослеђену опцијом „--geometry“"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4164
+#: ../src/vte.cc:4003
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Грешка при читању потпроцеса: %s."
 
-#: ../src/vte.c:4300
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr ""
-"Не могу да пошаљем податке потпроцесу, неисправан претварач скупа знакова"
-
-#: ../src/vte.c:4311 ../src/vte.c:5315
+#: ../src/vte.cc:4142
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Грешка (%s) при промени података за потпроцес — обустављам."
 
-#: ../src/vte.c:7628
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Грешка при читању „PTY“ величине, користим подразумеване вредности: %s\n"
+#: ../src/vte.cc:7911
+msgid "WARNING"
+msgstr "УПОЗОРЕЊЕ"
+
+#: ../src/vte.cc:7912
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "ГНУТЛС није укључен; подаци ће бити записани на диск нешифровани!"
+
+#~ msgid "Copy"
+#~ msgstr "Умножи"
+
+#~ msgid "Paste"
+#~ msgstr "Убаци"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "Врати (користите Ктрл да повратите и очистите)"
+
+#~ msgid "Reset"
+#~ msgstr "Врати"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "Окида подешавања укључена улазом"
+
+#~ msgid "Input"
+#~ msgstr "Улаз"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Покушај постављања погрешне НРЦ мапе „%c“."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Пронађен је непознат кодни систем."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Покушај постављања погрешне широке НРЦ мапе „%c“."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Нисам успео да отворим конзолу.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr ""
+#~ "Не могу да рашчланим одредницу геометрије прослеђену опцијом „--geometry“"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "Не могу да пошаљем податке потпроцесу, неисправан претварач скупа знакова"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr ""
+#~ "Грешка при читању „PTY“ величине, користим подразумеване вредности: %s\n"
 
 #~ msgid "Duplicate (%s/%s)!"
 #~ msgstr "Дупликат (%s/%s)!"
