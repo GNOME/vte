@@ -213,7 +213,8 @@ _vte_regex_new_gregex(VteRegexPurpose purpose,
                 { G_REGEX_DUPNAMES,        PCRE2_DUPNAMES        }
         };
 
-        guint32 gflags = g_regex_get_compile_flags(gregex);
+        /* Always add the MULTILINE option */
+        guint32 gflags = g_regex_get_compile_flags(gregex) | G_REGEX_MULTILINE;
         translate_flags(table, G_N_ELEMENTS(table), &gflags, &pflags);
 
         if (gflags != 0) {

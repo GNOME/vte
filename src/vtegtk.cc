@@ -1696,7 +1696,6 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
                               GRegexMatchFlags gflags)
 {
         g_return_val_if_fail(gregex != NULL, -1);
-        g_warn_if_fail(g_regex_get_compile_flags(gregex) & G_REGEX_MULTILINE);
 
         auto regex = _vte_regex_new_gregex(VteRegexPurpose::match, gregex);
         if (regex == NULL)
