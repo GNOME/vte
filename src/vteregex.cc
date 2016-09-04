@@ -408,3 +408,19 @@ _vte_regex_get_jited(VteRegex *regex)
 
         return r == 0 && s != 0;
 }
+
+/*
+ * _vte_regex_get_compile_flags:
+ *
+ * Returns: the PCRE2 flags used to compile @regex
+ */
+guint32
+_vte_regex_get_compile_flags(VteRegex *regex)
+{
+        g_return_val_if_fail(regex != nullptr, 0);
+
+        uint32_t v;
+        int r = pcre2_pattern_info_8(regex->code, PCRE2_INFO_ARGOPTIONS, &v);
+
+        return r == 0 ? v : 0u;
+}

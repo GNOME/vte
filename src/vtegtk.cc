@@ -1731,6 +1731,7 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	g_return_val_if_fail(regex != NULL, -1);
         g_return_val_if_fail(_vte_regex_has_purpose(regex, VteRegexPurpose::match), -1);
+        g_warn_if_fail(_vte_regex_get_compile_flags(regex) & PCRE2_MULTILINE);
 
         auto impl = IMPL(terminal);
 
@@ -1830,8 +1831,10 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(event != NULL, FALSE);
         g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
-        for (gsize i = 0; i < n_regexes; i++)
+        for (gsize i = 0; i < n_regexes; i++) {
                 g_return_val_if_fail(_vte_regex_has_purpose(regexes[i], VteRegexPurpose::match), -1);
+                g_warn_if_fail(_vte_regex_get_compile_flags(regexes[i]) & PCRE2_MULTILINE);
+        }
         g_return_val_if_fail(matches != NULL, FALSE);
 
         return IMPL(terminal)->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
@@ -2006,7 +2009,8 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
                                guint32      flags)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(regex == NULL || _vte_regex_has_purpose(regex, VteRegexPurpose::search));
+        g_return_if_fail(regex == nullptr || _vte_regex_has_purpose(regex, VteRegexPurpose::search));
+        g_warn_if_fail(regex == nullptr || _vte_regex_get_compile_flags(regex) & PCRE2_MULTILINE);
 
         IMPL(terminal)->search_set_regex(regex, flags);
 }

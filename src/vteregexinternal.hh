@@ -27,6 +27,8 @@ gboolean _vte_regex_has_purpose(VteRegex *regex,
 
 gboolean _vte_regex_get_jited(VteRegex *regex);
 
+guint32 _vte_regex_get_compile_flags (VteRegex *regex);
+
 const pcre2_code_8 *_vte_regex_get_pcre (VteRegex *regex);
 
 /* GRegex translation */
