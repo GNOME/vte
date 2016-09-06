@@ -1,98 +1,87 @@
 # Swedish messages for vte.
-# Copyright (C) 2002, 2003, 2006, 2007, 2010 Free Software Foundation, Inc.
+# Copyright © 2002, 2003, 2006, 2007, 2010, 2016 Free Software Foundation, Inc.
 # Christian Rose <menthos@menthos.com>, 2002, 2003.
 # Daniel Nylander <po@danielnylander.se>, 2006, 2007, 2010.
-#
-# $Id: sv.po,v 1.36 2006/03/13 05:33:26 behdad Exp $
+# Anders Jonsson <anders.jonsson@norsjovallen.se>, 2016.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-02 10:56+0000\n"
-"PO-Revision-Date: 2014-09-05 23:36+0100\n"
-"Last-Translator: Mattias Eriksson <snaggen@gmail.com>\n"
+"POT-Creation-Date: 2016-05-16 08:25+0000\n"
+"PO-Revision-Date: 2016-08-03 15:54+0200\n"
+"Last-Translator: Anders Jonsson <anders.jonsson@norsjovallen.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.5.4\n"
+"X-Generator: Poedit 1.8.8\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "Kopiera"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "Klistra in"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "Återställ (använd Ctrl för att återställa och rensa)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "Återställ"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "Slå av/på inmatningsaktiverad inställning"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "Inmatning"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:2003
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3090
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kan inte konvertera tecken från %s till %s."
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Försök att ställa in ogiltig NRC-mappning \"%c\"."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "Okänt identifierat kodningssystem."
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Försök att ställa in ogiltig bred NRC-mappning \"%c\"."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "Kunde inte öppna konsolen.\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Kunde inte tolka geometrispecifikationen som angavs för --geometry"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4169
+#: ../src/vte.cc:4248
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fel vid läsning från barn: %s."
 
-#: ../src/vte.c:4305
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Kan inte skicka data till barn, ogiltig teckenkonverterare"
-
-#: ../src/vte.c:4316 ../src/vte.c:5365
+#: ../src/vte.cc:4387
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fel (%s) vid konvertering av data för barn, kastar."
 
-#: ../src/vte.c:7678
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Fel vid läsning av PTY-storlek, använder standardvärden: %s\n"
+#: ../src/vte.cc:8156
+msgid "WARNING"
+msgstr "VARNING"
+
+#: ../src/vte.cc:8157
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GNUTLS inte aktiverat; data kommer skrivas till disk okrypterade!"
+
+#~ msgid "Copy"
+#~ msgstr "Kopiera"
+
+#~ msgid "Paste"
+#~ msgstr "Klistra in"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "Återställ (använd Ctrl för att återställa och rensa)"
+
+#~ msgid "Reset"
+#~ msgstr "Återställ"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "Slå av/på inmatningsaktiverad inställning"
+
+#~ msgid "Input"
+#~ msgstr "Inmatning"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Försök att ställa in ogiltig NRC-mappning \"%c\"."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Okänt identifierat kodningssystem."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Försök att ställa in ogiltig bred NRC-mappning \"%c\"."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Kunde inte öppna konsolen.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "Kunde inte tolka geometrispecifikationen som angavs för --geometry"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr "Kan inte skicka data till barn, ogiltig teckenkonverterare"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "Fel vid läsning av PTY-storlek, använder standardvärden: %s\n"
 
 #~ msgid "Duplicate (%s/%s)!"
 #~ msgstr "Dubbel (%s/%s)!"
