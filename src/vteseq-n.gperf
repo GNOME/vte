@@ -87,7 +87,7 @@ struct vteseq_n_struct {
 "window-manipulation", VTE_SEQUENCE_HANDLER(vte_sequence_handler_window_manipulation)
 "change-cursor-background-color-bel", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_cursor_background_color_bel)
 "change-cursor-background-color-st", VTE_SEQUENCE_HANDLER(vte_sequence_handler_change_cursor_background_color_st)
-"reset-cursor-background_color", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_cursor_background_color)
+"reset-cursor-background-color", VTE_SEQUENCE_HANDLER(vte_sequence_handler_reset_cursor_background_color)
 "character-attributes", VTE_SEQUENCE_HANDLER(vte_sequence_handler_character_attributes)
 "device-status-report", VTE_SEQUENCE_HANDLER(vte_sequence_handler_device_status_report)
 "set-scrolling-region", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_scrolling_region)

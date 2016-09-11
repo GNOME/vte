@@ -283,7 +283,7 @@ const char _vte_xterm_capability_strings[] =
         ENTRY(OSC "104;%m" ST, "reset-color")
         ENTRY(OSC "110" ST, "reset-foreground-color")
         ENTRY(OSC "111" ST, "reset-background-color")
-        ENTRY(OSC "112" ST, "reset-cursor-color")
+        ENTRY(OSC "112" ST, "reset-cursor-background-color")
         ENTRY(OSC "113" ST, "reset-mouse-cursor-foreground-color")
         ENTRY(OSC "114" ST, "reset-mouse-cursor-background-color")
         ENTRY(OSC "115" ST, "reset-tek-foreground-color")
