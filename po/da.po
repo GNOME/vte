@@ -1,16 +1,17 @@
 # Danish translation of vte.
-# Copyright (C) 2002-07 Free Software Foundation, Inc.
+# Copyright (C) 2002-07, 2016 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
 # Ole Laursen <olau@hardworking.dk>, 2002, 03.
 # Peter Bach <bach.peter@gmail.com>, 2007.
 # Kenneth Nielsen <k.nielsen81@gmail.com>. 2010
+# Ask Hjorth Larsen <asklarsen@gmail.com>, 2016.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-09-20 17:24+0200\n"
-"PO-Revision-Date: 2014-09-19 20:22+0200\n"
+"POT-Creation-Date: 2016-09-13 02:01+0200\n"
+"PO-Revision-Date: 2016-09-08 23:41+0200\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
 "Language: da\n"
@@ -18,79 +19,71 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "Kopiér"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "Indsæt"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "Nulstil (brug Ctrl til at nulstille og rydde)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "Nulstil"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "Slå input-indstillingen til eller fra"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "Input"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1998
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kunne ikke konvertere tegn fra %s til %s."
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Forsøg på at sætte ugyldig NRC-afbildning '%c'."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "Ukendt identificeret kodningssystem."
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Forsøg på at sætte ugyldig bred NRC-afbildning '%c'."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "Kunne ikke åbne konsol.\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Kunne ikke fortolke geometrispecifikationen sendt med --geometry"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4164
+#: ../src/vte.cc:4002
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fejl ved læsning fra underproces: %s."
 
-#: ../src/vte.c:4300
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Kunne ikke sende data til underproces, ugyldig konvertering af tegnsæt"
-
-#: ../src/vte.c:4311 ../src/vte.c:5315
+#: ../src/vte.cc:4141
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fejl (%s) ved konvertering af data for underproces, dropper."
 
-#: ../src/vte.c:7628
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Fejl ved indlæsning af PTY-størrelse, bruger standardværdier: %s.\n"
+#: ../src/vte.cc:7910
+msgid "WARNING"
+msgstr "ADVARSEL"
+
+#: ../src/vte.cc:7911
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr ""
+"GNUTLS er ikke slået til; data vil blive skrevet ukrypteret til disken!"
+
+#~ msgid "Copy"
+#~ msgstr "Kopiér"
+
+#~ msgid "Paste"
+#~ msgstr "Indsæt"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "Nulstil (brug Ctrl til at nulstille og rydde)"
+
+#~ msgid "Reset"
+#~ msgstr "Nulstil"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "Slå input-indstillingen til eller fra"
+
+#~ msgid "Input"
+#~ msgstr "Input"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Forsøg på at sætte ugyldig NRC-afbildning '%c'."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Ukendt identificeret kodningssystem."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Forsøg på at sætte ugyldig bred NRC-afbildning '%c'."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Kunne ikke åbne konsol.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "Kunne ikke fortolke geometrispecifikationen sendt med --geometry"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "Kunne ikke sende data til underproces, ugyldig konvertering af tegnsæt"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "Fejl ved indlæsning af PTY-størrelse, bruger standardværdier: %s.\n"
 
 #~ msgid "Duplicate (%s/%s)!"
 #~ msgstr "Optræder mere end én gang (%s/%s)!"
