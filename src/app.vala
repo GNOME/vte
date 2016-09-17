@@ -37,8 +37,7 @@ class SearchPopover : Gtk.Popover
 
   private bool regex_caseless = false;
   private string? regex_pattern = null;
-  private GLib.Regex? regex_gregex = null;
-  private Vte.Regex? regex_regex = null;
+  private bool has_regex = false;
 
   public SearchPopover(Vte.Terminal term,
                        Gtk.Widget relative_to)
@@ -70,8 +69,7 @@ class SearchPopover : Gtk.Popover
 
   private bool have_regex()
   {
-    return regex_gregex != null ||
-      regex_regex != null;
+	return has_regex;
   }
 
   private void update_sensitivity()
@@ -150,10 +148,13 @@ class SearchPopover : Gtk.Popover
       search_entry.set_tooltip_text(null);
     }
 
-    if (!App.Options.no_pcre)
+    if (!App.Options.no_pcre) {
+      has_regex = regex != null;
       terminal.search_set_regex(regex, 0);
-    else
+    } else {
+      has_regex = gregex != null;
       terminal.search_set_gregex(gregex, 0);
+    }
 
     update_sensitivity();
   }
