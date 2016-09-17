@@ -36,7 +36,6 @@ class SearchPopover : Gtk.Popover
   [GtkChild] private Gtk.Revealer revealer;
 
   private bool regex_caseless = false;
-  private bool regex_multiline = false;
   private string? regex_pattern = null;
   private GLib.Regex? regex_gregex = null;
   private Vte.Regex? regex_regex = null;
@@ -88,7 +87,6 @@ class SearchPopover : Gtk.Popover
     string search_text;
     string pattern = null;
     bool caseless = false;
-    bool multiline = false;
     GLib.Regex? gregex = null;
     Vte.Regex? regex = null;
 
@@ -97,7 +95,6 @@ class SearchPopover : Gtk.Popover
 
     if (regex_checkbutton.active) {
       pattern = search_text;
-      multiline = true;
     } else {
       pattern = GLib.Regex.escape_string(search_text);
     }
@@ -106,24 +103,20 @@ class SearchPopover : Gtk.Popover
       pattern = "\\b" + pattern + "\\b";
 
     if (caseless == regex_caseless &&
-        multiline == regex_multiline &&
         pattern == regex_pattern)
       return;
 
     regex_pattern = null;
     regex_caseless = caseless;
-    regex_multiline = multiline;
 
     if (search_text.length != 0) {
       try {
         if (!App.Options.no_pcre) {
           uint32 flags;
 
-          flags = 0x40080000u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK */;
+          flags = 0x40080400u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_MULTILINE */;
           if (caseless)
             flags |= 0x00000008u; /* PCRE2_CASELESS */
-          if (multiline)
-            flags |= 0x00000400u; /* PCRE2_MULTILINE */
           regex = new Vte.Regex.for_search(pattern, pattern.length, flags);
 
           try {
@@ -136,11 +129,10 @@ class SearchPopover : Gtk.Popover
         } else {
           GLib.RegexCompileFlags flags;
 
-          flags = GLib.RegexCompileFlags.OPTIMIZE;
+          flags = GLib.RegexCompileFlags.OPTIMIZE |
+                  GLib.RegexCompileFlags.MULTILINE;
           if (caseless)
             flags |= GLib.RegexCompileFlags.CASELESS;
-          if (multiline)
-            flags |= GLib.RegexCompileFlags.MULTILINE;
 
           gregex = new GLib.Regex(pattern, flags, 0);
         }
