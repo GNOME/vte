@@ -106,7 +106,7 @@
                   <object class="GtkImage" id="image1">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="icon_name">view-context-menu-symbolic</property>
+                    <property name="icon_name">open-menu-symbolic</property>
                     <property name="use_fallback">True</property>
                   </object>
                 </child>
