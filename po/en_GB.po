@@ -7,80 +7,71 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-09-01 09:43+0100\n"
-"PO-Revision-Date: 2007-03-06 12:49-0000\n"
-"Last-Translator: Philip Withnall <philip@tecnocode.co.uk>\n"
+"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2016-09-17 18:49+0000\n"
+"PO-Revision-Date: 2016-09-18 10:25+0200\n"
+"Last-Translator: David King <amigadave@amigadave.com>\n"
 "Language-Team: British English <en@li.org>\n"
 "Language: en_GB\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../src/iso2022.c:771 ../src/iso2022.c:779 ../src/iso2022.c:810
-#: ../src/vte.c:2254
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Unable to convert characters from %s to %s."
 
-#: ../src/iso2022.c:1464
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Attempt to set invalid NRC map '%c'."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1494
-msgid "Unrecognized identified coding system."
-msgstr "Unrecognised identified coding system."
-
-#: ../src/iso2022.c:1553 ../src/iso2022.c:1580
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Attempt to set invalid wide NRC map '%c'."
-
-#: ../src/trie.c:409
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "Duplicate (%s/%s)!"
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:965
-msgid "Could not open console.\n"
-msgstr "Could not open console.\n"
-
-#: ../src/vteapp.c:1056
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "Could not parse the geometry spec passed to --geometry"
-
-#: ../src/vte.c:1280
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Error compiling regular expression \"%s\"."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4362
+#: ../src/vte.cc:4002
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Error reading from child: %s."
 
-#: ../src/vte.c:4489
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Unable to send data to child, invalid charset convertor"
-
-#: ../src/vte.c:4500 ../src/vte.c:5531
+#: ../src/vte.cc:4141
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Error (%s) converting data for child, dropping."
 
-#: ../src/vte.c:7725
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Error reading PTY size; using defaults: %s\n"
+#: ../src/vte.cc:7910
+msgid "WARNING"
+msgstr "WARNING"
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:13297
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() failed setting word characters"
+#: ../src/vte.cc:7911
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GNUTLS not enabled; data will be written to disk unencrypted!"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Attempt to set invalid NRC map '%c'."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Unrecognised identified coding system."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Attempt to set invalid wide NRC map '%c'."
+
+#~ msgid "Duplicate (%s/%s)!"
+#~ msgstr "Duplicate (%s/%s)!"
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Could not open console.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "Could not parse the geometry spec passed to --geometry"
+
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "Error compiling regular expression \"%s\"."
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr "Unable to send data to child, invalid charset convertor"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "Error reading PTY size; using defaults: %s\n"
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() failed setting word characters"
 
 #~ msgid "can not run %s"
 #~ msgstr "can not run %s"
