@@ -5,7 +5,6 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src po doc perf
 
 EXTRA_DIST = \
-	MAINTAINERS \
 	HACKING \
 	autogen.sh \
 	ChangeLog.pre-git \
