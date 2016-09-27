@@ -357,7 +357,7 @@ AC_ARG_ENABLE([test-application],
         [],[enable_test_application=$enable_vala])
 AC_MSG_RESULT([$enable_test_application])
 
-AM_PROG_VALAC([0.18.0],[],[
+AM_PROG_VALAC([0.24.0],[],[
   if test "$enable_test_application" != "no"; then
     AC_MSG_ERROR([vala support enabled by vala compiler not found])
   fi])
