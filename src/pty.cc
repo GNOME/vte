@@ -372,7 +372,7 @@ __vte_pty_spawn (VtePty *pty,
         envp2 = __vte_pty_merge_environ (envv, inherit_envv);
 
         _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
-                g_printerr ("Spawing command:\n");
+                g_printerr ("Spawning command:\n");
                 for (i = 0; argv[i] != NULL; i++) {
                         g_printerr ("    argv[%d] = %s\n", i, argv[i]);
                 }
