@@ -23,6 +23,60 @@ fi
 AM_MAINTAINER_MODE([enable])
 
 ################################################################################
+# GTK+
+################################################################################
+
+AC_MSG_CHECKING([which gtk+ version to compile against])
+AC_ARG_WITH([gtk],
+  [AS_HELP_STRING([--with-gtk=3.0|3.90],[which gtk+ version to compile against (default: 3.0)])],
+  [case "$with_gtk" in
+     3.0) ;;
+     3.9[02468]) ;;
+     2.0) AC_MSG_ERROR([unsupported gtk version $with_gtk specified]) ;;
+     *) AC_MSG_ERROR([invalid gtk version $with_gtk specified]) ;;
+   esac],
+  [with_gtk=3.0])
+AC_MSG_RESULT([$with_gtk])
+
+case "$with_gtk" in
+  3.0) GTK_API_VERSION=3.0
+       GTK_API_MAJOR_VERSION=3
+       GTK_API_MINOR_VERSION=0
+       GTK_REQUIRED=3.8.0
+       GTK_MIN_REQUIRED=3.8
+       GTK_MAX_ALLOWED=3.20
+       VTE_API_MAJOR_VERSION=2
+       VTE_API_MINOR_VERSION=91
+       GLADE_API_VERSION=2.0
+       ;;
+  3.9[02468]) GTK_API_VERSION=4.0
+              GTK_API_MAJOR_VERSION=4
+              GTK_API_MINOR_VERSION=0
+              GTK_REQUIRED=3.89.0
+              GTK_MIN_REQUIRED=3.8
+              GTK_MAX_ALLOWED=3.20
+              VTE_API_MAJOR_VERSION=3
+              VTE_API_MINOR_VERSION=91
+              # GLADE_API_VERSION=4.0 ?
+              # remove the following when they're ready
+              enable_glade_catalogue=no
+              enable_introspection=no
+              enable_vala=no
+              enable_test_application=no
+             ;;
+esac
+
+VTE_API_VERSION=$VTE_API_MAJOR_VERSION.$VTE_API_MINOR_VERSION
+
+AC_SUBST([VTE_API_VERSION])
+AC_SUBST([VTE_API_VERSION_U],[AS_TR_SH([$VTE_API_VERSION])])
+AC_SUBST([VTE_API_MAJOR_VERSION])
+AC_SUBST([VTE_API_MINOR_VERSION])
+AC_SUBST([GTK_API_VERSION])
+AC_SUBST([GTK_API_MAJOR_VERSION])
+AC_SUBST([GTK_API_MINOR_VERSION])
+
+################################################################################
 # Libtool versioning
 ################################################################################
 m4_define([lt_revision], m4_if(m4_eval(version_minor%2),1,0,version_micro))
@@ -32,23 +86,6 @@ m4_define([lt_triplet],lt_current:lt_revision:lt_age)
 
 LT_VERSION_INFO="lt_triplet()"
 AC_SUBST([LT_VERSION_INFO])
-
-################################################################################
-# GTK+
-################################################################################
-
-VTE_API_MAJOR_VERSION=2
-VTE_API_MINOR_VERSION=91
-VTE_API_VERSION=$VTE_API_MAJOR_VERSION.$VTE_API_MINOR_VERSION
-GTK_API_VERSION=3.0
-GTK_REQUIRED=3.8.0
-GLADE_API_VERSION=2.0
-
-AC_SUBST([VTE_API_VERSION])
-AC_SUBST([VTE_API_VERSION_U],[AS_TR_SH([$VTE_API_VERSION])])
-AC_SUBST([VTE_API_MAJOR_VERSION])
-AC_SUBST([VTE_API_MINOR_VERSION])
-AC_SUBST([GTK_API_VERSION])
 
 ################################################################################
 
@@ -347,7 +384,7 @@ AM_PROG_VALAC([0.24.0],[],[
   fi])
 
 if test "$enable_test_application" = "yes"; then
-  PKG_CHECK_MODULES([GTK_3_16],[gtk+-3.0 >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
+  PKG_CHECK_MODULES([GTK_3_16],[gtk+-$GTK_API_VERSION >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
   AM_PROG_VALAC([0.31.1],[have_vala_0_31=yes],[have_vala_0_31=no])
 else
   have_gtk_3_16=no

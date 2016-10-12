@@ -25,7 +25,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-vala \
 	--enable-test-application \
 	--disable-silent-rules \
-	--with-gtk=3.0
+	--with-gtk=$(GTK_API_VERSION)
 
 MAINTAINERCLEANFILES = \
 	$(GITIGNORE_MAINTAINERCLEANFILES_TOPLEVEL) \
