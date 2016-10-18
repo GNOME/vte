@@ -11,89 +11,79 @@ msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-11 22:46+0000\n"
-"PO-Revision-Date: 2014-08-02 19:45+0800\n"
+"POT-Creation-Date: 2016-08-15 12:39+0000\n"
+"PO-Revision-Date: 2016-10-18 17:18+0800\n"
 "Last-Translator: irisgyq <gouyingqiyanxuan321@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.5.4\n"
+"X-Generator: Poedit 1.8.9\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "复制"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "粘贴"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "重置(使用 Ctrl 重置并清空)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "重置"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "切换输入启用设置"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "输入"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1998
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3069
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "无法将字符从 %s 转换至 %s。"
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "试图设置无效的 NRC 映射 “%c”。"
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "不可识别的标识代码系统。"
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "试图设置无效的宽 NRC 映射 “%c”。"
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "无法打开控制台。\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "无法解析传递给 --geometry 的几何参数"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4164
+#: ../src/vte.cc:4003
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "从子程序读取数据时出错：%s"
 
-#: ../src/vte.c:4300
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "无法给子进程发送数据，字符集转换器非法"
-
-#: ../src/vte.c:4311 ../src/vte.c:5315
+#: ../src/vte.cc:4142
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "从子程序转换数据时出错 (%s)，放弃。"
 
-#: ../src/vte.c:7628
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "读取 PTY 的尺寸时出错，使用默认值：%s\n"
+#: ../src/vte.cc:7911
+msgid "WARNING"
+msgstr "警告"
+
+#: ../src/vte.cc:7912
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GNUTLS 未启用；写入磁盘的数据没有加密！"
+
+#~ msgid "Copy"
+#~ msgstr "复制"
+
+#~ msgid "Paste"
+#~ msgstr "粘贴"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "重置(使用 Ctrl 重置并清空)"
+
+#~ msgid "Reset"
+#~ msgstr "重置"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "切换输入启用设置"
+
+#~ msgid "Input"
+#~ msgstr "输入"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "试图设置无效的 NRC 映射 “%c”。"
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "不可识别的标识代码系统。"
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "试图设置无效的宽 NRC 映射 “%c”。"
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "无法打开控制台。\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "无法解析传递给 --geometry 的几何参数"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr "无法给子进程发送数据，字符集转换器非法"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "读取 PTY 的尺寸时出错，使用默认值：%s\n"
 
 #~ msgid "Duplicate (%s/%s)!"
 #~ msgstr "重复 (%s/%s)！"
