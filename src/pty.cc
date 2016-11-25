@@ -1174,11 +1174,14 @@ vte_pty_spawn_finish(VtePty *pty,
 
         gpointer pidptr = g_task_propagate_pointer(G_TASK(result), error);
         if (pidptr == nullptr) {
-                *child_pid = -1;
+                if (child_pid)
+                        *child_pid = -1;
                 return FALSE;
         }
 
-        *child_pid = *(GPid*)pidptr;
-        *error = nullptr;
+        if (child_pid)
+                *child_pid = *(GPid*)pidptr;
+        if (error)
+                *error = nullptr;
         return TRUE;
 }
