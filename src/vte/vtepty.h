@@ -95,6 +95,26 @@ gboolean vte_pty_set_utf8 (VtePty *pty,
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VtePty, g_object_unref)
 #endif
 
+_VTE_PUBLIC
+void vte_pty_spawn_async(VtePty *pty,
+                         const char *working_directory,
+                         char **argv,
+                         char **envv,
+                         GSpawnFlags spawn_flags,
+                         GSpawnChildSetupFunc child_setup,
+                         gpointer child_setup_data,
+                         GDestroyNotify child_setup_data_destroy,
+                         int timeout,
+                         GCancellable *cancellable,
+                         GAsyncReadyCallback callback,
+                         gpointer user_data) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
+
+_VTE_PUBLIC
+gboolean vte_pty_spawn_finish(VtePty *pty,
+                              GAsyncResult *result,
+                              GPid *child_pid /* out */,
+                              GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+
 G_END_DECLS
 
 #endif /* __VTE_VTE_PTY_H__ */

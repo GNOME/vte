@@ -26,6 +26,8 @@ gboolean __vte_pty_spawn (VtePty *pty,
                           GSpawnChildSetupFunc child_setup,
                           gpointer child_setup_data,
                           GPid *child_pid /* out */,
+                          int timeout,
+                          GCancellable *cancellable,
                           GError **error);
 
 G_END_DECLS

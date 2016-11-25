@@ -3385,6 +3385,7 @@ VteTerminalPrivate::spawn_sync(VtePtyFlags pty_flags,
                              (GSpawnFlags)spawn_flags,
                              child_setup, child_setup_data,
                              &pid,
+                             -1 /* no timeout */, cancellable,
                              error)) {
                 g_object_unref(new_pty);
                 return false;

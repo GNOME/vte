@@ -2283,6 +2283,190 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                                          error);
 }
 
+typedef struct {
+        GWeakRef wref;
+        VteTerminalSpawnAsyncCallback callback;
+        gpointer user_data;
+} SpawnAsyncCallbackData;
+
+static gpointer
+spawn_async_callback_data_new(VteTerminal *terminal,
+                     VteTerminalSpawnAsyncCallback callback,
+                     gpointer user_data)
+{
+        SpawnAsyncCallbackData *data = g_new0 (SpawnAsyncCallbackData, 1);
+
+        g_weak_ref_init(&data->wref, terminal);
+        data->callback = callback;
+        data->user_data = user_data;
+
+        return data;
+}
+
+static void
+spawn_async_callback_data_free (SpawnAsyncCallbackData *data)
+{
+        g_weak_ref_clear(&data->wref);
+        g_free(data);
+}
+
+static void
+spawn_async_cb (GObject *source,
+                GAsyncResult *result,
+                gpointer user_data)
+{
+        SpawnAsyncCallbackData *data = reinterpret_cast<SpawnAsyncCallbackData*>(user_data);
+        VtePty *pty = VTE_PTY(source);
+
+        GPid pid = -1;
+        GError *error = nullptr;
+        vte_pty_spawn_finish(pty, result, &pid, &error);
+
+        /* Now get a ref to the terminal */
+        VteTerminal* terminal = (VteTerminal*)g_weak_ref_get(&data->wref);
+
+        /* Automatically watch the child */
+        if (terminal) {
+                if (pid != -1)
+                        vte_terminal_watch_child(terminal, pid);
+                else
+                        vte_terminal_set_pty(terminal, nullptr);
+        }
+
+        if (data->callback)
+                data->callback(terminal, pid, error, data->user_data);
+
+        g_clear_error(&error);
+
+        if (terminal == nullptr) {
+                /* If the terminal was destroyed, we need to abort the child process, if any */
+                if (pid != -1) {
+#ifdef HAVE_GETPGID
+                        pid_t pgrp;
+                        pgrp = getpgid(pid);
+                        if (pgrp != -1) {
+                                kill(-pgrp, SIGHUP);
+                        }
+#endif
+                        kill(pid, SIGHUP);
+                }
+        }
+
+        spawn_async_callback_data_free(data);
+}
+
+
+/**
+ * VteTerminalSpawnAsyncCallback:
+ * @terminal: the #VteTerminal
+ * @pid: a #GPid
+ * @error: a #GError, or %NULL
+ * @user_data: user data that was passed to vte_terminal_spawn_async
+ *
+ * Callback for vte_terminal_spawn_async().
+ *
+ * On success, @pid contains the PID of the spawned process, and @error
+ * is %NULL.
+ * On failure, @pid is -1 and @error contains the error information.
+ *
+ * Since: 0.48
+ */
+
+/**
+ * vte_terminal_spawn_async:
+ * @terminal: a #VteTerminal
+ * @pty_flags: flags from #VtePtyFlags
+ * @working_directory: (allow-none): the name of a directory the command should start
+ *   in, or %NULL to use the current working directory
+ * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
+ * @spawn_flags_: flags from #GSpawnFlags
+ * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
+ * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
+ * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
+ * @timeout: a timeout value in ms, or -1 to wait indefinitely
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @callback: a #VteTerminalSpawnAsyncCallback, or %NULL
+ * @user_data: user data for @callback, or %NULL
+ *
+ * A convenience function that wraps creating the #VtePty and spawning
+ * the child process on it. See vte_pty_new_sync(), vte_pty_spawn_async(),
+ * and vte_pty_spawn_finish() for more information.
+ *
+ * When the operation is finished successfully, @callback will be called
+ * with the child #GPid, and a %NULL #GError. The child PID will already be
+ * watched via vte_terminal_watch_child().
+ *
+ * When the operation fails, @callback will be called with a -1 #GPid,
+ * and a non-%NULL #GError containing the error information.
+ *
+ * Note that if @terminal has been destroyed before the operation is called,
+ * @callback will be called with a %NULL @terminal; you must not do anything
+ * in the callback besides freeing any resources associated with @user_data,
+ * but taking care not to access the now-destroyed #VteTerminal. Note that
+ * in this case, if spawning was successful, the child process will be aborted
+ * automatically.
+ *
+ * Since: 0.48
+ */
+void
+vte_terminal_spawn_async(VteTerminal *terminal,
+                         VtePtyFlags pty_flags,
+                         const char *working_directory,
+                         char **argv,
+                         char **envv,
+                         GSpawnFlags spawn_flags_,
+                         GSpawnChildSetupFunc child_setup,
+                         gpointer child_setup_data,
+                         GDestroyNotify child_setup_data_destroy,
+                         int timeout,
+                         GCancellable *cancellable,
+                         VteTerminalSpawnAsyncCallback callback,
+                         gpointer user_data)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(argv != nullptr);
+        g_return_if_fail(!child_setup_data || child_setup);
+        g_return_if_fail(!child_setup_data_destroy || child_setup_data);
+        g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
+
+        GError *error = NULL;
+        VtePty* pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, &error);
+        if (pty == nullptr) {
+                if (child_setup_data_destroy)
+                        child_setup_data_destroy(child_setup_data);
+
+                callback(terminal, -1, error, user_data);
+
+                g_error_free(error);
+                return;
+        }
+
+        vte_terminal_set_pty(terminal, pty);
+
+        guint spawn_flags = (guint)spawn_flags_;
+        /* FIXMEchpe: is this flag needed */
+        spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
+
+        /* We do NOT support this flag. If you want to have some FD open in the child
+         * process, simply use a child setup function that unsets the CLOEXEC flag
+         * on that FD.
+         */
+        spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
+
+        vte_pty_spawn_async(pty,
+                            working_directory,
+                            argv,
+                            envv,
+                            GSpawnFlags(spawn_flags),
+                            child_setup, child_setup_data, child_setup_data_destroy,
+                            timeout, cancellable,
+                            spawn_async_cb,
+                            spawn_async_callback_data_new(terminal, callback, user_data));
+        g_object_unref(pty);
+}
+
 /**
  * vte_terminal_feed:
  * @terminal: a #VteTerminal

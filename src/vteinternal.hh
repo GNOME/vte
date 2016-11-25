@@ -773,6 +773,21 @@ public:
                         GPid *child_pid /* out */,
                         GCancellable *cancellable,
                         GError **error);
+#if 0
+        void spawn_async(VtePtyFlags pty_flags,
+                         const char *working_directory,
+                         char **argv,
+                         char **envv,
+                         GSpawnFlags spawn_flags_,
+                         GSpawnChildSetupFunc child_setup,
+                         gpointer child_setup_data,
+                         GDestroyNotify child_setup_data_destroy,
+                         GCancellable *cancellable,
+                         GAsyncReadyCallback callback,
+                         gpointer user_data);
+        bool spawn_finish(GAsyncResult *result,
+                          GPid *child_pid /* out */);
+#endif
 
         void reset(bool clear_tabstops,
                    bool clear_history,

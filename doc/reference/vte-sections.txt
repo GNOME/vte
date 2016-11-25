@@ -82,6 +82,8 @@ vte_get_features
 
 <SUBSECTION>
 vte_terminal_spawn_sync
+VteTerminalSpawnAsyncCallback
+vte_terminal_spawn_async
 vte_terminal_get_pty
 vte_terminal_set_pty
 vte_terminal_pty_new_sync
@@ -161,6 +163,10 @@ vte_pty_set_size
 vte_pty_get_size
 vte_pty_set_term
 vte_pty_set_utf8
+
+<SUBSECTION>
+vte_pty_spawn_async
+vte_pty_spawn_finish
 
 <SUBSECTION Standard>
 vte_pty_flags_get_type

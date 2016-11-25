@@ -153,6 +153,26 @@ gboolean vte_terminal_spawn_sync(VteTerminal *terminal,
                                  GCancellable *cancellable,
                                  GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
 
+typedef void (* VteTerminalSpawnAsyncCallback) (VteTerminal *terminal,
+                                                GPid pid,
+                                                GError *error,
+                                                gpointer user_data);
+
+_VTE_PUBLIC
+void vte_terminal_spawn_async(VteTerminal *terminal,
+                              VtePtyFlags pty_flags,
+                              const char *working_directory,
+                              char **argv,
+                              char **envv,
+                              GSpawnFlags spawn_flags_,
+                              GSpawnChildSetupFunc child_setup,
+                              gpointer child_setup_data,
+                              GDestroyNotify child_setup_data_destroy,
+                              int timeout,
+                              GCancellable *cancellable,
+                              VteTerminalSpawnAsyncCallback callback,
+                              gpointer user_data) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
+
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
 _VTE_PUBLIC

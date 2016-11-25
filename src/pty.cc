@@ -31,6 +31,7 @@
 #include <vte/vte.h>
 #include "vtepty-private.h"
 #include "vtetypes.hh"
+#include "vtespawn.hh"
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -321,6 +322,8 @@ __vte_pty_merge_environ (char **envp,
  * @child_setup: function to run in the child just before exec()
  * @child_setup_data: user data for @child_setup
  * @child_pid: a location to store the child PID, or %NULL
+ * @timeout: a timeout value in ms, or %NULL
+ * @cancellable: a #GCancellable, or %NULL
  * @error: return location for a #GError, or %NULL
  *
  * Uses g_spawn_async() to spawn the command in @argv. The child's environment will
@@ -347,6 +350,8 @@ __vte_pty_spawn (VtePty *pty,
                  GSpawnChildSetupFunc child_setup,
                  gpointer child_setup_data,
                  GPid *child_pid /* out */,
+                 int timeout,
+                 GCancellable *cancellable,
                  GError **error)
 {
 	VtePtyPrivate *priv = pty->priv;
@@ -1001,4 +1006,180 @@ vte_pty_get_fd (VtePty *pty)
         g_return_val_if_fail(priv->pty_fd != -1, -1);
 
         return priv->pty_fd;
+}
+
+typedef struct {
+        VtePty* m_pty;
+        char* m_working_directory;
+        char** m_argv;
+        char** m_envv;
+        GSpawnFlags m_spawn_flags;
+        GSpawnChildSetupFunc m_child_setup;
+        gpointer m_child_setup_data;
+        GDestroyNotify m_child_setup_data_destroy;
+        int m_timeout;
+} AsyncSpawnData;
+
+static AsyncSpawnData*
+async_spawn_data_new (VtePty* pty,
+                      char const* working_directory,
+                      char** argv,
+                      char** envv,
+                      GSpawnFlags spawn_flags,
+                      GSpawnChildSetupFunc child_setup,
+                      gpointer child_setup_data,
+                      GDestroyNotify child_setup_data_destroy,
+                      int timeout)
+{
+        auto data = g_new(AsyncSpawnData, 1);
+
+        data->m_pty = (VtePty*)g_object_ref(pty);
+        data->m_working_directory = g_strdup(working_directory);
+        data->m_argv = g_strdupv(argv);
+        data->m_envv = envv ? g_strdupv(envv) : nullptr;
+        data->m_spawn_flags = spawn_flags;
+        data->m_child_setup = child_setup;
+        data->m_child_setup_data = child_setup_data;
+        data->m_child_setup_data_destroy = child_setup_data_destroy;
+        data->m_timeout = timeout;
+
+        return data;
+}
+
+static void
+async_spawn_data_free(gpointer data_)
+{
+        AsyncSpawnData *data = reinterpret_cast<AsyncSpawnData*>(data_);
+
+        g_free(data->m_working_directory);
+        g_strfreev(data->m_argv);
+        g_strfreev(data->m_envv);
+        if (data->m_child_setup_data && data->m_child_setup_data_destroy)
+                data->m_child_setup_data_destroy(data->m_child_setup_data);
+}
+
+static void
+async_spawn_run_in_thread(GTask *task,
+                          gpointer object,
+                          gpointer data_,
+                          GCancellable *cancellable)
+{
+        AsyncSpawnData *data = reinterpret_cast<AsyncSpawnData*>(data_);
+
+        GPid pid;
+        GError *error = NULL;
+        if (__vte_pty_spawn(data->m_pty,
+                            data->m_working_directory,
+                            data->m_argv,
+                            data->m_envv,
+                            (GSpawnFlags)data->m_spawn_flags,
+                            data->m_child_setup, data->m_child_setup_data,
+                            &pid,
+                            data->m_timeout,
+                            cancellable,
+                            &error))
+                g_task_return_pointer(task, g_memdup(&pid, sizeof(pid)), g_free);
+        else
+                g_task_return_error(task, error);
+}
+
+/**
+ * vte_pty_spawn_async:
+ * @pty: a #VtePty
+ * @working_directory: (allow-none): the name of a directory the command should start
+ *   in, or %NULL to use the current working directory
+ * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
+ * @spawn_flags: flags from #GSpawnFlags
+ * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
+ * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
+ * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
+ * @timeout: a timeout value in ms, or -1 to wait indefinitely
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
+ *
+ * Starts the specified command under the pseudo-terminal @pty.
+ * The @argv and @envv lists should be %NULL-terminated.
+ * The "TERM" environment variable is automatically set to a default value,
+ * but can be overridden from @envv.
+ * @pty_flags controls logging the session to the specified system log files.
+ *
+ * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
+ *
+ * Note that all open file descriptors will be closed in the child. If you want
+ * to keep some file descriptor open for use in the child process, you need to
+ * use a child setup function that unsets the FD_CLOEXEC flag on that file
+ * descriptor.
+ *
+ * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
+ *
+ * Since: 0.48
+ */
+void
+vte_pty_spawn_async(VtePty *pty,
+                    const char *working_directory,
+                    char **argv,
+                    char **envv,
+                    GSpawnFlags spawn_flags_,
+                    GSpawnChildSetupFunc child_setup,
+                    gpointer child_setup_data,
+                    GDestroyNotify child_setup_data_destroy,
+                    int timeout,
+                    GCancellable *cancellable,
+                    GAsyncReadyCallback callback,
+                    gpointer user_data)
+{
+        g_return_if_fail(argv != nullptr);
+        g_return_if_fail(!child_setup_data || child_setup);
+        g_return_if_fail(!child_setup_data_destroy || child_setup_data);
+        g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
+        g_return_if_fail(callback);
+
+        /* FIXMEchpe: is this flag needed */
+        guint spawn_flags = (guint)spawn_flags_;
+        spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
+
+        auto data = async_spawn_data_new(pty,
+                                         working_directory, argv, envv,
+                                         GSpawnFlags(spawn_flags),
+                                         child_setup, child_setup_data, child_setup_data_destroy,
+                                         timeout);
+
+        auto task = g_task_new(pty, cancellable, callback, user_data);
+        g_task_set_source_tag(task, (void*)vte_pty_spawn_async);
+        g_task_set_task_data(task, data, async_spawn_data_free);
+        g_task_run_in_thread(task, async_spawn_run_in_thread);
+        g_object_unref(task);
+}
+
+/**
+ * vte_pty_spawn_finish:
+ * @pty: a #VtePty
+ * @result: a #GAsyncResult
+ * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
+ * @error: (allow-none): return location for a #GError, or %NULL
+ *
+ * Returns: %TRUE on success, or %FALSE on error with @error filled in
+ *
+ * Since: 0.48
+ */
+gboolean
+vte_pty_spawn_finish(VtePty *pty,
+                     GAsyncResult *result,
+                     GPid *child_pid /* out */,
+                     GError **error)
+{
+        g_return_val_if_fail (VTE_IS_PTY (pty), FALSE);
+        g_return_val_if_fail (G_IS_TASK (result), FALSE);
+        g_return_val_if_fail(error == nullptr || *error == nullptr, FALSE);
+
+        gpointer pidptr = g_task_propagate_pointer(G_TASK(result), error);
+        if (pidptr == nullptr) {
+                *child_pid = -1;
+                return FALSE;
+        }
+
+        *child_pid = *(GPid*)pidptr;
+        *error = nullptr;
+        return TRUE;
 }
