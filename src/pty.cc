@@ -31,7 +31,6 @@
 #include <vte/vte.h>
 #include "vtepty-private.h"
 #include "vtetypes.hh"
-#include "vtespawn.hh"
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
