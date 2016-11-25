@@ -1119,7 +1119,7 @@ vte_pty_spawn_async(VtePty *pty,
                     const char *working_directory,
                     char **argv,
                     char **envv,
-                    GSpawnFlags spawn_flags_,
+                    GSpawnFlags spawn_flags,
                     GSpawnChildSetupFunc child_setup,
                     gpointer child_setup_data,
                     GDestroyNotify child_setup_data_destroy,
@@ -1134,13 +1134,9 @@ vte_pty_spawn_async(VtePty *pty,
         g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
         g_return_if_fail(callback);
 
-        /* FIXMEchpe: is this flag needed */
-        guint spawn_flags = (guint)spawn_flags_;
-        spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
-
         auto data = async_spawn_data_new(pty,
                                          working_directory, argv, envv,
-                                         GSpawnFlags(spawn_flags),
+                                         spawn_flags,
                                          child_setup, child_setup_data, child_setup_data_destroy,
                                          timeout);
 

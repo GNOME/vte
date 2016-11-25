@@ -3369,9 +3369,6 @@ VteTerminalPrivate::spawn_sync(VtePtyFlags pty_flags,
         if (new_pty == nullptr)
                 return false;
 
-        /* FIXMEchpe: is this flag needed */
-        spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
-
         /* We do NOT support this flag. If you want to have some FD open in the child
          * process, simply use a child setup function that unsets the CLOEXEC flag
          * on that FD.

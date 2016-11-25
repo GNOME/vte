@@ -2446,8 +2446,6 @@ vte_terminal_spawn_async(VteTerminal *terminal,
         vte_terminal_set_pty(terminal, pty);
 
         guint spawn_flags = (guint)spawn_flags_;
-        /* FIXMEchpe: is this flag needed */
-        spawn_flags |= G_SPAWN_CHILD_INHERITS_STDIN;
 
         /* We do NOT support this flag. If you want to have some FD open in the child
          * process, simply use a child setup function that unsets the CLOEXEC flag
