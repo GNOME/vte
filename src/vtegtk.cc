@@ -49,6 +49,7 @@
 
 #include "debug.h"
 #include "marshal.h"
+#include "reaper.hh"
 #include "vtedefines.hh"
 #include "vteinternal.hh"
 #include "vteaccess.h"
@@ -2326,17 +2327,19 @@ spawn_async_cb (GObject *source,
         VteTerminal* terminal = (VteTerminal*)g_weak_ref_get(&data->wref);
 
         /* Automatically watch the child */
-        if (terminal) {
+        if (terminal != nullptr) {
                 if (pid != -1)
                         vte_terminal_watch_child(terminal, pid);
                 else
                         vte_terminal_set_pty(terminal, nullptr);
+        } else {
+                if (pid != -1) {
+                        vte_reaper_add_child(pid);
+                }
         }
 
         if (data->callback)
                 data->callback(terminal, pid, error, data->user_data);
-
-        g_clear_error(&error);
 
         if (terminal == nullptr) {
                 /* If the terminal was destroyed, we need to abort the child process, if any */
@@ -2351,6 +2354,9 @@ spawn_async_cb (GObject *source,
                         kill(pid, SIGHUP);
                 }
         }
+
+        if (error)
+                g_error_free(error);
 
         spawn_async_callback_data_free(data);
 }

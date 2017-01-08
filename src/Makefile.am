@@ -57,6 +57,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	matcher.cc \
 	matcher.h \
 	pty.cc \
+	reaper.cc \
+	reaper.hh \
 	ring.cc \
 	ring.h \
 	table.cc \
@@ -332,6 +334,7 @@ EXTRA_DIST += $(noinst_SCRIPTS)
 
 check_PROGRAMS = \
 	dumpkeys \
+	reaper \
 	reflect-text-view \
 	reflect-vte mev \
 	table \
@@ -347,6 +350,7 @@ dist_check_SCRIPTS = \
 	$(NULL)
 
 TESTS = \
+	reaper \
 	table \
 	test-vtetypes \
 	vteconv \
@@ -359,6 +363,16 @@ TESTS_ENVIRONMENT = \
 	top_builddir="$(top_builddir)" \
 	VTE_API_VERSION="$(VTE_API_VERSION)" \
 	$(NULL)
+
+reaper_CPPFLAGS = -DMAIN -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
+reaper_CXXFLAGS = $(VTE_CFLAGS) $(AM_CXXFLAGS)
+reaper_SOURCES = \
+	debug.cc \
+	debug.h \
+	reaper.cc \
+	reaper.hh \
+	$(NULL)
+reaper_LDADD = $(VTE_LIBS)
 
 reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)

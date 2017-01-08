@@ -40,6 +40,7 @@
 #include "debug.h"
 #include "vteconv.h"
 #include "vtedraw.hh"
+#include "reaper.hh"
 #include "ring.h"
 #include "caps.h"
 
@@ -3104,15 +3105,12 @@ not_inserted:
 }
 
 static void
-child_watch_cb(GPid pid,
-               int status,
-               VteTerminalPrivate *that)
+reaper_child_exited_cb(VteReaper *reaper,
+                       int ipid,
+                       int status,
+                       VteTerminalPrivate *that)
 {
-	if (that == NULL) {
-		/* The child outlived us. Do nothing, we're happy that Glib
-		 * read its exit data and hence it's no longer there as zombie. */
-		return;
-	}
+        GPid pid = GPid(ipid);
 
         auto terminal = that->m_terminal;
         /* keep the VteTerminalPrivate in a death grip */
@@ -3146,7 +3144,15 @@ VteTerminalPrivate::child_watch_done(GPid pid,
 #endif
         }
 
-        m_child_watch_source = 0;
+        /* Disconnect from the reaper */
+        if (m_reaper) {
+                g_signal_handlers_disconnect_by_func(m_reaper,
+                                                     (gpointer)reaper_child_exited_cb,
+                                                     this);
+                g_object_unref(m_reaper);
+                m_reaper = nullptr;
+        }
+
         m_pty_pid = -1;
 
         /* Close out the PTY. */
@@ -3304,14 +3310,22 @@ VteTerminalPrivate::watch_child (GPid child_pid)
         m_pty_pid = child_pid;
 
         /* Catch a child-exited signal from the child pid. */
-        if (m_child_watch_source != 0) {
-                g_source_remove (m_child_watch_source);
+        auto reaper = vte_reaper_ref();
+        vte_reaper_add_child(child_pid);
+        if (reaper != m_reaper) {
+                if (m_reaper) {
+                        g_signal_handlers_disconnect_by_func(m_reaper,
+                                                             (gpointer)reaper_child_exited_cb,
+                                                             this);
+                        g_object_unref(m_reaper);
+                }
+                m_reaper = reaper; /* adopts */
+                g_signal_connect(m_reaper, "child-exited",
+                                 G_CALLBACK(reaper_child_exited_cb),
+                                 this);
+        } else {
+                g_object_unref(reaper);
         }
-        m_child_watch_source =
-                g_child_watch_add_full(G_PRIORITY_HIGH,
-                                       child_pid,
-                                       (GChildWatchFunc)child_watch_cb,
-                                       this, nullptr);
 
         /* FIXMEchpe: call set_size() here? */
 
@@ -8239,14 +8253,12 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		m_outgoing_conv = VTE_INVALID_CONV;
 	}
 
-	/* Start listening for child-exited signals and ignore them, so that no zombie child is left behind. */
-        if (m_child_watch_source != 0) {
-                g_source_remove (m_child_watch_source);
-                m_child_watch_source = 0;
-                g_child_watch_add_full(G_PRIORITY_HIGH,
-                                       m_pty_pid,
-                                       (GChildWatchFunc)child_watch_cb,
-                                       NULL, NULL);
+        /* Stop listening for child-exited signals. */
+        if (m_reaper) {
+                g_signal_handlers_disconnect_by_func(m_reaper,
+                                                     (gpointer)reaper_child_exited_cb,
+                                                     this);
+                g_object_unref(m_reaper);
         }
 
 	/* Stop processing input. */

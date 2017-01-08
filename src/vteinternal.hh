@@ -22,6 +22,7 @@
 
 #include "vtedefines.hh"
 #include "vtetypes.hh"
+#include "reaper.hh"
 #include "ring.h"
 #include "vteconv.h"
 #include "buffer.h"
@@ -286,7 +287,7 @@ public:
         guint m_pty_output_source;
         gboolean m_pty_input_active;
         GPid m_pty_pid;	                /* pid of child process */
-        guint m_child_watch_source;
+        VteReaper *m_reaper;
 
 	/* Input data queues. */
         const char *m_encoding;            /* the pty's encoding */
