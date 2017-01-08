@@ -1055,6 +1055,9 @@ async_spawn_data_free(gpointer data_)
         g_strfreev(data->m_envv);
         if (data->m_child_setup_data && data->m_child_setup_data_destroy)
                 data->m_child_setup_data_destroy(data->m_child_setup_data);
+        g_object_unref(data->m_pty);
+
+        g_free(data);
 }
 
 static void
