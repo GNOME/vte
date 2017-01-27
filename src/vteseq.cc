@@ -3409,7 +3409,7 @@ vte_sequence_handler_iterm2_1337(VteTerminalPrivate *that, GValueArray *params)
 #define VTE_SEQUENCE_HANDLER(name) name
 
 static const struct vteseq_n_struct *
-vteseq_n_lookup (register const char *str, register unsigned int len);
+vteseq_n_lookup (register const char *str, register size_t len);
 #include"vteseq-n.cc"
 
 #undef VTE_SEQUENCE_HANDLER
