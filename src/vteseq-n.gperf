@@ -1,13 +1,14 @@
 /* run "make gperf" after modifying this file */
 
 %struct-type
-%language=ANSI-C
+%language=C++
 %includes
 %enum
 %readonly-tables
+%define class-name vteseq_n_hash
 %define slot-name seq
-%define hash-function-name vteseq_n_hash
-%define lookup-function-name vteseq_n_lookup
+%define hash-function-name hash
+%define lookup-function-name lookup
 
 %compare-lengths
 %pic
