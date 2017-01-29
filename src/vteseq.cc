@@ -3407,23 +3407,18 @@ vte_sequence_handler_iterm2_1337(VteTerminalPrivate *that, GValueArray *params)
 /* Lookup tables */
 
 #define VTE_SEQUENCE_HANDLER(name) name
-
-static const struct vteseq_n_struct *
-vteseq_n_lookup (register const char *str, register unsigned int len);
-#include"vteseq-n.cc"
-
+#include "vteseq-n.cc"
 #undef VTE_SEQUENCE_HANDLER
 
 static VteTerminalSequenceHandler
 _vte_sequence_get_handler (const char *name)
 {
-	int len = strlen (name);
+	size_t len = strlen(name);
 
 	if (G_UNLIKELY (len < 2)) {
 		return NULL;
 	} else {
-		const struct vteseq_n_struct *seqhandler;
-		seqhandler = vteseq_n_lookup (name, len);
+		auto seqhandler = vteseq_n_hash::lookup (name, len);
 		return seqhandler ? seqhandler->handler : NULL;
 	}
 }
