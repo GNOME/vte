@@ -80,6 +80,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteregexinternal.hh \
 	vterowdata.cc \
 	vterowdata.h \
+	vtespawn.cc \
+	vtespawn.hh \
 	vteseq.cc \
 	vteseq-list.h \
 	vtestream.cc \

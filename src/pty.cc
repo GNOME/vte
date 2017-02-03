@@ -31,6 +31,7 @@
 #include <vte/vte.h>
 #include "vtepty-private.h"
 #include "vtetypes.hh"
+#include "vtespawn.hh"
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -361,6 +362,10 @@ __vte_pty_spawn (VtePty *pty,
         char **envp2;
         gint i;
         GError *err = NULL;
+        GPollFD pollfd;
+
+        if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd))
+                return FALSE;
 
         spawn_flags |= G_SPAWN_DO_NOT_REAP_CHILD;
 
@@ -390,33 +395,40 @@ __vte_pty_spawn (VtePty *pty,
 	data->extra_child_setup = child_setup;
 	data->extra_child_setup_data = child_setup_data;
 
-        ret = g_spawn_async_with_pipes(directory,
-                                       argv, envp2,
-                                       (GSpawnFlags) spawn_flags,
-                                       (GSpawnChildSetupFunc) vte_pty_child_setup,
-                                       pty,
-                                       child_pid,
-                                       NULL, NULL, NULL,
-                                       &err);
+        ret = vte_spawn_async_with_pipes_cancellable(directory,
+                                                     argv, envp2,
+                                                     (GSpawnFlags)spawn_flags,
+                                                     (GSpawnChildSetupFunc)vte_pty_child_setup,
+                                                     pty,
+                                                     child_pid,
+                                                     NULL, NULL, NULL,
+                                                     timeout,
+                                                     cancellable ? &pollfd : NULL,
+                                                     &err);
         if (!ret &&
             directory != NULL &&
             g_error_matches(err, G_SPAWN_ERROR, G_SPAWN_ERROR_CHDIR)) {
                 /* try spawning in our working directory */
                 g_clear_error(&err);
-                ret = g_spawn_async_with_pipes(NULL,
-                                               argv, envp2,
-                                               (GSpawnFlags) spawn_flags,
-                                               (GSpawnChildSetupFunc) vte_pty_child_setup,
-                                               pty,
-                                               child_pid,
-                                               NULL, NULL, NULL,
-                                               &err);
+                ret = vte_spawn_async_with_pipes_cancellable(NULL,
+                                                             argv, envp2,
+                                                             (GSpawnFlags)spawn_flags,
+                                                             (GSpawnChildSetupFunc)vte_pty_child_setup,
+                                                             pty,
+                                                             child_pid,
+                                                             NULL, NULL, NULL,
+                                                             timeout,
+                                                             cancellable ? &pollfd : NULL,
+                                                             &err);
         }
 
         g_strfreev (envp2);
 
 	data->extra_child_setup = NULL;
 	data->extra_child_setup_data = NULL;
+
+        if (cancellable)
+                g_cancellable_release_fd(cancellable);
 
         if (ret)
                 return TRUE;

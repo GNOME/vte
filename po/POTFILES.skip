@@ -1,3 +1,4 @@
 src/app.ui
 src/search-popover.ui
 src/vteapp.c
+src/vtespawn.cc
