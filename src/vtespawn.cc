@@ -45,7 +45,7 @@
 #define VTE_SPAWN_ERROR_TIMED_OUT (G_SPAWN_ERROR_FAILED + 1000)
 #define VTE_SPAWN_ERROR_CANCELLED (G_SPAWN_ERROR_FAILED + 1001)
 
-#define _(s) g_dgettext("glib-2.0", s)
+#define _(s) g_dgettext("glib20", s)
 
 /*
  * SECTION:spawn
@@ -776,14 +776,12 @@ fork_exec_with_pipes (gboolean              intermediate_child,
   gint child_err_report_pipe[2] = { -1, -1 };
   gint child_pid_report_pipe[2] = { -1, -1 };
   guint pipe_flags = cloexec_pipes ? FD_CLOEXEC : 0;
-  gint status;
-  
+
+  g_assert(!intermediate_child);
+
   if (!g_unix_open_pipe (child_err_report_pipe, pipe_flags, error))
     return FALSE;
 
-  if (intermediate_child && !g_unix_open_pipe (child_pid_report_pipe, pipe_flags, error))
-    goto cleanup_and_fail;
-  
   if (standard_input && !g_unix_open_pipe (stdin_pipe, pipe_flags, error))
     goto cleanup_and_fail;
   
@@ -834,76 +832,22 @@ fork_exec_with_pipes (gboolean              intermediate_child,
       close_and_invalidate (&stdout_pipe[0]);
       close_and_invalidate (&stderr_pipe[0]);
       
-      if (intermediate_child)
-        {
-          /* We need to fork an intermediate child that launches the
-           * final child. The purpose of the intermediate child
-           * is to exit, so we can waitpid() it immediately.
-           * Then the grandchild will not become a zombie.
-           */
-          GPid grandchild_pid;
-
-          grandchild_pid = fork ();
-
-          if (grandchild_pid < 0)
-            {
-              /* report -1 as child PID */
-              write_all (child_pid_report_pipe[1], &grandchild_pid,
-                         sizeof(grandchild_pid));
-              
-              write_err_and_exit (child_err_report_pipe[1],
-                                  CHILD_FORK_FAILED);              
-            }
-          else if (grandchild_pid == 0)
-            {
-              close_and_invalidate (&child_pid_report_pipe[1]);
-              do_exec (child_err_report_pipe[1],
-                       stdin_pipe[0],
-                       stdout_pipe[1],
-                       stderr_pipe[1],
-                       working_directory,
-                       argv,
-                       envp,
-                       close_descriptors,
-                       search_path,
-                       search_path_from_envp,
-                       stdout_to_null,
-                       stderr_to_null,
-                       child_inherits_stdin,
-                       file_and_argv_zero,
-                       child_setup,
-                       user_data);
-            }
-          else
-            {
-              write_all (child_pid_report_pipe[1], &grandchild_pid, sizeof(grandchild_pid));
-              close_and_invalidate (&child_pid_report_pipe[1]);
-              
-              _exit (0);
-            }
-        }
-      else
-        {
-          /* Just run the child.
-           */
-
-          do_exec (child_err_report_pipe[1],
-                   stdin_pipe[0],
-                   stdout_pipe[1],
-                   stderr_pipe[1],
-                   working_directory,
-                   argv,
-                   envp,
-                   close_descriptors,
-                   search_path,
-                   search_path_from_envp,
-                   stdout_to_null,
-                   stderr_to_null,
-                   child_inherits_stdin,
-                   file_and_argv_zero,
-                   child_setup,
-                   user_data);
-        }
+      do_exec (child_err_report_pipe[1],
+               stdin_pipe[0],
+               stdout_pipe[1],
+               stderr_pipe[1],
+               working_directory,
+               argv,
+               envp,
+               close_descriptors,
+               search_path,
+               search_path_from_envp,
+               stdout_to_null,
+               stderr_to_null,
+               child_inherits_stdin,
+               file_and_argv_zero,
+               child_setup,
+               user_data);
     }
   else
     {
@@ -918,23 +862,6 @@ fork_exec_with_pipes (gboolean              intermediate_child,
       close_and_invalidate (&stdin_pipe[0]);
       close_and_invalidate (&stdout_pipe[1]);
       close_and_invalidate (&stderr_pipe[1]);
-
-      /* If we had an intermediate child, reap it */
-      if (intermediate_child)
-        {
-        wait_again:
-          if (waitpid (pid, &status, 0) < 0)
-            {
-              if (errno == EINTR)
-                goto wait_again;
-              else if (errno == ECHILD)
-                ; /* do nothing, child already reaped */
-              else
-                g_warning ("waitpid() should not fail in "
-			   "'fork_exec_with_pipes'");
-            }
-        }
-      
 
       if (!read_ints (child_err_report_pipe[0],
                       buf, 2, &n_ints,
@@ -997,35 +924,6 @@ fork_exec_with_pipes (gboolean              intermediate_child,
           goto cleanup_and_fail;
         }
 
-      /* Get child pid from intermediate child pipe. */
-      if (intermediate_child)
-        {
-          n_ints = 0;
-          
-          if (!read_ints (child_pid_report_pipe[0],
-                          buf, 1, &n_ints,
-                          timeout, pollfd,
-                          error))
-            goto cleanup_and_fail;
-
-          if (n_ints < 1)
-            {
-              int errsv = errno;
-
-              g_set_error (error,
-                           G_SPAWN_ERROR,
-                           G_SPAWN_ERROR_FAILED,
-                           _("Failed to read enough data from child pid pipe (%s)"),
-                           g_strerror (errsv));
-              goto cleanup_and_fail;
-            }
-          else
-            {
-              /* we have the child pid */
-              pid = buf[0];
-            }
-        }
-      
       /* Success against all odds! return the information */
       close_and_invalidate (&child_err_report_pipe[0]);
       close_and_invalidate (&child_pid_report_pipe[0]);
