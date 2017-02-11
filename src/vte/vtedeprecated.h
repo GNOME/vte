@@ -23,6 +23,9 @@
 #ifndef __VTE_DEPRECATED_H__
 #define __VTE_DEPRECATED_H__
 
+#include "vteterminal.h"
+#include "vtepty.h"
+
 #ifndef VTE_DISABLE_DEPRECATION_WARNINGS
 #define _VTE_DEPRECATED G_DEPRECATED
 #else

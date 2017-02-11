@@ -2,7 +2,7 @@ NULL =
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = src po doc perf
+SUBDIRS = src bindings po doc perf
 
 EXTRA_DIST = \
 	HACKING \

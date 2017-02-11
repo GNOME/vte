@@ -364,14 +364,23 @@ if test -z "$enable_introspection"; then
   enable_introspection=yes
 fi
 
-GOBJECT_INTROSPECTION_CHECK([0.9.0])
+m4_ifdef([GOBJECT_INTROSPECTION_CHECK],
+  [GOBJECT_INTROSPECTION_CHECK([0.9.0])],
+  [if test "$enable_introspection" = "yes"; then
+    AC_MSG_ERROR([[Introspection requested but M4 macros not installed.]])
+   fi
+   AM_CONDITIONAL([HAVE_INTROSPECTION],[false])])
 
 # No automagic please!
 if test -z "$enable_vala"; then
   enable_vala=yes
 fi
 
-VAPIGEN_CHECK([0.18])
+m4_ifdef([VAPIGEN_CHECK],
+  [VAPIGEN_CHECK([0.18])],
+  [if test "$enable_vala" = "yes"; then
+     AC_MSG_ERROR([[Vala requested but M4 macros not installed.]])
+   fi])
 
 # ****************
 # Test Application
@@ -445,6 +454,9 @@ Makefile
 src/Makefile
 src/vte.gresource.xml
 src/vte/vteversion.h
+bindings/Makefile
+bindings/gir/Makefile
+bindings/vala/Makefile
 perf/Makefile
 po/Makefile.in
 doc/Makefile
