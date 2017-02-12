@@ -140,19 +140,6 @@ _VTE_PUBLIC
 void vte_terminal_watch_child (VteTerminal *terminal,
                                GPid child_pid) _VTE_GNUC_NONNULL(1);
 
-_VTE_PUBLIC
-gboolean vte_terminal_spawn_sync(VteTerminal *terminal,
-                                 VtePtyFlags pty_flags,
-                                 const char *working_directory,
-                                 char **argv,
-                                 char **envv,
-                                 GSpawnFlags spawn_flags,
-                                 GSpawnChildSetupFunc child_setup,
-                                 gpointer child_setup_data,
-                                 GPid *child_pid /* out */,
-                                 GCancellable *cancellable,
-                                 GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
-
 typedef void (* VteTerminalSpawnAsyncCallback) (VteTerminal *terminal,
                                                 GPid pid,
                                                 GError *error,

@@ -73,6 +73,20 @@ GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_GNUC_
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
+gboolean vte_terminal_spawn_sync(VteTerminal *terminal,
+                                 VtePtyFlags pty_flags,
+                                 const char *working_directory,
+                                 char **argv,
+                                 char **envv,
+                                 GSpawnFlags spawn_flags,
+                                 GSpawnChildSetupFunc child_setup,
+                                 gpointer child_setup_data,
+                                 GPid *child_pid /* out */,
+                                 GCancellable *cancellable,
+                                 GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
 void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
 G_END_DECLS

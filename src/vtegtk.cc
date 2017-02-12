@@ -2253,6 +2253,8 @@ vte_terminal_watch_child (VteTerminal *terminal,
  * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
+ *
+ * Deprecated: 0.48: Use vte_terminal_spawn_async() instead.
  */
 gboolean
 vte_terminal_spawn_sync(VteTerminal *terminal,

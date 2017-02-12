@@ -81,7 +81,6 @@ vte_get_user_shell
 vte_get_features
 
 <SUBSECTION>
-vte_terminal_spawn_sync
 VteTerminalSpawnAsyncCallback
 vte_terminal_spawn_async
 vte_terminal_get_pty
@@ -126,6 +125,7 @@ vte_terminal_match_add_gregex
 vte_terminal_search_get_gregex
 vte_terminal_search_set_gregex
 vte_terminal_event_check_gregex_simple
+vte_terminal_spawn_sync
 
 <SUBSECTION Private>
 VteCharAttributes
