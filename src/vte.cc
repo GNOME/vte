@@ -10000,7 +10000,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	_vte_byte_array_clear(m_outgoing);
 	/* Reset charset substitution state. */
 	_vte_iso2022_state_free(m_iso2022);
-        m_iso2022 = _vte_iso2022_state_new(NULL);
+        m_iso2022 = _vte_iso2022_state_new(nullptr);
 	_vte_iso2022_state_set_codeset(m_iso2022,
 				       m_encoding);
 	/* Reset keypad/cursor key modes. */
@@ -10064,9 +10064,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	m_cursor_visible = TRUE;
         /* For some reason, xterm doesn't reset alternateScroll, but we do. */
         m_alternate_screen_scroll = TRUE;
-	/* Reset the encoding. */
-	set_encoding(nullptr /* UTF-8 */);
-	g_assert_cmpstr(m_encoding, ==, "UTF-8");
 	/* Reset selection. */
 	deselect_all();
 	m_has_selection = FALSE;
