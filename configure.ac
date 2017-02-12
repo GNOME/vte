@@ -380,7 +380,8 @@ m4_ifdef([VAPIGEN_CHECK],
   [VAPIGEN_CHECK([0.18])],
   [if test "$enable_vala" = "yes"; then
      AC_MSG_ERROR([[Vala requested but M4 macros not installed.]])
-   fi])
+   fi
+   AM_CONDITIONAL([ENABLE_VAPIGEN],[false])])
 
 # ****************
 # Test Application
