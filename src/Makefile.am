@@ -177,7 +177,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 # C Test application
 
 testvte_SOURCES = \
-	vteapp.c \
+	vteapp.cc \
 	vtepcre2.h \
 	debug.c \
 	debug.h \
