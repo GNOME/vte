@@ -367,7 +367,7 @@ fi
 m4_ifdef([GOBJECT_INTROSPECTION_CHECK],
   [GOBJECT_INTROSPECTION_CHECK([0.9.0])],
   [if test "$enable_introspection" = "yes"; then
-    AC_MSG_ERROR([[Introspection requested but M4 macros not installed.]])
+    AC_MSG_ERROR([[Introspection requested but M4 macros not installed. Try --disable-introspection]])
    fi
    AM_CONDITIONAL([HAVE_INTROSPECTION],[false])])
 
@@ -379,7 +379,7 @@ fi
 m4_ifdef([VAPIGEN_CHECK],
   [VAPIGEN_CHECK([0.18])],
   [if test "$enable_vala" = "yes"; then
-     AC_MSG_ERROR([[Vala requested but M4 macros not installed.]])
+     AC_MSG_ERROR([[Vala requested but M4 macros not installed. Try --disable-vala]])
    fi
    AM_CONDITIONAL([ENABLE_VAPIGEN],[false])])
 
