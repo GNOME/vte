@@ -255,6 +255,7 @@ AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid tcgetattr tcsetattr])
 
 # Misc I/O routines.
 AC_CHECK_FUNCS([pread pwrite])
+AC_CHECK_FUNCS([explicit_bzero])
 
 AC_CHECK_FUNC(floor,,AC_CHECK_LIB(m,floor,LIBS=["$LIBS -lm"]))
 AC_CHECK_FUNCS([ceil floor round])
