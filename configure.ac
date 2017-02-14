@@ -292,6 +292,7 @@ AC_CHECK_FUNCS([cfmakeraw fork setsid setpgid getpgid tcgetattr tcsetattr])
 
 # Misc I/O routines.
 AC_CHECK_FUNCS([pread pwrite])
+AC_CHECK_FUNCS([explicit_bzero])
 
 # for vtespawn
 AC_CHECK_HEADERS([sys/resource.h])
