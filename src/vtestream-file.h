@@ -127,6 +127,10 @@ typedef guint8 _vte_overwrite_counter_t;
 
 /******************************************************************************************/
 
+#ifndef HAVE_EXPLICIT_BZERO
+#define explicit_bzero(s, n) memset((s), 0, (n))
+#endif
+
 #ifndef HAVE_PREAD
 #define pread _pread
 static inline gsize
@@ -830,12 +834,10 @@ _vte_boa_init (VteBoa *boa)
         datum_key.data = key;
         datum_key.size = VTE_CIPHER_KEY_SIZE;
         gnutls_cipher_init(&boa->cipher_hd, VTE_CIPHER_ALGORITHM, &datum_key, NULL);
-        /* FIXME: 738601#c52 the compiler might optimize this away, how to make sure it's erased?
-         * It's on the stack so maybe we can rest assured it'll be overwritten pretty soon. */
-        memset(key, 0, VTE_CIPHER_KEY_SIZE);
+        explicit_bzero(key, VTE_CIPHER_KEY_SIZE);
 
         /* Empty IV. */
-        memset(&boa->iv, 0, sizeof(boa->iv));
+        explicit_bzero(&boa->iv, sizeof(boa->iv));
 #endif
 
         boa->compressBound = _vte_boa_compressBound(VTE_BOA_BLOCKSIZE);
@@ -847,7 +849,7 @@ _vte_boa_finalize (GObject *object)
 #if !defined VTESTREAM_MAIN && defined WITH_GNUTLS
         VteBoa *boa = (VteBoa *) object;
 
-        memset(&boa->iv, 0, sizeof(boa->iv));
+        explicit_bzero(&boa->iv, sizeof(boa->iv));
 
         gnutls_cipher_deinit (boa->cipher_hd);
         gnutls_global_deinit ();
