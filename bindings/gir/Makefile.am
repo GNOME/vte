@@ -17,7 +17,7 @@ Vte_@VTE_API_VERSION_U@_gir_FILES = \
 	$(wildcard $(top_builddir)/src/vte/*.h) \
 	$(top_srcdir)/src/pty.cc \
 	$(top_srcdir)/src/vtegtk.cc \
-	$(top_srcdir)/src/vtetypebuiltins.cc \
+	$(top_builddir)/src/vtetypebuiltins.cc \
 	$(NULL)
 
 girdir = $(datadir)/gir-1.0
