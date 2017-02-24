@@ -8,7 +8,7 @@ AC_INIT([vte],
         [version_triplet],
         [http://bugzilla.gnome.org/enter_bug.cgi?product=vte],
         [vte])
-
+AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/vteapp.c])
 AC_CONFIG_HEADERS([config.h])
