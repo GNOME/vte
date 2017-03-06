@@ -3,14 +3,14 @@
 # This file is under the same license as the vte package.
 # Cédric Valmary <cvalmary@yahoo.fr>, 2015.
 # Cédric Valmary (Tot en òc) <cvalmary@yahoo.fr>, 2015.
-# Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>, 2016.
+# Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>, 2016, 2017.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.14.1\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-05-22 09:57+0000\n"
-"PO-Revision-Date: 2016-05-05 21:50+0200\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
+"ywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2017-03-01 11:47+0000\n"
+"PO-Revision-Date: 2017-03-06 18:38+0200\n"
 "Last-Translator: Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot En Òc\n"
 "Language: oc\n"
@@ -22,29 +22,31 @@ msgstr ""
 "X-Project-Style: gnome\n"
 
 #: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3090
+#: ../src/vtegtk.cc:3262
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir los caractèrs %s en %s."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4248
+#: ../src/vte.cc:4014
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Error al moment de la lectura del filh : « %s »."
 
-#: ../src/vte.cc:4387
+#: ../src/vte.cc:4153
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Error (%s) al moment de la conversion de donadas pel filh, abandon."
 
-#: ../src/vte.cc:8156
+#: ../src/vte.cc:7922
 msgid "WARNING"
-msgstr ""
+msgstr "AVERTIMENT"
 
-#: ../src/vte.cc:8157
+#: ../src/vte.cc:7923
 msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
+"GNUTLS es pas activat ; las donadas seràn escritas sul disc sens èsser "
+"chifradas !"
 
 #~ msgid "Copy"
 #~ msgstr "Copiar"
