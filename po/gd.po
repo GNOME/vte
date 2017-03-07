@@ -1,14 +1,14 @@
 # Scottish Gaelic translation for vte.
 # Copyright (C) 2014 vte's COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
-# GunChleoc <fios@foramnagaidhlig.net>, 2014.
+# GunChleoc <fios@foramnagaidhlig.net>, 2014, 2017.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte vte-0-38\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
-"ywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-23 10:59+0000\n"
-"PO-Revision-Date: 2014-09-23 15:44+0100\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=vte&k"
+"eywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2017-03-01 11:46+0000\n"
+"PO-Revision-Date: 2017-03-07 11:51+0100\n"
 "Last-Translator: GunChleoc <fios@foramnagaidhlig.net>\n"
 "Language-Team: Fòram na Gàidhlig\n"
 "Language: gd\n"
@@ -20,83 +20,77 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "X-Project-Style: gnome\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "Dèan lethbhreac"
-
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "Cuir ann"
-
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "Ath-shuidhich (cleachd Ctrl airson sth-shuidheachadh 's falamhachadh)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "Ath-shuidhich"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "Toglaich an roghainn a bheil ion-chur an comas"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "Ion-chur"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1998
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3072
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Cha ghabh na caractaran iompachadh o %s gu %s."
 
-#: ../src/iso2022.c:1496
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Chaidh feuchainn ri mapa NRC '%c' nach eil dligheach a shuidheachadh."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "Siostam còdachaidh aithnichte air nach eil sinn eòlach."
-
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr ""
-"Chaidh feuchainn ri mapa NRC leathann '%c' nach eil dligheach a "
-"shuidheachadh."
-
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "Cha deach leinn consoil fhoagladh.\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr ""
-"Cha b' urrainn dhuinn sònrachadh a' gheomatrais a pharsadh a chaidh a chur "
-"gu --geometry"
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4164
+#: ../src/vte.cc:4002
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Mearachd le leughadh o chlann: %s."
 
-#: ../src/vte.c:4300
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr ""
-"Cha ghabh an dàta a chur gu clann on a tha iompaichear an t-seata "
-"charactaran mì-dhligheach"
-
-#: ../src/vte.c:4311 ../src/vte.c:5315
+#: ../src/vte.cc:4141
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr ""
 "Mearachd (%s) ag iompachadh an dàta airson na cloinne, 'ga leigeil seachad."
 
-#: ../src/vte.c:7628
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "Mearachd a' leughadh meud PTY, a' cleachdadh na bun-roghainn: %s\n"
+#: ../src/vte.cc:7910
+msgid "WARNING"
+msgstr "RABHADH"
+
+#: ../src/vte.cc:7911
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr ""
+"Chan eil GNUTLS an comas; thèid an dàta a sgrìobhadh dhan diosg gun "
+"chrioptachadh!"
+
+#~ msgid "Copy"
+#~ msgstr "Dèan lethbhreac"
+
+#~ msgid "Paste"
+#~ msgstr "Cuir ann"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr ""
+#~ "Ath-shuidhich (cleachd Ctrl airson sth-shuidheachadh 's falamhachadh)"
+
+#~ msgid "Reset"
+#~ msgstr "Ath-shuidhich"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "Toglaich an roghainn a bheil ion-chur an comas"
+
+#~ msgid "Input"
+#~ msgstr "Ion-chur"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr ""
+#~ "Chaidh feuchainn ri mapa NRC '%c' nach eil dligheach a shuidheachadh."
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Siostam còdachaidh aithnichte air nach eil sinn eòlach."
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr ""
+#~ "Chaidh feuchainn ri mapa NRC leathann '%c' nach eil dligheach a "
+#~ "shuidheachadh."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Cha deach leinn consoil fhoagladh.\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr ""
+#~ "Cha b' urrainn dhuinn sònrachadh a' gheomatrais a pharsadh a chaidh a "
+#~ "chur gu --geometry"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr ""
+#~ "Cha ghabh an dàta a chur gu clann on a tha iompaichear an t-seata "
+#~ "charactaran mì-dhligheach"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "Mearachd a' leughadh meud PTY, a' cleachdadh na bun-roghainn: %s\n"
