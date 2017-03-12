@@ -12,7 +12,7 @@ EXTRA_DIST =
 
 VAPIGEN_VAPIS = vte-$(VTE_API_VERSION).vapi
 
-vte-@VTE_API_VERSION@.vapi: ../gir/Vte-$(VTE_API_VERSION).gir
+vte-@VTE_API_VERSION@.vapi: $(top_builddir)/bindings/gir/Vte-$(VTE_API_VERSION).gir
 vte_@VTE_API_VERSION_U@_vapi_DEPS = \
 	glib-2.0 \
 	gio-2.0 \
@@ -21,7 +21,7 @@ vte_@VTE_API_VERSION_U@_vapi_DEPS = \
 	gtk+-$(GTK_API_VERSION) \
 	$(NULL)
 vte_@VTE_API_VERSION_U@_vapi_METADATADIRS = $(srcdir)
-vte_@VTE_API_VERSION_U@_vapi_FILES = ../gir/Vte-$(VTE_API_VERSION).gir
+vte_@VTE_API_VERSION_U@_vapi_FILES = $(top_builddir)/bindings/gir/Vte-$(VTE_API_VERSION).gir
 
 vapidir = $(datadir)/vala/vapi
 nodist_vapi_DATA = $(VAPIGEN_VAPIS)
@@ -33,7 +33,7 @@ CLEANFILES += $(nodist_vapi_DATA)
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	app.vala \
 	config.vapi \
-	vte-$(VTE_API_VERSION).vapi \
+	$(builddir)/vte-$(VTE_API_VERSION).vapi \
 	$(NULL)
 
 nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
@@ -42,8 +42,6 @@ nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
 	--target-glib=2.38 \
-	--vapidir=. \
-	--girdir=. \
 	--pkg=posix \
 	--pkg=gio-2.0 \
 	--pkg=gtk+-$(GTK_API_VERSION) \
