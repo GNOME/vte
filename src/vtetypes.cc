@@ -407,7 +407,7 @@ test_util_smart_fd(void)
 int
 main(int argc, char *argv[])
 {
-        g_test_init (&argc, &argv, NULL);
+        g_test_init (&argc, &argv, nullptr);
 
         g_test_add_func("/vte/c++/grid/coords", test_grid_coords);
         g_test_add_func("/vte/c++/grid/span", test_grid_span);

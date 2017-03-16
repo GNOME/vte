@@ -771,7 +771,7 @@ int
 main (int argc,
       char *argv[])
 {
-        g_test_init (&argc, &argv, NULL);
+        g_test_init (&argc, &argv, nullptr);
 
         g_test_add_func ("/vte/conv/utf8/strlen", test_utf8_strlen);
         g_test_add_func ("/vte/conv/utf8/validate", test_utf8_validate);
