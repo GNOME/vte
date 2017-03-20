@@ -633,7 +633,7 @@ read_ints (int      fd,
   gsize bytes = 0;
   GPollFD pollfds[2];
   guint n_pollfds;
-  gint64 start_time;
+  gint64 start_time = 0;
 
   if (timeout >= 0 || cancellable_pollfd != NULL)
     {
