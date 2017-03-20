@@ -33,10 +33,10 @@ CLEANFILES += $(nodist_vapi_DATA)
 vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
 	app.vala \
 	config.vapi \
-	$(builddir)/vte-$(VTE_API_VERSION).vapi \
 	$(NULL)
 
 nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
+	$(abs_top_builddir)/bindings/vala/vte-$(VTE_API_VERSION).vapi \
 	appresources.c \
 	$(NULL)
 
