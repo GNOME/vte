@@ -134,11 +134,18 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_LIBADD = \
 
 # Generated sources
 
-VTESEQ_BUILTSOURCES = vteseq-list.h vteseq-n.cc
-BUILT_SOURCES = box_drawing.h marshal.cc marshal.h vtetypebuiltins.cc vte/vtetypebuiltins.h vteresources.cc $(VTESEQ_BUILTSOURCES)
-MAINTAINERCLEANFILES += $(VTESEQ_BUILTSOURCES)
-EXTRA_DIST += $(VTESEQ_BUILTSOURCES) box_drawing.txt box_drawing_generate.sh iso2022.txt
-CLEANFILES += box_drawing.h marshal.cc marshal.h vtetypebuiltins.cc vte/vtetypebuiltins.h stamp-vtetypebuiltins.h vteresources.cc
+BUILT_SOURCES = \
+	box_drawing.h \
+	marshal.cc \
+	marshal.h \
+	vtetypebuiltins.cc \
+	vte/vtetypebuiltins.h \
+	vteresources.cc \
+	vteseq-list.h \
+	vteseq-n.cc \
+	$(NULL)
+EXTRA_DIST += box_drawing.txt box_drawing_generate.sh iso2022.txt
+CLEANFILES += $(BUILT_SOURCES) stamp-vtetypebuiltins.h
 
 box_drawing.h: box_drawing.txt box_drawing_generate.sh
 	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh < $< > $@
@@ -163,7 +170,7 @@ vtetypebuiltins.cc: vtetypebuiltins.cc.template vte/vteenums.h vte/vtedeprecated
 	&& rm -f xgen-vtbc
 
 vteseq-n.cc: vteseq-n.gperf
-	$(AM_V_GEN) $(top_srcdir)/missing --run gperf -m 100 $< > $@.tmp && \
+	$(AM_V_GEN) $(top_srcdir)/missing --run $(GPERF) -m 100 $< > $@.tmp && \
 	mv -f $@.tmp $@
 
 vteseq-list.h: vteseq-n.gperf
