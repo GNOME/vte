@@ -116,8 +116,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-DLOCALEDIR='"$(localedir)"' \
 	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
 	-DVTE_COMPILATION \
-	-I$(srcdir)/vte \
 	-I$(builddir)/vte \
+	-I$(srcdir)/vte \
 	$(AM_CPPFLAGS)
 
 libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CXXFLAGS = \
@@ -186,8 +186,8 @@ testvte_SOURCES = \
 testvte_CPPFLAGS = \
 	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
 	-DGDK_DISABLE_DEPRECATION_WARNINGS \
-	-I$(srcdir)/vte \
 	-I$(builddir)/vte \
+	-I$(srcdir)/vte \
 	$(AM_CPPFLAGS)
 
 testvte_CFLAGS = \
@@ -236,7 +236,7 @@ TESTS_ENVIRONMENT = \
 	VTE_API_VERSION="$(VTE_API_VERSION)" \
 	$(NULL)
 
-reaper_CPPFLAGS = -DMAIN -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
+reaper_CPPFLAGS = -DMAIN -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 reaper_CXXFLAGS = $(VTE_CFLAGS) $(AM_CXXFLAGS)
 reaper_SOURCES = \
 	debug.cc \
@@ -246,12 +246,12 @@ reaper_SOURCES = \
 	$(NULL)
 reaper_LDADD = $(VTE_LIBS)
 
-reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
+reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_text_view_SOURCES = reflect.c
 reflect_text_view_LDADD = $(VTE_LIBS)
 
-reflect_vte_CPPFLAGS = -DUSE_VTE  -I$(srcdir) -I $(builddir) $(AM_CPPFLAGS)
+reflect_vte_CPPFLAGS = -DUSE_VTE -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
@@ -276,8 +276,8 @@ interpret_SOURCES = \
 interpret_CPPFLAGS = \
 	-DINTERPRET_MAIN \
 	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
-	-I$(srcdir) \
 	-I$(builddir) \
+	-I$(srcdir) \
 	$(AM_CPPFLAGS)
 interpret_CFLAGS = \
 	$(GLIB_CFLAGS) \
@@ -296,7 +296,7 @@ interpret_LDADD = \
 slowcat_SOURCES = \
 	slowcat.c \
 	$(NULL)
-slowcat_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
+slowcat_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 slowcat_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 slowcat_LDADD = $(GLIB_LIBS)
 
@@ -315,8 +315,8 @@ table_SOURCES = \
 	$(NULL)
 table_CPPFLAGS = \
 	-DTABLE_MAIN \
-	-I$(srcdir) \
 	-I$(builddir) \
+	-I$(srcdir) \
 	$(AM_CPPFLAGS)
 table_CXXFLAGS = \
 	$(GLIB_CFLAGS) \
@@ -331,8 +331,8 @@ test_vtetypes_SOURCES = \
 	$(NULL)
 test_vtetypes_CPPFLAGS = \
 	-DMAIN \
-	-I$(srcdir) \
 	-I$(builddir) \
+	-I$(srcdir) \
 	$(AM_CPPFLAGS)
 test_vtetypes_CXXFLAGS = \
 	$(VTE_CFLAGS) \
@@ -351,8 +351,8 @@ vtestream_file_SOURCES = \
 	$(NULL)
 vtestream_file_CPPFLAGS = \
 	-DVTESTREAM_MAIN \
-	-I$(srcdir) \
 	-I$(builddir) \
+	-I$(srcdir) \
 	$(AM_CPPFLAGS)
 vtestream_file_CXXFLAGS = \
 	$(VTE_CFLAGS) \
@@ -361,22 +361,22 @@ vtestream_file_LDADD = \
 	$(VTE_LIBS)
 
 vteconv_SOURCES = buffer.h debug.cc debug.h vteconv.cc vteconv.h
-vteconv_CPPFLAGS = -DVTECONV_MAIN -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
+vteconv_CPPFLAGS = -DVTECONV_MAIN -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 vteconv_CXXFLAGS = $(VTE_CFLAGS) $(AM_CXXFLAGS)
 vteconv_LDADD = $(VTE_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
-dumpkeys_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
+dumpkeys_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 dumpkeys_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 dumpkeys_LDADD = $(GLIB_LIBS)
 
 mev_SOURCES = mev.c
-mev_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
+mev_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 mev_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 mev_LDADD = $(GLIB_LIBS)
 
 xticker_SOURCES = xticker.c
-xticker_CPPFLAGS = -I$(srcdir) -I$(builddir) $(AM_CPPFLAGS)
+xticker_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 xticker_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 xticker_LDADD = $(GLIB_LIBS)
 
