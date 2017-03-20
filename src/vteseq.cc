@@ -1431,6 +1431,7 @@ VteTerminalPrivate::seq_dc()
                                 _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
                                 len = m_column_count;
 			}
+                        rowdata->attr.soft_wrapped = 0;
 			/* Repaint this row. */
                         invalidate_cells(col, len - col,
                                          m_screen->cursor.row, 1);
