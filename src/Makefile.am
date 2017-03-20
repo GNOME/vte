@@ -253,12 +253,12 @@ reaper_SOURCES = \
 	$(NULL)
 reaper_LDADD = $(VTE_LIBS)
 
-reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
+reflect_text_view_CPPFLAGS = -DUSE_TEXT_VIEW -I$(builddir)/vte -I$(srcdir)/vte $(AM_CPPFLAGS)
 reflect_text_view_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_text_view_SOURCES = reflect.c
 reflect_text_view_LDADD = $(VTE_LIBS)
 
-reflect_vte_CPPFLAGS = -DUSE_VTE -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
+reflect_vte_CPPFLAGS = -DUSE_VTE -I$(builddir)/vte -I$(srcdir)/vte $(AM_CPPFLAGS)
 reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
