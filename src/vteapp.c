@@ -144,7 +144,6 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	VteTerminal *terminal;
 	char *match;
 	int tag;
-	GtkBorder padding;
         gboolean has_extra_match;
         char *extra_match = NULL;
 
@@ -152,9 +151,6 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	case 3:
 		terminal = VTE_TERMINAL(widget);
 
-                gtk_style_context_get_padding(gtk_widget_get_style_context(widget),
-                                              gtk_widget_get_state_flags(widget),
-                                              &padding);
 		match = vte_terminal_match_check_event(terminal,
                                                        (GdkEvent*)event,
                                                        &tag);
