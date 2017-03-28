@@ -2362,7 +2362,8 @@ spawn_async_cb (GObject *source,
 
         spawn_async_callback_data_free(data);
 
-        g_object_unref(terminal);
+        if (terminal != nullptr)
+                g_object_unref(terminal);
 }
 
 
