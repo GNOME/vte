@@ -2361,6 +2361,8 @@ spawn_async_cb (GObject *source,
                 g_error_free(error);
 
         spawn_async_callback_data_free(data);
+
+        g_object_unref(terminal);
 }
 
 
