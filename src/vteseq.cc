@@ -2450,6 +2450,12 @@ VteTerminalPrivate::set_current_file_uri_changed(char* uri /* adopted */)
         m_current_file_uri_changed = uri;
 }
 
+static void
+vte_sequence_handler_set_current_hyperlink (VteTerminalPrivate *that, GValueArray *params)
+{
+        /* Accept but ignore to prepare for the forthcoming hyperlink feature (bug #779734) */
+}
+
 /* Restrict the scrolling region. */
 static void
 vte_sequence_handler_set_scrolling_region_from_start (VteTerminalPrivate *that, GValueArray *params)
