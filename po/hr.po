@@ -4,113 +4,90 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-10-06 10:12+0000\n"
-"PO-Revision-Date: 2016-09-24 13:08+0200\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2017-03-20 22:37+0000\n"
+"PO-Revision-Date: 2017-04-11 18:46+0200\n"
 "Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <lokalizacija@linux.hr>\n"
+"Language: hr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Launchpad-Export-Date: 2016-09-15 11:47+0000\n"
 "X-Generator: Poedit 1.8.7.1\n"
-"Language: hr\n"
 
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1840
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3262
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Nemoguća pretvorba znakova iz %s u %s."
 
-#: ../src/iso2022.c:1540
-#, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "Pokušaj postavljanja neispravne NRC mape '%c'."
-
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1570
-msgid "Unrecognized identified coding system."
-msgstr "Pronađen je nepoznati sustav kôdiranja."
-
-#: ../src/iso2022.c:1629 ../src/iso2022.c:1656
-#, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "Pokušaj postavljanja neispravne široke NRC mape '%c'."
-
-#. Give the user some clue as to why session logging is not
-#. * going to work (assuming we can open a pty using some other
-#. * method).
-#: ../src/pty.c:879
-#, c-format
-msgid "can not run %s"
-msgstr "nemoguće je pokrenuti %s"
-
-#: ../src/reaper.c:136
-msgid "Error creating signal pipe."
-msgstr "Greška prilikom stvaranja slivnika signala."
-
-#: ../src/trie.c:414
-#, c-format
-msgid "Duplicate (%s/%s)!"
-msgstr "Duplikat (%s/%s)!"
-
-#: ../src/vte.c:1227
-#, c-format
-msgid "Error compiling regular expression \"%s\"."
-msgstr "Greška u kompilaciji regularnog izraza \"%s\"."
-
-#: ../src/vte.c:2701 ../src/vte.c:2706
-#, c-format
-msgid "No handler for control sequence `%s' defined."
-msgstr "Nema određenog rukovatelja za kontrolni slijed `%s' ."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:3671
+#: ../src/vte.cc:4014
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Greška prilikom čitanja nadređenog: %s."
 
-#: ../src/vte.c:3787
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "Nemoguće slanje podatka podređenom, neispravan pretvornik znakova"
-
-#: ../src/vte.c:3798 ../src/vte.c:4705
+#: ../src/vte.cc:4153
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Greška (%s) pri pretvorbi podataka za nadređenog, odbacujem."
 
-#: ../src/vte.c:6941
-#, c-format
-msgid "Error reading PTY size, using defaults: %s."
-msgstr ""
-"Greška prilikom čitanja PTY veličine, koristim uobičajene postavke: %s."
+#: ../src/vte.cc:7922
+msgid "WARNING"
+msgstr "UPOZORENJE"
 
-#: ../src/vte.c:6977
-#, c-format
-msgid "Error setting PTY size: %s."
-msgstr "Greška postavljanja PTY veličine: %s."
+#: ../src/vte.cc:7923
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GNUTLS nije omogućen; podaci će biti zapisivani nešifrirano na disk!"
 
-#. Aaargh.  We're screwed.
-#: ../src/vte.c:11451
-msgid "_vte_conv_open() failed setting word characters"
-msgstr "_vte_conv_open() nije uspio postaviti znakove riječi"
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "Pokušaj postavljanja neispravne NRC mape '%c'."
 
-#: ../src/vteseq.c:3929
-#, c-format
-msgid "Got unexpected (key?) sequence `%s'."
-msgstr "Dobio sam neočekivani (tipkanjem?) slijed `%s'."
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "Pronađen je nepoznati sustav kôdiranja."
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:780
-msgid "Could not open console.\n"
-msgstr "Nemoguće otvaranje konzole\n"
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "Pokušaj postavljanja neispravne široke NRC mape '%c'."
 
-#: ../src/vteapp.c:844
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr ""
-"Nemoguća obrada geometrijske specifikacije prosljeđene pomoću --geometry"
+#~ msgid "can not run %s"
+#~ msgstr "nemoguće je pokrenuti %s"
 
-#: ../src/vteglyph.c:562
-#, c-format
-msgid "Unknown pixel mode %d.\n"
-msgstr "Nepoznati način piksela %d.\n"
+#~ msgid "Error creating signal pipe."
+#~ msgstr "Greška prilikom stvaranja slivnika signala."
+
+#~ msgid "Duplicate (%s/%s)!"
+#~ msgstr "Duplikat (%s/%s)!"
+
+#~ msgid "Error compiling regular expression \"%s\"."
+#~ msgstr "Greška u kompilaciji regularnog izraza \"%s\"."
+
+#~ msgid "No handler for control sequence `%s' defined."
+#~ msgstr "Nema određenog rukovatelja za kontrolni slijed `%s' ."
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr "Nemoguće slanje podatka podređenom, neispravan pretvornik znakova"
+
+#~ msgid "Error reading PTY size, using defaults: %s."
+#~ msgstr ""
+#~ "Greška prilikom čitanja PTY veličine, koristim uobičajene postavke: %s."
+
+#~ msgid "Error setting PTY size: %s."
+#~ msgstr "Greška postavljanja PTY veličine: %s."
+
+#~ msgid "_vte_conv_open() failed setting word characters"
+#~ msgstr "_vte_conv_open() nije uspio postaviti znakove riječi"
+
+#~ msgid "Got unexpected (key?) sequence `%s'."
+#~ msgstr "Dobio sam neočekivani (tipkanjem?) slijed `%s'."
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "Nemoguće otvaranje konzole\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr ""
+#~ "Nemoguća obrada geometrijske specifikacije prosljeđene pomoću --geometry"
+
+#~ msgid "Unknown pixel mode %d.\n"
+#~ msgstr "Nepoznati način piksela %d.\n"
