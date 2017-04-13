@@ -5979,6 +5979,7 @@ vte_terminal_cellattr_equal(VteCellAttr const *attr1,
                             VteCellAttr const* attr2)
 {
 	return (attr1->bold          == attr2->bold      &&
+	        attr1->italic        == attr2->italic    &&
 	        attr1->fore          == attr2->fore      &&
 	        attr1->back          == attr2->back      &&
 	        attr1->underline     == attr2->underline &&
@@ -6007,6 +6008,10 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 	if (attr->bold) {
 		g_string_prepend(string, "<b>");
 		g_string_append(string, "</b>");
+	}
+	if (attr->italic) {
+		g_string_prepend(string, "<i>");
+		g_string_append(string, "</i>");
 	}
 	if (attr->fore != VTE_DEFAULT_FG || attr->reverse) {
 		vte::color::rgb color;
