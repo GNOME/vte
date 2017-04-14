@@ -1926,7 +1926,7 @@ VteTerminalPrivate::seq_tab()
 		 */
 
 		old_len = _vte_row_data_length (rowdata);
-                _vte_row_data_fill (rowdata, &basic_cell.cell, newcol);
+                _vte_row_data_fill (rowdata, &basic_cell, newcol);
 
 		/* Insert smart tab if there's nothing in the line after
 		 * us, not even empty cells (with non-default background
@@ -2969,7 +2969,7 @@ VteTerminalPrivate::seq_screen_alignment_test()
 		/* Fill this row. */
                 VteCell cell;
 		cell.c = 'E';
-		cell.attr = basic_cell.cell.attr;
+		cell.attr = basic_cell.attr;
 		cell.attr.columns = 1;
                 _vte_row_data_fill(rowdata, &cell, m_column_count);
                 emit_text_inserted();

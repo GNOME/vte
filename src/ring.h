@@ -38,7 +38,7 @@ typedef struct _VteVisualPosition {
 
 typedef struct _VteCellAttrChange {
 	gsize text_end_offset;  /* offset of first character no longer using this attr */
-	VteIntCellAttr attr;
+	VteCellAttr attr;
 } VteCellAttrChange;
 
 
@@ -59,7 +59,7 @@ struct _VteRing {
 	/* Storage */
 	VteStream *attr_stream, *text_stream, *row_stream;
 	gsize last_attr_text_start_offset;
-	VteIntCellAttr last_attr;
+	VteCellAttr last_attr;
 	GString *utf8_buffer;
 
 	VteRowData cached_row;

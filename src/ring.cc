@@ -72,7 +72,7 @@ _vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams)
 	}
 
 	ring->last_attr_text_start_offset = 0;
-	ring->last_attr.i = basic_cell.i.attr;
+	ring->last_attr = basic_cell.attr;
 	ring->utf8_buffer = g_string_sized_new (128);
 
 	_vte_row_data_init (&ring->cached_row);
@@ -149,7 +149,7 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 
 	g_string_set_size (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
-		VteIntCellAttr attr;
+		VteCellAttr attr;
 		int num_chars;
 
 		/* Attr storage:
@@ -163,11 +163,11 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 		 * That's enough to reconstruct the attrs, and to store
 		 * the text in real UTF-8.
 		 */
-		attr.s = cell->attr;
-		if (G_LIKELY (!attr.s.fragment)) {
+		attr = cell->attr;
+		if (G_LIKELY (!attr.fragment)) {
 			VteCellAttrChange attr_change;
 
-			if (ring->last_attr.i != attr.i) {
+			if (memcmp(&ring->last_attr, &attr, sizeof (VteCellAttr)) != 0) {
 				ring->last_attr_text_start_offset = record.text_start_offset + buffer->len;
 				memset(&attr_change, 0, sizeof (attr_change));
 				attr_change.text_end_offset = ring->last_attr_text_start_offset;
@@ -181,7 +181,7 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 
 			num_chars = _vte_unistr_strlen (cell->c);
 			if (num_chars > 1) {
-				attr.s.columns = 0;
+				attr.columns = 0;
 				ring->last_attr_text_start_offset = record.text_start_offset + buffer->len
 								  + g_unichar_to_utf8 (_vte_unistr_get_base (cell->c), NULL);
 				memset(&attr_change, 0, sizeof (attr_change));
@@ -207,7 +207,7 @@ static void
 _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do_truncate)
 {
 	VteRowRecord records[2], record;
-	VteIntCellAttr attr;
+	VteCellAttr attr;
 	VteCellAttrChange attr_change;
 	VteCell cell;
 	const char *p, *q, *end;
@@ -255,7 +255,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 			attr = attr_change.attr;
 		}
 
-		cell.attr = attr.s;
+		cell.attr = attr;
 		cell.c = g_utf8_get_char (p);
 
 		q = g_utf8_next_char (p);
@@ -305,7 +305,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 				}
 			} else {
 				ring->last_attr_text_start_offset = 0;
-				ring->last_attr.i = basic_cell.i.attr;
+				ring->last_attr = basic_cell.attr;
 			}
 		}
 		_vte_stream_truncate (ring->row_stream, position * sizeof (record));
@@ -326,7 +326,7 @@ _vte_ring_reset_streams (VteRing *ring, gulong position)
 	}
 
 	ring->last_attr_text_start_offset = 0;
-	ring->last_attr.i = basic_cell.i.attr;
+	ring->last_attr = basic_cell.attr;
 }
 
 long
@@ -942,13 +942,13 @@ _vte_ring_rewrap (VteRing *ring,
 			}
 			runlength = MIN(paragraph_len, attr_change.text_end_offset - text_offset);
 
-			if (G_UNLIKELY (attr_change.attr.s.columns == 0)) {
+			if (G_UNLIKELY (attr_change.attr.columns == 0)) {
 				/* Combining characters all fit in the current row */
 				text_offset += runlength;
 				paragraph_len -= runlength;
 			} else {
 				while (runlength) {
-					if (col >= columns - attr_change.attr.s.columns + 1) {
+					if (col >= columns - attr_change.attr.columns + 1) {
 						/* Wrap now, write the soft wrapped row's record */
 						new_record.soft_wrapped = 1;
 						_vte_stream_append(new_row_stream, (const char *) &new_record, sizeof (new_record));
@@ -981,7 +981,7 @@ _vte_ring_rewrap (VteRing *ring,
 						/* Process one character only. */
 						char textbuf[6];  /* fits at least one UTF-8 character */
 						int textbuf_len;
-						col += attr_change.attr.s.columns;
+						col += attr_change.attr.columns;
 						/* Find beginning of next UTF-8 character */
 						text_offset++; paragraph_len--; runlength--;
 						textbuf_len = MIN(runlength, sizeof (textbuf));

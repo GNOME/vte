@@ -269,7 +269,7 @@ VteTerminalPrivate::ring_remove(vte::grid::row_t position)
 void
 VteTerminalPrivate::reset_default_attributes()
 {
-        m_defaults = m_color_defaults = m_fill_defaults = basic_cell.cell;
+        m_defaults = m_color_defaults = m_fill_defaults = basic_cell;
 }
 
 //FIXMEchpe this function is bad
@@ -2217,7 +2217,7 @@ VteRowData *
 VteTerminalPrivate::ensure_cursor()
 {
 	VteRowData *row = ensure_row();
-        _vte_row_data_fill(row, &basic_cell.cell, m_screen->cursor.col);
+        _vte_row_data_fill(row, &basic_cell, m_screen->cursor.col);
 
 	return row;
 }
@@ -3056,7 +3056,7 @@ VteTerminalPrivate::insert_char(gunichar c,
                         _vte_row_data_insert (row, col + i, &m_color_defaults);
 	} else {
                 cleanup_fragments(col, col + columns);
-		_vte_row_data_fill (row, &basic_cell.cell, col + columns);
+		_vte_row_data_fill (row, &basic_cell, col + columns);
 	}
 
         attr = m_defaults.attr;
@@ -8538,7 +8538,7 @@ VteTerminalPrivate::determine_colors(VteCell const* cell,
                                      guint *fore,
                                      guint *back) const
 {
-	determine_colors(cell ? &cell->attr : &basic_cell.cell.attr,
+	determine_colors(cell ? &cell->attr : &basic_cell.attr,
                          highlight, false /* not cursor */,
                          fore, back);
 }
@@ -8549,7 +8549,7 @@ VteTerminalPrivate::determine_cursor_colors(VteCell const* cell,
                                             guint *fore,
                                             guint *back) const
 {
-	determine_colors(cell ? &cell->attr : &basic_cell.cell.attr,
+	determine_colors(cell ? &cell->attr : &basic_cell.attr,
                          highlight, true /* cursor */,
                          fore, back);
 }
