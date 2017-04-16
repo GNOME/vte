@@ -792,16 +792,24 @@ _vte_keymap_key_is_modifier(guint keyval)
 	case GDK_KEY_Eisu_Shift:
 	case GDK_KEY_Hyper_L:
 	case GDK_KEY_Hyper_R:
+	case GDK_KEY_ISO_First_Group:
 	case GDK_KEY_ISO_First_Group_Lock:
+	case GDK_KEY_ISO_Group_Latch:
 	case GDK_KEY_ISO_Group_Lock:
 	case GDK_KEY_ISO_Group_Shift:
+	case GDK_KEY_ISO_Last_Group:
 	case GDK_KEY_ISO_Last_Group_Lock:
+	case GDK_KEY_ISO_Level2_Latch:
+	case GDK_KEY_ISO_Level3_Latch:
 	case GDK_KEY_ISO_Level3_Lock:
 	case GDK_KEY_ISO_Level3_Shift:
+	case GDK_KEY_ISO_Level5_Latch:
 	case GDK_KEY_ISO_Level5_Lock:
 	case GDK_KEY_ISO_Level5_Shift:
 	case GDK_KEY_ISO_Lock:
+	case GDK_KEY_ISO_Next_Group:
 	case GDK_KEY_ISO_Next_Group_Lock:
+	case GDK_KEY_ISO_Prev_Group:
 	case GDK_KEY_ISO_Prev_Group_Lock:
 	case GDK_KEY_Kana_Lock:
 	case GDK_KEY_Kana_Shift:
