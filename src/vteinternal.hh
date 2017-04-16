@@ -474,7 +474,9 @@ public:
         VtePaletteColor m_palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
-        gboolean m_mouse_cursor_visible;
+        gboolean m_mouse_cursor_over_widget;
+        gboolean m_mouse_cursor_autohidden;  /* whether the autohiding logic wants to hide it; even if autohiding is disabled */
+        gboolean m_mouse_cursor_visible;     /* derived value really containing if it's actually visible */
         GdkCursor* m_mouse_default_cursor;
         GdkCursor* m_mouse_mousing_cursor;
 	GdkCursor* m_mouse_inviso_cursor;
@@ -905,7 +907,8 @@ public:
         void read_modifiers(GdkEvent *event);
         guint translate_ctrlkey(GdkEventKey *event);
 
-        void set_pointer_visible(bool visible);
+        void apply_mouse_cursor();
+        void set_pointer_autohidden(bool autohidden);
 
         void beep();
 

@@ -919,8 +919,8 @@ VteTerminalPrivate::seq_decset_internal_post(long setting,
 	case 1001:
 	case 1002:
 	case 1003:
-		/* Make the pointer visible. */
-                set_pointer_visible(true);
+                /* Mouse pointer might change. */
+                apply_mouse_cursor();
 		break;
 	case 66:
 		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?

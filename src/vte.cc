@@ -1545,7 +1545,6 @@ VteTerminalPrivate::match_check_internal_pcre(vte::grid::column_t column,
                                      start, end,
                                      &sblank, &eblank)) {
                         _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", regex->tag);
-                        set_cursor_from_regex_match(regex);
                         *tag = regex->tag;
                         break;
                 }
@@ -2252,27 +2251,26 @@ VteTerminalPrivate::update_insert_delta()
 	}
 }
 
-/* Show or hide the pointer. */
+/* Apply the desired mouse pointer, based on certain member variables. */
 void
-VteTerminalPrivate::set_pointer_visible(bool visible)
+VteTerminalPrivate::apply_mouse_cursor()
 {
-	m_mouse_cursor_visible = visible;
+        m_mouse_cursor_visible = m_mouse_cursor_over_widget && !(m_mouse_autohide && m_mouse_cursor_autohidden);
 
         if (!widget_realized())
                 return;
 
-	if (visible || !m_mouse_autohide) {
-		if (m_mouse_tracking_mode) {
-			_vte_debug_print(VTE_DEBUG_CURSOR,
-					"Setting mousing cursor.\n");
-			gdk_window_set_cursor(m_event_window, m_mouse_mousing_cursor);
-		} else
-		if ( (guint)m_match_tag < m_match_regexes->len) {
+        if (m_mouse_cursor_visible) {
+                if ((guint)m_match_tag < m_match_regexes->len) {
                         struct vte_match_regex *regex =
                                 &g_array_index(m_match_regexes,
 					       struct vte_match_regex,
 					       m_match_tag);
                         set_cursor_from_regex_match(regex);
+                } else if (m_mouse_tracking_mode) {
+			_vte_debug_print(VTE_DEBUG_CURSOR,
+					"Setting mousing cursor.\n");
+			gdk_window_set_cursor(m_event_window, m_mouse_mousing_cursor);
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
@@ -2283,6 +2281,14 @@ VteTerminalPrivate::set_pointer_visible(bool visible)
 				"Setting to invisible cursor.\n");
 		gdk_window_set_cursor(m_event_window, m_mouse_inviso_cursor);
 	}
+}
+
+/* Show or hide the pointer if autohiding is enabled. */
+void
+VteTerminalPrivate::set_pointer_autohidden(bool autohidden)
+{
+        m_mouse_cursor_autohidden = autohidden;
+        apply_mouse_cursor();
 }
 
 /*
@@ -4627,7 +4633,7 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 
 		/* Unless it's a modifier key, hide the pointer. */
 		if (!modifier) {
-			set_pointer_visible(false);
+                        set_pointer_autohidden(true);
 		}
 
 		_vte_debug_print(VTE_DEBUG_EVENTS,
@@ -5612,6 +5618,8 @@ VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "No matches %s.\n", m_match_span.to_string());
 	}
+
+        apply_mouse_cursor();
 }
 
 /*
@@ -6899,7 +6907,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		/* Hilite any matches. */
 		match_hilite(pos);
 		/* Show the cursor. */
-		set_pointer_visible(true);
+                set_pointer_autohidden(false);
 	}
 
 	switch (event->type) {
@@ -6959,7 +6967,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 
 	match_hilite(pos);
 
-	set_pointer_visible(true);
+        set_pointer_autohidden(false);
 
 	read_modifiers(base_event);
 
@@ -7109,7 +7117,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 
 	match_hilite(pos);
 
-	set_pointer_visible(true);
+        set_pointer_autohidden(false);
 
 	stop_autoscroll();
 
@@ -7170,7 +7178,6 @@ VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
 
 		gtk_im_context_focus_in(m_im_context);
 		invalidate_cursor_once();
-		set_pointer_visible(true);
                 maybe_feed_focus_event(true);
 	}
 }
@@ -7193,12 +7200,6 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
 		gtk_im_context_focus_out(m_im_context);
 		invalidate_cursor_once();
 
-		/* XXX Do we want to hide the match just because the terminal
-		 * lost keyboard focus, but the pointer *is* still within our
-		 * area top? */
-		match_hilite_hide();
-		/* Mark the cursor as invisible to disable hilite updating */
-		m_mouse_cursor_visible = FALSE;
                 m_mouse_pressed_buttons = 0;
                 m_mouse_handled_buttons = 0;
 	}
@@ -7217,6 +7218,9 @@ VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
 
         /* Hilite any matches. */
         match_hilite_show(pos);
+
+        m_mouse_cursor_over_widget = TRUE;
+        apply_mouse_cursor();
 }
 
 void
@@ -7233,7 +7237,8 @@ VteTerminalPrivate::widget_leave(GdkEventCrossing *event)
          * whilst the cursor is absent (otherwise we copy the entire
          * buffer after each update for nothing...)
          */
-        m_mouse_cursor_visible = FALSE;
+        m_mouse_cursor_over_widget = FALSE;
+        apply_mouse_cursor();
 }
 
 static G_GNUC_UNUSED inline const char *
@@ -8047,7 +8052,7 @@ VteTerminalPrivate::widget_unrealize()
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
 	/* Deallocate the cursors. */
-	m_mouse_cursor_visible = FALSE;
+        m_mouse_cursor_over_widget = FALSE;
 	g_object_unref(m_mouse_default_cursor);
 	m_mouse_default_cursor = NULL;
 	g_object_unref(m_mouse_mousing_cursor);
@@ -8346,7 +8351,7 @@ VteTerminalPrivate::widget_realize()
         auto allocation = get_allocated_rect();
 
 	/* Create the stock cursors. */
-	m_mouse_cursor_visible = TRUE;
+        m_mouse_cursor_over_widget = TRUE;  /* FIXME figure out the actual value, although it's safe to err in this direction */
 	m_mouse_default_cursor = widget_cursor_new(VTE_DEFAULT_CURSOR);
 	m_mouse_mousing_cursor = widget_cursor_new(VTE_MOUSING_CURSOR);
 	m_mouse_inviso_cursor = widget_cursor_new(GDK_BLANK_CURSOR);
@@ -9975,7 +9980,7 @@ VteTerminalPrivate::set_mouse_autohide(bool autohide)
                 return false;
 
 	m_mouse_autohide = autohide;
-        /* FIXME: show mouse now if autohide=false! */
+        apply_mouse_cursor();
         return true;
 }
 
@@ -10097,6 +10102,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 
 	/* Reset mouse motion events. */
 	m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
+        apply_mouse_cursor();
         m_mouse_pressed_buttons = 0;
         m_mouse_handled_buttons = 0;
 	m_mouse_last_position = vte::view::coords(-1, -1);
