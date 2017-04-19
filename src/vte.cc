@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/param.h> /* howmany() */
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
@@ -88,10 +89,6 @@ static inline double round(double x) {
 
 #ifndef HAVE_WINT_T
 typedef gunichar wint_t;
-#endif
-
-#ifndef howmany
-#define howmany(x, y) (((x) + ((y) - 1)) / (y))
 #endif
 
 #define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"

@@ -21,7 +21,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
+#include <sys/param.h> /* howmany() */
 
 #include <glib.h>
 #include <gtk/gtk.h>
