@@ -2773,7 +2773,7 @@ VteTerminalPrivate::cleanup_fragments(long start,
 
 /* Cursor down, with scrolling. */
 void
-VteTerminalPrivate::cursor_down()
+VteTerminalPrivate::cursor_down(bool explicit_sequence)
 {
 	long start, end;
 
@@ -2822,13 +2822,14 @@ VteTerminalPrivate::cursor_down()
 			update_insert_delta();
 		}
 
-		/* Match xterm and fill the new row when scrolling. */
-#if 0           /* Disable for now: see bug 754596. */
-                if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+                /* Handle bce (background color erase), however, diverge from xterm:
+                 * only fill the new row with the background color if scrolling
+                 * happens due to an explicit escape sequence, not due to autowrapping.
+                 * See bug 754596 for details. */
+                if (explicit_sequence && m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
 			VteRowData *rowdata = ensure_row();
                         _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
 		}
-#endif
 	} else {
 		/* Otherwise, just move the cursor down. */
                 m_screen->cursor.row++;
@@ -2965,7 +2966,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 			/* Mark this line as soft-wrapped. */
 			row = ensure_row();
 			row->attr.soft_wrapped = 1;
-			cursor_down();
+                        cursor_down(false);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = m_screen->cursor.col =

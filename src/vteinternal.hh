@@ -560,7 +560,7 @@ public:
         void cleanup_fragments(long start,
                                long end);
 
-        void cursor_down();
+        void cursor_down(bool explicit_sequence);
         void drop_scrollback();
 
         void restore_cursor(VteScreen *screen__);
