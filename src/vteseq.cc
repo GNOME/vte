@@ -1660,7 +1660,7 @@ static void
 vte_sequence_handler_next_line (VteTerminalPrivate *that, GValueArray *params)
 {
         that->set_cursor_column(0);
-	that->cursor_down();
+        that->cursor_down(true);
 }
 
 /* No-op. */
@@ -1817,7 +1817,7 @@ vte_sequence_handler_line_feed (VteTerminalPrivate *that, GValueArray *params)
 {
         that->ensure_cursor_is_onscreen();
 
-	that->cursor_down();
+        that->cursor_down(true);
 }
 
 /* Cursor up 1 line, with scrolling. */
