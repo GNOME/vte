@@ -256,6 +256,12 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 		}
 
 		cell.attr = attr;
+                _VTE_DEBUG_IF(VTE_DEBUG_RING) {
+                        /* Debug: Reverse the colors for the stream's contents. */
+                        if (!do_truncate) {
+                                cell.attr.reverse = !cell.attr.reverse;
+                        }
+                }
 		cell.c = g_utf8_get_char (p);
 
 		q = g_utf8_next_char (p);
