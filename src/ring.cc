@@ -236,7 +236,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 	record = records[0];
 
 	if (G_LIKELY (buffer->len && buffer->str[buffer->len - 1] == '\n'))
-		buffer->len--;
+                g_string_truncate (buffer, buffer->len - 1);
 	else
 		row->attr.soft_wrapped = TRUE;
 
