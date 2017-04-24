@@ -61,7 +61,8 @@ typedef enum {
 	VTE_DEBUG_WIDGET_SIZE   = 1 << 21,
         VTE_DEBUG_STYLE         = 1 << 22,
 	VTE_DEBUG_RESIZE        = 1 << 23,
-        VTE_DEBUG_REGEX         = 1 << 24
+        VTE_DEBUG_REGEX         = 1 << 24,
+        VTE_DEBUG_HYPERLINK     = 1 << 25,
 } VteDebugFlags;
 
 void _vte_debug_init(void);

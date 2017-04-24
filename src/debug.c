@@ -52,7 +52,8 @@ _vte_debug_init(void)
     { "widget-size",  VTE_DEBUG_WIDGET_SIZE  },
     { "style",        VTE_DEBUG_STYLE        },
     { "resize",       VTE_DEBUG_RESIZE       },
-    { "regex",        VTE_DEBUG_REGEX        }
+    { "regex",        VTE_DEBUG_REGEX        },
+    { "hyperlink",    VTE_DEBUG_HYPERLINK    },
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),

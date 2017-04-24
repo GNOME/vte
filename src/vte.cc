@@ -264,9 +264,12 @@ VteTerminalPrivate::ring_remove(vte::grid::row_t position)
 
 /* Reset defaults for character insertion. */
 void
-VteTerminalPrivate::reset_default_attributes()
+VteTerminalPrivate::reset_default_attributes(bool reset_hyperlink)
 {
+        hyperlink_idx_t hyperlink_idx_save = m_defaults.attr.hyperlink_idx;
         m_defaults = m_color_defaults = m_fill_defaults = basic_cell;
+        if (!reset_hyperlink)
+                m_defaults.attr.hyperlink_idx = hyperlink_idx_save;
 }
 
 //FIXMEchpe this function is bad
@@ -917,6 +920,18 @@ VteTerminalPrivate::emit_paste_clipboard()
 {
 	_vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting 'paste-clipboard'.\n");
 	g_signal_emit(m_terminal, signals[SIGNAL_PASTE_CLIPBOARD], 0);
+}
+
+/* Emit a "hyperlink_hover_uri_changed" signal. */
+void
+VteTerminalPrivate::emit_hyperlink_hover_uri_changed(const GdkRectangle *bbox)
+{
+        GObject *object = G_OBJECT(m_terminal);
+
+        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                         "Emitting `hyperlink-hover-uri-changed'.\n");
+        g_signal_emit(m_terminal, signals[SIGNAL_HYPERLINK_HOVER_URI_CHANGED], 0, m_hyperlink_hover_uri, bbox);
+        g_object_notify_by_pspec(object, pspecs[PROP_HYPERLINK_HOVER_URI]);
 }
 
 void
@@ -1802,6 +1817,32 @@ VteTerminalPrivate::rowcol_from_event(GdkEvent *event,
 }
 
 char *
+VteTerminalPrivate::hyperlink_check(GdkEvent *event)
+{
+        long col, row;
+        const char *hyperlink;
+        const char *separator;
+
+        if (!m_allow_hyperlink || !rowcol_from_event(event, &col, &row))
+                return NULL;
+
+        _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, false, &hyperlink);
+
+        if (hyperlink != NULL) {
+                /* URI is after the first semicolon */
+                separator = strchr(hyperlink, ';');
+                g_assert(separator != NULL);
+                hyperlink = separator + 1;
+        }
+
+        _vte_debug_print (VTE_DEBUG_HYPERLINK,
+                          "hyperlink_check: \"%s\"\n",
+                          hyperlink);
+
+        return g_strdup(hyperlink);
+}
+
+char *
 VteTerminalPrivate::regex_match_check(GdkEvent *event,
                                       int *tag)
 {
@@ -2258,7 +2299,11 @@ VteTerminalPrivate::apply_mouse_cursor()
                 return;
 
         if (m_mouse_cursor_visible) {
-                if ((guint)m_match_tag < m_match_regexes->len) {
+                if (m_hyperlink_hover_idx != 0) {
+                        _vte_debug_print(VTE_DEBUG_CURSOR,
+                                        "Setting hyperlink mouse cursor.\n");
+                        gdk_window_set_cursor(m_event_window, m_mouse_hyperlink_cursor);
+                } else if ((guint)m_match_tag < m_match_regexes->len) {
                         struct vte_match_regex *regex =
                                 &g_array_index(m_match_regexes,
 					       struct vte_match_regex,
@@ -3853,6 +3898,9 @@ next_match:
 
 	/* Tell the input method where the cursor is. */
         im_update_cursor();
+
+        /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
+        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, wcount * 4);
 
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
@@ -5488,6 +5536,145 @@ VteTerminalPrivate::maybe_send_mouse_drag(vte::grid::coords const& unconfined_ro
 }
 
 /*
+ * VteTerminalPrivate::hyperlink_invalidate_and_get_bbox
+ *
+ * Invalidates cells belonging to the non-zero hyperlink idx, in order to
+ * stop highlighting the previously hovered hyperlink or start highlighting
+ * the new one. Optionally stores the coordinates of the bounding box.
+ */
+void
+VteTerminalPrivate::hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRectangle *bbox)
+{
+        auto first_row = first_displayed_row();
+        auto end_row = last_displayed_row() + 1;
+        vte::grid::row_t row, top = LONG_MAX, bottom = -1;
+        vte::grid::column_t col, left = LONG_MAX, right = -1;
+        const VteRowData *rowdata;
+
+        g_assert (idx != 0);
+
+        for (row = first_row; row < end_row; row++) {
+                rowdata = _vte_ring_index(m_screen->row_data, row);
+                if (rowdata != NULL) {
+                        for (col = 0; col < rowdata->len; col++) {
+                                if (G_UNLIKELY (rowdata->cells[col].attr.hyperlink_idx == idx)) {
+                                        invalidate_cells(col, 1, row, 1);
+                                        top = MIN(top, row);
+                                        bottom = MAX(bottom, row);
+                                        left = MIN(left, col);
+                                        right = MAX(right, col);
+                                }
+                        }
+                }
+        }
+
+        if (bbox == NULL)
+                return;
+
+        /* If bbox != NULL, we're looking for the new hovered hyperlink which always has onscreen bits. */
+        g_assert (top != LONG_MAX && bottom != -1 && left != LONG_MAX && right != -1);
+
+        auto allocation = get_allocated_rect();
+        bbox->x = allocation.x + m_padding.left + left * m_char_width;
+        bbox->y = allocation.y + m_padding.top + row_to_pixel(top);
+        bbox->width = (right - left + 1) * m_char_width;
+        bbox->height = (bottom - top + 1) * m_char_height;
+        _vte_debug_print (VTE_DEBUG_HYPERLINK,
+                          "Hyperlink bounding box: x=%d y=%d w=%d h=%d\n",
+                          bbox->x, bbox->y, bbox->width, bbox->height);
+}
+
+/*
+ * VteTerminalPrivate::hyperlink_hilite_update:
+ *
+ * Checks the coordinates for hyperlink. Updates m_hyperlink_hover_idx
+ * and m_hyperlink_hover_uri, and schedules to update the highlighting.
+ */
+void
+VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
+{
+        const VteRowData *rowdata;
+        hyperlink_idx_t new_hyperlink_hover_idx = 0;
+        GdkRectangle bbox;
+        const char *separator;
+
+        if (!m_allow_hyperlink)
+                return;
+
+        glong col = pos.x / m_char_width;
+        glong row = pixel_to_row(pos.y);
+
+        _vte_debug_print (VTE_DEBUG_HYPERLINK,
+                         "hyperlink_hilite_update\n");
+
+        rowdata = find_row_data(row);
+        if (rowdata && col < rowdata->len) {
+                new_hyperlink_hover_idx = rowdata->cells[col].attr.hyperlink_idx;
+        }
+        if (new_hyperlink_hover_idx == m_hyperlink_hover_idx) {
+                _vte_debug_print (VTE_DEBUG_HYPERLINK,
+                                  "hyperlink did not change\n");
+                return;
+        }
+
+        /* Invalidate cells of the old hyperlink. */
+        if (m_hyperlink_hover_idx != 0) {
+                hyperlink_invalidate_and_get_bbox(m_hyperlink_hover_idx, NULL);
+        }
+
+        /* This might be different from new_hyperlink_hover_idx. If in the stream, that one contains
+         * the pseudo idx VTE_HYPERLINK_IDX_TARGET_IN_STREAM and now a real idx is allocated.
+         * Plus, the ring's internal belief of the hovered hyperlink is also updated. */
+        m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, true, &m_hyperlink_hover_uri);
+
+        /* Invalidate cells of the new hyperlink. Get the bounding box. */
+        if (m_hyperlink_hover_idx != 0) {
+                /* URI is after the first semicolon */
+                separator = strchr(m_hyperlink_hover_uri, ';');
+                g_assert(separator != NULL);
+                m_hyperlink_hover_uri = separator + 1;
+
+                hyperlink_invalidate_and_get_bbox(m_hyperlink_hover_idx, &bbox);
+                g_assert(bbox.width > 0 && bbox.height > 0);
+        }
+        _vte_debug_print(VTE_DEBUG_HYPERLINK,
+                         "Hover idx: %d \"%s\"\n",
+                         m_hyperlink_hover_idx,
+                         m_hyperlink_hover_uri);
+
+        /* Underlining hyperlinks has precedence over regex matches. So when the hovered hyperlink changes,
+         * the regex match might need to become or stop being underlined. */
+        invalidate_match_span();
+
+        apply_mouse_cursor();
+
+        emit_hyperlink_hover_uri_changed(m_hyperlink_hover_idx != 0 ? &bbox : NULL);
+}
+
+/*
+ * VteTerminalPrivate::hyperlink_hilite:
+ *
+ * If the mouse moved to a new cell, updates the hyperlinks via hyperlink_hilite_update().
+ */
+void
+VteTerminalPrivate::hyperlink_hilite(vte::view::coords const& pos)
+{
+        /* if the cursor is not above a cell, skip */
+        if (!view_coords_visible(pos))
+                return;
+
+        /* If the pointer hasn't moved to another character cell, then we
+         * need do nothing. Note: Don't use mouse_last_row as that's relative
+         * to insert_delta, and we care about the absolute row number. */
+        if (grid_coords_from_view_coords(pos) ==
+             confined_grid_coords_from_view_coords(m_mouse_last_position)) {
+                return;
+        }
+
+       hyperlink_hilite_update(pos);
+}
+
+/*
  * VteTerminalPrivate::match_hilite_clear:
  *
  * Reset match variables and invalidate the old match region if highlighted.
@@ -5992,7 +6179,8 @@ vte_terminal_cellattr_equal(VteCellAttr const *attr1,
 	        attr1->strikethrough == attr2->strikethrough &&
 	        attr1->reverse       == attr2->reverse   &&
 	        attr1->blink         == attr2->blink     &&
-	        attr1->invisible     == attr2->invisible);
+                attr1->invisible     == attr2->invisible &&
+                attr1->hyperlink_idx  == attr2->hyperlink_idx);
 }
 
 /*
@@ -6903,6 +7091,7 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		match_hilite_hide();
 	} else if (pos != m_mouse_last_position) {
 		/* Hilite any matches. */
+                hyperlink_hilite(pos);
 		match_hilite(pos);
 		/* Show the cursor. */
                 set_pointer_autohidden(false);
@@ -6963,6 +7152,7 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
+        hyperlink_hilite(pos);
 	match_hilite(pos);
 
         set_pointer_autohidden(false);
@@ -7113,6 +7303,7 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
+        hyperlink_hilite(pos);
 	match_hilite(pos);
 
         set_pointer_autohidden(false);
@@ -7804,7 +7995,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	_vte_ring_init (m_normal_screen.row_data, VTE_SCROLLBACK_INIT, TRUE);
 	m_screen = &m_normal_screen;
 
-	reset_default_attributes();
+        reset_default_attributes(true);
 
         /* Initialize charset modes. */
         m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
@@ -7915,6 +8106,9 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_fontdesc = nullptr;
         m_font_scale = 1.;
 	m_has_fonts = FALSE;
+
+        m_allow_hyperlink = FALSE;
+        m_hyperlink_auto_id = 0;
 
 	/* Not all backends generate GdkVisibilityNotify, so mark the
 	 * window as unobscured initially. */
@@ -8055,6 +8249,8 @@ VteTerminalPrivate::widget_unrealize()
 	m_mouse_default_cursor = NULL;
 	g_object_unref(m_mouse_mousing_cursor);
 	m_mouse_mousing_cursor = NULL;
+        g_object_unref(m_mouse_hyperlink_cursor);
+        m_mouse_hyperlink_cursor = NULL;
 	g_object_unref(m_mouse_inviso_cursor);
 	m_mouse_inviso_cursor = NULL;
 
@@ -8352,6 +8548,11 @@ VteTerminalPrivate::widget_realize()
         m_mouse_cursor_over_widget = TRUE;  /* FIXME figure out the actual value, although it's safe to err in this direction */
 	m_mouse_default_cursor = widget_cursor_new(VTE_DEFAULT_CURSOR);
 	m_mouse_mousing_cursor = widget_cursor_new(VTE_MOUSING_CURSOR);
+        if (_vte_debug_on(VTE_DEBUG_HYPERLINK))
+                /* Differ from the standard regex match cursor in debug mode. */
+                m_mouse_hyperlink_cursor = widget_cursor_new(VTE_HYPERLINK_CURSOR_DEBUG);
+        else
+                m_mouse_hyperlink_cursor = widget_cursor_new(VTE_HYPERLINK_CURSOR);
 	m_mouse_inviso_cursor = widget_cursor_new(GDK_BLANK_CURSOR);
 
 	/* Create a GDK window for the widget. */
@@ -8569,6 +8770,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                bool italic,
                                bool underline,
                                bool strikethrough,
+                               bool hyperlink,
                                bool hilite,
                                bool boxed,
                                int column_width,
@@ -8587,9 +8789,11 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 		}
 		tmp = g_string_free (str, FALSE);
 		g_printerr ("draw_cells('%s', fore=%d, back=%d, bold=%d,"
-				" ul=%d, strike=%d, hilite=%d, boxed=%d)\n",
+                                " ul=%d, strike=%d,"
+                                " hyperlink=%d, hilite=%d, boxed=%d)\n",
 				tmp, fore, back, bold,
-				underline, strikethrough, hilite, boxed);
+                                underline, strikethrough,
+                                hyperlink, hilite, boxed);
 		g_free (tmp);
 	}
 
@@ -8622,7 +8826,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			_vte_draw_get_style(bold, italic));
 
 	/* Draw whatever SFX are required. */
-	if (underline | strikethrough | hilite | boxed) {
+        if (underline | strikethrough | hyperlink | hilite | boxed) {
 		i = 0;
 		do {
 			x = items[i].x;
@@ -8656,7 +8860,16 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                        y + row_height - 1,
                                                        VTE_LINE_WIDTH,
                                                        &fg, VTE_DRAW_OPAQUE);
-			}
+                        } else if (hyperlink) {
+                                for (double j = 0.125; j < columns; j += 0.5) {
+                                        _vte_draw_fill_rectangle(m_draw,
+                                                                 x + j * column_width,
+                                                                 y + row_height - 1,
+                                                                 column_width * 0.25,
+                                                                 1,
+                                                                 &fg, VTE_DRAW_OPAQUE);
+                                }
+                        }
 			if (boxed) {
                                 _vte_draw_draw_rectangle(m_draw,
 						x, y,
@@ -8887,6 +9100,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 					cells[j].attr.italic,
 					cells[j].attr.underline,
 					cells[j].attr.strikethrough,
+                                        m_allow_hyperlink && cells[j].attr.hyperlink_idx != 0,
 					FALSE, FALSE, column_width, height);
 		j += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
@@ -8913,7 +9127,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         vte::grid::column_t i, j;
         long x, y;
 	guint fore, nfore, back, nback;
-	gboolean underline, nunderline, bold, nbold, italic, nitalic, hilite, nhilite,
+        gboolean underline, nunderline, bold, nbold, italic, nitalic,
+                 hyperlink, nhyperlink, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
 	const VteCell *cell;
@@ -9048,7 +9263,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			while (cell->c == 0 || cell->attr.invisible ||
 					(cell->c == ' ' &&
 					 !cell->attr.underline &&
-					 !cell->attr.strikethrough) ||
+                                         !cell->attr.strikethrough &&
+                                         (!m_allow_hyperlink || cell->attr.hyperlink_idx == 0)) ||
 					cell->attr.fragment) {
 				if (++i >= end_column) {
 					goto fg_skip_row;
@@ -9063,9 +9279,12 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			determine_colors(cell, selected, &fore, &back);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
+                        hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
 			bold = cell->attr.bold;
 			italic = cell->attr.italic;
-			if (m_show_match) {
+                        if (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) {
+                                hilite = true;
+                        } else if (m_hyperlink_hover_idx == 0 && m_show_match) {
 				hilite = m_match_span.contains(row, i);
 			} else {
 				hilite = false;
@@ -9097,7 +9316,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 						/* only break the run if we
 						 * are drawing attributes
 						 */
-						if (underline || strikethrough || hilite) {
+                                                if (underline || strikethrough || hyperlink || hilite) {
 							break;
 						} else {
 							j++;
@@ -9129,9 +9348,15 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					if (nstrikethrough != strikethrough) {
 						break;
 					}
+                                        nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
+                                        if (nhyperlink != hyperlink) {
+                                                break;
+                                        }
 					/* Break up matched/not-matched text. */
 					nhilite = false;
-					if (m_show_match) {
+                                        if (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) {
+                                                nhilite = true;
+                                        } else if (m_hyperlink_hover_idx == 0 && m_show_match) {
 						nhilite = m_match_span.contains(row, j);
 					}
 					if (nhilite != hilite) {
@@ -9180,7 +9405,7 @@ fg_draw:
 					item_count,
 					fore, back, FALSE, FALSE,
 					bold, italic, underline,
-					strikethrough, hilite, FALSE,
+                                        strikethrough, hyperlink, hilite, FALSE,
 					column_width, row_height);
 			item_count = 1;
 			/* We'll need to continue at the first cell which didn't
@@ -9385,6 +9610,7 @@ VteTerminalPrivate::paint_cursor()
                                                         cell->attr.italic,
                                                         cell->attr.underline,
                                                         cell->attr.strikethrough,
+                                                        m_allow_hyperlink && cell->attr.hyperlink_idx != 0,
                                                         FALSE,
                                                         FALSE,
                                                         width,
@@ -9470,6 +9696,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 						FALSE,
 						FALSE,
 						FALSE,
+                                                FALSE,
 						FALSE,
 						TRUE,
 						width, height);
@@ -9738,6 +9965,27 @@ VteTerminalPrivate::set_allow_bold(bool setting)
 
 	m_allow_bold = setting;
 	invalidate_all();
+
+        return true;
+}
+
+bool
+VteTerminalPrivate::set_allow_hyperlink(bool setting)
+{
+        if (setting == m_allow_hyperlink)
+                return false;
+
+        if (setting == false) {
+                m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, -1, -1, true, NULL);
+                g_assert (m_hyperlink_hover_idx == 0);
+                m_hyperlink_hover_uri = NULL;
+                emit_hyperlink_hover_uri_changed(NULL);  /* FIXME only emit if really changed */
+                m_defaults.attr.hyperlink_idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, NULL);
+                g_assert (m_defaults.attr.hyperlink_idx == 0);
+        }
+
+        m_allow_hyperlink = setting;
+        invalidate_all();
 
         return true;
 }
@@ -10032,7 +10280,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 	/* Reset the default attributes.  Reset the alternate attribute because
 	 * it's not a real attribute, but we need to treat it as one here. */
-	reset_default_attributes();
+        reset_default_attributes(true);
         /* Reset charset modes. */
         m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
         m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
@@ -10415,9 +10663,10 @@ VteTerminalPrivate::emit_pending_signals()
                 m_text_deleted_flag = false;
 	}
 	if (m_contents_changed_pending) {
-		/* Update dingus match set. */
+                /* Update hyperlink and dingus match set. */
 		match_contents_clear();
 		if (m_mouse_cursor_visible) {
+                        hyperlink_hilite_update(m_mouse_last_position);
 			match_hilite_update(m_mouse_last_position);
 		}
 

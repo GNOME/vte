@@ -32,13 +32,15 @@
 G_BEGIN_DECLS
 
 
+typedef guint32 hyperlink_idx_t;
+
 typedef struct _VteVisualPosition {
 	long row, col;
 } VteVisualPosition;
 
 typedef struct _VteCellAttrChange {
 	gsize text_end_offset;  /* offset of first character no longer using this attr */
-	VteCellAttr attr;
+        VteStreamCellAttr attr;
 } VteCellAttrChange;
 
 
@@ -56,7 +58,20 @@ struct _VteRing {
 	gulong writable, mask;
 	VteRowData *array;
 
-	/* Storage */
+        /* Storage:
+         *
+         * row_stream contains records of VteRowRecord for each physical row.
+         * (This stream is regenerated when the contents rewrap on resize.)
+         *
+         * text_stream is the text in UTF-8.
+         *
+         * attr_stream contains entries that consist of:
+         *  - a VteCellAttrChange.
+         *  - a string of attr.hyperlink_length length containing the (typically empty) hyperlink data.
+         *    As far as the ring is concerned, this hyperlink data is opaque. Only the caller cares that
+         *    if nonempty, it actually contains the ID and URI separated with a semicolon. Not NUL terminated.
+         *  - 2 bytes repeating attr.hyperlink_length so that we can walk backwards.
+         */
 	VteStream *attr_stream, *text_stream, *row_stream;
 	gsize last_attr_text_start_offset;
 	VteCellAttr last_attr;
@@ -67,6 +82,16 @@ struct _VteRing {
 
 	gboolean has_streams;
         gulong visible_rows;  /* to keep at least a screenful of lines in memory, bug 646098 comment 12 */
+
+        GPtrArray *hyperlinks;  /* The hyperlink pool. Contains GString* items.
+                                   [0] points to an empty GString, [1] to [VTE_HYPERLINK_COUNT_MAX] contain the id;uri pairs. */
+        char hyperlink_buf[VTE_HYPERLINK_TOTAL_LENGTH_MAX + 1];  /* One more hyperlink buffer to get the value if it's not placed in the pool. */
+        hyperlink_idx_t hyperlink_highest_used_idx;  /* 0 if no hyperlinks at all in the pool. */
+        hyperlink_idx_t hyperlink_current_idx;  /* The hyperlink idx used for newly created cells.
+                                                   Must not be GC'd even if doesn't occur onscreen. */
+        hyperlink_idx_t hyperlink_hover_idx;  /* The hyperlink idx of the hovered cell.
+                                                 An idx is allocated on hover even if the cell is scrolled out to the streams. */
+        gulong hyperlink_maybe_gc_counter;  /* Do a GC when it reaches 65536. */
 };
 
 #define _vte_ring_contains(__ring, __position) \
@@ -81,6 +106,9 @@ VteRowData *_vte_ring_index_writable (VteRing *ring, gulong position);
 
 void _vte_ring_init (VteRing *ring, gulong max_rows, gboolean has_streams);
 void _vte_ring_fini (VteRing *ring);
+void _vte_ring_hyperlink_maybe_gc (VteRing *ring, gulong increment);
+hyperlink_idx_t _vte_ring_get_hyperlink_idx (VteRing *ring, const char *hyperlink);
+hyperlink_idx_t _vte_ring_get_hyperlink_at_position (VteRing *ring, gulong position, int col, bool update_hover_idx, const char **hyperlink);
 long _vte_ring_reset (VteRing *ring);
 void _vte_ring_resize (VteRing *ring, gulong max_rows);
 void _vte_ring_shrink (VteRing *ring, gulong max_len);

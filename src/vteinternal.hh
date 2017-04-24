@@ -479,6 +479,7 @@ public:
         gboolean m_mouse_cursor_visible;     /* derived value really containing if it's actually visible */
         GdkCursor* m_mouse_default_cursor;
         GdkCursor* m_mouse_mousing_cursor;
+        GdkCursor* m_mouse_hyperlink_cursor;
 	GdkCursor* m_mouse_inviso_cursor;
 
 	/* Input method support. */
@@ -529,6 +530,12 @@ public:
         GtkAdjustment* m_vadjustment;
         guint m_hscroll_policy : 1; /* unused */
         guint m_vscroll_policy : 1;
+
+        /* Hyperlinks */
+        gboolean m_allow_hyperlink;
+        hyperlink_idx_t m_hyperlink_hover_idx;
+        const char *m_hyperlink_hover_uri; /* data is owned by the ring */
+        long m_hyperlink_auto_id;
 
 public:
 
@@ -692,6 +699,7 @@ public:
                         bool italic,
                         bool underline,
                         bool strikethrough,
+                        bool hyperlink,
                         bool hilite,
                         bool boxed,
                         int column_width,
@@ -887,7 +895,7 @@ public:
         bool cell_is_selected(vte::grid::column_t col,
                               vte::grid::row_t) const;
 
-        void reset_default_attributes();
+        void reset_default_attributes(bool reset_hyperlink);
 
         void ensure_font();
         void update_font();
@@ -955,11 +963,16 @@ public:
                                 guint rows);
         void emit_copy_clipboard();
         void emit_paste_clipboard();
+        void emit_hyperlink_hover_uri_changed(const GdkRectangle *bbox);
 
         void clear_tabstop(int column); // FIXMEchpe vte::grid::column_t ?
         bool get_tabstop(int column);
         void set_tabstop(int column);
         void set_default_tabstops();
+
+        void hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRectangle *bbox);
+        void hyperlink_hilite_update(vte::view::coords const& pos);
+        void hyperlink_hilite(vte::view::coords const& pos);
 
         void match_contents_clear();
         void match_contents_refresh();
@@ -974,6 +987,8 @@ public:
         bool rowcol_from_event(GdkEvent *event,
                                long *column,
                                long *row);
+
+        char *hyperlink_check(GdkEvent *event);
 
         bool regex_match_check_extra(GdkEvent *event,
                                      VteRegex **regexes,
@@ -1076,6 +1091,7 @@ public:
 
         bool set_audible_bell(bool setting);
         bool set_allow_bold(bool setting);
+        bool set_allow_hyperlink(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
         bool set_background_alpha(double alpha);
         bool set_cjk_ambiguous_width(int width);
@@ -1176,6 +1192,7 @@ public:
         inline void seq_send_secondary_device_attributes();
         inline void set_current_directory_uri_changed(char* uri /* adopted */);
         inline void set_current_file_uri_changed(char* uri /* adopted */);
+        inline void set_current_hyperlink(char* hyperlink_params /* adopted */, char* uri /* adopted */);
         inline void set_keypad_mode(VteKeymode mode);
         inline void seq_erase_in_display(long param);
         inline void seq_erase_in_line(long param);

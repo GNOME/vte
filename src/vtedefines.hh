@@ -66,6 +66,8 @@
 #define VTE_SCROLLBACK_INIT		512
 #define VTE_DEFAULT_CURSOR		GDK_XTERM
 #define VTE_MOUSING_CURSOR		GDK_LEFT_PTR
+#define VTE_HYPERLINK_CURSOR		GDK_HAND2
+#define VTE_HYPERLINK_CURSOR_DEBUG	GDK_SPIDER
 #define VTE_TAB_MAX			999
 #define VTE_ADJUSTMENT_PRIORITY		G_PRIORITY_DEFAULT_IDLE
 #define VTE_INPUT_RETRY_PRIORITY	G_PRIORITY_HIGH
@@ -93,3 +95,31 @@
 
 #define VTE_FONT_SCALE_MIN (.25)
 #define VTE_FONT_SCALE_MAX (4.)
+
+/* Maximum length of a URI in the OSC 8 escape sequences. There's no de jure limit,
+ * 2000-ish the de facto standard, and Internet Explorer supports 2083.
+ * See also the comment of VTE_HYPERLINK_TOTAL_LENGTH_MAX. */
+#define VTE_HYPERLINK_URI_LENGTH_MAX    2083
+
+/* Maximum number of URIs in the ring for a given screen (as in "normal" vs "alternate" screen)
+ * at a time. Idx 0 is a placeholder for no hyperlink, URIs have indexes from 1 to
+ * VTE_HYPERLINK_COUNT_MAX inclusive, plus one more technical idx is also required, see below.
+ * This is just a safety cap because the number of URIs is bound by the number of cells in the ring
+ * (excluding the stream) which should be way lower than this at sane window sizes.
+ * Make sure there are enough bits to store them in VteCellAttr.hyperlink_idx.
+ * Also make sure _vte_ring_hyperlink_gc() can allocate a large enough bitmap. */
+#define VTE_HYPERLINK_COUNT_MAX         ((1 << 20) - 2)
+
+/* Used when thawing a row from the stream in order to display it, to denote
+ * hyperlinks whose target is currently irrelevant.
+ * Make sure there are enough bits to store this in VteCellAttr.hyperlink_idx */
+#define VTE_HYPERLINK_IDX_TARGET_IN_STREAM      (VTE_HYPERLINK_COUNT_MAX + 1)
+
+/* Max length allowed in the id= parameter of an OSC 8 sequence.
+ * See also the comment of VTE_HYPERLINK_TOTAL_LENGTH_MAX. */
+#define VTE_HYPERLINK_ID_LENGTH_MAX     250
+
+/* Max length of all the hyperlink data stored in the streams as a string.
+ * Currently the hyperlink data is the ID and URI and a separator in between.
+ * Make sure there are enough bits to store this in VteStreamCellAttr.hyperlink_length */
+#define VTE_HYPERLINK_TOTAL_LENGTH_MAX  (VTE_HYPERLINK_ID_LENGTH_MAX + 1 + VTE_HYPERLINK_URI_LENGTH_MAX)

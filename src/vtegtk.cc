@@ -417,6 +417,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
                         break;
+                case PROP_ALLOW_HYPERLINK:
+                        g_value_set_boolean (value, vte_terminal_get_allow_hyperlink (terminal));
+                        break;
                 case PROP_AUDIBLE_BELL:
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
@@ -449,6 +452,9 @@ vte_terminal_get_property (GObject *object,
                         break;
                 case PROP_FONT_SCALE:
                         g_value_set_double (value, vte_terminal_get_font_scale (terminal));
+                        break;
+                case PROP_HYPERLINK_HOVER_URI:
+                        g_value_set_string (value, impl->m_hyperlink_hover_uri);
                         break;
                 case PROP_ICON_TITLE:
                         g_value_set_string (value, vte_terminal_get_icon_title (terminal));
@@ -512,6 +518,9 @@ vte_terminal_set_property (GObject *object,
                 case PROP_ALLOW_BOLD:
                         vte_terminal_set_allow_bold (terminal, g_value_get_boolean (value));
                         break;
+                case PROP_ALLOW_HYPERLINK:
+                        vte_terminal_set_allow_hyperlink (terminal, g_value_get_boolean (value));
+                        break;
                 case PROP_AUDIBLE_BELL:
                         vte_terminal_set_audible_bell (terminal, g_value_get_boolean (value));
                         break;
@@ -567,6 +576,7 @@ vte_terminal_set_property (GObject *object,
                         /* Not writable */
                 case PROP_CURRENT_DIRECTORY_URI:
                 case PROP_CURRENT_FILE_URI:
+                case PROP_HYPERLINK_HOVER_URI:
                 case PROP_ICON_TITLE:
                 case PROP_WINDOW_TITLE:
                         g_assert_not_reached ();
@@ -796,6 +806,33 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+
+        /**
+         * VteTerminal::hyperlink-hover-changed:
+         * @vteterminal: the object which received the signal
+         * @uri: the nonempty target URI under the mouse, or NULL
+         * @bbox: the bounding box of the hyperlink anchor text, or NULL
+         *
+         * Emitted when the hovered hyperlink changes.
+         *
+         * @uri and @bbox are owned by VTE, must not be modified, and might
+         * change after the signal handlers returns.
+         *
+         * The signal is not re-emitted when the bounding box changes for the
+         * same hyperlink. This might change in a future VTE version without notice.
+         *
+         * Since: 0.50
+         */
+        signals[SIGNAL_HYPERLINK_HOVER_URI_CHANGED] =
+                g_signal_new(I_("hyperlink-hover-uri-changed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             0,
+                             NULL,
+                             NULL,
+                             _vte_marshal_VOID__STRING_BOXED,
+                             G_TYPE_NONE,
+                             2, G_TYPE_STRING, GDK_TYPE_RECTANGLE | G_SIGNAL_TYPE_STATIC_SCOPE);
 
         /**
          * VteTerminal::encoding-changed:
@@ -1219,6 +1256,18 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
+         * VteTerminal:allow-hyperlink:
+         *
+         * Controls whether or not hyperlinks (OSC 8 escape sequence) are recognized and displayed.
+         *
+         * Since: 0.50
+         */
+        pspecs[PROP_ALLOW_HYPERLINK] =
+                g_param_spec_boolean ("allow-hyperlink", NULL, NULL,
+                                      TRUE,
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
          * VteTerminal:audible-bell:
          *
          * Controls whether or not the terminal will beep when the child outputs the
@@ -1451,6 +1500,18 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_CURRENT_FILE_URI] =
                 g_param_spec_string ("current-file-uri", NULL, NULL,
+                                     NULL,
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:hyperlink-hover-uri:
+         *
+         * The currently hovered hyperlink URI, or %NULL if unset.
+         *
+         * Since: 0.50
+         */
+        pspecs[PROP_HYPERLINK_HOVER_URI] =
+                g_param_spec_string ("hyperlink-hover-uri", NULL, NULL,
                                      NULL,
                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
@@ -1801,6 +1862,30 @@ vte_terminal_match_check_event(VteTerminal *terminal,
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         return IMPL(terminal)->regex_match_check(event, tag);
+}
+
+/**
+ * vte_terminal_hyperlink_check_event:
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ *
+ * Returns a nonempty string: the target of the explicit hyperlink (printed using the OSC 8
+ * escape sequence) at the position of the event, or %NULL.
+ *
+ * Proper use of the escape sequence should result in URI-encoded URIs with a proper scheme
+ * like "http://", "https://", "file://", "mailto:" etc. This is, however, not enforced by VTE.
+ * The caller must tolerate the returned string potentially not being a valid URI.
+ *
+ * Returns: (transfer full): a newly allocated string containing the target of the hyperlink
+ *
+ * Since: 0.50
+ */
+char *
+vte_terminal_hyperlink_check_event(VteTerminal *terminal,
+                                   GdkEvent *event)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        return IMPL(terminal)->hyperlink_check(event);
 }
 
 /**
@@ -2741,6 +2826,42 @@ vte_terminal_set_allow_bold(VteTerminal *terminal,
 
         if (IMPL(terminal)->set_allow_bold(allow_bold != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ALLOW_BOLD]);
+}
+
+/**
+ * vte_terminal_get_allow_hyperlink:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not hyperlinks (OSC 8 escape sequence) are allowed.
+ *
+ * Returns: %TRUE if hyperlinks are enabled, %FALSE if not
+ *
+ * Since: 0.50
+ */
+gboolean
+vte_terminal_get_allow_hyperlink(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        return IMPL(terminal)->m_allow_hyperlink;
+}
+
+/**
+ * vte_terminal_set_allow_hyperlink:
+ * @terminal: a #VteTerminal
+ * @allow_hyperlink: %TRUE if the terminal should allow hyperlinks
+ *
+ * Controls whether or not hyperlinks (OSC 8 escape sequence) are allowed.
+ *
+ * Since: 0.50
+ */
+void
+vte_terminal_set_allow_hyperlink(VteTerminal *terminal,
+                                 gboolean allow_hyperlink)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_allow_hyperlink(allow_hyperlink != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ALLOW_HYPERLINK]);
 }
 
 /**

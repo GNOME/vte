@@ -143,6 +143,7 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	VteTerminal *terminal;
 	char *match;
+        char *hyperlink;
 	int tag;
         gboolean has_extra_match;
         char *extra_match = NULL;
@@ -150,6 +151,14 @@ button_pressed(GtkWidget *widget, GdkEventButton *event, gpointer data)
 	switch (event->button) {
 	case 3:
 		terminal = VTE_TERMINAL(widget);
+
+                hyperlink = vte_terminal_hyperlink_check_event(terminal,
+                                                               (GdkEvent*)event);
+                if (hyperlink)
+                        g_print("Hyperlink: %s\n", hyperlink);
+                else
+                        g_print("Not hyperlink\n");
+                g_free(hyperlink);
 
 		match = vte_terminal_match_check_event(terminal,
                                                        (GdkEvent*)event,
@@ -621,7 +630,8 @@ main(int argc, char **argv)
                 icon_title = FALSE, shell = TRUE,
 		 reverse = FALSE, use_geometry_hints = TRUE,
                 use_scrolled_window = FALSE,
-                show_object_notifications = FALSE, rewrap = TRUE;
+                show_object_notifications = FALSE, rewrap = TRUE,
+                hyperlink = TRUE;
 	char *geometry = NULL;
 	gint lines = -1;
 	const char *message = "Launching interactive shell...\r\n";
@@ -661,6 +671,11 @@ main(int argc, char **argv)
 			G_OPTION_ARG_NONE, &use_gregex,
 			"Use GRegex instead of PCRE2", NULL
 		},
+                {
+                        "no-hyperlink", 'H', G_OPTION_FLAG_REVERSE,
+                        G_OPTION_ARG_NONE, &hyperlink,
+                        "Disable hyperlinks inside the terminal", NULL
+                },
 		{
 			"no-rewrap", 'R', G_OPTION_FLAG_REVERSE,
 			G_OPTION_ARG_NONE, &rewrap,
@@ -1059,6 +1074,8 @@ main(int argc, char **argv)
                 vte_terminal_set_font(terminal, desc);
                 pango_font_description_free(desc);
         }
+
+        vte_terminal_set_allow_hyperlink(terminal, hyperlink);
 
 	/* Match "abcdefg". */
 	if (!no_builtin_dingus) {

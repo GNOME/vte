@@ -289,6 +289,12 @@ void vte_terminal_set_allow_bold(VteTerminal *terminal,
 _VTE_PUBLIC
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
+void vte_terminal_set_allow_hyperlink(VteTerminal *terminal,
+                                      gboolean allow_hyperlink) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_allow_hyperlink(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 /* Check if the terminal is the current selection owner. */
 _VTE_PUBLIC
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
@@ -341,6 +347,10 @@ _VTE_PUBLIC
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column,
                                       glong *row) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+char *vte_terminal_hyperlink_check_event(VteTerminal *terminal,
+                                         GdkEvent *event) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
