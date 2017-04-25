@@ -364,8 +364,15 @@ __vte_pty_spawn (VtePty *pty,
         GError *err = NULL;
         GPollFD pollfd;
 
-        if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd))
+        if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd)) {
+                vte::util::restore_errno errsv;
+                g_set_error(error,
+                            G_IO_ERROR,
+                            g_io_error_from_errno(errsv),
+                            "Failed to make cancellable pollfd: %s",
+                            g_strerror(errsv));
                 return FALSE;
+        }
 
         spawn_flags |= G_SPAWN_DO_NOT_REAP_CHILD;
 
