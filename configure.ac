@@ -378,7 +378,7 @@ if test -z "$enable_vala"; then
 fi
 
 m4_ifdef([VAPIGEN_CHECK],
-  [VAPIGEN_CHECK([0.18])],
+  [VAPIGEN_CHECK([0.24])],
   [if test "$enable_vala" = "yes"; then
      AC_MSG_ERROR([[Vala requested but M4 macros not installed. Try --disable-vala]])
    fi
