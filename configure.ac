@@ -388,24 +388,19 @@ m4_ifdef([VAPIGEN_CHECK],
 # Test Application
 # ****************
 
-AC_MSG_CHECKING([whether to build the test application])
+AC_MSG_CHECKING([whether to install the vala test application])
 AC_ARG_ENABLE([test-application],
-        [AS_HELP_STRING([--disable-test-application],[Disable test application])],
+        [AS_HELP_STRING([--disable-test-application],[Disable installing the vala test application])],
         [],[enable_test_application=$enable_vala])
 AC_MSG_RESULT([$enable_test_application])
 
 AM_PROG_VALAC([0.24.0],[],[
-  if test "$enable_test_application" != "no"; then
-    AC_MSG_ERROR([vala support enabled by vala compiler not found])
+  if test "$enable_vala" != "no"; then
+    AC_MSG_ERROR([Vala requested but vala compiler >= 0.24.0 not found])
   fi])
 
-if test "$enable_test_application" = "yes"; then
-  PKG_CHECK_MODULES([GTK_3_16],[gtk+-$GTK_API_VERSION >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
-  AM_PROG_VALAC([0.31.1],[have_vala_0_31=yes],[have_vala_0_31=no])
-else
-  have_gtk_3_16=no
-  have_vala_0_31=no
-fi
+PKG_CHECK_MODULES([GTK_3_16],[gtk+-$GTK_API_VERSION >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
+AM_PROG_VALAC([0.31.1],[have_vala_0_31=yes],[have_vala_0_31=no])
 
 AM_CONDITIONAL([ENABLE_TEST_APPLICATION],[test "$enable_test_application" = "yes"])
 AM_CONDITIONAL([HAVE_GTK_3_16],[test "$have_gtk_3_16" = "yes"])
