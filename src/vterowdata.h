@@ -37,9 +37,6 @@ G_BEGIN_DECLS
 /*
  * VteCellAttr: A single cell style attributes
  *
- * Ordered by most commonly changed attributes, to
- * optimize the compact representation.
- *
  * When adding new attributes, keep in sync with VteStreamCellAttr and
  * update VTE_CELL_ATTR_COMMON_BYTES accordingly.
  * Also don't forget to update basic_cell below!
