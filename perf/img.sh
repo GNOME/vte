@@ -34,7 +34,7 @@ declare -a upper lower
 upper=()
 lower=()
 
-convert -thumbnail ${COLUMNS}x "$1" txt:- |
+convert -thumbnail ${COLUMNS}x -define txt:compliance=SVG "$1" txt:- |
 while IFS=',:() ' read col row dummy red green blue rest; do
   if [ "$col" = "#" ]; then
     continue
