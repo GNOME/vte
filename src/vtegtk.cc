@@ -1264,7 +1264,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_ALLOW_HYPERLINK] =
                 g_param_spec_boolean ("allow-hyperlink", NULL, NULL,
-                                      TRUE,
+                                      FALSE,
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
