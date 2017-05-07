@@ -178,7 +178,8 @@ void vte_terminal_feed_child_binary(VteTerminal *terminal,
 /* Copy currently-selected text to the clipboard, or from the clipboard to
  * the terminal. */
 _VTE_PUBLIC
-void vte_terminal_copy_clipboard(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+void vte_terminal_copy_clipboard_format(VteTerminal *terminal,
+                                        VteFormat format) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_paste_clipboard(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC

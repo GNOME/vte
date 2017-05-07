@@ -5,6 +5,7 @@ VteTerminal
 VteCursorBlinkMode
 VteCursorShape
 VteEraseBinding
+VteFormat
 VteWriteFlags
 VteSelectionFunc
 vte_terminal_new
@@ -13,7 +14,7 @@ vte_terminal_feed_child
 vte_terminal_feed_child_binary
 vte_terminal_select_all
 vte_terminal_unselect_all
-vte_terminal_copy_clipboard
+vte_terminal_copy_clipboard_format
 vte_terminal_paste_clipboard
 vte_terminal_copy_primary
 vte_terminal_paste_primary
@@ -102,6 +103,8 @@ VTE_TYPE_CURSOR_SHAPE
 vte_cursor_shape_get_type
 VTE_TYPE_ERASE_BINDING
 vte_erase_binding_get_type
+VTE_TYPE_FORMAT
+vte_format_get_type
 VTE_TYPE_WRITE_FLAGS
 vte_write_flags_get_type
 VTE_TYPE_TERMINAL
@@ -123,6 +126,7 @@ vte_terminal_get_current_directory_uri
 vte_terminal_get_current_file_uri
 
 <SUBSECTION Deprecated>
+vte_terminal_copy_clipboard
 vte_terminal_match_set_cursor
 vte_terminal_match_add_gregex
 vte_terminal_search_get_gregex

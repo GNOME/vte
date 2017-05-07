@@ -1422,7 +1422,7 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 
         auto impl = IMPL_FROM_WIDGET(widget);
 
-	if (!impl->m_has_selection)
+	if (!impl->m_has_selection || impl->m_selection[VTE_SELECTION_PRIMARY] == nullptr)
 		return NULL;
 
         auto start_sel = impl->m_selection_start;
@@ -1431,7 +1431,7 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 	*start_offset = offset_from_xy (priv, start_sel.col, start_sel.row);
 	*end_offset = offset_from_xy (priv, end_sel.col, end_sel.row);
 
-	return g_strdup(impl->m_selection_text[VTE_SELECTION_PRIMARY]);
+	return g_strdup(impl->m_selection[VTE_SELECTION_PRIMARY]->str);
 }
 
 static gboolean

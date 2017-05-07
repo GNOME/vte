@@ -140,7 +140,7 @@ vte_terminal_set_vscroll_policy(VteTerminal *terminal,
 static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
-	IMPL(terminal)->widget_copy(VTE_SELECTION_CLIPBOARD);
+	IMPL(terminal)->widget_copy(VTE_SELECTION_CLIPBOARD, VTE_FORMAT_TEXT);
 }
 
 static void
@@ -1678,6 +1678,9 @@ vte_terminal_new(void)
  *
  * Places the selected text in the terminal in the #GDK_SELECTION_CLIPBOARD
  * selection.
+ *
+ * Deprecated: 0.50: Use vte_terminal_copy_clipboard_format() with %VTE_FORMAT_TEXT
+ *   instead.
  */
 void
 vte_terminal_copy_clipboard(VteTerminal *terminal)
@@ -1685,6 +1688,34 @@ vte_terminal_copy_clipboard(VteTerminal *terminal)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         IMPL(terminal)->emit_copy_clipboard();
+}
+
+
+/**
+ * vte_terminal_copy_clipboard_format:
+ * @terminal: a #VteTerminal
+ * @format: a #VteFormat
+ *
+ * Places the selected text in the terminal in the #GDK_SELECTION_CLIPBOARD
+ * selection in the form specified by @format.
+ *
+ * For all formats, the selection data (see #GtkSelectionData) will include the
+ * text targets (see gtk_target_list_add_text_targets() and
+ * gtk_selection_data_targets_includes_text()). For %VTE_FORMAT_HTML,
+ * the selection will also include the "text/html" target, which when requested,
+ * returns the HTML data in UTF-16 with a U+FEFF BYTE ORDER MARK character at
+ * the start.
+ *
+ * Since: 0.50
+ */
+void
+vte_terminal_copy_clipboard_format(VteTerminal *terminal,
+                                   VteFormat format)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(format == VTE_FORMAT_TEXT || format == VTE_FORMAT_HTML);
+
+        IMPL(terminal)->widget_copy(VTE_SELECTION_CLIPBOARD, format);
 }
 
 /**
@@ -1699,7 +1730,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	IMPL(terminal)->widget_copy(VTE_SELECTION_PRIMARY);
+	IMPL(terminal)->widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 }
 
 /**
@@ -2672,10 +2703,12 @@ vte_terminal_get_text(VteTerminal *terminal,
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
-	return IMPL(terminal)->get_text_displayed(true /* wrap */,
-                                                 false /* include trailing whitespace */,
-                                                 attributes,
-                                                 nullptr);
+        auto text = IMPL(terminal)->get_text_displayed(true /* wrap */,
+                                                       false /* include trailing whitespace */,
+                                                       attributes);
+        if (text == nullptr)
+                return nullptr;
+        return (char*)g_string_free(text, FALSE);
 }
 
 /**
@@ -2703,10 +2736,12 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
-	return IMPL(terminal)->get_text_displayed(true /* wrap */,
-                                                 true /* include trailing whitespace */,
-                                                 attributes,
-                                                 nullptr);
+        auto text = IMPL(terminal)->get_text_displayed(true /* wrap */,
+                                                       true /* include trailing whitespace */,
+                                                       attributes);
+        if (text == nullptr)
+                return nullptr;
+        return (char*)g_string_free(text, FALSE);
 }
 
 /**
@@ -2742,13 +2777,15 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
-	return IMPL(terminal)->get_text(start_row, start_col,
-                                       end_row, end_col,
-                                       false /* block */,
-                                       true /* wrap */,
-                                       true /* include trailing whitespace */,
-                                       attributes,
-                                       nullptr);
+        auto text = IMPL(terminal)->get_text(start_row, start_col,
+                                             end_row, end_col,
+                                             false /* block */,
+                                             true /* wrap */,
+                                             true /* include trailing whitespace */,
+                                             attributes);
+        if (text == nullptr)
+                return nullptr;
+        return (char*)g_string_free(text, FALSE);
 }
 
 /**

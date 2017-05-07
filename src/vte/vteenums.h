@@ -137,6 +137,21 @@ typedef enum {
         VTE_REGEX_ERROR_NOT_SUPPORTED = G_MAXINT
 } VteRegexError;
 
+/**
+ * VteFormat:
+ * @VTE_FORMAT_TEXT: Export as plain text
+ * @VTE_FORMAT_HTML: Export as HTML formatted text
+ *
+ * An enumeratio type that can be used to specify the format the selection
+ * should be copied to the clipboard in.
+ *
+ * Since: 0.50
+ */
+typedef enum {
+        VTE_FORMAT_TEXT = 1,
+        VTE_FORMAT_HTML = 2
+} VteFormat;
+
 G_END_DECLS
 
 #endif /* __VTE_VTE_ENUMS_H__ */

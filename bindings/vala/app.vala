@@ -196,7 +196,7 @@ class Window : Gtk.ApplicationWindow
   };
 
   private const GLib.ActionEntry[] action_entries = {
-    { "copy",        action_copy_cb            },
+    { "copy",        action_copy_cb,       "s" },
     { "copy-match",  action_copy_match_cb, "s" },
     { "paste",       action_paste_cb           },
     { "reset",       action_reset_cb,      "b" },
@@ -564,9 +564,12 @@ class Window : Gtk.ApplicationWindow
 
   /* Callbacks */
 
-  private void action_copy_cb()
+  private void action_copy_cb(GLib.SimpleAction action, GLib.Variant? parameter)
   {
-    terminal.copy_clipboard();
+    size_t len;
+    unowned string str = parameter.get_string(out len);
+    
+    terminal.copy_clipboard_format(str == "html" ? Vte.Format.HTML : Vte.Format.TEXT);
   }
 
   private void action_copy_match_cb(GLib.SimpleAction action, GLib.Variant? parameter)
@@ -625,7 +628,8 @@ class Window : Gtk.ApplicationWindow
       return false;
 
     var menu = new GLib.Menu();
-    menu.append("_Copy", "win.copy");
+    menu.append("_Copy", "win.copy::text");
+    menu.append("Copy As _HTML", "win.copy::html");
 
 #if VALA_0_24
     if (event != null) {

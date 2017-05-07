@@ -1033,10 +1033,10 @@ VteTerminalPrivate::match_contents_refresh()
 {
 	match_contents_clear();
 	GArray *array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-        m_match_contents = get_text_displayed(true /* wrap */,
-                                              false /* include trailing whitespace */,
-                                              array,
-                                              nullptr);
+        auto match_contents = get_text_displayed(true /* wrap */,
+                                                 false /* include trailing whitespace */,
+                                                 array);
+        m_match_contents = g_string_free(match_contents, FALSE);
 	m_match_attributes = array;
 }
 
@@ -3845,13 +3845,14 @@ next_match:
 		 * by this insertion. */
 		if (m_has_selection) {
                         //FIXMEchpe: this is atrocious
-			char *selection = get_selected_text();
-			if ((selection == NULL) ||
-			    (m_selection_text[VTE_SELECTION_PRIMARY] == NULL) ||
-			    (strcmp(selection, m_selection_text[VTE_SELECTION_PRIMARY]) != 0)) {
+			auto selection = get_selected_text();
+			if ((selection == nullptr) ||
+			    (m_selection[VTE_SELECTION_PRIMARY] == nullptr) ||
+			    (strcmp(selection->str, m_selection[VTE_SELECTION_PRIMARY]->str) != 0)) {
 				deselect_all();
 			}
-			g_free(selection);
+                        if (selection)
+                                g_string_free(selection, TRUE);
 		}
 	}
 
@@ -5873,46 +5874,58 @@ clipboard_copy_cb(GtkClipboard *clipboard,
         that->widget_clipboard_requested(clipboard, data, info);
 }
 
+static char*
+text_to_utf16_mozilla(GString* text,
+                      gsize* len_ptr)
+{
+        /* Use g_convert() instead of g_utf8_to_utf16() since the former
+         * adds a BOM which Mozilla requires for text/html format.
+         */
+        return g_convert(text->str, text->len,
+                         "UTF-16", /* conver to UTF-16 */
+                         "UTF-8", /* convert from UTF-8 */
+                         nullptr /* out bytes_read */,
+                         len_ptr,
+                         nullptr);
+}
+
 void
 VteTerminalPrivate::widget_clipboard_requested(GtkClipboard *target_clipboard,
                                                GtkSelectionData *data,
                                                guint info)
 {
-	int sel;
-
-	for (sel = 0; sel < LAST_VTE_SELECTION; sel++) {
+	for (auto sel = 0; sel < LAST_VTE_SELECTION; sel++) {
 		if (target_clipboard == m_clipboard[sel] &&
-                    m_selection_text[sel] != nullptr) {
+                    m_selection[sel] != nullptr) {
 			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 				int i;
-				g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.)\n",
-					sel,
-					strlen(m_selection_text[sel]));
-				for (i = 0; m_selection_text[sel][i] != '\0'; i++) {
-					g_printerr("0x%04x\n",
-						m_selection_text[sel][i]);
+				g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.) for target %s\n",
+                                           sel,
+                                           m_selection[sel]->len,
+                                           gdk_atom_name(gtk_selection_data_get_target(data)));
+                                char const* selection_text = m_selection[sel]->str;
+                                for (i = 0; selection_text[i] != '\0'; i++) {
+                                        g_printerr("0x%04x ", selection_text[i]);
+                                        if ((i & 0x7) == 0x7)
+                                                g_printerr("\n");
 				}
+                                g_printerr("\n");
 			}
 			if (info == VTE_TARGET_TEXT) {
-                                // FIXMEchpe cache the strlen instead of passing -1 here, and below
-				gtk_selection_data_set_text(data, m_selection_text[sel], -1);
+				gtk_selection_data_set_text(data,
+                                                            m_selection[sel]->str,
+                                                            m_selection[sel]->len);
 			} else if (info == VTE_TARGET_HTML) {
-#ifdef HTML_SELECTION
 				gsize len;
-				gchar *selection;
-
-				/* Mozilla asks that we start our text/html with the Unicode byte order mark */
-				/* (Comment found in gtkimhtml.c of pidgin fame) */
-				selection = g_convert(m_selection_html[sel],
-					-1, "UTF-16", "UTF-8", NULL, &len, NULL);
+                                auto selection = text_to_utf16_mozilla(m_selection[sel], &len);
                                 // FIXMEchpe this makes yet another copy of the data... :(
-				gtk_selection_data_set(data,
-					gdk_atom_intern("text/html", FALSE),
-					16,
-					(const guchar *)selection,
-					len);
+                                if (selection)
+                                        gtk_selection_data_set(data,
+                                                               gdk_atom_intern_static_string("text/html"),
+                                                               16,
+                                                               (const guchar *)selection,
+                                                               len);
 				g_free(selection);
-#endif
 			} else {
                                 /* Not reached */
                         }
@@ -5948,26 +5961,6 @@ VteTerminalPrivate::rgb_from_index(guint index,
 	} else {
 		g_assert_not_reached();
 	}
-}
-
-char *
-VteTerminalPrivate::get_text(vte::grid::row_t start_row,
-                             vte::grid::column_t start_col,
-                             vte::grid::row_t end_row,
-                             vte::grid::column_t end_col,
-                             bool block,
-                             bool wrap,
-                             bool include_trailing_spaces,
-                             GArray *attributes,
-                             gsize *ret_len)
-{
-        GString *text = get_text(start_row, start_col,
-                                 end_row, end_col,
-                                 block, wrap, include_trailing_spaces,
-                                 attributes);
-        if (ret_len)
-                *ret_len = text->len;
-        return static_cast<char*>(g_string_free(text, FALSE));
 }
 
 GString*
@@ -6103,22 +6096,12 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 			vte_g_array_fill (attributes, &attr, string->len);
 		}
 	}
-	/* Sanity check. */
-	g_assert(attributes == NULL || string->len == attributes->len);
-        return string;
-}
 
-char *
-VteTerminalPrivate::get_text_displayed(bool wrap,
-                                       bool include_trailing_spaces,
-                                       GArray *attributes,
-                                       gsize *ret_len)
-{
-        GString *text = get_text_displayed(wrap, include_trailing_spaces,
-                                           attributes);
-        if (ret_len)
-                *ret_len = text->len;
-        return static_cast<char*>(g_string_free(text, FALSE));
+	/* Sanity check. */
+        if (attributes != nullptr)
+                g_assert_cmpuint(string->len, ==, attributes->len);
+
+        return string;
 }
 
 GString*
@@ -6146,9 +6129,8 @@ VteTerminalPrivate::get_text_displayed_a11y(bool wrap,
                         attributes);
 }
 
-char *
-VteTerminalPrivate::get_selected_text(GArray *attributes,
-                                      gsize *len_ptr)
+GString*
+VteTerminalPrivate::get_selected_text(GArray *attributes)
 {
 	return get_text(m_selection_start.row,
                         m_selection_start.col,
@@ -6157,8 +6139,7 @@ VteTerminalPrivate::get_selected_text(GArray *attributes,
                         m_selection_block_mode,
                         true /* wrap */,
                         false /* include trailing whitespace */,
-                        attributes,
-                        len_ptr);
+                        attributes);
 }
 
 /*
@@ -6275,17 +6256,18 @@ VteTerminalPrivate::char_to_cell_attr(VteCharAttributes const* attr) const
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
-char *
-VteTerminalPrivate::attributes_to_html(char const* text,
-                                       gsize len,
-                                       GArray *attrs)
+GString*
+VteTerminalPrivate::attributes_to_html(GString* text_string,
+                                       GArray* attrs)
 {
 	GString *string;
 	guint from,to;
 	const VteCellAttr *attr;
 	char *escaped, *marked;
 
-	g_assert(len == attrs->len);
+        char const* text = text_string->str;
+        auto len = text_string->len;
+        g_assert_cmpuint(len, ==, attrs->len);
 
 	/* Initial size fits perfectly if the text has no attributes and no
 	 * characters that need to be escaped
@@ -6322,29 +6304,85 @@ VteTerminalPrivate::attributes_to_html(char const* text,
 	}
 	g_string_append(string, "</pre>");
 
-	return g_string_free(string, FALSE);
+	return string;
+}
+
+static GtkTargetEntry*
+targets_for_format(VteFormat format,
+                   int *n_targets)
+{
+        switch (format) {
+        case VTE_FORMAT_TEXT: {
+                static GtkTargetEntry *text_targets = nullptr;
+                static int n_text_targets;
+
+                if (text_targets == nullptr) {
+			auto list = gtk_target_list_new (nullptr, 0);
+			gtk_target_list_add_text_targets (list, VTE_TARGET_TEXT);
+
+                        text_targets = gtk_target_table_new_from_list (list, &n_text_targets);
+			gtk_target_list_unref (list);
+                }
+
+                *n_targets = n_text_targets;
+                return text_targets;
+        }
+
+        case VTE_FORMAT_HTML: {
+                static GtkTargetEntry *html_targets = nullptr;
+                static int n_html_targets;
+
+                if (html_targets == nullptr) {
+			auto list = gtk_target_list_new (nullptr, 0);
+			gtk_target_list_add_text_targets (list, VTE_TARGET_TEXT);
+                        gtk_target_list_add (list,
+                                             gdk_atom_intern_static_string("text/html"),
+                                             0,
+                                             VTE_TARGET_HTML);
+
+                        html_targets = gtk_target_table_new_from_list (list, &n_html_targets);
+			gtk_target_list_unref (list);
+                }
+
+                *n_targets = n_html_targets;
+                return html_targets;
+        }
+        default:
+                g_assert_not_reached();
+        }
 }
 
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
 void
-VteTerminalPrivate::widget_copy(VteSelection sel)
+VteTerminalPrivate::widget_copy(VteSelection sel,
+                                VteFormat format)
 {
-	static GtkTargetEntry *targets = NULL;
-	static gint n_targets = 0;
-	GArray *attributes;
-
-	attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
+        /* Only put HTML on the CLIPBOARD, not PRIMARY */
+        g_assert(sel == VTE_SELECTION_CLIPBOARD || format == VTE_FORMAT_TEXT);
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
-	g_free(m_selection_text[sel]);
-        gsize len;
-	m_selection_text[sel] = get_selected_text(attributes, &len);
-#ifdef HTML_SELECTION
-	g_free(m_selection_html[sel]);
-	m_selection_html[sel] = attributes_to_html(m_selection_text[sel], len,
-                                                   attributes);
-#endif
+        GArray *attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
+        auto selection = get_selected_text(attributes);
+
+        if (m_selection[sel]) {
+                g_string_free(m_selection[sel], TRUE);
+                m_selection[sel] = nullptr;
+        }
+
+        if (selection == nullptr) {
+                g_array_free(attributes, TRUE);
+                m_has_selection = FALSE;
+                m_selection_owned[sel] = false;
+                return;
+        }
+
+        if (format == VTE_FORMAT_HTML) {
+                m_selection[sel] = attributes_to_html(selection, attributes);
+                g_string_free(selection, TRUE);
+        } else {
+                m_selection[sel] = selection;
+        }
 
 	g_array_free (attributes, TRUE);
 
@@ -6352,38 +6390,24 @@ VteTerminalPrivate::widget_copy(VteSelection sel)
 		m_has_selection = TRUE;
 
 	/* Place the text on the clipboard. */
-	if (m_selection_text[sel] != NULL) {
-		_vte_debug_print(VTE_DEBUG_SELECTION,
-				"Assuming ownership of selection.\n");
-		if (!targets) {
-			GtkTargetList *list;
+        _vte_debug_print(VTE_DEBUG_SELECTION,
+                         "Assuming ownership of selection.\n");
 
-			list = gtk_target_list_new (NULL, 0);
-			gtk_target_list_add_text_targets (list, VTE_TARGET_TEXT);
+        int n_targets;
+        auto targets = targets_for_format(format, &n_targets);
 
-#ifdef HTML_SELECTION
-			gtk_target_list_add (list,
-				gdk_atom_intern("text/html", FALSE),
-				0,
-				VTE_TARGET_HTML);
-#endif
+        m_changing_selection = true;
+        gtk_clipboard_set_with_data(m_clipboard[sel],
+                                    targets,
+                                    n_targets,
+                                    clipboard_copy_cb,
+                                    clipboard_clear_cb,
+                                    this);
+        m_changing_selection = false;
 
-                        targets = gtk_target_table_new_from_list (list, &n_targets);
-			gtk_target_list_unref (list);
-		}
-
-                m_changing_selection = true;
-		gtk_clipboard_set_with_data(m_clipboard[sel],
-                                            targets,
-                                            n_targets,
-                                            clipboard_copy_cb,
-                                            clipboard_clear_cb,
-                                            this);
-                m_changing_selection = false;
-
-		gtk_clipboard_set_can_store(m_clipboard[sel], NULL, 0);
-                m_selection_owned[sel] = true;
-	}
+        gtk_clipboard_set_can_store(m_clipboard[sel], nullptr, 0);
+        m_selection_owned[sel] = true;
+        m_selection_format[sel] = format;
 }
 
 /* Paste from the given clipboard. */
@@ -6505,7 +6529,7 @@ VteTerminalPrivate::maybe_end_selection()
 		if (m_has_selection &&
 		    !m_selecting_restart &&
 		    m_selecting_had_delta) {
-                        widget_copy(VTE_SELECTION_PRIMARY);
+                        widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 			emit_selection_changed();
 		}
 		m_selecting = false;
@@ -6977,7 +7001,7 @@ VteTerminalPrivate::select_all()
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-        widget_copy(VTE_SELECTION_PRIMARY);
+        widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 	emit_selection_changed();
 
 	invalidate_all();
@@ -8434,16 +8458,16 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
 	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
-		if (m_selection_text[sel] != NULL) {
+		if (m_selection[sel] != nullptr) {
 			if (m_selection_owned[sel]) {
+                                // FIXMEchpe we should check m_selection_format[sel]
+                                // and also put text/html on if it's VTE_FORMAT_HTML
 				gtk_clipboard_set_text(m_clipboard[sel],
-						       m_selection_text[sel],
-						       -1);
+						       m_selection[sel]->str,
+						       m_selection[sel]->len);
 			}
-			g_free(m_selection_text[sel]);
-#ifdef HTML_SELECTION
-			g_free(m_selection_html[sel]);
-#endif
+			g_string_free(m_selection[sel], TRUE);
+                        m_selection[sel] = nullptr;
 		}
 	}
 
@@ -10327,13 +10351,9 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	m_selecting_restart = FALSE;
 	m_selecting_had_delta = FALSE;
 	for (int sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
-		if (m_selection_text[sel] != NULL) {
-			g_free(m_selection_text[sel]);
-			m_selection_text[sel] = NULL;
-#ifdef HTML_SELECTION
-			g_free(m_selection_html[sel]);
-			m_selection_html[sel] = NULL;
-#endif
+		if (m_selection[sel] != nullptr) {
+			g_string_free(m_selection[sel], TRUE);
+			m_selection[sel] = nullptr;
 		}
                 m_selection_owned[sel] = false;
 	}
@@ -10459,7 +10479,7 @@ VteTerminalPrivate::select_text(vte::grid::column_t start_col,
 	m_selection_start.row = start_row;
 	m_selection_end.col = end_col;
 	m_selection_end.row = end_row;
-        widget_copy(VTE_SELECTION_PRIMARY);
+        widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 	emit_selection_changed();
 
 	invalidate_region(MIN (start_col, end_col), MAX (start_col, end_col),
@@ -11029,22 +11049,18 @@ VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
                                 vte::grid::row_t end_row,
                                 bool backward)
 {
-	char *row_text;
-        gsize row_text_length;
 	int start, end;
 	long start_col, end_col;
-	gchar *word;
 	VteCharAttributes *ca;
 	GArray *attrs;
 	gdouble value, page_size;
 
-	row_text = get_text(start_row, 0,
-                            end_row, -1,
-                            false /* block */,
-                            true /* wrap */,
-                            false /* include trailing whitespace */, /* FIXMEchpe maybe do include it since the match may depend on it? */
-                            nullptr,
-                            &row_text_length);
+	auto row_text = get_text(start_row, 0,
+                                 end_row, -1,
+                                 false /* block */,
+                                 true /* wrap */,
+                                 false /* include trailing whitespace */, /* FIXMEchpe maybe do include it since the match may depend on it? */
+                                 nullptr);
 
         int (* match_fn) (const pcre2_code_8 *,
                           PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
@@ -11058,7 +11074,7 @@ VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
                 match_fn = pcre2_match_8;
 
         r = match_fn(_vte_regex_get_pcre(m_search_regex.regex),
-                     (PCRE2_SPTR8)row_text, row_text_length , /* subject, length */
+                     (PCRE2_SPTR8)row_text->str, row_text->len , /* subject, length */
                      0, /* start offset */
                      m_search_regex.match_flags |
                      PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
@@ -11079,10 +11095,9 @@ VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
 
         start = so;
         end = eo;
-        word = g_strndup(row_text, end - start);
 
 	/* Fetch text again, with attributes */
-	g_free (row_text);
+	g_string_free(row_text, TRUE);
 	if (!m_search_attrs)
 		m_search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
 	attrs = m_search_attrs;
@@ -11091,8 +11106,7 @@ VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
                             false /* block */,
                             true /* wrap */,
                             false /* include trailing whitespace */, /* FIXMEchpe maybe true? */
-                            attrs,
-                            nullptr);
+                            attrs);
 
 	ca = &g_array_index (attrs, VteCharAttributes, start);
 	start_row = ca->row;
@@ -11101,8 +11115,7 @@ VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
 	end_row = ca->row;
 	end_col = ca->column;
 
-	g_free (word);
-	g_free (row_text);
+	g_string_free (row_text, TRUE);
 
 	select_text(start_col, start_row, end_col, end_row);
 	/* Quite possibly the math here should not access adjustment directly... */

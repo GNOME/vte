@@ -89,6 +89,10 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+void vte_terminal_copy_clipboard(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED

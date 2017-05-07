@@ -357,11 +357,9 @@ public:
 	/* Clipboard data information. */
         // FIXMEchpe check if this can make m_has_selection obsolete!
         bool m_selection_owned[LAST_VTE_SELECTION];
+        VteFormat m_selection_format[LAST_VTE_SELECTION];
         bool m_changing_selection;
-        char *m_selection_text[LAST_VTE_SELECTION];
-#ifdef HTML_SELECTION
-        char *m_selection_html[LAST_VTE_SELECTION];
-#endif
+        GString *m_selection[LAST_VTE_SELECTION];
         GtkClipboard *m_clipboard[LAST_VTE_SELECTION];
 
         ClipboardTextRequestGtk<VteTerminalPrivate> m_paste_request;
@@ -647,7 +645,8 @@ public:
 
 
         void widget_paste(GdkAtom board);
-        void widget_copy(VteSelection sel);
+        void widget_copy(VteSelection sel,
+                         VteFormat format);
         void widget_paste_received(char const* text);
         void widget_clipboard_cleared(GtkClipboard *clipboard);
         void widget_clipboard_requested(GtkClipboard *target_clipboard,
@@ -826,33 +825,17 @@ public:
                           bool block,
                           bool wrap,
                           bool include_trailing_spaces,
-                          GArray *attributes);
-
-        char* get_text(vte::grid::row_t start_row,
-                       vte::grid::column_t start_col,
-                       vte::grid::row_t end_row,
-                       vte::grid::column_t end_col,
-                       bool block,
-                       bool wrap,
-                       bool include_trailing_spaces,
-                       GArray *attributes,
-                       gsize *ret_len);
+                          GArray* attributes = nullptr);
 
         GString* get_text_displayed(bool wrap,
                                     bool include_trailing_spaces,
-                                    GArray *attributes);
-
-        char* get_text_displayed(bool wrap,
-                                 bool include_trailing_spaces,
-                                 GArray *attributes,
-                                 gsize *ret_len);
+                                    GArray* attributes = nullptr);
 
         GString* get_text_displayed_a11y(bool wrap,
                                          bool include_trailing_spaces,
-                                         GArray *attributes);
+                                         GArray* attributes = nullptr);
 
-        char *get_selected_text(GArray *attributes = nullptr,
-                                gsize *len_ptr = nullptr);
+        GString* get_selected_text(GArray* attributes = nullptr);
 
         inline void rgb_from_index(guint index,
                                    vte::color::rgb& color) const;
@@ -874,9 +857,8 @@ public:
                                char const* text) const;
         VteCellAttr const* char_to_cell_attr(VteCharAttributes const* attr) const;
 
-        char *attributes_to_html(char const* text,
-                                 gsize len,
-                                 GArray *attrs);
+        GString* attributes_to_html(GString* text_string,
+                                    GArray* attrs);
 
         void start_selection(long x,
                              long y,
