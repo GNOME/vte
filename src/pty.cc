@@ -102,7 +102,6 @@ struct _VtePty {
 struct _VtePtyPrivate {
         VtePtyFlags flags;
         int pty_fd;
-        char *pty_name;
 
         VtePtyChildSetupData child_setup_data;
 
