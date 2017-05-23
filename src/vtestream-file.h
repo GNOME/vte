@@ -931,8 +931,6 @@ _vte_boa_read (VteBoa *boa, gsize offset, char *data)
 static void
 _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
 {
-        _vte_block_datalength_t compressed_len = boa->compressBound;
-
         /* The overwrite counter is 1-based.  This is to make sure that the IV is never 0: 738601#c88,
            to make sure that an empty block (e.g. after a previous write failure) is always invalid,
            and to make unit testing easier */
@@ -965,6 +963,8 @@ _vte_boa_write (VteBoa *boa, gsize offset, const char *data)
                 }
                 overwrite_counter++;
         }
+
+        _vte_block_datalength_t compressed_len;
 
         /* Compress, or copy if uncompressable */
         compressed_len = _vte_boa_compress (buf + VTE_BLOCK_DATALENGTH_SIZE + VTE_OVERWRITE_COUNTER_SIZE, boa->compressBound,

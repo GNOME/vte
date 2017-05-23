@@ -144,7 +144,7 @@ void _vte_row_data_remove (VteRowData *row, gulong col)
 void _vte_row_data_fill (VteRowData *row, const VteCell *cell, gulong len)
 {
 	if (row->len < len) {
-		gulong i = len - row->len;
+		gulong i;
 
 		if (G_UNLIKELY (!_vte_row_data_ensure (row, len)))
 			return;
