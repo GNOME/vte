@@ -3398,7 +3398,16 @@ vte_sequence_handler_urxvt_777(VteTerminalPrivate *that, GValueArray *params)
         /* Accept but ignore this for compatibility with downstream-patched vte (bug #711059)*/
 }
 
-/* iterm2 OSC 1337 */
+/* iterm2 OSC 133 & 1337 */
+
+static void
+vte_sequence_handler_iterm2_133(VteTerminalPrivate *that, GValueArray *params)
+{
+        /* Accept but ignore this for compatibility when sshing to an osx host
+         * where the iterm2 integration is loaded even when not actually using
+         * iterm2.
+         */
+}
 
 static void
 vte_sequence_handler_iterm2_1337(VteTerminalPrivate *that, GValueArray *params)
@@ -3408,7 +3417,6 @@ vte_sequence_handler_iterm2_1337(VteTerminalPrivate *that, GValueArray *params)
          * iterm2.
          */
 }
-
 
 /* Lookup tables */
 

@@ -171,4 +171,5 @@ struct vteseq_n_struct {
 "set-current-file-uri", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_file_uri)
 "set-current-hyperlink", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_current_hyperlink)
 "urxvt-777", VTE_SEQUENCE_HANDLER(vte_sequence_handler_urxvt_777)
+"iterm2-133", VTE_SEQUENCE_HANDLER(vte_sequence_handler_iterm2_133)
 "iterm2-1337", VTE_SEQUENCE_HANDLER(vte_sequence_handler_iterm2_1337)
