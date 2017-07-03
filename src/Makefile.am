@@ -165,7 +165,7 @@ EXTRA_DIST += box_drawing.txt box_drawing_generate.sh
 CLEANFILES += $(BUILT_SOURCES) stamp-vtetypebuiltins.h
 
 box_drawing.h: box_drawing.txt box_drawing_generate.sh
-	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh < $< > $@
+	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh $< > $@
 
 marshal.cc: marshal.list
 	$(AM_V_GEN) echo '#include "marshal.h"' > $@ \

@@ -61,7 +61,7 @@ while [ $pos -lt $((0x2580)) ]; do
 	done
 	echo
 	pos=$((pos+1))
-done
+done < "$1"
 
 cat <<"END"
 };
