@@ -1,0 +1,11 @@
+option('gtk', type: 'combo', choices: ['3.0', '3.90', '3.92', '3.94', '3.96', '3.98'], value: '3.0', description: 'which gtk+ version to compile against')
+option('glade_catalogue', type: 'boolean', value: true, description: 'enable installing the glade catalogue')
+option('gnutls', type: 'boolean', value: true, description: 'enable gnutls support')
+option('iconv', type: 'boolean', value: true, description: 'Disable legacy charset support using iconv')
+
+option('bsymbolic_functions', type: 'feature', value: 'auto', description: 'enable linking with -Bsymbolic_functions')
+
+option('introspection', type: 'boolean', value: true, description: 'Enable GObject Introspection (depends on GObject)')
+option('vapi', type: 'boolean', value: true, description: 'build Vala bindings')
+
+option('gtk_doc', type: 'boolean', value: false, description: 'use gtk-doc to build documentation')
