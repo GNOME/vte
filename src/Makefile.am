@@ -151,7 +151,8 @@ box_drawing.h: box_drawing.txt box_drawing_generate.sh
 	$(AM_V_GEN) $(srcdir)/box_drawing_generate.sh < $< > $@
 
 marshal.cc: marshal.list
-	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --body --internal $< > $@
+	$(AM_V_GEN) echo '#include "marshal.h"' > $@ \
+	&& $(GLIB_GENMARSHAL) --prefix=_vte_marshal --body --internal $< >> $@
 
 marshal.h: marshal.list
 	$(AM_V_GEN) $(GLIB_GENMARSHAL) --prefix=_vte_marshal --header --internal $< > $@
