@@ -4578,8 +4578,8 @@ void
 VteTerminalPrivate::beep()
 {
 	if (m_audible_bell) {
-                GdkDisplay *display = gtk_widget_get_display(m_widget);
-                gdk_display_beep(display);
+                GdkWindow *window = gtk_widget_get_window(m_widget);
+                gdk_window_beep(window);
 	}
 }
 
