@@ -2293,7 +2293,7 @@ VteTerminalPrivate::update_insert_delta()
 void
 VteTerminalPrivate::apply_mouse_cursor()
 {
-        m_mouse_cursor_visible = m_mouse_cursor_over_widget && !(m_mouse_autohide && m_mouse_cursor_autohidden);
+        m_mouse_cursor_visible = !(m_mouse_autohide && m_mouse_cursor_autohidden);
 
         if (!widget_realized())
                 return;
@@ -10685,7 +10685,7 @@ VteTerminalPrivate::emit_pending_signals()
 	if (m_contents_changed_pending) {
                 /* Update hyperlink and dingus match set. */
 		match_contents_clear();
-		if (m_mouse_cursor_visible) {
+		if (m_mouse_cursor_over_widget) {
                         hyperlink_hilite_update(m_mouse_last_position);
 			match_hilite_update(m_mouse_last_position);
 		}
