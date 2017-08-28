@@ -9,8 +9,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-13 02:01+0200\n"
+"Report-Msgid-Bugs-To: "
+"https://bugzilla.gnome.org/enter_bug.cgi?product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2017-02-28 06:44+0000\n"
 "PO-Revision-Date: 2016-09-08 23:41+0200\n"
 "Last-Translator: Ask Hjorth Larsen <asklarsen@gmail.com>\n"
 "Language-Team: Danish <dansk@dansk-gruppen.dk>\n"
@@ -20,27 +21,27 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3072
+#: ../src/vtegtk.cc:3262
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Kunne ikke konvertere tegn fra %s til %s."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4002
+#: ../src/vte.cc:4014
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Fejl ved læsning fra underproces: %s."
 
-#: ../src/vte.cc:4141
+#: ../src/vte.cc:4153
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Fejl (%s) ved konvertering af data for underproces, dropper."
 
-#: ../src/vte.cc:7910
+#: ../src/vte.cc:7922
 msgid "WARNING"
 msgstr "ADVARSEL"
 
-#: ../src/vte.cc:7911
+#: ../src/vte.cc:7923
 msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
 "GNUTLS er ikke slået til; data vil blive skrevet ukrypteret til disken!"
@@ -89,7 +90,7 @@ msgstr ""
 #~ msgstr "Optræder mere end én gang (%s/%s)!"
 
 #~ msgid "Error compiling regular expression \"%s\"."
-#~ msgstr "Fejl ved oversættelse af regulært udtryk \"%s\"."
+#~ msgstr "Fejl ved oversættelse af regulært udtryk “%s”."
 
 #~ msgid "_vte_conv_open() failed setting word characters"
 #~ msgstr "_vte_iconv_open() kunne ikke sætte ordtegn"
@@ -129,3 +130,5 @@ msgstr ""
 
 #~ msgid "Character 0x%x is undefined, allocating one column."
 #~ msgstr "Tegn 0x%x er ikke defineret, allokerer en kolonne."
+
+
