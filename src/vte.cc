@@ -8885,11 +8885,11 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                        VTE_LINE_WIDTH,
                                                        &fg, VTE_DRAW_OPAQUE);
                         } else if (hyperlink) {
-                                for (double j = 0.125; j < columns; j += 0.5) {
+                                for (double j = 1.0 / 6.0; j < columns; j += 0.5) {
                                         _vte_draw_fill_rectangle(m_draw,
                                                                  x + j * column_width,
                                                                  y + row_height - 1,
-                                                                 column_width * 0.25,
+                                                                 MAX(column_width / 6.0, 1.0),
                                                                  1,
                                                                  &fg, VTE_DRAW_OPAQUE);
                                 }
