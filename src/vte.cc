@@ -5626,7 +5626,10 @@ VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
         /* This might be different from new_hyperlink_hover_idx. If in the stream, that one contains
          * the pseudo idx VTE_HYPERLINK_IDX_TARGET_IN_STREAM and now a real idx is allocated.
          * Plus, the ring's internal belief of the hovered hyperlink is also updated. */
-        m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, true, &m_hyperlink_hover_uri);
+        if (view_coords_visible(pos))
+                m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, true, &m_hyperlink_hover_uri);
+        else
+                m_hyperlink_hover_idx = 0;
 
         /* Invalidate cells of the new hyperlink. Get the bounding box. */
         if (m_hyperlink_hover_idx != 0) {
