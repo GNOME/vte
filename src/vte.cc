@@ -55,7 +55,6 @@
 #include <sys/wait.h>
 #endif
 #include <glib.h>
-#include <glib/gstdio.h>
 #include <glib-object.h>
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>

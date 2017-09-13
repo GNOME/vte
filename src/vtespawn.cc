@@ -36,7 +36,6 @@
 #include <sys/resource.h>
 #endif /* HAVE_SYS_RESOURCE_H */
 
-#include <glib/gstdio.h>
 #include <glib-unix.h>
 
 #include "vtespawn.hh"
@@ -154,7 +153,7 @@ close_and_invalidate (gint *fd)
     return;
   else
     {
-      (void) g_close (*fd, NULL);
+      (void)close(*fd);
       *fd = -1;
     }
 }

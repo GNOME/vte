@@ -89,7 +89,6 @@ _vte_debug_on(guint flags)
 	G_STMT_START { _VTE_DEBUG_IF(flags) g_printerr(fmt, ##__VA_ARGS__); } G_STMT_END
 #else
 #include <stdarg.h>
-#include <glib/gstdio.h>
 static void _vte_debug_print(guint flags, const char *fmt, ...)
 {
 	_VTE_DEBUG_IF(flags) {
