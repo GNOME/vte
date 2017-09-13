@@ -475,10 +475,10 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_uint (value, impl->m_scrollback_lines);
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
-                        g_value_set_boolean (value, impl->m_scroll_on_keystroke);
+                        g_value_set_boolean (value, vte_terminal_get_scroll_on_keystroke(terminal));
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
-                        g_value_set_boolean (value, impl->m_scroll_on_output);
+                        g_value_set_boolean (value, vte_terminal_get_scroll_on_output(terminal));
                         break;
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
@@ -3827,6 +3827,23 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 }
 
 /**
+ * vte_terminal_get_scroll_on_keystroke:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: whether or not the terminal will forcibly scroll to the bottom of
+ * the viewable history when the user presses a key.  Modifier keys do not
+ * trigger this behavior.
+ *
+ * Since: 0.52
+ */
+gboolean
+vte_terminal_get_scroll_on_keystroke(VteTerminal *terminal)
+{
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+    return IMPL(terminal)->m_scroll_on_keystroke;
+}
+
+/**
  * vte_terminal_set_scroll_on_output:
  * @terminal: a #VteTerminal
  * @scroll: whether the terminal should scroll on output
@@ -3842,6 +3859,22 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal,
 
         if (IMPL(terminal)->set_scroll_on_output(scroll != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_OUTPUT]);
+}
+
+/**
+ * vte_terminal_get_scroll_on_output:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: whether or not the terminal will forcibly scroll to the bottom of
+ * the viewable history when the new data is received from the child.
+ *
+ * Since: 0.52
+ */
+gboolean
+vte_terminal_get_scroll_on_output(VteTerminal *terminal)
+{
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+    return IMPL(terminal)->m_scroll_on_output;
 }
 
 /**
