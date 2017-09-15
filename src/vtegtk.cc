@@ -472,7 +472,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_rewrap_on_resize (terminal));
                         break;
                 case PROP_SCROLLBACK_LINES:
-                        g_value_set_uint (value, impl->m_scrollback_lines);
+                        g_value_set_uint (value, vte_terminal_get_scrollback_lines(terminal));
                         break;
                 case PROP_SCROLL_ON_KEYSTROKE:
                         g_value_set_boolean (value, vte_terminal_get_scroll_on_keystroke(terminal));
@@ -3805,6 +3805,22 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
                 g_object_notify_by_pspec(object, pspecs[PROP_SCROLLBACK_LINES]);
 
         g_object_thaw_notify(object);
+}
+
+/**
+ * vte_terminal_get_scrollback_lines:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: length of the scrollback buffer used by the terminal.
+ * A negative value means "infinite scrollback".
+ *
+ * Since: 0.52
+ */
+glong
+vte_terminal_get_scrollback_lines(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 0);
+        return IMPL(terminal)->m_scrollback_lines;
 }
 
 /**

@@ -281,6 +281,8 @@ VteCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal) _VTE_GNUC_NO
 _VTE_PUBLIC
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal,
                                        glong lines) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+glong vte_terminal_get_scrollback_lines(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 /* Set or retrieve the current font. */
 _VTE_PUBLIC
