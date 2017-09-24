@@ -1,8 +1,4 @@
-if ENABLE_TEST_APPLICATION
-bin_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
-else
-noinst_PROGRAMS = vte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@
-endif
+noinst_PROGRAMS = app
 
 CLEANFILES =
 DISTCLEANFILES =
@@ -30,17 +26,17 @@ CLEANFILES += $(nodist_vapi_DATA)
 
 # VALA Test application
 
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
+app_SOURCES = \
 	app.vala \
 	config.vapi \
 	$(builddir)/vte-$(VTE_API_VERSION).vapi \
 	$(NULL)
 
-nodist_vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_SOURCES = \
+nodist_app_SOURCES = \
 	appresources.c \
 	$(NULL)
 
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
+app_VALAFLAGS = \
 	--target-glib=2.38 \
 	--pkg=posix \
 	--pkg=gio-2.0 \
@@ -48,35 +44,35 @@ vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS = \
 	--gresources app.gresource.xml \
 	$(AM_VALAFLAGS)
 
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CPPFLAGS = \
+app_CPPFLAGS = \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/vte \
 	-I$(top_builddir)/src/vte \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_CFLAGS = \
+app_CFLAGS = \
 	-Wno-unused-variable \
 	-Wno-unused-but-set-variable \
 	$(VTE_CFLAGS) \
 	$(AM_CFLAGS) \
 	$(NULL)
 
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDFLAGS = \
+app_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(NULL)
 
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_LDADD = \
+app_LDADD = \
 	$(top_builddir)/src/libvte-$(VTE_API_VERSION).la \
 	$(VTE_LIBS) \
 	$(NULL)
 
 if HAVE_VALA_0_31
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += --disable-since-check
+app_VALAFLAGS += --disable-since-check
 endif
 
 if HAVE_GTK_3_16
-vte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_VALAFLAGS += -D GTK_3_16
+app_VALAFLAGS += -D GTK_3_16
 endif
 
 CLEANFILES += \

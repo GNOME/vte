@@ -10,7 +10,7 @@ AC_INIT([vte],
         [vte])
 
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([src/vteapp.c])
+AC_CONFIG_SRCDIR([src/app/app.cc])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.9 foreign no-dist-gzip dist-bzip2 -Wno-portability])
@@ -62,7 +62,6 @@ case "$with_gtk" in
               enable_glade_catalogue=no
               enable_introspection=no
               enable_vala=no
-              enable_test_application=no
              ;;
 esac
 
@@ -384,16 +383,6 @@ m4_ifdef([VAPIGEN_CHECK],
    fi
    AM_CONDITIONAL([ENABLE_VAPIGEN],[false])])
 
-# ****************
-# Test Application
-# ****************
-
-AC_MSG_CHECKING([whether to install the vala test application])
-AC_ARG_ENABLE([test-application],
-        [AS_HELP_STRING([--disable-test-application],[Disable installing the vala test application])],
-        [],[enable_test_application=$enable_vala])
-AC_MSG_RESULT([$enable_test_application])
-
 AM_PROG_VALAC([0.24.0],[],[
   if test "$enable_vala" != "no"; then
     AC_MSG_ERROR([Vala requested but vala compiler >= 0.24.0 not found])
@@ -402,7 +391,6 @@ AM_PROG_VALAC([0.24.0],[],[
 PKG_CHECK_MODULES([GTK_3_16],[gtk+-$GTK_API_VERSION >= 3.16],[have_gtk_3_16=yes],[have_gtk_3_16=no])
 AM_PROG_VALAC([0.31.1],[have_vala_0_31=yes],[have_vala_0_31=no])
 
-AM_CONDITIONAL([ENABLE_TEST_APPLICATION],[test "$enable_test_application" = "yes"])
 AM_CONDITIONAL([HAVE_GTK_3_16],[test "$have_gtk_3_16" = "yes"])
 AM_CONDITIONAL([HAVE_VALA_0_31],[test "$have_vala_0_31" = "yes"])
 
@@ -459,6 +447,7 @@ Makefile
 src/Makefile
 src/vte.gresource.xml
 src/vte/vteversion.h
+src/app/Makefile
 bindings/Makefile
 bindings/gir/Makefile
 bindings/vala/Makefile
@@ -491,5 +480,4 @@ Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	Debugging: $enable_debug
 	Introspection: $enable_introspection
         Vala bindings: $enable_vala
-        Test application: $enable_test_application
 EOF

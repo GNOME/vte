@@ -1,5 +1,7 @@
+SUBDIRS = . app
+
 bin_PROGRAMS =
-noinst_PROGRAMS = testvte
+noinst_PROGRAMS =
 
 CLEANFILES =
 DISTCLEANFILES =
@@ -181,30 +183,6 @@ vteseq-list.h: vteseq-n.gperf
 
 vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate-source --c-name _vte $<
-
-# C Test application
-
-testvte_SOURCES = \
-	vteapp.c \
-	vtepcre2.h \
-	debug.c \
-	debug.h \
-	$(NULL)
-
-testvte_CPPFLAGS = \
-	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
-	-DGDK_DISABLE_DEPRECATION_WARNINGS \
-	-I$(builddir)/vte \
-	-I$(srcdir)/vte \
-	$(AM_CPPFLAGS)
-
-testvte_CFLAGS = \
-	$(VTE_CFLAGS) \
-	$(AM_CFLAGS)
-
-testvte_LDADD = \
-	libvte-$(VTE_API_VERSION).la \
-	$(VTE_LIBS)
 
 # Misc unit tests and utilities
 
