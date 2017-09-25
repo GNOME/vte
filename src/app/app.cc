@@ -830,27 +830,8 @@ vteapp_window_add_dingus(VteappWindow* window,
 static void
 vteapp_window_update_geometry(VteappWindow* window)
 {
-        if (options.no_geometry_hints)
-                return;
-
         GtkWidget* window_widget = GTK_WIDGET(window);
         GtkWidget* terminal_widget = GTK_WIDGET(window->terminal);
-
-        int csd_width = 0;
-        int csd_height = 0;
-        if (gtk_widget_get_realized(terminal_widget)) {
-                /* Calculate the CSD size as difference between the toplevel's
-                 * and content's allocation.
-                 */
-                GtkAllocation toplevel, contents;
-                gtk_widget_get_allocation(window_widget, &toplevel);
-                gtk_widget_get_allocation(window->window_box, &contents);
-
-                csd_width = toplevel.width - contents.width;
-                csd_height = toplevel.height - contents.height;
-                g_assert_cmpint(csd_width, >=, 0);
-                g_assert_cmpint(csd_height, >=, 0);
-        }
 
         int columns = vte_terminal_get_column_count(window->terminal);
         int rows = vte_terminal_get_row_count(window->terminal);
@@ -868,41 +849,61 @@ vteapp_window_update_geometry(VteappWindow* window)
         g_assert_cmpint(chrome_width, >=, 0);
         g_assert_cmpint(chrome_height, >=, 0);
 
-        /* Only actually set the geometry hints once the window is realized, since
-         * only then we know the CSD size. Only set the geometry when anything
-         * has changed.
-         */
-        if (gtk_widget_get_realized(terminal_widget) &&
-            (char_height != window->cached_char_height ||
-             char_width != window->cached_char_width ||
-             chrome_width != window->cached_chrome_width ||
-             chrome_height != window->cached_chrome_height ||
-             csd_width != window->cached_csd_width ||
-             csd_width != window->cached_csd_height)) {
-                GdkGeometry geometry;
+        int csd_width = 0;
+        int csd_height = 0;
+        if (gtk_widget_get_realized(terminal_widget)) {
+                /* Calculate the CSD size as difference between the toplevel's
+                 * and content's allocation.
+                 */
+                GtkAllocation toplevel, contents;
+                gtk_widget_get_allocation(window_widget, &toplevel);
+                gtk_widget_get_allocation(window->window_box, &contents);
 
-                geometry.base_width = csd_width + chrome_width;
-                geometry.base_height = csd_height + chrome_height;
-                geometry.width_inc = char_width;
-                geometry.height_inc = char_height;
-                geometry.min_width = geometry.base_width + char_width * MIN_COLUMNS;
-                geometry.min_height = geometry.base_height + char_height * MIN_ROWS;
+                csd_width = toplevel.width - contents.width;
+                csd_height = toplevel.height - contents.height;
+                g_assert_cmpint(csd_width, >=, 0);
+                g_assert_cmpint(csd_height, >=, 0);
 
-                gtk_window_set_geometry_hints(GTK_WINDOW(window),
+                /* Only actually set the geometry hints once the window is realized,
+                 * since only then we know the CSD size. Only set the geometry when
+                 * anything has changed.
+                 */
+                if (!options.no_geometry_hints &&
+                    (char_height != window->cached_char_height ||
+                     char_width != window->cached_char_width ||
+                     chrome_width != window->cached_chrome_width ||
+                     chrome_height != window->cached_chrome_height ||
+                     csd_width != window->cached_csd_width ||
+                     csd_width != window->cached_csd_height)) {
+                        GdkGeometry geometry;
+
+                        geometry.base_width = csd_width + chrome_width;
+                        geometry.base_height = csd_height + chrome_height;
+                        geometry.width_inc = char_width;
+                        geometry.height_inc = char_height;
+                        geometry.min_width = geometry.base_width + char_width * MIN_COLUMNS;
+                        geometry.min_height = geometry.base_height + char_height * MIN_ROWS;
+
+                        gtk_window_set_geometry_hints(GTK_WINDOW(window),
 #if GTK_CHECK_VERSION (3, 19, 5)
-                                              nullptr,
+                                                      nullptr,
 #else
-                                              terminal_widget,
+                                                      terminal_widget,
 #endif
-                                              &geometry,
-                                              GdkWindowHints(GDK_HINT_RESIZE_INC |
-                                                             GDK_HINT_MIN_SIZE |
-                                                             GDK_HINT_BASE_SIZE));
+                                                      &geometry,
+                                                      GdkWindowHints(GDK_HINT_RESIZE_INC |
+                                                                     GDK_HINT_MIN_SIZE |
+                                                                     GDK_HINT_BASE_SIZE));
 
-                window->cached_csd_width = csd_width;
-                window->cached_csd_height = csd_height;
+                        verbose_print("Updating geometry hints base %dx%d inc %dx%d min %dx%d\n",
+                                      geometry.base_width, geometry.base_height,
+                                      geometry.width_inc, geometry.height_inc,
+                                      geometry.min_width, geometry.min_height);
+                }
         }
 
+        window->cached_csd_width = csd_width;
+        window->cached_csd_height = csd_height;
         window->cached_char_width = char_width;
         window->cached_char_height = char_height;
         window->cached_chrome_width = chrome_width;
@@ -941,10 +942,12 @@ vteapp_window_parse_geometry(VteappWindow* window)
          */
         vteapp_window_update_geometry(window);
 
-        //FIXMEchpe        gtk_widget_realize(GTK_WIDGET(window->terminal));
-
         if (options.geometry != nullptr) {
-                if (gtk_window_parse_geometry(GTK_WINDOW(window), options.geometry)) {
+                auto rv = gtk_window_parse_geometry(GTK_WINDOW(window), options.geometry);
+
+                if (!rv)
+                        verbose_printerr("Failed to parse geometry spec \"%s\"\n", options.geometry);
+                else if (!options.no_geometry_hints) {
                         /* After parse_geometry(), we can get the default size in
                          * width/height increments, i.e. in grid size.
                          */
@@ -952,15 +955,32 @@ vteapp_window_parse_geometry(VteappWindow* window)
                         gtk_window_get_default_size(GTK_WINDOW(window), &columns, &rows);
                         vte_terminal_set_size(window->terminal, columns, rows);
                         gtk_window_resize_to_geometry(GTK_WINDOW(window), columns, rows);
-                } else
-                        verbose_printerr("Failed to parse geometry spec \"%s\"\n", options.geometry);
+                } else {
+                        /* Approximate the grid width from the passed pixel size. */
+                        int width, height;
+                        gtk_window_get_default_size(GTK_WINDOW(window), &width, &height);
+                        width -= window->cached_csd_width + window->cached_chrome_width;
+                        height -= window->cached_csd_height + window->cached_chrome_height;
+                        int columns = width / window->cached_char_width;
+                        int rows = height / window->cached_char_height;
+                        vte_terminal_set_size(window->terminal,
+                                              MAX(columns, MIN_COLUMNS),
+                                              MAX(rows, MIN_ROWS));
+
+                }
         } else {
                 /* In GTK+ 3.0, the default size of a window comes from its minimum
                  * size not its natural size, so we need to set the right default size
                  * explicitly */
-                gtk_window_set_default_geometry(GTK_WINDOW(window),
-                                                vte_terminal_get_column_count(window->terminal),
-                                                vte_terminal_get_row_count(window->terminal));
+                if (!options.no_geometry_hints) {
+                        /* Grid based */
+                        gtk_window_set_default_geometry(GTK_WINDOW(window),
+                                                        vte_terminal_get_column_count(window->terminal),
+                                                        vte_terminal_get_row_count(window->terminal));
+                } else {
+                        /* Pixel based */
+                        vteapp_window_resize(window);
+                }
         }
 }
 
@@ -1309,6 +1329,7 @@ window_child_exited_cb(VteTerminal* term,
 
                 GError* err = nullptr;
                 auto stream = g_file_replace(file, nullptr, false, G_FILE_CREATE_NONE, nullptr, &err);
+                g_object_unref(file);
                 if (stream != nullptr) {
                         vte_terminal_write_contents_sync(window->terminal,
                                                          G_OUTPUT_STREAM(stream),
