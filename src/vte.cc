@@ -8173,11 +8173,12 @@ VteTerminalPrivate::widget_get_preferred_width(int *minimum_width,
                           m_padding.right;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells.\n",
+			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
                         m_terminal,
 			*minimum_width, *natural_width,
 			m_column_count,
-			m_row_count);
+                         m_row_count,
+                         m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
 }
 
 void
@@ -8199,11 +8200,12 @@ VteTerminalPrivate::widget_get_preferred_height(int *minimum_height,
 			   m_padding.bottom;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells.\n",
+			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
                         m_terminal,
 			*minimum_height, *natural_height,
 			m_column_count,
-			m_row_count);
+                         m_row_count,
+                         m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
 }
 
 void
@@ -8223,10 +8225,11 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 	height = MAX(height, 1);
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] Sizing window to %dx%d (%ldx%ld).\n",
+			"[Terminal %p] Sizing window to %dx%d (%ldx%ld, padding %d,%d;%d,%d).\n",
                         m_terminal,
 			allocation->width, allocation->height,
-			width, height);
+                         width, height,
+                         m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
 
         auto current_allocation = get_allocated_rect();
 

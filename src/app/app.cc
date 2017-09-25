@@ -908,6 +908,12 @@ vteapp_window_update_geometry(VteappWindow* window)
         window->cached_char_height = char_height;
         window->cached_chrome_width = chrome_width;
         window->cached_chrome_height = chrome_height;
+
+        verbose_print("Cached grid %dx%d char-size %dx%d chrome %dx%d csd %dx%d\n",
+                      columns, rows,
+                      window->cached_char_width, window->cached_char_height,
+                      window->cached_chrome_width, window->cached_chrome_height,
+                      window->cached_csd_width, window->cached_csd_height);
 }
 
 static void
@@ -966,7 +972,6 @@ vteapp_window_parse_geometry(VteappWindow* window)
                         vte_terminal_set_size(window->terminal,
                                               MAX(columns, MIN_COLUMNS),
                                               MAX(rows, MIN_ROWS));
-
                 }
         } else {
                 /* In GTK+ 3.0, the default size of a window comes from its minimum
