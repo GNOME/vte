@@ -34,28 +34,28 @@
 
 class Options {
 public:
-        bool allow_window_ops{false};
-        bool audible_bell{false};
-        bool console{false};
+        gboolean allow_window_ops{false};
+        gboolean audible_bell{false};
+        gboolean console{false};
+        gboolean debug{false};
+        gboolean icon_title{false};
+        gboolean keep{false};
+        gboolean no_argb_visual{false};
+        gboolean no_builtin_dingus{false};
+        gboolean no_context_menu{false};
+        gboolean no_double_buffer{false};
+        gboolean no_geometry_hints{false};
+        gboolean no_hyperlink{false};
+        gboolean no_rewrap{false};
+        gboolean no_shell{false};
+        gboolean object_notifications{false};
+        gboolean reverse{false};
+        gboolean use_gregex{false};
+        gboolean version{false};
         bool cursor_bg_color_set{false};
         bool cursor_fg_color_set{false};
-        bool debug{false};
         bool hl_bg_color_set{false};
         bool hl_fg_color_set{false};
-        bool icon_title{false};
-        bool keep{false};
-        bool no_argb_visual{false};
-        bool no_builtin_dingus{false};
-        bool no_context_menu{false};
-        bool no_double_buffer{false};
-        bool no_geometry_hints{false};
-        bool no_hyperlink{false};
-        bool no_rewrap{false};
-        bool no_shell{false};
-        bool object_notifications{false};
-        bool reverse{false};
-        bool use_gregex{false};
-        bool version{false};
         char* command{nullptr};
         char* encoding{nullptr};
         char* font_string{nullptr};
