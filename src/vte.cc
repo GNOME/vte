@@ -4514,7 +4514,7 @@ VteTerminalPrivate::widget_style_updated()
         gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
                                       &new_padding);
         if (memcmp(&new_padding, &m_padding, sizeof(GtkBorder)) != 0) {
-                _vte_debug_print(VTE_DEBUG_MISC,
+                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
                                  "Setting padding to (%d,%d,%d,%d)\n",
                                  new_padding.left, new_padding.right,
                                  new_padding.top, new_padding.bottom);
@@ -4522,6 +4522,12 @@ VteTerminalPrivate::widget_style_updated()
                 m_padding = new_padding;
                 update_view_extents();
                 gtk_widget_queue_resize(m_widget);
+        } else {
+                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
+                                 "Keeping padding the same at (%d,%d,%d,%d)\n",
+                                 new_padding.left, new_padding.right,
+                                 new_padding.top, new_padding.bottom);
+
         }
 
         float aspect;
