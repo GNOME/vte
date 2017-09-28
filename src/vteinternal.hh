@@ -295,6 +295,7 @@ public:
         struct _vte_iso2022_state *m_iso2022;
         _vte_incoming_chunk_t *m_incoming; /* pending bytestream */
         GArray *m_pending;                 /* pending characters */
+        gunichar m_last_graphic_character; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
          */
