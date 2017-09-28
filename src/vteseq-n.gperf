@@ -28,7 +28,7 @@ struct vteseq_n_struct {
 "tab", VTE_SEQUENCE_HANDLER(vte_sequence_handler_tab)
 "index", VTE_SEQUENCE_HANDLER(vte_sequence_handler_index)
 "decset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_decset)
-#"repeat", VTE_SEQUENCE_HANDLER_NULL
+"repeat", VTE_SEQUENCE_HANDLER(vte_sequence_handler_repeat)
 "tab-set", VTE_SEQUENCE_HANDLER(vte_sequence_handler_tab_set)
 "decreset", VTE_SEQUENCE_HANDLER(vte_sequence_handler_decreset)
 "set-mode", VTE_SEQUENCE_HANDLER(vte_sequence_handler_set_mode)

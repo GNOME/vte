@@ -2947,6 +2947,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 	long col;
 	int columns, i;
 	bool line_wrapped = false; /* cursor moved before char inserted */
+        gunichar c_unmapped = c;
 
         /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
         static gunichar line_drawing_map[31] = {
@@ -3093,6 +3094,8 @@ VteTerminalPrivate::insert_char(gunichar c,
 				      row_num, 1);
 
 		goto done;
+        } else {
+                m_last_graphic_character = c_unmapped;
 	}
 
 	/* Make sure we have enough rows to hold this data. */
@@ -3635,6 +3638,7 @@ skip_chunk:
 			/* Call the right sequence handler for the requested
 			 * behavior. */
 			handle_sequence(seq_match, params);
+                        m_last_graphic_character = 0;
 
 			/* Skip over the proper number of unicode chars. */
 			start = (next - wbuf);
@@ -8046,6 +8050,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_conv_buffer = _vte_byte_array_new();
 	set_encoding(nullptr /* UTF-8 */);
 	g_assert_cmpstr(m_encoding, ==, "UTF-8");
+        m_last_graphic_character = 0;
 
         /* Set up the emulation. */
 	m_keypad_mode = VTE_KEYMODE_NORMAL;
@@ -10286,6 +10291,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_iso2022 = _vte_iso2022_state_new(nullptr);
 	_vte_iso2022_state_set_codeset(m_iso2022,
 				       m_encoding);
+        m_last_graphic_character = 0;
 	/* Reset keypad/cursor key modes. */
 	m_keypad_mode = VTE_KEYMODE_NORMAL;
 	m_cursor_mode = VTE_KEYMODE_NORMAL;
