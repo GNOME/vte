@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2001-2004 Red Hat, Inc.
  *
@@ -1583,6 +1582,24 @@ static void
 vte_sequence_handler_insert_blank_characters (VteTerminalPrivate *that, GValueArray *params)
 {
         vte_sequence_handler_multiple_r(that, params, _vte_sequence_handler_insert_character);
+}
+
+/* Repeat the last graphic character once. */
+static void
+vte_sequence_handler_repeat_internal (VteTerminalPrivate *that, GValueArray *params)
+{
+        if (that->m_last_graphic_character != 0)
+                that->insert_char (that->m_last_graphic_character, false, true);
+}
+
+/* REP: Repeat the last graphic character n times. */
+static void
+vte_sequence_handler_repeat (VteTerminalPrivate *that, GValueArray *params)
+{
+        vte_sequence_handler_multiple_limited (that,
+                                               params,
+                                               vte_sequence_handler_repeat_internal,
+                                               65535);
 }
 
 /* Cursor down 1 line, with scrolling. */
