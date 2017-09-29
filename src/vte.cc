@@ -8166,6 +8166,16 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 }
 
 void
+VteTerminalPrivate::widget_constructed()
+{
+        /* Set the style as early as possible, before GTK+ starts
+         * invoking various callbacks. This is needed in order to
+         * compute the initial geometry correctly in presence of
+         * non-default padding, see bug 787710. */
+        widget_style_updated();
+}
+
+void
 VteTerminalPrivate::widget_get_preferred_width(int *minimum_width,
                                                int *natural_width)
 {
@@ -8662,9 +8672,6 @@ VteTerminalPrivate::widget_realize()
 
 	/* Clear modifiers. */
 	m_modifiers = 0;
-
-        /* Make sure the style is set, bug 727614. */
-        widget_style_updated();
 
 	ensure_font();
 }
