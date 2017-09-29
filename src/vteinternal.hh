@@ -650,6 +650,7 @@ public:
 
         GdkCursor *widget_cursor_new(GdkCursorType cursor_type) const;
 
+        void widget_constructed();
         void widget_realize();
         void widget_unrealize();
         void widget_map();

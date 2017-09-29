@@ -360,6 +360,16 @@ vte_terminal_screen_changed (GtkWidget *widget,
 }
 
 static void
+vte_terminal_constructed (GObject *object)
+{
+        VteTerminal *terminal = VTE_TERMINAL (object);
+
+        G_OBJECT_CLASS (vte_terminal_parent_class)->constructed (object);
+
+        IMPL(terminal)->widget_constructed();
+}
+
+static void
 vte_terminal_init(VteTerminal *terminal)
 {
         void *place;
@@ -619,6 +629,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class = GTK_WIDGET_CLASS(klass);
 
 	/* Override some of the default handlers. */
+        gobject_class->constructed = vte_terminal_constructed;
 	gobject_class->finalize = vte_terminal_finalize;
         gobject_class->get_property = vte_terminal_get_property;
         gobject_class->set_property = vte_terminal_set_property;
