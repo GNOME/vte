@@ -44,7 +44,8 @@ CLEANFILES += \
 	$(NULL)
 
 EXTRA_DIST += \
-        app.gresource.xml \
+	app.gresource.xml \
+	appmenu.ui \
 	search-popover.ui \
 	window.ui \
 	$(NULL)
