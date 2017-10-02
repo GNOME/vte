@@ -5604,6 +5604,8 @@ void
 VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
 {
         const VteRowData *rowdata;
+        bool coords_visible;
+        vte::grid::coords rowcol;
         hyperlink_idx_t new_hyperlink_hover_idx = 0;
         GdkRectangle bbox;
         const char *separator;
@@ -5611,16 +5613,18 @@ VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
         if (!m_allow_hyperlink)
                 return;
 
-        glong col = pos.x / m_char_width;
-        glong row = pixel_to_row(pos.y);
-
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                          "hyperlink_hilite_update\n");
 
-        rowdata = find_row_data(row);
-        if (rowdata && col < rowdata->len) {
-                new_hyperlink_hover_idx = rowdata->cells[col].attr.hyperlink_idx;
+        coords_visible = view_coords_visible(pos);
+        if (coords_visible) {
+                rowcol = grid_coords_from_view_coords(pos);
+                rowdata = find_row_data(rowcol.row());
+                if (rowdata && rowcol.column() < rowdata->len) {
+                        new_hyperlink_hover_idx = rowdata->cells[rowcol.column()].attr.hyperlink_idx;
+                }
         }
+
         if (new_hyperlink_hover_idx == m_hyperlink_hover_idx) {
                 _vte_debug_print (VTE_DEBUG_HYPERLINK,
                                   "hyperlink did not change\n");
@@ -5635,8 +5639,8 @@ VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
         /* This might be different from new_hyperlink_hover_idx. If in the stream, that one contains
          * the pseudo idx VTE_HYPERLINK_IDX_TARGET_IN_STREAM and now a real idx is allocated.
          * Plus, the ring's internal belief of the hovered hyperlink is also updated. */
-        if (view_coords_visible(pos))
-                m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, true, &m_hyperlink_hover_uri);
+        if (coords_visible)
+                m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, rowcol.row(), rowcol.column(), true, &m_hyperlink_hover_uri);
         else
                 m_hyperlink_hover_idx = 0;
 
