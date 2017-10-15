@@ -31,6 +31,7 @@
 #include <vte/vte.h>
 #include "vteinternal.hh"
 #include "vtegtk.hh"
+#include "vteutils.h"  /* for strchrnul on non-GNU systems */
 #include "caps.h"
 #include "debug.h"
 
