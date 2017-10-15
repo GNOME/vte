@@ -18,10 +18,6 @@
 
 #include "config.h"
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE /* for O_TMPFILE */
-#endif
-
 #include "vteutils.h"
 
 #include <fcntl.h>
