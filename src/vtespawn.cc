@@ -39,6 +39,7 @@
 #include <glib-unix.h>
 
 #include "vtespawn.hh"
+#include "vteutils.h"  /* for strchrnul on non-GNU systems */
 #include "reaper.hh"
 
 #define VTE_SPAWN_ERROR_TIMED_OUT (G_SPAWN_ERROR_FAILED + 1000)
@@ -1001,16 +1002,6 @@ script_execute (const gchar *file,
   }
 }
 
-static gchar*
-my_strchrnul (const gchar *str, gchar c)
-{
-  gchar *p = (gchar*) str;
-  while (*p && (*p != c))
-    ++p;
-
-  return p;
-}
-
 static gint
 g_execute (const gchar *file,
            gchar      **argv,
@@ -1081,7 +1072,7 @@ g_execute (const gchar *file,
 	  char *startp;
 
 	  path = p;
-	  p = my_strchrnul (path, ':');
+	  p = strchrnul (path, ':');
 
 	  if (p == path)
 	    /* Two adjacent colons, or a colon at the beginning or the end
