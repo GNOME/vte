@@ -93,6 +93,18 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_copy_clipboard(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+void vte_terminal_get_geometry_hints(VteTerminal *terminal,
+                                     GdkGeometry *hints,
+                                     int min_rows,
+                                     int min_columns) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
+void vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
+                                                GtkWindow *window) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED

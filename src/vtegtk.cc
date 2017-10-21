@@ -3529,6 +3529,8 @@ vte_terminal_set_font_scale(VteTerminal *terminal,
  * See gtk_window_set_geometry_hints() for more information.
  *
  * @terminal must be realized (see gtk_widget_get_realized()).
+ *
+ * Deprecated: 0.52
  */
 void
 vte_terminal_get_geometry_hints(VteTerminal *terminal,
@@ -3578,6 +3580,8 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
  * gtk_window_set_geometry_hints() for more information.
  *
  * @terminal must be realized (see gtk_widget_get_realized()).
+ *
+ * Deprecated: 0.52
  */
 void
 vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
