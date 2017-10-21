@@ -52,6 +52,7 @@ public:
         gboolean reverse{false};
         gboolean use_gregex{false};
         gboolean version{false};
+        gboolean whole_window_transparent{false};
         bool cursor_bg_color_set{false};
         bool cursor_fg_color_set{false};
         bool hl_bg_color_set{false};
@@ -226,9 +227,14 @@ private:
 
 public:
 
-        GdkRGBA get_color_bg()
+        double get_alpha() const
         {
-                double alpha = double(100 - CLAMP(transparency_percent, 0, 100)) / 100.0;
+                return double(100 - CLAMP(transparency_percent, 0, 100)) / 100.0;
+        }
+
+        GdkRGBA get_color_bg() const
+        {
+                double alpha = whole_window_transparent ? 1.0d : get_alpha();
 
                 if (reverse)
                         return GdkRGBA{1.0, 1.0, 1.0, alpha};
@@ -236,7 +242,7 @@ public:
                         return GdkRGBA{0.0, 0.0, 0.0, alpha};
         }
 
-        GdkRGBA get_color_fg()
+        GdkRGBA get_color_fg() const
         {
                 if (reverse)
                         return GdkRGBA{0.0, 0.0, 0.0, 1.0};
@@ -320,6 +326,8 @@ public:
                           "Enable verbose debug output", nullptr },
                         { "version", 0, 0, G_OPTION_ARG_NONE, &version,
                           "Show version", nullptr },
+                        { "whole-window-transparent", 0, 0, G_OPTION_ARG_NONE, &whole_window_transparent,
+                          "Make the whole window transparent", NULL },
                         { "word-char-exceptions", 0, 0, G_OPTION_ARG_STRING, &word_char_exceptions,
                           "Specify the word char exceptions", "CHARS" },
                         { "working-directory", 'w', 0, G_OPTION_ARG_FILENAME, &working_directory,
@@ -437,7 +445,7 @@ compile_regex_for_search(char const* pattern,
                 flags |= PCRE2_CASELESS;
 
         auto regex = vte_regex_new_for_search(pattern, strlen(pattern), flags, error);
-        if (regex !=nullptr)
+        if (regex != nullptr)
                 jit_regex(regex, pattern);
 
         return regex;
@@ -453,7 +461,7 @@ compile_regex_for_match(char const* pattern,
                 flags |= PCRE2_CASELESS;
 
         auto regex = vte_regex_new_for_match(pattern, strlen(pattern), flags, error);
-        if (regex !=nullptr)
+        if (regex != nullptr)
                 jit_regex(regex, pattern);
 
         return regex;
@@ -1690,6 +1698,9 @@ vteapp_window_constructed(GObject *object)
                 vte_terminal_set_color_highlight(window->terminal, &options.hl_bg_color);
         if (options.hl_fg_color_set)
                 vte_terminal_set_color_highlight_foreground(window->terminal, &options.hl_fg_color);
+
+        if (options.whole_window_transparent)
+                gtk_widget_set_opacity (GTK_WIDGET (window), options.get_alpha());
 
         /* Dingus */
         if (!options.no_builtin_dingus)
