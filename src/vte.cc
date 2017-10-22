@@ -10637,51 +10637,64 @@ VteTerminalPrivate::emit_pending_signals()
 {
 	GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
+        gboolean really_changed;
 
 	emit_adjustment_changed();
 
 	if (m_window_title_changed) {
+                really_changed = (g_strcmp0(m_window_title, m_window_title_changed) != 0);
 		g_free (m_window_title);
 		m_window_title = m_window_title_changed;
 		m_window_title_changed = NULL;
 
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting `window-title-changed'.\n");
-                g_signal_emit(object, signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
-                g_object_notify_by_pspec(object, pspecs[PROP_WINDOW_TITLE]);
+                if (really_changed) {
+                        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                         "Emitting `window-title-changed'.\n");
+                        g_signal_emit(object, signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
+                        g_object_notify_by_pspec(object, pspecs[PROP_WINDOW_TITLE]);
+                }
 	}
 
 	if (m_icon_title_changed) {
+                really_changed = (g_strcmp0(m_icon_title, m_icon_title_changed) != 0);
 		g_free (m_icon_title);
 		m_icon_title = m_icon_title_changed;
 		m_icon_title_changed = NULL;
 
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting `icon-title-changed'.\n");
-                g_signal_emit(object, signals[SIGNAL_ICON_TITLE_CHANGED], 0);
-                g_object_notify_by_pspec(object, pspecs[PROP_ICON_TITLE]);
+                if (really_changed) {
+                        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                         "Emitting `icon-title-changed'.\n");
+                        g_signal_emit(object, signals[SIGNAL_ICON_TITLE_CHANGED], 0);
+                        g_object_notify_by_pspec(object, pspecs[PROP_ICON_TITLE]);
+                }
 	}
 
 	if (m_current_directory_uri_changed) {
+                really_changed = (g_strcmp0(m_current_directory_uri, m_current_directory_uri_changed) != 0);
                 g_free (m_current_directory_uri);
                 m_current_directory_uri = m_current_directory_uri_changed;
                 m_current_directory_uri_changed = NULL;
 
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting `current-directory-uri-changed'.\n");
-                g_signal_emit(object, signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
-                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_DIRECTORY_URI]);
+                if (really_changed) {
+                        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                         "Emitting `current-directory-uri-changed'.\n");
+                        g_signal_emit(object, signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
+                        g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_DIRECTORY_URI]);
+                }
         }
 
         if (m_current_file_uri_changed) {
+                really_changed = (g_strcmp0(m_current_file_uri, m_current_file_uri_changed) != 0);
                 g_free (m_current_file_uri);
                 m_current_file_uri = m_current_file_uri_changed;
                 m_current_file_uri_changed = NULL;
 
-                _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                 "Emitting `current-file-uri-changed'.\n");
-                g_signal_emit(object, signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
-                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_FILE_URI]);
+                if (really_changed) {
+                        _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                         "Emitting `current-file-uri-changed'.\n");
+                        g_signal_emit(object, signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
+                        g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_FILE_URI]);
+                }
         }
 
 	/* Flush any pending "inserted" signals. */
