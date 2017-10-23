@@ -1261,7 +1261,7 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 auto match = vte_terminal_match_check_event(window->terminal, event, nullptr);
                 if (match != nullptr) {
                         verbose_print("Match: %s\n", hyperlink);
-                        GVariant* target = g_variant_new_string(hyperlink);
+                        GVariant* target = g_variant_new_string(match);
                         auto item = g_menu_item_new("Copy _Match", nullptr);
                         g_menu_item_set_action_and_target_value(item, "win.copy-match", target);
                         g_menu_append_item(menu, item);
