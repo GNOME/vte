@@ -11434,5 +11434,9 @@ VteTerminalPrivate::set_word_char_exceptions(char const* exceptions)
 void
 VteTerminalPrivate::set_background_operator(cairo_operator_t op)
 {
+        if (m_background_operator == op)
+                return;
+
         m_background_operator = op;
+        invalidate_all();
 }

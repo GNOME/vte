@@ -4017,9 +4017,6 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
  * image to the terminal, in which case %CAIRO_OPERATOR_OVER is most likely
  * the correct operator to use.
  *
- * If the operator is changed while the widget is already shown,
- * you need to queue a redraw to get it applied.
- *
  * Since: 0.52
  */
 void
