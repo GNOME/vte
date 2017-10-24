@@ -770,7 +770,7 @@ _vte_keymap_map(guint keyval,
                                                   normal_length);
                 _vte_debug_print(VTE_DEBUG_KEYBOARD,
                                  " to '%s'.\n",
-                                 _vte_debug_sequence_to_string(*normal));
+                                 _vte_debug_sequence_to_string(*normal, -1));
                 return;
 	}
 

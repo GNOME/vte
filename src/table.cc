@@ -208,11 +208,13 @@ _vte_table_addi(struct _vte_table *table,
 	if (length == 0) {
 		if (table->result != NULL)
                         _VTE_DEBUG_IF (VTE_DEBUG_PARSE) {
-                                g_printerr ("'%s'=> '%s'",
-                                            _vte_debug_sequence_to_string ((const char *)table->original),
+                                g_printerr ("'%s' => '%s'",
+                                            _vte_debug_sequence_to_string ((const char *)table->original,
+                                                                           table->original_length),
                                             table->result);
                                 g_printerr (" and '%s' => '%s' are indistinguisable.\n",
-                                            _vte_debug_sequence_to_string ((const char *)original),
+                                            _vte_debug_sequence_to_string ((const char *)original,
+                                                                           original_length),
                                             result);
                         }
 

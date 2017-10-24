@@ -16,7 +16,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <config.h>
+#include "config.h"
+
+#include <string.h>
 
 #include <glib.h>
 #include "debug.h"
@@ -63,7 +65,8 @@ _vte_debug_init(void)
 }
 
 const char *
-_vte_debug_sequence_to_string(const char *str)
+_vte_debug_sequence_to_string(const char *str,
+                              gssize length)
 {
 #if defined(VTE_DEBUG)
         static const char codes[][6] = {
@@ -74,16 +77,19 @@ _vte_debug_sequence_to_string(const char *str)
                 "SPACE"
         };
         static GString *buf;
-        int i;
+        gssize i;
 
         if (str == NULL)
                 return "(nil)";
+
+        if (length == -1)
+                length = strlen(str);
 
         if (buf == NULL)
                 buf = g_string_new(NULL);
 
         g_string_truncate(buf, 0);
-        for (i = 0; str[i]; i++) {
+        for (i = 0; i < length; i++) {
                 guint8 c = (guint8)str[i];
                 if (i > 0)
                         g_string_append_c(buf, ' ');
