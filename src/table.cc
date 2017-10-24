@@ -212,7 +212,7 @@ _vte_table_addi(struct _vte_table *table,
                                             _vte_debug_sequence_to_string ((const char *)table->original,
                                                                            table->original_length),
                                             table->result);
-                                g_printerr (" and '%s' => '%s' are indistinguisable.\n",
+                                g_printerr (" and '%s' => '%s' are indistinguishable.\n",
                                             _vte_debug_sequence_to_string ((const char *)original,
                                                                            original_length),
                                             result);
