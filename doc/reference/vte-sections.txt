@@ -98,8 +98,6 @@ vte_terminal_pty_new_sync
 vte_terminal_watch_child
 
 <SUBSECTION>
-vte_terminal_get_geometry_hints
-vte_terminal_set_geometry_hints_for_window
 
 <SUBSECTION Standard>
 VTE_TYPE_CURSOR_BLINK_MODE
@@ -138,6 +136,8 @@ vte_terminal_search_get_gregex
 vte_terminal_search_set_gregex
 vte_terminal_event_check_gregex_simple
 vte_terminal_spawn_sync
+vte_terminal_get_geometry_hints
+vte_terminal_set_geometry_hints_for_window
 
 <SUBSECTION Private>
 VteCharAttributes
