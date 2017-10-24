@@ -1921,7 +1921,7 @@ VteTerminalPrivate::emit_adjustment_changed()
 
 		v = _vte_ring_delta (m_screen->row_data);
 		current = gtk_adjustment_get_lower(m_vadjustment);
-		if (current != v) {
+		if (!_vte_double_equal(current, v)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing lower bound from %.0f to %ld\n",
 					 current, v);
@@ -1931,7 +1931,7 @@ VteTerminalPrivate::emit_adjustment_changed()
 
 		v = m_screen->insert_delta + m_row_count;
 		current = gtk_adjustment_get_upper(m_vadjustment);
-		if (current != v) {
+		if (!_vte_double_equal(current, v)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing upper bound from %.0f to %ld\n",
 					 current, v);
@@ -1952,7 +1952,7 @@ VteTerminalPrivate::emit_adjustment_changed()
 				"Emitting adjustment_value_changed.\n");
 		m_adjustment_value_changed_pending = FALSE;
 		v = gtk_adjustment_get_value(m_vadjustment);
-		if (v != m_screen->scroll_delta) {
+		if (!_vte_double_equal(v, m_screen->scroll_delta)) {
 			/* this little dance is so that the scroll_delta is
 			 * updated immediately, but we still handled scrolling
 			 * via the adjustment - e.g. user interaction with the
@@ -1977,7 +1977,7 @@ VteTerminalPrivate::queue_adjustment_changed()
 void
 VteTerminalPrivate::queue_adjustment_value_changed(double v)
 {
-	if (v != m_screen->scroll_delta) {
+	if (!_vte_double_equal(v, m_screen->scroll_delta)) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Adjustment value changed to %f\n",
                                  v);
@@ -2036,7 +2036,7 @@ VteTerminalPrivate::adjust_adjustments_full()
 
 	/* The step increment should always be one. */
 	double v = gtk_adjustment_get_step_increment(m_vadjustment);
-	if (v != 1) {
+	if (!_vte_double_equal(v, 1)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing step increment from %.0lf to 1\n", v);
 		gtk_adjustment_set_step_increment(m_vadjustment, 1);
@@ -2046,7 +2046,7 @@ VteTerminalPrivate::adjust_adjustments_full()
 	/* Set the number of rows the user sees to the number of rows the
 	 * user sees. */
 	v = gtk_adjustment_get_page_size(m_vadjustment);
-	if (v != m_row_count) {
+	if (!_vte_double_equal(v, m_row_count)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page size from %.0f to %ld\n",
 				 v, m_row_count);
@@ -2058,7 +2058,7 @@ VteTerminalPrivate::adjust_adjustments_full()
 	/* Clicking in the empty area should scroll one screen, so set the
 	 * page size to the number of visible rows. */
 	v = gtk_adjustment_get_page_increment(m_vadjustment);
-	if (v != m_row_count) {
+	if (!_vte_double_equal(v, m_row_count)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 				"Changing page increment from "
 				"%.0f to %ld\n",
@@ -7919,7 +7919,7 @@ VteTerminalPrivate::vadjustment_value_changed()
 		return;
 
         /* FIXME: do this check in pixel space */
-	if (dy != 0) {
+	if (!_vte_double_equal(dy, 0)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
                 invalidate_all();
