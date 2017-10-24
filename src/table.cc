@@ -207,9 +207,14 @@ _vte_table_addi(struct _vte_table *table,
 	/* If this is the terminal node, set the result. */
 	if (length == 0) {
 		if (table->result != NULL)
-			_vte_debug_print (VTE_DEBUG_PARSE, 
-					  "`%s' and `%s' are indistinguishable.\n",
-					  table->result, result);
+                        _VTE_DEBUG_IF (VTE_DEBUG_PARSE) {
+                                g_printerr ("'%s'=> '%s'",
+                                            _vte_debug_sequence_to_string ((const char *)table->original),
+                                            table->result);
+                                g_printerr (" and '%s' => '%s' are indistinguisable.\n",
+                                            _vte_debug_sequence_to_string ((const char *)original),
+                                            result);
+                        }
 
 		table->result = g_intern_string(result);
 		if (table->original != NULL) {
