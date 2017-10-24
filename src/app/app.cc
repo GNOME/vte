@@ -179,6 +179,11 @@ private:
                 Options* that = static_cast<Options*>(data);
                 g_clear_object(&that->background_pixbuf);
                 that->background_pixbuf = gdk_pixbuf_new_from_file(value, error);
+                if (that->background_pixbuf != nullptr) {
+                        /* Default to actually showing the image */
+                        that->background_operator = CAIRO_OPERATOR_OVER;
+                        that->background_operator_set = true;
+                }
                 return that->background_pixbuf != nullptr;
         }
 
