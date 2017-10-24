@@ -320,24 +320,6 @@ PKG_CHECK_MODULES([APP],[
   pango >= $PANGO_REQUIRED
   gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
 
-wcs_funcs_includes="
-#ifdef HAVE_STRING_H
-# if !STDC_HEADERS && HAVE_MEMORY_H
-#  include <memory.h>
-# endif
-# include <string.h>
-#else
-# ifdef HAVE_STRINGS_H
-#  include <strings.h>
-# endif
-#endif
-#ifdef HAVE_WCHAR_H
-# include <wchar.h>
-#endif
-"
-
-AC_CHECK_TYPES(wint_t, AC_DEFINE(HAVE_WINT_T, , [Defined when the wint_t type is supported]), ,$wcs_funcs_includes)
-
 ################################################################################
 # Glade catalogue
 ################################################################################

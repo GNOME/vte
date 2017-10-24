@@ -86,10 +86,6 @@ static inline double round(double x) {
 }
 #endif
 
-#ifndef HAVE_WINT_T
-typedef gunichar wint_t;
-#endif
-
 #define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"
 
 #define I_(string) (g_intern_static_string(string))
@@ -3731,11 +3727,9 @@ skip_chunk:
                                                                 (long) c);
 					}
                                         if (c < 32) {
-						g_printerr("^%lc\n",
-                                                                (wint_t)c + 64);
+						g_printerr("^%c\n", c + 64);
 					} else {
-						g_printerr("`%lc'\n",
-                                                                (wint_t)c);
+						g_printerr("`%c'\n", c);
 					}
 				}
 			}
