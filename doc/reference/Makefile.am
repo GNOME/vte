@@ -97,7 +97,6 @@ IGNORE_HFILES = \
 	vtestream-file.h \
 	vtestream.h \
 	vtetc.h \
-	vtetree.h \
 	vteunistr.h \
 	vteunistr.h
 

@@ -90,8 +90,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtestream.h \
 	vtestream-base.h \
 	vtestream-file.h \
-	vtetree.cc \
-	vtetree.h \
 	vtetypes.cc \
 	vtetypes.hh \
 	vteunistr.cc \
@@ -256,8 +254,6 @@ interpret_SOURCES = \
 	table.h \
 	vteconv.cc \
 	vteconv.h \
-	vtetree.cc \
-	vtetree.h \
 	interpret.c
 interpret_CPPFLAGS = \
 	-DINTERPRET_MAIN \
