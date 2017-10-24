@@ -458,6 +458,11 @@ void vte_terminal_set_input_enabled (VteTerminal *terminal,
 _VTE_PUBLIC
 gboolean vte_terminal_get_input_enabled (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+/* rarely useful functions */
+_VTE_PUBLIC
+void vte_terminal_set_background_operator(VteTerminal* terminal,
+                                          cairo_operator_t op) _VTE_GNUC_NONNULL(1);
+
 /* Writing contents out */
 _VTE_PUBLIC
 gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,

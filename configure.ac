@@ -317,7 +317,9 @@ PKG_CHECK_MODULES([GTK],[gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
 PKG_CHECK_MODULES([APP],[
   glib-2.0 >= $GLIB_REQUIRED
   gobject-2.0
+  cairo-gobject
   pango >= $PANGO_REQUIRED
+  gdk-pixbuf-2.0
   gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
 
 ################################################################################

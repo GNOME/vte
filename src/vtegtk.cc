@@ -4004,3 +4004,29 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
 
         return IMPL(terminal)->write_contents_sync(stream, flags, cancellable, error);
 }
+
+/**
+ * vte_terminal_set_background_operator:
+ * @terminal: a #VteTerminal
+ * @operator: a #cairo_operator_t
+ *
+ * Sets the operator to use to paint the background with the background colour.
+ * The default is %CAIRO_OPERATOR_SOURCE.
+ *
+ * This function is rarely useful. One use for it is to add a background
+ * image to the terminal, in which case %CAIRO_OPERATOR_OVER is most likely
+ * the correct operator to use.
+ *
+ * If the operator is changed while the widget is already shown,
+ * you need to queue a redraw to get it applied.
+ *
+ * Since: 0.52
+ */
+void
+vte_terminal_set_background_operator(VteTerminal* terminal,
+                                     cairo_operator_t op)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        IMPL(terminal)->set_background_operator(op);
+}

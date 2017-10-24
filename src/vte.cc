@@ -9723,6 +9723,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 				row_to_pixel(m_screen->cursor.row),
 				width * columns,
 				height,
+                                m_background_operator,
                                 get_color(VTE_DEFAULT_BG), m_background_alpha);
                 fore = m_color_defaults.attr.fore;
                 back = m_color_defaults.attr.back;
@@ -9779,6 +9780,7 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 
 	_vte_draw_clear (m_draw, 0, 0,
 			 allocated_width, allocated_height,
+                         m_background_operator,
                          get_color(VTE_DEFAULT_BG), m_background_alpha);
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
@@ -11427,4 +11429,10 @@ VteTerminalPrivate::set_word_char_exceptions(char const* exceptions)
         m_word_char_exceptions_len = len;
 
         return true;
+}
+
+void
+VteTerminalPrivate::set_background_operator(cairo_operator_t op)
+{
+        m_background_operator = op;
 }

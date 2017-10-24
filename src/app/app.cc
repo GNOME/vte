@@ -26,9 +26,13 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gtk/gtk.h>
+#include <cairo/cairo-gobject.h>
 #include <vte/vte.h>
 #include "vtepcre2.h"
+
+#include <algorithm>
 
 /* options */
 
@@ -53,10 +57,15 @@ public:
         gboolean use_gregex{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
+        bool bg_color_set{false};
+        bool fg_color_set{false};
         bool cursor_bg_color_set{false};
         bool cursor_fg_color_set{false};
         bool hl_bg_color_set{false};
         bool hl_fg_color_set{false};
+        bool background_operator_set{false};
+        cairo_extend_t background_extend{CAIRO_EXTEND_NONE};
+        cairo_operator_t background_operator{CAIRO_OPERATOR_SOURCE};
         char* command{nullptr};
         char* encoding{nullptr};
         char* font_string{nullptr};
@@ -67,6 +76,9 @@ public:
         char** dingus{nullptr};
         char** exec_argv{nullptr};
         char** environment{nullptr};
+        GdkPixbuf* background_pixbuf{nullptr};
+        GdkRGBA bg_color{1.0, 1.0, 1.0, 1.0};
+        GdkRGBA fg_color{0.0, 0.0, 0.0, 1.0};
         GdkRGBA cursor_bg_color{};
         GdkRGBA cursor_fg_color{};
         GdkRGBA hl_bg_color{};
@@ -80,6 +92,7 @@ public:
         VteCursorShape cursor_shape{VTE_CURSOR_SHAPE_BLOCK};
 
         ~Options() {
+                g_clear_object(&background_pixbuf);
                 g_free(command);
                 g_free(encoding);
                 g_free(font_string);
@@ -96,7 +109,7 @@ private:
 
         bool parse_enum(GType type,
                         char const* str,
-                        int* value,
+                        int& value,
                         GError** error)
         {
                 GEnumClass* enum_klass = reinterpret_cast<GEnumClass*>(g_type_class_ref(type));
@@ -110,7 +123,7 @@ private:
                         return false;
                 }
 
-                *value = enum_value->value;
+                value = enum_value->value;
                 g_type_class_unref(enum_klass);
                 return true;
         }
@@ -161,6 +174,39 @@ private:
         }
 
         static gboolean
+        parse_background_image(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                g_clear_object(&that->background_pixbuf);
+                that->background_pixbuf = gdk_pixbuf_new_from_file(value, error);
+                return that->background_pixbuf != nullptr;
+        }
+
+        static gboolean
+        parse_background_extend(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                int v;
+                auto rv = that->parse_enum(CAIRO_GOBJECT_TYPE_EXTEND, value, v, error);
+                if (rv)
+                        that->background_extend = cairo_extend_t(v);
+                return rv;
+        }
+
+        static gboolean
+        parse_background_operator(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                int v;
+                auto rv = that->parse_enum(CAIRO_GOBJECT_TYPE_OPERATOR, value, v, error);
+                if (rv) {
+                        that->background_operator = cairo_operator_t(v);
+                        that->background_operator_set = true;
+                }
+                return rv;
+        }
+
+        static gboolean
         parse_cjk_width(char const* option, char const* value, void* data, GError** error)
         {
                 Options* that = static_cast<Options*>(data);
@@ -172,7 +218,7 @@ private:
         {
                 Options* that = static_cast<Options*>(data);
                 int v;
-                auto rv = that->parse_enum(VTE_TYPE_CURSOR_BLINK_MODE, value, &v, error);
+                auto rv = that->parse_enum(VTE_TYPE_CURSOR_BLINK_MODE, value, v, error);
                 if (rv)
                         that->cursor_blink_mode = VteCursorBlinkMode(v);
                 return rv;
@@ -183,10 +229,26 @@ private:
         {
                 Options* that = static_cast<Options*>(data);
                 int v;
-                auto rv = that->parse_enum(VTE_TYPE_CURSOR_SHAPE, value, &v, error);
+                auto rv = that->parse_enum(VTE_TYPE_CURSOR_SHAPE, value, v, error);
                 if (rv)
                         that->cursor_shape = VteCursorShape(v);
                 return rv;
+        }
+
+        static gboolean
+        parse_bg_color(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                bool set;
+                return that->parse_color(value, &that->bg_color, &set, error);
+        }
+
+        static gboolean
+        parse_fg_color(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                bool set;
+                return that->parse_color(value, &that->fg_color, &set, error);
         }
 
         static gboolean
@@ -234,20 +296,22 @@ public:
 
         GdkRGBA get_color_bg() const
         {
-                double alpha = whole_window_transparent ? 1.0d : get_alpha();
-
-                if (reverse)
-                        return GdkRGBA{1.0, 1.0, 1.0, alpha};
+                double alpha;
+                if (background_pixbuf != nullptr)
+                        alpha = 0.0;
+                else if (whole_window_transparent)
+                        alpha = 1.0;
                 else
-                        return GdkRGBA{0.0, 0.0, 0.0, alpha};
+                        alpha = get_alpha();
+
+                GdkRGBA color{bg_color};
+                color.alpha = alpha;
+                return color;
         }
 
         GdkRGBA get_color_fg() const
         {
-                if (reverse)
-                        return GdkRGBA{0.0, 0.0, 0.0, 1.0};
-                else
-                        return GdkRGBA{1.0, 1.0, 1.0, 1.0};
+                return fg_color;
         }
 
         bool parse_argv(int argc,
@@ -261,6 +325,14 @@ public:
                           "Allow window operations (resize, move, raise/lower, (de)iconify)", nullptr },
                         { "audible-bell", 'a', 0, G_OPTION_ARG_NONE, &audible_bell,
                           "Use audible terminal bell", nullptr },
+                        { "background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_bg_color,
+                          "Set default background color", nullptr },
+                        { "background-image", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_image,
+                          "Set background image from file", "FILE" },
+                        { "background-extend", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_extend,
+                          "Set background image extend", "EXTEND" },
+                        { "background-operator", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_operator,
+                          "Set background draw operator", "OPERATOR" },
                         { "cjk-width", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cjk_width,
                           "Specify the cjk ambiguous width to use for UTF-8 encoding", "NARROW|WIDE" },
                         { "cursor-blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_blink,
@@ -283,6 +355,8 @@ public:
                           "Add extra margin around the terminal widget", "MARGIN" },
                         { "font", 'f', 0, G_OPTION_ARG_STRING, &font_string,
                           "Specify a font to use", nullptr },
+                        { "foreground-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_fg_color,
+                          "Set default foreground color", nullptr },
                         { "gregex", 0, 0, G_OPTION_ARG_NONE, &use_gregex,
                           "Use GRegex instead of PCRE2", nullptr },
                         { "geometry", 'g', 0, G_OPTION_ARG_STRING, &geometry,
@@ -383,6 +457,15 @@ public:
 
                 g_option_context_free(context);
                 g_free(dummy_string);
+
+                if (reverse)
+                        std::swap(fg_color, bg_color);
+
+                /* Sanity checks */
+                if (background_pixbuf != nullptr &&
+                    (!background_operator_set || background_operator == CAIRO_OPERATOR_SOURCE))
+                        g_printerr("Background image set but operator is SOURCE; image will not appear.\n");
+
                 return rv;
         }
 };
@@ -721,6 +804,8 @@ typedef struct _VteappTerminalClass  VteappTerminalClass;
 
 struct _VteappTerminal {
         VteTerminal parent;
+
+        cairo_pattern_t* background_pattern;
 };
 
 struct _VteappTerminalClass {
@@ -732,13 +817,81 @@ static GType vteapp_terminal_get_type(void);
 G_DEFINE_TYPE(VteappTerminal, vteapp_terminal, VTE_TYPE_TERMINAL)
 
 static void
+vteapp_terminal_realize(GtkWidget* widget)
+{
+        GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->realize(widget);
+
+        VteappTerminal* terminal = VTEAPP_TERMINAL(widget);
+        if (options.background_pixbuf != nullptr) {
+                auto surface = gdk_cairo_surface_create_from_pixbuf(options.background_pixbuf,
+                                                                    0 /* take scale from window */,
+                                                                    gtk_widget_get_window(widget));
+                terminal->background_pattern = cairo_pattern_create_for_surface(surface);
+                cairo_surface_destroy(surface);
+
+                cairo_pattern_set_extend(terminal->background_pattern, options.background_extend);
+        }
+}
+
+static void
+vteapp_terminal_unrealize(GtkWidget* widget)
+{
+        VteappTerminal* terminal = VTEAPP_TERMINAL(widget);
+        if (terminal->background_pattern != nullptr) {
+                cairo_pattern_destroy(terminal->background_pattern);
+                terminal->background_pattern = nullptr;
+        }
+
+        GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->unrealize(widget);
+}
+
+static gboolean
+vteapp_terminal_draw(GtkWidget* widget,
+                     cairo_t* cr)
+{
+        VteappTerminal* terminal = VTEAPP_TERMINAL(widget);
+        if (terminal->background_pattern != nullptr) {
+                cairo_push_group(cr);
+
+                /* Draw background colour */
+                cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+                cairo_rectangle(cr, 0.0, 0.0,
+                                gtk_widget_get_allocated_width(widget),
+                                gtk_widget_get_allocated_height(widget));
+                auto bg = options.get_color_bg();
+                cairo_set_source_rgba(cr, bg.red, bg.green, bg.blue, 1.0);
+                cairo_paint(cr);
+
+                /* Draw background image */
+                cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+                cairo_set_source(cr, terminal->background_pattern);
+                cairo_paint(cr);
+
+                cairo_pop_group_to_source(cr);
+                cairo_paint_with_alpha(cr, options.get_alpha());
+
+        }
+
+        return GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->draw(widget, cr);
+}
+
+static void
 vteapp_terminal_class_init(VteappTerminalClass *klass)
 {
+        GtkWidgetClass *widget_class = GTK_WIDGET_CLASS(klass);
+        widget_class->realize = vteapp_terminal_realize;
+        widget_class->unrealize = vteapp_terminal_unrealize;
+        widget_class->draw = vteapp_terminal_draw;
 }
 
 static void
 vteapp_terminal_init(VteappTerminal *terminal)
 {
+        terminal->background_pattern = nullptr;
+
+        if (options.background_operator_set)
+                vte_terminal_set_background_operator(VTE_TERMINAL(terminal),
+                                                     options.background_operator);
 }
 
 static GtkWidget *

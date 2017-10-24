@@ -98,6 +98,7 @@ vte_terminal_pty_new_sync
 vte_terminal_watch_child
 
 <SUBSECTION>
+vte_terminal_set_background_operator
 
 <SUBSECTION Standard>
 VTE_TYPE_CURSOR_BLINK_MODE
