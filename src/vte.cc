@@ -2288,7 +2288,8 @@ VteTerminalPrivate::update_insert_delta()
 void
 VteTerminalPrivate::apply_mouse_cursor()
 {
-        m_mouse_cursor_visible = !(m_mouse_autohide && m_mouse_cursor_autohidden);
+        /* See bug 789390 for the m_mouse_cursor_over_widget condition. */
+        m_mouse_cursor_visible = !(m_mouse_autohide && m_mouse_cursor_autohidden && m_mouse_cursor_over_widget);
 
         if (!widget_realized())
                 return;
