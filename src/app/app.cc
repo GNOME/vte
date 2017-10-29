@@ -937,8 +937,8 @@ struct _VteappWindow {
         GtkWidget* search_popover;
 
         /* used for updating the geometry hints */
-        int cached_char_width{0};
-        int cached_char_height{0};
+        int cached_cell_width{0};
+        int cached_cell_height{0};
         int cached_chrome_width{0};
         int cached_chrome_height{0};
         int cached_csd_width{0};
@@ -1001,8 +1001,8 @@ vteapp_window_update_geometry(VteappWindow* window)
 
         int columns = vte_terminal_get_column_count(window->terminal);
         int rows = vte_terminal_get_row_count(window->terminal);
-        int char_width = vte_terminal_get_char_width(window->terminal);
-        int char_height = vte_terminal_get_char_height(window->terminal);
+        int cell_width = vte_terminal_get_char_width(window->terminal);
+        int cell_height = vte_terminal_get_char_height(window->terminal);
 
         /* Calculate the chrome size as difference between the content's
          * natural size requisition and the terminal grid's size.
@@ -1010,8 +1010,8 @@ vteapp_window_update_geometry(VteappWindow* window)
          */
         GtkRequisition contents_req;
         gtk_widget_get_preferred_size(window->window_box, nullptr, &contents_req);
-        int chrome_width = contents_req.width - char_width * columns;
-        int chrome_height = contents_req.height - char_height * rows;
+        int chrome_width = contents_req.width - cell_width * columns;
+        int chrome_height = contents_req.height - cell_height * rows;
         g_assert_cmpint(chrome_width, >=, 0);
         g_assert_cmpint(chrome_height, >=, 0);
 
@@ -1035,8 +1035,8 @@ vteapp_window_update_geometry(VteappWindow* window)
                  * anything has changed.
                  */
                 if (!options.no_geometry_hints &&
-                    (char_height != window->cached_char_height ||
-                     char_width != window->cached_char_width ||
+                    (cell_height != window->cached_cell_height ||
+                     cell_width != window->cached_cell_width ||
                      chrome_width != window->cached_chrome_width ||
                      chrome_height != window->cached_chrome_height ||
                      csd_width != window->cached_csd_width ||
@@ -1045,10 +1045,10 @@ vteapp_window_update_geometry(VteappWindow* window)
 
                         geometry.base_width = csd_width + chrome_width;
                         geometry.base_height = csd_height + chrome_height;
-                        geometry.width_inc = char_width;
-                        geometry.height_inc = char_height;
-                        geometry.min_width = geometry.base_width + char_width * MIN_COLUMNS;
-                        geometry.min_height = geometry.base_height + char_height * MIN_ROWS;
+                        geometry.width_inc = cell_width;
+                        geometry.height_inc = cell_height;
+                        geometry.min_width = geometry.base_width + cell_width * MIN_COLUMNS;
+                        geometry.min_height = geometry.base_height + cell_height * MIN_ROWS;
 
                         gtk_window_set_geometry_hints(GTK_WINDOW(window),
 #if GTK_CHECK_VERSION (3, 19, 5)
@@ -1070,14 +1070,14 @@ vteapp_window_update_geometry(VteappWindow* window)
 
         window->cached_csd_width = csd_width;
         window->cached_csd_height = csd_height;
-        window->cached_char_width = char_width;
-        window->cached_char_height = char_height;
+        window->cached_cell_width = cell_width;
+        window->cached_cell_height = cell_height;
         window->cached_chrome_width = chrome_width;
         window->cached_chrome_height = chrome_height;
 
-        verbose_print("Cached grid %dx%d char-size %dx%d chrome %dx%d csd %dx%d\n",
+        verbose_print("Cached grid %dx%d cell-size %dx%d chrome %dx%d csd %dx%d\n",
                       columns, rows,
-                      window->cached_char_width, window->cached_char_height,
+                      window->cached_cell_width, window->cached_cell_height,
                       window->cached_chrome_width, window->cached_chrome_height,
                       window->cached_csd_width, window->cached_csd_height);
 }
@@ -1097,8 +1097,8 @@ vteapp_window_resize(VteappWindow* window)
         /* Calculate the window's pixel size corresponding to the terminal's grid size */
         int columns = vte_terminal_get_column_count(window->terminal);
         int rows = vte_terminal_get_row_count(window->terminal);
-        int pixel_width = window->cached_chrome_width + window->cached_char_width * columns;
-        int pixel_height = window->cached_chrome_height + window->cached_char_height * rows;
+        int pixel_width = window->cached_chrome_width + window->cached_cell_width * columns;
+        int pixel_height = window->cached_chrome_height + window->cached_cell_height * rows;
 
         verbose_print("VteappWindow resize grid %dx%d pixel %dx%d\n",
                       columns, rows, pixel_width, pixel_height);
@@ -1133,8 +1133,8 @@ vteapp_window_parse_geometry(VteappWindow* window)
                         gtk_window_get_default_size(GTK_WINDOW(window), &width, &height);
                         width -= window->cached_csd_width + window->cached_chrome_width;
                         height -= window->cached_csd_height + window->cached_chrome_height;
-                        int columns = width / window->cached_char_width;
-                        int rows = height / window->cached_char_height;
+                        int columns = width / window->cached_cell_width;
+                        int rows = height / window->cached_cell_height;
                         vte_terminal_set_size(window->terminal,
                                               MAX(columns, MIN_COLUMNS),
                                               MAX(rows, MIN_ROWS));
@@ -1480,7 +1480,7 @@ window_button_press_cb(GtkWidget* widget,
 }
 
 static void
-window_char_size_changed_cb(VteTerminal* term,
+window_cell_size_changed_cb(VteTerminal* term,
                             guint width,
                             guint height,
                             VteappWindow* window)
@@ -1793,7 +1793,7 @@ vteapp_window_constructed(GObject *object)
         /* Signals */
         g_signal_connect(window->terminal, "popup-menu", G_CALLBACK(window_popup_menu_cb), window);
         g_signal_connect(window->terminal, "button-press-event", G_CALLBACK(window_button_press_cb), window);
-        g_signal_connect(window->terminal, "char-size-changed", G_CALLBACK(window_char_size_changed_cb), window);
+        g_signal_connect(window->terminal, "char-size-changed", G_CALLBACK(window_cell_size_changed_cb), window);
         g_signal_connect(window->terminal, "child-exited", G_CALLBACK(window_child_exited_cb), window);
         g_signal_connect(window->terminal, "decrease-font-size", G_CALLBACK(window_decrease_font_size_cb), window);
         g_signal_connect(window->terminal, "deiconify-window", G_CALLBACK(window_deiconify_window_cb), window);

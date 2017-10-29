@@ -3209,10 +3209,10 @@ VteTerminalPrivate::seq_window_manipulation(long param,
                                          "Resizing window "
                                          "(to %ldx%ld pixels, grid size %ldx%ld).\n",
                                          arg2, arg1,
-                                         arg2 / m_char_width,
-                                         arg1 / m_char_height);
-                        emit_resize_window(arg2 / m_char_width,
-                                           arg1 / m_char_height);
+                                         arg2 / m_cell_width,
+                                         arg1 / m_cell_height);
+                        emit_resize_window(arg2 / m_cell_width,
+                                           arg1 / m_cell_height);
                 }
                 break;
         case 5:
@@ -3283,13 +3283,13 @@ VteTerminalPrivate::seq_window_manipulation(long param,
                 /* Send window size, in pixels. */
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "4;%d;%dt",
-                           (int)(m_row_count * m_char_height),
-                           (int)(m_column_count * m_char_width));
+                           (int)(m_row_count * m_cell_height),
+                           (int)(m_column_count * m_cell_width));
                 _vte_debug_print(VTE_DEBUG_PARSE,
                                  "Reporting window size "
                                  "(%dx%d)\n",
-                                 (int)(m_row_count * m_char_height),
-                                 (int)(m_column_count * m_char_width));
+                                 (int)(m_row_count * m_cell_height),
+                                 (int)(m_column_count * m_cell_width));
 
                 feed_child(buf, -1);
                 break;
@@ -3311,8 +3311,8 @@ VteTerminalPrivate::seq_window_manipulation(long param,
                 width = gdk_screen_get_width(gscreen);
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "9;%ld;%ldt",
-                           height / m_char_height,
-                           width / m_char_width);
+                           height / m_cell_height,
+                           width / m_cell_width);
                 feed_child(buf, -1);
                 break;
         case 20:

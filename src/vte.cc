@@ -271,7 +271,7 @@ VteTerminalPrivate::reset_default_attributes(bool reset_hyperlink)
 inline vte::view::coord_t
 VteTerminalPrivate::scroll_delta_pixel() const
 {
-        return round(m_screen->scroll_delta * m_char_height);
+        return round(m_screen->scroll_delta * m_cell_height);
 }
 
 /*
@@ -283,7 +283,7 @@ VteTerminalPrivate::scroll_delta_pixel() const
 inline vte::grid::row_t
 VteTerminalPrivate::pixel_to_row(vte::view::coord_t y) const
 {
-        return (scroll_delta_pixel() + y) / m_char_height;
+        return (scroll_delta_pixel() + y) / m_cell_height;
 }
 
 /*
@@ -297,7 +297,7 @@ inline vte::view::coord_t
 VteTerminalPrivate::row_to_pixel(vte::grid::row_t row) const
 {
         // FIXMEchpe this is bad!
-        return row * m_char_height - (glong)round(m_screen->scroll_delta * m_char_height);
+        return row * m_cell_height - (glong)round(m_screen->scroll_delta * m_cell_height);
 }
 
 inline vte::grid::row_t
@@ -358,9 +358,9 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border and overlap pixel.
 	 */
-        rect.x = column_start * m_char_width - 1;
+        rect.x = column_start * m_cell_width - 1;
         /* The extra + 1 is for the faux-bold overdraw */
-        int xend = (column_start + n_columns) * m_char_width + 1 + 1;
+        int xend = (column_start + n_columns) * m_cell_width + 1 + 1;
         rect.width = xend - rect.x;
 
         rect.y = row_to_pixel(row_start) - 1;
@@ -639,7 +639,7 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 					_vte_draw_get_char_width (
                                                                   m_draw,
 						cell->c, columns, style) >
-					m_char_width * columns) {
+					m_cell_width * columns) {
 				columns++;
 			}
 		}
@@ -684,7 +684,7 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 						m_draw,
 						cell->c,
 						columns, style) >
-			    m_char_width * columns) {
+			    m_cell_width * columns) {
 				columns++;
 			}
 		}
@@ -1727,7 +1727,7 @@ VteTerminalPrivate::grid_coords_from_view_coords(vte::view::coords const& pos) c
 {
         vte::grid::column_t col;
         if (pos.x >= 0 && pos.x < m_view_usable_extents.width())
-                col = pos.x / m_char_width;
+                col = pos.x / m_cell_width;
         else if (pos.x < 0)
                 col = -1;
         else
@@ -1764,7 +1764,7 @@ VteTerminalPrivate::confined_grid_coords_from_view_coords(vte::view::coords cons
 vte::view::coords
 VteTerminalPrivate::view_coords_from_grid_coords(vte::grid::coords const& rowcol) const
 {
-        return vte::view::coords(rowcol.column() * m_char_width,
+        return vte::view::coords(rowcol.column() * m_cell_width,
                                  row_to_pixel(rowcol.row()));
 }
 
@@ -4495,11 +4495,11 @@ VteTerminalPrivate::im_update_cursor()
                 return;
 
         cairo_rectangle_int_t rect;
-        rect.x = m_screen->cursor.col * m_char_width + m_padding.left +
-                 get_preedit_width(false) * m_char_width;
-        rect.width = m_char_width; // FIXMEchpe: if columns > 1 ?
+        rect.x = m_screen->cursor.col * m_cell_width + m_padding.left +
+                 get_preedit_width(false) * m_cell_width;
+        rect.width = m_cell_width; // FIXMEchpe: if columns > 1 ?
         rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
-        rect.height = m_char_height;
+        rect.height = m_cell_height;
         gtk_im_context_set_cursor_location(m_im_context, &rect);
 }
 
@@ -5580,10 +5580,10 @@ VteTerminalPrivate::hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRe
         g_assert (top != LONG_MAX && bottom != -1 && left != LONG_MAX && right != -1);
 
         auto allocation = get_allocated_rect();
-        bbox->x = allocation.x + m_padding.left + left * m_char_width;
+        bbox->x = allocation.x + m_padding.left + left * m_cell_width;
         bbox->y = allocation.y + m_padding.top + row_to_pixel(top);
-        bbox->width = (right - left + 1) * m_char_width;
-        bbox->height = (bottom - top + 1) * m_char_height;
+        bbox->width = (right - left + 1) * m_cell_width;
+        bbox->height = (bottom - top + 1) * m_cell_height;
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                           "Hyperlink bounding box: x=%d y=%d w=%d h=%d\n",
                           bbox->x, bbox->y, bbox->width, bbox->height);
@@ -5709,7 +5709,7 @@ VteTerminalPrivate::match_hilite_clear()
 bool
 VteTerminalPrivate::cursor_inside_match(vte::view::coords const& pos)
 {
-	glong col = pos.x / m_char_width;
+	glong col = pos.x / m_cell_width;
 	glong row = pixel_to_row(pos.y);
 
         return m_match_span.contains(row, col);
@@ -5775,7 +5775,7 @@ VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
 	_vte_debug_print(VTE_DEBUG_EVENTS,
                          "Match hilite update (%ld, %ld) -> %ld, %ld\n",
 			x, y,
-                         x / m_char_width,
+                         x / m_cell_width,
                          pixel_to_row(y));
 
         /* Reset match variables and invalidate the old match region if highlighted */
@@ -5783,7 +5783,7 @@ VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
 
 	gsize start, end;
 	auto new_match = match_check_internal(
-                                                  x / m_char_width,
+                                                  x / m_cell_width,
                                                   pixel_to_row(y),
 						  &m_match_tag,
 						  &start,
@@ -6467,12 +6467,12 @@ VteTerminalPrivate::confine_coordinates(long *xp,
         } else if (y >= y_stop) {
                 y = y_stop - 1;
 		if (!m_selection_block_mode)
-			x = m_column_count * m_char_width - 1;
+			x = m_column_count * m_cell_width - 1;
 	}
 	if (x < 0) {
 		x = 0;
-	} else if (x >= m_column_count * m_char_width) {
-		x = m_column_count * m_char_width - 1;
+	} else if (x >= m_column_count * m_cell_width) {
+		x = m_column_count * m_cell_width - 1;
 	}
 
 	*xp = x;
@@ -6794,8 +6794,8 @@ VteTerminalPrivate::extend_selection(long x,
 		invalidate_selected = TRUE;
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Selection delayed start at (%ld,%ld).\n",
-				m_selection_origin.x / m_char_width,
-				m_selection_origin.y / m_char_height);
+				m_selection_origin.x / m_cell_width,
+				m_selection_origin.y / m_cell_height);
 	}
 
 	/* Recognize that we've got a selected block. */
@@ -6833,9 +6833,9 @@ VteTerminalPrivate::extend_selection(long x,
 			last->y = scroll_delta_pixel() + y;
 		}
 
-		if ((origin->y / m_char_height < last->y / m_char_height) ||
-		    ((origin->y / m_char_height == last->y / m_char_height) &&
-		     (origin->x / m_char_width < last->x / m_char_width ))) {
+		if ((origin->y / m_cell_height < last->y / m_cell_height) ||
+		    ((origin->y / m_cell_height == last->y / m_cell_height) &&
+		     (origin->x / m_cell_width < last->x / m_cell_width ))) {
 			/* The origin point is "before" the last point. */
 			start = origin;
 			end = last;
@@ -6850,9 +6850,9 @@ VteTerminalPrivate::extend_selection(long x,
 		if (always_grow) {
 			/* New endpoint is before existing selection. */
                         row = pixel_to_row(y);
-			if ((row < start->y / m_char_height) ||
-			    ((row == start->y / m_char_height) &&
-			     (x / m_char_width < start->x / m_char_width))) {
+			if ((row < start->y / m_cell_height) ||
+			    ((row == start->y / m_cell_height) &&
+			     (x / m_cell_width < start->x / m_cell_width))) {
 				start->x = x;
 				start->y = scroll_delta_pixel() + y;
 			} else {
@@ -6874,8 +6874,8 @@ VteTerminalPrivate::extend_selection(long x,
 	sc = &m_selection_start;
 	ec = &m_selection_end;
 
-	sc->row = MAX (0, start->y / m_char_height);
-	ec->row = MAX (0, end->y   / m_char_height);
+	sc->row = MAX (0, start->y / m_cell_height);
+	ec->row = MAX (0, end->y   / m_cell_height);
 
 	/* Sort x using row cell coordinates */
 	if ((m_selection_block_mode || sc->row == ec->row) && (start->x > end->x)) {
@@ -6894,9 +6894,9 @@ VteTerminalPrivate::extend_selection(long x,
 	 * math_div and no MAX, to allow selecting no cells in the line,
 	 * ie. ec->col = -1, which is essentially equal to copying the
 	 * newline from previous line but no chars from current line. */
-	residual = (m_char_width + 1) / 3;
-	sc->col = math_div (start->x + residual, m_char_width);
-	ec->col = math_div (end->x - residual, m_char_width);
+	residual = (m_cell_width + 1) / 3;
+	sc->col = math_div (start->x + residual, m_cell_width);
+	ec->col = math_div (end->x - residual, m_cell_width);
 
 	extend_selection_expand();
 
@@ -7059,8 +7059,8 @@ VteTerminalPrivate::autoscroll()
 	if (extend) {
                 // FIXMEchpe use confine_view_coords here
 		/* Don't select off-screen areas.  That just confuses people. */
-		xmax = m_column_count * m_char_width;
-		ymax = m_row_count * m_char_height;
+		xmax = m_column_count * m_cell_width;
+		ymax = m_row_count * m_cell_height;
 
 		x = CLAMP(m_mouse_last_position.x, 0, xmax);
 		y = CLAMP(m_mouse_last_position.y, 0, ymax);
@@ -7070,7 +7070,7 @@ VteTerminalPrivate::autoscroll()
 			x = 0;
 		}
 		if (m_mouse_last_position.y >= ymax && !m_selection_block_mode) {
-			x = m_column_count * m_char_width;
+			x = m_column_count * m_cell_width;
 		}
 		/* Extend selection to cover the newly-scrolled area. */
                 extend_selection(x, y, false, true);
@@ -7530,13 +7530,13 @@ VteTerminalPrivate::apply_font_metrics(int width,
 	descent = MAX(descent, 1);
 
 	/* Change settings, and keep track of when we've changed anything. */
-	if (width != m_char_width) {
+	if (width != m_cell_width) {
 		resize = cresize = true;
-		m_char_width = width;
+		m_cell_width = width;
 	}
-	if (height != m_char_height) {
+	if (height != m_cell_height) {
 		resize = cresize = true;
-		m_char_height = height;
+		m_cell_height = height;
 	}
 	if (ascent != m_char_ascent) {
 		resize = true;
@@ -7563,7 +7563,7 @@ VteTerminalPrivate::apply_font_metrics(int width,
 	}
 	/* Emit a signal that the font changed. */
 	if (cresize) {
-		emit_char_size_changed(m_char_width, m_char_height);
+		emit_char_size_changed(m_cell_width, m_cell_height);
 	}
 	/* Repaint. */
 	invalidate_all();
@@ -8018,8 +8018,8 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	widget_set_vadjustment(nullptr);
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
-	m_char_width = 1;
-	m_char_height = 1;
+	m_cell_width = 1;
+	m_cell_height = 1;
 	m_char_ascent = 1;
 	m_char_descent = 1;
 	m_line_thickness = 1;
@@ -8193,8 +8193,8 @@ VteTerminalPrivate::widget_get_preferred_width(int *minimum_width,
 
         refresh_size();
 
-	*minimum_width = m_char_width * 1;
-        *natural_width = m_char_width * m_column_count;
+	*minimum_width = m_cell_width * 1;
+        *natural_width = m_cell_width * m_column_count;
 
 	*minimum_width += m_padding.left +
                           m_padding.right;
@@ -8220,8 +8220,8 @@ VteTerminalPrivate::widget_get_preferred_height(int *minimum_height,
 
         refresh_size();
 
-	*minimum_height = m_char_height * 1;
-        *natural_height = m_char_height * m_row_count;
+	*minimum_height = m_cell_height * 1;
+        *natural_height = m_cell_height * m_row_count;
 
 	*minimum_height += m_padding.top +
 			   m_padding.bottom;
@@ -8247,9 +8247,9 @@ VteTerminalPrivate::widget_size_allocate(GtkAllocation *allocation)
 			"vte_terminal_size_allocate()\n");
 
 	width = (allocation->width - (m_padding.left + m_padding.right)) /
-		m_char_width;
+		m_cell_width;
 	height = (allocation->height - (m_padding.top + m_padding.bottom)) /
-		 m_char_height;
+		 m_cell_height;
 	width = MAX(width, 1);
 	height = MAX(height, 1);
 
@@ -9491,16 +9491,16 @@ VteTerminalPrivate::expand_rectangle(cairo_rectangle_int_t& rect) const
         if (row_stop <= row)
                 return;
 
-        vte::grid::column_t col = MAX(0, (rect.x - 1) / m_char_width);
-        vte::grid::column_t col_stop = MIN(howmany(rect.width + rect.x + 1, m_char_width), m_column_count);
+        vte::grid::column_t col = MAX(0, (rect.x - 1) / m_cell_width);
+        vte::grid::column_t col_stop = MIN(howmany(rect.width + rect.x + 1, m_cell_width), m_column_count);
         if (col_stop <= col)
                 return;
 
         cairo_rectangle_int_t old_rect = rect;
-        rect.x = col * m_char_width;
-        rect.width = (col_stop - col) * m_char_width;
+        rect.x = col * m_cell_width;
+        rect.width = (col_stop - col) * m_cell_width;
         rect.y = row_to_pixel(row);
-        rect.height = (row_stop - row) * m_char_height;
+        rect.height = (row_stop - row) * m_cell_height;
 
         _vte_debug_print (VTE_DEBUG_UPDATES,
                           "expand_rectangle"
@@ -9527,8 +9527,8 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, area->x / m_char_width);
-	col_stop = MIN((area->width + area->x) / m_char_width,
+	col = MAX(0, area->x / m_cell_width);
+	col_stop = MIN((area->width + area->x) / m_cell_width,
 		       m_column_count);
 	if (col_stop <= col) {
 		return;
@@ -9540,20 +9540,20 @@ VteTerminalPrivate::paint_area(GdkRectangle const* area)
 			" [(%ld,%ld)x(%ld,%ld) pixels]\n",
 			area->x, area->y, area->width, area->height,
 			col, row, col_stop - col, row_stop - row,
-			col * m_char_width,
-			row * m_char_height,
-			(col_stop - col) * m_char_width,
-			(row_stop - row) * m_char_height);
+			col * m_cell_width,
+			row * m_cell_height,
+			(col_stop - col) * m_cell_width,
+			(row_stop - row) * m_cell_height);
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
 	draw_rows(m_screen,
 			      row, row_stop,
 			      col, col_stop,
-			      col * m_char_width,
+			      col * m_cell_width,
 			      row_to_pixel(row),
-			      m_char_width,
-			      m_char_height);
+			      m_cell_width,
+			      m_cell_height);
 }
 
 void
@@ -9576,8 +9576,8 @@ VteTerminalPrivate::paint_cursor()
 
         col = m_screen->cursor.col;
         drow = m_screen->cursor.row;
-	width = m_char_width;
-	height = m_char_height;
+	width = m_cell_width;
+	height = m_cell_height;
 
         /* TODOegmont: clamp on rows? tricky... */
 	if (CLAMP(col, 0, m_column_count - 1) != col)
@@ -9698,8 +9698,8 @@ VteTerminalPrivate::paint_im_preedit_string()
 		return;
 
 	/* Keep local copies of rendering information. */
-	width = m_char_width;
-	height = m_char_height;
+	width = m_cell_width;
+	height = m_cell_height;
 
 	/* Find out how many columns the pre-edit string takes up. */
 	columns = get_preedit_width(false);

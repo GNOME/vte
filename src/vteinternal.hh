@@ -462,8 +462,8 @@ public:
         glong m_char_ascent;
         glong m_char_descent;
         /* dimensions of character cells */
-        glong m_char_width;
-        glong m_char_height;
+        glong m_cell_width;
+        glong m_cell_height;
 
 	/* Data used when rendering the text which reflects server resources
 	 * and data, which should be dropped when unrealizing and (re)created
@@ -1068,8 +1068,8 @@ public:
                                           gunichar **arrayp,
                                           gsize *lenp);
 
-        long get_char_height() { ensure_font(); return m_char_height; }
-        long get_char_width()  { ensure_font(); return m_char_width;  }
+        long get_cell_height() { ensure_font(); return m_cell_height; }
+        long get_cell_width()  { ensure_font(); return m_cell_width;  }
 
         vte::color::rgb const* get_color(int entry) const;
         void set_color(int entry,
