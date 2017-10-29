@@ -7547,8 +7547,13 @@ VteTerminalPrivate::apply_font_metrics(int width,
 		m_char_descent = descent;
 	}
 	m_line_thickness = MAX (MIN ((height - ascent) / 2, height / 14), 1);
+        /* FIXME take these from pango_font_metrics_get_{underline,strikethrough}_{position,thickness} */
 	m_underline_position = MIN (ascent + m_line_thickness, height - m_line_thickness);
+        m_underline_thickness = m_line_thickness;
 	m_strikethrough_position =  ascent - height / 4;
+        m_strikethrough_thickness = m_line_thickness;
+        m_regex_underline_position = height - 1;  /* FIXME */
+        m_regex_underline_thickness = 1;  /* FIXME */
 
 	/* Queue a resize if anything's changed. */
 	if (resize) {
@@ -8019,7 +8024,11 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_char_descent = 1;
 	m_line_thickness = 1;
 	m_underline_position = 1;
+        m_underline_thickness = 1;
 	m_strikethrough_position = 1;
+        m_strikethrough_thickness = 1;
+        m_regex_underline_position = 1;
+        m_regex_underline_thickness = 1;
 
         m_row_count = VTE_ROWS;
         m_column_count = VTE_COLUMNS;
@@ -8882,37 +8891,37 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			}
 			if (underline) {
                                 _vte_draw_draw_line(m_draw,
-						x,
-						y + m_underline_position,
-						x + (columns * column_width) - 1,
-                                                    y + m_underline_position + m_line_thickness - 1,
+                                                    x,
+                                                    y + m_underline_position,
+                                                    x + (columns * column_width) - 1,
+                                                    y + m_underline_position + m_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
 			}
 			if (strikethrough) {
                                 _vte_draw_draw_line(m_draw,
-						x,
-						y + m_strikethrough_position,
-						x + (columns * column_width) - 1,
-                                                       y + m_strikethrough_position + m_line_thickness - 1,
-                                                       VTE_LINE_WIDTH,
-                                                       &fg, VTE_DRAW_OPAQUE);
+                                                    x,
+                                                    y + m_strikethrough_position,
+                                                    x + (columns * column_width) - 1,
+                                                    y + m_strikethrough_position + m_strikethrough_thickness - 1,
+                                                    VTE_LINE_WIDTH,
+                                                    &fg, VTE_DRAW_OPAQUE);
 			}
 			if (hilite) {
                                 _vte_draw_draw_line(m_draw,
-						x,
-						y + row_height - 1,
-						x + (columns * column_width) - 1,
-                                                       y + row_height - 1,
-                                                       VTE_LINE_WIDTH,
-                                                       &fg, VTE_DRAW_OPAQUE);
+                                                    x,
+                                                    y + m_regex_underline_position,
+                                                    x + (columns * column_width) - 1,
+                                                    y + m_regex_underline_position + m_regex_underline_thickness - 1,
+                                                    VTE_LINE_WIDTH,
+                                                    &fg, VTE_DRAW_OPAQUE);
                         } else if (hyperlink) {
                                 for (double j = 1.0 / 6.0; j < columns; j += 0.5) {
                                         _vte_draw_fill_rectangle(m_draw,
                                                                  x + j * column_width,
-                                                                 y + row_height - 1,
+                                                                 y + m_regex_underline_position,
                                                                  MAX(column_width / 6.0, 1.0),
-                                                                 1,
+                                                                 m_regex_underline_thickness,
                                                                  &fg, VTE_DRAW_OPAQUE);
                                 }
                         }

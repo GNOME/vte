@@ -520,7 +520,11 @@ public:
         gboolean m_has_fonts;
         long m_line_thickness;
         long m_underline_position;
+        long m_underline_thickness;
         long m_strikethrough_position;
+        long m_strikethrough_thickness;
+        long m_regex_underline_position;
+        long m_regex_underline_thickness;
 
         /* Style stuff */
         GtkBorder m_padding;
