@@ -26,6 +26,7 @@
 #include "ring.h"
 #include "vteconv.h"
 #include "buffer.h"
+#include "matcher.hh"
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
@@ -255,6 +256,117 @@ private:
 
         Request *m_request;
 };
+
+namespace vte {
+namespace parser {
+
+struct Params {
+
+        typedef long number;
+
+        char* ucs4_to_utf8(gunichar const* str) const;
+
+        inline unsigned int size() const
+        {
+                return G_LIKELY(m_values != nullptr) ? m_values->n_values : 0;
+        }
+
+        inline GValue* value_at_unchecked(unsigned int position) const
+        {
+                return g_value_array_get_nth(m_values, position);
+        }
+
+        inline bool has_number_at_unchecked(unsigned int position) const
+        {
+                return G_UNLIKELY(G_VALUE_HOLDS_LONG(value_at_unchecked(position)));
+        }
+
+        inline bool number_at_unchecked(unsigned int position, number& v) const
+        {
+                auto value = value_at_unchecked(position);
+                if (G_UNLIKELY(!G_VALUE_HOLDS(value, G_TYPE_LONG)))
+                        return false;
+
+                v = g_value_get_long(value);
+                return true;
+        }
+
+        inline bool number_at(unsigned int position, number& v) const
+        {
+                if (G_UNLIKELY(position >= size()))
+                        return false;
+
+                return number_at_unchecked(position, v);
+        }
+
+        inline number number_or_default_at_unchecked(unsigned int position, number default_v = 0) const
+        {
+                number v;
+                if (G_UNLIKELY(!number_at_unchecked(position, v)))
+                        v = default_v;
+                return v;
+        }
+
+
+        inline number number_or_default_at(unsigned int position, number default_v = 0) const
+        {
+                number v;
+                if (G_UNLIKELY(!number_at(position, v)))
+                        v = default_v;
+                return v;
+        }
+
+        inline bool string_at_unchecked(unsigned int position, char*& str) const
+        {
+                auto value = value_at_unchecked(position);
+                if (G_LIKELY(G_VALUE_HOLDS_POINTER(value))) {
+                        str = ucs4_to_utf8((gunichar const*)g_value_get_pointer (value));
+                        return str != nullptr;
+                }
+                if (G_VALUE_HOLDS_STRING(value)) {
+                        /* Copy the string into the buffer. */
+                        str = g_value_dup_string(value);
+                        return str != nullptr;
+                }
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        /* Convert the long to a string. */
+                        str = g_strdup_printf("%ld", g_value_get_long(value));
+                        return true;
+                }
+                return false;
+        }
+
+        inline bool string_at(unsigned int position, char*& str) const
+        {
+                if (G_UNLIKELY(position >= size()))
+                        return false;
+
+                return string_at_unchecked(position, str);
+
+        }
+
+        inline bool has_subparams_at_unchecked(unsigned int position) const
+        {
+                return G_UNLIKELY(G_VALUE_HOLDS_BOXED(value_at_unchecked(position)));
+        }
+
+        inline Params subparams_at_unchecked(unsigned int position) const
+        {
+                return {(GValueArray*)g_value_get_boxed(value_at_unchecked(position))};
+        }
+
+        inline void recycle(struct _vte_matcher *matcher)
+        {
+                if (G_LIKELY(m_values != nullptr))
+                    _vte_matcher_free_params_array(matcher, m_values);
+        }
+
+        GValueArray *m_values;
+};
+
+} // namespace parser
+} // namespace vte
+
 
 /* Terminal private data. */
 class VteTerminalPrivate {
@@ -1125,38 +1237,43 @@ public:
 
         /* Sequence handlers and their helper functions */
         void handle_sequence(char const* match,
-                             GValueArray *params);
-        char* ucs4_to_utf8(guchar const* in);
+                             vte::parser::Params const& params);
 
         inline void ensure_cursor_is_onscreen();
-        inline void seq_home_cursor();
-        inline void seq_clear_screen();
-        inline void seq_clear_current_line();
-        inline void seq_clear_above_current();
-        inline void seq_scroll_text(vte::grid::row_t scroll_amount);
-        inline void seq_switch_screen(VteScreen *new_screen);
-        inline void seq_normal_screen();
-        inline void seq_alternate_screen();
-        inline void seq_save_cursor();
-        inline void seq_restore_cursor();
-        inline void seq_normal_screen_and_restore_cursor();
-        inline void seq_save_cursor_and_alternate_screen();
-        void seq_set_title_internal(GValueArray *params,
-                                    bool icon_title,
-                                    bool window_title);
-        inline void seq_set_mode_internal(long setting,
-                                          bool value);
-        inline void set_mouse_smooth_scroll_delta(double value);
-        inline void seq_decset_internal_post(long setting,
-                                             bool set);
+        inline void home_cursor();
+        inline void clear_screen();
+        inline void clear_current_line();
+        inline void clear_above_current();
+        inline void scroll_text(vte::grid::row_t scroll_amount);
+        inline void switch_screen(VteScreen *new_screen);
+        inline void switch_normal_screen();
+        inline void switch_alternate_screen();
+        inline void save_cursor();
+        inline void restore_cursor();
+        inline void switch_normal_screen_and_restore_cursor();
+        inline void save_cursor_and_switch_alternate_screen();
+        void set_title_internal(vte::parser::Params const& params,
+                                bool icon_title,
+                                bool window_title);
+        inline void set_mode(vte::parser::Params const& params,
+                             bool value);
+        inline void reset_mouse_smooth_scroll_delta();
+        inline void enter_focus_tracking_mode();
+        inline void decset(long setting,
+                           bool restore,
+                           bool save,
+                           bool set);
+        inline void decset(vte::parser::Params const& params,
+                           bool restore,
+                           bool save,
+                           bool set);
         inline void set_character_replacements(unsigned slot,
                                                VteCharacterReplacement replacement);
         inline void set_character_replacement(unsigned slot);
-        inline void seq_cursor_back_tab();
-        inline void seq_cb();
-        inline void seq_cd();
-        inline void seq_ce();
-        inline void seq_dc();
+        inline void clear_to_bol();
+        inline void clear_below_current();
+        inline void clear_to_eol();
+        inline void delete_character();
         inline void set_cursor_column(vte::grid::column_t col);
         inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
         inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
@@ -1166,39 +1283,29 @@ public:
         inline void reset_scrolling_region();
         inline void set_scrolling_region(vte::grid::row_t start /* relative */,
                                          vte::grid::row_t end /* relative */);
-        inline void seq_cursor_up(vte::grid::row_t rows);
-        inline void seq_cursor_down(vte::grid::row_t rows);
-        inline void seq_erase_characters(long count);
-        inline void seq_insert_blank_character();
-        inline void seq_backspace();
-        inline void seq_cursor_backward(vte::grid::column_t columns);
-        inline void seq_cursor_forward(vte::grid::column_t columns);
-        inline void seq_change_color_internal(char const* str,
-                                              char const* terminator);
-        inline void seq_reverse_index();
-        inline void seq_tab_set();
-        inline void seq_tab();
-        inline void seq_tab_clear(long param);
-        inline void seq_send_secondary_device_attributes();
-        inline void set_current_directory_uri_changed(char* uri /* adopted */);
-        inline void set_current_file_uri_changed(char* uri /* adopted */);
+        inline void move_cursor_up(vte::grid::row_t rows);
+        inline void move_cursor_down(vte::grid::row_t rows);
+        inline void erase_characters(long count);
+        inline void insert_blank_character();
+        inline int32_t parse_sgr_38_48_parameters(vte::parser::Params const& params,
+                                                  unsigned int *index);
+        inline void move_cursor_backward(vte::grid::column_t columns);
+        inline void move_cursor_forward(vte::grid::column_t columns);
+        inline void move_cursor_tab();
+        inline void change_color(vte::parser::Params const& params,
+                                 char const* terminator);
+        inline void line_feed();
         inline void set_current_hyperlink(char* hyperlink_params /* adopted */, char* uri /* adopted */);
         inline void set_keypad_mode(VteKeymode mode);
-        inline void seq_erase_in_display(long param);
-        inline void seq_erase_in_line(long param);
-        inline void seq_insert_lines(vte::grid::row_t param);
-        inline void seq_delete_lines(vte::grid::row_t param);
-        inline void seq_device_status_report(long param);
-        inline void seq_dec_device_status_report(long param);
-        inline void seq_screen_alignment_test();
-        inline void seq_window_manipulation(long param,
-                                            long arg1,
-                                            long arg2);
-        inline void seq_change_special_color_internal(char const* name,
-                                                      int index,
-                                                      int index_fallback,
-                                                      int osc,
-                                                      char const *terminator);
+        inline void erase_in_display(long param);
+        inline void erase_in_line(long param);
+        inline void insert_lines(vte::grid::row_t param);
+        inline void delete_lines(vte::grid::row_t param);
+        inline void change_special_color(vte::parser::Params const& params,
+                                         int index,
+                                         int index_fallback,
+                                         int osc,
+                                         char const *terminator);
 
         void subscribe_accessible_events();
         void select_text(vte::grid::column_t start_col,
@@ -1207,6 +1314,11 @@ public:
                          vte::grid::row_t end_row);
         void select_empty(vte::grid::column_t col,
                           vte::grid::row_t row);
+
+#define VTE_SEQUENCE_HANDLER(name) \
+	inline void seq_ ## name (vte::parser::Params const& params);
+#include "vteseq-list.h"
+#undef VTE_SEQUENCE_HANDLER
 };
 
 extern GTimer *process_timer;

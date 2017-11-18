@@ -83,7 +83,7 @@ IGNORE_HFILES = \
 	iso2022.h \
 	keymap.h \
 	marshal.h \
-	matcher.h \
+	matcher.hh \
 	ring.h \
 	stamp-vtetypebuiltins.h \
 	table.h \

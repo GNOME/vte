@@ -18,13 +18,9 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ifndef vte_matcher_h_included
-#define vte_matcher_h_included
-
+#pragma once
 
 #include <glib-object.h>
-
-G_BEGIN_DECLS
 
 struct _vte_matcher;
 
@@ -68,7 +64,3 @@ void _vte_matcher_print(struct _vte_matcher *matcher);
 
 /* Free a parameter array. */
 void _vte_matcher_free_params_array(struct _vte_matcher *matcher, GValueArray *params);
-
-G_END_DECLS
-
-#endif

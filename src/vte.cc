@@ -62,7 +62,7 @@
 #include "iso2022.h"
 #include "keymap.h"
 #include "marshal.h"
-#include "matcher.h"
+#include "matcher.hh"
 #include "vteaccess.h"
 #include "vtepty.h"
 #include "vtepty-private.h"
@@ -3615,7 +3615,7 @@ skip_chunk:
 	while (start < wcount && !leftovers) {
 		const char *seq_match;
 		const gunichar *next;
-		GValueArray *params = NULL;
+                vte::parser::Params params{nullptr};
 
 		/* Try to match any control sequences. */
 		_vte_matcher_match(m_matcher,
@@ -3623,7 +3623,7 @@ skip_chunk:
 				   wcount - start,
 				   &seq_match,
 				   &next,
-				   &params);
+				   &params.m_values);
 		/* We're in one of three possible situations now.
 		 * First, the match string is a non-empty string and next
 		 * points to the first character which isn't part of this
@@ -3815,11 +3815,8 @@ skip_chunk:
 #endif
 
 next_match:
-		if (G_LIKELY(params != NULL)) {
-			/* Free any parameters we don't care about any more. */
-			_vte_matcher_free_params_array(m_matcher,
-					params);
-		}
+                /* Free any parameters we don't care about any more. */
+                params.recycle(m_matcher);
 	}
 
 	/* Remove most of the processed characters. */
@@ -5434,6 +5431,9 @@ VteTerminalPrivate::feed_focus_event(bool in)
 void
 VteTerminalPrivate::feed_focus_event_initial()
 {
+        /* We immediately send the terminal a focus event, since otherwise
+         * it has no way to know the current status.
+         */
         feed_focus_event(gtk_widget_has_focus(m_widget));
 }
 

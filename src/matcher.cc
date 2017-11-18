@@ -23,7 +23,7 @@
 #include <glib-object.h>
 #include "debug.h"
 #include "caps.h"
-#include "matcher.h"
+#include "matcher.hh"
 #include "table.h"
 
 struct _vte_matcher {

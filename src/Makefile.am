@@ -57,7 +57,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	keymap.cc \
 	keymap.h \
 	matcher.cc \
-	matcher.h \
+	matcher.hh \
 	pty.cc \
 	reaper.cc \
 	reaper.hh \
@@ -249,12 +249,12 @@ interpret_SOURCES = \
 	iso2022.cc \
 	iso2022.h \
 	matcher.cc \
-	matcher.h \
+	matcher.hh \
 	table.cc \
 	table.h \
 	vteconv.cc \
 	vteconv.h \
-	interpret.c
+	interpret.cc
 interpret_CPPFLAGS = \
 	-DINTERPRET_MAIN \
 	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
@@ -289,7 +289,7 @@ table_SOURCES = \
 	debug.cc \
 	debug.h \
 	matcher.cc \
-	matcher.h \
+	matcher.hh \
 	table.cc \
 	table.h \
 	vteconv.cc \

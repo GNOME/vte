@@ -38,86 +38,69 @@
 #define BEL "\007"
 #define ST _VTE_CAP_ST
 
-/* FUNCTIONS WE USE */
+#include <algorithm>
 
 static void
-display_control_sequence(const char *name, GValueArray *params)
+display_control_sequence(const char *name, vte::parser::Params const& params)
 {
 #ifdef VTE_DEBUG
-	guint i;
-	long l;
-	const char *s;
-	const gunichar *w;
-	GValue *value;
-	g_printerr("%s(", name);
-	if (params != NULL) {
-		for (i = 0; i < params->n_values; i++) {
-			value = g_value_array_get_nth(params, i);
-			if (i > 0) {
-				g_printerr(", ");
-			}
-			if (G_VALUE_HOLDS_LONG(value)) {
-				l = g_value_get_long(value);
-				g_printerr("LONG(%ld)", l);
-			} else
-			if (G_VALUE_HOLDS_STRING(value)) {
-				s = g_value_get_string(value);
-				g_printerr("STRING(\"%s\")", s);
-			} else
-			if (G_VALUE_HOLDS_POINTER(value)) {
-				w = (const gunichar *)g_value_get_pointer(value);
-				g_printerr("WSTRING(\"%ls\")", (const wchar_t*) w);
-			}
-		}
+        g_printerr("%s(", name);
+        auto n_params = params.size();
+        for (unsigned int i = 0; i < n_params; i++) {
+                auto value = params.value_at_unchecked(i);
+                if (i > 0) {
+                        g_printerr(", ");
+                }
+                if (G_VALUE_HOLDS_LONG(value)) {
+                        auto l = g_value_get_long(value);
+                        g_printerr("LONG(%ld)", l);
+                } else if (G_VALUE_HOLDS_STRING(value)) {
+                        auto const s = g_value_get_string(value);
+                        g_printerr("STRING(\"%s\")", s);
+                } else if (G_VALUE_HOLDS_POINTER(value)) {
+                        auto w = (const gunichar *)g_value_get_pointer(value);
+                        g_printerr("WSTRING(\"%ls\")", (const wchar_t*) w);
+                } else if (G_VALUE_HOLDS_BOXED(value)) {
+                        vte::parser::Params subparams{(GValueArray*)g_value_get_boxed(value)};
+                        display_control_sequence("", subparams);
+                }
 	}
 	g_printerr(")\n");
 #endif
 }
 
-
 /* A couple are duplicated from vte.c, to keep them static... */
 
 /* Check how long a string of unichars is.  Slow version. */
-static gssize
-vte_unichar_strlen(gunichar *c)
+static gsize
+vte_unichar_strlen(gunichar const* c)
 {
-	int i;
+	gsize i;
 	for (i = 0; c[i] != 0; i++) ;
 	return i;
 }
 
 /* Convert a wide character string to a multibyte string */
+/* Simplified from glib's g_ucs4_to_utf8() to simply allocate the maximum
+ * length instead of walking the input twice.
+ */
 char*
-VteTerminalPrivate::ucs4_to_utf8(guchar const* in)
+vte::parser::Params::ucs4_to_utf8(gunichar const* str) const
 {
-	gchar *out = NULL;
-	guchar *buf = NULL, *bufptr = NULL;
-	gsize inlen, outlen;
-	VteConv conv;
+        auto len = vte_unichar_strlen(str);
+        auto outlen = (len * VTE_UTF8_BPC) + 1;
 
-	conv = _vte_conv_open ("UTF-8", VTE_CONV_GUNICHAR_TYPE);
+        auto result = (char*)g_try_malloc(outlen);
+        if (result == nullptr)
+                return nullptr;
 
-	if (conv != VTE_INVALID_CONV) {
-		inlen = vte_unichar_strlen ((gunichar *) in) * sizeof (gunichar);
-		outlen = (inlen * VTE_UTF8_BPC) + 1;
+        auto end = str + len;
+        auto p = result;
+        for (auto i = str; i < end; i++)
+                p += g_unichar_to_utf8(*i, p);
+        *p = '\0';
 
-		_vte_byte_array_set_minimum_size (m_conv_buffer, outlen);
-		buf = bufptr = m_conv_buffer->data;
-
-		if (_vte_conv (conv, &in, &inlen, &buf, &outlen) == (size_t) -1) {
-			_vte_debug_print (VTE_DEBUG_IO,
-					  "Error converting %ld string bytes (%s), skipping.\n",
-					  (long) _vte_byte_array_length (m_outgoing),
-					  g_strerror (errno));
-			bufptr = NULL;
-		} else {
-			out = g_strndup ((gchar *) bufptr, buf - bufptr);
-		}
-	}
-
-	_vte_conv_close (conv);
-
-	return out;
+        return result;
 }
 
 /* Emit a "bell" signal. */
@@ -229,14 +212,13 @@ VteTerminalPrivate::ensure_cursor_is_onscreen()
 }
 
 void
-VteTerminalPrivate::seq_home_cursor()
+VteTerminalPrivate::home_cursor()
 {
         set_cursor_coords(0, 0);
 }
 
-/* Clear the entire screen. */
 void
-VteTerminalPrivate::seq_clear_screen()
+VteTerminalPrivate::clear_screen()
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
         auto initial = _vte_ring_next(m_screen->row_data);
@@ -256,7 +238,7 @@ VteTerminalPrivate::seq_clear_screen()
 
 /* Clear the current line. */
 void
-VteTerminalPrivate::seq_clear_current_line()
+VteTerminalPrivate::clear_current_line()
 {
 	VteRowData *rowdata;
 
@@ -282,7 +264,7 @@ VteTerminalPrivate::seq_clear_current_line()
 
 /* Clear above the current line. */
 void
-VteTerminalPrivate::seq_clear_above_current()
+VteTerminalPrivate::clear_above_current()
 {
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
@@ -306,7 +288,7 @@ VteTerminalPrivate::seq_clear_above_current()
 
 /* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
 void
-VteTerminalPrivate::seq_scroll_text(vte::grid::row_t scroll_amount)
+VteTerminalPrivate::scroll_text(vte::grid::row_t scroll_amount)
 {
         vte::grid::row_t start, end;
         if (m_scrolling_restricted) {
@@ -344,47 +326,41 @@ VteTerminalPrivate::seq_scroll_text(vte::grid::row_t scroll_amount)
 }
 
 /* Restore cursor. */
-static void
-vte_sequence_handler_restore_cursor (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_restore_cursor(vte::parser::Params const& params)
 {
-        that->seq_restore_cursor();
+        restore_cursor();
 }
 
 void
-VteTerminalPrivate::seq_restore_cursor()
+VteTerminalPrivate::restore_cursor()
 {
         restore_cursor(m_screen);
         ensure_cursor_is_onscreen();
 }
 
 /* Save cursor. */
-static void
-vte_sequence_handler_save_cursor (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_save_cursor(vte::parser::Params const& params)
 {
-        that->seq_save_cursor();
+        save_cursor();
 }
 
 void
-VteTerminalPrivate::seq_save_cursor()
+VteTerminalPrivate::save_cursor()
 {
         save_cursor(m_screen);
 }
 
 /* Switch to normal screen. */
-static void
-vte_sequence_handler_normal_screen (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::switch_normal_screen()
 {
-        that->seq_normal_screen();
+        switch_screen(&m_normal_screen);
 }
 
 void
-VteTerminalPrivate::seq_normal_screen()
-{
-        seq_switch_screen(&m_normal_screen);
-}
-
-void
-VteTerminalPrivate::seq_switch_screen(VteScreen *new_screen)
+VteTerminalPrivate::switch_screen(VteScreen *new_screen)
 {
         /* if (new_screen == m_screen) return; ? */
 
@@ -409,76 +385,46 @@ VteTerminalPrivate::seq_switch_screen(VteScreen *new_screen)
 }
 
 /* Switch to alternate screen. */
-static void
-vte_sequence_handler_alternate_screen (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_alternate_screen();
-}
-
 void
-VteTerminalPrivate::seq_alternate_screen()
+VteTerminalPrivate::switch_alternate_screen()
 {
-        seq_switch_screen(&m_alternate_screen);
+        switch_screen(&m_alternate_screen);
 }
 
 /* Switch to normal screen and restore cursor (in this order). */
-static void
-vte_sequence_handler_normal_screen_and_restore_cursor (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_normal_screen_and_restore_cursor();
-}
-
 void
-VteTerminalPrivate::seq_normal_screen_and_restore_cursor()
+VteTerminalPrivate::switch_normal_screen_and_restore_cursor()
 {
-        seq_normal_screen();
-        seq_restore_cursor();
+        switch_normal_screen();
+        restore_cursor();
 }
 
 /* Save cursor and switch to alternate screen (in this order). */
-static void
-vte_sequence_handler_save_cursor_and_alternate_screen (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_save_cursor_and_alternate_screen();
-}
-
 void
-VteTerminalPrivate::seq_save_cursor_and_alternate_screen()
+VteTerminalPrivate::save_cursor_and_switch_alternate_screen()
 {
-        seq_save_cursor();
-        seq_alternate_screen();
+        save_cursor();
+        switch_alternate_screen();
 }
 
 /* Set icon/window titles. */
 void
-VteTerminalPrivate::seq_set_title_internal(GValueArray *params,
-                                           bool change_icon_title,
-                                           bool change_window_title)
+VteTerminalPrivate::set_title_internal(vte::parser::Params const& params,
+                                       bool change_icon_title,
+                                       bool change_window_title)
 {
-	GValue *value;
-	char *title = NULL;
-
         if (change_icon_title == FALSE && change_window_title == FALSE)
 		return;
 
 	/* Get the string parameter's value. */
-	value = g_value_array_get_nth(params, 0);
-	if (value) {
-		if (G_VALUE_HOLDS_LONG(value)) {
-			/* Convert the long to a string. */
-			title = g_strdup_printf("%ld", g_value_get_long(value));
-		} else
-		if (G_VALUE_HOLDS_STRING(value)) {
-			/* Copy the string into the buffer. */
-			title = g_value_dup_string(value);
-		} else
-		if (G_VALUE_HOLDS_POINTER(value)) {
-                        title = ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-		}
-		if (title != NULL) {
+        char* title;
+        if (!params.string_at(0, title))
+                return;
+
 			char *p, *validated;
 			const char *end;
 
+                        //FIXMEchpe why? it's guaranteed UTF-8 already
 			/* Validate the text. */
 			g_utf8_validate(title, strlen(title), &end);
 			validated = g_strndup(title, end - title);
@@ -502,101 +448,50 @@ VteTerminalPrivate::seq_set_title_internal(GValueArray *params,
 			}
 
 			g_free (validated);
-			g_free(title);
-		}
-	}
+
+        g_free(title);
 }
 
 /* Toggle a terminal mode. */
 void
-VteTerminalPrivate::seq_set_mode_internal(long setting,
-                                          bool value)
+VteTerminalPrivate::set_mode(vte::parser::Params const& params,
+                             bool value)
 {
-	switch (setting) {
-	case 2:		/* keyboard action mode (?) */
-		break;
-	case 4:		/* insert/overtype mode */
-                m_insert_mode = value;
-		break;
-	case 12:	/* send/receive mode (local echo) */
-                m_sendrecv_mode = value;
-		break;
-	case 20:	/* automatic newline / normal linefeed mode */
-                m_linefeed_mode = value;
-		break;
-	default:
-		break;
-	}
+        auto n_params = params.size();
+        if (n_params == 0)
+                return;
+
+	for (unsigned int i = 0; i < n_params; i++) {
+                long setting;
+                if (!params.number_at_unchecked(i, setting))
+                        continue;
+
+                switch (setting) {
+                case 2:		/* keyboard action mode (?) */
+                        break;
+                case 4:		/* insert/overtype mode */
+                        m_insert_mode = value;
+                        break;
+                case 12:	/* send/receive mode (local echo) */
+                        m_sendrecv_mode = value;
+                        break;
+                case 20:	/* automatic newline / normal linefeed mode */
+                        m_linefeed_mode = value;
+                        break;
+                default:
+                        break;
+                }
+        }
 }
-
-
-/*
- * Sequence handling boilerplate
- */
-
-/* Typedef the handle type */
-typedef void (*VteTerminalSequenceHandler) (VteTerminalPrivate *that, GValueArray *params);
-
-/* Prototype all handlers... */
-#define VTE_SEQUENCE_HANDLER(name) \
-	static void name (VteTerminalPrivate *that, GValueArray *params);
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
-
 
 /* Call another function a given number of times, or once. */
-static void
-vte_sequence_handler_multiple_limited(VteTerminalPrivate *that,
-                                      GValueArray *params,
-                                      VteTerminalSequenceHandler handler,
-                                      glong max)
-{
-	long val = 1;
-	int i;
-	GValue *value;
-
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			val = g_value_get_long(value);
-			val = CLAMP(val, 1, max);	/* FIXME: vttest. */
-		}
-	}
-	for (i = 0; i < val; i++)
-		handler (that, NULL);
-}
-
-static void
-vte_sequence_handler_multiple_r(VteTerminalPrivate *that,
-                                GValueArray *params,
-                                VteTerminalSequenceHandler handler)
-{
-        vte_sequence_handler_multiple_limited(that, params, handler,
-                                              that->m_column_count - that->m_screen->cursor.col);
-}
-
-static void
-vte_reset_mouse_smooth_scroll_delta(VteTerminalPrivate *that,
-                                    GValueArray *params)
-{
-        that->set_mouse_smooth_scroll_delta(0.);
-}
-
 void
-VteTerminalPrivate::set_mouse_smooth_scroll_delta(double value)
+VteTerminalPrivate::reset_mouse_smooth_scroll_delta()
 {
-	m_mouse_smooth_scroll_delta = value;
+	m_mouse_smooth_scroll_delta = 0.0;
 }
 
-static void
-vte_set_focus_tracking_mode(VteTerminalPrivate *that,
-                            GValueArray *params)
-{
-        /* We immediately send the terminal a focus event, since otherwise
-         * it has no way to know the current status.
-         */
-        that->feed_focus_event_initial();
-}
+typedef void (VteTerminalPrivate::* decset_handler_t)();
 
 struct decset_t {
         gint16 setting;
@@ -606,7 +501,7 @@ struct decset_t {
         gint16 poffset;
         gint16 fvalue;
         gint16 tvalue;
-        VteTerminalSequenceHandler reset, set;
+        decset_handler_t reset, set;
 };
 
 static int
@@ -620,12 +515,29 @@ decset_cmp(const void *va,
 }
 
 /* Manipulate certain terminal attributes. */
-static void
-vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
-				     int setting,
-				     gboolean restore,
-				     gboolean save,
-				     gboolean set)
+void
+VteTerminalPrivate::decset(vte::parser::Params const& params,
+                           bool restore,
+                           bool save,
+                           bool set)
+{
+
+        auto n_params = params.size();
+        for (unsigned int i = 0; i < n_params; i++) {
+                long setting;
+
+                if (!params.number_at(i, setting))
+                        continue;
+
+		decset(setting, restore, save, set);
+	}
+}
+
+void
+VteTerminalPrivate::decset(long setting,
+                           bool restore,
+                           bool save,
+                           bool set)
 {
 	static const struct decset_t settings[] = {
 #define PRIV_OFFSET(member) (G_STRUCT_OFFSET(VteTerminalPrivate, member))
@@ -634,159 +546,159 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 		{1, 0, PRIV_OFFSET(m_cursor_mode), 0,
 		 VTE_KEYMODE_NORMAL,
 		 VTE_KEYMODE_APPLICATION,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 2: disallowed, we don't do VT52. */
-		{2, 0, 0, 0, 0, 0, NULL, NULL,},
+		{2, 0, 0, 0, 0, 0, nullptr, nullptr,},
                 /* 3: DECCOLM set/reset to and from 132/80 columns */
                 {3, 0, 0, 0,
                  FALSE,
                  TRUE,
-                 NULL, NULL,},
+                 nullptr, nullptr,},
 		/* 5: Reverse video. */
                 {5, PRIV_OFFSET(m_reverse_mode), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 6: Origin mode: when enabled, cursor positioning is
 		 * relative to the scrolling region. */
                 {6, PRIV_OFFSET(m_origin_mode), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 7: Wraparound mode. */
                 {7, PRIV_OFFSET(m_autowrap), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 8: disallowed, keyboard repeat is set by user. */
-		{8, 0, 0, 0, 0, 0, NULL, NULL,},
+		{8, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 9: Send-coords-on-click. */
 		{9, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
 		 0,
 		 MOUSE_TRACKING_SEND_XY_ON_CLICK,
-		 vte_reset_mouse_smooth_scroll_delta,
-		 vte_reset_mouse_smooth_scroll_delta,},
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
 		/* 12: disallowed, cursor blinks is set by user. */
-		{12, 0, 0, 0, 0, 0, NULL, NULL,},
+		{12, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 18: print form feed. */
 		/* 19: set print extent to full screen. */
 		/* 25: Cursor visible. */
 		{25, PRIV_OFFSET(m_cursor_visible), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 30/rxvt: disallowed, scrollbar visibility is set by user. */
-		{30, 0, 0, 0, 0, 0, NULL, NULL,},
+		{30, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 35/rxvt: disallowed, fonts set by user. */
-		{35, 0, 0, 0, 0, 0, NULL, NULL,},
+		{35, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 38: enter Tektronix mode. */
                 /* 40: Enable DECCOLM mode. */
                 {40, PRIV_OFFSET(m_deccolm_mode), 0, 0,
                  FALSE,
                  TRUE,
-                 NULL, NULL,},
+                 nullptr, nullptr,},
 		/* 41: more(1) fix. */
 		/* 42: Enable NLS replacements. */
 		/* 44: Margin bell. */
 		{44, PRIV_OFFSET(m_margin_bell), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 47: Alternate screen. */
                 {47, 0, 0, 0,
                  0,
                  0,
-                 vte_sequence_handler_normal_screen,
-                 vte_sequence_handler_alternate_screen,},
+                 &VteTerminalPrivate::switch_normal_screen,
+                 &VteTerminalPrivate::switch_alternate_screen,},
 		/* 66: Keypad mode. */
 		{66, PRIV_OFFSET(m_keypad_mode), 0, 0,
 		 VTE_KEYMODE_NORMAL,
 		 VTE_KEYMODE_APPLICATION,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 67: disallowed, backspace key policy is set by user. */
-		{67, 0, 0, 0, 0, 0, NULL, NULL,},
+		{67, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 1000: Send-coords-on-button. */
 		{1000, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
 		 0,
 		 MOUSE_TRACKING_SEND_XY_ON_BUTTON,
-		 vte_reset_mouse_smooth_scroll_delta,
-		 vte_reset_mouse_smooth_scroll_delta,},
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
 		/* 1001: Hilite tracking. */
 		{1001, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
 		 (0),
 		 (MOUSE_TRACKING_HILITE_TRACKING),
-		 vte_reset_mouse_smooth_scroll_delta,
-		 vte_reset_mouse_smooth_scroll_delta,},
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
 		/* 1002: Cell motion tracking. */
 		{1002, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
 		 (0),
 		 (MOUSE_TRACKING_CELL_MOTION_TRACKING),
-		 vte_reset_mouse_smooth_scroll_delta,
-		 vte_reset_mouse_smooth_scroll_delta,},
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
 		/* 1003: All motion tracking. */
 		{1003, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
 		 (0),
 		 (MOUSE_TRACKING_ALL_MOTION_TRACKING),
-		 vte_reset_mouse_smooth_scroll_delta,
-		 vte_reset_mouse_smooth_scroll_delta,},
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
+                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
 		/* 1004: Focus tracking. */
 		{1004, PRIV_OFFSET(m_focus_tracking_mode), 0, 0,
 		 FALSE,
 		 TRUE,
-                 NULL,
-                 vte_set_focus_tracking_mode,},
+                 nullptr,
+                 &VteTerminalPrivate::feed_focus_event_initial,},
 		/* 1006: Extended mouse coordinates. */
 		{1006, PRIV_OFFSET(m_mouse_xterm_extension), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 1007: Alternate screen scroll. */
 		{1007, PRIV_OFFSET(m_alternate_screen_scroll), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
-		{1010, 0, 0, 0, 0, 0, NULL, NULL,},
+		{1010, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */
-		{1011, 0, 0, 0, 0, 0, NULL, NULL,},
+		{1011, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 1015/urxvt: Extended mouse coordinates. */
 		{1015, PRIV_OFFSET(m_mouse_urxvt_extension), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+                 nullptr, nullptr,},
 		/* 1035: disallowed, don't know what to do with it. */
-		{1035, 0, 0, 0, 0, 0, NULL, NULL,},
+		{1035, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 1036: Meta-sends-escape. */
 		{1036, PRIV_OFFSET(m_meta_sends_escape), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 		/* 1037: disallowed, delete key policy is set by user. */
-		{1037, 0, 0, 0, 0, 0, NULL, NULL,},
+		{1037, 0, 0, 0, 0, 0, nullptr, nullptr,},
 		/* 1047: Use alternate screen buffer. */
                 {1047, 0, 0, 0,
                  0,
                  0,
-                 vte_sequence_handler_normal_screen,
-                 vte_sequence_handler_alternate_screen,},
+                 &VteTerminalPrivate::switch_normal_screen,
+                 &VteTerminalPrivate::switch_alternate_screen,},
 		/* 1048: Save/restore cursor position. */
 		{1048, 0, 0, 0,
 		 0,
 		 0,
-                 vte_sequence_handler_restore_cursor,
-                 vte_sequence_handler_save_cursor,},
+                 &VteTerminalPrivate::restore_cursor,
+                 &VteTerminalPrivate::save_cursor,},
 		/* 1049: Use alternate screen buffer, saving the cursor
 		 * position. */
                 {1049, 0, 0, 0,
                  0,
                  0,
-                 vte_sequence_handler_normal_screen_and_restore_cursor,
-                 vte_sequence_handler_save_cursor_and_alternate_screen,},
+                 &VteTerminalPrivate::switch_normal_screen_and_restore_cursor,
+                 &VteTerminalPrivate::save_cursor_and_switch_alternate_screen,},
 		/* 2004: Bracketed paste mode. */
 		{2004, PRIV_OFFSET(m_bracketed_paste_mode), 0, 0,
 		 FALSE,
 		 TRUE,
-		 NULL, NULL,},
+		 nullptr, nullptr,},
 #undef PRIV_OFFSET
 #undef SCREEN_OFFSET
 	};
@@ -798,7 +710,7 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
         found = (struct decset_t *)bsearch(&key, settings, G_N_ELEMENTS(settings), sizeof(settings[0]), decset_cmp);
         if (!found) {
 		_vte_debug_print (VTE_DEBUG_MISC,
-				  "DECSET/DECRESET mode %d not recognized, ignoring.\n",
+				  "DECSET/DECRESET mode %ld not recognized, ignoring.\n",
 				  setting);
                 return;
 	}
@@ -812,13 +724,13 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 
 		/* Handle settings we want to ignore. */
 		if ((key.fvalue == key.tvalue) &&
-		    (key.set == NULL) &&
-		    (key.reset == NULL)) {
+		    (!key.set) &&
+		    (!key.reset)) {
 			break;
 		}
 
 #define STRUCT_MEMBER_P(type,total_offset) \
-                (type) (total_offset >= 0 ? G_STRUCT_MEMBER_P(that, total_offset) : G_STRUCT_MEMBER_P(that->m_screen, -total_offset))
+                (type) (total_offset >= 0 ? G_STRUCT_MEMBER_P(this, total_offset) : G_STRUCT_MEMBER_P(m_screen, -total_offset))
 
                 if (key.boffset) {
                         bvalue = STRUCT_MEMBER_P(gboolean*, key.boffset);
@@ -833,11 +745,11 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 
 		/* Read the old setting. */
 		if (restore) {
-			p = g_hash_table_lookup(that->m_dec_saved,
+			p = g_hash_table_lookup(m_dec_saved,
 						GINT_TO_POINTER(setting));
 			set = (p != NULL);
 			_vte_debug_print(VTE_DEBUG_PARSE,
-					"Setting %d was %s.\n",
+					"Setting %ld was %s.\n",
 					setting, set ? "set" : "unset");
 		}
 		/* Save the current setting. */
@@ -852,19 +764,19 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
 				set = *(pvalue) == ptvalue;
 			}
 			_vte_debug_print(VTE_DEBUG_PARSE,
-					"Setting %d is %s, saving.\n",
+					"Setting %ld is %s, saving.\n",
 					setting, set ? "set" : "unset");
-			g_hash_table_insert(that->m_dec_saved,
+			g_hash_table_insert(m_dec_saved,
 					    GINT_TO_POINTER(setting),
 					    GINT_TO_POINTER(set));
 		}
 		/* Change the current setting to match the new/saved value. */
 		if (!save) {
 			_vte_debug_print(VTE_DEBUG_PARSE,
-					"Setting %d to %s.\n",
+					"Setting %ld to %s.\n",
 					setting, set ? "set" : "unset");
 			if (key.set && set) {
-				key.set (that, NULL);
+				(this->*key.set)();
 			}
 			if (bvalue) {
 				*(bvalue) = set;
@@ -876,18 +788,11 @@ vte_sequence_handler_decset_internal(VteTerminalPrivate *that,
                                 *(pvalue) = set ? ptvalue : pfvalue;
 			}
 			if (key.reset && !set) {
-				key.reset (that, NULL);
+				(this->*key.reset)();
 			}
 		}
 	} while (0);
 
-        that->seq_decset_internal_post(setting, set);
-}
-
-void
-VteTerminalPrivate::seq_decset_internal_post(long setting,
-                                             bool set)
-{
 	/* Do whatever's necessary when the setting changes. */
 	switch (setting) {
 	case 1:
@@ -900,8 +805,8 @@ VteTerminalPrivate::seq_decset_internal_post(long setting,
                 if (m_deccolm_mode) {
                         emit_resize_window(set ? 132 : 80,
                                            m_row_count);
-                        seq_clear_screen();
-                        seq_home_cursor();
+                        clear_screen();
+                        home_cursor();
                 }
 		break;
 	case 5:
@@ -910,14 +815,14 @@ VteTerminalPrivate::seq_decset_internal_post(long setting,
 		break;
 	case 6:
 		/* Reposition the cursor in its new home position. */
-                seq_home_cursor();
+                home_cursor();
 		break;
 	case 47:
 	case 1047:
 	case 1049:
                 /* Clear the alternate screen if we're switching to it */
 		if (set) {
-			seq_clear_screen();
+			clear_screen();
 		}
 		/* Reset scrollbars and repaint everything. */
 		gtk_adjustment_set_value(m_vadjustment,
@@ -947,8 +852,8 @@ VteTerminalPrivate::seq_decset_internal_post(long setting,
 /* THE HANDLERS */
 
 /* Do nothing. */
-static void
-vte_sequence_handler_nop (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_nop(vte::parser::Params const& params)
 {
 }
 
@@ -961,45 +866,45 @@ VteTerminalPrivate::set_character_replacements(unsigned slot,
 }
 
 /* G0 character set is a pass-thru (no mapping). */
-static void
-vte_sequence_handler_designate_g0_plain (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_designate_g0_plain(vte::parser::Params const& params)
 {
-        that->set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_NONE);
+        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_NONE);
 }
 
 /* G0 character set is DEC Special Character and Line Drawing Set. */
-static void
-vte_sequence_handler_designate_g0_line_drawing (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_designate_g0_line_drawing(vte::parser::Params const& params)
 {
-        that->set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
+        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
 }
 
 /* G0 character set is British (# is converted to £). */
-static void
-vte_sequence_handler_designate_g0_british (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_designate_g0_british(vte::parser::Params const& params)
 {
-        that->set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_BRITISH);
+        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_BRITISH);
 }
 
 /* G1 character set is a pass-thru (no mapping). */
-static void
-vte_sequence_handler_designate_g1_plain (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_designate_g1_plain(vte::parser::Params const& params)
 {
-        that->set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_NONE);
+        set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_NONE);
 }
 
 /* G1 character set is DEC Special Character and Line Drawing Set. */
-static void
-vte_sequence_handler_designate_g1_line_drawing (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_designate_g1_line_drawing(vte::parser::Params const& params)
 {
-        that->set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
+        set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
 }
 
 /* G1 character set is British (# is converted to £). */
-static void
-vte_sequence_handler_designate_g1_british (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_designate_g1_british(vte::parser::Params const& params)
 {
-        that->set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_BRITISH);
+        set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_BRITISH);
 }
 
 void
@@ -1010,36 +915,30 @@ VteTerminalPrivate::set_character_replacement(unsigned slot)
 }
 
 /* SI (shift in): switch to G0 character set. */
-static void
-vte_sequence_handler_shift_in (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_shift_in(vte::parser::Params const& params)
 {
-        that->set_character_replacement(0);
+        set_character_replacement(0);
 }
 
 /* SO (shift out): switch to G1 character set. */
-static void
-vte_sequence_handler_shift_out (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_shift_out(vte::parser::Params const& params)
 {
-        that->set_character_replacement(1);
+        set_character_replacement(1);
 }
 
 /* Beep. */
-static void
-vte_sequence_handler_bell (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_bell(vte::parser::Params const& params)
 {
-	that->beep();
-        that->emit_bell();
+        beep();
+        emit_bell();
 }
 
 /* Backtab. */
-static void
-vte_sequence_handler_cursor_back_tab (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_cursor_back_tab();
-}
-
 void
-VteTerminalPrivate::seq_cursor_back_tab()
+VteTerminalPrivate::seq_cursor_back_tab(vte::parser::Params const& params)
 {
 	/* Calculate which column is the previous tab stop. */
         auto newcol = m_screen->cursor.col;
@@ -1062,7 +961,7 @@ VteTerminalPrivate::seq_cursor_back_tab()
 
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
 void
-VteTerminalPrivate::seq_cb()
+VteTerminalPrivate::clear_to_bol()
 {
         ensure_cursor_is_onscreen();
 
@@ -1094,7 +993,7 @@ VteTerminalPrivate::seq_cb()
 
 /* Clear to the right of the cursor and below the current line. */
 void
-VteTerminalPrivate::seq_cd()
+VteTerminalPrivate::clear_below_current()
 {
         ensure_cursor_is_onscreen();
 
@@ -1149,7 +1048,7 @@ VteTerminalPrivate::seq_cd()
 
 /* Clear from the cursor position to the end of the line. */
 void
-VteTerminalPrivate::seq_ce()
+VteTerminalPrivate::clear_to_eol()
 {
 	/* If we were to strictly emulate xterm, we'd ensure the cursor is onscreen.
 	 * But due to https://bugzilla.gnome.org/show_bug.cgi?id=740789 we intentionally
@@ -1182,21 +1081,11 @@ VteTerminalPrivate::seq_ce()
 }
 
 /* Move the cursor to the given column (horizontal position), 1-based. */
-static void
-vte_sequence_handler_cursor_character_absolute (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_character_absolute(vte::parser::Params const& params)
 {
-	GValue *value;
-	long val;
-
-        val = 0;
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value) - 1;
-		}
-	}
-
-        that->set_cursor_column(val);
+        auto value = params.number_or_default_at(0, 1) - 1;
+        set_cursor_column(value);
 }
 
 /*
@@ -1278,69 +1167,40 @@ VteTerminalPrivate::set_cursor_coords(vte::grid::row_t row,
 }
 
 /* Move the cursor to the given position, 1-based. */
-static void
-vte_sequence_handler_cursor_position (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_position(vte::parser::Params const& params)
 {
-	GValue *row, *col;
-
-	/* We need at least two parameters. */
-        vte::grid::row_t rowval = 0;
-        vte::grid::column_t colval = 0;
-	rowval = colval = 0;
-	if (params != NULL && params->n_values >= 1) {
-		/* The first is the row, the second is the column. */
-		row = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(row)) {
-                        rowval = g_value_get_long(row) - 1;
-		}
-		if (params->n_values >= 2) {
-			col = g_value_array_get_nth(params, 1);
-			if (G_VALUE_HOLDS_LONG(col)) {
-                                colval = g_value_get_long(col) - 1;
-			}
-		}
-	}
-
-        that->set_cursor_coords(rowval, colval);
+        /* The first is the row, the second is the column. */
+        auto rowval = params.number_or_default_at(0, 1) - 1;
+        auto colval = params.number_or_default_at(1, 1) - 1;
+        set_cursor_coords(rowval, colval);
 }
 
 /* Carriage return. */
-static void
-vte_sequence_handler_carriage_return (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_carriage_return(vte::parser::Params const& params)
 {
-        that->set_cursor_column(0);
+        set_cursor_column(0);
 }
 
 void
 VteTerminalPrivate::reset_scrolling_region()
 {
         m_scrolling_restricted = FALSE;
-        seq_home_cursor();
+        home_cursor();
 }
 
 /* Restrict scrolling and updates to a subset of the visible lines. */
-static void
-vte_sequence_handler_set_scrolling_region (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_scrolling_region(vte::parser::Params const& params)
 {
-	long start=-1, end=-1;
-	GValue *value;
-
 	/* We require two parameters.  Anything less is a reset. */
-	if ((params == NULL) || (params->n_values < 2)) {
-                that->reset_scrolling_region();
-		return;
-	}
-	/* Extract the two values. */
-	value = g_value_array_get_nth(params, 0);
-	if (G_VALUE_HOLDS_LONG(value)) {
-                start = g_value_get_long(value) - 1;
-	}
-	value = g_value_array_get_nth(params, 1);
-	if (G_VALUE_HOLDS_LONG(value)) {
-                end = g_value_get_long(value) - 1;
-	}
+        if (params.size() < 2)
+                return reset_scrolling_region();
 
-        that->set_scrolling_region(start, end);
+        auto start = params.number_or_default_at_unchecked(0) - 1;
+        auto end = params.number_or_default_at_unchecked(1) - 1;
+        set_scrolling_region(start, end);
 }
 
 void
@@ -1376,51 +1236,39 @@ VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
                         _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
 	}
 
-        seq_home_cursor();
+        home_cursor();
 }
 
 /* Move the cursor to the beginning of the Nth next line, no scrolling. */
-static void
-vte_sequence_handler_cursor_next_line (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_next_line(vte::parser::Params const& params)
 {
-        that->set_cursor_column(0);
-        vte_sequence_handler_cursor_down (that, params);
+        set_cursor_column(0);
+        seq_cursor_down(params);
 }
 
 /* Move the cursor to the beginning of the Nth previous line, no scrolling. */
-static void
-vte_sequence_handler_cursor_preceding_line (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_preceding_line(vte::parser::Params const& params)
 {
-        that->set_cursor_column(0);
-        vte_sequence_handler_cursor_up (that, params);
+        set_cursor_column(0);
+        seq_cursor_up(params);
 }
 
 /* Move the cursor to the given row (vertical position), 1-based. */
-static void
-vte_sequence_handler_line_position_absolute (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_line_position_absolute(vte::parser::Params const& params)
 {
-        long val = 0;
-	if ((params != NULL) && (params->n_values > 0)) {
-		GValue* value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value) - 1;
-		}
-	}
-
         // FIXMEchpe shouldn't we ensure_cursor_is_onscreen AFTER setting the new cursor row?
-        that->ensure_cursor_is_onscreen();
-        that->set_cursor_row(val);
+        ensure_cursor_is_onscreen();
+
+        auto val = params.number_or_default_at(0, 1) - 1;
+        set_cursor_row(val);
 }
 
 /* Delete a character at the current cursor position. */
-static void
-_vte_sequence_handler_dc (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_dc();
-}
-
 void
-VteTerminalPrivate::seq_dc()
+VteTerminalPrivate::delete_character()
 {
 	VteRowData *rowdata;
 	long col;
@@ -1455,29 +1303,26 @@ VteTerminalPrivate::seq_dc()
 }
 
 /* Delete N characters at the current cursor position. */
-static void
-vte_sequence_handler_delete_characters (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_delete_characters(vte::parser::Params const& params)
 {
-        vte_sequence_handler_multiple_r(that, params, _vte_sequence_handler_dc);
+        auto val = std::max(std::min(params.number_or_default_at(0, 1),
+                                     m_column_count - m_screen->cursor.col),
+                            long(1));
+        for (auto i = 0; i < val; i++)
+                delete_character();
 }
 
 /* Cursor down N lines, no scrolling. */
-static void
-vte_sequence_handler_cursor_down (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_down(vte::parser::Params const& params)
 {
-        long val = 1;
-        if (params != NULL && params->n_values >= 1) {
-                GValue* value = g_value_array_get_nth(params, 0);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value);
-                }
-        }
-
-        that->seq_cursor_down(val);
+        auto val = params.number_or_default_at(0, 1);
+        move_cursor_down(val);
 }
 
 void
-VteTerminalPrivate::seq_cursor_down(vte::grid::row_t rows)
+VteTerminalPrivate::move_cursor_down(vte::grid::row_t rows)
 {
         rows = CLAMP(rows, 1, m_row_count);
 
@@ -1497,26 +1342,17 @@ VteTerminalPrivate::seq_cursor_down(vte::grid::row_t rows)
 
 /* Erase characters starting at the cursor position (overwriting N with
  * spaces, but not moving the cursor). */
-static void
-vte_sequence_handler_erase_characters (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_erase_characters(vte::parser::Params const& params)
 {
 	/* If we got a parameter, use it. */
-	long count = 1;
-	if ((params != NULL) && (params->n_values > 0)) {
-                GValue* value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			count = g_value_get_long(value);
-		}
-	}
-
-        that->seq_erase_characters(count);
+        auto count = std::min(params.number_or_default_at(0, 1), long(65535));
+        erase_characters(count);
 }
 
 void
-VteTerminalPrivate::seq_erase_characters(long count)
+VteTerminalPrivate::erase_characters(long count)
 {
-        // FIXMEchpe clamp @count to 0..m_column_count? or at least something sane like MAXSHORT?
-
 	VteCell *cell;
 	long col, i;
 
@@ -1554,21 +1390,15 @@ VteTerminalPrivate::seq_erase_characters(long count)
 }
 
 /* Form-feed / next-page. */
-static void
-vte_sequence_handler_form_feed (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_form_feed(vte::parser::Params const& params)
 {
-        vte_sequence_handler_line_feed (that, params);
+        line_feed();
 }
 
 /* Insert a blank character. */
-static void
-_vte_sequence_handler_insert_character (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_insert_blank_character();
-}
-
 void
-VteTerminalPrivate::seq_insert_blank_character()
+VteTerminalPrivate::insert_blank_character()
 {
         ensure_cursor_is_onscreen();
 
@@ -1579,46 +1409,40 @@ VteTerminalPrivate::seq_insert_blank_character()
 
 /* Insert N blank characters. */
 /* TODOegmont: Insert them in a single run, so that we call cleanup_fragments only once. */
-static void
-vte_sequence_handler_insert_blank_characters (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_insert_blank_characters(vte::parser::Params const& params)
 {
-        vte_sequence_handler_multiple_r(that, params, _vte_sequence_handler_insert_character);
-}
-
-/* Repeat the last graphic character once. */
-static void
-vte_sequence_handler_repeat_internal (VteTerminalPrivate *that, GValueArray *params)
-{
-        if (that->m_last_graphic_character != 0)
-                that->insert_char (that->m_last_graphic_character, false, true);
+        auto val = std::max(std::min(params.number_or_default_at(0, 1),
+                                     m_column_count - m_screen->cursor.col),
+                            long(1));
+        for (auto i = 0; i < val; i++)
+                insert_blank_character();
 }
 
 /* REP: Repeat the last graphic character n times. */
-static void
-vte_sequence_handler_repeat (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_repeat(vte::parser::Params const& params)
 {
-        vte_sequence_handler_multiple_limited (that,
-                                               params,
-                                               vte_sequence_handler_repeat_internal,
-                                               65535);
+        auto val = std::min(params.number_or_default_at(0, 1),
+                            long(65535)); // FIXMEchpe maybe limit more, to m_column_count - m_screen->cursor.col ?
+        for (auto i = 0; i < val; i++) {
+                // FIXMEchpe can't we move that check out of the loop?
+                if (m_last_graphic_character == 0)
+                        break;
+                insert_char(m_last_graphic_character, false, true);
+        }
 }
 
 /* Cursor down 1 line, with scrolling. */
-static void
-vte_sequence_handler_index (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_index(vte::parser::Params const& params)
 {
-        vte_sequence_handler_line_feed (that, params);
+        line_feed();
 }
 
 /* Cursor left. */
-static void
-vte_sequence_handler_backspace (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_backspace();
-}
-
 void
-VteTerminalPrivate::seq_backspace()
+VteTerminalPrivate::seq_backspace(vte::parser::Params const& params)
 {
         ensure_cursor_is_onscreen();
 
@@ -1629,25 +1453,15 @@ VteTerminalPrivate::seq_backspace()
 }
 
 /* Cursor left N columns. */
-static void
-vte_sequence_handler_cursor_backward (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_backward(vte::parser::Params const& params)
 {
-        GValue *value;
-        long val;
-
-        val = 1;
-        if (params != NULL && params->n_values >= 1) {
-                value = g_value_array_get_nth(params, 0);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value);
-                }
-        }
-
-        that->seq_cursor_backward(val);
+        auto val = params.number_or_default_at(0, 1);
+        move_cursor_backward(val);
 }
 
 void
-VteTerminalPrivate::seq_cursor_backward(vte::grid::column_t columns)
+VteTerminalPrivate::move_cursor_backward(vte::grid::column_t columns)
 {
         ensure_cursor_is_onscreen();
 
@@ -1657,22 +1471,15 @@ VteTerminalPrivate::seq_cursor_backward(vte::grid::column_t columns)
 }
 
 /* Cursor right N columns. */
-static void
-vte_sequence_handler_cursor_forward (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_forward(vte::parser::Params const& params)
 {
-        long val = 1;
-        if (params != NULL && params->n_values >= 1) {
-                GValue* value = g_value_array_get_nth(params, 0);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value);
-                }
-        }
-
-        that->seq_cursor_forward(val);
+        auto val = params.number_or_default_at(0, 1);
+        move_cursor_forward(val);
 }
 
 void
-VteTerminalPrivate::seq_cursor_forward(vte::grid::column_t columns)
+VteTerminalPrivate::move_cursor_forward(vte::grid::column_t columns)
 {
         columns = CLAMP(columns, 1, m_column_count);
 
@@ -1687,72 +1494,48 @@ VteTerminalPrivate::seq_cursor_forward(vte::grid::column_t columns)
 }
 
 /* Move the cursor to the beginning of the next line, scrolling if necessary. */
-static void
-vte_sequence_handler_next_line (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_next_line(vte::parser::Params const& params)
 {
-        that->set_cursor_column(0);
-        that->cursor_down(true);
+        set_cursor_column(0);
+        cursor_down(true);
 }
 
 /* No-op. */
-static void
-vte_sequence_handler_linux_console_cursor_attributes (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_linux_console_cursor_attributes(vte::parser::Params const& params)
 {
 }
 
 /* Scroll the text down N lines, but don't move the cursor. */
-static void
-vte_sequence_handler_scroll_down (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_scroll_down(vte::parser::Params const& params)
 {
-	long val = 1;
-	GValue *value;
-
         /* No ensure_cursor_is_onscreen() here as per xterm */
-
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			val = g_value_get_long(value);
-			val = MAX(val, 1);
-		}
-	}
-
-	that->seq_scroll_text(val);
+        auto val = std::max(params.number_or_default_at(0, 1), long(1));
+        scroll_text(val);
 }
 
 /* Internal helper for changing color in the palette */
-static void
-vte_sequence_handler_change_color_internal (VteTerminalPrivate *that, GValueArray *params,
-					    const char *terminator)
+void
+VteTerminalPrivate::change_color(vte::parser::Params const& params,
+                                 const char *terminator)
 {
-	if (params != NULL && params->n_values > 0) {
-                GValue* value = g_value_array_get_nth (params, 0);
+        char **pairs;
+        {
+                char* str;
+                if (!params.string_at(0, str))
+                        return;
 
-                char *str = NULL;
-		if (G_VALUE_HOLDS_STRING (value))
-			str = g_value_dup_string (value);
-		else if (G_VALUE_HOLDS_POINTER (value))
-			str = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-
-		if (! str)
-			return;
-
-                that->seq_change_color_internal(str, terminator);
+		pairs = g_strsplit (str, ";", 0);
                 g_free(str);
         }
-}
 
-void
-VteTerminalPrivate::seq_change_color_internal(char const* str,
-                                              char const* terminator)
-{
-        {
-                vte::color::rgb color;
-                guint idx, i;
+        if (!pairs)
+                return;
 
-		char **pairs = g_strsplit (str, ";", 0);
-		if (! pairs)
-			return;
+        vte::color::rgb color;
+        guint idx, i;
 
 		for (i = 0; pairs[i] && pairs[i + 1]; i += 2) {
 			idx = strtoul (pairs[i], (char **) NULL, 10);
@@ -1778,88 +1561,72 @@ VteTerminalPrivate::seq_change_color_internal(char const* str,
 		/* emit the refresh as the palette has changed and previous
 		 * renders need to be updated. */
 		emit_refresh_window();
-        }
 }
 
 /* Change color in the palette, BEL terminated */
-static void
-vte_sequence_handler_change_color_bel (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_color_bel(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_color_internal (that, params, BEL);
+	change_color(params, BEL);
 }
 
 /* Change color in the palette, ST terminated */
-static void
-vte_sequence_handler_change_color_st (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_color_st(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_color_internal (that, params, ST);
+	change_color(params, ST);
 }
 
 /* Reset color in the palette */
-static void
-vte_sequence_handler_reset_color (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_color(vte::parser::Params const& params)
 {
-	GValue *value;
-        guint i;
-	long idx;
+        auto n_params = params.size();
+        if (n_params) {
+                for (unsigned int i = 0; i < n_params; i++) {
+                        long value;
+                        if (!params.number_at_unchecked(i, value))
+                                continue;
 
-	if (params != NULL && params->n_values > 0) {
-		for (i = 0; i < params->n_values; i++) {
-			value = g_value_array_get_nth (params, i);
+                        if (value < 0 || value >= VTE_DEFAULT_FG)
+                                continue;
 
-			if (!G_VALUE_HOLDS_LONG (value))
-				continue;
-			idx = g_value_get_long (value);
-			if (idx < 0 || idx >= VTE_DEFAULT_FG)
-				continue;
-
-			that->reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
-		}
+                        reset_color(value, VTE_COLOR_SOURCE_ESCAPE);
+                }
 	} else {
-		for (idx = 0; idx < VTE_DEFAULT_FG; idx++) {
-			that->reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
+		for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++) {
+			reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
 		}
 	}
 }
 
 /* Scroll the text up N lines, but don't move the cursor. */
-static void
-vte_sequence_handler_scroll_up (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_scroll_up(vte::parser::Params const& params)
 {
-	long val = 1;
-	GValue *value;
-
         /* No ensure_cursor_is_onscreen() here as per xterm */
 
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			val = g_value_get_long(value);
-			val = MAX(val, 1);
-		}
-	}
-
-	that->seq_scroll_text(-val);
+        auto val = std::max(params.number_or_default_at(0, 1), long(1));
+        scroll_text(-val);
 }
 
 /* Cursor down 1 line, with scrolling. */
-static void
-vte_sequence_handler_line_feed (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_line_feed(vte::parser::Params const& params)
 {
-        that->ensure_cursor_is_onscreen();
-
-        that->cursor_down(true);
-}
-
-/* Cursor up 1 line, with scrolling. */
-static void
-vte_sequence_handler_reverse_index (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_reverse_index();
+        line_feed();
 }
 
 void
-VteTerminalPrivate::seq_reverse_index()
+VteTerminalPrivate::line_feed()
+{
+        ensure_cursor_is_onscreen();
+        cursor_down(true);
+}
+
+/* Cursor up 1 line, with scrolling. */
+void
+VteTerminalPrivate::seq_reverse_index(vte::parser::Params const& params)
 {
         ensure_cursor_is_onscreen();
 
@@ -1892,14 +1659,8 @@ VteTerminalPrivate::seq_reverse_index()
 }
 
 /* Set tab stop in the current column. */
-static void
-vte_sequence_handler_tab_set (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_tab_set();
-}
-
 void
-VteTerminalPrivate::seq_tab_set()
+VteTerminalPrivate::seq_tab_set(vte::parser::Params const& params)
 {
 	if (m_tabstops == NULL) {
 		m_tabstops = g_hash_table_new(NULL, NULL);
@@ -1908,16 +1669,16 @@ VteTerminalPrivate::seq_tab_set()
 }
 
 /* Tab. */
-static void
-vte_sequence_handler_tab (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_tab(vte::parser::Params const& params)
 {
-        that->seq_tab();
+        move_cursor_tab();
 }
 
 void
-VteTerminalPrivate::seq_tab()
+VteTerminalPrivate::move_cursor_tab()
 {
-	long old_len;
+        long old_len;
         vte::grid::column_t newcol, col;
 
 	/* Calculate which column is the next tab stop. */
@@ -1986,32 +1747,22 @@ VteTerminalPrivate::seq_tab()
 	}
 }
 
-static void
-vte_sequence_handler_cursor_forward_tabulation (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_forward_tabulation(vte::parser::Params const& params)
 {
-        vte_sequence_handler_multiple_r(that, params, vte_sequence_handler_tab);
+        auto val = std::max(std::min(params.number_or_default_at(0, 1),
+                                     m_column_count - m_screen->cursor.col),
+                            long(1));
+        for (auto i = 0; i < val; i++)
+                move_cursor_tab();
 }
 
 /* Clear tabs selectively. */
-static void
-vte_sequence_handler_tab_clear (VteTerminalPrivate *that, GValueArray *params)
-{
-	GValue *value;
-	long param = 0;
-
-	if ((params != NULL) && (params->n_values > 0)) {
-		value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
-		}
-	}
-
-        that->seq_tab_clear(param);
-}
-
 void
-VteTerminalPrivate::seq_tab_clear(long param)
+VteTerminalPrivate::seq_tab_clear(vte::parser::Params const& params)
 {
+        auto param = params.number_or_default_at(0, 0);
+
 	if (param == 0) {
 		clear_tabstop(m_screen->cursor.col);
 	} else if (param == 3) {
@@ -2023,22 +1774,15 @@ VteTerminalPrivate::seq_tab_clear(long param)
 }
 
 /* Cursor up N lines, no scrolling. */
-static void
-vte_sequence_handler_cursor_up (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_up(vte::parser::Params const& params)
 {
-        long val = 1;
-        if (params != NULL && params->n_values >= 1) {
-                GValue* value = g_value_array_get_nth(params, 0);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        val = g_value_get_long(value);
-                }
-        }
-
-        that->seq_cursor_up(val);
+        auto val = params.number_or_default_at(0, 1);
+        move_cursor_up(val);
 }
 
 void
-VteTerminalPrivate::seq_cursor_up(vte::grid::row_t rows)
+VteTerminalPrivate::move_cursor_up(vte::grid::row_t rows)
 {
         rows = CLAMP(rows, 1, m_row_count);
 
@@ -2057,52 +1801,51 @@ VteTerminalPrivate::seq_cursor_up(vte::grid::row_t rows)
 }
 
 /* Vertical tab. */
-static void
-vte_sequence_handler_vertical_tab (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_vertical_tab(vte::parser::Params const& params)
 {
-        vte_sequence_handler_line_feed (that, params);
+        line_feed();
 }
 
 /* Parse parameters of SGR 38 or 48, starting at @index within @params.
  * Returns the color index, or -1 on error.
  * Increments @index to point to the last consumed parameter (not beyond). */
-static gint32
-vte_sequence_parse_sgr_38_48_parameters (GValueArray *params, unsigned int *index)
+int32_t
+VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params,
+                                               unsigned int *index)
 {
-	if (*index < params->n_values) {
-		GValue *value0, *value1, *value2, *value3;
-		long param0, param1, param2, param3;
-		value0 = g_value_array_get_nth(params, *index);
-		if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value0)))
-			return -1;
-		param0 = g_value_get_long(value0);
+        auto n_params = params.size();
+        if (*index < n_params) {
+                long param0;
+                if (G_UNLIKELY(!params.number_at_unchecked(*index, param0)))
+                        return -1;
+
 		switch (param0) {
-		case 2:
-			if (G_UNLIKELY (*index + 3 >= params->n_values))
+                case 2: {
+                        if (G_UNLIKELY(*index + 3 >= n_params))
 				return -1;
-			value1 = g_value_array_get_nth(params, *index + 1);
-			value2 = g_value_array_get_nth(params, *index + 2);
-			value3 = g_value_array_get_nth(params, *index + 3);
-			if (G_UNLIKELY (!(G_VALUE_HOLDS_LONG(value1) && G_VALUE_HOLDS_LONG(value2) && G_VALUE_HOLDS_LONG(value3))))
-				return -1;
-			param1 = g_value_get_long(value1);
-			param2 = g_value_get_long(value2);
-			param3 = g_value_get_long(value3);
+
+                        long param1, param2, param3;
+                        if (G_UNLIKELY(!params.number_at_unchecked(*index + 1, param1) ||
+                                       !params.number_at_unchecked(*index + 2, param2) ||
+                                       !params.number_at_unchecked(*index + 3, param3)))
+                                return -1;
+
 			if (G_UNLIKELY (param1 < 0 || param1 >= 256 || param2 < 0 || param2 >= 256 || param3 < 0 || param3 >= 256))
 				return -1;
 			*index += 3;
 			return VTE_RGB_COLOR | (param1 << 16) | (param2 << 8) | param3;
-		case 5:
-			if (G_UNLIKELY (*index + 1 >= params->n_values))
-				return -1;
-			value1 = g_value_array_get_nth(params, *index + 1);
-			if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value1)))
-				return -1;
-			param1 = g_value_get_long(value1);
-			if (G_UNLIKELY (param1 < 0 || param1 >= 256))
+                }
+                case 5: {
+                        long param1;
+                        if (G_UNLIKELY(!params.number_at(*index + 1, param1)))
+                                return -1;
+
+                        if (G_UNLIKELY(param1 < 0 || param1 >= 256))
 				return -1;
 			*index += 1;
 			return param1;
+                }
 		}
 	}
 	return -1;
@@ -2111,100 +1854,93 @@ vte_sequence_parse_sgr_38_48_parameters (GValueArray *params, unsigned int *inde
 /* Handle ANSI color setting and related stuffs (SGR).
  * @params contains the values split at semicolons, with sub arrays splitting at colons
  * wherever colons were encountered. */
-static void
-vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 {
-	unsigned int i;
-	GValue *value;
-	long param;
-	/* The default parameter is zero. */
-	param = 0;
 	/* Step through each numeric parameter. */
-	for (i = 0; (params != NULL) && (i < params->n_values); i++) {
-		value = g_value_array_get_nth(params, i);
-		/* If this parameter is a GValueArray, it can be a fully colon separated 38 or 48
+        auto n_params = params.size();
+        unsigned int i;
+	for (i = 0; i < n_params; i++) {
+		/* If this parameter is an array, it can be a fully colon separated 38 or 48
 		 * (see below for details). */
-		if (G_UNLIKELY (G_VALUE_HOLDS_BOXED(value))) {
-			GValueArray *subvalues = (GValueArray *)g_value_get_boxed(value);
-			GValue *value0;
-			long param0;
-			gint32 color;
-			unsigned int index = 1;
+		if (G_UNLIKELY(params.has_subparams_at_unchecked(i))) {
+                        auto subparams = params.subparams_at_unchecked(i);
 
-			value0 = g_value_array_get_nth(subvalues, 0);
-			if (G_UNLIKELY (!G_VALUE_HOLDS_LONG(value0)))
-				continue;
-			param0 = g_value_get_long(value0);
+                        long param0;
+                        if (G_UNLIKELY(!subparams.number_at(0, param0)))
+                                continue;
 			if (G_UNLIKELY (param0 != 38 && param0 != 48))
 				continue;
-			color = vte_sequence_parse_sgr_38_48_parameters(subvalues, &index);
+
+			unsigned int index = 1;
+			auto color = parse_sgr_38_48_parameters(subparams, &index);
 			/* Bail out on additional colon-separated values. */
-			if (G_UNLIKELY (index != subvalues->n_values - 1))
+			if (G_UNLIKELY(index != subparams.size() - 1))
 				continue;
 			if (G_LIKELY (color != -1)) {
 				if (param0 == 38) {
-                                        that->m_defaults.attr.fore = color;
+                                        m_defaults.attr.fore = color;
 				} else {
-                                        that->m_defaults.attr.back = color;
+                                        m_defaults.attr.back = color;
 				}
 			}
 			continue;
 		}
-		/* If this parameter is not a GValueArray and not a number either, skip it. */
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		param = g_value_get_long(value);
+		/* If this parameter is not a number either, skip it. */
+                long param;
+                if (!params.number_at_unchecked(i, param))
+                        continue;
+
 		switch (param) {
 		case 0:
-                        that->reset_default_attributes(false);
+                        reset_default_attributes(false);
 			break;
 		case 1:
-                        that->m_defaults.attr.bold = 1;
+                        m_defaults.attr.bold = 1;
 			break;
 		case 2:
-                        that->m_defaults.attr.dim = 1;
+                        m_defaults.attr.dim = 1;
 			break;
 		case 3:
-                        that->m_defaults.attr.italic = 1;
+                        m_defaults.attr.italic = 1;
 			break;
 		case 4:
-                        that->m_defaults.attr.underline = 1;
+                        m_defaults.attr.underline = 1;
 			break;
 		case 5:
-                        that->m_defaults.attr.blink = 1;
+                        m_defaults.attr.blink = 1;
 			break;
 		case 7:
-                        that->m_defaults.attr.reverse = 1;
+                        m_defaults.attr.reverse = 1;
 			break;
 		case 8:
-                        that->m_defaults.attr.invisible = 1;
+                        m_defaults.attr.invisible = 1;
 			break;
 		case 9:
-                        that->m_defaults.attr.strikethrough = 1;
+                        m_defaults.attr.strikethrough = 1;
 			break;
 		case 21: /* Error in old versions of linux console. */
 		case 22: /* ECMA 48. */
-                        that->m_defaults.attr.bold = 0;
-                        that->m_defaults.attr.dim = 0;
+                        m_defaults.attr.bold = 0;
+                        m_defaults.attr.dim = 0;
 			break;
 		case 23:
-                        that->m_defaults.attr.italic = 0;
+                        m_defaults.attr.italic = 0;
 			break;
 		case 24:
-                        that->m_defaults.attr.underline = 0;
+                        m_defaults.attr.underline = 0;
 			break;
 		case 25:
-                        that->m_defaults.attr.blink = 0;
+                        m_defaults.attr.blink = 0;
 			break;
 		case 27:
-                        that->m_defaults.attr.reverse = 0;
+                        m_defaults.attr.reverse = 0;
 			break;
 		case 28:
-                        that->m_defaults.attr.invisible = 0;
+                        m_defaults.attr.invisible = 0;
 			break;
 		case 29:
-                        that->m_defaults.attr.strikethrough = 0;
+                        m_defaults.attr.strikethrough = 0;
 			break;
 		case 30:
 		case 31:
@@ -2214,7 +1950,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 35:
 		case 36:
 		case 37:
-                        that->m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 30;
+                        m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 30;
 			break;
 		case 38:
 		case 48:
@@ -2231,28 +1967,30 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 			 * See bug 685759 for details.
 			 * The fully colon versions were handled above separately. The code is reached
 			 * if the first separator is a semicolon. */
-			if ((i + 1) < params->n_values) {
-				gint32 color;
-				GValue *value1 = g_value_array_get_nth(params, ++i);
-				if (G_VALUE_HOLDS_LONG(value1)) {
+			if ((i + 1) < n_params) {
+				int32_t color;
+
+                                ++i;
+                                if (params.has_number_at_unchecked(i)) {
 					/* Only semicolons as separators. */
-					color = vte_sequence_parse_sgr_38_48_parameters(params, &i);
-				} else if (G_VALUE_HOLDS_BOXED(value1)) {
+                                        color = parse_sgr_38_48_parameters(params, &i);
+                                } else if (params.has_subparams_at_unchecked(i)) {
 					/* The first separator was a semicolon, the rest are colons. */
-					GValueArray *subvalues = (GValueArray *)g_value_get_boxed(value1);
+                                        auto subparams = params.subparams_at_unchecked(i);
+
 					unsigned int index = 0;
-					color = vte_sequence_parse_sgr_38_48_parameters(subvalues, &index);
+                                        color = parse_sgr_38_48_parameters(subparams, &index);
 					/* Bail out on additional colon-separated values. */
-					if (G_UNLIKELY (index != subvalues->n_values - 1))
+                                        if (G_UNLIKELY(index != subparams.size() - 1))
 						break;
 				} else {
 					break;
 				}
 				if (G_LIKELY (color != -1)) {
 					if (param == 38) {
-                                                that->m_defaults.attr.fore = color;
+                                                m_defaults.attr.fore = color;
 					} else {
-                                                that->m_defaults.attr.back = color;
+                                                m_defaults.attr.back = color;
 					}
 				}
 			}
@@ -2260,7 +1998,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		}
 		case 39:
 			/* default foreground */
-                        that->m_defaults.attr.fore = VTE_DEFAULT_FG;
+                        m_defaults.attr.fore = VTE_DEFAULT_FG;
 			break;
 		case 40:
 		case 41:
@@ -2270,12 +2008,12 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 45:
 		case 46:
 		case 47:
-                        that->m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 40;
+                        m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 40;
 			break;
 	     /* case 48: was handled above at 38 to avoid code duplication */
 		case 49:
 			/* default background */
-                        that->m_defaults.attr.back = VTE_DEFAULT_BG;
+                        m_defaults.attr.back = VTE_DEFAULT_BG;
 			break;
 		case 90:
 		case 91:
@@ -2285,7 +2023,7 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 95:
 		case 96:
 		case 97:
-                        that->m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 90 + VTE_COLOR_BRIGHT_OFFSET;
+                        m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 90 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		case 100:
 		case 101:
@@ -2295,73 +2033,62 @@ vte_sequence_handler_character_attributes (VteTerminalPrivate *that, GValueArray
 		case 105:
 		case 106:
 		case 107:
-                        that->m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 100 + VTE_COLOR_BRIGHT_OFFSET;
+                        m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 100 + VTE_COLOR_BRIGHT_OFFSET;
 			break;
 		}
 	}
 	/* If we had no parameters, default to the defaults. */
 	if (i == 0) {
-                that->reset_default_attributes(false);
+                reset_default_attributes(false);
 	}
 	/* Save the new colors. */
-        that->m_color_defaults.attr.fore = that->m_defaults.attr.fore;
-        that->m_color_defaults.attr.back = that->m_defaults.attr.back;
-        that->m_fill_defaults.attr.fore = that->m_defaults.attr.fore;
-        that->m_fill_defaults.attr.back = that->m_defaults.attr.back;
+        m_color_defaults.attr.fore = m_defaults.attr.fore;
+        m_color_defaults.attr.back = m_defaults.attr.back;
+        m_fill_defaults.attr.fore = m_defaults.attr.fore;
+        m_fill_defaults.attr.back = m_defaults.attr.back;
 }
 
 /* Move the cursor to the given column in the top row, 1-based. */
-static void
-vte_sequence_handler_cursor_position_top_row (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_cursor_position_top_row(vte::parser::Params const& params)
 {
-        GValue value = {0};
+        auto colval = params.number_or_default_at(0, 1) - 1;
+        set_cursor_coords(0, colval);
 
-        g_value_init (&value, G_TYPE_LONG);
-        g_value_set_long (&value, 1);
-
-        g_value_array_insert (params, 0, &value);
-
-        vte_sequence_handler_cursor_position(that, params);
 }
 
 /* Request terminal attributes. */
-static void
-vte_sequence_handler_request_terminal_parameters (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_request_terminal_parameters(vte::parser::Params const& params)
 {
-	that->feed_child("\e[?x", -1);
+	feed_child("\e[?x", -1);
 }
 
 /* Request terminal attributes. */
-static void
-vte_sequence_handler_return_terminal_status (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_return_terminal_status(vte::parser::Params const& params)
 {
-	that->feed_child("", 0);
+	feed_child("", 0);
 }
 
 /* Send primary device attributes. */
-static void
-vte_sequence_handler_send_primary_device_attributes (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_send_primary_device_attributes(vte::parser::Params const& params)
 {
 	/* Claim to be a VT220 with only national character set support. */
-        that->feed_child("\e[?62;c", -1);
+        feed_child("\e[?62;c", -1);
 }
 
 /* Send terminal ID. */
-static void
-vte_sequence_handler_return_terminal_id (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_return_terminal_id(vte::parser::Params const& params)
 {
-	vte_sequence_handler_send_primary_device_attributes (that, params);
+	seq_send_primary_device_attributes(params);
 }
 
 /* Send secondary device attributes. */
-static void
-vte_sequence_handler_send_secondary_device_attributes (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_send_secondary_device_attributes();
-}
-
 void
-VteTerminalPrivate::seq_send_secondary_device_attributes()
+VteTerminalPrivate::seq_send_secondary_device_attributes(vte::parser::Params const& params)
 {
 	char **version;
 	char buf[128];
@@ -2381,141 +2108,94 @@ VteTerminalPrivate::seq_send_secondary_device_attributes()
 }
 
 /* Set one or the other. */
-static void
-vte_sequence_handler_set_icon_title (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_icon_title(vte::parser::Params const& params)
 {
-	that->seq_set_title_internal(params, true, false);
+	set_title_internal(params, true, false);
 }
 
-static void
-vte_sequence_handler_set_window_title (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_window_title(vte::parser::Params const& params)
 {
-	that->seq_set_title_internal(params, false, true);
+	set_title_internal(params, false, true);
 }
 
 /* Set both the window and icon titles to the same string. */
-static void
-vte_sequence_handler_set_icon_and_window_title (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_icon_and_window_title(vte::parser::Params const& params)
 {
-	that->seq_set_title_internal(params, true, true);
-}
-
-static void
-vte_sequence_handler_set_current_directory_uri (VteTerminalPrivate *that, GValueArray *params)
-{
-        GValue *value;
-        char *uri, *filename;
-
-        uri = NULL;
-        if (params != NULL && params->n_values > 0) {
-                value = g_value_array_get_nth(params, 0);
-
-                if (G_VALUE_HOLDS_POINTER(value)) {
-                        uri = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-                } else if (G_VALUE_HOLDS_STRING(value)) {
-                        /* Copy the string into the buffer. */
-                        uri = g_value_dup_string(value);
-                }
-        }
-
-        /* Validate URI */
-        if (uri && uri[0]) {
-                filename = g_filename_from_uri (uri, NULL, NULL);
-                if (filename == NULL) {
-                        /* invalid URI */
-                        g_free (uri);
-                        uri = NULL;
-                } else {
-                        g_free (filename);
-                }
-        }
-
-        that->set_current_directory_uri_changed(uri);
+	set_title_internal(params, true, true);
 }
 
 void
-VteTerminalPrivate::set_current_directory_uri_changed(char* uri /* adopted */)
+VteTerminalPrivate::seq_set_current_directory_uri(vte::parser::Params const& params)
 {
+        char* uri = nullptr;
+        if (params.string_at(0, uri)) {
+                /* Validate URI */
+                if (uri[0]) {
+                        auto filename = g_filename_from_uri (uri, nullptr, nullptr);
+                        if (filename == nullptr) {
+                                /* invalid URI */
+                                g_free (uri);
+                                uri = nullptr;
+                        } else {
+                                g_free (filename);
+                        }
+                } else {
+                        g_free(uri);
+                        uri = nullptr;
+                }
+        }
+
         g_free(m_current_directory_uri_changed);
-        m_current_directory_uri_changed = uri;
-}
-
-static void
-vte_sequence_handler_set_current_file_uri (VteTerminalPrivate *that, GValueArray *params)
-{
-        GValue *value;
-        char *uri, *filename;
-
-        uri = NULL;
-        if (params != NULL && params->n_values > 0) {
-                value = g_value_array_get_nth(params, 0);
-
-                if (G_VALUE_HOLDS_POINTER(value)) {
-                        uri = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-                } else if (G_VALUE_HOLDS_STRING(value)) {
-                        /* Copy the string into the buffer. */
-                        uri = g_value_dup_string(value);
-                }
-        }
-
-        /* Validate URI */
-        if (uri && uri[0]) {
-                filename = g_filename_from_uri (uri, NULL, NULL);
-                if (filename == NULL) {
-                        /* invalid URI */
-                        g_free (uri);
-                        uri = NULL;
-                } else {
-                        g_free (filename);
-                }
-        }
-
-        that->set_current_file_uri_changed(uri);
+        m_current_directory_uri_changed = uri /* adopt */;
 }
 
 void
-VteTerminalPrivate::set_current_file_uri_changed(char* uri /* adopted */)
+VteTerminalPrivate::seq_set_current_file_uri(vte::parser::Params const& params)
 {
+        char* uri = nullptr;
+        if (params.string_at(0, uri)) {
+                /* Validate URI */
+                if (uri[0]) {
+                        auto filename = g_filename_from_uri (uri, nullptr, nullptr);
+                        if (filename == nullptr) {
+                                /* invalid URI */
+                                g_free (uri);
+                                uri = nullptr;
+                        } else {
+                                g_free (filename);
+                        }
+                } else {
+                        g_free(uri);
+                        uri = nullptr;
+                }
+        }
+
         g_free(m_current_file_uri_changed);
-        m_current_file_uri_changed = uri;
+        m_current_file_uri_changed = uri /* adopt */;
 }
 
 /* Handle OSC 8 hyperlinks.
  * See bug 779734 and https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda. */
-static void
-vte_sequence_handler_set_current_hyperlink (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_current_hyperlink(vte::parser::Params const& params)
 {
-        GValue *value;
-        char *hyperlink_params;
-        char *uri;
 
-        hyperlink_params = NULL;
-        uri = NULL;
-        if (params != NULL && params->n_values > 1) {
-                value = g_value_array_get_nth(params, 0);
-
-                if (G_VALUE_HOLDS_POINTER(value)) {
-                        hyperlink_params = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-                } else if (G_VALUE_HOLDS_STRING(value)) {
-                        /* Copy the string into the buffer. */
-                        hyperlink_params = g_value_dup_string(value);
-                }
-
-                value = g_value_array_get_nth(params, 1);
-
-                if (G_VALUE_HOLDS_POINTER(value)) {
-                        uri = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-                } else if (G_VALUE_HOLDS_STRING(value)) {
-                        /* Copy the string into the buffer. */
-                        uri = g_value_dup_string(value);
-                }
+        char* hyperlink_params = nullptr;
+        char* uri = nullptr;
+        if (params.size() >= 2) {
+                params.string_at_unchecked(0, hyperlink_params);
+                params.string_at_unchecked(1, uri);
         }
 
-        that->set_current_hyperlink(hyperlink_params, uri);
+        set_current_hyperlink(hyperlink_params, uri);
 }
 
 void
-VteTerminalPrivate::set_current_hyperlink(char *hyperlink_params /* adopted */, char* uri /* adopted */)
+VteTerminalPrivate::set_current_hyperlink(char *hyperlink_params /* adopted */,
+                                          char* uri /* adopted */)
 {
         guint idx;
         char *id = NULL;
@@ -2583,30 +2263,28 @@ VteTerminalPrivate::set_current_hyperlink(char *hyperlink_params /* adopted */, 
 }
 
 /* Restrict the scrolling region. */
-static void
-vte_sequence_handler_set_scrolling_region_from_start (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_scrolling_region_from_start(vte::parser::Params const& params)
 {
-	GValue value = {0};
+        /* We require a parameters.  Anything less is a reset. */
+        if (params.size() < 1)
+                return reset_scrolling_region();
 
-	g_value_init (&value, G_TYPE_LONG);
-        g_value_set_long (&value, 0);  /* A missing value is treated as 0 */
+        auto end = params.number_or_default_at(1) - 1;
+        set_scrolling_region(-1, end);
 
-	g_value_array_insert (params, 0, &value);
-
-        vte_sequence_handler_set_scrolling_region (that, params);
 }
 
-static void
-vte_sequence_handler_set_scrolling_region_to_end (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_scrolling_region_to_end(vte::parser::Params const& params)
 {
-	GValue value = {0};
+        /* We require a parameters.  Anything less is a reset. */
+        if (params.size() < 1)
+                return reset_scrolling_region();
 
-	g_value_init (&value, G_TYPE_LONG);
-        g_value_set_long (&value, 0);  /* A missing value is treated as 0 */
+        auto start = params.number_or_default_at(0) - 1;
+        set_scrolling_region(start, -1);
 
-	g_value_array_insert (params, 1, &value);
-
-        vte_sequence_handler_set_scrolling_region (that, params);
 }
 
 void
@@ -2616,147 +2294,93 @@ VteTerminalPrivate::set_keypad_mode(VteKeymode mode)
 }
 
 /* Set the application or normal keypad. */
-static void
-vte_sequence_handler_application_keypad (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_application_keypad(vte::parser::Params const& params)
 {
 	_vte_debug_print(VTE_DEBUG_KEYBOARD,
 			"Entering application keypad mode.\n");
-	that->set_keypad_mode(VTE_KEYMODE_APPLICATION);
+	set_keypad_mode(VTE_KEYMODE_APPLICATION);
 }
 
-static void
-vte_sequence_handler_normal_keypad (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_normal_keypad(vte::parser::Params const& params)
 {
 	_vte_debug_print(VTE_DEBUG_KEYBOARD,
 			"Leaving application keypad mode.\n");
-	that->set_keypad_mode(VTE_KEYMODE_NORMAL);
+	set_keypad_mode(VTE_KEYMODE_NORMAL);
 }
 
 /* Same as cursor_character_absolute, not widely supported. */
-static void
-vte_sequence_handler_character_position_absolute (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_character_position_absolute(vte::parser::Params const& params)
 {
-	vte_sequence_handler_cursor_character_absolute (that, params);
+        seq_cursor_character_absolute (params);
 }
 
 /* Set certain terminal attributes. */
-static void
-vte_sequence_handler_set_mode (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_mode(vte::parser::Params const& params)
 {
-	guint i;
-	long setting;
-	GValue *value;
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
-	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		setting = g_value_get_long(value);
-		that->seq_set_mode_internal(setting, true);
-	}
+        set_mode(params, true);
 }
 
 /* Unset certain terminal attributes. */
-static void
-vte_sequence_handler_reset_mode (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_mode(vte::parser::Params const& params)
 {
-	guint i;
-	long setting;
-	GValue *value;
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
-	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		setting = g_value_get_long(value);
-		that->seq_set_mode_internal(setting, false);
-	}
+        set_mode(params, false);
 }
 
 /* Set certain terminal attributes. */
-static void
-vte_sequence_handler_decset (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_decset(vte::parser::Params const& params)
 {
-	GValue *value;
-	long setting;
-	guint i;
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
-	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		setting = g_value_get_long(value);
-		vte_sequence_handler_decset_internal(that, setting, FALSE, FALSE, TRUE);
-	}
+        decset(params, false, false, true);
 }
 
 /* Unset certain terminal attributes. */
-static void
-vte_sequence_handler_decreset (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_decreset(vte::parser::Params const& params)
 {
-	GValue *value;
-	long setting;
-	guint i;
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
-	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		setting = g_value_get_long(value);
-		vte_sequence_handler_decset_internal(that, setting, FALSE, FALSE, FALSE);
-	}
+        decset(params, false, false, false);
 }
 
 /* Erase certain lines in the display. */
-static void
-vte_sequence_handler_erase_in_display (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_erase_in_display(vte::parser::Params const& params)
 {
 	/* The default parameter is 0. */
 	long param = 0;
         /* Pull out the first parameter. */
-	for (guint i = 0; (params != NULL) && (i < params->n_values); i++) {
-                GValue* value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		param = g_value_get_long(value);
-                break;
-	}
+        // FIXMEchpe why this weird taking of the first number param, not the actual first param?
+        auto n_params = params.size();
+        for (unsigned int i = 0; i < n_params; i++) {
+                if (params.number_at_unchecked(i, param))
+                        break;
+        }
 
-        that->seq_erase_in_display(param);
+        erase_in_display(param);
 }
 
 void
-VteTerminalPrivate::seq_erase_in_display(long param)
+VteTerminalPrivate::erase_in_display(long param)
 {
 	/* Clear the right area. */
 	switch (param) {
 	case 0:
 		/* Clear below the current line. */
-                seq_cd();
+                clear_below_current();
 		break;
 	case 1:
 		/* Clear above the current line. */
-                seq_clear_above_current();
+                clear_above_current();
 		/* Clear everything to the left of the cursor, too. */
 		/* FIXME: vttest. */
-                seq_cb();
+                clear_to_bol();
 		break;
 	case 2:
 		/* Clear the entire screen. */
-                seq_clear_screen();
+                clear_screen();
 		break;
         case 3:
                 /* Drop the scrollback. */
@@ -2770,40 +2394,38 @@ VteTerminalPrivate::seq_erase_in_display(long param)
 }
 
 /* Erase certain parts of the current line in the display. */
-static void
-vte_sequence_handler_erase_in_line (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_erase_in_line(vte::parser::Params const& params)
 {
 	/* The default parameter is 0. */
 	long param = 0;
         /* Pull out the first parameter. */
-	for (guint i = 0; (params != NULL) && (i < params->n_values); i++) {
-                GValue* value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		param = g_value_get_long(value);
-                break;
-	}
+        // FIXMEchpe why this weird taking of the first number param, not the actual first param?
+        auto n_params = params.size();
+        for (unsigned int i = 0; i < n_params; i++) {
+                if (params.number_at_unchecked(i, param))
+                        break;
+        }
 
-        that->seq_erase_in_line(param);
+        erase_in_line(param);
 }
 
 void
-VteTerminalPrivate::seq_erase_in_line(long param)
+VteTerminalPrivate::erase_in_line(long param)
 {
 	/* Clear the right area. */
 	switch (param) {
 	case 0:
 		/* Clear to end of the line. */
-                seq_ce();
+                clear_to_eol();
 		break;
 	case 1:
 		/* Clear to start of the line. */
-                seq_cb();
+                clear_to_bol();
 		break;
 	case 2:
 		/* Clear the entire line. */
-                seq_clear_current_line();
+                clear_current_line();
 		break;
 	default:
 		break;
@@ -2813,31 +2435,23 @@ VteTerminalPrivate::seq_erase_in_line(long param)
 }
 
 /* Perform a full-bore reset. */
-static void
-vte_sequence_handler_full_reset (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_full_reset(vte::parser::Params const& params)
 {
-	that->reset(true, true);
+	reset(true, true);
 }
 
 /* Insert a certain number of lines below the current cursor. */
-static void
-vte_sequence_handler_insert_lines (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_insert_lines(vte::parser::Params const& params)
 {
 	/* The default is one. */
-	long param = 1;
-	/* Extract any parameters. */
-	if ((params != NULL) && (params->n_values > 0)) {
-		GValue* value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
-		}
-	}
-
-        that->seq_insert_lines(param);
+        auto param = params.number_or_default_at(0, 1);
+        insert_lines(param);
 }
 
 void
-VteTerminalPrivate::seq_insert_lines(vte::grid::row_t param)
+VteTerminalPrivate::insert_lines(vte::grid::row_t param)
 {
         vte::grid::row_t end, i;
 
@@ -2871,24 +2485,16 @@ VteTerminalPrivate::seq_insert_lines(vte::grid::row_t param)
 }
 
 /* Delete certain lines from the scrolling region. */
-static void
-vte_sequence_handler_delete_lines (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_delete_lines(vte::parser::Params const& params)
 {
 	/* The default is one. */
-	long param = 1;
-	/* Extract any parameters. */
-	if ((params != NULL) && (params->n_values > 0)) {
-		GValue* value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			param = g_value_get_long(value);
-		}
-	}
-
-        that->seq_delete_lines(param);
+        auto param = params.number_or_default_at(0, 1);
+        delete_lines(param);
 }
 
 void
-VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
+VteTerminalPrivate::delete_lines(vte::grid::row_t param)
 {
         vte::grid::row_t end, i;
 
@@ -2924,21 +2530,13 @@ VteTerminalPrivate::seq_delete_lines(vte::grid::row_t param)
 
 /* Device status reports. The possible reports are the cursor position and
  * whether or not we're okay. */
-static void
-vte_sequence_handler_device_status_report (VteTerminalPrivate *that, GValueArray *params)
-{
-	if ((params != NULL) && (params->n_values > 0)) {
-		GValue* value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			auto param = g_value_get_long(value);
-                        that->seq_device_status_report(param);
-                }
-        }
-}
-
 void
-VteTerminalPrivate::seq_device_status_report(long param)
+VteTerminalPrivate::seq_device_status_report(vte::parser::Params const& params)
 {
+        long param;
+        if (!params.number_at(0, param))
+                return;
+
         switch (param) {
 			case 5:
 				/* Send a thumbs-up sequence. */
@@ -2971,22 +2569,14 @@ VteTerminalPrivate::seq_device_status_report(long param)
 }
 
 /* DEC-style device status reports. */
-static void
-vte_sequence_handler_dec_device_status_report (VteTerminalPrivate *that, GValueArray *params)
-{
-	if ((params != NULL) && (params->n_values > 0)) {
-		GValue* value = g_value_array_get_nth(params, 0);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			auto param = g_value_get_long(value);
-                        that->seq_dec_device_status_report(param);
-                }
-        }
-}
-
 void
-VteTerminalPrivate::seq_dec_device_status_report(long param)
+VteTerminalPrivate::seq_dec_device_status_report(vte::parser::Params const& params)
 {
-			switch (param) {
+        long param;
+        if (!params.number_at(0, param))
+                return;
+
+        switch (param) {
 			case 6:
 				/* Send the cursor position. */
                                 vte::grid::row_t rowval, origin, rowmax;
@@ -3025,59 +2615,27 @@ VteTerminalPrivate::seq_dec_device_status_report(long param)
 				break;
 			default:
 				break;
-			}
+        }
 }
 
 /* Restore a certain terminal attribute. */
-static void
-vte_sequence_handler_restore_mode (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_restore_mode(vte::parser::Params const& params)
 {
-	GValue *value;
-	long setting;
-	guint i;
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
-	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		setting = g_value_get_long(value);
-		vte_sequence_handler_decset_internal(that, setting, TRUE, FALSE, FALSE);
-	}
+        decset(params, true, false, false);
 }
 
 /* Save a certain terminal attribute. */
-static void
-vte_sequence_handler_save_mode (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_save_mode(vte::parser::Params const& params)
 {
-	GValue *value;
-	long setting;
-	guint i;
-	if ((params == NULL) || (params->n_values == 0)) {
-		return;
-	}
-	for (i = 0; i < params->n_values; i++) {
-		value = g_value_array_get_nth(params, i);
-		if (!G_VALUE_HOLDS_LONG(value)) {
-			continue;
-		}
-		setting = g_value_get_long(value);
-		vte_sequence_handler_decset_internal(that, setting, FALSE, TRUE, FALSE);
-	}
+        decset(params, false, true, false);
 }
 
 /* Perform a screen alignment test -- fill all visible cells with the
  * letter "E". */
-static void
-vte_sequence_handler_screen_alignment_test (VteTerminalPrivate *that, GValueArray *params)
-{
-        that->seq_screen_alignment_test();
-}
-
 void
-VteTerminalPrivate::seq_screen_alignment_test()
+VteTerminalPrivate::seq_screen_alignment_test(vte::parser::Params const& params)
 {
 	for (auto row = m_screen->insert_delta;
 	     row < m_screen->insert_delta + m_row_count;
@@ -3107,79 +2665,57 @@ VteTerminalPrivate::seq_screen_alignment_test()
 }
 
 /* DECSCUSR set cursor style */
-static void
-vte_sequence_handler_set_cursor_style (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_set_cursor_style(vte::parser::Params const& params)
 {
-        long style;
-
-        if ((params == NULL) || (params->n_values > 1)) {
+        auto n_params = params.size();
+        if (n_params > 1)
                 return;
-        }
 
-        if (params->n_values == 0) {
+        long style;
+        if (n_params == 0) {
                 /* no parameters means default (according to vt100.net) */
                 style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
         } else {
-                GValue *value = g_value_array_get_nth(params, 0);
-
-                if (!G_VALUE_HOLDS_LONG(value)) {
+                if (!params.number_at(0, style))
                         return;
-                }
-                style = g_value_get_long(value);
                 if (style < 0 || style > 6) {
                         return;
                 }
         }
 
-        that->set_cursor_style((VteCursorStyle)style);
+        set_cursor_style(VteCursorStyle(style));
 }
 
 /* Perform a soft reset. */
-static void
-vte_sequence_handler_soft_reset (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_soft_reset(vte::parser::Params const& params)
 {
-	that->reset(false, false);
+	reset(false, false);
 }
 
 /* Window manipulation control sequences.  Most of these are considered
  * bad ideas, but they're implemented as signals which the application
  * is free to ignore, so they're harmless.  Handle at most one action,
  * see bug 741402. */
-static void
-vte_sequence_handler_window_manipulation (VteTerminalPrivate *that, GValueArray *params)
-{
-        if (params == NULL || params->n_values == 0) {
-                return;
-        }
-        GValue* value = g_value_array_get_nth(params, 0);
-        if (!G_VALUE_HOLDS_LONG(value)) {
-                return;
-        }
-        auto param = g_value_get_long(value);
-
-        long arg1, arg2;
-        arg1 = arg2 = -1;
-        if (params->n_values > 1) {
-                value = g_value_array_get_nth(params, 1);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        arg1 = g_value_get_long(value);
-                }
-        }
-        if (params->n_values > 2) {
-                value = g_value_array_get_nth(params, 2);
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        arg2 = g_value_get_long(value);
-                }
-        }
-
-        that->seq_window_manipulation(param, arg1, arg2);
-}
-
 void
-VteTerminalPrivate::seq_window_manipulation(long param,
-                                            long arg1,
-                                            long arg2)
+VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
 {
+        auto n_params = params.size();
+        if (n_params < 1)
+                return;
+
+        long param;
+        if (!params.number_at_unchecked(0, param))
+                return;
+
+        long arg1 = -1;
+        long arg2 = -1;
+        if (n_params >= 2)
+                params.number_at_unchecked(1, arg1);
+        if (n_params >= 3)
+                params.number_at_unchecked(2, arg2);
+
 	GdkScreen *gscreen;
 	char buf[128];
 	int width, height;
@@ -3356,36 +2892,18 @@ VteTerminalPrivate::seq_window_manipulation(long param,
 }
 
 /* Internal helper for setting/querying special colors */
-static void
-vte_sequence_handler_change_special_color_internal (VteTerminalPrivate *that, GValueArray *params,
-						    int index, int index_fallback, int osc,
-						    const char *terminator)
-{
-	if (params != NULL && params->n_values > 0) {
-		GValue* value = g_value_array_get_nth (params, 0);
-
-                char *name = nullptr;
-		if (G_VALUE_HOLDS_STRING (value))
-			name = g_value_dup_string (value);
-		else if (G_VALUE_HOLDS_POINTER (value))
-			name = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-
-		if (! name)
-			return;
-
-                that->seq_change_special_color_internal(name, index, index_fallback, osc, terminator);
-                g_free(name);
-        }
-}
-
 void
-VteTerminalPrivate::seq_change_special_color_internal(char const* name,
-                                                      int index,
-                                                      int index_fallback,
-                                                      int osc,
-                                                      char const *terminator)
+VteTerminalPrivate::change_special_color(vte::parser::Params const& params,
+                                         int index,
+                                         int index_fallback,
+                                         int osc,
+                                         const char *terminator)
 {
-	vte::color::rgb color;
+        char* name;
+        if (!params.string_at(0, name))
+                return;
+
+        vte::color::rgb color;
 
 		if (color.parse(name))
 			set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
@@ -3403,132 +2921,122 @@ VteTerminalPrivate::seq_change_special_color_internal(char const* name,
 }
 
 /* Change the default foreground cursor, BEL terminated */
-static void
-vte_sequence_handler_change_foreground_color_bel (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_foreground_color_bel(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_DEFAULT_FG, -1, 10, BEL);
+        change_special_color(params, VTE_DEFAULT_FG, -1, 10, BEL);
 }
 
 /* Change the default foreground cursor, ST terminated */
-static void
-vte_sequence_handler_change_foreground_color_st (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_foreground_color_st(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_DEFAULT_FG, -1, 10, ST);
+        change_special_color(params, VTE_DEFAULT_FG, -1, 10, ST);
 }
 
 /* Reset the default foreground color */
-static void
-vte_sequence_handler_reset_foreground_color (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_foreground_color(vte::parser::Params const& params)
 {
-	that->reset_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_ESCAPE);
+        reset_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
 /* Change the default background cursor, BEL terminated */
-static void
-vte_sequence_handler_change_background_color_bel (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_background_color_bel(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_DEFAULT_BG, -1, 11, BEL);
+        change_special_color(params, VTE_DEFAULT_BG, -1, 11, BEL);
 }
 
 /* Change the default background cursor, ST terminated */
-static void
-vte_sequence_handler_change_background_color_st (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_background_color_st(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_DEFAULT_BG, -1, 11, ST);
+        change_special_color(params, VTE_DEFAULT_BG, -1, 11, ST);
 }
 
 /* Reset the default background color */
-static void
-vte_sequence_handler_reset_background_color (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_background_color(vte::parser::Params const& params)
 {
-	that->reset_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_ESCAPE);
+        reset_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
 /* Change the color of the cursor background, BEL terminated */
-static void
-vte_sequence_handler_change_cursor_background_color_bel (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_cursor_background_color_bel(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL);
+        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL);
 }
 
 /* Change the color of the cursor background, ST terminated */
-static void
-vte_sequence_handler_change_cursor_background_color_st (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_cursor_background_color_st(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST);
+        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST);
 }
 
 /* Reset the color of the cursor */
-static void
-vte_sequence_handler_reset_cursor_background_color (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_cursor_background_color(vte::parser::Params const& params)
 {
-	that->reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_ESCAPE);
+        reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
 /* Change the highlight background color, BEL terminated */
-static void
-vte_sequence_handler_change_highlight_background_color_bel (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_highlight_background_color_bel(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, BEL);
+        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, BEL);
 }
 
 /* Change the highlight background color, ST terminated */
-static void
-vte_sequence_handler_change_highlight_background_color_st (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_highlight_background_color_st(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, ST);
+        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, ST);
 }
 
 /* Reset the highlight background color */
-static void
-vte_sequence_handler_reset_highlight_background_color (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_highlight_background_color(vte::parser::Params const& params)
 {
-	that->reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_ESCAPE);
+        reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
 /* Change the highlight foreground color, BEL terminated */
-static void
-vte_sequence_handler_change_highlight_foreground_color_bel (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_highlight_foreground_color_bel(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL);
+        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL);
 }
 
 /* Change the highlight foreground color, ST terminated */
-static void
-vte_sequence_handler_change_highlight_foreground_color_st (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_change_highlight_foreground_color_st(vte::parser::Params const& params)
 {
-	vte_sequence_handler_change_special_color_internal (that, params,
-							    VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST);
+        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST);
 }
 
 /* Reset the highlight foreground color */
-static void
-vte_sequence_handler_reset_highlight_foreground_color (VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_reset_highlight_foreground_color(vte::parser::Params const& params)
 {
-	that->reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
+        reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
 /* URXVT generic OSC 777 */
 
-static void
-vte_sequence_handler_urxvt_777(VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_urxvt_777(vte::parser::Params const& params)
 {
         /* Accept but ignore this for compatibility with downstream-patched vte (bug #711059)*/
 }
 
 /* iterm2 OSC 133 & 1337 */
 
-static void
-vte_sequence_handler_iterm2_133(VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_iterm2_133(vte::parser::Params const& params)
 {
         /* Accept but ignore this for compatibility when sshing to an osx host
          * where the iterm2 integration is loaded even when not actually using
@@ -3536,8 +3044,8 @@ vte_sequence_handler_iterm2_133(VteTerminalPrivate *that, GValueArray *params)
          */
 }
 
-static void
-vte_sequence_handler_iterm2_1337(VteTerminalPrivate *that, GValueArray *params)
+void
+VteTerminalPrivate::seq_iterm2_1337(vte::parser::Params const& params)
 {
         /* Accept but ignore this for compatibility when sshing to an osx host
          * where the iterm2 integration is loaded even when not actually using
@@ -3547,43 +3055,32 @@ vte_sequence_handler_iterm2_1337(VteTerminalPrivate *that, GValueArray *params)
 
 /* Lookup tables */
 
-#define VTE_SEQUENCE_HANDLER(name) name
+typedef void (VteTerminalPrivate::* sequence_handler_t)(vte::parser::Params const&);
+
+#define VTE_SEQUENCE_HANDLER(name) &VteTerminalPrivate::seq_##name
 #include "vteseq-n.cc"
 #undef VTE_SEQUENCE_HANDLER
-
-static VteTerminalSequenceHandler
-_vte_sequence_get_handler (const char *name)
-{
-	size_t len = strlen(name);
-
-	if (G_UNLIKELY (len < 2)) {
-		return NULL;
-	} else {
-		auto seqhandler = vteseq_n_hash::lookup (name, len);
-		return seqhandler ? seqhandler->handler : NULL;
-	}
-}
-
 
 /* Handle a terminal control sequence and its parameters. */
 void
 VteTerminalPrivate::handle_sequence(char const* str,
-                                    GValueArray *params)
+                                    vte::parser::Params const& params)
 {
-	VteTerminalSequenceHandler handler;
-
 	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
 		display_control_sequence(str, params);
 
 	/* Find the handler for this control sequence. */
-	handler = _vte_sequence_get_handler (str);
+        auto len = strlen(str);
+        if (G_LIKELY (len >= 2)) {
+                auto const* seqhandler = vteseq_n_hash::lookup(str, len);
+                if (seqhandler != nullptr) {
+                        /* Let the handler handle it. */
+                        (this->*seqhandler->handler)(params);
+                        return;
+                }
+        }
 
-	if (handler != NULL) {
-		/* Let the handler handle it. */
-		handler(this, params);
-	} else {
-		_vte_debug_print (VTE_DEBUG_MISC,
-				  "No handler for control sequence `%s' defined.\n",
-				  str);
-	}
+        _vte_debug_print (VTE_DEBUG_MISC,
+                          "No handler for control sequence `%s' defined.\n",
+                          str);
 }

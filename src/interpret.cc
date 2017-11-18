@@ -32,7 +32,7 @@
 #include "caps.h"
 #include "debug.h"
 #include "iso2022.h"
-#include "matcher.h"
+#include "matcher.hh"
 
 int
 main(int argc, char **argv)
