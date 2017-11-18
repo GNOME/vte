@@ -1200,5 +1200,7 @@ vte_pty_spawn_finish(VtePty *pty,
                 *child_pid = *(GPid*)pidptr;
         if (error)
                 *error = nullptr;
+
+        g_free(pidptr);
         return TRUE;
 }
