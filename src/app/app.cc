@@ -1323,6 +1323,7 @@ window_update_paste_sensitivity(VteappWindow* window)
         bool can_paste = false;
         if (gtk_clipboard_wait_for_targets(window->clipboard, &targets, &n_targets)) {
                 can_paste = gtk_targets_include_text(targets, n_targets);
+                g_free(targets);
         }
 
         auto action = g_action_map_lookup_action(G_ACTION_MAP(window), "copy");
