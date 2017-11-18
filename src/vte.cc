@@ -10362,7 +10362,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 		adjust_adjustments_full();
 	}
         /* DECSCUSR cursor style */
-        m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
+        set_cursor_style(VTE_CURSOR_STYLE_TERMINAL_DEFAULT);
 	/* Do more stuff we refer to as a "full" reset. */
 	if (clear_tabstops) {
 		set_default_tabstops();
