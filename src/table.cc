@@ -516,18 +516,14 @@ static void
 _vte_table_extract_numbers(GValueArray **array,
 			   struct _vte_table_arginfo *arginfo)
 {
-	GValue value = {0,};
-	GValue subvalue = {0,};
-	GValueArray *subarray = NULL;
-	gssize i;
-
         if (G_UNLIKELY (*array == NULL)) {
                 *array = g_value_array_new(1);
         }
 
+	GValue value = {0,};
 	g_value_init(&value, G_TYPE_LONG);
-	g_value_init(&subvalue, G_TYPE_VALUE_ARRAY);
-	i = 0;
+	gssize i = 0;
+        GValueArray *subarray = nullptr;
 	do {
 		long total = 0;
 		for (; i < arginfo->length && arginfo->start[i] != ';' && arginfo->start[i] != ':'; i++) {
@@ -546,13 +542,20 @@ _vte_table_extract_numbers(GValueArray **array,
 				g_value_array_append(*array, &value);
 			} else {
 				g_value_array_append(subarray, &value);
-				g_value_set_boxed(&subvalue, subarray);
+
+                                GValue subvalue = {0,};
+                                g_value_init(&subvalue, G_TYPE_VALUE_ARRAY);
+				g_value_take_boxed(&subvalue, subarray);
 				g_value_array_append(*array, &subvalue);
+                                g_value_unset(&subvalue);
+
 				subarray = NULL;
 			}
 		}
 	} while (i++ < arginfo->length);
 	g_value_unset(&value);
+        if (subarray != nullptr)
+                g_value_array_free(subarray);
 }
 
 static void
