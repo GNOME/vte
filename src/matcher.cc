@@ -202,14 +202,16 @@ _vte_matcher_print(struct _vte_matcher *matcher)
  * we need to free those ourselves. */
 void
 _vte_matcher_free_params_array(struct _vte_matcher *matcher,
-		               GValueArray *params)
+                               GValueArray *params)
 {
 	guint i;
 	for (i = 0; i < params->n_values; i++) {
-		GValue *value = &params->values[i];
-		if (G_UNLIKELY (g_type_is_a (value->g_type, G_TYPE_POINTER))) {
-			g_free (g_value_get_pointer (value));
-		}
+                auto value = g_value_array_get_nth(params, i);
+                if (G_UNLIKELY (G_VALUE_HOLDS_POINTER(value))) {
+                        g_free(g_value_get_pointer(value));
+                } else if (G_UNLIKELY (G_VALUE_HOLDS_BOXED(value))) {
+                        g_value_array_free((GValueArray*)g_value_get_boxed(value));
+                }
 	}
 	if (G_UNLIKELY (matcher == NULL || matcher->free_params != NULL)) {
 		g_value_array_free (params);
