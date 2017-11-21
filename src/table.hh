@@ -37,8 +37,10 @@ void _vte_table_add(struct _vte_table *table,
 
 /* Check if a string matches something in the tree. */
 const char *_vte_table_match(struct _vte_table *table,
-			     const gunichar *pattern, gssize length,
-			     const char **res, const gunichar **consumed,
+			     const gunichar *pattern,
+                             gssize length,
+			     const char **res,
+                             const gunichar **consumed,
 			     GValueArray **array);
 /* Dump out the contents of a tree. */
 void _vte_table_print(struct _vte_table *table);

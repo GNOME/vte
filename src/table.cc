@@ -399,9 +399,12 @@ _vte_table_add(struct _vte_table *table,
 /* Match a string in a subtree. */
 static const char *
 _vte_table_matchi(struct _vte_table *table,
-		  const gunichar *candidate, gssize length,
-		  const char **res, const gunichar **consumed,
-		  unsigned char **original, gssize *original_length,
+		  const gunichar *candidate,
+                  gssize length,
+		  const char **res,
+                  const gunichar **consumed,
+		  unsigned char **original,
+                  gssize *original_length,
 		  struct _vte_table_arginfo_head *params)
 {
 	int i = 0;
@@ -588,14 +591,13 @@ _vte_table_extract_string(GValueArray **array,
 /* Check if a string matches something in the tree. */
 const char *
 _vte_table_match(struct _vte_table *table,
-		 const gunichar *candidate, gssize length,
-		 const char **res, const gunichar **consumed,
+		 const gunichar *candidate,
+                 gssize length,
+		 const char **res,
+                 const gunichar **consumed,
 		 GValueArray **array)
 {
 	struct _vte_table *head;
-	const gunichar *dummy_consumed;
-	const char *dummy_res;
-	GValueArray *dummy_array;
 	const char *ret;
 	unsigned char *original, *p;
 	gssize original_length;
@@ -603,19 +605,10 @@ _vte_table_match(struct _vte_table *table,
 	struct _vte_table_arginfo_head params;
 	struct _vte_table_arginfo *arginfo;
 
-	/* Clean up extracted parameters. */
-	if (G_UNLIKELY (res == NULL)) {
-		res = &dummy_res;
-	}
+        g_assert_nonnull(res);
+        g_assert_nonnull(consumed);
 	*res = NULL;
-	if (G_UNLIKELY (consumed == NULL)) {
-		consumed = &dummy_consumed;
-	}
 	*consumed = candidate;
-	if (G_UNLIKELY (array == NULL)) {
-		dummy_array = NULL;
-		array = &dummy_array;
-	}
 
 	/* Provide a fast path for the usual "not a sequence" cases. */
 	if (G_LIKELY (length == 0 || candidate == NULL)) {
@@ -663,7 +656,7 @@ _vte_table_match(struct _vte_table *table,
 	*res = ret;
 
 	/* If we got a match, extract the parameters. */
-	if (ret != NULL && ret[0] != '\0' && array != &dummy_array) {
+	if (ret != NULL && ret[0] != '\0' && array != nullptr) {
 		g_assert(original != NULL);
 		p = original;
 		arginfo = _vte_table_arginfo_head_reverse (&params);

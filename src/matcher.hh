@@ -31,9 +31,11 @@ struct _vte_matcher_impl {
 
 typedef struct _vte_matcher_impl *(*_vte_matcher_create_func)(void);
 typedef const char *(*_vte_matcher_match_func)(struct _vte_matcher_impl *impl,
-		const gunichar *pattern, gssize length,
-		const char **res, const gunichar **consumed,
-		GValueArray **array);
+                                               const gunichar *pattern,
+                                               gssize length,
+                                               const char **res,
+                                               const gunichar **consumed,
+                                               GValueArray **array);
 typedef void (*_vte_matcher_add_func)(struct _vte_matcher_impl *impl,
 		const char *pattern, gssize length,
 		const char *result);
@@ -55,8 +57,10 @@ void _vte_matcher_free(struct _vte_matcher *matcher);
 
 /* Check if a string matches a sequence the matcher knows about. */
 const char *_vte_matcher_match(struct _vte_matcher *matcher,
-			       const gunichar *pattern, gssize length,
-			       const char **res, const gunichar **consumed,
+			       const gunichar *pattern,
+                               gssize length,
+			       const char **res,
+                               const gunichar **consumed,
 			       GValueArray **array);
 
 /* Dump out the contents of a matcher, mainly for debugging. */
