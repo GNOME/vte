@@ -86,7 +86,7 @@ IGNORE_HFILES = \
 	matcher.hh \
 	ring.h \
 	stamp-vtetypebuiltins.h \
-	table.h \
+	table.hh \
 	trie.h \
 	vteconv.h \
 	vtedraw.h \

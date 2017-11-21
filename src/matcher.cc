@@ -24,7 +24,7 @@
 #include "debug.h"
 #include "caps.h"
 #include "matcher.hh"
-#include "table.h"
+#include "table.hh"
 
 struct _vte_matcher {
 	_vte_matcher_match_func match; /* shortcut to the most common op */

@@ -27,7 +27,7 @@
 #include <glib-object.h>
 #include "debug.h"
 #include "iso2022.h"
-#include "table.h"
+#include "table.hh"
 
 /* Table info. */
 #define VTE_TABLE_MAX_LITERAL (128 + 32)

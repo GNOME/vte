@@ -18,13 +18,9 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ifndef vte_table_h_included
-#define vte_table_h_included
-
+#pragma once
 
 #include <glib-object.h>
-
-G_BEGIN_DECLS
 
 struct _vte_table;
 
@@ -48,7 +44,3 @@ const char *_vte_table_match(struct _vte_table *table,
 void _vte_table_print(struct _vte_table *table);
 
 extern const struct _vte_matcher_class _vte_matcher_table;
-
-G_END_DECLS
-
-#endif

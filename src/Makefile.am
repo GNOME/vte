@@ -64,7 +64,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	ring.cc \
 	ring.h \
 	table.cc \
-	table.h \
+	table.hh \
 	vte.cc \
 	vteaccess.cc \
 	vteaccess.h \
@@ -251,7 +251,7 @@ interpret_SOURCES = \
 	matcher.cc \
 	matcher.hh \
 	table.cc \
-	table.h \
+	table.hh \
 	vteconv.cc \
 	vteconv.h \
 	interpret.cc
@@ -291,7 +291,7 @@ table_SOURCES = \
 	matcher.cc \
 	matcher.hh \
 	table.cc \
-	table.h \
+	table.hh \
 	vteconv.cc \
 	vteconv.h \
 	$(NULL)
