@@ -266,6 +266,8 @@ struct Params {
 
         char* ucs4_to_utf8(gunichar const* str) const;
 
+        void print() const;
+
         inline unsigned int size() const
         {
                 return G_LIKELY(m_values != nullptr) ? m_values->n_values : 0;
@@ -1315,10 +1317,10 @@ public:
         void select_empty(vte::grid::column_t col,
                           vte::grid::row_t row);
 
-#define VTE_SEQUENCE_HANDLER(name) \
+#define SEQUENCE_HANDLER(name) \
 	inline void seq_ ## name (vte::parser::Params const& params);
-#include "vteseq-list.h"
-#undef VTE_SEQUENCE_HANDLER
+#include "vteseq-list.hh"
+#undef SEQUENCE_HANDLER
 };
 
 extern GTimer *process_timer;

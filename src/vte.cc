@@ -3613,27 +3613,29 @@ skip_chunk:
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
 	while (start < wcount && !leftovers) {
-		const char *seq_match;
 		const gunichar *next;
                 vte::parser::Params params{nullptr};
 
 		/* Try to match any control sequences. */
-		_vte_matcher_match(m_matcher,
-				   &wbuf[start],
-				   wcount - start,
-				   &seq_match,
-				   &next,
-				   &params.m_values);
+                sequence_handler_t handler = nullptr;
+                auto match_result = _vte_matcher_match(m_matcher,
+                                                       &wbuf[start],
+                                                       wcount - start,
+                                                       &handler,
+                                                       &next,
+                                                       &params.m_values);
+                switch (match_result) {
 		/* We're in one of three possible situations now.
-		 * First, the match string is a non-empty string and next
+		 * First, the match returned a handler, and next
 		 * points to the first character which isn't part of this
 		 * sequence. */
-		if ((seq_match != NULL) && (seq_match[0] != '\0')) {
-			gboolean new_in_scroll_region;
+                case VTE_MATCHER_RESULT_MATCH: {
+                        _VTE_DEBUG_IF(VTE_DEBUG_PARSE)
+                                params.print();
 
-			/* Call the right sequence handler for the requested
-			 * behavior. */
-			handle_sequence(seq_match, params);
+			/* Call the sequence handler */
+                        (this->*handler)(params);
+
                         m_last_graphic_character = 0;
 
 			/* Skip over the proper number of unicode chars. */
@@ -3642,7 +3644,7 @@ skip_chunk:
 
                         // FIXME m_screen may be != previous_screen, check for that!
 
-                        new_in_scroll_region = m_scrolling_restricted
+                        gboolean new_in_scroll_region = m_scrolling_restricted
                             && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
                             && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
 
@@ -3680,27 +3682,30 @@ skip_chunk:
 			}
 
 			in_scroll_region = new_in_scroll_region;
-		} else
-		/* Second, we have a NULL match, and next points to the very
+
+                        break;
+		}
+		/* Second, we have no match, and next points to the very
 		 * next character in the buffer.  Insert the character which
 		 * we're currently examining into the screen. */
-		if (seq_match == NULL) {
+		case VTE_MATCHER_RESULT_NO_MATCH: {
 			c = wbuf[start];
 			/* If it's a control character, permute the order, per
 			 * vttest. */
 			if ((c != *next) &&
 			    ((*next & 0x1f) == *next) &&
+                            //FIXMEchpe what about C1 controls
 			    (start + 1 < next - wbuf)) {
 				const gunichar *tnext = NULL;
-				const char *tmatch = NULL;
 				gunichar ctrl;
 				int i;
 				/* We don't want to permute it if it's another
 				 * control sequence, so check if it is. */
+                                sequence_handler_t thandler;
 				_vte_matcher_match(m_matcher,
 						   next,
 						   wcount - (next - wbuf),
-						   &tmatch,
+                                                   &thandler,
 						   &tnext,
 						   NULL);
 				/* We only do this for non-control-sequence
@@ -3710,6 +3715,7 @@ skip_chunk:
 					ctrl = *next;
 					/* Move everything before it up a
 					 * slot.  */
+                                        // FIXMEchpe memmove!
 					for (i = next - wbuf; i > start; i--) {
 						wbuf[i] = wbuf[i - 1];
 					}
@@ -3783,7 +3789,10 @@ skip_chunk:
 			/* We *don't* emit flush pending signals here. */
 			modified = TRUE;
 			start++;
-		} else {
+
+                        break;
+		}
+                case VTE_MATCHER_RESULT_PARTIAL: {
 			/* Case three: the read broke in the middle of a
 			 * control sequence, so we're undecided with no more
 			 * data to consult. If we have data following the
@@ -3802,7 +3811,10 @@ skip_chunk:
 				 * data before continuing. */
 				leftovers = TRUE;
 			}
+
+                        break;
 		}
+                }
 
 #ifdef VTE_DEBUG
 		/* Some safety checks: ensure the visible parts of the buffer

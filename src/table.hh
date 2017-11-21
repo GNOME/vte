@@ -24,6 +24,11 @@
 
 struct _vte_table;
 
+class VteTerminalPrivate;
+namespace vte { namespace parser { struct Params; } }
+
+typedef void (VteTerminalPrivate::* sequence_handler_t)(vte::parser::Params const&);
+
 /* Create an empty, one-level table. */
 struct _vte_table *_vte_table_new(void);
 
@@ -32,16 +37,17 @@ void _vte_table_free(struct _vte_table *table);
 
 /* Add a string to the matching tree. */
 void _vte_table_add(struct _vte_table *table,
-		    const char *pattern, gssize length,
-		    const char *result);
+		    const char *pattern,
+                    gssize length,
+                    sequence_handler_t handler);
 
 /* Check if a string matches something in the tree. */
-const char *_vte_table_match(struct _vte_table *table,
-			     const gunichar *pattern,
-                             gssize length,
-			     const char **res,
-                             const gunichar **consumed,
-			     GValueArray **array);
+vte_matcher_result_t _vte_table_match(struct _vte_table *table,
+                                      const gunichar *pattern,
+                                      gssize length,
+                                      sequence_handler_t *handler,
+                                      const gunichar **consumed,
+                                      GValueArray **array);
 /* Dump out the contents of a tree. */
 void _vte_table_print(struct _vte_table *table);
 

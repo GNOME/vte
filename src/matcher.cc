@@ -43,25 +43,24 @@ static struct _vte_matcher_impl dummy_vte_matcher_table = {
 /* Add a string to the matcher. */
 static void
 _vte_matcher_add(const struct _vte_matcher *matcher,
-		 const char *pattern, gssize length,
-		 const char *result)
+		 const char *pattern,
+                 gssize length,
+                 sequence_handler_t handler)
 {
-	matcher->impl->klass->add(matcher->impl, pattern, length, result);
+	matcher->impl->klass->add(matcher->impl, pattern, length, handler);
 }
 
 /* Loads all sequences into matcher */
 static void
 _vte_matcher_init(struct _vte_matcher *matcher)
 {
-	const char *code, *value;
-        char *c1;
-        int i, k, n, variants;
-
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "_vte_matcher_init()\n");
 
-        code = _vte_xterm_capability_strings;
-        do {
-                value = strchr(code, '\0') + 1;
+        unsigned int n_entries;
+        auto entries = _vte_get_matcher_entries(&n_entries);
+
+        for (unsigned int e = 0; e < n_entries; e++) {
+                char const* code = entries[e].seq;
 
                 /* Escape sequences from \e@ to \e_ have a C1 counterpart
                  * with the eighth bit set instead of a preceding '\x1b'.
@@ -78,16 +77,16 @@ _vte_matcher_init(struct _vte_matcher *matcher)
                  * we create 2^N variants, by replacing every subset of them
                  * with their C1 counterpart.
                  */
-                variants = 1;
-                for (i = 0; code[i] != '\0'; i++) {
+                int variants = 1;
+                for (int i = 0; code[i] != '\0'; i++) {
                         if (code[i] == '\x1B' && code[i + 1] >= '@' && code[i + 1] <= '_') {
                                 variants <<= 1;
                         }
                 }
-                for (n = 0; n < variants; n++) {
-                        c1 = g_strdup(code);
-                        k = 0;
-                        for (i = 0; c1[i] != '\0'; i++) {
+                for (int n = 0; n < variants; n++) {
+                        char* c1 = g_strdup(code);
+                        int k = 0;
+                        for (int i = 0; c1[i] != '\0'; i++) {
                                 if (c1[i] == '\x1B' && c1[i + 1] >= '@' && c1[i + 1] <= '_') {
                                         if (n & (1 << k)) {
                                                 memmove(c1 + i, c1 + i + 1, strlen(c1 + i + 1) + 1);
@@ -96,12 +95,10 @@ _vte_matcher_init(struct _vte_matcher *matcher)
                                         k++;
                                 }
                         }
-                        _vte_matcher_add(matcher, c1, strlen(c1), value);
+                        _vte_matcher_add(matcher, c1, strlen(c1), entries[e].handler);
                         g_free(c1);
                 }
-
-                code = strchr(value, '\0') + 1;
-        } while (*code);
+        }
 
 	_VTE_DEBUG_IF(VTE_DEBUG_MATCHER) {
 		g_printerr("Matcher contents:\n");
@@ -176,11 +173,11 @@ _vte_matcher_free(struct _vte_matcher *matcher)
 }
 
 /* Check if a string matches a sequence the matcher knows about. */
-const char *
+vte_matcher_result_t
 _vte_matcher_match(struct _vte_matcher *matcher,
 		   const gunichar *pattern,
                    gssize length,
-		   const char **res,
+                   sequence_handler_t *handler,
                    const gunichar **consumed,
 		   GValueArray **array)
 {
@@ -189,7 +186,7 @@ _vte_matcher_match(struct _vte_matcher *matcher,
 		matcher->free_params = NULL;
 	}
 	return matcher->match(matcher->impl, pattern, length,
-					res, consumed, array);
+                              handler, consumed, array);
 }
 
 /* Dump out the contents of a matcher, mainly for debugging. */

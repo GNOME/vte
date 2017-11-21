@@ -22,6 +22,11 @@
 
 #include <glib-object.h>
 
+class VteTerminalPrivate;
+namespace vte { namespace parser { struct Params; } }
+
+typedef void (VteTerminalPrivate::* sequence_handler_t)(vte::parser::Params const&);
+
 struct _vte_matcher;
 
 struct _vte_matcher_impl {
@@ -29,16 +34,29 @@ struct _vte_matcher_impl {
 	/* private */
 };
 
+typedef enum {
+        VTE_MATCHER_RESULT_NO_MATCH,
+        VTE_MATCHER_RESULT_MATCH,
+        VTE_MATCHER_RESULT_PARTIAL
+} vte_matcher_result_t;
+
+struct vte_matcher_entry_t {
+        char seq[20];
+        sequence_handler_t handler;
+};
+
+vte_matcher_entry_t const* _vte_get_matcher_entries(unsigned int* n_entries);
+
 typedef struct _vte_matcher_impl *(*_vte_matcher_create_func)(void);
-typedef const char *(*_vte_matcher_match_func)(struct _vte_matcher_impl *impl,
-                                               const gunichar *pattern,
-                                               gssize length,
-                                               const char **res,
-                                               const gunichar **consumed,
-                                               GValueArray **array);
+typedef vte_matcher_result_t (*_vte_matcher_match_func)(struct _vte_matcher_impl *impl,
+                                                        const gunichar *pattern,
+                                                        gssize length,
+                                                        sequence_handler_t *handler,
+                                                        const gunichar **consumed,
+                                                        GValueArray **array);
 typedef void (*_vte_matcher_add_func)(struct _vte_matcher_impl *impl,
-		const char *pattern, gssize length,
-		const char *result);
+                                      const char *pattern, gssize length,
+                                      sequence_handler_t handler);
 typedef void (*_vte_matcher_print_func)(struct _vte_matcher_impl *impl);
 typedef void (*_vte_matcher_destroy_func)(struct _vte_matcher_impl *impl);
 struct _vte_matcher_class{
@@ -56,12 +74,12 @@ struct _vte_matcher *_vte_matcher_new(void);
 void _vte_matcher_free(struct _vte_matcher *matcher);
 
 /* Check if a string matches a sequence the matcher knows about. */
-const char *_vte_matcher_match(struct _vte_matcher *matcher,
-			       const gunichar *pattern,
-                               gssize length,
-			       const char **res,
-                               const gunichar **consumed,
-			       GValueArray **array);
+vte_matcher_result_t _vte_matcher_match(struct _vte_matcher *matcher,
+                                        const gunichar *pattern,
+                                        gssize length,
+                                        sequence_handler_t *handler,
+                                        const gunichar **consumed,
+                                        GValueArray **array);
 
 /* Dump out the contents of a matcher, mainly for debugging. */
 void _vte_matcher_print(struct _vte_matcher *matcher);

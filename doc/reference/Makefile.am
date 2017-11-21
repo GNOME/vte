@@ -78,7 +78,8 @@ EXTRA_HFILES =
 IGNORE_HFILES = \
 	config.h \
 	buffer.h \
-	caps.h \
+	caps.hh \
+	caps-list.hh \
 	debug.h \
 	iso2022.h \
 	keymap.h \

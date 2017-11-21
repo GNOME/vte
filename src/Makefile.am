@@ -32,8 +32,6 @@ lib_LTLIBRARIES = libvte-@VTE_API_MAJOR_VERSION@.@VTE_API_MINOR_VERSION@.la
 EXTRA_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	box_drawing_generate.sh \
 	marshal.list \
-	vteseq-n.gperf \
-	vteseq-n.cc \
 	vtetypebuiltins.cc.template \
 	vtetypebuiltins.h.template \
 	$(NULL)
@@ -48,8 +46,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vte/vteregex.h \
 	vte/vteterminal.h \
 	buffer.h \
-	caps.cc \
-	caps.h \
+	caps.hh \
+	caps-list.hh \
 	debug.cc \
 	debug.h \
 	iso2022.cc \
@@ -85,7 +83,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtespawn.cc \
 	vtespawn.hh \
 	vteseq.cc \
-	vteseq-list.h \
+	vteseq-list.hh \
 	vtestream.cc \
 	vtestream.h \
 	vtestream-base.h \
@@ -141,8 +139,6 @@ BUILT_SOURCES = \
 	vtetypebuiltins.cc \
 	vte/vtetypebuiltins.h \
 	vteresources.cc \
-	vteseq-list.h \
-	vteseq-n.cc \
 	$(NULL)
 EXTRA_DIST += box_drawing.txt box_drawing_generate.sh iso2022.txt
 CLEANFILES += $(BUILT_SOURCES) stamp-vtetypebuiltins.h
@@ -170,21 +166,12 @@ vtetypebuiltins.cc: vtetypebuiltins.cc.template vte/vteenums.h vte/vtedeprecated
 	&& (cmp -s xgen-vtbc vtetypebuiltins.cc || cp xgen-vtbc vtetypebuiltins.cc ) \
 	&& rm -f xgen-vtbc
 
-vteseq-n.cc: vteseq-n.gperf
-	$(AM_V_GEN) $(top_srcdir)/missing --run $(GPERF) -m 100 $< > $@.tmp && \
-	mv -f $@.tmp $@
-
-vteseq-list.h: vteseq-n.gperf
-	$(AM_V_GEN) echo '/* Generated file.  Do not edit */' > $@.tmp && \
-	cat $^ | grep -v '^#' | grep '\<VTE_SEQUENCE_HANDLER\>'| sed 's/.*, //' | LANG=C sort -u >> $@.tmp && \
-	mv -f $@.tmp $@
-
 vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies vte.gresource.xml)
 	$(AM_V_GEN)$(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir . --generate-source --c-name _vte $<
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += interpret slowcat
+noinst_PROGRAMS += slowcat
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -193,7 +180,6 @@ check_PROGRAMS = \
 	reaper \
 	reflect-text-view \
 	reflect-vte mev \
-	table \
 	xticker \
 	vteconv \
 	vtestream-file \
@@ -207,7 +193,6 @@ dist_check_SCRIPTS = \
 
 TESTS = \
 	reaper \
-	table \
 	test-vtetypes \
 	vteconv \
 	vtestream-file \
@@ -240,72 +225,12 @@ reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
 
-interpret_SOURCES = \
-	buffer.h \
-	caps.cc \
-	caps.h \
-	debug.cc \
-	debug.h \
-	iso2022.cc \
-	iso2022.h \
-	matcher.cc \
-	matcher.hh \
-	table.cc \
-	table.hh \
-	vteconv.cc \
-	vteconv.h \
-	interpret.cc
-interpret_CPPFLAGS = \
-	-DINTERPRET_MAIN \
-	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
-	-I$(builddir) \
-	-I$(srcdir) \
-	$(AM_CPPFLAGS)
-interpret_CFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(GTK_CFLAGS) \
-	$(AM_CFLAGS)
-interpret_CXXFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(GTK_CFLAGS) \
-	$(AM_CXXFLAGS)
-interpret_LDADD = \
-	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS)
-
 slowcat_SOURCES = \
 	slowcat.c \
 	$(NULL)
 slowcat_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 slowcat_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 slowcat_LDADD = $(GLIB_LIBS)
-
-table_SOURCES = \
-	buffer.h \
-	caps.cc \
-	caps.h \
-	debug.cc \
-	debug.h \
-	matcher.cc \
-	matcher.hh \
-	table.cc \
-	table.hh \
-	vteconv.cc \
-	vteconv.h \
-	$(NULL)
-table_CPPFLAGS = \
-	-DTABLE_MAIN \
-	-I$(builddir) \
-	-I$(srcdir) \
-	$(AM_CPPFLAGS)
-table_CXXFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(AM_CXXFLAGS)
-table_LDADD = \
-	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS)
 
 test_vtetypes_SOURCES = \
 	vtetypes.cc \

@@ -399,14 +399,6 @@ if test -z "$GLIB_COMPILE_RESOURCES"; then
   fi
 fi
 
-AC_ARG_VAR([GPERF],[the gperf programme])
-if test -z "$GPERF"; then
-  AC_PATH_PROG([GPERF],[gperf],[])
-  if test -z "$GPERF"; then
-    AC_MSG_ERROR([gperf not found])
-  fi
-fi
-
 AC_ARG_VAR([XMLLINT],[the xmllint programme])
 if test -z "$XMLLINT"; then
   AC_PATH_PROG([XMLLINT],[xmllint],[])

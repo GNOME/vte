@@ -40,7 +40,7 @@
 
 struct _vte_table {
 	struct _vte_matcher_impl impl;
-	const char *result;
+        sequence_handler_t handler;
 	unsigned char *original;
 	gssize original_length;
 	struct _vte_table *table_string;
@@ -189,9 +189,11 @@ _vte_table_free(struct _vte_table *table)
 
 static void
 _vte_table_addi(struct _vte_table *table,
-		const unsigned char *original, gssize original_length,
-		const char *pattern, gssize length,
-		const char *result)
+		const unsigned char *original,
+                gssize original_length,
+		const char *pattern,
+                gssize length,
+                sequence_handler_t handler)
 {
 	int i;
 	guint8 check;
@@ -206,22 +208,18 @@ _vte_table_addi(struct _vte_table *table,
 
 	/* If this is the terminal node, set the result. */
 	if (length == 0) {
-		if (table->result != NULL)
+		if (table->handler)
                         _VTE_DEBUG_IF (VTE_DEBUG_PARSE) {
-                                g_printerr ("'%s' => '%s'",
+                                g_printerr ("'%s'",
                                             _vte_debug_sequence_to_string ((const char *)table->original,
-                                                                           table->original_length),
-                                            table->result);
-                                g_printerr (" and '%s' => '%s' are indistinguishable.\n",
+                                                                           table->original_length));
+                                g_printerr (" and '%s' are indistinguishable.\n",
                                             _vte_debug_sequence_to_string ((const char *)original,
-                                                                           original_length),
-                                            result);
+                                                                           original_length));
                         }
 
-		table->result = g_intern_string(result);
-		if (table->original != NULL) {
-			g_free(table->original);
-		}
+                table->handler = handler;
+                g_free(table->original);
 		table->original = (unsigned char *) g_memdup(original, original_length);
 		table->original_length = original_length;
 		return;
@@ -241,7 +239,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result);
+					handler);
 			return;
 		}
 
@@ -262,7 +260,7 @@ _vte_table_addi(struct _vte_table *table,
 				_vte_table_addi(table, b->data, b->len,
 						(const char *)b->data + initial,
 						b->len - initial,
-						result);
+						handler);
 				g_byte_array_free(b, TRUE);
 			}
 			/* Create a new subtable. */
@@ -275,7 +273,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result);
+					handler);
 			return;
 		}
 
@@ -293,7 +291,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result);
+					handler);
 			return;
 		}
 
@@ -314,7 +312,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 2, length - 2,
-					result);
+					handler);
 			return;
 		}
 
@@ -341,7 +339,7 @@ _vte_table_addi(struct _vte_table *table,
 				_vte_table_addi(subtable,
 						original, original_length,
 						pattern + 3, length - 3,
-						result);
+						handler);
 			}
 			/* Also add a subtable for higher characters. */
 			if (table->table == NULL) {
@@ -358,7 +356,7 @@ _vte_table_addi(struct _vte_table *table,
 			/* Add the rest of the string to the subtable. */
 			_vte_table_addi(subtable, original, original_length,
 					pattern + 3, length - 3,
-					result);
+					handler);
 			return;
 		}
 	}
@@ -381,27 +379,28 @@ _vte_table_addi(struct _vte_table *table,
 	/* Add the rest of the string to the subtable. */
 	_vte_table_addi(subtable, original, original_length,
 			pattern + 1, length - 1,
-			result);
+			handler);
 }
 
 /* Add a string to the matching tree. */
 void
 _vte_table_add(struct _vte_table *table,
-	       const char *pattern, gssize length,
-	       const char *result)
+	       const char *pattern,
+               gssize length,
+               sequence_handler_t handler)
 {
 	_vte_table_addi(table,
 			(const unsigned char *) pattern, length,
 			pattern, length,
-			result);
+			handler);
 }
 
 /* Match a string in a subtree. */
-static const char *
+static vte_matcher_result_t
 _vte_table_matchi(struct _vte_table *table,
 		  const gunichar *candidate,
                   gssize length,
-		  const char **res,
+                  sequence_handler_t *handler,
                   const gunichar **consumed,
 		  unsigned char **original,
                   gssize *original_length,
@@ -412,19 +411,20 @@ _vte_table_matchi(struct _vte_table *table,
 	struct _vte_table_arginfo *arginfo;
 
 	/* Check if this is a result node. */
-	if (table->result != NULL) {
+	if (table->handler) {
 		*consumed = candidate;
 		*original = table->original;
 		*original_length = table->original_length;
-		*res = table->result;
-		return table->result;
+                *handler = table->handler;
+		return VTE_MATCHER_RESULT_MATCH;
 	}
 
 	/* If we're out of data, but we still have children, return the empty
 	 * string. */
 	if (G_UNLIKELY (length == 0)) {
 		*consumed = candidate;
-		return "";
+                *handler = nullptr;
+		return VTE_MATCHER_RESULT_PARTIAL;
 	}
 
 	/* Check if this node has a string disposition. */
@@ -444,14 +444,13 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = i;
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + i, length - i,
-					 res, consumed,
+					 handler, consumed,
 					 original, original_length, params);
 	}
 
 	/* Check if this could be a list. */
 	if ((_vte_table_is_numeric_list(candidate[0])) &&
 	    (table->table_number_list != NULL)) {
-		const char *local_result;
 
 		subtable = table->table_number_list;
 		/* Iterate over all numeric characters, ';' and ':'. */
@@ -467,12 +466,12 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = i;
 
 		/* Try and continue. */
-		local_result = _vte_table_matchi(subtable,
-					 candidate + i, length - i,
-					 res, consumed,
-					 original, original_length,
-					 params);
-		if (local_result != NULL) {
+		auto local_result = _vte_table_matchi(subtable,
+                                                      candidate + i, length - i,
+                                                      handler, consumed,
+                                                      original, original_length,
+                                                      params);
+		if (local_result != VTE_MATCHER_RESULT_NO_MATCH) {
 			return local_result;
 		}
 		_vte_table_arginfo_head_revert (params, arginfo);
@@ -497,7 +496,7 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = i;
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + i, length - i,
-					 res, consumed,
+					 handler, consumed,
 					 original, original_length, params);
 	}
 
@@ -512,14 +511,15 @@ _vte_table_matchi(struct _vte_table *table,
 		arginfo->length = 1;
 		/* Continue. */
 		return _vte_table_matchi(subtable, candidate + 1, length - 1,
-					 res, consumed,
+					 handler, consumed,
 					 original, original_length, params);
 	}
 
 	/* If there's nothing else to do, then we can't go on.  Keep track of
 	 * where we are. */
 	*consumed = candidate;
-	return NULL;
+        *handler = nullptr;
+	return VTE_MATCHER_RESULT_NO_MATCH;
 }
 
 static void
@@ -589,30 +589,29 @@ _vte_table_extract_string(GValueArray **array,
 }
 
 /* Check if a string matches something in the tree. */
-const char *
+vte_matcher_result_t
 _vte_table_match(struct _vte_table *table,
 		 const gunichar *candidate,
                  gssize length,
-		 const char **res,
+                 sequence_handler_t *handler,
                  const gunichar **consumed,
 		 GValueArray **array)
 {
 	struct _vte_table *head;
-	const char *ret;
 	unsigned char *original, *p;
 	gssize original_length;
 	int i;
 	struct _vte_table_arginfo_head params;
 	struct _vte_table_arginfo *arginfo;
 
-        g_assert_nonnull(res);
+        g_assert_nonnull(handler);
         g_assert_nonnull(consumed);
-	*res = NULL;
 	*consumed = candidate;
 
 	/* Provide a fast path for the usual "not a sequence" cases. */
 	if (G_LIKELY (length == 0 || candidate == NULL)) {
-		return NULL;
+                *handler = nullptr;
+		return VTE_MATCHER_RESULT_NO_MATCH;
 	}
 
 	/* If there's no literal path, and no generic path, and the numeric
@@ -625,7 +624,8 @@ _vte_table_match(struct _vte_table *table,
 				if (table->table_number_list == NULL ||
 					!_vte_table_is_numeric_list(candidate[0])){
 					/* No match. */
-					return NULL;
+                                        *handler = nullptr;
+					return VTE_MATCHER_RESULT_NO_MATCH;
 				}
 			}
 		}
@@ -639,25 +639,24 @@ _vte_table_match(struct _vte_table *table,
 			head = head->table[_vte_table_map_literal(candidate[i])];
 		}
 	}
-	if (head != NULL && head->result != NULL) {
+	if (head != NULL && head->handler) {
 		/* Got a literal match. */
 		*consumed = candidate + i;
-		*res = head->result;
-		return *res;
+                *handler = head->handler;
+		return VTE_MATCHER_RESULT_MATCH;
 	}
 
 	_vte_table_arginfo_head_init (&params);
 
 	/* Check for a pattern match. */
-	ret = _vte_table_matchi(table, candidate, length,
-				res, consumed,
-				&original, &original_length,
-				&params);
-	*res = ret;
+	auto ret = _vte_table_matchi(table, candidate, length,
+                                     handler, consumed,
+                                     &original, &original_length,
+                                     &params);
 
 	/* If we got a match, extract the parameters. */
-	if (ret != NULL && ret[0] != '\0' && array != nullptr) {
-		g_assert(original != NULL);
+	if (ret == VTE_MATCHER_RESULT_MATCH && array != nullptr) {
+		g_assert_nonnull(original);
 		p = original;
 		arginfo = _vte_table_arginfo_head_reverse (&params);
 		do {
@@ -703,19 +702,21 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 	(*count)++;
 
 	/* Result? */
-	if (table->result != NULL) {
-		g_printerr("%s = `%s'\n", lead,
-			table->result);
+	if (table->handler) {
+		g_printerr("%s => result\n", _vte_debug_sequence_to_string(lead, -1));
 	}
 
 	/* Literal? */
 	for (i = 1; i < VTE_TABLE_MAX_LITERAL; i++) {
 		if ((table->table != NULL) && (table->table[i] != NULL)) {
 			if (i < 32) {
-				newlead = g_strdup_printf("%s^%c", lead,
+				newlead = g_strdup_printf("%s^%c",
+                                                          _vte_debug_sequence_to_string(lead, -1),
 							  i + 64);
 			} else {
-				newlead = g_strdup_printf("%s%c", lead, i);
+				newlead = g_strdup_printf("%s%c",
+                                                          _vte_debug_sequence_to_string(lead, -1),
+                                                          i);
 			}
 			_vte_table_printi(table->table[i], newlead, count);
 			g_free(newlead);
@@ -724,7 +725,8 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 
 	/* String? */
 	if (table->table_string != NULL) {
-		newlead = g_strdup_printf("%s{string}", lead);
+		newlead = g_strdup_printf("%s{string}",
+                                          _vte_debug_sequence_to_string(lead, -1));
 		_vte_table_printi(table->table_string,
 				  newlead, count);
 		g_free(newlead);
@@ -732,7 +734,8 @@ _vte_table_printi(struct _vte_table *table, const char *lead, int *count)
 
 	/* Number(+)? */
 	if (table->table_number != NULL) {
-		newlead = g_strdup_printf("%s{number}", lead);
+		newlead = g_strdup_printf("%s{number}",
+                                          _vte_debug_sequence_to_string(lead, -1));
 		_vte_table_printi(table->table_number,
 				  newlead, count);
 		g_free(newlead);
@@ -748,146 +751,6 @@ _vte_table_print(struct _vte_table *table)
 	g_printerr("%d nodes = %ld bytes.\n",
 		count, (long) count * sizeof(struct _vte_table));
 }
-
-#ifdef TABLE_MAIN
-/* Return an escaped version of a string suitable for printing. */
-static char *
-escape(const char *p)
-{
-	char *tmp;
-	GString *ret;
-	int i;
-	guint8 check;
-	ret = g_string_new(NULL);
-	for (i = 0; p[i] != '\0'; i++) {
-		tmp = NULL;
-		check = p[i];
-		if (check < 32) {
-			tmp = g_strdup_printf("^%c", check + 64);
-		} else
-		if (check >= 0x80) {
-			tmp = g_strdup_printf("{0x%x}", check);
-		} else {
-			tmp = g_strdup_printf("%c", check);
-		}
-		g_string_append(ret, tmp);
-		g_free(tmp);
-	}
-	return g_string_free(ret, FALSE);
-}
-
-/* Spread out a narrow ASCII string into a wide-character string. */
-static gunichar *
-make_wide(const char *p)
-{
-	gunichar *ret;
-	guint8 check;
-	int i;
-	ret = (gunichar *)g_malloc((strlen(p) + 1) * sizeof(gunichar));
-	for (i = 0; p[i] != 0; i++) {
-		check = (guint8) p[i];
-		g_assert(check < 0x80);
-		ret[i] = check;
-	}
-	ret[i] = '\0';
-	return ret;
-}
-
-/* Print the contents of a GValueArray. */
-static void
-print_array(GValueArray *array)
-{
-	int i;
-	GValue *value;
-	if (array != NULL) {
-		printf(" (");
-		for (i = 0; i < array->n_values; i++) {
-			value = g_value_array_get_nth(array, i);
-			if (i > 0) {
-				printf(", ");
-			}
-			if (G_VALUE_HOLDS_LONG(value)) {
-				printf("%ld", g_value_get_long(value));
-			} else
-			if (G_VALUE_HOLDS_STRING(value)) {
-				printf("\"%s\"", g_value_get_string(value));
-			} else
-			if (G_VALUE_HOLDS_POINTER(value)) {
-				printf("\"%ls\"",
-				       (wchar_t*) g_value_get_pointer(value));
-			}
-			if (G_VALUE_HOLDS_BOXED(value)) {
-                                print_array((GValueArray *)g_value_get_boxed(value));
-			}
-		}
-		printf(")");
-		/* _vte_matcher_free_params_array(array); */
-	}
-}
-
-int
-main(int argc, char **argv)
-{
-	struct _vte_table *table;
-	int i;
-	const char *candidates[] = {
-		"ABCD",
-		"ABCDEF",
-		"]2;foo",
-		"]3;foo",
-		"]3;fook",
-		"[3;foo",
-		"[3;3m",
-		"[3;5;42m",
-		"[3;5:42m",
-		"[3:5:42m",
-		"[3;2;110;120;130m",
-		"[3;2:110:120:130m",
-		"[3:2:110:120:130m",
-		"[3;3mk",
-		"[3;3hk",
-		"[3;3h",
-		"]3;3h",
-		"[3;3k",
-		"[3;3kj",
-		"s",
-	};
-	const char *result, *p;
-	const gunichar *consumed;
-	char *tmp;
-	gunichar *candidate;
-	GValueArray *array;
-	g_type_init();
-	table = _vte_table_new();
-	_vte_table_add(table, "ABCDEFG", 7, "ABCDEFG");
-	_vte_table_add(table, "ABCD", 4, "ABCD");
-	_vte_table_add(table, "ABCDEFH", 7, "ABCDEFH");
-	_vte_table_add(table, "ACDEFH", 6, "ACDEFH");
-	_vte_table_add(table, "ACDEF%sJ", 8, "ACDEF%sJ");
-	_vte_table_add(table, "[%mh", 5, "move-cursor");
-	_vte_table_add(table, "[%mm", 5, "character-attributes");
-	_vte_table_add(table, "]3;%s", 7, "set-icon-title");
-	_vte_table_add(table, "]4;%s", 7, "set-window-title");
-	printf("Table contents:\n");
-	_vte_table_print(table);
-	printf("\nTable matches:\n");
-	for (i = 0; i < G_N_ELEMENTS(candidates); i++) {
-		p = candidates[i];
-		candidate = make_wide(p);
-		array = NULL;
-		_vte_table_match(table, candidate, strlen(p),
-				 &result, &consumed, &array);
-		tmp = escape(p);
-		printf("`%s' => `%s'", tmp, (result ? result : "(NULL)"));
-		g_free(tmp);
-		print_array(array);
-		printf(" (%d chars)\n", (int) (consumed ? consumed - candidate: 0));
-		g_free(candidate);
-	}
-	_vte_table_free(table);
-	return 0;
-}
-#endif
 
 const struct _vte_matcher_class _vte_matcher_table = {
 	(_vte_matcher_create_func)_vte_table_new,

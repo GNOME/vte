@@ -40,14 +40,14 @@
 
 #include <algorithm>
 
-static void
-display_control_sequence(const char *name, vte::parser::Params const& params)
+void
+vte::parser::Params::print() const
 {
 #ifdef VTE_DEBUG
-        g_printerr("%s(", name);
-        auto n_params = params.size();
+        g_printerr("(");
+        auto n_params = size();
         for (unsigned int i = 0; i < n_params; i++) {
-                auto value = params.value_at_unchecked(i);
+                auto value = value_at_unchecked(i);
                 if (i > 0) {
                         g_printerr(", ");
                 }
@@ -62,7 +62,7 @@ display_control_sequence(const char *name, vte::parser::Params const& params)
                         g_printerr("WSTRING(\"%ls\")", (const wchar_t*) w);
                 } else if (G_VALUE_HOLDS_BOXED(value)) {
                         vte::parser::Params subparams{(GValueArray*)g_value_get_boxed(value)};
-                        display_control_sequence("", subparams);
+                        subparams.print();
                 }
 	}
 	g_printerr(")\n");
@@ -1499,12 +1499,6 @@ VteTerminalPrivate::seq_next_line(vte::parser::Params const& params)
 {
         set_cursor_column(0);
         cursor_down(true);
-}
-
-/* No-op. */
-void
-VteTerminalPrivate::seq_linux_console_cursor_attributes(vte::parser::Params const& params)
-{
 }
 
 /* Scroll the text down N lines, but don't move the cursor. */
@@ -3053,34 +3047,85 @@ VteTerminalPrivate::seq_iterm2_1337(vte::parser::Params const& params)
          */
 }
 
-/* Lookup tables */
-
-typedef void (VteTerminalPrivate::* sequence_handler_t)(vte::parser::Params const&);
-
-#define VTE_SEQUENCE_HANDLER(name) &VteTerminalPrivate::seq_##name
-#include "vteseq-n.cc"
-#undef VTE_SEQUENCE_HANDLER
-
-/* Handle a terminal control sequence and its parameters. */
-void
-VteTerminalPrivate::handle_sequence(char const* str,
-                                    vte::parser::Params const& params)
-{
-	_VTE_DEBUG_IF(VTE_DEBUG_PARSE)
-		display_control_sequence(str, params);
-
-	/* Find the handler for this control sequence. */
-        auto len = strlen(str);
-        if (G_LIKELY (len >= 2)) {
-                auto const* seqhandler = vteseq_n_hash::lookup(str, len);
-                if (seqhandler != nullptr) {
-                        /* Let the handler handle it. */
-                        (this->*seqhandler->handler)(params);
-                        return;
-                }
+#define UNIMPLEMENTED_SEQUENCE_HANDLER(name) \
+        void \
+        VteTerminalPrivate::seq_ ## name (vte::parser::Params const& params) \
+        { \
+                static bool warned = false; \
+                if (!warned) { \
+                        _vte_debug_print(VTE_DEBUG_PARSE, \
+                                         "Unimplemented handler for control sequence `%s'.\n", \
+                                         "name"); \
+                        warned = true; \
+                } \
         }
 
-        _vte_debug_print (VTE_DEBUG_MISC,
-                          "No handler for control sequence `%s' defined.\n",
-                          str);
+UNIMPLEMENTED_SEQUENCE_HANDLER(ansi_conformance_level_1)
+UNIMPLEMENTED_SEQUENCE_HANDLER(ansi_conformance_level_2)
+UNIMPLEMENTED_SEQUENCE_HANDLER(ansi_conformance_level_3)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_font_name)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_font_number)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_logfile)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_background_color_bel)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_background_color_st)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_foreground_color_bel)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_foreground_color_st)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_background_color_bel)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_background_color_st)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_cursor_color_bel)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_cursor_color_st)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_foreground_color_bel)
+UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_foreground_color_st)
+UNIMPLEMENTED_SEQUENCE_HANDLER(cursor_lower_left)
+UNIMPLEMENTED_SEQUENCE_HANDLER(dec_media_copy)
+UNIMPLEMENTED_SEQUENCE_HANDLER(default_character_set)
+UNIMPLEMENTED_SEQUENCE_HANDLER(device_control_string)
+UNIMPLEMENTED_SEQUENCE_HANDLER(double_height_bottom_half)
+UNIMPLEMENTED_SEQUENCE_HANDLER(double_height_top_half)
+UNIMPLEMENTED_SEQUENCE_HANDLER(double_width)
+UNIMPLEMENTED_SEQUENCE_HANDLER(eight_bit_controls)
+UNIMPLEMENTED_SEQUENCE_HANDLER(enable_filter_rectangle)
+UNIMPLEMENTED_SEQUENCE_HANDLER(enable_locator_reporting)
+UNIMPLEMENTED_SEQUENCE_HANDLER(end_of_guarded_area)
+UNIMPLEMENTED_SEQUENCE_HANDLER(initiate_hilite_mouse_tracking)
+UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g1_character_set_as_gr)
+UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g2_character_set)
+UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g2_character_set_as_gr)
+UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g3_character_set)
+UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g3_character_set_as_gr)
+UNIMPLEMENTED_SEQUENCE_HANDLER(linux_console_cursor_attributes)
+UNIMPLEMENTED_SEQUENCE_HANDLER(media_copy)
+UNIMPLEMENTED_SEQUENCE_HANDLER(memory_lock)
+UNIMPLEMENTED_SEQUENCE_HANDLER(memory_unlock)
+UNIMPLEMENTED_SEQUENCE_HANDLER(request_locator_position)
+UNIMPLEMENTED_SEQUENCE_HANDLER(reset_mouse_cursor_foreground_color)
+UNIMPLEMENTED_SEQUENCE_HANDLER(reset_mouse_cursor_background_color)
+UNIMPLEMENTED_SEQUENCE_HANDLER(reset_tek_background_color)
+UNIMPLEMENTED_SEQUENCE_HANDLER(reset_tek_cursor_color)
+UNIMPLEMENTED_SEQUENCE_HANDLER(reset_tek_foreground_color)
+UNIMPLEMENTED_SEQUENCE_HANDLER(select_character_protection)
+UNIMPLEMENTED_SEQUENCE_HANDLER(select_locator_events)
+UNIMPLEMENTED_SEQUENCE_HANDLER(selective_erase_in_display)
+UNIMPLEMENTED_SEQUENCE_HANDLER(selective_erase_in_line)
+UNIMPLEMENTED_SEQUENCE_HANDLER(send_tertiary_device_attributes)
+UNIMPLEMENTED_SEQUENCE_HANDLER(set_conformance_level)
+UNIMPLEMENTED_SEQUENCE_HANDLER(set_text_property_21)
+UNIMPLEMENTED_SEQUENCE_HANDLER(set_text_property_2L)
+UNIMPLEMENTED_SEQUENCE_HANDLER(set_xproperty)
+UNIMPLEMENTED_SEQUENCE_HANDLER(seven_bit_controls)
+UNIMPLEMENTED_SEQUENCE_HANDLER(single_shift_g2)
+UNIMPLEMENTED_SEQUENCE_HANDLER(single_shift_g3)
+UNIMPLEMENTED_SEQUENCE_HANDLER(single_width)
+UNIMPLEMENTED_SEQUENCE_HANDLER(start_of_guarded_area)
+UNIMPLEMENTED_SEQUENCE_HANDLER(start_or_end_of_string)
+UNIMPLEMENTED_SEQUENCE_HANDLER(utf_8_character_set)
+
+#undef UNIMPLEMENTED_UNIMPLEMENTED_SEQUENCE_HANDLER
+
+vte_matcher_entry_t const*
+_vte_get_matcher_entries(unsigned int* n_entries)
+{
+#include "caps-list.hh"
+        *n_entries = G_N_ELEMENTS (entries);
+        return entries;
 }
