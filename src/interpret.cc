@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <glib.h>
 #include <glib-object.h>
+#include <locale.h>
 #include "caps.h"
 #include "debug.h"
 #include "iso2022.h"
@@ -76,6 +77,8 @@ main(int argc, char **argv)
 	struct _vte_iso2022_state *subst;
 	const char *tmp;
 	GValueArray *values;
+
+        setlocale(LC_ALL, "");
 
 	_vte_debug_init();
 
