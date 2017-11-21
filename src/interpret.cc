@@ -34,6 +34,36 @@
 #include "iso2022.h"
 #include "matcher.hh"
 
+static void
+print_array(char const* name,
+            GValueArray* array)
+{
+        GValue *value;
+        if (array != NULL) {
+                g_print("%s(", name);
+                for (unsigned int i = 0; i < array->n_values; i++) {
+                        value = g_value_array_get_nth(array, i);
+                        if (i > 0) {
+                                g_print(", ");
+                        }
+                        if (G_VALUE_HOLDS_LONG(value)) {
+                                g_print("%ld", g_value_get_long(value));
+                        } else
+                        if (G_VALUE_HOLDS_STRING(value)) {
+                                g_print("\"%s\"", g_value_get_string(value));
+                        } else
+                        if (G_VALUE_HOLDS_POINTER(value)) {
+                                g_print("\"%ls\"",
+                                        (wchar_t*) g_value_get_pointer(value));
+                        } else
+                        if (G_VALUE_HOLDS_BOXED(value)) {
+                                print_array("", (GValueArray *)g_value_get_boxed(value));
+                        }
+                }
+                g_print(")");
+        }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -42,7 +72,6 @@ main(int argc, char **argv)
 	unsigned int i, j;
 	int l;
 	unsigned char buf[4096];
-	GValue *value;
 	int infile;
 	struct _vte_iso2022_state *subst;
 	const char *tmp;
@@ -120,29 +149,11 @@ main(int argc, char **argv)
 			}
 
 			l = j;
-			g_print("%s(", tmp);
-			for (j = 0; (values != NULL) && (j < values->n_values); j++) {
-				if (j > 0) {
-					g_print(", ");
-				}
-				value = g_value_array_get_nth(values, j);
-				if (G_VALUE_HOLDS_LONG(value)) {
-					g_print("%ld", g_value_get_long(value));
-				}
-				if (G_VALUE_HOLDS_STRING(value)) {
-					g_print("`%s'",
-						g_value_get_string(value));
-				}
-				if (G_VALUE_HOLDS_POINTER(value)) {
-					g_print("`%ls'",
-						(wchar_t*)
-						g_value_get_pointer(value));
-				}
-			}
+                        print_array(tmp, values);
+                        g_print("\n");
 			if (values != NULL) {
 				_vte_matcher_free_params_array(matcher, values);
 			}
-			g_print(")\n");
 			i += l;
 		}
 	}
