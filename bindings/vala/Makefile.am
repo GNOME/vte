@@ -27,22 +27,12 @@ CLEANFILES += $(nodist_vapi_DATA)
 # VALA Test application
 
 app_SOURCES = \
-	app.vala \
-	config.vapi \
-	$(builddir)/vte-$(VTE_API_VERSION).vapi \
 	$(NULL)
 
 nodist_app_SOURCES = \
+	app.c \
 	appresources.c \
 	$(NULL)
-
-app_VALAFLAGS = \
-	--target-glib=2.38 \
-	--pkg=posix \
-	--pkg=gio-2.0 \
-	--pkg=gtk+-$(GTK_API_VERSION) \
-	--gresources app.gresource.xml \
-	$(AM_VALAFLAGS)
 
 app_CPPFLAGS = \
 	-I$(top_srcdir)/src \
@@ -67,12 +57,20 @@ app_LDADD = \
 	$(VTE_LIBS) \
 	$(NULL)
 
+app_valaflags = \
+	--target-glib=2.38 \
+	--pkg=posix \
+	--pkg=gio-2.0 \
+	--pkg=gtk+-$(GTK_API_VERSION) \
+	--gresources $(srcdir)/app.gresource.xml \
+	$(AM_VALAFLAGS)
+
 if HAVE_VALA_0_31
-app_VALAFLAGS += --disable-since-check
+app_valaflags += --disable-since-check
 endif
 
 if HAVE_GTK_3_16
-app_VALAFLAGS += -D GTK_3_16
+app_valaflags += -D GTK_3_16
 endif
 
 CLEANFILES += \
@@ -83,11 +81,16 @@ CLEANFILES += \
 EXTRA_DIST += \
         app.gresource.xml \
 	app.ui \
+	app.vala \
+	config.vapi \
 	search-popover.ui \
 	$(NULL)
 
 appresources.c: app.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --generate-dependencies --sourcedir $(srcdir) $(srcdir)/app.gresource.xml)
 	$(AM_V_GEN) XMLLINT=$(XMLLINT) $(GLIB_COMPILE_RESOURCES) --target $@ --sourcedir $(srcdir) --generate --c-name app $<
+
+app.c: $(srcdir)/app.vala $(srcdir)/config.vapi vte-$(VTE_API_VERSION).vapi Makefile
+	$(AM_V_GEN)$(VALAC) $(app_valaflags) -C $(srcdir)/app.vala $(srcdir)/config.vapi vte-$(VTE_API_VERSION).vapi
 
 .DELETE_ON_ERROR:
 
