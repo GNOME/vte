@@ -171,7 +171,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += slowcat
+noinst_PROGRAMS += interpret slowcat
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -224,6 +224,41 @@ reflect_vte_CPPFLAGS = -DUSE_VTE -I$(builddir)/vte -I$(srcdir)/vte $(AM_CPPFLAGS
 reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
+
+interpret_SOURCES = \
+	buffer.h \
+	caps.hh \
+	caps-list.hh \
+	debug.cc \
+	debug.h \
+	iso2022.cc \
+	iso2022.h \
+	matcher.cc \
+	matcher.hh \
+	table.cc \
+	table.hh \
+	vteconv.cc \
+	vteconv.h \
+	interpret.cc
+interpret_CPPFLAGS = \
+	-DINTERPRET_MAIN \
+	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+interpret_CFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GTK_CFLAGS) \
+	$(AM_CFLAGS)
+interpret_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GTK_CFLAGS) \
+	$(AM_CXXFLAGS)
+interpret_LDADD = \
+	$(GLIB_LIBS) \
+	$(GOBJECT_LIBS)
 
 slowcat_SOURCES = \
 	slowcat.c \
