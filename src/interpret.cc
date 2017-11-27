@@ -131,6 +131,10 @@ main(int argc, char **argv)
         subst = _vte_iso2022_state_new(NULL);
 
         VteTerminalPrivate terminal{};
+        gsize n_seq = 0;
+        gsize n_chars = 0;
+        gsize n_discarded = 0;
+
         gsize start = 0;
 
 	for (;;) {
@@ -167,6 +171,7 @@ main(int argc, char **argv)
 
                                 /* Skip over the proper number of unicode chars. */
                                 start = (next - wbuf);
+                                n_seq++;
                                 break;
                         }
                         case VTE_MATCHER_RESULT_NO_MATCH: {
@@ -206,6 +211,7 @@ main(int argc, char **argv)
                                                 goto next_match;
                                         }
                                 }
+                                n_chars++;
                                 if (!quiet) {
                                         if (c < 32) {
                                                 g_print("`^%c'\n", c + 64);
@@ -228,6 +234,7 @@ main(int argc, char **argv)
                                                         (long)(next - (wbuf + start)));
                                         /* Discard. */
                                         start = next - wbuf + 1;
+                                        n_discarded += next - &wbuf[start];
                                 } else {
                                         /* Pause processing here and wait for more
                                          * data before continuing. */
@@ -250,6 +257,11 @@ main(int argc, char **argv)
 	}
         if (!quiet)
                 g_print("End of data.\n");
+
+        g_printerr ("Characters inserted:  %" G_GSIZE_FORMAT "\n"
+                    "Sequences recognised: %" G_GSIZE_FORMAT "\n"
+                    "Bytes discarded:      %" G_GSIZE_FORMAT "\n",
+                    n_chars, n_seq, n_discarded);
 
 	close (infile);
 
