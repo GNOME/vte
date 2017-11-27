@@ -18,13 +18,7 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ifndef vte_caps_h_included
-#define vte_caps_h_included
-
-
-#include <glib.h>
-
-G_BEGIN_DECLS
+#pragma once
 
 #define _VTE_CAP_ESC "\033"		/* Escape */
 #define _VTE_CAP_CSI _VTE_CAP_ESC "["	/* Control Sequence Introducer */
@@ -34,9 +28,3 @@ G_BEGIN_DECLS
 #define _VTE_CAP_APC _VTE_CAP_ESC "_"	/* Application Program Command */
 #define _VTE_CAP_SS2 _VTE_CAP_ESC "N"	/* Single-shift to G2 */
 #define _VTE_CAP_SS3 _VTE_CAP_ESC "O"	/* Single-shift to G3 */
-
-extern const char _vte_xterm_capability_strings[];
-
-G_END_DECLS
-
-#endif

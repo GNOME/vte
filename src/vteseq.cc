@@ -32,7 +32,7 @@
 #include "vteinternal.hh"
 #include "vtegtk.hh"
 #include "vteutils.h"  /* for strchrnul on non-GNU systems */
-#include "caps.h"
+#include "caps.hh"
 #include "debug.h"
 
 #define BEL "\007"

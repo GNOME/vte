@@ -22,7 +22,7 @@
 #include <string.h>
 #include <glib-object.h>
 #include "debug.h"
-#include "caps.h"
+#include "caps.hh"
 #include "matcher.hh"
 #include "table.hh"
 

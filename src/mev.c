@@ -31,7 +31,7 @@
 #endif
 #include <unistd.h>
 #include <glib.h>
-#include "caps.h"
+#include "caps.hh"
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
