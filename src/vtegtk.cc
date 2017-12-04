@@ -436,6 +436,12 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, impl->m_backspace_binding);
                         break;
+                case PROP_CELL_HEIGHT_SCALE:
+                        g_value_set_double (value, vte_terminal_get_cell_height_scale (terminal));
+                        break;
+                case PROP_CELL_WIDTH_SCALE:
+                        g_value_set_double (value, vte_terminal_get_cell_width_scale (terminal));
+                        break;
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         g_value_set_int (value, vte_terminal_get_cjk_ambiguous_width (terminal));
                         break;
@@ -536,6 +542,12 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, (VteEraseBinding)g_value_get_enum (value));
+                        break;
+                case PROP_CELL_HEIGHT_SCALE:
+                        vte_terminal_set_cell_height_scale (terminal, g_value_get_double (value));
+                        break;
+                case PROP_CELL_WIDTH_SCALE:
+                        vte_terminal_set_cell_width_scale (terminal, g_value_get_double (value));
                         break;
                 case PROP_CJK_AMBIGUOUS_WIDTH:
                         vte_terminal_set_cjk_ambiguous_width (terminal, g_value_get_int (value));
@@ -889,8 +901,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @width: the new character cell width
          * @height: the new character cell height
          *
-         * Emitted whenever selection of a new font causes the values of the
-         * %char_width or %char_height fields to change.
+         * Emitted whenever the cell size changes, e.g. due to a change in
+         * font, font-scale or cell-width/height-scale.
+         *
+         * Note that this signal should rather be called "cell-size-changed".
          */
         signals[SIGNAL_CHAR_SIZE_CHANGED] =
                 g_signal_new(I_("char-size-changed"),
@@ -1300,6 +1314,34 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    VTE_TYPE_ERASE_BINDING,
                                    VTE_ERASE_AUTO,
                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:cell-height-scale:
+         *
+         * Scale factor for the cell height, to increase line spacing. (The font's height is not affected.)
+         *
+         * Since: 0.52
+         */
+        pspecs[PROP_CELL_HEIGHT_SCALE] =
+                g_param_spec_double ("cell-height-scale", NULL, NULL,
+                                     VTE_CELL_SCALE_MIN,
+                                     VTE_CELL_SCALE_MAX,
+                                     1.,
+                                     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:cell-width-scale:
+         *
+         * Scale factor for the cell width, to increase letter spacing. (The font's width is not affected.)
+         *
+         * Since: 0.52
+         */
+        pspecs[PROP_CELL_WIDTH_SCALE] =
+                g_param_spec_double ("cell-width-scale", NULL, NULL,
+                                     VTE_CELL_SCALE_MIN,
+                                     VTE_CELL_SCALE_MAX,
+                                     1.,
+                                     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:cjk-ambiguous-width:
@@ -2971,6 +3013,9 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Returns: the height of a character cell
+ *
+ * Note that this method should rather be called vte_terminal_get_cell_height,
+ * because the return value takes cell-height-scale into account.
  */
 glong
 vte_terminal_get_char_height(VteTerminal *terminal)
@@ -2984,6 +3029,9 @@ vte_terminal_get_char_height(VteTerminal *terminal)
  * @terminal: a #VteTerminal
  *
  * Returns: the width of a character cell
+ *
+ * Note that this method should rather be called vte_terminal_get_cell_width,
+ * because the return value takes cell-width-scale into account.
  */
 glong
 vte_terminal_get_char_width(VteTerminal *terminal)
@@ -3509,6 +3557,84 @@ vte_terminal_set_font_scale(VteTerminal *terminal,
         scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
         if (IMPL(terminal)->set_font_scale(scale))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_SCALE]);
+}
+
+/**
+ * vte_terminal_get_cell_height_scale:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the terminal's cell height scale
+ *
+ * Since: 0.52
+ */
+double
+vte_terminal_get_cell_height_scale(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
+
+        return IMPL(terminal)->m_cell_height_scale;
+}
+
+/**
+ * vte_terminal_set_cell_height_scale:
+ * @terminal: a #VteTerminal
+ * @scale: the cell height scale
+ *
+ * Sets the terminal's cell height scale to @scale.
+ *
+ * This can be used to increase the line spacing. (The font's height is not affected.)
+ * Valid values go from 1.0 (default) to 2.0 ("double spacing").
+ *
+ * Since: 0.52
+ */
+void
+vte_terminal_set_cell_height_scale(VteTerminal *terminal,
+                                   double scale)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        scale = CLAMP(scale, VTE_CELL_SCALE_MIN, VTE_CELL_SCALE_MAX);
+        if (IMPL(terminal)->set_cell_height_scale(scale))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CELL_HEIGHT_SCALE]);
+}
+
+/**
+ * vte_terminal_get_cell_width_scale:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the terminal's cell width scale
+ *
+ * Since: 0.52
+ */
+double
+vte_terminal_get_cell_width_scale(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
+
+        return IMPL(terminal)->m_cell_width_scale;
+}
+
+/**
+ * vte_terminal_set_cell_width_scale:
+ * @terminal: a #VteTerminal
+ * @scale: the cell width scale
+ *
+ * Sets the terminal's cell width scale to @scale.
+ *
+ * This can be used to increase the letter spacing. (The font's width is not affected.)
+ * Valid values go from 1.0 (default) to 2.0.
+ *
+ * Since: 0.52
+ */
+void
+vte_terminal_set_cell_width_scale(VteTerminal *terminal,
+                                  double scale)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        scale = CLAMP(scale, VTE_CELL_SCALE_MIN, VTE_CELL_SCALE_MAX);
+        if (IMPL(terminal)->set_cell_width_scale(scale))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CELL_WIDTH_SCALE]);
 }
 
 /* Just some arbitrary minimum values */

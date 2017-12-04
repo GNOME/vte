@@ -63,11 +63,14 @@ void _vte_draw_clear(struct _vte_draw *draw,
 
 void _vte_draw_set_text_font(struct _vte_draw *draw,
                              GtkWidget *widget,
-			     const PangoFontDescription *fontdesc);
+                             const PangoFontDescription *fontdesc,
+                             double cell_width_scale, double cell_height_scale);
 void _vte_draw_get_text_metrics(struct _vte_draw *draw,
-				gint *width, gint *height, gint *ascent);
-int _vte_draw_get_char_width(struct _vte_draw *draw, vteunistr c, int columns,
-			     guint style);
+                                int *cell_width, int *cell_height,
+                                int *char_ascent, int *char_descent,
+                                GtkBorder *char_spacing);
+void _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guint style,
+                               int *left, int *right);
 gboolean _vte_draw_has_bold (struct _vte_draw *draw, guint style);
 
 void _vte_draw_text(struct _vte_draw *draw,

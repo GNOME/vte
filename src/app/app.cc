@@ -88,6 +88,8 @@ public:
         int scrollback_lines{-1 /* infinite */};
         int transparency_percent{-1};
         int verbosity{0};
+        double cell_height_scale{1.0};
+        double cell_width_scale{1.0};
         VteCursorBlinkMode cursor_blink_mode{VTE_CURSOR_BLINK_SYSTEM};
         VteCursorShape cursor_shape{VTE_CURSOR_SHAPE_BLOCK};
 
@@ -338,6 +340,10 @@ public:
                           "Set background image extend", "EXTEND" },
                         { "background-operator", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_operator,
                           "Set background draw operator", "OPERATOR" },
+                        { "cell-height-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_height_scale,
+                          "Add extra line spacing", "1.0..2.0" },
+                        { "cell-width-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_width_scale,
+                          "Add extra letter spacing", "1.0..2.0" },
                         { "cjk-width", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cjk_width,
                           "Specify the cjk ambiguous width to use for UTF-8 encoding", "NARROW|WIDE" },
                         { "cursor-blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_blink,
@@ -1830,6 +1836,8 @@ vteapp_window_constructed(GObject *object)
 
         vte_terminal_set_allow_hyperlink(window->terminal, !options.no_hyperlink);
         vte_terminal_set_audible_bell(window->terminal, options.audible_bell);
+        vte_terminal_set_cell_height_scale(window->terminal, options.cell_height_scale);
+        vte_terminal_set_cell_width_scale(window->terminal, options.cell_width_scale);
         vte_terminal_set_cjk_ambiguous_width(window->terminal, options.cjk_ambiguous_width);
         vte_terminal_set_cursor_blink_mode(window->terminal, options.cursor_blink_mode);
         vte_terminal_set_cursor_shape(window->terminal, options.cursor_shape);

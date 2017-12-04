@@ -573,9 +573,27 @@ public:
         PangoFontDescription *m_fontdesc;
         gdouble m_font_scale;
         gboolean m_fontdirty;
-        glong m_char_ascent;
-        glong m_char_descent;
-        /* dimensions of character cells */
+
+        /* First, the dimensions of ASCII characters are measured. The result
+         * could probably be called char_{width,height} or font_{width,height}
+         * but these aren't stored directly here, not to accidentally be confused
+         * with m_cell_{width_height}. The values are stored in vtedraw's font_info.
+         *
+         * Then in case of nondefault m_cell_{width,height}_scale an additional
+         * m_char_padding is added, resulting in m_cell_{width,height} which are
+         * hence potentially larger than the characters. This is to implement
+         * line spacing and letter spacing, primarly for accessibility (bug 781479).
+         *
+         * Char width/height, if really needed, can be computed by subtracting
+         * the char padding from the cell dimensions. Char height can also be
+         * reconstructed from m_char_{ascent,descent}, one of which is redundant,
+         * stored for convenience only.
+         */
+        long m_char_ascent;
+        long m_char_descent;
+        double m_cell_width_scale;
+        double m_cell_height_scale;
+        GtkBorder m_char_padding;
         glong m_cell_width;
         glong m_cell_height;
 
@@ -1002,10 +1020,11 @@ public:
 
         void ensure_font();
         void update_font();
-        void apply_font_metrics(int width,
-                                int height,
-                                int ascent,
-                                int descent);
+        void apply_font_metrics(int cell_width,
+                                int cell_height,
+                                int char_ascent,
+                                int char_descent,
+                                GtkBorder char_spacing);
 
         void refresh_size();
         void screen_set_size(VteScreen *screen_,
@@ -1197,6 +1216,8 @@ public:
         bool set_allow_hyperlink(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
         bool set_background_alpha(double alpha);
+        bool set_cell_height_scale(double scale);
+        bool set_cell_width_scale(double scale);
         bool set_cjk_ambiguous_width(int width);
         void set_color_background(vte::color::rgb const &color);
         void set_color_bold(vte::color::rgb const& color);

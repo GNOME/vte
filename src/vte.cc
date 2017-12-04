@@ -635,12 +635,10 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 			}
 			columns = cell->attr.columns;
 			style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
-			if (cell->c != 0 &&
-					_vte_draw_get_char_width (
-                                                                  m_draw,
-						cell->c, columns, style) >
-					m_cell_width * columns) {
-				columns++;
+                        if (cell->c != 0) {
+                                int right;
+                                _vte_draw_get_char_edges(m_draw, cell->c, columns, style, NULL, &right);
+                                columns = MAX(columns, howmany(right, m_cell_width));
 			}
 		}
 	}
@@ -679,13 +677,10 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 		if (cell != NULL) {
 			columns = cell->attr.columns;
 			auto style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
-			if (cell->c != 0 &&
-					_vte_draw_get_char_width (
-						m_draw,
-						cell->c,
-						columns, style) >
-			    m_cell_width * columns) {
-				columns++;
+                        if (cell->c != 0) {
+                                int right;
+                                _vte_draw_get_char_edges(m_draw, cell->c, columns, style, NULL, &right);
+                                columns = MAX(columns, howmany(right, m_cell_width));
 			}
 		}
 		columns = MAX(columns, preedit_width);
@@ -7526,45 +7521,63 @@ VteTerminalPrivate::widget_visibility_notify(GdkEventVisibility *event)
 	}
 }
 
-/* Apply the changed metrics, and queue a resize if need be. */
+/* Apply the changed metrics, and queue a resize if need be.
+ *
+ * The cell's height consists of 4 parts, from top to bottom:
+ * - char_spacing.top: half of the extra line spacing,
+ * - char_ascent: the font's ascent,
+ * - char_descent: the font's descent,
+ * - char_spacing.bottom: the other half of the extra line spacing.
+ * Extra line spacing is typically 0, beef up cell_height_scale to get actual pixels
+ * here. Similarly, increase cell_width_scale to get nonzero char_spacing.{left,right}.
+ */
 void
-VteTerminalPrivate::apply_font_metrics(int width,
-                                       int height,
-                                       int ascent,
-                                       int descent)
+VteTerminalPrivate::apply_font_metrics(int cell_width,
+                                       int cell_height,
+                                       int char_ascent,
+                                       int char_descent,
+                                       GtkBorder char_spacing)
 {
+        int char_height;
 	bool resize = false, cresize = false;
 
 	/* Sanity check for broken font changes. */
-	width = MAX(width, 1);
-	height = MAX(height, 2);
-	ascent = MAX(ascent, 1);
-	descent = MAX(descent, 1);
+        cell_width = MAX(cell_width, 1);
+        cell_height = MAX(cell_height, 2);
+        char_ascent = MAX(char_ascent, 1);
+        char_descent = MAX(char_descent, 1);
+
+        /* For convenience only. */
+        char_height = char_ascent + char_descent;
 
 	/* Change settings, and keep track of when we've changed anything. */
-	if (width != m_cell_width) {
+        if (cell_width != m_cell_width) {
 		resize = cresize = true;
-		m_cell_width = width;
+                m_cell_width = cell_width;
 	}
-	if (height != m_cell_height) {
+        if (cell_height != m_cell_height) {
 		resize = cresize = true;
-		m_cell_height = height;
+                m_cell_height = cell_height;
 	}
-	if (ascent != m_char_ascent) {
+        if (char_ascent != m_char_ascent) {
 		resize = true;
-		m_char_ascent = ascent;
+                m_char_ascent = char_ascent;
 	}
-	if (descent != m_char_descent) {
+        if (char_descent != m_char_descent) {
 		resize = true;
-		m_char_descent = descent;
+                m_char_descent = char_descent;
 	}
-	m_line_thickness = MAX (MIN ((height - ascent) / 2, height / 14), 1);
+        if (memcmp(&char_spacing, &m_char_padding, sizeof(GtkBorder)) != 0) {
+                resize = true;
+                m_char_padding = char_spacing;
+        }
+        m_line_thickness = MAX (MIN (char_descent / 2, char_height / 14), 1);
         /* FIXME take these from pango_font_metrics_get_{underline,strikethrough}_{position,thickness} */
-	m_underline_position = MIN (ascent + m_line_thickness, height - m_line_thickness);
+        m_underline_position = MIN (char_spacing.top + char_ascent + m_line_thickness, cell_height - m_line_thickness);
         m_underline_thickness = m_line_thickness;
-	m_strikethrough_position =  ascent - height / 4;
+        m_strikethrough_position = char_spacing.top + char_ascent - char_height / 4;
         m_strikethrough_thickness = m_line_thickness;
-        m_regex_underline_position = height - 1;  /* FIXME */
+        m_regex_underline_position = char_spacing.top + char_height - 1;  /* FIXME */
         m_regex_underline_thickness = 1;  /* FIXME */
 
 	/* Queue a resize if anything's changed. */
@@ -7590,14 +7603,22 @@ VteTerminalPrivate::ensure_font()
 			set_font_desc(m_unscaled_font_desc);
 		}
 		if (m_fontdirty) {
-			gint width, height, ascent;
+                        int cell_width, cell_height;
+                        int char_ascent, char_descent;
+                        GtkBorder char_spacing;
 			m_fontdirty = FALSE;
 			_vte_draw_set_text_font (m_draw,
                                                  m_widget,
-					m_fontdesc);
+                                                 m_fontdesc,
+                                                 m_cell_width_scale,
+                                                 m_cell_height_scale);
 			_vte_draw_get_text_metrics (m_draw,
-						    &width, &height, &ascent);
-			apply_font_metrics(width, height, ascent, height - ascent);
+                                                    &cell_width, &cell_height,
+                                                    &char_ascent, &char_descent,
+                                                    &char_spacing);
+                        apply_font_metrics(cell_width, cell_height,
+                                           char_ascent, char_descent,
+                                           char_spacing);
 		}
 	}
 }
@@ -7700,6 +7721,40 @@ VteTerminalPrivate::set_font_scale(gdouble scale)
 
         m_font_scale = scale;
         update_font();
+
+        return true;
+}
+
+bool
+VteTerminalPrivate::set_cell_width_scale(double scale)
+{
+        /* FIXME: compare old and new scale in pixel space */
+        if (_vte_double_equal(scale, m_cell_width_scale))
+                return false;
+
+        m_cell_width_scale = scale;
+        /* Set the drawing font. */
+        m_fontdirty = TRUE;
+        if (widget_realized()) {
+                ensure_font();
+        }
+
+        return true;
+}
+
+bool
+VteTerminalPrivate::set_cell_height_scale(double scale)
+{
+        /* FIXME: compare old and new scale in pixel space */
+        if (_vte_double_equal(scale, m_cell_height_scale))
+                return false;
+
+        m_cell_height_scale = scale;
+        /* Set the drawing font. */
+        m_fontdirty = TRUE;
+        if (widget_realized()) {
+                ensure_font();
+        }
 
         return true;
 }
@@ -8034,6 +8089,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_cell_height = 1;
 	m_char_ascent = 1;
 	m_char_descent = 1;
+	m_char_padding = {0, 0, 0, 0};
 	m_line_thickness = 1;
 	m_underline_position = 1;
         m_underline_thickness = 1;
@@ -8162,6 +8218,8 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_unscaled_font_desc = nullptr;
         m_fontdesc = nullptr;
         m_font_scale = 1.;
+        m_cell_width_scale = 1.;
+        m_cell_height_scale = 1.;
 	m_has_fonts = FALSE;
 
         m_allow_hyperlink = FALSE;
@@ -9574,7 +9632,8 @@ VteTerminalPrivate::paint_cursor()
 	struct _vte_draw_text_request item;
         vte::grid::row_t drow;
         vte::grid::column_t col;
-	long width, height, cursor_width;
+        int width, height, cursor_width;
+        guint style = 0;
 	guint fore, back;
 	vte::color::rgb bg;
 	int x, y;
@@ -9614,14 +9673,8 @@ VteTerminalPrivate::paint_cursor()
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns : 1;
 	item.x = col * width;
 	item.y = row_to_pixel(drow);
-	cursor_width = item.columns * width;
 	if (cell && cell->c != 0) {
-		guint style;
-		gint cw;
 		style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
-		cw = _vte_draw_get_char_width (m_draw, cell->c,
-					cell->attr.columns, style);
-		cursor_width = MAX(cursor_width, cw);
 	}
 
 	selected = cell_is_selected(col, drow);
@@ -9634,33 +9687,65 @@ VteTerminalPrivate::paint_cursor()
         switch (decscusr_cursor_shape()) {
 
 		case VTE_CURSOR_SHAPE_IBEAM: {
+                        /* Draw at the very left of the cell (before the spacing), even in case of CJK.
+                         * IMO (egmont) not overrunning the letter improves readability, vertical movement
+                         * looks good (no zigzag even when a somewhat wider glyph that starts filling up
+                         * the left spacing, or CJK that begins further to the right is encountered),
+                         * and also this is where it looks good if background colors change, including
+                         * Shift+arrows highlighting experience in some editors. As per the behavior of
+                         * word processors, don't increase the height by the line spacing. */
                         int stem_width;
 
-                        stem_width = (int) (((float) height) * m_cursor_aspect_ratio + 0.5);
-                        stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, cursor_width);
+                        stem_width = (int) (((float) (m_char_ascent + m_char_descent)) * m_cursor_aspect_ratio + 0.5);
+                        stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, m_cell_width);
 
                         _vte_draw_fill_rectangle(m_draw,
-                                                    x, y, stem_width, height,
+                                                 x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
                                                  &bg, VTE_DRAW_OPAQUE);
 			break;
                 }
 
 		case VTE_CURSOR_SHAPE_UNDERLINE: {
-                        int line_height;
+                        /* The width is at least the overall width of the cell (or two cells) minus the two
+                         * half spacings on the two edges. That is, underlines under a CJK are more than twice
+                         * as wide as narrow characters in case of letter spacing. Plus, if necessary, the width
+                         * is increased to span under the entire glyph. Vertical position is not affected by
+                         * line spacing. */
+
+                        int line_height, left, right;
 
 			/* use height (not width) so underline and ibeam will
 			 * be equally visible */
-                        line_height = (int) (((float) height) * m_cursor_aspect_ratio + 0.5);
-                        line_height = CLAMP (line_height, VTE_LINE_WIDTH, height);
+                        line_height = (int) (((float) (m_char_ascent + m_char_descent)) * m_cursor_aspect_ratio + 0.5);
+                        line_height = CLAMP (line_height, VTE_LINE_WIDTH, m_char_ascent + m_char_descent);
+
+                        left = m_char_padding.left;
+                        right = item.columns * m_cell_width - m_char_padding.right;
+
+                        if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
+                                int l, r;
+                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns, style, &l, &r);
+                                left = MIN(left, l);
+                                right = MAX(right, r);
+                        }
 
                         _vte_draw_fill_rectangle(m_draw,
-						     x, y + height - line_height,
-                                                 cursor_width, line_height,
+                                                 x + left, y + m_cell_height - m_char_padding.bottom - line_height,
+                                                 right - left, line_height,
                                                  &bg, VTE_DRAW_OPAQUE);
 			break;
                 }
 
 		case VTE_CURSOR_SHAPE_BLOCK:
+                        /* Include the spacings in the cursor, see bug 781479 comments 39-44.
+                         * Make the cursor even wider if the glyph is wider. */
+
+                        cursor_width = item.columns * width;
+                        if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
+                                int r;
+                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns, style, NULL, &r);
+                                cursor_width = MAX(cursor_width, r);
+			}
 
 			if (focus) {
 				/* just reverse the character under the cursor */
@@ -9669,7 +9754,7 @@ VteTerminalPrivate::paint_cursor()
                                                          cursor_width, height,
                                                          &bg, VTE_DRAW_OPAQUE);
 
-                                if (cell && cell->c != 0 && cell->c != ' ') {
+                                if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                         draw_cells(
                                                         &item, 1,
                                                         fore, back, TRUE, FALSE,

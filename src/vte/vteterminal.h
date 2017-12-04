@@ -209,6 +209,18 @@ void vte_terminal_set_font_scale(VteTerminal *terminal,
 _VTE_PUBLIC
 gdouble vte_terminal_get_font_scale(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
+void vte_terminal_set_cell_width_scale(VteTerminal *terminal,
+                                       double scale) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+double vte_terminal_get_cell_width_scale(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+void vte_terminal_set_cell_height_scale(VteTerminal *terminal,
+                                        double scale) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+double vte_terminal_get_cell_height_scale(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 /* Set various on-off settings. */
 _VTE_PUBLIC
 void vte_terminal_set_audible_bell(VteTerminal *terminal,

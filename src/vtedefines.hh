@@ -95,6 +95,8 @@
 
 #define VTE_FONT_SCALE_MIN (.25)
 #define VTE_FONT_SCALE_MAX (4.)
+#define VTE_CELL_SCALE_MIN (1.)
+#define VTE_CELL_SCALE_MAX (2.)
 
 /* Maximum length of a URI in the OSC 8 escape sequences. There's no de jure limit,
  * 2000-ish the de facto standard, and Internet Explorer supports 2083.
