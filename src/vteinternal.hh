@@ -484,8 +484,6 @@ public:
         VteEraseBinding m_delete_binding;
         gboolean m_meta_sends_escape;
         gboolean m_audible_bell;
-        gboolean m_margin_bell;
-        guint m_bell_margin;
         gboolean m_allow_bold;
         gboolean m_deccolm_mode; /* DECCOLM allowed */
         GHashTable *m_tabstops;

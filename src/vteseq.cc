@@ -600,10 +600,6 @@ VteTerminalPrivate::decset(long setting,
 		/* 41: more(1) fix. */
 		/* 42: Enable NLS replacements. */
 		/* 44: Margin bell. */
-		{44, PRIV_OFFSET(m_margin_bell), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
 		/* 47: Alternate screen. */
                 {47, 0, 0, 0,
                  0,

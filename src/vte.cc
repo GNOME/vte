@@ -4668,15 +4668,6 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		keyval = event->keyval;
 		read_modifiers((GdkEvent*)event);
 
-		/* If we're in margin bell mode and on the border of the
-		 * margin, bell. */
-		if (m_margin_bell) {
-                        if ((m_screen->cursor.col +
-			     (glong) m_bell_margin) == m_column_count) {
-				beep();
-			}
-		}
-
                 // FIXMEchpe?
 		if (m_cursor_blink_tag != 0) {
 			remove_cursor_timeout();
@@ -8167,7 +8158,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	set_delete_binding(VTE_ERASE_AUTO);
 	m_meta_sends_escape = TRUE;
 	m_audible_bell = TRUE;
-	m_bell_margin = 10;
 	m_allow_bold = TRUE;
         m_deccolm_mode = FALSE;
         m_rewrap_on_resize = TRUE;
@@ -10421,8 +10411,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_autowrap = TRUE;
 	/* Enable meta-sends-escape. */
 	m_meta_sends_escape = TRUE;
-	/* Disable margin bell. */
-	m_margin_bell = FALSE;
         /* Disable DECCOLM mode. */
         m_deccolm_mode = FALSE;
 	/* Reset saved settings. */
