@@ -485,6 +485,7 @@ public:
         gboolean m_meta_sends_escape;
         gboolean m_audible_bell;
         gboolean m_allow_bold;
+        gboolean m_bold_is_bright;
         gboolean m_deccolm_mode; /* DECCOLM allowed */
         GHashTable *m_tabstops;
         gboolean m_text_modified_flag;
@@ -1214,6 +1215,7 @@ public:
         bool set_allow_hyperlink(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
         bool set_background_alpha(double alpha);
+        bool set_bold_is_bright(bool setting);
         bool set_cell_height_scale(double scale);
         bool set_cell_width_scale(double scale);
         bool set_cjk_ambiguous_width(int width);

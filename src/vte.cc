@@ -8159,6 +8159,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_meta_sends_escape = TRUE;
 	m_audible_bell = TRUE;
 	m_allow_bold = TRUE;
+        m_bold_is_bright = TRUE;
         m_deccolm_mode = FALSE;
         m_rewrap_on_resize = TRUE;
 	set_default_tabstops();
@@ -8790,7 +8791,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
 	}
 
 	/* Handle bold by using set bold color or brightening */
-	if (attr->bold) {
+	if (attr->bold && m_bold_is_bright) {
 		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_BOLD_FG;
 		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
@@ -10108,6 +10109,18 @@ VteTerminalPrivate::set_allow_bold(bool setting)
                 return false;
 
 	m_allow_bold = setting;
+	invalidate_all();
+
+        return true;
+}
+
+bool
+VteTerminalPrivate::set_bold_is_bright(bool setting)
+{
+        if (setting == m_bold_is_bright)
+                return false;
+
+	m_bold_is_bright = setting;
 	invalidate_all();
 
         return true;

@@ -309,6 +309,12 @@ _VTE_PUBLIC
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
+void vte_terminal_set_bold_is_bright(VteTerminal *terminal,
+                                     gboolean bold_is_bright) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_bold_is_bright(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
 void vte_terminal_set_allow_hyperlink(VteTerminal *terminal,
                                       gboolean allow_hyperlink) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC

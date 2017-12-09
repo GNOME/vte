@@ -436,6 +436,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_BACKSPACE_BINDING:
                         g_value_set_enum (value, impl->m_backspace_binding);
                         break;
+                case PROP_BOLD_IS_BRIGHT:
+                        g_value_set_boolean (value, vte_terminal_get_bold_is_bright (terminal));
+                        break;
                 case PROP_CELL_HEIGHT_SCALE:
                         g_value_set_double (value, vte_terminal_get_cell_height_scale (terminal));
                         break;
@@ -542,6 +545,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_BACKSPACE_BINDING:
                         vte_terminal_set_backspace_binding (terminal, (VteEraseBinding)g_value_get_enum (value));
+                        break;
+                case PROP_BOLD_IS_BRIGHT:
+                        vte_terminal_set_bold_is_bright (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_CELL_HEIGHT_SCALE:
                         vte_terminal_set_cell_height_scale (terminal, g_value_get_double (value));
@@ -1314,6 +1320,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    VTE_TYPE_ERASE_BINDING,
                                    VTE_ERASE_AUTO,
                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:bold-is-bright:
+         *
+         * Whether the SGR 1 attribute also switches to the bright counterpart
+         * of the first 8 palette colors, in addition to making them bold (legacy behavior)
+         * or if SGR 1 only enables bold and leaves the color intact.
+         *
+         * Since: 0.52
+         */
+        pspecs[PROP_BOLD_IS_BRIGHT] =
+                g_param_spec_boolean ("bold-is-bright", NULL, NULL,
+                                      TRUE,
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:cell-height-scale:
@@ -3006,6 +3026,45 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 
         if (IMPL(terminal)->set_backspace_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BACKSPACE_BINDING]);
+}
+
+/**
+ * vte_terminal_get_bold_is_bright:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether the SGR 1 attribute also switches to the bright counterpart
+ * of the first 8 palette colors, in addition to making them bold (legacy behavior)
+ * or if SGR 1 only enables bold and leaves the color intact.
+ *
+ * Returns: %TRUE if bold also enables bright, %FALSE if not
+ *
+ * Since: 0.52
+ */
+gboolean
+vte_terminal_get_bold_is_bright(VteTerminal *terminal)
+{
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	return IMPL(terminal)->m_bold_is_bright;
+}
+/**
+ * vte_terminal_set_bold_is_bright:
+ * @terminal: a #VteTerminal
+ * @bold_is_bright: %TRUE if bold should also enable bright
+ *
+ * Sets whether the SGR 1 attribute also switches to the bright counterpart
+ * of the first 8 palette colors, in addition to making them bold (legacy behavior)
+ * or if SGR 1 only enables bold and leaves the color intact.
+ *
+ * Since: 0.52
+ */
+void
+vte_terminal_set_bold_is_bright(VteTerminal *terminal,
+                                gboolean bold_is_bright)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_bold_is_bright(bold_is_bright != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BOLD_IS_BRIGHT]);
 }
 
 /**
