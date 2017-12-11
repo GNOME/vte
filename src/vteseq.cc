@@ -1856,24 +1856,34 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		if (G_UNLIKELY(params.has_subparams_at_unchecked(i))) {
                         auto subparams = params.subparams_at_unchecked(i);
 
-                        long param0;
+                        long param0, param1;
                         if (G_UNLIKELY(!subparams.number_at(0, param0)))
                                 continue;
-			if (G_UNLIKELY (param0 != 38 && param0 != 48))
-				continue;
 
-			unsigned int index = 1;
-			auto color = parse_sgr_38_48_parameters(subparams, &index);
-			/* Bail out on additional colon-separated values. */
-			if (G_UNLIKELY(index != subparams.size() - 1))
-				continue;
-			if (G_LIKELY (color != -1)) {
-				if (param0 == 38) {
-                                        m_defaults.attr.fore = color;
-				} else {
-                                        m_defaults.attr.back = color;
-				}
-			}
+                        switch (param0) {
+                        case 4:
+                                if (subparams.number_at(1, param1) && param1 >= 0 && param1 <= 3)
+                                        m_defaults.attr.underline = param1;
+                                break;
+                        case 38:
+                        case 48:
+                        {
+                                unsigned int index = 1;
+                                auto color = parse_sgr_38_48_parameters(subparams, &index);
+                                /* Bail out on additional colon-separated values. */
+                                if (G_UNLIKELY(index != subparams.size() - 1))
+                                        continue;
+                                if (G_LIKELY (color != -1)) {
+                                        if (param0 == 38) {
+                                                m_defaults.attr.fore = color;
+                                        } else {
+                                                m_defaults.attr.back = color;
+                                        }
+                                }
+                                break;
+                        }
+                        }
+
 			continue;
 		}
 		/* If this parameter is not a number either, skip it. */
@@ -1909,7 +1919,9 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		case 9:
                         m_defaults.attr.strikethrough = 1;
 			break;
-		case 21: /* Error in old versions of linux console. */
+                case 21:
+                        m_defaults.attr.underline = 2;
+                        break;
 		case 22: /* ECMA 48. */
                         m_defaults.attr.bold = 0;
                         m_defaults.attr.dim = 0;

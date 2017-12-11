@@ -652,6 +652,10 @@ public:
         long m_line_thickness;
         long m_underline_position;
         long m_underline_thickness;
+        long m_double_underline_position;
+        long m_double_underline_thickness;
+        double m_undercurl_position;
+        long m_undercurl_thickness;
         long m_strikethrough_position;
         long m_strikethrough_thickness;
         long m_regex_underline_position;
@@ -834,7 +838,7 @@ public:
                         bool draw_default_bg,
                         bool bold,
                         bool italic,
-                        bool underline,
+                        guint underline,
                         bool strikethrough,
                         bool hyperlink,
                         bool hilite,

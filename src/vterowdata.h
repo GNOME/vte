@@ -54,7 +54,7 @@ typedef struct _VteCellAttr {
 	/* 4-byte boundary */
 	guint64 back: 25;	/* see vtedefines.hh */
 
-	guint64 underline: 1;
+        guint64 underline: 2;   /* 0: none, 1: single, 2: double, 3: curly */
 	guint64 strikethrough: 1;
 
 	guint64 reverse: 1;
@@ -62,7 +62,6 @@ typedef struct _VteCellAttr {
 	guint64 dim: 1;		/* also known as faint, half intensity etc. */
 
 	guint64 invisible: 1;
-        guint64 padding_unused_1: 1;
         /* 8-byte boundary */
         guint32 hyperlink_idx;  /* a unique hyperlink index at a time for the ring's cells,
                                    0 means not a hyperlink, VTE_HYPERLINK_IDX_TARGET_IN_STREAM
@@ -71,7 +70,7 @@ typedef struct _VteCellAttr {
                                    for every cell in the ring but not yet in the stream
                                    (currently the height rounded up to the next power of two, times width)
                                    for supported VTE sizes, and update VTE_HYPERLINK_IDX_TARGET_IN_STREAM. */
-        guint32 padding_unused_2;
+        guint32 padding_unused;
 } VteCellAttr;
 G_STATIC_ASSERT (sizeof (VteCellAttr) == 16);
 G_STATIC_ASSERT (offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_BYTES);
@@ -123,9 +122,8 @@ static const VteCell basic_cell = {
 		0, /* half */
 
                 0, /* invisible */
-                0, /* padding_unused_1 */
                 0, /* hyperlink_idx */
-                0, /* padding_unused_2 */
+                0, /* padding_unused */
 	}
 };
 

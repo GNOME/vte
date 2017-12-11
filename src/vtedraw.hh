@@ -93,6 +93,15 @@ void _vte_draw_draw_line(struct _vte_draw *draw,
                          int line_width,
                          vte::color::rgb const *color, double alpha);
 
+double
+_vte_draw_get_undercurl_height(gint width, int line_width);
+
+void
+_vte_draw_draw_undercurl(struct _vte_draw *draw,
+                         gint x, double y, gint width,
+                         int line_width,
+                         vte::color::rgb const *color, double alpha);
+
 G_END_DECLS
 
 #endif

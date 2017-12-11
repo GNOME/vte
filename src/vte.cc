@@ -6197,6 +6197,17 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		g_string_prepend(string, "<i>");
 		g_string_append(string, "</i>");
 	}
+        /* <u> should be inside <font> so that it inherits its color by default */
+        if (attr->underline) {
+                static const char styles[][7] = {"", "single", "double", "wavy"};
+                char *tag;
+
+                tag = g_strdup_printf("<u style=\"text-decoration-style:%s\">",
+                                      styles[attr->underline]);
+                g_string_prepend(string, tag);
+                g_free(tag);
+                g_string_append(string, "</u>");
+        }
 	if (attr->fore != VTE_DEFAULT_FG || attr->reverse) {
 		vte::color::rgb color;
                 char *tag;
@@ -6222,10 +6233,6 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		g_string_prepend(string, tag);
 		g_free(tag);
 		g_string_append(string, "</span>");
-	}
-	if (attr->underline) {
-		g_string_prepend(string, "<u>");
-		g_string_append(string, "</u>");
 	}
 	if (attr->strikethrough) {
 		g_string_prepend(string, "<strike>");
@@ -7564,12 +7571,17 @@ VteTerminalPrivate::apply_font_metrics(int cell_width,
         }
         m_line_thickness = MAX (MIN (char_descent / 2, char_height / 14), 1);
         /* FIXME take these from pango_font_metrics_get_{underline,strikethrough}_{position,thickness} */
-        m_underline_position = MIN (char_spacing.top + char_ascent + m_line_thickness, cell_height - m_line_thickness);
         m_underline_thickness = m_line_thickness;
-        m_strikethrough_position = char_spacing.top + char_ascent - char_height / 4;
+        m_underline_position = MIN (char_spacing.top + char_ascent + m_line_thickness, cell_height - m_underline_thickness);
+        m_double_underline_thickness = m_line_thickness;
+        /* FIXME make sure this doesn't reach the baseline (switch to thinner lines, or one thicker line in that case) */
+        m_double_underline_position = MIN (char_spacing.top + char_ascent + m_line_thickness, cell_height - 3 * m_double_underline_thickness);
+        m_undercurl_thickness = m_line_thickness;
+        m_undercurl_position = MIN (char_spacing.top + char_ascent + m_line_thickness, cell_height - _vte_draw_get_undercurl_height(cell_width, m_undercurl_thickness));
         m_strikethrough_thickness = m_line_thickness;
-        m_regex_underline_position = char_spacing.top + char_height - 1;  /* FIXME */
+        m_strikethrough_position = char_spacing.top + char_ascent - char_height / 4;
         m_regex_underline_thickness = 1;  /* FIXME */
+        m_regex_underline_position = char_spacing.top + char_height - m_regex_underline_thickness;  /* FIXME */
 
 	/* Queue a resize if anything's changed. */
 	if (resize) {
@@ -8084,6 +8096,10 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_line_thickness = 1;
 	m_underline_position = 1;
         m_underline_thickness = 1;
+        m_double_underline_position = 1;
+        m_double_underline_thickness = 1;
+        m_undercurl_position = 1.;
+        m_undercurl_thickness = 1;
 	m_strikethrough_position = 1;
         m_strikethrough_thickness = 1;
         m_regex_underline_position = 1;
@@ -8884,7 +8900,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                bool draw_default_bg,
                                bool bold,
                                bool italic,
-                               bool underline,
+                               guint underline,
                                bool strikethrough,
                                bool hyperlink,
                                bool hilite,
@@ -8950,7 +8966,8 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			for (columns = 0; i < n && items[i].y == y; i++) {
 				columns += items[i].columns;
 			}
-			if (underline) {
+                        switch (underline) {
+                        case 1:
                                 _vte_draw_draw_line(m_draw,
                                                     x,
                                                     y + m_underline_position,
@@ -8958,6 +8975,33 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                     y + m_underline_position + m_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
+                                break;
+                        case 2:
+                                _vte_draw_draw_line(m_draw,
+                                                    x,
+                                                    y + m_double_underline_position,
+                                                    x + (columns * column_width) - 1,
+                                                    y + m_double_underline_position + m_double_underline_thickness - 1,
+                                                    VTE_LINE_WIDTH,
+                                                    &fg, VTE_DRAW_OPAQUE);
+                                _vte_draw_draw_line(m_draw,
+                                                    x,
+                                                    y + m_double_underline_position + 2 * m_double_underline_thickness,
+                                                    x + (columns * column_width) - 1,
+                                                    y + m_double_underline_position + 3 * m_double_underline_thickness - 1,
+                                                    VTE_LINE_WIDTH,
+                                                    &fg, VTE_DRAW_OPAQUE);
+                                break;
+                        case 3:
+                                for (int j = 0; j < columns; j++) {
+                                        _vte_draw_draw_undercurl(m_draw,
+                                                                 x + j * column_width,
+                                                                 y + m_undercurl_position,
+                                                                 column_width,
+                                                                 m_undercurl_thickness,
+                                                                 &fg, VTE_DRAW_OPAQUE);
+                                }
+                                break;
 			}
 			if (strikethrough) {
                                 _vte_draw_draw_line(m_draw,
@@ -9242,8 +9286,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         vte::grid::row_t row, rows;
         vte::grid::column_t i, j;
         long x, y;
-	guint fore, nfore, back, nback;
-        gboolean underline, nunderline, bold, nbold, italic, nitalic,
+        guint fore, nfore, back, nback, underline, nunderline;
+        gboolean bold, nbold, italic, nitalic,
                  hyperlink, nhyperlink, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
 	guint item_count;
@@ -9835,14 +9879,16 @@ VteTerminalPrivate::paint_im_preedit_string()
 			/* Cursored letter in reverse. */
 			draw_cells(
 						&items[preedit_cursor], 1,
-						back, fore, TRUE, TRUE,
-						FALSE,
-						FALSE,
-						FALSE,
-						FALSE,
-                                                FALSE,
-						FALSE,
-						TRUE,
+                                                back, fore,
+                                                TRUE,  /* clear */
+                                                TRUE,  /* draw_default_bg */
+                                                FALSE, /* bold */
+                                                FALSE, /* italic */
+                                                0,     /* underline */
+                                                FALSE, /* strikethrough */
+                                                FALSE, /* hyperlink */
+                                                FALSE, /* hilite */
+                                                TRUE,  /* boxed */
 						width, height);
 		}
 		g_free(items);

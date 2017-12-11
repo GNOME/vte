@@ -1656,3 +1656,50 @@ _vte_draw_draw_line(struct _vte_draw *draw,
                                  MAX(line_width, xp - x + 1), MAX(line_width, yp - y + 1),
                                  color, alpha);
 }
+
+static inline double
+_vte_draw_get_undercurl_rad(gint width)
+{
+        return width / 2. / sqrt(2);
+}
+
+static inline double
+_vte_draw_get_undercurl_arc_height(gint width)
+{
+        return _vte_draw_get_undercurl_rad(width) * (1. - sqrt(2) / 2.);
+}
+
+double
+_vte_draw_get_undercurl_height(gint width, int line_width)
+{
+        return 2. * _vte_draw_get_undercurl_arc_height(width) + line_width;
+}
+
+void
+_vte_draw_draw_undercurl(struct _vte_draw *draw,
+                         gint x, double y, gint width,
+                         int line_width,
+                         vte::color::rgb const *color, double alpha)
+{
+        double rad = _vte_draw_get_undercurl_rad(width);
+        double yc = y + _vte_draw_get_undercurl_height(width, line_width) / 2.;
+
+        g_assert(draw->cr);
+
+        _vte_debug_print (VTE_DEBUG_DRAW,
+                        "draw_undercurl (%d, %f, %d, color=(%d,%d,%d,%.3f))\n",
+                        x,y,width,
+                        color->red, color->green, color->blue,
+                        alpha);
+
+        cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
+        cairo_new_sub_path(draw->cr);
+        /* First quarter circle, similar to the left half of the tilde symbol. */
+        cairo_arc (draw->cr, x + width / 4., yc + width / 4., rad, M_PI * 5 / 4, M_PI * 7 / 4);
+        /* Second quarter circle, similar to the right half of the tilde symbol. */
+        cairo_arc_negative (draw->cr, x + width * 3 / 4., yc - width / 4., rad, M_PI * 3 / 4, M_PI / 4);
+        _vte_draw_set_source_color_alpha (draw, color, alpha);
+        cairo_set_line_width (draw->cr, line_width);
+        /* FIXME: This is quite slow. The rendered bitmap should be cached and reused. */
+        cairo_stroke (draw->cr);
+}
