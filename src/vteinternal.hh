@@ -658,6 +658,8 @@ public:
         long m_undercurl_thickness;
         long m_strikethrough_position;
         long m_strikethrough_thickness;
+        long m_overline_position;
+        long m_overline_thickness;
         long m_regex_underline_position;
         long m_regex_underline_thickness;
 
@@ -841,6 +843,7 @@ public:
                         bool italic,
                         guint underline,
                         bool strikethrough,
+                        bool overline,
                         bool hyperlink,
                         bool hilite,
                         bool boxed,

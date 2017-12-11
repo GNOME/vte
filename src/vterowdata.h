@@ -64,7 +64,8 @@ typedef struct _VteCellAttr {
 	guint64 invisible: 1;
         /* 8-byte boundary */
         guint32 deco: 25;       /* decoration color (currently for underline) */
-        guint32 padding_unused: 7;
+        guint32 overline: 1;
+        guint32 padding_unused: 6;
         /* 12-byte boundary */
         guint32 hyperlink_idx;  /* a unique hyperlink index at a time for the ring's cells,
                                    0 means not a hyperlink, VTE_HYPERLINK_IDX_TARGET_IN_STREAM
@@ -127,6 +128,7 @@ static const VteCell basic_cell = {
 
                 0, /* invisible */
                 VTE_DEFAULT_FG, /* deco */
+                0, /* overline */
                 0, /* padding_unused */
                 0, /* hyperlink_idx */
 	}

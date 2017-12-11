@@ -6168,6 +6168,7 @@ vte_terminal_cellattr_equal(VteCellAttr const *attr1,
                 attr1->deco          == attr2->deco      &&
 	        attr1->underline     == attr2->underline &&
 	        attr1->strikethrough == attr2->strikethrough &&
+                attr1->overline      == attr2->overline  &&
 	        attr1->reverse       == attr2->reverse   &&
 	        attr1->blink         == attr2->blink     &&
                 attr1->invisible     == attr2->invisible &&
@@ -6252,6 +6253,10 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 	if (attr->strikethrough) {
 		g_string_prepend(string, "<strike>");
 		g_string_append(string, "</strike>");
+	}
+	if (attr->overline) {
+		g_string_prepend(string, "<span style=\"text-decoration-line:overline\">");
+		g_string_append(string, "</span>");
 	}
 	if (attr->blink) {
 		g_string_prepend(string, "<blink>");
@@ -7595,6 +7600,8 @@ VteTerminalPrivate::apply_font_metrics(int cell_width,
         m_undercurl_position = MIN (char_spacing.top + char_ascent + m_line_thickness, cell_height - _vte_draw_get_undercurl_height(cell_width, m_undercurl_thickness));
         m_strikethrough_thickness = m_line_thickness;
         m_strikethrough_position = char_spacing.top + char_ascent - char_height / 4;
+        m_overline_thickness = m_line_thickness;
+        m_overline_position = char_spacing.top;  /* FIXME */
         m_regex_underline_thickness = 1;  /* FIXME */
         m_regex_underline_position = char_spacing.top + char_height - m_regex_underline_thickness;  /* FIXME */
 
@@ -8117,6 +8124,8 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_undercurl_thickness = 1;
 	m_strikethrough_position = 1;
         m_strikethrough_thickness = 1;
+        m_overline_position = 1;
+        m_overline_thickness = 1;
         m_regex_underline_position = 1;
         m_regex_underline_thickness = 1;
 
@@ -8923,6 +8932,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                bool italic,
                                guint underline,
                                bool strikethrough,
+                               bool overline,
                                bool hyperlink,
                                bool hilite,
                                bool boxed,
@@ -8942,10 +8952,10 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 		}
 		tmp = g_string_free (str, FALSE);
                 g_printerr ("draw_cells('%s', fore=%d, back=%d, deco=%d, bold=%d,"
-                                " ul=%d, strike=%d,"
+                                " ul=%d, strike=%d, ol=%d"
                                 " hyperlink=%d, hilite=%d, boxed=%d)\n",
                                 tmp, fore, back, deco, bold,
-                                underline, strikethrough,
+                                underline, strikethrough, overline,
                                 hyperlink, hilite, boxed);
 		g_free (tmp);
 	}
@@ -8978,7 +8988,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
          * so that if the descent of a letter crosses an underline of a different color,
          * it's the letter's color that wins. Other kinds of decorations always have the
          * same color as the text, so the order is irrelevant there. */
-        if (underline | strikethrough | hyperlink | hilite | boxed) {
+        if (underline | strikethrough | overline | hyperlink | hilite | boxed) {
 		i = 0;
 		do {
 			x = items[i].x;
@@ -9032,6 +9042,15 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
 			}
+                        if (overline) {
+                                _vte_draw_draw_line(m_draw,
+                                                    x,
+                                                    y + m_overline_position,
+                                                    x + (columns * column_width) - 1,
+                                                    y + m_overline_position + m_overline_thickness - 1,
+                                                    VTE_LINE_WIDTH,
+                                                    &fg, VTE_DRAW_OPAQUE);
+                        }
 			if (hilite) {
                                 _vte_draw_draw_line(m_draw,
                                                     x,
@@ -9286,6 +9305,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 					cells[j].attr.italic,
 					cells[j].attr.underline,
 					cells[j].attr.strikethrough,
+                                        cells[j].attr.overline,
                                         m_allow_hyperlink && cells[j].attr.hyperlink_idx != 0,
 					FALSE, FALSE, column_width, height);
 		j += g_unichar_to_utf8(items[i].c, scratch_buf);
@@ -9315,7 +9335,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         guint fore, nfore, back, nback, deco, ndeco, underline, nunderline;
         gboolean bold, nbold, italic, nitalic,
                  hyperlink, nhyperlink, hilite, nhilite,
-		 selected, nselected, strikethrough, nstrikethrough;
+		 selected, nselected, strikethrough, nstrikethrough,
+                 overline, noverline;
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
@@ -9450,6 +9471,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					(cell->c == ' ' &&
 					 !cell->attr.underline &&
                                          !cell->attr.strikethrough &&
+                                         !cell->attr.overline &&
                                          (!m_allow_hyperlink || cell->attr.hyperlink_idx == 0)) ||
 					cell->attr.fragment) {
 				if (++i >= end_column) {
@@ -9465,6 +9487,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                         determine_colors(cell, selected, &fore, &back, &deco);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
+                        overline = cell->attr.overline;
                         hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
 			bold = cell->attr.bold;
 			italic = cell->attr.italic;
@@ -9502,7 +9525,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 						/* only break the run if we
 						 * are drawing attributes
 						 */
-                                                if (underline || strikethrough || hyperlink || hilite) {
+                                                if (underline || strikethrough || overline || hyperlink || hilite) {
 							break;
 						} else {
 							j++;
@@ -9537,6 +9560,10 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					if (nstrikethrough != strikethrough) {
 						break;
 					}
+                                        noverline = cell->attr.overline;
+                                        if (noverline != overline) {
+                                                break;
+                                        }
                                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
                                         if (nhyperlink != hyperlink) {
                                                 break;
@@ -9594,7 +9621,7 @@ fg_draw:
 					item_count,
                                         fore, back, deco, FALSE, FALSE,
 					bold, italic, underline,
-                                        strikethrough, hyperlink, hilite, FALSE,
+                                        strikethrough, overline, hyperlink, hilite, FALSE,
 					column_width, row_height);
 			item_count = 1;
 			/* We'll need to continue at the first cell which didn't
@@ -9826,6 +9853,7 @@ VteTerminalPrivate::paint_cursor()
                                                         cell->attr.italic,
                                                         cell->attr.underline,
                                                         cell->attr.strikethrough,
+                                                        cell->attr.overline,
                                                         m_allow_hyperlink && cell->attr.hyperlink_idx != 0,
                                                         FALSE,
                                                         FALSE,
@@ -9916,6 +9944,7 @@ VteTerminalPrivate::paint_im_preedit_string()
                                                 FALSE, /* italic */
                                                 0,     /* underline */
                                                 FALSE, /* strikethrough */
+                                                FALSE, /* overline */
                                                 FALSE, /* hyperlink */
                                                 FALSE, /* hilite */
                                                 TRUE,  /* boxed */

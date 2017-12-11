@@ -2023,6 +2023,12 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 			/* default background */
                         m_defaults.attr.back = VTE_DEFAULT_BG;
 			break;
+                case 53:
+                        m_defaults.attr.overline = 1;
+                        break;
+                case 55:
+                        m_defaults.attr.overline = 0;
+                        break;
              /* case 58: was handled above at 38 to avoid code duplication */
                 case 59:
                         /* default decoration color, that is, same as the cell's foreground */
