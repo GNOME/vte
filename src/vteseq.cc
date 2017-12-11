@@ -1797,7 +1797,7 @@ VteTerminalPrivate::seq_vertical_tab(vte::parser::Params const& params)
         line_feed();
 }
 
-/* Parse parameters of SGR 38 or 48, starting at @index within @params.
+/* Parse parameters of SGR 38, 48 or 58, starting at @index within @params.
  * Returns the color index, or -1 on error.
  * Increments @index to point to the last consumed parameter (not beyond). */
 int32_t
@@ -1867,6 +1867,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                                 break;
                         case 38:
                         case 48:
+                        case 58:
                         {
                                 unsigned int index = 1;
                                 auto color = parse_sgr_38_48_parameters(subparams, &index);
@@ -1876,8 +1877,10 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                                 if (G_LIKELY (color != -1)) {
                                         if (param0 == 38) {
                                                 m_defaults.attr.fore = color;
-                                        } else {
+                                        } else if (param0 == 48) {
                                                 m_defaults.attr.back = color;
+                                        } else {
+                                                m_defaults.attr.deco = color;
                                         }
                                 }
                                 break;
@@ -1956,6 +1959,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 			break;
 		case 38:
 		case 48:
+                case 58:
 		{
 			/* The format looks like:
 			 * - 256 color indexed palette:
@@ -1991,8 +1995,10 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 				if (G_LIKELY (color != -1)) {
 					if (param == 38) {
                                                 m_defaults.attr.fore = color;
-					} else {
+                                        } else if (param == 48) {
                                                 m_defaults.attr.back = color;
+                                        } else {
+                                                m_defaults.attr.deco = color;
 					}
 				}
 			}
@@ -2017,6 +2023,11 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 			/* default background */
                         m_defaults.attr.back = VTE_DEFAULT_BG;
 			break;
+             /* case 58: was handled above at 38 to avoid code duplication */
+                case 59:
+                        /* default decoration color, that is, same as the cell's foreground */
+                        m_defaults.attr.deco = VTE_DEFAULT_FG;
+                        break;
 		case 90:
 		case 91:
 		case 92:

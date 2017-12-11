@@ -834,6 +834,7 @@ public:
                         gssize n,
                         guint fore,
                         guint back,
+                        guint deco,
                         bool clear,
                         bool draw_default_bg,
                         bool bold,
@@ -985,15 +986,18 @@ public:
                                      bool selected,
                                      bool cursor,
                                      guint *pfore,
-                                     guint *pback) const;
+                                     guint *pback,
+                                     guint *pdeco) const;
         inline void determine_colors(VteCell const* cell,
                                      bool selected,
                                      guint *pfore,
-                                     guint *pback) const;
+                                     guint *pback,
+                                     guint *pdeco) const;
         inline void determine_cursor_colors(VteCell const* cell,
                                             bool selected,
                                             guint *pfore,
-                                            guint *pback) const;
+                                            guint *pback,
+                                            guint *pdeco) const;
 
         char *cellattr_to_html(VteCellAttr const* attr,
                                char const* text) const;

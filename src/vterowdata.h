@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 #define VTE_TAB_WIDTH_BITS		4  /* Has to be able to store the value of 8. */
 #define VTE_TAB_WIDTH_MAX		((1 << VTE_TAB_WIDTH_BITS) - 1)
 
-#define VTE_CELL_ATTR_COMMON_BYTES      8  /* The number of common bytes in VteCellAttr and VteStreamCellAttr */
+#define VTE_CELL_ATTR_COMMON_BYTES      12  /* The number of common bytes in VteCellAttr and VteStreamCellAttr */
 
 /*
  * VteCellAttr: A single cell style attributes
@@ -63,6 +63,9 @@ typedef struct _VteCellAttr {
 
 	guint64 invisible: 1;
         /* 8-byte boundary */
+        guint32 deco: 25;       /* decoration color (currently for underline) */
+        guint32 padding_unused: 7;
+        /* 12-byte boundary */
         guint32 hyperlink_idx;  /* a unique hyperlink index at a time for the ring's cells,
                                    0 means not a hyperlink, VTE_HYPERLINK_IDX_TARGET_IN_STREAM
                                    means the target is irrelevant/unknown at the moment.
@@ -70,7 +73,6 @@ typedef struct _VteCellAttr {
                                    for every cell in the ring but not yet in the stream
                                    (currently the height rounded up to the next power of two, times width)
                                    for supported VTE sizes, and update VTE_HYPERLINK_IDX_TARGET_IN_STREAM. */
-        guint32 padding_unused;
 } VteCellAttr;
 G_STATIC_ASSERT (sizeof (VteCellAttr) == 16);
 G_STATIC_ASSERT (offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_BYTES);
@@ -85,13 +87,15 @@ G_STATIC_ASSERT (offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_B
 typedef struct _VTE_GNUC_PACKED _VteStreamCellAttr {
         guint64 fragment: 1;
         guint64 columns: VTE_TAB_WIDTH_BITS;
-        guint64 remaining_main_attributes: 59;  /* All the non-hyperlink related attributes from VteCellAttr.
-                                                   We don't individually access them in the stream, so there's
-                                                   no point in repeating each field separately. */
+        guint64 remaining_main_attributes_1: 59;  /* All the non-hyperlink related attributes from VteCellAttr, part 1.
+                                                     We don't individually access them in the stream, so there's
+                                                     no point in repeating each field separately. */
         /* 8-byte boundary */
+        guint32 remaining_main_attributes_2;      /* Non-hyperlink related attributes, part 2. */
+        /* 12-byte boundary */
         guint16 hyperlink_length;       /* make sure it fits VTE_HYPERLINK_TOTAL_LENGTH_MAX */
 } VteStreamCellAttr;
-G_STATIC_ASSERT (sizeof (VteStreamCellAttr) == 10);
+G_STATIC_ASSERT (sizeof (VteStreamCellAttr) == 14);
 G_STATIC_ASSERT (offsetof (VteStreamCellAttr, hyperlink_length) == VTE_CELL_ATTR_COMMON_BYTES);
 
 /*
@@ -122,8 +126,9 @@ static const VteCell basic_cell = {
 		0, /* half */
 
                 0, /* invisible */
-                0, /* hyperlink_idx */
+                VTE_DEFAULT_FG, /* deco */
                 0, /* padding_unused */
+                0, /* hyperlink_idx */
 	}
 };
 

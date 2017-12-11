@@ -6165,6 +6165,7 @@ vte_terminal_cellattr_equal(VteCellAttr const *attr1,
 	        attr1->italic        == attr2->italic    &&
 	        attr1->fore          == attr2->fore      &&
 	        attr1->back          == attr2->back      &&
+                attr1->deco          == attr2->deco      &&
 	        attr1->underline     == attr2->underline &&
 	        attr1->strikethrough == attr2->strikethrough &&
 	        attr1->reverse       == attr2->reverse   &&
@@ -6183,11 +6184,11 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
                                      char const* text) const
 {
 	GString *string;
-	guint fore, back;
+        guint fore, back, deco;
 
 	string = g_string_new(text);
 
-	determine_colors(attr, false, false, &fore, &back);
+        determine_colors(attr, false, false, &fore, &back, &deco);
 
 	if (attr->bold) {
 		g_string_prepend(string, "<b>");
@@ -6200,12 +6201,26 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
         /* <u> should be inside <font> so that it inherits its color by default */
         if (attr->underline) {
                 static const char styles[][7] = {"", "single", "double", "wavy"};
-                char *tag;
+                char *tag, *colorattr;
 
-                tag = g_strdup_printf("<u style=\"text-decoration-style:%s\">",
-                                      styles[attr->underline]);
+                if (attr->deco != VTE_DEFAULT_FG) {
+                        vte::color::rgb color;
+
+                        rgb_from_index(attr->deco, color);
+                        colorattr = g_strdup_printf(";text-decoration-color:#%02X%02X%02X",
+                                                    color.red >> 8,
+                                                    color.green >> 8,
+                                                    color.blue >> 8);
+                } else {
+                        colorattr = g_strdup("");
+                }
+
+                tag = g_strdup_printf("<u style=\"text-decoration-style:%s%s\">",
+                                      styles[attr->underline],
+                                      colorattr);
                 g_string_prepend(string, tag);
                 g_free(tag);
+                g_free(colorattr);
                 g_string_append(string, "</u>");
         }
 	if (attr->fore != VTE_DEFAULT_FG || attr->reverse) {
@@ -8788,15 +8803,17 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
                                      bool is_selected,
                                      bool is_cursor,
                                      guint *pfore,
-                                     guint *pback) const
+                                     guint *pback,
+                                     guint *pdeco) const
 {
-	guint fore, back;
+        guint fore, back, deco;
 
         g_assert(attr);
 
 	/* Start with cell colors */
 	fore = attr->fore;
 	back = attr->back;
+        deco = attr->deco;
 
 	/* Reverse-mode switches default fore and back colors */
         if (G_UNLIKELY (m_reverse_mode)) {
@@ -8861,33 +8878,36 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
 
 	/* Invisible? */
 	if (attr->invisible) {
-		fore = back;
+                fore = deco = back;
 	}
 
 	*pfore = fore;
 	*pback = back;
+        *pdeco = deco;
 }
 
 void
 VteTerminalPrivate::determine_colors(VteCell const* cell,
                                      bool highlight,
                                      guint *fore,
-                                     guint *back) const
+                                     guint *back,
+                                     guint *deco) const
 {
 	determine_colors(cell ? &cell->attr : &basic_cell.attr,
                          highlight, false /* not cursor */,
-                         fore, back);
+                         fore, back, deco);
 }
 
 void
 VteTerminalPrivate::determine_cursor_colors(VteCell const* cell,
                                             bool highlight,
                                             guint *fore,
-                                            guint *back) const
+                                            guint *back,
+                                            guint *deco) const
 {
 	determine_colors(cell ? &cell->attr : &basic_cell.attr,
                          highlight, true /* cursor */,
-                         fore, back);
+                         fore, back, deco);
 }
 
 /* Draw a string of characters with similar attributes. */
@@ -8896,6 +8916,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                gssize n,
                                guint fore,
                                guint back,
+                               guint deco,
                                bool clear,
                                bool draw_default_bg,
                                bool bold,
@@ -8910,7 +8931,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 {
 	int i, x, y;
 	gint columns = 0;
-	vte::color::rgb fg, bg;
+        vte::color::rgb fg, bg, dc;
 
 	g_assert(n > 0);
 	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
@@ -8920,10 +8941,10 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			g_string_append_unichar (str, items[i].c);
 		}
 		tmp = g_string_free (str, FALSE);
-		g_printerr ("draw_cells('%s', fore=%d, back=%d, bold=%d,"
+                g_printerr ("draw_cells('%s', fore=%d, back=%d, deco=%d, bold=%d,"
                                 " ul=%d, strike=%d,"
                                 " hyperlink=%d, hilite=%d, boxed=%d)\n",
-				tmp, fore, back, bold,
+                                tmp, fore, back, deco, bold,
                                 underline, strikethrough,
                                 hyperlink, hilite, boxed);
 		g_free (tmp);
@@ -8932,6 +8953,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 	bold = bold && m_allow_bold;
 	rgb_from_index(fore, fg);
 	rgb_from_index(back, bg);
+        rgb_from_index(deco == VTE_DEFAULT_FG ? fore : deco, dc);
 
 	i = 0;
 	do {
@@ -8952,12 +8974,10 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 		}
 	} while (i < n);
 
-	_vte_draw_text(m_draw,
-			items, n,
-			&fg, VTE_DRAW_OPAQUE,
-			_vte_draw_get_style(bold, italic));
-
-	/* Draw whatever SFX are required. */
+        /* Draw whatever SFX are required. Do this before drawing the letters,
+         * so that if the descent of a letter crosses an underline of a different color,
+         * it's the letter's color that wins. Other kinds of decorations always have the
+         * same color as the text, so the order is irrelevant there. */
         if (underline | strikethrough | hyperlink | hilite | boxed) {
 		i = 0;
 		do {
@@ -8974,7 +8994,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                     x + (columns * column_width) - 1,
                                                     y + m_underline_position + m_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
-                                                    &fg, VTE_DRAW_OPAQUE);
+                                                    &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 2:
                                 _vte_draw_draw_line(m_draw,
@@ -8983,14 +9003,14 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                     x + (columns * column_width) - 1,
                                                     y + m_double_underline_position + m_double_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
-                                                    &fg, VTE_DRAW_OPAQUE);
+                                                    &dc, VTE_DRAW_OPAQUE);
                                 _vte_draw_draw_line(m_draw,
                                                     x,
                                                     y + m_double_underline_position + 2 * m_double_underline_thickness,
                                                     x + (columns * column_width) - 1,
                                                     y + m_double_underline_position + 3 * m_double_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
-                                                    &fg, VTE_DRAW_OPAQUE);
+                                                    &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 3:
                                 for (int j = 0; j < columns; j++) {
@@ -8999,7 +9019,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                                  y + m_undercurl_position,
                                                                  column_width,
                                                                  m_undercurl_thickness,
-                                                                 &fg, VTE_DRAW_OPAQUE);
+                                                                 &dc, VTE_DRAW_OPAQUE);
                                 }
                                 break;
 			}
@@ -9037,8 +9057,13 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                          MAX(0, row_height),
                                                          &fg, VTE_DRAW_OPAQUE);
 			}
-		}while (i < n);
+                } while (i < n);
 	}
+
+        _vte_draw_text(m_draw,
+                       items, n,
+                       &fg, VTE_DRAW_OPAQUE,
+                       _vte_draw_get_style(bold, italic));
 }
 
 /* FIXME: we don't have a way to tell GTK+ what the default text attributes
@@ -9239,7 +9264,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
         int i, j, cell_count;
 	VteCell *cells;
 	char scratch_buf[VTE_UTF8_BPC];
-	guint fore, back;
+        guint fore, back, deco;
 
 	/* Note: since this function is only called with the pre-edit text,
 	 * all the items contain gunichar only, not vteunistr. */
@@ -9251,10 +9276,11 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 	cells = g_new(VteCell, cell_count);
 	translate_pango_cells(attrs, cells, cell_count);
 	for (i = 0, j = 0; i < n; i++) {
-		determine_colors(&cells[j], false, &fore, &back);
+                determine_colors(&cells[j], false, &fore, &back, &deco);
 		draw_cells(items + i, 1,
 					fore,
 					back,
+                                        deco,
 					TRUE, draw_default_bg,
 					cells[j].attr.bold,
 					cells[j].attr.italic,
@@ -9286,7 +9312,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         vte::grid::row_t row, rows;
         vte::grid::column_t i, j;
         long x, y;
-        guint fore, nfore, back, nback, underline, nunderline;
+        guint fore, nfore, back, nback, deco, ndeco, underline, nunderline;
         gboolean bold, nbold, italic, nitalic,
                  hyperlink, nhyperlink, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough;
@@ -9320,7 +9346,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				cell = _vte_row_data_get (row_data, i);
 				/* Find the colors for this cell. */
 				selected = cell_is_selected(i, row);
-				determine_colors(cell, selected, &fore, &back);
+                                determine_colors(cell, selected, &fore, &back, &deco);
 
 				bold = cell && cell->attr.bold;
 				j = i + (cell ? cell->attr.columns : 1);
@@ -9339,7 +9365,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					 * compare visual attributes to the first character
 					 * in this chunk. */
 					selected = cell_is_selected(j, row);
-					determine_colors(cell, selected, &nfore, &nback);
+                                        determine_colors(cell, selected, &nfore, &nback, &ndeco);
 					if (nback != back) {
 						break;
 					}
@@ -9374,7 +9400,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					}
 					j++;
 				}
-				determine_colors(nullptr, selected, &fore, &back);
+                                determine_colors(nullptr, selected, &fore, &back, &deco);
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
 					rgb_from_index(back, bg);
@@ -9436,7 +9462,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			}
 			/* Find the colors for this cell. */
 			selected = cell_is_selected(i, row);
-			determine_colors(cell, selected, &fore, &back);
+                        determine_colors(cell, selected, &fore, &back, &deco);
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
                         hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
@@ -9487,10 +9513,13 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					 * compare visual attributes to the first character
 					 * in this chunk. */
 					selected = cell_is_selected(j, row);
-					determine_colors(cell, selected, &nfore, &nback);
+                                        determine_colors(cell, selected, &nfore, &nback, &ndeco);
 					if (nfore != fore) {
 						break;
 					}
+                                        if (ndeco != deco) {
+                                                break;
+                                        }
 					nbold = cell->attr.bold;
 					if (nbold != bold) {
 						break;
@@ -9563,7 +9592,7 @@ fg_draw:
 			draw_cells(
 					items,
 					item_count,
-					fore, back, FALSE, FALSE,
+                                        fore, back, deco, FALSE, FALSE,
 					bold, italic, underline,
                                         strikethrough, hyperlink, hilite, FALSE,
 					column_width, row_height);
@@ -9669,7 +9698,7 @@ VteTerminalPrivate::paint_cursor()
         vte::grid::column_t col;
         int width, height, cursor_width;
         guint style = 0;
-	guint fore, back;
+        guint fore, back, deco;
 	vte::color::rgb bg;
 	int x, y;
 	gboolean blink, selected, focus;
@@ -9713,7 +9742,7 @@ VteTerminalPrivate::paint_cursor()
 	}
 
 	selected = cell_is_selected(col, drow);
-	determine_cursor_colors(cell, selected, &fore, &back);
+        determine_cursor_colors(cell, selected, &fore, &back, &deco);
 	rgb_from_index(back, bg);
 
 	x = item.x;
@@ -9792,7 +9821,7 @@ VteTerminalPrivate::paint_cursor()
                                 if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                         draw_cells(
                                                         &item, 1,
-                                                        fore, back, TRUE, FALSE,
+                                                        fore, back, deco, TRUE, FALSE,
                                                         cell->attr.bold,
                                                         cell->attr.italic,
                                                         cell->attr.underline,
@@ -9824,7 +9853,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 	int col, columns;
 	long width, height;
 	int i, len;
-	guint fore, back;
+        guint fore, back, deco;
 
 	if (!m_im_preedit)
 		return;
@@ -9869,6 +9898,7 @@ VteTerminalPrivate::paint_im_preedit_string()
                                 get_color(VTE_DEFAULT_BG), m_background_alpha);
                 fore = m_color_defaults.attr.fore;
                 back = m_color_defaults.attr.back;
+                deco = m_color_defaults.attr.deco;
 		draw_cells_with_attributes(
 							items, len,
 							m_im_preedit_attrs,
@@ -9879,7 +9909,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 			/* Cursored letter in reverse. */
 			draw_cells(
 						&items[preedit_cursor], 1,
-                                                back, fore,
+                                                back, fore, deco,
                                                 TRUE,  /* clear */
                                                 TRUE,  /* draw_default_bg */
                                                 FALSE, /* bold */
