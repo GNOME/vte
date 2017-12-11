@@ -5,6 +5,7 @@ EXTRA_DIST = \
 	inc.sh \
 	random.sh \
 	scroll.vim \
+	sgr-test.sh \
 	utf8.sh \
 	vim.sh \
 	$(NULL)
