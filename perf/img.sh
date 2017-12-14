@@ -17,8 +17,25 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-if [ $# != 1 -o "$1" = "--help" ]; then
-  echo 'Usage: img.sh imagefile' >&2
+sep1=':'
+sep2='::'
+if [ "$1" = "-colon4" -o "$1" = "-official" -o "$1" = "-dejure" ]; then
+  shift
+elif [ "$1" = "-colon3" -o "$1" = "-wrong" ]; then
+  sep2=':'
+  shift
+elif [ "$1" = "-semicolon" -o "$1" = "-common" -o "$1" = "-defacto" ]; then
+  sep1=';'
+  sep2=';'
+  shift
+fi
+
+if [ $# != 1 -o "${1:0:1}" = "-" ]; then
+  echo 'Usage: img.sh [-format] imagefile' >&2
+  echo >&2
+  echo '  -colon4|-official|-dejure:    Official format (default)  \e[38:2::R:G:Bm' >&2
+  echo '  -colon3|-wrong:               Misinterpreted format      \e[38:2:R:G:Bm' >&2
+  echo '  -semicolon|-common|-defacto:  Commonly used format       \e[38;2;R;G;Bm' >&2
   exit 1
 elif [ -z $(type -p convert) ]; then
   echo 'Please install ImageMagick to run this script.' >&2
@@ -41,16 +58,16 @@ while IFS=',:() ' read col row dummy red green blue rest; do
   fi
 
   if [ $((row%2)) = 0 ]; then
-    upper[$col]="$red;$green;$blue"
+    upper[$col]="$red$sep1$green$sep1$blue"
   else
-    lower[$col]="$red;$green;$blue"
+    lower[$col]="$red$sep1$green$sep1$blue"
   fi
 
   # After reading every second image row, print them out.
   if [ $((row%2)) = 1 -a $col = $((COLUMNS-1)) ]; then
     i=0
     while [ $i -lt $COLUMNS ]; do
-      echo -ne "\\e[38;2;${upper[$i]};48;2;${lower[$i]}m▀"
+      echo -ne "\\e[38${sep1}2${sep2}${upper[$i]};48${sep1}2${sep2}${lower[$i]}m▀"
       i=$((i+1))
     done
     # \e[K is useful when you resize the terminal while this script is still running.
@@ -64,7 +81,7 @@ done
 if [ "${upper[0]}" != "" ]; then
   i=0
   while [ $i -lt $COLUMNS ]; do
-    echo -ne "\\e[38;2;${upper[$i]}m▀"
+    echo -ne "\\e[38${sep1}2${sep2}${upper[$i]}m▀"
     i=$((i+1))
   done
   echo -e "\\e[0m\e[K"

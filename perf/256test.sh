@@ -17,6 +17,22 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+sep=':'
+if [ "$1" = "-colon" -o "$1" = "-official" -o "$1" = "-dejure" ]; then
+  shift
+elif [ "$1" = "-semicolon" -o "$1" = "-common" -o "$1" = "-defacto" ]; then
+  sep=';'
+  shift
+fi
+
+if [ $# != 0 ]; then
+  echo 'Usage: 256test.sh [-format]' >&2
+  echo >&2
+  echo '  -colon|-official|-dejure:     Official format (default)  \e[38:5:INDEXm' >&2
+  echo '  -semicolon|-common|-defacto:  Commonly used format       \e[38;5;INDEXm' >&2
+  exit 1
+fi
+
 format_number() {
   local c=$'\u254F'
   if [ $1 -lt 10 ]; then
@@ -55,17 +71,17 @@ allcolors() {
   echo "-- 8 bright colors: SGR ${2}0..${2}7 --"
   somecolors 0 7 "$2"
   echo
-  echo "-- 256 colors: SGR ${1}8;5;0..255 --"
-  somecolors 0 15 "${1}8;5;"
+  echo "-- 256 colors: SGR ${1}8${sep}5${sep}0..255 --"
+  somecolors 0 15 "${1}8${sep}5${sep}"
   echo
-  somecolors  16  51 "${1}8;5;"
-  somecolors  52  87 "${1}8;5;"
-  somecolors  88 123 "${1}8;5;"
-  somecolors 124 159 "${1}8;5;"
-  somecolors 160 195 "${1}8;5;"
-  somecolors 196 231 "${1}8;5;"
+  somecolors  16  51 "${1}8${sep}5${sep}"
+  somecolors  52  87 "${1}8${sep}5${sep}"
+  somecolors  88 123 "${1}8${sep}5${sep}"
+  somecolors 124 159 "${1}8${sep}5${sep}"
+  somecolors 160 195 "${1}8${sep}5${sep}"
+  somecolors 196 231 "${1}8${sep}5${sep}"
   echo
-  somecolors 232 255 "${1}8;5;"
+  somecolors 232 255 "${1}8${sep}5${sep}"
 }
 
 allcolors 3 9

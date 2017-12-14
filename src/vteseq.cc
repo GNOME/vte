@@ -1798,11 +1798,16 @@ VteTerminalPrivate::seq_vertical_tab(vte::parser::Params const& params)
 }
 
 /* Parse parameters of SGR 38, 48 or 58, starting at @index within @params.
+ * If @might_contain_color_space_id, a true color sequence sequence is started, and after
+ * its leading number "2" at least 4 more parameters are present, then there's an (ignored)
+ * color_space_id before the three color components. See the comment below in
+ * seq_character_attributes() to understand the different accepted formats.
  * Returns the color index, or -1 on error.
  * Increments @index to point to the last consumed parameter (not beyond). */
 int32_t
 VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params,
-                                               unsigned int *index)
+                                               unsigned int *index,
+                                               bool might_contain_color_space_id)
 {
         auto n_params = params.size();
         if (*index < n_params) {
@@ -1814,6 +1819,8 @@ VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params
                 case 2: {
                         if (G_UNLIKELY(*index + 3 >= n_params))
 				return -1;
+                        if (might_contain_color_space_id && *index + 5 <= n_params)
+			        *index += 1;
 
                         long param1, param2, param3;
                         if (G_UNLIKELY(!params.number_at_unchecked(*index + 1, param1) ||
@@ -1870,10 +1877,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                         case 58:
                         {
                                 unsigned int index = 1;
-                                auto color = parse_sgr_38_48_parameters(subparams, &index);
-                                /* Bail out on additional colon-separated values. */
-                                if (G_UNLIKELY(index != subparams.size() - 1))
-                                        continue;
+                                auto color = parse_sgr_38_48_parameters(subparams, &index, true);
                                 if (G_LIKELY (color != -1)) {
                                         if (param0 == 38) {
                                                 m_defaults.attr.fore = color;
@@ -1963,35 +1967,18 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		{
 			/* The format looks like:
 			 * - 256 color indexed palette:
-			 *   - ^[[38;5;INDEXm
-			 *   - ^[[38;5:INDEXm
-			 *   - ^[[38:5:INDEXm
+                         *   - ^[[38:5:INDEXm  (de jure standard: ITU-T T.416 / ISO/IEC 8613-6; we also allow and ignore further parameters)
+                         *   - ^[[38;5;INDEXm  (de facto standard, understood by probably all terminal emulators that support 256 colors)
 			 * - true colors:
-			 *   - ^[[38;2;RED;GREEN;BLUEm
-			 *   - ^[[38;2:RED:GREEN:BLUEm
-			 *   - ^[[38:2:RED:GREEN:BLUEm
-			 * See bug 685759 for details.
-			 * The fully colon versions were handled above separately. The code is reached
-			 * if the first separator is a semicolon. */
+                         *   - ^[[38:2:[id]:RED:GREEN:BLUE[:...]m  (de jure standard: ITU-T T.416 / ISO/IEC 8613-6)
+                         *   - ^[[38:2:RED:GREEN:BLUEm             (common misinterpretation of the standard, FIXME: stop supporting it at some point)
+                         *   - ^[[38;2;RED;GREEN;BLUEm             (de facto standard, understood by probably all terminal emulators that support true colors)
+                         * See bugs 685759 and 791456 for details.
+                         * The colon version was handled above separately.
+                         * This branch here is reached when the separators are semicolons. */
 			if ((i + 1) < n_params) {
-				int32_t color;
-
                                 ++i;
-                                if (params.has_number_at_unchecked(i)) {
-					/* Only semicolons as separators. */
-                                        color = parse_sgr_38_48_parameters(params, &i);
-                                } else if (params.has_subparams_at_unchecked(i)) {
-					/* The first separator was a semicolon, the rest are colons. */
-                                        auto subparams = params.subparams_at_unchecked(i);
-
-					unsigned int index = 0;
-                                        color = parse_sgr_38_48_parameters(subparams, &index);
-					/* Bail out on additional colon-separated values. */
-                                        if (G_UNLIKELY(index != subparams.size() - 1))
-						break;
-				} else {
-					break;
-				}
+                                auto color = parse_sgr_38_48_parameters(params, &i, false);
 				if (G_LIKELY (color != -1)) {
 					if (param == 38) {
                                                 m_defaults.attr.fore = color;
