@@ -9336,7 +9336,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         gboolean bold, nbold, italic, nitalic,
                  hyperlink, nhyperlink, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough,
-                 overline, noverline;
+                 overline, noverline, invisible, ninvisible;
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
@@ -9488,6 +9488,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			underline = cell->attr.underline;
 			strikethrough = cell->attr.strikethrough;
                         overline = cell->attr.overline;
+                        invisible = cell->attr.invisible;
                         hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
 			bold = cell->attr.bold;
 			italic = cell->attr.italic;
@@ -9514,10 +9515,9 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					if (cell == NULL) {
 						goto fg_next_row;
 					}
-					/* Don't render blank cells or fragments of multicolumn characters
-					 * which have the same attributes as the initial
-					 * portions.  Don't render invisible cells */
-					if (cell->attr.fragment || cell->attr.invisible) {
+                                        /* Ignore the attributes on a fragment, the attributes
+                                         * of the preceding character cell should apply. */
+                                        if (cell->attr.fragment) {
 						j++;
 						continue;
 					}
@@ -9566,6 +9566,10 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                                         }
                                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
                                         if (nhyperlink != hyperlink) {
+                                                break;
+                                        }
+                                        ninvisible = cell->attr.invisible;
+                                        if (ninvisible != invisible) {
                                                 break;
                                         }
 					/* Break up matched/not-matched text. */
