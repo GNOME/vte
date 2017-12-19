@@ -2906,8 +2906,9 @@ vte_terminal_set_size(VteTerminal *terminal,
  * vte_terminal_get_allow_bold:
  * @terminal: a #VteTerminal
  *
- * Checks whether or not the terminal will attempt to draw bold text by
- * repainting text with a one-pixel offset.
+ * Checks whether or not the terminal will attempt to draw bold text,
+ * either by using a bold font variant or by repainting text with a different
+ * offset.
  *
  * Returns: %TRUE if bolding is enabled, %FALSE if not
  */
@@ -2926,7 +2927,6 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
  * Controls whether or not the terminal will attempt to draw bold text,
  * either by using a bold font variant or by repainting text with a different
  * offset.
- *
  */
 void
 vte_terminal_set_allow_bold(VteTerminal *terminal,
