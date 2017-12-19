@@ -8121,7 +8121,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_double_underline_position = 1;
         m_double_underline_thickness = 1;
         m_undercurl_position = 1.;
-        m_undercurl_thickness = 1;
+        m_undercurl_thickness = 1.;
 	m_strikethrough_position = 1;
         m_strikethrough_thickness = 1;
         m_overline_position = 1;
@@ -9023,14 +9023,12 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                     &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 3:
-                                for (int j = 0; j < columns; j++) {
-                                        _vte_draw_draw_undercurl(m_draw,
-                                                                 x + j * column_width,
-                                                                 y + m_undercurl_position,
-                                                                 column_width,
-                                                                 m_undercurl_thickness,
-                                                                 &dc, VTE_DRAW_OPAQUE);
-                                }
+                                _vte_draw_draw_undercurl(m_draw,
+                                                         x,
+                                                         y + m_undercurl_position,
+                                                         m_undercurl_thickness,
+                                                         columns,
+                                                         &dc, VTE_DRAW_OPAQUE);
                                 break;
 			}
 			if (strikethrough) {

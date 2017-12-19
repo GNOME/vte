@@ -758,6 +758,9 @@ struct _vte_draw {
         GtkBorder char_spacing;
 
 	cairo_t *cr;
+
+        /* Cache the undercurl's rendered look. */
+        cairo_surface_t *undercurl_surface;
 };
 
 struct _vte_draw *
@@ -787,6 +790,11 @@ _vte_draw_free (struct _vte_draw *draw)
 			draw->fonts[style] = NULL;
 		}
 	}
+
+        if (draw->undercurl_surface != NULL) {
+                cairo_surface_destroy (draw->undercurl_surface);
+                draw->undercurl_surface = NULL;
+        }
 
 	g_slice_free (struct _vte_draw, draw);
 }
@@ -907,6 +915,12 @@ _vte_draw_set_text_font (struct _vte_draw *draw,
         draw->cell_height = draw->fonts[VTE_DRAW_NORMAL]->height * cell_height_scale;
         draw->char_spacing.top = (draw->cell_height - draw->fonts[VTE_DRAW_NORMAL]->height + 1) / 2;
         draw->char_spacing.bottom = (draw->cell_height - draw->fonts[VTE_DRAW_NORMAL]->height) / 2;
+
+        /* Drop the undercurl's cached look. Will recache on demand. */
+        if (draw->undercurl_surface != NULL) {
+                cairo_surface_destroy (draw->undercurl_surface);
+                draw->undercurl_surface = NULL;
+        }
 }
 
 void
@@ -1670,36 +1684,71 @@ _vte_draw_get_undercurl_arc_height(gint width)
 }
 
 double
-_vte_draw_get_undercurl_height(gint width, int line_width)
+_vte_draw_get_undercurl_height(gint width, double line_width)
 {
         return 2. * _vte_draw_get_undercurl_arc_height(width) + line_width;
 }
 
 void
 _vte_draw_draw_undercurl(struct _vte_draw *draw,
-                         gint x, double y, gint width,
-                         int line_width,
+                         gint x, double y,
+                         double line_width,
+                         gint count,
                          vte::color::rgb const *color, double alpha)
 {
-        double rad = _vte_draw_get_undercurl_rad(width);
-        double yc = y + _vte_draw_get_undercurl_height(width, line_width) / 2.;
+        /* The end of the curly line slightly overflows to the next cell, so the canvas
+         * caching the rendered look has to be wider not to chop this off. */
+        gint x_padding = line_width + 1;  /* ceil, kind of */
+
+        gint surface_top = y;  /* floor */
 
         g_assert(draw->cr);
 
         _vte_debug_print (VTE_DEBUG_DRAW,
-                        "draw_undercurl (%d, %f, %d, color=(%d,%d,%d,%.3f))\n",
-                        x,y,width,
+                        "draw_undercurl (x=%d, y=%f, count=%d, color=(%d,%d,%d,%.3f))\n",
+                        x, y, count,
                         color->red, color->green, color->blue,
                         alpha);
 
+        if (G_UNLIKELY (draw->undercurl_surface == NULL)) {
+                /* Cache the undercurl's look. The design assumes that until the cached look is
+                 * invalidated (the font is changed), this method is always called with the "y"
+                 * parameter having the same fractional part, and the same "line_width" parameter.
+                 * For caching, only the fractional part of "y" is used. */
+                cairo_t *undercurl_cr;
+
+                double rad = _vte_draw_get_undercurl_rad(draw->cell_width);
+                double y_bottom = y + _vte_draw_get_undercurl_height(draw->cell_width, line_width);
+                double y_center = (y + y_bottom) / 2.;
+                gint surface_bottom = y_bottom + 1;  /* ceil, kind of */
+
+                _vte_debug_print (VTE_DEBUG_DRAW,
+                                  "caching undercurl shape\n");
+
+                /* Add a line_width of margin horizontally on both sides, for nice antialias overflowing. */
+                draw->undercurl_surface = cairo_surface_create_similar (cairo_get_target (draw->cr),
+                                                                        CAIRO_CONTENT_ALPHA,
+                                                                        draw->cell_width + 2 * x_padding,
+                                                                        surface_bottom - surface_top);
+                undercurl_cr = cairo_create (draw->undercurl_surface);
+                cairo_set_operator (undercurl_cr, CAIRO_OPERATOR_OVER);
+                /* First quarter circle, similar to the left half of the tilde symbol. */
+                cairo_arc (undercurl_cr, x_padding + draw->cell_width / 4., y_center - surface_top + draw->cell_width / 4., rad, M_PI * 5 / 4, M_PI * 7 / 4);
+                /* Second quarter circle, similar to the right half of the tilde symbol. */
+                cairo_arc_negative (undercurl_cr, x_padding + draw->cell_width * 3 / 4., y_center - surface_top - draw->cell_width / 4., rad, M_PI * 3 / 4, M_PI / 4);
+                cairo_set_line_width (undercurl_cr, line_width);
+                cairo_stroke (undercurl_cr);
+                cairo_destroy (undercurl_cr);
+        }
+
+        /* Paint the cached look of the undercurl using the desired look.
+         * The cached look takes the fractional part of "y" into account,
+         * here we only offset by its integer part. */
+        cairo_save (draw->cr);
         cairo_set_operator (draw->cr, CAIRO_OPERATOR_OVER);
-        cairo_new_sub_path(draw->cr);
-        /* First quarter circle, similar to the left half of the tilde symbol. */
-        cairo_arc (draw->cr, x + width / 4., yc + width / 4., rad, M_PI * 5 / 4, M_PI * 7 / 4);
-        /* Second quarter circle, similar to the right half of the tilde symbol. */
-        cairo_arc_negative (draw->cr, x + width * 3 / 4., yc - width / 4., rad, M_PI * 3 / 4, M_PI / 4);
         _vte_draw_set_source_color_alpha (draw, color, alpha);
-        cairo_set_line_width (draw->cr, line_width);
-        /* FIXME: This is quite slow. The rendered bitmap should be cached and reused. */
-        cairo_stroke (draw->cr);
+        for (int i = 0; i < count; i++) {
+                cairo_mask_surface (draw->cr, draw->undercurl_surface, x - x_padding + i * draw->cell_width, surface_top);
+        }
+        cairo_restore (draw->cr);
 }
