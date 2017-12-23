@@ -93,6 +93,7 @@ public:
         double cell_width_scale{1.0};
         VteCursorBlinkMode cursor_blink_mode{VTE_CURSOR_BLINK_SYSTEM};
         VteCursorShape cursor_shape{VTE_CURSOR_SHAPE_BLOCK};
+        VteTextBlinkMode text_blink_mode{VTE_TEXT_BLINK_ALWAYS};
 
         ~Options() {
                 g_clear_object(&background_pixbuf);
@@ -288,6 +289,17 @@ private:
         }
 
         static gboolean
+        parse_text_blink(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                int v;
+                auto rv = that->parse_enum(VTE_TYPE_TEXT_BLINK_MODE, value, v, error);
+                if (rv)
+                        that->text_blink_mode = VteTextBlinkMode(v);
+                return rv;
+        }
+
+        static gboolean
         parse_verbosity(char const* option, char const* value, void* data, GError** error)
         {
                 Options* that = static_cast<Options*>(data);
@@ -341,6 +353,8 @@ public:
                           "Set background image extend", "EXTEND" },
                         { "background-operator", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_operator,
                           "Set background draw operator", "OPERATOR" },
+                        { "blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_text_blink,
+                          "Text blink mode (never|focused|unfocused|always)", "MODE" },
                         { "cell-height-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_height_scale,
                           "Add extra line spacing", "1.0..2.0" },
                         { "cell-width-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_width_scale,
@@ -1850,6 +1864,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_scroll_on_output(window->terminal, false);
         vte_terminal_set_scroll_on_keystroke(window->terminal, true);
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
+        vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
 
         /* Style */
         if (options.font_string != nullptr) {

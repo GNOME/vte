@@ -59,6 +59,25 @@ typedef enum {
 } VteCursorShape;
 
 /**
+ * VteTextBlinkMode:
+ * @VTE_TEXT_BLINK_NEVER: Do not blink the text.
+ * @VTE_TEXT_BLINK_FOCUSED: Allow blinking text only if the terminal is focused.
+ * @VTE_TEXT_BLINK_UNFOCUSED: Allow blinking text only if the terminal is unfocused.
+ * @VTE_TEXT_BLINK_ALWAYS: Allow blinking text. This is the default.
+ *
+ * An enumerated type which can be used to indicate whether the terminal allows
+ * the text contents to be blinked.
+ *
+ * Since: 0.52
+ */
+typedef enum {
+        VTE_TEXT_BLINK_NEVER     = 0,
+        VTE_TEXT_BLINK_FOCUSED   = 1,
+        VTE_TEXT_BLINK_UNFOCUSED = 2,
+        VTE_TEXT_BLINK_ALWAYS    = 3
+} VteTextBlinkMode;
+
+/**
  * VteEraseBinding:
  * @VTE_ERASE_AUTO: For backspace, attempt to determine the right value from the terminal's IO settings.  For delete, use the control sequence.
  * @VTE_ERASE_ASCII_BACKSPACE: Send an ASCII backspace character (0x08).

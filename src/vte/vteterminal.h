@@ -223,6 +223,11 @@ double vte_terminal_get_cell_height_scale(VteTerminal *terminal) _VTE_GNUC_NONNU
 
 /* Set various on-off settings. */
 _VTE_PUBLIC
+void vte_terminal_set_text_blink_mode(VteTerminal *terminal,
+                                      VteTextBlinkMode text_blink_mode) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+VteTextBlinkMode vte_terminal_get_text_blink_mode(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
 void vte_terminal_set_audible_bell(VteTerminal *terminal,
                                    gboolean is_audible) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC

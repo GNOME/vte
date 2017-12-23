@@ -519,6 +519,13 @@ public:
         gboolean m_cursor_visible;
         gboolean m_has_focus;               /* is the terminal window focused */
 
+        /* Contents blinking */
+        VteTextBlinkMode m_text_blink_mode;
+        gint m_text_blink_cycle;  /* gtk-cursor-blink-time / 2 */
+        bool m_text_blink_state;  /* whether blinking text should be visible at this very moment */
+        bool m_text_to_blink;     /* drawing signals here if it encounters any cell with blink attribute */
+        guint m_text_blink_tag;   /* timeout ID for redrawing due to blinking */
+
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
         VteCursorStyle m_cursor_style;
@@ -749,6 +756,8 @@ public:
         VteCursorBlinkMode decscusr_cursor_blink();
         VteCursorShape decscusr_cursor_shape();
 
+        void remove_text_blink_timeout();
+
         /* The allocation of the widget */
         cairo_rectangle_int_t m_allocated_rect;
         /* The usable view area. This is the allocation, minus the padding, but
@@ -844,6 +853,7 @@ public:
                         guint underline,
                         bool strikethrough,
                         bool overline,
+                        bool blink,
                         bool hyperlink,
                         bool hilite,
                         bool boxed,
@@ -1222,6 +1232,7 @@ public:
                          int source);
 
         bool set_audible_bell(bool setting);
+        bool set_text_blink_mode(VteTextBlinkMode setting);
         bool set_allow_bold(bool setting);
         bool set_allow_hyperlink(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);

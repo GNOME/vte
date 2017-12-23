@@ -4583,6 +4583,16 @@ VteTerminalPrivate::check_cursor_blink()
 }
 
 void
+VteTerminalPrivate::remove_text_blink_timeout()
+{
+        if (m_text_blink_tag == 0)
+                return;
+
+        g_source_remove (m_text_blink_tag);
+        m_text_blink_tag = 0;
+}
+
+void
 VteTerminalPrivate::beep()
 {
 	if (m_audible_bell) {
@@ -7423,6 +7433,14 @@ VteTerminalPrivate::widget_focus_in(GdkEventFocus *event)
 		m_cursor_blink_state = TRUE;
 		m_has_focus = TRUE;
 
+                /* If blinking gets enabled now, do a full repaint.
+                 * If blinking gets disabled, only repaint if there's blinking stuff present
+                 * (we could further optimize by checking its current phase). */
+                if (m_text_blink_mode == VTE_TEXT_BLINK_FOCUSED ||
+                    (m_text_blink_mode == VTE_TEXT_BLINK_UNFOCUSED && m_text_blink_tag != 0)) {
+                        invalidate_all();
+                }
+
 		check_cursor_blink();
 
 		gtk_im_context_focus_in(m_im_context);
@@ -7445,6 +7463,14 @@ VteTerminalPrivate::widget_focus_out(GdkEventFocus *event)
                 maybe_feed_focus_event(false);
 
 		maybe_end_selection();
+
+                /* If blinking gets enabled now, do a full repaint.
+                 * If blinking gets disabled, only repaint if there's blinking stuff present
+                 * (we could further optimize by checking its current phase). */
+                if (m_text_blink_mode == VTE_TEXT_BLINK_UNFOCUSED ||
+                    (m_text_blink_mode == VTE_TEXT_BLINK_FOCUSED && m_text_blink_tag != 0)) {
+                        invalidate_all();
+                }
 
 		gtk_im_context_focus_out(m_im_context);
 		invalidate_cursor_once();
@@ -8157,6 +8183,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	m_max_input_bytes = VTE_MAX_INPUT_READ;
 	m_cursor_blink_tag = 0;
+        m_text_blink_tag = 0;
 	m_outgoing = _vte_byte_array_new();
 	m_outgoing_conv = VTE_INVALID_CONV;
 	m_conv_buffer = _vte_byte_array_new();
@@ -8198,6 +8225,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	set_delete_binding(VTE_ERASE_AUTO);
 	m_meta_sends_escape = TRUE;
 	m_audible_bell = TRUE;
+        m_text_blink_mode = VTE_TEXT_BLINK_ALWAYS;
 	m_allow_bold = TRUE;
         m_bold_is_bright = TRUE;
         m_deccolm_mode = FALSE;
@@ -8450,8 +8478,11 @@ VteTerminalPrivate::widget_unrealize()
 		gtk_widget_unmap(m_widget);
 	}
 
-	/* Remove the blink timeout function. */
+        /* Remove the cursor blink timeout function. */
 	remove_cursor_timeout();
+
+        /* Remove the contents blink timeout function. */
+        remove_text_blink_timeout();
 
 	/* Cancel any pending redraws. */
 	remove_update_timeout(this);
@@ -8501,6 +8532,16 @@ VteTerminalPrivate::widget_settings_notify()
         m_cursor_blink_timeout = blink_timeout;
 
         update_cursor_blinks();
+
+        /* Misuse gtk-cursor-blink-time for text blinking as well. This might change in the future. */
+        m_text_blink_cycle = m_cursor_blink_cycle;
+        if (m_text_blink_tag != 0) {
+                /* The current phase might have changed, and an already installed
+                 * timer to blink might fire too late. So remove the timer and
+                 * repaint the contents (which will install a correct new timer). */
+                remove_text_blink_timeout();
+                invalidate_all();
+        }
 }
 
 void
@@ -8886,6 +8927,9 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
 	}
 
 	/* Invisible? */
+        /* FIXME: This is dead code, this is not where we actually handle invisibile.
+         * Instead, draw_cells() is not called from draw_rows().
+         * That is required for the foreground to be transparent if so is the background. */
 	if (attr->invisible) {
                 fore = deco = back;
 	}
@@ -8919,6 +8963,14 @@ VteTerminalPrivate::determine_cursor_colors(VteCell const* cell,
                          fore, back, deco);
 }
 
+static gboolean
+invalidate_text_blink_cb(VteTerminalPrivate *that)
+{
+        that->m_text_blink_tag = 0;
+        that->invalidate_all();
+        return G_SOURCE_REMOVE;
+}
+
 /* Draw a string of characters with similar attributes. */
 void
 VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
@@ -8933,6 +8985,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                guint underline,
                                bool strikethrough,
                                bool overline,
+                               bool blink,
                                bool hyperlink,
                                bool hilite,
                                bool boxed,
@@ -8952,10 +9005,10 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 		}
 		tmp = g_string_free (str, FALSE);
                 g_printerr ("draw_cells('%s', fore=%d, back=%d, deco=%d, bold=%d,"
-                                " ul=%d, strike=%d, ol=%d"
+                                " ul=%d, strike=%d, ol=%d, blink=%d,"
                                 " hyperlink=%d, hilite=%d, boxed=%d)\n",
                                 tmp, fore, back, deco, bold,
-                                underline, strikethrough, overline,
+                                underline, strikethrough, overline, blink,
                                 hyperlink, hilite, boxed);
 		g_free (tmp);
 	}
@@ -8983,6 +9036,21 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 					&bg, VTE_DRAW_OPAQUE);
 		}
 	} while (i < n);
+
+        if (blink) {
+                /* Notify the caller that cells with the "blink" attribute were encountered (regardless of
+                 * whether they're actually painted or skipped now), so that the caller can set up a timer
+                 * to make them blink if it wishes to. */
+                m_text_to_blink = true;
+
+                /* This is for the "off" state of blinking text. Invisible text could also be handled here,
+                 * but it's not, it's handled outside by not even calling this method.
+                 * Setting fg = bg and painting the text would not work for two reasons: it'd be opaque
+                 * even if the background is translucent, and this method can be called with a continuous
+                 * run of identical fg, yet different bg colored cells. So we simply bail out. */
+                if (!m_text_blink_state)
+                        return;
+        }
 
         /* Draw whatever SFX are required. Do this before drawing the letters,
          * so that if the descent of a letter crosses an underline of a different color,
@@ -9304,6 +9372,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 					cells[j].attr.underline,
 					cells[j].attr.strikethrough,
                                         cells[j].attr.overline,
+                                        cells[j].attr.blink,
                                         m_allow_hyperlink && cells[j].attr.hyperlink_idx != 0,
 					FALSE, FALSE, column_width, height);
 		j += g_unichar_to_utf8(items[i].c, scratch_buf);
@@ -9334,7 +9403,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         gboolean bold, nbold, italic, nitalic,
                  hyperlink, nhyperlink, hilite, nhilite,
 		 selected, nselected, strikethrough, nstrikethrough,
-                 overline, noverline, invisible, ninvisible;
+                 overline, noverline, invisible, ninvisible, blink, nblink;
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
@@ -9490,6 +9559,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                         hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
 			bold = cell->attr.bold;
 			italic = cell->attr.italic;
+                        blink = cell->attr.blink;
                         if (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) {
                                 hilite = true;
                         } else if (m_hyperlink_hover_idx == 0 && m_show_match) {
@@ -9562,6 +9632,10 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                                         if (noverline != overline) {
                                                 break;
                                         }
+                                        nblink = cell->attr.blink;
+                                        if (nblink != blink) {
+                                                break;
+                                        }
                                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
                                         if (nhyperlink != hyperlink) {
                                                 break;
@@ -9622,8 +9696,8 @@ fg_draw:
 					items,
 					item_count,
                                         fore, back, deco, FALSE, FALSE,
-					bold, italic, underline,
-                                        strikethrough, overline, hyperlink, hilite, FALSE,
+                                        bold, italic, underline, strikethrough,
+                                        overline, blink, hyperlink, hilite, FALSE,
 					column_width, row_height);
 			item_count = 1;
 			/* We'll need to continue at the first cell which didn't
@@ -9856,6 +9930,7 @@ VteTerminalPrivate::paint_cursor()
                                                         cell->attr.underline,
                                                         cell->attr.strikethrough,
                                                         cell->attr.overline,
+                                                        cell->attr.blink,
                                                         m_allow_hyperlink && cell->attr.hyperlink_idx != 0,
                                                         FALSE,
                                                         FALSE,
@@ -9947,6 +10022,7 @@ VteTerminalPrivate::paint_im_preedit_string()
                                                 0,     /* underline */
                                                 FALSE, /* strikethrough */
                                                 FALSE, /* overline */
+                                                FALSE, /* blink */
                                                 FALSE, /* hyperlink */
                                                 FALSE, /* hilite */
                                                 TRUE,  /* boxed */
@@ -9963,6 +10039,8 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
         cairo_region_t *region;
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
+        bool text_blink_enabled_now;
+        gint64 now = 0;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
                 return;
@@ -10029,6 +10107,17 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
                 cairo_region_destroy(rr);
         }
 
+        /* Whether blinking text should be visible now */
+        m_text_blink_state = true;
+        text_blink_enabled_now = m_text_blink_mode & (m_has_focus ? VTE_TEXT_BLINK_FOCUSED : VTE_TEXT_BLINK_UNFOCUSED);
+        if (text_blink_enabled_now) {
+                now = g_get_monotonic_time() / 1000;
+                if (now % (m_text_blink_cycle * 2) >= m_text_blink_cycle)
+                        m_text_blink_state = false;
+        }
+        /* Painting will flip this if it encounters any cell with blink attribute */
+        m_text_to_blink = false;
+
         /* and now paint them */
         for (n = 0; n < n_rectangles; n++) {
                 paint_area(&rectangles[n]);
@@ -10056,6 +10145,19 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 	_vte_draw_set_cairo(m_draw, NULL);
 
         cairo_region_destroy (region);
+
+        /* If painting encountered any cell with blink attribute, we might need to set up a timer.
+         * Blinking is implemented using a one-shot (not repeating) timer that keeps getting reinstalled
+         * here as long as blinking cells are encountered during (re)painting. This way there's no need
+         * for an explicit step to stop the timer when blinking cells are no longer present, this happens
+         * implicitly by the timer not getting reinstalled anymore (often after a final unnecessary but
+         * harmless repaint). */
+        if (G_UNLIKELY (m_text_to_blink && text_blink_enabled_now && m_text_blink_tag == 0))
+                m_text_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
+                                                      m_text_blink_cycle - now % m_text_blink_cycle,
+                                                      (GSourceFunc)invalidate_text_blink_cb,
+                                                      this,
+                                                      NULL);
 
         m_invalidated_all = FALSE;
 }
@@ -10206,6 +10308,18 @@ VteTerminalPrivate::set_audible_bell(bool setting)
                 return false;
 
 	m_audible_bell = setting;
+        return true;
+}
+
+bool
+VteTerminalPrivate::set_text_blink_mode(VteTextBlinkMode setting)
+{
+        if (setting == m_text_blink_mode)
+                return false;
+
+        m_text_blink_mode = setting;
+        invalidate_all();
+
         return true;
 }
 

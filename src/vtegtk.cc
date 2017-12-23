@@ -499,6 +499,9 @@ vte_terminal_get_property (GObject *object,
                 case PROP_SCROLL_ON_OUTPUT:
                         g_value_set_boolean (value, vte_terminal_get_scroll_on_output(terminal));
                         break;
+                case PROP_TEXT_BLINK_MODE:
+                        g_value_set_enum (value, vte_terminal_get_text_blink_mode (terminal));
+                        break;
                 case PROP_WINDOW_TITLE:
                         g_value_set_string (value, vte_terminal_get_window_title (terminal));
                         break;
@@ -596,6 +599,9 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
                         vte_terminal_set_scroll_on_output (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_TEXT_BLINK_MODE:
+                        vte_terminal_set_text_blink_mode (terminal, (VteTextBlinkMode)g_value_get_enum (value));
                         break;
                 case PROP_WORD_CHAR_EXCEPTIONS:
                         vte_terminal_set_word_char_exceptions (terminal, g_value_get_string (value));
@@ -1545,6 +1551,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 g_param_spec_boolean ("scroll-on-output", NULL, NULL,
                                       TRUE,
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:text-blink-mode:
+         *
+         * Controls whether or not the terminal will allow blinking text.
+         *
+         * Since: 0.52
+         */
+        pspecs[PROP_TEXT_BLINK_MODE] =
+                g_param_spec_enum ("text-blink-mode", NULL, NULL,
+                                   VTE_TYPE_TEXT_BLINK_MODE,
+                                   VTE_TEXT_BLINK_ALWAYS,
+                                   (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:window-title:
@@ -2900,6 +2919,42 @@ vte_terminal_set_size(VteTerminal *terminal,
         g_return_if_fail(rows >= 1);
 
         IMPL(terminal)->set_size(columns, rows);
+}
+
+/**
+ * vte_terminal_get_text_blink_mode:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether or not the terminal will allow blinking text.
+ *
+ * Returns: the blinking setting
+ *
+ * Since: 0.52
+ */
+VteTextBlinkMode
+vte_terminal_get_text_blink_mode(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_TEXT_BLINK_ALWAYS);
+        return IMPL(terminal)->m_text_blink_mode;
+}
+
+/**
+ * vte_terminal_set_text_blink_mode:
+ * @terminal: a #VteTerminal
+ * @text_blink_mode: the #VteTextBlinkMode to use
+ *
+ * Controls whether or not the terminal will allow blinking text.
+ *
+ * Since: 0.52
+ */
+void
+vte_terminal_set_text_blink_mode(VteTerminal *terminal,
+                                     VteTextBlinkMode text_blink_mode)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_text_blink_mode(text_blink_mode))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_TEXT_BLINK_MODE]);
 }
 
 /**
