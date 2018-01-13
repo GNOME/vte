@@ -81,10 +81,10 @@ static inline constexpr uint32_t vte_color_triple_get_deco(vte_color_triple_t ct
         return uint32_t((ct >> VTE_COLOR_TRIPLE_DECO_SHIFT) & VTE_COLOR_TRIPLE_RGB_MASK(4, 5, 4));
 }
 
-static inline constexpr void vte_color_triple_get(vte_color_triple_t ct,
-                                                  uint32_t* fore,
-                                                  uint32_t* back,
-                                                  uint32_t* deco)
+static inline void vte_color_triple_get(vte_color_triple_t ct,
+                                        uint32_t* fore,
+                                        uint32_t* back,
+                                        uint32_t* deco)
 {
         *fore = vte_color_triple_get_fore(ct);
         *back = vte_color_triple_get_back(ct);
