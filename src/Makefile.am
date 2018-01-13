@@ -48,6 +48,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	buffer.h \
 	caps.hh \
 	caps-list.hh \
+	color-triple.hh \
 	debug.cc \
 	debug.h \
 	iso2022.cc \

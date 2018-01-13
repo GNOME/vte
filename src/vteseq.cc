@@ -1018,6 +1018,8 @@ VteTerminalPrivate::clear_below_current()
 			_vte_row_data_shrink (rowdata, 0);
 	}
 	/* Now fill the cleared areas. */
+        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+
         for (i = m_screen->cursor.row;
 	     i < m_screen->insert_delta + m_row_count;
 	     i++) {
@@ -1029,7 +1031,7 @@ VteTerminalPrivate::clear_below_current()
 			rowdata = ring_append(false);
 		}
 		/* Pad out the row. */
-                if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+                if (not_default_bg) {
                         _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 		}
 		rowdata->attr.soft_wrapped = 0;
@@ -1066,7 +1068,9 @@ VteTerminalPrivate::clear_to_eol()
 		/* We've modified the display.  Make a note of it. */
 		m_text_deleted_flag = TRUE;
 	}
-        if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+
+        if (not_default_bg) {
 		/* Add enough cells to fill out the row. */
                 _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 	}
@@ -1283,7 +1287,9 @@ VteTerminalPrivate::delete_character()
                         /* Clean up Tab/CJK fragments. */
                         cleanup_fragments(col, col + 1);
 			_vte_row_data_remove (rowdata, col);
-                        if (m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+                        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+
+                        if (not_default_bg) {
                                 _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
                                 len = m_column_count;
 			}
@@ -1804,6 +1810,8 @@ VteTerminalPrivate::seq_vertical_tab(vte::parser::Params const& params)
  * seq_character_attributes() to understand the different accepted formats.
  * Returns the color index, or -1 on error.
  * Increments @index to point to the last consumed parameter (not beyond). */
+
+template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
 int32_t
 VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params,
                                                unsigned int *index,
@@ -1831,7 +1839,8 @@ VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params
 			if (G_UNLIKELY (param1 < 0 || param1 >= 256 || param2 < 0 || param2 >= 256 || param3 < 0 || param3 >= 256))
 				return -1;
 			*index += 3;
-			return VTE_RGB_COLOR | (param1 << 16) | (param2 << 8) | param3;
+
+			return VTE_RGB_COLOR(redbits, greenbits, bluebits, param1, param2, param3);
                 }
                 case 5: {
                         long param1;
@@ -1872,21 +1881,25 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                                 if (subparams.number_at(1, param1) && param1 >= 0 && param1 <= 3)
                                         m_defaults.attr.underline = param1;
                                 break;
-                        case 38:
-                        case 48:
-                        case 58:
-                        {
+                        case 38: {
                                 unsigned int index = 1;
-                                auto color = parse_sgr_38_48_parameters(subparams, &index, true);
-                                if (G_LIKELY (color != -1)) {
-                                        if (param0 == 38) {
-                                                m_defaults.attr.fore = color;
-                                        } else if (param0 == 48) {
-                                                m_defaults.attr.back = color;
-                                        } else {
-                                                m_defaults.attr.deco = color;
-                                        }
-                                }
+                                auto color = parse_sgr_38_48_parameters<8, 8, 8>(subparams, &index, true);
+                                if (G_LIKELY (color != -1))
+                                        m_defaults.attr.set_fore(color);
+                                break;
+                        }
+                        case 48: {
+                                unsigned int index = 1;
+                                auto color = parse_sgr_38_48_parameters<8, 8, 8>(subparams, &index, true);
+                                if (G_LIKELY (color != -1))
+                                        m_defaults.attr.set_back(color);
+                                break;
+                        }
+                        case 58: {
+                                unsigned int index = 1;
+                                auto color = parse_sgr_38_48_parameters<4, 5, 4>(subparams, &index, true);
+                                if (G_LIKELY (color != -1))
+                                        m_defaults.attr.set_deco(color);
                                 break;
                         }
                         }
@@ -1959,7 +1972,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		case 35:
 		case 36:
 		case 37:
-                        m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 30;
+                        m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 30));
 			break;
 		case 38:
 		case 48:
@@ -1978,22 +1991,31 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                          * This branch here is reached when the separators are semicolons. */
 			if ((i + 1) < n_params) {
                                 ++i;
-                                auto color = parse_sgr_38_48_parameters(params, &i, false);
-				if (G_LIKELY (color != -1)) {
-					if (param == 38) {
-                                                m_defaults.attr.fore = color;
-                                        } else if (param == 48) {
-                                                m_defaults.attr.back = color;
-                                        } else {
-                                                m_defaults.attr.deco = color;
-					}
+                                int32_t color;
+                                switch (param) {
+                                case 38:
+                                        color = parse_sgr_38_48_parameters<8 ,8 ,8>(params, &i, false);
+                                        if (G_LIKELY (color != -1))
+                                                m_defaults.attr.set_fore(color);
+                                        break;
+                                case 48:
+                                        color = parse_sgr_38_48_parameters<8, 8, 8>(params, &i, false);
+                                        if (G_LIKELY (color != -1))
+                                                m_defaults.attr.set_back(color);
+                                        break;
+                                case 58:
+                                        color = parse_sgr_38_48_parameters<4, 5, 4>(params, &i, false);
+                                        g_printerr("Parsed semicoloned deco colour: %x\n", color);
+                                        if (G_LIKELY (color != -1))
+                                                m_defaults.attr.set_deco(color);
+                                        break;
 				}
 			}
 			break;
 		}
 		case 39:
 			/* default foreground */
-                        m_defaults.attr.fore = VTE_DEFAULT_FG;
+                        m_defaults.attr.set_fore(VTE_DEFAULT_FG);
 			break;
 		case 40:
 		case 41:
@@ -2003,12 +2025,12 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		case 45:
 		case 46:
 		case 47:
-                        m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 40;
+                        m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 40));
 			break;
 	     /* case 48: was handled above at 38 to avoid code duplication */
 		case 49:
 			/* default background */
-                        m_defaults.attr.back = VTE_DEFAULT_BG;
+                        m_defaults.attr.set_back(VTE_DEFAULT_BG);
 			break;
                 case 53:
                         m_defaults.attr.overline = 1;
@@ -2019,7 +2041,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
              /* case 58: was handled above at 38 to avoid code duplication */
                 case 59:
                         /* default decoration color, that is, same as the cell's foreground */
-                        m_defaults.attr.deco = VTE_DEFAULT_FG;
+                        m_defaults.attr.set_deco(VTE_DEFAULT_FG);
                         break;
 		case 90:
 		case 91:
@@ -2029,7 +2051,8 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		case 95:
 		case 96:
 		case 97:
-                        m_defaults.attr.fore = VTE_LEGACY_COLORS_OFFSET + param - 90 + VTE_COLOR_BRIGHT_OFFSET;
+                        m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 90) +
+                                                 VTE_COLOR_BRIGHT_OFFSET);
 			break;
 		case 100:
 		case 101:
@@ -2039,7 +2062,8 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		case 105:
 		case 106:
 		case 107:
-                        m_defaults.attr.back = VTE_LEGACY_COLORS_OFFSET + param - 100 + VTE_COLOR_BRIGHT_OFFSET;
+                        m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 100) +
+                                                 VTE_COLOR_BRIGHT_OFFSET);
 			break;
 		}
 	}
@@ -2048,12 +2072,8 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                 reset_default_attributes(false);
 	}
 	/* Save the new colors. */
-        m_color_defaults.attr.fore = m_defaults.attr.fore;
-        m_color_defaults.attr.back = m_defaults.attr.back;
-        m_color_defaults.attr.deco = m_defaults.attr.deco;
-        m_fill_defaults.attr.fore = m_defaults.attr.fore;
-        m_fill_defaults.attr.back = m_defaults.attr.back;
-        m_fill_defaults.attr.deco = m_defaults.attr.deco;
+        m_color_defaults.attr.copy_colors(m_defaults.attr);
+        m_fill_defaults.attr.copy_colors(m_defaults.attr);
 }
 
 /* Move the cursor to the given column in the top row, 1-based. */

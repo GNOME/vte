@@ -232,13 +232,15 @@ VteTerminalPrivate::ring_insert(vte::grid::row_t position,
 {
 	VteRowData *row;
 	VteRing *ring = m_screen->row_data;
+        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
 		row = _vte_ring_append (ring);
-                if (m_fill_defaults.attr.back != VTE_DEFAULT_BG)
+                if (not_default_bg)
                         _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
 	}
 	row = _vte_ring_insert (ring, position);
-        if (fill && m_fill_defaults.attr.back != VTE_DEFAULT_BG)
+        if (fill && not_default_bg)
                 _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
 	return row;
 }
@@ -2862,7 +2864,9 @@ VteTerminalPrivate::cursor_down(bool explicit_sequence)
                  * only fill the new row with the background color if scrolling
                  * happens due to an explicit escape sequence, not due to autowrapping.
                  * See bug 754596 for details. */
-                if (explicit_sequence && m_fill_defaults.attr.back != VTE_DEFAULT_BG) {
+                bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+
+                if (explicit_sequence && not_default_bg) {
 			VteRowData *rowdata = ensure_row();
                         _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
 		}
@@ -3013,10 +3017,9 @@ VteTerminalPrivate::insert_char(gunichar c,
 	}
 
 	_vte_debug_print(VTE_DEBUG_PARSE,
-			"Inserting %ld '%c' (%d/%d) (%ld+%d, %ld), delta = %ld; ",
+			"Inserting %ld '%c' (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
 			(long)c, c < 256 ? c : ' ',
-                         (int)m_color_defaults.attr.fore,
-                         (int)m_color_defaults.attr.back,
+                         m_color_defaults.attr.colors(),
                         col, columns, (long)m_screen->cursor.row,
 			(long)m_screen->insert_delta);
 
@@ -3103,9 +3106,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 	}
 
         attr = m_defaults.attr;
-        attr.fore = m_color_defaults.attr.fore;
-        attr.back = m_color_defaults.attr.back;
-        attr.deco = m_color_defaults.attr.deco;
+        attr.copy_colors(m_color_defaults.attr);
 	attr.columns = columns;
 
 	{
@@ -5954,12 +5955,15 @@ VteTerminalPrivate::widget_clipboard_requested(GtkClipboard *target_clipboard,
 }
 
 /* Convert the internal color code (either index or RGB) into RGB. */
+template <unsigned int redbits,
+          unsigned int greenbits,
+          unsigned int bluebits>
 void
 VteTerminalPrivate::rgb_from_index(guint index,
                                    vte::color::rgb& color) const
 {
         bool dim = false;
-        if (!(index & VTE_RGB_COLOR) && (index & VTE_DIM_COLOR)) {
+        if (!(index & VTE_RGB_COLOR_MASK(redbits, greenbits, bluebits)) && (index & VTE_DIM_COLOR)) {
                 index &= ~VTE_DIM_COLOR;
                 dim = true;
         }
@@ -5974,10 +5978,10 @@ VteTerminalPrivate::rgb_from_index(guint index,
                         color.green = color.green * 2 / 3;
                         color.blue = color.blue * 2 / 3;
                 }
-	} else if (index & VTE_RGB_COLOR) {
-		color.red = ((index >> 16) & 0xFF) * 257;
-		color.green = ((index >> 8) & 0xFF) * 257;
-		color.blue = (index & 0xFF) * 257;
+	} else if (index & VTE_RGB_COLOR_MASK(redbits, greenbits, bluebits)) {
+                color.red   = VTE_RGB_COLOR_GET_COMPONENT(index, greenbits + bluebits, redbits) * 0x101U;
+                color.green = VTE_RGB_COLOR_GET_COMPONENT(index, bluebits, greenbits) * 0x101U;
+                color.blue  = VTE_RGB_COLOR_GET_COMPONENT(index, 0, bluebits) * 0x101U;
 	} else {
 		g_assert_not_reached();
 	}
@@ -6033,8 +6037,11 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 				 * the selection. */
 				if (!pcell->attr.fragment) {
 					/* Store the attributes of this character. */
-					rgb_from_index(pcell->attr.fore, fore);
-					rgb_from_index(pcell->attr.back, back);
+                                        // FIXMEchpe shouldn't this use determine_colors?
+                                        uint32_t fg, bg, dc;
+                                        vte_color_triple_get(pcell->attr.colors(), &fg, &bg, &dc);
+                                        rgb_from_index<8, 8, 8>(fg, fore);
+                                        rgb_from_index<8, 8, 8>(bg, back);
 					attr.fore.red = fore.red;
 					attr.fore.green = fore.green;
 					attr.fore.blue = fore.blue;
@@ -6169,14 +6176,12 @@ VteTerminalPrivate::get_selected_text(GArray *attributes)
  */
 // FIXMEchpe: make VteCellAttr a class with operator==
 static bool
-vte_terminal_cellattr_equal(VteCellAttr const *attr1,
+vte_terminal_cellattr_equal(VteCellAttr const* attr1,
                             VteCellAttr const* attr2)
 {
 	return (attr1->bold          == attr2->bold      &&
 	        attr1->italic        == attr2->italic    &&
-	        attr1->fore          == attr2->fore      &&
-	        attr1->back          == attr2->back      &&
-                attr1->deco          == attr2->deco      &&
+                attr1->colors()      == attr2->colors()  &&
 	        attr1->underline     == attr2->underline &&
 	        attr1->strikethrough == attr2->strikethrough &&
                 attr1->overline      == attr2->overline  &&
@@ -6215,10 +6220,10 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
                 static const char styles[][7] = {"", "single", "double", "wavy"};
                 char *tag, *colorattr;
 
-                if (attr->deco != VTE_DEFAULT_FG) {
+                if (deco != VTE_DEFAULT_FG) {
                         vte::color::rgb color;
 
-                        rgb_from_index(attr->deco, color);
+                        rgb_from_index<4, 5, 4>(deco, color);
                         colorattr = g_strdup_printf(";text-decoration-color:#%02X%02X%02X",
                                                     color.red >> 8,
                                                     color.green >> 8,
@@ -6235,11 +6240,11 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
                 g_free(colorattr);
                 g_string_append(string, "</u>");
         }
-	if (attr->fore != VTE_DEFAULT_FG || attr->reverse) {
+	if (fore != VTE_DEFAULT_FG || attr->reverse) {
 		vte::color::rgb color;
                 char *tag;
 
-                rgb_from_index(attr->fore, color);
+                rgb_from_index<8, 8, 8>(fore, color);
 		tag = g_strdup_printf("<font color=\"#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
@@ -6248,11 +6253,11 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		g_free(tag);
 		g_string_append(string, "</font>");
 	}
-	if (attr->back != VTE_DEFAULT_BG || attr->reverse) {
+	if (back != VTE_DEFAULT_BG || attr->reverse) {
 		vte::color::rgb color;
                 char *tag;
 
-                rgb_from_index(attr->back, color);
+                rgb_from_index<8, 8, 8>(back, color);
 		tag = g_strdup_printf("<span style=\"background-color:#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
@@ -8862,9 +8867,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
         g_assert(attr);
 
 	/* Start with cell colors */
-	fore = attr->fore;
-	back = attr->back;
-        deco = attr->deco;
+        vte_color_triple_get(attr->colors(), &fore, &back, &deco);
 
 	/* Reverse-mode switches default fore and back colors */
         if (G_UNLIKELY (m_reverse_mode)) {
@@ -8886,7 +8889,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
         /* Handle dim colors.  Only apply to palette colors, dimming direct RGB wouldn't make sense.
          * Apply to the foreground color only, but do this before handling reverse/highlight so that
          * those can be used to dim the background instead. */
-        if (attr->dim && !(fore & VTE_RGB_COLOR)) {
+        if (attr->dim && !(fore & VTE_RGB_COLOR_MASK(8, 8, 8))) {
 	        fore |= VTE_DIM_COLOR;
         }
 
@@ -8932,7 +8935,8 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
          * Instead, draw_cells() is not called from draw_rows().
          * That is required for the foreground to be transparent if so is the background. */
 	if (attr->invisible) {
-                fore = deco = back;
+                fore = back;
+                deco = VTE_DEFAULT_FG;
 	}
 
 	*pfore = fore;
@@ -8976,9 +8980,9 @@ invalidate_text_blink_cb(VteTerminalPrivate *that)
 void
 VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                gssize n,
-                               guint fore,
-                               guint back,
-                               guint deco,
+                               uint32_t fore,
+                               uint32_t back,
+                               uint32_t deco,
                                bool clear,
                                bool draw_default_bg,
                                bool bold,
@@ -9015,9 +9019,13 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 	}
 
 	bold = bold && m_allow_bold;
-	rgb_from_index(fore, fg);
-	rgb_from_index(back, bg);
-        rgb_from_index(deco == VTE_DEFAULT_FG ? fore : deco, dc);
+        rgb_from_index<8, 8, 8>(fore, fg);
+        rgb_from_index<8, 8, 8>(back, bg);
+        // FIXMEchpe defer resolving deco color until we actually need to draw an underline?
+        if (deco == VTE_DEFAULT_FG)
+                dc = fg;
+        else
+                rgb_from_index<4, 5, 4>(deco, dc);
 
 	i = 0;
 	do {
@@ -9221,8 +9229,7 @@ VteTerminalPrivate::fudge_pango_colors(GSList *attributes,
 				(props[i].bg.red == 0) &&
 				(props[i].bg.green == 0) &&
 				(props[i].bg.blue == 0)) {
-                        cells[i].attr.fore = m_color_defaults.attr.fore;
-                        cells[i].attr.back = m_color_defaults.attr.back;
+                        cells[i].attr.copy_colors(m_color_defaults.attr);
 			cells[i].attr.reverse = TRUE;
 		}
 	}
@@ -9242,18 +9249,18 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 	case PANGO_ATTR_FOREGROUND:
 	case PANGO_ATTR_BACKGROUND:
 		attrcolor = (PangoAttrColor*) attr;
-		ival = VTE_RGB_COLOR |
-		       ((attrcolor->color.red & 0xFF00) << 8) |
-		       ((attrcolor->color.green & 0xFF00)) |
-		       ((attrcolor->color.blue & 0xFF00) >> 8);
+                ival = VTE_RGB_COLOR(8, 8, 8,
+                                     ((attrcolor->color.red & 0xFF00) >> 8),
+                                     ((attrcolor->color.green & 0xFF00) >> 8),
+                                     ((attrcolor->color.blue & 0xFF00) >> 8));
 		for (i = attr->start_index;
 		     i < attr->end_index && i < n_cells;
 		     i++) {
 			if (attr->klass->type == PANGO_ATTR_FOREGROUND) {
-				cells[i].attr.fore = ival;
+                                cells[i].attr.set_fore(ival);
 			}
 			if (attr->klass->type == PANGO_ATTR_BACKGROUND) {
-				cells[i].attr.back = ival;
+                                cells[i].attr.set_back(ival);
 			}
 		}
 		break;
@@ -9465,7 +9472,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					vte::color::rgb bg;
 					gint bold_offset = _vte_draw_has_bold(m_draw,
 											VTE_DRAW_BOLD) ? 0 : bold;
-					rgb_from_index(back, bg);
+                                        rgb_from_index<8, 8, 8>(back, bg);
 					_vte_draw_fill_rectangle (
 							m_draw,
 							x + i * column_width,
@@ -9492,7 +9499,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                                 determine_colors(nullptr, selected, &fore, &back, &deco);
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
-					rgb_from_index(back, bg);
+                                        rgb_from_index<8, 8, 8>(back, bg);
 					_vte_draw_fill_rectangle (m_draw,
 								  x + i *column_width,
 								  y,
@@ -9847,7 +9854,7 @@ VteTerminalPrivate::paint_cursor()
 
 	selected = cell_is_selected(col, drow);
         determine_cursor_colors(cell, selected, &fore, &back, &deco);
-	rgb_from_index(back, bg);
+        rgb_from_index<8, 8, 8>(back, bg);
 
 	x = item.x;
 	y = item.y;
@@ -9959,7 +9966,6 @@ VteTerminalPrivate::paint_im_preedit_string()
 	int col, columns;
 	long width, height;
 	int i, len;
-        guint fore, back, deco;
 
 	if (!m_im_preedit)
 		return;
@@ -10002,20 +10008,21 @@ VteTerminalPrivate::paint_im_preedit_string()
 				height,
                                 m_background_operator,
                                 get_color(VTE_DEFAULT_BG), m_background_alpha);
-                fore = m_color_defaults.attr.fore;
-                back = m_color_defaults.attr.back;
-                deco = m_color_defaults.attr.deco;
 		draw_cells_with_attributes(
 							items, len,
 							m_im_preedit_attrs,
 							TRUE,
 							width, height);
 		preedit_cursor = m_im_preedit_cursor;
+
 		if (preedit_cursor >= 0 && preedit_cursor < len) {
+                        uint32_t fore, back, deco;
+                        vte_color_triple_get(m_color_defaults.attr.colors(), &fore, &back, &deco);
+
 			/* Cursored letter in reverse. */
 			draw_cells(
 						&items[preedit_cursor], 1,
-                                                back, fore, deco,
+                                                fore, back, deco,
                                                 TRUE,  /* clear */
                                                 TRUE,  /* draw_default_bg */
                                                 FALSE, /* bold */

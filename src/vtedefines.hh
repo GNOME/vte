@@ -24,7 +24,7 @@
 #define VTE_COLUMNS			80
 
 /*
- * Colors are encoded in 25 bits as follows:
+ * R8G8B8 colors are encoded in 25 bits as follows:
  *
  * 0 .. 255:
  *   Colors set by SGR 256-color extension (38/48;5;index).
@@ -45,14 +45,25 @@
  * VTE_RGB_COLOR (2^24) .. VTE_RGB_COLOR + 16Mi - 1 (2^25 - 1):
  *   Colors set by SGR truecolor extension (38/48;2;red;green;blue)
  *   These are direct RGB values.
+ *
+ * R4G5B4-bit-per-component colours are encoded the same, except for
+ * direct colours which are reduced to 13-bit colours and stored as
+ * direct values with bit 1 << 13 set.
  */
-#define VTE_LEGACY_COLORS_OFFSET	512
+
+#define VTE_LEGACY_COLORS_OFFSET	(1U << 9)
 #define VTE_LEGACY_COLOR_SET_SIZE	8
 #define VTE_LEGACY_FULL_COLOR_SET_SIZE	16
 #define VTE_COLOR_PLAIN_OFFSET		0
 #define VTE_COLOR_BRIGHT_OFFSET		8
-#define VTE_DIM_COLOR			(1 << 10)
-#define VTE_RGB_COLOR			(1 << 24)
+#define VTE_DIM_COLOR                   (1U << 10)
+#define VTE_RGB_COLOR_MASK(rb,gb,bb)    (1U << ((rb) + (gb) + (bb)))
+#define VTE_RGB_COLOR(bb,gb,rb,r,g,b)   (VTE_RGB_COLOR_MASK(rb,gb,bb) |   \
+                                         ((((r) >> (8 - (rb))) & ((1U << (rb)) -  1U)) << ((gb) + (bb))) | \
+                                         ((((g) >> (8 - (gb))) & ((1U << (gb)) -  1U)) << (bb)) | \
+                                         (((b) >> (8 - (bb))) & ((1U << (bb)) -  1U)))
+#define VTE_RGB_COLOR_GET_COMPONENT(packed,shift,bits) \
+        ((((packed) >> (shift)) & ((1U << (bits)) - 1U)) << (8 - bits) | ((1U << (8 - bits)) >> 1))
 
 #define VTE_DEFAULT_FG			256
 #define VTE_DEFAULT_BG			257

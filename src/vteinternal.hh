@@ -843,9 +843,9 @@ public:
         void paint_im_preedit_string();
         void draw_cells(struct _vte_draw_text_request *items,
                         gssize n,
-                        guint fore,
-                        guint back,
-                        guint deco,
+                        uint32_t fore,
+                        uint32_t back,
+                        uint32_t deco,
                         bool clear,
                         bool draw_default_bg,
                         bool bold,
@@ -993,6 +993,7 @@ public:
 
         GString* get_selected_text(GArray* attributes = nullptr);
 
+        template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
         inline void rgb_from_index(guint index,
                                    vte::color::rgb& color) const;
         inline void determine_colors(VteCellAttr const* attr,
@@ -1332,9 +1333,12 @@ public:
         inline void move_cursor_down(vte::grid::row_t rows);
         inline void erase_characters(long count);
         inline void insert_blank_character();
+
+        template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
         inline int32_t parse_sgr_38_48_parameters(vte::parser::Params const& params,
                                                   unsigned int *index,
                                                   bool might_contain_color_space_id);
+
         inline void move_cursor_backward(vte::grid::column_t columns);
         inline void move_cursor_forward(vte::grid::column_t columns);
         inline void move_cursor_tab();
