@@ -104,9 +104,9 @@
 #define VTE_ATTR_NONE                  (0U)
 #define VTE_ATTR_DEFAULT               (VTE_ATTR_COLUMNS(1))
 
-static constexpr inline void vte_attr_set_bool(uint32_t* attr,
-                                               uint32_t mask,
-                                               bool value)
+static inline void vte_attr_set_bool(uint32_t* attr,
+                                     uint32_t mask,
+                                     bool value)
 {
         if (value)
                 *attr |= mask;
@@ -114,10 +114,10 @@ static constexpr inline void vte_attr_set_bool(uint32_t* attr,
                 *attr &= ~mask;
 }
 
-static constexpr inline void vte_attr_set_value(uint32_t* attr,
-                                                uint32_t mask,
-                                                unsigned int shift,
-                                                uint32_t value)
+static inline void vte_attr_set_value(uint32_t* attr,
+                                      uint32_t mask,
+                                      unsigned int shift,
+                                      uint32_t value)
 {
         g_assert_cmpuint(value << shift, <=, mask); /* assurance */
         *attr = (*attr & ~mask) | ((value << shift) & mask /* assurance */);

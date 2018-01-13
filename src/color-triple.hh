@@ -48,20 +48,20 @@ static constexpr inline vte_color_triple_t vte_color_triple_copy(vte_color_tripl
         return ct;
 }
 
-static inline constexpr void vte_color_triple_set_fore(vte_color_triple_t* ct,
-                                                       uint32_t fore)
+static inline void vte_color_triple_set_fore(vte_color_triple_t* ct,
+                                             uint32_t fore)
 {
         *ct = (*ct & ~VTE_COLOR_TRIPLE_FORE_MASK) | (uint64_t(fore)) << VTE_COLOR_TRIPLE_FORE_SHIFT;
 }
 
-static inline constexpr void vte_color_triple_set_back(vte_color_triple_t* ct,
-                                                       uint32_t back)
+static inline void vte_color_triple_set_back(vte_color_triple_t* ct,
+                                             uint32_t back)
 {
         *ct = (*ct & ~VTE_COLOR_TRIPLE_BACK_MASK) | (uint64_t(back)) << VTE_COLOR_TRIPLE_BACK_SHIFT;
 }
 
-static inline constexpr void vte_color_triple_set_deco(vte_color_triple_t* ct,
-                                                       uint32_t deco)
+static inline void vte_color_triple_set_deco(vte_color_triple_t* ct,
+                                             uint32_t deco)
 {
         *ct = (*ct & ~VTE_COLOR_TRIPLE_DECO_MASK) | (uint64_t(deco)) << VTE_COLOR_TRIPLE_DECO_SHIFT;
 }

@@ -45,7 +45,7 @@ G_BEGIN_DECLS
  */
 
 #define CELL_ATTR_BOOL(lname,uname) \
-        inline constexpr void set_##lname(bool value) \
+        inline void set_##lname(bool value) \
         { \
                 vte_attr_set_bool(&attr, VTE_ATTR_##uname##_MASK, value); \
         } \
@@ -56,7 +56,7 @@ G_BEGIN_DECLS
         }
 
 #define CELL_ATTR_UINT(lname,uname) \
-        inline constexpr void set_##lname(unsigned int value) \
+        inline void set_##lname(unsigned int value) \
         { \
                 vte_attr_set_value(&attr, VTE_ATTR_##uname##_MASK, VTE_ATTR_##uname##_SHIFT, value); \
         } \
@@ -85,13 +85,13 @@ typedef struct _VTE_GNUC_PACKED VteCellAttr {
 
         inline constexpr uint64_t colors() const { return m_colors; }
 
-        inline constexpr void copy_colors(VteCellAttr const& other)
+        inline void copy_colors(VteCellAttr const& other)
         {
                 m_colors = vte_color_triple_copy(other.colors());
         }
 
 #define CELL_ATTR_COLOR(name) \
-        inline constexpr void set_##name(uint32_t value) \
+        inline void set_##name(uint32_t value) \
         { \
                 vte_color_triple_set_##name(&m_colors, value); \
         } \
@@ -121,7 +121,7 @@ typedef struct _VTE_GNUC_PACKED VteCellAttr {
                 return !(attr & mask);
         }
 
-        inline constexpr void unset(uint32_t mask)
+        inline void unset(uint32_t mask)
         {
                 attr &= ~mask;
         }
