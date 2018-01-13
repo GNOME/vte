@@ -9259,6 +9259,20 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 			}
 		}
 		break;
+	case PANGO_ATTR_UNDERLINE_COLOR:
+		attrcolor = (PangoAttrColor*) attr;
+                ival = VTE_RGB_COLOR(4, 5, 4,
+                                     ((attrcolor->color.red & 0xFF00) >> 8),
+                                     ((attrcolor->color.green & 0xFF00) >> 8),
+                                     ((attrcolor->color.blue & 0xFF00) >> 8));
+		for (i = attr->start_index;
+		     i < attr->end_index && i < n_cells;
+		     i++) {
+			if (attr->klass->type == PANGO_ATTR_UNDERLINE) {
+                                cells[i].attr.set_deco(ival);
+			}
+		}
+		break;
 	case PANGO_ATTR_STRIKETHROUGH:
 		attrint = (PangoAttrInt*) attr;
 		ival = attrint->value;
@@ -9274,7 +9288,23 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 		for (i = attr->start_index;
 		     (i < attr->end_index) && (i < n_cells);
 		     i++) {
-			cells[i].attr.set_underline(ival == PANGO_UNDERLINE_SINGLE ? 1 : 0);
+                        unsigned int underline = 0;
+                        switch (ival) {
+                        case PANGO_UNDERLINE_SINGLE:
+                                underline = 1;
+                                break;
+                        case PANGO_UNDERLINE_DOUBLE:
+                                underline = 2;
+                                break;
+                        case PANGO_UNDERLINE_ERROR:
+                                underline = 3; /* wavy */
+                                break;
+                        case PANGO_UNDERLINE_NONE:
+                        case PANGO_UNDERLINE_LOW: /* FIXME */
+                                underline = 0;
+                                break;
+                        }
+			cells[i].attr.set_underline(underline);
 		}
 		break;
 	case PANGO_ATTR_WEIGHT:
@@ -9284,6 +9314,15 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 		     (i < attr->end_index) && (i < n_cells);
 		     i++) {
 			cells[i].attr.set_bold(ival >= PANGO_WEIGHT_BOLD);
+		}
+		break;
+	case PANGO_ATTR_STYLE:
+		attrint = (PangoAttrInt*) attr;
+		ival = attrint->value;
+		for (i = attr->start_index;
+		     (i < attr->end_index) && (i < n_cells);
+		     i++) {
+			cells[i].attr.set_italic(ival != PANGO_STYLE_NORMAL);
 		}
 		break;
 	default:
