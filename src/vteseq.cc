@@ -2050,8 +2050,10 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 	/* Save the new colors. */
         m_color_defaults.attr.fore = m_defaults.attr.fore;
         m_color_defaults.attr.back = m_defaults.attr.back;
+        m_color_defaults.attr.deco = m_defaults.attr.deco;
         m_fill_defaults.attr.fore = m_defaults.attr.fore;
         m_fill_defaults.attr.back = m_defaults.attr.back;
+        m_fill_defaults.attr.deco = m_defaults.attr.deco;
 }
 
 /* Move the cursor to the given column in the top row, 1-based. */

@@ -3105,6 +3105,7 @@ VteTerminalPrivate::insert_char(gunichar c,
         attr = m_defaults.attr;
         attr.fore = m_color_defaults.attr.fore;
         attr.back = m_color_defaults.attr.back;
+        attr.deco = m_color_defaults.attr.deco;
 	attr.columns = columns;
 
 	{
