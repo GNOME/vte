@@ -362,7 +362,7 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 		 * the text in real UTF-8.
 		 */
 		attr = cell->attr;
-		if (G_LIKELY (!attr.fragment)) {
+		if (G_LIKELY (!attr.fragment())) {
 			VteCellAttrChange attr_change;
                         guint16 hyperlink_length;
 
@@ -389,7 +389,7 @@ _vte_ring_freeze_row (VteRing *ring, gulong position, const VteRowData *row)
 			num_chars = _vte_unistr_strlen (cell->c);
 			if (num_chars > 1) {
                                 /* Combining chars */
-				attr.columns = 0;
+				attr.set_columns(0);
 				ring->last_attr_text_start_offset = record.text_start_offset + buffer->len
 								  + g_unichar_to_utf8 (_vte_unistr_get_base (cell->c), NULL);
 				memset(&attr_change, 0, sizeof (attr_change));
@@ -514,7 +514,7 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
                 _VTE_DEBUG_IF(VTE_DEBUG_RING | VTE_DEBUG_HYPERLINK) {
                         /* Debug: Reverse the colors for the stream's contents. */
                         if (!do_truncate) {
-                                cell.attr.reverse = !cell.attr.reverse;
+                                cell.attr.attr ^= VTE_ATTR_REVERSE;
                         }
                 }
 		cell.c = g_utf8_get_char (p);
@@ -523,12 +523,12 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
 		record.text_start_offset += q - p;
 		p = q;
 
-		if (G_UNLIKELY (cell.attr.columns == 0)) {
+		if (G_UNLIKELY (cell.attr.columns() == 0)) {
 			if (G_LIKELY (row->len)) {
 				/* Combine it */
 				row->cells[row->len - 1].c = _vte_unistr_append_unichar (row->cells[row->len - 1].c, cell.c);
 			} else {
-				cell.attr.columns = 1;
+				cell.attr.set_columns(1);
                                 if (row->len == hyperlink_column && hyperlink != NULL)
                                         *hyperlink = strcpy(ring->hyperlink_buf, hyperlink_readbuf);
 				_vte_row_data_append (row, &cell);
@@ -537,11 +537,11 @@ _vte_ring_thaw_row (VteRing *ring, gulong position, VteRowData *row, gboolean do
                         if (row->len == hyperlink_column && hyperlink != NULL)
                                 *hyperlink = strcpy(ring->hyperlink_buf, hyperlink_readbuf);
 			_vte_row_data_append (row, &cell);
-			if (cell.attr.columns > 1) {
+			if (cell.attr.columns() > 1) {
 				/* Add the fragments */
-				int i, columns = cell.attr.columns;
-				cell.attr.fragment = 1;
-				cell.attr.columns = 1;
+				int i, columns = cell.attr.columns();
+				cell.attr.set_fragment(true);
+				cell.attr.set_columns(1);
                                 for (i = 1; i < columns; i++) {
                                         if (row->len == hyperlink_column && hyperlink != NULL)
                                                 *hyperlink = strcpy(ring->hyperlink_buf, hyperlink_readbuf);
@@ -1043,8 +1043,8 @@ _vte_frozen_row_column_to_text_offset (VteRing *ring,
 	offset->eol_cells = -1;
 	num_chars = 0;
 	for (i = 0, cell = row->cells; i < row->len && i < column; i++, cell++) {
-		if (G_LIKELY (!cell->attr.fragment)) {
-			if (G_UNLIKELY (i + cell->attr.columns > column)) {
+		if (G_LIKELY (!cell->attr.fragment())) {
+			if (G_UNLIKELY (i + cell->attr.columns() > column)) {
 				offset->fragment_cells = column - i;
 				break;
 			}
@@ -1125,7 +1125,7 @@ _vte_frozen_row_text_offset_to_column (VteRing *ring,
 
 	/* count the number of columns for the given number of characters */
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
-		if (G_LIKELY (!cell->attr.fragment)) {
+		if (G_LIKELY (!cell->attr.fragment())) {
 			if (num_chars == 0) break;
 			nc = _vte_unistr_strlen(cell->c);
 			if (nc > num_chars) break;
@@ -1280,13 +1280,13 @@ _vte_ring_rewrap (VteRing *ring,
 			}
 			runlength = MIN(paragraph_len, attr_change.text_end_offset - text_offset);
 
-			if (G_UNLIKELY (attr_change.attr.columns == 0)) {
+			if (G_UNLIKELY (attr_change.attr.columns() == 0)) {
 				/* Combining characters all fit in the current row */
 				text_offset += runlength;
 				paragraph_len -= runlength;
 			} else {
 				while (runlength) {
-					if (col >= columns - attr_change.attr.columns + 1) {
+					if (col >= columns - attr_change.attr.columns() + 1) {
 						/* Wrap now, write the soft wrapped row's record */
 						new_record.soft_wrapped = 1;
 						_vte_stream_append(new_row_stream, (const char *) &new_record, sizeof (new_record));
@@ -1319,7 +1319,7 @@ _vte_ring_rewrap (VteRing *ring,
 						/* Process one character only. */
 						char textbuf[6];  /* fits at least one UTF-8 character */
 						int textbuf_len;
-						col += attr_change.attr.columns;
+						col += attr_change.attr.columns();
 						/* Find beginning of next UTF-8 character */
 						text_offset++; paragraph_len--; runlength--;
 						textbuf_len = MIN(runlength, sizeof (textbuf));
@@ -1414,7 +1414,7 @@ _vte_ring_write_row (VteRing *ring,
 	 * TODO Should unify one day */
 	g_string_set_size (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
-		if (G_LIKELY (!cell->attr.fragment))
+		if (G_LIKELY (!cell->attr.fragment()))
 			_vte_unistr_append_to_string (cell->c, buffer);
 	}
 	if (!row->attr.soft_wrapped)

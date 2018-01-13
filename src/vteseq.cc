@@ -1724,7 +1724,7 @@ VteTerminalPrivate::move_cursor_tab()
 			glong i;
 			VteCell *cell = _vte_row_data_get_writable (rowdata, col);
 			VteCell tab = *cell;
-			tab.attr.columns = newcol - col;
+			tab.attr.set_columns(newcol - col);
 			tab.c = '\t';
 			/* Save tab char */
 			*cell = tab;
@@ -1732,8 +1732,8 @@ VteTerminalPrivate::move_cursor_tab()
 			for (i = col + 1; i < newcol; i++) {
 				cell = _vte_row_data_get_writable (rowdata, i);
 				cell->c = '\t';
-				cell->attr.columns = 1;
-				cell->attr.fragment = 1;
+				cell->attr.set_columns(1);
+				cell->attr.set_fragment(true);
 			}
 		}
 
@@ -1879,7 +1879,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                         switch (param0) {
                         case 4:
                                 if (subparams.number_at(1, param1) && param1 >= 0 && param1 <= 3)
-                                        m_defaults.attr.underline = param1;
+                                        m_defaults.attr.set_underline(param1);
                                 break;
                         case 38: {
                                 unsigned int index = 1;
@@ -1916,53 +1916,52 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                         reset_default_attributes(false);
 			break;
 		case 1:
-                        m_defaults.attr.bold = 1;
+                        m_defaults.attr.set_bold(true);
 			break;
 		case 2:
-                        m_defaults.attr.dim = 1;
+                        m_defaults.attr.set_dim(true);
 			break;
 		case 3:
-                        m_defaults.attr.italic = 1;
+                        m_defaults.attr.set_italic(true);
 			break;
 		case 4:
-                        m_defaults.attr.underline = 1;
+                        m_defaults.attr.set_underline(1);
 			break;
 		case 5:
-                        m_defaults.attr.blink = 1;
+                        m_defaults.attr.set_blink(true);
 			break;
 		case 7:
-                        m_defaults.attr.reverse = 1;
+                        m_defaults.attr.set_reverse(true);
 			break;
 		case 8:
-                        m_defaults.attr.invisible = 1;
+                        m_defaults.attr.set_invisible(true);
 			break;
 		case 9:
-                        m_defaults.attr.strikethrough = 1;
+                        m_defaults.attr.set_strikethrough(true);
 			break;
                 case 21:
-                        m_defaults.attr.underline = 2;
+                        m_defaults.attr.set_underline(2);
                         break;
 		case 22: /* ECMA 48. */
-                        m_defaults.attr.bold = 0;
-                        m_defaults.attr.dim = 0;
+                        m_defaults.attr.unset(VTE_ATTR_BOLD_MASK | VTE_ATTR_DIM_MASK);
 			break;
 		case 23:
-                        m_defaults.attr.italic = 0;
+                        m_defaults.attr.set_italic(false);
 			break;
 		case 24:
-                        m_defaults.attr.underline = 0;
+                        m_defaults.attr.set_underline(0);
 			break;
 		case 25:
-                        m_defaults.attr.blink = 0;
+                        m_defaults.attr.set_blink(false);
 			break;
 		case 27:
-                        m_defaults.attr.reverse = 0;
+                        m_defaults.attr.set_reverse(false);
 			break;
 		case 28:
-                        m_defaults.attr.invisible = 0;
+                        m_defaults.attr.set_invisible(false);
 			break;
 		case 29:
-                        m_defaults.attr.strikethrough = 0;
+                        m_defaults.attr.set_strikethrough(false);
 			break;
 		case 30:
 		case 31:
@@ -2033,10 +2032,10 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
                         m_defaults.attr.set_back(VTE_DEFAULT_BG);
 			break;
                 case 53:
-                        m_defaults.attr.overline = 1;
+                        m_defaults.attr.set_overline(true);
                         break;
                 case 55:
-                        m_defaults.attr.overline = 0;
+                        m_defaults.attr.set_overline(false);
                         break;
              /* case 58: was handled above at 38 to avoid code duplication */
                 case 59:
@@ -2682,7 +2681,7 @@ VteTerminalPrivate::seq_screen_alignment_test(vte::parser::Params const& params)
                 VteCell cell;
 		cell.c = 'E';
 		cell.attr = basic_cell.attr;
-		cell.attr.columns = 1;
+		cell.attr.set_columns(1);
                 _vte_row_data_fill(rowdata, &cell, m_column_count);
                 emit_text_inserted();
 	}

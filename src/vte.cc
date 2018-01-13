@@ -534,7 +534,7 @@ VteTerminalPrivate::find_start_column(vte::grid::column_t col,
 		return col;
 	if (row_data != nullptr) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
-		while (col > 0 && cell != NULL && cell->attr.fragment) {
+		while (col > 0 && cell != NULL && cell->attr.fragment()) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
 	}
@@ -552,11 +552,11 @@ VteTerminalPrivate::find_end_column(vte::grid::column_t col,
 		return col;
 	if (row_data != NULL) {
 		const VteCell *cell = _vte_row_data_get (row_data, col);
-		while (col > 0 && cell != NULL && cell->attr.fragment) {
+		while (col > 0 && cell != NULL && cell->attr.fragment()) {
 			cell = _vte_row_data_get (row_data, --col);
 		}
 		if (cell) {
-			columns = cell->attr.columns - 1;
+			columns = cell->attr.columns() - 1;
 		}
 	}
         // FIXMEchp m__column_count - 1 ?
@@ -632,11 +632,11 @@ VteTerminalPrivate::invalidate_cell(vte::grid::column_t col,
 		const VteCell *cell;
 		cell = _vte_row_data_get (row_data, col);
 		if (cell != NULL) {
-			while (cell->attr.fragment && col> 0) {
+			while (cell->attr.fragment() && col> 0) {
 				cell = _vte_row_data_get (row_data, --col);
 			}
-			columns = cell->attr.columns;
-			style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
+			columns = cell->attr.columns();
+			style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
                         if (cell->c != 0) {
                                 int right;
                                 _vte_draw_get_char_edges(m_draw, cell->c, columns, style, NULL, &right);
@@ -677,8 +677,8 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 
 		auto cell = find_charcell(column, row);
 		if (cell != NULL) {
-			columns = cell->attr.columns;
-			auto style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
+			columns = cell->attr.columns();
+			auto style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
                         if (cell->c != 0) {
                                 int right;
                                 _vte_draw_get_char_edges(m_draw, cell->c, columns, style, NULL, &right);
@@ -2741,35 +2741,35 @@ VteTerminalPrivate::cleanup_fragments(long start,
          * handling the left hand side, but handling the right hand side first might
          * overwrite it if start == end (inserting to the middle of a character). */
         cell_start = _vte_row_data_get (row, start);
-        cell_start_is_fragment = cell_start != NULL && cell_start->attr.fragment;
+        cell_start_is_fragment = cell_start != NULL && cell_start->attr.fragment();
 
         /* On the right hand side, try to replace a TAB by a shorter TAB if we can.
          * This requires that the TAB on the left (which might be the same TAB) is
          * not yet converted to spaces, so start on the right hand side. */
         cell_end = _vte_row_data_get_writable (row, end);
-        if (G_UNLIKELY (cell_end != NULL && cell_end->attr.fragment)) {
+        if (G_UNLIKELY (cell_end != NULL && cell_end->attr.fragment())) {
                 col = end;
                 do {
                         col--;
                         g_assert(col >= 0);  /* The first cell can't be a fragment. */
                         cell_col = _vte_row_data_get_writable (row, col);
-                } while (cell_col->attr.fragment);
+                } while (cell_col->attr.fragment());
                 if (cell_col->c == '\t') {
                         _vte_debug_print(VTE_DEBUG_MISC,
                                          "Replacing right part of TAB with a shorter one at %ld (%ld cells) => %ld (%ld cells)\n",
-                                         col, (long) cell_col->attr.columns, end, (long) cell_col->attr.columns - (end - col));
+                                         col, (long) cell_col->attr.columns(), end, (long) cell_col->attr.columns() - (end - col));
                         cell_end->c = '\t';
-                        cell_end->attr.fragment = 0;
-                        g_assert(cell_col->attr.columns > end - col);
-                        cell_end->attr.columns = cell_col->attr.columns - (end - col);
+                        cell_end->attr.set_fragment(false);
+                        g_assert(cell_col->attr.columns() > end - col);
+                        cell_end->attr.set_columns(cell_col->attr.columns() - (end - col));
                 } else {
                         _vte_debug_print(VTE_DEBUG_MISC,
                                          "Cleaning CJK right half at %ld\n",
                                          end);
-                        g_assert(end - col == 1 && cell_col->attr.columns == 2);
+                        g_assert(end - col == 1 && cell_col->attr.columns() == 2);
                         cell_end->c = ' ';
-                        cell_end->attr.fragment = 0;
-                        cell_end->attr.columns = 1;
+                        cell_end->attr.set_fragment(false);
+                        cell_end->attr.set_columns(1);
                         invalidate_cells(
                                               end, 1,
                                               m_screen->cursor.row, 1);
@@ -2785,11 +2785,11 @@ VteTerminalPrivate::cleanup_fragments(long start,
                         col--;
                         g_assert(col >= 0);  /* The first cell can't be a fragment. */
                         cell_col = _vte_row_data_get_writable (row, col);
-                        if (!cell_col->attr.fragment) {
+                        if (!cell_col->attr.fragment()) {
                                 if (cell_col->c == '\t') {
                                         _vte_debug_print(VTE_DEBUG_MISC,
                                                          "Replacing left part of TAB with spaces at %ld (%ld => %ld cells)\n",
-                                                         col, (long)cell_col->attr.columns, start - col);
+                                                         col, (long)cell_col->attr.columns(), start - col);
                                         /* nothing to do here */
                                 } else {
                                         _vte_debug_print(VTE_DEBUG_MISC,
@@ -2803,8 +2803,8 @@ VteTerminalPrivate::cleanup_fragments(long start,
                                 keep_going = FALSE;
                         }
                         cell_col->c = ' ';
-                        cell_col->attr.fragment = 0;
-                        cell_col->attr.columns = 1;
+                        cell_col->attr.set_fragment(false);
+                        cell_col->attr.set_columns(1);
                 } while (keep_going);
         }
 }
@@ -3065,7 +3065,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 			goto not_inserted;
 
 		/* Find the previous cell */
-		while (cell && cell->attr.fragment && col > 0)
+		while (cell && cell->attr.fragment() && col > 0)
 			cell = _vte_row_data_get_writable (row, --col);
 		if (G_UNLIKELY (!cell || cell->c == '\t'))
 			goto not_inserted;
@@ -3074,7 +3074,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 		c = _vte_unistr_append_unichar (cell->c, c);
 
 		/* And set it */
-		columns = cell->attr.columns;
+		columns = cell->attr.columns();
 		for (i = 0; i < columns; i++) {
 			cell = _vte_row_data_get_writable (row, col++);
 			cell->c = c;
@@ -3107,7 +3107,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 
         attr = m_defaults.attr;
         attr.copy_colors(m_color_defaults.attr);
-	attr.columns = columns;
+	attr.set_columns(columns);
 
 	{
 		VteCell *pcell = _vte_row_data_get_writable (row, col);
@@ -3117,7 +3117,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 	}
 
 	/* insert wide-char fragments */
-	attr.fragment = 1;
+	attr.set_fragment(true);
 	for (i = 1; i < columns; i++) {
 		VteCell *pcell = _vte_row_data_get_writable (row, col);
 		pcell->c = c;
@@ -6035,7 +6035,7 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
 				 * the selection. */
-				if (!pcell->attr.fragment) {
+				if (!pcell->attr.fragment()) {
 					/* Store the attributes of this character. */
                                         // FIXMEchpe shouldn't this use determine_colors?
                                         uint32_t fg, bg, dc;
@@ -6048,8 +6048,8 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 					attr.back.red = back.red;
 					attr.back.green = back.green;
 					attr.back.blue = back.blue;
-					attr.underline = (pcell->attr.underline == 1);
-					attr.strikethrough = pcell->attr.strikethrough;
+					attr.underline = (pcell->attr.underline() == 1);
+					attr.strikethrough = pcell->attr.strikethrough();
 
 					/* Store the cell string */
 					if (pcell->c == 0) {
@@ -6085,7 +6085,7 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 				while ((pcell = _vte_row_data_get (row_data, col))) {
 					col++;
 
-					if (pcell->attr.fragment)
+					if (pcell->attr.fragment())
 						continue;
 
 					if (pcell->c != 0)
@@ -6179,15 +6179,9 @@ static bool
 vte_terminal_cellattr_equal(VteCellAttr const* attr1,
                             VteCellAttr const* attr2)
 {
-	return (attr1->bold          == attr2->bold      &&
-	        attr1->italic        == attr2->italic    &&
-                attr1->colors()      == attr2->colors()  &&
-	        attr1->underline     == attr2->underline &&
-	        attr1->strikethrough == attr2->strikethrough &&
-                attr1->overline      == attr2->overline  &&
-	        attr1->reverse       == attr2->reverse   &&
-	        attr1->blink         == attr2->blink     &&
-                attr1->invisible     == attr2->invisible &&
+        //FIXMEchpe why exclude DIM here?
+	return (((attr1->attr ^ attr2->attr) & VTE_ATTR_ALL_MASK) == 0 &&
+                attr1->colors()       == attr2->colors()   &&
                 attr1->hyperlink_idx  == attr2->hyperlink_idx);
 }
 
@@ -6207,16 +6201,16 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 
         determine_colors(attr, false, false, &fore, &back, &deco);
 
-	if (attr->bold) {
+	if (attr->bold()) {
 		g_string_prepend(string, "<b>");
 		g_string_append(string, "</b>");
 	}
-	if (attr->italic) {
+	if (attr->italic()) {
 		g_string_prepend(string, "<i>");
 		g_string_append(string, "</i>");
 	}
         /* <u> should be inside <font> so that it inherits its color by default */
-        if (attr->underline) {
+        if (attr->underline() != 0) {
                 static const char styles[][7] = {"", "single", "double", "wavy"};
                 char *tag, *colorattr;
 
@@ -6233,14 +6227,14 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
                 }
 
                 tag = g_strdup_printf("<u style=\"text-decoration-style:%s%s\">",
-                                      styles[attr->underline],
+                                      styles[attr->underline()],
                                       colorattr);
                 g_string_prepend(string, tag);
                 g_free(tag);
                 g_free(colorattr);
                 g_string_append(string, "</u>");
         }
-	if (fore != VTE_DEFAULT_FG || attr->reverse) {
+	if (fore != VTE_DEFAULT_FG || attr->reverse()) {
 		vte::color::rgb color;
                 char *tag;
 
@@ -6253,7 +6247,7 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		g_free(tag);
 		g_string_append(string, "</font>");
 	}
-	if (back != VTE_DEFAULT_BG || attr->reverse) {
+	if (back != VTE_DEFAULT_BG || attr->reverse()) {
 		vte::color::rgb color;
                 char *tag;
 
@@ -6266,15 +6260,15 @@ VteTerminalPrivate::cellattr_to_html(VteCellAttr const* attr,
 		g_free(tag);
 		g_string_append(string, "</span>");
 	}
-	if (attr->strikethrough) {
+	if (attr->strikethrough()) {
 		g_string_prepend(string, "<strike>");
 		g_string_append(string, "</strike>");
 	}
-	if (attr->overline) {
+	if (attr->overline()) {
 		g_string_prepend(string, "<span style=\"text-decoration-line:overline\">");
 		g_string_append(string, "</span>");
 	}
-	if (attr->blink) {
+	if (attr->blink()) {
 		g_string_prepend(string, "<blink>");
 		g_string_append(string, "</blink>");
 	}
@@ -6631,7 +6625,7 @@ VteTerminalPrivate::extend_selection_expand()
 		/* Find the last non-empty character on the first line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
 			cell = _vte_row_data_get (rowdata, i - 1);
-			if (cell->attr.fragment || cell->c != 0)
+			if (cell->attr.fragment() || cell->c != 0)
 				break;
 		}
 	} else {
@@ -6657,7 +6651,7 @@ VteTerminalPrivate::extend_selection_expand()
 		/* Find the last non-empty character on the last line. */
 		for (i = _vte_row_data_length (rowdata); i > 0; i--) {
 			cell = _vte_row_data_get (rowdata, i - 1);
-			if (cell->attr.fragment || cell->c != 0)
+			if (cell->attr.fragment() || cell->c != 0)
 				break;
 		}
 		/* If the end point is to its right, then extend the
@@ -8878,7 +8872,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
 	}
 
 	/* Handle bold by using set bold color or brightening */
-	if (attr->bold && m_bold_is_bright) {
+	if (attr->bold() && m_bold_is_bright) {
 		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_BOLD_FG;
 		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
@@ -8889,12 +8883,12 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
         /* Handle dim colors.  Only apply to palette colors, dimming direct RGB wouldn't make sense.
          * Apply to the foreground color only, but do this before handling reverse/highlight so that
          * those can be used to dim the background instead. */
-        if (attr->dim && !(fore & VTE_RGB_COLOR_MASK(8, 8, 8))) {
+        if (attr->dim() && !(fore & VTE_RGB_COLOR_MASK(8, 8, 8))) {
 	        fore |= VTE_DIM_COLOR;
         }
 
 	/* Reverse cell? */
-	if (attr->reverse) {
+	if (attr->reverse()) {
 		swap (&fore, &back);
 	}
 
@@ -8934,7 +8928,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
         /* FIXME: This is dead code, this is not where we actually handle invisibile.
          * Instead, draw_cells() is not called from draw_rows().
          * That is required for the foreground to be transparent if so is the background. */
-	if (attr->invisible) {
+        if (attr->invisible()) {
                 fore = back;
                 deco = VTE_DEFAULT_FG;
 	}
@@ -8985,15 +8979,9 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                uint32_t deco,
                                bool clear,
                                bool draw_default_bg,
-                               bool bold,
-                               bool italic,
-                               guint underline,
-                               bool strikethrough,
-                               bool overline,
-                               bool blink,
+                               uint32_t attr,
                                bool hyperlink,
                                bool hilite,
-                               bool boxed,
                                int column_width,
                                int row_height)
 {
@@ -9002,6 +8990,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
         vte::color::rgb fg, bg, dc;
 
 	g_assert(n > 0);
+#if 0
 	_VTE_DEBUG_IF(VTE_DEBUG_CELLS) {
 		GString *str = g_string_new (NULL);
 		gchar *tmp;
@@ -9017,8 +9006,9 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                 hyperlink, hilite, boxed);
 		g_free (tmp);
 	}
+#endif
 
-	bold = bold && m_allow_bold;
+	auto bold = (attr & VTE_ATTR_BOLD) && m_allow_bold;
         rgb_from_index<8, 8, 8>(fore, fg);
         rgb_from_index<8, 8, 8>(back, bg);
         // FIXMEchpe defer resolving deco color until we actually need to draw an underline?
@@ -9046,7 +9036,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 		}
 	} while (i < n);
 
-        if (blink) {
+        if (attr & VTE_ATTR_BLINK) {
                 /* Notify the caller that cells with the "blink" attribute were encountered (regardless of
                  * whether they're actually painted or skipped now), so that the caller can set up a timer
                  * to make them blink if it wishes to. */
@@ -9065,7 +9055,11 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
          * so that if the descent of a letter crosses an underline of a different color,
          * it's the letter's color that wins. Other kinds of decorations always have the
          * same color as the text, so the order is irrelevant there. */
-        if (underline | strikethrough | overline | hyperlink | hilite | boxed) {
+        if ((attr & (VTE_ATTR_UNDERLINE_MASK |
+                     VTE_ATTR_STRIKETHROUGH_MASK |
+                     VTE_ATTR_OVERLINE_MASK |
+                     VTE_ATTR_BOXED_MASK)) |
+            hyperlink | hilite) {
 		i = 0;
 		do {
 			x = items[i].x;
@@ -9073,7 +9067,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			for (columns = 0; i < n && items[i].y == y; i++) {
 				columns += items[i].columns;
 			}
-                        switch (underline) {
+                        switch (vte_attr_get_value(attr, VTE_ATTR_UNDERLINE_VALUE_MASK, VTE_ATTR_UNDERLINE_SHIFT)) {
                         case 1:
                                 _vte_draw_draw_line(m_draw,
                                                     x,
@@ -9108,7 +9102,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                          &dc, VTE_DRAW_OPAQUE);
                                 break;
 			}
-			if (strikethrough) {
+			if (attr & VTE_ATTR_STRIKETHROUGH) {
                                 _vte_draw_draw_line(m_draw,
                                                     x,
                                                     y + m_strikethrough_position,
@@ -9117,7 +9111,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
 			}
-                        if (overline) {
+                        if (attr & VTE_ATTR_OVERLINE) {
                                 _vte_draw_draw_line(m_draw,
                                                     x,
                                                     y + m_overline_position,
@@ -9144,7 +9138,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
                                                                  &fg, VTE_DRAW_OPAQUE);
                                 }
                         }
-			if (boxed) {
+			if (attr & VTE_ATTR_BOXED) {
                                 _vte_draw_draw_rectangle(m_draw,
 						x, y,
 						MAX(0, (columns * column_width)),
@@ -9157,7 +9151,8 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
         _vte_draw_text(m_draw,
                        items, n,
                        &fg, VTE_DRAW_OPAQUE,
-                       _vte_draw_get_style(bold, italic));
+                       _vte_draw_get_style(attr & VTE_ATTR_BOLD,
+                                           attr & VTE_ATTR_ITALIC));
 }
 
 /* FIXME: we don't have a way to tell GTK+ what the default text attributes
@@ -9230,7 +9225,7 @@ VteTerminalPrivate::fudge_pango_colors(GSList *attributes,
 				(props[i].bg.green == 0) &&
 				(props[i].bg.blue == 0)) {
                         cells[i].attr.copy_colors(m_color_defaults.attr);
-			cells[i].attr.reverse = TRUE;
+			cells[i].attr.set_reverse(true);
 		}
 	}
 }
@@ -9270,7 +9265,7 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 		for (i = attr->start_index;
 		     (i < attr->end_index) && (i < n_cells);
 		     i++) {
-			cells[i].attr.strikethrough = (ival != FALSE);
+			cells[i].attr.set_strikethrough(ival != FALSE);
 		}
 		break;
 	case PANGO_ATTR_UNDERLINE:
@@ -9279,7 +9274,7 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 		for (i = attr->start_index;
 		     (i < attr->end_index) && (i < n_cells);
 		     i++) {
-			cells[i].attr.underline = (ival != PANGO_UNDERLINE_NONE);
+			cells[i].attr.set_underline(ival == PANGO_UNDERLINE_SINGLE ? 1 : 0);
 		}
 		break;
 	case PANGO_ATTR_WEIGHT:
@@ -9288,7 +9283,7 @@ VteTerminalPrivate::apply_pango_attr(PangoAttribute *attr,
 		for (i = attr->start_index;
 		     (i < attr->end_index) && (i < n_cells);
 		     i++) {
-			cells[i].attr.bold = (ival >= PANGO_WEIGHT_BOLD);
+			cells[i].attr.set_bold(ival >= PANGO_WEIGHT_BOLD);
 		}
 		break;
 	default:
@@ -9375,14 +9370,9 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 					back,
                                         deco,
 					TRUE, draw_default_bg,
-					cells[j].attr.bold,
-					cells[j].attr.italic,
-					cells[j].attr.underline,
-					cells[j].attr.strikethrough,
-                                        cells[j].attr.overline,
-                                        cells[j].attr.blink,
+					cells[j].attr.attr,
                                         m_allow_hyperlink && cells[j].attr.hyperlink_idx != 0,
-					FALSE, FALSE, column_width, height);
+					FALSE, column_width, height);
 		j += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
 	g_free(cells);
@@ -9407,11 +9397,9 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
         vte::grid::row_t row, rows;
         vte::grid::column_t i, j;
         long x, y;
-        guint fore, nfore, back, nback, deco, ndeco, underline, nunderline;
-        gboolean bold, nbold, italic, nitalic,
-                 hyperlink, nhyperlink, hilite, nhilite,
-		 selected, nselected, strikethrough, nstrikethrough,
-                 overline, noverline, invisible, ninvisible, blink, nblink;
+        guint fore, nfore, back, nback, deco, ndeco;
+        gboolean hyperlink, nhyperlink, hilite, nhilite,
+                selected, nselected;
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
@@ -9432,7 +9420,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 		if (row_data != NULL) {
 			cell = _vte_row_data_get (row_data, i);
 			if (cell != NULL) {
-				while (cell->attr.fragment && i > 0) {
+				while (cell->attr.fragment() && i > 0) {
 					cell = _vte_row_data_get (row_data, --i);
 				}
 			}
@@ -9444,8 +9432,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				selected = cell_is_selected(i, row);
                                 determine_colors(cell, selected, &fore, &back, &deco);
 
-				bold = cell && cell->attr.bold;
-				j = i + (cell ? cell->attr.columns : 1);
+				bool bold = cell && cell->attr.bold();
+				j = i + (cell ? cell->attr.columns() : 1);
 
 				while (j < end_column){
 					/* Retrieve the cell. */
@@ -9453,7 +9441,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					/* Don't render fragments of multicolumn characters
 					 * which have the same attributes as the initial
 					 * portions. */
-					if (cell != NULL && cell->attr.fragment) {
+					if (cell != NULL && cell->attr.fragment()) {
 						j++;
 						continue;
 					}
@@ -9465,8 +9453,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					if (nback != back) {
 						break;
 					}
-					bold = cell && cell->attr.bold;
-					j += cell ? cell->attr.columns : 1;
+					bold = cell && cell->attr.bold();
+					j += cell ? cell->attr.columns() : 1;
 				}
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
@@ -9532,7 +9520,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 		if (cell == NULL) {
 			goto fg_skip_row;
 		}
-		while (cell->attr.fragment && i > 0)
+		while (cell->attr.fragment() && i > 0)
 			cell = _vte_row_data_get (row_data, --i);
 
 		/* Walk the line. */
@@ -9542,13 +9530,13 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			if (cell == NULL) {
 				goto fg_skip_row;
 			}
-			while (cell->c == 0 || cell->attr.invisible ||
+			while (cell->c == 0 || cell->attr.invisible() ||
 					(cell->c == ' ' &&
-					 !cell->attr.underline &&
-                                         !cell->attr.strikethrough &&
-                                         !cell->attr.overline &&
+                                         cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
+                                                             VTE_ATTR_STRIKETHROUGH_MASK |
+                                                             VTE_ATTR_OVERLINE_MASK) &&
                                          (!m_allow_hyperlink || cell->attr.hyperlink_idx == 0)) ||
-					cell->attr.fragment) {
+                               cell->attr.fragment()) {
 				if (++i >= end_column) {
 					goto fg_skip_row;
 				}
@@ -9560,14 +9548,10 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			/* Find the colors for this cell. */
 			selected = cell_is_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
-			underline = cell->attr.underline;
-			strikethrough = cell->attr.strikethrough;
-                        overline = cell->attr.overline;
-                        invisible = cell->attr.invisible;
+
+                        uint32_t const attr = cell->attr.attr;
+
                         hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
-			bold = cell->attr.bold;
-			italic = cell->attr.italic;
-                        blink = cell->attr.blink;
                         if (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) {
                                 hilite = true;
                         } else if (m_hyperlink_hover_idx == 0 && m_show_match) {
@@ -9577,7 +9561,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 			}
 
 			items[0].c = cell->c;
-			items[0].columns = cell->attr.columns;
+			items[0].columns = cell->attr.columns();
 			items[0].x = start_x + i * column_width;
 			items[0].y = y;
 			j = i + items[0].columns;
@@ -9593,7 +9577,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					}
                                         /* Ignore the attributes on a fragment, the attributes
                                          * of the preceding character cell should apply. */
-                                        if (cell->attr.fragment) {
+                                        if (cell->attr.fragment()) {
 						j++;
 						continue;
 					}
@@ -9601,7 +9585,10 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 						/* only break the run if we
 						 * are drawing attributes
 						 */
-                                                if (underline || strikethrough || overline || hyperlink || hilite) {
+                                                if ((attr & (VTE_ATTR_UNDERLINE_MASK |
+                                                             VTE_ATTR_STRIKETHROUGH_MASK |
+                                                             VTE_ATTR_OVERLINE_MASK)) |
+                                                    hyperlink | hilite) {
 							break;
 						} else {
 							j++;
@@ -9619,37 +9606,22 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                                         if (ndeco != deco) {
                                                 break;
                                         }
-					nbold = cell->attr.bold;
-					if (nbold != bold) {
-						break;
-					}
-					nitalic = cell->attr.italic;
-					if (nitalic != italic) {
-						break;
-					}
-					/* Break up underlined/not-underlined text. */
-					nunderline = cell->attr.underline;
-					if (nunderline != underline) {
-						break;
-					}
-					nstrikethrough = cell->attr.strikethrough;
-					if (nstrikethrough != strikethrough) {
-						break;
-					}
-                                        noverline = cell->attr.overline;
-                                        if (noverline != overline) {
+
+                                        /* Bold, italic, underline, strikethrough,
+                                         * overline, blink, or invisible differ;
+                                         * break the run.
+                                         */
+                                        if ((cell->attr.attr ^ attr) & (VTE_ATTR_BOLD_MASK |
+                                                                        VTE_ATTR_ITALIC_MASK |
+                                                                        VTE_ATTR_UNDERLINE_MASK |
+                                                                        VTE_ATTR_STRIKETHROUGH_MASK |
+                                                                        VTE_ATTR_OVERLINE_MASK |
+                                                                        VTE_ATTR_BLINK_MASK |
+                                                                        VTE_ATTR_INVISIBLE_MASK))
                                                 break;
-                                        }
-                                        nblink = cell->attr.blink;
-                                        if (nblink != blink) {
-                                                break;
-                                        }
+
                                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
                                         if (nhyperlink != hyperlink) {
-                                                break;
-                                        }
-                                        ninvisible = cell->attr.invisible;
-                                        if (ninvisible != invisible) {
                                                 break;
                                         }
 					/* Break up matched/not-matched text. */
@@ -9664,7 +9636,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					}
 					/* Add this cell to the draw list. */
 					items[item_count].c = cell->c;
-					items[item_count].columns = cell->attr.columns;
+					items[item_count].columns = cell->attr.columns();
 					items[item_count].x = start_x + j * column_width;
 					items[item_count].y = y;
 					j +=  items[item_count].columns;
@@ -9694,7 +9666,7 @@ fg_next_row:
 					j = start_column;
 					cell = _vte_row_data_get (row_data, j);
 				} while (cell == NULL);
-				while (cell->attr.fragment && j > 0) {
+				while (cell->attr.fragment() && j > 0) {
 					cell = _vte_row_data_get (row_data, --j);
 				}
 			} while (TRUE);
@@ -9704,8 +9676,8 @@ fg_draw:
 					items,
 					item_count,
                                         fore, back, deco, FALSE, FALSE,
-                                        bold, italic, underline, strikethrough,
-                                        overline, blink, hyperlink, hilite, FALSE,
+                                        attr /* & VTE_ATTR_ALL_MASK */,
+                                        hyperlink, hilite,
 					column_width, row_height);
 			item_count = 1;
 			/* We'll need to continue at the first cell which didn't
@@ -9838,18 +9810,18 @@ VteTerminalPrivate::paint_cursor()
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
 	auto cell = find_charcell(col, drow);
-        while (cell != NULL && cell->attr.fragment && cell->c != '\t' && col > 0) {
+        while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
 		col--;
 		cell = find_charcell(col, drow);
 	}
 
 	/* Draw the cursor. */
 	item.c = (cell && cell->c) ? cell->c : ' ';
-	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns : 1;
+	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
 	item.x = col * width;
 	item.y = row_to_pixel(drow);
 	if (cell && cell->c != 0) {
-		style = _vte_draw_get_style(cell->attr.bold, cell->attr.italic);
+		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
 	}
 
 	selected = cell_is_selected(col, drow);
@@ -9899,7 +9871,7 @@ VteTerminalPrivate::paint_cursor()
 
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int l, r;
-                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns, style, &l, &r);
+                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns(), style, &l, &r);
                                 left = MIN(left, l);
                                 right = MAX(right, r);
                         }
@@ -9918,7 +9890,7 @@ VteTerminalPrivate::paint_cursor()
                         cursor_width = item.columns * width;
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int r;
-                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns, style, NULL, &r);
+                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns(), style, NULL, &r);
                                 cursor_width = MAX(cursor_width, r);
 			}
 
@@ -9933,14 +9905,8 @@ VteTerminalPrivate::paint_cursor()
                                         draw_cells(
                                                         &item, 1,
                                                         fore, back, deco, TRUE, FALSE,
-                                                        cell->attr.bold,
-                                                        cell->attr.italic,
-                                                        cell->attr.underline,
-                                                        cell->attr.strikethrough,
-                                                        cell->attr.overline,
-                                                        cell->attr.blink,
+                                                        cell->attr.attr,
                                                         m_allow_hyperlink && cell->attr.hyperlink_idx != 0,
-                                                        FALSE,
                                                         FALSE,
                                                         width,
                                                         height);
@@ -10025,15 +9991,9 @@ VteTerminalPrivate::paint_im_preedit_string()
                                                 fore, back, deco,
                                                 TRUE,  /* clear */
                                                 TRUE,  /* draw_default_bg */
-                                                FALSE, /* bold */
-                                                FALSE, /* italic */
-                                                0,     /* underline */
-                                                FALSE, /* strikethrough */
-                                                FALSE, /* overline */
-                                                FALSE, /* blink */
+                                                VTE_ATTR_NONE | VTE_ATTR_BOXED,
                                                 FALSE, /* hyperlink */
                                                 FALSE, /* hilite */
-                                                TRUE,  /* boxed */
 						width, height);
 		}
 		g_free(items);

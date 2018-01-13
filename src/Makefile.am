@@ -45,6 +45,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vte/vtepty.h \
 	vte/vteregex.h \
 	vte/vteterminal.h \
+	attr.hh \
 	buffer.h \
 	caps.hh \
 	caps-list.hh \
