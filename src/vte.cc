@@ -6040,7 +6040,7 @@ VteTerminalPrivate::get_text(vte::grid::row_t start_row,
 					attr.back.red = back.red;
 					attr.back.green = back.green;
 					attr.back.blue = back.blue;
-					attr.underline = pcell->attr.underline;
+					attr.underline = (pcell->attr.underline == 1);
 					attr.strikethrough = pcell->attr.strikethrough;
 
 					/* Store the cell string */
