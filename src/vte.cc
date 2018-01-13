@@ -8872,10 +8872,12 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
 	}
 
 	/* Handle bold by using set bold color or brightening */
-	if (attr->bold() && m_bold_is_bright) {
-		if (fore == VTE_DEFAULT_FG)
+        if (attr->bold()) {
+                if (fore == VTE_DEFAULT_FG) {
 			fore = VTE_BOLD_FG;
-		else if (fore >= VTE_LEGACY_COLORS_OFFSET && fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
+                } else if (m_bold_is_bright &&
+                           fore >= VTE_LEGACY_COLORS_OFFSET &&
+                           fore < VTE_LEGACY_COLORS_OFFSET + VTE_LEGACY_COLOR_SET_SIZE) {
 			fore += VTE_COLOR_BRIGHT_OFFSET;
 		}
 	}
