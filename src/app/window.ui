@@ -53,7 +53,7 @@
         <attribute name="target" type="b">true</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">_input enabled</attribute>
+        <attribute name="label" translatable="yes">_Input enabled</attribute>
         <attribute name="action">win.input-enabled</attribute>
       </item>
     </section>
