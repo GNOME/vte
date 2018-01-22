@@ -11456,17 +11456,23 @@ VteTerminalPrivate::search_rows(pcre2_match_context_8 *match_context,
                      match_data,
                      match_context);
 
-        if (r == PCRE2_ERROR_NOMATCH)
+        if (r == PCRE2_ERROR_NOMATCH) {
+                g_string_free (row_text, TRUE);
                 return false;
+        }
         // FIXME: handle partial matches (PCRE2_ERROR_PARTIAL)
-        if (r < 0)
+        if (r < 0) {
+                g_string_free (row_text, TRUE);
                 return false;
+        }
 
         ovector = pcre2_get_ovector_pointer_8(match_data);
         so = ovector[0];
         eo = ovector[1];
-        if (G_UNLIKELY(so == PCRE2_UNSET || eo == PCRE2_UNSET))
+        if (G_UNLIKELY(so == PCRE2_UNSET || eo == PCRE2_UNSET)) {
+                g_string_free (row_text, TRUE);
                 return false;
+        }
 
         start = so;
         end = eo;
