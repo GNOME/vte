@@ -646,7 +646,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                  "  !  _vte_invalidate_cells (dirty)\n"
                                  "  *  _vte_invalidate_all\n"
                                  "  )  end _vte_terminal_process_incoming\n"
-                                 "  -  gdk_window_process_updates\n"
                                  "  =  vte_terminal_paint\n"
                                  "  ]} end update_timeout\n"
                                  "  >  end process_timeout\n");
