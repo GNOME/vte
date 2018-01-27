@@ -484,7 +484,6 @@ VteTerminalPrivate::set_mode(vte::parser::Params const& params,
         }
 }
 
-/* Call another function a given number of times, or once. */
 void
 VteTerminalPrivate::reset_mouse_smooth_scroll_delta()
 {
