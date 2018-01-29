@@ -1,0 +1,48 @@
+# Afrikaans translation for vte.
+# Copyright (C) 2017 vte's COPYRIGHT HOLDER
+# This file is distributed under the same license as the vte package.
+# pieter <pieter@sonbesie.co.za>, 2017.
+# Pieter Schoeman <pieter@sonbesie.co.za>, 2017.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vte vte-0-50\n"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
+"product=vte&keywords=I18N+L10N&component=general\n"
+"POT-Creation-Date: 2017-11-18 22:30+0000\n"
+"PO-Revision-Date: 2018-01-29 13:00+0200\n"
+"Last-Translator: Pieter Schoeman <pieter@sonbesie.co.za>\n"
+"Language-Team: Afrikaans <pieter@sonbesie.co.za>\n"
+"Language: af\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 2.0.3\n"
+
+#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
+#: ../src/vtegtk.cc:3434
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Kon nie karakters omskakel van %s na %s nie."
+
+#. Translators: %s is replaced with error message returned by strerror().
+#: ../src/vte.cc:4072
+#, c-format
+msgid "Error reading from child: %s."
+msgstr "Fout terwyl daar van kind gelees word: %s"
+
+#: ../src/vte.cc:4211
+#, c-format
+msgid "Error (%s) converting data for child, dropping."
+msgstr "Fout (%s) tydens omskakeling van data vir kind, los."
+
+#: ../src/vte.cc:8161
+msgid "WARNING"
+msgstr "WAARSKUWING"
+
+#: ../src/vte.cc:8162
+msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgstr ""
+"GNUTLS is nie aangeskakel nie; data sal ongeënkripteer na die skyf geskryf "
+"word!"
