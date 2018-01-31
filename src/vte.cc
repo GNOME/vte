@@ -1274,8 +1274,7 @@ VteTerminalPrivate::match_rowcol_to_offset(vte::grid::column_t column,
 			eattr = offset;
 		}
 		if (row == attr->row &&
-		    column == attr->column &&
-		    m_match_contents[offset] != ' ') {
+		    column == attr->column) {
 			break;
 		}
 	}
@@ -1300,10 +1299,9 @@ VteTerminalPrivate::match_rowcol_to_offset(vte::grid::column_t column,
 	}
 
 	/* If the pointer is on a newline, bug out. */
-	if ((g_ascii_isspace(m_match_contents[offset])) ||
-	    (m_match_contents[offset] == '\0')) {
+	if (m_match_contents[offset] == '\0') {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Cursor is on whitespace.\n");
+                                 "Cursor is on newline.\n");
 		return false;
 	}
 
