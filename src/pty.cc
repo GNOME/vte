@@ -256,6 +256,7 @@ vte_pty_child_setup (VtePty *pty)
  */
 static gchar **
 __vte_pty_merge_environ (char **envp,
+                         const char *directory,
                          gboolean inherit)
 {
 	GHashTable *table;
@@ -296,6 +297,13 @@ __vte_pty_merge_environ (char **envp,
 
 	/* Always set this ourself, not allowing replacing from envp */
 	g_hash_table_replace(table, g_strdup("COLORTERM"), g_strdup("truecolor"));
+
+        /* We need to put the working directory also in PWD, so that
+         * e.g. bash starts in the right directory if @directory is a symlink.
+         * See bug #502146 and #758452.
+         */
+        if (directory)
+                g_hash_table_replace(table, g_strdup("PWD"), g_strdup(directory));
 
 	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
         g_hash_table_iter_init(&iter, table);
@@ -384,7 +392,7 @@ __vte_pty_spawn (VtePty *pty,
         spawn_flags &= ~VTE_SPAWN_NO_PARENT_ENVV;
 
         /* add the given environment to the childs */
-        envp2 = __vte_pty_merge_environ (envv, inherit_envv);
+        envp2 = __vte_pty_merge_environ (envv, directory, inherit_envv);
 
         _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
                 g_printerr ("Spawning command:\n");

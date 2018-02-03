@@ -2459,6 +2459,10 @@ vte_terminal_watch_child (VteTerminal *terminal,
  *
  * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *
+ * Beginning with 0.52, sets PWD to @working_directory in order to preserve symlink components.
+ * The caller should also make sure that symlinks were preserved while constructing the value of @working_directory,
+ * e.g. by using vte_terminal_get_current_directory_uri(), g_get_current_dir() or get_current_dir_name().
+ *
  * Returns: %TRUE on success, or %FALSE on error with @error filled in
  *
  * Deprecated: 0.48: Use vte_terminal_spawn_async() instead.
@@ -2625,6 +2629,10 @@ spawn_async_cb (GObject *source,
  * but taking care not to access the now-destroyed #VteTerminal. Note that
  * in this case, if spawning was successful, the child process will be aborted
  * automatically.
+ *
+ * Beginning with 0.52, sets PWD to @working_directory in order to preserve symlink components.
+ * The caller should also make sure that symlinks were preserved while constructing the value of @working_directory,
+ * e.g. by using vte_terminal_get_current_directory_uri(), g_get_current_dir() or get_current_dir_name().
  *
  * Since: 0.48
  */
