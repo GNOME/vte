@@ -829,7 +829,6 @@ _vte_draw_set_source_color_alpha (struct _vte_draw *draw,
 
 void
 _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height,
-                 cairo_operator_t op,
                  vte::color::rgb const* color, double alpha)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_clear (%d, %d, %d, %d)\n",
@@ -837,7 +836,7 @@ _vte_draw_clear (struct _vte_draw *draw, gint x, gint y, gint width, gint height
 
         g_assert(draw->cr);
 	cairo_rectangle (draw->cr, x, y, width, height);
-	cairo_set_operator (draw->cr, op);
+	cairo_set_operator (draw->cr, CAIRO_OPERATOR_SOURCE);
 	_vte_draw_set_source_color_alpha(draw, color, alpha);
 	cairo_fill (draw->cr);
 }

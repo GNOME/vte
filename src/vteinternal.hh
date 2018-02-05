@@ -607,7 +607,7 @@ public:
 	 * and data, which should be dropped when unrealizing and (re)created
 	 * when realizing. */
         struct _vte_draw *m_draw;
-        cairo_operator_t m_background_operator{CAIRO_OPERATOR_SOURCE};
+        bool m_clear_background{true};
 
         VtePaletteColor m_palette[VTE_PALETTE_SIZE];
 
@@ -1268,7 +1268,7 @@ public:
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
         bool set_word_char_exceptions(char const* exceptions);
-        void set_background_operator(cairo_operator_t op);
+        void set_clear_background(bool setting);
 
         bool write_contents_sync (GOutputStream *stream,
                                   VteWriteFlags flags,

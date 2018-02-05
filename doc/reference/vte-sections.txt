@@ -107,7 +107,7 @@ vte_terminal_pty_new_sync
 vte_terminal_watch_child
 
 <SUBSECTION>
-vte_terminal_set_background_operator
+vte_terminal_set_clear_background
 
 <SUBSECTION Standard>
 VTE_TYPE_CURSOR_BLINK_MODE

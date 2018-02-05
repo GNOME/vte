@@ -483,8 +483,8 @@ gboolean vte_terminal_get_input_enabled (VteTerminal *terminal) _VTE_GNUC_NONNUL
 
 /* rarely useful functions */
 _VTE_PUBLIC
-void vte_terminal_set_background_operator(VteTerminal* terminal,
-                                          cairo_operator_t op) _VTE_GNUC_NONNULL(1);
+void vte_terminal_set_clear_background(VteTerminal* terminal,
+                                       gboolean setting) _VTE_GNUC_NONNULL(1);
 
 /* Writing contents out */
 _VTE_PUBLIC

@@ -58,7 +58,6 @@ void _vte_draw_set_cairo(struct _vte_draw *draw,
 
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height,
-                     cairo_operator_t op,
                      vte::color::rgb const* color, double alpha);
 
 void _vte_draw_set_text_font(struct _vte_draw *draw,

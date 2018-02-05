@@ -4253,24 +4253,23 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_set_background_operator:
+ * vte_terminal_set_clear_background:
  * @terminal: a #VteTerminal
- * @operator: a #cairo_operator_t
+ * @setting:
  *
- * Sets the operator to use to paint the background with the background colour.
- * The default is %CAIRO_OPERATOR_SOURCE.
+ * Sets whether to paint the background with the background colour.
+ * The default is %TRUE.
  *
  * This function is rarely useful. One use for it is to add a background
- * image to the terminal, in which case %CAIRO_OPERATOR_OVER is most likely
- * the correct operator to use.
+ * image to the terminal.
  *
  * Since: 0.52
  */
 void
-vte_terminal_set_background_operator(VteTerminal* terminal,
-                                     cairo_operator_t op)
+vte_terminal_set_clear_background(VteTerminal* terminal,
+                                  gboolean setting)
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        IMPL(terminal)->set_background_operator(op);
+        IMPL(terminal)->set_clear_background(setting != FALSE);
 }

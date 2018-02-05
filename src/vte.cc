@@ -10006,13 +10006,14 @@ VteTerminalPrivate::paint_im_preedit_string()
 			columns += items[i].columns;
 			preedit = g_utf8_next_char(preedit);
 		}
-		_vte_draw_clear(m_draw,
-				col * width,
-				row_to_pixel(m_screen->cursor.row),
-				width * columns,
-				height,
-                                m_background_operator,
-                                get_color(VTE_DEFAULT_BG), m_background_alpha);
+                if (G_LIKELY(m_clear_background)) {
+                        _vte_draw_clear(m_draw,
+                                        col * width,
+                                        row_to_pixel(m_screen->cursor.row),
+                                        width * columns,
+                                        height,
+                                        get_color(VTE_DEFAULT_BG), m_background_alpha);
+                }
 		draw_cells_with_attributes(
 							items, len,
 							m_im_preedit_attrs,
@@ -10068,10 +10069,11 @@ VteTerminalPrivate::widget_draw(cairo_t *cr)
 	/* Designate the start of the drawing operation and clear the area. */
 	_vte_draw_set_cairo(m_draw, cr);
 
-	_vte_draw_clear (m_draw, 0, 0,
-			 allocated_width, allocated_height,
-                         m_background_operator,
-                         get_color(VTE_DEFAULT_BG), m_background_alpha);
+        if (G_LIKELY(m_clear_background)) {
+                _vte_draw_clear (m_draw, 0, 0,
+                                 allocated_width, allocated_height,
+                                 get_color(VTE_DEFAULT_BG), m_background_alpha);
+        }
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
@@ -11754,11 +11756,11 @@ VteTerminalPrivate::set_word_char_exceptions(char const* exceptions)
 }
 
 void
-VteTerminalPrivate::set_background_operator(cairo_operator_t op)
+VteTerminalPrivate::set_clear_background(bool setting)
 {
-        if (m_background_operator == op)
+        if (m_clear_background == setting)
                 return;
 
-        m_background_operator = op;
+        m_clear_background = setting;
         invalidate_all();
 }

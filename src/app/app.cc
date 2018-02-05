@@ -64,9 +64,7 @@ public:
         bool cursor_fg_color_set{false};
         bool hl_bg_color_set{false};
         bool hl_fg_color_set{false};
-        bool background_operator_set{false};
         cairo_extend_t background_extend{CAIRO_EXTEND_NONE};
-        cairo_operator_t background_operator{CAIRO_OPERATOR_SOURCE};
         char* command{nullptr};
         char* encoding{nullptr};
         char* font_string{nullptr};
@@ -183,11 +181,6 @@ private:
                 Options* that = static_cast<Options*>(data);
                 g_clear_object(&that->background_pixbuf);
                 that->background_pixbuf = gdk_pixbuf_new_from_file(value, error);
-                if (that->background_pixbuf != nullptr) {
-                        /* Default to actually showing the image */
-                        that->background_operator = CAIRO_OPERATOR_OVER;
-                        that->background_operator_set = true;
-                }
                 return that->background_pixbuf != nullptr;
         }
 
@@ -199,19 +192,6 @@ private:
                 auto rv = that->parse_enum(CAIRO_GOBJECT_TYPE_EXTEND, value, v, error);
                 if (rv)
                         that->background_extend = cairo_extend_t(v);
-                return rv;
-        }
-
-        static gboolean
-        parse_background_operator(char const* option, char const* value, void* data, GError** error)
-        {
-                Options* that = static_cast<Options*>(data);
-                int v;
-                auto rv = that->parse_enum(CAIRO_GOBJECT_TYPE_OPERATOR, value, v, error);
-                if (rv) {
-                        that->background_operator = cairo_operator_t(v);
-                        that->background_operator_set = true;
-                }
                 return rv;
         }
 
@@ -351,8 +331,6 @@ public:
                           "Set background image from file", "FILE" },
                         { "background-extend", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_extend,
                           "Set background image extend", "EXTEND" },
-                        { "background-operator", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_operator,
-                          "Set background draw operator", "OPERATOR" },
                         { "blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_text_blink,
                           "Text blink mode (never|focused|unfocused|always)", "MODE" },
                         { "cell-height-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_height_scale,
@@ -488,11 +466,6 @@ public:
 
                 if (reverse)
                         std::swap(fg_color, bg_color);
-
-                /* Sanity checks */
-                if (background_pixbuf != nullptr &&
-                    (!background_operator_set || background_operator == CAIRO_OPERATOR_SOURCE))
-                        g_printerr("Background image set but operator is SOURCE; image will not appear.\n");
 
                 return rv;
         }
@@ -917,9 +890,8 @@ vteapp_terminal_init(VteappTerminal *terminal)
 {
         terminal->background_pattern = nullptr;
 
-        if (options.background_operator_set)
-                vte_terminal_set_background_operator(VTE_TERMINAL(terminal),
-                                                     options.background_operator);
+        if (options.background_pixbuf != nullptr)
+                vte_terminal_set_clear_background(VTE_TERMINAL(terminal), false);
 }
 
 static GtkWidget *
