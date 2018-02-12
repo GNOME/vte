@@ -26,4 +26,11 @@
       <gnome:userid>chpe</gnome:userid>
     </foaf:Person>
   </maintainer>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Egmont Koblinger</foaf:name>
+      <foaf:mbox rdf:resource="mailto:egmont%40gmail.com" />
+      <gnome:userid>egmontkob</gnome:userid>
+    </foaf:Person>
+  </maintainer>
 </Project>
