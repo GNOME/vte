@@ -37,41 +37,6 @@ static_assert(sizeof(vte::color::rgb) == sizeof(PangoColor), "vte::color::rgb si
 
 static_assert(sizeof(vte::util::smart_fd) == sizeof(int), "vte::util::smart_fd size wrong");
 
-/* Colours mix */
-vte::color::rgb::rgb(vte::color::rgb const& foreground,
-                     vte::color::rgb const& background,
-                     double factor)
-{
-        double fy, fcb, fcr, by, bcb, bcr, r, g, b;
-	fy =   0.2990 * foreground.red +
-               0.5870 * foreground.green +
-               0.1140 * foreground.blue;
-        fcb = -0.1687 * foreground.red +
-              -0.3313 * foreground.green +
-               0.5000 * foreground.blue;
-        fcr =  0.5000 * foreground.red +
-              -0.4187 * foreground.green +
-              -0.0813 * foreground.blue;
-        by =   0.2990 * background.red +
-               0.5870 * background.green +
-               0.1140 * background.blue;
-        bcb = -0.1687 * background.red +
-              -0.3313 * background.green +
-               0.5000 * background.blue;
-        bcr =  0.5000 * background.red +
-              -0.4187 * background.green +
-              -0.0813 * background.blue;
-        fy = (factor * fy) + ((1.0 - factor) * by);
-        fcb = (factor * fcb) + ((1.0 - factor) * bcb);
-        fcr = (factor * fcr) + ((1.0 - factor) * bcr);
-        r = fy + 1.402 * fcr;
-        g = fy + 0.34414 * fcb - 0.71414 * fcr;
-        b = fy + 1.722 * fcb;
-        red = CLAMP(r, 0, 0xffff);
-        green = CLAMP(g, 0, 0xffff);
-        blue = CLAMP(b, 0, 0xffff);
-}
-
 vte::color::rgb::rgb(GdkRGBA const* rgba) {
         g_assert(rgba);
         /* FIXME: equal distribution! */

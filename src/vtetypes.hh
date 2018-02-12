@@ -154,9 +154,6 @@ namespace color {
                 rgb(GdkRGBA const* c);
                 rgb(GdkRGBA const& c) : rgb(&c) { }
 
-                rgb(rgb const& a, rgb const& b, double f);
-                rgb(rgb const* a, rgb const* b, double f) : rgb(*a, *b, f) { }
-
                 bool parse(char const* spec);
 
                 void from_pango(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }

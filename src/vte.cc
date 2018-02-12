@@ -2511,10 +2511,8 @@ VteTerminalPrivate::set_colors(vte::color::rgb const* foreground,
 				}
 				break;
 			case VTE_BOLD_FG:
-                                color = vte::color::rgb(get_color(VTE_DEFAULT_FG),
-                                                        get_color(VTE_DEFAULT_BG),
-                                                        1.8);
-				break;
+                                unset = true;
+                                break;
 			case VTE_HIGHLIGHT_BG:
 				unset = true;
 				break;
@@ -2563,10 +2561,7 @@ VteTerminalPrivate::reset_color_bold()
 {
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Reset %s color.\n", "bold");
-        set_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_API,
-                  vte::color::rgb(get_color(VTE_DEFAULT_FG),
-                                  get_color(VTE_DEFAULT_BG),
-                                  1.8));
+        reset_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_API);
 }
 
 /*
@@ -8871,7 +8866,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
 
 	/* Handle bold by using set bold color or brightening */
         if (attr->bold()) {
-                if (fore == VTE_DEFAULT_FG) {
+                if (fore == VTE_DEFAULT_FG && get_color(VTE_BOLD_FG) != NULL) {
 			fore = VTE_BOLD_FG;
                 } else if (m_bold_is_bright &&
                            fore >= VTE_LEGACY_COLORS_OFFSET &&
