@@ -9360,7 +9360,7 @@ VteTerminalPrivate::translate_pango_cells(PangoAttrList *attrs,
 								 list,
 								 cells +
 								 attr->start_index,
-								 attr->end_index -
+								 MIN(n_cells, attr->end_index) -
 								 attr->start_index);
 				g_slist_foreach(list,
                                                 (GFunc)pango_attribute_destroy,
