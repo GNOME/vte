@@ -8740,7 +8740,7 @@ VteTerminalPrivate::widget_realize()
         auto allocation = get_allocated_rect();
 
 	/* Create the stock cursors. */
-        m_mouse_cursor_over_widget = TRUE;  /* FIXME figure out the actual value, although it's safe to err in this direction */
+        m_mouse_cursor_over_widget = FALSE;  /* We'll receive an enter_notify_event if the window appears under the cursor. */
 	m_mouse_default_cursor = widget_cursor_new(VTE_DEFAULT_CURSOR);
 	m_mouse_mousing_cursor = widget_cursor_new(VTE_MOUSING_CURSOR);
         if (_vte_debug_on(VTE_DEBUG_HYPERLINK))
