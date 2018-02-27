@@ -7491,6 +7491,8 @@ VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
 
         m_mouse_cursor_over_widget = TRUE;
         apply_mouse_cursor();
+
+        m_mouse_last_position = pos;
 }
 
 void
@@ -7509,6 +7511,8 @@ VteTerminalPrivate::widget_leave(GdkEventCrossing *event)
          */
         m_mouse_cursor_over_widget = FALSE;
         apply_mouse_cursor();
+
+        m_mouse_last_position = pos;
 }
 
 static G_GNUC_UNUSED inline const char *
