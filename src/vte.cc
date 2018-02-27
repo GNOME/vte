@@ -8280,8 +8280,12 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_cell_height_scale = 1.;
 	m_has_fonts = FALSE;
 
+        /* Hyperlink */
         m_allow_hyperlink = FALSE;
         m_hyperlink_auto_id = 0;
+
+        /* Mouse */
+        m_mouse_last_position = vte::view::coords(-1, -1);
 
 	/* Not all backends generate GdkVisibilityNotify, so mark the
 	 * window as unobscured initially. */
@@ -10734,7 +10738,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         apply_mouse_cursor();
         m_mouse_pressed_buttons = 0;
         m_mouse_handled_buttons = 0;
-	m_mouse_last_position = vte::view::coords(-1, -1);
 	m_mouse_xterm_extension = FALSE;
 	m_mouse_urxvt_extension = FALSE;
 	m_mouse_smooth_scroll_delta = 0.;
