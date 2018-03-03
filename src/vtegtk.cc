@@ -2715,7 +2715,7 @@ vte_terminal_feed(VteTerminal *terminal,
 /**
  * vte_terminal_feed_child:
  * @terminal: a #VteTerminal
- * @text: (element-type utf8) (allow-none): data to send to the child
+ * @text: (array length=length) (element-type gchar) (allow-none): data to send to the child
  * @length: length of @text in bytes, or -1 if @text is NUL-terminated
  *
  * Sends a block of UTF-8 text to the child as if it were entered by the user
