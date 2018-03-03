@@ -45,6 +45,7 @@ public:
         gboolean icon_title{false};
         gboolean keep{false};
         gboolean no_argb_visual{false};
+        gboolean no_bold{false};
         gboolean no_bold_is_bright{false};
         gboolean no_builtin_dingus{false};
         gboolean no_context_menu{false};
@@ -375,6 +376,8 @@ public:
                           "Live on after the command exits", nullptr },
                         { "no-argb-visual", 0, 0, G_OPTION_ARG_NONE, &no_argb_visual,
                           "Don't use an ARGB visual", nullptr },
+                        { "no-bold", 0, 0, G_OPTION_ARG_NONE, &no_bold,
+                          "Disable bold", nullptr },
                         { "no-bold-is-bright", 'B', 0, G_OPTION_ARG_NONE, &no_bold_is_bright,
                           "Bold does not brightens colors", nullptr },
                         { "no-builtin-dingus", 0, 0, G_OPTION_ARG_NONE, &no_builtin_dingus,
@@ -1825,6 +1828,7 @@ vteapp_window_constructed(GObject *object)
 
         vte_terminal_set_allow_hyperlink(window->terminal, !options.no_hyperlink);
         vte_terminal_set_audible_bell(window->terminal, options.audible_bell);
+        vte_terminal_set_allow_bold(window->terminal, !options.no_bold);
         vte_terminal_set_bold_is_bright(window->terminal, !options.no_bold_is_bright);
         vte_terminal_set_cell_height_scale(window->terminal, options.cell_height_scale);
         vte_terminal_set_cell_width_scale(window->terminal, options.cell_width_scale);
