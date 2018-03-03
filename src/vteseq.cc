@@ -927,8 +927,7 @@ VteTerminalPrivate::seq_shift_out(vte::parser::Params const& params)
 void
 VteTerminalPrivate::seq_bell(vte::parser::Params const& params)
 {
-        beep();
-        emit_bell();
+        m_bell_pending = true;
 }
 
 /* Backtab. */

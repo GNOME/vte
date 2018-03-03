@@ -109,6 +109,9 @@
 #define VTE_CELL_SCALE_MIN (1.)
 #define VTE_CELL_SCALE_MAX (2.)
 
+/* Minimum time between two beeps (µs) */
+#define VTE_BELL_MINIMUM_TIME_DIFFERENCE (100000)
+
 /* Maximum length of a URI in the OSC 8 escape sequences. There's no de jure limit,
  * 2000-ish the de facto standard, and Internet Explorer supports 2083.
  * See also the comment of VTE_HYPERLINK_TOTAL_LENGTH_MAX. */

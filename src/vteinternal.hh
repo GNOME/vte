@@ -648,6 +648,10 @@ public:
 	/* Background */
         double m_background_alpha;
 
+        /* Bell */
+        int64_t m_bell_timestamp;
+        bool m_bell_pending{false};
+
 	/* Key modifiers. */
         guint m_modifiers;
 

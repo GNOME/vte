@@ -10648,6 +10648,8 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
 
+        m_bell_pending = false;
+
 	/* Clear the output buffer. */
 	_vte_byte_array_clear(m_outgoing);
 	/* Reset charset substitution state. */
@@ -11078,6 +11080,16 @@ VteTerminalPrivate::emit_pending_signals()
 		g_signal_emit(m_terminal, signals[SIGNAL_CONTENTS_CHANGED], 0);
 		m_contents_changed_pending = false;
 	}
+        if (m_bell_pending) {
+                auto const timestamp = g_get_monotonic_time();
+                if ((timestamp - m_bell_timestamp) >= VTE_BELL_MINIMUM_TIME_DIFFERENCE) {
+                        beep();
+                        emit_bell();
+                }
+
+                m_bell_timestamp = timestamp;
+                m_bell_pending = false;
+        }
 
         g_object_thaw_notify(object);
 }
