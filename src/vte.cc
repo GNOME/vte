@@ -9031,8 +9031,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-			gint bold_offset = _vte_draw_has_bold(m_draw,
-									VTE_DRAW_BOLD) ? 0 : bold;
+                        gint bold_offset = (bold && !_vte_draw_has_bold(m_draw, VTE_DRAW_BOLD)) ? 1 : 0;
 			_vte_draw_fill_rectangle(m_draw,
 					x,
                                         y,
@@ -9506,8 +9505,7 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				}
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
-					gint bold_offset = _vte_draw_has_bold(m_draw,
-											VTE_DRAW_BOLD) ? 0 : bold;
+                                        gint bold_offset = (bold && !_vte_draw_has_bold(m_draw, VTE_DRAW_BOLD)) ? 1 : 0;
                                         rgb_from_index<8, 8, 8>(back, bg);
 					_vte_draw_fill_rectangle (
 							m_draw,
