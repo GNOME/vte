@@ -9013,7 +9013,7 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 	}
 #endif
 
-	auto bold = (attr & VTE_ATTR_BOLD) && m_allow_bold;
+	auto bold = (attr & VTE_ATTR_BOLD) != 0;
         rgb_from_index<8, 8, 8>(fore, fg);
         rgb_from_index<8, 8, 8>(back, bg);
         // FIXMEchpe defer resolving deco color until we actually need to draw an underline?
@@ -9402,6 +9402,8 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 	 * all the items contain gunichar only, not vteunistr. */
         // FIXMEchpe is that really true for all input methods?
 
+        uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
+
 	for (i = 0, cell_count = 0; i < n; i++) {
 		cell_count += g_unichar_to_utf8(items[i].c, scratch_buf);
 	}
@@ -9414,7 +9416,7 @@ VteTerminalPrivate::draw_cells_with_attributes(struct _vte_draw_text_request *it
 					back,
                                         deco,
 					TRUE, draw_default_bg,
-					cells[j].attr.attr,
+					cells[j].attr.attr & attr_mask,
                                         m_allow_hyperlink && cells[j].attr.hyperlink_idx != 0,
 					FALSE, column_width, height);
 		j += g_unichar_to_utf8(items[i].c, scratch_buf);
@@ -9447,6 +9449,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
+
+        uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
 
 	/* adjust for the absolute start of row */
 	start_x -= start_column * column_width;
@@ -9720,7 +9724,7 @@ fg_draw:
 					items,
 					item_count,
                                         fore, back, deco, FALSE, FALSE,
-                                        attr /* & VTE_ATTR_ALL_MASK */,
+                                        attr & attr_mask,
                                         hyperlink, hilite,
 					column_width, row_height);
 			item_count = 1;
@@ -9938,6 +9942,8 @@ VteTerminalPrivate::paint_cursor()
                                 cursor_width = MAX(cursor_width, r);
 			}
 
+                        uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
+
 			if (focus) {
 				/* just reverse the character under the cursor */
                                 _vte_draw_fill_rectangle(m_draw,
@@ -9949,7 +9955,7 @@ VteTerminalPrivate::paint_cursor()
                                         draw_cells(
                                                         &item, 1,
                                                         fore, back, deco, TRUE, FALSE,
-                                                        cell->attr.attr,
+                                                        cell->attr.attr & attr_mask,
                                                         m_allow_hyperlink && cell->attr.hyperlink_idx != 0,
                                                         FALSE,
                                                         width,
