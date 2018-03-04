@@ -4090,7 +4090,8 @@ out:
  */
 void
 VteTerminalPrivate::feed(char const* data,
-                         gssize length)
+                         gssize length,
+                         bool start_processing_)
 {
         g_assert(length == 0 || data != nullptr);
 
@@ -4122,7 +4123,8 @@ VteTerminalPrivate::feed(char const* data,
 			feed_chunks(chunk);
 		} while (1);
 
-		start_processing();
+                if (start_processing_)
+                        start_processing();
 	}
 }
 
@@ -8284,13 +8286,20 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_padding = default_padding;
         update_view_extents();
 
+#ifdef VTE_DEBUG
+        if (g_test_mode) {
+                static char const warning[] = "\e[1m\e[31mWARNING:\e[39m Test mode enabled.\e[0m\n\e[G";
+                feed(warning, strlen(warning), false);
+        }
+#endif
+
 #ifndef WITH_GNUTLS
 {
         char buf[1024];
-        auto len = g_snprintf(buf, sizeof(buf), "\e[1m\e[31m%s:\e[39m %s\e[0m\n",
+        auto len = g_snprintf(buf, sizeof(buf), "\e[1m\e[31m%s:\e[39m %s\e[0m\n\e[G",
                               _("WARNING"),
                               _("GNUTLS not enabled; data will be written to disk unencrypted!"));
-        feed(buf, len);
+        feed(buf, len, false);
  }
 #endif
 }

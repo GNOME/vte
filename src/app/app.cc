@@ -56,6 +56,7 @@ public:
         gboolean no_shell{false};
         gboolean object_notifications{false};
         gboolean reverse{false};
+        gboolean test_mode{false};
         gboolean use_gregex{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
@@ -433,7 +434,10 @@ public:
                           &dummy_bool, nullptr, nullptr },
                         { "shell", 'S', G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN,
                           G_OPTION_ARG_NONE, &no_shell, nullptr, nullptr },
-
+#ifdef VTE_DEBUG
+                        { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
+                          "Enable test mode", nullptr },
+#endif
                         { nullptr }
                 };
 
@@ -2105,6 +2109,12 @@ main(int argc,
 
        if (options.debug)
                gdk_window_set_debug_updates(true);
+#ifdef VTE_DEBUG
+       if (options.test_mode) {
+               g_setenv("VTE_TEST", "1", true);
+               options.allow_window_ops = true;
+       }
+#endif
 
        auto app = vteapp_application_new();
        auto rv = g_application_run(app, 0, nullptr);

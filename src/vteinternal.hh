@@ -958,7 +958,8 @@ public:
                    bool from_api = false);
 
         void feed(char const* data,
-                  gssize length);
+                  gssize length,
+                  bool start_processsing_ = true);
         void feed_child(char const *text,
                         gssize length);
         void feed_child_binary(guint8 const* data,
@@ -1382,3 +1383,5 @@ _vte_double_equal(double a,
         return a == b;
 #pragma GCC diagnostic pop
 }
+
+extern bool g_test_mode;

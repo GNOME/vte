@@ -89,6 +89,7 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
 guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
 GTimer *process_timer;
+bool g_test_mode = false;
 
 static bool
 valid_color(GdkRGBA const* color)
@@ -649,6 +650,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                  "  =  vte_terminal_paint\n"
                                  "  ]} end update_timeout\n"
                                  "  >  end process_timeout\n");
+
+                char const* test_env = g_getenv("VTE_TEST");
+                if (test_env != nullptr) {
+                        g_test_mode = g_str_equal(test_env, "1");
+                        g_unsetenv("VTE_TEST");
+                }
 	}
 #endif
 
