@@ -1909,8 +1909,7 @@ VteTerminalPrivate::emit_adjustment_changed()
 {
 	if (m_adjustment_changed_pending) {
 		bool changed = false;
-		glong v;
-		gdouble current;
+		gdouble current, v;
 
 		g_object_freeze_notify (G_OBJECT(m_vadjustment));
 
@@ -1918,7 +1917,7 @@ VteTerminalPrivate::emit_adjustment_changed()
 		current = gtk_adjustment_get_lower(m_vadjustment);
 		if (!_vte_double_equal(current, v)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing lower bound from %.0f to %ld\n",
+					"Changing lower bound from %.0f to %f\n",
 					 current, v);
 			gtk_adjustment_set_lower(m_vadjustment, v);
 			changed = true;
@@ -1928,9 +1927,43 @@ VteTerminalPrivate::emit_adjustment_changed()
 		current = gtk_adjustment_get_upper(m_vadjustment);
 		if (!_vte_double_equal(current, v)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing upper bound from %.0f to %ld\n",
+					"Changing upper bound from %.0f to %f\n",
 					 current, v);
 			gtk_adjustment_set_upper(m_vadjustment, v);
+			changed = true;
+		}
+
+		/* The step increment should always be one. */
+		v = gtk_adjustment_get_step_increment(m_vadjustment);
+		if (!_vte_double_equal(v, 1)) {
+			_vte_debug_print(VTE_DEBUG_ADJ,
+					"Changing step increment from %.0lf to 1\n", v);
+			gtk_adjustment_set_step_increment(m_vadjustment, 1);
+			changed = true;
+		}
+
+		/* Set the number of rows the user sees to the number of rows the
+		 * user sees. */
+		v = gtk_adjustment_get_page_size(m_vadjustment);
+		if (!_vte_double_equal(v, m_row_count)) {
+			_vte_debug_print(VTE_DEBUG_ADJ,
+					"Changing page size from %.0f to %ld\n",
+					 v, m_row_count);
+			gtk_adjustment_set_page_size(m_vadjustment,
+						     m_row_count);
+			changed = true;
+		}
+
+		/* Clicking in the empty area should scroll one screen, so set the
+		 * page size to the number of visible rows. */
+		v = gtk_adjustment_get_page_increment(m_vadjustment);
+		if (!_vte_double_equal(v, m_row_count)) {
+			_vte_debug_print(VTE_DEBUG_ADJ,
+					"Changing page increment from "
+					"%.0f to %ld\n",
+					v, m_row_count);
+			gtk_adjustment_set_page_increment(m_vadjustment,
+							  m_row_count);
 			changed = true;
 		}
 
@@ -2020,54 +2053,11 @@ VteTerminalPrivate::adjust_adjustments()
 void
 VteTerminalPrivate::adjust_adjustments_full()
 {
-	bool changed = false;
-
 	g_assert(m_screen != NULL);
 	g_assert(m_screen->row_data != NULL);
 
 	adjust_adjustments();
-
-        g_object_freeze_notify(G_OBJECT(m_vadjustment));
-
-	/* The step increment should always be one. */
-	double v = gtk_adjustment_get_step_increment(m_vadjustment);
-	if (!_vte_double_equal(v, 1)) {
-		_vte_debug_print(VTE_DEBUG_ADJ,
-				"Changing step increment from %.0lf to 1\n", v);
-		gtk_adjustment_set_step_increment(m_vadjustment, 1);
-		changed = true;
-	}
-
-	/* Set the number of rows the user sees to the number of rows the
-	 * user sees. */
-	v = gtk_adjustment_get_page_size(m_vadjustment);
-	if (!_vte_double_equal(v, m_row_count)) {
-		_vte_debug_print(VTE_DEBUG_ADJ,
-				"Changing page size from %.0f to %ld\n",
-				 v, m_row_count);
-		gtk_adjustment_set_page_size(m_vadjustment,
-					     m_row_count);
-		changed = true;
-	}
-
-	/* Clicking in the empty area should scroll one screen, so set the
-	 * page size to the number of visible rows. */
-	v = gtk_adjustment_get_page_increment(m_vadjustment);
-	if (!_vte_double_equal(v, m_row_count)) {
-		_vte_debug_print(VTE_DEBUG_ADJ,
-				"Changing page increment from "
-				"%.0f to %ld\n",
-				v, m_row_count);
-		gtk_adjustment_set_page_increment(m_vadjustment,
-						  m_row_count);
-		changed = true;
-	}
-
-	g_object_thaw_notify(G_OBJECT(m_vadjustment));
-
-	if (changed)
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting adjustment_changed.\n");
+	queue_adjustment_changed();
 }
 
 /* Scroll a fixed number of lines up or down in the current screen. */
