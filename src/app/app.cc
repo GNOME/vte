@@ -2113,6 +2113,8 @@ main(int argc,
        if (options.test_mode) {
                g_setenv("VTE_TEST", "1", true);
                options.allow_window_ops = true;
+       } else {
+               g_unsetenv("VTE_TEST");
        }
 #endif
 
