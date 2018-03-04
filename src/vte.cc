@@ -11085,9 +11085,10 @@ VteTerminalPrivate::emit_pending_signals()
                 if ((timestamp - m_bell_timestamp) >= VTE_BELL_MINIMUM_TIME_DIFFERENCE) {
                         beep();
                         emit_bell();
-                }
 
-                m_bell_timestamp = timestamp;
+                        m_bell_timestamp = timestamp;
+                 }
+
                 m_bell_pending = false;
         }
 
