@@ -1,3 +1,4 @@
+SEQUENCE_HANDLER(checksum_rectangular_area)
 SEQUENCE_HANDLER(ansi_conformance_level_1)
 SEQUENCE_HANDLER(ansi_conformance_level_2)
 SEQUENCE_HANDLER(ansi_conformance_level_3)

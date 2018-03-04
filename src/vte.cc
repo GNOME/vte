@@ -6156,6 +6156,35 @@ VteTerminalPrivate::get_selected_text(GArray *attributes)
                         attributes);
 }
 
+#ifdef VTE_DEBUG
+unsigned int
+VteTerminalPrivate::checksum_area(vte::grid::row_t start_row,
+                                  vte::grid::column_t start_col,
+                                  vte::grid::row_t end_row,
+                                  vte::grid::column_t end_col)
+{
+        unsigned int checksum = 0;
+
+        auto text = get_text(start_row, start_col, end_row, end_col,
+                             true /* block */, false /* wrap */,
+                             true /* trailing whitespace */,
+                             nullptr /* not interested in attributes */);
+        if (text == nullptr)
+                return checksum;
+
+        char const* end = (char const*)text->str + text->len;
+        for (char const *p = text->str; p < end; p = g_utf8_next_char(p)) {
+                auto const c = g_utf8_get_char(p);
+                if (c == '\n')
+                        continue;
+                checksum += c;
+        }
+        g_string_free(text, true);
+
+        return checksum & 0xffff;
+}
+#endif /* VTE_DEBUG */
+
 /*
  * Compares the visual attributes of a VteCellAttr for equality, but ignores
  * attributes that tend to change from character to character or are otherwise

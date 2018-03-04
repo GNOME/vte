@@ -1356,6 +1356,11 @@ public:
                                          int osc,
                                          char const *terminator);
 
+        unsigned int checksum_area(vte::grid::row_t start_row,
+                                   vte::grid::column_t start_col,
+                                   vte::grid::row_t end_row,
+                                   vte::grid::column_t end_col);
+
         void subscribe_accessible_events();
         void select_text(vte::grid::column_t start_col,
                          vte::grid::row_t start_row,
