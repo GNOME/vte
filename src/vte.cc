@@ -10703,8 +10703,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
 	/* Cause everything to be redrawn (or cleared). */
-	maybe_scroll_to_bottom();
-
 	invalidate_all();
 
         g_object_thaw_notify(object);
