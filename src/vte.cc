@@ -10668,27 +10668,22 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	m_cursor_visible = TRUE;
         /* For some reason, xterm doesn't reset alternateScroll, but we do. */
         m_alternate_screen_scroll = TRUE;
-	/* Reset selection. */
-	deselect_all();
-	m_has_selection = FALSE;
-	m_selecting = FALSE;
-	m_selecting_restart = FALSE;
-	m_selecting_had_delta = FALSE;
-	for (int sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
-		if (m_selection[sel] != nullptr) {
-			g_string_free(m_selection[sel], TRUE);
-			m_selection[sel] = nullptr;
-		}
-                m_selection_owned[sel] = false;
-	}
-        memset(&m_selection_origin, 0,
-               sizeof(m_selection_origin));
-        memset(&m_selection_last, 0,
-               sizeof(m_selection_last));
-        memset(&m_selection_start, 0,
-               sizeof(m_selection_start));
-        memset(&m_selection_end, 0,
-               sizeof(m_selection_end));
+        /* Reset the visual bits of selection on hard reset, see bug 789954. */
+        if (clear_history) {
+                deselect_all();
+                m_has_selection = FALSE;
+                m_selecting = FALSE;
+                m_selecting_restart = FALSE;
+                m_selecting_had_delta = FALSE;
+                memset(&m_selection_origin, 0,
+                       sizeof(m_selection_origin));
+                memset(&m_selection_last, 0,
+                       sizeof(m_selection_last));
+                memset(&m_selection_start, 0,
+                       sizeof(m_selection_start));
+                memset(&m_selection_end, 0,
+                       sizeof(m_selection_end));
+        }
 
 	/* Reset mouse motion events. */
 	m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
