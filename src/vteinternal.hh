@@ -540,10 +540,9 @@ public:
         guint m_mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
         /* The last known position the mouse pointer from an event. We don't store
          * this in grid coordinates because we want also to check if they were outside
-         * the viewable area.
+         * the viewable area, and also want to catch in-cell movements if they make the pointer visible.
          */
         vte::view::coords m_mouse_last_position;
-        gboolean m_mouse_autohide;
         guint m_mouse_autoscroll_tag;
         gboolean m_mouse_xterm_extension;
         gboolean m_mouse_urxvt_extension;
@@ -563,10 +562,6 @@ public:
          * a match for any of the dingu regexes.
          */
         vte::grid::span m_match_span;
-        /* Whether the match is being highlighted.
-         * Only used if m_match is non-null.
-         */
-        bool m_show_match;
 
 	/* Search data. */
         struct vte_regex_and_flags m_search_regex;
@@ -612,9 +607,9 @@ public:
         VtePaletteColor m_palette[VTE_PALETTE_SIZE];
 
 	/* Mouse cursors. */
-        gboolean m_mouse_cursor_over_widget;
-        gboolean m_mouse_cursor_autohidden;  /* whether the autohiding logic wants to hide it; even if autohiding is disabled */
-        gboolean m_mouse_cursor_visible;     /* derived value really containing if it's actually visible */
+        gboolean m_mouse_cursor_over_widget; /* as per enter and leave events */
+        gboolean m_mouse_autohide;           /* the API setting */
+        gboolean m_mouse_cursor_autohidden;  /* whether the autohiding logic wants to hide it; even if autohiding is disabled via API */
         GdkCursor* m_mouse_default_cursor;
         GdkCursor* m_mouse_mousing_cursor;
         GdkCursor* m_mouse_hyperlink_cursor;
@@ -1113,18 +1108,13 @@ public:
         void set_default_tabstops();
 
         void hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRectangle *bbox);
-        void hyperlink_hilite_update(vte::view::coords const& pos);
-        void hyperlink_hilite(vte::view::coords const& pos);
+        void hyperlink_hilite_update();
 
         void match_contents_clear();
         void match_contents_refresh();
         void set_cursor_from_regex_match(struct vte_match_regex *regex);
         void match_hilite_clear();
-        bool cursor_inside_match(vte::view::coords const& pos);
-        void match_hilite_show(vte::view::coords const& pos);
-        void match_hilite_hide();
-        void match_hilite_update(vte::view::coords const& pos);
-        void match_hilite(vte::view::coords const& pos);
+        void match_hilite_update();
 
         bool rowcol_from_event(GdkEvent *event,
                                long *column,

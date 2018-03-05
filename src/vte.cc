@@ -2273,13 +2273,15 @@ VteTerminalPrivate::update_insert_delta()
 void
 VteTerminalPrivate::apply_mouse_cursor()
 {
-        /* See bug 789390 for the m_mouse_cursor_over_widget condition. */
-        m_mouse_cursor_visible = !(m_mouse_autohide && m_mouse_cursor_autohidden && m_mouse_cursor_over_widget);
-
         if (!widget_realized())
                 return;
 
-        if (m_mouse_cursor_visible) {
+        /* Show the cursor if over the widget and not autohidden, this is obvious.
+         * Also show the cursor if outside the widget regardless of the autohidden state, so that if a popover is opened
+         * and then the cursor returns (which doesn't trigger enter/motion events), it is visible.
+         * That is, only hide the cursor if it's over the widget and is autohidden.
+         * See bug 789390 and bug 789536 comment 6 for details. */
+        if (!(m_mouse_autohide && m_mouse_cursor_autohidden && m_mouse_cursor_over_widget)) {
                 if (m_hyperlink_hover_idx != 0) {
                         _vte_debug_print(VTE_DEBUG_CURSOR,
                                         "Setting hyperlink mouse cursor.\n");
@@ -2310,8 +2312,16 @@ VteTerminalPrivate::apply_mouse_cursor()
 void
 VteTerminalPrivate::set_pointer_autohidden(bool autohidden)
 {
+        if (autohidden == m_mouse_cursor_autohidden)
+                return;
+
         m_mouse_cursor_autohidden = autohidden;
-        apply_mouse_cursor();
+
+        if (m_mouse_autohide) {
+                hyperlink_hilite_update();
+                match_hilite_update();
+                apply_mouse_cursor();
+        }
 }
 
 /*
@@ -5591,10 +5601,10 @@ VteTerminalPrivate::hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRe
  * and m_hyperlink_hover_uri, and schedules to update the highlighting.
  */
 void
-VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
+VteTerminalPrivate::hyperlink_hilite_update()
 {
         const VteRowData *rowdata;
-        bool coords_visible;
+        bool do_check_hilite;
         vte::grid::coords rowcol;
         hyperlink_idx_t new_hyperlink_hover_idx = 0;
         GdkRectangle bbox;
@@ -5606,8 +5616,15 @@ VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                          "hyperlink_hilite_update\n");
 
-        coords_visible = view_coords_visible(pos);
-        if (coords_visible) {
+        /* m_mouse_last_position contains the current position, see bug 789536 comment 24. */
+        auto pos = m_mouse_last_position;
+
+        /* Whether there's any chance we'd highlight something */
+        do_check_hilite = view_coords_visible(pos) &&
+                          m_mouse_cursor_over_widget &&
+                          !(m_mouse_autohide && m_mouse_cursor_autohidden) &&
+                          !m_selecting;
+        if (do_check_hilite) {
                 rowcol = grid_coords_from_view_coords(pos);
                 rowdata = find_row_data(rowcol.row());
                 if (rowdata && rowcol.column() < rowdata->len) {
@@ -5629,7 +5646,7 @@ VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
         /* This might be different from new_hyperlink_hover_idx. If in the stream, that one contains
          * the pseudo idx VTE_HYPERLINK_IDX_TARGET_IN_STREAM and now a real idx is allocated.
          * Plus, the ring's internal belief of the hovered hyperlink is also updated. */
-        if (coords_visible) {
+        if (do_check_hilite) {
                 m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, rowcol.row(), rowcol.column(), true, &m_hyperlink_hover_uri);
         } else {
                 m_hyperlink_hover_idx = 0;
@@ -5661,29 +5678,6 @@ VteTerminalPrivate::hyperlink_hilite_update(vte::view::coords const& pos)
 }
 
 /*
- * VteTerminalPrivate::hyperlink_hilite:
- *
- * If the mouse moved to a new cell, updates the hyperlinks via hyperlink_hilite_update().
- */
-void
-VteTerminalPrivate::hyperlink_hilite(vte::view::coords const& pos)
-{
-        /* if the cursor is not above a cell, skip */
-        if (!view_coords_visible(pos))
-                return;
-
-        /* If the pointer hasn't moved to another character cell, then we
-         * need do nothing. Note: Don't use mouse_last_row as that's relative
-         * to insert_delta, and we care about the absolute row number. */
-        if (grid_coords_from_view_coords(pos) ==
-             confined_grid_coords_from_view_coords(m_mouse_last_position)) {
-                return;
-        }
-
-       hyperlink_hilite_update(pos);
-}
-
-/*
  * VteTerminalPrivate::match_hilite_clear:
  *
  * Reset match variables and invalidate the old match region if highlighted.
@@ -5691,9 +5685,8 @@ VteTerminalPrivate::hyperlink_hilite(vte::view::coords const& pos)
 void
 VteTerminalPrivate::match_hilite_clear()
 {
-        match_hilite_hide();
+        invalidate_match_span();
 
-        m_show_match = false;
         m_match_span.clear();
         m_match_tag = -1;
 
@@ -5701,15 +5694,6 @@ VteTerminalPrivate::match_hilite_clear()
 		g_free (m_match);
 		m_match = nullptr;
 	}
-}
-
-bool
-VteTerminalPrivate::cursor_inside_match(vte::view::coords const& pos)
-{
-	glong col = pos.x / m_cell_width;
-	glong row = pixel_to_row(pos.y);
-
-        return m_match_span.contains(row, col);
 }
 
 void
@@ -5721,40 +5705,6 @@ VteTerminalPrivate::invalidate_match_span()
 }
 
 /*
- * VteTerminalPrivate::match_hilite_show:
- *
- * Sets the match to display highlighted, if there is a match, and
- * the coordinates are in the match area m_match_span.
- */
-void
-VteTerminalPrivate::match_hilite_show(vte::view::coords const& pos)
-{
-	if (!m_match || m_show_match)
-                return;
-
-        if (!cursor_inside_match(pos))
-                return;
-
-        invalidate_match_span();
-        m_show_match = true;
-}
-
-/*
- * VteTerminalPrivate::match_hilite_hide:
- *
- * If there is a match, hide the display highlight.
- */
-void
-VteTerminalPrivate::match_hilite_hide()
-{
-        if (!m_match || !m_show_match)
-                return;
-
-        invalidate_match_span();
-        m_show_match = false;
-}
-
-/*
  * VteTerminalPrivate::match_hilite_update:
  *
  * Checks the coordinates for dingu matches, setting m_match_span to
@@ -5762,29 +5712,44 @@ VteTerminalPrivate::match_hilite_hide()
  * sets it to display highlighted.
  */
 void
-VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
+VteTerminalPrivate::match_hilite_update()
 {
-        auto x = pos.x;
-        auto y = pos.y;
+        /* m_mouse_last_position contains the current position, see bug 789536 comment 24. */
+        auto pos = m_mouse_last_position;
 
-	/* Check for matches. */
+        glong col = pos.x / m_cell_width;
+        glong row = pixel_to_row(pos.y);
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
                          "Match hilite update (%ld, %ld) -> %ld, %ld\n",
-			x, y,
-                         x / m_cell_width,
-                         pixel_to_row(y));
+                         pos.x, pos.y, col, row);
+
+        /* Whether there's any chance we'd highlight something */
+        bool do_check_hilite = view_coords_visible(pos) &&
+                               m_mouse_cursor_over_widget &&
+                               !(m_mouse_autohide && m_mouse_cursor_autohidden) &&
+                               !m_selecting;
+        if (!do_check_hilite) {
+                if (m_match != nullptr)
+                         match_hilite_clear();
+                return;
+        }
+
+        if (m_match_span.contains(row, col)) {
+                /* Already highlighted. */
+                return;
+        }
 
         /* Reset match variables and invalidate the old match region if highlighted */
         match_hilite_clear();
 
+        /* Check for matches. */
 	gsize start, end;
-	auto new_match = match_check_internal(
-                                                  x / m_cell_width,
-                                                  pixel_to_row(y),
-						  &m_match_tag,
-						  &start,
-						  &end);
+        auto new_match = match_check_internal(col,
+                                              row,
+                                              &m_match_tag,
+                                              &start,
+                                              &end);
 
 	/* Read the new locations. */
 	if (start < m_match_attributes->len &&
@@ -5807,41 +5772,12 @@ VteTerminalPrivate::match_hilite_update(vte::view::coords const& pos)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Matched %s.\n", m_match_span.to_string());
                 invalidate_match_span();
-                m_show_match = true;
         } else {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "No matches %s.\n", m_match_span.to_string());
 	}
 
         apply_mouse_cursor();
-}
-
-/*
- * VteTerminalPrivate::match_hilite:
- *
- * Checks if the coordinates are in the match or no-matches region
- * (m_match_span) and if so, updates the match highlighting.
- * If the coordinates are outside that region, does full match checking
- * with match_hilite_update().
- */
-void
-VteTerminalPrivate::match_hilite(vte::view::coords const& pos)
-{
-	/* if the cursor is not above a cell, skip */
-        if (!view_coords_visible(pos))
-		return;
-
-	/* If the pointer hasn't moved to another character cell, then we
-	 * need do nothing. Note: Don't use mouse_last_row as that's relative
-	 * to insert_delta, and we care about the absolute row number. */
-	if (grid_coords_from_view_coords(pos) ==
-            confined_grid_coords_from_view_coords(m_mouse_last_position) ||
-            cursor_inside_match(pos)) {
-		m_show_match = m_match != nullptr;
-		return;
-	}
-
-	match_hilite_update(pos);
 }
 
 /* Note that the clipboard has cleared. */
@@ -7173,16 +7109,6 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 
 	read_modifiers(base_event);
 
-        if (m_mouse_pressed_buttons != 0) {
-		match_hilite_hide();
-	} else if (pos != m_mouse_last_position) {
-		/* Hilite any matches. */
-                hyperlink_hilite(pos);
-		match_hilite(pos);
-		/* Show the cursor. */
-                set_pointer_autohidden(false);
-	}
-
 	switch (event->type) {
 	case GDK_MOTION_NOTIFY:
 		if (m_selecting_after_threshold) {
@@ -7222,8 +7148,13 @@ VteTerminalPrivate::widget_motion_notify(GdkEventMotion *event)
 		break;
 	}
 
-	/* Save the pointer coordinates for later use. */
-	m_mouse_last_position = pos;
+        if (pos != m_mouse_last_position) {
+                m_mouse_last_position = pos;
+
+                set_pointer_autohidden(false);
+                hyperlink_hilite_update();
+                match_hilite_update();
+        }
 
 	return handled;
 }
@@ -7237,11 +7168,6 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
-
-        hyperlink_hilite(pos);
-	match_hilite(pos);
-
-        set_pointer_autohidden(false);
 
 	read_modifiers(base_event);
 
@@ -7375,7 +7301,12 @@ VteTerminalPrivate::widget_button_press(GdkEventButton *event)
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons |= (1 << (event->button - 1));
+
 	m_mouse_last_position = pos;
+
+        set_pointer_autohidden(false);
+        hyperlink_hilite_update();
+        match_hilite_update();
 
 	return handled;
 }
@@ -7388,11 +7319,6 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
-
-        hyperlink_hilite(pos);
-	match_hilite(pos);
-
-        set_pointer_autohidden(false);
 
 	stop_autoscroll();
 
@@ -7427,8 +7353,13 @@ VteTerminalPrivate::widget_button_release(GdkEventButton *event)
 	/* Save the pointer state for later use. */
         if (event->button >= 1 && event->button <= 3)
                 m_mouse_pressed_buttons &= ~(1 << (event->button - 1));
+
 	m_mouse_last_position = pos;
 	m_selecting_after_threshold = false;
+
+        set_pointer_autohidden(false);
+        hyperlink_hilite_update();
+        match_hilite_update();
 
 	return handled;
 }
@@ -7507,13 +7438,13 @@ VteTerminalPrivate::widget_enter(GdkEventCrossing *event)
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter at %s\n", pos.to_string());
 
-        /* Hilite any matches. */
-        match_hilite_show(pos);
-
         m_mouse_cursor_over_widget = TRUE;
-        apply_mouse_cursor();
-
         m_mouse_last_position = pos;
+
+        set_pointer_autohidden(false);
+        hyperlink_hilite_update();
+        match_hilite_update();
+        apply_mouse_cursor();
 }
 
 void
@@ -7524,16 +7455,12 @@ VteTerminalPrivate::widget_leave(GdkEventCrossing *event)
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave at %s\n", pos.to_string());
 
-        match_hilite_hide();
-
-        /* Mark the cursor as invisible to disable hilite updating,
-         * whilst the cursor is absent (otherwise we copy the entire
-         * buffer after each update for nothing...)
-         */
         m_mouse_cursor_over_widget = FALSE;
-        apply_mouse_cursor();
-
         m_mouse_last_position = pos;
+
+        hyperlink_hilite_update();
+        match_hilite_update();
+        apply_mouse_cursor();
 }
 
 static G_GNUC_UNUSED inline const char *
@@ -9626,13 +9553,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                         uint32_t const attr = cell->attr.attr;
 
                         hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
-                        if (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) {
-                                hilite = true;
-                        } else if (m_hyperlink_hover_idx == 0 && m_show_match) {
-				hilite = m_match_span.contains(row, i);
-			} else {
-				hilite = false;
-			}
+                        hilite = (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
+                                 (m_hyperlink_hover_idx == 0 && m_match != nullptr && m_match_span.contains(row, i));
 
 			items[0].c = cell->c;
 			items[0].columns = cell->attr.columns();
@@ -9699,12 +9621,8 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
                                                 break;
                                         }
 					/* Break up matched/not-matched text. */
-					nhilite = false;
-                                        if (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) {
-                                                nhilite = true;
-                                        } else if (m_hyperlink_hover_idx == 0 && m_show_match) {
-						nhilite = m_match_span.contains(row, j);
-					}
+                                        nhilite = (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
+                                                  (m_hyperlink_hover_idx == 0 && m_match != nullptr && m_match_span.contains(row, j));
 					if (nhilite != hilite) {
 						break;
 					}
@@ -10650,7 +10568,12 @@ VteTerminalPrivate::set_mouse_autohide(bool autohide)
                 return false;
 
 	m_mouse_autohide = autohide;
-        apply_mouse_cursor();
+
+        if (m_mouse_cursor_autohidden) {
+                hyperlink_hilite_update();
+                match_hilite_update();
+                apply_mouse_cursor();
+        }
         return true;
 }
 
@@ -11099,8 +11022,8 @@ VteTerminalPrivate::emit_pending_signals()
                 /* Update hyperlink and dingus match set. */
 		match_contents_clear();
 		if (m_mouse_cursor_over_widget) {
-                        hyperlink_hilite_update(m_mouse_last_position);
-			match_hilite_update(m_mouse_last_position);
+                        hyperlink_hilite_update();
+                        match_hilite_update();
 		}
 
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
