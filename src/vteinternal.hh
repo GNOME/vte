@@ -650,9 +650,6 @@ public:
 	/* Key modifiers. */
         guint m_modifiers;
 
-	/* Obscured? state. */
-        GdkVisibilityState m_visibility_state;
-
 	/* Font stuff. */
         gboolean m_has_fonts;
         long m_line_thickness;
@@ -823,7 +820,6 @@ public:
         bool widget_button_release(GdkEventButton *event);
         void widget_enter(GdkEventCrossing *event);
         void widget_leave(GdkEventCrossing *event);
-        void widget_visibility_notify(GdkEventVisibility *event);
         void widget_scroll(GdkEventScroll *event);
         bool widget_motion_notify(GdkEventMotion *event);
         void widget_draw(cairo_t *cr);

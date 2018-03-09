@@ -266,14 +266,6 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
         return ret;
 }
 
-static gboolean
-vte_terminal_visibility_notify(GtkWidget *widget, GdkEventVisibility *event)
-{
-	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_visibility_notify(event);
-	return FALSE;
-}
-
 static void
 vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *minimum_width,
@@ -689,7 +681,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->leave_notify_event = vte_terminal_leave;
 	widget_class->focus_in_event = vte_terminal_focus_in;
 	widget_class->focus_out_event = vte_terminal_focus_out;
-	widget_class->visibility_notify_event = vte_terminal_visibility_notify;
 	widget_class->style_updated = vte_terminal_style_updated;
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
