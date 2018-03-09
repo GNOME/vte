@@ -7426,42 +7426,6 @@ visibility_state_str(GdkVisibilityState state)
 	}
 }
 
-void
-VteTerminalPrivate::widget_visibility_notify(GdkEventVisibility *event)
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_MISC,
-                         "Visibility (%s -> %s).\n",
-			visibility_state_str(m_visibility_state),
-			visibility_state_str(event->state));
-
-	if (event->state == m_visibility_state) {
-		return;
-	}
-
-	/* fully obscured to visible switch, force the fast path */
-	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		/* set invalidated_all false, since we didn't really mean it
-		 * when we set it to TRUE when becoming obscured */
-		m_invalidated_all = FALSE;
-
-		/* if all unobscured now, invalidate all, otherwise, wait
-		 * for the expose event */
-		if (event->state == GDK_VISIBILITY_UNOBSCURED) {
-			invalidate_all();
-		}
-	}
-
-	m_visibility_state = event->state;
-
-	/* no longer visible, stop processing display updates */
-	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		remove_update_timeout(this);
-		/* if fully obscured, just act like we have invalidated all,
-		 * so no updates are accumulated. */
-		m_invalidated_all = TRUE;
-	}
-}
-
 /* Apply the changed metrics, and queue a resize if need be.
  *
  * The cell's height consists of 4 parts, from top to bottom:
@@ -7942,8 +7906,6 @@ VteTerminalPrivate::vadjustment_value_changed()
 	/* Sanity checks. */
         if (G_UNLIKELY(!widget_realized()))
                 return;
-	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED)
-		return;
 
         /* FIXME: do this check in pixel space */
 	if (!_vte_double_equal(dy, 0)) {
@@ -8177,10 +8139,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 
         /* Mouse */
         m_mouse_last_position = vte::view::coords(-1, -1);
-
-	/* Not all backends generate GdkVisibilityNotify, so mark the
-	 * window as unobscured initially. */
-	m_visibility_state = GDK_VISIBILITY_UNOBSCURED;
 
         m_padding = default_padding;
         update_view_extents();
@@ -8642,7 +8600,6 @@ VteTerminalPrivate::widget_realize()
 	attributes.visual = gtk_widget_get_visual(m_widget);
 	attributes.event_mask = gtk_widget_get_events(m_widget) |
 				GDK_EXPOSURE_MASK |
-				GDK_VISIBILITY_NOTIFY_MASK |
 				GDK_FOCUS_CHANGE_MASK |
 				GDK_SMOOTH_SCROLL_MASK |
 				GDK_SCROLL_MASK |
@@ -10751,11 +10708,7 @@ void
 VteTerminalPrivate::reset_update_rects()
 {
         g_array_set_size(m_update_rects, 0);
-
-	/* The invalidated_all flag also marks whether to skip processing
-	 * due to the widget being invisible.
-         */
-	m_invalidated_all = m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED;
+	m_invalidated_all = FALSE;
 }
 
 static bool
@@ -11038,10 +10991,6 @@ VteTerminalPrivate::invalidate_dirty_rects_and_process_updates()
 {
         if (G_UNLIKELY(!widget_realized()))
                 return false;
-	if (m_visibility_state == GDK_VISIBILITY_FULLY_OBSCURED) {
-		reset_update_rects();
-		return false;
-	}
 
 	if (G_UNLIKELY (!m_update_rects->len))
 		return false;
