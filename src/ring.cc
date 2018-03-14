@@ -244,7 +244,8 @@ _vte_ring_get_hyperlink_idx_no_update_current (VteRing *ring, const char *hyperl
         len = strlen(hyperlink);
 
         /* Linear search for this particular URI */
-        for (idx = 1; idx <= ring->hyperlink_highest_used_idx; idx++) {
+        auto const last_idx = ring->hyperlink_highest_used_idx + 1;
+        for (idx = 1; idx < last_idx; idx++) {
                 if (strcmp(hyperlink_get(ring, idx)->str, hyperlink) == 0) {
                         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                                           "get_hyperlink_idx: already existing idx %d for id;uri=\"%s\"\n",
