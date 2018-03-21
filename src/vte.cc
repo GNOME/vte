@@ -8968,7 +8968,6 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 	}
 #endif
 
-	auto bold = (attr & VTE_ATTR_BOLD) != 0;
         rgb_from_index<8, 8, 8>(fore, fg);
         rgb_from_index<8, 8, 8>(back, bg);
         // FIXMEchpe defer resolving deco color until we actually need to draw an underline?
@@ -8986,11 +8985,10 @@ VteTerminalPrivate::draw_cells(struct _vte_draw_text_request *items,
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-                        gint bold_offset = (bold && !_vte_draw_has_bold(m_draw, VTE_DRAW_BOLD)) ? 1 : 0;
 			_vte_draw_fill_rectangle(m_draw,
 					x,
                                         y,
-					columns * column_width + bold_offset, row_height,
+                                        columns * column_width, row_height,
 					&bg, VTE_DRAW_OPAQUE);
 		}
 	} while (i < n);
@@ -9434,7 +9432,6 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 				selected = cell_is_selected(i, row);
                                 determine_colors(cell, selected, &fore, &back, &deco);
 
-				bool bold = cell && cell->attr.bold();
 				j = i + (cell ? cell->attr.columns() : 1);
 
 				while (j < end_column){
@@ -9455,18 +9452,16 @@ VteTerminalPrivate::draw_rows(VteScreen *screen_,
 					if (nback != back) {
 						break;
 					}
-					bold = cell && cell->attr.bold();
 					j += cell ? cell->attr.columns() : 1;
 				}
 				if (back != VTE_DEFAULT_BG) {
 					vte::color::rgb bg;
-                                        gint bold_offset = (bold && !_vte_draw_has_bold(m_draw, VTE_DRAW_BOLD)) ? 1 : 0;
                                         rgb_from_index<8, 8, 8>(back, bg);
 					_vte_draw_fill_rectangle (
 							m_draw,
 							x + i * column_width,
 							y,
-							(j - i) * column_width + bold_offset,
+                                                        (j - i) * column_width,
 							row_height,
 							&bg, VTE_DRAW_OPAQUE);
 				}
