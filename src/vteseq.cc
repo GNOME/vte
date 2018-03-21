@@ -1623,14 +1623,16 @@ VteTerminalPrivate::change_color(vte::parser::Params const& params,
 		for (i = 0; pairs[i] && pairs[i + 1]; i += 2) {
 			idx = strtoul (pairs[i], (char **) NULL, 10);
 
-			if (idx >= VTE_DEFAULT_FG)
+			if (idx >= VTE_DEFAULT_FG && idx != 256)
 				continue;
 
 			if (color.parse(pairs[i + 1])) {
-                                set_color(idx, VTE_COLOR_SOURCE_ESCAPE, color);
+                                set_color(idx == 256 ? VTE_BOLD_FG : idx, VTE_COLOR_SOURCE_ESCAPE, color);
 			} else if (strcmp (pairs[i + 1], "?") == 0) {
 				gchar buf[128];
-				auto c = get_color(idx);
+				auto c = get_color(idx == 256 ? VTE_BOLD_FG : idx);
+				if (c == NULL && idx == 256)
+				        c = get_color(VTE_DEFAULT_FG);
 				g_assert(c != NULL);
 				g_snprintf (buf, sizeof (buf),
 					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
@@ -1671,10 +1673,10 @@ VteTerminalPrivate::seq_reset_color(vte::parser::Params const& params)
                         if (!params.number_at_unchecked(i, value))
                                 continue;
 
-                        if (value < 0 || value >= VTE_DEFAULT_FG)
+                        if ((value < 0 || value >= VTE_DEFAULT_FG) && value != 256)
                                 continue;
 
-                        reset_color(value, VTE_COLOR_SOURCE_ESCAPE);
+                        reset_color(value == 256 ? VTE_BOLD_FG : value, VTE_COLOR_SOURCE_ESCAPE);
                 }
 	} else {
 		for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++) {
@@ -3010,7 +3012,7 @@ void
 VteTerminalPrivate::change_special_color(vte::parser::Params const& params,
                                          int index,
                                          int index_fallback,
-                                         int osc,
+                                         const char *osc,
                                          const char *terminator)
 {
         char* name;
@@ -3028,24 +3030,45 @@ VteTerminalPrivate::change_special_color(vte::parser::Params const& params,
 				c = get_color(index_fallback);
 			g_assert(c != NULL);
 			g_snprintf (buf, sizeof (buf),
-				    _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",
+				    _VTE_CAP_OSC "%s;rgb:%04x/%04x/%04x%s",
 				    osc, c->red, c->green, c->blue, terminator);
 			feed_child(buf, -1);
 		}
+}
+
+/* Change the bold color, BEL terminated */
+void
+VteTerminalPrivate::seq_change_bold_color_bel(vte::parser::Params const& params)
+{
+        change_special_color(params, VTE_BOLD_FG, VTE_DEFAULT_FG, "5;0", BEL);
+}
+
+/* Change the bold color, ST terminated */
+void
+VteTerminalPrivate::seq_change_bold_color_st(vte::parser::Params const& params)
+{
+        change_special_color(params, VTE_BOLD_FG, VTE_DEFAULT_FG, "5;0", ST);
+}
+
+/* Reset the bold color */
+void
+VteTerminalPrivate::seq_reset_bold_color(vte::parser::Params const& params)
+{
+        reset_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_ESCAPE);
 }
 
 /* Change the default foreground cursor, BEL terminated */
 void
 VteTerminalPrivate::seq_change_foreground_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_FG, -1, 10, BEL);
+        change_special_color(params, VTE_DEFAULT_FG, -1, "10", BEL);
 }
 
 /* Change the default foreground cursor, ST terminated */
 void
 VteTerminalPrivate::seq_change_foreground_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_FG, -1, 10, ST);
+        change_special_color(params, VTE_DEFAULT_FG, -1, "10", ST);
 }
 
 /* Reset the default foreground color */
@@ -3059,14 +3082,14 @@ VteTerminalPrivate::seq_reset_foreground_color(vte::parser::Params const& params
 void
 VteTerminalPrivate::seq_change_background_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_BG, -1, 11, BEL);
+        change_special_color(params, VTE_DEFAULT_BG, -1, "11", BEL);
 }
 
 /* Change the default background cursor, ST terminated */
 void
 VteTerminalPrivate::seq_change_background_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_BG, -1, 11, ST);
+        change_special_color(params, VTE_DEFAULT_BG, -1, "11", ST);
 }
 
 /* Reset the default background color */
@@ -3080,14 +3103,14 @@ VteTerminalPrivate::seq_reset_background_color(vte::parser::Params const& params
 void
 VteTerminalPrivate::seq_change_cursor_background_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL);
+        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, "12", BEL);
 }
 
 /* Change the color of the cursor background, ST terminated */
 void
 VteTerminalPrivate::seq_change_cursor_background_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST);
+        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, "12", ST);
 }
 
 /* Reset the color of the cursor */
@@ -3101,14 +3124,14 @@ VteTerminalPrivate::seq_reset_cursor_background_color(vte::parser::Params const&
 void
 VteTerminalPrivate::seq_change_highlight_background_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, BEL);
+        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, "17", BEL);
 }
 
 /* Change the highlight background color, ST terminated */
 void
 VteTerminalPrivate::seq_change_highlight_background_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, ST);
+        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, "17", ST);
 }
 
 /* Reset the highlight background color */
@@ -3122,14 +3145,14 @@ VteTerminalPrivate::seq_reset_highlight_background_color(vte::parser::Params con
 void
 VteTerminalPrivate::seq_change_highlight_foreground_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL);
+        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, "19", BEL);
 }
 
 /* Change the highlight foreground color, ST terminated */
 void
 VteTerminalPrivate::seq_change_highlight_foreground_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST);
+        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, "19", ST);
 }
 
 /* Reset the highlight foreground color */

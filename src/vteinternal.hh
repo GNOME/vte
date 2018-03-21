@@ -1343,7 +1343,7 @@ public:
         inline void change_special_color(vte::parser::Params const& params,
                                          int index,
                                          int index_fallback,
-                                         int osc,
+                                         const char *osc,
                                          char const *terminator);
 
         unsigned int checksum_area(vte::grid::row_t start_row,
