@@ -361,8 +361,7 @@ VteTerminalPrivate::invalidate_cells(vte::grid::column_t column_start,
 	 * Always include the extra pixel border and overlap pixel.
 	 */
         rect.x = column_start * m_cell_width - 1;
-        /* The extra + 1 is for the faux-bold overdraw */
-        int xend = (column_start + n_columns) * m_cell_width + 1 + 1;
+        int xend = (column_start + n_columns) * m_cell_width + 1;
         rect.width = xend - rect.x;
 
         rect.y = row_to_pixel(row_start) - 1;

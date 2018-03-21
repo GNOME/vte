@@ -70,7 +70,6 @@ void _vte_draw_get_text_metrics(struct _vte_draw *draw,
                                 GtkBorder *char_spacing);
 void _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guint style,
                                int *left, int *right);
-gboolean _vte_draw_has_bold (struct _vte_draw *draw, guint style);
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,

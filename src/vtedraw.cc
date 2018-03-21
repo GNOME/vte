@@ -982,12 +982,6 @@ _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guin
                 *right = l + w;
 }
 
-gboolean
-_vte_draw_has_bold (struct _vte_draw *draw, guint style)
-{
-	return (draw->fonts[style ^ VTE_DRAW_BOLD] != draw->fonts[style]);
-}
-
 /* Check if a unicode character is actually a graphic character we draw
  * ourselves to handle cases where fonts don't have glyphs for them. */
 static gboolean
@@ -1561,22 +1555,6 @@ _vte_draw_text (struct _vte_draw *draw,
 	}
 
 	_vte_draw_text_internal (draw, requests, n_requests, color, alpha, style);
-
-	/* handle fonts that lack a bold face by double-striking */
-	if ((style & VTE_DRAW_BOLD) && !_vte_draw_has_bold (draw, style)) {
-		gsize i;
-
-		/* Take a step to the right. */
-		for (i = 0; i < n_requests; i++) {
-			requests[i].x++;
-		}
-		_vte_draw_text_internal (draw, requests,
-					   n_requests, color, alpha, style);
-		/* Now take a step back. */
-		for (i = 0; i < n_requests; i++) {
-			requests[i].x--;
-		}
-	}
 }
 
 /* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
