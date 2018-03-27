@@ -1299,7 +1299,7 @@ public:
         bool get_osc_color_index(int osc,
                                  int value,
                                  int& index) const noexcept;
-        bool set_color_index(vte::parser::Sequence const& seq,
+        void set_color_index(vte::parser::Sequence const& seq,
                              vte::parser::StringTokeniser::const_iterator& token,
                              vte::parser::StringTokeniser::const_iterator const& endtoken,
                              int number,

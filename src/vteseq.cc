@@ -1380,8 +1380,6 @@ VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
                               vte::parser::StringTokeniser::const_iterator const& endtoken,
                               int osc) noexcept
 {
-        bool any_changed = false;
-
         while (token != endtoken) {
                 int value;
                 bool has_value = token.number(value);
@@ -1396,18 +1394,12 @@ VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
                         continue;
                 }
 
-                any_changed |= set_color_index(seq, token, endtoken, value, index, -1, osc);
+                set_color_index(seq, token, endtoken, value, index, -1, osc);
                 ++token;
         }
-
-        /* emit the refresh as the palette has changed and previous
-         * renders need to be updated.
-         */
-        if (any_changed)
-                emit_refresh_window();
 }
 
-bool
+void
 VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
                                     vte::parser::StringTokeniser::const_iterator& token,
                                     vte::parser::StringTokeniser::const_iterator const& endtoken,
@@ -1416,8 +1408,6 @@ VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
                                     int index_fallback,
                                     int osc)
 {
-        bool palette_changed = false;
-
         auto const str = *token;
 
         if (str == "?"s) {
@@ -1442,12 +1432,8 @@ VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
                 if (index != -1 &&
                     color.parse(str.data())) {
                         set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
-
-                        palette_changed = true;
                 }
         }
-
-        return palette_changed;
 }
 
 void
@@ -1461,11 +1447,7 @@ VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
         if (token == endtoken)
                 return;
 
-        /* emit the refresh as the palette has changed and previous
-         * renders need to be updated.
-         */
-        if (set_color_index(seq, token, endtoken, -1, index, index_fallback, osc))
-                emit_refresh_window();
+        set_color_index(seq, token, endtoken, -1, index, index_fallback, osc);
 }
 
 void
@@ -1485,13 +1467,8 @@ VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
                 reset_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_ESCAPE);
                 /* Add underline/blink/reverse/italic here if/when implemented */
 
-                /* emit the refresh as the palette has changed and previous
-                 * renders need to be updated. */
-                emit_refresh_window();
                 return;
         }
-
-        bool any_changed = false;
 
         while (token != endtoken) {
                 int value;
@@ -1502,16 +1479,10 @@ VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
                 if (get_osc_color_index(osc, value, index) &&
                     index != -1) {
                         reset_color(index, VTE_COLOR_SOURCE_ESCAPE);
-                        any_changed = true;
                 }
 
                 ++token;
         }
-
-        /* emit the refresh as the palette has changed and previous
-         * renders need to be updated. */
-        if (any_changed)
-                emit_refresh_window();
 }
 
 void
