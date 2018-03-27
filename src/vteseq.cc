@@ -5267,18 +5267,22 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
 
         switch (param) {
         case -1:
+        case 0:
                 break;
-        case 1:
+
+        case VTE_XTERM_WM_RESTORE_WINDOW:
                 _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Deiconifying window.\n");
                 emit_deiconify_window();
                 break;
-        case 2:
+
+        case VTE_XTERM_WM_MINIMIZE_WINDOW:
                 _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Iconifying window.\n");
                 emit_iconify_window();
                 break;
-        case 3:
+
+        case VTE_XTERM_WM_SET_WINDOW_POSITION:
                 if ((arg1 != -1) && (arg2 != -1)) {
                         _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Moving window to "
@@ -5286,7 +5290,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                         emit_move_window(arg1, arg2);
                 }
                 break;
-        case 4:
+
+        case VTE_XTERM_WM_SET_WINDOW_SIZE_PIXELS:
                 if ((arg1 != -1) && (arg2 != -1)) {
                         _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Resizing window "
@@ -5298,21 +5303,25 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                                            arg1 / m_cell_height);
                 }
                 break;
-        case 5:
+
+        case VTE_XTERM_WM_RAISE_WINDOW:
                 _vte_debug_print(VTE_DEBUG_PARSER, "Raising window.\n");
                 emit_raise_window();
                 break;
-        case 6:
+
+        case VTE_XTERM_WM_LOWER_WINDOW:
                 _vte_debug_print(VTE_DEBUG_PARSER, "Lowering window.\n");
                 emit_lower_window();
                 break;
-        case 7:
+
+        case VTE_XTERM_WM_REFRESH_WINDOW:
                 _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Refreshing window.\n");
                 invalidate_all();
                 emit_refresh_window();
                 break;
-        case 8:
+
+        case VTE_XTERM_WM_SET_WINDOW_SIZE_CELLS:
                 if ((arg1 != -1) && (arg2 != -1)) {
                         _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Resizing window "
@@ -5321,7 +5330,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                         emit_resize_window(arg2, arg1);
                 }
                 break;
-        case 9:
+
+        case VTE_XTERM_WM_MAXIMIZE_WINDOW:
                 switch (arg1) {
                 case 0:
                         _vte_debug_print(VTE_DEBUG_PARSER,
@@ -5337,7 +5347,11 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                         break;
                 }
                 break;
-        case 11:
+
+        case VTE_XTERM_WM_FULLSCREEN_WINDOW:
+                break;
+
+        case VTE_XTERM_WM_GET_WINDOW_STATE:
                 /* If we're unmapped, then we're iconified. */
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "%dt",
@@ -5348,7 +5362,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                                  "non-iconified" : "iconified");
                 feed_child(buf, -1);
                 break;
-        case 13:
+
+        case VTE_XTERM_WM_GET_WINDOW_POSITION:
                 /* Send window location, in pixels. */
                 gdk_window_get_origin(gtk_widget_get_window(m_widget),
                                       &width, &height);
@@ -5362,7 +5377,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                                  width, height);
                 feed_child(buf, -1);
                 break;
-        case 14:
+
+        case VTE_XTERM_WM_GET_WINDOW_SIZE_PIXELS:
                 /* Send window size, in pixels. */
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "4;%d;%dt",
@@ -5376,7 +5392,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
 
                 feed_child(buf, -1);
                 break;
-        case 18:
+
+        case VTE_XTERM_WM_GET_WINDOW_SIZE_CELLS:
                 /* Send widget size, in cells. */
                 _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting widget size.\n");
@@ -5386,7 +5403,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                            m_column_count);
                 feed_child(buf, -1);
                 break;
-        case 19:
+
+        case VTE_XTERM_WM_GET_SCREEN_SIZE_CELLS:
                 _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting screen size.\n");
                 gscreen = gtk_widget_get_screen(m_widget);
@@ -5398,7 +5416,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                            width / m_cell_width);
                 feed_child(buf, -1);
                 break;
-        case 20:
+
+        case VTE_XTERM_WM_GET_ICON_TITLE:
                 /* Report a static icon title, since the real
                    icon title should NEVER be reported, as it
                    creates a security vulnerability.  See
@@ -5411,7 +5430,8 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                             _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST);
                 feed_child(buf, -1);
                 break;
-        case 21:
+
+        case VTE_XTERM_WM_GET_WINDOW_TITLE:
                 /* Report a static window title, since the real
                    window title should NEVER be reported, as it
                    creates a security vulnerability.  See
@@ -5424,7 +5444,15 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                             _VTE_CAP_OSC "lTerminal" _VTE_CAP_ST);
                 feed_child(buf, -1);
                 break;
+
+        case VTE_XTERM_WM_TITLE_STACK_PUSH:
+                break;
+
+        case VTE_XTERM_WM_TITLE_STACK_POP:
+                break;
+
         default:
+                /* DECSLPP; param is 24, 25, 36, 41, 42, 48, 52, 53, 72, or 144 */
                 if (param >= 24) {
                         _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Resizing to %d rows.\n",
