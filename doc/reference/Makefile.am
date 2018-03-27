@@ -85,6 +85,9 @@ IGNORE_HFILES = \
 	keymap.h \
 	marshal.h \
 	matcher.hh \
+	parser.hh \
+	parser-cmd.hh \
+	parser-glue.hh \
 	ring.h \
 	stamp-vtetypebuiltins.h \
 	table.hh \

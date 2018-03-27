@@ -26,7 +26,8 @@
 #include "ring.h"
 #include "vteconv.h"
 #include "buffer.h"
-#include "matcher.hh"
+#include "parser.hh"
+#include "parser-glue.hh"
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
@@ -257,119 +258,6 @@ private:
         Request *m_request;
 };
 
-namespace vte {
-namespace parser {
-
-struct Params {
-
-        typedef long number;
-
-        char* ucs4_to_utf8(gunichar const* str) const;
-
-        void print() const;
-
-        inline unsigned int size() const
-        {
-                return G_LIKELY(m_values != nullptr) ? m_values->n_values : 0;
-        }
-
-        inline GValue* value_at_unchecked(unsigned int position) const
-        {
-                return g_value_array_get_nth(m_values, position);
-        }
-
-        inline bool has_number_at_unchecked(unsigned int position) const
-        {
-                return G_UNLIKELY(G_VALUE_HOLDS_LONG(value_at_unchecked(position)));
-        }
-
-        inline bool number_at_unchecked(unsigned int position, number& v) const
-        {
-                auto value = value_at_unchecked(position);
-                if (G_UNLIKELY(!G_VALUE_HOLDS(value, G_TYPE_LONG)))
-                        return false;
-
-                v = g_value_get_long(value);
-                return true;
-        }
-
-        inline bool number_at(unsigned int position, number& v) const
-        {
-                if (G_UNLIKELY(position >= size()))
-                        return false;
-
-                return number_at_unchecked(position, v);
-        }
-
-        inline number number_or_default_at_unchecked(unsigned int position, number default_v = 0) const
-        {
-                number v;
-                if (G_UNLIKELY(!number_at_unchecked(position, v)))
-                        v = default_v;
-                return v;
-        }
-
-
-        inline number number_or_default_at(unsigned int position, number default_v = 0) const
-        {
-                number v;
-                if (G_UNLIKELY(!number_at(position, v)))
-                        v = default_v;
-                return v;
-        }
-
-        inline bool string_at_unchecked(unsigned int position, char*& str) const
-        {
-                auto value = value_at_unchecked(position);
-                if (G_LIKELY(G_VALUE_HOLDS_POINTER(value))) {
-                        str = ucs4_to_utf8((gunichar const*)g_value_get_pointer (value));
-                        return str != nullptr;
-                }
-                if (G_VALUE_HOLDS_STRING(value)) {
-                        /* Copy the string into the buffer. */
-                        str = g_value_dup_string(value);
-                        return str != nullptr;
-                }
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        /* Convert the long to a string. */
-                        str = g_strdup_printf("%ld", g_value_get_long(value));
-                        return true;
-                }
-                return false;
-        }
-
-        inline bool string_at(unsigned int position, char*& str) const
-        {
-                if (G_UNLIKELY(position >= size()))
-                        return false;
-
-                return string_at_unchecked(position, str);
-
-        }
-
-        inline bool has_subparams_at_unchecked(unsigned int position) const
-        {
-                return G_UNLIKELY(G_VALUE_HOLDS_BOXED(value_at_unchecked(position)));
-        }
-
-        inline Params subparams_at_unchecked(unsigned int position) const
-        {
-                return {(GValueArray*)g_value_get_boxed(value_at_unchecked(position))};
-        }
-
-        inline void recycle(struct _vte_matcher *matcher)
-        {
-                if (G_LIKELY(m_values != nullptr))
-                    _vte_matcher_free_params_array(matcher, m_values);
-        }
-
-        GValueArray *m_values;
-};
-
-} // namespace parser
-} // namespace vte
-
-
 /* Terminal private data. */
 class VteTerminalPrivate {
 public:
@@ -388,7 +276,8 @@ public:
         vte::grid::column_t m_column_count;
 
 	/* Emulation setup data. */
-        struct _vte_matcher *m_matcher;   /* control sequence matcher */
+        struct vte_parser* m_parser; /* control sequence state machine */
+
         gboolean m_autowrap;              /* auto wraparound at right margin */
         int m_keypad_mode, m_cursor_mode; /* these would be VteKeymodes, but we
 					   need to guarantee its type */
@@ -720,7 +609,7 @@ public:
         void restore_cursor(VteScreen *screen__);
         void save_cursor(VteScreen *screen__);
 
-        bool insert_char(gunichar c,
+        void insert_char(gunichar c,
                          bool insert,
                          bool invalidate_now);
 
@@ -1336,8 +1225,8 @@ public:
         inline void line_feed();
         inline void set_current_hyperlink(char* hyperlink_params /* adopted */, char* uri /* adopted */);
         inline void set_keypad_mode(VteKeymode mode);
-        inline void erase_in_display(long param);
-        inline void erase_in_line(long param);
+        inline void erase_in_display(vte::parser::Sequence const& seq);
+        inline void erase_in_line(vte::parser::Sequence const& seq);
         inline void insert_lines(vte::grid::row_t param);
         inline void delete_lines(vte::grid::row_t param);
         inline void change_special_color(vte::parser::Params const& params,
@@ -1354,10 +1243,21 @@ public:
         void select_empty(vte::grid::column_t col,
                           vte::grid::row_t row);
 
-#define SEQUENCE_HANDLER(name) \
-	inline void seq_ ## name (vte::parser::Params const& params);
+        /* Sequence handlers */
+
+        /* old style */
+#define SEQUENCE_HANDLER(name)                                          \
+      inline void seq_ ## name (vte::parser::Params const& params);
 #include "vteseq-list.hh"
 #undef SEQUENCE_HANDLER
+
+        /* new parser */
+        bool m_line_wrapped; // signals line wrapped from character insertion
+        // Note: inlining the handlers seems to worsen the performance, so we don't do that
+#define _VTE_CMD(cmd) \
+	/* inline */ void cmd (vte::parser::Sequence const& seq);
+#include "parser-cmd.hh"
+#undef _VTE_CMD
 };
 
 extern GTimer *process_timer;

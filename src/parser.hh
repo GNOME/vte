@@ -1,19 +1,24 @@
 /*
  * Copyright © 2015 David Herrmann <dh.herrmann@gmail.com>
  *
- * vte is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #pragma once
 
 #include <cstdint>
-
-typedef uint8_t u8;
-typedef uint32_t u32;
-typedef uint64_t u64;
+#include <cstdio>
 
 struct vte_parser;
 struct vte_seq;
@@ -40,16 +45,16 @@ extern vte_charset vte_dec_special_graphics;
  */
 
 struct vte_utf8 {
-        u32 chars[5];
-        u32 ucs4;
+        uint32_t chars[5];
+        uint32_t ucs4;
 
         unsigned int i_bytes : 3;
         unsigned int n_bytes : 3;
         unsigned int valid : 1;
 };
 
-size_t vte_utf8_decode(struct vte_utf8 *p, const u32 **out_buf, char c);
-size_t vte_utf8_encode(char *out_utf8, u32 g);
+size_t vte_utf8_decode(struct vte_utf8 *p, const uint32_t **out_buf, char c);
+size_t vte_utf8_encode(char *out_utf8, uint32_t g);
 
 /*
  * Parsers
@@ -107,185 +112,11 @@ enum {
 };
 
 enum {
-        VTE_CMD_NONE,                /* placeholder */
-        VTE_CMD_GRAPHIC,                /* graphics character */
+#define _VTE_CMD(cmd) VTE_CMD_##cmd,
+#include "parser-cmd.hh"
+#undef _VTE_CMD
 
-        VTE_CMD_BEL,                        /* bell */
-        VTE_CMD_BS,                        /* backspace */
-        VTE_CMD_CBT,                        /* cursor-backward-tabulation */
-        VTE_CMD_CHA,                        /* cursor-horizontal-absolute */
-        VTE_CMD_CHT,                        /* cursor-horizontal-forward-tabulation */
-        VTE_CMD_CNL,                        /* cursor-next-line */
-        VTE_CMD_CPL,                        /* cursor-previous-line */
-        VTE_CMD_CR,                        /* carriage-return */
-        VTE_CMD_CUB,                        /* cursor-backward */
-        VTE_CMD_CUD,                        /* cursor-down */
-        VTE_CMD_CUF,                        /* cursor-forward */
-        VTE_CMD_CUP,                        /* cursor-position */
-        VTE_CMD_CUU,                        /* cursor-up */
-        VTE_CMD_DA1,                        /* primary-device-attributes */
-        VTE_CMD_DA2,                        /* secondary-device-attributes */
-        VTE_CMD_DA3,                        /* tertiary-device-attributes */
-        VTE_CMD_DC1,                        /* device-control-1 or XON */
-        VTE_CMD_DC3,                        /* device-control-3 or XOFF */
-        VTE_CMD_DCH,                        /* delete-character */
-        VTE_CMD_DECALN,                /* screen-alignment-pattern */
-        VTE_CMD_DECANM,                /* ansi-mode */
-        VTE_CMD_DECBI,                /* back-index */
-        VTE_CMD_DECCARA,                /* change-attributes-in-rectangular-area */
-        VTE_CMD_DECCRA,                /* copy-rectangular-area */
-        VTE_CMD_DECDC,                /* delete-column */
-        VTE_CMD_DECDHL_BH,                /* double-width-double-height-line: bottom half */
-        VTE_CMD_DECDHL_TH,                /* double-width-double-height-line: top half */
-        VTE_CMD_DECDWL,                /* double-width-single-height-line */
-        VTE_CMD_DECEFR,                /* enable-filter-rectangle */
-        VTE_CMD_DECELF,                /* enable-local-functions */
-        VTE_CMD_DECELR,                /* enable-locator-reporting */
-        VTE_CMD_DECERA,                /* erase-rectangular-area */
-        VTE_CMD_DECFI,                /* forward-index */
-        VTE_CMD_DECFRA,                /* fill-rectangular-area */
-        VTE_CMD_DECIC,                /* insert-column */
-        VTE_CMD_DECID,                /* return-terminal-id */
-        VTE_CMD_DECINVM,                /* invoke-macro */
-        VTE_CMD_DECKBD,                /* keyboard-language-selection */
-        VTE_CMD_DECKPAM,                /* keypad-application-mode */
-        VTE_CMD_DECKPNM,                /* keypad-numeric-mode */
-        VTE_CMD_DECLFKC,                /* local-function-key-control */
-        VTE_CMD_DECLL,                /* load-leds */
-        VTE_CMD_DECLTOD,                /* load-time-of-day */
-        VTE_CMD_DECPCTERM,                /* pcterm-mode */
-        VTE_CMD_DECPKA,                /* program-key-action */
-        VTE_CMD_DECPKFMR,                /* program-key-free-memory-report */
-        VTE_CMD_DECRARA,                /* reverse-attributes-in-rectangular-area */
-        VTE_CMD_DECRC,                /* restore-cursor */
-        VTE_CMD_DECREQTPARM,                /* request-terminal-parameters */
-        VTE_CMD_DECRPKT,                /* report-key-type */
-        VTE_CMD_DECRQCRA,                /* request-checksum-of-rectangular-area */
-        VTE_CMD_DECRQDE,                /* request-display-extent */
-        VTE_CMD_DECRQKT,                /* request-key-type */
-        VTE_CMD_DECRQLP,                /* request-locator-position */
-        VTE_CMD_DECRQM_ANSI,                /* request-mode-ansi */
-        VTE_CMD_DECRQM_DEC,                /* request-mode-dec */
-        VTE_CMD_DECRQPKFM,                /* request-program-key-free-memory */
-        VTE_CMD_DECRQPSR,                /* request-presentation-state-report */
-        VTE_CMD_DECRQTSR,                /* request-terminal-state-report */
-        VTE_CMD_DECRQUPSS,                /* request-user-preferred-supplemental-set */
-        VTE_CMD_DECSACE,                /* select-attribute-change-extent */
-        VTE_CMD_DECSASD,                /* select-active-status-display */
-        VTE_CMD_DECSC,                /* save-cursor */
-        VTE_CMD_DECSCA,                /* select-character-protection-attribute */
-        VTE_CMD_DECSCL,                /* select-conformance-level */
-        VTE_CMD_DECSCP,                /* select-communication-port */
-        VTE_CMD_DECSCPP,                /* select-columns-per-page */
-        VTE_CMD_DECSCS,                /* select-communication-speed */
-        VTE_CMD_DECSCUSR,                /* set-cursor-style */
-        VTE_CMD_DECSDDT,                /* select-disconnect-delay-time */
-        VTE_CMD_DECSDPT,                /* select-digital-printed-data-type */
-        VTE_CMD_DECSED,                /* selective-erase-in-display */
-        VTE_CMD_DECSEL,                /* selective-erase-in-line */
-        VTE_CMD_DECSERA,                /* selective-erase-rectangular-area */
-        VTE_CMD_DECSFC,                /* select-flow-control */
-        VTE_CMD_DECSKCV,                /* set-key-click-volume */
-        VTE_CMD_DECSLCK,                /* set-lock-key-style */
-        VTE_CMD_DECSLE,                /* select-locator-events */
-        VTE_CMD_DECSLPP,                /* set-lines-per-page */
-        VTE_CMD_DECSLRM_OR_SC,        /* set-left-and-right-margins or save-cursor */
-        VTE_CMD_DECSMBV,                /* set-margin-bell-volume */
-        VTE_CMD_DECSMKR,                /* select-modifier-key-reporting */
-        VTE_CMD_DECSNLS,                /* set-lines-per-screen */
-        VTE_CMD_DECSPP,                /* set-port-parameter */
-        VTE_CMD_DECSPPCS,                /* select-pro-printer-character-set */
-        VTE_CMD_DECSPRTT,                /* select-printer-type */
-        VTE_CMD_DECSR,                /* secure-reset */
-        VTE_CMD_DECSRFR,                /* select-refresh-rate */
-        VTE_CMD_DECSSCLS,                /* set-scroll-speed */
-        VTE_CMD_DECSSDT,                /* select-status-display-line-type */
-        VTE_CMD_DECSSL,                /* select-setup-language */
-        VTE_CMD_DECST8C,                /* set-tab-at-every-8-columns */
-        VTE_CMD_DECSTBM,                /* set-top-and-bottom-margins */
-        VTE_CMD_DECSTR,                /* soft-terminal-reset */
-        VTE_CMD_DECSTRL,                /* set-transmit-rate-limit */
-        VTE_CMD_DECSWBV,                /* set-warning-bell-volume */
-        VTE_CMD_DECSWL,                /* single-width-single-height-line */
-        VTE_CMD_DECTID,                /* select-terminal-id */
-        VTE_CMD_DECTME,                /* terminal-mode-emulation */
-        VTE_CMD_DECTST,                /* invoke-confidence-test */
-        VTE_CMD_DL,                        /* delete-line */
-        VTE_CMD_DSR_ANSI,                /* device-status-report-ansi */
-        VTE_CMD_DSR_DEC,                /* device-status-report-dec */
-        VTE_CMD_ECH,                        /* erase-character */
-        VTE_CMD_ED,                        /* erase-in-display */
-        VTE_CMD_EL,                        /* erase-in-line */
-        VTE_CMD_ENQ,                        /* enquiry */
-        VTE_CMD_EPA,                        /* end-of-guarded-area */
-        VTE_CMD_FF,                        /* form-feed */
-        VTE_CMD_HPA,                        /* horizontal-position-absolute */
-        VTE_CMD_HPR,                        /* horizontal-position-relative */
-        VTE_CMD_HT,                        /* horizontal-tab */
-        VTE_CMD_HTS,                        /* horizontal-tab-set */
-        VTE_CMD_HVP,                        /* horizontal-and-vertical-position */
-        VTE_CMD_ICH,                        /* insert-character */
-        VTE_CMD_IL,                        /* insert-line */
-        VTE_CMD_IND,                        /* index */
-        VTE_CMD_LF,                        /* line-feed */
-        VTE_CMD_LS1R,                /* locking-shift-1-right */
-        VTE_CMD_LS2,                        /* locking-shift-2 */
-        VTE_CMD_LS2R,                /* locking-shift-2-right */
-        VTE_CMD_LS3,                        /* locking-shift-3 */
-        VTE_CMD_LS3R,                /* locking-shift-3-right */
-        VTE_CMD_MC_ANSI,                /* media-copy-ansi */
-        VTE_CMD_MC_DEC,                /* media-copy-dec */
-        VTE_CMD_NEL,                        /* next-line */
-        VTE_CMD_NP,                        /* next-page */
-        VTE_CMD_NULL,                /* null */
-        VTE_CMD_PP,                        /* preceding-page */
-        VTE_CMD_PPA,                        /* page-position-absolute */
-        VTE_CMD_PPB,                        /* page-position-backward */
-        VTE_CMD_PPR,                        /* page-position-relative */
-        VTE_CMD_RC,                        /* restore-cursor */
-        VTE_CMD_REP,                        /* repeat */
-        VTE_CMD_RI,                        /* reverse-index */
-        VTE_CMD_RIS,                        /* reset-to-initial-state */
-        VTE_CMD_RM_ANSI,                /* reset-mode-ansi */
-        VTE_CMD_RM_DEC,                /* reset-mode-dec */
-        VTE_CMD_S7C1T,                /* set-7bit-c1-terminal */
-        VTE_CMD_S8C1T,                /* set-8bit-c1-terminal */
-        VTE_CMD_SCS,                        /* select-character-set */
-        VTE_CMD_SD,                        /* scroll-down */
-        VTE_CMD_SGR,                        /* select-graphics-rendition */
-        VTE_CMD_SI,                        /* shift-in */
-        VTE_CMD_SM_ANSI,                /* set-mode-ansi */
-        VTE_CMD_SM_DEC,                /* set-mode-dec */
-        VTE_CMD_SO,                        /* shift-out */
-        VTE_CMD_SPA,                        /* start-of-protected-area */
-        VTE_CMD_SS2,                        /* single-shift-2 */
-        VTE_CMD_SS3,                        /* single-shift-3 */
-        VTE_CMD_ST,                        /* string-terminator */
-        VTE_CMD_SU,                        /* scroll-up */
-        VTE_CMD_SUB,                        /* substitute */
-        VTE_CMD_TBC,                        /* tab-clear */
-        VTE_CMD_VPA,                        /* vertical-line-position-absolute */
-        VTE_CMD_VPR,                        /* vertical-line-position-relative */
-        VTE_CMD_VT,                        /* vertical-tab */
-        VTE_CMD_XTERM_CLLHP,                /* xterm-cursor-lower-left-hp-bugfix */
-        VTE_CMD_XTERM_IHMT,                /* xterm-initiate-highlight-mouse-tracking */
-        VTE_CMD_XTERM_MLHP,                /* xterm-memory-lock-hp-bugfix */
-        VTE_CMD_XTERM_MUHP,                /* xterm-memory-unlock-hp-bugfix */
-        VTE_CMD_XTERM_RPM,                /* xterm-restore-private-mode */
-        VTE_CMD_XTERM_RRV,                /* xterm-reset-resource-value */
-        VTE_CMD_XTERM_RTM,                /* xterm-reset-title-mode */
-        VTE_CMD_XTERM_SACL1,                /* xterm-set-ansi-conformance-level-1 */
-        VTE_CMD_XTERM_SACL2,                /* xterm-set-ansi-conformance-level-2 */
-        VTE_CMD_XTERM_SACL3,                /* xterm-set-ansi-conformance-level-3 */
-        VTE_CMD_XTERM_SDCS,                /* xterm-set-default-character-set */
-        VTE_CMD_XTERM_SGFX,                /* xterm-sixel-graphics */
-        VTE_CMD_XTERM_SPM,                /* xterm-set-private-mode */
-        VTE_CMD_XTERM_SRV,                /* xterm-set-resource-value */
-        VTE_CMD_XTERM_STM,                /* xterm-set-title-mode */
-        VTE_CMD_XTERM_SUCS,                /* xterm-set-utf8-character-set */
-        VTE_CMD_XTERM_WM,                /* xterm-window-management */
-
-        VTE_CMD_N,
+        VTE_CMD_N
 };
 
 enum {
@@ -346,7 +177,7 @@ enum {
 struct vte_seq {
         unsigned int type;
         unsigned int command;
-        u32 terminator;
+        uint32_t terminator;
         unsigned int intermediates;
         unsigned int charset;
         unsigned int n_args;
@@ -358,5 +189,6 @@ struct vte_seq {
 int vte_parser_new(struct vte_parser **out);
 struct vte_parser *vte_parser_free(struct vte_parser *parser);
 int vte_parser_feed(struct vte_parser *parser,
-                    const struct vte_seq **seq_out,
-                    u32 raw);
+                    /* const */ struct vte_seq **seq_out,
+                    uint32_t raw);
+void vte_parser_reset(struct vte_parser *parser);

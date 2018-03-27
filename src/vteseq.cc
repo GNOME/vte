@@ -1,10 +1,12 @@
 /*
- * Copyright (C) 2001-2004 Red Hat, Inc.
+ * Copyright © 2001-2004 Red Hat, Inc.
+ * Copyright © 2015 David Herrmann <dh.herrmann@gmail.com>
+ * Copyright © 2008-2018 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 3 of the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -35,38 +37,69 @@
 #include "caps.hh"
 #include "debug.h"
 
-#define BEL "\007"
-#define ST _VTE_CAP_ST
+#define BEL_C0 "\007"
+#define ST_C0 _VTE_CAP_ST
 
 #include <algorithm>
 
 void
-vte::parser::Params::print() const
+vte::parser::Sequence::print() const
 {
 #ifdef VTE_DEBUG
-        g_printerr("(");
-        auto n_params = size();
-        for (unsigned int i = 0; i < n_params; i++) {
-                auto value = value_at_unchecked(i);
-                if (i > 0) {
-                        g_printerr(", ");
+        auto c = m_seq != nullptr ? terminator() : 0;
+        char c_buf[7];
+        g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
+        g_printerr("%s:%s [%s]", type_string(), command_string(),
+                   g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1));
+        if (m_seq != nullptr && m_seq->n_args > 0) {
+                g_printerr("[ ");
+                for (unsigned int i = 0; i < m_seq->n_args; i++) {
+                        if (i > 0)
+                                g_print(", ");
+                        g_printerr("%d", m_seq->args[i]);
                 }
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        auto l = g_value_get_long(value);
-                        g_printerr("LONG(%ld)", l);
-                } else if (G_VALUE_HOLDS_STRING(value)) {
-                        auto const s = g_value_get_string(value);
-                        g_printerr("STRING(\"%s\")", s);
-                } else if (G_VALUE_HOLDS_POINTER(value)) {
-                        auto w = (const gunichar *)g_value_get_pointer(value);
-                        g_printerr("WSTRING(\"%ls\")", (const wchar_t*) w);
-                } else if (G_VALUE_HOLDS_BOXED(value)) {
-                        vte::parser::Params subparams{(GValueArray*)g_value_get_boxed(value)};
-                        subparams.print();
-                }
-	}
-	g_printerr(")\n");
+                g_printerr(" ]");
+        }
+        g_printerr("\n");
 #endif
+}
+
+char const*
+vte::parser::Sequence::type_string() const
+{
+        if (G_UNLIKELY(m_seq == nullptr))
+                return "(nil)";
+
+        switch (type()) {
+        case VTE_SEQ_NONE:    return "NONE";
+        case VTE_SEQ_IGNORE:  return "IGNORE";
+        case VTE_SEQ_GRAPHIC: return "GRAPHIC";
+        case VTE_SEQ_CONTROL: return "CONTROL";
+        case VTE_SEQ_ESCAPE:  return "ESCAPE";
+        case VTE_SEQ_CSI:     return "CSI";
+        case VTE_SEQ_DCS:     return "DCS";
+        case VTE_SEQ_OSC:     return "OSC";
+        default:
+                g_assert(false);
+                return nullptr;
+        }
+}
+
+char const*
+vte::parser::Sequence::command_string() const
+{
+        if (G_UNLIKELY(m_seq == nullptr))
+                return "(nil)";
+
+        switch (command()) {
+#define _VTE_CMD(cmd) case VTE_CMD_##cmd: return #cmd;
+#include "parser-cmd.hh"
+#undef _VTE_CMD
+        default:
+                static char buf[32];
+                snprintf(buf, sizeof(buf), "UNKOWN(%u)", command());
+                return buf;
+        }
 }
 
 /* A couple are duplicated from vte.c, to keep them static... */
@@ -85,7 +118,7 @@ vte_unichar_strlen(gunichar const* c)
  * length instead of walking the input twice.
  */
 char*
-vte::parser::Params::ucs4_to_utf8(gunichar const* str) const
+vte::parser::Sequence::ucs4_to_utf8(gunichar const* str) const
 {
         auto len = vte_unichar_strlen(str);
         auto outlen = (len * VTE_UTF8_BPC) + 1;
@@ -462,7 +495,7 @@ VteTerminalPrivate::set_mode(vte::parser::Params const& params,
                 return;
 
 	for (unsigned int i = 0; i < n_params; i++) {
-                long setting;
+                int setting;
                 if (!params.number_at_unchecked(i, setting))
                         continue;
 
@@ -523,7 +556,7 @@ VteTerminalPrivate::decset(vte::parser::Params const& params,
 
         auto n_params = params.size();
         for (unsigned int i = 0; i < n_params; i++) {
-                long setting;
+                int setting;
 
                 if (!params.number_at(i, setting))
                         continue;
@@ -743,7 +776,7 @@ VteTerminalPrivate::decset(long setting,
 			p = g_hash_table_lookup(m_dec_saved,
 						GINT_TO_POINTER(setting));
 			set = (p != NULL);
-			_vte_debug_print(VTE_DEBUG_PARSE,
+			_vte_debug_print(VTE_DEBUG_PARSER,
 					"Setting %ld was %s.\n",
 					setting, set ? "set" : "unset");
 		}
@@ -758,7 +791,7 @@ VteTerminalPrivate::decset(long setting,
 			if (pvalue) {
 				set = *(pvalue) == ptvalue;
 			}
-			_vte_debug_print(VTE_DEBUG_PARSE,
+			_vte_debug_print(VTE_DEBUG_PARSER,
 					"Setting %ld is %s, saving.\n",
 					setting, set ? "set" : "unset");
 			g_hash_table_insert(m_dec_saved,
@@ -767,7 +800,7 @@ VteTerminalPrivate::decset(long setting,
 		}
 		/* Change the current setting to match the new/saved value. */
 		if (!save) {
-			_vte_debug_print(VTE_DEBUG_PARSE,
+			_vte_debug_print(VTE_DEBUG_PARSER,
 					"Setting %ld to %s.\n",
 					setting, set ? "set" : "unset");
 			if (key.set && set) {
@@ -948,7 +981,7 @@ VteTerminalPrivate::seq_cursor_back_tab(vte::parser::Params const& params)
 	}
 
 	/* Warp the cursor. */
-	_vte_debug_print(VTE_DEBUG_PARSE,
+	_vte_debug_print(VTE_DEBUG_PARSER,
 			"Moving cursor to column %ld.\n", (long)newcol);
         set_cursor_column(newcol);
 }
@@ -1193,8 +1226,8 @@ void
 VteTerminalPrivate::seq_set_scrolling_region(vte::parser::Params const& params)
 {
 	/* We require two parameters.  Anything less is a reset. */
-        if (params.size() < 2)
-                return reset_scrolling_region();
+        //        if (params.size() < 2)
+        //                return reset_scrolling_region();
 
         auto start = params.number_or_default_at_unchecked(0) - 1;
         auto end = params.number_or_default_at_unchecked(1) - 1;
@@ -1213,7 +1246,9 @@ VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
                 end = m_row_count - 1;
         }
         /* Bail out on garbage, require at least 2 rows, as per xterm. */
+        // FIXMEchpe
         if (start < 0 || start >= m_row_count - 1 || end < start + 1) {
+                reset_scrolling_region();
                 return;
         }
         if (end >= m_row_count) {
@@ -1307,8 +1342,8 @@ void
 VteTerminalPrivate::seq_delete_characters(vte::parser::Params const& params)
 {
         auto val = std::max(std::min(params.number_or_default_at(0, 1),
-                                     m_column_count - m_screen->cursor.col),
-                            long(1));
+                                     int(m_column_count - m_screen->cursor.col)),
+                            int(1));
         for (auto i = 0; i < val; i++)
                 delete_character();
 }
@@ -1346,7 +1381,7 @@ void
 VteTerminalPrivate::seq_erase_characters(vte::parser::Params const& params)
 {
 	/* If we got a parameter, use it. */
-        auto count = std::min(params.number_or_default_at(0, 1), long(65535));
+        auto count = std::min(params.number_or_default_at(0, 1), int(65535));
         erase_characters(count);
 }
 
@@ -1413,8 +1448,8 @@ void
 VteTerminalPrivate::seq_insert_blank_characters(vte::parser::Params const& params)
 {
         auto val = std::max(std::min(params.number_or_default_at(0, 1),
-                                     m_column_count - m_screen->cursor.col),
-                            long(1));
+                                     int(m_column_count - m_screen->cursor.col)),
+                            int(1));
         for (auto i = 0; i < val; i++)
                 insert_blank_character();
 }
@@ -1424,7 +1459,7 @@ void
 VteTerminalPrivate::seq_repeat(vte::parser::Params const& params)
 {
         auto val = std::min(params.number_or_default_at(0, 1),
-                            long(65535)); // FIXMEchpe maybe limit more, to m_column_count - m_screen->cursor.col ?
+                            int(65535)); // FIXMEchpe maybe limit more, to m_column_count - m_screen->cursor.col ?
         for (auto i = 0; i < val; i++) {
                 // FIXMEchpe can't we move that check out of the loop?
                 if (m_last_graphic_character == 0)
@@ -1506,7 +1541,7 @@ void
 VteTerminalPrivate::seq_scroll_down(vte::parser::Params const& params)
 {
         /* No ensure_cursor_is_onscreen() here as per xterm */
-        auto val = std::max(params.number_or_default_at(0, 1), long(1));
+        auto val = std::max(params.number_or_default_at(0, 1), int(1));
         scroll_text(val);
 }
 
@@ -1561,14 +1596,14 @@ VteTerminalPrivate::change_color(vte::parser::Params const& params,
 void
 VteTerminalPrivate::seq_change_color_bel(vte::parser::Params const& params)
 {
-	change_color(params, BEL);
+	change_color(params, BEL_C0);
 }
 
-/* Change color in the palette, ST terminated */
+/* Change color in the palette, ST_C0 terminated */
 void
 VteTerminalPrivate::seq_change_color_st(vte::parser::Params const& params)
 {
-	change_color(params, ST);
+	change_color(params, ST_C0);
 }
 
 /* Reset color in the palette */
@@ -1578,7 +1613,7 @@ VteTerminalPrivate::seq_reset_color(vte::parser::Params const& params)
         auto n_params = params.size();
         if (n_params) {
                 for (unsigned int i = 0; i < n_params; i++) {
-                        long value;
+                        int value;
                         if (!params.number_at_unchecked(i, value))
                                 continue;
 
@@ -1600,7 +1635,7 @@ VteTerminalPrivate::seq_scroll_up(vte::parser::Params const& params)
 {
         /* No ensure_cursor_is_onscreen() here as per xterm */
 
-        auto val = std::max(params.number_or_default_at(0, 1), long(1));
+        auto val = std::max(params.number_or_default_at(0, 1), int(1));
         scroll_text(-val);
 }
 
@@ -1745,8 +1780,8 @@ void
 VteTerminalPrivate::seq_cursor_forward_tabulation(vte::parser::Params const& params)
 {
         auto val = std::max(std::min(params.number_or_default_at(0, 1),
-                                     m_column_count - m_screen->cursor.col),
-                            long(1));
+                                     int(m_column_count - m_screen->cursor.col)),
+                            int(1));
         for (auto i = 0; i < val; i++)
                 move_cursor_tab();
 }
@@ -1817,7 +1852,7 @@ VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params
 {
         auto n_params = params.size();
         if (*index < n_params) {
-                long param0;
+                int param0;
                 if (G_UNLIKELY(!params.number_at_unchecked(*index, param0)))
                         return -1;
 
@@ -1828,7 +1863,7 @@ VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params
                         if (might_contain_color_space_id && *index + 5 <= n_params)
 			        *index += 1;
 
-                        long param1, param2, param3;
+                        int param1, param2, param3;
                         if (G_UNLIKELY(!params.number_at_unchecked(*index + 1, param1) ||
                                        !params.number_at_unchecked(*index + 2, param2) ||
                                        !params.number_at_unchecked(*index + 3, param3)))
@@ -1841,7 +1876,7 @@ VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params
 			return VTE_RGB_COLOR(redbits, greenbits, bluebits, param1, param2, param3);
                 }
                 case 5: {
-                        long param1;
+                        int param1;
                         if (G_UNLIKELY(!params.number_at(*index + 1, param1)))
                                 return -1;
 
@@ -1870,7 +1905,7 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 		if (G_UNLIKELY(params.has_subparams_at_unchecked(i))) {
                         auto subparams = params.subparams_at_unchecked(i);
 
-                        long param0, param1;
+                        int param0, param1;
                         if (G_UNLIKELY(!subparams.number_at(0, param0)))
                                 continue;
 
@@ -1905,11 +1940,12 @@ VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
 			continue;
 		}
 		/* If this parameter is not a number either, skip it. */
-                long param;
+                int param;
                 if (!params.number_at_unchecked(i, param))
                         continue;
 
 		switch (param) {
+                case -1:
 		case 0:
                         reset_default_attributes(false);
 			break;
@@ -2100,6 +2136,7 @@ VteTerminalPrivate::seq_return_terminal_status(vte::parser::Params const& params
 void
 VteTerminalPrivate::seq_send_primary_device_attributes(vte::parser::Params const& params)
 {
+        // FIXMEchpe only send anything when param==0 as per ECMA48
 	/* Claim to be a VT220 with only national character set support. */
         feed_child("\e[?62;c", -1);
 }
@@ -2318,23 +2355,6 @@ VteTerminalPrivate::set_keypad_mode(VteKeymode mode)
         m_keypad_mode = mode;
 }
 
-/* Set the application or normal keypad. */
-void
-VteTerminalPrivate::seq_application_keypad(vte::parser::Params const& params)
-{
-	_vte_debug_print(VTE_DEBUG_KEYBOARD,
-			"Entering application keypad mode.\n");
-	set_keypad_mode(VTE_KEYMODE_APPLICATION);
-}
-
-void
-VteTerminalPrivate::seq_normal_keypad(vte::parser::Params const& params)
-{
-	_vte_debug_print(VTE_DEBUG_KEYBOARD,
-			"Leaving application keypad mode.\n");
-	set_keypad_mode(VTE_KEYMODE_NORMAL);
-}
-
 /* Same as cursor_character_absolute, not widely supported. */
 void
 VteTerminalPrivate::seq_character_position_absolute(vte::parser::Params const& params)
@@ -2374,24 +2394,17 @@ VteTerminalPrivate::seq_decreset(vte::parser::Params const& params)
 void
 VteTerminalPrivate::seq_erase_in_display(vte::parser::Params const& params)
 {
-	/* The default parameter is 0. */
-	long param = 0;
-        /* Pull out the first parameter. */
-        // FIXMEchpe why this weird taking of the first number param, not the actual first param?
-        auto n_params = params.size();
-        for (unsigned int i = 0; i < n_params; i++) {
-                if (params.number_at_unchecked(i, param))
-                        break;
-        }
-
-        erase_in_display(param);
 }
 
 void
-VteTerminalPrivate::erase_in_display(long param)
+VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
 {
-	/* Clear the right area. */
-	switch (param) {
+        /* We don't implement the protected attribute, so we can ignore selective:
+         * bool selective = (seq.command() == VTE_CMD_DECSED);
+         */
+
+	switch (seq[0]) {
+        case -1: /* default */
 	case 0:
 		/* Clear below the current line. */
                 clear_below_current();
@@ -2418,28 +2431,20 @@ VteTerminalPrivate::erase_in_display(long param)
         m_text_deleted_flag = TRUE;
 }
 
-/* Erase certain parts of the current line in the display. */
 void
 VteTerminalPrivate::seq_erase_in_line(vte::parser::Params const& params)
 {
-	/* The default parameter is 0. */
-	long param = 0;
-        /* Pull out the first parameter. */
-        // FIXMEchpe why this weird taking of the first number param, not the actual first param?
-        auto n_params = params.size();
-        for (unsigned int i = 0; i < n_params; i++) {
-                if (params.number_at_unchecked(i, param))
-                        break;
-        }
-
-        erase_in_line(param);
 }
 
 void
-VteTerminalPrivate::erase_in_line(long param)
+VteTerminalPrivate::erase_in_line(vte::parser::Sequence const& seq)
 {
-	/* Clear the right area. */
-	switch (param) {
+        /* We don't implement the protected attribute, so we can ignore selective:
+         * bool selective = (seq.command() == VTE_CMD_DECSEL);
+         */
+
+	switch (seq[0]) {
+        case -1: /* default */
 	case 0:
 		/* Clear to end of the line. */
                 clear_to_eol();
@@ -2558,7 +2563,7 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
 void
 VteTerminalPrivate::seq_device_status_report(vte::parser::Params const& params)
 {
-        long param;
+        int param;
         if (!params.number_at(0, param))
                 return;
 
@@ -2597,7 +2602,7 @@ VteTerminalPrivate::seq_device_status_report(vte::parser::Params const& params)
 void
 VteTerminalPrivate::seq_dec_device_status_report(vte::parser::Params const& params)
 {
-        long param;
+        int param;
         if (!params.number_at(0, param))
                 return;
 
@@ -2697,7 +2702,7 @@ VteTerminalPrivate::seq_set_cursor_style(vte::parser::Params const& params)
         if (n_params > 1)
                 return;
 
-        long style;
+        int style;
         if (n_params == 0) {
                 /* no parameters means default (according to vt100.net) */
                 style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
@@ -2730,12 +2735,12 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
         if (n_params < 1)
                 return;
 
-        long param;
+        int  param;
         if (!params.number_at_unchecked(0, param))
                 return;
 
-        long arg1 = -1;
-        long arg2 = -1;
+        int arg1 = -1;
+        int arg2 = -1;
         if (n_params >= 2)
                 params.number_at_unchecked(1, arg1);
         if (n_params >= 3)
@@ -2747,28 +2752,28 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
 
         switch (param) {
         case 1:
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Deiconifying window.\n");
                 emit_deiconify_window();
                 break;
         case 2:
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Iconifying window.\n");
                 emit_iconify_window();
                 break;
         case 3:
                 if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSE,
+                        _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Moving window to "
-                                         "%ld,%ld.\n", arg1, arg2);
+                                         "%d,%d.\n", arg1, arg2);
                         emit_move_window(arg1, arg2);
                 }
                 break;
         case 4:
                 if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSE,
+                        _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Resizing window "
-                                         "(to %ldx%ld pixels, grid size %ldx%ld).\n",
+                                         "(to %dx%d pixels, grid size %ldx%ld).\n",
                                          arg2, arg1,
                                          arg2 / m_cell_width,
                                          arg1 / m_cell_height);
@@ -2777,24 +2782,24 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                 }
                 break;
         case 5:
-                _vte_debug_print(VTE_DEBUG_PARSE, "Raising window.\n");
+                _vte_debug_print(VTE_DEBUG_PARSER, "Raising window.\n");
                 emit_raise_window();
                 break;
         case 6:
-                _vte_debug_print(VTE_DEBUG_PARSE, "Lowering window.\n");
+                _vte_debug_print(VTE_DEBUG_PARSER, "Lowering window.\n");
                 emit_lower_window();
                 break;
         case 7:
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Refreshing window.\n");
                 invalidate_all();
                 emit_refresh_window();
                 break;
         case 8:
                 if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSE,
+                        _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Resizing window "
-                                         "(to %ld columns, %ld rows).\n",
+                                         "(to %d columns, %d rows).\n",
                                          arg2, arg1);
                         emit_resize_window(arg2, arg1);
                 }
@@ -2802,12 +2807,12 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
         case 9:
                 switch (arg1) {
                 case 0:
-                        _vte_debug_print(VTE_DEBUG_PARSE,
+                        _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Restoring window.\n");
                         emit_restore_window();
                         break;
                 case 1:
-                        _vte_debug_print(VTE_DEBUG_PARSE,
+                        _vte_debug_print(VTE_DEBUG_PARSER,
                                          "Maximizing window.\n");
                         emit_maximize_window();
                         break;
@@ -2820,7 +2825,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "%dt",
                            1 + !gtk_widget_get_mapped(m_widget));
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting window state %s.\n",
                                  gtk_widget_get_mapped(m_widget) ?
                                  "non-iconified" : "iconified");
@@ -2834,7 +2839,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                            _VTE_CAP_CSI "3;%d;%dt",
                            width + m_padding.left,
                            height + m_padding.top);
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting window location"
                                  "(%d++,%d++).\n",
                                  width, height);
@@ -2846,7 +2851,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                            _VTE_CAP_CSI "4;%d;%dt",
                            (int)(m_row_count * m_cell_height),
                            (int)(m_column_count * m_cell_width));
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting window size "
                                  "(%dx%d)\n",
                                  (int)(m_row_count * m_cell_height),
@@ -2856,7 +2861,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                 break;
         case 18:
                 /* Send widget size, in cells. */
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting widget size.\n");
                 g_snprintf(buf, sizeof(buf),
                            _VTE_CAP_CSI "8;%ld;%ldt",
@@ -2865,7 +2870,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                 feed_child(buf, -1);
                 break;
         case 19:
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting screen size.\n");
                 gscreen = gtk_widget_get_screen(m_widget);
                 height = gdk_screen_get_height(gscreen);
@@ -2882,7 +2887,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                    creates a security vulnerability.  See
                    http://marc.info/?l=bugtraq&m=104612710031920&w=2
                    and CVE-2003-0070. */
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting fake icon title.\n");
                 /* never use m_icon_title here! */
                 g_snprintf (buf, sizeof (buf),
@@ -2895,7 +2900,7 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                    creates a security vulnerability.  See
                    http://marc.info/?l=bugtraq&m=104612710031920&w=2
                    and CVE-2003-0070. */
-                _vte_debug_print(VTE_DEBUG_PARSE,
+                _vte_debug_print(VTE_DEBUG_PARSER,
                                  "Reporting fake window title.\n");
                 /* never use m_window_title here! */
                 g_snprintf (buf, sizeof (buf),
@@ -2904,8 +2909,8 @@ VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
                 break;
         default:
                 if (param >= 24) {
-                        _vte_debug_print(VTE_DEBUG_PARSE,
-                                         "Resizing to %ld rows.\n",
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Resizing to %d rows.\n",
                                          param);
                         /* Resize to the specified number of
                          * rows. */
@@ -2949,14 +2954,14 @@ VteTerminalPrivate::change_special_color(vte::parser::Params const& params,
 void
 VteTerminalPrivate::seq_change_foreground_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_FG, -1, 10, BEL);
+        change_special_color(params, VTE_DEFAULT_FG, -1, 10, BEL_C0);
 }
 
-/* Change the default foreground cursor, ST terminated */
+/* Change the default foreground cursor, ST_C0 terminated */
 void
 VteTerminalPrivate::seq_change_foreground_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_FG, -1, 10, ST);
+        change_special_color(params, VTE_DEFAULT_FG, -1, 10, ST_C0);
 }
 
 /* Reset the default foreground color */
@@ -2970,14 +2975,14 @@ VteTerminalPrivate::seq_reset_foreground_color(vte::parser::Params const& params
 void
 VteTerminalPrivate::seq_change_background_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_BG, -1, 11, BEL);
+        change_special_color(params, VTE_DEFAULT_BG, -1, 11, BEL_C0);
 }
 
-/* Change the default background cursor, ST terminated */
+/* Change the default background cursor, ST_C0 terminated */
 void
 VteTerminalPrivate::seq_change_background_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_DEFAULT_BG, -1, 11, ST);
+        change_special_color(params, VTE_DEFAULT_BG, -1, 11, ST_C0);
 }
 
 /* Reset the default background color */
@@ -2991,14 +2996,14 @@ VteTerminalPrivate::seq_reset_background_color(vte::parser::Params const& params
 void
 VteTerminalPrivate::seq_change_cursor_background_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL);
+        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL_C0);
 }
 
-/* Change the color of the cursor background, ST terminated */
+/* Change the color of the cursor background, ST_C0 terminated */
 void
 VteTerminalPrivate::seq_change_cursor_background_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST);
+        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST_C0);
 }
 
 /* Reset the color of the cursor */
@@ -3012,14 +3017,14 @@ VteTerminalPrivate::seq_reset_cursor_background_color(vte::parser::Params const&
 void
 VteTerminalPrivate::seq_change_highlight_background_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, BEL);
+        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, BEL_C0);
 }
 
-/* Change the highlight background color, ST terminated */
+/* Change the highlight background color, ST_C0 terminated */
 void
 VteTerminalPrivate::seq_change_highlight_background_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, ST);
+        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, ST_C0);
 }
 
 /* Reset the highlight background color */
@@ -3033,14 +3038,14 @@ VteTerminalPrivate::seq_reset_highlight_background_color(vte::parser::Params con
 void
 VteTerminalPrivate::seq_change_highlight_foreground_color_bel(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL);
+        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL_C0);
 }
 
-/* Change the highlight foreground color, ST terminated */
+/* Change the highlight foreground color, ST_C0 terminated */
 void
 VteTerminalPrivate::seq_change_highlight_foreground_color_st(vte::parser::Params const& params)
 {
-        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST);
+        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST_C0);
 }
 
 /* Reset the highlight foreground color */
@@ -3084,7 +3089,7 @@ VteTerminalPrivate::seq_iterm2_1337(vte::parser::Params const& params)
         { \
                 static bool warned = false; \
                 if (!warned) { \
-                        _vte_debug_print(VTE_DEBUG_PARSE, \
+                        _vte_debug_print(VTE_DEBUG_PARSER, \
                                          "Unimplemented handler for control sequence `%s'.\n", \
                                          "name"); \
                         warned = true; \
@@ -3153,10 +3158,2964 @@ UNIMPLEMENTED_SEQUENCE_HANDLER(utf_8_character_set)
 
 #undef UNIMPLEMENTED_UNIMPLEMENTED_SEQUENCE_HANDLER
 
-vte_matcher_entry_t const*
-_vte_get_matcher_entries(unsigned int* n_entries)
+/// FIXME
+
+
+/*
+ * Copyright (C) 2015 David Herrmann <dh.herrmann@gmail.com>
+ *
+ * vte is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the
+ * Free Software Foundation; either version 2.1 of the License, or (at
+ * your option) any later version.
+ */
+
+enum {
+        /* 7bit mode (default: on) */
+        VTE_FLAG_7BIT_MODE                = (1U << 0),
+        /* hide cursor caret (default: off) */
+        VTE_FLAG_HIDE_CURSOR                = (1U << 1),
+        /* do not send TPARM unrequested (default: off) */
+        VTE_FLAG_INHIBIT_TPARM        = (1U << 2),
+        /* perform carriage-return on line-feeds (default: off) */
+        VTE_FLAG_NEWLINE_MODE        = (1U << 3),
+        /* wrap-around is pending */
+        VTE_FLAG_PENDING_WRAP        = (1U << 4),
+        /* application-keypad mode (default: off) */
+        VTE_FLAG_KEYPAD_MODE                = (1U << 5),
+        /* enable application cursor-keys (default: off) */
+        VTE_FLAG_CURSOR_KEYS                = (1U << 6),
+};
+
+enum {
+        VTE_CONFORMANCE_LEVEL_VT52,
+        VTE_CONFORMANCE_LEVEL_VT100,
+        VTE_CONFORMANCE_LEVEL_VT400,
+        VTE_CONFORMANCE_LEVEL_N,
+};
+/*
+ * Command Handlers
+ * This is the unofficial documentation of all the VTE_CMD_* definitions.
+ * Each handled command has a separate function with an extensive comment on
+ * the semantics of the command.
+ * Note that many semantics are unknown and need to be verified. This is mostly
+ * about error-handling, though. Applications rarely rely on those features.
+ */
+
+void
+VteTerminalPrivate::NONE(vte::parser::Sequence const& seq)
 {
-#include "caps-list.hh"
-        *n_entries = G_N_ELEMENTS (entries);
-        return entries;
+}
+
+void
+VteTerminalPrivate::GRAPHIC(vte::parser::Sequence const& seq)
+{
+#if 0
+        struct vte_char ch = VTE_CHAR_NULL;
+
+        if (screen->state.cursor_x + 1 == screen->page->width
+            && screen->flags & VTE_FLAG_PENDING_WRAP
+            && screen->state.auto_wrap) {
+                screen_cursor_down(screen, 1, true);
+                screen_cursor_set(screen, 0, screen->state.cursor_y);
+        }
+
+        screen_cursor_clear_wrap(screen);
+
+        ch = vte_char_merge(ch, screen_map(screen, seq->terminator));
+        vte_page_write(screen->page,
+                          screen->state.cursor_x,
+                          screen->state.cursor_y,
+                          ch,
+                          1,
+                          &screen->state.attr,
+                          screen->age,
+                          false);
+
+        if (screen->state.cursor_x + 1 == screen->page->width)
+                screen->flags |= VTE_FLAG_PENDING_WRAP;
+        else
+                screen_cursor_right(screen, 1);
+
+        return 0;
+#endif
+
+        insert_char(seq.terminator(), false, false);
+}
+
+void
+VteTerminalPrivate::BEL(vte::parser::Sequence const& seq)
+{
+        /*
+         * BEL - sound bell tone
+         * This command should trigger an acoustic bell. Usually, this is
+         * forwarded directly to the pcspkr. However, bells have become quite
+         * uncommon and annoying, so we're not implementing them here. Instead,
+         * it's one of the commands we forward to the caller.
+         */
+
+#if 0
+        screen_forward(screen, VTE_CMD_BEL, seq);
+#endif
+
+        seq_bell(seq);
+}
+
+void
+VteTerminalPrivate::BS(vte::parser::Sequence const& seq)
+{
+        /*
+         * BS - backspace
+         * Move cursor one cell to the left. If already at the left margin,
+         * nothing happens.
+         */
+
+#if 0
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_left(screen, 1);
+#endif
+
+        seq_backspace(seq);
+}
+
+void
+VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
+{
+        /*
+         * CBT - cursor-backward-tabulation
+         * Move the cursor @args[0] tabs backwards (to the left). The
+         * current cursor cell, in case it's a tab, is not counted.
+         * Furthermore, the cursor cannot be moved beyond position 0 and
+         * it will stop there.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_left_tab(screen, num);
+#endif
+
+        seq_cursor_back_tab(seq);
+}
+
+void
+VteTerminalPrivate::CHA(vte::parser::Sequence const& seq)
+{
+        /*
+         * CHA - cursor-horizontal-absolute
+         * Move the cursor to position @args[0] in the current line. The
+         * cursor cannot be moved beyond the rightmost cell and will stop
+         * there.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+
+#if 0
+        unsigned int pos = 1;
+
+        if (seq->args[0] > 0)
+                pos = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_set(screen, pos - 1, screen->state.cursor_y);
+#endif
+
+        seq_cursor_character_absolute(seq);
+}
+
+void
+VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
+{
+        /*
+         * CHT - cursor-horizontal-forward-tabulation
+         * Move the cursor @args[0] tabs forward (to the right). The
+         * current cursor cell, in case it's a tab, is not counted.
+         * Furthermore, the cursor cannot be moved beyond the rightmost cell
+         * and will stop there.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_right_tab(screen, num);
+#endif
+
+        seq_cursor_forward_tabulation(seq);
+}
+
+void
+VteTerminalPrivate::CNL(vte::parser::Sequence const& seq)
+{
+        /*
+         * CNL - cursor-next-line
+         * Move the cursor @args[0] lines down.
+         *
+         * TODO: Does this stop at the bottom or cause a scroll-up?
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_down(screen, num, false);
+#endif
+
+        seq_cursor_next_line(seq);
+}
+
+void
+VteTerminalPrivate::CPL(vte::parser::Sequence const& seq)
+{
+        /*
+         * CPL - cursor-preceding-line
+         * Move the cursor @args[0] lines up.
+         *
+         * TODO: Does this stop at the top or cause a scroll-up?
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_up(screen, num, false);
+#endif
+
+        seq_cursor_preceding_line(seq);
+}
+
+void
+VteTerminalPrivate::CR(vte::parser::Sequence const& seq)
+{
+        /*
+         * CR - carriage-return
+         * Move the cursor to the left margin on the current line.
+         */
+#if 0
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_set(screen, 0, screen->state.cursor_y);
+#endif
+
+        seq_carriage_return(seq);
+}
+
+void
+VteTerminalPrivate::CUB(vte::parser::Sequence const& seq)
+{
+        /*
+         * CUB - cursor-backward
+         * Move the cursor @args[0] positions to the left. The cursor stops
+         * at the left-most position.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_left(screen, num);
+#endif
+
+        seq_cursor_backward(seq);
+}
+
+void
+VteTerminalPrivate::CUD(vte::parser::Sequence const& seq)
+{
+        /*
+         * CUD - cursor-down
+         * Move the cursor @args[0] positions down. The cursor stops at the
+         * bottom margin. If it was already moved further, it stops at the
+         * bottom line.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_down(screen, num, false);
+#endif
+
+        seq_cursor_down(seq);
+}
+
+void
+VteTerminalPrivate::CUF(vte::parser::Sequence const& seq)
+{
+        /*
+         * CUF -cursor-forward
+         * Move the cursor @args[0] positions to the right. The cursor stops
+         * at the right-most position.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_right(screen, num);
+#endif
+
+        seq_cursor_forward(seq);
+}
+
+void
+VteTerminalPrivate::CUP(vte::parser::Sequence const& seq)
+{
+        /*
+         * CUP - cursor-position
+         * Moves the cursor to position @args[1] x @args[0]. If either is 0, it
+         * is treated as 1. The positions are subject to the origin-mode and
+         * clamped to the addressable with/height.
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         */
+#if 0
+        unsigned int x = 1, y = 1;
+
+        if (seq->args[0] > 0)
+                y = seq->args[0];
+        if (seq->args[1] > 0)
+                x = seq->args[1];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_set_rel(screen, x - 1, y - 1);
+#endif
+
+        seq_cursor_position(seq);
+}
+
+void
+VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
+{
+        /*
+         * CUU - cursor-up
+         * Move the cursor @args[0] positions up. The cursor stops at the
+         * top margin. If it was already moved further, it stops at the
+         * top line.
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_up(screen, num, false);
+#endif
+
+        seq_cursor_up(seq);
+}
+
+void
+VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
+{
+        /*
+         * DA1 - primary-device-attributes
+         * The primary DA asks for basic terminal features. We simply return
+         * a hard-coded list of features we implement.
+         * Note that the primary DA asks for supported features, not currently
+         * enabled features.
+         *
+         * The terminal's answer is:
+         *   ^[ ? 64 ; ARGS c
+         * The first argument, 64, is fixed and denotes a VT420, the last
+         * DEC-term that extended this number.
+         * All following arguments denote supported features. Note
+         * that at most 15 features can be sent (max CSI args). It is safe to
+         * send more, but clients might not be able to parse them. This is a
+         * client's problem and we shouldn't care. There is no other way to
+         * send those feature lists, so we have to extend them beyond 15 in
+         * those cases.
+         *
+         * Known modes:
+         *    1: 132 column mode
+         *       The 132 column mode is supported by the terminal.
+         *    2: printer port
+         *       A priner-port is supported and can be addressed via
+         *       control-codes.
+         *    3: ReGIS graphics
+         *       Support for ReGIS graphics is available. The ReGIS routines
+         *       provide the "remote graphics instruction set" and allow basic
+         *       vector-rendering.
+         *    4: sixel
+         *       Support of Sixel graphics is available. This provides access
+         *       to the sixel bitmap routines.
+         *    6: selective erase
+         *       The terminal supports DECSCA and related selective-erase
+         *       functions. This allows to protect specific cells from being
+         *       erased, if specified.
+         *    7: soft character set (DRCS)
+         *       TODO: ?
+         *    8: user-defined keys (UDKs)
+         *       TODO: ?
+         *    9: national-replacement character sets (NRCS)
+         *       National-replacement character-sets are available.
+         *   12: Yugoslavian (SCS)
+         *       TODO: ?
+         *   15: technical character set
+         *       The DEC technical-character-set is available.
+         *   18: windowing capability
+         *       TODO: ?
+         *   21: horizontal scrolling
+         *       TODO: ?
+         *   22: ANSII color
+         *       TODO: ?
+         *   23: Greek
+         *       TODO: ?
+         *   24: Turkish
+         *       TODO: ?
+         *   29: ANSI text locator
+         *       TODO: ?
+         *   42: ISO Latin-2 character set
+         *       TODO: ?
+         *   44: PCTerm
+         *       TODO: ?
+         *   45: soft keymap
+         *       TODO: ?
+         *   46: ASCII emulation
+         *       TODO: ?
+         */
+#if 0
+        SEQ_WRITE(screen, C0_CSI, C1_CSI, "?64;1;6;9;15c");
+#endif
+
+        seq_send_primary_device_attributes(seq);
+}
+
+void
+VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
+{
+        /*
+         * DA2 - secondary-device-attributes
+         * The secondary DA asks for the terminal-ID, firmware versions and
+         * other non-primary attributes. All these values are
+         * informational-only and should not be used by the host to detect
+         * terminal features.
+         *
+         * The terminal's response is:
+         *   ^[ > 61 ; FIRMWARE ; KEYBOARD c
+         * whereas 65 is fixed for VT525 terminals, the last terminal-line that
+         * increased this number. FIRMWARE is the firmware
+         * version encoded as major/minor (20 == 2.0) and KEYBOARD is 0 for STD
+         * keyboard and 1 for PC keyboards.
+         *
+         * We replace the firmware-version with the systemd-version so clients
+         * can decode it again.
+         */
+#if 0
+        return SEQ_WRITE(screen, C0_CSI, C1_CSI,
+                         ">65;" __stringify(LINUX_VERSION_CODE) ";1c");
+#endif
+
+        seq_send_secondary_device_attributes(seq);
+}
+
+void
+VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
+{
+        /*
+         * DA3 - tertiary-device-attributes
+         * The tertiary DA is used to query the terminal-ID.
+         *
+         * The terminal's response is:
+         *   ^P ! | XX AA BB CC ^\
+         * whereas all four parameters are hexadecimal-encoded pairs. XX
+         * denotes the manufacturing site, AA BB CC is the terminal's ID.
+         */
+
+        /* we do not support tertiary DAs */
+#if 0
+#endif
+}
+
+void
+VteTerminalPrivate::DC1(vte::parser::Sequence const& seq)
+{
+        /*
+         * DC1 - device-control-1 or XON
+         * This clears any previous XOFF and resumes terminal-transmission.
+         */
+
+        /* we do not support XON */
+}
+
+void
+VteTerminalPrivate::DC3(vte::parser::Sequence const& seq)
+{
+        /*
+         * DC3 - device-control-3 or XOFF
+         * Stops terminal transmission. No further characters are sent until
+         * an XON is received.
+         */
+
+        /* we do not support XOFF */
+}
+
+void
+VteTerminalPrivate::DCH(vte::parser::Sequence const& seq)
+{
+        /*
+         * DCH - delete-character
+         * This deletes @argv[0] characters at the current cursor position.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        vte_page_delete_cells(screen->page,
+                                 screen->state.cursor_x,
+                                 screen->state.cursor_y,
+                                 num,
+                                 &screen->state.attr,
+                                 screen->age);
+#endif
+
+        seq_delete_characters(seq);
+}
+
+void
+VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECALN - screen-alignment-pattern
+         *
+         * Probably not worth implementing.
+         */
+
+        seq_screen_alignment_test(seq);
+}
+
+void
+VteTerminalPrivate::DECANM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECANM - ansi-mode
+         * Set the terminal into VT52 compatibility mode. Control sequences
+         * overlap with regular sequences so we have to detect them early before
+         * dispatching them.
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECBI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECBI - back-index
+         * This control function moves the cursor backward one column. If the
+         * cursor is at the left margin, then all screen data within the margin
+         * moves one column to the right. The column that shifted past the right
+         * margin is lost.
+         * DECBI adds a new column at the left margin with no visual attributes.
+         * DECBI does not affect the margins. If the cursor is beyond the
+         * left-margin at the left border, then the terminal ignores DECBI.
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECCARA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECCARA - change-attributes-in-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECCRA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECCRA - copy-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECDC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDC - delete-column
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECDHL_BH(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDHL_BH - double-width-double-height-line: bottom half
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECDHL_TH(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDHL_TH - double-width-double-height-line: top half
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECDWL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDWL - double-width-single-height-line
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECEFR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECEFR - enable-filter-rectangle
+         * Defines the coordinates of a filter rectangle (top, left, bottom,
+         * right as @args[0] to @args[3]) and activates it.
+         * Anytime the locator is detected outside of the filter rectangle, an
+         * outside rectangle event is generated and the rectangle is disabled.
+         * Filter rectangles are always treated as "one-shot" events. Any
+         * parameters that are omitted default to the current locator position.
+         * If all parameters are omitted, any locator motion will be reported.
+         * DECELR always cancels any prevous rectangle definition.
+         *
+         * The locator is usually associated with the mouse-cursor, but based
+         * on cells instead of pixels. See DECELR how to initialize and enable
+         * it. DECELR can also enable pixel-mode instead of cell-mode.
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECELF(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECELF - enable-local-functions
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECELR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECELR - enable-locator-reporting
+         * This changes the locator-reporting mode. @args[0] specifies the mode
+         * to set, 0 disables locator-reporting, 1 enables it continuously, 2
+         * enables it for a single report. @args[1] specifies the
+         * precision-mode. 0 and 2 set the reporting to cell-precision, 1 sets
+         * pixel-precision.
+         *
+         * Defaults:
+         *   args[0]: 0
+         *   args[1]: 0
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECERA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECERA - erase-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECFI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECFI - forward-index
+         * This control function moves the cursor forward one column. If the
+         * cursor is at the right margin, then all screen data within the
+         * margins moves one column to the left. The column shifted past the
+         * left margin is lost.
+         * DECFI adds a new column at the right margin, with no visual
+         * attributes. DECFI does not affect margins. If the cursor is beyond
+         * the right margin at the border of the page when the terminal
+         * receives DECFI, then the terminal ignores DECFI.
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECFRA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECFRA - fill-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECIC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECIC - insert-column
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECID(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECID - return-terminal-id
+         * This is an obsolete form of VTE_CMD_DA1.
+         */
+
+        DA1(seq);
+}
+
+void
+VteTerminalPrivate::DECINVM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECINVM - invoke-macro
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECKBD(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECKBD - keyboard-language-selection
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECKPAM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECKPAM - keypad-application-mode
+         * Enables the keypad-application mode. If enabled, the keypad sends
+         * special characters instead of the printed characters. This way,
+         * applications can detect whether a numeric key was pressed on the
+         * top-row or on the keypad.
+         * Default is keypad-numeric-mode.
+         */
+#if 0
+        screen->flags |= VTE_FLAG_KEYPAD_MODE;
+#endif
+
+        set_keypad_mode(VTE_KEYMODE_APPLICATION);
+}
+
+void
+VteTerminalPrivate::DECKPNM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECKPNM - keypad-numeric-mode
+         * This disables the keypad-application-mode (DECKPAM) and returns to
+         * the keypad-numeric-mode. Keypresses on the keypad generate the same
+         * sequences as corresponding keypresses on the main keyboard.
+         * Default is keypad-numeric-mode.
+         */
+#if 0
+        screen->flags &= ~VTE_FLAG_KEYPAD_MODE;
+#endif
+
+	set_keypad_mode(VTE_KEYMODE_NORMAL);
+}
+
+void
+VteTerminalPrivate::DECLFKC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECLFKC - local-function-key-control
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECLL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECLL - load-leds
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECLTOD(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECLTOD - load-time-of-day
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECPCTERM - pcterm-mode
+         * This enters/exits the PCTerm mode. Default mode is VT-mode. It can
+         * also select parameters for scancode/keycode mappings in SCO mode.
+         *
+         * Definitely not worth implementing. Lets kill PCTerm/SCO modes!
+         */
+}
+
+void
+VteTerminalPrivate::DECPKA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECPKA - program-key-action
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECPKFMR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECPKFMR - program-key-free-memory-report
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRARA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRARA - reverse-attributes-in-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRC - restore-cursor
+         * Restores the terminal to the state saved by the save cursor (DECSC)
+         * function. If there was not a previous DECSC, then this does:
+         *   * Home the cursor
+         *   * Resets DECOM
+         *   * Resets the SGR attributes
+         *   * Designates ASCII (IR #6) to GL, and DEC Supplemental Graphics to GR
+         *
+         * Note that the status line has its own DECSC buffer.
+         */
+#if 0
+        screen_restore_state(screen, &screen->saved);
+#endif
+
+        seq_restore_cursor(seq);
+}
+
+void
+VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECREQTPARM - request-terminal-parameters
+         * The sequence DECREPTPARM is sent by the terminal controller to notify
+         * the host of the status of selected terminal parameters. The status
+         * sequence may be sent when requested by the host or at the terminal's
+         * discretion. DECREPTPARM is sent upon receipt of a DECREQTPARM.
+         *
+         * If @args[0] is 0, this marks a request and the terminal is allowed
+         * to send DECREPTPARM messages without request. If it is 1, the same
+         * applies but the terminal should no longer send DECREPTPARM
+         * unrequested.
+         * 2 and 3 mark a report, but 3 is only used if the terminal answers as
+         * an explicit request with @args[0] == 1.
+         *
+         * The other arguments are ignored in requests, but have the following
+         * meaning in responses:
+         *   args[1]: 1=no-parity-set 4=parity-set-and-odd 5=parity-set-and-even
+         *   args[2]: 1=8bits-per-char 2=7bits-per-char
+         *   args[3]: transmission-speed
+         *   args[4]: receive-speed
+         *   args[5]: 1=bit-rate-multiplier-is-16
+         *   args[6]: This value communicates the four switch values in block 5
+         *            of SETUP B, which are only visible to the user when an STP
+         *            option is installed. These bits may be assigned for an STP
+         *            device. The four bits are a decimal-encoded binary number.
+         *            Value between 0-15.
+         *
+         * The transmission/receive speeds have mappings for number => bits/s
+         * which are quite weird. Examples are: 96->3600, 112->9600, 120->19200
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+#if 0
+        if (seq->n_args < 1 || seq->args[0] == 0) {
+                screen->flags &= ~VTE_FLAG_INHIBIT_TPARM;
+                return SEQ_WRITE(screen, C0_CSI, C1_CSI, "2;1;1;120;120;1;0x");
+        } else if (seq->args[0] == 1) {
+                screen->flags |= VTE_FLAG_INHIBIT_TPARM;
+                return SEQ_WRITE(screen, C0_CSI, C1_CSI, "3;1;1;120;120;1;0x");
+        } else {
+                return 0;
+        }
+#endif
+
+        seq_request_terminal_parameters(seq);
+}
+
+void
+VteTerminalPrivate::DECRPKT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRPKT - report-key-type
+         * Response to DECRQKT, we can safely ignore it as we're the one sending
+         * it to the host.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQCRA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQCRA - request-checksum-of-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQDE(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQDE - request-display-extent
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQKT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQKT - request-key-type
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQLP(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQLP - request-locator-position
+         * See DECELR for locator-information.
+         *
+         * TODO: document and implement
+         */
+}
+
+void
+VteTerminalPrivate::DECRQM_ANSI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQM_ANSI - request-mode-ansi
+         * The host sends this control function to find out if a particular mode
+         * is set or reset. The terminal responds with a report mode function.
+         * @args[0] contains the mode to query.
+         *
+         * Response is DECRPM with the first argument set to the mode that was
+         * queried, second argument is 0 if mode is invalid, 1 if mode is set,
+         * 2 if mode is not set (reset), 3 if mode is permanently set and 4 if
+         * mode is permanently not set (reset):
+         *   ANSI: ^[ MODE ; VALUE $ y
+         *   DEC:  ^[ ? MODE ; VALUE $ y
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECRQM_DEC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQM_DEC - request-mode-dec
+         * Same as DECRQM_ANSI but for DEC modes.
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECRQPKFM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQPKFM - request-program-key-free-memory
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQPSR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQPSR - request-presentation-state-report
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQTSR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQTSR - request-terminal-state-report
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRQUPSS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQUPSS - request-user-preferred-supplemental-set
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSACE(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSACE - select-attribute-change-extent
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSASD(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSASD - select-active-status-display
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSC - save-cursor
+         * Save cursor and terminal state so it can be restored later on.
+         * This stores:
+         *   * Cursor position
+         *   * SGR attributes
+         *   * Charset designations for GL and GR
+         *   * Wrap flag
+         *   * DECOM state
+         *   * Selective erase attribute
+         *   * Any SS2 or SS3 sent
+         *
+         */
+#if 0
+        screen_save_state(screen, &screen->saved);
+#endif
+
+        seq_save_cursor(seq);
+}
+
+void
+VteTerminalPrivate::DECSCA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSCA - select-character-protection-attribute
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
+         */
+#if 0
+        unsigned int mode = 0;
+
+        if (seq->args[0] > 0)
+                mode = seq->args[0];
+
+        switch (mode) {
+        case 0:
+        case 2:
+                screen->state.attr.protect = 0;
+                break;
+        case 1:
+                screen->state.attr.protect = 1;
+                break;
+        }
+#endif
+}
+
+void
+VteTerminalPrivate::DECSCL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSCL - select-conformance-level
+         * Select the terminal's operating level. The factory default is
+         * level 4 (VT Level 4 mode, 7-bit controls).
+         * When you change the conformance level, the terminal performs a hard
+         * reset (RIS).
+         *
+         * @args[0] defines the conformance-level, valid values are:
+         *   61: Level 1 (VT100)
+         *   62: Level 2 (VT200)
+         *   63: Level 3 (VT300)
+         *   64: Level 4 (VT400)
+         * @args[1] defines the 8bit-mode, valid values are:
+         *    0: 8-bit controls
+         *    1: 7-bit controls
+         *    2: 8-bit controls (same as 0)
+         *
+         * If @args[0] is 61, then @args[1] is ignored and 7bit controls are
+         * enforced.
+         *
+         * Defaults:
+         *   args[0]: 64
+         *   args[1]: 0
+         */
+#if 0
+        unsigned int level = 64, bit = 0;
+
+        if (seq->n_args > 0) {
+                level = seq->args[0];
+                if (seq->n_args > 1)
+                        bit = seq->args[1];
+        }
+
+        vte_screen_hard_reset(screen);
+
+        switch (level) {
+        case 61:
+                screen->conformance_level = VTE_CONFORMANCE_LEVEL_VT100;
+                screen->flags |= VTE_FLAG_7BIT_MODE;
+                break;
+        case 62 ... 69:
+                screen->conformance_level = VTE_CONFORMANCE_LEVEL_VT400;
+                if (bit == 1)
+                        screen->flags |= VTE_FLAG_7BIT_MODE;
+                else
+                        screen->flags &= ~VTE_FLAG_7BIT_MODE;
+                break;
+        }
+#endif
+}
+
+void
+VteTerminalPrivate::DECSCP(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSCP - select-communication-port
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSCPP(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSCPP - select-columns-per-page
+         * Select columns per page. The number of rows is unaffected by this.
+         * @args[0] selectes the number of columns (width), DEC only defines 80
+         * and 132, but we allow any integer here. 0 is equivalent to 80.
+         * Page content is *not* cleared and the cursor is left untouched.
+         * However, if the page is reduced in width and the cursor would be
+         * outside the visible region, it's set to the right border. Newly added
+         * cells are cleared. No data is retained outside the visible region.
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECSCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSCS - select-communication-speed
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSCUSR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSCUSR - set-cursor-style
+         * This changes the style of the cursor. @args[0] can be one of:
+         *   0, 1: blinking block
+         *      2: steady block
+         *      3: blinking underline
+         *      4: steady underline
+         * Changing this setting does _not_ affect the cursor visibility itself.
+         * Use DECTCEM for that.
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+
+        seq_set_cursor_style(seq);
+}
+
+void
+VteTerminalPrivate::DECSDDT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSDDT - select-disconnect-delay-time
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSDPT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSDPT - select-digital-printed-data-type
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSED(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSED - selective-erase-in-display
+         * This control function erases some or all of the erasable characters
+         * in the display. DECSED can only erase characters defined as erasable
+         * by the DECSCA control function. DECSED works inside or outside the
+         * scrolling margins.
+         *
+         * @args[0] defines which regions are erased. If it is 0, all cells from
+         * the cursor (inclusive) till the end of the display are erase. If it
+         * is 1, all cells from the start of the display till the cursor
+         * (inclusive) are erased. If it is 2, all cells are erased.
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+
+        erase_in_display(seq);
+}
+
+void
+VteTerminalPrivate::DECSEL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSEL - selective-erase-in-line
+         * This control function erases some or all of the erasable characters
+         * in a single line of text. DECSEL erases only those characters defined
+         * as erasable by the DECSCA control function. DECSEL works inside or
+         * outside the scrolling margins.
+         *
+         * @args[0] defines the region to be erased. If it is 0, all cells from
+         * the cursor (inclusive) till the end of the line are erase. If it is
+         * 1, all cells from the start of the line till the cursor (inclusive)
+         * are erased. If it is 2, the whole line of the cursor is erased.
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+
+        erase_in_line(seq);
+}
+
+void
+VteTerminalPrivate::DECSERA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSERA - selective-erase-rectangular-area
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSFC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSFC - select-flow-control
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSKCV(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSKCV - set-key-click-volume
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSLCK(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSLCK - set-lock-key-style
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSLE(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSLE - select-locator-events
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECSLPP(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSLPP - set-lines-per-page
+         * Set the number of lines used for the page. @args[0] specifies the
+         * number of lines to be used. DEC only allows a limited number of
+         * choices, however, we allow all integers. 0 is equivalent to 24.
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * TODO: implement
+         */
+}
+
+void
+VteTerminalPrivate::DECSLRM_OR_SC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSLRM_OR_SC - set-left-and-right-margins or save-cursor
+         *
+         * TODO: Detect save-cursor and run it. DECSLRM is not worth
+         *       implementing.
+         */
+
+        //FIXMEchpe
+        seq_save_cursor(seq);
+}
+
+void
+VteTerminalPrivate::DECSMBV(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSMBV - set-margin-bell-volume
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSMKR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSMKR - select-modifier-key-reporting
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSNLS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSNLS - set-lines-per-screen
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSPP(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSPP - set-port-parameter
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSPPCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSPPCS - select-pro-printer-character-set
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSPRTT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSPRTT - select-printer-type
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSR - secure-reset
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSRFR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSRFR - select-refresh-rate
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSSCLS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSSCLS - set-scroll-speed
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSSDT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSSDT - select-status-display-line-type
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSSL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSSL - select-setup-language
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECST8C(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECST8C - set-tab-at-every-8-columns
+         * Clear the tab-ruler and reset it to a tab at every 8th column,
+         * starting at 9 (though, setting a tab at 1 is fine as it has no
+         * effect).
+         */
+#if 0
+        unsigned int i;
+
+        for (i = 0; i < screen->page->width; i += 8)
+                screen->tabs[i / 8] = 0x1;
+#endif
+}
+
+void
+VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSTBM - set-top-and-bottom-margins
+         * This call resets the cursor position to (1,1).
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: last page-line
+         */
+#if 0
+        unsigned int top, bottom;
+
+        top = 1;
+        bottom = screen->page->height;
+
+        if (seq->args[0] > 0)
+                top = seq->args[0];
+        if (seq->args[1] > 0)
+                bottom = seq->args[1];
+
+        if (top > screen->page->height)
+                top = screen->page->height;
+        if (bottom > screen->page->height)
+                bottom = screen->page->height;
+
+        if (top >= bottom ||
+            top > screen->page->height ||
+            bottom > screen->page->height) {
+                top = 1;
+                bottom = screen->page->height;
+        }
+
+        vte_page_set_scroll_region(screen->page, top - 1, bottom - top + 1);
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_set(screen, 0, 0);
+#endif
+
+        seq_set_scrolling_region(seq);
+}
+
+void
+VteTerminalPrivate::DECSTR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSTR - soft-terminal-reset
+         * Perform a soft reset to the default values.
+         */
+#if 0
+        vte_screen_soft_reset(screen);
+#endif
+
+        seq_soft_reset(seq);
+}
+
+void
+VteTerminalPrivate::DECSTRL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSTRL - set-transmit-rate-limit
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSWBV(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSWBV - set-warning-bell-volume
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSWL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSWL - single-width-single-height-line
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECTID(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECTID - select-terminal-id
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECTME(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECTME - terminal-mode-emulation
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECTST(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECTST - invoke-confidence-test
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DL - delete-line
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        vte_page_delete_lines(screen->page,
+                                 screen->state.cursor_y,
+                                 num,
+                                 &screen->state.attr,
+                                 screen->age);
+#endif
+
+        seq_delete_lines(seq);
+}
+
+void
+VteTerminalPrivate::DSR_ANSI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DSR_ANSI - device-status-report-ansi
+         *
+         * TODO: implement
+         */
+
+        seq_device_status_report(seq);
+}
+
+void
+VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DSR_DEC - device-status-report-dec
+         *
+         * TODO: implement
+         */
+
+        seq_dec_device_status_report(seq);
+}
+
+void
+VteTerminalPrivate::ECH(vte::parser::Sequence const& seq)
+{
+        /*
+         * ECH - erase-character
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        vte_page_erase(screen->page,
+                          screen->state.cursor_x, screen->state.cursor_y,
+                          screen->state.cursor_x + num, screen->state.cursor_y,
+                          &screen->state.attr, screen->age, false);
+#endif
+
+        seq_erase_characters(seq);
+}
+
+void
+VteTerminalPrivate::ED(vte::parser::Sequence const& seq)
+{
+        /*
+         * ED - erase-in-display
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+
+        erase_in_display(seq);
+}
+
+void
+VteTerminalPrivate::EL(vte::parser::Sequence const& seq)
+{
+        /*
+         * EL - erase-in-line
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+
+        erase_in_line(seq);
+}
+
+void
+VteTerminalPrivate::ENQ(vte::parser::Sequence const& seq)
+{
+        /*
+         * ENQ - enquiry
+         * Transmit the answerback-string. If none is set, do nothing.
+         */
+#if 0
+        if (screen->answerback)
+                return screen_write(screen,
+                                    screen->answerback,
+                                    strlen(screen->answerback));
+#endif
+
+        seq_return_terminal_status(seq);
+}
+
+void
+VteTerminalPrivate::EPA(vte::parser::Sequence const& seq)
+{
+        /*
+         * EPA - end-of-guarded-area
+         *
+         * TODO: What is this?
+         */
+}
+
+void
+VteTerminalPrivate::FF(vte::parser::Sequence const& seq)
+{
+        /*
+         * FF - form-feed
+         * This causes the cursor to jump to the next line. It is treated the
+         * same as LF.
+         */
+
+#if 0
+        screen_LF(screen, seq);
+#endif
+
+        seq_form_feed(seq);
+}
+
+void
+VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
+{
+        /*
+         * HPA - horizontal-position-absolute
+         * HPA causes the active position to be moved to the n-th horizontal
+         * position of the active line. If an attempt is made to move the active
+         * position past the last position on the line, then the active position
+         * stops at the last position on the line.
+         *
+         * @args[0] defines the horizontal position. 0 is treated as 1.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_set(screen, num - 1, screen->state.cursor_y);
+#endif
+
+        seq_character_position_absolute(seq);
+}
+
+void
+VteTerminalPrivate::HPR(
+                      vte::parser::Sequence const& seq)
+{
+        /*
+         * HPR - horizontal-position-relative
+         * HPR causes the active position to be moved to the n-th following
+         * horizontal position of the active line. If an attempt is made to move
+         * the active position past the last position on the line, then the
+         * active position stops at the last position on the line.
+         *
+         * @args[0] defines the horizontal position. 0 is treated as 1.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_right(screen, num);
+#endif
+}
+
+void
+VteTerminalPrivate::HT(vte::parser::Sequence const& seq)
+{
+        /*
+         * HT - horizontal-tab
+         * Moves the cursor to the next tab stop. If there are no more tab
+         * stops, the cursor moves to the right margin. HT does not cause text
+         * to auto wrap.
+         */
+#if 0
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_right_tab(screen, 1);
+#endif
+
+        seq_tab(seq);
+}
+
+void
+VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
+{
+        /*
+         * HTS - horizontal-tab-set
+         *
+         * XXX
+         */
+#if 0
+        unsigned int pos;
+
+        pos = screen->state.cursor_x;
+        if (screen->page->width > 0)
+                screen->tabs[pos / 8] |= 1U << (pos % 8);
+#endif
+
+        seq_tab_set(seq);
+}
+
+void
+VteTerminalPrivate::HVP(vte::parser::Sequence const& seq)
+{
+        /*
+         * HVP - horizontal-and-vertical-position
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *
+         * References: ECMA-48 FIXME
+         *             VT525
+         */
+
+        CUP(seq);
+}
+
+void
+VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
+{
+        /*
+         * ICH - insert-character
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        vte_page_insert_cells(screen->page,
+                                 screen->state.cursor_x,
+                                 screen->state.cursor_y,
+                                 num,
+                                 &screen->state.attr,
+                                 screen->age);
+#endif
+
+        seq_insert_blank_characters(seq);
+}
+
+void
+VteTerminalPrivate::IL(vte::parser::Sequence const& seq)
+{
+        /*
+         * IL - insert-line
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        vte_page_insert_lines(screen->page,
+                                 screen->state.cursor_y,
+                                 num,
+                                 &screen->state.attr,
+                                 screen->age);
+#endif
+
+        seq_insert_lines(seq);
+}
+
+void
+VteTerminalPrivate::IND(vte::parser::Sequence const& seq)
+{
+        /*
+         * IND - index - DEPRECATED
+         */
+#if 0
+        screen_cursor_down(screen, 1, true);
+#endif
+
+        seq_index(seq);
+}
+
+void
+VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
+{
+        /*
+         * LF - line-feed
+         */
+
+#if 0
+        screen_cursor_down(screen, 1, true);
+        if (screen->flags & VTE_FLAG_NEWLINE_MODE)
+                screen_cursor_left(screen, screen->state.cursor_x);
+#endif
+
+        seq_line_feed(seq);
+}
+
+void
+VteTerminalPrivate::LS1R(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS1R - locking-shift-1-right
+         * Map G1 into GR.
+         */
+#if 0
+        screen->state.gr = &screen->g1;
+#endif
+}
+
+void
+VteTerminalPrivate::LS2(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS2 - locking-shift-2
+         * Map G2 into GL.
+         */
+#if 0
+        screen->state.gl = &screen->g2;
+#endif
+}
+
+void
+VteTerminalPrivate::LS2R(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS2R - locking-shift-2-right
+         * Map G2 into GR.
+         */
+#if 0
+        screen->state.gr = &screen->g2;
+#endif
+}
+
+void
+VteTerminalPrivate::LS3(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS3 - locking-shift-3
+         * Map G3 into GL.
+         */
+
+#if 0
+        screen->state.gl = &screen->g3;
+#endif
+}
+
+void
+VteTerminalPrivate::LS3R(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS3R - locking-shift-3-right
+         * Map G3 into GR.
+         */
+#if 0
+        screen->state.gr = &screen->g3;
+#endif
+}
+
+void
+VteTerminalPrivate::MC_ANSI(vte::parser::Sequence const& seq)
+{
+        /*
+         * MC_ANSI - media-copy-ansi
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::MC_DEC(vte::parser::Sequence const& seq)
+{
+        /*
+         * MC_DEC - media-copy-dec
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::NEL(vte::parser::Sequence const& seq)
+{
+        /*
+         * NEL - next-line
+         * XXX
+         */
+#if 0
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_down(screen, 1, true);
+        screen_cursor_set(screen, 0, screen->state.cursor_y);
+#endif
+
+        seq_next_line(seq);
+}
+
+void
+VteTerminalPrivate::NP(vte::parser::Sequence const& seq)
+{
+        /*
+         * NP - next-page
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * Probably not worth implementing. We only support a single page.
+         */
+}
+
+void
+VteTerminalPrivate::NUL(vte::parser::Sequence const& seq)
+{
+        /*
+         */
+}
+
+void
+VteTerminalPrivate::PP(vte::parser::Sequence const& seq)
+{
+        /*
+         * PP - preceding-page
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * Probably not worth implementing. We only support a single page.
+         */
+}
+
+void
+VteTerminalPrivate::PPA(vte::parser::Sequence const& seq)
+{
+        /*
+         * PPA - page-position-absolute
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * Probably not worth implementing. We only support a single page.
+         */
+}
+
+void
+VteTerminalPrivate::PPB(vte::parser::Sequence const& seq)
+{
+        /*
+         * PPB - page-position-backward
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * Probably not worth implementing. We only support a single page.
+         */
+}
+
+void
+VteTerminalPrivate::PPR(vte::parser::Sequence const& seq)
+{
+        /*
+         * PPR - page-position-relative
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * Probably not worth implementing. We only support a single page.
+         */
+}
+
+void
+VteTerminalPrivate::RC(vte::parser::Sequence const& seq)
+{
+        /*
+         * RC - restore-cursor
+         */
+
+#if 0
+        screen_DECRC(screen, seq);
+#endif
+}
+
+void
+VteTerminalPrivate::REP(vte::parser::Sequence const& seq)
+{
+        /*
+         * REP - repeat
+         * Repeat the preceding graphics-character the given number of times.
+         * @args[0] specifies how often it shall be repeated. 0 is treated as 1.
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+
+        seq_repeat(seq);
+}
+
+void
+VteTerminalPrivate::RI(vte::parser::Sequence const& seq)
+{
+        /*
+         * RI - reverse-index
+         * Moves the cursor up one line in the same column. If the cursor is at
+         * the top margin, the page scrolls down.
+         */
+#if 0
+        screen_cursor_up(screen, 1, true);
+#endif
+
+        seq_reverse_index(seq);
+}
+
+void
+VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
+{
+        /*
+         * RIS - reset-to-initial-state
+         * XXX
+         */
+
+#if 0
+        vte_screen_hard_reset(screen);
+#endif
+
+        seq_full_reset(seq);
+}
+
+void
+VteTerminalPrivate::RM_ANSI(vte::parser::Sequence const& seq)
+{
+        /*
+         * RM_ANSI - reset-mode-ansi
+         *
+         * TODO: implement (see VT510rm manual)
+         */
+#if 0
+        unsigned int i;
+
+        for (i = 0; i < seq->n_args; ++i)
+                screen_mode_change_ansi(screen, seq->args[i], false);
+#endif
+
+        seq_reset_mode(seq);
+}
+
+void
+VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
+{
+        /*
+         * RM_DEC - reset-mode-dec
+         * This is the same as RM_ANSI but for DEC modes.
+         */
+#if 0
+        unsigned int i;
+
+        for (i = 0; i < seq->n_args; ++i)
+                screen_mode_change_dec(screen, seq->args[i], false);
+#endif
+
+        seq_decreset(seq);
+}
+
+void
+VteTerminalPrivate::S7C1T(vte::parser::Sequence const& seq)
+{
+        /*
+         * S7C1T - set-7bit-c1-terminal
+         * This causes the terminal to start sending C1 controls as 7bit
+         * sequences instead of 8bit C1 controls.
+         * This is ignored if the terminal is below level-2 emulation mode
+         * (VT100 and below), the terminal already sends 7bit controls then.
+         */
+
+#if 0
+        if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
+                screen->flags |= VTE_FLAG_7BIT_MODE;
+#endif
+}
+
+void
+VteTerminalPrivate::S8C1T(vte::parser::Sequence const& seq)
+{
+        /*
+         * S8C1T - set-8bit-c1-terminal
+         * This causes the terminal to start sending C1 controls as 8bit C1
+         * control instead of 7bit sequences.
+         * This is ignored if the terminal is below level-2 emulation mode
+         * (VT100 and below). The terminal always sends 7bit controls in those
+         * modes.
+         */
+#if 0
+        if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
+                screen->flags &= ~VTE_FLAG_7BIT_MODE;
+#endif
+}
+
+void
+VteTerminalPrivate::SCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SCS - select-character-set
+         * Designate character sets to G-sets. The mapping from intermediates
+         * and terminal characters in the escape sequence to G-sets and
+         * character-sets is non-trivial and implemented separately. See there
+         * for more information.
+         * This call simply sets the selected G-set to the desired
+         * character-set.
+         */
+#if 0
+        vte_charset *cs = NULL;
+
+        /* TODO: support more of them? */
+        switch (seq->charset) {
+        case VTE_CHARSET_ISO_LATIN1_SUPPLEMENTAL:
+        case VTE_CHARSET_ISO_LATIN2_SUPPLEMENTAL:
+        case VTE_CHARSET_ISO_LATIN5_SUPPLEMENTAL:
+        case VTE_CHARSET_ISO_GREEK_SUPPLEMENTAL:
+        case VTE_CHARSET_ISO_HEBREW_SUPPLEMENTAL:
+        case VTE_CHARSET_ISO_LATIN_CYRILLIC:
+                break;
+
+        case VTE_CHARSET_DEC_SPECIAL_GRAPHIC:
+                cs = &vte_dec_special_graphics;
+                break;
+        case VTE_CHARSET_DEC_SUPPLEMENTAL:
+                cs = &vte_dec_supplemental_graphics;
+                break;
+        case VTE_CHARSET_DEC_TECHNICAL:
+        case VTE_CHARSET_CYRILLIC_DEC:
+        case VTE_CHARSET_DUTCH_NRCS:
+        case VTE_CHARSET_FINNISH_NRCS:
+        case VTE_CHARSET_FRENCH_NRCS:
+        case VTE_CHARSET_FRENCH_CANADIAN_NRCS:
+        case VTE_CHARSET_GERMAN_NRCS:
+        case VTE_CHARSET_GREEK_DEC:
+        case VTE_CHARSET_GREEK_NRCS:
+        case VTE_CHARSET_HEBREW_DEC:
+        case VTE_CHARSET_HEBREW_NRCS:
+        case VTE_CHARSET_ITALIAN_NRCS:
+        case VTE_CHARSET_NORWEGIAN_DANISH_NRCS:
+        case VTE_CHARSET_PORTUGUESE_NRCS:
+        case VTE_CHARSET_RUSSIAN_NRCS:
+        case VTE_CHARSET_SCS_NRCS:
+        case VTE_CHARSET_SPANISH_NRCS:
+        case VTE_CHARSET_SWEDISH_NRCS:
+        case VTE_CHARSET_SWISS_NRCS:
+        case VTE_CHARSET_TURKISH_DEC:
+        case VTE_CHARSET_TURKISH_NRCS:
+                break;
+
+        case VTE_CHARSET_USERPREF_SUPPLEMENTAL:
+                break;
+        }
+
+        if (seq->intermediates & VTE_SEQ_FLAG_POPEN)
+                screen->g0 = cs ? : &vte_unicode_lower;
+        else if (seq->intermediates & VTE_SEQ_FLAG_PCLOSE)
+                screen->g1 = cs ? : &vte_unicode_upper;
+        else if (seq->intermediates & VTE_SEQ_FLAG_MULT)
+                screen->g2 = cs ? : &vte_unicode_lower;
+        else if (seq->intermediates & VTE_SEQ_FLAG_PLUS)
+                screen->g3 = cs ? : &vte_unicode_upper;
+        else if (seq->intermediates & VTE_SEQ_FLAG_MINUS)
+                screen->g1 = cs ? : &vte_unicode_upper;
+        else if (seq->intermediates & VTE_SEQ_FLAG_DOT)
+                screen->g2 = cs ? : &vte_unicode_lower;
+        else if (seq->intermediates & VTE_SEQ_FLAG_SLASH)
+                screen->g3 = cs ? : &vte_unicode_upper;
+#endif
+
+        // FIXMEchpe: seq_designate_*(seq);
+        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_NONE);
+}
+
+void
+VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
+{
+        /*
+         * SD - scroll-down
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        vte_page_scroll_down(screen->page,
+                                num,
+                                &screen->state.attr,
+                                screen->age,
+                                NULL);
+#endif
+
+        seq_scroll_down(seq);
+}
+
+void
+VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
+{
+        /*
+         * SGR - select-graphics-rendition
+         */
+#if 0
+        struct vte_color *dst;
+        unsigned int i, code;
+        int v;
+
+        if (seq->n_args < 1) {
+                memset(&screen->state.attr, 0, sizeof(screen->state.attr));
+                return 0;
+        }
+
+        for (i = 0; i < seq->n_args; ++i) {
+                v = seq->args[i];
+                switch (v) {
+                case 1:
+                        screen->state.attr.bold = 1;
+                        break;
+                case 3:
+                        screen->state.attr.italic = 1;
+                        break;
+                case 4:
+                        screen->state.attr.underline = 1;
+                        break;
+                case 5:
+                        screen->state.attr.blink = 1;
+                        break;
+                case 7:
+                        screen->state.attr.inverse = 1;
+                        break;
+                case 8:
+                        screen->state.attr.hidden = 1;
+                        break;
+                case 22:
+                        screen->state.attr.bold = 0;
+                        break;
+                case 23:
+                        screen->state.attr.italic = 0;
+                        break;
+                case 24:
+                        screen->state.attr.underline = 0;
+                        break;
+                case 25:
+                        screen->state.attr.blink = 0;
+                        break;
+                case 27:
+                        screen->state.attr.inverse = 0;
+                        break;
+                case 28:
+                        screen->state.attr.hidden = 0;
+                        break;
+                case 30 ... 37:
+                        screen->state.attr.fg.ccode = v - 30 +
+                                                      VTE_CCODE_BLACK;
+                        break;
+                case 39:
+                        screen->state.attr.fg.ccode = 0;
+                        break;
+                case 40 ... 47:
+                        screen->state.attr.bg.ccode = v - 40 +
+                                                      VTE_CCODE_BLACK;
+                        break;
+                case 49:
+                        screen->state.attr.bg.ccode = 0;
+                        break;
+                case 90 ... 97:
+                        screen->state.attr.fg.ccode = v - 90 +
+                                                      VTE_CCODE_LIGHT_BLACK;
+                        break;
+                case 100 ... 107:
+                        screen->state.attr.bg.ccode = v - 100 +
+                                                      VTE_CCODE_LIGHT_BLACK;
+                        break;
+                case 38:
+                        /* fallthrough */
+                case 48:
+
+                        if (v == 38)
+                                dst = &screen->state.attr.fg;
+                        else
+                                dst = &screen->state.attr.bg;
+
+                        ++i;
+                        if (i >= seq->n_args)
+                                break;
+
+                        switch (seq->args[i]) {
+                        case 2:
+                                /* 24bit-color support */
+
+                                i += 3;
+                                if (i >= seq->n_args)
+                                        break;
+
+                                dst->ccode = VTE_CCODE_RGB;
+                                dst->red = (seq->args[i - 2] >= 0) ? seq->args[i - 2] : 0;
+                                dst->green = (seq->args[i - 1] >= 0) ? seq->args[i - 1] : 0;
+                                dst->blue = (seq->args[i] >= 0) ? seq->args[i] : 0;
+
+                                break;
+                        case 5:
+                                /* 256-color support */
+
+                                ++i;
+                                if (i >= seq->n_args || seq->args[i] < 0)
+                                        break;
+
+                                dst->ccode = VTE_CCODE_256;
+                                code = seq->args[i];
+                                dst->c256 = code < 256 ? code : 0;
+
+                                break;
+                        }
+
+                        break;
+                case -1:
+                        /* fallthrough */
+                case 0:
+                        memset(&screen->state.attr, 0,
+                               sizeof(screen->state.attr));
+                        break;
+                }
+        }
+#endif
+
+        seq_character_attributes(seq);
+}
+
+void
+VteTerminalPrivate::SI(vte::parser::Sequence const& seq)
+{
+        /*
+         * SI - shift-in
+         * Map G0 into GL.
+         */
+#if 0
+        screen->state.gl = &screen->g0;
+#endif
+
+        seq_shift_in(seq);
+}
+
+void
+VteTerminalPrivate::SM_ANSI(vte::parser::Sequence const& seq)
+{
+        /*
+         * SM_ANSI - set-mode-ansi
+         *
+         * TODO: implement
+         */
+#if 0
+        unsigned int i;
+
+        for (i = 0; i < seq->n_args; ++i)
+                screen_mode_change_ansi(screen, seq->args[i], true);
+#endif
+
+        seq_set_mode(seq);
+}
+
+void
+VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
+{
+        /*
+         * SM_DEC - set-mode-dec
+         * This is the same as SM_ANSI but for DEC modes.
+         */
+#if 0
+        unsigned int i;
+
+        for (i = 0; i < seq->n_args; ++i)
+                screen_mode_change_dec(screen, seq->args[i], true);
+#endif
+
+        seq_decset(seq);
+}
+
+void
+VteTerminalPrivate::SO(vte::parser::Sequence const& seq)
+{
+        /*
+         * SO - shift-out
+         * Map G1 into GL.
+         */
+#if 0
+        screen->state.gl = &screen->g1;
+#endif
+
+        seq_shift_out(seq);
+}
+
+void
+VteTerminalPrivate::SPA(vte::parser::Sequence const& seq)
+{
+        /*
+         * SPA - start-of-protected-area
+         *
+         * TODO: What is this?
+         */
+}
+
+void
+VteTerminalPrivate::SS2(vte::parser::Sequence const& seq)
+{
+        /*
+         * SS2 - single-shift-2
+         * Temporarily map G2 into GL for the next graphics character.
+         */
+#if 0
+        screen->state.glt = &screen->g2;
+#endif
+}
+
+void
+VteTerminalPrivate::SS3(vte::parser::Sequence const& seq)
+{
+        /*
+         * SS3 - single-shift-3
+         * Temporarily map G3 into GL for the next graphics character
+         */
+#if 0
+        screen->state.glt = &screen->g3;
+#endif
+}
+
+void
+VteTerminalPrivate::ST(vte::parser::Sequence const& seq)
+{
+        /*
+         * ST - string-terminator
+         * The string-terminator is usually part of control-sequences and
+         * handled by the parser. In all other situations it is silently
+         * ignored.
+         */
+}
+
+void
+VteTerminalPrivate::SU(vte::parser::Sequence const& seq)
+{
+        /*
+         * SU - scroll-up
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        vte_page_scroll_up(screen->page,
+                              num,
+                              &screen->state.attr,
+                              screen->age,
+                              screen->history);
+#endif
+
+        seq_scroll_up(seq);
+}
+
+void
+VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
+{
+        /*
+         * SUB - substitute
+         * Cancel the current control-sequence and print a replacement
+         * character. Our parser already handles this so all we have to do is
+         * print the replacement character.
+         */
+#if 0
+        static const struct vte_seq rep = {
+                .type = VTE_SEQ_GRAPHIC,
+                .command = VTE_CMD_GRAPHIC,
+                .terminator = 0xfffd,
+        };
+
+        return screen_GRAPHIC(screen, &rep);
+#endif
+}
+
+void
+VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
+{
+        /*
+         * TBC - tab-clear
+         * Clears tab stops.
+         *
+         * Arguments:
+         *   args[0]: mode
+         *
+         * Defaults:
+         *   args[0]: 0
+         */
+#if 0
+        unsigned int mode = 0, pos;
+
+        if (seq->args[0] > 0)
+                mode = seq->args[0];
+
+        switch (mode) {
+        case 0:
+                pos = screen->state.cursor_x;
+                if (screen->page->width > 0)
+                        screen->tabs[pos / 8] &= ~(1U << (pos % 8));
+                break;
+        case 3:
+                if (screen->page->width > 0)
+                        memset(screen->tabs, 0, (screen->page->width + 7) / 8);
+                break;
+        }
+#endif
+
+        seq_tab_clear(seq);
+}
+
+void
+VteTerminalPrivate::VPA(vte::parser::Sequence const& seq)
+{
+        /*
+         * VPA - vertical-line-position-absolute
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int pos = 1;
+
+        if (seq->args[0] > 0)
+                pos = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_set_rel(screen, screen->state.cursor_x, pos - 1);
+#endif
+
+        seq_line_position_absolute(seq);
+}
+
+void
+VteTerminalPrivate::VPR(vte::parser::Sequence const& seq)
+{
+        /*
+         * VPR - vertical-line-position-relative
+         * XXX
+         *
+         * Defaults:
+         *   args[0]: 1
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_down(screen, num, false);
+#endif
+}
+
+void
+VteTerminalPrivate::VT(vte::parser::Sequence const& seq)
+{
+        /*
+         * VT - vertical-tab
+         * This causes a vertical jump by one line. Terminals treat it exactly
+         * the same as LF.
+         */
+
+        LF(seq);
+}
+
+void
+VteTerminalPrivate::XTERM_CLLHP(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_CLLHP - xterm-cursor-lower-left-hp-bugfix
+         * Move the cursor to the lower-left corner of the page. This is an HP
+         * bugfix by xterm.
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_IHMT(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_IHMT - xterm-initiate-highlight-mouse-tracking
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_MLHP(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_MLHP - xterm-memory-lock-hp-bugfix
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_MUHP(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_MUHP - xterm-memory-unlock-hp-bugfix
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_RPM(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_RPM - xterm-restore-private-mode
+         */
+
+        seq_restore_mode(seq);
+}
+
+void
+VteTerminalPrivate::XTERM_RRV(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_RRV - xterm-reset-resource-value
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_RTM(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_RTM - xterm-reset-title-mode
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SACL1(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SACL1 - xterm-set-ansi-conformance-level-1
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SACL2(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SACL2 - xterm-set-ansi-conformance-level-2
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SACL3(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SACL3 - xterm-set-ansi-conformance-level-3
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SDCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SDCS - xterm-set-default-character-set
+         * Select the default character set. We treat this the same as UTF-8 as
+         * this is our default character set. As we always use UTF-8, this
+         * becomes as no-op.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SGFX(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SGFX - xterm-sixel-graphics
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SPM(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SPM - xterm-set-private-mode
+         */
+
+        seq_save_mode(seq);
+}
+
+void
+VteTerminalPrivate::XTERM_SRV(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SRV - xterm-set-resource-value
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_STM(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_STM - xterm-set-title-mode
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_SUCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SUCS - xterm-select-utf8-character-set
+         * Select UTF-8 as character set. This is our default and only
+         * character set. Hence, this is a no-op.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_WM - xterm-window-management
+         *
+         * Probably not worth implementing.
+         */
+
+        seq_window_manipulation(seq);
 }

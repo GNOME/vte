@@ -100,7 +100,7 @@ _vte_matcher_init(struct _vte_matcher *matcher)
                 }
         }
 
-	_VTE_DEBUG_IF(VTE_DEBUG_MATCHER) {
+	_VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
 		g_printerr("Matcher contents:\n");
 		_vte_matcher_print(matcher);
 		g_printerr("\n");

@@ -25,7 +25,6 @@
 #include <glib.h>
 #include <glib-object.h>
 #include "buffer.h"
-#include "matcher.hh"
 
 G_BEGIN_DECLS
 

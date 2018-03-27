@@ -48,7 +48,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	attr.hh \
 	buffer.h \
 	caps.hh \
-	caps-list.hh \
 	color-triple.hh \
 	debug.cc \
 	debug.h \
@@ -56,15 +55,15 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	iso2022.h \
 	keymap.cc \
 	keymap.h \
-	matcher.cc \
-	matcher.hh \
+	parser.cc \
+	parser.hh \
+	parser-cmd.hh \
+	parser-glue.hh \
 	pty.cc \
 	reaper.cc \
 	reaper.hh \
 	ring.cc \
 	ring.h \
-	table.cc \
-	table.hh \
 	vte.cc \
 	vteaccess.cc \
 	vteaccess.h \
@@ -173,7 +172,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += interpret slowcat
+noinst_PROGRAMS += interpret interpret-old slowcat test-parser
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -194,6 +193,7 @@ dist_check_SCRIPTS = \
 	$(NULL)
 
 TESTS = \
+	test-parser \
 	reaper \
 	test-vtetypes \
 	vteconv \
@@ -230,15 +230,14 @@ reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
 interpret_SOURCES = \
 	buffer.h \
 	caps.hh \
-	caps-list.hh \
 	debug.cc \
 	debug.h \
 	iso2022.cc \
 	iso2022.h \
-	matcher.cc \
-	matcher.hh \
-	table.cc \
-	table.hh \
+	parser.cc \
+	parser.hh \
+	parser-cmd.hh \
+	parser-glue.hh \
 	vteconv.cc \
 	vteconv.h \
 	interpret.cc
@@ -262,12 +261,64 @@ interpret_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
 
+interpret_old_SOURCES = \
+	buffer.h \
+	caps.hh \
+	debug.cc \
+	debug.h \
+	iso2022.cc \
+	iso2022.h \
+	matcher.cc \
+	matcher.hh \
+	table.cc \
+	table.hh \
+	vteconv.cc \
+	vteconv.h \
+	interpret-old.cc
+interpret_old_CPPFLAGS = \
+	-DINTERPRET_OLD_MAIN \
+	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+interpret_old_CFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GTK_CFLAGS) \
+	$(AM_CFLAGS)
+interpret_old_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(GOBJECT_CFLAGS) \
+	$(GTK_CFLAGS) \
+	$(AM_CXXFLAGS)
+interpret_old_LDADD = \
+	$(GLIB_LIBS) \
+	$(GOBJECT_LIBS)
+
 slowcat_SOURCES = \
 	slowcat.c \
 	$(NULL)
 slowcat_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
 slowcat_CFLAGS = $(GLIB_CFLAGS) $(AM_CFLAGS)
 slowcat_LDADD = $(GLIB_LIBS)
+
+test_parser_SOURCES = \
+	parser-test.cc \
+	parser.cc \
+	parser.hh \
+	parser-cmd.hh \
+	parser-glue.hh \
+	$(NULL)
+test_parser_CPPFLAGS = \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+test_parser_CXXFLAGS = \
+	$(VTE_CFLAGS) \
+	$(AM_CXXFLAGS)
+test_parser_LDADD = \
+	$(VTE_LIBS) \
+	$(NULL)
 
 test_vtetypes_SOURCES = \
 	vtetypes.cc \

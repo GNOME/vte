@@ -62,7 +62,6 @@
 #include "iso2022.h"
 #include "keymap.h"
 #include "marshal.h"
-#include "matcher.hh"
 #include "vteaccess.h"
 #include "vtepty.h"
 #include "vtepty-private.h"
@@ -2924,7 +2923,7 @@ VteTerminalPrivate::save_cursor(VteScreen *screen__)
 }
 
 /* Insert a single character into the stored data array. */
-bool
+void
 VteTerminalPrivate::insert_char(gunichar c,
                                 bool insert,
                                 bool invalidate_now)
@@ -2937,7 +2936,7 @@ VteTerminalPrivate::insert_char(gunichar c,
         gunichar c_unmapped = c;
 
         /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
-        static gunichar line_drawing_map[31] = {
+        static const gunichar line_drawing_map[31] = {
                 0x25c6,  /* ` => diamond */
                 0x2592,  /* a => checkerboard */
                 0x2409,  /* b => HT symbol */
@@ -3008,12 +3007,16 @@ VteTerminalPrivate::insert_char(gunichar c,
 		line_wrapped = true;
 	}
 
-	_vte_debug_print(VTE_DEBUG_PARSE,
-			"Inserting %ld '%c' (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
-			(long)c, c < 256 ? c : ' ',
+	_vte_debug_print(VTE_DEBUG_PARSER,
+			"Inserting U+%04X '%lc' (colors %" G_GUINT64_FORMAT ") (%ld+%d, %ld), delta = %ld; ",
+                         (unsigned int)c, g_unichar_isprint(c) ? c : 0xfffd,
                          m_color_defaults.attr.colors(),
                         col, columns, (long)m_screen->cursor.row,
 			(long)m_screen->insert_delta);
+
+        //FIXMEchpe
+        if (G_UNLIKELY(c == 0))
+                goto not_inserted;
 
 	if (G_UNLIKELY (columns == 0)) {
 
@@ -3022,7 +3025,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 		long row_num;
 		VteCell *cell;
 
-		_vte_debug_print(VTE_DEBUG_PARSE, "combining U+%04X", c);
+		_vte_debug_print(VTE_DEBUG_PARSER, "combining U+%04X", c);
 
                 row_num = m_screen->cursor.row;
 		row = NULL;
@@ -3135,10 +3138,11 @@ done:
 	m_text_inserted_flag = TRUE;
 
 not_inserted:
-	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSE,
+	_vte_debug_print(VTE_DEBUG_ADJ|VTE_DEBUG_PARSER,
 			"insertion delta => %ld.\n",
 			(long)m_screen->insert_delta);
-	return line_wrapped;
+
+        m_line_wrapped = line_wrapped;
 }
 
 static void
@@ -3491,9 +3495,9 @@ VteTerminalPrivate::process_incoming()
 	gboolean saved_cursor_visible;
         VteCursorStyle saved_cursor_style;
 	GdkPoint bbox_topleft, bbox_bottomright;
-	gunichar *wbuf, c;
-	long wcount, start;
-	gboolean leftovers, modified, bottom, again;
+	gunichar *wbuf;
+	gsize wcount;
+	gboolean modified, bottom;
 	gboolean invalidated_text;
 	gboolean in_scroll_region;
 	GArray *unichars;
@@ -3593,42 +3597,118 @@ skip_chunk:
 	wbuf = &g_array_index(unichars, gunichar, 0);
 	wcount = unichars->len;
 
-	/* Try initial substrings. */
-	start = 0;
-	modified = leftovers = again = FALSE;
+	modified = FALSE;
 	invalidated_text = FALSE;
 
 	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
-	while (start < wcount && !leftovers) {
-		const gunichar *next;
-                vte::parser::Params params{nullptr};
+        vte::parser::Sequence seq{};
 
-		/* Try to match any control sequences. */
-                sequence_handler_t handler = nullptr;
-                auto match_result = _vte_matcher_match(m_matcher,
-                                                       &wbuf[start],
-                                                       wcount - start,
-                                                       &handler,
-                                                       &next,
-                                                       &params.m_values);
-                switch (match_result) {
-		/* We're in one of three possible situations now.
-		 * First, the match returned a handler, and next
-		 * points to the first character which isn't part of this
-		 * sequence. */
-                case VTE_MATCHER_RESULT_MATCH: {
-                        _VTE_DEBUG_IF(VTE_DEBUG_PARSE)
-                                params.print();
+        m_line_wrapped = false;
 
-			/* Call the sequence handler */
-                        (this->*handler)(params);
+        auto const *wp = wbuf;
+        auto const* wend = wbuf + wcount;
+        for ( ; wp < wend; ++wp) {
+
+                auto rv = vte_parser_feed(m_parser, seq.seq_ptr(), *wp);
+                if (G_UNLIKELY(rv < 0)) {
+                        char c_buf[7];
+                        g_snprintf(c_buf, sizeof(c_buf), "%lc", *wp);
+                        char const* wp_str = g_unichar_isprint(*wp) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
+                        _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                         *wp, wp_str);
+                        break;
+                }
+
+                if (rv != VTE_SEQ_NONE)
+                        g_assert((bool)seq);
+
+                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                        if (rv != VTE_SEQ_NONE) {
+                                seq.print();
+                        }
+                }
+
+                // FIXMEchpe this assumes that the only handler inserting
+                // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
+                // also do, and invalidate directly for now)...
+
+                switch (rv) {
+                case VTE_SEQ_GRAPHIC: {
+
+			bbox_topleft.x = MIN(bbox_topleft.x,
+                                             m_screen->cursor.col);
+			bbox_topleft.y = MIN(bbox_topleft.y,
+                                             m_screen->cursor.row);
+
+			// does insert_char(c, false, false)
+                        GRAPHIC(seq);
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Last graphic is now U+%04X %lc\n",
+                                         m_last_graphic_character,
+                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+
+                        if (m_line_wrapped) {
+                                m_line_wrapped = false;
+				/* line wrapped, correct bbox */
+				if (invalidated_text &&
+                                                (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
+                                                 m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
+                                                 m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
+                                                 m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+					/* Clip off any part of the box which isn't already on-screen. */
+					bbox_topleft.x = MAX(bbox_topleft.x, 0);
+                                        bbox_topleft.y = MAX(bbox_topleft.y, top_row);
+					bbox_bottomright.x = MIN(bbox_bottomright.x,
+							m_column_count);
+					/* lazily apply the +1 to the cursor_row */
+					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
+                                                        bottom_row + 1);
+
+					invalidate_cells(
+							bbox_topleft.x,
+							bbox_bottomright.x - bbox_topleft.x,
+							bbox_topleft.y,
+							bbox_bottomright.y - bbox_topleft.y);
+					bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
+					bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+
+				}
+				bbox_topleft.x = MIN(bbox_topleft.x, 0);
+				bbox_topleft.y = MIN(bbox_topleft.y,
+                                                     m_screen->cursor.row);
+			}
+			/* Add the cells over which we have moved to the region
+			 * which we need to refresh for the user. */
+			bbox_bottomright.x = MAX(bbox_bottomright.x,
+                                                 m_screen->cursor.col);
+                        /* cursor.row + 1 (defer until inv.) */
+			bbox_bottomright.y = MAX(bbox_bottomright.y,
+                                                 m_screen->cursor.row);
+			invalidated_text = TRUE;
+
+			/* We *don't* emit flush pending signals here. */
+			modified = TRUE;
+
+                        break;
+                }
+                case VTE_SEQ_NONE:
+                case VTE_SEQ_IGNORE:
+                        break;
+                default: {
+                        switch (seq.command()) {
+#define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
+#include "parser-cmd.hh"
+#undef _VTE_CMD
+                        default:
+                                _vte_debug_print(VTE_DEBUG_PARSER,
+                                                 "Unknown parser command %d\n", seq.command());
+                                break;
+                        }
 
                         m_last_graphic_character = 0;
 
-			/* Skip over the proper number of unicode chars. */
-			start = (next - wbuf);
 			modified = TRUE;
 
                         // FIXME m_screen may be != previous_screen, check for that!
@@ -3674,135 +3754,6 @@ skip_chunk:
 
                         break;
 		}
-		/* Second, we have no match, and next points to the very
-		 * next character in the buffer.  Insert the character which
-		 * we're currently examining into the screen. */
-		case VTE_MATCHER_RESULT_NO_MATCH: {
-			c = wbuf[start];
-			/* If it's a control character, permute the order, per
-			 * vttest. */
-			if ((c != *next) &&
-			    ((*next & 0x1f) == *next) &&
-                            //FIXMEchpe what about C1 controls
-			    (start + 1 < next - wbuf)) {
-				const gunichar *tnext = NULL;
-				gunichar ctrl;
-				int i;
-				/* We don't want to permute it if it's another
-				 * control sequence, so check if it is. */
-                                sequence_handler_t thandler;
-				_vte_matcher_match(m_matcher,
-						   next,
-						   wcount - (next - wbuf),
-                                                   &thandler,
-						   &tnext,
-						   NULL);
-				/* We only do this for non-control-sequence
-				 * characters and random garbage. */
-				if (tnext == next + 1) {
-					/* Save the control character. */
-					ctrl = *next;
-					/* Move everything before it up a
-					 * slot.  */
-                                        // FIXMEchpe memmove!
-					for (i = next - wbuf; i > start; i--) {
-						wbuf[i] = wbuf[i - 1];
-					}
-					/* Move the control character to the
-					 * front. */
-					wbuf[i] = ctrl;
-					goto next_match;
-				}
-			}
-			_VTE_DEBUG_IF(VTE_DEBUG_PARSE) {
-                                if (c > 255) {
-                                        g_printerr("U+%04lx\n", (long) c);
-				} else {
-                                        if (c > 127) {
-						g_printerr("%ld = ",
-                                                                (long) c);
-					}
-                                        if (c < 32) {
-						g_printerr("^%c\n", c + 64);
-					} else {
-						g_printerr("`%c'\n", c);
-					}
-				}
-			}
-
-			bbox_topleft.x = MIN(bbox_topleft.x,
-                                             m_screen->cursor.col);
-			bbox_topleft.y = MIN(bbox_topleft.y,
-                                             m_screen->cursor.row);
-
-			/* Insert the character. */
-                        // FIXMEchpe should not use UNLIKELY here
-			if (G_UNLIKELY(insert_char(c, false, false))) {
-				/* line wrapped, correct bbox */
-				if (invalidated_text &&
-                                                (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
-                                                 m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
-                                                 m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
-                                                 m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
-					/* Clip off any part of the box which isn't already on-screen. */
-					bbox_topleft.x = MAX(bbox_topleft.x, 0);
-                                        bbox_topleft.y = MAX(bbox_topleft.y, top_row);
-					bbox_bottomright.x = MIN(bbox_bottomright.x,
-							m_column_count);
-					/* lazily apply the +1 to the cursor_row */
-					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-                                                        bottom_row + 1);
-
-					invalidate_cells(
-							bbox_topleft.x,
-							bbox_bottomright.x - bbox_topleft.x,
-							bbox_topleft.y,
-							bbox_bottomright.y - bbox_topleft.y);
-					bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
-					bbox_topleft.x = bbox_topleft.y = G_MAXINT;
-
-				}
-				bbox_topleft.x = MIN(bbox_topleft.x, 0);
-				bbox_topleft.y = MIN(bbox_topleft.y,
-                                                     m_screen->cursor.row);
-			}
-			/* Add the cells over which we have moved to the region
-			 * which we need to refresh for the user. */
-			bbox_bottomright.x = MAX(bbox_bottomright.x,
-                                                 m_screen->cursor.col);
-                        /* cursor.row + 1 (defer until inv.) */
-			bbox_bottomright.y = MAX(bbox_bottomright.y,
-                                                 m_screen->cursor.row);
-			invalidated_text = TRUE;
-
-			/* We *don't* emit flush pending signals here. */
-			modified = TRUE;
-			start++;
-
-                        break;
-		}
-                case VTE_MATCHER_RESULT_PARTIAL: {
-			/* Case three: the read broke in the middle of a
-			 * control sequence, so we're undecided with no more
-			 * data to consult. If we have data following the
-			 * middle of the sequence, then it's just garbage data,
-			 * and for compatibility, we should discard it. */
-			if (wbuf + wcount > next) {
-				_vte_debug_print(VTE_DEBUG_PARSE,
-						"Invalid control "
-						"sequence, discarding %ld "
-						"characters.\n",
-						(long)(next - (wbuf + start)));
-				/* Discard. */
-				start = next - wbuf + 1;
-			} else {
-				/* Pause processing here and wait for more
-				 * data before continuing. */
-				leftovers = TRUE;
-			}
-
-                        break;
-		}
                 }
 
 #ifdef VTE_DEBUG
@@ -3814,15 +3765,11 @@ skip_chunk:
 		 * part of the display buffer. */
                 g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
 #endif
-
-next_match:
-                /* Free any parameters we don't care about any more. */
-                params.recycle(m_matcher);
 	}
 
 	/* Remove most of the processed characters. */
-	if (start < wcount) {
-		g_array_remove_range(m_pending, 0, start);
+	if (wp < wend) {
+		g_array_remove_range(m_pending, 0, wp - wbuf);
 	} else {
 		g_array_set_size(m_pending, 0);
 		/* If we're out of data, we needn't pause to let the
@@ -8114,7 +8061,9 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_autowrap = TRUE;
         m_sendrecv_mode = TRUE;
 	m_dec_saved = g_hash_table_new(NULL, NULL);
-        m_matcher = _vte_matcher_new();
+
+        if (vte_parser_new(&m_parser) != 0)
+                g_assert_not_reached();
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
@@ -8628,9 +8577,8 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	}
 
 	/* Clean up emulation structures. */
-	if (m_matcher != NULL) {
-		_vte_matcher_free(m_matcher);
-	}
+        m_parser = vte_parser_free(m_parser);
+        g_assert_null(m_parser);
 
 	remove_update_timeout(this);
 
@@ -10573,7 +10521,11 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_iso2022 = _vte_iso2022_state_new(nullptr);
 	_vte_iso2022_state_set_codeset(m_iso2022,
 				       m_encoding);
+
+        /* Reset parser */
+        vte_parser_reset(m_parser);
         m_last_graphic_character = 0;
+
 	/* Reset keypad/cursor key modes. */
 	m_keypad_mode = VTE_KEYMODE_NORMAL;
 	m_cursor_mode = VTE_KEYMODE_NORMAL;

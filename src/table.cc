@@ -209,7 +209,7 @@ _vte_table_addi(struct _vte_table *table,
 	/* If this is the terminal node, set the result. */
 	if (length == 0) {
 		if (table->handler)
-                        _VTE_DEBUG_IF (VTE_DEBUG_PARSE) {
+                        _VTE_DEBUG_IF (VTE_DEBUG_PARSER) {
                                 g_printerr ("'%s'",
                                             _vte_debug_sequence_to_string ((const char *)table->original,
                                                                            table->original_length));
@@ -678,7 +678,7 @@ _vte_table_match(struct _vte_table *table,
 								  arginfo);
 					p++;
 				} else {
-					_vte_debug_print (VTE_DEBUG_PARSE,
+					_vte_debug_print (VTE_DEBUG_PARSER,
                                                           "Invalid sequence %s\n",
 							  original);
 				}

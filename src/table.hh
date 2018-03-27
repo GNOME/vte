@@ -21,6 +21,7 @@
 #pragma once
 
 #include <glib-object.h>
+#include "matcher.hh"
 
 struct _vte_table;
 

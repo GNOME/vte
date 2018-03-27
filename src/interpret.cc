@@ -33,7 +33,8 @@
 #include "caps.hh"
 #include "debug.h"
 #include "iso2022.h"
-#include "matcher.hh"
+#include "parser.hh"
+#include "assert.h"
 
 static bool quiet = false;
 
@@ -66,207 +67,165 @@ print_array(GValueArray* array)
         }
 }
 
-namespace vte { namespace parser { struct Params { GValueArray *m_values; }; } }
-
-class VteTerminalPrivate {
-public:
-#define SEQUENCE_HANDLER(name) \
-	inline void seq_ ## name (vte::parser::Params const& params) { \
-                if (!quiet) { \
-                        g_print (G_STRINGIFY(name)); \
-                        print_array(params.m_values); \
-                        g_print("\n"); \
-                } \
-        }
-#include "vteseq-list.hh"
-#undef SEQUENCE_HANDLER
-};
-
-vte_matcher_entry_t const*
-_vte_get_matcher_entries(unsigned int* n_entries)
+static char const*
+seq_to_str(unsigned int type)
 {
-#include "caps-list.hh"
-        *n_entries = G_N_ELEMENTS (entries);
-        return entries;
+        switch (type) {
+        case VTE_SEQ_NONE: return "NONE";
+        case VTE_SEQ_IGNORE: return "IGNORE";
+        case VTE_SEQ_GRAPHIC: return "GRAPHIC";
+        case VTE_SEQ_CONTROL: return "CONTROL";
+        case VTE_SEQ_ESCAPE: return "ESCAPE";
+        case VTE_SEQ_CSI: return "CSI";
+        case VTE_SEQ_DCS: return "DCS";
+        case VTE_SEQ_OSC: return "OSC";
+        default:
+                assert(false);
+        }
+}
+
+static char const*
+cmd_to_str(unsigned int command)
+{
+        switch (command) {
+#define _VTE_CMD(cmd) case VTE_CMD_##cmd: return #cmd;
+#include "parser-cmd.hh"
+#undef _VTE_CMD
+        default:
+                static char buf[32];
+                snprintf(buf, sizeof(buf), "UNKOWN(%u)", command);
+                return buf;
+        }
+}
+
+static  void print_seq(const struct vte_seq *seq)
+{
+        auto c = seq->terminator;
+        if (seq->command == VTE_CMD_GRAPHIC) {
+                char buf[7];
+                buf[g_unichar_to_utf8(c, buf)] = 0;
+                g_print("%s U+%04X [%s]\n", cmd_to_str(seq->command),
+                        c,
+                        g_unichar_isprint(c) ? buf : "�");
+        } else {
+                g_print("%s", cmd_to_str(seq->command));
+                if (seq->n_args) {
+                        g_print(" ");
+                        for (unsigned int i = 0; i < seq->n_args; i++) {
+                                if (i > 0)
+                                        g_print(";");
+                        g_print("%d", seq->args[i]);
+                        }
+                }
+                g_print("\n");
+        }
 }
 
 int
 main(int argc, char **argv)
 {
-	struct _vte_matcher *matcher = NULL;
-	GArray *array;
-	unsigned char buf[4096];
-	int infile;
-	struct _vte_iso2022_state *subst;
+        GArray *array;
+        int infile;
+        struct _vte_iso2022_state *subst;
 
         setlocale(LC_ALL, "");
 
-	_vte_debug_init();
+        _vte_debug_init();
 
         if (argc < 1) {
                 g_print("usage: %s [file] [--quiet]\n", argv[0]);
-		return 1;
-	}
+                return 1;
+        }
 
         if ((argc > 1) && (strcmp(argv[1], "-") != 0)) {
                 infile = open (argv[1], O_RDONLY);
-		if (infile == -1) {
+                if (infile == -1) {
                         g_print("error opening %s: %s\n", argv[1],
-				strerror(errno));
-			exit(1);
-		}
-	} else {
-		infile = 1;
-	}
+                                strerror(errno));
+                        exit(1);
+                }
+        } else {
+                infile = 1;
+        }
 
         if (argc > 2)
                 quiet = g_str_equal(argv[2], "--quiet") || g_str_equal(argv[2], "-q");
 
-	g_type_init();
+        g_type_init();
 
-	array = g_array_new(FALSE, FALSE, sizeof(gunichar));
+        array = g_array_new(FALSE, FALSE, sizeof(gunichar));
 
-        matcher = _vte_matcher_new();
+        struct vte_parser *parser;
+        if (vte_parser_new(&parser) != 0)
+                return 1;
 
         subst = _vte_iso2022_state_new(NULL);
 
-        VteTerminalPrivate terminal{};
-        gsize n_seq = 0;
-        gsize n_chars = 0;
-        gsize n_discarded = 0;
+        gsize buf_size = 1024*1024;
+        guchar* buf = g_new0(guchar, buf_size);
 
-        gsize start = 0;
+        gsize* seq_stats = g_new0(gsize, VTE_SEQ_N);
+        gsize* cmd_stats = g_new0(gsize, VTE_CMD_N);
 
-	for (;;) {
-		auto l = read (infile, buf, sizeof (buf));
-		if (!l)
-			break;
-		if (l == -1) {
-			if (errno == EAGAIN)
-				continue;
-			break;
-		}
-		_vte_iso2022_process(subst, buf, (unsigned int) l, array);
+        for (;;) {
+                auto l = read (infile, buf, buf_size);
+                if (!l)
+                        break;
+                if (l == -1) {
+                        if (errno == EAGAIN)
+                                continue;
+                        break;
+                }
+                _vte_iso2022_process(subst, buf, (unsigned int) l, array);
 
                 gunichar* wbuf = &g_array_index(array, gunichar, 0);
                 gsize wcount = array->len;
 
-                bool leftovers = false;
-
-                while (start < wcount && !leftovers) {
-                        const gunichar *next;
-                        vte::parser::Params params{nullptr};
-                        sequence_handler_t handler = nullptr;
-                        auto match_result = _vte_matcher_match(matcher,
-                                                               &wbuf[start],
-                                                               wcount - start,
-                                                               &handler,
-                                                               &next,
-                                                               &params.m_values);
-                        switch (match_result) {
-                        case VTE_MATCHER_RESULT_MATCH: {
-                                (terminal.*handler)(params);
-                                if (params.m_values != nullptr)
-                                        _vte_matcher_free_params_array(matcher, params.m_values);
-
-                                /* Skip over the proper number of unicode chars. */
-                                start = (next - wbuf);
-                                n_seq++;
-                                break;
-                        }
-                        case VTE_MATCHER_RESULT_NO_MATCH: {
-                                auto c = wbuf[start];
-                                /* If it's a control character, permute the order, per
-                                 * vttest. */
-                                if ((c != *next) &&
-                                    ((*next & 0x1f) == *next) &&
-                                    //FIXMEchpe what about C1 controls
-                                    (gssize(start + 1) < next - wbuf)) {
-                                        const gunichar *tnext = nullptr;
-                                        gunichar ctrl;
-                                        /* We don't want to permute it if it's another
-                                         * control sequence, so check if it is. */
-                                        sequence_handler_t thandler;
-                                        _vte_matcher_match(matcher,
-                                                           next,
-                                                           wcount - (next - wbuf),
-                                                           &thandler,
-                                                           &tnext,
-                                                           nullptr);
-                                        /* We only do this for non-control-sequence
-                                         * characters and random garbage. */
-                                        if (tnext == next + 1) {
-                                                /* Save the control character. */
-                                                ctrl = *next;
-                                                /* Move everything before it up a
-                                                 * slot.  */
-                                                // FIXMEchpe memmove!
-                                                gsize i;
-                                                for (i = next - wbuf; i > start; i--) {
-                                                        wbuf[i] = wbuf[i - 1];
-                                                }
-                                                /* Move the control character to the
-                                                 * front. */
-                                                wbuf[i] = ctrl;
-                                                goto next_match;
-                                        }
-                                }
-                                n_chars++;
-                                if (!quiet) {
-                                        if (c < 32) {
-                                                g_print("`^%c'\n", c + 64);
-                                        } else
-                                                if (c < 127) {
-                                                        g_print("`%c'\n", c);
-                                                } else {
-                                                        g_print("`0x%x'\n", c);
-                                                }
-                                }
-                                start++;
-                                break;
-                        }
-                        case VTE_MATCHER_RESULT_PARTIAL: {
-                                if (wbuf + wcount > next) {
-                                        if (!quiet)
-                                                g_print("Invalid control "
-                                                        "sequence, discarding %ld "
-                                                        "characters.\n",
-                                                        (long)(next - (wbuf + start)));
-                                        /* Discard. */
-                                        start = next - wbuf + 1;
-                                        n_discarded += next - &wbuf[start];
-                                } else {
-                                        /* Pause processing here and wait for more
-                                         * data before continuing. */
-                                        leftovers = true;
-                                }
-                                break;
-                        }
+                struct vte_seq *seq;
+                for (gsize i = 0; i < wcount; i++) {
+                        auto ret = vte_parser_feed(parser,
+                                                   &seq,
+                                                   wbuf[i]);
+                        if (ret < 0) {
+                                if (!quiet)
+                                        g_print("Parser error\n");
+                                goto done;
                         }
 
-		}
+                        seq_stats[ret]++;
+                        if (ret != VTE_SEQ_NONE) {
+                                cmd_stats[seq->command]++;
 
-        next_match:
-                if (start < wcount) {
-                        g_array_remove_range(array, 0, start);
-                        start = wcount - start;
-                } else {
-                        g_array_set_size(array, 0);
-                        start = 0;
+                                if (!quiet)
+                                        print_seq(seq);
+                        }
                 }
-	}
+
+                g_array_set_size(array, 0);
+        }
+done:
         if (!quiet)
-                g_print("End of data.\n");
+                g_printerr("End of data.\n");
 
-        g_printerr ("Characters inserted:  %" G_GSIZE_FORMAT "\n"
-                    "Sequences recognised: %" G_GSIZE_FORMAT "\n"
-                    "Bytes discarded:      %" G_GSIZE_FORMAT "\n",
-                    n_chars, n_seq, n_discarded);
+        for (unsigned int s = VTE_SEQ_NONE + 1; s < VTE_SEQ_N; s++) {
+                g_printerr("%-7s: %" G_GSIZE_FORMAT "\n", seq_to_str(s), seq_stats[s]);
+        }
 
-	close (infile);
+        g_printerr("\n");
+        for (unsigned int s = 0; s < VTE_CMD_N; s++) {
+                if (cmd_stats[s] > 0) {
+                        g_printerr("%-12s: %" G_GSIZE_FORMAT "\n", cmd_to_str(s), cmd_stats[s]);
+                }
+        }
 
-	_vte_iso2022_state_free(subst);
-	g_array_free(array, TRUE);
-	_vte_matcher_free(matcher);
-	return 0;
+        g_free(seq_stats);
+        g_free(cmd_stats);
+
+        close (infile);
+
+        _vte_iso2022_state_free(subst);
+        g_array_free(array, TRUE);
+        vte_parser_free(parser);
+        g_free(buf);
+        return 0;
 }

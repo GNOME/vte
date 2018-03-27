@@ -1,23 +1,30 @@
 /*
  * Copyright © 2015 David Herrmann <dh.herrmann@gmail.com>
  *
- * vte is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the
- * Free Software Foundation; either version 3 of the License, or (at
- * your option) any later version.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
+
+#include "parser.hh"
 
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
 
-//#include <linux/bitops.h>
-//#include <linux/kernel.h>
-//#include <linux/slab.h>
-#include "parser.hh"
+#include <glib.h>
 
 #define WARN(num,str) do { } while (0)
 #define hweight32(v) (__builtin_popcount(v))
@@ -52,7 +59,7 @@ static unsigned int vte_parse_host_control(const struct vte_seq *seq)
 {
         switch (seq->terminator) {
         case 0x00: /* NUL */
-                return VTE_CMD_NULL;
+                return VTE_CMD_NUL;
         case 0x05: /* ENQ */
                 return VTE_CMD_ENQ;
         case 0x07: /* BEL */
@@ -131,11 +138,11 @@ static unsigned int vte_parse_host_control(const struct vte_seq *seq)
         return VTE_CMD_NONE;
 }
 
-static int vte_charset_from_cmd(u32 raw, unsigned int flags, bool require_96)
+static int vte_charset_from_cmd(uint32_t raw, unsigned int flags, bool require_96)
 {
 #if 0
         static const struct {
-                u32 raw;
+                uint32_t raw;
                 unsigned int flags;
         } charset_cmds[] = {
                 /* 96-compat charsets */
@@ -903,49 +910,49 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
  * State Machine
  * This parser controls the parser-state and returns any detected sequence to
  * the caller. The parser is based on this state-diagram from Paul Williams:
- *   http://vt100.net/emu/
+ *   https://vt100.net/emu/
  * It was written from scratch and extended where needed.
  * This parser is fully compatible up to the vt500 series. We expect UCS-4 as
  * input. It's the callers responsibility to do any UTF-8 parsing.
  */
 
 enum parser_state {
-        STATE_NONE,                /* placeholder */
-        STATE_GROUND,                /* initial state and ground */
-        STATE_ESC,                /* ESC sequence was started */
-        STATE_ESC_INT,                /* intermediate escape characters */
+        STATE_NONE,             /* placeholder */
+        STATE_GROUND,           /* initial state and ground */
+        STATE_ESC,              /* ESC sequence was started */
+        STATE_ESC_INT,          /* intermediate escape characters */
         STATE_CSI_ENTRY,        /* starting CSI sequence */
         STATE_CSI_PARAM,        /* CSI parameters */
-        STATE_CSI_INT,                /* intermediate CSI characters */
-        STATE_CSI_IGNORE,        /* CSI error; ignore this CSI sequence */
+        STATE_CSI_INT,          /* intermediate CSI characters */
+        STATE_CSI_IGNORE,       /* CSI error; ignore this CSI sequence */
         STATE_DCS_ENTRY,        /* starting DCS sequence */
         STATE_DCS_PARAM,        /* DCS parameters */
-        STATE_DCS_INT,                /* intermediate DCS characters */
-        STATE_DCS_PASS,                /* DCS data passthrough */
-        STATE_DCS_IGNORE,        /* DCS error; ignore this DCS sequence */
-        STATE_OSC_STRING,        /* parsing OSC sequence */
+        STATE_DCS_INT,          /* intermediate DCS characters */
+        STATE_DCS_PASS,         /* DCS data passthrough */
+        STATE_DCS_IGNORE,       /* DCS error; ignore this DCS sequence */
+        STATE_OSC_STRING,       /* parsing OSC sequence */
         STATE_ST_IGNORE,        /* unimplemented seq; ignore until ST */
         STATE_N,
 };
 
 enum parser_action {
-        ACTION_NONE,                /* placeholder */
-        ACTION_CLEAR,                /* clear parameters */
-        ACTION_IGNORE,                /* ignore the character entirely */
-        ACTION_PRINT,                /* print the character on the console */
-        ACTION_EXECUTE,                /* execute single control character (C0/C1) */
-        ACTION_COLLECT,                /* collect intermediate character */
-        ACTION_PARAM,                /* collect parameter character */
-        ACTION_ESC_DISPATCH,        /* dispatch escape sequence */
-        ACTION_CSI_DISPATCH,        /* dispatch csi sequence */
-        ACTION_DCS_START,        /* start of DCS data */
-        ACTION_DCS_COLLECT,        /* collect DCS data */
-        ACTION_DCS_CONSUME,        /* consume DCS terminator */
-        ACTION_DCS_DISPATCH,        /* dispatch dcs sequence */
-        ACTION_OSC_START,        /* start of OSC data */
-        ACTION_OSC_COLLECT,        /* collect OSC data */
-        ACTION_OSC_CONSUME,        /* consume OSC terminator */
-        ACTION_OSC_DISPATCH,        /* dispatch osc sequence */
+        ACTION_NONE,            /* placeholder */
+        ACTION_CLEAR,           /* clear parameters */
+        ACTION_IGNORE,          /* ignore the character entirely */
+        ACTION_PRINT,           /* print the character on the console */
+        ACTION_EXECUTE,         /* execute single control character (C0/C1) */
+        ACTION_COLLECT,         /* collect intermediate character */
+        ACTION_PARAM,           /* collect parameter character */
+        ACTION_ESC_DISPATCH,    /* dispatch escape sequence */
+        ACTION_CSI_DISPATCH,    /* dispatch CSI sequence */
+        ACTION_DCS_START,       /* start of DCS data */
+        ACTION_DCS_COLLECT,     /* collect DCS data */
+        ACTION_DCS_CONSUME,     /* consume DCS terminator */
+        ACTION_DCS_DISPATCH,    /* dispatch DCS sequence */
+        ACTION_OSC_START,       /* start of OSC data */
+        ACTION_OSC_COLLECT,     /* collect OSC data */
+        ACTION_OSC_CONSUME,     /* consume OSC terminator */
+        ACTION_OSC_DISPATCH,    /* dispatch OSC sequence */
         ACTION_N,
 };
 
@@ -1006,7 +1013,7 @@ static inline void parser_clear(struct vte_parser *parser)
         parser->seq.st[0] = 0;
 }
 
-static int parser_ignore(struct vte_parser *parser, u32 raw)
+static int parser_ignore(struct vte_parser *parser, uint32_t raw)
 {
         parser_clear(parser);
         parser->seq.type = VTE_SEQ_IGNORE;
@@ -1017,7 +1024,7 @@ static int parser_ignore(struct vte_parser *parser, u32 raw)
         return parser->seq.type;
 }
 
-static int parser_print(struct vte_parser *parser, u32 raw)
+static int parser_print(struct vte_parser *parser, uint32_t raw)
 {
         parser_clear(parser);
         parser->seq.type = VTE_SEQ_GRAPHIC;
@@ -1028,7 +1035,7 @@ static int parser_print(struct vte_parser *parser, u32 raw)
         return parser->seq.type;
 }
 
-static int parser_execute(struct vte_parser *parser, u32 raw)
+static int parser_execute(struct vte_parser *parser, uint32_t raw)
 {
         parser_clear(parser);
         parser->seq.type = VTE_SEQ_CONTROL;
@@ -1040,7 +1047,7 @@ static int parser_execute(struct vte_parser *parser, u32 raw)
         return parser->seq.type;
 }
 
-static void parser_collect(struct vte_parser *parser, u32 raw)
+static void parser_collect(struct vte_parser *parser, uint32_t raw)
 {
         /*
          * Usually, characters from 0x30 to 0x3f are only allowed as leading
@@ -1055,7 +1062,7 @@ static void parser_collect(struct vte_parser *parser, u32 raw)
                 parser->seq.intermediates |= 1 << (raw - 0x20);
 }
 
-static void parser_param(struct vte_parser *parser, u32 raw)
+static void parser_param(struct vte_parser *parser, uint32_t raw)
 {
         if (raw == ';') {
                 if (parser->seq.n_args < VTE_PARSER_ARG_MAX)
@@ -1086,7 +1093,7 @@ static void parser_param(struct vte_parser *parser, u32 raw)
         }
 }
 
-static int parser_esc(struct vte_parser *parser, u32 raw)
+static int parser_esc(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_ESCAPE;
         parser->seq.command = VTE_CMD_NONE;
@@ -1098,7 +1105,7 @@ static int parser_esc(struct vte_parser *parser, u32 raw)
         return parser->seq.type;
 }
 
-static int parser_csi(struct vte_parser *parser, u32 raw)
+static int parser_csi(struct vte_parser *parser, uint32_t raw)
 {
         /* parser->seq is cleared during CSI-ENTER state, thus there's no need
          * to clear invalid fields here. */
@@ -1120,7 +1127,7 @@ static int parser_csi(struct vte_parser *parser, u32 raw)
 
 /* perform state transition and dispatch related actions */
 static int parser_transition(struct vte_parser *parser,
-                             u32 raw,
+                             uint32_t raw,
                              unsigned int state,
                              unsigned int action)
 {
@@ -1179,7 +1186,7 @@ static int parser_transition(struct vte_parser *parser,
         }
 }
 
-static int parser_feed_to_state(struct vte_parser *parser, u32 raw)
+static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
 {
         switch (parser->state) {
         case STATE_NONE:
@@ -1513,8 +1520,8 @@ static int parser_feed_to_state(struct vte_parser *parser, u32 raw)
 }
 
 int vte_parser_feed(struct vte_parser *parser,
-                       const struct vte_seq **seq_out,
-                       u32 raw)
+                    /* const */ struct vte_seq **seq_out,
+                    uint32_t raw)
 {
         int ret;
 
@@ -1569,10 +1576,16 @@ int vte_parser_feed(struct vte_parser *parser,
                 break;
         }
 
-        if (ret <= 0)
+        if (G_UNLIKELY(ret < 0))
                 *seq_out = NULL;
         else
                 *seq_out = &parser->seq;
 
         return ret;
+}
+
+void vte_parser_reset(struct vte_parser *parser)
+{
+        /* const */ struct vte_seq *seq;
+        vte_parser_feed(parser, &seq, 0x18 /* CAN */);
 }
