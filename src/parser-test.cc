@@ -1072,6 +1072,10 @@ test_seq_dcs(uint32_t p,
              int expected_rv = VTE_SEQ_DCS)
 {
         uint32_t i[4];
+        for (uint32_t f = 0x40; f < 0x7f; f++) {
+                test_seq_dcs(f, p, params, i, 0, str, expected_rv);
+        }
+
         for (uint32_t f = 0x30; f < 0x7f; f++) {
                 for (i[0] = 0x20; i[0] < 0x30; i[0]++) {
                         test_seq_dcs(f, p, params, i, 1, str, expected_rv);
