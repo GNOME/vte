@@ -36,6 +36,10 @@ public:
 
         inline unsigned int command() const { return m_seq->command; }
 
+        inline unsigned int charset() const { return m_seq->charset; }
+
+        inline unsigned int intermediates() const { return m_seq->intermediates; }
+
         inline uint32_t terminator() const { return m_seq->terminator; }
 
         inline unsigned int size() const

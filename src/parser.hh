@@ -122,58 +122,15 @@ enum {
 };
 
 enum {
-        /*
-         * Charsets: DEC marks charsets according to "Digital Equ. Corp.".
-         *           NRCS marks charsets according to the "National Replacement
-         *           Character Sets". ISO marks charsets according to ISO-8859.
-         * The USERDEF charset is special and can be modified by the host.
-         */
-
-        VTE_CHARSET_NONE,
-
-        /* 96-compat charsets */
-        VTE_CHARSET_ISO_LATIN1_SUPPLEMENTAL,
-        VTE_CHARSET_BRITISH_NRCS = VTE_CHARSET_ISO_LATIN1_SUPPLEMENTAL,
-        VTE_CHARSET_ISO_LATIN2_SUPPLEMENTAL,
-        VTE_CHARSET_AMERICAN_NRCS = VTE_CHARSET_ISO_LATIN2_SUPPLEMENTAL,
-        VTE_CHARSET_ISO_LATIN5_SUPPLEMENTAL,
-        VTE_CHARSET_ISO_GREEK_SUPPLEMENTAL,
-        VTE_CHARSET_ISO_HEBREW_SUPPLEMENTAL,
-        VTE_CHARSET_ISO_LATIN_CYRILLIC,
-
-        VTE_CHARSET_96_N,
-
-        /* 94-compat charsets */
-        VTE_CHARSET_DEC_SPECIAL_GRAPHIC = VTE_CHARSET_96_N,
-        VTE_CHARSET_DEC_SUPPLEMENTAL,
-        VTE_CHARSET_DEC_TECHNICAL,
-        VTE_CHARSET_CYRILLIC_DEC,
-        VTE_CHARSET_DUTCH_NRCS,
-        VTE_CHARSET_FINNISH_NRCS,
-        VTE_CHARSET_FRENCH_NRCS,
-        VTE_CHARSET_FRENCH_CANADIAN_NRCS,
-        VTE_CHARSET_GERMAN_NRCS,
-        VTE_CHARSET_GREEK_DEC,
-        VTE_CHARSET_GREEK_NRCS,
-        VTE_CHARSET_HEBREW_DEC,
-        VTE_CHARSET_HEBREW_NRCS,
-        VTE_CHARSET_ITALIAN_NRCS,
-        VTE_CHARSET_NORWEGIAN_DANISH_NRCS,
-        VTE_CHARSET_PORTUGUESE_NRCS,
-        VTE_CHARSET_RUSSIAN_NRCS,
-        VTE_CHARSET_SCS_NRCS,
-        VTE_CHARSET_SPANISH_NRCS,
-        VTE_CHARSET_SWEDISH_NRCS,
-        VTE_CHARSET_SWISS_NRCS,
-        VTE_CHARSET_TURKISH_DEC,
-        VTE_CHARSET_TURKISH_NRCS,
-
-        VTE_CHARSET_94_N,
-
-        /* special charsets */
-        VTE_CHARSET_USERPREF_SUPPLEMENTAL = VTE_CHARSET_94_N,
-
-        VTE_CHARSET_N,
+#define _VTE_CHARSET_PASTE(name) VTE_CHARSET_##name,
+#define _VTE_CHARSET(name) _VTE_CHARSET_PASTE(name)
+#define _VTE_CHARSET_ALIAS_PASTE(name1,name2) VTE_CHARSET_##name1 = VTE_CHARSET_##name2,
+#define _VTE_CHARSET_ALIAS(name1,name2) _VTE_CHARSET_ALIAS_PASTE(name1,name2)
+#include "parser-charset.hh"
+#undef _VTE_CHARSET_PASTE
+#undef _VTE_CHARSET
+#undef _VTE_CHARSET_ALIAS_PASTE
+#undef _VTE_CHARSET_ALIAS
 };
 
 struct vte_seq {

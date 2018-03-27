@@ -58,6 +58,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	parser.cc \
 	parser.hh \
 	parser-arg.hh \
+	parser-charset.hh \
+	parser-charset-tables.hh \
 	parser-cmd.hh \
 	parser-glue.hh \
 	pty.cc \
@@ -173,7 +175,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += interpret interpret-old slowcat test-parser
+noinst_PROGRAMS += interpret slowcat test-parser
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -237,6 +239,8 @@ interpret_SOURCES = \
 	iso2022.h \
 	parser.cc \
 	parser.hh \
+	parser-charset.hh \
+	parser-charset-tables.hh \
 	parser-cmd.hh \
 	parser-glue.hh \
 	vteconv.cc \
@@ -262,40 +266,6 @@ interpret_LDADD = \
 	$(GLIB_LIBS) \
 	$(GOBJECT_LIBS)
 
-interpret_old_SOURCES = \
-	buffer.h \
-	caps.hh \
-	debug.cc \
-	debug.h \
-	iso2022.cc \
-	iso2022.h \
-	matcher.cc \
-	matcher.hh \
-	table.cc \
-	table.hh \
-	vteconv.cc \
-	vteconv.h \
-	interpret-old.cc
-interpret_old_CPPFLAGS = \
-	-DINTERPRET_OLD_MAIN \
-	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
-	-I$(builddir) \
-	-I$(srcdir) \
-	$(AM_CPPFLAGS)
-interpret_old_CFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(GTK_CFLAGS) \
-	$(AM_CFLAGS)
-interpret_old_CXXFLAGS = \
-	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(GTK_CFLAGS) \
-	$(AM_CXXFLAGS)
-interpret_old_LDADD = \
-	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS)
-
 slowcat_SOURCES = \
 	slowcat.c \
 	$(NULL)
@@ -309,6 +279,8 @@ test_parser_SOURCES = \
 	parser.hh \
 	parser-arg.hh \
 	parser-cmd.hh \
+	parser-charset.hh \
+	parser-charset-tables.hh \
 	parser-glue.hh \
 	$(NULL)
 test_parser_CPPFLAGS = \

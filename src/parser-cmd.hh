@@ -17,11 +17,13 @@
 
 _VTE_CMD(NONE) /* placeholder */
 _VTE_CMD(GRAPHIC) /* graphics character */
+_VTE_CMD(ACS) /* announce-code-structure */
 _VTE_CMD(BEL) /* bell */
 _VTE_CMD(BS) /* backspace */
 _VTE_CMD(CBT) /* cursor-backward-tabulation */
 _VTE_CMD(CHA) /* cursor-horizontal-absolute */
 _VTE_CMD(CHT) /* cursor-horizontal-forward-tabulation */
+_VTE_CMD(CMD) /* coding-method-delimiter */
 _VTE_CMD(CNL) /* cursor-next-line */
 _VTE_CMD(CPL) /* cursor-previous-line */
 _VTE_CMD(CR) /* carriage-return */
@@ -30,6 +32,7 @@ _VTE_CMD(CUD) /* cursor-down */
 _VTE_CMD(CUF) /* cursor-forward */
 _VTE_CMD(CUP) /* cursor-position */
 _VTE_CMD(CUU) /* cursor-up */
+_VTE_CMD(CnD) /* Cn-designate */
 _VTE_CMD(DA1) /* primary-device-attributes */
 _VTE_CMD(DA2) /* secondary-device-attributes */
 _VTE_CMD(DA3) /* tertiary-device-attributes */
@@ -118,6 +121,7 @@ _VTE_CMD(DECTID) /* select-terminal-id */
 _VTE_CMD(DECTME) /* terminal-mode-emulation */
 _VTE_CMD(DECTST) /* invoke-confidence-test */
 _VTE_CMD(DL) /* delete-line */
+_VTE_CMD(DOCS) /* designate-other-coding-system */
 _VTE_CMD(DSR_ANSI) /* device-status-report-ansi */
 _VTE_CMD(DSR_DEC) /* device-status-report-dec */
 _VTE_CMD(ECH) /* erase-character */
@@ -126,6 +130,8 @@ _VTE_CMD(EL) /* erase-in-line */
 _VTE_CMD(ENQ) /* enquiry */
 _VTE_CMD(EPA) /* end-of-guarded-area */
 _VTE_CMD(FF) /* form-feed */
+_VTE_CMD(GnDm) /* Gn-designate-9m-charset */
+_VTE_CMD(GnDMm) /* Gn-designate-multibyte-9m-charset */
 _VTE_CMD(HPA) /* horizontal-position-absolute */
 _VTE_CMD(HPR) /* horizontal-position-relative */
 _VTE_CMD(HT) /* horizontal-tab */
@@ -134,6 +140,7 @@ _VTE_CMD(HVP) /* horizontal-and-vertical-position */
 _VTE_CMD(ICH) /* insert-character */
 _VTE_CMD(IL) /* insert-line */
 _VTE_CMD(IND) /* index */
+_VTE_CMD(IRR) /* identify-revised-registration */
 _VTE_CMD(LF) /* line-feed */
 _VTE_CMD(LS1R) /* locking-shift-1-right */
 _VTE_CMD(LS2) /* locking-shift-2 */
@@ -155,9 +162,6 @@ _VTE_CMD(RI) /* reverse-index */
 _VTE_CMD(RIS) /* reset-to-initial-state */
 _VTE_CMD(RM_ANSI) /* reset-mode-ansi */
 _VTE_CMD(RM_DEC) /* reset-mode-dec */
-_VTE_CMD(S7C1T) /* set-7bit-c1-terminal */
-_VTE_CMD(S8C1T) /* set-8bit-c1-terminal */
-_VTE_CMD(SCS) /* select-character-set */
 _VTE_CMD(SD) /* scroll-down */
 _VTE_CMD(SGR) /* select-graphics-rendition */
 _VTE_CMD(SI) /* shift-in */
@@ -181,13 +185,8 @@ _VTE_CMD(XTERM_MUHP) /* xterm-memory-unlock-hp-bugfix */
 _VTE_CMD(XTERM_RPM) /* xterm-restore-private-mode */
 _VTE_CMD(XTERM_RRV) /* xterm-reset-resource-value */
 _VTE_CMD(XTERM_RTM) /* xterm-reset-title-mode */
-_VTE_CMD(XTERM_SACL1) /* xterm-set-ansi-conformance-level-1 */
-_VTE_CMD(XTERM_SACL2) /* xterm-set-ansi-conformance-level-2 */
-_VTE_CMD(XTERM_SACL3) /* xterm-set-ansi-conformance-level-3 */
-_VTE_CMD(XTERM_SDCS) /* xterm-set-default-character-set */
 _VTE_CMD(XTERM_SGFX) /* xterm-sixel-graphics */
 _VTE_CMD(XTERM_SPM) /* xterm-set-private-mode */
 _VTE_CMD(XTERM_SRV) /* xterm-set-resource-value */
 _VTE_CMD(XTERM_STM) /* xterm-set-title-mode */
-_VTE_CMD(XTERM_SUCS) /* xterm-set-utf8-character-set */
 _VTE_CMD(XTERM_WM) /* xterm-window-management */

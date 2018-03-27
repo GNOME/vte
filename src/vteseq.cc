@@ -886,56 +886,6 @@ VteTerminalPrivate::seq_nop(vte::parser::Params const& params)
 }
 
 void
-VteTerminalPrivate::set_character_replacements(unsigned slot,
-                                               VteCharacterReplacement replacement)
-{
-        g_assert(slot < G_N_ELEMENTS(m_character_replacements));
-        m_character_replacements[slot] = replacement;
-}
-
-/* G0 character set is a pass-thru (no mapping). */
-void
-VteTerminalPrivate::seq_designate_g0_plain(vte::parser::Params const& params)
-{
-        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_NONE);
-}
-
-/* G0 character set is DEC Special Character and Line Drawing Set. */
-void
-VteTerminalPrivate::seq_designate_g0_line_drawing(vte::parser::Params const& params)
-{
-        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
-}
-
-/* G0 character set is British (# is converted to £). */
-void
-VteTerminalPrivate::seq_designate_g0_british(vte::parser::Params const& params)
-{
-        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_BRITISH);
-}
-
-/* G1 character set is a pass-thru (no mapping). */
-void
-VteTerminalPrivate::seq_designate_g1_plain(vte::parser::Params const& params)
-{
-        set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_NONE);
-}
-
-/* G1 character set is DEC Special Character and Line Drawing Set. */
-void
-VteTerminalPrivate::seq_designate_g1_line_drawing(vte::parser::Params const& params)
-{
-        set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_LINE_DRAWING);
-}
-
-/* G1 character set is British (# is converted to £). */
-void
-VteTerminalPrivate::seq_designate_g1_british(vte::parser::Params const& params)
-{
-        set_character_replacements(1, VTE_CHARACTER_REPLACEMENT_BRITISH);
-}
-
-void
 VteTerminalPrivate::set_character_replacement(unsigned slot)
 {
         g_assert(slot < G_N_ELEMENTS(m_character_replacements));
@@ -3114,7 +3064,6 @@ UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_foreground_color_bel)
 UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_foreground_color_st)
 UNIMPLEMENTED_SEQUENCE_HANDLER(cursor_lower_left)
 UNIMPLEMENTED_SEQUENCE_HANDLER(dec_media_copy)
-UNIMPLEMENTED_SEQUENCE_HANDLER(default_character_set)
 UNIMPLEMENTED_SEQUENCE_HANDLER(device_control_string)
 UNIMPLEMENTED_SEQUENCE_HANDLER(double_height_bottom_half)
 UNIMPLEMENTED_SEQUENCE_HANDLER(double_height_top_half)
@@ -3154,7 +3103,6 @@ UNIMPLEMENTED_SEQUENCE_HANDLER(single_shift_g3)
 UNIMPLEMENTED_SEQUENCE_HANDLER(single_width)
 UNIMPLEMENTED_SEQUENCE_HANDLER(start_of_guarded_area)
 UNIMPLEMENTED_SEQUENCE_HANDLER(start_or_end_of_string)
-UNIMPLEMENTED_SEQUENCE_HANDLER(utf_8_character_set)
 
 #undef UNIMPLEMENTED_UNIMPLEMENTED_SEQUENCE_HANDLER
 
@@ -3241,6 +3189,69 @@ VteTerminalPrivate::GRAPHIC(vte::parser::Sequence const& seq)
 #endif
 
         insert_char(seq.terminator(), false, false);
+}
+
+
+void
+VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
+{
+        /* ACS - announce-code-structure
+         *
+         * The final byte of the sequence identifies the facility number
+         * from 1 to 62 starting with 4/01.
+         *
+         * References: ECMA-35 § 15.2
+         */
+
+        /* Since we don't implement ISO-2022 anymore, we can mostly ignore this */
+
+        switch (seq.terminator() - 0x40) {
+        case 6:
+                /*
+                 * This causes the terminal to start sending C1 controls as 7bit
+                 * sequences instead of 8bit C1 controls.
+                 * This is ignored if the terminal is below level-2 emulation mode
+                 * (VT100 and below), the terminal already sends 7bit controls then.
+                 */
+#if 0
+                if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
+                        screen->flags |= VTE_FLAG_7BIT_MODE;
+#endif
+                break;
+
+        case 7:
+                /*
+                 * This causes the terminal to start sending C1 controls as 8bit C1
+                 * control instead of 7bit sequences.
+                 * This is ignored if the terminal is below level-2 emulation mode
+                 * (VT100 and below). The terminal always sends 7bit controls in those
+                 * modes.
+                 */
+#if 0
+                if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
+                        screen->flags &= ~VTE_FLAG_7BIT_MODE;
+#endif
+                break;
+
+        case 12:
+                /* Use Level 1 of ECMA-43
+                 *
+                 * Probably not worth implementing.
+                 */
+                break;
+        case 13:
+                /* Use Level 2 of ECMA-43
+                 *
+                 * Probably not worth implementing.
+                 */
+                break;
+        case 14:
+                /* Use Level 3 of ECMA-43
+                 *
+                 * Probably not worth implementing.
+                 */
+                break;
+        }
 }
 
 void
@@ -3355,6 +3366,16 @@ VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
 #endif
 
         seq_cursor_forward_tabulation(seq);
+}
+
+void
+VteTerminalPrivate::CMD(vte::parser::Sequence const& seq)
+{
+        /*
+         * CMD - coding method delimiter
+         *
+         * References: ECMA-35 §15.3
+         */
 }
 
 void
@@ -3547,6 +3568,22 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
 #endif
 
         seq_cursor_up(seq);
+}
+
+
+void
+VteTerminalPrivate::CnD(vte::parser::Sequence const& seq)
+{
+        /*
+         * CnD - Cn-designate
+         *
+         * Designate a set of control functions.
+         *
+         * References: ECMA-35 § 14.2
+         *             ISO 2375 IR
+         */
+
+        /* Since we don't implement ISO-2022 anymore, we can ignore this */
 }
 
 void
@@ -4854,6 +4891,19 @@ VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DOCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DOCS - designate other coding systyem
+         *
+         * References: ECMA-35 § 15.4
+         *             ISO 2375 IR
+         *
+         * TODO: implement (bug #787228)
+         */
+}
+
+void
 VteTerminalPrivate::DSR_ANSI(vte::parser::Sequence const& seq)
 {
         /*
@@ -4968,6 +5018,78 @@ VteTerminalPrivate::FF(vte::parser::Sequence const& seq)
 #endif
 
         seq_form_feed(seq);
+}
+
+void
+VteTerminalPrivate::GnDm(vte::parser::Sequence const& seq)
+{
+        /*
+         * GnDm - Gn-designate 9m-charset
+         *
+         * Designate character sets to G-sets.
+         *
+         * References: ECMA-35 § 14.3
+         *             ISO 2375 IR
+         */
+
+        /* Since we don't implement ISO-2022 anymore, we can mostly ignore this. */
+
+        VteCharacterReplacement replacement;
+        switch (seq.charset()) {
+        case VTE_CHARSET_DEC_SPECIAL_GRAPHIC:
+                /* Some characters replaced by line drawing characters.
+                 * This is still used by ncurses :-(
+                 */
+                replacement = VTE_CHARACTER_REPLACEMENT_LINE_DRAWING;
+                break;
+
+        case VTE_CHARSET_BRITISH_NRCS:
+                /* # is converted to £ */
+                /* FIXME: Remove this */
+                replacement = VTE_CHARACTER_REPLACEMENT_BRITISH;
+                break;
+
+        /* FIXME: are any of the other charsets still useful? */
+        default:
+                replacement = VTE_CHARACTER_REPLACEMENT_NONE;
+                break;
+        }
+
+        unsigned int slot = 0;
+        if (seq.intermediates() & VTE_SEQ_FLAG_POPEN)
+                slot = 0;
+        else if (seq.intermediates() & VTE_SEQ_FLAG_PCLOSE)
+                slot = 1;
+        else if (seq.intermediates() & VTE_SEQ_FLAG_MULT)
+                slot = 2;
+        else if (seq.intermediates() & VTE_SEQ_FLAG_PLUS)
+                slot = 3;
+        else if (seq.intermediates() & VTE_SEQ_FLAG_MINUS)
+                slot = 1;
+        else if (seq.intermediates() & VTE_SEQ_FLAG_DOT)
+                slot = 2;
+        else if (seq.intermediates() & VTE_SEQ_FLAG_SLASH)
+                slot = 3;
+
+        if (slot >= G_N_ELEMENTS(m_character_replacements))
+                return;
+
+        m_character_replacements[slot] = replacement;
+}
+
+void
+VteTerminalPrivate::GnDMm(vte::parser::Sequence const& seq)
+{
+        /*
+         * GnDm - Gn-designate multibyte 9m-charset
+         *
+         * Designate multibyte character sets to G-sets.
+         *
+         * References: ECMA-35 § 14.3
+         *             ISO 2375 IR
+         */
+
+        /* Since we don't implement ISO-2022 anymore, we can ignore this */
 }
 
 void
@@ -5146,6 +5268,20 @@ VteTerminalPrivate::IND(vte::parser::Sequence const& seq)
 #endif
 
         seq_index(seq);
+}
+
+void
+VteTerminalPrivate::IRR(vte::parser::Sequence const& seq)
+{
+        /*
+         * IRR - identify-revised-registration
+         *
+         * References: ECMA-35 § 14.5
+         *
+         * Probably not worth implementing.
+         */
+
+        /* Since we don't implement ISO-2022 anymore, we can ignore this */
 }
 
 void
@@ -5428,118 +5564,6 @@ VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
 #endif
 
         seq_decreset(seq);
-}
-
-void
-VteTerminalPrivate::S7C1T(vte::parser::Sequence const& seq)
-{
-        /*
-         * S7C1T - set-7bit-c1-terminal
-         * This causes the terminal to start sending C1 controls as 7bit
-         * sequences instead of 8bit C1 controls.
-         * This is ignored if the terminal is below level-2 emulation mode
-         * (VT100 and below), the terminal already sends 7bit controls then.
-         */
-
-#if 0
-        if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
-                screen->flags |= VTE_FLAG_7BIT_MODE;
-#endif
-}
-
-void
-VteTerminalPrivate::S8C1T(vte::parser::Sequence const& seq)
-{
-        /*
-         * S8C1T - set-8bit-c1-terminal
-         * This causes the terminal to start sending C1 controls as 8bit C1
-         * control instead of 7bit sequences.
-         * This is ignored if the terminal is below level-2 emulation mode
-         * (VT100 and below). The terminal always sends 7bit controls in those
-         * modes.
-         */
-#if 0
-        if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
-                screen->flags &= ~VTE_FLAG_7BIT_MODE;
-#endif
-}
-
-void
-VteTerminalPrivate::SCS(vte::parser::Sequence const& seq)
-{
-        /*
-         * SCS - select-character-set
-         * Designate character sets to G-sets. The mapping from intermediates
-         * and terminal characters in the escape sequence to G-sets and
-         * character-sets is non-trivial and implemented separately. See there
-         * for more information.
-         * This call simply sets the selected G-set to the desired
-         * character-set.
-         */
-#if 0
-        vte_charset *cs = NULL;
-
-        /* TODO: support more of them? */
-        switch (seq->charset) {
-        case VTE_CHARSET_ISO_LATIN1_SUPPLEMENTAL:
-        case VTE_CHARSET_ISO_LATIN2_SUPPLEMENTAL:
-        case VTE_CHARSET_ISO_LATIN5_SUPPLEMENTAL:
-        case VTE_CHARSET_ISO_GREEK_SUPPLEMENTAL:
-        case VTE_CHARSET_ISO_HEBREW_SUPPLEMENTAL:
-        case VTE_CHARSET_ISO_LATIN_CYRILLIC:
-                break;
-
-        case VTE_CHARSET_DEC_SPECIAL_GRAPHIC:
-                cs = &vte_dec_special_graphics;
-                break;
-        case VTE_CHARSET_DEC_SUPPLEMENTAL:
-                cs = &vte_dec_supplemental_graphics;
-                break;
-        case VTE_CHARSET_DEC_TECHNICAL:
-        case VTE_CHARSET_CYRILLIC_DEC:
-        case VTE_CHARSET_DUTCH_NRCS:
-        case VTE_CHARSET_FINNISH_NRCS:
-        case VTE_CHARSET_FRENCH_NRCS:
-        case VTE_CHARSET_FRENCH_CANADIAN_NRCS:
-        case VTE_CHARSET_GERMAN_NRCS:
-        case VTE_CHARSET_GREEK_DEC:
-        case VTE_CHARSET_GREEK_NRCS:
-        case VTE_CHARSET_HEBREW_DEC:
-        case VTE_CHARSET_HEBREW_NRCS:
-        case VTE_CHARSET_ITALIAN_NRCS:
-        case VTE_CHARSET_NORWEGIAN_DANISH_NRCS:
-        case VTE_CHARSET_PORTUGUESE_NRCS:
-        case VTE_CHARSET_RUSSIAN_NRCS:
-        case VTE_CHARSET_SCS_NRCS:
-        case VTE_CHARSET_SPANISH_NRCS:
-        case VTE_CHARSET_SWEDISH_NRCS:
-        case VTE_CHARSET_SWISS_NRCS:
-        case VTE_CHARSET_TURKISH_DEC:
-        case VTE_CHARSET_TURKISH_NRCS:
-                break;
-
-        case VTE_CHARSET_USERPREF_SUPPLEMENTAL:
-                break;
-        }
-
-        if (seq->intermediates & VTE_SEQ_FLAG_POPEN)
-                screen->g0 = cs ? : &vte_unicode_lower;
-        else if (seq->intermediates & VTE_SEQ_FLAG_PCLOSE)
-                screen->g1 = cs ? : &vte_unicode_upper;
-        else if (seq->intermediates & VTE_SEQ_FLAG_MULT)
-                screen->g2 = cs ? : &vte_unicode_lower;
-        else if (seq->intermediates & VTE_SEQ_FLAG_PLUS)
-                screen->g3 = cs ? : &vte_unicode_upper;
-        else if (seq->intermediates & VTE_SEQ_FLAG_MINUS)
-                screen->g1 = cs ? : &vte_unicode_upper;
-        else if (seq->intermediates & VTE_SEQ_FLAG_DOT)
-                screen->g2 = cs ? : &vte_unicode_lower;
-        else if (seq->intermediates & VTE_SEQ_FLAG_SLASH)
-                screen->g3 = cs ? : &vte_unicode_upper;
-#endif
-
-        // FIXMEchpe: seq_designate_*(seq);
-        set_character_replacements(0, VTE_CHARACTER_REPLACEMENT_NONE);
 }
 
 void
@@ -6018,47 +6042,6 @@ VteTerminalPrivate::XTERM_RTM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_SACL1(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SACL1 - xterm-set-ansi-conformance-level-1
-         *
-         * Probably not worth implementing.
-         */
-}
-
-void
-VteTerminalPrivate::XTERM_SACL2(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SACL2 - xterm-set-ansi-conformance-level-2
-         *
-         * Probably not worth implementing.
-         */
-}
-
-void
-VteTerminalPrivate::XTERM_SACL3(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SACL3 - xterm-set-ansi-conformance-level-3
-         *
-         * Probably not worth implementing.
-         */
-}
-
-void
-VteTerminalPrivate::XTERM_SDCS(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SDCS - xterm-set-default-character-set
-         * Select the default character set. We treat this the same as UTF-8 as
-         * this is our default character set. As we always use UTF-8, this
-         * becomes as no-op.
-         */
-}
-
-void
 VteTerminalPrivate::XTERM_SGFX(vte::parser::Sequence const& seq)
 {
         /*
@@ -6095,16 +6078,6 @@ VteTerminalPrivate::XTERM_STM(vte::parser::Sequence const& seq)
          * XTERM_STM - xterm-set-title-mode
          *
          * Probably not worth implementing.
-         */
-}
-
-void
-VteTerminalPrivate::XTERM_SUCS(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SUCS - xterm-select-utf8-character-set
-         * Select UTF-8 as character set. This is our default and only
-         * character set. Hence, this is a no-op.
          */
 }
 
