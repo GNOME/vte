@@ -114,7 +114,7 @@ static  void print_seq(const struct vte_seq *seq)
                         for (unsigned int i = 0; i < seq->n_args; i++) {
                                 if (i > 0)
                                         g_print(";");
-                        g_print("%d", seq->args[i]);
+                                g_print("%d", vte_seq_arg_value(seq->args[i]));
                         }
                 }
                 g_print("\n");

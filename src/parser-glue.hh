@@ -46,7 +46,7 @@ public:
 
         inline int operator[](int position) const
         {
-                return G_LIKELY(position < (int)size()) ? m_seq->args[position] : -1;
+                return G_LIKELY(position < (int)size()) ? vte_seq_arg_value(m_seq->args[position]) : -1;
         }
 
         inline bool has_number_at_unchecked(unsigned int position) const
@@ -56,7 +56,7 @@ public:
 
         inline bool number_at_unchecked(unsigned int position, number& v) const
         {
-                v = m_seq->args[position];
+                v = vte_seq_arg_value(m_seq->args[position]);
                 return true;
         }
 

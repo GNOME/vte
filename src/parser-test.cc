@@ -115,7 +115,7 @@ print_seq(const struct vte_seq *seq)
                         for (unsigned int i = 0; i < seq->n_args; i++) {
                                 if (i > 0)
                                         g_print(";");
-                        g_print("%d", seq->args[i]);
+                                g_print("%d", vte_seq_arg_value(seq->args[i]));
                         }
                 }
                 g_print("\n");
@@ -147,7 +147,7 @@ public:
                 m_seq.intermediates = flags;
         }
 
-        void set_params(int params[16])
+        void set_params(vte_seq_arg_t params[16])
         {
                 memcpy(&m_seq.args, params, 16*sizeof(params[0]));
         }
@@ -248,7 +248,7 @@ vte_seq_builder::assert_equal_full(struct vte_seq* seq)
                 g_assert_cmpuint(m_seq.args[m_seq.n_args - 1], ==, -1);
         }
         for (unsigned int n = 0; n < seq->n_args; n++)
-                g_assert_cmpint(std::min(m_seq.args[n], 0xffff), ==, seq->args[n]);
+                g_assert_cmpint(std::min(m_seq.args[n], 0xffff), ==, vte_seq_arg_value(seq->args[n]));
 }
 
 static int
@@ -268,6 +268,37 @@ feed_parser(vte_seq_builder& b,
                         break;
         }
         return rv;
+}
+
+static void
+test_seq_arg(void)
+{
+        /* Basic test */
+        vte_seq_arg_t arg = VTE_SEQ_ARG_INIT_DEFAULT;
+        g_assert_false(vte_seq_arg_started(arg));
+        g_assert_false(vte_seq_arg_finished(arg));
+        g_assert_true(vte_seq_arg_default(arg));
+
+        vte_seq_arg_push(&arg, '1');
+        vte_seq_arg_push(&arg, '2');
+        vte_seq_arg_push(&arg, '3');
+        vte_seq_arg_finish(&arg);
+
+        g_assert_true(vte_seq_arg_finished(arg));
+        g_assert_cmpint(vte_seq_arg_value(arg), ==, 123);
+        g_assert_false(vte_seq_arg_default(arg));
+
+        /* Test max value */
+        arg = VTE_SEQ_ARG_INIT_DEFAULT;
+        vte_seq_arg_push(&arg, '6');
+        vte_seq_arg_push(&arg, '5');
+        vte_seq_arg_push(&arg, '5');
+        vte_seq_arg_push(&arg, '3');
+        vte_seq_arg_push(&arg, '6');
+        vte_seq_arg_finish(&arg);
+
+        g_assert_true(vte_seq_arg_finished(arg));
+        g_assert_cmpint(vte_seq_arg_value(arg), ==, 65535);
 }
 
 static void
@@ -446,7 +477,7 @@ test_seq_esc_Fpes(void)
 static void
 test_seq_csi(uint32_t f,
              uint32_t p,
-             int params[16],
+             vte_seq_arg_t params[16],
              uint32_t i[4],
              unsigned int ni)
 {
@@ -477,7 +508,7 @@ test_seq_csi(uint32_t f,
 
 static void
 test_seq_csi(uint32_t p,
-             int params[16])
+             vte_seq_arg_t params[16])
 {
         uint32_t i[4];
         for (uint32_t f = 0x30; f < 0x7f; f++) {
@@ -492,7 +523,7 @@ test_seq_csi(uint32_t p,
 }
 
 static void
-test_seq_csi(int params[16])
+test_seq_csi(vte_seq_arg_t params[16])
 {
         test_seq_csi(0, params);
         for (uint32_t p = 0x3c; p <= 0x3f; p++)
@@ -510,10 +541,24 @@ test_seq_csi(void)
          * There could be any number of extra params bytes, but we only test up to 1.
          * CSI can be either the C1 control itself, or ESC [
          */
-        int params1[16]{ -1, 0, 1, 9, 10, 99, 100, 999, 1000, 9999, 10000, 65534, 65535, 65536, -1, -1 };
+        vte_seq_arg_t params1[16]{ VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(0),
+                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(9),
+                        VTE_SEQ_ARG_INIT(10), VTE_SEQ_ARG_INIT(99),
+                        VTE_SEQ_ARG_INIT(100), VTE_SEQ_ARG_INIT(999),
+                        VTE_SEQ_ARG_INIT(1000), VTE_SEQ_ARG_INIT(9999),
+                        VTE_SEQ_ARG_INIT(10000), VTE_SEQ_ARG_INIT(65534),
+                        VTE_SEQ_ARG_INIT(65535), VTE_SEQ_ARG_INIT(65536),
+                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(-1) };
         test_seq_csi(params1);
 
-        int params2[16]{ 1, -1, -1, -1, 1, -1, 1, 1, 1, -1, -1, -1, -1, 1, 1, 1 };
+        vte_seq_arg_t params2[16]{ VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(-1),
+                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(-1),
+                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(-1),
+                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(1),
+                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(-1),
+                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(-1),
+                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(1),
+                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(1) };
         test_seq_csi(params2);
 }
 
@@ -526,6 +571,7 @@ main(int argc,
         if (vte_parser_new(&parser) < 0)
                 return 1;
 
+        g_test_add_func("/vte/parser/sequences/arg", test_seq_arg);
         g_test_add_func("/vte/parser/sequences/control", test_seq_control);
         g_test_add_func("/vte/parser/sequences/escape/invalid", test_seq_esc_invalid);
         g_test_add_func("/vte/parser/sequences/escape/nF", test_seq_esc_nF);

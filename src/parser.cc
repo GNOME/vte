@@ -1,5 +1,6 @@
 /*
  * Copyright © 2015 David Herrmann <dh.herrmann@gmail.com>
+ * Copyright © 2017, 2018 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -788,7 +789,7 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                 } else if (flags == VTE_SEQ_FLAG_WHAT) {
                         /* DECRQUPSS */
                         return VTE_CMD_DECRQUPSS;
-                } else if (seq->args[0] == 1 && flags == VTE_SEQ_FLAG_CASH) {
+                } else if (vte_seq_arg_value(seq->args[0]) == 1 && flags == VTE_SEQ_FLAG_CASH) {
                         /* DECRQTSR */
                         return VTE_CMD_DECRQTSR;
                 } else if (flags == VTE_SEQ_FLAG_MULT) {
@@ -814,7 +815,7 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                         return VTE_CMD_DECRPKT;
                 break;
         case 'W':
-                if (seq->args[0] == 5 && flags == VTE_SEQ_FLAG_WHAT) {
+                if (vte_seq_arg_value(seq->args[0]) == 5 && flags == VTE_SEQ_FLAG_WHAT) {
                         /* DECST8C */
                         return VTE_CMD_DECST8C;
                 }
@@ -1007,7 +1008,7 @@ static inline void parser_clear(struct vte_parser *parser)
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.n_args = 0;
         for (i = 0; i < VTE_PARSER_ARG_MAX; ++i)
-                parser->seq.args[i] = -1;
+                parser->seq.args[i] = VTE_SEQ_ARG_INIT_DEFAULT;
 
         parser->seq.n_st = 0;
         parser->seq.st[0] = 0;
@@ -1064,8 +1065,10 @@ static void parser_collect(struct vte_parser *parser, uint32_t raw)
 static void parser_param(struct vte_parser *parser, uint32_t raw)
 {
         if (raw == ';') {
-                if (parser->seq.n_args < VTE_PARSER_ARG_MAX)
+                if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
+                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args]);
                         ++parser->seq.n_args;
+                }
 
                 return;
         }
@@ -1074,21 +1077,7 @@ static void parser_param(struct vte_parser *parser, uint32_t raw)
                 return;
 
         if (raw >= '0' && raw <= '9') {
-                auto value = parser->seq.args[parser->seq.n_args];
-                if (value < 0)
-                        value = 0;
-                value = value * 10 + raw - '0';
-
-                /*
-                 * VT510 tells us to clamp all values to [0, 9999], however, it
-                 * also allows commands with values up to 2^15-1. We simply use
-                 * 2^16 as maximum here to be compatible to all commands, but
-                 * avoid overflows in any calculations.
-                 */
-                if (value > 0xffff)
-                        value = 0xffff;
-
-                parser->seq.args[parser->seq.n_args] = value;
+                vte_seq_arg_push(&parser->seq.args[parser->seq.n_args], raw);
         }
 }
 
@@ -1099,7 +1088,7 @@ static int parser_esc(struct vte_parser *parser, uint32_t raw)
         parser->seq.terminator = raw;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_escape(&parser->seq,
-                                                       &parser->seq.charset);
+                                                    &parser->seq.charset);
 
         return parser->seq.type;
 }
@@ -1111,8 +1100,10 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
 
         if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
                 if (parser->seq.n_args > 0 ||
-                    parser->seq.args[parser->seq.n_args] >= 0)
+                    vte_seq_arg_started(parser->seq.args[parser->seq.n_args])) {
+                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args]);
                         ++parser->seq.n_args;
+                }
         }
 
         parser->seq.type = VTE_SEQ_CSI;

@@ -57,6 +57,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	keymap.h \
 	parser.cc \
 	parser.hh \
+	parser-arg.hh \
 	parser-cmd.hh \
 	parser-glue.hh \
 	pty.cc \
@@ -306,6 +307,7 @@ test_parser_SOURCES = \
 	parser-test.cc \
 	parser.cc \
 	parser.hh \
+	parser-arg.hh \
 	parser-cmd.hh \
 	parser-glue.hh \
 	$(NULL)

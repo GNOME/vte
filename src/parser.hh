@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "parser-arg.hh"
+
 struct vte_parser;
 struct vte_seq;
 struct vte_utf8;
@@ -181,7 +183,7 @@ struct vte_seq {
         unsigned int intermediates;
         unsigned int charset;
         unsigned int n_args;
-        int args[VTE_PARSER_ARG_MAX];
+        vte_seq_arg_t args[VTE_PARSER_ARG_MAX];
         unsigned int n_st;
         char *st;
 };
