@@ -10542,6 +10542,11 @@ VteTerminalPrivate::reset(bool clear_tabstops,
                 m_window_title_stack.clear();
         }
 
+        /* Notification */
+        m_notification_summary.clear();
+        m_notification_body.clear();
+        m_notification_pending = false;
+
         update_mouse_protocol();
 
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */
@@ -10871,6 +10876,18 @@ VteTerminalPrivate::emit_pending_signals()
                 m_current_file_uri_pending.clear();
                 m_current_file_uri_changed = false;
         }
+
+	if (m_notification_pending) {
+                _vte_debug_print (VTE_DEBUG_SIGNALS,
+                                  "Emitting `notification-received'.\n");
+                g_signal_emit(object, signals[SIGNAL_NOTIFICATION_RECEIVED], 0,
+                              m_notification_summary.data(),
+                              m_notification_body.data());
+
+                m_notification_summary.clear();
+                m_notification_body.clear();
+                m_notification_pending = false;
+	}
 
 	/* Flush any pending "inserted" signals. */
 

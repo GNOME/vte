@@ -566,9 +566,12 @@ public:
         std::string m_window_title_pending{};
         std::string m_current_directory_uri_pending{};
         std::string m_current_file_uri_pending{};
+        std::string m_notification_summary{};
+        std::string m_notification_body{};
         bool m_window_title_changed{false};
         bool m_current_directory_uri_changed{false};
         bool m_current_file_uri_changed{false};
+        bool m_notification_pending;
 
         std::vector<std::string> m_window_title_stack{};
 
@@ -1331,6 +1334,9 @@ public:
         void set_current_hyperlink(vte::parser::Sequence const& seq,
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_notification(vte::parser::Sequence const& seq,
+                              vte::parser::StringTokeniser::const_iterator& token,
+                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         /* Sequence handlers */
         bool m_line_wrapped; // signals line wrapped from character insertion

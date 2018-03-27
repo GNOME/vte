@@ -1602,6 +1602,32 @@ VteTerminalPrivate::set_current_hyperlink(vte::parser::Sequence const& seq,
         m_defaults.attr.hyperlink_idx = idx;
 }
 
+void
+VteTerminalPrivate::set_notification(vte::parser::Sequence const& seq,
+                                     vte::parser::StringTokeniser::const_iterator& token,
+                                     vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+{
+        if (token == endtoken || *token != "notify")
+                return;
+
+        if (++token == endtoken) {
+                m_notification_summary.clear();
+                m_notification_body.clear();
+                m_notification_pending = false;
+                return;
+        }
+
+        std::string summary = *token;
+        std::string body;
+
+        if (++token != endtoken && !summary.empty())
+                body = token.string_remaining();
+
+        m_notification_summary.swap(summary);
+        m_notification_body.swap(body);
+        m_notification_pending = !m_notification_summary.empty();
+}
+
 /*
  * Command Handlers
  * This is the unofficial documentation of all the VTE_CMD_* definitions.
@@ -6341,6 +6367,10 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
                 reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
                 break;
 
+        case VTE_OSC_URXVT_EXTENSION:
+                set_notification(seq, it, cend);
+                break;
+
         case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
@@ -6381,8 +6411,9 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_URXVT_SET_FONT_BOLD_ITALIC:
         case VTE_OSC_URXVT_VIEW_UP:
         case VTE_OSC_URXVT_VIEW_DOWN:
-        case VTE_OSC_URXVT_EXTENSION:
         case VTE_OSC_YF_RQGWR:
+                break;
+
         default:
                 break;
         }

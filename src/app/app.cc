@@ -55,6 +55,7 @@ public:
         gboolean no_rewrap{false};
         gboolean no_shell{false};
         gboolean object_notifications{false};
+        gboolean osc_notifications{false};
         gboolean reverse{false};
         gboolean test_mode{false};
         gboolean use_gregex{false};
@@ -395,6 +396,8 @@ public:
                           "Disable rewrapping on resize", nullptr },
                         { "no-shell", 'S', 0, G_OPTION_ARG_NONE, &no_shell,
                           "Disable spawning a shell inside the terminal", nullptr },
+                        { "notifications", 0, 0, G_OPTION_ARG_NONE, &osc_notifications,
+                          "Print OSC 777 notifications received", nullptr },
                         { "object-notifications", 'N', 0, G_OPTION_ARG_NONE, &object_notifications,
                           "Print VteTerminal object notifications", nullptr },
                         { "output-file", 0, 0, G_OPTION_ARG_FILENAME, &output_filename,
@@ -1589,6 +1592,15 @@ window_window_title_changed_cb(VteTerminal* terminal,
 }
 
 static void
+window_notification_received_cb(VteTerminal* terminal,
+                                char const* summary,
+                                char const* body,
+                                VteappWindow* window)
+{
+        g_print("Notification summary=\"%s\" body=\"%s\"\n", summary, body);
+}
+
+static void
 window_lower_window_cb(VteTerminal* terminal,
                        VteappWindow* window)
 {
@@ -1814,6 +1826,8 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "window-title-changed", G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
+        if (options.osc_notifications)
+                g_signal_connect(window->terminal, "notification-received", G_CALLBACK(window_notification_received_cb), window);
 
         /* Settings */
         if (options.no_double_buffer)

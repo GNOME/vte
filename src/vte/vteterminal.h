@@ -104,8 +104,10 @@ struct _VteTerminalClass {
 
 	void (*bell)(VteTerminal* terminal);
 
+	void (*notification_received)(VteTerminal* terminal, const gchar *summary, const gchar *body);
+
         /* Padding for future expansion. */
-        gpointer padding[16];
+        gpointer padding[15];
 
         VteTerminalClassPrivate *priv;
 };

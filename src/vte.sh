@@ -50,9 +50,11 @@ __vte_osc7 () {
 }
 
 __vte_prompt_command() {
+  local command=$(HISTTIMEFORMAT= history 1 | sed 's/^ *[0-9]\+ *//')
+  command="${command//;/ }"
   local pwd='~'
   [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
-  printf "\u009D0;%s@%s:%s\u009C%s" "${USER}" "${HOSTNAME%%.*}" "${pwd}" "$(__vte_osc7)"
+  printf "\u009D777;notify;%s\u009C\u009D0;%s@%s:%s\u009C%s" "${command}" "${USER}" "${HOSTNAME%%.*}" "${pwd}" "$(__vte_osc7)"
 }
 
 case "$TERM" in

@@ -709,6 +709,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->child_exited = NULL;
 	klass->encoding_changed = NULL;
 	klass->char_size_changed = NULL;
+	klass->notification_received = NULL;
 	klass->window_title_changed = NULL;
 	klass->icon_title_changed = NULL;
 	klass->selection_changed = NULL;
@@ -783,6 +784,28 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              g_cclosure_marshal_VOID__INT,
                              G_TYPE_NONE,
                              1, G_TYPE_INT);
+
+        /**
+         * VteTerminal::notification-received:
+         * @vteterminal: the object which received the signal
+         * @summary: The summary
+         * @body: (allow-none): Extra optional text
+         *
+         * Emitted when a process running in the terminal wants to
+         * send a notification to the desktop environment.
+         */
+        signals[SIGNAL_NOTIFICATION_RECEIVED] =
+                g_signal_new(I_("notification-received"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, notification_received),
+                             nullptr,
+                             nullptr,
+                             _vte_marshal_VOID__STRING_STRING,
+                             G_TYPE_NONE,
+                             2,
+                             G_TYPE_STRING | G_SIGNAL_TYPE_STATIC_SCOPE,
+                             G_TYPE_STRING | G_SIGNAL_TYPE_STATIC_SCOPE);
 
         /**
          * VteTerminal::window-title-changed:
