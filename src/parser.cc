@@ -1606,7 +1606,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 case 0x08 ... 0x1a:
                 case 0x1c ... 0x1f:
                         return parser_transition(parser, raw, STATE_NONE,
-                                                 ACTION_IGNORE);
+                                                 ACTION_NONE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_OSC_STRING_ESC,
                                                  ACTION_NONE);
