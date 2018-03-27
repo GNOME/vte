@@ -172,7 +172,7 @@ public:
         void set_params(vte_seq_arg_t params[16])
         {
                 for (unsigned int i = 0; i < 16; i++)
-                        m_seq.args[i] = vte_seq_arg_init(params[i]);
+                        m_seq.args[i] = vte_seq_arg_init(std::min(params[i], 0xffff));
         }
 
         void set_n_params(unsigned int n)
@@ -224,7 +224,7 @@ vte_seq_builder::to_string(std::u32string& s,
                         s.push_back(m_p);
                 auto n_args = m_seq.n_args;
                 for (unsigned int n = 0; n < n_args; n++) {
-                        auto arg = m_seq.args[n];
+                        auto arg = vte_seq_arg_value(m_seq.args[n]);
                         if (n > 0)
                                 s.push_back(0x3B); // semicolon
                         if (arg >= 0) {
@@ -268,10 +268,12 @@ vte_seq_builder::assert_equal_full(struct vte_seq* seq)
         /* We may get one arg less back, if it's at default */
         if (m_seq.n_args != seq->n_args) {
                 g_assert_cmpuint(m_seq.n_args, ==, seq->n_args + 1);
-                g_assert_cmpuint(m_seq.args[m_seq.n_args - 1], ==, -1);
+                g_assert_cmpint(vte_seq_arg_value(m_seq.args[m_seq.n_args - 1]), ==, -1);
         }
         for (unsigned int n = 0; n < seq->n_args; n++)
-                g_assert_cmpint(std::min(m_seq.args[n], 0xffff), ==, vte_seq_arg_value(seq->args[n]));
+                g_assert_cmpint(vte_seq_arg_value(m_seq.args[n]),
+                                ==,
+                                vte_seq_arg_value(seq->args[n]));
 }
 
 static int
