@@ -6283,7 +6283,8 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
                 /* Only sets window title; icon title is not supported */
                 std::string title;
-                if (it != cend)
+                if (it != cend &&
+                    it.size_remaining() < VTE_WINDOW_TITLE_MAX_LENGTH)
                         title = it.string_remaining();
                 m_window_title_pending.swap(title);
                 m_window_title_changed = true;
