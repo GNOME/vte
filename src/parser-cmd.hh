@@ -122,8 +122,8 @@ _VTE_CMD(DECTME) /* terminal-mode-emulation */
 _VTE_CMD(DECTST) /* invoke-confidence-test */
 _VTE_CMD(DL) /* delete-line */
 _VTE_CMD(DOCS) /* designate-other-coding-system */
-_VTE_CMD(DSR_ANSI) /* device-status-report-ansi */
 _VTE_CMD(DSR_DEC) /* device-status-report-dec */
+_VTE_CMD(DSR_ECMA) /* device-status-report-ecma */
 _VTE_CMD(ECH) /* erase-character */
 _VTE_CMD(ED) /* erase-in-display */
 _VTE_CMD(EL) /* erase-in-line */

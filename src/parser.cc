@@ -534,8 +534,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                         return VTE_CMD_XTERM_SRV;
                 break;
         case 'n':
-                if (flags == 0) /* DSR ANSI */
-                        return VTE_CMD_DSR_ANSI;
+                if (flags == 0) /* DSR ECMA */
+                        return VTE_CMD_DSR_ECMA;
                 else if (flags == VTE_SEQ_FLAG_GT) /* XTERM RMR */
                         return VTE_CMD_XTERM_RRV;
                 else if (flags == VTE_SEQ_FLAG_WHAT) /* DSR DEC */

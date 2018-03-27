@@ -2337,96 +2337,6 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
         m_text_deleted_flag = TRUE;
 }
 
-/* Device status reports. The possible reports are the cursor position and
- * whether or not we're okay. */
-void
-VteTerminalPrivate::seq_device_status_report(vte::parser::Params const& params)
-{
-        int param;
-        if (!params.number_at(0, param))
-                return;
-
-        switch (param) {
-			case 5:
-				/* Send a thumbs-up sequence. */
-				feed_child(_VTE_CAP_CSI "0n", -1);
-				break;
-			case 6:
-				/* Send the cursor position. */
-                                vte::grid::row_t rowval, origin, rowmax;
-                                if (m_origin_mode &&
-                                    m_scrolling_restricted) {
-                                        origin = m_scrolling_region.start;
-                                        rowmax = m_scrolling_region.end;
-                                } else {
-                                        origin = 0;
-                                        rowmax = m_row_count - 1;
-                                }
-                                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
-                                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
-                                rowval = CLAMP(rowval, 0, rowmax);
-                                char buf[128];
-                                g_snprintf(buf, sizeof(buf),
-					   _VTE_CAP_CSI "%ld;%ldR",
-                                           rowval + 1,
-                                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
-				feed_child(buf, -1);
-				break;
-			default:
-				break;
-        }
-}
-
-/* DEC-style device status reports. */
-void
-VteTerminalPrivate::seq_dec_device_status_report(vte::parser::Params const& params)
-{
-        int param;
-        if (!params.number_at(0, param))
-                return;
-
-        switch (param) {
-			case 6:
-				/* Send the cursor position. */
-                                vte::grid::row_t rowval, origin, rowmax;
-                                if (m_origin_mode &&
-                                    m_scrolling_restricted) {
-                                        origin = m_scrolling_region.start;
-                                        rowmax = m_scrolling_region.end;
-                                } else {
-                                        origin = 0;
-                                        rowmax = m_row_count - 1;
-                                }
-                                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
-                                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
-                                rowval = CLAMP(rowval, 0, rowmax);
-                                char buf[128];
-				g_snprintf(buf, sizeof(buf),
-					   _VTE_CAP_CSI "?%ld;%ldR",
-                                           rowval + 1,
-                                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
-				feed_child(buf, -1);
-				break;
-			case 15:
-				/* Send printer status -- 10 = ready,
-				 * 11 = not ready.  We don't print. */
-				feed_child(_VTE_CAP_CSI "?11n", -1);
-				break;
-			case 25:
-				/* Send UDK status -- 20 = locked,
-				 * 21 = not locked.  I don't even know what
-				 * that means, but punt anyway. */
-				feed_child(_VTE_CAP_CSI "?20n", -1);
-				break;
-			case 26:
-				/* Send keyboard status.  50 = no locator. */
-				feed_child(_VTE_CAP_CSI "?50n", -1);
-				break;
-			default:
-				break;
-        }
-}
-
 /* Restore a certain terminal attribute. */
 void
 VteTerminalPrivate::seq_restore_mode(vte::parser::Params const& params)
@@ -4733,15 +4643,60 @@ VteTerminalPrivate::DOCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DSR_ANSI(vte::parser::Sequence const& seq)
+VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
 {
         /*
-         * DSR_ANSI - device-status-report-ansi
+         * DSR_ECMA - Device Status Report
          *
-         * TODO: implement
+         * Reports status, or requests a status report.
+         *
+         * Defaults:
+         *   arg[0]: 0
+         *
+         * References: ECMA-48 § 8.3.35
          */
 
-        seq_device_status_report(seq);
+        auto param = seq.collect1(0);
+
+        switch (param) {
+        case -1:
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+                /* This is a status report */
+                break;
+        case 5:
+                /* Requesting a DSR */
+                feed_child(_VTE_CAP_CSI "0n", -1);
+                break;
+        case 6:
+                /* Requesting a CPR */
+
+                /* Send the cursor position. */
+                vte::grid::row_t rowval, origin, rowmax;
+                if (m_origin_mode &&
+                    m_scrolling_restricted) {
+                        origin = m_scrolling_region.start;
+                        rowmax = m_scrolling_region.end;
+                } else {
+                        origin = 0;
+                        rowmax = m_row_count - 1;
+                }
+                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
+                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
+                rowval = CLAMP(rowval, 0, rowmax);
+                char buf[128];
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "%ld;%ldR",
+                           rowval + 1,
+                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
+                feed_child(buf, -1);
+                break;
+        default:
+                break;
+        }
 }
 
 void
@@ -4750,10 +4705,56 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
         /*
          * DSR_DEC - device-status-report-dec
          *
-         * TODO: implement
+         * Reports status, or requests a status report.
+         *
+         * Defaults:
+         *   arg[0]: 0
+         *
+         * References: VT525 5–173
          */
 
-        seq_dec_device_status_report(seq);
+        auto param = seq.collect1(0);
+
+        switch (param) {
+        case 6:
+                /* Send the cursor position. */
+                vte::grid::row_t rowval, origin, rowmax;
+                if (m_origin_mode &&
+                    m_scrolling_restricted) {
+                        origin = m_scrolling_region.start;
+                        rowmax = m_scrolling_region.end;
+                } else {
+                        origin = 0;
+                        rowmax = m_row_count - 1;
+                }
+                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
+                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
+                rowval = CLAMP(rowval, 0, rowmax);
+                char buf[128];
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "?%ld;%ldR",
+                           rowval + 1,
+                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
+                feed_child(buf, -1);
+                break;
+        case 15:
+                /* Send printer status -- 10 = ready,
+                 * 11 = not ready.  We don't print. */
+                feed_child(_VTE_CAP_CSI "?11n", -1);
+                break;
+        case 25:
+                /* Send UDK status -- 20 = locked,
+                 * 21 = not locked.  I don't even know what
+                 * that means, but punt anyway. */
+                feed_child(_VTE_CAP_CSI "?20n", -1);
+                break;
+        case 26:
+                /* Send keyboard status.  50 = no locator. */
+                feed_child(_VTE_CAP_CSI "?50n", -1);
+                break;
+        default:
+                break;
+        }
 }
 
 void
