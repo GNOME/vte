@@ -567,7 +567,6 @@ static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
         parser->seq.terminator = 0;
         parser->seq.intermediates = 0;
         parser->seq.n_intermediates = 0;
-        parser->seq.charset = VTE_CHARSET_NONE;
 
         /* The (n_args+1)th parameter may have been started but not
          * finialised, so it needs cleaning too. All further params
@@ -614,7 +613,6 @@ static int parser_execute(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_CONTROL;
         parser->seq.terminator = raw;
-        parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_control(&parser->seq);
 
         return parser->seq.type;
@@ -771,7 +769,6 @@ static int parser_dcs_consume(struct vte_parser *parser, uint32_t raw)
 
         parser->seq.type = VTE_SEQ_DCS;
         parser->seq.terminator = raw;
-        parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_dcs(&parser->seq);
 
         return VTE_SEQ_NONE;
@@ -812,7 +809,6 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
 
         parser->seq.type = VTE_SEQ_CSI;
         parser->seq.terminator = raw;
-        parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_csi(&parser->seq);
 
         return parser->seq.type;
@@ -835,7 +831,6 @@ static int parser_osc(struct vte_parser *parser, uint32_t raw)
         parser->seq.type = VTE_SEQ_OSC;
         parser->seq.command = VTE_CMD_OSC;
         parser->seq.terminator = raw;
-        parser->seq.charset = VTE_CHARSET_NONE;
 
         return parser->seq.type;
 }
@@ -860,7 +855,6 @@ static int parser_sci(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_SCI;
         parser->seq.terminator = raw;
-        parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_sci(&parser->seq);
 
         return parser->seq.type;
