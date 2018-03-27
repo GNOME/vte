@@ -710,7 +710,7 @@ public:
                 /* We may get one arg less back, if it's at default */
                 if (m_seq.n_args != seq.size()) {
                         g_assert_cmpuint(m_seq.n_args, ==, seq.size() + 1);
-                        g_assert_cmpint(vte_seq_arg_value(m_seq.args[m_seq.n_args - 1]), ==, -1);
+                        g_assert_true(vte_seq_arg_default(m_seq.args[m_seq.n_args - 1]));
                 }
                 for (unsigned int n = 0; n < seq.size(); n++)
                         g_assert_cmpint(vte_seq_arg_value(m_seq.args[n]), ==, seq.param(n));

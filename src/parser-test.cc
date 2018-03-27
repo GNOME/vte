@@ -996,6 +996,41 @@ test_seq_csi_param(void)
 }
 
 static void
+test_seq_csi_clear(void)
+{
+        /* Check that parameters are cleared from when a sequence was aborted. */
+
+        vte_seq_builder b0{VTE_SEQ_CSI, 'm'};
+        b0.set_param_intro(VTE_SEQ_PARAMETER_CHAR_WHAT);
+        for (unsigned int i = 0; i < VTE_PARSER_ARG_MAX; ++i)
+                b0.append_param(127 * i + 17);
+
+        std::u32string str0;
+        b0.to_string(str0);
+
+        parser.reset();
+        for (size_t len0 = 1; len0 <= str0.size(); ++len0) {
+                for (unsigned int n_args = 0; n_args < VTE_PARSER_ARG_MAX; ++n_args) {
+                        feed_parser(str0.substr(0, len0));
+
+                        vte_seq_builder b1{VTE_SEQ_CSI, 'n'};
+                        b1.set_param_intro(VTE_SEQ_PARAMETER_CHAR_GT);
+                        for (unsigned int i = 0; i < n_args; ++i)
+                                b1.append_param(257 * i + 31);
+
+                        std::u32string str1;
+                        b1.to_string(str1);
+
+                        auto rv = feed_parser(str1);
+                        g_assert_cmpint(rv, ==, VTE_SEQ_CSI);
+                        b1.assert_equal_full(seq);
+                        for (unsigned int n = seq.size(); n < VTE_PARSER_ARG_MAX; n++)
+                                g_assert_true(seq.param_default(n));
+                }
+        }
+}
+
+static void
 test_seq_glue_arg(char const* str,
                   unsigned int n_args,
                   unsigned int n_final_args)
@@ -1389,6 +1424,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/csi", test_seq_csi);
         g_test_add_func("/vte/parser/sequences/csi/known", test_seq_csi_known);
         g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
+        g_test_add_func("/vte/parser/sequences/csi/clear", test_seq_csi_clear);
         g_test_add_func("/vte/parser/sequences/sci", test_seq_sci);
         g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
         g_test_add_func("/vte/parser/sequences/dcs/known", test_seq_dcs_known);
