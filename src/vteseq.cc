@@ -1061,14 +1061,6 @@ VteTerminalPrivate::clear_to_eol()
                          m_screen->cursor.row, 1);
 }
 
-/* Move the cursor to the given column (horizontal position), 1-based. */
-void
-VteTerminalPrivate::seq_cursor_character_absolute(vte::parser::Params const& params)
-{
-        auto value = params.number_or_default_at(0, 1) - 1;
-        set_cursor_column(value);
-}
-
 /*
  * VteTerminalPrivate::set_cursor_column:
  * @col: the column. 0-based from 0 to m_column_count - 1
@@ -1079,6 +1071,12 @@ void
 VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
 {
         m_screen->cursor.col = CLAMP(col, 0, m_column_count - 1);
+}
+
+void
+VteTerminalPrivate::set_cursor_column1(vte::grid::column_t col)
+{
+        set_cursor_column(col - 1);
 }
 
 /*
@@ -1104,6 +1102,12 @@ VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
         row = CLAMP(row, start_row, end_row);
 
         m_screen->cursor.row = row + m_screen->insert_delta;
+}
+
+void
+VteTerminalPrivate::set_cursor_row1(vte::grid::row_t row)
+{
+        set_cursor_row(row - 1);
 }
 
 /*
@@ -1147,14 +1151,12 @@ VteTerminalPrivate::set_cursor_coords(vte::grid::row_t row,
         set_cursor_row(row);
 }
 
-/* Move the cursor to the given position, 1-based. */
 void
-VteTerminalPrivate::seq_cursor_position(vte::parser::Params const& params)
+VteTerminalPrivate::set_cursor_coords1(vte::grid::row_t row,
+                                      vte::grid::column_t column)
 {
-        /* The first is the row, the second is the column. */
-        auto rowval = params.number_or_default_at(0, 1) - 1;
-        auto colval = params.number_or_default_at(1, 1) - 1;
-        set_cursor_coords(rowval, colval);
+        set_cursor_column1(column);
+        set_cursor_row1(row);
 }
 
 /* Carriage return. */
@@ -1888,15 +1890,6 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
         return false;
 }
 
-/* Move the cursor to the given column in the top row, 1-based. */
-void
-VteTerminalPrivate::seq_cursor_position_top_row(vte::parser::Params const& params)
-{
-        auto colval = params.number_or_default_at(0, 1) - 1;
-        set_cursor_coords(0, colval);
-
-}
-
 /* Request terminal attributes. */
 void
 VteTerminalPrivate::seq_request_terminal_parameters(vte::parser::Params const& params)
@@ -2132,13 +2125,6 @@ void
 VteTerminalPrivate::set_keypad_mode(VteKeymode mode)
 {
         m_keypad_mode = mode;
-}
-
-/* Same as cursor_character_absolute, not widely supported. */
-void
-VteTerminalPrivate::seq_character_position_absolute(vte::parser::Params const& params)
-{
-        seq_cursor_character_absolute (params);
 }
 
 /* Set certain terminal attributes. */
@@ -2844,8 +2830,12 @@ VteTerminalPrivate::CHA(vte::parser::Sequence const& seq)
          * cursor cannot be moved beyond the rightmost cell and will stop
          * there.
          *
+         * Note: This does the same as HPA
+         *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.9
          */
 
 #if 0
@@ -2858,7 +2848,8 @@ VteTerminalPrivate::CHA(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, pos - 1, screen->state.cursor_y);
 #endif
 
-        seq_cursor_character_absolute(seq);
+        auto value = seq.collect1(0, 1, 1, m_column_count);
+        set_cursor_column1(value);
 }
 
 void
@@ -3047,6 +3038,8 @@ VteTerminalPrivate::CUP(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 1
          *   args[1]: 1
+         *
+         * References: ECMA-48 § 8.3.21
          */
 #if 0
         unsigned int x = 1, y = 1;
@@ -3060,7 +3053,10 @@ VteTerminalPrivate::CUP(vte::parser::Sequence const& seq)
         screen_cursor_set_rel(screen, x - 1, y - 1);
 #endif
 
-        seq_cursor_position(seq);
+        /* The first is the row, the second is the column. */
+        auto rowvalue = seq.collect1(0, 1, 1, m_row_count);
+        auto colvalue = seq.collect1(seq.next(0), 1, 1, m_column_count);
+        set_cursor_coords1(rowvalue, colvalue);
 }
 
 void
@@ -3088,7 +3084,6 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
 
         seq_cursor_up(seq);
 }
-
 
 void
 VteTerminalPrivate::CnD(vte::parser::Sequence const& seq)
@@ -4726,8 +4721,12 @@ VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
          *
          * @args[0] defines the horizontal position. 0 is treated as 1.
          *
+         * Note: This does the same as CHA
+         *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.57
          */
 
 #if 0
@@ -4740,12 +4739,12 @@ VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, num - 1, screen->state.cursor_y);
 #endif
 
-        seq_character_position_absolute(seq);
+        auto value = seq.collect1(0, 1, 1, m_column_count);
+        set_cursor_column1(value);
 }
 
 void
-VteTerminalPrivate::HPR(
-                      vte::parser::Sequence const& seq)
+VteTerminalPrivate::HPR(vte::parser::Sequence const& seq)
 {
         /*
          * HPR - horizontal-position-relative

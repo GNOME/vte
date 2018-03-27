@@ -1199,9 +1199,13 @@ public:
         inline void clear_to_eol();
         inline void delete_character();
         inline void set_cursor_column(vte::grid::column_t col);
+        inline void set_cursor_column1(vte::grid::column_t col); /* 1-based */
         inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
+        inline void set_cursor_row1(vte::grid::row_t row /* relative to scrolling region */); /* 1-based */
         inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
                                       vte::grid::column_t column);
+        inline void set_cursor_coords1(vte::grid::row_t row /* relative to scrolling region */,
+                                       vte::grid::column_t column); /* 1-based */
         inline vte::grid::row_t get_cursor_row() const;
         inline vte::grid::column_t get_cursor_column() const;
         inline void reset_scrolling_region();
