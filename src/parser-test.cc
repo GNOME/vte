@@ -525,7 +525,7 @@ test_seq_control(void)
                 { 0x99, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x9a, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x9b, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
-                { 0x9c, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
+                { 0x9c, VTE_SEQ_CONTROL, VTE_CMD_ST      },
                 { 0x9d, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x9e, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x9f, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
@@ -978,24 +978,27 @@ test_seq_dcs(uint32_t f,
         b.set_params(params);
         b.set_string(str);
 
-        int expected_rv = (f & 0xF0) == 0x30 ? VTE_SEQ_NONE : VTE_SEQ_DCS;
+        int expected_rv0 = (f & 0xF0) == 0x30 ? VTE_SEQ_ESCAPE /* the C0 ST */ : VTE_SEQ_DCS;
+        int expected_rv1 = (f & 0xF0) == 0x30 ? VTE_SEQ_NONE : VTE_SEQ_DCS;
 
         for (unsigned int n = 0; n <= 16; n++) {
                 b.set_n_params(n);
 
                 vte_parser_reset(parser);
                 struct vte_seq* seq;
-#if 0
+
                 /* First with C0 DCS */
-                auto rv = feed_parser(b, &seq, false);
-                g_assert_cmpint(rv, ==, expected_rv);
-                if (rv != VTE_SEQ_NONE)
+                auto rv0 = feed_parser(b, &seq, false);
+                g_assert_cmpint(rv0, ==, expected_rv0);
+                if (rv0 != VTE_SEQ_ESCAPE)
                         b.assert_equal_full(seq);
-#endif
+                if (rv0 == VTE_SEQ_ESCAPE)
+                        g_assert_cmpint(seq->command, ==, VTE_CMD_ST);
+
                 /* Now with C1 DCS */
-                auto rv = feed_parser(b, &seq, true);
-                g_assert_cmpint(rv, ==, expected_rv);
-                if (rv != VTE_SEQ_NONE)
+                auto rv1 = feed_parser(b, &seq, true);
+                g_assert_cmpint(rv1, ==, expected_rv1);
+                if (rv1 != VTE_SEQ_NONE)
                         b.assert_equal_full(seq);
         }
 }
@@ -1264,25 +1267,23 @@ feed_parser_st(vte_seq_builder& b,
         if (rv == VTE_SEQ_NONE)
                 return rv;
 
-        #if 0
         switch (st) {
-        case ST_NONE:
-                g_assert_cmpuint(seq.terminator(), ==, 0);
+        case vte_seq_builder::VariantST::ST_NONE:
+                g_assert_cmpuint((*seq)->terminator, ==, 0);
                 break;
-        case ST_DEFAULT:
-                g_assert_cmpuint(seq.terminator(), ==, c1 ? 0x9C /* ST */ : 0x50 /* BACKSLASH */);
+        case vte_seq_builder::VariantST::ST_DEFAULT:
+                g_assert_cmpuint((*seq)->terminator, ==, c1 ? 0x9c /* ST */ : 0x5c /* BACKSLASH */);
                 break;
-        case ST_C0:
-                g_assert_cmpuint(seq.terminator(), ==, 0x50 /* BACKSLASH */);
+        case vte_seq_builder::VariantST::ST_C0:
+                g_assert_cmpuint((*seq)->terminator, ==, 0x5c /* BACKSLASH */);
                 break;
-        case ST_C1:
-                g_assert_cmpuint(seq.terminator(), ==, 0x9C /* ST */);
+        case vte_seq_builder::VariantST::ST_C1:
+                g_assert_cmpuint((*seq)->terminator, ==, 0x9c /* ST */);
                 break;
-        case ST_BEL:
-                g_assert_cmpuint(seq.terminator(), ==, 0x7 /* BEL */);
+        case vte_seq_builder::VariantST::ST_BEL:
+                g_assert_cmpuint((*seq)->terminator, ==, 0x7 /* BEL */);
                 break;
         }
-        #endif
 
         return rv;
 }
@@ -1341,12 +1342,12 @@ test_seq_osc(void)
         //        test_seq_osc(std::u32string(VTE_SEQ_STRING_MAX_CAPACITY + 1, 0x100000), seq, VTE_SEQ_NONE);
 
         /* Test all introducer/ST combinations */
-        //        test_seq_osc(U"TEST"s, seq, VTE_SEQ_NONE, false, -1, vte_seq_builder::ST_NONE);
-        //        test_seq_osc(U"TEST"s, seq, VTE_SEQ_NONE, true, -1, vte_seq_builder::ST_NONE);
-        //        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, false, -1, vte_seq_builder::ST_DEFAULT);
-        //        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, true, -1, vte_seq_builder::ST_DEFAULT);
-        //        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, false, -1, vte_seq_builder::ST_C0);
-        //        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, true, -1, vte_seq_builder::ST_C0);
+        test_seq_osc(U"TEST"s, seq, VTE_SEQ_NONE, false, -1, vte_seq_builder::ST_NONE);
+        test_seq_osc(U"TEST"s, seq, VTE_SEQ_NONE, true, -1, vte_seq_builder::ST_NONE);
+        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, false, -1, vte_seq_builder::ST_DEFAULT);
+        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, true, -1, vte_seq_builder::ST_DEFAULT);
+        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, false, -1, vte_seq_builder::ST_C0);
+        test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, true, -1, vte_seq_builder::ST_C0);
         test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, false, -1, vte_seq_builder::ST_C1);
         test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, true, -1, vte_seq_builder::ST_C1);
         test_seq_osc(U"TEST"s, seq, VTE_SEQ_OSC, false, -1, vte_seq_builder::ST_BEL);
