@@ -1224,14 +1224,6 @@ VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
         home_cursor();
 }
 
-/* Move the cursor to the beginning of the Nth next line, no scrolling. */
-void
-VteTerminalPrivate::seq_cursor_next_line(vte::parser::Params const& params)
-{
-        set_cursor_column(0);
-        seq_cursor_down(params);
-}
-
 /* Move the cursor to the beginning of the Nth previous line, no scrolling. */
 void
 VteTerminalPrivate::seq_cursor_preceding_line(vte::parser::Params const& params)
@@ -1287,14 +1279,6 @@ VteTerminalPrivate::seq_delete_characters(vte::parser::Params const& params)
                             int(1));
         for (auto i = 0; i < val; i++)
                 delete_character();
-}
-
-/* Cursor down N lines, no scrolling. */
-void
-VteTerminalPrivate::seq_cursor_down(vte::parser::Params const& params)
-{
-        auto val = params.number_or_default_at(0, 1);
-        move_cursor_down(val);
 }
 
 void
@@ -2888,6 +2872,8 @@ VteTerminalPrivate::CNL(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 §8.3.12
          */
 #if 0
         unsigned int num = 1;
@@ -2899,7 +2885,10 @@ VteTerminalPrivate::CNL(vte::parser::Sequence const& seq)
         screen_cursor_down(screen, num, false);
 #endif
 
-        seq_cursor_next_line(seq);
+        set_cursor_column1(1);
+
+        auto value = seq.collect1(0, 1);
+        move_cursor_down(value);
 }
 
 void
@@ -2977,6 +2966,8 @@ VteTerminalPrivate::CUD(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.19
          */
 #if 0
         unsigned int num = 1;
@@ -2988,7 +2979,8 @@ VteTerminalPrivate::CUD(vte::parser::Sequence const& seq)
         screen_cursor_down(screen, num, false);
 #endif
 
-        seq_cursor_down(seq);
+        auto value = seq.collect1(0, 1);
+        move_cursor_down(value);
 }
 
 void
