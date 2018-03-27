@@ -300,8 +300,6 @@ static const vte_matcher_entry_t entries[] = {
         ENTRY(OSC "2L;%s" BEL, set_text_property_2L),
         ENTRY(OSC "21;%s" ST, set_text_property_21),
         ENTRY(OSC "2L;%s" ST, set_text_property_2L),
-
-        ENTRY(CSI "%m*y", checksum_rectangular_area),
 };
 
 #undef ENTRY
