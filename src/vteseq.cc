@@ -1338,18 +1338,6 @@ VteTerminalPrivate::insert_blank_character()
         m_screen->cursor = save;
 }
 
-/* Insert N blank characters. */
-/* TODOegmont: Insert them in a single run, so that we call cleanup_fragments only once. */
-void
-VteTerminalPrivate::seq_insert_blank_characters(vte::parser::Params const& params)
-{
-        auto val = std::max(std::min(params.number_or_default_at(0, 1),
-                                     int(m_column_count - m_screen->cursor.col)),
-                            int(1));
-        for (auto i = 0; i < val; i++)
-                insert_blank_character();
-}
-
 /* REP: Repeat the last graphic character n times. */
 void
 VteTerminalPrivate::seq_repeat(vte::parser::Params const& params)
@@ -4767,6 +4755,8 @@ VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 §8.3.64
          */
 #if 0
         unsigned int num = 1;
@@ -4783,7 +4773,11 @@ VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        seq_insert_blank_characters(seq);
+        auto const count = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
+
+        /* TODOegmont: Insert them in a single run, so that we call cleanup_fragments only once. */
+        for (auto i = 0; i < count; i++)
+                insert_blank_character();
 }
 
 void
