@@ -1445,15 +1445,6 @@ VteTerminalPrivate::seq_next_line(vte::parser::Params const& params)
         cursor_down(true);
 }
 
-/* Scroll the text down N lines, but don't move the cursor. */
-void
-VteTerminalPrivate::seq_scroll_down(vte::parser::Params const& params)
-{
-        /* No ensure_cursor_is_onscreen() here as per xterm */
-        auto val = std::max(params.number_or_default_at(0, 1), int(1));
-        scroll_text(val);
-}
-
 /* Internal helper for changing color in the palette */
 void
 VteTerminalPrivate::change_color(vte::parser::Params const& params,
@@ -1536,16 +1527,6 @@ VteTerminalPrivate::seq_reset_color(vte::parser::Params const& params)
 			reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
 		}
 	}
-}
-
-/* Scroll the text up N lines, but don't move the cursor. */
-void
-VteTerminalPrivate::seq_scroll_up(vte::parser::Params const& params)
-{
-        /* No ensure_cursor_is_onscreen() here as per xterm */
-
-        auto val = std::max(params.number_or_default_at(0, 1), int(1));
-        scroll_text(-val);
 }
 
 /* Cursor down 1 line, with scrolling. */
@@ -5167,6 +5148,8 @@ VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.113
          */
 #if 0
         unsigned int num = 1;
@@ -5181,7 +5164,9 @@ VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
                                 NULL);
 #endif
 
-        seq_scroll_down(seq);
+        /* Scroll the text down N lines, but don't move the cursor. */
+        auto value = std::max(seq.collect1(0, 1), int(1));
+        scroll_text(value);
 }
 
 void
@@ -5434,6 +5419,8 @@ VteTerminalPrivate::SU(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: EMCA-48 § 8.3.147
          */
 #if 0
         unsigned int num = 1;
@@ -5448,7 +5435,8 @@ VteTerminalPrivate::SU(vte::parser::Sequence const& seq)
                               screen->history);
 #endif
 
-        seq_scroll_up(seq);
+        auto value = std::max(seq.collect1(0, 1), int(1));
+        scroll_text(-value);
 }
 
 void
