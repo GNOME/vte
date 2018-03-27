@@ -1037,7 +1037,6 @@ static int parser_print(struct vte_parser *parser, uint32_t raw)
 
 static int parser_execute(struct vte_parser *parser, uint32_t raw)
 {
-        parser_clear(parser);
         parser->seq.type = VTE_SEQ_CONTROL;
         parser->seq.command = VTE_CMD_GRAPHIC;
         parser->seq.terminator = raw;
