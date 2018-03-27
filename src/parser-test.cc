@@ -1069,8 +1069,8 @@ test_seq_csi_max(void)
          * explicit value, or default, causes the sequence to be ignored.
          */
         str.pop_back(); /* erase final character */
-        test_seq_csi_max(str, U":"s, VTE_SEQ_CSI);
-        test_seq_csi_max(str, U";"s, VTE_SEQ_CSI);
+        test_seq_csi_max(str, U":"s);
+        test_seq_csi_max(str, U";"s);
         test_seq_csi_max(str, U":12345"s);
         test_seq_csi_max(str, U";12345"s);
         test_seq_csi_max(str, U":12345;"s);

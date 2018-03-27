@@ -678,9 +678,14 @@ static void parser_params_overflow(struct vte_parser *parser, uint32_t raw)
                                     STATE_CSI_IGNORE : STATE_DCS_IGNORE);
 }
 
+/* The next two functions are only called when encountering a ';' or ':',
+ * so if there's already MAX-1 parameters, the ';' or ':' would finish
+ * the MAXth parameter and there would be a default or non-default
+ * MAX+1th parameter following it.
+ */
 static int parser_finish_param(struct vte_parser *parser, uint32_t raw)
 {
-        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX)) {
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX - 1)) {
                 vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
                 ++parser->seq.n_args;
                 ++parser->seq.n_final_args;
@@ -692,7 +697,7 @@ static int parser_finish_param(struct vte_parser *parser, uint32_t raw)
 
 static int parser_finish_subparam(struct vte_parser *parser, uint32_t raw)
 {
-        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX)) {
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX - 1)) {
                 vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], true);
                 ++parser->seq.n_args;
         } else
