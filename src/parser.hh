@@ -174,6 +174,7 @@ struct vte_seq {
         unsigned int n_final_args;
         vte_seq_arg_t args[VTE_PARSER_ARG_MAX];
         vte_seq_string_t arg_str;
+        uint32_t introducer;
 };
 
 struct vte_parser {

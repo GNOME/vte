@@ -114,6 +114,21 @@
  */
 #define _VTE_SEQ_CODE(f,i) (((f) - 0x40) | ((i) << 6))
 
+/*
+ * @introducer: either a C1 control, or the final in the equivalent ESC F sequence
+ * @terminator: either a C1 control, or the final in the equivalent ESC F sequence
+ *
+ * Checks whether the OSC/DCS @introducer and the ST @terminator
+ * are from the same control set, i.e. both C0 or both C1.
+ *
+ * For OSC, this check allows C0 OSC with BEL-as-ST to pass, too.
+ */
+static inline bool parser_check_matching_controls(uint32_t introducer,
+                                                  uint32_t terminator)
+{
+        return ((introducer ^ terminator) & 0x80) == 0;
+}
+
 static unsigned int vte_parse_host_control(const struct vte_seq *seq)
 {
         switch (seq->terminator) {
@@ -554,6 +569,9 @@ static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
         for (i = 0; i < VTE_PARSER_ARG_MAX; ++i)
                 parser->seq.args[i] = VTE_SEQ_ARG_INIT_DEFAULT;
 
+        /* We don't need to do this, since it's only used when it's been set */
+        /* parser->seq.introducer = 0; */
+
         return VTE_SEQ_NONE;
 }
 
@@ -672,6 +690,7 @@ static inline int parser_osc_start(struct vte_parser *parser, uint32_t raw)
 
         vte_seq_string_reset(&parser->seq.arg_str);
 
+        parser->seq.introducer = raw;
         return VTE_SEQ_NONE;
 }
 
@@ -694,6 +713,7 @@ static int parser_dcs_start(struct vte_parser *parser, uint32_t raw)
 
         vte_seq_string_reset(&parser->seq.arg_str);
 
+        parser->seq.introducer = raw;
         return VTE_SEQ_NONE;
 }
 
@@ -769,6 +789,13 @@ static int parser_osc(struct vte_parser *parser, uint32_t raw)
 
         vte_seq_string_finish(&parser->seq.arg_str);
 
+        /* We only dispatch a DCS if the introducer and string
+         * terminator are from the same control set, i.e. both
+         * C0 or both C1; we discard sequences with mixed controls.
+         */
+        if (!parser_check_matching_controls(parser->seq.introducer, raw))
+                return VTE_SEQ_IGNORE;
+
         parser->seq.type = VTE_SEQ_OSC;
         parser->seq.command = VTE_CMD_OSC;
         parser->seq.terminator = raw;
@@ -780,6 +807,15 @@ static int parser_osc(struct vte_parser *parser, uint32_t raw)
 static int parser_dcs(struct vte_parser *parser, uint32_t raw)
 {
         /* parser->seq was already filled in parser_dcs_consume() */
+
+        vte_seq_string_finish(&parser->seq.arg_str);
+
+        /* We only dispatch a DCS if the introducer and string
+         * terminator are from the same control set, i.e. both
+         * C0 or both C1; we discard sequences with mixed controls.
+         */
+        if (!parser_check_matching_controls(parser->seq.introducer, raw))
+                return VTE_SEQ_IGNORE;
 
         return parser->seq.type;
 }

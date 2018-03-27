@@ -1178,13 +1178,14 @@ static int
 feed_parser_st(vte_seq_builder& b,
                bool c1 = false,
                ssize_t max_arg_str_len = -1,
+               u32SequenceBuilder::Introducer introducer = u32SequenceBuilder::Introducer::DEFAULT,
                u32SequenceBuilder::ST st = u32SequenceBuilder::ST::DEFAULT)
 {
         std::u32string s;
-        b.to_string(s, c1, max_arg_str_len, u32SequenceBuilder::Introducer::DEFAULT, st);
+        b.to_string(s, c1, max_arg_str_len, introducer, st);
 
         auto rv = feed_parser(s);
-        if (rv == VTE_SEQ_NONE)
+        if (rv != VTE_SEQ_OSC)
                 return rv;
 
         switch (st) {
@@ -1213,12 +1214,13 @@ test_seq_osc(std::u32string const& str,
              int expected_rv = VTE_SEQ_OSC,
              bool c1 = true,
              ssize_t max_arg_str_len = -1,
+             u32SequenceBuilder::Introducer introducer = u32SequenceBuilder::Introducer::DEFAULT,
              u32SequenceBuilder::ST st = u32SequenceBuilder::ST::DEFAULT)
 {
         vte_seq_builder b{VTE_SEQ_OSC, str};
 
         parser.reset();
-        auto rv = feed_parser_st(b, c1, max_arg_str_len, st);
+        auto rv = feed_parser_st(b, c1, max_arg_str_len, introducer, st);
         g_assert_cmpint(rv, ==, expected_rv);
         #if 0
         if (rv != VTE_SEQ_NONE)
@@ -1232,6 +1234,25 @@ test_seq_osc(std::u32string const& str,
                 g_assert_true(seq.string() == str);
         else
                 g_assert_true(seq.string() == str.substr(0, max_arg_str_len));
+}
+
+static int
+controls_match(bool c1,
+               u32SequenceBuilder::Introducer introducer,
+               u32SequenceBuilder::ST st,
+               bool allow_bel,
+               int expected_rv)
+{
+        if (introducer == u32SequenceBuilder::Introducer::DEFAULT)
+                introducer = c1 ? u32SequenceBuilder::Introducer::C1 : u32SequenceBuilder::Introducer::C0;
+        if (st == u32SequenceBuilder::ST::DEFAULT)
+                st = c1 ? u32SequenceBuilder::ST::C1 : u32SequenceBuilder::ST::C0;
+        if ((introducer == u32SequenceBuilder::Introducer::C0 &&
+             (st == u32SequenceBuilder::ST::C0 || (allow_bel && st == u32SequenceBuilder::ST::BEL))) ||
+            (introducer == u32SequenceBuilder::Introducer::C1 &&
+             st == u32SequenceBuilder::ST::C1))
+                return expected_rv;
+        return VTE_SEQ_IGNORE;
 }
 
 static void
@@ -1249,16 +1270,19 @@ test_seq_osc(void)
         test_seq_osc(std::u32string(VTE_SEQ_STRING_MAX_CAPACITY + 1, 0x100000), VTE_SEQ_IGNORE);
 
         /* Test all introducer/ST combinations */
-        test_seq_osc(U"TEST"s, VTE_SEQ_NONE, false, -1, u32SequenceBuilder::ST::NONE);
-        test_seq_osc(U"TEST"s, VTE_SEQ_NONE, true, -1, u32SequenceBuilder::ST::NONE);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, false, -1, u32SequenceBuilder::ST::DEFAULT);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, true, -1, u32SequenceBuilder::ST::DEFAULT);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, false, -1, u32SequenceBuilder::ST::C0);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, true, -1, u32SequenceBuilder::ST::C0);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, false, -1, u32SequenceBuilder::ST::C1);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, true, -1, u32SequenceBuilder::ST::C1);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, false, -1, u32SequenceBuilder::ST::BEL);
-        test_seq_osc(U"TEST"s, VTE_SEQ_OSC, true, -1, u32SequenceBuilder::ST::BEL);
+        for (auto introducer : { u32SequenceBuilder::Introducer::DEFAULT,
+                                u32SequenceBuilder::Introducer::C0,
+                                u32SequenceBuilder::Introducer::C1 }) {
+                for (auto st : {u32SequenceBuilder::ST::DEFAULT,
+                                        u32SequenceBuilder::ST::C0,
+                                        u32SequenceBuilder::ST::C1,
+                                        u32SequenceBuilder::ST::BEL }) {
+                        for (auto c1 : { false, true }) {
+                                int expected_rv = controls_match(c1, introducer, st, true, VTE_SEQ_OSC);
+                                test_seq_osc(U"TEST"s, expected_rv, c1, -1, introducer, st);
+                        }
+                }
+        }
 }
 
 static void
