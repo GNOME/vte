@@ -873,20 +873,6 @@ VteTerminalPrivate::set_character_replacement(unsigned slot)
         m_character_replacement = &m_character_replacements[slot];
 }
 
-/* SI (shift in): switch to G0 character set. */
-void
-VteTerminalPrivate::seq_shift_in(vte::parser::Params const& params)
-{
-        set_character_replacement(0);
-}
-
-/* SO (shift out): switch to G1 character set. */
-void
-VteTerminalPrivate::seq_shift_out(vte::parser::Params const& params)
-{
-        set_character_replacement(1);
-}
-
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
 void
 VteTerminalPrivate::clear_to_bol()
@@ -1242,14 +1228,6 @@ VteTerminalPrivate::move_cursor_forward(vte::grid::column_t columns)
 	}
 }
 
-/* Move the cursor to the beginning of the next line, scrolling if necessary. */
-void
-VteTerminalPrivate::seq_next_line(vte::parser::Params const& params)
-{
-        set_cursor_column(0);
-        cursor_down(true);
-}
-
 /* Internal helper for changing color in the palette */
 void
 VteTerminalPrivate::change_color(vte::parser::Params const& params,
@@ -1339,13 +1317,6 @@ VteTerminalPrivate::line_feed()
 {
         ensure_cursor_is_onscreen();
         cursor_down(true);
-}
-
-/* Tab. */
-void
-VteTerminalPrivate::seq_tab(vte::parser::Params const& params)
-{
-        move_cursor_tab();
 }
 
 void
@@ -1438,13 +1409,6 @@ VteTerminalPrivate::move_cursor_up(vte::grid::row_t rows)
 	}
 
         m_screen->cursor.row = MAX(m_screen->cursor.row - rows, start);
-}
-
-/* Vertical tab. */
-void
-VteTerminalPrivate::seq_vertical_tab(vte::parser::Params const& params)
-{
-        line_feed();
 }
 
 /*
@@ -4504,13 +4468,15 @@ VteTerminalPrivate::HT(vte::parser::Sequence const& seq)
          * Moves the cursor to the next tab stop. If there are no more tab
          * stops, the cursor moves to the right margin. HT does not cause text
          * to auto wrap.
+         *
+         * References: ECMA-48 § 8.3.60
          */
 #if 0
         screen_cursor_clear_wrap(screen);
         screen_cursor_right_tab(screen, 1);
 #endif
 
-        seq_tab(seq);
+        move_cursor_tab();
 }
 
 void
@@ -4673,6 +4639,9 @@ VteTerminalPrivate::LS1R(vte::parser::Sequence const& seq)
         /*
          * LS1R - locking-shift-1-right
          * Map G1 into GR.
+         *
+         * References: ECMA-35 § 9.3.2
+         *             ECMA-48 § 8.3.77
          */
 #if 0
         screen->state.gr = &screen->g1;
@@ -4685,6 +4654,9 @@ VteTerminalPrivate::LS2(vte::parser::Sequence const& seq)
         /*
          * LS2 - locking-shift-2
          * Map G2 into GL.
+         *
+         * References: ECMA-35 § 9.3.1
+         *             ECMA-48 § 8.3.78
          */
 #if 0
         screen->state.gl = &screen->g2;
@@ -4697,6 +4669,9 @@ VteTerminalPrivate::LS2R(vte::parser::Sequence const& seq)
         /*
          * LS2R - locking-shift-2-right
          * Map G2 into GR.
+         *
+         * References: ECMA-35 § 9.3.2
+         *             ECMA-48 § 8.3.79
          */
 #if 0
         screen->state.gr = &screen->g2;
@@ -4709,6 +4684,9 @@ VteTerminalPrivate::LS3(vte::parser::Sequence const& seq)
         /*
          * LS3 - locking-shift-3
          * Map G3 into GL.
+         *
+         * References: ECMA-35 § 9.3.1
+         *             ECMA-48 § 8.3.80
          */
 
 #if 0
@@ -4722,6 +4700,9 @@ VteTerminalPrivate::LS3R(vte::parser::Sequence const& seq)
         /*
          * LS3R - locking-shift-3-right
          * Map G3 into GR.
+         *
+         * References: ECMA-35 § 9.3.2
+         *             ECMA-48 § 8.3.81
          */
 #if 0
         screen->state.gr = &screen->g3;
@@ -4754,6 +4735,8 @@ VteTerminalPrivate::NEL(vte::parser::Sequence const& seq)
         /*
          * NEL - next-line
          * XXX
+         *
+         * References: ECMA-48 § 8.3.86
          */
 #if 0
         screen_cursor_clear_wrap(screen);
@@ -4761,7 +4744,8 @@ VteTerminalPrivate::NEL(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, 0, screen->state.cursor_y);
 #endif
 
-        seq_next_line(seq);
+        set_cursor_column(0);
+        cursor_down(true);
 }
 
 void
@@ -5140,12 +5124,15 @@ VteTerminalPrivate::SI(vte::parser::Sequence const& seq)
         /*
          * SI - shift-in
          * Map G0 into GL.
+         *
+         * References: ECMA-35 § 9.3.1
+         *             ECMA-48 § 8.3.119
          */
 #if 0
         screen->state.gl = &screen->g0;
 #endif
 
-        seq_shift_in(seq);
+        set_character_replacement(0);
 }
 
 void
@@ -5189,12 +5176,15 @@ VteTerminalPrivate::SO(vte::parser::Sequence const& seq)
         /*
          * SO - shift-out
          * Map G1 into GL.
+         *
+         * References: ECMA-35 § 9.3.1
+         *             ECMA-48 § 8.3.126
          */
 #if 0
         screen->state.gl = &screen->g1;
 #endif
 
-        seq_shift_out(seq);
+        set_character_replacement(1);
 }
 
 void
