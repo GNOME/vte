@@ -245,7 +245,6 @@ VteTerminalPrivate::emit_resize_window(guint columns,
         g_signal_emit(m_terminal, signals[SIGNAL_RESIZE_WINDOW], 0, columns, rows);
 }
 
-
 /* Some common functions */
 
 /* In Xterm, upon printing a character in the last column the cursor doesn't
@@ -1361,7 +1360,7 @@ VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
                         auto c = get_color(value);
                         g_assert_nonnull(c);
 
-                        reply(seq, VTE_SEQ_OSC, "4;%d;rgb:%04x/%04x/%04x",
+                        reply(seq, VTE_REPLY_OSC, {}, "4;%d;rgb:%04x/%04x/%04x",
                               value, c->red, c->green, c->blue);
                 } else {
                         vte::color::rgb color;
@@ -1398,7 +1397,7 @@ VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
                         c = get_color(index_fallback);
                 g_assert_nonnull(c);
 
-                reply(seq, VTE_SEQ_OSC, "%d;rgb:%04x/%04x/%04x",
+                reply(seq, VTE_REPLY_OSC, {}, "%d;rgb:%04x/%04x/%04x",
                       osc, c->red, c->green, c->blue);
         } else {
                 vte::color::rgb color;
@@ -2777,10 +2776,84 @@ void
 VteTerminalPrivate::DECRQCRA(vte::parser::Sequence const& seq)
 {
         /*
-         * DECRQCRA - request-checksum-of-rectangular-area
+         * DECRQCRA - request checksum of rectangular area
+         * Computes a simple checksum of the characters in the rectangular
+         * area. args[0] is an identifier, which the response must use.
+         * args[1] is the page number; if it's 0 or default then the
+         * checksum is computed over all pages; if it's greater than the
+         * number of pages, then the checksum is computed only over the
+         * last page. args[2]..args[5] describe the area to compute the
+         * checksum from, denoting the top, left, bottom, right, resp
+         * (1-based). It's required that top ≤ bottom, and left ≤ right.
+         * These coordinates are interpreted according to origin mode.
          *
-         * Probably not worth implementing.
+         * NOTE: Since this effectively allows to read the screen
+         * (by using a 1x1 rectangle on each cell), we normally only
+         * send a dummy reply, and only reply with the actual checksum
+         * when in test mode.
+         *
+         * Defaults:
+         *   args[0]: no default
+         *   args[1]: 0
+         *   args[2]: 1
+         *   args[3]: no default (?)
+         *   args[4]: height of current page
+         *   args[5]: width of current page
+         *
+         * Reply: DECCKSR
+         *   @args[0]: the identifier from the request
+         *   DATA: the checksum as a 4-digit hex number
+         *
+         * References: VT525
+         *             XTERM
          */
+
+        unsigned int idx = 0;
+        int id = seq.collect1(idx);
+
+#ifndef VTE_DEBUG
+        /* Send a dummy reply */
+        return reply(seq, VTE_REPLY_DECCKSR, {id}, "0000");
+#else
+
+        /* Not in test mode? Send a dummy reply */
+        if (!g_test_mode) {
+                return reply(seq, VTE_REPLY_DECCKSR, {id}, "0000");
+        }
+
+        idx = seq.next(idx);
+
+        /* We only support 1 'page', so ignore args[1] */
+        idx = seq.next(idx);
+
+        int top = seq.collect1(idx, 1, 1, m_row_count);
+        idx = seq.next(idx);
+        int left = seq.collect1(idx, 1, 1, m_column_count); /* use 1 as default here */
+        idx = seq.next(idx);
+        int bottom = seq.collect1(idx, m_row_count, 1, m_row_count);
+        idx = seq.next(idx);
+        int right = seq.collect1(idx, m_column_count, 1, m_column_count);
+
+        if (m_modes_private.DEC_ORIGIN() &&
+            m_scrolling_restricted) {
+                top += m_scrolling_region.start;
+
+                bottom += m_scrolling_region.start;
+                bottom = std::min(bottom, m_scrolling_region.end);
+
+        }
+
+        unsigned int checksum;
+        if (bottom < top || right < left)
+                checksum = 0; /* empty area */
+        else
+                checksum = checksum_area(top -1 + m_screen->insert_delta,
+                                         left - 1,
+                                         bottom - 1 + m_screen->insert_delta,
+                                         right - 1);
+
+        reply(seq, VTE_REPLY_DECCKSR, {id}, "%04X", checksum);
+#endif /* VTE_DEBUG */
 }
 
 void
@@ -3847,11 +3920,11 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
                 /* Request memory checksum report
                  * Reply: DECCKSR
                  *   @arg[0]: PID
-                 *   DATA: hex encoded
+                 *   DATA: the checksum as a 4-digit hex number
                  *
-                 * Reply with empty DATA.
+                 * Reply with a dummy checksum.
                  */
-                reply(seq, VTE_REPLY_DECCKSR, {seq.collect1(1)});
+                reply(seq, VTE_REPLY_DECCKSR, {seq.collect1(1)}, "0000");
                 break;
 
         case 75:

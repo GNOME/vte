@@ -1215,6 +1215,11 @@ public:
         inline void insert_lines(vte::grid::row_t param);
         inline void delete_lines(vte::grid::row_t param);
 
+        unsigned int checksum_area(vte::grid::row_t start_row,
+                                   vte::grid::column_t start_col,
+                                   vte::grid::row_t end_row,
+                                   vte::grid::column_t end_col);
+
         void subscribe_accessible_events();
         void select_text(vte::grid::column_t start_col,
                          vte::grid::row_t start_row,
@@ -1235,8 +1240,9 @@ public:
                    std::initializer_list<int> params) noexcept;
         void reply(vte::parser::Sequence const& seq,
                    unsigned int type,
+                   std::initializer_list<int> params,
                    char const* format,
-                   ...) noexcept G_GNUC_PRINTF(4, 5);
+                   ...) noexcept G_GNUC_PRINTF(5, 6);
 
         /* OSC handlers */
         void set_color(vte::parser::Sequence const& seq,
