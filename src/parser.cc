@@ -563,12 +563,12 @@ void vte_parser_deinit(struct vte_parser *parser)
 
 static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
 {
-        parser->seq.command = VTE_CMD_NONE;
-        parser->seq.terminator = 0;
-
-        /* We don't need to do this, since it's only used when it's been set */
-        /* parser->seq.introducer = 0; */
-
+        /* seq.command is set when the sequence is executed,
+         * seq.terminator is set when the final character is received,
+         * and seq.introducer is set when the introducer is received,
+         * and all this happens before the sequence is dispatched.
+         * Therefore these fiedls need not be cleared in any case.
+         */
         return VTE_SEQ_NONE;
 }
 
