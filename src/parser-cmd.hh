@@ -85,7 +85,7 @@ _VTE_CMD(DECRQCRA) /* request-checksum-of-rectangular-area */
 _VTE_CMD(DECRQDE) /* request-display-extent */
 _VTE_CMD(DECRQKT) /* request-key-type */
 _VTE_CMD(DECRQLP) /* request-locator-position */
-_VTE_CMD(DECRQM_ANSI) /* request-mode-ansi */
+_VTE_CMD(DECRQM_ECMA) /* request-mode-ecma */
 _VTE_CMD(DECRQM_DEC) /* request-mode-dec */
 _VTE_CMD(DECRQPKFM) /* request-program-key-free-memory */
 _VTE_CMD(DECRQPSR) /* request-presentation-state-report */

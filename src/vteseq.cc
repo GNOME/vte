@@ -2860,10 +2860,10 @@ VteTerminalPrivate::DECRQLP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQM_ANSI(vte::parser::Sequence const& seq)
+VteTerminalPrivate::DECRQM_ECMA(vte::parser::Sequence const& seq)
 {
         /*
-         * DECRQM_ANSI - request-mode-ansi
+         * DECRQM_ECMA - request-mode-ecma
          * The host sends this control function to find out if a particular mode
          * is set or reset. The terminal responds with a report mode function.
          * @args[0] contains the mode to query.
@@ -2872,11 +2872,29 @@ VteTerminalPrivate::DECRQM_ANSI(vte::parser::Sequence const& seq)
          * queried, second argument is 0 if mode is invalid, 1 if mode is set,
          * 2 if mode is not set (reset), 3 if mode is permanently set and 4 if
          * mode is permanently not set (reset):
-         *   ANSI: ^[ MODE ; VALUE $ y
+         *   ECMA: ^[ MODE ; VALUE $ y
          *   DEC:  ^[ ? MODE ; VALUE $ y
          *
-         * TODO: implement
+         * References: VT525
          */
+
+        auto const param = seq.collect1(0);
+        auto const mode = m_modes_ecma.mode_from_param(param);
+
+        int value;
+        switch (mode) {
+        case vte::terminal::modes::ECMA::eUNKNOWN:      value = 0; break;
+        case vte::terminal::modes::ECMA::eALWAYS_SET:   value = 3; break;
+        case vte::terminal::modes::ECMA::eALWAYS_RESET: value = 4; break;
+        default: assert(mode >= 0); value = m_modes_ecma.get(mode) ? 1 : 2; break;
+        }
+
+        _vte_debug_print(VTE_DEBUG_MODES,
+                         "Reporting mode %d (%s) is %d\n",
+                         param, m_modes_ecma.mode_to_cstring(mode),
+                         value);
+
+        reply(seq, VTE_REPLY_DECRPM_ECMA, {param, value});
 }
 
 void
@@ -2884,10 +2902,28 @@ VteTerminalPrivate::DECRQM_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQM_DEC - request-mode-dec
-         * Same as DECRQM_ANSI but for DEC modes.
+         * Same as DECRQM_ECMA but for DEC modes.
          *
-         * TODO: implement
+         * References: VT525
          */
+
+        auto const param = seq.collect1(0);
+        auto const mode = m_modes_private.mode_from_param(param);
+
+        int value;
+        switch (mode) {
+        case vte::terminal::modes::ECMA::eUNKNOWN:      value = 0; break;
+        case vte::terminal::modes::ECMA::eALWAYS_SET:   value = 3; break;
+        case vte::terminal::modes::ECMA::eALWAYS_RESET: value = 4; break;
+        default: assert(mode >= 0); value = m_modes_private.get(mode) ? 1 : 2; break;
+        }
+
+        _vte_debug_print(VTE_DEBUG_MODES,
+                         "Reporting private mode %d (%s) is %d\n",
+                         param, m_modes_private.mode_to_cstring(mode),
+                         value);
+
+        reply(seq, VTE_REPLY_DECRPM_DEC, {param, value});
 }
 
 void

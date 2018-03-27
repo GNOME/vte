@@ -553,8 +553,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                         return VTE_CMD_DECSTR;
                 else if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECSCL */
                         return VTE_CMD_DECSCL;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECRQM-ANSI */
-                        return VTE_CMD_DECRQM_ANSI;
+                else if (flags == VTE_SEQ_FLAG_CASH) /* DECRQM-ECMA */
+                        return VTE_CMD_DECRQM_ECMA;
                 else if (flags == (VTE_SEQ_FLAG_CASH |
                                    VTE_SEQ_FLAG_WHAT)) /* DECRQM-DEC */
                         return VTE_CMD_DECRQM_DEC;
