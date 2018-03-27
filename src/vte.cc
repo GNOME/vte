@@ -10541,6 +10541,11 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_modes_private.clear_saved();
         m_modes_private.reset();
 
+        /* Window title stack */
+        if (clear_history) {
+                m_window_title_stack.clear();
+        }
+
         update_mouse_protocol();
 
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */

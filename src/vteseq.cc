@@ -5563,9 +5563,48 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_XTERM_WM_TITLE_STACK_PUSH:
+                switch (seq.collect1(1)) {
+                case -1:
+                case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
+                case VTE_OSC_XTERM_SET_WINDOW_TITLE:
+                        if (m_window_title_stack.size() >= VTE_WINDOW_TITLE_STACK_MAX_DEPTH) {
+                                /* Drop the bottommost item */
+                                m_window_title_stack.erase(m_window_title_stack.cbegin());
+                        }
+
+                        if (m_window_title_changed)
+                                m_window_title_stack.emplace(m_window_title_stack.cend(),
+                                                             m_window_title_pending);
+                        else
+                                m_window_title_stack.emplace(m_window_title_stack.cend(),
+                                                             m_window_title);
+
+                        g_assert_cmpuint(m_window_title_stack.size(), <=, VTE_WINDOW_TITLE_STACK_MAX_DEPTH);
+                        break;
+
+                case VTE_OSC_XTERM_SET_ICON_TITLE:
+                default:
+                        break;
+                }
                 break;
 
         case VTE_XTERM_WM_TITLE_STACK_POP:
+                switch (seq.collect1(1)) {
+                case -1:
+                case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
+                case VTE_OSC_XTERM_SET_WINDOW_TITLE:
+                        if (m_window_title_stack.empty())
+                                break;
+
+                        m_window_title_changed = true;
+                        m_window_title_pending.swap(m_window_title_stack.back());
+                        m_window_title_stack.pop_back();
+                        break;
+
+                case VTE_OSC_XTERM_SET_ICON_TITLE:
+                default:
+                        break;
+                }
                 break;
 
         default:

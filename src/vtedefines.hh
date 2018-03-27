@@ -139,3 +139,6 @@
  * Currently the hyperlink data is the ID and URI and a separator in between.
  * Make sure there are enough bits to store this in VteStreamCellAttr.hyperlink_length */
 #define VTE_HYPERLINK_TOTAL_LENGTH_MAX  (VTE_HYPERLINK_ID_LENGTH_MAX + 1 + VTE_HYPERLINK_URI_LENGTH_MAX)
+
+/* Max depth of title stack */
+#define VTE_WINDOW_TITLE_STACK_MAX_DEPTH (8)

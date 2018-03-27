@@ -33,6 +33,9 @@
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
 
+#include <string>
+#include <vector>
+
 typedef enum {
         VTE_REGEX_CURSOR_GDKCURSOR,
         VTE_REGEX_CURSOR_GDKCURSORTYPE,
@@ -524,6 +527,8 @@ public:
         bool m_window_title_changed{false};
         bool m_current_directory_uri_changed{false};
         bool m_current_file_uri_changed{false};
+
+        std::vector<std::string> m_window_title_stack{};
 
 	/* Background */
         double m_background_alpha;
