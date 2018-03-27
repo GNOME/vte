@@ -358,25 +358,11 @@ VteTerminalPrivate::scroll_text(vte::grid::row_t scroll_amount)
         m_text_deleted_flag = TRUE;
 }
 
-/* Restore cursor. */
-void
-VteTerminalPrivate::seq_restore_cursor(vte::parser::Params const& params)
-{
-        restore_cursor();
-}
-
-void
+ void
 VteTerminalPrivate::restore_cursor()
 {
         restore_cursor(m_screen);
         ensure_cursor_is_onscreen();
-}
-
-/* Save cursor. */
-void
-VteTerminalPrivate::seq_save_cursor(vte::parser::Params const& params)
-{
-        save_cursor();
 }
 
 void
@@ -1391,40 +1377,6 @@ VteTerminalPrivate::line_feed()
 {
         ensure_cursor_is_onscreen();
         cursor_down(true);
-}
-
-/* Cursor up 1 line, with scrolling. */
-void
-VteTerminalPrivate::seq_reverse_index(vte::parser::Params const& params)
-{
-        ensure_cursor_is_onscreen();
-
-        vte::grid::row_t start, end;
-        if (m_scrolling_restricted) {
-                start = m_scrolling_region.start + m_screen->insert_delta;
-                end = m_scrolling_region.end + m_screen->insert_delta;
-	} else {
-                start = m_screen->insert_delta;
-                end = start + m_row_count - 1;
-	}
-
-        if (m_screen->cursor.row == start) {
-		/* If we're at the top of the scrolling region, add a
-		 * line at the top to scroll the bottom off. */
-		ring_remove(end);
-		ring_insert(start, true);
-		/* Update the display. */
-		scroll_region(start, end - start + 1, 1);
-                invalidate_cells(0, m_column_count,
-                                 start, 2);
-	} else {
-		/* Otherwise, just move the cursor up. */
-                m_screen->cursor.row--;
-	}
-	/* Adjust the scrollbars if necessary. */
-        adjust_adjustments();
-	/* We modified the display, so make a note of it. */
-        m_text_modified_flag = TRUE;
 }
 
 /* Tab. */
@@ -3380,12 +3332,14 @@ VteTerminalPrivate::DECRC(vte::parser::Sequence const& seq)
          *   * Designates ASCII (IR #6) to GL, and DEC Supplemental Graphics to GR
          *
          * Note that the status line has its own DECSC buffer.
+         *
+         * References: VT525
          */
 #if 0
         screen_restore_state(screen, &screen->saved);
 #endif
 
-        seq_restore_cursor(seq);
+        restore_cursor();
 }
 
 void
@@ -3596,12 +3550,13 @@ VteTerminalPrivate::DECSC(vte::parser::Sequence const& seq)
          *   * Selective erase attribute
          *   * Any SS2 or SS3 sent
          *
+         * References: VT525
          */
 #if 0
         screen_save_state(screen, &screen->saved);
 #endif
 
-        seq_save_cursor(seq);
+        save_cursor();
 }
 
 void
@@ -3897,10 +3852,11 @@ VteTerminalPrivate::DECSLRM_OR_SC(vte::parser::Sequence const& seq)
          *
          * TODO: Detect save-cursor and run it. DECSLRM is not worth
          *       implementing.
+         *
+         * References: VT525
          */
 
-        //FIXMEchpe
-        seq_save_cursor(seq);
+        save_cursor();
 }
 
 void
@@ -4967,12 +4923,41 @@ VteTerminalPrivate::RI(vte::parser::Sequence const& seq)
          * RI - reverse-index
          * Moves the cursor up one line in the same column. If the cursor is at
          * the top margin, the page scrolls down.
+         *
+         * References: ECMA-48 § 8.3.104
          */
 #if 0
         screen_cursor_up(screen, 1, true);
 #endif
 
-        seq_reverse_index(seq);
+        ensure_cursor_is_onscreen();
+
+        vte::grid::row_t start, end;
+        if (m_scrolling_restricted) {
+                start = m_scrolling_region.start + m_screen->insert_delta;
+                end = m_scrolling_region.end + m_screen->insert_delta;
+	} else {
+                start = m_screen->insert_delta;
+                end = start + m_row_count - 1;
+	}
+
+        if (m_screen->cursor.row == start) {
+		/* If we're at the top of the scrolling region, add a
+		 * line at the top to scroll the bottom off. */
+		ring_remove(end);
+		ring_insert(start, true);
+		/* Update the display. */
+		scroll_region(start, end - start + 1, 1);
+                invalidate_cells(0, m_column_count,
+                                 start, 2);
+	} else {
+		/* Otherwise, just move the cursor up. */
+                m_screen->cursor.row--;
+	}
+	/* Adjust the scrollbars if necessary. */
+        adjust_adjustments();
+	/* We modified the display, so make a note of it. */
+        m_text_modified_flag = TRUE;
 }
 
 void
