@@ -1737,13 +1737,6 @@ VteTerminalPrivate::erase_in_line(vte::parser::Sequence const& seq)
         m_text_deleted_flag = TRUE;
 }
 
-/* Perform a full-bore reset. */
-void
-VteTerminalPrivate::seq_full_reset(vte::parser::Params const& params)
-{
-	reset(true, true);
-}
-
 void
 VteTerminalPrivate::insert_lines(vte::grid::row_t param)
 {
@@ -1811,59 +1804,6 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
-}
-
-/* Restore a certain terminal attribute. */
-void
-VteTerminalPrivate::seq_restore_mode(vte::parser::Params const& params)
-{
-        decset(params, true, false, false);
-}
-
-/* Save a certain terminal attribute. */
-void
-VteTerminalPrivate::seq_save_mode(vte::parser::Params const& params)
-{
-        decset(params, false, true, false);
-}
-
-/* Perform a screen alignment test -- fill all visible cells with the
- * letter "E". */
-void
-VteTerminalPrivate::seq_screen_alignment_test(vte::parser::Params const& params)
-{
-	for (auto row = m_screen->insert_delta;
-	     row < m_screen->insert_delta + m_row_count;
-	     row++) {
-		/* Find this row. */
-                while (_vte_ring_next(m_screen->row_data) <= row)
-                        ring_append(false);
-                adjust_adjustments();
-                auto rowdata = _vte_ring_index_writable (m_screen->row_data, row);
-		g_assert(rowdata != NULL);
-		/* Clear this row. */
-		_vte_row_data_shrink (rowdata, 0);
-
-                emit_text_deleted();
-		/* Fill this row. */
-                VteCell cell;
-		cell.c = 'E';
-		cell.attr = basic_cell.attr;
-		cell.attr.set_columns(1);
-                _vte_row_data_fill(rowdata, &cell, m_column_count);
-                emit_text_inserted();
-	}
-        invalidate_all();
-
-	/* We modified the display, so make a note of it for completeness. */
-        m_text_modified_flag = TRUE;
-}
-
-/* Perform a soft reset. */
-void
-VteTerminalPrivate::seq_soft_reset(vte::parser::Params const& params)
-{
-	reset(false, false);
 }
 
 /* Internal helper for setting/querying special colors */
@@ -2028,113 +1968,6 @@ VteTerminalPrivate::seq_iterm2_1337(vte::parser::Params const& params)
          */
 }
 
-#define UNIMPLEMENTED_SEQUENCE_HANDLER(name) \
-        void \
-        VteTerminalPrivate::seq_ ## name (vte::parser::Params const& params) \
-        { \
-                static bool warned = false; \
-                if (!warned) { \
-                        _vte_debug_print(VTE_DEBUG_PARSER, \
-                                         "Unimplemented handler for control sequence `%s'.\n", \
-                                         "name"); \
-                        warned = true; \
-                } \
-        }
-
-UNIMPLEMENTED_SEQUENCE_HANDLER(ansi_conformance_level_1)
-UNIMPLEMENTED_SEQUENCE_HANDLER(ansi_conformance_level_2)
-UNIMPLEMENTED_SEQUENCE_HANDLER(ansi_conformance_level_3)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_font_name)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_font_number)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_logfile)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_background_color_bel)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_background_color_st)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_foreground_color_bel)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_mouse_cursor_foreground_color_st)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_background_color_bel)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_background_color_st)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_cursor_color_bel)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_cursor_color_st)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_foreground_color_bel)
-UNIMPLEMENTED_SEQUENCE_HANDLER(change_tek_foreground_color_st)
-UNIMPLEMENTED_SEQUENCE_HANDLER(cursor_lower_left)
-UNIMPLEMENTED_SEQUENCE_HANDLER(dec_media_copy)
-UNIMPLEMENTED_SEQUENCE_HANDLER(device_control_string)
-UNIMPLEMENTED_SEQUENCE_HANDLER(double_height_bottom_half)
-UNIMPLEMENTED_SEQUENCE_HANDLER(double_height_top_half)
-UNIMPLEMENTED_SEQUENCE_HANDLER(double_width)
-UNIMPLEMENTED_SEQUENCE_HANDLER(eight_bit_controls)
-UNIMPLEMENTED_SEQUENCE_HANDLER(enable_filter_rectangle)
-UNIMPLEMENTED_SEQUENCE_HANDLER(enable_locator_reporting)
-UNIMPLEMENTED_SEQUENCE_HANDLER(end_of_guarded_area)
-UNIMPLEMENTED_SEQUENCE_HANDLER(initiate_hilite_mouse_tracking)
-UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g1_character_set_as_gr)
-UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g2_character_set)
-UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g2_character_set_as_gr)
-UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g3_character_set)
-UNIMPLEMENTED_SEQUENCE_HANDLER(invoke_g3_character_set_as_gr)
-UNIMPLEMENTED_SEQUENCE_HANDLER(linux_console_cursor_attributes)
-UNIMPLEMENTED_SEQUENCE_HANDLER(media_copy)
-UNIMPLEMENTED_SEQUENCE_HANDLER(memory_lock)
-UNIMPLEMENTED_SEQUENCE_HANDLER(memory_unlock)
-UNIMPLEMENTED_SEQUENCE_HANDLER(request_locator_position)
-UNIMPLEMENTED_SEQUENCE_HANDLER(reset_mouse_cursor_foreground_color)
-UNIMPLEMENTED_SEQUENCE_HANDLER(reset_mouse_cursor_background_color)
-UNIMPLEMENTED_SEQUENCE_HANDLER(reset_tek_background_color)
-UNIMPLEMENTED_SEQUENCE_HANDLER(reset_tek_cursor_color)
-UNIMPLEMENTED_SEQUENCE_HANDLER(reset_tek_foreground_color)
-UNIMPLEMENTED_SEQUENCE_HANDLER(select_character_protection)
-UNIMPLEMENTED_SEQUENCE_HANDLER(select_locator_events)
-UNIMPLEMENTED_SEQUENCE_HANDLER(selective_erase_in_display)
-UNIMPLEMENTED_SEQUENCE_HANDLER(selective_erase_in_line)
-UNIMPLEMENTED_SEQUENCE_HANDLER(set_conformance_level)
-UNIMPLEMENTED_SEQUENCE_HANDLER(set_text_property_21)
-UNIMPLEMENTED_SEQUENCE_HANDLER(set_text_property_2L)
-UNIMPLEMENTED_SEQUENCE_HANDLER(set_xproperty)
-UNIMPLEMENTED_SEQUENCE_HANDLER(seven_bit_controls)
-UNIMPLEMENTED_SEQUENCE_HANDLER(single_shift_g2)
-UNIMPLEMENTED_SEQUENCE_HANDLER(single_shift_g3)
-UNIMPLEMENTED_SEQUENCE_HANDLER(single_width)
-UNIMPLEMENTED_SEQUENCE_HANDLER(start_of_guarded_area)
-UNIMPLEMENTED_SEQUENCE_HANDLER(start_or_end_of_string)
-
-#undef UNIMPLEMENTED_UNIMPLEMENTED_SEQUENCE_HANDLER
-
-/// FIXME
-
-
-/*
- * Copyright (C) 2015 David Herrmann <dh.herrmann@gmail.com>
- *
- * vte is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the
- * Free Software Foundation; either version 2.1 of the License, or (at
- * your option) any later version.
- */
-
-enum {
-        /* 7bit mode (default: on) */
-        VTE_FLAG_7BIT_MODE                = (1U << 0),
-        /* hide cursor caret (default: off) */
-        VTE_FLAG_HIDE_CURSOR                = (1U << 1),
-        /* do not send TPARM unrequested (default: off) */
-        VTE_FLAG_INHIBIT_TPARM        = (1U << 2),
-        /* perform carriage-return on line-feeds (default: off) */
-        VTE_FLAG_NEWLINE_MODE        = (1U << 3),
-        /* wrap-around is pending */
-        VTE_FLAG_PENDING_WRAP        = (1U << 4),
-        /* application-keypad mode (default: off) */
-        VTE_FLAG_KEYPAD_MODE                = (1U << 5),
-        /* enable application cursor-keys (default: off) */
-        VTE_FLAG_CURSOR_KEYS                = (1U << 6),
-};
-
-enum {
-        VTE_CONFORMANCE_LEVEL_VT52,
-        VTE_CONFORMANCE_LEVEL_VT100,
-        VTE_CONFORMANCE_LEVEL_VT400,
-        VTE_CONFORMANCE_LEVEL_N,
-};
 /*
  * Command Handlers
  * This is the unofficial documentation of all the VTE_CMD_* definitions.
@@ -2853,9 +2686,36 @@ VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
          * DECALN - screen-alignment-pattern
          *
          * Probably not worth implementing.
+         *
+         * References: VT525
          */
 
-        seq_screen_alignment_test(seq);
+        // FIXMEchpe why do we implement this?
+	for (auto row = m_screen->insert_delta;
+	     row < m_screen->insert_delta + m_row_count;
+	     row++) {
+		/* Find this row. */
+                while (_vte_ring_next(m_screen->row_data) <= row)
+                        ring_append(false);
+                adjust_adjustments();
+                auto rowdata = _vte_ring_index_writable (m_screen->row_data, row);
+		g_assert(rowdata != NULL);
+		/* Clear this row. */
+		_vte_row_data_shrink (rowdata, 0);
+
+                emit_text_deleted();
+		/* Fill this row. */
+                VteCell cell;
+		cell.c = 'E';
+		cell.attr = basic_cell.attr;
+		cell.attr.set_columns(1);
+                _vte_row_data_fill(rowdata, &cell, m_column_count);
+                emit_text_inserted();
+	}
+        invalidate_all();
+
+	/* We modified the display, so make a note of it for completeness. */
+        m_text_modified_flag = TRUE;
 }
 
 void
@@ -3946,12 +3806,14 @@ VteTerminalPrivate::DECSTR(vte::parser::Sequence const& seq)
         /*
          * DECSTR - soft-terminal-reset
          * Perform a soft reset to the default values.
+         *
+         * References: VT525
          */
 #if 0
         vte_screen_soft_reset(screen);
 #endif
 
-        seq_soft_reset(seq);
+	reset(false, false);
 }
 
 void
@@ -4853,13 +4715,15 @@ VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
         /*
          * RIS - reset-to-initial-state
          * XXX
+         *
+         * References: ECMA-48 § 8.3.105
          */
 
 #if 0
         vte_screen_hard_reset(screen);
 #endif
 
-        seq_full_reset(seq);
+	reset(true, true);
 }
 
 void
@@ -5400,9 +5264,13 @@ VteTerminalPrivate::XTERM_RPM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_RPM - xterm-restore-private-mode
+         *
+         * Defaults: none
+         *
+         * References: XTERM
          */
 
-        seq_restore_mode(seq);
+        decset(seq, true, false, false);
 }
 
 void
@@ -5440,9 +5308,13 @@ VteTerminalPrivate::XTERM_SPM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_SPM - xterm-set-private-mode
+         *
+         * Defaults: none
+         *
+         * References: XTERM
          */
 
-        seq_save_mode(seq);
+        decset(seq, false, true, false);
 }
 
 void
