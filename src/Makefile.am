@@ -66,6 +66,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	parser-cmd.hh \
 	parser-glue.hh \
 	parser-osc.hh \
+	parser-reply.hh \
 	parser-string.hh \
 	pty.cc \
 	reaper.cc \
@@ -250,6 +251,7 @@ parser_cat_SOURCES = \
 	parser-cmd.hh \
 	parser-glue.hh \
 	parser-osc.hh \
+	parser-reply.hh \
 	parser-string.hh \
 	parser-cat.cc \
 	vteconv.cc \
@@ -285,6 +287,7 @@ test_parser_SOURCES = \
 	parser-charset-tables.hh \
 	parser-glue.hh \
 	parser-osc.hh \
+	parser-reply.hh \
 	parser-string.hh \
 	$(NULL)
 test_parser_CPPFLAGS = \

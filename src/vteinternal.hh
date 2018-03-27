@@ -1223,6 +1223,21 @@ public:
         void select_empty(vte::grid::column_t col,
                           vte::grid::row_t row);
 
+        void send(vte::parser::u8SequenceBuilder const& builder,
+                  bool c1 = true,
+                  vte::parser::u8SequenceBuilder::ST st = vte::parser::u8SequenceBuilder::ST::DEFAULT) noexcept;
+        void send(vte::parser::Sequence const& seq,
+                  vte::parser::u8SequenceBuilder const& builder) noexcept;
+        void send(unsigned int type,
+                  std::initializer_list<int> params) noexcept;
+        void reply(vte::parser::Sequence const& seq,
+                   unsigned int type,
+                   std::initializer_list<int> params) noexcept;
+        void reply(vte::parser::Sequence const& seq,
+                   unsigned int type,
+                   char const* format,
+                   ...) noexcept G_GNUC_PRINTF(4, 5);
+
         /* OSC handlers */
         void set_color(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,

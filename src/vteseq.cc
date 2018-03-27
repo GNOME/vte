@@ -1358,14 +1358,11 @@ VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
                 auto const str = *token;
 
                 if (str == "?"s) {
-                        gchar buf[128];
                         auto c = get_color(value);
                         g_assert_nonnull(c);
-                        g_snprintf (buf, sizeof (buf),
-                                    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
-                                    value, c->red, c->green, c->blue,
-                                    seq.terminator() == 0x7 ? BEL_C0 : ST_C0);
-                        feed_child(buf, -1);
+
+                        reply(seq, VTE_SEQ_OSC, "4;%d;rgb:%04x/%04x/%04x",
+                              value, c->red, c->green, c->blue);
                 } else {
                         vte::color::rgb color;
                         if (color.parse(str.data())) {
@@ -1396,17 +1393,13 @@ VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
 
         auto const str = *token;
         if (str == "?"s) {
-                gchar buf[128];
                 auto c = get_color(index);
                 if (c == nullptr && index_fallback != -1)
                         c = get_color(index_fallback);
                 g_assert_nonnull(c);
-                auto len = g_snprintf (buf, sizeof (buf),
-                                       _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",
-                                       osc,
-                                       c->red, c->green, c->blue,
-                                       ST_C0);//seq.terminator() == 7 ? BEL_C0 : ST_C0);
-                feed_child(buf, len);
+
+                reply(seq, VTE_SEQ_OSC, "%d;rgb:%04x/%04x/%04x",
+                      osc, c->red, c->green, c->blue);
         } else {
                 vte::color::rgb color;
                 if (color.parse(str.data())) {
@@ -2087,8 +2080,8 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          * enabled features.
          *
          * The terminal's answer is:
-         *   ^[ ? 64 ; ARGS c
-         * The first argument, 64, is fixed and denotes a VT420, the last
+         *   ^[ ? 65 ; ARGS c
+         * The first argument, 65, is fixed and denotes a VT520, the last
          * DEC-term that extended this number.
          * All following arguments denote supported features. Note
          * that at most 15 features can be sent (max CSI args). It is safe to
@@ -2107,7 +2100,7 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *       Support for ReGIS graphics is available. The ReGIS routines
          *       provide the "remote graphics instruction set" and allow basic
          *       vector-rendering.
-         *    4: sixel
+         *    4: Sixel
          *       Support of Sixel graphics is available. This provides access
          *       to the sixel bitmap routines.
          *    6: selective erase
@@ -2120,7 +2113,7 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *       TODO: ?
          *    9: national-replacement character sets (NRCS)
          *       National-replacement character-sets are available.
-         *   12: Yugoslavian (SCS)
+         *   12: Serbo-Croatian (SCS)
          *       TODO: ?
          *   15: technical character set
          *       The DEC technical-character-set is available.
@@ -2128,13 +2121,13 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *       TODO: ?
          *   21: horizontal scrolling
          *       TODO: ?
-         *   22: ANSII color
+         *   22: ANSI color
          *       TODO: ?
          *   23: Greek
          *       TODO: ?
          *   24: Turkish
          *       TODO: ?
-         *   29: ANSI text locator
+         *   29: DECterm text locator
          *       TODO: ?
          *   42: ISO Latin-2 character set
          *       TODO: ?
@@ -2149,16 +2142,13 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *   args[0]: 0
          *
          * References: ECMA-48 § 8.3.24
+         *             VT525
          */
-#if 0
-        SEQ_WRITE(screen, C0_CSI, C1_CSI, "?64;1;6;9;15c");
-#endif
 
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        /* Claim to be a VT220 with only national character set support. */
-        feed_child("\e[?62;c", -1);
+        reply(seq, VTE_REPLY_DECDA1R, {62});
 }
 
 void
@@ -2172,7 +2162,7 @@ VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
          * terminal features.
          *
          * The terminal's response is:
-         *   ^[ > 61 ; FIRMWARE ; KEYBOARD c
+         *   ^[ > 65 ; FIRMWARE ; KEYBOARD c
          * whereas 65 is fixed for VT525 terminals, the last terminal-line that
          * increased this number. FIRMWARE is the firmware
          * version encoded as major/minor (20 == 2.0) and KEYBOARD is 0 for STD
@@ -2183,29 +2173,13 @@ VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
          *
          * References: VT525
          */
-#if 0
-        return SEQ_WRITE(screen, C0_CSI, C1_CSI,
-                         ">65;" __stringify(LINUX_VERSION_CODE) ";1c");
-#endif
 
+        /* Param != 0 means this is a reply, not a request */
         if (seq.collect1(0, 0) != 0)
                 return;
 
-	char **version;
-	char buf[128];
-	long ver = 0, i;
-	/* Claim to be a VT220, more or less.  The '>' in the response appears
-	 * to be undocumented. */
-	version = g_strsplit(VERSION, ".", 0);
-	if (version != NULL) {
-		for (i = 0; version[i] != NULL; i++) {
-			ver = ver * 100;
-			ver += atol(version[i]);
-		}
-		g_strfreev(version);
-	}
-	g_snprintf(buf, sizeof (buf), _VTE_CAP_ESC "[>65;%ld;0c", ver);
-	feed_child(buf, -1);
+        int const version = (VTE_MAJOR_VERSION * 100 + VTE_MINOR_VERSION) * 100 + VTE_MICRO_VERSION;
+        reply(seq, VTE_REPLY_DECDA2R, {65, version, 1});
 }
 
 void
@@ -2219,12 +2193,14 @@ VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
          *   ^P ! | XX AA BB CC ^\
          * whereas all four parameters are hexadecimal-encoded pairs. XX
          * denotes the manufacturing site, AA BB CC is the terminal's ID.
+         *
+         * We always reply with '~VTE' encoded in hex.
          */
-
-        /* we do not support tertiary DAs */
 
         if (seq.collect1(0, 0) != 0)
                 return;
+
+        reply(seq, VTE_REPLY_DECRPTUI, {});
 }
 
 void
@@ -2805,21 +2781,31 @@ VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 0
          *
-         * References: VT525
+         * References: VT100
          */
-#if 0
-        if (seq->n_args < 1 || seq->args[0] == 0) {
-                screen->flags &= ~VTE_FLAG_INHIBIT_TPARM;
-                return SEQ_WRITE(screen, C0_CSI, C1_CSI, "2;1;1;120;120;1;0x");
-        } else if (seq->args[0] == 1) {
-                screen->flags |= VTE_FLAG_INHIBIT_TPARM;
-                return SEQ_WRITE(screen, C0_CSI, C1_CSI, "3;1;1;120;120;1;0x");
-        } else {
-                return 0;
-        }
-#endif
 
-	feed_child("\e[?x", -1);
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                #if 0
+                screen->flags &= ~VTE_FLAG_INHIBIT_TPARM;
+                #endif
+                reply(seq, VTE_REPLY_DECREPTPARM,
+                      {2, 1, 1, 120, 120, 1, 0});
+                break;
+        case 1:
+                #if 0
+                screen->flags |= VTE_FLAG_INHIBIT_TPARM;
+                #endif
+                reply(seq, VTE_REPLY_DECREPTPARM,
+                      {3, 1, 1, 120, 120, 1, 0});
+                break;
+        case 2:
+        case 3:
+                /* This is a report, not a request */
+        default:
+                break;
+        }
 }
 
 void
@@ -3693,9 +3679,7 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
          * References: ECMA-48 § 8.3.35
          */
 
-        auto param = seq.collect1(0);
-
-        switch (param) {
+        switch (seq.collect1(0)) {
         case -1:
         case 0:
         case 1:
@@ -3704,14 +3688,23 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
         case 4:
                 /* This is a status report */
                 break;
-        case 5:
-                /* Requesting a DSR */
-                feed_child(_VTE_CAP_CSI "0n", -1);
-                break;
-        case 6:
-                /* Requesting a CPR */
 
-                /* Send the cursor position. */
+        case 5:
+                /* Request operating status report.
+                 * Reply: DSR
+                 *   @arg[0]: status
+                 *     0 = ok
+                 *     3 = malfunction
+                 */
+                reply(seq, VTE_REPLY_DSR, {0});
+                break;
+
+        case 6:
+                /* Request extended cursor position report
+                 * Reply: CPR
+                 *   @arg[0]: line
+                 *   @arg[1]: column
+                 */
                 vte::grid::row_t rowval, origin, rowmax;
                 if (m_modes_private.DEC_ORIGIN() &&
                     m_scrolling_restricted) {
@@ -3724,13 +3717,11 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
                 // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
                 rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
                 rowval = CLAMP(rowval, 0, rowmax);
-                char buf[128];
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "%ld;%ldR",
-                           rowval + 1,
-                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
-                feed_child(buf, -1);
+
+                reply(seq, VTE_REPLY_CPR,
+                      {int(rowval + 1), int(CLAMP(m_screen->cursor.col + 1, 1, m_column_count))});
                 break;
+
         default:
                 break;
         }
@@ -3748,13 +3739,19 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
          *   arg[0]: 0
          *
          * References: VT525 5–173
+         *             VT330
+         *             XTERM
          */
 
-        auto param = seq.collect1(0);
-
-        switch (param) {
+        switch (seq.collect1(0)) {
         case 6:
-                /* Send the cursor position. */
+                /* Request extended cursor position report
+                 * Reply: DECXCPR
+                 *   @arg[0]: line
+                 *   @arg[1]: column
+                 *   @arg[2]: page
+                 *     Always report page 1 here (per XTERM source code).
+                 */
                 vte::grid::row_t rowval, origin, rowmax;
                 if (m_modes_private.DEC_ORIGIN() &&
                     m_scrolling_restricted) {
@@ -3767,28 +3764,127 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
                 // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
                 rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
                 rowval = CLAMP(rowval, 0, rowmax);
-                char buf[128];
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "?%ld;%ldR",
-                           rowval + 1,
-                           CLAMP(m_screen->cursor.col + 1, 1, m_column_count));
-                feed_child(buf, -1);
+
+                reply(seq, VTE_REPLY_DECXCPR,
+                      {int(rowval + 1), int(CLAMP(m_screen->cursor.col + 1, 1, m_column_count)), 1});
                 break;
+
         case 15:
-                /* Send printer status -- 10 = ready,
-                 * 11 = not ready.  We don't print. */
-                feed_child(_VTE_CAP_CSI "?11n", -1);
+                /* Request printer port report
+                 * Reply: DECDSR
+                 *   @arg[0]: status
+                 *     10 = printer ready
+                 *     11 = printer not ready
+                 *     13 = no printer
+                 *     18 = printer busy
+                 *     19 = printer assigned to another session
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {13});
                 break;
+
         case 25:
-                /* Send UDK status -- 20 = locked,
-                 * 21 = not locked.  I don't even know what
-                 * that means, but punt anyway. */
-                feed_child(_VTE_CAP_CSI "?20n", -1);
+                /* Request user-defined keys report
+                 * Reply: DECDSR
+                 *   @arg[0]: locked status
+                 *      20 = UDK unlocked
+                 *      21 = UDK locked
+                 *
+                 * Since we don't do UDK, we report them as locked.
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {21});
                 break;
+
         case 26:
-                /* Send keyboard status.  50 = no locator. */
-                feed_child(_VTE_CAP_CSI "?50n", -1);
+                /* Request keyboard report
+                 * Reply: DECDSR
+                 *   @arg[0]: 27
+                 *   @arg[1]: Keyboard language
+                 *     0 = undetermined
+                 *     1..40
+                 *
+                 *   @arg[2]: Keyboard status
+                 *     0 = ready
+                 *     3 = no keyboard
+                 *     8 = keyboard busy
+                 *
+                 *   @arg[3]: Keyboard type
+                 *     0 = LK201 (XTERM response)
+                 *     4 = LK411
+                 *     5 = PCXAL
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {27, 0, 0, 5});
                 break;
+
+        case 53:
+                /* XTERM alias for 55 */
+                /* [[fallthrough]]; */
+        case 55:
+                /* Request locator status report
+                 * Reply: DECDSR
+                 *   @arg[0]: status
+                 *     50 = locator ready
+                 *     53 = no locator
+                 *
+                 * Since we don't implement the DEC locator mode,
+                 * we reply with 53.
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {53});
+                break;
+
+        case 56:
+                /* Request locator type report
+                 * Reply: DECDSR
+                 *   @arg[0]: 57
+                 *   @arg[1]: status
+                 *     0 = unknown
+                 *     1 = mouse
+                 *
+                 * Since we don't implement the DEC locator mode,
+                 * we reply with 0.
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {57, 0});
+                break;
+
+        case 62:
+                /* Request macro space report
+                 * Reply: DECMSR
+                 *   @arg[0]: floor((number of bytes available) / 16); we report 0
+                 */
+                reply(seq, VTE_REPLY_DECMSR, {0});
+                break;
+
+        case 63:
+                /* Request memory checksum report
+                 * Reply: DECCKSR
+                 *   @arg[0]: PID
+                 *   DATA: hex encoded
+                 *
+                 * Reply with empty DATA.
+                 */
+                reply(seq, VTE_REPLY_DECCKSR, {seq.collect1(1)});
+                break;
+
+        case 75:
+                /* Request data integrity report
+                 * Reply: DECDSR
+                 *   @arg[0]: status
+                 *     70 = no error, no power loss, no communication errors
+                 *     71 = malfunction or communication error
+                 *     73 = no data loss since last power-up
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {70});
+                break;
+
+        case 85:
+                /* Request multi-session status report
+                 * Reply: DECDSR
+                 *   @arg[0]: status
+                 *     ...
+                 *     83 = not configured
+                 */
+                reply(seq, VTE_REPLY_DECDSR, {83});
+                break;
+
         default:
                 break;
         }
@@ -5255,93 +5351,100 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
          * No parameter default values.
          *
          * References: XTERM
+         *             VT525
          */
 
-        int param, arg1, arg2;
-        if (!seq.collect(0, {&param, &arg1, &arg2}))
-                return;
-
-	GdkScreen *gscreen;
+        #if 0
 	char buf[128];
-	int width, height;
+        #endif
 
+        int param = seq.collect1(0);
         switch (param) {
         case -1:
         case 0:
                 break;
 
         case VTE_XTERM_WM_RESTORE_WINDOW:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Deiconifying window.\n");
+                _vte_debug_print(VTE_DEBUG_EMULATION, "Deiconifying window.\n");
                 emit_deiconify_window();
                 break;
 
         case VTE_XTERM_WM_MINIMIZE_WINDOW:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Iconifying window.\n");
+                _vte_debug_print(VTE_DEBUG_EMULATION, "Iconifying window.\n");
                 emit_iconify_window();
                 break;
 
-        case VTE_XTERM_WM_SET_WINDOW_POSITION:
-                if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Moving window to "
-                                         "%d,%d.\n", arg1, arg2);
-                        emit_move_window(arg1, arg2);
-                }
-                break;
+        case VTE_XTERM_WM_SET_WINDOW_POSITION: {
+                int pos_x = seq.collect1(1, 0);
+                int pos_y = seq.collect1(2, 0);
 
-        case VTE_XTERM_WM_SET_WINDOW_SIZE_PIXELS:
-                if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Resizing window "
-                                         "(to %dx%d pixels, grid size %ldx%ld).\n",
-                                         arg2, arg1,
-                                         arg2 / m_cell_width,
-                                         arg1 / m_cell_height);
-                        emit_resize_window(arg2 / m_cell_width,
-                                           arg1 / m_cell_height);
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Moving window to %d,%d.\n", pos_x, pos_y);
+                emit_move_window(pos_x, pos_y);
+                break;
+        }
+
+        case VTE_XTERM_WM_SET_WINDOW_SIZE_PIXELS: {
+                int width, height;
+                seq.collect(1, {&height, &width});
+
+                if (width != -1 && height != -1) {
+                        _vte_debug_print(VTE_DEBUG_EMULATION,
+                                         "Resizing window to %dx%d pixels, grid size %dx%d.\n",
+                                         width, height,
+                                         width / int(m_cell_height), height / int(m_cell_width));
+                        emit_resize_window(width / int(m_cell_height), height / int(m_cell_width));
                 }
                 break;
+        }
 
         case VTE_XTERM_WM_RAISE_WINDOW:
-                _vte_debug_print(VTE_DEBUG_PARSER, "Raising window.\n");
+                _vte_debug_print(VTE_DEBUG_EMULATION, "Raising window.\n");
                 emit_raise_window();
                 break;
 
         case VTE_XTERM_WM_LOWER_WINDOW:
-                _vte_debug_print(VTE_DEBUG_PARSER, "Lowering window.\n");
+                _vte_debug_print(VTE_DEBUG_EMULATION, "Lowering window.\n");
                 emit_lower_window();
                 break;
 
         case VTE_XTERM_WM_REFRESH_WINDOW:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Refreshing window.\n");
+                _vte_debug_print(VTE_DEBUG_EMULATION, "Refreshing window.\n");
                 invalidate_all();
                 emit_refresh_window();
                 break;
 
-        case VTE_XTERM_WM_SET_WINDOW_SIZE_CELLS:
-                if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Resizing window "
-                                         "(to %d columns, %d rows).\n",
-                                         arg2, arg1);
-                        emit_resize_window(arg2, arg1);
+        case VTE_XTERM_WM_SET_WINDOW_SIZE_CELLS: {
+                int width, height;
+                seq.collect(1, {&height, &width});
+
+                if (width != -1 && height != -1) {
+                        _vte_debug_print(VTE_DEBUG_EMULATION,
+                                         "Resizing window to %d columns, %d rows.\n",
+                                         width, height);
+                        emit_resize_window(width, height);
                 }
                 break;
+        }
 
         case VTE_XTERM_WM_MAXIMIZE_WINDOW:
-                switch (arg1) {
+                switch (seq.collect1(1)) {
+                case -1: /* default */
                 case 0:
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Restoring window.\n");
+                        /* Restore */
+                        _vte_debug_print(VTE_DEBUG_EMULATION, "Restoring window.\n");
                         emit_restore_window();
                         break;
                 case 1:
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Maximizing window.\n");
+                        /* Maximise */
+                        _vte_debug_print(VTE_DEBUG_EMULATION, "Maximizing window.\n");
                         emit_maximize_window();
+                        break;
+                case 2:
+                        /* Maximise Vertically */
+                        break;
+                case 3:
+                        /* Maximise Horizontally */
                         break;
                 default:
                         break;
@@ -5353,96 +5456,91 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
 
         case VTE_XTERM_WM_GET_WINDOW_STATE:
                 /* If we're unmapped, then we're iconified. */
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "%dt",
-                           1 + !gtk_widget_get_mapped(m_widget));
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting window state %s.\n",
-                                 gtk_widget_get_mapped(m_widget) ?
-                                 "non-iconified" : "iconified");
-                feed_child(buf, -1);
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting window state %siconified.\n",
+                                 gtk_widget_get_mapped(m_widget) ? "non-" : "");
+
+                reply(seq, VTE_REPLY_XTERM_WM,
+                      {gtk_widget_get_mapped(m_widget) ? 1 : 2});
                 break;
 
-        case VTE_XTERM_WM_GET_WINDOW_POSITION:
+        case VTE_XTERM_WM_GET_WINDOW_POSITION: {
                 /* Send window location, in pixels. */
-                gdk_window_get_origin(gtk_widget_get_window(m_widget),
-                                      &width, &height);
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "3;%d;%dt",
-                           width + m_padding.left,
-                           height + m_padding.top);
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting window location"
-                                 "(%d++,%d++).\n",
-                                 width, height);
-                feed_child(buf, -1);
-                break;
+                /* FIXME: this is not supported on wayland; just hardwire
+                 * it to a fixed return always.
+                 */
+                int x0, y0;
+                gdk_window_get_origin(gtk_widget_get_window(m_widget), &x0, &y0);
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting window location (%d,%d).\n", x0, y0);
 
-        case VTE_XTERM_WM_GET_WINDOW_SIZE_PIXELS:
+                reply(seq, VTE_REPLY_XTERM_WM,
+                      {3, x0 + m_padding.left, y0 + m_padding.top});
+                break;
+        }
+
+        case VTE_XTERM_WM_GET_WINDOW_SIZE_PIXELS: {
                 /* Send window size, in pixels. */
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "4;%d;%dt",
-                           (int)(m_row_count * m_cell_height),
-                           (int)(m_column_count * m_cell_width));
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting window size "
-                                 "(%dx%d)\n",
-                                 (int)(m_row_count * m_cell_height),
-                                 (int)(m_column_count * m_cell_width));
+                int width = m_row_count * m_cell_height;
+                int height = m_column_count * m_cell_width;
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting window size (%dx%d)\n",
+                                 width, height);
 
-                feed_child(buf, -1);
+                reply(seq, VTE_REPLY_XTERM_WM, {4, height, width});
                 break;
+        }
 
         case VTE_XTERM_WM_GET_WINDOW_SIZE_CELLS:
                 /* Send widget size, in cells. */
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting widget size.\n");
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "8;%ld;%ldt",
-                           m_row_count,
-                           m_column_count);
-                feed_child(buf, -1);
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting widget size %ldx%ld\n",
+                                 m_row_count, m_column_count);
+
+                reply(seq, VTE_REPLY_XTERM_WM,
+                      {8, (int)m_row_count, (int)m_column_count});
                 break;
 
-        case VTE_XTERM_WM_GET_SCREEN_SIZE_CELLS:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting screen size.\n");
-                gscreen = gtk_widget_get_screen(m_widget);
-                height = gdk_screen_get_height(gscreen);
-                width = gdk_screen_get_width(gscreen);
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "9;%ld;%ldt",
-                           height / m_cell_height,
-                           width / m_cell_width);
-                feed_child(buf, -1);
+        case VTE_XTERM_WM_GET_SCREEN_SIZE_CELLS: {
+                /* FIMXE: this should really report the monitor's workarea,
+                 * or even just a fixed value.
+                 */
+                auto gdkscreen = gtk_widget_get_screen(m_widget);
+                int height = gdk_screen_get_height(gdkscreen);
+                int width = gdk_screen_get_width(gdkscreen);
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting screen size as %dx%d cells.\n",
+                                 height / int(m_cell_height), width / int(m_cell_width));
+
+                reply(seq, VTE_REPLY_XTERM_WM,
+                      {9, height / int(m_cell_height), width / int(m_cell_width)});
                 break;
+        }
 
         case VTE_XTERM_WM_GET_ICON_TITLE:
                 /* Report a static icon title, since the real
-                   icon title should NEVER be reported, as it
-                   creates a security vulnerability.  See
-                   http://marc.info/?l=bugtraq&m=104612710031920&w=2
-                   and CVE-2003-0070. */
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting fake icon title.\n");
-                /* never use m_icon_title here! */
-                g_snprintf (buf, sizeof (buf),
-                            _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST);
-                feed_child(buf, -1);
+                 * icon title should NEVER be reported, as it
+                 * creates a security vulnerability.  See
+                 * http://marc.info/?l=bugtraq&m=104612710031920&w=2
+                 * and CVE-2003-0070.
+                 */
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting empty icon title.\n");
+
+                send(seq, vte::parser::u8SequenceBuilder{VTE_SEQ_OSC, "L"s});
                 break;
 
         case VTE_XTERM_WM_GET_WINDOW_TITLE:
                 /* Report a static window title, since the real
-                   window title should NEVER be reported, as it
-                   creates a security vulnerability.  See
-                   http://marc.info/?l=bugtraq&m=104612710031920&w=2
-                   and CVE-2003-0070. */
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting fake window title.\n");
-                /* never use m_window_title here! */
-                g_snprintf (buf, sizeof (buf),
-                            _VTE_CAP_OSC "lTerminal" _VTE_CAP_ST);
-                feed_child(buf, -1);
+                 * window title should NEVER be reported, as it
+                 * creates a security vulnerability.  See
+                 * http://marc.info/?l=bugtraq&m=104612710031920&w=2
+                 * and CVE-2003-0070.
+                 */
+                _vte_debug_print(VTE_DEBUG_EMULATION,
+                                 "Reporting empty window title.\n");
+
+                send(seq, vte::parser::u8SequenceBuilder{VTE_SEQ_OSC, "l"s});
                 break;
 
         case VTE_XTERM_WM_TITLE_STACK_PUSH:
@@ -5452,13 +5550,16 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         default:
-                /* DECSLPP; param is 24, 25, 36, 41, 42, 48, 52, 53, 72, or 144 */
+                /* DECSLPP.
+                 *
+                 * VTxxx variously supported 24, 25, 36, 41, 42, 48, 52, 53, 72, or 144 rows,
+                 * but we support any value >= 24.
+                 */
                 if (param >= 24) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
+                        _vte_debug_print(VTE_DEBUG_EMULATION,
                                          "Resizing to %d rows.\n",
                                          param);
-                        /* Resize to the specified number of
-                         * rows. */
+                        /* Resize to the specified number of rows. */
                         emit_resize_window(m_column_count, param);
                 }
                 break;

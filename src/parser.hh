@@ -81,7 +81,41 @@ enum {
         VTE_SEQ_DCS,         /* device control string */
         VTE_SEQ_OSC,         /* operating system control */
 
+        VTE_SEQ_APC,         /* application program command */
+        VTE_SEQ_PM,          /* privacy message */
+        VTE_SEQ_SOS,         /* start of string */
+
         VTE_SEQ_N,
+};
+
+enum {
+        VTE_SEQ_INTERMEDIATE_NONE   = 0,
+
+        VTE_SEQ_INTERMEDIATE_SPACE  = ' ',  /* 02/00 */
+        VTE_SEQ_INTERMEDIATE_BANG   = '!',  /* 02/01 */
+        VTE_SEQ_INTERMEDIATE_DQUOTE = '"',  /* 02/02 */
+        VTE_SEQ_INTERMEDIATE_HASH   = '#',  /* 02/03 */
+        VTE_SEQ_INTERMEDIATE_CASH   = '$',  /* 02/04 */
+        VTE_SEQ_INTERMEDIATE_PERCENT= '%',  /* 02/05 */
+        VTE_SEQ_INTERMEDIATE_AND    = '&',  /* 02/06 */
+        VTE_SEQ_INTERMEDIATE_SQUOTE = '\'', /* 02/07 */
+        VTE_SEQ_INTERMEDIATE_POPEN  = '(',  /* 02/08 */
+        VTE_SEQ_INTERMEDIATE_PCLOSE = ')',  /* 02/09 */
+        VTE_SEQ_INTERMEDIATE_MULT   = '*',  /* 02/10 */
+        VTE_SEQ_INTERMEDIATE_PLUS   = '+',  /* 02/11 */
+        VTE_SEQ_INTERMEDIATE_COMMA  = ',',  /* 02/12 */
+        VTE_SEQ_INTERMEDIATE_MINUS  = '-',  /* 02/13 */
+        VTE_SEQ_INTERMEDIATE_DOT    = '.',  /* 02/14 */
+        VTE_SEQ_INTERMEDIATE_SLASH  = '/',  /* 02/15 */
+
+        /* 16-25 is reserved for numbers; unused */
+
+        /* COLON is reserved        = ':'   * 03/10 */
+        /* SEMICOLON is reserved    = ';'   * 03/11 */
+        VTE_SEQ_INTERMEDIATE_LT     = '<', /* 03/12 */
+        VTE_SEQ_INTERMEDIATE_EQUAL  = '=', /* 03/13 */
+        VTE_SEQ_INTERMEDIATE_GT     = '>', /* 03/14 */
+        VTE_SEQ_INTERMEDIATE_WHAT   = '?'  /* 03/15 */
 };
 
 enum {
@@ -120,6 +154,14 @@ enum {
 #undef _VTE_CMD
 
         VTE_CMD_N
+};
+
+enum {
+#define _VTE_REPLY(cmd,type,final,pintro,intermediate,code) VTE_REPLY_##cmd,
+#include "parser-reply.hh"
+#undef _VTE_REPLY
+
+        VTE_REPLY_N
 };
 
 enum {

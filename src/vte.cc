@@ -4272,6 +4272,70 @@ VteTerminalPrivate::feed_child_using_modes(char const* data,
 		send_child(data, length, !m_modes_ecma.SRM());
 }
 
+void
+VteTerminalPrivate::send(vte::parser::u8SequenceBuilder const& builder,
+                         bool c1,
+                         vte::parser::u8SequenceBuilder::ST st) noexcept
+{
+        std::string str;
+        builder.to_string(str, c1, -1, st);
+        feed_child(str.data(), str.size());
+}
+
+void
+VteTerminalPrivate::send(vte::parser::Sequence const& seq,
+                         vte::parser::u8SequenceBuilder const& builder) noexcept
+{
+        // FIXMEchpe take c1 & ST from @seq
+        send(builder, false);
+}
+
+void
+VteTerminalPrivate::send(unsigned int type,
+                         std::initializer_list<int> params) noexcept
+{
+        // FIXMEchpe take c1 & ST from @seq
+        send(vte::parser::ReplyBuilder{type, params}, false);
+}
+
+void
+VteTerminalPrivate::reply(vte::parser::Sequence const& seq,
+                          unsigned int type,
+                          std::initializer_list<int> params) noexcept
+{
+        send(seq, vte::parser::ReplyBuilder{type, params});
+}
+
+void
+VteTerminalPrivate::reply(vte::parser::Sequence const& seq,
+                          unsigned int type,
+                          char const* format,
+                          ...) noexcept
+{
+        switch (type) {
+        case VTE_SEQ_OSC:
+        case VTE_SEQ_APC:
+        case VTE_SEQ_PM:
+        case VTE_SEQ_SOS:
+                break;
+        default:
+                assert(false);
+                return;
+        }
+
+        char buf[128];
+        va_list vargs;
+        va_start(vargs, format);
+        auto len = g_vsnprintf(buf, sizeof(buf), format, vargs);
+        va_end(vargs);
+        g_assert_cmpint(len, <, sizeof(buf));
+
+        vte::parser::u8SequenceBuilder builder{type};
+        builder.set_string(std::string{buf});
+
+        send(seq, builder);
+}
+
 /* Send text from the input method to the child. */
 static void
 vte_terminal_im_commit_cb(GtkIMContext *im_context,
@@ -5250,6 +5314,7 @@ VteTerminalPrivate::widget_paste_received(char const* text)
         }
 
         bool const bracketed_paste = m_modes_private.XTERM_READLINE_BRACKETED_PASTE();
+        // FIXMEchpe can we not hardcode C0 controls here?
         if (bracketed_paste)
                 feed_child("\e[200~", -1);
         // FIXMEchpe add a way to avoid the extra string copy done here
@@ -5324,17 +5389,19 @@ VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined
 	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
 	if (m_modes_private.XTERM_MOUSE_EXT_SGR()) {
 		/* xterm's extended mode (1006) */
-		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "<%d;%ld;%ld%c", cb, cx, cy, is_release ? 'm' : 'M');
+                send(is_release ? VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE
+                                : VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,
+                     {cb, (int)cx, (int)cy});
 	} else if (m_modes_private.URXVT_MOUSE_EXT()) {
 		/* urxvt's extended mode (1015) */
-		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", 32 + cb, cx, cy);
+                send(VTE_REPLY_URXVT_MOUSE_EXT_REPORT, {32 + cb, (int)cx, (int)cy});
 	} else if (cx <= 231 && cy <= 231) {
 		/* legacy mode */
 		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
-	}
 
-	/* Send event direct to the child, this is binary not text data */
-	feed_child_binary((guint8*) buf, len);
+                /* Send event direct to the child, this is binary not text data */
+                feed_child_binary((guint8*) buf, len);
+	}
 
         return true;
 }
@@ -5342,11 +5409,7 @@ VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined
 void
 VteTerminalPrivate::feed_focus_event(bool in)
 {
-        char buf[8];
-        gsize len;
-
-        len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%c", in ? 'I' : 'O');
-        feed_child_binary((guint8 *)buf, len);
+        send(in ? VTE_REPLY_XTERM_FOCUS_IN : VTE_REPLY_XTERM_FOCUS_OUT, {});
 }
 
 void

@@ -116,6 +116,15 @@ static inline void vte_seq_arg_finish(vte_seq_arg_t* arg,
                 *arg |= VTE_SEQ_ARG_FLAG_NONFINAL;
 }
 
+static inline void vte_seq_arg_refinish(vte_seq_arg_t* arg,
+                                        bool nonfinal = false)
+{
+        if (nonfinal)
+                *arg |= VTE_SEQ_ARG_FLAG_NONFINAL;
+        else
+                *arg &= ~VTE_SEQ_ARG_FLAG_NONFINAL;
+}
+
 /*
  * vte_seq_arg_started:
  * @arg:

@@ -334,6 +334,318 @@ private:
         char const* command_string() const;
 };
 
+/* Helper classes to unify UTF-32 and UTF-8 versions of SequenceBuilder.
+ * ::put will only be called with C1 controls, so it's ok to simplify
+ * the UTF-8 version to simply prepend 0xc2.
+ */
+template<typename C>
+class DirectEncoder {
+public:
+        using string_type = std::basic_string<C>;
+        inline void put(string_type& s, C const c) const noexcept
+        {
+                s.push_back(c);
+        }
+};
+
+class UTF8Encoder {
+public:
+        using string_type = std::basic_string<char>;
+        inline void put(string_type& s, unsigned char const c) const noexcept
+        {
+                s.push_back(0xc2);
+                s.push_back(c);
+        }
+};
+
+template<class S, class E = DirectEncoder<typename S::value_type>>
+class SequenceBuilder {
+public:
+        using string_type = S;
+        using encoder_type = E;
+
+private:
+        struct vte_seq m_seq;
+        string_type m_arg_str;
+        unsigned char m_intermediates[4];
+        unsigned char m_n_intermediates{0};
+        unsigned char m_param_intro{0};
+        encoder_type m_encoder;
+
+public:
+        SequenceBuilder(unsigned int type = VTE_SEQ_NONE)
+        {
+                memset(&m_seq, 0, sizeof(m_seq));
+                set_type(type);
+        }
+
+        SequenceBuilder(unsigned int type,
+                        string_type const& str)
+                : SequenceBuilder(type)
+        {
+                set_string(str);
+        }
+
+        SequenceBuilder(unsigned int type,
+                        string_type&& str)
+                : SequenceBuilder(type)
+        {
+                set_string(str);
+        }
+
+        SequenceBuilder(SequenceBuilder const&) = delete;
+        SequenceBuilder(SequenceBuilder&&) = delete;
+        ~SequenceBuilder() = default;
+
+        SequenceBuilder& operator= (SequenceBuilder const&) = delete;
+        SequenceBuilder& operator= (SequenceBuilder&&) = delete;
+
+        inline void set_type(unsigned int type) noexcept
+        {
+                m_seq.type = type;
+        }
+
+        inline void set_final(uint32_t t) noexcept
+        {
+                m_seq.terminator = t;
+        }
+
+        inline void append_intermediate(unsigned char i) noexcept
+        {
+                assert(unsigned(m_n_intermediates + 1) <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
+
+                m_seq.intermediates |= (1u << (i - 0x20));
+                m_intermediates[m_n_intermediates++] = i;
+        }
+
+        inline void append_intermediates(std::initializer_list<unsigned char> l) noexcept
+        {
+                assert(m_n_intermediates + l.size() <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
+
+                for (uint32_t i : l) {
+                        m_seq.intermediates |= (1u << (i - 0x20));
+                        m_intermediates[m_n_intermediates++] = i;
+                }
+        }
+
+        inline void set_param_intro(unsigned char p) noexcept
+        {
+                m_param_intro = p;
+                if (p != 0) {
+                        m_seq.intermediates |= (1u << (p - 0x20));
+                }
+        }
+
+        inline void append_params(std::initializer_list<int> params) noexcept
+        {
+                assert(m_seq.n_args + params.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
+                for (int p : params)
+                        m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
+        }
+
+        inline void append_subparams(std::initializer_list<int> subparams) noexcept
+        {
+                assert(m_seq.n_args + subparams.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
+                for (int p : subparams) {
+                        int* arg = &m_seq.args[m_seq.n_args++];
+                        *arg = vte_seq_arg_init(std::min(p, 0xffff));
+                        vte_seq_arg_finish(arg, false);
+                }
+                vte_seq_arg_refinish(&m_seq.args[m_seq.n_args - 1], true);
+        }
+
+        inline void set_string(string_type const& str) noexcept
+        {
+                m_arg_str = str;
+        }
+
+        inline void set_string(string_type&& str) noexcept
+        {
+                m_arg_str = str;
+        }
+
+        enum class ST {
+                NONE,
+                DEFAULT,
+                C0,
+                C1,
+                BEL
+        };
+
+
+private:
+        void append_introducer(string_type& s,
+                               bool c1 = true) const noexcept
+        {
+                /* Introducer */
+                if (c1) {
+                        switch (m_seq.type) {
+                        case VTE_SEQ_ESCAPE: m_encoder.put(s, 0x1b); break; // ESC
+                        case VTE_SEQ_CSI:    m_encoder.put(s, 0x9b); break; // CSI
+                        case VTE_SEQ_DCS:    m_encoder.put(s, 0x90); break; // DCS
+                        case VTE_SEQ_OSC:    m_encoder.put(s, 0x9d); break; // OSC
+                        case VTE_SEQ_APC:    m_encoder.put(s, 0x9f); break; // APC
+                        case VTE_SEQ_PM:     m_encoder.put(s, 0x9e); break; // PM
+                        case VTE_SEQ_SOS:    m_encoder.put(s, 0x98); break; // SOS
+                        default: return;
+                        }
+                } else {
+                        s.push_back(0x1B); // ESC
+                        switch (m_seq.type) {
+                        case VTE_SEQ_ESCAPE:                    break; // nothing more
+                        case VTE_SEQ_CSI:    s.push_back(0x5b); break; // [
+                        case VTE_SEQ_DCS:    s.push_back(0x50); break; // P
+                        case VTE_SEQ_OSC:    s.push_back(0x5d); break; // ]
+                        case VTE_SEQ_APC:    s.push_back(0x5f); break; // _
+                        case VTE_SEQ_PM:     s.push_back(0x5e); break; // ^
+                        case VTE_SEQ_SOS:    s.push_back(0x58); break; // X
+                        default: return;
+                        }
+                }
+        }
+
+        void append_params(string_type& s) const noexcept
+        {
+                /* Parameters */
+                switch (m_seq.type) {
+                case VTE_SEQ_CSI:
+                case VTE_SEQ_DCS: {
+
+                        if (m_param_intro != 0)
+                                s.push_back(m_param_intro);
+                        auto n_args = m_seq.n_args;
+                        for (unsigned int n = 0; n < n_args; n++) {
+                                auto arg = vte_seq_arg_value(m_seq.args[n]);
+                                if (n > 0) {
+                                        s.push_back(";:"[vte_seq_arg_nonfinal(m_seq.args[n])]);
+                                }
+                                if (arg >= 0) {
+                                        char buf[16];
+                                        int l = g_snprintf(buf, sizeof(buf), "%d", arg);
+                                        for (int j = 0; j < l; j++)
+                                                s.push_back(buf[j]);
+                                }
+                        }
+                        break;
+                }
+                default:
+                        break;
+                }
+        }
+
+        void append_intermediates_and_final(string_type& s) const noexcept
+        {
+                /* Intermediates and Final */
+                switch (m_seq.type) {
+                case VTE_SEQ_ESCAPE:
+                case VTE_SEQ_CSI:
+                case VTE_SEQ_DCS:
+                        for (unsigned char n = 0; n < m_n_intermediates; n++)
+                                s.push_back(m_intermediates[n]);
+
+                        if (m_seq.terminator != 0)
+                                s.push_back(m_seq.terminator);
+                        break;
+                default:
+                        break;
+                }
+        }
+
+        void append_arg_string(string_type& s,
+                               bool c1 = false,
+                               ssize_t max_arg_str_len = -1,
+                               ST st = ST::DEFAULT) const noexcept
+        {
+                /* String and ST */
+                switch (m_seq.type) {
+                case VTE_SEQ_DCS:
+                case VTE_SEQ_OSC:
+
+                        if (max_arg_str_len < 0)
+                                s.append(m_arg_str, 0, max_arg_str_len);
+                        else
+                                s.append(m_arg_str);
+
+                        switch (st) {
+                        case ST::NONE:
+                                // omit ST
+                                break;
+                        case ST::DEFAULT:
+                                if (c1) {
+                                        // s.push_back(0xc2); // fixmechpe
+                                        m_encoder.put(s, 0x9c); // ST
+                                } else {
+                                        s.push_back(0x1b); // ESC
+                                        s.push_back(0x5c); // BACKSLASH
+                                }
+                                break;
+                        case ST::C0:
+                                s.push_back(0x1b); // ESC
+                                s.push_back(0x5c); // BACKSLASH
+                                break;
+                        case ST::C1:
+                                m_encoder.put(s, 0x9c); // ST
+                                break;
+                        case ST::BEL:
+                                s.push_back(0x7); // BEL
+                                break;
+                        default:
+                                break;
+                        }
+                }
+        }
+
+public:
+        void to_string(string_type& s,
+                       bool c1 = false,
+                       ssize_t max_arg_str_len = -1,
+                       ST st = ST::DEFAULT) const noexcept
+        {
+                append_introducer(s, c1);
+                append_params(s);
+                append_intermediates_and_final(s);
+                append_arg_string(s, c1, max_arg_str_len, st);
+        }
+
+        void assert_equal(struct vte_seq* seq);
+        void assert_equal_full(struct vte_seq* seq);
+
+        void print(bool c1 = false);
+};
+
+using u8SequenceBuilder = SequenceBuilder<std::string, UTF8Encoder>;
+using u32SequenceBuilder = SequenceBuilder<std::u32string>;
+
+class ReplyBuilder : public u8SequenceBuilder {
+public:
+        ReplyBuilder(unsigned int reply,
+                     std::initializer_list<int> params)
+        {
+                switch (reply) {
+#define _VTE_REPLY_PARAMS(params) append_params(params);
+#define _VTE_REPLY_STRING(str) set_string(str);
+#define _VTE_REPLY(cmd,type,final,pintro,intermediate,code) \
+                case VTE_REPLY_##cmd: \
+                        set_type(VTE_SEQ_##type); \
+                        set_final(final); \
+                        set_param_intro(VTE_SEQ_INTERMEDIATE_##pintro); \
+                        if (VTE_SEQ_INTERMEDIATE_##intermediate != VTE_SEQ_INTERMEDIATE_NONE) \
+                                append_intermediate(VTE_SEQ_INTERMEDIATE_##intermediate); \
+                        code \
+                        break;
+#include "parser-reply.hh"
+#undef _VTE_REPLY
+#undef _VTE_REPLY_PARAMS
+#undef _VTE_REPLY_STRING
+                default:
+                        assert(false);
+                        break;
+                }
+                append_params(params);
+        }
+
+}; // class ReplyBuilder
+
 class StringTokeniser {
 public:
         using string_type = std::string;

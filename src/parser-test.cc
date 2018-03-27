@@ -48,6 +48,9 @@ seq_to_str(unsigned int type)
         case VTE_SEQ_CSI: return "CSI";
         case VTE_SEQ_DCS: return "DCS";
         case VTE_SEQ_OSC: return "OSC";
+        case VTE_SEQ_APC: return "APC";
+        case VTE_SEQ_PM: return "PM";
+        case VTE_SEQ_SOS: return "SOS";
         default:
                 g_assert_not_reached();
         }
@@ -1422,6 +1425,16 @@ test_seq_glue_string_tokeniser(void)
         g_assert_true(pit4 == tokeniser4.cend());
 }
 
+static void
+test_seq_glue_sequence_builder(void)
+{
+}
+
+static void
+test_seq_glue_reply_builder(void)
+{
+}
+
 int
 main(int argc,
      char* argv[])
@@ -1436,6 +1449,8 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/glue/arg", test_seq_glue_arg);
         g_test_add_func("/vte/parser/sequences/glue/string", test_seq_glue_string);
         g_test_add_func("/vte/parser/sequences/glue/string-tokeniser", test_seq_glue_string_tokeniser);
+        g_test_add_func("/vte/parser/sequences/glue/sequence-builder", test_seq_glue_sequence_builder);
+        g_test_add_func("/vte/parser/sequences/glue/reply-builder", test_seq_glue_reply_builder);
         g_test_add_func("/vte/parser/sequences/control", test_seq_control);
         g_test_add_func("/vte/parser/sequences/escape/invalid", test_seq_esc_invalid);
         g_test_add_func("/vte/parser/sequences/escape/charset/94", test_seq_esc_charset_94);

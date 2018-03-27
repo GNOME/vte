@@ -56,6 +56,7 @@ _vte_debug_init(void)
     { "regex",        VTE_DEBUG_REGEX        },
     { "hyperlink",    VTE_DEBUG_HYPERLINK    },
     { "modes",        VTE_DEBUG_MODES        },
+    { "emulation",    VTE_DEBUG_EMULATION    },
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),
