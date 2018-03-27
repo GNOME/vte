@@ -4447,9 +4447,14 @@ VteTerminalPrivate::DECSR(vte::parser::Sequence const& seq)
          *   args[0]: the token
          *
          * References: VT525
-         *
-         * FIXMEchpe: implement this
          */
+
+        /* Note: reset() wipes out @seq, so we need to get the
+         * param beforehand, and use send() instead of reply().
+         */
+        auto const token = seq.collect1(0);
+	reset(true, true);
+        send(VTE_REPLY_DECSRC, {token});
 }
 
 void
@@ -6627,10 +6632,6 @@ VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
          *
          * References: ECMA-48 § 8.3.105
          */
-
-#if 0
-        vte_screen_hard_reset(screen);
-#endif
 
 	reset(true, true);
 }
