@@ -79,28 +79,36 @@ IGNORE_HFILES = \
 	config.h \
 	buffer.h \
 	caps.hh \
-	caps-list.hh \
 	debug.h \
 	iso2022.h \
 	keymap.h \
 	marshal.h \
-	matcher.hh \
+	modes.hh \
+	modes-ecma.hh \
+	modes-private.hh \
 	parser.hh \
+	parser-arg.hh \
+	parser-c01.hh \
+	parser-charset.hh \
+	parser-charset-tables.hh \
 	parser-cmd.hh \
+	parser-csi.hh \
+	parser-dcs.hh \
+	parser-esc.hh \
 	parser-glue.hh \
+	parser-osc.hh \
+	parser-reply.hh \
+	parser-string.hh \
 	ring.h \
 	stamp-vtetypebuiltins.h \
-	table.hh \
-	trie.h \
+	tabstops.hh \
 	vteconv.h \
 	vtedraw.h \
 	vteinternal.hh \
 	vterowdata.h \
-	vteseq-list.h \
 	vtestream-base.h \
 	vtestream-file.h \
 	vtestream.h \
-	vtetc.h \
 	vteunistr.h \
 	vteunistr.h
 
