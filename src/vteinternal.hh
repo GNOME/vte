@@ -1208,9 +1208,6 @@ public:
                                        vte::grid::column_t column); /* 1-based */
         inline vte::grid::row_t get_cursor_row() const;
         inline vte::grid::column_t get_cursor_column() const;
-        inline void reset_scrolling_region();
-        inline void set_scrolling_region(vte::grid::row_t start /* relative */,
-                                         vte::grid::row_t end /* relative */);
         inline void move_cursor_up(vte::grid::row_t rows);
         inline void move_cursor_down(vte::grid::row_t rows);
         inline void erase_characters(long count);

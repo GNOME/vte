@@ -1143,64 +1143,6 @@ VteTerminalPrivate::seq_carriage_return(vte::parser::Params const& params)
         set_cursor_column(0);
 }
 
-void
-VteTerminalPrivate::reset_scrolling_region()
-{
-        m_scrolling_restricted = FALSE;
-        home_cursor();
-}
-
-/* Restrict scrolling and updates to a subset of the visible lines. */
-void
-VteTerminalPrivate::seq_set_scrolling_region(vte::parser::Params const& params)
-{
-	/* We require two parameters.  Anything less is a reset. */
-        //        if (params.size() < 2)
-        //                return reset_scrolling_region();
-
-        auto start = params.number_or_default_at_unchecked(0) - 1;
-        auto end = params.number_or_default_at_unchecked(1) - 1;
-        set_scrolling_region(start, end);
-}
-
-void
-VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
-                                         vte::grid::row_t end /* relative */)
-{
-        /* A (1-based) value of 0 means default. */
-        if (start == -1) {
-		start = 0;
-	}
-        if (end == -1) {
-                end = m_row_count - 1;
-        }
-        /* Bail out on garbage, require at least 2 rows, as per xterm. */
-        // FIXMEchpe
-        if (start < 0 || start >= m_row_count - 1 || end < start + 1) {
-                reset_scrolling_region();
-                return;
-        }
-        if (end >= m_row_count) {
-                end = m_row_count - 1;
-	}
-
-	/* Set the right values. */
-        m_scrolling_region.start = start;
-        m_scrolling_region.end = end;
-        m_scrolling_restricted = TRUE;
-        if (m_scrolling_region.start == 0 &&
-            m_scrolling_region.end == m_row_count - 1) {
-		/* Special case -- run wild, run free. */
-                m_scrolling_restricted = FALSE;
-	} else {
-		/* Maybe extend the ring -- bug 710483 */
-                while (_vte_ring_next(m_screen->row_data) < m_screen->insert_delta + m_row_count)
-                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
-	}
-
-        home_cursor();
-}
-
 /* Delete a character at the current cursor position. */
 void
 VteTerminalPrivate::delete_character()
@@ -1911,31 +1853,6 @@ VteTerminalPrivate::set_current_hyperlink(char *hyperlink_params /* adopted */,
 
         g_free(hyperlink_params);
         g_free(uri);
-}
-
-/* Restrict the scrolling region. */
-void
-VteTerminalPrivate::seq_set_scrolling_region_from_start(vte::parser::Params const& params)
-{
-        /* We require a parameters.  Anything less is a reset. */
-        if (params.size() < 1)
-                return reset_scrolling_region();
-
-        auto end = params.number_or_default_at(1) - 1;
-        set_scrolling_region(-1, end);
-
-}
-
-void
-VteTerminalPrivate::seq_set_scrolling_region_to_end(vte::parser::Params const& params)
-{
-        /* We require a parameters.  Anything less is a reset. */
-        if (params.size() < 1)
-                return reset_scrolling_region();
-
-        auto start = params.number_or_default_at(0) - 1;
-        set_scrolling_region(start, -1);
-
 }
 
 void
@@ -4130,11 +4047,19 @@ VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTBM - set-top-and-bottom-margins
+         * This control function sets the top and bottom margins for the current
+         * page. You cannot perform scrolling outside the margins.
+         *
+         * @args[0] defines the top margin, @args[1] defines the bottom margin.
+         * The bottom margin must be lower than the top-margin.
+         *
          * This call resets the cursor position to (1,1).
          *
          * Defaults:
          *   args[0]: 1
-         *   args[1]: last page-line
+         *   args[1]: number of lines in screen
+         *
+         * References: VT525 5–149
          */
 #if 0
         unsigned int top, bottom;
@@ -4164,7 +4089,43 @@ VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, 0, 0);
 #endif
 
-        seq_set_scrolling_region(seq);
+        int start, end;
+        seq.collect(0, {&start, &end});
+
+        /* Defaults */
+        if (start == -1)
+                start = 1;
+        if (end == -1)
+                end = m_row_count;
+
+        /* Bail out on garbage, require at least 2 rows, as per xterm. */
+        // FIXMEchpe
+        if (start < 1 || start > m_row_count ||
+            end < (start + 1)) {
+                m_scrolling_restricted = FALSE;
+                home_cursor();
+                return;
+        }
+        // FIXMEchpe why not reset here too?
+        if (end > m_row_count) {
+                end = m_row_count;
+	}
+
+	/* Set the right values. */
+        m_scrolling_region.start = start - 1;
+        m_scrolling_region.end = end - 1;
+        m_scrolling_restricted = TRUE;
+        if (m_scrolling_region.start == 0 &&
+            m_scrolling_region.end == m_row_count - 1) {
+		/* Special case -- run wild, run free. */
+                m_scrolling_restricted = FALSE;
+	} else {
+		/* Maybe extend the ring -- bug 710483 */
+                while (_vte_ring_next(m_screen->row_data) < m_screen->insert_delta + m_row_count)
+                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
+	}
+
+        home_cursor();
 }
 
 void
