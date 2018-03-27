@@ -258,12 +258,14 @@ printout(GString* str)
 
 static gsize seq_stats[VTE_SEQ_N];
 static gsize cmd_stats[VTE_CMD_N];
+static GArray* bench_times;
 
 static void
 process_file(int fd,
              char const* charset,
              bool codepoints,
-             bool plain)
+             bool plain,
+             bool quiet)
 {
         struct vte_parser *parser;
         if (vte_parser_new(&parser) != 0)
@@ -275,6 +277,8 @@ process_file(int fd,
         guchar* buf = g_new0(guchar, buf_size);
         auto unichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
         auto outbuf = g_string_sized_new(buf_size);
+
+        auto start_time = g_get_monotonic_time();
 
         gsize buf_start = 0;
         for (;;) {
@@ -304,7 +308,7 @@ process_file(int fd,
                         auto ret = vte_parser_feed(parser,
                                                    &seq,
                                                    wbuf[i]);
-                        if (ret < 0) {
+                        if (G_UNLIKELY(ret < 0)) {
                                 g_printerr("Parser error!\n");
                                 goto out;
                         }
@@ -312,15 +316,22 @@ process_file(int fd,
                         seq_stats[ret]++;
                         if (ret != VTE_SEQ_NONE) {
                                 cmd_stats[seq->command]++;
-                                print_seq(outbuf, seq, codepoints, plain);
-                                if (seq->command == VTE_CMD_LF)
-                                        printout(outbuf);
+                                if (!quiet) {
+                                        print_seq(outbuf, seq, codepoints, plain);
+                                        if (seq->command == VTE_CMD_LF)
+                                                printout(outbuf);
+                                }
                         }
                 }
         }
 
  out:
-        printout(outbuf);
+        if (!quiet)
+                printout(outbuf);
+
+        int64_t time_spent = g_get_monotonic_time() - start_time;
+        g_array_append_val(bench_times, time_spent);
+
         g_string_free(outbuf, TRUE);
         g_array_free(unichars, TRUE);
         g_free(buf);
@@ -328,22 +339,56 @@ process_file(int fd,
         _vte_iso2022_state_free(subst);
 }
 
+static bool
+process_file(int fd,
+             char const* charset,
+             bool codepoints,
+             bool plain,
+             bool quiet,
+             int repeat)
+{
+        if (fd == STDIN_FILENO && repeat != 1) {
+                g_printerr("Cannot consume STDIN more than once\n");
+                return false;
+        }
+
+        for (auto i = 0; i < repeat; ++i) {
+                if (i > 0 && lseek(fd, 0, SEEK_SET) != 0) {
+                        g_printerr("Failed to seek: %m\n");
+                        return false;
+                }
+
+                process_file(fd, charset, codepoints, plain, quiet);
+        }
+
+        return true;
+}
+
 int
 main(int argc,
      char *argv[])
 {
-        char* charset = nullptr;
+        gboolean benchmark = false;
         gboolean codepoints = false;
         gboolean plain = false;
+        gboolean quiet = false;
         gboolean statistics = false;
+        int repeat = 1;
+        char* charset = nullptr;
         char** filenames = nullptr;
         GOptionEntry const entries[] = {
+                { "benchmark", 'b', 0, G_OPTION_ARG_NONE, &benchmark,
+                  "Measure time spent parsing each file", nullptr },
                 { "charset", 'c', 0, G_OPTION_ARG_STRING, &charset,
                   "Charset to use (default: UTF-8)", "CHARSET" },
                 { "codepoints", 'u', 0, G_OPTION_ARG_NONE, &codepoints,
                   "Output unicode code points by number", nullptr },
                 { "plain", 'p', 0, G_OPTION_ARG_NONE, &plain,
                   "Output plain text without attributes", nullptr },
+                { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
+                  "Suppress output except for statistics and benchmark", nullptr },
+                { "repeat", 'r', 0, G_OPTION_ARG_INT, &repeat,
+                  "Repeat each file COUNT times", "COUNT" },
                 { "statistics", 's', 0, G_OPTION_ARG_NONE, &statistics,
                   "Output statistics", nullptr },
                 { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames,
@@ -368,8 +413,11 @@ main(int argc,
                 return EXIT_FAILURE;
         }
 
+        int exit_status = EXIT_FAILURE;
+
         memset(&seq_stats, 0, sizeof(seq_stats));
         memset(&cmd_stats, 0, sizeof(cmd_stats));
+        bench_times = g_array_new(false, true, sizeof(int64_t));
 
         if (filenames != nullptr) {
                 for (auto i = 0; filenames[i] != nullptr; i++) {
@@ -385,14 +433,18 @@ main(int argc,
                                 }
                         }
                         if (fd != -1) {
-                                process_file(fd, charset, codepoints, plain);
+                                bool r = process_file(fd, charset, codepoints, plain, quiet, repeat);
                                 close(fd);
+                                if (!r)
+                                        break;
                         }
                 }
 
                 g_strfreev(filenames);
+                exit_status = EXIT_SUCCESS;
         } else {
-                process_file(STDIN_FILENO, charset, codepoints, plain);
+                if (process_file(STDIN_FILENO, charset, codepoints, plain, quiet, repeat))
+                        exit_status = EXIT_SUCCESS;
         }
 
         g_free(charset);
@@ -410,5 +462,30 @@ main(int argc,
                 }
         }
 
-        return 0;
+        if (benchmark) {
+                g_array_sort(bench_times,
+                             [](void const* p1, void const* p2) -> int {
+                                     int64_t const t1 = *(int64_t const*)p1;
+                                     int64_t const t2 = *(int64_t const*)p2;
+                                     return t1 == t2 ? 0 : (t1 < t2 ? -1 : 1);
+                             });
+
+                int64_t total_time = 0;
+                for (unsigned int i = 0; i < bench_times->len; ++i)
+                        total_time += g_array_index(bench_times, int64_t, i);
+
+                g_printerr("\nTimes: best %\'" G_GINT64_FORMAT "µs "
+                           "worst %\'" G_GINT64_FORMAT "µs "
+                           "average %\'" G_GINT64_FORMAT "µs\n",
+                           g_array_index(bench_times, int64_t, 0),
+                           g_array_index(bench_times, int64_t, bench_times->len - 1),
+                           total_time / (int64_t)bench_times->len);
+                for (unsigned int i = 0; i < bench_times->len; ++i)
+                        g_printerr("  %\'" G_GINT64_FORMAT "µs\n",
+                                   g_array_index(bench_times, int64_t, i));
+        }
+
+        g_array_free(bench_times,true);
+
+        return exit_status;
 }
