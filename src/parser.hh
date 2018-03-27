@@ -35,7 +35,7 @@ struct vte_seq;
  * host side is not used by anyone.
  */
 
-#define VTE_PARSER_ARG_MAX (16)
+#define VTE_PARSER_ARG_MAX (32)
 
 enum {
         VTE_SEQ_NONE,        /* placeholder, no sequence parsed */
