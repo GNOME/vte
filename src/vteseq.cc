@@ -1513,57 +1513,6 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
         return false;
 }
 
-/* Request terminal attributes. */
-void
-VteTerminalPrivate::seq_request_terminal_parameters(vte::parser::Params const& params)
-{
-	feed_child("\e[?x", -1);
-}
-
-/* Request terminal attributes. */
-void
-VteTerminalPrivate::seq_return_terminal_status(vte::parser::Params const& params)
-{
-	feed_child("", 0);
-}
-
-/* Send primary device attributes. */
-void
-VteTerminalPrivate::seq_send_primary_device_attributes(vte::parser::Params const& params)
-{
-        // FIXMEchpe only send anything when param==0 as per ECMA48
-	/* Claim to be a VT220 with only national character set support. */
-        feed_child("\e[?62;c", -1);
-}
-
-/* Send terminal ID. */
-void
-VteTerminalPrivate::seq_return_terminal_id(vte::parser::Params const& params)
-{
-	seq_send_primary_device_attributes(params);
-}
-
-/* Send secondary device attributes. */
-void
-VteTerminalPrivate::seq_send_secondary_device_attributes(vte::parser::Params const& params)
-{
-	char **version;
-	char buf[128];
-	long ver = 0, i;
-	/* Claim to be a VT220, more or less.  The '>' in the response appears
-	 * to be undocumented. */
-	version = g_strsplit(VERSION, ".", 0);
-	if (version != NULL) {
-		for (i = 0; version[i] != NULL; i++) {
-			ver = ver * 100;
-			ver += atol(version[i]);
-		}
-		g_strfreev(version);
-	}
-	g_snprintf(buf, sizeof (buf), _VTE_CAP_ESC "[>1;%ld;0c", ver);
-	feed_child(buf, -1);
-}
-
 /* Set one or the other. */
 void
 VteTerminalPrivate::seq_set_icon_title(vte::parser::Params const& params)
@@ -2177,7 +2126,6 @@ UNIMPLEMENTED_SEQUENCE_HANDLER(select_character_protection)
 UNIMPLEMENTED_SEQUENCE_HANDLER(select_locator_events)
 UNIMPLEMENTED_SEQUENCE_HANDLER(selective_erase_in_display)
 UNIMPLEMENTED_SEQUENCE_HANDLER(selective_erase_in_line)
-UNIMPLEMENTED_SEQUENCE_HANDLER(send_tertiary_device_attributes)
 UNIMPLEMENTED_SEQUENCE_HANDLER(set_conformance_level)
 UNIMPLEMENTED_SEQUENCE_HANDLER(set_text_property_21)
 UNIMPLEMENTED_SEQUENCE_HANDLER(set_text_property_2L)
@@ -2796,12 +2744,21 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *       TODO: ?
          *   46: ASCII emulation
          *       TODO: ?
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.24
          */
 #if 0
         SEQ_WRITE(screen, C0_CSI, C1_CSI, "?64;1;6;9;15c");
 #endif
 
-        seq_send_primary_device_attributes(seq);
+        if (seq.collect1(0, 0) != 0)
+                return;
+
+        /* Claim to be a VT220 with only national character set support. */
+        feed_child("\e[?62;c", -1);
 }
 
 void
@@ -2821,15 +2778,34 @@ VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
          * version encoded as major/minor (20 == 2.0) and KEYBOARD is 0 for STD
          * keyboard and 1 for PC keyboards.
          *
-         * We replace the firmware-version with the systemd-version so clients
+         * We replace the firmware-version with the VTE version so clients
          * can decode it again.
+         *
+         * References: VT525
          */
 #if 0
         return SEQ_WRITE(screen, C0_CSI, C1_CSI,
                          ">65;" __stringify(LINUX_VERSION_CODE) ";1c");
 #endif
 
-        seq_send_secondary_device_attributes(seq);
+        if (seq.collect1(0, 0) != 0)
+                return;
+
+	char **version;
+	char buf[128];
+	long ver = 0, i;
+	/* Claim to be a VT220, more or less.  The '>' in the response appears
+	 * to be undocumented. */
+	version = g_strsplit(VERSION, ".", 0);
+	if (version != NULL) {
+		for (i = 0; version[i] != NULL; i++) {
+			ver = ver * 100;
+			ver += atol(version[i]);
+		}
+		g_strfreev(version);
+	}
+	g_snprintf(buf, sizeof (buf), _VTE_CAP_ESC "[>65;%ld;0c", ver);
+	feed_child(buf, -1);
 }
 
 void
@@ -2846,8 +2822,9 @@ VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
          */
 
         /* we do not support tertiary DAs */
-#if 0
-#endif
+
+        if (seq.collect1(0, 0) != 0)
+                return;
 }
 
 void
@@ -3305,6 +3282,8 @@ VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * References: VT525
          */
 #if 0
         if (seq->n_args < 1 || seq->args[0] == 0) {
@@ -3318,7 +3297,7 @@ VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
         }
 #endif
 
-        seq_request_terminal_parameters(seq);
+	feed_child("\e[?x", -1);
 }
 
 void
@@ -4293,6 +4272,8 @@ VteTerminalPrivate::ENQ(vte::parser::Sequence const& seq)
         /*
          * ENQ - enquiry
          * Transmit the answerback-string. If none is set, do nothing.
+         *
+         * References: ECMA-48 § 8.3.44
          */
 #if 0
         if (screen->answerback)
@@ -4301,7 +4282,7 @@ VteTerminalPrivate::ENQ(vte::parser::Sequence const& seq)
                                     strlen(screen->answerback));
 #endif
 
-        seq_return_terminal_status(seq);
+        /* No-op for security reasons */
 }
 
 void
