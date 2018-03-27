@@ -892,9 +892,9 @@ test_seq_glue(void)
 {
         vte::parser::Sequence seq{};
 
-        test_seq_glue(":0:1000;2;:", 6, 3, seq);
+        test_seq_glue(":0:1000;2;3;4;:;", 9, 6, seq);
         g_assert_cmpuint(seq.cbegin(), ==, 0);
-        g_assert_cmpuint(seq.cend(), ==, 6);
+        g_assert_cmpuint(seq.cend(), ==, 9);
 
         auto it = seq.cbegin();
         g_assert_cmpuint(it, ==, 0);
@@ -903,13 +903,22 @@ test_seq_glue(void)
         it = seq.next(it);
         g_assert_cmpuint(it, ==, 4);
         it = seq.next(it);
+        g_assert_cmpuint(it, ==, 5);
+        it = seq.next(it);
         g_assert_cmpuint(it, ==, 6);
+        it = seq.next(it);
+        g_assert_cmpuint(it, ==, 8);
+        it = seq.next(it);
+        g_assert_cmpuint(it, ==, 9);
 
         it = seq.cbegin();
         g_assert_cmpint(seq.param(it++), ==, -1);
         g_assert_cmpint(seq.param(it++), ==, 0);
         g_assert_cmpint(seq.param(it++), ==, 1000);
         g_assert_cmpint(seq.param(it++), ==, 2);
+        g_assert_cmpint(seq.param(it++), ==, 3);
+        g_assert_cmpint(seq.param(it++), ==, 4);
+        g_assert_cmpint(seq.param(it++), ==, -1);
         g_assert_cmpint(seq.param(it++), ==, -1);
         g_assert_cmpint(seq.param(it++), ==, -1);
         g_assert_cmpint(it, ==, seq.cend());
@@ -922,6 +931,61 @@ test_seq_glue(void)
         g_assert_cmpint(seq.param(it, -2, 20, 100), ==, 100);
         g_assert_cmpint(seq.param(it, -2, 200, 2000), ==, 1000);
         g_assert_cmpint(seq.param(it, -2, 2000, 4000), ==, 2000);
+
+        int a, b, c,d ;
+        it = seq.cbegin();
+        g_assert_false(seq.collect(it, {&a, &b, &c}));
+        g_assert_true(seq.collect_subparams(it, {&a}));
+        g_assert_true(seq.collect_subparams(it, {&a, &b}));
+        g_assert_true(seq.collect_subparams(it, {&a, &b, &c}));
+        g_assert_cmpint(a, ==, -1);
+        g_assert_cmpint(b, ==, 0);
+        g_assert_cmpint(c, ==, 1000);
+        g_assert_false(seq.collect_subparams(it, {&a, &b, &c, &d}));
+
+        it = seq.next(it);
+        g_assert_true(seq.collect(it, {&a}));
+        g_assert_true(seq.collect(it, {&a, &b}));
+        g_assert_true(seq.collect(it, {&a, &b, &c}));
+        g_assert_cmpint(a, ==, 2);
+        g_assert_cmpint(b, ==, 3);
+        g_assert_cmpint(c, ==, 4);
+        g_assert_false(seq.collect(it, {&a, &b, &c, &d}));
+
+        it = seq.next(it);
+        it = seq.next(it);
+        it = seq.next(it);
+        g_assert_false(seq.collect(it, {&a}));
+        g_assert_true(seq.collect_subparams(it, {&a}));
+        g_assert_true(seq.collect_subparams(it, {&a, &b}));
+        g_assert_cmpint(a, ==, -1);
+        g_assert_cmpint(b, ==, -1);
+        g_assert_false(seq.collect_subparams(it, {&a, &b, &c}));
+        it = seq.next(it);
+        g_assert_true(seq.collect(it, {&a}));
+        g_assert_cmpint(a, ==, -1);
+        g_assert_true(seq.collect(it, {&a, &b})); /* past-the-end params are final and default */
+        g_assert_cmpint(a, ==, -1);
+        g_assert_cmpint(b, ==, -1);
+
+        it = seq.cbegin();
+        g_assert_cmpint(seq.collect1(it, -2), ==, -2);
+        it = seq.next(it);
+        g_assert_cmpint(seq.collect1(it), ==, 2);
+        g_assert_cmpint(seq.collect1(it), ==, 2);
+        it = seq.next(it);
+        g_assert_cmpint(seq.collect1(it), ==, 3);
+        it = seq.next(it);
+        g_assert_cmpint(seq.collect1(it), ==, 4);
+        it = seq.next(it);
+        g_assert_cmpint(seq.collect1(it, -3), ==, -3);
+        it = seq.next(it);
+        g_assert_cmpint(seq.collect1(it), ==, -1);
+        g_assert_cmpint(seq.collect1(it, 42), ==, 42);
+        g_assert_cmpint(seq.collect1(it, -1, 0, 100), ==, 0);
+        g_assert_cmpint(seq.collect1(it, 42, 0, 100), ==, 42);
+        g_assert_cmpint(seq.collect1(it, 42, 0, 10), ==, 10);
+        g_assert_cmpint(seq.collect1(it, 42, 100, 200), ==, 100);
 }
 
 int

@@ -200,6 +200,79 @@ public:
                 return size();
         }
 
+        /* collect:
+         *
+         * Collects some final parameters.
+         *
+         * Returns: %true if the sequence parameter list begins with
+         *  a run of final parameters that were collected.
+         */
+        inline constexpr bool collect(unsigned int start_idx,
+                                      std::initializer_list<int*> params,
+                                      int default_v = -1) const noexcept
+        {
+                unsigned int idx = start_idx;
+                for (auto i : params) {
+                        *i = param(idx, default_v);
+                        idx = next(idx);
+                }
+
+                return (idx - start_idx) == params.size();
+        }
+
+        /* collect1:
+         * @idx:
+         * @default_v:
+         *
+         * Collects one final parameter.
+         *
+         * Returns: the parameter value, or @default_v if the parameter has
+         *   default value or is not a final parameter
+         */
+        inline constexpr int collect1(unsigned int idx,
+                                      int default_v = -1) const noexcept
+        {
+                return __builtin_expect(idx < size(), 1) ? vte_seq_arg_value_final(m_seq->args[idx], default_v) : default_v;
+        }
+
+        /* collect1:
+         * @idx:
+         * @default_v:
+         * @min_v:
+         * @max_v
+         *
+         * Collects one final parameter.
+         *
+         * Returns: the parameter value clamped to the @min_v .. @max_v range,
+         *   or @default_v if the parameter has default value or is not a final parameter
+         */
+        inline constexpr int collect1(unsigned int idx,
+                                      int default_v,
+                                      int min_v,
+                                      int max_v) const noexcept
+        {
+                int v = __builtin_expect(idx < size(), 1) ? vte_seq_arg_value_final(m_seq->args[idx], default_v) : default_v;
+                return std::min(std::max(v, min_v), max_v);
+        }
+
+        /* collect_subparams:
+         *
+         * Collects some subparameters.
+         *
+         * Returns: %true if the sequence parameter list contains enough
+         *   subparams at @start_idx
+         */
+        inline constexpr bool collect_subparams(unsigned int start_idx,
+                                                std::initializer_list<int*> params,
+                                                int default_v = -1) const noexcept
+        {
+                unsigned int idx = start_idx;
+                for (auto i : params) {
+                        *i = param(idx++, default_v);
+                }
+
+                return idx <= next(start_idx);
+        }
 
         //FIMXE remove this one
         inline constexpr int operator[](int position) const

@@ -39,6 +39,7 @@ typedef int vte_seq_arg_t;
 
 #define VTE_SEQ_ARG_FLAG_VALUE    (1 << 16)
 #define VTE_SEQ_ARG_FLAG_NONFINAL (1 << 17)
+#define VTE_SEQ_ARG_FLAG_MASK     (VTE_SEQ_ARG_FLAG_VALUE | VTE_SEQ_ARG_FLAG_NONFINAL)
 #define VTE_SEQ_ARG_VALUE_MASK    (0xffff)
 
 /*
@@ -160,4 +161,17 @@ static constexpr inline int vte_seq_arg_value(vte_seq_arg_t arg,
                                               int default_value = -1)
 {
         return (arg & VTE_SEQ_ARG_FLAG_VALUE) ? (arg & VTE_SEQ_ARG_VALUE_MASK) : default_value;
+}
+
+/*
+ * vte_seq_arg_value_final:
+ * @arg:
+ * @default_value: (defaults to -1)
+ *
+ * Returns: the value of @arg, or @default_value if @arg has default value or is not final
+ */
+static constexpr inline int vte_seq_arg_value_final(vte_seq_arg_t arg,
+                                                    int default_value = -1)
+{
+        return ((arg & VTE_SEQ_ARG_FLAG_MASK) == VTE_SEQ_ARG_FLAG_VALUE) ? (arg & VTE_SEQ_ARG_VALUE_MASK) : default_value;
 }
