@@ -2338,6 +2338,16 @@ VteTerminalPrivate::DECANM(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECAUPSS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECAUPSS - assign user preferred supplemental sets
+         *
+         * References: VT525
+         */
+}
+
+void
 VteTerminalPrivate::DECBI(vte::parser::Sequence const& seq)
 {
         /*
@@ -2361,6 +2371,16 @@ VteTerminalPrivate::DECCARA(vte::parser::Sequence const& seq)
          * DECCARA - change-attributes-in-rectangular-area
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECCKD(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECCKD - copy key default
+         *
+         * References: VT525
          */
 }
 
@@ -2401,6 +2421,26 @@ VteTerminalPrivate::DECDHL_TH(vte::parser::Sequence const& seq)
          * DECDHL_TH - double-width-double-height-line: top half
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECDLD(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDLD - dynamically redefinable character sets extension
+         *
+         * References: VT525
+         */
+}
+
+void
+VteTerminalPrivate::DECDMAC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDMAC - define-macro
+         *
+         * References: VT525
          */
 }
 
@@ -2573,6 +2613,38 @@ VteTerminalPrivate::DECKPNM(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECLANS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECLANS - load answerback message
+         *
+         * Will not implement this because of security policy.
+         *
+         * References: VT525
+         */
+}
+
+void
+VteTerminalPrivate::DECLBAN(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECLBAN - load banner message
+         *
+         * References: VT525
+         */
+}
+
+void
+VteTerminalPrivate::DECLBD(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECLBD - locator button define
+         *
+         * References: VT330
+         */
+}
+
+void
 VteTerminalPrivate::DECLFKC(vte::parser::Sequence const& seq)
 {
         /*
@@ -2603,6 +2675,16 @@ VteTerminalPrivate::DECLTOD(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECPAK(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECPAK - program alphanumeric key
+         *
+         * References: VT525
+         */
+}
+
+void
 VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
 {
         /*
@@ -2611,6 +2693,16 @@ VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
          * also select parameters for scancode/keycode mappings in SCO mode.
          *
          * Definitely not worth implementing. Lets kill PCTerm/SCO modes!
+         */
+}
+
+void
+VteTerminalPrivate::DECPFK(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECPFK - program function key
+         *
+         * References: VT525
          */
 }
 
@@ -2665,6 +2757,16 @@ VteTerminalPrivate::DECRC(vte::parser::Sequence const& seq)
 #endif
 
         restore_cursor();
+}
+
+void
+VteTerminalPrivate::DECREGIS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECREGIS - ReGIS graphics
+         *
+         * References: VT330
+         */
 }
 
 void
@@ -2823,6 +2925,16 @@ VteTerminalPrivate::DECRQPSR(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECRQSS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRQSS - request selection or setting
+         *
+         * References: VT525
+         */
+}
+
+void
 VteTerminalPrivate::DECRQTSR(vte::parser::Sequence const& seq)
 {
         /*
@@ -2839,6 +2951,26 @@ VteTerminalPrivate::DECRQUPSS(vte::parser::Sequence const& seq)
          * DECRQUPSS - request-user-preferred-supplemental-set
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECRSPS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRSPS - restore presentation state
+         *
+         * References: VT525
+         */
+}
+
+void
+VteTerminalPrivate::DECRSTS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECRSTS - restore terminal state
+         *
+         * References: VT525
          */
 }
 
@@ -3122,6 +3254,17 @@ VteTerminalPrivate::DECSFC(vte::parser::Sequence const& seq)
          * DECSFC - select-flow-control
          *
          * Probably not worth implementing.
+         */
+}
+
+
+void
+VteTerminalPrivate::DECSIXEL(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSIXEL - SIXEL graphics
+         *
+         * References: VT330
          */
 }
 
@@ -3426,6 +3569,16 @@ VteTerminalPrivate::DECSTRL(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECSTUI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSTUI - set terminal unit ID
+         *
+         * References: VT525
+         */
+}
+
+void
 VteTerminalPrivate::DECSWBV(vte::parser::Sequence const& seq)
 {
         /*
@@ -3472,6 +3625,16 @@ VteTerminalPrivate::DECTST(vte::parser::Sequence const& seq)
          * DECTST - invoke-confidence-test
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECUDK(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECUDK - user define keys
+         *
+         * References: VT525
          */
 }
 

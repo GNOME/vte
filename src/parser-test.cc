@@ -916,6 +916,95 @@ test_seq_csi(void)
 }
 
 static void
+test_seq_dcs(uint32_t f,
+             uint32_t p,
+             vte_seq_arg_t params[16],
+             uint32_t i[4],
+             unsigned int ni,
+             std::u32string const& str)
+{
+        vte_seq_builder b{VTE_SEQ_DCS, f};
+        b.set_intermediates(i, ni);
+        b.set_param_byte(p);
+        b.set_params(params);
+        b.set_string(str);
+
+        int expected_rv = (f & 0xF0) == 0x30 ? VTE_SEQ_NONE : VTE_SEQ_DCS;
+
+        for (unsigned int n = 0; n <= 16; n++) {
+                b.set_n_params(n);
+
+                vte_parser_reset(parser);
+                struct vte_seq* seq;
+#if 0
+                /* First with C0 DCS */
+                auto rv = feed_parser(b, &seq, false);
+                g_assert_cmpint(rv, ==, expected_rv);
+                if (rv != VTE_SEQ_NONE)
+                        b.assert_equal_full(seq);
+#endif
+                /* Now with C1 DCS */
+                auto rv = feed_parser(b, &seq, true);
+                g_assert_cmpint(rv, ==, expected_rv);
+                if (rv != VTE_SEQ_NONE)
+                        b.assert_equal_full(seq);
+        }
+}
+
+static void
+test_seq_dcs(uint32_t p,
+             vte_seq_arg_t params[16],
+             std::u32string const& str)
+{
+        uint32_t i[4];
+        for (uint32_t f = 0x30; f < 0x7f; f++) {
+                for (i[0] = 0x20; i[0] < 0x30; i[0]++) {
+                        test_seq_dcs(f, p, params, i, 1, str);
+                        for (i[1] = 0x20; i[1] < 0x30; i[1]++) {
+                                test_seq_dcs(f, p, params, i, 2, str);
+                        }
+                }
+        }
+}
+
+static void
+test_seq_dcs(vte_seq_arg_t params[16],
+             std::u32string const& str)
+{
+        test_seq_dcs(0, params, str);
+        for (uint32_t p = 0x3c; p <= 0x3f; p++)
+                test_seq_dcs(p, params, str);
+}
+
+static void
+test_seq_dcs(std::u32string const& str)
+{
+        /* Tests DCS sequences, that is sequences of the form
+         * DCS P...P I...I F D...D ST
+         * with parameter bytes P from 3/0..3/15, intermediate bytes I from 2/0..2/15 and
+         * final byte F from 4/0..7/14.
+         * There could be any number of intermediate bytes, but we only test up to 2.
+         * There could be any number of extra params bytes, but we only test up to 1.
+         * DCS can be either the C1 control itself, or ESC [; ST can be either the C1
+         * control itself, or ESC \\
+         */
+        vte_seq_arg_t params1[16]{ -1, 0, 1, 9, 10, 99, 100, 999,
+                        1000, 9999, 10000, 65534, 65535, 65536, -1, -1 };
+        test_seq_dcs(params1, str);
+
+        vte_seq_arg_t params2[16]{ 1, -1, -1, -1, 1, -1, 1, 1,
+                        1, -1, -1, -1, -1, 1, 1, 1 };
+        test_seq_dcs(params2, str);
+}
+
+static void
+test_seq_dcs(void)
+{
+        test_seq_dcs(U""s);
+        test_seq_dcs(U"123;TESTING"s);
+}
+
+static void
 test_seq_parse(char const* str,
                struct vte_seq** seq)
 {
@@ -1197,7 +1286,7 @@ test_seq_osc(void)
 
         /* String of any supported length */
         for (unsigned int len = 0; len < VTE_SEQ_STRING_MAX_CAPACITY; ++len)
-                test_seq_osc(std::u32string(len, 0x100000), seq);
+                test_seq_osc(std::u32string(len, 0x10000+len), seq);
 
         /* Length exceeded */
         //        test_seq_osc(std::u32string(VTE_SEQ_STRING_MAX_CAPACITY + 1, 0x100000), seq, VTE_SEQ_NONE);
@@ -1359,6 +1448,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/escape/F[pes]", test_seq_esc_Fpes);
         g_test_add_func("/vte/parser/sequences/csi", test_seq_csi);
         g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
+        g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
         g_test_add_func("/vte/parser/sequences/osc", test_seq_osc);
 
         auto rv = g_test_run();
