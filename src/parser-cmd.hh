@@ -160,12 +160,12 @@ _VTE_CMD(RC) /* restore-cursor */
 _VTE_CMD(REP) /* repeat */
 _VTE_CMD(RI) /* reverse-index */
 _VTE_CMD(RIS) /* reset-to-initial-state */
-_VTE_CMD(RM_ANSI) /* reset-mode-ansi */
+_VTE_CMD(RM_ECMA) /* reset-mode-ecma */
 _VTE_CMD(RM_DEC) /* reset-mode-dec */
 _VTE_CMD(SD) /* scroll-down */
 _VTE_CMD(SGR) /* select-graphics-rendition */
 _VTE_CMD(SI) /* shift-in */
-_VTE_CMD(SM_ANSI) /* set-mode-ansi */
+_VTE_CMD(SM_ECMA) /* set-mode-ecma */
 _VTE_CMD(SM_DEC) /* set-mode-dec */
 _VTE_CMD(SO) /* shift-out */
 _VTE_CMD(SPA) /* start-of-protected-area */

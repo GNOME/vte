@@ -473,7 +473,7 @@ VteTerminalPrivate::set_title_internal(vte::parser::Params const& params,
 
 /* Toggle a terminal mode. */
 void
-VteTerminalPrivate::set_mode(vte::parser::Params const& params,
+VteTerminalPrivate::set_mode(vte::parser::Sequence const& params,
                              bool value)
 {
         auto n_params = params.size();
@@ -534,7 +534,7 @@ decset_cmp(const void *va,
 
 /* Manipulate certain terminal attributes. */
 void
-VteTerminalPrivate::decset(vte::parser::Params const& params,
+VteTerminalPrivate::decset(vte::parser::Sequence const& params,
                            bool restore,
                            bool save,
                            bool set)
@@ -1674,40 +1674,6 @@ VteTerminalPrivate::set_keypad_mode(VteKeymode mode)
         m_keypad_mode = mode;
 }
 
-/* Set certain terminal attributes. */
-void
-VteTerminalPrivate::seq_set_mode(vte::parser::Params const& params)
-{
-        set_mode(params, true);
-}
-
-/* Unset certain terminal attributes. */
-void
-VteTerminalPrivate::seq_reset_mode(vte::parser::Params const& params)
-{
-        set_mode(params, false);
-}
-
-/* Set certain terminal attributes. */
-void
-VteTerminalPrivate::seq_decset(vte::parser::Params const& params)
-{
-        decset(params, false, false, true);
-}
-
-/* Unset certain terminal attributes. */
-void
-VteTerminalPrivate::seq_decreset(vte::parser::Params const& params)
-{
-        decset(params, false, false, false);
-}
-
-/* Erase certain lines in the display. */
-void
-VteTerminalPrivate::seq_erase_in_display(vte::parser::Params const& params)
-{
-}
-
 void
 VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
 {
@@ -1741,11 +1707,6 @@ VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
 	}
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
-}
-
-void
-VteTerminalPrivate::seq_erase_in_line(vte::parser::Params const& params)
-{
 }
 
 void
@@ -4902,12 +4863,14 @@ VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::RM_ANSI(vte::parser::Sequence const& seq)
+VteTerminalPrivate::RM_ECMA(vte::parser::Sequence const& seq)
 {
         /*
-         * RM_ANSI - reset-mode-ansi
+         * RM_ECMA - reset-mode-ecma
          *
-         * TODO: implement (see VT510rm manual)
+         * Defaults: none
+         *
+         * References: ECMA-48 § 8.3.106
          */
 #if 0
         unsigned int i;
@@ -4916,7 +4879,7 @@ VteTerminalPrivate::RM_ANSI(vte::parser::Sequence const& seq)
                 screen_mode_change_ansi(screen, seq->args[i], false);
 #endif
 
-        seq_reset_mode(seq);
+        set_mode(seq, false);
 }
 
 void
@@ -4924,7 +4887,11 @@ VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * RM_DEC - reset-mode-dec
-         * This is the same as RM_ANSI but for DEC modes.
+         * This is the same as RM_ECMA but for DEC modes.
+         *
+         * Defaults: none
+         *
+         * References: VT525
          */
 #if 0
         unsigned int i;
@@ -4933,7 +4900,7 @@ VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
                 screen_mode_change_dec(screen, seq->args[i], false);
 #endif
 
-        seq_decreset(seq);
+        decset(seq, false, false, false);
 }
 
 void
@@ -5117,12 +5084,14 @@ VteTerminalPrivate::SI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SM_ANSI(vte::parser::Sequence const& seq)
+VteTerminalPrivate::SM_ECMA(vte::parser::Sequence const& seq)
 {
         /*
-         * SM_ANSI - set-mode-ansi
+         * SM_ECMA - set-mode-ecma
          *
-         * TODO: implement
+         * Defaults: none
+         *
+         * References: ECMA-48 § 8.3.125
          */
 #if 0
         unsigned int i;
@@ -5131,7 +5100,7 @@ VteTerminalPrivate::SM_ANSI(vte::parser::Sequence const& seq)
                 screen_mode_change_ansi(screen, seq->args[i], true);
 #endif
 
-        seq_set_mode(seq);
+        set_mode(seq, true);
 }
 
 void
@@ -5139,7 +5108,11 @@ VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * SM_DEC - set-mode-dec
-         * This is the same as SM_ANSI but for DEC modes.
+         * This is the same as SM_ECMA but for DEC modes.
+         *
+         * Defaults: none
+         *
+         * References: VT525
          */
 #if 0
         unsigned int i;
@@ -5148,7 +5121,7 @@ VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
                 screen_mode_change_dec(screen, seq->args[i], true);
 #endif
 
-        seq_decset(seq);
+        decset(seq, false, false, true);
 }
 
 void

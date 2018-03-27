@@ -486,8 +486,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                         return VTE_CMD_CUP;
                 break;
         case 'h':
-                if (flags == 0) /* SM ANSI */
-                        return VTE_CMD_SM_ANSI;
+                if (flags == 0) /* SM ECMA */
+                        return VTE_CMD_SM_ECMA;
                 else if (flags == VTE_SEQ_FLAG_WHAT) /* SM DEC */
                         return VTE_CMD_SM_DEC;
                 break;
@@ -518,8 +518,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                         return VTE_CMD_IL;
                 break;
         case 'l':
-                if (flags == 0) /* RM ANSI */
-                        return VTE_CMD_RM_ANSI;
+                if (flags == 0) /* RM ECMA */
+                        return VTE_CMD_RM_ECMA;
                 else if (flags == VTE_SEQ_FLAG_WHAT) /* RM DEC */
                         return VTE_CMD_RM_DEC;
                 break;
