@@ -1343,7 +1343,7 @@ public:
         inline void change_special_color(vte::parser::Params const& params,
                                          int index,
                                          int index_fallback,
-                                         const char *osc,
+                                         int osc,
                                          char const *terminator);
 
         void subscribe_accessible_events();
