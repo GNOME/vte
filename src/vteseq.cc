@@ -1412,14 +1412,6 @@ VteTerminalPrivate::seq_backspace(vte::parser::Params const& params)
 	}
 }
 
-/* Cursor left N columns. */
-void
-VteTerminalPrivate::seq_cursor_backward(vte::parser::Params const& params)
-{
-        auto val = params.number_or_default_at(0, 1);
-        move_cursor_backward(val);
-}
-
 void
 VteTerminalPrivate::move_cursor_backward(vte::grid::column_t columns)
 {
@@ -1428,14 +1420,6 @@ VteTerminalPrivate::move_cursor_backward(vte::grid::column_t columns)
         auto col = get_cursor_column();
         columns = CLAMP(columns, 1, col);
         set_cursor_column(col - columns);
-}
-
-/* Cursor right N columns. */
-void
-VteTerminalPrivate::seq_cursor_forward(vte::parser::Params const& params)
-{
-        auto val = params.number_or_default_at(0, 1);
-        move_cursor_forward(val);
 }
 
 void
@@ -2941,6 +2925,8 @@ VteTerminalPrivate::CUB(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.18
          */
 #if 0
         unsigned int num = 1;
@@ -2952,7 +2938,8 @@ VteTerminalPrivate::CUB(vte::parser::Sequence const& seq)
         screen_cursor_left(screen, num);
 #endif
 
-        seq_cursor_backward(seq);
+        auto value = seq.collect1(0, 1);
+        move_cursor_backward(value);
 }
 
 void
@@ -2993,6 +2980,8 @@ VteTerminalPrivate::CUF(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.20
          */
 #if 0
         unsigned int num = 1;
@@ -3004,7 +2993,8 @@ VteTerminalPrivate::CUF(vte::parser::Sequence const& seq)
         screen_cursor_right(screen, num);
 #endif
 
-        seq_cursor_forward(seq);
+        auto value = seq.collect1(0, 1);
+        move_cursor_forward(value);
 }
 
 void
