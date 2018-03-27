@@ -464,6 +464,84 @@ enum parser_state {
         STATE_N,
 };
 
+/* Parser state transitioning */
+
+typedef int (* parser_action_func)(struct vte_parser *parser, uint32_t raw);
+
+// FIXMEchpe: I get weird performance results here from
+// either not inlining, inlining these function or the
+// macros below. Sometimes (after a recompile) one is
+// (as much as 50%!) slower, sometimes the other one etc. ‽
+
+#if 1 // (inline) functions
+
+// #define PTINLINE inline
+#define PTINLINE
+
+/* nop */
+static PTINLINE int parser_nop(struct vte_parser *parser,
+                               uint32_t raw)
+{
+        return VTE_SEQ_NONE;
+}
+/* dispatch related actions */
+static PTINLINE int parser_action(struct vte_parser *parser,
+                                  uint32_t raw,
+                                  parser_action_func action)
+{
+        return action(parser, raw);
+}
+
+/* perform state transition */
+static PTINLINE int parser_transition_no_action(struct vte_parser *parser,
+                                                uint32_t raw,
+                                                unsigned int state)
+{
+        parser->state = state;
+        return VTE_SEQ_NONE;
+}
+
+/* perform state transition and dispatch related actions */
+static PTINLINE int parser_transition(struct vte_parser *parser,
+                                      uint32_t raw,
+                                      unsigned int state,
+                                      parser_action_func action)
+{
+        parser->state = state;
+
+        return action(parser, raw);
+}
+
+#undef PTINLINE
+
+#else // macros
+
+/* nop */
+#define parser_nop(parser,raw) \
+        ({ VTE_SEQ_NONE; })
+
+/* dispatch related actions */
+#define parser_action(p,r,a) \
+        ({ \
+                a((p), (r)); \
+        })
+
+/* perform state transition */
+#define parser_transition_no_action(p,r,s) \
+        ({ \
+                parser->state = s; \
+                VTE_SEQ_NONE; \
+        })
+
+/* perform state transition and dispatch related actions */
+#define parser_transition(p,r,s,a) \
+        ({ \
+                (p)->state = s; \
+                a((p), (r)); \
+        })
+
+#endif // (inline) functions or macros
+
 /**
  * vte_parser_init() - Initialise parser object
  * @parser: the struct vte_parser
@@ -581,23 +659,44 @@ static int parser_collect_parameter(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
+static void parser_params_overflow(struct vte_parser *parser, uint32_t raw)
+{
+        /* An overflow of the parameter number can only happen in
+         * STATE_{CSI,DCS}_PARAM, and it occurs when
+         * seq.n_arg == VTE_PARSER_ARG_MAX, and either an 0…9
+         * is encountered, starting the next param, or an
+         * explicit ':' or ';' terminating a (defaulted) (sub)param,
+         * or when the intermediates/final character(s) occur
+         * after a defaulted (sub)param.
+         *
+         * Transition to STATE_{CSI,DCS}_IGNORE to ignore the
+         * whole sequence.
+         */
+        parser_transition_no_action(parser,
+                                    raw,
+                                    parser->state == STATE_CSI_PARAM ?
+                                    STATE_CSI_IGNORE : STATE_DCS_IGNORE);
+}
+
 static int parser_finish_param(struct vte_parser *parser, uint32_t raw)
 {
-        if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX)) {
                 vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
                 ++parser->seq.n_args;
                 ++parser->seq.n_final_args;
-        }
+        } else
+                parser_params_overflow(parser, raw);
 
         return VTE_SEQ_NONE;
 }
 
 static int parser_finish_subparam(struct vte_parser *parser, uint32_t raw)
 {
-        if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX)) {
                 vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], true);
                 ++parser->seq.n_args;
-        }
+        } else
+                parser_params_overflow(parser, raw);
 
         return VTE_SEQ_NONE;
 }
@@ -606,10 +705,10 @@ static int parser_param(struct vte_parser *parser, uint32_t raw)
 {
         /* assert(raw >= '0' && raw <= '9'); */
 
-        if (parser->seq.n_args >= VTE_PARSER_ARG_MAX)
-                return VTE_SEQ_NONE;
-
-        vte_seq_arg_push(&parser->seq.args[parser->seq.n_args], raw);
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX))
+                vte_seq_arg_push(&parser->seq.args[parser->seq.n_args], raw);
+        else
+                parser_params_overflow(parser, raw);
 
         return VTE_SEQ_NONE;
 }
@@ -652,7 +751,7 @@ static int parser_dcs_consume(struct vte_parser *parser, uint32_t raw)
         /* parser->seq is cleared during DCS-START state, thus there's no need
          * to clear invalid fields here. */
 
-        if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX)) {
                 if (parser->seq.n_args > 0 ||
                     vte_seq_arg_started(parser->seq.args[parser->seq.n_args])) {
                         vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
@@ -694,7 +793,7 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
         /* parser->seq is cleared during CSI-ENTER state, thus there's no need
          * to clear invalid fields here. */
 
-        if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
+        if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX)) {
                 if (parser->seq.n_args > 0 ||
                     vte_seq_arg_started(parser->seq.args[parser->seq.n_args])) {
                         vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
@@ -760,8 +859,6 @@ static int parser_sci(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-typedef int (* parser_action_func)(struct vte_parser *parser, uint32_t raw);
-
 #define ACTION_CLEAR parser_clear
 #define ACTION_IGNORE parser_ignore
 #define ACTION_PRINT parser_print
@@ -783,66 +880,6 @@ typedef int (* parser_action_func)(struct vte_parser *parser, uint32_t raw);
 #define ACTION_OSC_COLLECT parser_osc_collect
 #define ACTION_OSC_DISPATCH parser_osc
 #define ACTION_SCI_DISPATCH parser_sci
-
-// FIXMEchpe: I get weird performance results here from
-// either not inlining, inlining these function or the
-// macros below. Sometimes (after a recompile) one is
-// (as much as 50%!) slower, sometimes the other one etc. ‽
-
-/* dispatch related actions */
-static /* inline? */ int parser_action(struct vte_parser *parser,
-                                uint32_t raw,
-                                parser_action_func action)
-{
-        return action(parser, raw);
-}
-
-static /* inline? */ int parser_nop(struct vte_parser *parser, uint32_t raw)
-{
-        return VTE_SEQ_NONE;
-}
-
-/* perform state transition and dispatch related actions */
-static /* inline? */ int parser_transition(struct vte_parser *parser,
-                                    uint32_t raw,
-                                    unsigned int state,
-                                    parser_action_func action)
-{
-        parser->state = state;
-
-        return action(parser, raw);
-}
-
-/* perform state transition and dispatch related actions */
-static /* inline? */ int parser_transition_no_action(struct vte_parser *parser,
-                                              uint32_t raw,
-                                              unsigned int state)
-{
-        parser->state = state;
-        return VTE_SEQ_NONE;
-}
-
-#if 0
-#define parser_nop(parser,raw) \
-        ({ VTE_SEQ_NONE; })
-
-#define parser_transition(p,r,s,a) \
-        ({ \
-                (p)->state = s; \
-                a((p), (r)); \
-        })
-
-#define parser_transition_no_action(p,r,s) \
-        ({ \
-                parser->state = s; \
-                VTE_SEQ_NONE; \
-        })
-
-#define parser_action(p,r,a) \
-        ({ \
-                a((p), (r)); \
-        })
-#endif
 
 static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
 {

@@ -1031,6 +1031,55 @@ test_seq_csi_clear(void)
 }
 
 static void
+test_seq_csi_max(std::u32string const& start,
+                 std::u32string const& more,
+                 int expected_rv = VTE_SEQ_NONE)
+{
+        parser.reset();
+        feed_parser(start);
+        feed_parser(more);
+        auto rv = feed_parser(U"m"s); /* final character */
+        g_assert_cmpint(rv, ==, expected_rv);
+}
+
+static void
+test_seq_csi_max(void)
+{
+        /* Check that an excessive number of parameters causes the
+         * sequence to be ignored.
+         *
+         * Since SequenceBuilder is limited in the same number of
+         * parameters as the parser, can't use it directly to
+         * produce a sequence with too may parameters.
+         */
+
+        vte_seq_builder b{VTE_SEQ_CSI, 'm'};
+        b.set_param_intro(VTE_SEQ_PARAMETER_CHAR_WHAT);
+        for (unsigned int i = 0; i < VTE_PARSER_ARG_MAX; ++i)
+                b.append_param(i);
+
+        std::u32string str;
+        b.to_string(str);
+
+        /* The sequence with VTE_PARSER_ARG_MAX args must be parsed */
+        auto rv = feed_parser(str);
+        g_assert_cmpint(rv, ==, VTE_SEQ_CSI);
+
+        /* Now test that adding one more parameter (whether with an
+         * explicit value, or default, causes the sequence to be ignored.
+         */
+        str.pop_back(); /* erase final character */
+        test_seq_csi_max(str, U":"s, VTE_SEQ_CSI);
+        test_seq_csi_max(str, U";"s, VTE_SEQ_CSI);
+        test_seq_csi_max(str, U":12345"s);
+        test_seq_csi_max(str, U";12345"s);
+        test_seq_csi_max(str, U":12345;"s);
+        test_seq_csi_max(str, U";12345:"s);
+        test_seq_csi_max(str, U":12345;"s);
+        test_seq_csi_max(str, U":12345:"s);
+}
+
+static void
 test_seq_glue_arg(char const* str,
                   unsigned int n_args,
                   unsigned int n_final_args)
@@ -1425,6 +1474,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/csi/known", test_seq_csi_known);
         g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
         g_test_add_func("/vte/parser/sequences/csi/clear", test_seq_csi_clear);
+        g_test_add_func("/vte/parser/sequences/csi/max", test_seq_csi_max);
         g_test_add_func("/vte/parser/sequences/sci", test_seq_sci);
         g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
         g_test_add_func("/vte/parser/sequences/dcs/known", test_seq_dcs_known);
