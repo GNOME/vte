@@ -22,16 +22,16 @@
 
 typedef int vte_seq_arg_t;
 
-#define VTE_SEQ_ARG_INIT_DEFAULT (-1)
-#define VTE_SEQ_ARG_INIT(value) (value)
+#define VTE_SEQ_ARG_INIT_DEFAULT (0)
+#define VTE_SEQ_ARG_FLAG_VALUE (1 << 16)
+#define VTE_SEQ_ARG_VALUE_MASK (0xffff)
+
+#define VTE_SEQ_ARG_INIT(value) (value | VTE_SEQ_ARG_FLAG_VALUE)
 
 static inline void vte_seq_arg_push(vte_seq_arg_t* arg,
                                     uint32_t c)
 {
-        auto value = *arg;
-
-        if (value < 0)
-                value = 0;
+        auto value = *arg & VTE_SEQ_ARG_VALUE_MASK;
         value = value * 10 + (c - '0');
 
         /*
@@ -43,7 +43,7 @@ static inline void vte_seq_arg_push(vte_seq_arg_t* arg,
         if (value > 0xffff)
                 value = 0xffff;
 
-        *arg = value;
+        *arg = value | VTE_SEQ_ARG_FLAG_VALUE;
 }
 
 static inline void vte_seq_arg_finish(vte_seq_arg_t* arg)
@@ -52,20 +52,20 @@ static inline void vte_seq_arg_finish(vte_seq_arg_t* arg)
 
 static inline bool vte_seq_arg_started(vte_seq_arg_t arg)
 {
-        return arg >= 0;
+        return arg & VTE_SEQ_ARG_FLAG_VALUE;
 }
 
 static inline bool vte_seq_arg_finished(vte_seq_arg_t arg)
 {
-        return arg >= 0;
+        return true;
 }
 
 static inline bool vte_seq_arg_default(vte_seq_arg_t arg)
 {
-        return arg == -1;
+        return !(arg & VTE_SEQ_ARG_FLAG_VALUE);
 }
 
 static inline int vte_seq_arg_value(vte_seq_arg_t arg)
 {
-        return arg;
+        return arg & VTE_SEQ_ARG_FLAG_VALUE ? arg & VTE_SEQ_ARG_VALUE_MASK : -1;
 }

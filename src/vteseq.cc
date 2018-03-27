@@ -56,7 +56,7 @@ vte::parser::Sequence::print() const
                 for (unsigned int i = 0; i < m_seq->n_args; i++) {
                         if (i > 0)
                                 g_print(", ");
-                        g_printerr("%d", m_seq->args[i]);
+                        g_printerr("%d", vte_seq_arg_value(m_seq->args[i]));
                 }
                 g_printerr(" ]");
         }

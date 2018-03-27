@@ -295,7 +295,6 @@ test_seq_arg(void)
         /* Basic test */
         vte_seq_arg_t arg = VTE_SEQ_ARG_INIT_DEFAULT;
         g_assert_false(vte_seq_arg_started(arg));
-        g_assert_false(vte_seq_arg_finished(arg));
         g_assert_true(vte_seq_arg_default(arg));
 
         vte_seq_arg_push(&arg, '1');
