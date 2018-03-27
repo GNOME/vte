@@ -3650,8 +3650,10 @@ skip_chunk:
                 default: {
                         switch (seq.command()) {
 #define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
+#define _VTE_NOP(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
+#undef _VTE_NOP
                         default:
                                 _vte_debug_print(VTE_DEBUG_PARSER,
                                                  "Unknown parser command %d\n", seq.command());
@@ -4255,6 +4257,19 @@ VteTerminalPrivate::reply(vte::parser::Sequence const& seq,
 {
         send(seq, vte::parser::ReplyBuilder{type, params});
 }
+
+#if 0
+void
+VteTerminalPrivate::reply(vte::parser::Sequence const& seq,
+                          unsigned int type,
+                          std::initializer_list<int> params,
+                          std::string const& str) noexcept
+{
+        vte::parser::ReplyBuilder reply_builder{type, params};
+        reply_builder.set_string(str);
+        send(seq, reply_builder);
+}
+#endif
 
 void
 VteTerminalPrivate::reply(vte::parser::Sequence const& seq,

@@ -99,11 +99,13 @@ vte::parser::Sequence::command_string() const
 
         switch (command()) {
 #define _VTE_CMD(cmd) case VTE_CMD_##cmd: return #cmd;
+#define _VTE_NOP(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
+#undef _VTE_NOP
         default:
                 static char buf[32];
-                snprintf(buf, sizeof(buf), "UNKOWN(%u)", command());
+                snprintf(buf, sizeof(buf), "NOP OR UNKOWN(%u)", command());
                 return buf;
         }
 }
@@ -169,7 +171,6 @@ VteTerminalPrivate::emit_bell()
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `bell'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_BELL], 0);
 }
-
 
 /* Emit a "deiconify-window" signal. */
 void
@@ -383,7 +384,7 @@ VteTerminalPrivate::scroll_text(vte::grid::row_t scroll_amount)
         m_text_deleted_flag = TRUE;
 }
 
- void
+void
 VteTerminalPrivate::restore_cursor()
 {
         restore_cursor(m_screen);
@@ -498,6 +499,11 @@ VteTerminalPrivate::set_mode_private(int mode,
         case vte::terminal::modes::Private::eDEC_132_COLUMN:
                 /* DECCOLM: set/reset to 132/80 columns mode, clear screen and cursor home */
                 // FIXMEchpe don't do clear screen if DECNCSM is set
+                /* FIXMEchpe!!!
+                 * Changing this mode resets the top, bottom, left, right margins;
+                 * clears the screen (unless DECNCSM is set); resets DECLRMM; and clears
+                 * the status line if host-writable.
+                 */
                 if (m_modes_private.XTERM_DECCOLM()) {
                         emit_resize_window(set ? 132 : 80, m_row_count);
                         clear_screen();
@@ -1616,6 +1622,17 @@ VteTerminalPrivate::GRAPHIC(vte::parser::Sequence const& seq)
         insert_char(seq.terminator(), false, false);
 }
 
+void
+VteTerminalPrivate::ACK(vte::parser::Sequence const& seq)
+{
+        /*
+         * ACK - acknowledge
+         *
+         * References: ECMA-48 § 8.3.1
+         */
+
+        m_bell_pending = true;
+}
 
 void
 VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
@@ -1628,7 +1645,7 @@ VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
          * References: ECMA-35 § 15.2
          */
 
-        /* Since we don't implement ISO-2022 anymore, we can mostly ignore this */
+        /* Since we mostly don't implement ECMA-35 anymore, we can mostly ignore this */
 
         switch (seq.terminator() - 0x40) {
         case 6:
@@ -1637,6 +1654,9 @@ VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
                  * sequences instead of 8bit C1 controls.
                  * This is ignored if the terminal is below level-2 emulation mode
                  * (VT100 and below), the terminal already sends 7bit controls then.
+                 *
+                 * References: ECMA-35
+                 *             VT525
                  */
 #if 0
                 if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
@@ -1651,6 +1671,9 @@ VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
                  * This is ignored if the terminal is below level-2 emulation mode
                  * (VT100 and below). The terminal always sends 7bit controls in those
                  * modes.
+                 *
+                 * References: ECMA-35
+                 *             VT525
                  */
 #if 0
                 if (screen->conformance_level > VTE_CONFORMANCE_LEVEL_VT100)
@@ -1668,12 +1691,26 @@ VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
                 /* Use Level 2 of ECMA-43
                  *
                  * Probably not worth implementing.
+                 *
+                 * On a VTxxx, both levels 1 and 2 designate as follows:
+                 * G0 = ASCII (IR #6)
+                 * G1 = ISO_LATIN1_SUPPLEMENTAL
+                 * with G0 mapped to GL, G1 to GR.
+                 *
+                 * References: VT525
                  */
                 break;
         case 14:
                 /* Use Level 3 of ECMA-43
                  *
                  * Probably not worth implementing.
+                 *
+                 * On a VTxxx, this designates as follows:
+                 * G0 = ASCII (IR #6)
+                 * with G0 mapped to GL.
+                 *
+                 *
+                 * References: VT525
                  */
                 break;
         }
@@ -1690,6 +1727,18 @@ VteTerminalPrivate::BEL(vte::parser::Sequence const& seq)
          */
 
         m_bell_pending = true;
+}
+
+void
+VteTerminalPrivate::BPH(vte::parser::Sequence const& seq)
+{
+        /*
+         * BPH - break permitted here
+         *
+         * References: ECMA-48 § 8.3.4
+         *
+         * Not worth implementing.
+         */
 }
 
 void
@@ -1739,15 +1788,33 @@ VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::CCH(vte::parser::Sequence const& seq)
+{
+        /*
+         * CCH - cancel character
+         * Indicates that the CCH and the preceding graphic character
+         * (including SPACE (2/0)) in the data stream should be ignored.
+         * If CCH is not preceded by a graphic character but by a
+         * control function instead, CCH is ignored.
+         *
+         * References: ECMA-48 § 8.3.8
+         *
+         * Not worth implementing.
+         */
+}
+
+void
 VteTerminalPrivate::CHA(vte::parser::Sequence const& seq)
 {
         /*
          * CHA - cursor-horizontal-absolute
-         * Move the cursor to position @args[0] in the current line. The
-         * cursor cannot be moved beyond the rightmost cell and will stop
-         * there.
+         * Move the cursor to position @args[0] in the current line
+         * (presentation).
+         * The cursor cannot be moved beyond the rightmost cell; it will
+         * stop there.
          *
-         * Note: This does the same as HPA
+         * Arguments:
+         *   args[0]: column
          *
          * Defaults:
          *   args[0]: 1
@@ -1774,10 +1841,13 @@ VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
 {
         /*
          * CHT - cursor-horizontal-forward-tabulation
-         * Move the cursor @args[0] tabs forward (to the right). The
-         * current cursor cell, in case it's a tab, is not counted.
+         * Move the cursor @args[0] tabs forward (to the right) (presentation).
+         * The current cursor cell, in case it's a tab, is not counted.
          * Furthermore, the cursor cannot be moved beyond the rightmost cell
          * and will stop there.
+         *
+         * Arguments:
+         *   args[0]: count
          *
          * Defaults:
          *   args[0]: 1
@@ -1797,7 +1867,10 @@ VteTerminalPrivate::CMD(vte::parser::Sequence const& seq)
         /*
          * CMD - coding method delimiter
          *
-         * References: ECMA-35 §15.3
+         * References: ECMA-35 § 15.3
+         *             ECMA-48 § 8.3.11
+         *
+         * Not worth implementing.
          */
 }
 
@@ -1809,6 +1882,9 @@ VteTerminalPrivate::CNL(vte::parser::Sequence const& seq)
          * Move the cursor @args[0] lines down.
          *
          * TODO: Does this stop at the bottom or cause a scroll-up?
+         *
+         * Arguments:
+         *   args[0]: number of lines
          *
          * Defaults:
          *   args[0]: 1
@@ -1837,6 +1913,9 @@ VteTerminalPrivate::CPL(vte::parser::Sequence const& seq)
         /*
          * CPL - cursor-preceding-line
          * Move the cursor @args[0] lines up, without scrolling.
+         *
+         * Arguments:
+         *   args[0]: number of lines
          *
          * Defaults:
          *   args[0]: 1
@@ -1877,12 +1956,64 @@ VteTerminalPrivate::CR(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::CTC(vte::parser::Sequence const& seq)
+{
+        /*
+         * CTC - cursor tabulation control
+         * Set/clear tabstops.
+         *
+         * For the cases @args[0] = 0, 2, 4, the effect depends on TSM mode.
+         *
+         * References: ECMA-48 § 8.3.17
+         */
+
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                /* Set tabstop at the current cursor position */
+                m_tabstops.set(m_screen->cursor.col);
+                break;
+
+        case 1:
+                /* Sets line tabstop in the ative line (presentation) */
+                break;
+
+        case 2:
+                /* Clear tabstop at the current cursor position */
+                m_tabstops.unset(m_screen->cursor.col);
+                break;
+
+        case 3:
+                /* Clear line tabstop in the active line */
+                break;
+
+        case 4:
+                /* Clear all tabstops in the active line */
+                /* [[fallthrough]]; */
+        case 5:
+                /* Clear all tabstops */
+                m_tabstops.clear();
+                break;
+
+        case 6:
+                /* Clear all line tabstops */
+                break;
+
+        default:
+                break;
+        }
+}
+
+void
 VteTerminalPrivate::CUB(vte::parser::Sequence const& seq)
 {
         /*
          * CUB - cursor-backward
          * Move the cursor @args[0] positions to the left. The cursor stops
-         * at the left-most position.
+         * at the left-most position. (presentation)
+         *
+         * Arguments:
+         *   args[0]: number of positions
          *
          * Defaults:
          *   args[0]: 1
@@ -1910,7 +2041,10 @@ VteTerminalPrivate::CUD(vte::parser::Sequence const& seq)
          * CUD - cursor-down
          * Move the cursor @args[0] positions down. The cursor stops at the
          * bottom margin. If it was already moved further, it stops at the
-         * bottom line.
+         * bottom line. (presentation)
+         *
+         * Arguments:
+         *   args[0]: number of positions
          *
          * Defaults:
          *   args[0]: 1
@@ -1937,7 +2071,10 @@ VteTerminalPrivate::CUF(vte::parser::Sequence const& seq)
         /*
          * CUF -cursor-forward
          * Move the cursor @args[0] positions to the right. The cursor stops
-         * at the right-most position.
+         * at the right-most position. (presentation)
+         *
+         * Arguments:
+         *   args[0]: number of positions
          *
          * Defaults:
          *   args[0]: 1
@@ -1965,7 +2102,11 @@ VteTerminalPrivate::CUP(vte::parser::Sequence const& seq)
          * CUP - cursor-position
          * Moves the cursor to position @args[1] x @args[0]. If either is 0, it
          * is treated as 1. The positions are subject to the origin-mode and
-         * clamped to the addressable with/height.
+         * clamped to the addressable width/height. (presentation)
+         *
+         * Arguments:
+         *   args[0]: line
+         *   args[0]: column
          *
          * Defaults:
          *   args[0]: 1
@@ -1998,7 +2139,10 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
          * CUU - cursor-up
          * Move the cursor @args[0] positions up. The cursor stops at the
          * top margin. If it was already moved further, it stops at the
-         * top line.
+         * top line. (presentation)
+         *
+         * Arguments:
+         *   args[0]: number of positions
          *
          * Defaults:
          *   args[0]: 1
@@ -2020,6 +2164,27 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::CVT(vte::parser::Sequence const& seq)
+{
+        /*
+         * CVT - cursor line tabulation
+         * Move the cursor @args[0] positions down. The cursor stops at the
+         * bottom margin. If it was already moved further, it stops at the
+         * bottom line. (presentation)
+         *
+         * Arguments:
+         *   args[0]: number of positions
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.23
+         */
+
+        /* FIXME: implement this? */
+}
+
+void
 VteTerminalPrivate::CnD(vte::parser::Sequence const& seq)
 {
         /*
@@ -2031,7 +2196,7 @@ VteTerminalPrivate::CnD(vte::parser::Sequence const& seq)
          *             ISO 2375 IR
          */
 
-        /* Since we don't implement ISO-2022 anymore, we can ignore this */
+        /* Since we mostly don't implement ECMA-35 anymore, we can ignore this */
 }
 
 void
@@ -2044,10 +2209,10 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          * Note that the primary DA asks for supported features, not currently
          * enabled features.
          *
-         * The terminal's answer is:
-         *   ^[ ? 65 ; ARGS c
-         * The first argument, 65, is fixed and denotes a VT520, the last
-         * DEC-term that extended this number.
+         * Reply: DECDA1R (CSI ? 65 ; ARGS c)
+         *
+         * The first argument, 65, is fixed and denotes a VT520 (a Level 5
+         * terminal), the last DEC-term that extended this number.
          * All following arguments denote supported features. Note
          * that at most 15 features can be sent (max CSI args). It is safe to
          * send more, but clients might not be able to parse them. This is a
@@ -2084,6 +2249,8 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *       The DEC technical-character-set is available.
          *   18: windowing capability
          *       TODO: ?
+         *   19: sessions capability
+         *       TODO: ?
          *   21: horizontal scrolling
          *       TODO: ?
          *   22: ANSI color
@@ -2098,10 +2265,13 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
          *       TODO: ?
          *   44: PCTerm
          *       TODO: ?
-         *   45: soft keymap
+         *   45: soft key mapping
          *       TODO: ?
          *   46: ASCII emulation
          *       TODO: ?
+         *
+         * Extensions which are implied by the level are not reported explicity
+         * (e.g. 6, 8, 15 in level 5).
          *
          * Defaults:
          *   args[0]: 0
@@ -2126,10 +2296,9 @@ VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
          * informational-only and should not be used by the host to detect
          * terminal features.
          *
-         * The terminal's response is:
-         *   ^[ > 65 ; FIRMWARE ; KEYBOARD c
-         * whereas 65 is fixed for VT525 terminals, the last terminal-line that
-         * increased this number. FIRMWARE is the firmware
+         * Reply: DECDA2R (CSI > 65 ; FIRMWARE ; KEYBOARD c)
+         * where 65 is fixed for VT525 color terminals, the last terminal-line that
+         * increased this number (64 for VT520). FIRMWARE is the firmware
          * version encoded as major/minor (20 == 2.0) and KEYBOARD is 0 for STD
          * keyboard and 1 for PC keyboards.
          *
@@ -2154,10 +2323,10 @@ VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
          * DA3 - tertiary-device-attributes
          * The tertiary DA is used to query the terminal-ID.
          *
-         * The terminal's response is:
-         *   ^P ! | XX AA BB CC ^\
-         * whereas all four parameters are hexadecimal-encoded pairs. XX
-         * denotes the manufacturing site, AA BB CC is the terminal's ID.
+         * Reply: DECRPTUI
+         *   DATA: four pairs of are hexadecimal number, encoded 4 bytes.
+         *   The first byte denotes the manufacturing site, the remaining
+         *   three is the terminal's ID.
          *
          * We always reply with '~VTE' encoded in hex.
          */
@@ -2169,14 +2338,44 @@ VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DAQ(vte::parser::Sequence const& seq)
+{
+        /*
+         * DAQ - define area qualification
+         *
+         * Arguments:
+         *   args[0]: type
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.25, § 6.5.2
+         */
+}
+
+void
 VteTerminalPrivate::DC1(vte::parser::Sequence const& seq)
 {
         /*
          * DC1 - device-control-1 or XON
          * This clears any previous XOFF and resumes terminal-transmission.
+         *
+         * References: ECMA-48 § 8.3.28
          */
 
         /* we do not support XON */
+}
+
+void
+VteTerminalPrivate::DC2(vte::parser::Sequence const& seq)
+{
+        /*
+         * DC2 - device-control-2
+         *
+         * References: ECMA-48 § 8.3.29
+         *
+         * Not implemented.
+         */
 }
 
 void
@@ -2186,9 +2385,23 @@ VteTerminalPrivate::DC3(vte::parser::Sequence const& seq)
          * DC3 - device-control-3 or XOFF
          * Stops terminal transmission. No further characters are sent until
          * an XON is received.
+         *
+         * References: ECMA-48 § 8.3.30
          */
 
         /* we do not support XOFF */
+}
+
+void
+VteTerminalPrivate::DC4(vte::parser::Sequence const& seq)
+{
+        /*
+         * DC4 - device-control-4
+         *
+         * References: ECMA-48 § 8.3.31
+         *
+         * Not implemented.
+         */
 }
 
 void
@@ -2227,17 +2440,37 @@ VteTerminalPrivate::DCH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
+VteTerminalPrivate::DECAC(vte::parser::Sequence const& seq)
 {
         /*
-         * DECALN - screen-alignment-pattern
+         * DECAC - assign color
+         * Assign the color used for normal text.
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   @args[0]: item; 1 for normal text, 2 for the text in the window frame
+         *   @args[1]: foreground color palette index (0..15)
+         *   @args[2]: background color palette index (0..15)
          *
          * References: VT525
          */
 
-        // FIXMEchpe why do we implement this?
+        // FIXMEchpe maybe implement this, allowing our extended color
+        // format instead of just palette colors
+}
+
+void
+VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECALN - screen-alignment-pattern
+         * Resets the margins, homes the cursor, and fills the screen
+         * with 'E's.
+         *
+         * References: VT525
+         */
+
+        // FIXMEchpe! reset margins and home cursor
+
 	for (auto row = m_screen->insert_delta;
 	     row < m_screen->insert_delta + m_row_count;
 	     row++) {
@@ -2266,16 +2499,40 @@ VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECANM(vte::parser::Sequence const& seq)
+VteTerminalPrivate::DECARR(vte::parser::Sequence const& seq)
 {
         /*
-         * DECANM - ansi-mode
-         * Set the terminal into VT52 compatibility mode. Control sequences
-         * overlap with regular sequences so we have to detect them early before
-         * dispatching them.
+         * DECARR - auto repeat rate
+         * Sets the key autorepeat rate in from @args[0] in keys/s.
+         * 0…5 are mapped to 0/s, 6…15 to 10/s, 16…30 to 30/s.
+         * Other values are ignored. The default is 30.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
+}
+
+void
+VteTerminalPrivate::DECATC(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECATC - alternate text color
+         * Assign the color used for attribute combinations text.
+         *
+         * Arguments:
+         *   @args[0]: selects the attribute combinations from a
+         *     value table (0 = normal, 1 = bold, 2 = reverse,
+         *     3 = (single) underline, 4 = blink; then 5…15
+         *     encode the combinations)
+         *   @args[1]: foreground color palette index (0..15)
+         *   @args[2]: background color palette index (0..15)
+         *
+         * References: VT525
+         */
+
+        // FIXMEchpe maybe implement this, allowing our extended color
+        // format instead of just palette colors
 }
 
 void
@@ -2283,8 +2540,20 @@ VteTerminalPrivate::DECAUPSS(vte::parser::Sequence const& seq)
 {
         /*
          * DECAUPSS - assign user preferred supplemental sets
+         * Sets a supplemental charset as user preferred.
+         * Arguments:
+         *   @args[0]: charset designator:
+         *     0 = DEC, Latin 1/2
+         *     1 = Latin 5/7, ISO Cyrillic, ISO Hebrew
+         *   DATA: the charset, as in a ECMA-35 charset designation
+         *     sequence (sans the ESC); but only some charsets are
+         *     supported.
+         *
+         * Default: DEC Supplemental Graphic set.
          *
          * References: VT525
+         *
+         * Probably not worth implementing.
          */
 }
 
@@ -2310,6 +2579,32 @@ VteTerminalPrivate::DECCARA(vte::parser::Sequence const& seq)
 {
         /*
          * DECCARA - change-attributes-in-rectangular-area
+         * Change some character attributes (bold, blink, reverse,
+         * (single) underline) in the specified rectangle.
+         * The characters in the area are unchanged.
+         *
+         * Arguments;
+         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
+         *   args[4:]: the character attributes to change; values as in SGR
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *   args[4:]: no defaults
+         *
+         * If the top > bottom or left > right, the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
+         * and cursor position are unchanged.
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2320,8 +2615,11 @@ VteTerminalPrivate::DECCKD(vte::parser::Sequence const& seq)
 {
         /*
          * DECCKD - copy key default
+         * Copy the defaults from one key to another.
          *
          * References: VT525
+         *
+         * Probably not worth implementing.
          */
 }
 
@@ -2330,6 +2628,55 @@ VteTerminalPrivate::DECCRA(vte::parser::Sequence const& seq)
 {
         /*
          * DECCRA - copy-rectangular-area
+         * Copies characters and their attributes from one rectangle to
+         * another.
+         *
+         * Arguments;
+         *   args[0..3]: top, left, bottom, right of the source rectangle (1-based)
+         *   args[4..7]: top, left, bottom, right of the target rectangle (1-based)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *   args[4]: 1
+         *   args[5]: 1
+         *   args[6]: height of current page
+         *   args[7]: width of current page
+         *
+         * If the top > bottom or left > right for either of the rectangles,
+         * the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
+         * and cursor position are unchanged.
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: VT525
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECCRTST(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECCRTST - CRT saver time
+         * Sets the CRT saver timer. When DECCRTSM is set, the
+         * screen blanks when the time elapsed since the last
+         * keystroke or output is greater than the time set here.
+         *
+         * Arguments:
+         *   args[0]: the time in minutes (0…60) (0 = never)
+         *
+         * Default: 15
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2341,6 +2688,8 @@ VteTerminalPrivate::DECDC(vte::parser::Sequence const& seq)
         /*
          * DECDC - delete-column
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -2350,6 +2699,8 @@ VteTerminalPrivate::DECDHL_BH(vte::parser::Sequence const& seq)
 {
         /*
          * DECDHL_BH - double-width-double-height-line: bottom half
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2361,6 +2712,8 @@ VteTerminalPrivate::DECDHL_TH(vte::parser::Sequence const& seq)
         /*
          * DECDHL_TH - double-width-double-height-line: top half
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -2370,8 +2723,25 @@ VteTerminalPrivate::DECDLD(vte::parser::Sequence const& seq)
 {
         /*
          * DECDLD - dynamically redefinable character sets extension
+         * Loads a soft font for a DRCS charset from SIXEL data
          *
          * References: VT525
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECDLDA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECDLD - down line load allocation
+         * Sets the number of DRCSes allowed per sesion
+         * (monochrome terminals only).
+         *
+         * References: VT525
+         *
+         * Probably not worth implementing.
          */
 }
 
@@ -2380,8 +2750,11 @@ VteTerminalPrivate::DECDMAC(vte::parser::Sequence const& seq)
 {
         /*
          * DECDMAC - define-macro
+         * Define a macro that can be executed by DECINVM.
          *
          * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
          */
 }
 
@@ -2390,6 +2763,8 @@ VteTerminalPrivate::DECDWL(vte::parser::Sequence const& seq)
 {
         /*
          * DECDWL - double-width-single-height-line
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2413,6 +2788,8 @@ VteTerminalPrivate::DECEFR(vte::parser::Sequence const& seq)
          * on cells instead of pixels. See DECELR how to initialize and enable
          * it. DECELR can also enable pixel-mode instead of cell-mode.
          *
+         * References: VT525
+         *
          * TODO: implement
          */
 }
@@ -2422,6 +2799,10 @@ VteTerminalPrivate::DECELF(vte::parser::Sequence const& seq)
 {
         /*
          * DECELF - enable-local-functions
+         * Enable or disable keys to perform local functions like
+         * copy/paster, panning and window resize.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2442,6 +2823,8 @@ VteTerminalPrivate::DECELR(vte::parser::Sequence const& seq)
          *   args[0]: 0
          *   args[1]: 0
          *
+         * References: VT525
+         *
          * TODO: implement
          */
 }
@@ -2451,8 +2834,47 @@ VteTerminalPrivate::DECERA(vte::parser::Sequence const& seq)
 {
         /*
          * DECERA - erase-rectangular-area
+         * Erases characters in the specified rectangle, replacing
+         * them with SPACE (2/0). Character attributes are erased
+         * too, but not line attributes (DECDHL, DECDWL).
+         *
+         * Arguments;
+         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *
+         * If the top > bottom or left > right, the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
+         * and cursor position are unchanged.
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECES(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECES - enable session
+         * Makes this session active as if by the Session key;
+         * that is, makes the session receiving this command the
+         * session receiving keyboard input.
+         *
+         * References: VT525
+         *
+         * VTE does not support sessions.
          */
 }
 
@@ -2470,6 +2892,8 @@ VteTerminalPrivate::DECFI(vte::parser::Sequence const& seq)
          * the right margin at the border of the page when the terminal
          * receives DECFI, then the terminal ignores DECFI.
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -2479,8 +2903,41 @@ VteTerminalPrivate::DECFRA(vte::parser::Sequence const& seq)
 {
         /*
          * DECFRA - fill-rectangular-area
+         * Fills the specified rectangle with the specified character,
+         * replacing the current characters in it. Character attributes
+         * are replaced by the current default SGR. Does not change
+         * line attributes (DECDHL, DECDWL).
+         *
+         * Arguments;
+         *   args[0]: the decimal value of the replacement character (GL or GR)
+         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *
+         * If the top > bottom or left > right, the command is ignored.
+         * If the character is not in the GL or GR area, the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
+         * and cursor position are unchanged.
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
+         *
+         * *If* we were to implement it, we should find a way to allow any
+         * UTF-8 character, perhaps by using subparams to encode it. E.g.
+         * either each UTF-8 byte in a subparam of its own, or just split
+         * the unicode plane off into the leading subparam (plane:remaining 16 bits).
+         * Or by using the last graphic character for it, like REP.
          */
 }
 
@@ -2489,6 +2946,11 @@ VteTerminalPrivate::DECIC(vte::parser::Sequence const& seq)
 {
         /*
          * DECIC - insert-column
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2499,8 +2961,11 @@ VteTerminalPrivate::DECINVM(vte::parser::Sequence const& seq)
 {
         /*
          * DECINVM - invoke-macro
+         * Invokes a macro defined by DECDMAC.
          *
-         * Probably not worth implementing.
+         * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
          */
 }
 
@@ -2509,6 +2974,9 @@ VteTerminalPrivate::DECKBD(vte::parser::Sequence const& seq)
 {
         /*
          * DECKBD - keyboard-language-selection
+         * Selects a keyboard language.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2524,6 +2992,8 @@ VteTerminalPrivate::DECKPAM(vte::parser::Sequence const& seq)
          * applications can detect whether a numeric key was pressed on the
          * top-row or on the keypad.
          * Default is keypad-numeric-mode.
+         *
+         * References: VT525
          */
 
         set_mode_private(vte::terminal::modes::Private::eDEC_APPLICATION_KEYPAD, true);
@@ -2538,6 +3008,8 @@ VteTerminalPrivate::DECKPNM(vte::parser::Sequence const& seq)
          * the keypad-numeric-mode. Keypresses on the keypad generate the same
          * sequences as corresponding keypresses on the main keyboard.
          * Default is keypad-numeric-mode.
+         *
+         * References: VT525
          */
         set_mode_private(vte::terminal::modes::Private::eDEC_APPLICATION_KEYPAD, false);
 }
@@ -2548,9 +3020,9 @@ VteTerminalPrivate::DECLANS(vte::parser::Sequence const& seq)
         /*
          * DECLANS - load answerback message
          *
-         * Will not implement this because of security policy.
-         *
          * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
          */
 }
 
@@ -2559,8 +3031,12 @@ VteTerminalPrivate::DECLBAN(vte::parser::Sequence const& seq)
 {
         /*
          * DECLBAN - load banner message
+         * Loads a banner message that will be displayed in double size
+         * characters when the terminal powers up.
          *
          * References: VT525
+         *
+         * Probably not worth implementing.
          */
 }
 
@@ -2579,6 +3055,9 @@ VteTerminalPrivate::DECLFKC(vte::parser::Sequence const& seq)
 {
         /*
          * DECLFKC - local-function-key-control
+         * Select the action for local function keys.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2589,6 +3068,16 @@ VteTerminalPrivate::DECLL(vte::parser::Sequence const& seq)
 {
         /*
          * DECLL - load-leds
+         * Sets the keyboard LEDs when in DECKLHIM mode.
+         *
+         * Arguments:
+         *   args[0]: which LED to change to which state
+         *     0: NumLock, CapsLock, ScrollLock off
+         *     1, 21: NumLock on/off
+         *     2, 22: CapsLock on/off
+         *     3, 23: ScrollLock on/off
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2599,6 +3088,9 @@ VteTerminalPrivate::DECLTOD(vte::parser::Sequence const& seq)
 {
         /*
          * DECLTOD - load-time-of-day
+         * Sets the clock.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2609,8 +3101,11 @@ VteTerminalPrivate::DECPAK(vte::parser::Sequence const& seq)
 {
         /*
          * DECPAK - program alphanumeric key
+         * Program alphanumeric keys to send different codes or perform actions.
          *
          * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
          */
 }
 
@@ -2622,7 +3117,9 @@ VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
          * This enters/exits the PCTerm mode. Default mode is VT-mode. It can
          * also select parameters for scancode/keycode mappings in SCO mode.
          *
-         * Definitely not worth implementing. Lets kill PCTerm/SCO modes!
+         * References: VT525
+         *
+         * Definitely not worth implementing.
          */
 }
 
@@ -2637,8 +3134,10 @@ VteTerminalPrivate::DECPCTERM_OR_XTERM_RPM(vte::parser::Sequence const& seq)
          */
         if (seq.size_final() <= 1)
                 XTERM_RPM(seq);
+        #ifdef PARSER_INCLUDE_NOP
         else
                 DECPCTERM(seq);
+        #endif
 }
 
 void
@@ -2646,8 +3145,11 @@ VteTerminalPrivate::DECPFK(vte::parser::Sequence const& seq)
 {
         /*
          * DECPFK - program function key
+         * Program function keys to send different codes or perform actions.
          *
          * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
          */
 }
 
@@ -2656,8 +3158,17 @@ VteTerminalPrivate::DECPKA(vte::parser::Sequence const& seq)
 {
         /*
          * DECPKA - program-key-action
+         * Sets whether DECPFK, DECPAK, DECCD, DECUDK can reprogram keys.
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   args[0]:
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
          */
 }
 
@@ -2666,6 +3177,31 @@ VteTerminalPrivate::DECPKFMR(vte::parser::Sequence const& seq)
 {
         /*
          * DECPKFMR - program-key-free-memory-report
+         *
+         * References: VT525
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECPS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECPS - play sound
+         * Plays a note. Arguments:
+         *   @args[0]: the volume. 0 = off, 1…3 = low, 4…7 = high
+         *   @args[1]: the duration, in multiples of 1s/32
+         *   @args[2]: the note; from 1 = C5, 2 = C♯5 … to 25 = C7
+         *
+         * Defaults:
+         *   @args[0]: no default
+         *   @args[1]: no default
+         *   @args[2]: no default
+         *
+         * Note that a VT525 is specified to store only 16 notes at a time.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2676,6 +3212,35 @@ VteTerminalPrivate::DECRARA(vte::parser::Sequence const& seq)
 {
         /*
          * DECRARA - reverse-attributes-in-rectangular-area
+         * Reverse some character attributes (bold, blink, reverse,
+         * (single) underline) in the specified rectangle.
+         * The characters in the area are unchanged, as are the
+         * other character attributes.
+         *
+         * Arguments;
+         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
+         *   args[4:]: the character attributes to change; values as in SGR
+         *     except that only bold, blink, reverse, (single) underline are
+         *     supported; 0 to reverse all of these.
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *   args[4:]: no defaults
+         *
+         * If the top > bottom or left > right, the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
+         * and cursor position are unchanged.
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2751,6 +3316,12 @@ VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
          *   args[0]: 0
          *
          * References: VT100
+         *
+         * Alternatively:
+         *
+         * WYCDIR - set current character color and attributes
+         *
+         * References: WY370
          */
 
         switch (seq.collect1(0)) {
@@ -2775,16 +3346,6 @@ VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
         default:
                 break;
         }
-}
-
-void
-VteTerminalPrivate::DECRPKT(vte::parser::Sequence const& seq)
-{
-        /*
-         * DECRPKT - report-key-type
-         * Response to DECRQKT, we can safely ignore it as we're the one sending
-         * it to the host.
-         */
 }
 
 void
@@ -2876,6 +3437,9 @@ VteTerminalPrivate::DECRQDE(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQDE - request-display-extent
+         * Request how much of the curren tpage is shown on screen.
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -2887,6 +3451,8 @@ VteTerminalPrivate::DECRQKT(vte::parser::Sequence const& seq)
         /*
          * DECRQKT - request-key-type
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -2897,6 +3463,8 @@ VteTerminalPrivate::DECRQLP(vte::parser::Sequence const& seq)
         /*
          * DECRQLP - request-locator-position
          * See DECELR for locator-information.
+         *
+         * References: VT525
          *
          * TODO: document and implement
          */
@@ -2975,6 +3543,8 @@ VteTerminalPrivate::DECRQPKFM(vte::parser::Sequence const& seq)
         /*
          * DECRQPKFM - request-program-key-free-memory
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -2984,9 +3554,41 @@ VteTerminalPrivate::DECRQPSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQPSR - request-presentation-state-report
+         * Requests a report of the terminal state, that can later
+         * be restored with DECRSPS.
          *
-         * Probably not worth implementing.
+         * References: VT525
          */
+
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                /* Error; ignore request */
+                break;
+
+        case 1:
+                /* Cursor information report. This contains:
+                 *   - the cursor position, including character attributes and
+                 *     character protection attribute,
+                 *   - origin mode (DECOM),
+                 *   - the character sets designated to the G0, G1, G2, and G3 sets.
+                 *
+                 * Reply: DECCIR
+                 *   DATA: the report in a unspecified format
+                 *         See WY370 for a possible format to use.
+                 */
+                break;
+
+        case 2:
+                /* Tabstop report.
+                 *
+                 * Reply: DECTABSR
+                 */
+                break;
+
+        default:
+                break;
+        }
 }
 
 void
@@ -3045,11 +3647,11 @@ VteTerminalPrivate::DECRQSS(vte::parser::Sequence const& seq)
                 else
                         return reply(seq, VTE_REPLY_DECRPSS, {0}, {VTE_REPLY_DECSTBM, {}});
 
-        /* case VTE_CMD_DECAC: */
-        /* case VTE_CMD_DECARR: */
-        /* case VTE_CMD_DECATC: */
-        /* case VTE_CMD_DECCRTST: */
-        /* case VTE_CMD_DECDLDA: */
+        case VTE_CMD_DECAC:
+        case VTE_CMD_DECARR:
+        case VTE_CMD_DECATC:
+        case VTE_CMD_DECCRTST:
+        case VTE_CMD_DECDLDA:
         case VTE_CMD_DECSACE:
         case VTE_CMD_DECSASD:
         case VTE_CMD_DECSCA:
@@ -3059,25 +3661,25 @@ VteTerminalPrivate::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSCS:
         case VTE_CMD_DECSDDT:
         case VTE_CMD_DECSDPT:
-        /* case VTE_CMD_DECSEST: */
+        case VTE_CMD_DECSEST:
         case VTE_CMD_DECSFC:
         case VTE_CMD_DECSKCV:
         case VTE_CMD_DECSLCK:
         case VTE_CMD_DECSLPP:
-        /* case VTE_CMD_DECSLRM: */
+        case VTE_CMD_DECSLRM:
         case VTE_CMD_DECSMBV:
         case VTE_CMD_DECSNLS:
-        /* case VTE_CMD_DECSPMA: */
+        case VTE_CMD_DECSPMA:
         case VTE_CMD_DECSPP:
         case VTE_CMD_DECSPPCS:
         case VTE_CMD_DECSPRTT:
         case VTE_CMD_DECSSCLS:
         case VTE_CMD_DECSSDT:
         case VTE_CMD_DECSSL:
-        /* case VTE_CMD_DECSTGLT: */
+        case VTE_CMD_DECSTGLT:
         case VTE_CMD_DECSTRL:
         case VTE_CMD_DECSWBV:
-        /* case VTE_CMD_DECSZS: */
+        case VTE_CMD_DECSZS:
         case VTE_CMD_DECTME:
         case VTE_CMD_SGR:
         default:
@@ -3090,12 +3692,45 @@ VteTerminalPrivate::DECRQTSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQTSR - request-terminal-state-report
+         * Requests a report of the terminal state, that can later
+         * be restored by DECRSTS.
          *
          * References: VT525
          */
 
-        if (seq.collect1(0) != 1)
-                return;
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                /* Ignore */
+                break;
+
+        case 1:
+                /* Terminal state report.
+                 *
+                 * Reply: DECTSR
+                 *   DATA: the report in an unspecified format
+                 */
+                /* return reply(seq, VTE_REPLY_DECTSR, {1}, "FIXME"); */
+                break;
+
+        case 2:
+                /* Color table report.
+                 *
+                 * Arguments:
+                 *   args[1]: color coordinate system
+                 *     0: invalid
+                 *     1: HLS (0…360, 0…100, 0…100)
+                 *     2: RGB (0…100, 0…100, 0…100) (yes, really!)
+                 *
+                 * Reply: DECTSR
+                 *   DATA: the report
+                 */
+                /* return reply(seq, VTE_REPLY_DECTSR, {2}, "FIXME"); */
+                break;
+
+        default:
+                break;
+        }
 }
 
 void
@@ -3103,9 +3738,16 @@ VteTerminalPrivate::DECRQUPSS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQUPSS - request-user-preferred-supplemental-set
+         * Requests the user-preferred supplemental set.
+         *
+         * Reply: DECAUPSS
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
+
+        // FIXMEchpe send a dummy reply?
 }
 
 void
@@ -3113,9 +3755,28 @@ VteTerminalPrivate::DECRSPS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRSPS - restore presentation state
+         * Restores terminal state from a DECRQPSR response.
          *
          * References: VT525
          */
+
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                /* Error; ignore */
+                break;
+
+        case 1:
+                /* Cursor information report*/
+                break;
+
+        case 2:
+                /* Tabstop report */
+                break;
+
+        default:
+                break;
+        }
 }
 
 void
@@ -3123,9 +3784,28 @@ VteTerminalPrivate::DECRSTS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRSTS - restore terminal state
+         * Restore terminal state from a DECRQTSR response.
          *
          * References: VT525
          */
+
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                /* Ignore */
+                break;
+
+        case 1:
+                /* Terminal state report */
+                break;
+
+        case 2:
+                /* Color table report */
+                break;
+
+        default:
+                break;
+        }
 }
 
 void
@@ -3133,8 +3813,23 @@ VteTerminalPrivate::DECSACE(vte::parser::Sequence const& seq)
 {
         /*
          * DECSACE - select-attribute-change-extent
+         * Selects which positions a rectangle command (DECCARA, DECCRA,
+         * DECERA, DECFRA, DECRARA, DECSERA) affects.
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   args[0]:
+         *     0, 1: the stream of positions beginning at the
+         *           (top, left) and ending at the (bottom, right)
+         *           position
+         *     2: the positions in the rectangle with corners
+         *        (top, left) and (bottom, right)
+         *
+         * Defaults;
+         *   args[0]: 0
+         *
+         * References: VT525
+         *
+         * Not worth implementing unless we implement all the rectangle functions.
          */
 }
 
@@ -3143,6 +3838,17 @@ VteTerminalPrivate::DECSASD(vte::parser::Sequence const& seq)
 {
         /*
          * DECSASD - select-active-status-display
+         * Selects between main screen and status line.
+         *
+         * Arguments:
+         *   args[0]:
+         *     0: main screen
+         *     1: status line
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3176,7 +3882,15 @@ void
 VteTerminalPrivate::DECSCA(vte::parser::Sequence const& seq)
 {
         /*
-         * DECSCA - select-character-protection-attribute
+         * DECSCA - select character protection attribute
+         * Sets whether characters inserted are protected or not.
+         * Protected characters will not be erased by DECSED or DECSEL.
+         * SGR attributes are unchanged.
+         *
+         * Arguments:
+         *   args[0]:
+         *     0, 2: not protected
+         *     1: protected
          *
          * Defaults:
          *   args[0]: 0
@@ -3227,6 +3941,8 @@ VteTerminalPrivate::DECSCL(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 64
          *   args[1]: 0
+         *
+         * References: VT525
          */
 #if 0
         unsigned int level = 64, bit = 0;
@@ -3261,6 +3977,8 @@ VteTerminalPrivate::DECSCP(vte::parser::Sequence const& seq)
         /*
          * DECSCP - select-communication-port
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -3281,7 +3999,9 @@ VteTerminalPrivate::DECSCPP(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 0
          *
-         * TODO: implement
+         * References: VT525
+         *
+         * FIXMEchpe: implement this instead of deprecated DECCOLM
          */
 }
 
@@ -3290,6 +4010,8 @@ VteTerminalPrivate::DECSCS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCS - select-communication-speed
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3333,6 +4055,8 @@ VteTerminalPrivate::DECSDDT(vte::parser::Sequence const& seq)
         /*
          * DECSDDT - select-disconnect-delay-time
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -3342,6 +4066,8 @@ VteTerminalPrivate::DECSDPT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSDPT - select-digital-printed-data-type
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3396,6 +4122,52 @@ VteTerminalPrivate::DECSERA(vte::parser::Sequence const& seq)
 {
         /*
          * DECSERA - selective-erase-rectangular-area
+         * Selectively erases characters in the specified rectangle,
+         * replacing them with SPACE (2/0). Character attributes,
+         * protection attribute (DECSCA) and line attributes (DECDHL,
+         * DECDWL) are unchanged.
+         *
+         * Arguments;
+         *   args[0..3]: top, left, bottom, right of the source rectangle (1-based)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *
+         * If the top > bottom or left > right the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?). Current SGR defaults
+         * and cursor position are unchanged.
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: VT525
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSEST(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSEST - energy saver time
+         * Sets the enerty saver timer. When DECCRTSM is set, the
+         * screen switches to suspend mode when the time elapsed
+         * since the last keystroke or output is greater than the
+         * time set here.
+         *
+         * Arguments:
+         *   args[0]: the time in minutes (0…60) (0 = never)
+         *
+         * Default: 15
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3407,10 +4179,11 @@ VteTerminalPrivate::DECSFC(vte::parser::Sequence const& seq)
         /*
          * DECSFC - select-flow-control
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
-
 
 void
 VteTerminalPrivate::DECSIXEL(vte::parser::Sequence const& seq)
@@ -3427,6 +4200,18 @@ VteTerminalPrivate::DECSKCV(vte::parser::Sequence const& seq)
 {
         /*
          * DECSKCV - set-key-click-volume
+         * Sets the key click volume.
+         *
+         * Arguments:
+         *   args[0]: the volume setting
+         *     0, 5…8: high
+         *     1: off
+         *     2…4: low
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3437,6 +4222,9 @@ VteTerminalPrivate::DECSLCK(vte::parser::Sequence const& seq)
 {
         /*
          * DECSLCK - set-lock-key-style
+         * Allow host control of the CapsLock key
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3448,6 +4236,8 @@ VteTerminalPrivate::DECSLE(vte::parser::Sequence const& seq)
         /*
          * DECSLE - select-locator-events
          *
+         * References: VT330
+         *
          * TODO: implement
          */
 }
@@ -3457,30 +4247,74 @@ VteTerminalPrivate::DECSLPP(vte::parser::Sequence const& seq)
 {
         /*
          * DECSLPP - set-lines-per-page
-         * Set the number of lines used for the page. @args[0] specifies the
-         * number of lines to be used. DEC only allows a limited number of
-         * choices, however, we allow all integers. 0 is equivalent to 24.
+         * Set the number of lines per page.
+         *
+         * Arguments:
+         *   args[0]: the number of lines per page
          *
          * Defaults:
-         *   args[0]: 0
+         *   args[0]: 0 (meaning 24)
          *
-         * TODO: implement
-         */
-}
-
-void
-VteTerminalPrivate::DECSLRM_OR_SC(vte::parser::Sequence const& seq)
-{
-        /*
-         * DECSLRM_OR_SC - set-left-and-right-margins or save-cursor
+         * Note that VT525 only allows a limited number of choices,
+         * (24, 25, 36, 41, 42, 48, 52, 53, 72); VTE is not so limited
+         * and supports any value >= 24.
          *
-         * TODO: Detect save-cursor and run it. DECSLRM is not worth
-         *       implementing.
+         * Top and bottom scrolling margins are unaffected, unless their
+         * current values exceed the new page size, in which case they are
+         * reset to the default.
          *
          * References: VT525
          */
 
-        save_cursor();
+        auto param = seq.collect1(0);
+        if (param == 0)
+                param = 24;
+        else if (param < 24)
+                return;
+
+        _vte_debug_print(VTE_DEBUG_EMULATION, "Resizing to %d rows.\n", param);
+
+        emit_resize_window(m_column_count, param);
+}
+
+void
+VteTerminalPrivate::DECSLRM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSLRM - set left and right margins
+         * Sets the left and right margins of the scrolling region.
+         * This is only applicable if the vertical split-screen mode
+         * (DECLRMM) is set.
+         *
+         * Arguments:
+         *   args[0]: left margin
+         *   args[1]: right margin
+         *
+         * Default:
+         *   args[0]: 1
+         *   args[2]: page width
+         *
+         * If left > right, the command is ignored.
+         * The maximum of right is the page size (set with DECSCPP);
+         * the minimum size of the scrolling region is 2 columns.
+         *
+         * Homes to cursor to (1,1) of the page (scrolling region?).
+         *
+         * References: VT525
+         *
+         * Note: There is a conflict between SCOSC and DECSLRM that both
+         * have final character 's' (7/3). SCOSC has 0 parameters, and
+         * DECSLRM has 2 parameters which both have default values, and
+         * my reading of ECMA-48 § 5.4.2h says that this allows for an
+         * empty parameter string to represent them.
+         *
+         * We could either fudge it by dispatching zero params to SCOSC
+         * and anything else to DECSLRM, or, since we already implement
+         * DECSC/DECRC, we can just drop support for the extra SCOSC/SCORC.
+         * Do the latter.
+         *
+         * FIXMEchpe: Consider implementing this.
+         */
 }
 
 void
@@ -3488,6 +4322,18 @@ VteTerminalPrivate::DECSMBV(vte::parser::Sequence const& seq)
 {
         /*
          * DECSMBV - set-margin-bell-volume
+         * Sets the margin bell volume.
+         *
+         * Arguments:
+         *   args[0]: the volume setting
+         *     0, 1: off
+         *     2…4: low
+         *     5…8: high
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3498,6 +4344,11 @@ VteTerminalPrivate::DECSMKR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSMKR - select-modifier-key-reporting
+         * Make modifier keys send extended keyboard reports (DECEKBD)
+         * when pressed or released in key position mode (DECKPM).
+         * [...]
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3508,8 +4359,32 @@ VteTerminalPrivate::DECSNLS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSNLS - set-lines-per-screen
+         * Sets the number of lines per screen.
+         * DEC only supports 26, 42, 53 lines here; but VTE has no
+         * such restriction.
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   args[0]: the number of lines
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: VT525
+         *
+         * FIXMEchpe: implement this
+         */
+}
+
+void
+VteTerminalPrivate::DECSPMA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSPMA - session page memory allocation
+         * Allocate pages of 25 lines to each session.
+         *
+         * References: VT525
+         *
+         * VTE does not support sessions.
          */
 }
 
@@ -3518,6 +4393,10 @@ VteTerminalPrivate::DECSPP(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPP - set-port-parameter
+         * Sets parameters for the communications or printer port.
+         * [...]
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3528,6 +4407,9 @@ VteTerminalPrivate::DECSPPCS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPPCS - select-pro-printer-character-set
+         * [...]
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3538,6 +4420,9 @@ VteTerminalPrivate::DECSPRTT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPRTT - select-printer-type
+         * [...]
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3548,8 +4433,22 @@ VteTerminalPrivate::DECSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSR - secure-reset
+         * Hard reset, with confirmation.
+         * Like RIS, but the terminal replies with the token.
+         * [long list of things this resets]
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   args[0]: a token
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * Reply: DECSRC
+         *   args[0]: the token
+         *
+         * References: VT525
+         *
+         * FIXMEchpe: implement this
          */
 }
 
@@ -3558,6 +4457,9 @@ VteTerminalPrivate::DECSRFR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSRFR - select-refresh-rate
+         * [...]
+         *
+         * References: VT510
          *
          * Probably not worth implementing.
          */
@@ -3568,6 +4470,9 @@ VteTerminalPrivate::DECSSCLS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSSCLS - set-scroll-speed
+         * [...]
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3578,8 +4483,20 @@ VteTerminalPrivate::DECSSDT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSSDT - select-status-display-line-type
+         * Sets the type of status line shown.
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   args[0]: the type
+         *     0: no status line
+         *     1: indicator status line
+         *     2: host-writable status line
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
+         *
+         * Not worth implementing.
          */
 }
 
@@ -3589,7 +4506,17 @@ VteTerminalPrivate::DECSSL(vte::parser::Sequence const& seq)
         /*
          * DECSSL - select-setup-language
          *
-         * Probably not worth implementing.
+         * Selects set-up language
+         *
+         * References: VT525
+         *
+         * VTE does not implement a set-up.
+         *
+         * or:
+         *
+         * WYDRBX - draw a box
+         *
+         * References: WY370
          */
 }
 
@@ -3617,17 +4544,18 @@ VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTBM - set-top-and-bottom-margins
-         * This control function sets the top and bottom margins for the current
-         * page. You cannot perform scrolling outside the margins.
-         *
-         * @args[0] defines the top margin, @args[1] defines the bottom margin.
-         * The bottom margin must be lower than the top-margin.
-         *
-         * This call resets the cursor position to (1,1).
+         * Sets the top and bottom scrolling margins.
+         * Arguments:
+         *   args[0]: the top margin
+         *   args[1]: the bottom margin
          *
          * Defaults:
          *   args[0]: 1
-         *   args[1]: number of lines in screen
+         *   args[1]: number of lines
+         *
+         * If top > bottom, the command is ignored.
+         * The maximum size of the scrolling region is the whole page.
+         * Homes the cursor to position (1,1) (of the scrolling region?).
          *
          * References: VT525 5–149
          */
@@ -3696,17 +4624,43 @@ VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECSTGLT(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSTGLT - select color lookup table
+         * Selects color mapping.
+         *
+         * Arguments:
+         *   args[0]: mode
+         *     0: Text colors are shown in monochrome or grey levels
+         *     1: Text attributes (bold, blink, reverse, (single) underline,
+         *        and any combinations thereof) are shown with alternate
+         *        colors (defined by set-up), plus the attribute
+         *     2: Like 1, but attributes are only represented by the color
+         *     3: Text color as specified by SGR, and attributes
+         *        as specified.
+         *
+         * Defaults:
+         *   args[0]: 3
+         *
+         * Set-up default: 3
+         *
+         * References: VT525
+         *
+         * Maybe worth implementing.
+         */
+}
+
+void
 VteTerminalPrivate::DECSTR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTR - soft-terminal-reset
          * Perform a soft reset to the default values.
+         * [list of default values]
          *
          * References: VT525
          */
-#if 0
-        vte_screen_soft_reset(screen);
-#endif
 
 	reset(false, false);
 }
@@ -3717,6 +4671,8 @@ VteTerminalPrivate::DECSTRL(vte::parser::Sequence const& seq)
         /*
          * DECSTRL - set-transmit-rate-limit
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
          */
 }
@@ -3726,8 +4682,11 @@ VteTerminalPrivate::DECSTUI(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTUI - set terminal unit ID
+         * Sets the terminal unit ID that DA3 reports.
          *
          * References: VT525
+         *
+         * VTE does not implement this.
          */
 }
 
@@ -3736,6 +4695,18 @@ VteTerminalPrivate::DECSWBV(vte::parser::Sequence const& seq)
 {
         /*
          * DECSWBV - set-warning-bell-volume
+         * Sets the warning bell volume.
+         *
+         * Arguments:
+         *   args[0]: the volume setting
+         *     0, 5…8: high
+         *     1: off
+         *     2…4: low
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3747,7 +4718,32 @@ VteTerminalPrivate::DECSWL(vte::parser::Sequence const& seq)
         /*
          * DECSWL - single-width-single-height-line
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DECSZS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSZS - select zero symbol
+         * Selects the zero glyph shape.
+         *
+         * Aguments:
+         *   args[0]: shape
+         *     0: oval zero
+         *     1: zero with slash
+         *     2: zero with dot
+         *
+         * Default:
+         *  args[0]: 0
+         *
+         * References: VT525
+         *
+         * Maybe worth implementing; could use the opentype "zero" feature
+         * to get the slashed zero.
          */
 }
 
@@ -3756,6 +4752,10 @@ VteTerminalPrivate::DECTID(vte::parser::Sequence const& seq)
 {
         /*
          * DECTID - select-terminal-id
+         * Selects the response to DA1.
+         * [...]
+         *
+         * References: VT525
          *
          * Probably not worth implementing.
          */
@@ -3766,8 +4766,14 @@ VteTerminalPrivate::DECTME(vte::parser::Sequence const& seq)
 {
         /*
          * DECTME - terminal-mode-emulation
+         * Selects the terminal emulation mode.
+         * Available values are various VTxxx, Wyse, TVI, ADDS, SCO
+         * terminals.
+         * Changing the emulation mode effects a soft reset.
          *
-         * Probably not worth implementing.
+         * References: VT525
+         *
+         * Not worth implementing.
          */
 }
 
@@ -3776,8 +4782,15 @@ VteTerminalPrivate::DECTST(vte::parser::Sequence const& seq)
 {
         /*
          * DECTST - invoke-confidence-test
+         * Executes self-tests.
          *
-         * Probably not worth implementing.
+         * Arguments:
+         *   args[0]: 4
+         *   args[1]: which test to perform
+         *
+         * References: VT525
+         *
+         * Not worth implementing.
          */
 }
 
@@ -3786,8 +4799,23 @@ VteTerminalPrivate::DECUDK(vte::parser::Sequence const& seq)
 {
         /*
          * DECUDK - user define keys
+         * Loads key definitions.
          *
          * References: VT525
+         *
+         * For security reasons, VTE does not implement this.
+         */
+}
+
+void
+VteTerminalPrivate::DECUS(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECUS - update session
+         *
+         * References: VT525
+         *
+         * VTE does not support sessions.
          */
 }
 
@@ -3796,6 +4824,13 @@ VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
 {
         /*
          * DL - delete-line
+         * Delete lines starting from the active line (presentation).
+         *
+         * This function is affected by the DCSM, TSM and VEM modes,
+         * and the SLH and SEE functions.
+         *
+         * Arguments:
+         *  args[0]: number of lines to delete
          *
          * Defaults:
          *   args[0]: 1
@@ -3820,6 +4855,32 @@ VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DLE(vte::parser::Sequence const& seq)
+{
+        /*
+         * DLE - data link escape
+         * Supplementary transmission control functions.
+         *
+         * References: ECMA-48 § 8.3.33
+         *             ISO 1745
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::DMI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DMI - disable manual input
+         *
+         * References: ECMA-48 § 8.3.34
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
 VteTerminalPrivate::DOCS(vte::parser::Sequence const& seq)
 {
         /*
@@ -3839,6 +4900,9 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
          * DSR_ECMA - Device Status Report
          *
          * Reports status, or requests a status report.
+         *
+         * Arguments:
+         *   args[0]: type
          *
          * Defaults:
          *   arg[0]: 0
@@ -3867,7 +4931,7 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
                 break;
 
         case 6:
-                /* Request extended cursor position report
+                /* Request cursor position report
                  * Reply: CPR
                  *   @arg[0]: line
                  *   @arg[1]: column
@@ -3972,7 +5036,7 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
                  *   @arg[2]: Keyboard status
                  *     0 = ready
                  *     3 = no keyboard
-                 *     8 = keyboard busy
+                 *     8 = keyboard busy (used by other session)
                  *
                  *   @arg[3]: Keyboard type
                  *     0 = LK201 (XTERM response)
@@ -4058,13 +5122,80 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DTA(vte::parser::Sequence const& seq)
+{
+        /*
+         * DTA - dimension text area
+         * Set the dimension of the text area.
+         *
+         * Arguments:
+         *  args[0]:
+         *  args[1]:
+         *
+         * Defaults:
+         *   args[0]: no default
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.36
+         */
+}
+
+void
+VteTerminalPrivate::EA(vte::parser::Sequence const& seq)
+{
+        /*
+         * EA - erase in area
+         * Erase some/all character positions in the qualified area.
+         *
+         * Arguments:
+         *  args[0]: type
+         *    0 = Erase the active position and all positions to the end
+         *        of the qualified area (inclusive).
+         *    1 = Erase from the beginning of the qualified area to
+         *        the active position (inclusive).
+         *    2 = Erase all of the qualified area.
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * If ERM is set, erases only non-protected areas; if
+         * ERM is reset, erases all areas.
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.37
+         */
+
+        switch (seq.collect1(0)) {
+        case -1:
+        case 0:
+                break;
+        }
+}
+
+void
 VteTerminalPrivate::ECH(vte::parser::Sequence const& seq)
 {
         /*
          * ECH - erase-character
+         * Erase characters from the active position.
+         *
+         * DSCM mode controls whether this function operates on the
+         * presentation or data position.
+         * Also affected by ERM mode.
+         *
+         * Arguments:
+         *   args[0]: number of characters to erase
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * If ERM is set, erases only non-protected characters; if
+         * ERM is reset, erases all characters.
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
          *
          * References: ECMA-48 § 8.3.38
          */
@@ -4093,12 +5224,63 @@ VteTerminalPrivate::ED(vte::parser::Sequence const& seq)
 {
         /*
          * ED - erase-in-display
+         * Erases characters.
+         * Line attributes of completely erased lines are reset to
+         * single-width single-height, and all character attributes
+         * are reset to default.
+         *
+         * Arguments:
+         *   args[0]: mode
+         *     0 = erase from the cursor position to the end of the screen
+         *     1 = erase from the beginning of the screen to the cursor
+         *         position (inclusive)
+         *     2 = erase display
+         *     3 = erase scrollback (XTERM extension)
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * This function does not respect the scrolling margins.
+         *
+         * If ERM is set, erases only non-protected characters; if
+         * ERM is reset, erases all characters.
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.39
+         *             VT525
          */
 
         erase_in_display(seq);
+}
+
+void
+VteTerminalPrivate::EF(vte::parser::Sequence const& seq)
+{
+        /*
+         * EF - erase in field
+         * Erases characters in the active field.
+         *
+         * Arguments:
+         *   args[0]: mode
+         *    0 = Erase the active position and all positions to the end
+         *        of the field (inclusive).
+         *    1 = Erase from the beginning of the field to
+         *        the active position (inclusive).
+         *    2 = Erase all of the qualified area.
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * If ERM is set, erases only non-protected characters; if
+         * ERM is reset, erases all characters.
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.40
+         */
 }
 
 void
@@ -4106,12 +5288,53 @@ VteTerminalPrivate::EL(vte::parser::Sequence const& seq)
 {
         /*
          * EL - erase-in-line
+         * Erases characters.
+         *
+         * Arguments:
+         *   args[0]: mode
+         *     0 = erase from the cursor position to the end of the line
+         *     1 = erase from the beginning of the line to the cursor
+         *         position (inclusive)
+         *     2 = erase line (FIXME: does this clear line attributes?)
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * This function does not respect the scrolling margins.
+         *
+         * If ERM is set, erases only non-protected characters; if
+         * ERM is reset, erases all characters.
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.41
+         *             VT525
          */
 
         erase_in_line(seq);
+}
+
+void
+VteTerminalPrivate::EM(vte::parser::Sequence const& seq)
+{
+        /*
+         * EM - end of medium
+         *
+         * References: ECMA-48 § 8.3.42
+         */
+}
+
+void
+VteTerminalPrivate::EMI(vte::parser::Sequence const& seq)
+{
+        /*
+         * DMI - enable manual input
+         *
+         * References: ECMA-48 § 8.3.43
+         *
+         * Probably not worth implementing.
+         */
 }
 
 void
@@ -4122,24 +5345,78 @@ VteTerminalPrivate::ENQ(vte::parser::Sequence const& seq)
          * Transmit the answerback-string. If none is set, do nothing.
          *
          * References: ECMA-48 § 8.3.44
+         *             ISO 1745
          */
-#if 0
-        if (screen->answerback)
-                return screen_write(screen,
-                                    screen->answerback,
-                                    strlen(screen->answerback));
-#endif
 
         /* No-op for security reasons */
+}
+
+void
+VteTerminalPrivate::EOT(vte::parser::Sequence const& seq)
+{
+        /*
+         * EOT - end of transmission
+         *
+         * References: ECMA-48 § 8.3.45
+         *             ISO 1745
+         *
+         * Not worth implementing.
+         */
 }
 
 void
 VteTerminalPrivate::EPA(vte::parser::Sequence const& seq)
 {
         /*
-         * EPA - end-of-guarded-area
+         * EPA - end of guarded area
+         * Marks the end of an area of positions (presentation)
+         * that are protected; the beginning of the area was
+         * marked by SPA.
          *
-         * TODO: What is this?
+         * The contents of the area will be protected against
+         * alteration, transfer (depending on the GATM setting),
+         * and erasure (depending on the ERM setting).
+         *
+         * References: ECMA-48 § 8.3.46
+         */
+}
+
+void
+VteTerminalPrivate::ESA(vte::parser::Sequence const& seq)
+{
+        /*
+         * ESA - end of selected area
+         * Marks the end of an area of positions (presentation)
+         * that are selected for transfer; the beginning of the area
+         * was marked by SSA.
+         *
+         * References: ECMA-48 § 8.3.47
+         */
+}
+
+void
+VteTerminalPrivate::ETB(vte::parser::Sequence const& seq)
+{
+        /*
+         * ETB - end of transmission block
+         *
+         * References: ECMA-48 § 8.3.49
+         *             ISO 1745
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::ETX(vte::parser::Sequence const& seq)
+{
+        /*
+         * ETX - end of text
+         *
+         * References: ECMA-48 § 8.3.49
+         *             ISO 1745
+         *
+         * Not worth implementing.
          */
 }
 
@@ -4148,13 +5425,111 @@ VteTerminalPrivate::FF(vte::parser::Sequence const& seq)
 {
         /*
          * FF - form-feed
-         * This causes the cursor to jump to the next line. It is treated the
-         * same as LF.
+         * This causes the cursor to jump to the next line (presentation).
          *
          * References: ECMA-48 § 8.3.51
          */
 
         LF(seq);
+}
+
+void
+VteTerminalPrivate::FNK(vte::parser::Sequence const& seq)
+{
+        /*
+         * FNK - function key
+         *
+         * Arguments:
+         *  args[0]: function key that was operated
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.52
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::FNT(vte::parser::Sequence const& seq)
+{
+        /*
+         * FNT - font selection
+         * Select the font to be used by subsequent SGR 10…19.
+         *
+         * Arguments:
+         *  args[0]: the font 0…9
+         *  args[1]: font identifier
+         *
+         * Defaults:
+         *   args[0]: 0
+         *   args[1]: 0
+         *
+         * References: ECMA-48 § 8.3.53
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::GCC(vte::parser::Sequence const& seq)
+{
+        /*
+         * GCC - graphic character combination
+         * Two or more graphic characters that follow should be
+         * imaged as one symbol.
+         *
+         * Arguments:
+         *  args[0]: mode
+         *    0 = Combine the following two graphic characters
+         *    1 = Start of string of characters to be combined
+         *    2 = End of string of characters to be combined
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.54
+         *             ECMA-43 Annex C
+         */
+}
+
+void
+VteTerminalPrivate::GSM(vte::parser::Sequence const& seq)
+{
+        /*
+         * GSM - graphic size modification
+         *
+         * Arguments:
+         *  args[0]: height as percentage of height set by GSS
+         *  args[1]: width as percentage of width set by GSS
+         *
+         * Defaults:
+         *   args[0]: 100
+         *   args[0]: 100
+         *
+         * References: ECMA-48 § 8.3.55
+         *
+         * Not applicable to VTE.
+         */
+}
+
+void
+VteTerminalPrivate::GSS(vte::parser::Sequence const& seq)
+{
+        /*
+         * GSM - graphic size selection
+         *
+         * Arguments:
+         *  args[0]: size in the unit set by SSU
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.56
+         *
+         * Not applicable to VTE.
+         */
 }
 
 void
@@ -4169,7 +5544,7 @@ VteTerminalPrivate::GnDm(vte::parser::Sequence const& seq)
          *             ISO 2375 IR
          */
 
-        /* Since we don't implement ISO-2022 anymore, we can mostly ignore this. */
+        /* Since we mostly don't implement ECMA-35 anymore, we can mostly ignore this. */
 
         VteCharacterReplacement replacement;
         switch (seq.charset()) {
@@ -4211,27 +5586,25 @@ VteTerminalPrivate::GnDMm(vte::parser::Sequence const& seq)
          *             ISO 2375 IR
          */
 
-        /* Since we don't implement ISO-2022 anymore, we can ignore this */
+        /* Since we mostly don't implement ECMA-35 anymore, we can ignore this */
 }
 
 void
 VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
 {
         /*
-         * HPA - horizontal-position-absolute
-         * HPA causes the active position to be moved to the n-th horizontal
-         * position of the active line. If an attempt is made to move the active
-         * position past the last position on the line, then the active position
-         * stops at the last position on the line.
+         * HPA - horizontal position absolute
+         * Move the active position (data) to the position specified by @args[0]
+         * in the active line.
          *
-         * @args[0] defines the horizontal position. 0 is treated as 1.
-         *
-         * Note: This does the same as CHA
+         * Arguments:
+         *   args[0]: position (data)
          *
          * Defaults:
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.57
+         *             VT525
          */
 
 #if 0
@@ -4249,19 +5622,39 @@ VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::HPB(vte::parser::Sequence const& seq)
+{
+        /*
+         * HPA - horizontal position backward
+         * Move the active position (data) to the backward by @args[0] positions
+         * in the active line.
+         *
+         * Arguments:
+         *   args[0]: number of positions to move
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.58
+         */
+}
+
+void
 VteTerminalPrivate::HPR(vte::parser::Sequence const& seq)
 {
         /*
          * HPR - horizontal-position-relative
-         * HPR causes the active position to be moved to the n-th following
-         * horizontal position of the active line. If an attempt is made to move
-         * the active position past the last position on the line, then the
-         * active position stops at the last position on the line.
+         * Move the active position (data) to the foward by @args[0] positions
+         * in the active line.
          *
-         * @args[0] defines the horizontal position. 0 is treated as 1.
+         * Arguments:
+         *   args[0]: number of positions to move
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.59
+         *             VT525
          */
 #if 0
         unsigned int num = 1;
@@ -4278,12 +5671,33 @@ void
 VteTerminalPrivate::HT(vte::parser::Sequence const& seq)
 {
         /*
-         * HT - horizontal-tab
-         * Moves the cursor to the next tab stop. If there are no more tab
-         * stops, the cursor moves to the right margin. HT does not cause text
-         * to auto wrap.
+         * HT - character tabulation
+         * Move the active position (presentation) to the next tab stop.
+         * If there are no more tab stops, the cursor moves to the right
+         * margin. Does not cause text to auto wrap.
+         *
+         * (If that next tabstop was set by TAC, TALE, TATE or TCC,
+         * the properties of that tabstop will determine how subsequently
+         * inserted text is positioned.)
          *
          * References: ECMA-48 § 8.3.60
+         *             VT525
+         */
+#if 0
+        screen_cursor_clear_wrap(screen);
+#endif
+
+        move_cursor_tab_forward();
+}
+
+void
+VteTerminalPrivate::HTJ(vte::parser::Sequence const& seq)
+{
+        /*
+         * HTJ - character tabulation with justification
+         *
+         * References: ECMA-48 § 8.3.61
+         *             VT525
          */
 #if 0
         screen_cursor_clear_wrap(screen);
@@ -4297,12 +5711,12 @@ VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
 {
         /*
          * HTS - horizontal-tab-set
-         * XXX
+         * Set a tabstop at the active position (presentation).
          *
-         * Executing an HTS does not effect the other horizontal tab stop
-         * settings.
+         * Affected by TSM mode.
          *
          * References: ECMA-48 § 8.3.62
+         *             VT525
          */
 
         m_tabstops.set(m_screen->cursor.col);
@@ -4313,13 +5727,20 @@ VteTerminalPrivate::HVP(vte::parser::Sequence const& seq)
 {
         /*
          * HVP - horizontal-and-vertical-position
-         * XXX
+         * Sets the active position (data)
+         *
+         * Arguments:
+         *   args[0]: the line
+         *   args[1]: the column
          *
          * Defaults:
          *   args[0]: 1
          *   args[1]: 1
          *
-         * References: ECMA-48 FIXME
+         * If DECOM is set, the position is relative to the top/bottom
+         * margins, and may not be outside it.
+         *
+         * References: ECMA-48 § 8.3.63
          *             VT525
          */
 
@@ -4331,12 +5752,21 @@ VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
 {
         /*
          * ICH - insert-character
-         * XXX
+         * Inserts SPACE (2/0) character(s) at the cursor position.
+         *
+         * Arguments:
+         *   args[0]: the number of characters to insert
          *
          * Defaults:
          *   args[0]: 1
          *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+
+         * Also affected by HEM mode, and the SLH, and SEE functions.
+         *
          * References: ECMA-48 §8.3.64
+         *             VT525
          */
 #if 0
         unsigned int num = 1;
@@ -4361,14 +5791,63 @@ VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::IDCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * IDCS - identify device control string
+         *
+         * Arguments:
+         *   args[0]: mode
+         *     1 = reserved for use with SRTM mode
+         *     2 = reservewd for DRCS according to ECMA-35
+
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.65
+         */
+}
+
+void
+VteTerminalPrivate::IGS(vte::parser::Sequence const& seq)
+{
+        /*
+         * IGS - identify graphic subrepertoire
+         * Specifies a repertoire of graphic characters to be used
+         * in the following text.
+         *
+         * Arguments:
+         *   args[0]: identifier from ISO 7350 registry
+
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.66
+         *             ISO/IEC 7350
+         *             ISO/IEC 10367
+         *
+         * Not worth implementing.
+         */
+}
+
+void
 VteTerminalPrivate::IL(vte::parser::Sequence const& seq)
 {
         /*
          * IL - insert-line
-         * XXX
+         * Insert (a) blank line(s) at the active position.
+         *
+         * Arguments:
+         *   args[0]: the number of lines
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * Also affected by the TSM and VEM modes,
+         * and the SLH and SEE functions.
          *
          * References: ECMA-48 § 8.3.67
          */
@@ -4403,6 +5882,16 @@ VteTerminalPrivate::IND(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::INT(vte::parser::Sequence const& seq)
+{
+        /*
+         * INT - interrupt
+         *
+         * References: ECMA-48 § 8.3.68
+         */
+}
+
+void
 VteTerminalPrivate::IRR(vte::parser::Sequence const& seq)
 {
         /*
@@ -4413,7 +5902,59 @@ VteTerminalPrivate::IRR(vte::parser::Sequence const& seq)
          * Probably not worth implementing.
          */
 
-        /* Since we don't implement ISO-2022 anymore, we can ignore this */
+        /* Since we mostly don't implement ECMA-35 anymore, we can ignore this */
+}
+
+void
+VteTerminalPrivate::IS1(vte::parser::Sequence const& seq)
+{
+        /*
+         * IS1 - information separator 1 / unit separator (US)
+         *
+         * References: ECMA-48 § 8.3.69, § 8.2.10
+         */
+}
+
+void
+VteTerminalPrivate::IS2(vte::parser::Sequence const& seq)
+{
+        /*
+         * IS2 - information separator 2 / record separator (RS)
+         *
+         * References: ECMA-48 § 8.3.70, § 8.2.10
+         */
+}
+
+void
+VteTerminalPrivate::IS3(vte::parser::Sequence const& seq)
+{
+        /*
+         * IS3 - information separator 3 / group separator (GS)
+         *
+         * References: ECMA-48 § 8.3.71, § 8.2.10
+         */
+}
+
+void
+VteTerminalPrivate::IS4(vte::parser::Sequence const& seq)
+{
+        /*
+         * IS4 - information separator 4 / file separator (FS)
+         *
+         * References: ECMA-48 § 8.3.72, § 8.2.10
+         */
+}
+
+void
+VteTerminalPrivate::JFY(vte::parser::Sequence const& seq)
+{
+        /*
+         * JFY - justify
+         *
+         * References: ECMA-48 § 8.3.73
+         *
+         * Probably not worth implementing.
+         */
 }
 
 void
@@ -4421,8 +5962,7 @@ VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
 {
         /*
          * LF - line-feed
-         * Causes a line feed or a new line operation, depending on the setting
-         * of line feed/new line mode.
+         * XXXX
          *
          * References: ECMA-48 § 8.3.74
          */
@@ -4434,6 +5974,44 @@ VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
 #endif
 
         line_feed();
+}
+
+void
+VteTerminalPrivate::LS0(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS0 -locking shift 0 (8 bit)
+         * SI - shift-in (7 bit)
+         *
+         * Map G0 into GL.
+         *
+         * References: ECMA-35 § 9.3.1
+         *             ECMA-48 § 8.3.75, 8.3.119
+         */
+#if 0
+        screen->state.gl = &screen->g0;
+#endif
+
+        set_character_replacement(0);
+}
+
+void
+VteTerminalPrivate::LS1(vte::parser::Sequence const& seq)
+{
+        /*
+         * LS1 -locking shift 1 (8 bit)
+         * SO - shift-out (7 bit)
+         *
+         * Map G1 into GL.
+         *
+         * References: ECMA-35 § 9.3.1
+         *             ECMA-48 § 8.3.76, 8.3.126
+         */
+#if 0
+        screen->state.gl = &screen->g1;
+#endif
+
+        set_character_replacement(1);
 }
 
 void
@@ -4513,10 +6091,13 @@ VteTerminalPrivate::LS3R(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::MC_ANSI(vte::parser::Sequence const& seq)
+VteTerminalPrivate::MC_ECMA(vte::parser::Sequence const& seq)
 {
         /*
-         * MC_ANSI - media-copy-ansi
+         * MC_ECMA - media-copy-ecma
+         *
+         * References: ECMA-48 § 8.3.82
+         *             VT525
          *
          * Probably not worth implementing.
          */
@@ -4528,7 +6109,46 @@ VteTerminalPrivate::MC_DEC(vte::parser::Sequence const& seq)
         /*
          * MC_DEC - media-copy-dec
          *
+         * References: VT525
+         *
          * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::MW(vte::parser::Sequence const& seq)
+{
+        /*
+         * MW - message waiting
+         *
+         * References: ECMA-48 § 8.3.83
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::NAK(vte::parser::Sequence const& seq)
+{
+        /*
+         * NAK - negative acknowledge
+         *
+         * References: ECMA-48 § 8.3.84
+         *             ISO 1745
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::NBH(vte::parser::Sequence const& seq)
+{
+        /*
+         * BPH - no break permitted here
+         *
+         * References: ECMA-48 § 8.3.85
+         *
+         * Not worth implementing.
          */
 }
 
@@ -4537,7 +6157,8 @@ VteTerminalPrivate::NEL(vte::parser::Sequence const& seq)
 {
         /*
          * NEL - next-line
-         * XXX
+         * Moves the cursor to the first column in the next line.
+         * If the cursor is on the bottom margin, this scrolls up.
          *
          * References: ECMA-48 § 8.3.86
          */
@@ -4556,12 +6177,19 @@ VteTerminalPrivate::NP(vte::parser::Sequence const& seq)
 {
         /*
          * NP - next-page
-         * XXX
+         * Move cursor to home on the next page (presentation).
+         * (Ignored if there is only one page.)
+         *
+         * Arguments:
+         *   args[0]: number of pages to move forward
          *
          * Defaults:
          *   args[0]: 1
          *
-         * Probably not worth implementing. We only support a single page.
+         * References: ECMA-48 § 8.3.87
+         *             VT525
+         *
+         * Since VTE only has one page, this is ignored.
          */
 }
 
@@ -4569,6 +6197,9 @@ void
 VteTerminalPrivate::NUL(vte::parser::Sequence const& seq)
 {
         /*
+         * NUL - nothing
+         *
+         * References: ECMA-48 § 8.3.88
          */
 }
 
@@ -4722,16 +6353,71 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::PEC(vte::parser::Sequence const& seq)
+{
+        /*
+         * PEC - presentation expand or contract
+         *
+         * References: ECMA-48 § 8.3.90
+         *
+         * Not applicable in VTE.
+         */
+}
+
+void
+VteTerminalPrivate::PFS(vte::parser::Sequence const& seq)
+{
+        /*
+         * PFS - page format selection
+         *
+         * References: ECMA-48 § 8.3.91
+         *
+         * Not applicable in VTE.
+         */
+}
+
+void
+VteTerminalPrivate::PLD(vte::parser::Sequence const& seq)
+{
+        /*
+         * PLD - partial line forward
+         *
+         * References: ECMA-48 § 8.3.92
+         *
+         * Could use this to implement subscript text.
+         */
+}
+
+void
+VteTerminalPrivate::PLU(vte::parser::Sequence const& seq)
+{
+        /*
+         * PLU - partial line backward
+         *
+         * References: ECMA-48 § 8.3.93
+         *
+         * Could use this to implement superscript text.
+         */
+}
+
+void
 VteTerminalPrivate::PP(vte::parser::Sequence const& seq)
 {
         /*
-         * PP - preceding-page
-         * XXX
+         * PP - preceding page
+         * Move cursor to home on the previous page (presentation).
+         * (Ignored if there is only one page.)
+         *
+         * Arguments:
+         *   args[0]: number of pages to move backward
          *
          * Defaults:
          *   args[0]: 1
          *
-         * Probably not worth implementing. We only support a single page.
+         * References: ECMA-48 § 8.3.95
+         *             VT525
+         *
+         * Since VTE only has one page, this is ignored.
          */
 }
 
@@ -4739,13 +6425,21 @@ void
 VteTerminalPrivate::PPA(vte::parser::Sequence const& seq)
 {
         /*
-         * PPA - page-position-absolute
-         * XXX
+         * PPA - page position absolute
+         * Move the cursor to the current position on the specified page
+         * (data).
+         * (Ignored if there is only one page.)
+         *
+         * Arguments:
+         *   args[0]: absolute page number
          *
          * Defaults:
          *   args[0]: 1
          *
-         * Probably not worth implementing. We only support a single page.
+         * References: ECMA-48 § 8.3.96
+         *             VT525
+         *
+         * Since VTE only has one page, this is ignored.
          */
 }
 
@@ -4753,13 +6447,20 @@ void
 VteTerminalPrivate::PPB(vte::parser::Sequence const& seq)
 {
         /*
-         * PPB - page-position-backward
-         * XXX
+         * PPB - page position backward
+         * Move the cursor to the current position on a preceding page (data).
+         * (Ignored if there is only one page.)
+         *
+         * Arguments:
+         *   args[0]: number of pages to move backward
          *
          * Defaults:
          *   args[0]: 1
          *
-         * Probably not worth implementing. We only support a single page.
+         * References: ECMA-48 § 8.3.97
+         *             VT525
+         *
+         * Since VTE only has one page, this is ignored.
          */
 }
 
@@ -4767,26 +6468,85 @@ void
 VteTerminalPrivate::PPR(vte::parser::Sequence const& seq)
 {
         /*
-         * PPR - page-position-relative
-         * XXX
+         * PPR - page position foward
+         * Move the cursor to the current position on a following page (data).
+         * (Ignored if there is only one page.)
+         *
+         * Arguments:
+         *   args[0]: number of pages to move forward
          *
          * Defaults:
          *   args[0]: 1
          *
-         * Probably not worth implementing. We only support a single page.
+         * References: ECMA-48 § 8.3.98
+         *             VT525
+         *
+         * Since VTE only has one page, this is ignored.
          */
 }
 
 void
-VteTerminalPrivate::RC(vte::parser::Sequence const& seq)
+VteTerminalPrivate::PTX(vte::parser::Sequence const& seq)
 {
         /*
-         * RC - restore-cursor
+         * PTX - parallel texts
+         *
+         * Arguments:
+         *   args[0]: mode
+         *     0 = End of parallel texts
+         *     1 = Start of a string of principal parallel text
+         *     2 = Start of a string of supplementary parallel text
+         *     3 = Start of a string of supplementary japanese
+         *         phonetic annotations
+         *     4 = Start of a string of supplementary chinese
+         *         phonetic annotations
+         *     5 = Start of a string of supplementary phonetic
+         *        annotations
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.99
+         *             VT525
+         *
+         * Since VTE only has one page, this is ignored.
          */
+}
 
-#if 0
-        screen_DECRC(screen, seq);
-#endif
+void
+VteTerminalPrivate::PU1(vte::parser::Sequence const& seq)
+{
+        /*
+         * PU1 - private use 1
+         *
+         * References: ECMA-48 § 8.3.100
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::PU2(vte::parser::Sequence const& seq)
+{
+        /*
+         * PU1 - private use 2
+         *
+         * References: ECMA-48 § 8.3.101
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::QUAD(vte::parser::Sequence const& seq)
+{
+        /*
+         * QUAD - quad
+         *
+         * References: ECMA-48 § 8.3.102
+         *
+         * Probably not worth implementing.
+         */
 }
 
 void
@@ -4862,7 +6622,8 @@ VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
 {
         /*
          * RIS - reset-to-initial-state
-         * XXX
+         * Reset to initial state.
+         * [list of things reset]
          *
          * References: ECMA-48 § 8.3.105
          */
@@ -4872,6 +6633,18 @@ VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
 #endif
 
 	reset(true, true);
+}
+
+void
+VteTerminalPrivate::RLOGIN_MML(vte::parser::Sequence const& seq)
+{
+        /*
+         * RLOGIN_MML - RLogin music markup language
+         *
+         * Probably not worth implementing.
+         *
+         * References: RLogin
+         */
 }
 
 void
@@ -4904,16 +6677,128 @@ VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::SCORC(vte::parser::Sequence const& seq)
+{
+        /*
+         * SCORC - SCO restore-cursor
+         *
+         * References: VT525
+         *
+         * Not worth implementing, given that we already support DECSC/DECRC.
+         */
+}
+
+void
+VteTerminalPrivate::SACS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SACS - set additional character separation
+         *
+         * Arguments:
+         *   args[0]: spacing (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.107
+         *
+         * Not applicable in VTE.
+         */
+}
+
+void
+VteTerminalPrivate::SAPV(vte::parser::Sequence const& seq)
+{
+        /*
+         * SAPV - select alternative presentation variants
+         * Set variants for the presentation of following text.
+         *
+         * Arguments:
+         *   args[0]: type
+         *     0 = default presentation; cancels the previous SAPV
+         *     ...
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.108
+         */
+}
+
+void
+VteTerminalPrivate::SCO(vte::parser::Sequence const& seq)
+{
+        /*
+         * SCO - select character orientation
+         * Set the rotation for the presentation of following text.
+         * (positive orientation).
+         *
+         * Arguments:
+         *   args[0]: orientation 0…7 specifying a multiple of 45°
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.110
+         */
+}
+
+void
+VteTerminalPrivate::SCP(vte::parser::Sequence const& seq)
+{
+        /*
+         * SCP - select character path
+         * Set the character path relative to the line orientation
+         * (presentation).
+         *
+         * Arguments:
+         *   args[0]: path
+         *     1 = LTR or TTB (for horizontal/vertical line orientation)
+         *     2 = RTL or BTT (for horizontal/vertical line orientation)
+         *   args[1]: effect
+         *     0 = implementation-defined
+         *     1 = ...
+         *     2 = ...
+         *
+         * Defaults:
+         *   args[0]: no default
+         *   args[1]: no default
+         *
+         * References: ECMA-48 § 8.3.111
+         */
+}
+
+void
+VteTerminalPrivate::SCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SCS - set character spacing
+         *
+         * Arguments:
+         *   args[0]: spacing (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.112
+         */
+}
+
+void
 VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
 {
         /*
-         * SD - scroll-down
-         * XXX
+         * SD - scroll down / pan up
+         * Scrolls down a number of lines (presentation).
+         *
+         * Arguments:
+         *   args[0]: number of lines to scroll
          *
          * Defaults:
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.113
+         *             VT525
          */
 #if 0
         unsigned int num = 1;
@@ -4943,8 +6828,70 @@ VteTerminalPrivate::SD_OR_XTERM_IHMT(vte::parser::Sequence const& seq)
          */
         if (seq.size_final() <= 1)
                 SD(seq);
+        #ifdef PARSER_INCLUDE_NOP
         else
                 XTERM_IHMT(seq);
+        #endif
+}
+
+void
+VteTerminalPrivate::SDS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SDS - start directed string
+         *
+         * Arguments:
+         *   args[0]: direction
+         *     0 = End of directed string
+         *     1 = Start of LTR string
+         *     2 = Start of RTL string
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.114
+         */
+}
+
+void
+VteTerminalPrivate::SEE(vte::parser::Sequence const& seq)
+{
+        /*
+         * SEE - select editing extent
+         *
+         * Arguments:
+         *   args[0]: extent
+         *     0 = ...
+         *     1 = ...
+         *     2 = ...
+         *     3 = ...
+         *     4 = ...
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.115
+         */
+}
+
+void
+VteTerminalPrivate::SEF(vte::parser::Sequence const& seq)
+{
+        /*
+         * SEF - sheet eject and feed
+         *
+         * Arguments:
+         *   args[0]:
+         *   args[1]:
+         *
+         * Defaults:
+         *   args[0]: 0
+         *   args[1]: 0
+         *
+         * References: ECMA-48 § 8.3.116
+         *
+         * Probably not worth implementing.
+         */
 }
 
 void
@@ -4952,6 +6899,18 @@ VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
 {
         /*
          * SGR - select-graphics-rendition
+         * Selects the character attributes to use for newly inserted
+         * characters.
+         *
+         * Arguments:
+         *   args[0:]: the attributes
+         *     0 = reset all attributes
+         *
+         * Defaults:
+         *   args[0]: 0 (reset all attributes)
+         *
+         * References: ECMA-48 § 8.3.117
+         *             VT525
          */
         auto const n_params = seq.size();
 
@@ -5081,20 +7040,113 @@ VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SI(vte::parser::Sequence const& seq)
+VteTerminalPrivate::SHS(vte::parser::Sequence const& seq)
 {
         /*
-         * SI - shift-in
-         * Map G0 into GL.
+         * SHS - select character spacing
          *
-         * References: ECMA-35 § 9.3.1
-         *             ECMA-48 § 8.3.119
+         * Arguments:
+         *   args[0]: spacing (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.118
+         *
+         * Not applicable in VTE.
          */
-#if 0
-        screen->state.gl = &screen->g0;
-#endif
+}
 
-        set_character_replacement(0);
+void
+VteTerminalPrivate::SIMD(vte::parser::Sequence const& seq)
+{
+        /*
+         * SIMD - select implicit movement direction
+         *
+         * Arguments:
+         *   args[0]: direction
+         *     0 = character progression
+         *     1 = opposite of character progression
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.120
+         */
+}
+
+void
+VteTerminalPrivate::SL(vte::parser::Sequence const& seq)
+{
+        /*
+         * SL - scroll left
+         *
+         * Arguments:
+         *   args[0]: number of character positions (presentation)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.121
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::SLH(vte::parser::Sequence const& seq)
+{
+        /*
+         * SLH - set line home
+         *
+         * Arguments:
+         *   args[0]: position in the active line
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.122
+         */
+}
+
+void
+VteTerminalPrivate::SLL(vte::parser::Sequence const& seq)
+{
+        /*
+         * SLL - set line limit
+         *
+         * Arguments:
+         *   args[0]: position in the active line
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.123
+         */
+}
+
+void
+VteTerminalPrivate::SLS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SLS - set line spacing
+         *
+         * Arguments:
+         *   args[0]: spacing (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.124
+         *
+         * Not applicable in VTE.
+         */
 }
 
 void
@@ -5127,29 +7179,235 @@ VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SO(vte::parser::Sequence const& seq)
+VteTerminalPrivate::SOH(vte::parser::Sequence const& seq)
 {
         /*
-         * SO - shift-out
-         * Map G1 into GL.
+         * SOH - start of heading
          *
-         * References: ECMA-35 § 9.3.1
-         *             ECMA-48 § 8.3.126
+         * References: ECMA-48 § 8.3.127
          */
-#if 0
-        screen->state.gl = &screen->g1;
-#endif
-
-        set_character_replacement(1);
 }
 
 void
 VteTerminalPrivate::SPA(vte::parser::Sequence const& seq)
 {
         /*
-         * SPA - start-of-protected-area
+         * SPA - start of protected area
+         * Marks the start of an area of positions (presentation)
+         * that are protected; the end of the area will be
+         * marked by EPA.
          *
-         * TODO: What is this?
+         * The contents of the area will be protected against
+         * alteration, transfer (depending on the GATM setting),
+         * and erasure (depending on the ERM setting).
+         *
+         * References: ECMA-48 § 8.3.129
+         */
+}
+
+void
+VteTerminalPrivate::SPD(vte::parser::Sequence const& seq)
+{
+        /*
+         * SPD - select presentation directions
+         *
+         * Arguments:
+         *   args[0]: line orientation, progression, character path
+         *     0 = horizontal, TTB, LTR
+         *     1 = vertical,   RTL, TTB
+         *     2 = vertical,   LTR, TTB
+         *     3 = horizontal, TTB, RTL
+         *     4 = vertical,   LTR, BTT
+         *     5 = horizontal, BTT, RTL
+         *     6 = horizontal, BTT, LTR
+         *     7 = vertical,   RTL, BTT
+         *
+         *   args[1]: effect
+         *     0 = implementation-defined
+         *     1 = ...
+         *     2 = ...
+         *
+         * Defaults:
+         *   args[0]: 0
+         *   args[1]: 0
+         *
+         * References: ECMA-48 § 8.3.130
+         */
+}
+
+void
+VteTerminalPrivate::SPH(vte::parser::Sequence const& seq)
+{
+        /*
+         * SPH - set page home
+         *
+         * Arguments:
+         *   args[0]: position in the active page
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.131
+         */
+}
+
+void
+VteTerminalPrivate::SPI(vte::parser::Sequence const& seq)
+{
+        /*
+         * SPI - spacing increment
+         * Set line and character spacing for following text.
+         *
+         * Arguments:
+         *   args[0]: line spacing (in the unit set by SSU)
+         *   args[0]: character spacing (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: no default
+         *   args[1]: no default
+         *
+         * References: ECMA-48 § 8.3.132
+         */
+}
+
+void
+VteTerminalPrivate::SPL(vte::parser::Sequence const& seq)
+{
+        /*
+         * SPL - set page limit
+         *
+         * Arguments:
+         *   args[0]: line position in the active page
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * Depending on DCSM, this function works on the presentation
+         * or data position.
+         *
+         * References: ECMA-48 § 8.3.133
+         */
+}
+
+void
+VteTerminalPrivate::SPQR(vte::parser::Sequence const& seq)
+{
+        /*
+         * SPQR - select print quality and rapidity
+         *
+         * Arguments:
+         *   args[0]:
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.134
+         */
+}
+
+void
+VteTerminalPrivate::SR(vte::parser::Sequence const& seq)
+{
+        /*
+         * SL - scroll right
+         *
+         * Arguments:
+         *   args[0]: number of character positions (presentation)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.135
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::SRCS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SRCS - set reduced character separation
+         *
+         * Arguments:
+         *   args[0]: spacing (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.136
+         *
+         * Not applicable in VTE.
+         */
+}
+
+void
+VteTerminalPrivate::SRS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SRS - start reversed string
+         *
+         * Arguments:
+         *   args[0]: direction
+         *     0 = End of reversed string
+         *     1 = Start of reversed string
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.137
+         */
+}
+
+void
+VteTerminalPrivate::SSA(vte::parser::Sequence const& seq)
+{
+        /*
+         * SSA - start of selected area
+         * Marks the start of an area of positions (presentation)
+         * that are selected for transfer; the end of the area will
+         * be marked by ESA.
+         *
+         * What will actually be transmitted depends on the setting
+         * of the GATM mode, and areas set by the DAQ and SPA/EPA
+         * functions.
+         *
+         * References: ECMA-48 § 8.3.138
+         */
+}
+
+void
+VteTerminalPrivate::SSU(vte::parser::Sequence const& seq)
+{
+        /*
+         * SSU - set size unit
+         *
+         * Arguments:
+         *   args[0]: unit
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.139
+         */
+}
+
+void
+VteTerminalPrivate::SSW(vte::parser::Sequence const& seq)
+{
+        /*
+         * SSW - set space width
+         *
+         * Arguments:
+         *   args[0]: width (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.140
          */
 }
 
@@ -5159,6 +7417,10 @@ VteTerminalPrivate::SS2(vte::parser::Sequence const& seq)
         /*
          * SS2 - single-shift-2
          * Temporarily map G2 into GL for the next graphics character.
+         *
+         * References: ECMA-35 § 8.4, 9.4
+         *             ECMA-48 § 8.3.141
+         *             VT525
          */
 #if 0
         screen->state.glt = &screen->g2;
@@ -5171,6 +7433,10 @@ VteTerminalPrivate::SS3(vte::parser::Sequence const& seq)
         /*
          * SS3 - single-shift-3
          * Temporarily map G3 into GL for the next graphics character
+         *
+         * References: ECMA-35 § 8.4, 9.4
+         *             ECMA-48 § 8.3.142
+         *             VT525
          */
 #if 0
         screen->state.glt = &screen->g3;
@@ -5185,6 +7451,50 @@ VteTerminalPrivate::ST(vte::parser::Sequence const& seq)
          * The string-terminator is usually part of control-sequences and
          * handled by the parser. In all other situations it is silently
          * ignored.
+         *
+         * References: ECMA-48 § 8.3.143
+         */
+}
+
+void
+VteTerminalPrivate::STAB(vte::parser::Sequence const& seq)
+{
+        /*
+         * STAB - selective tabulation
+         *
+         * Arguments:
+         *   args[0]:
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.144
+         *             ITU-T Rec. T.416 (Open Document Architecture)
+         */
+}
+
+void
+VteTerminalPrivate::STS(vte::parser::Sequence const& seq)
+{
+        /*
+         * STS - set transmit state
+         *
+         * References: ECMA-48 § 8.3.145
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::STX(vte::parser::Sequence const& seq)
+{
+        /*
+         * STX - start of text
+         *
+         * References: ECMA-48 § 8.3.146
+         *             ISO 1745
+         *
+         * Not worth implementing.
          */
 }
 
@@ -5192,13 +7502,17 @@ void
 VteTerminalPrivate::SU(vte::parser::Sequence const& seq)
 {
         /*
-         * SU - scroll-up
-         * XXX
+         * SU - scroll-up / pan down
+         * Scrolls up a number of lines (presentation).
+         *
+         * Arguments:
+         *   args[0]: number of lines to scroll
          *
          * Defaults:
          *   args[0]: 1
          *
          * References: EMCA-48 § 8.3.147
+         *             VT525
          */
 #if 0
         unsigned int num = 1;
@@ -5225,6 +7539,8 @@ VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
          * Cancel the current control-sequence and print a replacement
          * character. Our parser already handles this so all we have to do is
          * print the replacement character.
+         *
+         * References: ECMA-48 § 8.3.148
          */
 #if 0
         static const struct vte_seq rep = {
@@ -5235,6 +7551,38 @@ VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
 
         return screen_GRAPHIC(screen, &rep);
 #endif
+}
+
+void
+VteTerminalPrivate::SVS(vte::parser::Sequence const& seq)
+{
+        /*
+         * SVS - select line spacing
+         *
+         * Arguments:
+         *   args[0]: spacing
+         *     0 = ...
+         *     ...
+         *     9 = ...
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.149
+         */
+}
+
+void
+VteTerminalPrivate::SYN(vte::parser::Sequence const& seq)
+{
+        /*
+         * SYN - synchronous idle
+         *
+         * References: ECMA-48 § 8.3.150
+         *             ISO 1745
+         *
+         * Not worth implementing.
+         */
 }
 
 void
@@ -5359,14 +7707,38 @@ VteTerminalPrivate::TSR(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::TSS(vte::parser::Sequence const& seq)
+{
+        /*
+         * TSS - thin space specification
+         *
+         * Arguments:
+         *   args[0]: width (in the unit set by SSU)
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.157
+         *
+         * Not applicable in VTE.
+         */
+}
+
+void
 VteTerminalPrivate::VPA(vte::parser::Sequence const& seq)
 {
         /*
-         * VPA - vertical-line-position-absolute
-         * XXX
+         * VPA - vertical line position absolute
+         * Moves the cursor to the specified line on the current column (data).
+         *
+         * Arguments:
+         *   args[0]: line number
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.158
+         *             VT525
          */
 #if 0
         unsigned int pos = 1;
@@ -5386,14 +7758,49 @@ VteTerminalPrivate::VPA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::VPR(vte::parser::Sequence const& seq)
+VteTerminalPrivate::VPB(vte::parser::Sequence const& seq)
 {
         /*
-         * VPR - vertical-line-position-relative
-         * XXX
+         * VPB - line position backward
+         * Moves the cursor up the specified number of lines on
+         * the current column (data).
+         *
+         * Arguments:
+         *   args[0]: line number
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.159
+         *             VT525
+         */
+#if 0
+        unsigned int num = 1;
+
+        if (seq->args[0] > 0)
+                num = seq->args[0];
+
+        screen_cursor_clear_wrap(screen);
+        screen_cursor_down(screen, num, false);
+#endif
+}
+
+void
+VteTerminalPrivate::VPR(vte::parser::Sequence const& seq)
+{
+        /*
+         * VPR - vertical line position relative
+         * Moves the cursor down the specified number of lines
+         * on the current column (data).
+         *
+         * Arguments:
+         *   args[0]: line number
+         *
+         * Defaults:
+         *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.160
+         *             VT525
          */
 #if 0
         unsigned int num = 1;
@@ -5413,20 +7820,232 @@ VteTerminalPrivate::VT(vte::parser::Sequence const& seq)
          * VT - vertical-tab
          * This causes a vertical jump by one line. Terminals treat it exactly
          * the same as LF.
+         *
+         * References: ECMA-48 § 8.3.161
          */
 
         LF(seq);
 }
 
 void
-VteTerminalPrivate::XTERM_CLLHP(vte::parser::Sequence const& seq)
+VteTerminalPrivate::VTS(vte::parser::Sequence const& seq)
 {
         /*
-         * XTERM_CLLHP - xterm-cursor-lower-left-hp-bugfix
-         * Move the cursor to the lower-left corner of the page. This is an HP
-         * bugfix by xterm.
+         * VTS - line tabulation set
+         * Sets a tabstop in the active line (presentation).
+         *
+         * References: ECMA-48 § 8.3.162
+         *
+         * Not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::WYCAA(vte::parser::Sequence const& seq)
+{
+        /*
+         * WYCAA - redefine character display attribute association
+         *
+         * Arguments:
+         *   args[0]: mode
+         *
+         * Defaults:
+         *   args[0]: no defaults
          *
          * Probably not worth implementing.
+         *
+         * References: WY370
+         */
+
+        switch (seq.collect1(0)) {
+        case -1:
+                break;
+
+        case 0 ... 47:
+                /* WYCAA - redefine character attribute association
+                 *
+                 * Arguments:
+                 *   args[0]: character attribute association to be set (0…47)
+                 *   args[1]: palette color index for foreground color (0…64)
+                 *   args[2]: palette color index for background color (0…64)
+                 *   args[3]: new definition for the attribute association @args[0]
+                 *
+                 * Defaults:
+                 *   args[0]: ?
+                 *   args[1]: ?
+                 *   args[2]: ?
+                 *   args[3]: ?
+                 */
+                break;
+
+        case 48:
+                /* WYCOLOR - select foreground color palette
+                 *
+                 * Arguments:
+                 *   args[1]: color palette number 0…7
+                 *
+                 * Defaults:
+                 *   args[1]: ?
+                 */
+                break;
+
+        case 49:
+        case 51 ... 52:
+                /* WYCOLOR - select background (49)/screen border(51)/cursor(52) color
+                 * Selects the background (and screen border) color.
+                 *
+                 * Arguments:
+                 *   args[1]: palette color index 0…64
+                 *
+                 * Defaults:
+                 *   args[1]: ?
+                 */
+                break;
+
+        case 50:
+                /* WYCOLOR - restore fore- and background colors to set-up default */
+                break;
+
+        case 53:
+                /* WYSOVR - select overstrike position
+                 *
+                 * Arguments:
+                 *   args[1]: scanline number in the charcell (0=top, …bottom) to
+                 *            put the overstrike
+                 *
+                 * Defaults:
+                 *   args[1]:
+                 */
+                break;
+
+        case 54 ... 57:
+                /* WYCOLOR - select attributes and colors
+                 * for user status line (54), system status line(55),
+                 * replacement character(56), noneraseable character(57).
+                 *
+                 * Arguments:
+                 *   args[1]:
+                 *   args[2]:
+                 *
+                 * Defaults:
+                 *   args[1]:
+                 *   args[2]:
+                 */
+
+        case 58:
+                /* WYDTSET - set date and time */
+                break;
+
+        case 59:
+                /* WYDFPG - define page for session
+                 *
+                 * Arguments:
+                 *   args[1]:
+                 *   args[2]:
+                 *   args[3]:
+                 *   args[4]:
+                 *
+                 * Defaults:
+                 *   args[1]:
+                 *   args[2]:
+                 *   args[3]:
+                 *   args[4]:
+                 */
+                break;
+
+        case 60:
+                /* WYIND - restore default color index values */
+                break;
+
+        case 61 ... 62:
+        case 64 ... 65:
+                /* WYIND - set current fore/background color
+                 * Sets the current fore- (61, 64) or background (62, 65)
+                 * color for eraseable (61, 62) or noneraseable (64, 65)
+                 * characters.
+                 *
+                 * Also turns on color index mode.
+                 *
+                 * Arguments:
+                 *   args[1]: color index
+                 *
+                 * Defaults:
+                 *   args[1]: ?
+                 */
+                break;
+
+        case 63:
+                /* WYIND - turn color index mode on/off
+                 *
+                 * Arguments:
+                 *   args[1]: setting (0 = off, 1 = on)
+                 *
+                 * Defaults:
+                 *   args[1]: ?
+                 */
+                break;
+
+        case 66:
+                /* WYIND - redefine color index
+                 *
+                 * Arguments:
+                 *   args[1]: index
+                 *   args[2]: value
+                 *
+                 * Defaults:
+                 *   args[1]: ?
+                 *   args[2]: ?
+                 */
+                break;
+        }
+}
+
+void
+VteTerminalPrivate::WYDHL_BH(vte::parser::Sequence const& seq)
+{
+        /*
+         * WYDHL_BH - single width double height line: bottom half
+         *
+         * Probably not worth implementing.
+         *
+         * References: WY370
+         */
+}
+
+void
+VteTerminalPrivate::WYDHL_TH(vte::parser::Sequence const& seq)
+{
+        /*
+         * WYDHL_TH - single width double height line: top half
+         *
+         * Probably not worth implementing.
+         *
+         * References: WY370
+         */
+}
+
+void
+VteTerminalPrivate::WYSCRATE(vte::parser::Sequence const& seq)
+{
+        /*
+         * WYSCRATE - set smooth scroll rate
+         * Selects scrolling rate if DECSCLM is set.
+         *
+         * Probably not worth implementing.
+         *
+         * References: WY370
+         */
+}
+
+void
+VteTerminalPrivate::WYLSFNT(vte::parser::Sequence const& seq)
+{
+        /*
+         * WYLSFNT - load soft font
+         *
+         * Probably not worth implementing.
+         *
+         * References: WY370
          */
 }
 
@@ -5472,6 +8091,16 @@ VteTerminalPrivate::XTERM_RPM(vte::parser::Sequence const& seq)
          */
 
         save_mode_private(seq, false);
+}
+
+void
+VteTerminalPrivate::XTERM_RQTCAP(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_TQTCAP - xterm request termcap/terminfo
+         *
+         * Probably not worth implementing.
+         */
 }
 
 void
@@ -5533,6 +8162,16 @@ VteTerminalPrivate::XTERM_STM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_STM - xterm-set-title-mode
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+VteTerminalPrivate::XTERM_STCAP(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_STCAP - xterm set termcap/terminfo
          *
          * Probably not worth implementing.
          */
@@ -5790,18 +8429,7 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         default:
-                /* DECSLPP.
-                 *
-                 * VTxxx variously supported 24, 25, 36, 41, 42, 48, 52, 53, 72, or 144 rows,
-                 * but we support any value >= 24.
-                 */
-                if (param >= 24) {
-                        _vte_debug_print(VTE_DEBUG_EMULATION,
-                                         "Resizing to %d rows.\n",
-                                         param);
-                        /* Resize to the specified number of rows. */
-                        emit_resize_window(m_column_count, param);
-                }
+                DECSLPP(seq);
                 break;
         }
 }

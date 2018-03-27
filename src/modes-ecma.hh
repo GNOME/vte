@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#if !defined(MODE) || !defined(MODE_FIXED)
+#error "Must define MODE and MODE_FIXED before including this file"
+#endif
+
 /*
  * Modes for SM_ECMA/RM_ECMA.
  *
@@ -23,8 +27,19 @@
  * References: ECMA-48 § 7
  *             WY370
  */
-
 MODE(IRM,  4)
+
+/*
+ * SRM - local echo send/receive mode
+ * If set, characters entered by the keyboard are shown on the
+ * screen as well as being sent to the host; if reset, the
+ * keyboard input is only sent to the host.
+ *
+ * Default: reset
+ *
+ * References: ECMA-48 § XXX
+ *             VT525
+ */
 MODE(SRM, 12)
 
 /* Unsupported */
@@ -46,20 +61,132 @@ MODE_FIXED(TTM,  16, ALWAYS_RESET)
 MODE_FIXED(SATM, 17, ALWAYS_RESET)
 MODE_FIXED(TSM,  18, ALWAYS_RESET)
 MODE_FIXED(EBM,  19, ALWAYS_RESET) /* ECMA-48 § F.5.1 Removed */
-MODE_FIXED(LNM,  20, ALWAYS_RESET) /* ECMA-48 § F.5.2 Removed */
+
+/*
+ * LNM - line feed/newline mode
+ * If set, the cursor moves to the first column on LF, FF, VT,
+ * and a Return key press sends CRLF.
+ * If reset, the cursor column is unchanged by LF, FF, VT,
+ * and a Return key press sends CR only.
+ *
+ * Default: reset
+ *
+ * References: ECMA-48 § F.5.2 Removed!
+ *             VT525
+ */
+MODE_FIXED(LNM,  20, ALWAYS_RESET)
+
 MODE_FIXED(GRCM, 21, ALWAYS_SET)
 MODE_FIXED(ZDM,  22, ALWAYS_RESET) /* ECMA-48 § F.4.2 Deprecated */
 
-#if 0
-MODE_FIXED(WYDSCM,    30, ALWAYS_SET)
+/*
+ * WYDSCM - display disable mode
+ * If set, blanks the screen; if reset, shows the data.
+ *
+ * Default: reset
+ *
+ * References: WY370
+ */
+MODE_FIXED(WYDSCM,    30, ALWAYS_RESET)
+
+/*
+ * WHYSTLINM - status line display mode
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
 MODE_FIXED(WYSTLINM,  31, ALWAYS_RESET)
+
+/*
+ * WYCRTSAVM - screen saver mode
+ * Like DECCRTSM.
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
 MODE_FIXED(WYCRTSAVM, 32, ALWAYS_RESET)
-MODE_FIXED(WYSTCURM,  33, ?)
-MODE_FIXED(WYULCURM,  34, ?)
+
+/*
+ * WYSTCURM - steady cursor mode
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
+MODE_FIXED(WYSTCURM,  33, ALWAYS_RESET)
+
+/*
+ * WYULCURM - underline cursor mode
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
+MODE_FIXED(WYULCURM,  34, ALWAYS_RESET)
+
+/*
+ * WYCLRM - width change clear disable mode
+ * If set, the screen is not cleared when the column mode changes
+ * by DECCOLM or WY161.
+ * Note that this does not affect DECSCPP.
+ * This is the same as DECNCSM mode.
+ *
+ * Default: set (set-up)
+ *
+ * References: WY370
+ */
 MODE_FIXED(WYCLRM,    35, ALWAYS_SET)
+
+/*
+ * WYDELKM - delete key definition
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
 MODE_FIXED(WYDELKM,   36, ALWAYS_RESET) /* Same as DECBKM */
-MODE_FIXED(WYGATM,    37, ?)
-MODE_FIXED(WYTEXM,    38, ?)
+
+/*
+ * WYGATM - send characters mode
+ * If set, sends all characters; if reset, only erasable characters.
+ * Like GATM above.
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
+MODE_FIXED(WYGATM,    37, ALWAYS_RESET)
+
+/*
+ * WYTEXM - send full screen/scrolling region to printer
+ * Like DECPEX mode.
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
+MODE_FIXED(WYTEXM,    38, ALWAYS_RESET)
+
+/*
+ * WYEXTDM - extra data line
+ * If set, the last line of the screen is used as data line and not
+ * a status line; if reset, the last line of the screen is used
+ * as a status line.
+ *
+ * Default: reset
+ *
+ * References: WY370
+ */
 MODE_FIXED(WYEXTDM,   40, ALWAYS_SET)
+
+/*
+ * WYASCII - WY350 personality mode
+ * If set, switches to WY350 personality.
+ *
+ * Default: reset (set-up)
+ *
+ * References: WY370
+ */
 MODE_FIXED(WYASCII,   42, ALWAYS_SET)
-#endif

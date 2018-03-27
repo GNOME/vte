@@ -29,7 +29,11 @@
 
 #include "parser-charset-tables.hh"
 
-#define WARN(num,str) do { } while (0)
+#ifdef PARSER_INCLUDE_NOP
+#define _VTE_NOQ(...) _VTE_SEQ(__VA_ARGS__)
+#else
+#define _VTE_NOQ(...)
+#endif
 
 /*
  * Terminal Parser
@@ -132,85 +136,11 @@ static inline bool parser_check_matching_controls(uint32_t introducer,
 static unsigned int vte_parse_host_control(const struct vte_seq *seq)
 {
         switch (seq->terminator) {
-        case 0x00: /* NUL */
-                return VTE_CMD_NUL;
-        case 0x05: /* ENQ */
-                return VTE_CMD_ENQ;
-        case 0x07: /* BEL */
-                return VTE_CMD_BEL;
-        case 0x08: /* BS */
-                return VTE_CMD_BS;
-        case 0x09: /* HT */
-                return VTE_CMD_HT;
-        case 0x0a: /* LF */
-                return VTE_CMD_LF;
-        case 0x0b: /* VT */
-                return VTE_CMD_VT;
-        case 0x0c: /* FF */
-                return VTE_CMD_FF;
-        case 0x0d: /* CR */
-                return VTE_CMD_CR;
-        case 0x0e: /* SO */
-                return VTE_CMD_SO;
-        case 0x0f: /* SI */
-                return VTE_CMD_SI;
-        case 0x11: /* DC1 */
-                return VTE_CMD_DC1;
-        case 0x13: /* DC3 */
-                return VTE_CMD_DC3;
-        case 0x18: /* CAN */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x1a: /* SUB */
-                return VTE_CMD_SUB;
-        case 0x1b: /* ESC */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x7f: /* DEL */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x84: /* IND */
-                return VTE_CMD_IND;
-        case 0x85: /* NEL */
-                return VTE_CMD_NEL;
-        case 0x88: /* HTS */
-                return VTE_CMD_HTS;
-        case 0x8d: /* RI */
-                return VTE_CMD_RI;
-        case 0x8e: /* SS2 */
-                return VTE_CMD_SS2;
-        case 0x8f: /* SS3 */
-                return VTE_CMD_SS3;
-        case 0x90: /* DCS */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x96: /* SPA */
-                return VTE_CMD_SPA;
-        case 0x97: /* EPA */
-                return VTE_CMD_EPA;
-        case 0x98: /* SOS */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x9a: /* SCI */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x9b: /* CSI */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x9c: /* ST */
-                return VTE_CMD_ST;
-        case 0x9d: /* OSC */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x9e: /* PM */
-                /* this is already handled by the state-machine */
-                break;
-        case 0x9f: /* APC */
-                /* this is already handled by the state-machine */
-                break;
+#define _VTE_SEQ(cmd,type,f,pi,ni,i0) case f: return VTE_CMD_##cmd;
+#include "parser-c01.hh"
+#undef _VTE_SEQ
+        default: return VTE_CMD_NONE;
         }
-
-        return VTE_CMD_NONE;
 }
 
 static unsigned int vte_parse_charset_94(uint32_t raw,
@@ -1287,7 +1217,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                          ACTION_IGNORE);
         }
 
-        WARN(1, "bad vte-parser state");
+        g_warning("bad vte-parser state");
         return -EINVAL;
 }
 

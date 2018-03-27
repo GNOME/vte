@@ -59,8 +59,10 @@ cmd_to_str(unsigned int command)
 {
         switch (command) {
 #define _VTE_CMD(cmd) case VTE_CMD_##cmd: return #cmd;
+#define _VTE_NOP(cmd) _VTE_CMD(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
+#undef _VTE_NOP
         default:
                 return nullptr;
         }
@@ -490,13 +492,16 @@ main(int argc,
 
         if (statistics) {
                 for (unsigned int s = VTE_SEQ_NONE + 1; s < VTE_SEQ_N; s++) {
-                        g_printerr("%-7s: %" G_GSIZE_FORMAT "\n", seq_to_str(s), seq_stats[s]);
+                        g_printerr("%\'16" G_GSIZE_FORMAT " %s\n",  seq_stats[s], seq_to_str(s));
                 }
 
                 g_printerr("\n");
                 for (unsigned int s = 0; s < VTE_CMD_N; s++) {
                         if (cmd_stats[s] > 0) {
-                                g_printerr("%-12s: %" G_GSIZE_FORMAT "\n", cmd_to_str(s), cmd_stats[s]);
+                                g_printerr("%\'16" G_GSIZE_FORMAT " %s%s\n",
+                                           cmd_stats[s],
+                                           cmd_to_str(s),
+                                           s >= VTE_CMD_NOP_FIRST ? " [NOP]" : "");
                         }
                 }
         }

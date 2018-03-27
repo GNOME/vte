@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#if !defined(_VTE_REPLY)
+#error "Must define _VTE_REPLY before including this file"
+#endif
+
 _VTE_REPLY(NONE, NONE, 0, NONE, NONE,) /* placeholder */
 
 
@@ -33,6 +37,7 @@ _VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE, CSI, 'm', LT,   NONE,  ) /
 _VTE_REPLY(DSR,                                       CSI, 'n', NONE, NONE,  ) /* device status report */
 _VTE_REPLY(DECDSR,                                    CSI, 'n', WHAT, NONE,  ) /* device status report */
 _VTE_REPLY(DECSCUSR,                                  CSI, 'q', NONE, SPACE, ) /* set-cursor-style */
+_VTE_REPLY(DECSRC,                                    CSI, 'q', NONE, MULT,  ) /* secure reset confirmation */
 _VTE_REPLY(DECSTBM,                                   CSI, 'r', NONE, NONE,  ) /* set-top-and-bottom-margins */
 _VTE_REPLY(XTERM_WM,                                  CSI, 't', NONE, NONE,  ) /* XTERM WM report */
 _VTE_REPLY(DECRPDE,                                   CSI, 'w', NONE, DQUOTE,) /* report displayed extent */
@@ -46,7 +51,7 @@ _VTE_REPLY(XTERM_BRACKET,                             CSI, '~', NONE, NONE,  ) /
 
 _VTE_REPLY(DECTABSR,    DCS, '@', NONE, CASH,  ) /* tabulation stop report */
 _VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */
-_VTE_REPLY(DECTSR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({1})) /* terminal state report */
+_VTE_REPLY(DECTSR,      DCS, 's', NONE, CASH,  ) /* terminal state report */
 _VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({2})) /* color table report */
 _VTE_REPLY(DECAUPSS,    DCS, 'u', NONE, BANG,  ) /* assign user preferred supplemental set */
 _VTE_REPLY(DECCIR,      DCS, 'u', NONE, CASH,  _VTE_REPLY_PARAMS({1})) /* cursor information report */

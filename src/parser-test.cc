@@ -33,6 +33,14 @@ using namespace std::literals;
 #include "parser-glue.hh"
 #include "parser-charset-tables.hh"
 
+#ifdef PARSER_INCLUDE_NOP
+#define _VTE_NOP(...) _VTE_CMD(__VA_ARGS__)
+#define _VTE_NOQ(...) _VTE_SEQ(__VA_ARGS__)
+#else
+#define _VTE_NOP(...)
+#define _VTE_NOQ(...)
+#endif
+
 using namespace vte::parser;
 
 Parser parser{};
@@ -281,80 +289,17 @@ test_seq_control(void)
 {
         static struct {
                 uint32_t c;
-                unsigned int type;
                 unsigned int cmd;
         } const controls [] = {
-                { 0x0,  VTE_SEQ_CONTROL, VTE_CMD_NUL     },
-                { 0x1,  VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x2,  VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x3,  VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x4,  VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x5,  VTE_SEQ_CONTROL, VTE_CMD_ENQ     },
-                { 0x6,  VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x7,  VTE_SEQ_CONTROL, VTE_CMD_BEL     },
-                { 0x8,  VTE_SEQ_CONTROL, VTE_CMD_BS      },
-                { 0x9,  VTE_SEQ_CONTROL, VTE_CMD_HT      },
-                { 0xa,  VTE_SEQ_CONTROL, VTE_CMD_LF      },
-                { 0xb,  VTE_SEQ_CONTROL, VTE_CMD_VT      },
-                { 0xc,  VTE_SEQ_CONTROL, VTE_CMD_FF      },
-                { 0xd,  VTE_SEQ_CONTROL, VTE_CMD_CR      },
-                { 0xe,  VTE_SEQ_CONTROL, VTE_CMD_SO      },
-                { 0xf,  VTE_SEQ_CONTROL, VTE_CMD_SI      },
-                { 0x10, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x11, VTE_SEQ_CONTROL, VTE_CMD_DC1     },
-                { 0x12, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x13, VTE_SEQ_CONTROL, VTE_CMD_DC3     },
-                { 0x14, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x15, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x16, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x17, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x18, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
-                { 0x19, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x1a, VTE_SEQ_CONTROL, VTE_CMD_SUB     },
-                { 0x1b, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x1c, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x1d, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x1e, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x1f, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x7f, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x80, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x81, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x82, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x83, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x84, VTE_SEQ_CONTROL, VTE_CMD_IND     },
-                { 0x85, VTE_SEQ_CONTROL, VTE_CMD_NEL     },
-                { 0x86, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x87, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x88, VTE_SEQ_CONTROL, VTE_CMD_HTS     },
-                { 0x89, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x8a, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x8b, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x8c, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x8d, VTE_SEQ_CONTROL, VTE_CMD_RI      },
-                { 0x8e, VTE_SEQ_CONTROL, VTE_CMD_SS2     },
-                { 0x8f, VTE_SEQ_CONTROL, VTE_CMD_SS3     },
-                { 0x90, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x91, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x92, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x93, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x94, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x95, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x96, VTE_SEQ_CONTROL, VTE_CMD_SPA     },
-                { 0x97, VTE_SEQ_CONTROL, VTE_CMD_EPA     },
-                { 0x98, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x99, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x9a, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x9b, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x9c, VTE_SEQ_CONTROL, VTE_CMD_ST      },
-                { 0x9d, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x9e, VTE_SEQ_NONE,    VTE_CMD_NONE    },
-                { 0x9f, VTE_SEQ_NONE,    VTE_CMD_NONE    },
+#define _VTE_SEQ(cmd,type,f,pi,ni,i0) { f, VTE_CMD_##cmd },
+#include "parser-c01.hh"
+#undef _VTE_SEQ
         };
 
         for (unsigned int i = 0; i < G_N_ELEMENTS(controls); i++) {
                 parser.reset();
                 auto rv = parser.feed(controls[i].c);
-                g_assert_cmpuint(controls[i].type, ==, rv);
+                g_assert_cmpuint(rv, ==, VTE_SEQ_CONTROL);
                 g_assert_cmpuint(controls[i].cmd, ==, seq.command());
         }
 }

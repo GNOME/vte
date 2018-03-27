@@ -1283,6 +1283,12 @@ public:
                    unsigned int type,
                    std::initializer_list<int> params,
                    vte::parser::ReplyBuilder const& builder) noexcept;
+        #if 0
+        void reply(vte::parser::Sequence const& seq,
+                   unsigned int type,
+                   std::initializer_list<int> params,
+                   std::string const& str) noexcept;
+        #endif
         void reply(vte::parser::Sequence const& seq,
                    unsigned int type,
                    std::initializer_list<int> params,
@@ -1317,8 +1323,10 @@ public:
         // Note: inlining the handlers seems to worsen the performance, so we don't do that
 #define _VTE_CMD(cmd) \
 	/* inline */ void cmd (vte::parser::Sequence const& seq);
+#define _VTE_NOP(cmd) G_GNUC_UNUSED _VTE_CMD(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
+#undef _VTE_NOP
 };
 
 extern GTimer *process_timer;

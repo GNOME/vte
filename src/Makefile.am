@@ -64,6 +64,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	parser-charset.hh \
 	parser-charset-tables.hh \
 	parser-cmd.hh \
+	parser-c01.hh \
 	parser-csi.hh \
 	parser-dcs.hh \
 	parser-esc.hh \
@@ -126,6 +127,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_CPPFLAGS = \
 	-DLOCALEDIR='"$(localedir)"' \
 	-DGLIB_DISABLE_DEPRECATION_WARNINGS \
 	-DVTE_COMPILATION \
+	-UPARSER_INCLUDE_NOP \
 	-I$(builddir)/vte \
 	-I$(srcdir)/vte \
 	$(AM_CPPFLAGS)
@@ -253,6 +255,7 @@ parser_cat_SOURCES = \
 	parser-charset.hh \
 	parser-charset-tables.hh \
 	parser-cmd.hh \
+	parser-c01.hh \
 	parser-csi.hh \
 	parser-dcs.hh \
 	parser-esc.hh \
@@ -267,6 +270,7 @@ parser_cat_SOURCES = \
 parser_cat_CPPFLAGS = \
 	-I$(builddir) \
 	-I$(srcdir) \
+	-DPARSER_INCLUDE_NOP \
 	$(AM_CPPFLAGS)
 parser_cat_CFLAGS = \
 	$(GLIB_CFLAGS) \
@@ -292,6 +296,7 @@ test_parser_SOURCES = \
 	parser-charset.hh \
 	parser-charset-tables.hh \
 	parser-cmd.hh \
+	parser-c01.hh \
 	parser-csi.hh \
 	parser-dcs.hh \
 	parser-esc.hh \
@@ -303,6 +308,7 @@ test_parser_SOURCES = \
 test_parser_CPPFLAGS = \
 	-I$(builddir) \
 	-I$(srcdir) \
+	-DPARSER_INCLUDE_NOP \
 	$(AM_CPPFLAGS)
 test_parser_CXXFLAGS = \
 	$(VTE_CFLAGS) \

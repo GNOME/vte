@@ -124,10 +124,13 @@ enum {
 
 enum {
 #define _VTE_CMD(cmd) VTE_CMD_##cmd,
+#define _VTE_NOP(cmd) VTE_CMD_##cmd,
 #include "parser-cmd.hh"
 #undef _VTE_CMD
+#undef _VTE_NOP
 
-        VTE_CMD_N
+        VTE_CMD_N,
+        VTE_CMD_NOP_FIRST = VTE_CMD_ACK
 };
 
 enum {
