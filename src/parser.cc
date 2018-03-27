@@ -117,8 +117,9 @@ static unsigned int vte_parse_host_control(const struct vte_seq *seq)
         case 0x98: /* SOS */
                 /* this is already handled by the state-machine */
                 break;
-        case 0x9a: /* DECID */
-                return VTE_CMD_DECID;
+        case 0x9a: /* SCI */
+                /* this is already handled by the state-machine */
+                break;
         case 0x9b: /* CSI */
                 /* this is already handled by the state-machine */
                 break;
@@ -278,8 +279,9 @@ static unsigned int vte_parse_host_escape(const struct vte_seq *seq,
                 case 'X': /* SOS */
                         /* this is already handled by the state-machine */
                         break;
-                case 'Z': /* DECID */
-                        return VTE_CMD_DECID;
+                case 'Z': /* SCI */
+                        /* this is already handled by the state-machine */
+                        break;
                 case '[': /* CSI */
                         /* this is already handled by the state-machine */
                         break;
@@ -902,6 +904,11 @@ static unsigned int vte_parse_host_dcs(const struct vte_seq *seq)
         return VTE_CMD_NONE;
 }
 
+static unsigned int vte_parse_host_sci(const struct vte_seq *seq)
+{
+        return VTE_CMD_NONE;
+}
+
 /*
  * State Machine
  * This parser controls the parser-state and returns any detected sequence to
@@ -928,6 +935,8 @@ enum parser_state {
         STATE_DCS_IGNORE,       /* DCS error; ignore this DCS sequence */
         STATE_OSC_STRING,       /* parsing OSC sequence */
         STATE_ST_IGNORE,        /* unimplemented seq; ignore until ST */
+        STATE_SCI,              /* single character introducer sequence was started */
+
         STATE_N,
 };
 
@@ -948,6 +957,7 @@ enum parser_action {
         ACTION_OSC_START,       /* clear and clear string data */
         ACTION_OSC_COLLECT,     /* collect OSC data */
         ACTION_OSC_DISPATCH,    /* dispatch OSC sequence */
+        ACTION_SCI_DISPATCH,    /* dispatch SCI sequence */
         ACTION_N,
 };
 
@@ -1185,6 +1195,16 @@ static int parser_dcs(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
+static int parser_sci(struct vte_parser *parser, uint32_t raw)
+{
+        parser->seq.type = VTE_SEQ_SCI;
+        parser->seq.terminator = raw;
+        parser->seq.charset = VTE_CHARSET_NONE;
+        parser->seq.command = vte_parse_host_sci(&parser->seq);
+
+        return parser->seq.type;
+}
+
 /* perform state transition and dispatch related actions */
 static int parser_transition(struct vte_parser *parser,
                              uint32_t raw,
@@ -1235,6 +1255,8 @@ static int parser_transition(struct vte_parser *parser,
                 return VTE_SEQ_NONE;
         case ACTION_OSC_DISPATCH:
                 return parser_osc(parser, raw);
+        case ACTION_SCI_DISPATCH:
+                return parser_sci(parser, raw);
         default:
                 WARN(1, "invalid vte-parser action");
                 return VTE_SEQ_NONE;
@@ -1272,8 +1294,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                         return parser_transition(parser, raw, STATE_ESC_INT,
                                                  ACTION_COLLECT);
                 case 0x30 ... 0x4f:        /* ['0' - '~'] \ */
-                case 0x51 ... 0x57:        /* { 'P', 'X', '[', ']', '^', '_' } */
-                case 0x59 ... 0x5a:
+                case 0x51 ... 0x57:        /* { 'P', 'X', 'Z' '[', ']', '^', '_' } */
+                case 0x59:
                 case 0x5c:
                 case 0x60 ... 0x7e:
                         return parser_transition(parser, raw, STATE_GROUND,
@@ -1281,6 +1303,9 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 case 0x50:                /* 'P' */
                         return parser_transition(parser, raw, STATE_DCS_ENTRY,
                                                  ACTION_DCS_START);
+                case 0x5a:                /* 'Z' */
+                        return parser_transition(parser, raw, STATE_SCI,
+                                                 ACTION_CLEAR);
                 case 0x5b:                /* '[' */
                         return parser_transition(parser, raw, STATE_CSI_ENTRY,
                                                  ACTION_CLEAR);
@@ -1560,6 +1585,19 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
 
                 return parser_transition(parser, raw,
                                          STATE_NONE, ACTION_NONE);
+        case STATE_SCI:
+                switch (raw) {
+                case 0x08 ... 0x0d:        /* BS, HT, LF, VT, FF, CR */
+                case 0x20 ... 0x7e:        /* [' ' - '~'] */
+                        return parser_transition(parser, raw, STATE_GROUND,
+                                                 ACTION_SCI_DISPATCH);
+                case 0x7f:                 /* DEL */
+                        return parser_transition(parser, raw, STATE_NONE,
+                                                 ACTION_IGNORE);
+                }
+
+                return parser_transition(parser, raw, STATE_GROUND,
+                                         ACTION_IGNORE);
         }
 
         WARN(1, "bad vte-parser state");
@@ -1590,9 +1628,9 @@ int vte_parser_feed(struct vte_parser *parser,
                 ret = parser_transition(parser, raw,
                                         STATE_GROUND, ACTION_EXECUTE);
                 break;
-        case 0x80 ... 0x8f:        /* C1 \ {DCS, SOS, CSI, ST, OSC, PM, APC} */
+        case 0x80 ... 0x8f:        /* C1 \ {DCS, SOS, SCI, CSI, ST, OSC, PM, APC} */
         case 0x91 ... 0x97:
-        case 0x99 ... 0x9a:
+        case 0x99:
                 ret = parser_transition(parser, raw,
                                         STATE_GROUND, ACTION_EXECUTE);
                 break;
@@ -1609,6 +1647,10 @@ int vte_parser_feed(struct vte_parser *parser,
         case 0x90:                /* DCS */
                 ret = parser_transition(parser, raw,
                                         STATE_DCS_ENTRY, ACTION_DCS_START);
+                break;
+        case 0x9a:                /* SCI */
+                ret = parser_transition(parser, raw,
+                                        STATE_SCI, ACTION_CLEAR);
                 break;
         case 0x9d:                /* OSC */
                 ret = parser_transition(parser, raw,

@@ -2530,17 +2530,6 @@ VteTerminalPrivate::DECIC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECID(vte::parser::Sequence const& seq)
-{
-        /*
-         * DECID - return-terminal-id
-         * This is an obsolete form of VTE_CMD_DA1.
-         */
-
-        DA1(seq);
-}
-
-void
 VteTerminalPrivate::DECINVM(vte::parser::Sequence const& seq)
 {
         /*

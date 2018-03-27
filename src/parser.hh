@@ -80,7 +80,7 @@ enum {
         VTE_SEQ_CSI,         /* control sequence function */
         VTE_SEQ_DCS,         /* device control string */
         VTE_SEQ_OSC,         /* operating system control */
-
+        VTE_SEQ_SCI,         /* single character control function */
         VTE_SEQ_APC,         /* application program command */
         VTE_SEQ_PM,          /* privacy message */
         VTE_SEQ_SOS,         /* start of string */

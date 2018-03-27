@@ -487,6 +487,7 @@ private:
                         case VTE_SEQ_APC:    m_encoder.put(s, 0x9f); break; // APC
                         case VTE_SEQ_PM:     m_encoder.put(s, 0x9e); break; // PM
                         case VTE_SEQ_SOS:    m_encoder.put(s, 0x98); break; // SOS
+                        case VTE_SEQ_SCI:    m_encoder.put(s, 0x9a); break; // SCI
                         default: return;
                         }
                 } else {
@@ -499,6 +500,7 @@ private:
                         case VTE_SEQ_APC:    s.push_back(0x5f); break; // _
                         case VTE_SEQ_PM:     s.push_back(0x5e); break; // ^
                         case VTE_SEQ_SOS:    s.push_back(0x58); break; // X
+                        case VTE_SEQ_SCI:    s.push_back(0x5a); break; // Z
                         default: return;
                         }
                 }
@@ -542,7 +544,8 @@ private:
                 case VTE_SEQ_DCS:
                         for (unsigned char n = 0; n < m_n_intermediates; n++)
                                 s.push_back(m_intermediates[n]);
-
+                        /* [[fallthrough]]; */
+                case VTE_SEQ_SCI:
                         if (m_seq.terminator != 0)
                                 s.push_back(m_seq.terminator);
                         break;

@@ -51,6 +51,7 @@ seq_to_str(unsigned int type)
         case VTE_SEQ_APC: return "APC";
         case VTE_SEQ_PM: return "PM";
         case VTE_SEQ_SOS: return "SOS";
+        case VTE_SEQ_SCI: return "SCI";
         default:
                 g_assert_not_reached();
         }
@@ -247,6 +248,7 @@ vte_seq_builder::to_string(std::u32string& s,
                 case VTE_SEQ_CSI:    s.push_back(0x9B); break; // CSI
                 case VTE_SEQ_DCS:    s.push_back(0x90); break; // DCS
                 case VTE_SEQ_OSC:    s.push_back(0x9D); break; // OSC
+                case VTE_SEQ_SCI:    s.push_back(0x9A); break; // SCI
                 default: return;
                 }
         } else {
@@ -256,6 +258,7 @@ vte_seq_builder::to_string(std::u32string& s,
                 case VTE_SEQ_CSI:    s.push_back(0x5B); break; // [
                 case VTE_SEQ_DCS:    s.push_back(0x50); break; // P
                 case VTE_SEQ_OSC:    s.push_back(0x5D); break; // ]
+                case VTE_SEQ_SCI:    s.push_back(0x5A); break; // Z
                 default: return;
                 }
         }
@@ -292,7 +295,8 @@ vte_seq_builder::to_string(std::u32string& s,
         case VTE_SEQ_DCS:
                 for (unsigned int n = 0; n < m_ni; n++)
                         s.push_back(m_i[n]);
-
+                /* [[fallthrough]]; */
+        case VTE_SEQ_SCI:
                 s.push_back(m_seq.terminator);
                 break;
         default:
@@ -519,7 +523,7 @@ test_seq_control(void)
                 { 0x97, VTE_SEQ_CONTROL, VTE_CMD_EPA     },
                 { 0x98, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x99, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x9a, VTE_SEQ_CONTROL, VTE_CMD_DECID   },
+                { 0x9a, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x9b, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x9c, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x9d, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
@@ -826,6 +830,7 @@ test_seq_esc_Fpes(void)
                 switch (f) {
                 case 'P': /* DCS */
                 case 'X': /* SOS */
+                case 'Z': /* SCI */
                 case '_': /* APC */
                 case '[': /* CSI */
                 case ']': /* OSC */
@@ -916,6 +921,47 @@ test_seq_csi(void)
         vte_seq_arg_t params2[16]{ 1, -1, -1, -1, 1, -1, 1, 1,
                         1, -1, -1, -1, -1, 1, 1, 1 };
         test_seq_csi(params2);
+}
+
+static void
+test_seq_sci(uint32_t f,
+             bool valid)
+{
+        vte_seq_builder b{VTE_SEQ_SCI, f};
+
+        struct vte_seq* seq;
+        /* First with C0 SCI */
+        auto rv = feed_parser(b, &seq, false);
+        if (valid) {
+                g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
+                b.assert_equal_full(seq);
+        } else
+                g_assert_cmpint(rv, !=, VTE_SEQ_SCI);
+
+        /* Now with C1 SCI */
+        rv = feed_parser(b, &seq, true);
+        if (valid) {
+                g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
+                b.assert_equal_full(seq);
+        } else
+                g_assert_cmpint(rv, !=, VTE_SEQ_SCI);
+}
+
+static void
+test_seq_sci(void)
+{
+        /* Tests SCI sequences, that is sequences of the form SCI F
+         * with final byte 0/8..0/13 or 2/0..7/14
+         * SCI can be either the C1 control itself, or ESC Z
+         */
+        vte_parser_reset(parser);
+
+        for (uint32_t f = 0x8; f <= 0xd; ++f)
+                test_seq_sci(f, true);
+        for (uint32_t f = 0x20; f <= 0x7e; ++f)
+                test_seq_sci(f, true);
+        for (uint32_t f = 0x7f; f <= 0xff; ++f)
+                test_seq_sci(f, false);
 }
 
 static void
@@ -1463,6 +1509,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/escape/F[pes]", test_seq_esc_Fpes);
         g_test_add_func("/vte/parser/sequences/csi", test_seq_csi);
         g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
+        g_test_add_func("/vte/parser/sequences/sci", test_seq_sci);
         g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
         g_test_add_func("/vte/parser/sequences/osc", test_seq_osc);
 

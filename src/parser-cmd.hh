@@ -60,7 +60,6 @@ _VTE_CMD(DECERA) /* erase-rectangular-area */
 _VTE_CMD(DECFI) /* forward-index */
 _VTE_CMD(DECFRA) /* fill-rectangular-area */
 _VTE_CMD(DECIC) /* insert-column */
-_VTE_CMD(DECID) /* return-terminal-id */
 _VTE_CMD(DECINVM) /* invoke-macro */
 _VTE_CMD(DECKBD) /* keyboard-language-selection */
 _VTE_CMD(DECKPAM) /* keypad-application-mode */
