@@ -354,7 +354,7 @@ public:
                         { "debug", 'd', 0,G_OPTION_ARG_NONE, &debug,
                           "Enable various debugging checks", nullptr },
                         { "encoding", 0, 0, G_OPTION_ARG_STRING, &encoding,
-                          "Specify the terminal encoding to use", nullptr },
+                          "Specify the terminal encoding to use", "ENCODING" },
                         { "env", 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &environment,
                           "Add environment variable to the child\'s environment", "VAR=VALUE" },
                         { "extra-margin", 0, 0, G_OPTION_ARG_INT, &extra_margin,
