@@ -92,7 +92,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vtespawn.cc \
 	vtespawn.hh \
 	vteseq.cc \
-	vteseq-list.hh \
 	vtestream.cc \
 	vtestream.h \
 	vtestream-base.h \

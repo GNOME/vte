@@ -1225,14 +1225,6 @@ public:
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
         /* Sequence handlers */
-
-        /* old style */
-#define SEQUENCE_HANDLER(name) \
-        inline void seq_ ## name (vte::parser::Sequence const& seq);
-#include "vteseq-list.hh"
-#undef SEQUENCE_HANDLER
-
-        /* new parser */
         bool m_line_wrapped; // signals line wrapped from character insertion
         // Note: inlining the handlers seems to worsen the performance, so we don't do that
 #define _VTE_CMD(cmd) \
