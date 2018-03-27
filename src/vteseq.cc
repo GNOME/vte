@@ -1136,13 +1136,6 @@ VteTerminalPrivate::set_cursor_coords1(vte::grid::row_t row,
         set_cursor_row1(row);
 }
 
-/* Carriage return. */
-void
-VteTerminalPrivate::seq_carriage_return(vte::parser::Params const& params)
-{
-        set_cursor_column(0);
-}
-
 /* Delete a character at the current cursor position. */
 void
 VteTerminalPrivate::delete_character()
@@ -1391,13 +1384,6 @@ VteTerminalPrivate::seq_reset_color(vte::parser::Params const& params)
 			reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
 		}
 	}
-}
-
-/* Cursor down 1 line, with scrolling. */
-void
-VteTerminalPrivate::seq_line_feed(vte::parser::Params const& params)
-{
-        line_feed();
 }
 
 void
@@ -2693,13 +2679,15 @@ VteTerminalPrivate::CR(vte::parser::Sequence const& seq)
         /*
          * CR - carriage-return
          * Move the cursor to the left margin on the current line.
+         *
+         * References: ECMA-48 § 8.3.15
          */
 #if 0
         screen_cursor_clear_wrap(screen);
         screen_cursor_set(screen, 0, screen->state.cursor_y);
 #endif
 
-        seq_carriage_return(seq);
+        set_cursor_column(0);
 }
 
 void
@@ -4747,6 +4735,10 @@ VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
 {
         /*
          * LF - line-feed
+         * Causes a line feed or a new line operation, depending on the setting
+         * of line feed/new line mode.
+         *
+         * References: ECMA-48 § 8.3.74
          */
 
 #if 0
@@ -4755,7 +4747,7 @@ VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
                 screen_cursor_left(screen, screen->state.cursor_x);
 #endif
 
-        seq_line_feed(seq);
+        line_feed();
 }
 
 void
