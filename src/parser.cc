@@ -425,6 +425,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
         case 'a':
                 if (flags == 0) /* HPR */
                         return VTE_CMD_HPR;
+                else if (flags == VTE_SEQ_FLAG_SPACE) /* TALE */
+                        return VTE_CMD_TALE;
                 break;
         case 'B':
                 if (flags == 0) /* CUD */
@@ -433,6 +435,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
         case 'b':
                 if (flags == 0) /* REP */
                         return VTE_CMD_REP;
+                else if (flags == VTE_SEQ_FLAG_SPACE) /* TAC */
+                        return VTE_CMD_TAC;
                 break;
         case 'C':
                 if (flags == 0) /* CUF */
@@ -441,6 +445,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
         case 'c':
                 if (flags == 0) /* DA1 */
                         return VTE_CMD_DA1;
+                else if (flags == VTE_SEQ_FLAG_SPACE) /* TCC */
+                        return VTE_CMD_TCC;
                 else if (flags == VTE_SEQ_FLAG_GT) /* DA2 */
                         return VTE_CMD_DA2;
                 else if (flags == VTE_SEQ_FLAG_EQUAL) /* DA3 */
@@ -453,6 +459,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
         case 'd':
                 if (flags == 0) /* VPA */
                         return VTE_CMD_VPA;
+                else if (flags == VTE_SEQ_FLAG_SPACE) /* TSR */
+                        return VTE_CMD_TSR;
                 break;
         case 'E':
                 if (flags == 0) /* CNL */
@@ -796,6 +804,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
         case '`':
                 if (flags == 0) /* HPA */
                         return VTE_CMD_HPA;
+                else if (flags == VTE_SEQ_FLAG_SPACE) /* TATE */
+                        return VTE_CMD_TATE;
                 break;
         case '{':
                 if (flags == VTE_SEQ_FLAG_CASH) /* DECSERA */

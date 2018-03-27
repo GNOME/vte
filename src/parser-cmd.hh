@@ -191,7 +191,12 @@ _VTE_CMD(SS3) /* single-shift-3 */
 _VTE_CMD(ST) /* string-terminator */
 _VTE_CMD(SU) /* scroll-up */
 _VTE_CMD(SUB) /* substitute */
+_VTE_CMD(TAC) /* tabulation-aligned-centre */
+_VTE_CMD(TALE) /* tabulation-aligned-leading-edge */
+_VTE_CMD(TATE) /* tabulation-aligned-trailing-edge */
 _VTE_CMD(TBC) /* tab-clear */
+_VTE_CMD(TCC) /* tabulation-centred-on-character */
+_VTE_CMD(TSR) /* tabulation-stop-remove */
 _VTE_CMD(VPA) /* vertical-line-position-absolute */
 _VTE_CMD(VPR) /* vertical-line-position-relative */
 _VTE_CMD(VT) /* vertical-tab */

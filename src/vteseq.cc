@@ -780,6 +780,8 @@ VteTerminalPrivate::clear_to_eol()
 void
 VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
 {
+	_vte_debug_print(VTE_DEBUG_PARSER,
+                         "Moving cursor to column %ld.\n", col);
         m_screen->cursor.col = CLAMP(col, 0, m_column_count - 1);
 }
 
@@ -1009,75 +1011,73 @@ VteTerminalPrivate::line_feed()
 }
 
 void
-VteTerminalPrivate::move_cursor_tab()
+VteTerminalPrivate::move_cursor_tab_backward(int count)
 {
-        long old_len;
-        vte::grid::column_t newcol, col;
+        if (count == 0)
+                return;
 
-	/* Calculate which column is the next tab stop. */
-        newcol = col = m_screen->cursor.col;
+        auto const newcol = m_tabstops.get_previous(m_screen->cursor.col, count, 0);
+        set_cursor_column(newcol);
+}
 
+void
+VteTerminalPrivate::move_cursor_tab_forward(int count)
+{
+        if (count == 0)
+                return;
+
+        auto const col = m_screen->cursor.col;
 	g_assert (col >= 0);
 
-	if (m_tabstops != NULL) {
-		/* Find the next tabstop. */
-		for (newcol++; newcol < VTE_TAB_MAX; newcol++) {
-			if (get_tabstop(newcol)) {
-				break;
-			}
-		}
-	}
+	/* Find the next tabstop, but don't go beyond the end of the line */
+        auto const newcol = m_tabstops.get_next(col, count, m_column_count - 1);
 
-	/* If we have no tab stops or went past the end of the line, stop
-	 * at the right-most column. */
-	if (newcol >= m_column_count) {
-		newcol = m_column_count - 1;
-	}
+	/* Make sure we don't move cursor back (see bug #340631) */
+        // FIXMEchpe how could this happen!?
+	if (col >= newcol)
+                return;
 
-	/* but make sure we don't move cursor back (bug #340631) */
-	if (col < newcol) {
-		VteRowData *rowdata = ensure_row();
+        /* Smart tab handling: bug 353610
+         *
+         * If we currently don't have any cells in the space this
+         * tab creates, we try to make the tab character copyable,
+         * by appending a single tab char with lots of fragment
+         * cells following it.
+         *
+         * Otherwise, just append empty cells that will show up
+         * as a space each.
+         */
 
-		/* Smart tab handling: bug 353610
-		 *
-		 * If we currently don't have any cells in the space this
-		 * tab creates, we try to make the tab character copyable,
-		 * by appending a single tab char with lots of fragment
-		 * cells following it.
-		 *
-		 * Otherwise, just append empty cells that will show up
-		 * as a space each.
-		 */
+        VteRowData *rowdata = ensure_row();
+        auto const old_len = _vte_row_data_length (rowdata);
+        _vte_row_data_fill (rowdata, &basic_cell, newcol);
 
-		old_len = _vte_row_data_length (rowdata);
-                _vte_row_data_fill (rowdata, &basic_cell, newcol);
+        /* Insert smart tab if there's nothing in the line after
+         * us, not even empty cells (with non-default background
+         * color for example).
+         *
+         * Notable bugs here: 545924, 597242, 764330
+         */
+        if (col >= old_len && (newcol - col) <= VTE_TAB_WIDTH_MAX) {
+                glong i;
+                VteCell *cell = _vte_row_data_get_writable (rowdata, col);
+                VteCell tab = *cell;
+                tab.attr.set_columns(newcol - col);
+                tab.c = '\t';
+                /* Save tab char */
+                *cell = tab;
+                /* And adjust the fragments */
+                for (i = col + 1; i < newcol; i++) {
+                        cell = _vte_row_data_get_writable (rowdata, i);
+                        cell->c = '\t';
+                        cell->attr.set_columns(1);
+                        cell->attr.set_fragment(true);
+                }
+        }
 
-		/* Insert smart tab if there's nothing in the line after
-		 * us, not even empty cells (with non-default background
-		 * color for example).
-		 *
-		 * Notable bugs here: 545924, 597242, 764330 */
-		if (col >= old_len && newcol - col <= VTE_TAB_WIDTH_MAX) {
-			glong i;
-			VteCell *cell = _vte_row_data_get_writable (rowdata, col);
-			VteCell tab = *cell;
-			tab.attr.set_columns(newcol - col);
-			tab.c = '\t';
-			/* Save tab char */
-			*cell = tab;
-			/* And adjust the fragments */
-			for (i = col + 1; i < newcol; i++) {
-				cell = _vte_row_data_get_writable (rowdata, i);
-				cell->c = '\t';
-				cell->attr.set_columns(1);
-				cell->attr.set_fragment(true);
-			}
-		}
-
-		invalidate_cells(m_screen->cursor.col, newcol - m_screen->cursor.col,
-                                 m_screen->cursor.row, 1);
-                m_screen->cursor.col = newcol;
-	}
+        invalidate_cells(m_screen->cursor.col, newcol - m_screen->cursor.col,
+                         m_screen->cursor.row, 1);
+        m_screen->cursor.col = newcol;
 }
 
 void
@@ -1733,35 +1733,10 @@ VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
          * References: ECMA-48 § 8.3.7
          */
 #if 0
-
-        unsigned int num = 1;
-
-        if (seq->args[0] > 0)
-                num = seq->args[0];
-
         screen_cursor_clear_wrap(screen);
-        screen_cursor_left_tab(screen, num);
 #endif
 
-        // FIXMEchpe! need to support the parameter!!!
-
-	/* Calculate which column is the previous tab stop. */
-        auto newcol = m_screen->cursor.col;
-
-	if (m_tabstops) {
-		/* Find the next tabstop. */
-		while (newcol > 0) {
-			newcol--;
-                        if (get_tabstop(newcol % m_column_count)) {
-				break;
-			}
-		}
-	}
-
-	/* Warp the cursor. */
-	_vte_debug_print(VTE_DEBUG_PARSER,
-			"Moving cursor to column %ld.\n", (long)newcol);
-        set_cursor_column(newcol);
+        move_cursor_tab_backward(seq.collect1(0, 1));
 }
 
 void
@@ -1811,19 +1786,10 @@ VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
          * References: ECMA-48 § 8.3.10
          */
 #if 0
-        unsigned int num = 1;
-
-        if (seq->args[0] > 0)
-                num = seq->args[0];
-
         screen_cursor_clear_wrap(screen);
-        screen_cursor_right_tab(screen, num);
 #endif
 
-        auto const val = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
-        // FIXMEchpe stop when cursor.col reaches m_column_count!
-        for (auto i = 0; i < val; i++)
-                move_cursor_tab();
+        move_cursor_tab_forward(seq.collect1(0, 1));
 }
 
 void
@@ -3458,13 +3424,15 @@ VteTerminalPrivate::DECST8C(vte::parser::Sequence const& seq)
          * Clear the tab-ruler and reset it to a tab at every 8th column,
          * starting at 9 (though, setting a tab at 1 is fine as it has no
          * effect).
+         *
+         * References: VT525
          */
-#if 0
-        unsigned int i;
 
-        for (i = 0; i < screen->page->width; i += 8)
-                screen->tabs[i / 8] = 0x1;
-#endif
+        if (seq.collect1(0) != 5)
+                return;
+
+        m_tabstops.reset(8);
+        m_tabstops.unset(0);
 }
 
 void
@@ -4160,10 +4128,9 @@ VteTerminalPrivate::HT(vte::parser::Sequence const& seq)
          */
 #if 0
         screen_cursor_clear_wrap(screen);
-        screen_cursor_right_tab(screen, 1);
 #endif
 
-        move_cursor_tab();
+        move_cursor_tab_forward();
 }
 
 void
@@ -4178,18 +4145,8 @@ VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
          *
          * References: ECMA-48 § 8.3.62
          */
-#if 0
-        unsigned int pos;
 
-        pos = screen->state.cursor_x;
-        if (screen->page->width > 0)
-                screen->tabs[pos / 8] |= 1U << (pos % 8);
-#endif
-
-	if (m_tabstops == nullptr) {
-		m_tabstops = g_hash_table_new(nullptr, nullptr);
-	}
-	set_tabstop(m_screen->cursor.col);
+        m_tabstops.set(m_screen->cursor.col);
 }
 
 void
@@ -5108,6 +5065,45 @@ VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::TAC(vte::parser::Sequence const& seq)
+{
+        /*
+         * TAC - tabulation aligned centre
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.151
+         */
+}
+
+void
+VteTerminalPrivate::TALE(vte::parser::Sequence const& seq)
+{
+        /*
+         * TALE - tabulation aligned leading edge
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.152
+         */
+}
+
+void
+VteTerminalPrivate::TATE(vte::parser::Sequence const& seq)
+{
+        /*
+         * TATE - tabulation aligned trailing edge
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.153
+         */
+}
+
+void
 VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
 {
         /*
@@ -5122,47 +5118,71 @@ VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
          *
          * References: ECMA-48 § 8.3.154
          */
-#if 0
-        unsigned int mode = 0, pos;
 
-        if (seq->args[0] > 0)
-                mode = seq->args[0];
-
-        switch (mode) {
-        case 0:
-                pos = screen->state.cursor_x;
-                if (screen->page->width > 0)
-                        screen->tabs[pos / 8] &= ~(1U << (pos % 8));
-                break;
-        case 3:
-                if (screen->page->width > 0)
-                        memset(screen->tabs, 0, (screen->page->width + 7) / 8);
-                break;
-        }
-#endif
-
-        auto const param = seq.collect1(0, 0);
+        auto const param = seq.collect1(0);
         switch (param) {
+        case -1:
         case 0:
-		clear_tabstop(m_screen->cursor.col);
+                /* Clear character tabstop at the current presentation position */
+                m_tabstops.unset(m_screen->cursor.col);
                 break;
-        case 1: // FIXME implement
+        case 1:
+                /* Clear line tabstop at the current line */
                 break;
-        case 2: // FIXME implement
+        case 2:
+                /* Clear all character tabstops in the current line */
+                /* NOTE: vttest issues this but claims it's a 'no-op' */
+                m_tabstops.clear();
                 break;
         case 3:
-		if (m_tabstops != nullptr) {
-			g_hash_table_destroy(m_tabstops);
-			m_tabstops = nullptr;
-		}
+                /* Clear all character tabstops */
+                m_tabstops.clear();
                 break;
-        case 4: // FIXME implement
+        case 4:
+                /* Clear all line tabstops */
                 break;
-        case 5: // FIXME implement
+        case 5:
+                /* Clear all (character and line) tabstops */
+                m_tabstops.clear();
                 break;
         default:
                 break;
 	}
+}
+
+void
+VteTerminalPrivate::TCC(vte::parser::Sequence const& seq)
+{
+        /*
+         * TCC - tabulation centred on character
+         *
+         * Defaults:
+         *   args[0]: no default
+         *   args[1]: 32 (SPACE)
+         *
+         * References: ECMA-48 § 8.3.155
+         */
+}
+
+void
+VteTerminalPrivate::TSR(vte::parser::Sequence const& seq)
+{
+        /*
+         * TSR - tabulation stop remove
+         * This clears a tab stop at position @arg[0] in the active line (presentation),
+         * and on any lines below it.
+         *
+         * Defaults:
+         *   args[0]: no default
+         *
+         * References: ECMA-48 § 8.3.156
+         */
+
+        auto const pos = seq.collect1(0);
+        if (pos < 0 || pos >= m_column_count)
+                return;
+
+        m_tabstops.unset(pos);
 }
 
 void

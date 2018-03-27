@@ -180,7 +180,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += parser-cat slowcat test-modes test-parser
+noinst_PROGRAMS += parser-cat slowcat test-modes test-tabstops test-parser
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -203,6 +203,7 @@ dist_check_SCRIPTS = \
 TESTS = \
 	test-modes \
 	test-parser \
+	test-tabstops \
 	reaper \
 	test-vtetypes \
 	vteconv \
@@ -315,6 +316,21 @@ test_modes_CXXFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(AM_CXXFLAGS)
 test_modes_LDADD = \
+	$(GLIB_LIBS) \
+	$(NULL)
+
+test_tabstops_SOURCES = \
+	tabstops-test.cc \
+	tabstops.hh \
+	$(NULL)
+test_tabstops_CPPFLAGS = \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+test_tabstops_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(AM_CXXFLAGS)
+test_tabstops_LDADD = \
 	$(GLIB_LIBS) \
 	$(NULL)
 

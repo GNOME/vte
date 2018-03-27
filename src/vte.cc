@@ -951,57 +951,6 @@ VteTerminalPrivate::deselect_all()
 	}
 }
 
-// FIXMEchpe make m_tabstops a hashset
-
-/* Remove a tabstop. */
-void
-VteTerminalPrivate::clear_tabstop(int column)
-{
-	if (m_tabstops) {
-		/* Remove a tab stop from the hash table. */
-		g_hash_table_remove(m_tabstops,
-				    GINT_TO_POINTER(2 * column + 1));
-	}
-}
-
-/* Check if we have a tabstop at a given position. */
-bool
-VteTerminalPrivate::get_tabstop(int column)
-{
-	if (m_tabstops != NULL) {
-		auto hash = g_hash_table_lookup(m_tabstops,
-					   GINT_TO_POINTER(2 * column + 1));
-		return hash != nullptr;
-	}
-
-        return false;
-}
-
-/* Reset the set of tab stops to the default. */
-void
-VteTerminalPrivate::set_tabstop(int column)
-{
-	if (m_tabstops != NULL) {
-		/* Just set a non-NULL pointer for this column number. */
-		g_hash_table_insert(m_tabstops,
-				    GINT_TO_POINTER(2 * column + 1),
-				    m_terminal);
-	}
-}
-
-/* Reset the set of tab stops to the default. */
-void
-VteTerminalPrivate::set_default_tabstops()
-{
-	if (m_tabstops) {
-		g_hash_table_destroy(m_tabstops);
-	}
-	m_tabstops = g_hash_table_new(nullptr, nullptr);
-        for (int i = 0; i <= VTE_TAB_MAX; i += VTE_TAB_WIDTH) {
-		set_tabstop(i);
-	}
-}
-
 /* Clear the cache of the screen contents we keep. */
 void
 VteTerminalPrivate::match_contents_clear()
@@ -7715,14 +7664,19 @@ VteTerminalPrivate::refresh_size()
                 return;
 
 	int rows, columns;
-        if (vte_pty_get_size(m_pty, &rows, &columns, NULL)) {
-                m_row_count = rows;
-                m_column_count = columns;
-        } else {
+        if (!vte_pty_get_size(m_pty, &rows, &columns, nullptr)) {
                 /* Error reading PTY size, use defaults */
-                m_row_count = VTE_ROWS;
-                m_column_count = VTE_COLUMNS;
+                rows = VTE_ROWS;
+                columns = VTE_COLUMNS;
 	}
+
+        if (m_row_count == rows &&
+            m_column_count == columns)
+                return;
+
+        m_row_count = rows;
+        m_column_count = columns;
+        m_tabstops.resize(columns);
 }
 
 /* Resize the given screen (normal or alternate) of the terminal. */
@@ -7889,6 +7843,7 @@ VteTerminalPrivate::set_size(long columns,
 	} else {
 		m_row_count = rows;
 		m_column_count = columns;
+                m_tabstops.resize(columns);
 	}
 	if (old_rows != m_row_count || old_columns != m_column_count) {
                 m_scrolling_restricted = FALSE;
@@ -8121,7 +8076,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_allow_bold = TRUE;
         m_bold_is_bright = TRUE;
         m_rewrap_on_resize = TRUE;
-	set_default_tabstops();
 
         m_input_enabled = TRUE;
 
@@ -8525,11 +8479,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
 
 	/* Cancel pending adjustment change notifications. */
 	m_adjustment_changed_pending = FALSE;
-
-	/* Tabstop information. */
-	if (m_tabstops) {
-		g_hash_table_destroy(m_tabstops);
-	}
 
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
@@ -10541,6 +10490,11 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_modes_private.clear_saved();
         m_modes_private.reset();
 
+        /* Reset tabstops */
+        if (clear_tabstops) {
+                m_tabstops.reset();
+        }
+
         /* Window title stack */
         if (clear_history) {
                 m_window_title_stack.clear();
@@ -10578,10 +10532,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	}
         /* DECSCUSR cursor style */
         set_cursor_style(VTE_CURSOR_STYLE_TERMINAL_DEFAULT);
-	/* Do more stuff we refer to as a "full" reset. */
-	if (clear_tabstops) {
-		set_default_tabstops();
-	}
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
         m_scrolling_restricted = FALSE;

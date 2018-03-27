@@ -29,6 +29,7 @@
 #include "parser.hh"
 #include "parser-glue.hh"
 #include "modes.hh"
+#include "tabstops.hh"
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
@@ -289,8 +290,10 @@ public:
         GdkWindow *m_event_window;
 
         /* Metric and sizing data: dimensions of the window */
-        vte::grid::row_t m_row_count;
-        vte::grid::column_t m_column_count;
+        vte::grid::row_t m_row_count{VTE_ROWS};
+        vte::grid::column_t m_column_count{VTE_COLUMNS};
+
+        vte::terminal::Tabstops m_tabstops{};
 
 	/* Emulation setup data. */
         struct vte_parser* m_parser; /* control sequence state machine */
@@ -383,7 +386,6 @@ public:
         gboolean m_audible_bell;
         gboolean m_allow_bold;
         gboolean m_bold_is_bright;
-        GHashTable *m_tabstops;
         gboolean m_text_modified_flag;
         gboolean m_text_inserted_flag;
         gboolean m_text_deleted_flag;
@@ -991,11 +993,6 @@ public:
         void emit_paste_clipboard();
         void emit_hyperlink_hover_uri_changed(const GdkRectangle *bbox);
 
-        void clear_tabstop(int column); // FIXMEchpe vte::grid::column_t ?
-        bool get_tabstop(int column);
-        void set_tabstop(int column);
-        void set_default_tabstops();
-
         void hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRectangle *bbox);
         void hyperlink_hilite_update();
 
@@ -1210,7 +1207,8 @@ public:
 
         inline void move_cursor_backward(vte::grid::column_t columns);
         inline void move_cursor_forward(vte::grid::column_t columns);
-        inline void move_cursor_tab();
+        inline void move_cursor_tab_backward(int count = 1);
+        inline void move_cursor_tab_forward(int count = 1);
         inline void line_feed();
         inline void erase_in_display(vte::parser::Sequence const& seq);
         inline void erase_in_line(vte::parser::Sequence const& seq);
