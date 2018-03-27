@@ -1499,16 +1499,6 @@ VteTerminalPrivate::seq_reverse_index(vte::parser::Params const& params)
         m_text_modified_flag = TRUE;
 }
 
-/* Set tab stop in the current column. */
-void
-VteTerminalPrivate::seq_tab_set(vte::parser::Params const& params)
-{
-	if (m_tabstops == NULL) {
-		m_tabstops = g_hash_table_new(NULL, NULL);
-	}
-	set_tabstop(m_screen->cursor.col);
-}
-
 /* Tab. */
 void
 VteTerminalPrivate::seq_tab(vte::parser::Params const& params)
@@ -1585,22 +1575,6 @@ VteTerminalPrivate::move_cursor_tab()
 		invalidate_cells(m_screen->cursor.col, newcol - m_screen->cursor.col,
                                  m_screen->cursor.row, 1);
                 m_screen->cursor.col = newcol;
-	}
-}
-
-/* Clear tabs selectively. */
-void
-VteTerminalPrivate::seq_tab_clear(vte::parser::Params const& params)
-{
-        auto param = params.number_or_default_at(0, 0);
-
-	if (param == 0) {
-		clear_tabstop(m_screen->cursor.col);
-	} else if (param == 3) {
-		if (m_tabstops != nullptr) {
-			g_hash_table_destroy(m_tabstops);
-			m_tabstops = nullptr;
-		}
 	}
 }
 
@@ -4692,8 +4666,12 @@ VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
 {
         /*
          * HTS - horizontal-tab-set
-         *
          * XXX
+         *
+         * Executing an HTS does not effect the other horizontal tab stop
+         * settings.
+         *
+         * References: ECMA-48 § 8.3.62
          */
 #if 0
         unsigned int pos;
@@ -4703,7 +4681,10 @@ VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
                 screen->tabs[pos / 8] |= 1U << (pos % 8);
 #endif
 
-        seq_tab_set(seq);
+	if (m_tabstops == nullptr) {
+		m_tabstops = g_hash_table_new(nullptr, nullptr);
+	}
+	set_tabstop(m_screen->cursor.col);
 }
 
 void
@@ -5435,6 +5416,8 @@ VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * References: ECMA-48 § 8.3.154
          */
 #if 0
         unsigned int mode = 0, pos;
@@ -5455,7 +5438,28 @@ VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
         }
 #endif
 
-        seq_tab_clear(seq);
+        auto const param = seq.collect1(0, 0);
+        switch (param) {
+        case 0:
+		clear_tabstop(m_screen->cursor.col);
+                break;
+        case 1: // FIXME implement
+                break;
+        case 2: // FIXME implement
+                break;
+        case 3:
+		if (m_tabstops != nullptr) {
+			g_hash_table_destroy(m_tabstops);
+			m_tabstops = nullptr;
+		}
+                break;
+        case 4: // FIXME implement
+                break;
+        case 5: // FIXME implement
+                break;
+        default:
+                break;
+	}
 }
 
 void
