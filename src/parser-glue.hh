@@ -369,9 +369,10 @@ public:
                 return idx <= next(start_idx);
         }
 
-        struct vte_seq** seq_ptr() { return &m_seq; }
-
         inline explicit operator bool() const { return m_seq != nullptr; }
+
+        /* This is only used in the test suite */
+        struct vte_seq** seq_ptr() { return &m_seq; }
 
 private:
         struct vte_seq *m_seq{nullptr};
@@ -426,6 +427,13 @@ public:
         }
 
         SequenceBuilder(unsigned int type,
+                        uint32_t f)
+                : SequenceBuilder(type)
+        {
+                set_final(f);
+        }
+
+        SequenceBuilder(unsigned int type,
                         string_type const& str)
                 : SequenceBuilder(type)
         {
@@ -475,6 +483,12 @@ public:
         inline void set_param_intro(unsigned char p) noexcept
         {
                 m_param_intro = p;
+        }
+
+        inline void append_param(int p) noexcept
+        {
+                assert(m_seq.n_args + 1 <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
+                m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
         }
 
         inline void append_params(std::initializer_list<int> params) noexcept
@@ -677,10 +691,30 @@ public:
                 append_arg_string(s, c1, max_arg_str_len, st);
         }
 
-        void assert_equal(struct vte_seq* seq);
-        void assert_equal_full(struct vte_seq* seq);
+        /* The following are only used in the test suite */
+        void reset_params() noexcept
+        {
+                m_seq.n_args = 0;
+        }
 
-        void print(bool c1 = false);
+        void assert_equal(Sequence const& seq) const noexcept
+        {
+                g_assert_cmpuint(seq.type(), ==, m_seq.type);
+                g_assert_cmphex(seq.terminator(), ==, m_seq.terminator);
+        }
+
+        void assert_equal_full(Sequence const& seq) const noexcept
+        {
+                assert_equal(seq);
+
+                /* We may get one arg less back, if it's at default */
+                if (m_seq.n_args != seq.size()) {
+                        g_assert_cmpuint(m_seq.n_args, ==, seq.size() + 1);
+                        g_assert_cmpint(vte_seq_arg_value(m_seq.args[m_seq.n_args - 1]), ==, -1);
+                }
+                for (unsigned int n = 0; n < seq.size(); n++)
+                        g_assert_cmpint(vte_seq_arg_value(m_seq.args[n]), ==, seq.param(n));
+        }
 };
 
 using u8SequenceBuilder = SequenceBuilder<std::string, UTF8Encoder>;
