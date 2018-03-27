@@ -682,7 +682,8 @@ static int parser_osc_collect(struct vte_parser *parser, uint32_t raw)
          * Our state-machine already verifies those restrictions.
          */
 
-        vte_seq_string_push(&parser->seq.arg_str, raw);
+        if (!vte_seq_string_push(&parser->seq.arg_str, raw))
+                parser->state = STATE_ST_IGNORE;
 
         return VTE_SEQ_NONE;
 }
@@ -720,7 +721,8 @@ static int parser_dcs_consume(struct vte_parser *parser, uint32_t raw)
 
 static int parser_dcs_collect(struct vte_parser *parser, uint32_t raw)
 {
-        vte_seq_string_push(&parser->seq.arg_str, raw);
+        if (!vte_seq_string_push(&parser->seq.arg_str, raw))
+                parser->state = STATE_DCS_IGNORE;
 
         return VTE_SEQ_NONE;
 }

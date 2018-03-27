@@ -1031,7 +1031,8 @@ test_seq_dcs(uint32_t f,
              vte_seq_arg_t params[16],
              uint32_t i[4],
              unsigned int ni,
-             std::u32string const& str)
+             std::u32string const& str,
+             int expected_rv = VTE_SEQ_DCS)
 {
         vte_seq_builder b{VTE_SEQ_DCS, f};
         b.set_intermediates(i, ni);
@@ -1039,8 +1040,8 @@ test_seq_dcs(uint32_t f,
         b.set_params(params);
         b.set_string(str);
 
-        int expected_rv0 = (f & 0xF0) == 0x30 ? VTE_SEQ_ESCAPE /* the C0 ST */ : VTE_SEQ_DCS;
-        int expected_rv1 = (f & 0xF0) == 0x30 ? VTE_SEQ_NONE : VTE_SEQ_DCS;
+        int expected_rv0 = (f & 0xF0) == 0x30 || expected_rv == VTE_SEQ_NONE ? VTE_SEQ_ESCAPE /* the C0 ST */ : expected_rv;
+        int expected_rv1 = (f & 0xF0) == 0x30 ? VTE_SEQ_NONE : expected_rv;
 
         for (unsigned int n = 0; n <= 16; n++) {
                 b.set_n_params(n);
@@ -1051,7 +1052,7 @@ test_seq_dcs(uint32_t f,
                 /* First with C0 DCS */
                 auto rv0 = feed_parser(b, &seq, false);
                 g_assert_cmpint(rv0, ==, expected_rv0);
-                if (rv0 != VTE_SEQ_ESCAPE)
+                if (rv0 != VTE_SEQ_ESCAPE && rv0 != VTE_SEQ_NONE)
                         b.assert_equal_full(seq);
                 if (rv0 == VTE_SEQ_ESCAPE)
                         g_assert_cmpint(seq->command, ==, VTE_CMD_ST);
@@ -1067,14 +1068,15 @@ test_seq_dcs(uint32_t f,
 static void
 test_seq_dcs(uint32_t p,
              vte_seq_arg_t params[16],
-             std::u32string const& str)
+             std::u32string const& str,
+             int expected_rv = VTE_SEQ_DCS)
 {
         uint32_t i[4];
         for (uint32_t f = 0x30; f < 0x7f; f++) {
                 for (i[0] = 0x20; i[0] < 0x30; i[0]++) {
-                        test_seq_dcs(f, p, params, i, 1, str);
+                        test_seq_dcs(f, p, params, i, 1, str, expected_rv);
                         for (i[1] = 0x20; i[1] < 0x30; i[1]++) {
-                                test_seq_dcs(f, p, params, i, 2, str);
+                                test_seq_dcs(f, p, params, i, 2, str, expected_rv);
                         }
                 }
         }
@@ -1082,15 +1084,17 @@ test_seq_dcs(uint32_t p,
 
 static void
 test_seq_dcs(vte_seq_arg_t params[16],
-             std::u32string const& str)
+             std::u32string const& str,
+             int expected_rv = VTE_SEQ_DCS)
 {
         test_seq_dcs(0, params, str);
         for (uint32_t p = 0x3c; p <= 0x3f; p++)
-                test_seq_dcs(p, params, str);
+                test_seq_dcs(p, params, str, expected_rv);
 }
 
 static void
-test_seq_dcs(std::u32string const& str)
+test_seq_dcs(std::u32string const& str,
+             int expected_rv = VTE_SEQ_DCS)
 {
         /* Tests DCS sequences, that is sequences of the form
          * DCS P...P I...I F D...D ST
@@ -1103,16 +1107,30 @@ test_seq_dcs(std::u32string const& str)
          */
         vte_seq_arg_t params1[16]{ -1, 0, 1, 9, 10, 99, 100, 999,
                         1000, 9999, 10000, 65534, 65535, 65536, -1, -1 };
-        test_seq_dcs(params1, str);
+        test_seq_dcs(params1, str, expected_rv);
 
         vte_seq_arg_t params2[16]{ 1, -1, -1, -1, 1, -1, 1, 1,
                         1, -1, -1, -1, -1, 1, 1, 1 };
-        test_seq_dcs(params2, str);
+        test_seq_dcs(params2, str, expected_rv);
+}
+
+static void
+test_seq_dcs_simple(std::u32string const& str,
+                    int expected_rv = VTE_SEQ_DCS)
+{
+        vte_seq_arg_t params[16]{ 1, -1, -1, -1, 1, -1, 1, 1,
+                        1, -1, -1, -1, -1, 1, 1, 1 };
+        uint32_t i[4];
+
+        test_seq_dcs(0x40, 0, params, i, 0, str, expected_rv);
 }
 
 static void
 test_seq_dcs(void)
 {
+        /* Length exceeded */
+        test_seq_dcs_simple(std::u32string(VTE_SEQ_STRING_MAX_CAPACITY + 1, 0x100000), VTE_SEQ_NONE);
+
         test_seq_dcs(U""s);
         test_seq_dcs(U"123;TESTING"s);
 }
@@ -1428,7 +1446,7 @@ test_seq_osc(void)
                 test_seq_osc(std::u32string(len, 0x10000+len), seq);
 
         /* Length exceeded */
-        //        test_seq_osc(std::u32string(VTE_SEQ_STRING_MAX_CAPACITY + 1, 0x100000), seq, VTE_SEQ_NONE);
+        test_seq_osc(std::u32string(VTE_SEQ_STRING_MAX_CAPACITY + 1, 0x100000), seq, VTE_SEQ_IGNORE);
 
         /* Test all introducer/ST combinations */
         test_seq_osc(U"TEST"s, seq, VTE_SEQ_NONE, false, -1, vte_seq_builder::ST_NONE);
