@@ -1,5 +1,5 @@
 /*
- * Copyright © 2017 Christian Persch
+ * Copyright © 2017, 2018 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <cstdint>
+#include <algorithm>
+
 #include "parser.hh"
 
 namespace vte {
@@ -28,29 +31,180 @@ public:
 
         typedef int number;
 
-        char* ucs4_to_utf8(gunichar const* str) const;
+        char* ucs4_to_utf8(gunichar const* str) const noexcept;
 
-        void print() const;
+        void print() const noexcept;
 
-        inline unsigned int type() const { return m_seq->type; }
-
-        inline unsigned int command() const { return m_seq->command; }
-
-        inline unsigned int charset() const { return m_seq->charset; }
-
-        inline unsigned int intermediates() const { return m_seq->intermediates; }
-
-        inline uint32_t terminator() const { return m_seq->terminator; }
-
-        inline unsigned int size() const
+        /* type:
+         *
+         *
+         * Returns: the type of the sequence, a value from the VTE_SEQ_* enum
+         */
+        inline constexpr unsigned int type() const noexcept
         {
-                g_assert_nonnull(m_seq);
+                return m_seq->type;
+        }
+
+        /* command:
+         *
+         * Returns: the command the sequence codes for, a value
+         *   from the VTE_CMD_* enum, or %VTE_CMD_NONE if the command is
+         *   unknown
+         */
+        inline constexpr unsigned int command() const noexcept
+        {
+                return m_seq->command;
+        }
+
+        /* charset:
+         *
+         * This is the charset to use in a %VTE_CMD_GnDm, %VTE_CMD_GnDMm,
+         * %VTE_CMD_CnD or %VTE_CMD_DOCS command.
+         *
+         * Returns: the charset, a value from the VTE_CHARSET_* enum.
+         */
+        inline constexpr unsigned int charset() const noexcept
+        {
+                return m_seq->charset;
+        }
+
+        /* intermediates:
+         *
+         * The intermediate bytes of the ESCAPE, CSI or DCS sequence.
+         *
+         * Returns: the immediates as flag values from the VTE_SEQ_FLAG_* enum
+         */
+        inline constexpr unsigned int intermediates() const noexcept
+        {
+                return m_seq->intermediates;
+        }
+
+        /* terminator:
+         *
+         * This is the character terminating the sequence, or, for a
+         * %VTE_SEQ_GRAPHIC sequence, the graphic character.
+         *
+         * Returns: the terminating character
+         */
+        inline constexpr uint32_t terminator() const noexcept
+        {
+                return m_seq->terminator;
+        }
+
+        /* size:
+         *
+         * Returns: the number of parameters
+         */
+        inline constexpr unsigned int size() const noexcept
+        {
                 return m_seq->n_args;
         }
 
-        inline int operator[](int position) const
+
+        /* size:
+         *
+         * Returns: the number of parameter blocks, counting runs of subparameters
+         *   as only one parameter
+         */
+        inline constexpr unsigned int size_final() const noexcept
         {
-                return G_LIKELY(position < (int)size()) ? vte_seq_arg_value(m_seq->args[position]) : -1;
+                return m_seq->n_final_args;
+        }
+
+        /* capacity:
+         *
+         * Returns: the number of parameter blocks, counting runs of subparameters
+         *   as only one parameter
+         */
+        inline constexpr unsigned int capacity() const noexcept
+        {
+                return G_N_ELEMENTS(m_seq->args);
+        }
+
+        /* param:
+         * @idx:
+         * @default_v: the value to use for default parameters
+         *
+         * Returns: the value of the parameter at index @idx, or @default_v if
+         *   the parameter at this index has default value, or the index
+         *   is out of bounds
+         */
+        inline constexpr int param(unsigned int idx,
+                                   int default_v = -1) const noexcept
+        {
+                return __builtin_expect(idx < size(), 1) ? vte_seq_arg_value(m_seq->args[idx], default_v) : default_v;
+        }
+
+        /* param:
+         * @idx:
+         * @default_v: the value to use for default parameters
+         * @min_v: the minimum value
+         * @max_v: the maximum value
+         *
+         * Returns: the value of the parameter at index @idx, or @default_v if
+         *   the parameter at this index has default value, or the index
+         *   is out of bounds. The returned value is clamped to the
+         *   range @min_v..@max_v.
+         */
+        inline constexpr int param(unsigned int idx,
+                                   int default_v,
+                                   int min_v,
+                                   int max_v) const noexcept
+        {
+                auto v = param(idx, default_v);
+                return std::min(std::max(v, min_v), max_v);
+        }
+
+        /* param_nonfinal:
+         * @idx:
+         *
+         * Returns: whether the parameter at @idx is nonfinal, i.e.
+         * there are more subparameters after it.
+         */
+        inline constexpr bool param_nonfinal(unsigned int idx) const noexcept
+        {
+                return __builtin_expect(idx < size(), 1) ? vte_seq_arg_nonfinal(m_seq->args[idx]) : false;
+        }
+
+        /* param_default:
+         * @idx:
+         *
+         * Returns: whether the parameter at @idx has default value
+         */
+        inline constexpr bool param_default(unsigned int idx) const noexcept
+        {
+                return __builtin_expect(idx < size(), 1) ? vte_seq_arg_default(m_seq->args[idx]) : true;
+        }
+
+        /* next:
+         * @idx:
+         *
+         * Returns: the index of the next parameter block
+         */
+        inline constexpr unsigned int next(unsigned int idx) const noexcept
+        {
+                /* Find the final parameter */
+                while (param_nonfinal(idx))
+                        ++idx;
+                /* And return the index after that one */
+                return ++idx;
+        }
+
+        inline constexpr unsigned int cbegin() const noexcept
+        {
+                return 0;
+        }
+
+        inline constexpr unsigned int cend() const noexcept
+        {
+                return size();
+        }
+
+
+        //FIMXE remove this one
+        inline constexpr int operator[](int position) const
+        {
+                return __builtin_expect(position < (int)size(), 1) ? vte_seq_arg_value(m_seq->args[position]) : -1;
         }
 
         inline bool has_number_at_unchecked(unsigned int position) const

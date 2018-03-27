@@ -28,6 +28,7 @@
 #include <glib.h>
 
 #include "parser.hh"
+#include "parser-glue.hh"
 #include "parser-charset-tables.hh"
 
 static struct vte_parser* parser;
@@ -795,21 +796,29 @@ test_seq_csi(void)
 }
 
 static void
-test_seq_csi_param(char const* str,
-                   std::vector<int> args,
-                   std::vector<bool> args_nonfinal)
+test_seq_parse(char const* str,
+               struct vte_seq** seq)
 {
-        g_assert_cmpuint(args.size(), ==, args_nonfinal.size());
-
         std::u32string s;
         s.push_back(0x9B); /* CSI */
         for (unsigned int i = 0; str[i]; i++)
                 s.push_back(str[i]);
         s.push_back(0x6d); /* m = SGR */
 
-        struct vte_seq* seq;
-        auto rv = feed_parser(s, &seq);
+        vte_parser_reset(parser);
+        auto rv = feed_parser(s, seq);
         g_assert_cmpint(rv, ==, VTE_SEQ_CSI);
+}
+
+static void
+test_seq_csi_param(char const* str,
+                   std::vector<int> args,
+                   std::vector<bool> args_nonfinal)
+{
+        g_assert_cmpuint(args.size(), ==, args_nonfinal.size());
+
+        struct vte_seq* seq;
+        test_seq_parse(str, &seq);
 
         if (seq->n_args < VTE_PARSER_ARG_MAX)
                 g_assert_cmpuint(seq->n_args, ==, args.size());
@@ -855,6 +864,66 @@ test_seq_csi_param(void)
 
 }
 
+static void
+test_seq_glue(char const* str,
+              unsigned int n_args,
+              unsigned int n_final_args,
+              vte::parser::Sequence& seq)
+{
+        test_seq_parse(str, seq.seq_ptr());
+
+        auto raw_seq = *seq.seq_ptr();
+        g_assert_cmpuint(seq.size(), ==, n_args);
+        g_assert_cmpuint(raw_seq->n_args, ==, n_args);
+        g_assert_cmpuint(seq.size_final(), ==, n_final_args);
+        g_assert_cmpuint(raw_seq->n_final_args, ==, n_final_args);
+
+        g_assert_cmpuint(seq.type(), ==, raw_seq->type);
+        g_assert_cmpuint(seq.command(), ==, raw_seq->command);
+        g_assert_cmpuint(seq.terminator(), ==, raw_seq->terminator);
+        g_assert_cmpuint(seq.intermediates(), ==, raw_seq->intermediates);
+
+        for (unsigned int i = 0; i < raw_seq->n_args; i++)
+                g_assert_cmpuint(seq.param(i), ==, vte_seq_arg_value(raw_seq->args[i]));
+}
+
+static void
+test_seq_glue(void)
+{
+        vte::parser::Sequence seq{};
+
+        test_seq_glue(":0:1000;2;:", 6, 3, seq);
+        g_assert_cmpuint(seq.cbegin(), ==, 0);
+        g_assert_cmpuint(seq.cend(), ==, 6);
+
+        auto it = seq.cbegin();
+        g_assert_cmpuint(it, ==, 0);
+        it = seq.next(it);
+        g_assert_cmpuint(it, ==,  3);
+        it = seq.next(it);
+        g_assert_cmpuint(it, ==, 4);
+        it = seq.next(it);
+        g_assert_cmpuint(it, ==, 6);
+
+        it = seq.cbegin();
+        g_assert_cmpint(seq.param(it++), ==, -1);
+        g_assert_cmpint(seq.param(it++), ==, 0);
+        g_assert_cmpint(seq.param(it++), ==, 1000);
+        g_assert_cmpint(seq.param(it++), ==, 2);
+        g_assert_cmpint(seq.param(it++), ==, -1);
+        g_assert_cmpint(seq.param(it++), ==, -1);
+        g_assert_cmpint(it, ==, seq.cend());
+
+        it = seq.cbegin();
+        g_assert_cmpint(seq.param(it, -2), ==, -2);
+        g_assert_cmpint(seq.param(it, -2, 0, 100), ==, 0);
+        it++; it++;
+        g_assert_cmpint(seq.param(it, -2), ==, seq.param(it));
+        g_assert_cmpint(seq.param(it, -2, 20, 100), ==, 100);
+        g_assert_cmpint(seq.param(it, -2, 200, 2000), ==, 1000);
+        g_assert_cmpint(seq.param(it, -2, 2000, 4000), ==, 2000);
+}
+
 int
 main(int argc,
      char* argv[])
@@ -865,6 +934,7 @@ main(int argc,
                 return 1;
 
         g_test_add_func("/vte/parser/sequences/arg", test_seq_arg);
+        g_test_add_func("/vte/parser/sequences/glue", test_seq_glue);
         g_test_add_func("/vte/parser/sequences/control", test_seq_control);
         g_test_add_func("/vte/parser/sequences/escape/invalid", test_seq_esc_invalid);
         g_test_add_func("/vte/parser/sequences/escape/charset/94", test_seq_esc_charset_94);

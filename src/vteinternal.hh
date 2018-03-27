@@ -1213,9 +1213,9 @@ public:
         inline void insert_blank_character();
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
-        inline int32_t parse_sgr_38_48_parameters(vte::parser::Params const& params,
-                                                  unsigned int *index,
-                                                  bool might_contain_color_space_id);
+        inline bool seq_parse_sgr_color(vte::parser::Sequence const& seq,
+                                        unsigned int& idx,
+                                        uint32_t& color) const noexcept;
 
         inline void move_cursor_backward(vte::grid::column_t columns);
         inline void move_cursor_forward(vte::grid::column_t columns);

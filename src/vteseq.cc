@@ -1786,277 +1786,106 @@ VteTerminalPrivate::seq_vertical_tab(vte::parser::Params const& params)
         line_feed();
 }
 
-/* Parse parameters of SGR 38, 48 or 58, starting at @index within @params.
- * If @might_contain_color_space_id, a true color sequence sequence is started, and after
- * its leading number "2" at least 4 more parameters are present, then there's an (ignored)
- * color_space_id before the three color components. See the comment below in
- * seq_character_attributes() to understand the different accepted formats.
- * Returns the color index, or -1 on error.
- * Increments @index to point to the last consumed parameter (not beyond). */
-
+/*
+ * Parse parameters of SGR 38, 48 or 58, starting at @index within @seq.
+ * Returns %true if @seq contained colour parameters at @index, or %false otherwise.
+ * In each case, @idx is set to last consumed parameter,
+ * and the colour is returned in @color.
+ *
+ * The format looks like:
+ * - 256 color indexed palette:
+ *   - ^[[38:5:INDEXm  (de jure standard: ITU-T T.416 / ISO/IEC 8613-6; we also allow and ignore further parameters)
+ *   - ^[[38;5;INDEXm  (de facto standard, understood by probably all terminal emulators that support 256 colors)
+ * - true colors:
+ *   - ^[[38:2:[id]:RED:GREEN:BLUE[:...]m  (de jure standard: ITU-T T.416 / ISO/IEC 8613-6)
+ *   - ^[[38:2:RED:GREEN:BLUEm             (common misinterpretation of the standard, FIXME: stop supporting it at some point)
+ *   - ^[[38;2;RED;GREEN;BLUEm             (de facto standard, understood by probably all terminal emulators that support true colors)
+ * See bugs 685759 and 791456 for details.
+ */
 template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
-int32_t
-VteTerminalPrivate::parse_sgr_38_48_parameters(vte::parser::Params const& params,
-                                               unsigned int *index,
-                                               bool might_contain_color_space_id)
+bool
+VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
+                                        unsigned int &idx,
+                                        uint32_t& color) const noexcept
 {
-        auto n_params = params.size();
-        if (*index < n_params) {
-                int param0;
-                if (G_UNLIKELY(!params.number_at_unchecked(*index, param0)))
-                        return -1;
+        /* Note that we don't have to check if the index is after the end of
+         * the parameters list, since dereferencing is safe and returns -1.
+         */
 
-		switch (param0) {
+        if (seq.param_nonfinal(idx)) {
+                /* Colon version */
+                switch (seq.param(++idx)) {
                 case 2: {
-                        if (G_UNLIKELY(*index + 3 >= n_params))
-				return -1;
-                        if (might_contain_color_space_id && *index + 5 <= n_params)
-			        *index += 1;
+                        auto const n = seq.next(idx) - idx;
+                        if (n < 4)
+                                return false;
+                        if (n > 4) {
+                                /* Consume a colourspace parameter; it must be default */
+                                if (!seq.param_default(++idx))
+                                        return false;
+                        }
 
-                        int param1, param2, param3;
-                        if (G_UNLIKELY(!params.number_at_unchecked(*index + 1, param1) ||
-                                       !params.number_at_unchecked(*index + 2, param2) ||
-                                       !params.number_at_unchecked(*index + 3, param3)))
-                                return -1;
+                        int red = seq.param(++idx);
+                        int green = seq.param(++idx);
+                        int blue = seq.param(++idx);
+                        if ((red & 0xff) != red ||
+                            (green & 0xff) != green ||
+                            (blue & 0xff) != blue)
+                                return false;
 
-			if (G_UNLIKELY (param1 < 0 || param1 >= 256 || param2 < 0 || param2 >= 256 || param3 < 0 || param3 >= 256))
-				return -1;
-			*index += 3;
-
-			return VTE_RGB_COLOR(redbits, greenbits, bluebits, param1, param2, param3);
+                        color = VTE_RGB_COLOR(redbits, greenbits, bluebits, red, green, blue);
+                        return true;
                 }
                 case 5: {
-                        int param1;
-                        if (G_UNLIKELY(!params.number_at(*index + 1, param1)))
-                                return -1;
+                        auto const n = seq.next(idx) - idx;
+                        if (n < 2)
+                                return false;
 
-                        if (G_UNLIKELY(param1 < 0 || param1 >= 256))
-				return -1;
-			*index += 1;
-			return param1;
+                        int v = seq.param(++idx);
+                        if (v < 0 || v >= 256)
+                                return false;
+
+                        color = (uint32_t)v;
+                        return true;
                 }
-		}
-	}
-	return -1;
-}
+                }
+        } else {
+                /* Semicolon version */
 
-/* Handle ANSI color setting and related stuffs (SGR).
- * @params contains the values split at semicolons, with sub arrays splitting at colons
- * wherever colons were encountered. */
-void
-VteTerminalPrivate::seq_character_attributes(vte::parser::Params const& params)
-{
-	/* Step through each numeric parameter. */
-        auto n_params = params.size();
-        unsigned int i;
-	for (i = 0; i < n_params; i++) {
-		/* If this parameter is an array, it can be a fully colon separated 38 or 48
-		 * (see below for details). */
-		if (G_UNLIKELY(params.has_subparams_at_unchecked(i))) {
-                        auto subparams = params.subparams_at_unchecked(i);
+                idx = seq.next(idx);
+                switch (seq.param(idx)) {
+                case 2: {
+                        /* Consume 3 more parameters */
+                        idx = seq.next(idx);
+                        int red = seq.param(idx);
+                        idx = seq.next(idx);
+                        int green = seq.param(idx);
+                        idx = seq.next(idx);
+                        int blue = seq.param(idx);
 
-                        int param0, param1;
-                        if (G_UNLIKELY(!subparams.number_at(0, param0)))
-                                continue;
+                        if ((red & 0xff) != red ||
+                            (green & 0xff) != green ||
+                            (blue & 0xff) != blue)
+                                return false;
 
-                        switch (param0) {
-                        case 4:
-                                if (subparams.number_at(1, param1) && param1 >= 0 && param1 <= 3)
-                                        m_defaults.attr.set_underline(param1);
-                                break;
-                        case 38: {
-                                unsigned int index = 1;
-                                auto color = parse_sgr_38_48_parameters<8, 8, 8>(subparams, &index, true);
-                                if (G_LIKELY (color != -1))
-                                        m_defaults.attr.set_fore(color);
-                                break;
-                        }
-                        case 48: {
-                                unsigned int index = 1;
-                                auto color = parse_sgr_38_48_parameters<8, 8, 8>(subparams, &index, true);
-                                if (G_LIKELY (color != -1))
-                                        m_defaults.attr.set_back(color);
-                                break;
-                        }
-                        case 58: {
-                                unsigned int index = 1;
-                                auto color = parse_sgr_38_48_parameters<4, 5, 4>(subparams, &index, true);
-                                if (G_LIKELY (color != -1))
-                                        m_defaults.attr.set_deco(color);
-                                break;
-                        }
-                        }
+                        color = VTE_RGB_COLOR(redbits, greenbits, bluebits, red, green, blue);
+                        return true;
+                }
+                case 5: {
+                        /* Consume 1 more parameter */
+                        idx = seq.next(idx);
+                        int v = seq.param(idx);
 
-			continue;
-		}
-		/* If this parameter is not a number either, skip it. */
-                int param;
-                if (!params.number_at_unchecked(i, param))
-                        continue;
+                        if ((v & 0xff) != v)
+                                return false;
 
-		switch (param) {
-                case -1:
-		case 0:
-                        reset_default_attributes(false);
-			break;
-		case 1:
-                        m_defaults.attr.set_bold(true);
-			break;
-		case 2:
-                        m_defaults.attr.set_dim(true);
-			break;
-		case 3:
-                        m_defaults.attr.set_italic(true);
-			break;
-		case 4:
-                        m_defaults.attr.set_underline(1);
-			break;
-		case 5:
-                        m_defaults.attr.set_blink(true);
-			break;
-		case 7:
-                        m_defaults.attr.set_reverse(true);
-			break;
-		case 8:
-                        m_defaults.attr.set_invisible(true);
-			break;
-		case 9:
-                        m_defaults.attr.set_strikethrough(true);
-			break;
-                case 21:
-                        m_defaults.attr.set_underline(2);
-                        break;
-		case 22: /* ECMA 48. */
-                        m_defaults.attr.unset(VTE_ATTR_BOLD_MASK | VTE_ATTR_DIM_MASK);
-			break;
-		case 23:
-                        m_defaults.attr.set_italic(false);
-			break;
-		case 24:
-                        m_defaults.attr.set_underline(0);
-			break;
-		case 25:
-                        m_defaults.attr.set_blink(false);
-			break;
-		case 27:
-                        m_defaults.attr.set_reverse(false);
-			break;
-		case 28:
-                        m_defaults.attr.set_invisible(false);
-			break;
-		case 29:
-                        m_defaults.attr.set_strikethrough(false);
-			break;
-		case 30:
-		case 31:
-		case 32:
-		case 33:
-		case 34:
-		case 35:
-		case 36:
-		case 37:
-                        m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 30));
-			break;
-		case 38:
-		case 48:
-                case 58:
-		{
-			/* The format looks like:
-			 * - 256 color indexed palette:
-                         *   - ^[[38:5:INDEXm  (de jure standard: ITU-T T.416 / ISO/IEC 8613-6; we also allow and ignore further parameters)
-                         *   - ^[[38;5;INDEXm  (de facto standard, understood by probably all terminal emulators that support 256 colors)
-			 * - true colors:
-                         *   - ^[[38:2:[id]:RED:GREEN:BLUE[:...]m  (de jure standard: ITU-T T.416 / ISO/IEC 8613-6)
-                         *   - ^[[38:2:RED:GREEN:BLUEm             (common misinterpretation of the standard, FIXME: stop supporting it at some point)
-                         *   - ^[[38;2;RED;GREEN;BLUEm             (de facto standard, understood by probably all terminal emulators that support true colors)
-                         * See bugs 685759 and 791456 for details.
-                         * The colon version was handled above separately.
-                         * This branch here is reached when the separators are semicolons. */
-			if ((i + 1) < n_params) {
-                                ++i;
-                                int32_t color;
-                                switch (param) {
-                                case 38:
-                                        color = parse_sgr_38_48_parameters<8 ,8 ,8>(params, &i, false);
-                                        if (G_LIKELY (color != -1))
-                                                m_defaults.attr.set_fore(color);
-                                        break;
-                                case 48:
-                                        color = parse_sgr_38_48_parameters<8, 8, 8>(params, &i, false);
-                                        if (G_LIKELY (color != -1))
-                                                m_defaults.attr.set_back(color);
-                                        break;
-                                case 58:
-                                        color = parse_sgr_38_48_parameters<4, 5, 4>(params, &i, false);
-                                        g_printerr("Parsed semicoloned deco colour: %x\n", color);
-                                        if (G_LIKELY (color != -1))
-                                                m_defaults.attr.set_deco(color);
-                                        break;
-				}
-			}
-			break;
-		}
-		case 39:
-			/* default foreground */
-                        m_defaults.attr.set_fore(VTE_DEFAULT_FG);
-			break;
-		case 40:
-		case 41:
-		case 42:
-		case 43:
-		case 44:
-		case 45:
-		case 46:
-		case 47:
-                        m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 40));
-			break;
-	     /* case 48: was handled above at 38 to avoid code duplication */
-		case 49:
-			/* default background */
-                        m_defaults.attr.set_back(VTE_DEFAULT_BG);
-			break;
-                case 53:
-                        m_defaults.attr.set_overline(true);
-                        break;
-                case 55:
-                        m_defaults.attr.set_overline(false);
-                        break;
-             /* case 58: was handled above at 38 to avoid code duplication */
-                case 59:
-                        /* default decoration color, that is, same as the cell's foreground */
-                        m_defaults.attr.set_deco(VTE_DEFAULT_FG);
-                        break;
-		case 90:
-		case 91:
-		case 92:
-		case 93:
-		case 94:
-		case 95:
-		case 96:
-		case 97:
-                        m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 90) +
-                                                 VTE_COLOR_BRIGHT_OFFSET);
-			break;
-		case 100:
-		case 101:
-		case 102:
-		case 103:
-		case 104:
-		case 105:
-		case 106:
-		case 107:
-                        m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 100) +
-                                                 VTE_COLOR_BRIGHT_OFFSET);
-			break;
-		}
-	}
-	/* If we had no parameters, default to the defaults. */
-	if (i == 0) {
-                reset_default_attributes(false);
-	}
-	/* Save the new colors. */
-        m_color_defaults.attr.copy_colors(m_defaults.attr);
-        m_fill_defaults.attr.copy_colors(m_defaults.attr);
+                        color = (uint32_t)v;
+                        return true;
+                }
+                }
+        }
+
+        return false;
 }
 
 /* Move the cursor to the given column in the top row, 1-based. */
@@ -5598,130 +5427,131 @@ VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
         /*
          * SGR - select-graphics-rendition
          */
-#if 0
-        struct vte_color *dst;
-        unsigned int i, code;
-        int v;
+        auto const n_params = seq.size();
 
-        if (seq->n_args < 1) {
-                memset(&screen->state.attr, 0, sizeof(screen->state.attr));
-                return 0;
-        }
+	/* If we had no parameters, default to the defaults. */
+	if (n_params == 0) {
+                reset_default_attributes(false);
+                return;
+	}
 
-        for (i = 0; i < seq->n_args; ++i) {
-                v = seq->args[i];
-                switch (v) {
+        for (unsigned int i = 0; i < n_params; i = seq.next(i)) {
+                auto const param = seq.param(i);
+                switch (param) {
+                case -1:
+                case 0:
+                        reset_default_attributes(false);
+                        break;
                 case 1:
-                        screen->state.attr.bold = 1;
+                        m_defaults.attr.set_bold(true);
+                        break;
+                case 2:
+                        m_defaults.attr.set_dim(true);
                         break;
                 case 3:
-                        screen->state.attr.italic = 1;
+                        m_defaults.attr.set_italic(true);
                         break;
-                case 4:
-                        screen->state.attr.underline = 1;
+                case 4: {
+                        unsigned int v = 1;
+                        /* If we have a subparameter, get it */
+                        if (seq.param_nonfinal(i)) {
+                                v = seq.param(i + 1, 1, 0, 3);
+                        }
+                        m_defaults.attr.set_underline(v);
                         break;
+                }
                 case 5:
-                        screen->state.attr.blink = 1;
+                        m_defaults.attr.set_blink(true);
                         break;
                 case 7:
-                        screen->state.attr.inverse = 1;
+                        m_defaults.attr.set_reverse(true);
                         break;
                 case 8:
-                        screen->state.attr.hidden = 1;
+                        m_defaults.attr.set_invisible(true);
                         break;
-                case 22:
-                        screen->state.attr.bold = 0;
+                case 9:
+                        m_defaults.attr.set_strikethrough(true);
+                        break;
+                case 21:
+                        m_defaults.attr.set_underline(2);
+                        break;
+                case 22: /* ECMA 48. */
+                        m_defaults.attr.unset(VTE_ATTR_BOLD_MASK | VTE_ATTR_DIM_MASK);
                         break;
                 case 23:
-                        screen->state.attr.italic = 0;
+                        m_defaults.attr.set_italic(false);
                         break;
                 case 24:
-                        screen->state.attr.underline = 0;
+                        m_defaults.attr.set_underline(0);
                         break;
                 case 25:
-                        screen->state.attr.blink = 0;
+                        m_defaults.attr.set_blink(false);
                         break;
                 case 27:
-                        screen->state.attr.inverse = 0;
+                        m_defaults.attr.set_reverse(false);
                         break;
                 case 28:
-                        screen->state.attr.hidden = 0;
+                        m_defaults.attr.set_invisible(false);
+                        break;
+                case 29:
+                        m_defaults.attr.set_strikethrough(false);
                         break;
                 case 30 ... 37:
-                        screen->state.attr.fg.ccode = v - 30 +
-                                                      VTE_CCODE_BLACK;
+                        m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 30));
                         break;
+                case 38: {
+                        uint32_t fore;
+                        if (G_LIKELY((seq_parse_sgr_color<8, 8, 8>(seq, i, fore))))
+                                m_defaults.attr.set_fore(fore);
+                        break;
+                }
                 case 39:
-                        screen->state.attr.fg.ccode = 0;
+                        /* default foreground */
+                        m_defaults.attr.set_fore(VTE_DEFAULT_FG);
                         break;
                 case 40 ... 47:
-                        screen->state.attr.bg.ccode = v - 40 +
-                                                      VTE_CCODE_BLACK;
+                        m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 40));
                         break;
+                case 48: {
+                        uint32_t back;
+                        if (G_LIKELY((seq_parse_sgr_color<8, 8, 8>(seq, i, back))))
+                                m_defaults.attr.set_back(back);
+                        break;
+                }
                 case 49:
-                        screen->state.attr.bg.ccode = 0;
+                        /* default background */
+                        m_defaults.attr.set_back(VTE_DEFAULT_BG);
+                        break;
+                case 53:
+                        m_defaults.attr.set_overline(true);
+                        break;
+                case 55:
+                        m_defaults.attr.set_overline(false);
+                        break;
+                case 58: {
+                        uint32_t deco;
+                        if (G_LIKELY((seq_parse_sgr_color<4, 5, 4>(seq, i, deco))))
+                                m_defaults.attr.set_deco(deco);
+                        break;
+                }
+                case 59:
+                        /* default decoration color, that is, same as the cell's foreground */
+                        m_defaults.attr.set_deco(VTE_DEFAULT_FG);
                         break;
                 case 90 ... 97:
-                        screen->state.attr.fg.ccode = v - 90 +
-                                                      VTE_CCODE_LIGHT_BLACK;
+                        m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 90) +
+                                                 VTE_COLOR_BRIGHT_OFFSET);
                         break;
                 case 100 ... 107:
-                        screen->state.attr.bg.ccode = v - 100 +
-                                                      VTE_CCODE_LIGHT_BLACK;
-                        break;
-                case 38:
-                        /* fallthrough */
-                case 48:
-
-                        if (v == 38)
-                                dst = &screen->state.attr.fg;
-                        else
-                                dst = &screen->state.attr.bg;
-
-                        ++i;
-                        if (i >= seq->n_args)
-                                break;
-
-                        switch (seq->args[i]) {
-                        case 2:
-                                /* 24bit-color support */
-
-                                i += 3;
-                                if (i >= seq->n_args)
-                                        break;
-
-                                dst->ccode = VTE_CCODE_RGB;
-                                dst->red = (seq->args[i - 2] >= 0) ? seq->args[i - 2] : 0;
-                                dst->green = (seq->args[i - 1] >= 0) ? seq->args[i - 1] : 0;
-                                dst->blue = (seq->args[i] >= 0) ? seq->args[i] : 0;
-
-                                break;
-                        case 5:
-                                /* 256-color support */
-
-                                ++i;
-                                if (i >= seq->n_args || seq->args[i] < 0)
-                                        break;
-
-                                dst->ccode = VTE_CCODE_256;
-                                code = seq->args[i];
-                                dst->c256 = code < 256 ? code : 0;
-
-                                break;
-                        }
-
-                        break;
-                case -1:
-                        /* fallthrough */
-                case 0:
-                        memset(&screen->state.attr, 0,
-                               sizeof(screen->state.attr));
+                        m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 100) +
+                                                 VTE_COLOR_BRIGHT_OFFSET);
                         break;
                 }
         }
-#endif
 
-        seq_character_attributes(seq);
+	/* Save the new colors. */
+        m_color_defaults.attr.copy_colors(m_defaults.attr);
+        m_fill_defaults.attr.copy_colors(m_defaults.attr);
 }
 
 void
