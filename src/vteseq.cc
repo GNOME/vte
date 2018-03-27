@@ -2113,7 +2113,7 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        reply(seq, VTE_REPLY_DECDA1R, {62});
+        reply(seq, VTE_REPLY_DECDA1R, {65, 1, 9});
 }
 
 void
