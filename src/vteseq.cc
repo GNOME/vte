@@ -2390,203 +2390,6 @@ VteTerminalPrivate::seq_soft_reset(vte::parser::Params const& params)
 	reset(false, false);
 }
 
-/* Window manipulation control sequences.  Most of these are considered
- * bad ideas, but they're implemented as signals which the application
- * is free to ignore, so they're harmless.  Handle at most one action,
- * see bug 741402. */
-void
-VteTerminalPrivate::seq_window_manipulation(vte::parser::Params const& params)
-{
-        auto n_params = params.size();
-        if (n_params < 1)
-                return;
-
-        int  param;
-        if (!params.number_at_unchecked(0, param))
-                return;
-
-        int arg1 = -1;
-        int arg2 = -1;
-        if (n_params >= 2)
-                params.number_at_unchecked(1, arg1);
-        if (n_params >= 3)
-                params.number_at_unchecked(2, arg2);
-
-	GdkScreen *gscreen;
-	char buf[128];
-	int width, height;
-
-        switch (param) {
-        case 1:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Deiconifying window.\n");
-                emit_deiconify_window();
-                break;
-        case 2:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Iconifying window.\n");
-                emit_iconify_window();
-                break;
-        case 3:
-                if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Moving window to "
-                                         "%d,%d.\n", arg1, arg2);
-                        emit_move_window(arg1, arg2);
-                }
-                break;
-        case 4:
-                if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Resizing window "
-                                         "(to %dx%d pixels, grid size %ldx%ld).\n",
-                                         arg2, arg1,
-                                         arg2 / m_cell_width,
-                                         arg1 / m_cell_height);
-                        emit_resize_window(arg2 / m_cell_width,
-                                           arg1 / m_cell_height);
-                }
-                break;
-        case 5:
-                _vte_debug_print(VTE_DEBUG_PARSER, "Raising window.\n");
-                emit_raise_window();
-                break;
-        case 6:
-                _vte_debug_print(VTE_DEBUG_PARSER, "Lowering window.\n");
-                emit_lower_window();
-                break;
-        case 7:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Refreshing window.\n");
-                invalidate_all();
-                emit_refresh_window();
-                break;
-        case 8:
-                if ((arg1 != -1) && (arg2 != -1)) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Resizing window "
-                                         "(to %d columns, %d rows).\n",
-                                         arg2, arg1);
-                        emit_resize_window(arg2, arg1);
-                }
-                break;
-        case 9:
-                switch (arg1) {
-                case 0:
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Restoring window.\n");
-                        emit_restore_window();
-                        break;
-                case 1:
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Maximizing window.\n");
-                        emit_maximize_window();
-                        break;
-                default:
-                        break;
-                }
-                break;
-        case 11:
-                /* If we're unmapped, then we're iconified. */
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "%dt",
-                           1 + !gtk_widget_get_mapped(m_widget));
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting window state %s.\n",
-                                 gtk_widget_get_mapped(m_widget) ?
-                                 "non-iconified" : "iconified");
-                feed_child(buf, -1);
-                break;
-        case 13:
-                /* Send window location, in pixels. */
-                gdk_window_get_origin(gtk_widget_get_window(m_widget),
-                                      &width, &height);
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "3;%d;%dt",
-                           width + m_padding.left,
-                           height + m_padding.top);
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting window location"
-                                 "(%d++,%d++).\n",
-                                 width, height);
-                feed_child(buf, -1);
-                break;
-        case 14:
-                /* Send window size, in pixels. */
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "4;%d;%dt",
-                           (int)(m_row_count * m_cell_height),
-                           (int)(m_column_count * m_cell_width));
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting window size "
-                                 "(%dx%d)\n",
-                                 (int)(m_row_count * m_cell_height),
-                                 (int)(m_column_count * m_cell_width));
-
-                feed_child(buf, -1);
-                break;
-        case 18:
-                /* Send widget size, in cells. */
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting widget size.\n");
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "8;%ld;%ldt",
-                           m_row_count,
-                           m_column_count);
-                feed_child(buf, -1);
-                break;
-        case 19:
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting screen size.\n");
-                gscreen = gtk_widget_get_screen(m_widget);
-                height = gdk_screen_get_height(gscreen);
-                width = gdk_screen_get_width(gscreen);
-                g_snprintf(buf, sizeof(buf),
-                           _VTE_CAP_CSI "9;%ld;%ldt",
-                           height / m_cell_height,
-                           width / m_cell_width);
-                feed_child(buf, -1);
-                break;
-        case 20:
-                /* Report a static icon title, since the real
-                   icon title should NEVER be reported, as it
-                   creates a security vulnerability.  See
-                   http://marc.info/?l=bugtraq&m=104612710031920&w=2
-                   and CVE-2003-0070. */
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting fake icon title.\n");
-                /* never use m_icon_title here! */
-                g_snprintf (buf, sizeof (buf),
-                            _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST);
-                feed_child(buf, -1);
-                break;
-        case 21:
-                /* Report a static window title, since the real
-                   window title should NEVER be reported, as it
-                   creates a security vulnerability.  See
-                   http://marc.info/?l=bugtraq&m=104612710031920&w=2
-                   and CVE-2003-0070. */
-                _vte_debug_print(VTE_DEBUG_PARSER,
-                                 "Reporting fake window title.\n");
-                /* never use m_window_title here! */
-                g_snprintf (buf, sizeof (buf),
-                            _VTE_CAP_OSC "lTerminal" _VTE_CAP_ST);
-                feed_child(buf, -1);
-                break;
-        default:
-                if (param >= 24) {
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Resizing to %d rows.\n",
-                                         param);
-                        /* Resize to the specified number of
-                         * rows. */
-                        emit_resize_window(m_column_count,
-                                           param);
-                }
-                break;
-        }
-}
-
 /* Internal helper for setting/querying special colors */
 void
 VteTerminalPrivate::change_special_color(vte::parser::Params const& params,
@@ -5907,8 +5710,192 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
         /*
          * XTERM_WM - xterm-window-management
          *
-         * Probably not worth implementing.
+         * Window manipulation control sequences.  Most of these are considered
+         * bad ideas, but they're implemented as signals which the application
+         * is free to ignore, so they're harmless.  Handle at most one action,
+         * see bug 741402.
+         *
+         * No parameter default values.
+         *
+         * References: XTERM
          */
 
-        seq_window_manipulation(seq);
+        int param, arg1, arg2;
+        if (!seq.collect(0, {&param, &arg1, &arg2}))
+                return;
+
+	GdkScreen *gscreen;
+	char buf[128];
+	int width, height;
+
+        switch (param) {
+        case -1:
+                break;
+        case 1:
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Deiconifying window.\n");
+                emit_deiconify_window();
+                break;
+        case 2:
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Iconifying window.\n");
+                emit_iconify_window();
+                break;
+        case 3:
+                if ((arg1 != -1) && (arg2 != -1)) {
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Moving window to "
+                                         "%d,%d.\n", arg1, arg2);
+                        emit_move_window(arg1, arg2);
+                }
+                break;
+        case 4:
+                if ((arg1 != -1) && (arg2 != -1)) {
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Resizing window "
+                                         "(to %dx%d pixels, grid size %ldx%ld).\n",
+                                         arg2, arg1,
+                                         arg2 / m_cell_width,
+                                         arg1 / m_cell_height);
+                        emit_resize_window(arg2 / m_cell_width,
+                                           arg1 / m_cell_height);
+                }
+                break;
+        case 5:
+                _vte_debug_print(VTE_DEBUG_PARSER, "Raising window.\n");
+                emit_raise_window();
+                break;
+        case 6:
+                _vte_debug_print(VTE_DEBUG_PARSER, "Lowering window.\n");
+                emit_lower_window();
+                break;
+        case 7:
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Refreshing window.\n");
+                invalidate_all();
+                emit_refresh_window();
+                break;
+        case 8:
+                if ((arg1 != -1) && (arg2 != -1)) {
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Resizing window "
+                                         "(to %d columns, %d rows).\n",
+                                         arg2, arg1);
+                        emit_resize_window(arg2, arg1);
+                }
+                break;
+        case 9:
+                switch (arg1) {
+                case 0:
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Restoring window.\n");
+                        emit_restore_window();
+                        break;
+                case 1:
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Maximizing window.\n");
+                        emit_maximize_window();
+                        break;
+                default:
+                        break;
+                }
+                break;
+        case 11:
+                /* If we're unmapped, then we're iconified. */
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "%dt",
+                           1 + !gtk_widget_get_mapped(m_widget));
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting window state %s.\n",
+                                 gtk_widget_get_mapped(m_widget) ?
+                                 "non-iconified" : "iconified");
+                feed_child(buf, -1);
+                break;
+        case 13:
+                /* Send window location, in pixels. */
+                gdk_window_get_origin(gtk_widget_get_window(m_widget),
+                                      &width, &height);
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "3;%d;%dt",
+                           width + m_padding.left,
+                           height + m_padding.top);
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting window location"
+                                 "(%d++,%d++).\n",
+                                 width, height);
+                feed_child(buf, -1);
+                break;
+        case 14:
+                /* Send window size, in pixels. */
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "4;%d;%dt",
+                           (int)(m_row_count * m_cell_height),
+                           (int)(m_column_count * m_cell_width));
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting window size "
+                                 "(%dx%d)\n",
+                                 (int)(m_row_count * m_cell_height),
+                                 (int)(m_column_count * m_cell_width));
+
+                feed_child(buf, -1);
+                break;
+        case 18:
+                /* Send widget size, in cells. */
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting widget size.\n");
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "8;%ld;%ldt",
+                           m_row_count,
+                           m_column_count);
+                feed_child(buf, -1);
+                break;
+        case 19:
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting screen size.\n");
+                gscreen = gtk_widget_get_screen(m_widget);
+                height = gdk_screen_get_height(gscreen);
+                width = gdk_screen_get_width(gscreen);
+                g_snprintf(buf, sizeof(buf),
+                           _VTE_CAP_CSI "9;%ld;%ldt",
+                           height / m_cell_height,
+                           width / m_cell_width);
+                feed_child(buf, -1);
+                break;
+        case 20:
+                /* Report a static icon title, since the real
+                   icon title should NEVER be reported, as it
+                   creates a security vulnerability.  See
+                   http://marc.info/?l=bugtraq&m=104612710031920&w=2
+                   and CVE-2003-0070. */
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting fake icon title.\n");
+                /* never use m_icon_title here! */
+                g_snprintf (buf, sizeof (buf),
+                            _VTE_CAP_OSC "LTerminal" _VTE_CAP_ST);
+                feed_child(buf, -1);
+                break;
+        case 21:
+                /* Report a static window title, since the real
+                   window title should NEVER be reported, as it
+                   creates a security vulnerability.  See
+                   http://marc.info/?l=bugtraq&m=104612710031920&w=2
+                   and CVE-2003-0070. */
+                _vte_debug_print(VTE_DEBUG_PARSER,
+                                 "Reporting fake window title.\n");
+                /* never use m_window_title here! */
+                g_snprintf (buf, sizeof (buf),
+                            _VTE_CAP_OSC "lTerminal" _VTE_CAP_ST);
+                feed_child(buf, -1);
+                break;
+        default:
+                if (param >= 24) {
+                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                         "Resizing to %d rows.\n",
+                                         param);
+                        /* Resize to the specified number of
+                         * rows. */
+                        emit_resize_window(m_column_count, param);
+                }
+                break;
+        }
 }

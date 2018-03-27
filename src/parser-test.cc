@@ -967,6 +967,10 @@ test_seq_glue(void)
         g_assert_true(seq.collect(it, {&a, &b})); /* past-the-end params are final and default */
         g_assert_cmpint(a, ==, -1);
         g_assert_cmpint(b, ==, -1);
+        g_assert_true(seq.collect(it, {&a, &b, &c})); /* past-the-end params are final and default */
+        g_assert_cmpint(a, ==, -1);
+        g_assert_cmpint(b, ==, -1);
+        g_assert_cmpint(c, ==, -1);
 
         it = seq.cbegin();
         g_assert_cmpint(seq.collect1(it, -2), ==, -2);
