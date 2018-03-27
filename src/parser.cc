@@ -30,8 +30,6 @@
 #include "parser-charset-tables.hh"
 
 #define WARN(num,str) do { } while (0)
-#define kzalloc(n,v) calloc((n),1)
-#define kfree(ptr) free(ptr)
 
 /*
  * Terminal Parser
@@ -41,11 +39,6 @@
  * The parser itself does not perform any actions but lets the caller react to
  * detected sequences.
  */
-
-struct vte_parser {
-        struct vte_seq seq;
-        unsigned int state;
-};
 
 /*
  * Command Parser
@@ -527,39 +520,22 @@ enum parser_state {
 };
 
 /**
- * vte_parser_new() - Allocate parser object
- * @out:        output variable for new parser object
- *
- * Return: 0 on success, negative error code on failure.
+ * vte_parser_init() - Initialise parser object
+ * @parser: the struct vte_parser
  */
-int vte_parser_new(struct vte_parser **out)
+void vte_parser_init(struct vte_parser *parser)
 {
-        struct vte_parser *parser;
-
-        parser = (struct vte_parser*)kzalloc(sizeof(*parser), GFP_KERNEL);
-        if (!parser)
-                return -ENOMEM;
-
+        memset(parser, 0, sizeof(*parser));
         vte_seq_string_init(&parser->seq.arg_str);
-
-        *out = parser;
-        return 0;
 }
 
 /**
- * vte_parser_free() - Free parser object
- * @parser:        parser object to free, or NULL
- *
- * Return: NULL is returned.
+ * vte_parser_deinit() - Deinitialises parser object
+ * @parser: parser object to deinitialise
  */
-struct vte_parser *vte_parser_free(struct vte_parser *parser)
+void vte_parser_deinit(struct vte_parser *parser)
 {
-        if (!parser)
-                return NULL;
-
         vte_seq_string_free(&parser->seq.arg_str);
-        kfree(parser);
-        return NULL;
 }
 
 static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
@@ -1278,11 +1254,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
 }
 
 int vte_parser_feed(struct vte_parser *parser,
-                    /* const */ struct vte_seq **seq_out,
                     uint32_t raw)
 {
-        int ret;
-
         /*
          * Notes:
          *  * DEC treats GR codes as GL. We don't do that as we require UTF-8
@@ -1294,59 +1267,41 @@ int vte_parser_feed(struct vte_parser *parser,
 
         switch (raw) {
         case 0x18:                /* CAN */
-                ret = parser_transition(parser, raw,
-                                        STATE_GROUND, ACTION_IGNORE);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_GROUND, ACTION_IGNORE);
         case 0x1a:                /* SUB */
-                ret = parser_transition(parser, raw,
-                                        STATE_GROUND, ACTION_EXECUTE);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_GROUND, ACTION_EXECUTE);
         case 0x7f:                 /* DEL */
-                ret = parser_nop(parser, raw);
-                break;
+                return parser_nop(parser, raw);
         case 0x80 ... 0x8f:        /* C1 \ {DCS, SOS, SCI, CSI, ST, OSC, PM, APC} */
         case 0x91 ... 0x97:
         case 0x99:
-                ret = parser_transition(parser, raw,
-                                        STATE_GROUND, ACTION_EXECUTE);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_GROUND, ACTION_EXECUTE);
         case 0x98:                /* SOS */
         case 0x9e:                /* PM */
         case 0x9f:                /* APC */
-                ret = parser_transition_no_action(parser, raw, STATE_ST_IGNORE);
+                return parser_transition_no_action(parser, raw, STATE_ST_IGNORE);
                 // FIXMEchpe shouldn't this use ACTION_CLEAR?
-                break;
         case 0x90:                /* DCS */
-                ret = parser_transition(parser, raw,
-                                        STATE_DCS_ENTRY, ACTION_DCS_START);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_DCS_ENTRY, ACTION_DCS_START);
         case 0x9a:                /* SCI */
-                ret = parser_transition(parser, raw,
-                                        STATE_SCI, ACTION_CLEAR);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_SCI, ACTION_CLEAR);
         case 0x9d:                /* OSC */
-                ret = parser_transition(parser, raw,
-                                        STATE_OSC_STRING, ACTION_OSC_START);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_OSC_STRING, ACTION_OSC_START);
         case 0x9b:                /* CSI */
-                ret = parser_transition(parser, raw,
-                                        STATE_CSI_ENTRY, ACTION_CLEAR);
-                break;
+                return parser_transition(parser, raw,
+                                         STATE_CSI_ENTRY, ACTION_CLEAR);
         default:
-                ret = parser_feed_to_state(parser, raw);
-                break;
+                return parser_feed_to_state(parser, raw);
         }
-
-        if (G_UNLIKELY(ret < 0))
-                *seq_out = NULL;
-        else
-                *seq_out = &parser->seq;
-
-        return ret;
 }
 
 void vte_parser_reset(struct vte_parser *parser)
 {
-        /* const */ struct vte_seq *seq;
-        vte_parser_feed(parser, &seq, 0x18 /* CAN */);
+        vte_parser_feed(parser, 0x18 /* CAN */);
 }

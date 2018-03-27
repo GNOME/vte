@@ -3552,7 +3552,7 @@ skip_chunk:
 	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
-        vte::parser::Sequence seq{};
+        vte::parser::Sequence seq(m_parser);
 
         m_line_wrapped = false;
 
@@ -3560,7 +3560,7 @@ skip_chunk:
         auto const* wend = wbuf + wcount;
         for ( ; wp < wend; ++wp) {
 
-                auto rv = vte_parser_feed(m_parser, seq.seq_ptr(), *wp);
+                auto rv = m_parser.feed(*wp);
                 if (G_UNLIKELY(rv < 0)) {
                         char c_buf[7];
                         g_snprintf(c_buf, sizeof(c_buf), "%lc", *wp);
@@ -8062,11 +8062,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	g_assert_cmpstr(m_encoding, ==, "UTF-8");
         m_last_graphic_character = 0;
 
-        /* Set up the emulation. */
-
-        if (vte_parser_new(&m_parser) != 0)
-                g_assert_not_reached();
-
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         m_pty = nullptr;
@@ -8562,10 +8557,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	if (m_pty != NULL) {
                 g_object_unref(m_pty);
 	}
-
-	/* Clean up emulation structures. */
-        m_parser = vte_parser_free(m_parser);
-        g_assert_null(m_parser);
 
 	remove_update_timeout(this);
 
@@ -10501,7 +10492,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 				       m_encoding);
 
         /* Reset parser */
-        vte_parser_reset(m_parser);
+        m_parser.reset();
         m_last_graphic_character = 0;
 
         /* Reset modes */

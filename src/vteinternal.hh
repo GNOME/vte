@@ -295,8 +295,7 @@ public:
 
         vte::terminal::Tabstops m_tabstops{};
 
-	/* Emulation setup data. */
-        struct vte_parser* m_parser; /* control sequence state machine */
+        vte::parser::Parser m_parser; /* control sequence state machine */
 
         vte::terminal::modes::ECMA m_modes_ecma{};
         vte::terminal::modes::Private m_modes_private{};

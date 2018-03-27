@@ -27,8 +27,53 @@ namespace vte {
 
 namespace parser {
 
+class Sequence;
+
+class Parser {
+public:
+        friend class Sequence;
+
+        Parser() noexcept
+        {
+                vte_parser_init(&m_parser);
+        }
+        Parser(Parser const&) = delete;
+        Parser(Parser&&) = delete;
+
+        ~Parser() noexcept
+        {
+                vte_parser_deinit(&m_parser);
+        }
+
+        Parser& operator=(Parser const&) = delete;
+        Parser& operator=(Parser&&) = delete;
+
+        inline int feed(uint32_t raw) noexcept
+        {
+                return vte_parser_feed(&m_parser, raw);
+        }
+
+        inline void reset() noexcept
+        {
+                vte_parser_reset(&m_parser);
+        }
+
+protected:
+        struct vte_parser m_parser;
+};
+
 class Sequence {
 public:
+
+        Sequence() = default;
+        Sequence(Sequence const&) = delete;
+        Sequence(Sequence&&) = delete;
+        ~Sequence() = default;
+
+        Sequence(Parser& parser)
+        {
+                m_seq = &parser.m_parser.seq;
+        }
 
         typedef int number;
 

@@ -370,9 +370,10 @@ static int
 feed_parser(std::u32string const& s,
             struct vte_seq** seq)
 {
+        *seq = &parser->seq;
         int rv = VTE_SEQ_NONE;
         for (auto it : s) {
-                rv = vte_parser_feed(parser, seq, (uint32_t)(char32_t)it);
+                rv = vte_parser_feed(parser, (uint32_t)(char32_t)it);
                 if (rv < 0)
                         break;
         }
@@ -528,8 +529,8 @@ test_seq_control(void)
 
         for (unsigned int i = 0; i < G_N_ELEMENTS(controls); i++) {
                 vte_parser_reset(parser);
-                struct vte_seq* seq;
-                auto rv = vte_parser_feed(parser, &seq, controls[i].c);
+                struct vte_seq* seq = &parser->seq;
+                auto rv = vte_parser_feed(parser, controls[i].c);
                 g_assert_cmpuint(controls[i].type, ==, rv);
                 g_assert_cmpuint(controls[i].cmd, ==, seq->command);
         }
@@ -545,7 +546,7 @@ test_seq_esc_invalid(void)
                 vte_parser_reset(parser);
 
                 vte_seq_builder b{VTE_SEQ_ESCAPE, f};
-                struct vte_seq* seq;
+                struct vte_seq* seq = &parser->seq;
                 auto rv = feed_parser(b, &seq);
                 g_assert_cmpint(rv, !=, VTE_SEQ_ESCAPE);
         }
@@ -1576,9 +1577,6 @@ main(int argc,
 {
         g_test_init(&argc, &argv, nullptr);
 
-        if (vte_parser_new(&parser) < 0)
-                return 1;
-
         g_test_add_func("/vte/parser/sequences/arg", test_seq_arg);
         g_test_add_func("/vte/parser/sequences/string", test_seq_string);
         g_test_add_func("/vte/parser/sequences/glue/arg", test_seq_glue_arg);
@@ -1605,8 +1603,11 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/dcs/known", test_seq_dcs_known);
         g_test_add_func("/vte/parser/sequences/osc", test_seq_osc);
 
+        struct vte_parser _parser;
+        parser = &_parser;
+        vte_parser_init(parser);
         auto rv = g_test_run();
+        vte_parser_deinit(parser);
 
-        parser = vte_parser_free(parser);
         return rv;
 }

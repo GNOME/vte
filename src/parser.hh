@@ -176,9 +176,13 @@ struct vte_seq {
         vte_seq_string_t arg_str;
 };
 
-int vte_parser_new(struct vte_parser **out);
-struct vte_parser *vte_parser_free(struct vte_parser *parser);
+struct vte_parser {
+        struct vte_seq seq;
+        unsigned int state;
+};
+
+void vte_parser_init(struct vte_parser *parser);
+void vte_parser_deinit(struct vte_parser *parser);
 int vte_parser_feed(struct vte_parser *parser,
-                    /* const */ struct vte_seq **seq_out,
                     uint32_t raw);
 void vte_parser_reset(struct vte_parser *parser);

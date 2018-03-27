@@ -308,9 +308,8 @@ process_file(int fd,
              bool plain,
              bool quiet)
 {
-        struct vte_parser *parser;
-        if (vte_parser_new(&parser) != 0)
-                return;
+        struct vte_parser parser;
+        vte_parser_init(&parser);
 
         auto subst = _vte_iso2022_state_new(charset);
 
@@ -344,10 +343,9 @@ process_file(int fd,
                 auto wbuf = &g_array_index(unichars, gunichar, 0);
                 gsize wcount = unichars->len;
 
-                struct vte_seq *seq;
+                struct vte_seq *seq = &parser.seq;
                 for (gsize i = 0; i < wcount; i++) {
-                        auto ret = vte_parser_feed(parser,
-                                                   &seq,
+                        auto ret = vte_parser_feed(&parser,
                                                    wbuf[i]);
                         if (G_UNLIKELY(ret < 0)) {
                                 g_printerr("Parser error!\n");
@@ -376,7 +374,7 @@ process_file(int fd,
         g_string_free(outbuf, TRUE);
         g_array_free(unichars, TRUE);
         g_free(buf);
-        vte_parser_free(parser);
+        vte_parser_deinit(&parser);
         _vte_iso2022_state_free(subst);
 }
 
