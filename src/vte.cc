@@ -2893,7 +2893,6 @@ VteTerminalPrivate::restore_cursor(VteScreen *screen__)
         m_origin_mode = screen__->saved.origin_mode;
         m_sendrecv_mode = screen__->saved.sendrecv_mode;
         m_insert_mode = screen__->saved.insert_mode;
-        m_linefeed_mode = screen__->saved.linefeed_mode;
         m_defaults = screen__->saved.defaults;
         m_color_defaults = screen__->saved.color_defaults;
         m_fill_defaults = screen__->saved.fill_defaults;
@@ -2913,7 +2912,6 @@ VteTerminalPrivate::save_cursor(VteScreen *screen__)
         screen__->saved.origin_mode = m_origin_mode;
         screen__->saved.sendrecv_mode = m_sendrecv_mode;
         screen__->saved.insert_mode = m_insert_mode;
-        screen__->saved.linefeed_mode = m_linefeed_mode;
         screen__->saved.defaults = m_defaults;
         screen__->saved.color_defaults = m_color_defaults;
         screen__->saved.fill_defaults = m_fill_defaults;
@@ -4124,15 +4122,14 @@ VteTerminalPrivate::pty_io_write(GIOChannel *channel,
 void
 VteTerminalPrivate::send_child(char const* data,
                                gssize length,
-                               bool local_echo,
-                               bool newline_stuff)
+                               bool local_echo)
 {
 	gsize icount, ocount;
 	const guchar *ibuf;
 	guchar *obuf, *obufptr;
 	gchar *cooked;
 	VteConv conv;
-	long crcount, cooked_length, i;
+	long cooked_length, i;
 
         if (!m_input_enabled)
                 return;
@@ -4151,36 +4148,9 @@ VteTerminalPrivate::send_child(char const* data,
 		g_warning(_("Error (%s) converting data for child, dropping."),
 			  g_strerror(errno));
 	} else {
-		crcount = 0;
-		if (newline_stuff) {
-			for (i = 0; i < obuf - obufptr; i++) {
-				switch (obufptr[i]) {
-				case '\015':
-					crcount++;
-					break;
-				default:
-					break;
-				}
-			}
-		}
-		if (crcount > 0) {
-			cooked = (char *)g_malloc(obuf - obufptr + crcount);
-			cooked_length = 0;
-			for (i = 0; i < obuf - obufptr; i++) {
-				switch (obufptr[i]) {
-				case '\015':
-					cooked[cooked_length++] = '\015';
-					cooked[cooked_length++] = '\012';
-					break;
-				default:
-					cooked[cooked_length++] = obufptr[i];
-					break;
-				}
-			}
-		} else {
-			cooked = (gchar *)obufptr;
-			cooked_length = obuf - obufptr;
-		}
+                cooked = (gchar *)obufptr;
+                cooked_length = obuf - obufptr;
+
 		/* Tell observers that we're sending this to the child. */
 		if (cooked_length > 0) {
 			emit_commit(cooked, cooked_length);
@@ -4227,11 +4197,7 @@ VteTerminalPrivate::send_child(char const* data,
 			 * become available for writing, set that up here. */
 			connect_pty_write();
 		}
-		if (crcount > 0) {
-			g_free(cooked);
-		}
 	}
-	return;
 }
 
 /*
@@ -4255,7 +4221,7 @@ VteTerminalPrivate::feed_child(char const *text,
 		length = strlen(text);
 
 	if (length > 0) {
-		send_child(text, length, false, false);
+		send_child(text, length, false);
 	}
 }
 
@@ -4300,8 +4266,7 @@ VteTerminalPrivate::feed_child_using_modes(char const* data,
 
 	if (length > 0)
 		send_child(data, length,
-                           !m_sendrecv_mode,
-                           m_linefeed_mode);
+                           !m_sendrecv_mode);
 }
 
 /* Send text from the input method to the child. */
@@ -10579,7 +10544,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_scrolling_restricted = FALSE;
         m_sendrecv_mode = TRUE;
         m_insert_mode = FALSE;
-        m_linefeed_mode = FALSE;
         m_origin_mode = FALSE;
         m_reverse_mode = FALSE;
 	m_cursor_visible = TRUE;

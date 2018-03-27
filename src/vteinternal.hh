@@ -130,7 +130,6 @@ struct _VteScreen {
                 gboolean origin_mode;
                 gboolean sendrecv_mode;
                 gboolean insert_mode;
-                gboolean linefeed_mode;
                 VteCell defaults;
                 VteCell color_defaults;
                 VteCell fill_defaults;
@@ -328,7 +327,6 @@ public:
         gboolean m_origin_mode;   /* origin mode */
         gboolean m_sendrecv_mode; /* sendrecv mode */
         gboolean m_insert_mode;   /* insert mode */
-        gboolean m_linefeed_mode; /* linefeed mode */
         VteCell m_defaults;       /* default characteristics
                                      for insertion of any new
                                      characters */
@@ -792,8 +790,7 @@ public:
         void feed_chunks(struct _vte_incoming_chunk *chunks);
         void send_child(char const* data,
                         gssize length,
-                        bool local_echo,
-                        bool newline_stuff);
+                        bool local_echo);
         void feed_child_using_modes(char const* data,
                                     gssize length);
 

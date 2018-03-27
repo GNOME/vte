@@ -494,9 +494,6 @@ VteTerminalPrivate::set_mode(vte::parser::Sequence const& params,
                 case 12:	/* send/receive mode (local echo) */
                         m_sendrecv_mode = value;
                         break;
-                case 20:	/* automatic newline / normal linefeed mode */
-                        m_linefeed_mode = value;
-                        break;
                 default:
                         break;
                 }
