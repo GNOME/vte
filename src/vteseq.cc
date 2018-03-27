@@ -1240,17 +1240,6 @@ VteTerminalPrivate::seq_cursor_preceding_line(vte::parser::Params const& params)
         seq_cursor_up(params);
 }
 
-/* Move the cursor to the given row (vertical position), 1-based. */
-void
-VteTerminalPrivate::seq_line_position_absolute(vte::parser::Params const& params)
-{
-        // FIXMEchpe shouldn't we ensure_cursor_is_onscreen AFTER setting the new cursor row?
-        ensure_cursor_is_onscreen();
-
-        auto val = params.number_or_default_at(0, 1) - 1;
-        set_cursor_row(val);
-}
-
 /* Delete a character at the current cursor position. */
 void
 VteTerminalPrivate::delete_character()
@@ -5555,7 +5544,11 @@ VteTerminalPrivate::VPA(vte::parser::Sequence const& seq)
         screen_cursor_set_rel(screen, screen->state.cursor_x, pos - 1);
 #endif
 
-        seq_line_position_absolute(seq);
+        // FIXMEchpe shouldn't we ensure_cursor_is_onscreen AFTER setting the new cursor row?
+        ensure_cursor_is_onscreen();
+
+        auto value = seq.collect1(0, 1, 1, m_row_count);
+        set_cursor_row1(value);
 }
 
 void
