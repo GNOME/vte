@@ -565,9 +565,23 @@ static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.command = VTE_CMD_NONE;
         parser->seq.terminator = 0;
+
+        /* We don't need to do this, since it's only used when it's been set */
+        /* parser->seq.introducer = 0; */
+
+        return VTE_SEQ_NONE;
+}
+
+static inline int parser_clear_int(struct vte_parser *parser, uint32_t raw)
+{
         parser->seq.intermediates = 0;
         parser->seq.n_intermediates = 0;
 
+        return parser_clear(parser, raw);
+}
+
+static inline int parser_clear_params(struct vte_parser *parser, uint32_t raw)
+{
         /* The (n_args+1)th parameter may have been started but not
          * finialised, so it needs cleaning too. All further params
          * have not been touched, so need not be cleaned.
@@ -585,10 +599,13 @@ static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
         parser->seq.n_args = 0;
         parser->seq.n_final_args = 0;
 
-        /* We don't need to do this, since it's only used when it's been set */
-        /* parser->seq.introducer = 0; */
-
         return VTE_SEQ_NONE;
+}
+
+static inline int parser_clear_int_and_params(struct vte_parser *parser, uint32_t raw)
+{
+        parser_clear_int(parser, raw);
+        return parser_clear_params(parser, raw);
 }
 
 static int parser_ignore(struct vte_parser *parser, uint32_t raw)
@@ -745,7 +762,7 @@ static int parser_osc_collect(struct vte_parser *parser, uint32_t raw)
 
 static int parser_dcs_start(struct vte_parser *parser, uint32_t raw)
 {
-        parser_clear(parser, raw);
+        parser_clear_int_and_params(parser, raw);
 
         vte_seq_string_reset(&parser->seq.arg_str);
 
@@ -861,6 +878,9 @@ static int parser_sci(struct vte_parser *parser, uint32_t raw)
 }
 
 #define ACTION_CLEAR parser_clear
+#define ACTION_CLEAR_INT parser_clear_int
+#define ACTION_CLEAR_INT_AND_PARAMS parser_clear_int_and_params
+#define ACTION_CLEAR_PARAMS_ONLY parser_clear_params
 #define ACTION_IGNORE parser_ignore
 #define ACTION_PRINT parser_print
 #define ACTION_EXECUTE parser_execute
@@ -894,7 +914,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 }
 
                 return parser_action(parser, raw,
@@ -915,7 +935,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
 
                 /* Do the deferred clear and fallthrough to STATE_ESC */
                 parser_transition(parser, 0x1b /* ESC */, STATE_ESC,
-                                  ACTION_CLEAR);
+                                  ACTION_CLEAR_INT);
                 /* fallthrough */
         case STATE_ESC:
                 switch (raw) {
@@ -925,7 +945,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_ESC_INT,
                                                  ACTION_COLLECT_ESC);
@@ -944,7 +964,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x5b:                /* '[' */
                         return parser_transition(parser, raw, STATE_CSI_ENTRY,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_PARAMS_ONLY
+                                                 /* rest already cleaned on ESC state entry */);
                 case 0x5d:                /* ']' */
                         return parser_transition(parser, raw, STATE_OSC_STRING,
                                                  ACTION_OSC_START);
@@ -967,7 +988,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_action(parser, raw,
                                              ACTION_COLLECT_ESC);
@@ -989,7 +1010,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_CSI_INT,
                                                  ACTION_COLLECT_CSI);
@@ -1022,7 +1043,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_CSI_INT,
                                                  ACTION_COLLECT_CSI);
@@ -1054,7 +1075,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_action(parser, raw,
                                              ACTION_COLLECT_CSI);
@@ -1077,7 +1098,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_EXECUTE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x3f:        /* [' ' - '?'] */
                         return parser_nop(parser, raw);
                 case 0x40 ... 0x7e:        /* ['@' - '~'] */
@@ -1096,7 +1117,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_IGNORE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_DCS_INT,
                                                  ACTION_COLLECT_DCS);
@@ -1130,7 +1151,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_IGNORE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_DCS_INT,
                                                  ACTION_COLLECT_DCS);
@@ -1163,7 +1184,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                              ACTION_IGNORE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_action(parser, raw,
                                              ACTION_COLLECT_DCS);
@@ -1201,7 +1222,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                         return parser_nop(parser, raw);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x9c:                /* ST */
                         return parser_transition_no_action(parser, raw, STATE_GROUND);
                 }
@@ -1233,7 +1254,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                         return parser_nop(parser, raw);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
-                                                 ACTION_CLEAR);
+                                                 ACTION_CLEAR_INT);
                 case 0x9c:                /* ST */
                         return parser_transition(parser, raw,
                                                  STATE_GROUND, ACTION_IGNORE);
@@ -1244,7 +1265,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 switch (raw) {
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw,
-                                                 STATE_ESC, ACTION_CLEAR);
+                                                 STATE_ESC, ACTION_CLEAR_INT);
                 case 0x08 ... 0x0d:        /* BS, HT, LF, VT, FF, CR */
                 case 0x20 ... 0x7e:        /* [' ' - '~'] */
                         return parser_transition(parser, raw, STATE_GROUND,
@@ -1301,7 +1322,7 @@ int vte_parser_feed(struct vte_parser *parser,
                                          STATE_OSC_STRING, ACTION_OSC_START);
         case 0x9b:                /* CSI */
                 return parser_transition(parser, raw,
-                                         STATE_CSI_ENTRY, ACTION_CLEAR);
+                                         STATE_CSI_ENTRY, ACTION_CLEAR_INT_AND_PARAMS);
         default:
                 return parser_feed_to_state(parser, raw);
         }
