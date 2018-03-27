@@ -7543,15 +7543,8 @@ VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
          *
          * References: ECMA-48 § 8.3.148
          */
-#if 0
-        static const struct vte_seq rep = {
-                .type = VTE_SEQ_GRAPHIC,
-                .command = VTE_CMD_GRAPHIC,
-                .terminator = 0xfffd,
-        };
 
-        return screen_GRAPHIC(screen, &rep);
-#endif
+        insert_char(0xfffdu, false, true);
 }
 
 void
