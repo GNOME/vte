@@ -3486,23 +3486,20 @@ VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
         seq.collect(0, {&start, &end});
 
         /* Defaults */
-        if (start == -1)
+        if (start <= 0)
                 start = 1;
         if (end == -1)
                 end = m_row_count;
 
-        /* Bail out on garbage, require at least 2 rows, as per xterm. */
-        // FIXMEchpe
-        if (start < 1 || start > m_row_count ||
-            end < (start + 1)) {
+        if (start > m_row_count ||
+            end <= start) {
                 m_scrolling_restricted = FALSE;
                 home_cursor();
                 return;
         }
-        // FIXMEchpe why not reset here too?
-        if (end > m_row_count) {
+
+        if (end > m_row_count)
                 end = m_row_count;
-	}
 
 	/* Set the right values. */
         m_scrolling_region.start = start - 1;
