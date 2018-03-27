@@ -913,29 +913,6 @@ VteTerminalPrivate::seq_bell(vte::parser::Params const& params)
         m_bell_pending = true;
 }
 
-/* Backtab. */
-void
-VteTerminalPrivate::seq_cursor_back_tab(vte::parser::Params const& params)
-{
-	/* Calculate which column is the previous tab stop. */
-        auto newcol = m_screen->cursor.col;
-
-	if (m_tabstops) {
-		/* Find the next tabstop. */
-		while (newcol > 0) {
-			newcol--;
-                        if (get_tabstop(newcol % m_column_count)) {
-				break;
-			}
-		}
-	}
-
-	/* Warp the cursor. */
-	_vte_debug_print(VTE_DEBUG_PARSER,
-			"Moving cursor to column %ld.\n", (long)newcol);
-        set_cursor_column(newcol);
-}
-
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
 void
 VteTerminalPrivate::clear_to_bol()
@@ -1609,16 +1586,6 @@ VteTerminalPrivate::move_cursor_tab()
                                  m_screen->cursor.row, 1);
                 m_screen->cursor.col = newcol;
 	}
-}
-
-void
-VteTerminalPrivate::seq_cursor_forward_tabulation(vte::parser::Params const& params)
-{
-        auto val = std::max(std::min(params.number_or_default_at(0, 1),
-                                     int(m_column_count - m_screen->cursor.col)),
-                            int(1));
-        for (auto i = 0; i < val; i++)
-                move_cursor_tab();
 }
 
 /* Clear tabs selectively. */
@@ -2682,6 +2649,8 @@ VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.7
          */
 #if 0
 
@@ -2694,7 +2663,25 @@ VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
         screen_cursor_left_tab(screen, num);
 #endif
 
-        seq_cursor_back_tab(seq);
+        // FIXMEchpe! need to support the parameter!!!
+
+	/* Calculate which column is the previous tab stop. */
+        auto newcol = m_screen->cursor.col;
+
+	if (m_tabstops) {
+		/* Find the next tabstop. */
+		while (newcol > 0) {
+			newcol--;
+                        if (get_tabstop(newcol % m_column_count)) {
+				break;
+			}
+		}
+	}
+
+	/* Warp the cursor. */
+	_vte_debug_print(VTE_DEBUG_PARSER,
+			"Moving cursor to column %ld.\n", (long)newcol);
+        set_cursor_column(newcol);
 }
 
 void
@@ -2740,6 +2727,8 @@ VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.10
          */
 #if 0
         unsigned int num = 1;
@@ -2751,7 +2740,10 @@ VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
         screen_cursor_right_tab(screen, num);
 #endif
 
-        seq_cursor_forward_tabulation(seq);
+        auto const val = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
+        // FIXMEchpe stop when cursor.col reaches m_column_count!
+        for (auto i = 0; i < val; i++)
+                move_cursor_tab();
 }
 
 void
