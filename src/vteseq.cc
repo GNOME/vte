@@ -867,11 +867,6 @@ VteTerminalPrivate::decset(long setting,
 
 /* Do nothing. */
 void
-VteTerminalPrivate::seq_nop(vte::parser::Params const& params)
-{
-}
-
-void
 VteTerminalPrivate::set_character_replacement(unsigned slot)
 {
         g_assert(slot < G_N_ELEMENTS(m_character_replacements));
@@ -890,13 +885,6 @@ void
 VteTerminalPrivate::seq_shift_out(vte::parser::Params const& params)
 {
         set_character_replacement(1);
-}
-
-/* Beep. */
-void
-VteTerminalPrivate::seq_bell(vte::parser::Params const& params)
-{
-        m_bell_pending = true;
 }
 
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
@@ -1218,13 +1206,6 @@ VteTerminalPrivate::erase_characters(long count)
         m_text_deleted_flag = TRUE;
 }
 
-/* Form-feed / next-page. */
-void
-VteTerminalPrivate::seq_form_feed(vte::parser::Params const& params)
-{
-        line_feed();
-}
-
 /* Insert a blank character. */
 void
 VteTerminalPrivate::insert_blank_character()
@@ -1234,25 +1215,6 @@ VteTerminalPrivate::insert_blank_character()
         auto save = m_screen->cursor;
         insert_char(' ', true, true);
         m_screen->cursor = save;
-}
-
-/* Cursor down 1 line, with scrolling. */
-void
-VteTerminalPrivate::seq_index(vte::parser::Params const& params)
-{
-        line_feed();
-}
-
-/* Cursor left. */
-void
-VteTerminalPrivate::seq_backspace(vte::parser::Params const& params)
-{
-        ensure_cursor_is_onscreen();
-
-        if (m_screen->cursor.col > 0) {
-		/* There's room to move left, so do so. */
-                m_screen->cursor.col--;
-	}
 }
 
 void
@@ -2418,17 +2380,12 @@ VteTerminalPrivate::BEL(vte::parser::Sequence const& seq)
 {
         /*
          * BEL - sound bell tone
-         * This command should trigger an acoustic bell. Usually, this is
-         * forwarded directly to the pcspkr. However, bells have become quite
-         * uncommon and annoying, so we're not implementing them here. Instead,
-         * it's one of the commands we forward to the caller.
+         * This command should trigger an acoustic bell.
+         *
+         * References: ECMA-48 § 8.3.3
          */
 
-#if 0
-        screen_forward(screen, VTE_CMD_BEL, seq);
-#endif
-
-        seq_bell(seq);
+        m_bell_pending = true;
 }
 
 void
@@ -2438,6 +2395,8 @@ VteTerminalPrivate::BS(vte::parser::Sequence const& seq)
          * BS - backspace
          * Move cursor one cell to the left. If already at the left margin,
          * nothing happens.
+         *
+         * References: ECMA-48 § 8.3.5
          */
 
 #if 0
@@ -2445,7 +2404,12 @@ VteTerminalPrivate::BS(vte::parser::Sequence const& seq)
         screen_cursor_left(screen, 1);
 #endif
 
-        seq_backspace(seq);
+        ensure_cursor_is_onscreen();
+
+        if (m_screen->cursor.col > 0) {
+		/* There's room to move left, so do so. */
+                m_screen->cursor.col--;
+	}
 }
 
 void
@@ -4393,13 +4357,11 @@ VteTerminalPrivate::FF(vte::parser::Sequence const& seq)
          * FF - form-feed
          * This causes the cursor to jump to the next line. It is treated the
          * same as LF.
+         *
+         * References: ECMA-48 § 8.3.51
          */
 
-#if 0
-        screen_LF(screen, seq);
-#endif
-
-        seq_form_feed(seq);
+        LF(seq);
 }
 
 void
@@ -4664,12 +4626,11 @@ VteTerminalPrivate::IND(vte::parser::Sequence const& seq)
 {
         /*
          * IND - index - DEPRECATED
+         *
+         * References: ECMA-48 § F.8.2
          */
-#if 0
-        screen_cursor_down(screen, 1, true);
-#endif
 
-        seq_index(seq);
+        LF(seq);
 }
 
 void
