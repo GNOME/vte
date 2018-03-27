@@ -608,7 +608,6 @@ static int parser_print(struct vte_parser *parser, uint32_t raw)
 static int parser_execute(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_CONTROL;
-        parser->seq.command = VTE_CMD_GRAPHIC;
         parser->seq.terminator = raw;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_control(&parser->seq);
@@ -784,7 +783,6 @@ static int parser_dcs_collect(struct vte_parser *parser, uint32_t raw)
 static int parser_esc(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_ESCAPE;
-        parser->seq.command = VTE_CMD_NONE;
         parser->seq.terminator = raw;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_escape(&parser->seq,
@@ -808,7 +806,6 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
         }
 
         parser->seq.type = VTE_SEQ_CSI;
-        parser->seq.command = VTE_CMD_NONE;
         parser->seq.terminator = raw;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_csi(&parser->seq);
