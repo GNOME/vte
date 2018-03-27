@@ -28,6 +28,7 @@
 #include "buffer.h"
 #include "parser.hh"
 #include "parser-glue.hh"
+#include "modes.hh"
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
@@ -70,13 +71,6 @@ typedef enum _VteCharacterReplacement {
         VTE_CHARACTER_REPLACEMENT_LINE_DRAWING,
         VTE_CHARACTER_REPLACEMENT_BRITISH
 } VteCharacterReplacement;
-
-/* The terminal's keypad/cursor state.  A terminal can either be using the
- * normal keypad, or the "application" keypad. */
-typedef enum _VteKeymode {
-	VTE_KEYMODE_NORMAL,
-	VTE_KEYMODE_APPLICATION
-} VteKeymode;
 
 typedef struct _VtePaletteColor {
 	struct {
@@ -126,10 +120,9 @@ struct _VteScreen {
         /* Stuff saved along with the cursor */
         struct {
                 VteVisualPosition cursor;  /* onscreen coordinate, that is, relative to insert_delta */
-                gboolean reverse_mode;
-                gboolean origin_mode;
-                gboolean sendrecv_mode;
-                gboolean insert_mode;
+                uint8_t modes_ecma;
+                bool reverse_mode;
+                bool origin_mode;
                 VteCell defaults;
                 VteCell color_defaults;
                 VteCell fill_defaults;
@@ -277,10 +270,8 @@ public:
 	/* Emulation setup data. */
         struct vte_parser* m_parser; /* control sequence state machine */
 
-        gboolean m_autowrap;              /* auto wraparound at right margin */
-        int m_keypad_mode, m_cursor_mode; /* these would be VteKeymodes, but we
-					   need to guarantee its type */
-        GHashTable *m_dec_saved;
+        vte::terminal::modes::ECMA m_modes_ecma{};
+        vte::terminal::modes::Private m_modes_private{};
 
 	/* PTY handling data. */
         VtePty *m_pty;
@@ -322,11 +313,6 @@ public:
 	 * screen, which seems to be a DEC-specific feature. */
         struct _VteScreen m_normal_screen, m_alternate_screen, *m_screen;
 
-        /* Values we save along with the cursor */
-        gboolean m_reverse_mode;  /* reverse mode */
-        gboolean m_origin_mode;   /* origin mode */
-        gboolean m_sendrecv_mode; /* sendrecv mode */
-        gboolean m_insert_mode;   /* insert mode */
         VteCell m_defaults;       /* default characteristics
                                      for insertion of any new
                                      characters */
@@ -369,22 +355,18 @@ public:
 	/* Miscellaneous options. */
         VteEraseBinding m_backspace_binding;
         VteEraseBinding m_delete_binding;
-        gboolean m_meta_sends_escape;
         gboolean m_audible_bell;
         gboolean m_allow_bold;
         gboolean m_bold_is_bright;
-        gboolean m_deccolm_mode; /* DECCOLM allowed */
         GHashTable *m_tabstops;
         gboolean m_text_modified_flag;
         gboolean m_text_inserted_flag;
         gboolean m_text_deleted_flag;
         gboolean m_rewrap_on_resize;
-        gboolean m_bracketed_paste_mode;
 
 	/* Scrolling options. */
         gboolean m_scroll_on_output;
         gboolean m_scroll_on_keystroke;
-        gboolean m_alternate_screen_scroll;
         vte::grid::row_t m_scrollback_lines;
 
         /* Restricted scrolling */
@@ -403,7 +385,6 @@ public:
         gint m_cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
         gboolean m_cursor_blinks;           /* whether the cursor is actually blinking */
         gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
-        gboolean m_cursor_visible;
         gboolean m_has_focus;               /* is the terminal window focused */
 
         /* Contents blinking */
@@ -421,8 +402,7 @@ public:
         gboolean m_input_enabled;
         time_t m_last_keypress_time;
 
-        int m_mouse_tracking_mode; /* this is of type MouseTrackingMode,
-                                      but we need to guarantee its type. */
+        MouseTrackingMode m_mouse_tracking_mode{MOUSE_TRACKING_NONE};
         guint m_mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
         guint m_mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
         /* The last known position the mouse pointer from an event. We don't store
@@ -431,11 +411,7 @@ public:
          */
         vte::view::coords m_mouse_last_position;
         guint m_mouse_autoscroll_tag;
-        gboolean m_mouse_xterm_extension;
-        gboolean m_mouse_urxvt_extension;
-        double m_mouse_smooth_scroll_delta;
-
-        gboolean m_focus_tracking_mode;
+        double m_mouse_smooth_scroll_delta{0.0};
 
 	/* State variables for handling match checks. */
         char* m_match_contents;
@@ -790,7 +766,7 @@ public:
         void feed_chunks(struct _vte_incoming_chunk *chunks);
         void send_child(char const* data,
                         gssize length,
-                        bool local_echo);
+                        bool local_echo) noexcept;
         void feed_child_using_modes(char const* data,
                                     gssize length);
 
@@ -1171,23 +1147,20 @@ public:
         inline void switch_alternate_screen();
         inline void save_cursor();
         inline void restore_cursor();
-        inline void switch_normal_screen_and_restore_cursor();
-        inline void save_cursor_and_switch_alternate_screen();
         void set_title_internal(vte::parser::Params const& params,
                                 bool icon_title,
                                 bool window_title);
-        inline void set_mode(vte::parser::Params const& params,
-                             bool value);
-        inline void reset_mouse_smooth_scroll_delta();
-        inline void enter_focus_tracking_mode();
-        inline void decset(long setting,
-                           bool restore,
-                           bool save,
-                           bool set);
-        inline void decset(vte::parser::Params const& params,
-                           bool restore,
-                           bool save,
-                           bool set);
+
+        inline void set_mode_ecma(vte::parser::Sequence const& seq,
+                                  bool set) noexcept;
+        inline void set_mode_private(vte::parser::Sequence const& seq,
+                                     bool set) noexcept;
+        inline void set_mode_private(int mode,
+                                     bool set) noexcept;
+        inline void save_mode_private(vte::parser::Sequence const& seq,
+                                      bool save) noexcept;
+        void update_mouse_protocol() noexcept;
+
         inline void set_character_replacements(unsigned slot,
                                                VteCharacterReplacement replacement);
         inline void set_character_replacement(unsigned slot);
@@ -1222,7 +1195,6 @@ public:
                                  char const* terminator);
         inline void line_feed();
         inline void set_current_hyperlink(char* hyperlink_params /* adopted */, char* uri /* adopted */);
-        inline void set_keypad_mode(VteKeymode mode);
         inline void erase_in_display(vte::parser::Sequence const& seq);
         inline void erase_in_line(vte::parser::Sequence const& seq);
         inline void insert_lines(vte::grid::row_t param);

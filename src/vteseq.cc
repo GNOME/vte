@@ -410,22 +410,6 @@ VteTerminalPrivate::switch_alternate_screen()
         switch_screen(&m_alternate_screen);
 }
 
-/* Switch to normal screen and restore cursor (in this order). */
-void
-VteTerminalPrivate::switch_normal_screen_and_restore_cursor()
-{
-        switch_normal_screen();
-        restore_cursor();
-}
-
-/* Save cursor and switch to alternate screen (in this order). */
-void
-VteTerminalPrivate::save_cursor_and_switch_alternate_screen()
-{
-        save_cursor();
-        switch_alternate_screen();
-}
-
 /* Set icon/window titles. */
 void
 VteTerminalPrivate::set_title_internal(vte::parser::Params const& params,
@@ -471,398 +455,209 @@ VteTerminalPrivate::set_title_internal(vte::parser::Params const& params,
         g_free(title);
 }
 
-/* Toggle a terminal mode. */
 void
-VteTerminalPrivate::set_mode(vte::parser::Sequence const& params,
-                             bool value)
+VteTerminalPrivate::set_mode_ecma(vte::parser::Sequence const& seq,
+                                  bool set) noexcept
 {
-        auto n_params = params.size();
-        if (n_params == 0)
-                return;
+        auto const n_params = seq.size();
+        for (unsigned int i = 0; i < n_params; i = seq.next(i)) {
+                auto const param = seq.collect1(i);
+                auto const mode = m_modes_ecma.mode_from_param(param);
 
-	for (unsigned int i = 0; i < n_params; i++) {
-                int setting;
-                if (!params.number_at_unchecked(i, setting))
+                _vte_debug_print(VTE_DEBUG_MODES,
+                                 "Mode %d (%s) %s\n",
+                                 param, m_modes_ecma.mode_to_cstring(mode),
+                                 set ? "set" : "reset");
+
+                if (mode < 0)
                         continue;
 
-                switch (setting) {
-                case 2:		/* keyboard action mode (?) */
-                        break;
-                case 4:		/* insert/overtype mode */
-                        m_insert_mode = value;
-                        break;
-                case 12:	/* send/receive mode (local echo) */
-                        m_sendrecv_mode = value;
-                        break;
-                default:
-                        break;
-                }
+                m_modes_ecma.set(mode, set);
         }
 }
 
 void
-VteTerminalPrivate::reset_mouse_smooth_scroll_delta()
+VteTerminalPrivate::update_mouse_protocol() noexcept
 {
-	m_mouse_smooth_scroll_delta = 0.0;
-}
+        if (m_modes_private.XTERM_MOUSE_ANY_EVENT())
+                m_mouse_tracking_mode = MOUSE_TRACKING_ALL_MOTION_TRACKING;
+        else if (m_modes_private.XTERM_MOUSE_BUTTON_EVENT())
+                m_mouse_tracking_mode = MOUSE_TRACKING_CELL_MOTION_TRACKING;
+        else if (m_modes_private.XTERM_MOUSE_VT220_HIGHLIGHT())
+                m_mouse_tracking_mode = MOUSE_TRACKING_HILITE_TRACKING;
+        else if (m_modes_private.XTERM_MOUSE_VT220())
+                m_mouse_tracking_mode = MOUSE_TRACKING_SEND_XY_ON_BUTTON;
+        else if (m_modes_private.XTERM_MOUSE_X10())
+                m_mouse_tracking_mode = MOUSE_TRACKING_SEND_XY_ON_CLICK;
+        else
+                m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
 
-typedef void (VteTerminalPrivate::* decset_handler_t)();
+        m_mouse_smooth_scroll_delta = 0.0;
 
-struct decset_t {
-        gint16 setting;
-        /* offset in VteTerminalPrivate (> 0) or VteScreen (< 0) */
-        gint16 boffset;
-        gint16 ioffset;
-        gint16 poffset;
-        gint16 fvalue;
-        gint16 tvalue;
-        decset_handler_t reset, set;
-};
+        /* Mouse pointer might change */
+        apply_mouse_cursor();
 
-static int
-decset_cmp(const void *va,
-           const void *vb)
-{
-        const struct decset_t *a = (const struct decset_t *)va;
-        const struct decset_t *b = (const struct decset_t *)vb;
-
-        return a->setting < b->setting ? -1 : a->setting > b->setting;
-}
-
-/* Manipulate certain terminal attributes. */
-void
-VteTerminalPrivate::decset(vte::parser::Sequence const& params,
-                           bool restore,
-                           bool save,
-                           bool set)
-{
-
-        auto n_params = params.size();
-        for (unsigned int i = 0; i < n_params; i++) {
-                int setting;
-
-                if (!params.number_at(i, setting))
-                        continue;
-
-		decset(setting, restore, save, set);
-	}
+        _vte_debug_print(VTE_DEBUG_MODES,
+                         "Mouse protocol is now %d\n", m_mouse_tracking_mode);
 }
 
 void
-VteTerminalPrivate::decset(long setting,
-                           bool restore,
-                           bool save,
-                           bool set)
+VteTerminalPrivate::set_mode_private(int mode,
+                                     bool set) noexcept
 {
-	static const struct decset_t settings[] = {
-#define PRIV_OFFSET(member) (G_STRUCT_OFFSET(VteTerminalPrivate, member))
-#define SCREEN_OFFSET(member) (-G_STRUCT_OFFSET(VteScreen, member))
-		/* 1: Application/normal cursor keys. */
-		{1, 0, PRIV_OFFSET(m_cursor_mode), 0,
-		 VTE_KEYMODE_NORMAL,
-		 VTE_KEYMODE_APPLICATION,
-		 nullptr, nullptr,},
-		/* 2: disallowed, we don't do VT52. */
-		{2, 0, 0, 0, 0, 0, nullptr, nullptr,},
-                /* 3: DECCOLM set/reset to and from 132/80 columns */
-                {3, 0, 0, 0,
-                 FALSE,
-                 TRUE,
-                 nullptr, nullptr,},
-		/* 5: Reverse video. */
-                {5, PRIV_OFFSET(m_reverse_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 6: Origin mode: when enabled, cursor positioning is
-		 * relative to the scrolling region. */
-                {6, PRIV_OFFSET(m_origin_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 7: Wraparound mode. */
-                {7, PRIV_OFFSET(m_autowrap), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 8: disallowed, keyboard repeat is set by user. */
-		{8, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 9: Send-coords-on-click. */
-		{9, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
-		 0,
-		 MOUSE_TRACKING_SEND_XY_ON_CLICK,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
-		/* 12: disallowed, cursor blinks is set by user. */
-		{12, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 18: print form feed. */
-		/* 19: set print extent to full screen. */
-		/* 25: Cursor visible. */
-		{25, PRIV_OFFSET(m_cursor_visible), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 30/rxvt: disallowed, scrollbar visibility is set by user. */
-		{30, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 35/rxvt: disallowed, fonts set by user. */
-		{35, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 38: enter Tektronix mode. */
-                /* 40: Enable DECCOLM mode. */
-                {40, PRIV_OFFSET(m_deccolm_mode), 0, 0,
-                 FALSE,
-                 TRUE,
-                 nullptr, nullptr,},
-		/* 41: more(1) fix. */
-		/* 42: Enable NLS replacements. */
-		/* 44: Margin bell. */
-		/* 47: Alternate screen. */
-                {47, 0, 0, 0,
-                 0,
-                 0,
-                 &VteTerminalPrivate::switch_normal_screen,
-                 &VteTerminalPrivate::switch_alternate_screen,},
-		/* 66: Keypad mode. */
-		{66, PRIV_OFFSET(m_keypad_mode), 0, 0,
-		 VTE_KEYMODE_NORMAL,
-		 VTE_KEYMODE_APPLICATION,
-		 nullptr, nullptr,},
-		/* 67: disallowed, backspace key policy is set by user. */
-		{67, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 1000: Send-coords-on-button. */
-		{1000, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
-		 0,
-		 MOUSE_TRACKING_SEND_XY_ON_BUTTON,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
-		/* 1001: Hilite tracking. */
-		{1001, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
-		 (0),
-		 (MOUSE_TRACKING_HILITE_TRACKING),
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
-		/* 1002: Cell motion tracking. */
-		{1002, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
-		 (0),
-		 (MOUSE_TRACKING_CELL_MOTION_TRACKING),
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
-		/* 1003: All motion tracking. */
-		{1003, 0, PRIV_OFFSET(m_mouse_tracking_mode), 0,
-		 (0),
-		 (MOUSE_TRACKING_ALL_MOTION_TRACKING),
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,
-                 &VteTerminalPrivate::reset_mouse_smooth_scroll_delta,},
-		/* 1004: Focus tracking. */
-		{1004, PRIV_OFFSET(m_focus_tracking_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-                 nullptr,
-                 &VteTerminalPrivate::feed_focus_event_initial,},
-		/* 1006: Extended mouse coordinates. */
-		{1006, PRIV_OFFSET(m_mouse_xterm_extension), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 1007: Alternate screen scroll. */
-		{1007, PRIV_OFFSET(m_alternate_screen_scroll), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 1010/rxvt: disallowed, scroll-on-output is set by user. */
-		{1010, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 1011/rxvt: disallowed, scroll-on-keypress is set by user. */
-		{1011, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 1015/urxvt: Extended mouse coordinates. */
-		{1015, PRIV_OFFSET(m_mouse_urxvt_extension), 0, 0,
-		 FALSE,
-		 TRUE,
-                 nullptr, nullptr,},
-		/* 1035: disallowed, don't know what to do with it. */
-		{1035, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 1036: Meta-sends-escape. */
-		{1036, PRIV_OFFSET(m_meta_sends_escape), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-		/* 1037: disallowed, delete key policy is set by user. */
-		{1037, 0, 0, 0, 0, 0, nullptr, nullptr,},
-		/* 1047: Use alternate screen buffer. */
-                {1047, 0, 0, 0,
-                 0,
-                 0,
-                 &VteTerminalPrivate::switch_normal_screen,
-                 &VteTerminalPrivate::switch_alternate_screen,},
-		/* 1048: Save/restore cursor position. */
-		{1048, 0, 0, 0,
-		 0,
-		 0,
-                 &VteTerminalPrivate::restore_cursor,
-                 &VteTerminalPrivate::save_cursor,},
-		/* 1049: Use alternate screen buffer, saving the cursor
-		 * position. */
-                {1049, 0, 0, 0,
-                 0,
-                 0,
-                 &VteTerminalPrivate::switch_normal_screen_and_restore_cursor,
-                 &VteTerminalPrivate::save_cursor_and_switch_alternate_screen,},
-		/* 2004: Bracketed paste mode. */
-		{2004, PRIV_OFFSET(m_bracketed_paste_mode), 0, 0,
-		 FALSE,
-		 TRUE,
-		 nullptr, nullptr,},
-#undef PRIV_OFFSET
-#undef SCREEN_OFFSET
-	};
-        struct decset_t key;
-        struct decset_t *found;
+        /* Pre actions */
+        switch (mode) {
+        default:
+                break;
+        }
 
-	/* Handle the setting. */
-        key.setting = setting;
-        found = (struct decset_t *)bsearch(&key, settings, G_N_ELEMENTS(settings), sizeof(settings[0]), decset_cmp);
-        if (!found) {
-		_vte_debug_print (VTE_DEBUG_MISC,
-				  "DECSET/DECRESET mode %ld not recognized, ignoring.\n",
-				  setting);
-                return;
-	}
+        m_modes_private.set(mode, set);
 
-        key = *found;
-        do {
-                gboolean *bvalue = NULL;
-                gint *ivalue = NULL;
-                gpointer *pvalue = NULL, pfvalue = NULL, ptvalue = NULL;
-                gpointer p;
-
-		/* Handle settings we want to ignore. */
-		if ((key.fvalue == key.tvalue) &&
-		    (!key.set) &&
-		    (!key.reset)) {
-			break;
-		}
-
-#define STRUCT_MEMBER_P(type,total_offset) \
-                (type) (total_offset >= 0 ? G_STRUCT_MEMBER_P(this, total_offset) : G_STRUCT_MEMBER_P(m_screen, -total_offset))
-
-                if (key.boffset) {
-                        bvalue = STRUCT_MEMBER_P(gboolean*, key.boffset);
-                } else if (key.ioffset) {
-                        ivalue = STRUCT_MEMBER_P(int*, key.ioffset);
-                } else if (key.poffset) {
-                        pvalue = STRUCT_MEMBER_P(gpointer*, key.poffset);
-                        pfvalue = STRUCT_MEMBER_P(gpointer, key.fvalue);
-                        ptvalue = STRUCT_MEMBER_P(gpointer, key.tvalue);
-                }
-#undef STRUCT_MEMBER_P
-
-		/* Read the old setting. */
-		if (restore) {
-			p = g_hash_table_lookup(m_dec_saved,
-						GINT_TO_POINTER(setting));
-			set = (p != NULL);
-			_vte_debug_print(VTE_DEBUG_PARSER,
-					"Setting %ld was %s.\n",
-					setting, set ? "set" : "unset");
-		}
-		/* Save the current setting. */
-		if (save) {
-			if (bvalue) {
-				set = *(bvalue) != FALSE;
-			} else
-			if (ivalue) {
-                                set = *(ivalue) == (int)key.tvalue;
-			} else
-			if (pvalue) {
-				set = *(pvalue) == ptvalue;
-			}
-			_vte_debug_print(VTE_DEBUG_PARSER,
-					"Setting %ld is %s, saving.\n",
-					setting, set ? "set" : "unset");
-			g_hash_table_insert(m_dec_saved,
-					    GINT_TO_POINTER(setting),
-					    GINT_TO_POINTER(set));
-		}
-		/* Change the current setting to match the new/saved value. */
-		if (!save) {
-			_vte_debug_print(VTE_DEBUG_PARSER,
-					"Setting %ld to %s.\n",
-					setting, set ? "set" : "unset");
-			if (key.set && set) {
-				(this->*key.set)();
-			}
-			if (bvalue) {
-				*(bvalue) = set;
-			} else
-			if (ivalue) {
-                                *(ivalue) = set ? (int)key.tvalue : (int)key.fvalue;
-			} else
-			if (pvalue) {
-                                *(pvalue) = set ? ptvalue : pfvalue;
-			}
-			if (key.reset && !set) {
-				(this->*key.reset)();
-			}
-		}
-	} while (0);
-
-	/* Do whatever's necessary when the setting changes. */
-	switch (setting) {
-	case 1:
-		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
-				"Entering application cursor mode.\n" :
-				"Leaving application cursor mode.\n");
-		break;
-	case 3:
-                /* 3: DECCOLM set/reset to 132/80 columns mode, clear screen and cursor home */
-                if (m_deccolm_mode) {
-                        emit_resize_window(set ? 132 : 80,
-                                           m_row_count);
+        /* Post actions */
+        switch (mode) {
+        case vte::terminal::modes::Private::eDEC_132_COLUMN:
+                /* DECCOLM: set/reset to 132/80 columns mode, clear screen and cursor home */
+                // FIXMEchpe don't do clear screen if DECNCSM is set
+                if (m_modes_private.XTERM_DECCOLM()) {
+                        emit_resize_window(set ? 132 : 80, m_row_count);
                         clear_screen();
                         home_cursor();
                 }
-		break;
-	case 5:
-		/* Repaint everything in reverse mode. */
+                break;
+
+        case vte::terminal::modes::Private::eDEC_REVERSE_IMAGE:
                 invalidate_all();
-		break;
-	case 6:
-		/* Reposition the cursor in its new home position. */
+                break;
+
+        case vte::terminal::modes::Private::eDEC_ORIGIN:
+                /* Reposition the cursor in its new home position. */
                 home_cursor();
-		break;
-	case 47:
-	case 1047:
-	case 1049:
-                /* Clear the alternate screen if we're switching to it */
-		if (set) {
-			clear_screen();
-		}
-		/* Reset scrollbars and repaint everything. */
-		gtk_adjustment_set_value(m_vadjustment,
-					 m_screen->scroll_delta);
-		set_scrollback_lines(m_scrollback_lines);
+                break;
+
+        case vte::terminal::modes::Private::eDEC_TEXT_CURSOR:
+                /* No need to invalidate the cursor here, this is done
+                 * in process_incoming().
+                 */
+                break;
+
+        case vte::terminal::modes::Private::eXTERM_ALTBUF:
+                /* [[fallthrough]]; */
+        case vte::terminal::modes::Private::eXTERM_OPT_ALTBUF:
+                /* [[fallthrough]]; */
+        case vte::terminal::modes::Private::eXTERM_OPT_ALTBUF_SAVE_CURSOR:
+                if (set) {
+                        if (mode == vte::terminal::modes::Private::eXTERM_OPT_ALTBUF_SAVE_CURSOR)
+                                save_cursor();
+
+                        switch_alternate_screen();
+
+                        /* Clear the alternate screen */
+                        if (mode == vte::terminal::modes::Private::eXTERM_OPT_ALTBUF_SAVE_CURSOR)
+                                clear_screen();
+                } else {
+                        if (mode == vte::terminal::modes::Private::eXTERM_OPT_ALTBUF &&
+                            m_screen == &m_alternate_screen)
+                                clear_screen();
+
+                        switch_normal_screen();
+
+                        if (mode == vte::terminal::modes::Private::eXTERM_OPT_ALTBUF_SAVE_CURSOR)
+                                restore_cursor();
+                }
+
+                /* Reset scrollbars and repaint everything. */
+                gtk_adjustment_set_value(m_vadjustment,
+                                         m_screen->scroll_delta);
+                set_scrollback_lines(m_scrollback_lines);
                 queue_contents_changed();
                 invalidate_all();
-		break;
-	case 9:
-	case 1000:
-	case 1001:
-	case 1002:
-	case 1003:
-                /* Mouse pointer might change. */
-                apply_mouse_cursor();
-		break;
-	case 66:
-		_vte_debug_print(VTE_DEBUG_KEYBOARD, set ?
-				"Entering application keypad mode.\n" :
-				"Leaving application keypad mode.\n");
-		break;
-	default:
-		break;
-	}
+                break;
+
+        case vte::terminal::modes::Private::eXTERM_SAVE_CURSOR:
+                if (set)
+                        save_cursor();
+                else
+                        restore_cursor();
+                break;
+
+        case vte::terminal::modes::Private::eXTERM_MOUSE_X10:
+        case vte::terminal::modes::Private::eXTERM_MOUSE_VT220:
+        case vte::terminal::modes::Private::eXTERM_MOUSE_VT220_HIGHLIGHT:
+        case vte::terminal::modes::Private::eXTERM_MOUSE_BUTTON_EVENT:
+        case vte::terminal::modes::Private::eXTERM_MOUSE_ANY_EVENT:
+        case vte::terminal::modes::Private::eXTERM_MOUSE_EXT:
+        case vte::terminal::modes::Private::eXTERM_MOUSE_EXT_SGR:
+        case vte::terminal::modes::Private::eURXVT_MOUSE_EXT:
+                update_mouse_protocol();
+                break;
+
+        case vte::terminal::modes::Private::eXTERM_FOCUS:
+                if (set)
+                        feed_focus_event_initial();
+                break;
+
+        default:
+                break;
+        }
 }
 
-/* THE HANDLERS */
+void
+VteTerminalPrivate::set_mode_private(vte::parser::Sequence const& seq,
+                                     bool set) noexcept
+{
+        auto const n_params = seq.size();
+        for (unsigned int i = 0; i < n_params; i = seq.next(i)) {
+                auto const param = seq.collect1(i);
+                auto const mode = m_modes_private.mode_from_param(param);
 
-/* Do nothing. */
+                _vte_debug_print(VTE_DEBUG_MODES,
+                                 "Private mode %d (%s) %s\n",
+                                 param, m_modes_private.mode_to_cstring(mode),
+                                 set ? "set" : "reset");
+
+                if (mode < 0)
+                        continue;
+
+                set_mode_private(mode, set);
+        }
+}
+
+void
+VteTerminalPrivate::save_mode_private(vte::parser::Sequence const& seq,
+                                      bool save) noexcept
+{
+        auto const n_params = seq.size();
+        for (unsigned int i = 0; i < n_params; i = seq.next(i)) {
+                auto const param = seq.collect1(i);
+                auto const mode = m_modes_private.mode_from_param(param);
+
+                if (mode < 0) {
+                        _vte_debug_print(VTE_DEBUG_MODES,
+                                         "Saving private mode %d (%s)\n",
+                                         param, m_modes_private.mode_to_cstring(mode));
+                        continue;
+                }
+
+                if (save) {
+                        _vte_debug_print(VTE_DEBUG_MODES,
+                                         "Saving private mode %d (%s) is %s\n",
+                                         param, m_modes_private.mode_to_cstring(mode),
+                                         m_modes_private.get(mode) ? "set" : "reset");
+
+                        m_modes_private.push_saved(mode);
+                } else {
+                        bool const set = m_modes_private.pop_saved(mode);
+
+                        _vte_debug_print(VTE_DEBUG_MODES,
+                                         "Restoring private mode %d (%s) to %s\n",
+                                         param, m_modes_private.mode_to_cstring(mode),
+                                         set ? "set" : "reset");
+
+                        set_mode_private(mode, set);
+                }
+        }
+}
+
 void
 VteTerminalPrivate::set_character_replacement(unsigned slot)
 {
@@ -1024,7 +819,7 @@ void
 VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
 {
         vte::grid::row_t start_row, end_row;
-        if (m_origin_mode &&
+        if (m_modes_private.DEC_ORIGIN() &&
             m_scrolling_restricted) {
                 start_row = m_scrolling_region.start;
                 end_row = m_scrolling_region.end;
@@ -1054,7 +849,7 @@ vte::grid::row_t
 VteTerminalPrivate::get_cursor_row() const
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
-        /* Note that we do NOT check m_origin_mode here! */
+        /* Note that we do NOT check DEC_ORIGIN mode here! */
         if (m_scrolling_restricted) {
                 row -= m_scrolling_region.start;
         }
@@ -1140,7 +935,7 @@ VteTerminalPrivate::move_cursor_down(vte::grid::row_t rows)
         ensure_cursor_is_onscreen();
 
         vte::grid::row_t end;
-        // FIXMEchpe why not check m_origin_mode here?
+        // FIXMEchpe why not check DEC_ORIGIN here?
         if (m_scrolling_restricted) {
                 end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
@@ -1398,7 +1193,7 @@ VteTerminalPrivate::move_cursor_up(vte::grid::row_t rows)
         ensure_cursor_is_onscreen();
 
         vte::grid::row_t start;
-        //FIXMEchpe why not check m_origin_mode here?
+        //FIXMEchpe why not check DEC_ORIGIN mode here?
         if (m_scrolling_restricted) {
                 start = m_screen->insert_delta + m_scrolling_region.start;
 	} else {
@@ -1663,12 +1458,6 @@ VteTerminalPrivate::set_current_hyperlink(char *hyperlink_params /* adopted */,
 
         g_free(hyperlink_params);
         g_free(uri);
-}
-
-void
-VteTerminalPrivate::set_keypad_mode(VteKeymode mode)
-{
-        m_keypad_mode = mode;
 }
 
 void
@@ -2946,11 +2735,8 @@ VteTerminalPrivate::DECKPAM(vte::parser::Sequence const& seq)
          * top-row or on the keypad.
          * Default is keypad-numeric-mode.
          */
-#if 0
-        screen->flags |= VTE_FLAG_KEYPAD_MODE;
-#endif
 
-        set_keypad_mode(VTE_KEYMODE_APPLICATION);
+        set_mode_private(vte::terminal::modes::Private::eDEC_APPLICATION_KEYPAD, true);
 }
 
 void
@@ -2963,11 +2749,7 @@ VteTerminalPrivate::DECKPNM(vte::parser::Sequence const& seq)
          * sequences as corresponding keypresses on the main keyboard.
          * Default is keypad-numeric-mode.
          */
-#if 0
-        screen->flags &= ~VTE_FLAG_KEYPAD_MODE;
-#endif
-
-	set_keypad_mode(VTE_KEYMODE_NORMAL);
+        set_mode_private(vte::terminal::modes::Private::eDEC_APPLICATION_KEYPAD, false);
 }
 
 void
@@ -3948,7 +3730,7 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
 
                 /* Send the cursor position. */
                 vte::grid::row_t rowval, origin, rowmax;
-                if (m_origin_mode &&
+                if (m_modes_private.DEC_ORIGIN() &&
                     m_scrolling_restricted) {
                         origin = m_scrolling_region.start;
                         rowmax = m_scrolling_region.end;
@@ -3991,7 +3773,7 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
         case 6:
                 /* Send the cursor position. */
                 vte::grid::row_t rowval, origin, rowmax;
-                if (m_origin_mode &&
+                if (m_modes_private.DEC_ORIGIN() &&
                     m_scrolling_restricted) {
                         origin = m_scrolling_region.start;
                         rowmax = m_scrolling_region.end;
@@ -4733,14 +4515,8 @@ VteTerminalPrivate::RM_ECMA(vte::parser::Sequence const& seq)
          *
          * References: ECMA-48 § 8.3.106
          */
-#if 0
-        unsigned int i;
 
-        for (i = 0; i < seq->n_args; ++i)
-                screen_mode_change_ansi(screen, seq->args[i], false);
-#endif
-
-        set_mode(seq, false);
+        set_mode_ecma(seq, false);
 }
 
 void
@@ -4754,14 +4530,8 @@ VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
          *
          * References: VT525
          */
-#if 0
-        unsigned int i;
 
-        for (i = 0; i < seq->n_args; ++i)
-                screen_mode_change_dec(screen, seq->args[i], false);
-#endif
-
-        decset(seq, false, false, false);
+        set_mode_private(seq, false);
 }
 
 void
@@ -4954,14 +4724,8 @@ VteTerminalPrivate::SM_ECMA(vte::parser::Sequence const& seq)
          *
          * References: ECMA-48 § 8.3.125
          */
-#if 0
-        unsigned int i;
 
-        for (i = 0; i < seq->n_args; ++i)
-                screen_mode_change_ansi(screen, seq->args[i], true);
-#endif
-
-        set_mode(seq, true);
+        set_mode_ecma(seq, true);
 }
 
 void
@@ -4975,14 +4739,8 @@ VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
          *
          * References: VT525
          */
-#if 0
-        unsigned int i;
 
-        for (i = 0; i < seq->n_args; ++i)
-                screen_mode_change_dec(screen, seq->args[i], true);
-#endif
-
-        decset(seq, false, false, true);
+        set_mode_private(seq, true);
 }
 
 void
@@ -5267,7 +5025,7 @@ VteTerminalPrivate::XTERM_RPM(vte::parser::Sequence const& seq)
          * References: XTERM
          */
 
-        decset(seq, true, false, false);
+        save_mode_private(seq, false);
 }
 
 void
@@ -5311,7 +5069,7 @@ VteTerminalPrivate::XTERM_SPM(vte::parser::Sequence const& seq)
          * References: XTERM
          */
 
-        decset(seq, false, true, false);
+        save_mode_private(seq, true);
 }
 
 void

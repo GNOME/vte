@@ -666,7 +666,7 @@ VteTerminalPrivate::invalidate_cursor_once(bool periodic)
 		}
 	}
 
-	if (m_cursor_visible) {
+	if (m_modes_private.DEC_TEXT_CURSOR()) {
 		auto preedit_width = get_preedit_width(false);
                 auto row = m_screen->cursor.row;
                 auto column = m_screen->cursor.col;
@@ -2889,10 +2889,11 @@ VteTerminalPrivate::restore_cursor(VteScreen *screen__)
         screen__->cursor.row = screen__->insert_delta + CLAMP(screen__->saved.cursor.row,
                                                               0, m_row_count - 1);
 
-        m_reverse_mode = screen__->saved.reverse_mode;
-        m_origin_mode = screen__->saved.origin_mode;
-        m_sendrecv_mode = screen__->saved.sendrecv_mode;
-        m_insert_mode = screen__->saved.insert_mode;
+        m_modes_ecma.set_modes(screen__->saved.modes_ecma);
+
+        m_modes_private.set_DEC_REVERSE_IMAGE(screen__->saved.reverse_mode);
+        m_modes_private.set_DEC_ORIGIN(screen__->saved.origin_mode);
+
         m_defaults = screen__->saved.defaults;
         m_color_defaults = screen__->saved.color_defaults;
         m_fill_defaults = screen__->saved.fill_defaults;
@@ -2908,10 +2909,11 @@ VteTerminalPrivate::save_cursor(VteScreen *screen__)
         screen__->saved.cursor.col = screen__->cursor.col;
         screen__->saved.cursor.row = screen__->cursor.row - screen__->insert_delta;
 
-        screen__->saved.reverse_mode = m_reverse_mode;
-        screen__->saved.origin_mode = m_origin_mode;
-        screen__->saved.sendrecv_mode = m_sendrecv_mode;
-        screen__->saved.insert_mode = m_insert_mode;
+        screen__->saved.modes_ecma = m_modes_ecma.get_modes();
+
+        screen__->saved.reverse_mode = m_modes_private.DEC_REVERSE_IMAGE();
+        screen__->saved.origin_mode = m_modes_private.DEC_ORIGIN();
+
         screen__->saved.defaults = m_defaults;
         screen__->saved.color_defaults = m_color_defaults;
         screen__->saved.fill_defaults = m_fill_defaults;
@@ -2968,7 +2970,7 @@ VteTerminalPrivate::insert_char(gunichar c,
                 0x00b7,  /* ~ => bullet */
         };
 
-        insert |= m_insert_mode;
+        insert |= m_modes_ecma.IRM();
 	invalidate_now |= insert;
 
 	/* If we've enabled the special drawing set, map the characters to
@@ -2987,7 +2989,7 @@ VteTerminalPrivate::insert_char(gunichar c,
 	/* If we're autowrapping here, do it. */
         col = m_screen->cursor.col;
 	if (G_UNLIKELY (columns && col + columns > m_column_count)) {
-		if (m_autowrap) {
+		if (m_modes_private.DEC_AUTOWRAP()) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
 			/* Wrap. */
@@ -3517,7 +3519,7 @@ VteTerminalPrivate::process_incoming()
 
 	/* Save the current cursor position. */
         saved_cursor = m_screen->cursor;
-	saved_cursor_visible = m_cursor_visible;
+	saved_cursor_visible = m_modes_private.DEC_TEXT_CURSOR();
         saved_cursor_style = m_cursor_style;
 
         in_scroll_region = m_scrolling_restricted
@@ -3832,7 +3834,7 @@ skip_chunk:
 		check_cursor_blink();
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
-        } else if ((saved_cursor_visible != m_cursor_visible) ||
+        } else if ((saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
                    (saved_cursor_style != m_cursor_style)) {
 		invalidate_cell(saved_cursor.col, saved_cursor.row);
 		check_cursor_blink();
@@ -4122,7 +4124,7 @@ VteTerminalPrivate::pty_io_write(GIOChannel *channel,
 void
 VteTerminalPrivate::send_child(char const* data,
                                gssize length,
-                               bool local_echo)
+                               bool local_echo) noexcept
 {
 	gsize icount, ocount;
 	const guchar *ibuf;
@@ -4265,8 +4267,7 @@ VteTerminalPrivate::feed_child_using_modes(char const* data,
 		length = strlen(data);
 
 	if (length > 0)
-		send_child(data, length,
-                           !m_sendrecv_mode);
+		send_child(data, length, !m_modes_ecma.SRM());
 }
 
 /* Send text from the input method to the child. */
@@ -4484,7 +4485,7 @@ VteTerminalPrivate::check_cursor_blink()
 {
 	if (m_has_focus &&
 	    m_cursor_blinks &&
-	    m_cursor_visible)
+	    m_modes_private.DEC_TEXT_CURSOR())
 		add_cursor_timeout();
 	else
 		remove_cursor_timeout();
@@ -4900,8 +4901,8 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
 		 * it to a literal or capability name. */
                 if (handled == FALSE) {
 			_vte_keymap_map(keyval, m_modifiers,
-					m_cursor_mode == VTE_KEYMODE_APPLICATION,
-					m_keypad_mode == VTE_KEYMODE_APPLICATION,
+                                        m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
+                                        m_modes_private.DEC_APPLICATION_KEYPAD(),
 					&normal,
 					&normal_length);
 			/* If we found something this way, suppress
@@ -4958,11 +4959,11 @@ VteTerminalPrivate::widget_key_press(GdkEventKey *event)
                         if (add_modifiers) {
                                 _vte_keymap_key_add_key_modifiers(keyval,
                                                                   m_modifiers,
-                                                                  m_cursor_mode == VTE_KEYMODE_APPLICATION,
+                                                                  m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
                                                                   &normal,
                                                                   &normal_length);
                         }
-			if (m_meta_sends_escape &&
+			if (m_modes_private.XTERM_META_SENDS_ESCAPE() &&
 			    !suppress_meta_esc &&
 			    (normal_length > 0) &&
 			    (m_modifiers & VTE_META_MASK)) {
@@ -5245,11 +5246,13 @@ VteTerminalPrivate::widget_paste_received(char const* text)
                         break;
                 }
         }
-        if (m_bracketed_paste_mode)
+
+        bool const bracketed_paste = m_modes_private.XTERM_READLINE_BRACKETED_PASTE();
+        if (bracketed_paste)
                 feed_child("\e[200~", -1);
         // FIXMEchpe add a way to avoid the extra string copy done here
         feed_child(paste, p - paste);
-        if (m_bracketed_paste_mode)
+        if (bracketed_paste)
                 feed_child("\e[201~", -1);
         g_free(paste);
 }
@@ -5296,7 +5299,7 @@ VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined
 
 	/* With the exception of the 1006 mode, button release is also encoded here. */
 	/* Note that if multiple extensions are enabled, the 1006 is used, so it's okay to check for only that. */
-	if (is_release && !m_mouse_xterm_extension) {
+	if (is_release && !m_modes_private.XTERM_MOUSE_EXT_SGR()) {
 		cb = 3;
 	}
 
@@ -5317,10 +5320,10 @@ VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined
 	}
 
 	/* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
-	if (m_mouse_xterm_extension) {
+	if (m_modes_private.XTERM_MOUSE_EXT_SGR()) {
 		/* xterm's extended mode (1006) */
 		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "<%d;%ld;%ld%c", cb, cx, cy, is_release ? 'm' : 'M');
-	} else if (m_mouse_urxvt_extension) {
+	} else if (m_modes_private.URXVT_MOUSE_EXT()) {
 		/* urxvt's extended mode (1015) */
 		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", 32 + cb, cx, cy);
 	} else if (cx <= 231 && cy <= 231) {
@@ -5356,7 +5359,7 @@ VteTerminalPrivate::feed_focus_event_initial()
 void
 VteTerminalPrivate::maybe_feed_focus_event(bool in)
 {
-        if (m_focus_tracking_mode)
+        if (m_modes_private.XTERM_FOCUS())
                 feed_focus_event(in);
 }
 
@@ -8021,11 +8024,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_last_graphic_character = 0;
 
         /* Set up the emulation. */
-	m_keypad_mode = VTE_KEYMODE_NORMAL;
-	m_cursor_mode = VTE_KEYMODE_NORMAL;
-        m_autowrap = TRUE;
-        m_sendrecv_mode = TRUE;
-	m_dec_saved = g_hash_table_new(NULL, NULL);
 
         if (vte_parser_new(&m_parser) != 0)
                 g_assert_not_reached();
@@ -8040,7 +8038,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 
 	/* Scrolling options. */
 	m_scroll_on_keystroke = TRUE;
-	m_alternate_screen_scroll = TRUE;
         m_scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
 	set_scrollback_lines(VTE_SCROLLBACK_INIT);
 
@@ -8054,12 +8051,10 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	/* Miscellaneous options. */
 	set_backspace_binding(VTE_ERASE_AUTO);
 	set_delete_binding(VTE_ERASE_AUTO);
-	m_meta_sends_escape = TRUE;
 	m_audible_bell = TRUE;
         m_text_blink_mode = VTE_TEXT_BLINK_ALWAYS;
 	m_allow_bold = TRUE;
         m_bold_is_bright = TRUE;
-        m_deccolm_mode = FALSE;
         m_rewrap_on_resize = TRUE;
 	set_default_tabstops();
 
@@ -8070,7 +8065,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_cursor_aspect_ratio = 0.04;
 
 	/* Cursor blinking. */
-	m_cursor_visible = TRUE;
 	m_cursor_blink_timeout = 500;
         m_cursor_blinks = FALSE;
         m_cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
@@ -8536,11 +8530,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
                 g_object_unref(m_pty);
 	}
 
-	/* Remove hash tables. */
-	if (m_dec_saved != NULL) {
-		g_hash_table_destroy(m_dec_saved);
-	}
-
 	/* Clean up emulation structures. */
         m_parser = vte_parser_free(m_parser);
         g_assert_null(m_parser);
@@ -8705,7 +8694,7 @@ VteTerminalPrivate::determine_colors(VteCellAttr const* attr,
         vte_color_triple_get(attr->colors(), &fore, &back, &deco);
 
 	/* Reverse-mode switches default fore and back colors */
-        if (G_UNLIKELY (m_reverse_mode)) {
+        if (G_UNLIKELY (m_modes_private.DEC_REVERSE_IMAGE())) {
 		if (fore == VTE_DEFAULT_FG)
 			fore = VTE_DEFAULT_BG;
 		if (back == VTE_DEFAULT_BG)
@@ -9656,11 +9645,18 @@ VteTerminalPrivate::paint_cursor()
 	int x, y;
 	gboolean blink, selected, focus;
 
-	if (!m_cursor_visible)
+        //FIXMEchpe this should already be reflected in the m_cursor_blink_state below
+	if (!m_modes_private.DEC_TEXT_CURSOR())
 		return;
 
         if (m_im_preedit_active)
                 return;
+
+	focus = m_has_focus;
+	blink = m_cursor_blink_state;
+
+	if (focus && !blink)
+		return;
 
         col = m_screen->cursor.col;
         drow = m_screen->cursor.row;
@@ -9669,12 +9665,6 @@ VteTerminalPrivate::paint_cursor()
 
         /* TODOegmont: clamp on rows? tricky... */
 	if (CLAMP(col, 0, m_column_count - 1) != col)
-		return;
-
-	focus = m_has_focus;
-	blink = m_cursor_blink_state;
-
-	if (focus && !blink)
 		return;
 
         /* Find the first cell of the character "under" the cursor.
@@ -10107,7 +10097,7 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 			"Scroll speed is %d lines per non-smooth scroll unit\n",
 			(int) v);
 	if (m_screen == &m_alternate_screen &&
-            m_alternate_screen_scroll) {
+            m_modes_private.XTERM_ALTBUF_SCROLL()) {
 		char *normal;
 		gssize normal_length;
 
@@ -10125,8 +10115,8 @@ VteTerminalPrivate::widget_scroll(GdkEventScroll *event)
 		_vte_keymap_map (
 				cnt > 0 ? GDK_KEY_Down : GDK_KEY_Up,
 				m_modifiers,
-				m_cursor_mode == VTE_KEYMODE_APPLICATION,
-				m_keypad_mode == VTE_KEYMODE_APPLICATION,
+                                m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
+                                m_modes_private.DEC_APPLICATION_KEYPAD(),
 				&normal,
 				&normal_length);
 		if (cnt < 0)
@@ -10491,20 +10481,13 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         vte_parser_reset(m_parser);
         m_last_graphic_character = 0;
 
-	/* Reset keypad/cursor key modes. */
-	m_keypad_mode = VTE_KEYMODE_NORMAL;
-	m_cursor_mode = VTE_KEYMODE_NORMAL;
-        /* Enable autowrap. */
-        m_autowrap = TRUE;
-	/* Enable meta-sends-escape. */
-	m_meta_sends_escape = TRUE;
-        /* Disable DECCOLM mode. */
-        m_deccolm_mode = FALSE;
-	/* Reset saved settings. */
-	if (m_dec_saved != NULL) {
-		g_hash_table_destroy(m_dec_saved);
-		m_dec_saved = g_hash_table_new(NULL, NULL);
-	}
+        /* Reset modes */
+        m_modes_ecma.reset();
+        m_modes_private.clear_saved();
+        m_modes_private.reset();
+
+        update_mouse_protocol();
+
 	/* Reset the color palette. Only the 256 indexed colors, not the special ones, as per xterm. */
 	for (int i = 0; i < 256; i++)
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
@@ -10542,13 +10525,6 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
         m_scrolling_restricted = FALSE;
-        m_sendrecv_mode = TRUE;
-        m_insert_mode = FALSE;
-        m_origin_mode = FALSE;
-        m_reverse_mode = FALSE;
-	m_cursor_visible = TRUE;
-        /* For some reason, xterm doesn't reset alternateScroll, but we do. */
-        m_alternate_screen_scroll = TRUE;
         /* Reset the visual bits of selection on hard reset, see bug 789954. */
         if (clear_history) {
                 deselect_all();
@@ -10567,19 +10543,12 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         }
 
 	/* Reset mouse motion events. */
-	m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
-        apply_mouse_cursor();
         m_mouse_pressed_buttons = 0;
         m_mouse_handled_buttons = 0;
-	m_mouse_xterm_extension = FALSE;
-	m_mouse_urxvt_extension = FALSE;
+	m_mouse_last_position = vte::view::coords(-1, -1);
 	m_mouse_smooth_scroll_delta = 0.;
-        /* Reset focus tracking */
-        m_focus_tracking_mode = FALSE;
 	/* Clear modifiers. */
 	m_modifiers = 0;
-	/* Reset miscellaneous stuff. */
-	m_bracketed_paste_mode = FALSE;
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);

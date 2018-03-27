@@ -55,6 +55,9 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	iso2022.h \
 	keymap.cc \
 	keymap.h \
+	modes.hh \
+	modes-ecma.hh \
+	modes-private.hh \
 	parser.cc \
 	parser.hh \
 	parser-arg.hh \
@@ -175,7 +178,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += parser-cat slowcat test-parser
+noinst_PROGRAMS += parser-cat slowcat test-modes test-parser
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -196,6 +199,7 @@ dist_check_SCRIPTS = \
 	$(NULL)
 
 TESTS = \
+	test-modes \
 	test-parser \
 	reaper \
 	test-vtetypes \
@@ -287,6 +291,23 @@ test_parser_CXXFLAGS = \
 	$(AM_CXXFLAGS)
 test_parser_LDADD = \
 	$(VTE_LIBS) \
+	$(NULL)
+
+test_modes_SOURCES = \
+	modes-test.cc \
+	modes.hh \
+	modes-ecma.hh \
+	modes-private.hh \
+	$(NULL)
+test_modes_CPPFLAGS = \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+test_modes_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(AM_CXXFLAGS)
+test_modes_LDADD = \
+	$(GLIB_LIBS) \
 	$(NULL)
 
 test_vtetypes_SOURCES = \
