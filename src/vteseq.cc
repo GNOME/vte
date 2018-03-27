@@ -1128,7 +1128,7 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
         if (seq.param_nonfinal(idx)) {
                 /* Colon version */
                 switch (seq.param(++idx)) {
-                case 2: {
+                case VTE_SGR_COLOR_SPEC_RGB: {
                         auto const n = seq.next(idx) - idx;
                         if (n < 4)
                                 return false;
@@ -1149,7 +1149,7 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
                         color = VTE_RGB_COLOR(redbits, greenbits, bluebits, red, green, blue);
                         return true;
                 }
-                case 5: {
+                case VTE_SGR_COLOR_SPEC_LEGACY: {
                         auto const n = seq.next(idx) - idx;
                         if (n < 2)
                                 return false;
@@ -1167,7 +1167,7 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
 
                 idx = seq.next(idx);
                 switch (seq.param(idx)) {
-                case 2: {
+                case VTE_SGR_COLOR_SPEC_RGB: {
                         /* Consume 3 more parameters */
                         idx = seq.next(idx);
                         int red = seq.param(idx);
@@ -1184,7 +1184,7 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
                         color = VTE_RGB_COLOR(redbits, greenbits, bluebits, red, green, blue);
                         return true;
                 }
-                case 5: {
+                case VTE_SGR_COLOR_SPEC_LEGACY: {
                         /* Consume 1 more parameter */
                         idx = seq.next(idx);
                         int v = seq.param(idx);
@@ -4965,19 +4965,19 @@ VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
                 auto const param = seq.param(i);
                 switch (param) {
                 case -1:
-                case 0:
+                case VTE_SGR_RESET_ALL:
                         reset_default_attributes(false);
                         break;
-                case 1:
+                case VTE_SGR_SET_BOLD:
                         m_defaults.attr.set_bold(true);
                         break;
-                case 2:
+                case VTE_SGR_SET_DIM:
                         m_defaults.attr.set_dim(true);
                         break;
-                case 3:
+                case VTE_SGR_SET_ITALIC:
                         m_defaults.attr.set_italic(true);
                         break;
-                case 4: {
+                case VTE_SGR_SET_UNDERLINE: {
                         unsigned int v = 1;
                         /* If we have a subparameter, get it */
                         if (seq.param_nonfinal(i)) {
@@ -4986,89 +4986,89 @@ VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
                         m_defaults.attr.set_underline(v);
                         break;
                 }
-                case 5:
+                case VTE_SGR_SET_BLINK:
                         m_defaults.attr.set_blink(true);
                         break;
-                case 7:
+                case VTE_SGR_SET_REVERSE:
                         m_defaults.attr.set_reverse(true);
                         break;
-                case 8:
+                case VTE_SGR_SET_INVISIBLE:
                         m_defaults.attr.set_invisible(true);
                         break;
-                case 9:
+                case VTE_SGR_SET_STRIKETHROUGH:
                         m_defaults.attr.set_strikethrough(true);
                         break;
-                case 21:
+                case VTE_SGR_SET_UNDERLINE_DOUBLE:
                         m_defaults.attr.set_underline(2);
                         break;
-                case 22: /* ECMA 48. */
+                case VTE_SGR_RESET_BOLD_AND_DIM:
                         m_defaults.attr.unset(VTE_ATTR_BOLD_MASK | VTE_ATTR_DIM_MASK);
                         break;
-                case 23:
+                case VTE_SGR_RESET_ITALIC:
                         m_defaults.attr.set_italic(false);
                         break;
-                case 24:
+                case VTE_SGR_RESET_UNDERLINE:
                         m_defaults.attr.set_underline(0);
                         break;
-                case 25:
+                case VTE_SGR_RESET_BLINK:
                         m_defaults.attr.set_blink(false);
                         break;
-                case 27:
+                case VTE_SGR_RESET_REVERSE:
                         m_defaults.attr.set_reverse(false);
                         break;
-                case 28:
+                case VTE_SGR_RESET_INVISIBLE:
                         m_defaults.attr.set_invisible(false);
                         break;
-                case 29:
+                case VTE_SGR_RESET_STRIKETHROUGH:
                         m_defaults.attr.set_strikethrough(false);
                         break;
-                case 30 ... 37:
+                case VTE_SGR_SET_FORE_LEGACY_START ... VTE_SGR_SET_FORE_LEGACY_END:
                         m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 30));
                         break;
-                case 38: {
+                case VTE_SGR_SET_FORE_SPEC: {
                         uint32_t fore;
                         if (G_LIKELY((seq_parse_sgr_color<8, 8, 8>(seq, i, fore))))
                                 m_defaults.attr.set_fore(fore);
                         break;
                 }
-                case 39:
+                case VTE_SGR_RESET_FORE:
                         /* default foreground */
                         m_defaults.attr.set_fore(VTE_DEFAULT_FG);
                         break;
-                case 40 ... 47:
+                case VTE_SGR_SET_BACK_LEGACY_START ... VTE_SGR_SET_BACK_LEGACY_END:
                         m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 40));
                         break;
-                case 48: {
+                case VTE_SGR_SET_BACK_SPEC: {
                         uint32_t back;
                         if (G_LIKELY((seq_parse_sgr_color<8, 8, 8>(seq, i, back))))
                                 m_defaults.attr.set_back(back);
                         break;
                 }
-                case 49:
+                case VTE_SGR_RESET_BACK:
                         /* default background */
                         m_defaults.attr.set_back(VTE_DEFAULT_BG);
                         break;
-                case 53:
+                case VTE_SGR_SET_OVERLINE:
                         m_defaults.attr.set_overline(true);
                         break;
-                case 55:
+                case VTE_SGR_RESET_OVERLINE:
                         m_defaults.attr.set_overline(false);
                         break;
-                case 58: {
+                case VTE_SGR_SET_DECO_SPEC: {
                         uint32_t deco;
                         if (G_LIKELY((seq_parse_sgr_color<4, 5, 4>(seq, i, deco))))
                                 m_defaults.attr.set_deco(deco);
                         break;
                 }
-                case 59:
+                case VTE_SGR_RESET_DECO:
                         /* default decoration color, that is, same as the cell's foreground */
                         m_defaults.attr.set_deco(VTE_DEFAULT_FG);
                         break;
-                case 90 ... 97:
+                case VTE_SGR_SET_FORE_LEGACY_BRIGHT_START ... VTE_SGR_SET_FORE_LEGACY_BRIGHT_END:
                         m_defaults.attr.set_fore(VTE_LEGACY_COLORS_OFFSET + (param - 90) +
                                                  VTE_COLOR_BRIGHT_OFFSET);
                         break;
-                case 100 ... 107:
+                case VTE_SGR_SET_BACK_LEGACY_BRIGHT_START ... VTE_SGR_SET_BACK_LEGACY_BRIGHT_END:
                         m_defaults.attr.set_back(VTE_LEGACY_COLORS_OFFSET + (param - 100) +
                                                  VTE_COLOR_BRIGHT_OFFSET);
                         break;
