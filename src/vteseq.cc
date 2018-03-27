@@ -4508,27 +4508,9 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
                 break;
 
         case -1: /* default */
-        case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE: {
-                std::string title;
-                if (it != cend)
-                        title = it.string_remaining();
-                m_icon_title_pending = title;
-                m_window_title_pending.swap(title);
-                m_icon_title_changed = true;
-                m_window_title_changed = true;
-                break;
-        }
-
-        case VTE_OSC_XTERM_SET_ICON_TITLE: {
-                std::string title;
-                if (it != cend)
-                        title = it.string_remaining();
-                m_icon_title_pending.swap(title);
-                m_icon_title_changed = true;
-                break;
-        }
-
+        case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE:
         case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
+                /* Only sets window title; icon title is not supported */
                 std::string title;
                 if (it != cend)
                         title = it.string_remaining();
@@ -4585,6 +4567,7 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
                 reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
                 break;
 
+        case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
         case VTE_OSC_XTERM_SET_COLOR_SPECIAL:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:

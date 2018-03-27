@@ -516,14 +516,11 @@ public:
         gboolean m_contents_changed_pending;
 
         std::string m_window_title{};
-        std::string m_icon_title{};
         std::string m_current_directory_uri{};
         std::string m_current_file_uri{};
         std::string m_window_title_pending{};
-        std::string m_icon_title_pending{};
         std::string m_current_directory_uri_pending{};
         std::string m_current_file_uri_pending{};
-        bool m_icon_title_changed{false};
         bool m_window_title_changed{false};
         bool m_current_directory_uri_changed{false};
         bool m_current_file_uri_changed{false};

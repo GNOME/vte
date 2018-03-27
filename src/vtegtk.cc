@@ -804,7 +804,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::icon-title-changed:
          * @vteterminal: the object which received the signal
          *
-         * Emitted when the terminal's %icon_title field is modified.
+         * Deprecated: 0.54: This signal is never emitted.
          */
         signals[SIGNAL_ICON_TITLE_CHANGED] =
                 g_signal_new(I_("icon-title-changed"),
@@ -1467,7 +1467,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:icon-title:
          *
-         * The terminal's so-called icon title, or %NULL if no icon title has been set.
+         * Deprecated: 0.54: This property is always %NULL.
          */
         pspecs[PROP_ICON_TITLE] =
                 g_param_spec_string ("icon-title", NULL, NULL,
@@ -3882,13 +3882,15 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
  * vte_terminal_get_icon_title:
  * @terminal: a #VteTerminal
  *
- * Returns: (transfer none): the icon title
+ * Returns: (transfer none): %NULL
+ *
+ * Deprecated: 0.54:
  */
 const char *
 vte_terminal_get_icon_title(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
-	return IMPL(terminal)->m_icon_title.data();
+	return nullptr;
 }
 
 /**

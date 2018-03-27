@@ -468,8 +468,6 @@ glong vte_terminal_get_column_count(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 const char *vte_terminal_get_window_title(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
-const char *vte_terminal_get_icon_title(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
 const char *vte_terminal_get_current_directory_uri(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 const char *vte_terminal_get_current_file_uri(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);

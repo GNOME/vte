@@ -10847,20 +10847,6 @@ VteTerminalPrivate::emit_pending_signals()
                 m_window_title_changed = false;
 	}
 
-	if (m_icon_title_changed) {
-                if (m_icon_title != m_icon_title_pending) {
-                        m_icon_title.swap(m_icon_title_pending);
-
-                        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                                         "Emitting `icon-title-changed'.\n");
-                        g_signal_emit(object, signals[SIGNAL_ICON_TITLE_CHANGED], 0);
-                        g_object_notify_by_pspec(object, pspecs[PROP_ICON_TITLE]);
-                }
-
-		m_icon_title_pending.clear();
-		m_icon_title_changed = false;
-	}
-
 	if (m_current_directory_uri_changed) {
                 if (m_current_directory_uri != m_current_directory_uri_pending) {
                         m_current_directory_uri.swap(m_current_directory_uri_pending);
