@@ -505,6 +505,13 @@ public:
                 m_arg_str = str;
         }
 
+        enum class Introducer {
+                NONE,
+                DEFAULT,
+                C0,
+                C1
+        };
+
         enum class ST {
                 NONE,
                 DEFAULT,
@@ -515,8 +522,8 @@ public:
 
 
 private:
-        void append_introducer(string_type& s,
-                               bool c1 = true) const noexcept
+        void append_introducer_(string_type& s,
+                                bool c1 = true) const noexcept
         {
                 /* Introducer */
                 if (c1) {
@@ -544,6 +551,24 @@ private:
                         case VTE_SEQ_SCI:    s.push_back(0x5a); break; // Z
                         default: return;
                         }
+                }
+        }
+
+        void append_introducer(string_type& s,
+                               bool c1 = true,
+                               Introducer introducer = Introducer::DEFAULT) const noexcept
+        {
+                switch (introducer) {
+                case Introducer::NONE:
+                        break;
+                case Introducer::DEFAULT:
+                        append_introducer_(s, c1);
+                        break;
+                case Introducer::C0:
+                        append_introducer_(s, false);
+                        break;
+                case Introducer::C1:
+                        append_introducer_(s, true);
                 }
         }
 
@@ -643,9 +668,10 @@ public:
         void to_string(string_type& s,
                        bool c1 = false,
                        ssize_t max_arg_str_len = -1,
+                       Introducer introducer = Introducer::DEFAULT,
                        ST st = ST::DEFAULT) const noexcept
         {
-                append_introducer(s, c1);
+                append_introducer(s, c1, introducer);
                 append_params(s);
                 append_intermediates_and_final(s);
                 append_arg_string(s, c1, max_arg_str_len, st);

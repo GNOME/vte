@@ -1229,6 +1229,7 @@ public:
 
         void send(vte::parser::u8SequenceBuilder const& builder,
                   bool c1 = true,
+                  vte::parser::u8SequenceBuilder::Introducer introducer = vte::parser::u8SequenceBuilder::Introducer::DEFAULT,
                   vte::parser::u8SequenceBuilder::ST st = vte::parser::u8SequenceBuilder::ST::DEFAULT) noexcept;
         void send(vte::parser::Sequence const& seq,
                   vte::parser::u8SequenceBuilder const& builder) noexcept;
@@ -1237,6 +1238,10 @@ public:
         void reply(vte::parser::Sequence const& seq,
                    unsigned int type,
                    std::initializer_list<int> params) noexcept;
+        void reply(vte::parser::Sequence const& seq,
+                   unsigned int type,
+                   std::initializer_list<int> params,
+                   vte::parser::ReplyBuilder const& builder) noexcept;
         void reply(vte::parser::Sequence const& seq,
                    unsigned int type,
                    std::initializer_list<int> params,

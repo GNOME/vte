@@ -2994,9 +2994,95 @@ VteTerminalPrivate::DECRQSS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQSS - request selection or setting
+         * The DATA string contains the intermediate(s) and final
+         * character of a CSI sequence that codes for which
+         * selection or setting to report.
+         *
+         * Reply: DECRPSS
+         *   @args[0]: 0 if the request was valid, otherwise 1
+         *   DATA: the current value of the selection or setting
+         *
+         * Note that xterm is buggy; it sends 1 for a valid and
+         *   0 for an invalid request; we follow the VT525
+         *   behaviour instead of xterm.
          *
          * References: VT525
          */
+
+        /* Use a subparser to get the command from the request */
+        vte::parser::Parser parser{};
+        parser.feed(0x9b); /* CSI */
+
+        int rv = VTE_SEQ_NONE;
+
+        /* If at the end, the parser returns a VTE_SEQ_CSI sequence,
+         * we interpret that; otherwise we ignore the request and
+         * send only a dummy reply.
+         */
+        auto const str = seq.string();
+        for (size_t i = 0; i < str.size(); ++i) {
+                auto const c = str[i];
+                if (c < 0x20 || c >= 0x7f)
+                        break;
+                rv = parser.feed(c);
+        }
+
+        vte::parser::Sequence request{parser};
+        if (rv != VTE_SEQ_CSI || request.size() > 0 /* any parameters */)
+                return reply(seq, VTE_REPLY_DECRPSS, {1});
+
+        switch (request.command()) {
+
+        case VTE_CMD_DECSCUSR:
+                return reply(seq, VTE_REPLY_DECRPSS, {0}, {VTE_REPLY_DECSCUSR, {m_cursor_style}});
+
+        case VTE_CMD_DECSTBM:
+                if (m_scrolling_restricted)
+                        return reply(seq, VTE_REPLY_DECRPSS, {0},
+                                     {VTE_REPLY_DECSTBM,
+                                                     {m_scrolling_region.start + 1,
+                                                                     m_scrolling_region.end + 1}});
+                else
+                        return reply(seq, VTE_REPLY_DECRPSS, {0}, {VTE_REPLY_DECSTBM, {}});
+
+        /* case VTE_CMD_DECAC: */
+        /* case VTE_CMD_DECARR: */
+        /* case VTE_CMD_DECATC: */
+        /* case VTE_CMD_DECCRTST: */
+        /* case VTE_CMD_DECDLDA: */
+        case VTE_CMD_DECSACE:
+        case VTE_CMD_DECSASD:
+        case VTE_CMD_DECSCA:
+        case VTE_CMD_DECSCL:
+        case VTE_CMD_DECSCP:
+        case VTE_CMD_DECSCPP:
+        case VTE_CMD_DECSCS:
+        case VTE_CMD_DECSDDT:
+        case VTE_CMD_DECSDPT:
+        /* case VTE_CMD_DECSEST: */
+        case VTE_CMD_DECSFC:
+        case VTE_CMD_DECSKCV:
+        case VTE_CMD_DECSLCK:
+        case VTE_CMD_DECSLPP:
+        /* case VTE_CMD_DECSLRM: */
+        case VTE_CMD_DECSMBV:
+        case VTE_CMD_DECSNLS:
+        /* case VTE_CMD_DECSPMA: */
+        case VTE_CMD_DECSPP:
+        case VTE_CMD_DECSPPCS:
+        case VTE_CMD_DECSPRTT:
+        case VTE_CMD_DECSSCLS:
+        case VTE_CMD_DECSSDT:
+        case VTE_CMD_DECSSL:
+        /* case VTE_CMD_DECSTGLT: */
+        case VTE_CMD_DECSTRL:
+        case VTE_CMD_DECSWBV:
+        /* case VTE_CMD_DECSZS: */
+        case VTE_CMD_DECTME:
+        case VTE_CMD_SGR:
+        default:
+                return reply(seq, VTE_REPLY_DECRPSS, {1});
+        }
 }
 
 void

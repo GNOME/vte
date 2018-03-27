@@ -17,38 +17,46 @@
 
 _VTE_REPLY(NONE, NONE, 0, NONE, NONE,) /* placeholder */
 
+
 _VTE_REPLY(APC,         APC, 0,   NONE, NONE,  ) /* application program command */
-_VTE_REPLY(CPR,         CSI, 'R', NONE, NONE,  ) /* cursor position report */
-_VTE_REPLY(DECAUPSS,    DCS, 'u', NONE, BANG,  ) /* assign user preferred supplemental set */
-_VTE_REPLY(DECDA1R,     CSI, 'c', WHAT, NONE,  ) /* DA1 report */
-_VTE_REPLY(DECDA2R,     CSI, 'c', GT,   NONE,  ) /* DA2 report */
-_VTE_REPLY(DECCIR,      DCS, 'u', NONE, CASH,  _VTE_REPLY_PARAMS({1})) /* cursor information report */
-_VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({2})) /* color table report */
-_VTE_REPLY(DECCKSR,     DCS, '~', NONE, BANG,  ) /* memory checksum report */
 _VTE_REPLY(DECEKBD,     APC, 0,   NONE, NONE,  ) /* extended keyboard report */
-_VTE_REPLY(DECDSR,      CSI, 'n', WHAT, NONE,  ) /* device status report */
-_VTE_REPLY(DECMSR,      CSI, '{', NONE, MULT,  ) /* macro space report */
-_VTE_REPLY(DECPKMFR,    CSI, 'y', NONE, PLUS,  ) /* program key free memory report */
-_VTE_REPLY(DECREPTPARM, CSI, 'x', NONE, NONE,  ) /* report terminal parameters */
-_VTE_REPLY(DECRPAK,     DCS, '~', NONE, DQUOTE,) /* report all modifiers/alphanumeric key */
-_VTE_REPLY(DECRPDE,     CSI, 'w', NONE, DQUOTE,) /* report displayed extent */
-_VTE_REPLY(DECRPFK,     DCS, '}', NONE, DQUOTE,) /* report function key */
-_VTE_REPLY(DECRPKT,     CSI, 'v', NONE, COMMA, ) /* report key type */
-_VTE_REPLY(DECRPM_ECMA, CSI, 'y', NONE, CASH,  ) /* report ECMA mode */
-_VTE_REPLY(DECRPM_DEC,  CSI, 'y', WHAT, CASH,  ) /* report private mode */
-_VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */
-_VTE_REPLY(DECRPTUI,    DCS, '|', NONE, BANG,  _VTE_REPLY_STRING("7E565445") /* "~VTE" */) /* report terminal unit ID */
+
+_VTE_REPLY(XTERM_FOCUS_IN,                            CSI, 'I', NONE, NONE,  ) /* XTERM focus in report */
+_VTE_REPLY(URXVT_MOUSE_EXT_REPORT,                    CSI, 'M', NONE, NONE,  ) /* URXVT mouse mode report */
+_VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,   CSI, 'M', LT,   NONE,  ) /* XTERM SGR mouse mode button press report */
+_VTE_REPLY(XTERM_FOCUS_OUT,                           CSI, 'O', NONE, NONE,  ) /* XTERM focus out report */
+_VTE_REPLY(DECXCPR,                                   CSI, 'R', NONE, NONE,  ) /* extended cursor position report */
+_VTE_REPLY(CPR,                                       CSI, 'R', NONE, NONE,  ) /* cursor position report */
+_VTE_REPLY(DECDA1R,                                   CSI, 'c', WHAT, NONE,  ) /* DA1 report */
+_VTE_REPLY(DECDA2R,                                   CSI, 'c', GT,   NONE,  ) /* DA2 report */
+_VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE, CSI, 'm', LT,   NONE,  ) /* XTERM SGR mouse mode button release report */
+_VTE_REPLY(DSR,                                       CSI, 'n', NONE, NONE,  ) /* device status report */
+_VTE_REPLY(DECDSR,                                    CSI, 'n', WHAT, NONE,  ) /* device status report */
+_VTE_REPLY(DECSCUSR,                                  CSI, 'q', NONE, SPACE, ) /* set-cursor-style */
+_VTE_REPLY(DECSTBM,                                   CSI, 'r', NONE, NONE,  ) /* set-top-and-bottom-margins */
+_VTE_REPLY(XTERM_WM,                                  CSI, 't', NONE, NONE,  ) /* XTERM WM report */
+_VTE_REPLY(DECRPDE,                                   CSI, 'w', NONE, DQUOTE,) /* report displayed extent */
+_VTE_REPLY(DECRPKT,                                   CSI, 'v', NONE, COMMA, ) /* report key type */
+_VTE_REPLY(DECREPTPARM,                               CSI, 'x', NONE, NONE,  ) /* report terminal parameters */
+_VTE_REPLY(DECPKMFR,                                  CSI, 'y', NONE, PLUS,  ) /* program key free memory report */
+_VTE_REPLY(DECRPM_ECMA,                               CSI, 'y', NONE, CASH,  ) /* report ECMA mode */
+_VTE_REPLY(DECRPM_DEC,                                CSI, 'y', WHAT, CASH,  ) /* report private mode */
+_VTE_REPLY(DECMSR,                                    CSI, '{', NONE, MULT,  ) /* macro space report */
+_VTE_REPLY(XTERM_BRACKET,                             CSI, '~', NONE, NONE,  ) /* XTERM bracketed paste */
+
 _VTE_REPLY(DECTABSR,    DCS, '@', NONE, CASH,  ) /* tabulation stop report */
+_VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */
 _VTE_REPLY(DECTSR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({1})) /* terminal state report */
-_VTE_REPLY(DECXCPR,     CSI, 'R', NONE, NONE,  ) /* extended cursor position report */
-_VTE_REPLY(DSR,         CSI, 'n', NONE, NONE,  ) /* device status report */
+_VTE_REPLY(DECCTR,      DCS, 's', NONE, CASH,  _VTE_REPLY_PARAMS({2})) /* color table report */
+_VTE_REPLY(DECAUPSS,    DCS, 'u', NONE, BANG,  ) /* assign user preferred supplemental set */
+_VTE_REPLY(DECCIR,      DCS, 'u', NONE, CASH,  _VTE_REPLY_PARAMS({1})) /* cursor information report */
+_VTE_REPLY(DECRPTUI,    DCS, '|', NONE, BANG,  _VTE_REPLY_STRING("7E565445") /* "~VTE" */) /* report terminal unit ID */
+_VTE_REPLY(DECRPFK,     DCS, '}', NONE, DQUOTE,) /* report function key */
+_VTE_REPLY(DECCKSR,     DCS, '~', NONE, BANG,  ) /* memory checksum report */
+_VTE_REPLY(DECRPAK,     DCS, '~', NONE, DQUOTE,) /* report all modifiers/alphanumeric key */
+
 _VTE_REPLY(OSC,         OSC, 0,   NONE, NONE,  ) /* operating system command */
+
 _VTE_REPLY(PM,          PM,  0,   NONE, NONE,  ) /* privacy message */
+
 _VTE_REPLY(SOS,         SOS, 0,   NONE, NONE,  ) /* start of string */
-_VTE_REPLY(URXVT_MOUSE_EXT_REPORT,                    CSI, 'M', NONE, NONE,) /* URXVT mouse mode report */
-_VTE_REPLY(XTERM_BRACKET,                             CSI, '~', NONE, NONE,) /* XTERM bracketed paste */
-_VTE_REPLY(XTERM_FOCUS_IN,                            CSI, 'I', NONE, NONE,) /* XTERM focus in report */
-_VTE_REPLY(XTERM_FOCUS_OUT,                           CSI, 'O', NONE, NONE,) /* XTERM focus out report */
-_VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,   CSI, 'M', LT,   NONE,) /* XTERM SGR mouse mode button press report */
-_VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE, CSI, 'm', LT,   NONE,) /* XTERM SGR mouse mode button release report */
-_VTE_REPLY(XTERM_WM,                                  CSI, 't', NONE, NONE,) /* XTERM WM report */

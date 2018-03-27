@@ -3552,7 +3552,7 @@ skip_chunk:
 	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
 	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
 
-        vte::parser::Sequence seq(m_parser);
+        vte::parser::Sequence seq{m_parser};
 
         m_line_wrapped = false;
 
@@ -4224,10 +4224,11 @@ VteTerminalPrivate::feed_child_using_modes(char const* data,
 void
 VteTerminalPrivate::send(vte::parser::u8SequenceBuilder const& builder,
                          bool c1,
+                         vte::parser::u8SequenceBuilder::Introducer introducer,
                          vte::parser::u8SequenceBuilder::ST st) noexcept
 {
         std::string str;
-        builder.to_string(str, c1, -1, st);
+        builder.to_string(str, c1, -1, introducer, st);
         feed_child(str.data(), str.size());
 }
 
@@ -4253,6 +4254,22 @@ VteTerminalPrivate::reply(vte::parser::Sequence const& seq,
                           std::initializer_list<int> params) noexcept
 {
         send(seq, vte::parser::ReplyBuilder{type, params});
+}
+
+void
+VteTerminalPrivate::reply(vte::parser::Sequence const& seq,
+                          unsigned int type,
+                          std::initializer_list<int> params,
+                          vte::parser::ReplyBuilder const& builder) noexcept
+{
+        std::string str;
+        builder.to_string(str, true, -1,
+                          vte::parser::ReplyBuilder::Introducer::NONE,
+                          vte::parser::ReplyBuilder::ST::NONE);
+
+        vte::parser::ReplyBuilder reply_builder{type, params};
+        reply_builder.set_string(std::move(str));
+        send(seq, reply_builder);
 }
 
 void
