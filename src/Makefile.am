@@ -175,7 +175,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += interpret slowcat test-parser
+noinst_PROGRAMS += parser-cat slowcat test-parser
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -230,7 +230,7 @@ reflect_vte_CFLAGS = $(VTE_CFLAGS) $(AM_CFLAGS)
 reflect_vte_SOURCES = reflect.c
 reflect_vte_LDADD = libvte-$(VTE_API_VERSION).la $(VTE_LIBS)
 
-interpret_SOURCES = \
+parser_cat_SOURCES = \
 	buffer.h \
 	caps.hh \
 	debug.cc \
@@ -239,32 +239,27 @@ interpret_SOURCES = \
 	iso2022.h \
 	parser.cc \
 	parser.hh \
+	parser-arg.hh \
 	parser-charset.hh \
 	parser-charset-tables.hh \
 	parser-cmd.hh \
 	parser-glue.hh \
+	parser-cat.cc \
 	vteconv.cc \
 	vteconv.h \
-	interpret.cc
-interpret_CPPFLAGS = \
-	-DINTERPRET_MAIN \
-	-DVTE_API_VERSION=\"$(VTE_API_VERSION)\" \
+	$(NULL)
+parser_cat_CPPFLAGS = \
 	-I$(builddir) \
 	-I$(srcdir) \
 	$(AM_CPPFLAGS)
-interpret_CFLAGS = \
+parser_cat_CFLAGS = \
 	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(GTK_CFLAGS) \
 	$(AM_CFLAGS)
-interpret_CXXFLAGS = \
+parser_cat_CXXFLAGS = \
 	$(GLIB_CFLAGS) \
-	$(GOBJECT_CFLAGS) \
-	$(GTK_CFLAGS) \
 	$(AM_CXXFLAGS)
-interpret_LDADD = \
-	$(GLIB_LIBS) \
-	$(GOBJECT_LIBS)
+parser_cat_LDADD = \
+	$(GLIB_LIBS)
 
 slowcat_SOURCES = \
 	slowcat.c \

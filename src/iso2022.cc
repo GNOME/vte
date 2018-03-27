@@ -39,8 +39,6 @@
 #endif
 #include <glib/gi18n-lib.h>
 
-#include <gdk/gdkkeysyms.h>
-
 /* An invalid codepoint. */
 #define INVALID_CODEPOINT 0xFFFD
 
