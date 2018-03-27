@@ -2383,29 +2383,6 @@ VteTerminalPrivate::seq_screen_alignment_test(vte::parser::Params const& params)
         m_text_modified_flag = TRUE;
 }
 
-/* DECSCUSR set cursor style */
-void
-VteTerminalPrivate::seq_set_cursor_style(vte::parser::Params const& params)
-{
-        auto n_params = params.size();
-        if (n_params > 1)
-                return;
-
-        int style;
-        if (n_params == 0) {
-                /* no parameters means default (according to vt100.net) */
-                style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
-        } else {
-                if (!params.number_at(0, style))
-                        return;
-                if (style < 0 || style > 6) {
-                        return;
-                }
-        }
-
-        set_cursor_style(VteCursorStyle(style));
-}
-
 /* Perform a soft reset. */
 void
 VteTerminalPrivate::seq_soft_reset(vte::parser::Params const& params)
@@ -4207,14 +4184,26 @@ VteTerminalPrivate::DECSCUSR(vte::parser::Sequence const& seq)
          *      2: steady block
          *      3: blinking underline
          *      4: steady underline
+         *      5: blinking ibeam (XTERM)
+         *      6: steady ibeam (XTERM)
          * Changing this setting does _not_ affect the cursor visibility itself.
          * Use DECTCEM for that.
          *
          * Defaults:
          *   args[0]: 0
+         *
+         * References: VT525 5–126
+         *             XTERM
          */
 
-        seq_set_cursor_style(seq);
+        auto param = seq.collect1(0, 0);
+        switch (param) {
+        case 0 ... 6:
+                set_cursor_style(VteCursorStyle(param));
+                break;
+        default:
+                break;
+        }
 }
 
 void
