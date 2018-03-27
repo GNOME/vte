@@ -1589,7 +1589,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 case 0x00 ... 0x1a:        /* ASCII \ { ESC } */
                 case 0x1c ... 0x7f:
                         return parser_transition(parser, raw, STATE_NONE,
-                                                 ACTION_IGNORE);
+                                                 ACTION_NONE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
                                                  ACTION_CLEAR);
@@ -1625,8 +1625,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 switch (raw) {
                 case 0x00 ... 0x1a:        /* ASCII \ { ESC } */
                 case 0x1c ... 0x7f:
-                        return parser_transition(parser, raw,
-                                                 STATE_NONE, ACTION_IGNORE);
+                        return parser_transition(parser, raw, STATE_NONE,
+                                                 ACTION_NONE);
                 case 0x1b:                /* ESC */
                         return parser_transition(parser, raw, STATE_ESC,
                                                  ACTION_CLEAR);
