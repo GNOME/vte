@@ -1224,14 +1224,6 @@ VteTerminalPrivate::set_scrolling_region(vte::grid::row_t start /* relative */,
         home_cursor();
 }
 
-/* Move the cursor to the beginning of the Nth previous line, no scrolling. */
-void
-VteTerminalPrivate::seq_cursor_preceding_line(vte::parser::Params const& params)
-{
-        set_cursor_column(0);
-        seq_cursor_up(params);
-}
-
 /* Delete a character at the current cursor position. */
 void
 VteTerminalPrivate::delete_character()
@@ -1692,17 +1684,10 @@ VteTerminalPrivate::seq_tab_clear(vte::parser::Params const& params)
 	}
 }
 
-/* Cursor up N lines, no scrolling. */
-void
-VteTerminalPrivate::seq_cursor_up(vte::parser::Params const& params)
-{
-        auto val = params.number_or_default_at(0, 1);
-        move_cursor_up(val);
-}
-
 void
 VteTerminalPrivate::move_cursor_up(vte::grid::row_t rows)
 {
+        // FIXMEchpe allow 0 as no-op?
         rows = CLAMP(rows, 1, m_row_count);
 
         //FIXMEchpe why not do this afterward?
@@ -2861,12 +2846,12 @@ VteTerminalPrivate::CPL(vte::parser::Sequence const& seq)
 {
         /*
          * CPL - cursor-preceding-line
-         * Move the cursor @args[0] lines up.
-         *
-         * TODO: Does this stop at the top or cause a scroll-up?
+         * Move the cursor @args[0] lines up, without scrolling.
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.13
          */
 #if 0
         unsigned int num = 1;
@@ -2878,7 +2863,10 @@ VteTerminalPrivate::CPL(vte::parser::Sequence const& seq)
         screen_cursor_up(screen, num, false);
 #endif
 
-        seq_cursor_preceding_line(seq);
+        set_cursor_column(0);
+
+        auto const value = seq.collect1(0, 1);
+        move_cursor_up(value);
 }
 
 void
@@ -3023,6 +3011,7 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 1
          *
+         * References: ECMA-48 § 8.3.22
          */
 #if 0
         unsigned int num = 1;
@@ -3034,7 +3023,8 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
         screen_cursor_up(screen, num, false);
 #endif
 
-        seq_cursor_up(seq);
+        auto const value = seq.collect1(0, 1);
+        move_cursor_up(value);
 }
 
 void
