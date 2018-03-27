@@ -92,7 +92,7 @@ static unsigned int vte_parse_host_control(const struct vte_seq *seq)
         case 0x1b: /* ESC */
                 /* this is already handled by the state-machine */
                 break;
-        case 0x1f: /* DEL */
+        case 0x7f: /* DEL */
                 /* this is already handled by the state-machine */
                 break;
         case 0x84: /* IND */
