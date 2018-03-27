@@ -1262,17 +1262,6 @@ VteTerminalPrivate::delete_character()
         m_text_deleted_flag = TRUE;
 }
 
-/* Delete N characters at the current cursor position. */
-void
-VteTerminalPrivate::seq_delete_characters(vte::parser::Params const& params)
-{
-        auto val = std::max(std::min(params.number_or_default_at(0, 1),
-                                     int(m_column_count - m_screen->cursor.col)),
-                            int(1));
-        for (auto i = 0; i < val; i++)
-                delete_character();
-}
-
 void
 VteTerminalPrivate::move_cursor_down(vte::grid::row_t rows)
 {
@@ -1290,16 +1279,6 @@ VteTerminalPrivate::move_cursor_down(vte::grid::row_t rows)
 	}
 
         m_screen->cursor.row = MIN(m_screen->cursor.row + rows, end);
-}
-
-/* Erase characters starting at the cursor position (overwriting N with
- * spaces, but not moving the cursor). */
-void
-VteTerminalPrivate::seq_erase_characters(vte::parser::Params const& params)
-{
-	/* If we got a parameter, use it. */
-        auto count = std::min(params.number_or_default_at(0, 1), int(65535));
-        erase_characters(count);
 }
 
 void
@@ -3196,6 +3175,8 @@ VteTerminalPrivate::DCH(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.26
          */
 #if 0
         unsigned int num = 1;
@@ -3212,7 +3193,12 @@ VteTerminalPrivate::DCH(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        seq_delete_characters(seq);
+        auto const value = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
+
+        // FIXMEchpe pass count to delete_character() and simplify
+        // to only cleanup fragments once
+        for (auto i = 0; i < value; i++)
+                delete_character();
 }
 
 void
@@ -4494,6 +4480,8 @@ VteTerminalPrivate::ECH(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.38
          */
 #if 0
         unsigned int num = 1;
@@ -4507,7 +4495,12 @@ VteTerminalPrivate::ECH(vte::parser::Sequence const& seq)
                           &screen->state.attr, screen->age, false);
 #endif
 
-        seq_erase_characters(seq);
+        /* Erase characters starting at the cursor position (overwriting N with
+         * spaces, but not moving the cursor). */
+
+        // FIXMEchpe limit to column_count - cursor.x ?
+        auto const count = seq.collect1(0, 1, 1, int(65535));
+        erase_characters(count);
 }
 
 void
