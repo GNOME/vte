@@ -25,39 +25,6 @@
 
 struct vte_parser;
 struct vte_seq;
-struct vte_utf8;
-
-/*
- * Charsets
- * The DEC-compatible terminals require non-standard charsets for g0/g1/g2/g3
- * registers. We only provide the basic sets for compatibility. New
- * applications better use the full UTF-8 range for that.
- */
-
-typedef uint32_t vte_charset[96];
-
-extern vte_charset vte_unicode_lower;
-extern vte_charset vte_unicode_upper;
-extern vte_charset vte_dec_supplemental_graphics;
-extern vte_charset vte_dec_special_graphics;
-
-/*
- * UTF-8
- * All stream data must be encoded as UTF-8. As we need to do glyph-rendering,
- * we require a UTF-8 parser so we can map the characters to UCS codepoints.
- */
-
-struct vte_utf8 {
-        uint32_t chars[5];
-        uint32_t ucs4;
-
-        unsigned int i_bytes : 3;
-        unsigned int n_bytes : 3;
-        unsigned int valid : 1;
-};
-
-size_t vte_utf8_decode(struct vte_utf8 *p, const uint32_t **out_buf, char c);
-size_t vte_utf8_encode(char *out_utf8, uint32_t g);
 
 /*
  * Parsers
