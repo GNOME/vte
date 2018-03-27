@@ -603,11 +603,9 @@ static int parser_ignore(struct vte_parser *parser, uint32_t raw)
 
 static int parser_print(struct vte_parser *parser, uint32_t raw)
 {
-        parser_clear(parser, raw);
         parser->seq.type = VTE_SEQ_GRAPHIC;
         parser->seq.command = VTE_CMD_GRAPHIC;
         parser->seq.terminator = raw;
-        parser->seq.charset = VTE_CHARSET_NONE;
 
         return parser->seq.type;
 }
