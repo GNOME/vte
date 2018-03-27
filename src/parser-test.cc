@@ -491,12 +491,12 @@ test_seq_control(void)
                 { 0x18, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
                 { 0x19, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x1a, VTE_SEQ_CONTROL, VTE_CMD_SUB     },
-                { 0x1b, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
+                { 0x1b, VTE_SEQ_NONE,    VTE_CMD_NONE    },
                 { 0x1c, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x1d, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x1e, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x1f, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x7f, VTE_SEQ_GRAPHIC, VTE_CMD_GRAPHIC }, // FIXMEchpe
+                { 0x7f, VTE_SEQ_NONE,    VTE_CMD_NONE    },
                 { 0x80, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x81, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x82, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
@@ -513,7 +513,7 @@ test_seq_control(void)
                 { 0x8d, VTE_SEQ_CONTROL, VTE_CMD_RI      },
                 { 0x8e, VTE_SEQ_CONTROL, VTE_CMD_SS2     },
                 { 0x8f, VTE_SEQ_CONTROL, VTE_CMD_SS3     },
-                { 0x90, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
+                { 0x90, VTE_SEQ_NONE,    VTE_CMD_NONE    },
                 { 0x91, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x92, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x93, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
@@ -521,22 +521,21 @@ test_seq_control(void)
                 { 0x95, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
                 { 0x96, VTE_SEQ_CONTROL, VTE_CMD_SPA     },
                 { 0x97, VTE_SEQ_CONTROL, VTE_CMD_EPA     },
-                { 0x98, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
+                { 0x98, VTE_SEQ_NONE,    VTE_CMD_NONE    },
                 { 0x99, VTE_SEQ_CONTROL, VTE_CMD_NONE    },
-                { 0x9a, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
-                { 0x9b, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
+                { 0x9a, VTE_SEQ_NONE,    VTE_CMD_NONE    },
+                { 0x9b, VTE_SEQ_NONE,    VTE_CMD_NONE    },
                 { 0x9c, VTE_SEQ_CONTROL, VTE_CMD_ST      },
-                { 0x9d, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
-                { 0x9e, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
-                { 0x9f, VTE_SEQ_IGNORE,  VTE_CMD_NONE    },
+                { 0x9d, VTE_SEQ_NONE,    VTE_CMD_NONE    },
+                { 0x9e, VTE_SEQ_NONE,    VTE_CMD_NONE    },
+                { 0x9f, VTE_SEQ_NONE,    VTE_CMD_NONE    },
         };
 
         for (unsigned int i = 0; i < G_N_ELEMENTS(controls); i++) {
                 vte_parser_reset(parser);
                 struct vte_seq* seq;
                 auto rv = vte_parser_feed(parser, &seq, controls[i].c);
-                g_assert_cmpuint(rv, >=, 0);
-                g_assert_cmpuint(controls[i].type, ==, seq->type);
+                g_assert_cmpuint(controls[i].type, ==, rv);
                 g_assert_cmpuint(controls[i].cmd, ==, seq->command);
         }
 }
