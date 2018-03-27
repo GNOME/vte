@@ -1338,20 +1338,6 @@ VteTerminalPrivate::insert_blank_character()
         m_screen->cursor = save;
 }
 
-/* REP: Repeat the last graphic character n times. */
-void
-VteTerminalPrivate::seq_repeat(vte::parser::Params const& params)
-{
-        auto val = std::min(params.number_or_default_at(0, 1),
-                            int(65535)); // FIXMEchpe maybe limit more, to m_column_count - m_screen->cursor.col ?
-        for (auto i = 0; i < val; i++) {
-                // FIXMEchpe can't we move that check out of the loop?
-                if (m_last_graphic_character == 0)
-                        break;
-                insert_char(m_last_graphic_character, false, true);
-        }
-}
-
 /* Cursor down 1 line, with scrolling. */
 void
 VteTerminalPrivate::seq_index(vte::parser::Params const& params)
@@ -5046,9 +5032,18 @@ VteTerminalPrivate::REP(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.103
          */
 
-        seq_repeat(seq);
+        if (m_last_graphic_character == 0)
+                return;
+
+        auto const count = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
+
+        // FIXMEchpe insert in one run so we only clean up fragments once
+        for (auto i = 0; i < count; i++)
+                insert_char(m_last_graphic_character, false, true);
 }
 
 void
