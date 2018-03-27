@@ -176,13 +176,11 @@ public:
         void set_intermediates(uint32_t* i,
                                unsigned int ni)
         {
-                unsigned int flags = 0;
                 for (unsigned int n = 0; n < ni; n++) {
-                        flags |= (1u << (i[n] - 0x20));
                         m_i[n] = i[n];
                 }
                 m_ni = ni;
-                m_seq.intermediates = flags;
+                m_seq.n_intermediates = ni;
         }
 
         void set_params(vte_seq_arg_t params[16])
@@ -199,9 +197,6 @@ public:
         void set_param_byte(uint32_t p)
         {
                 m_p = p;
-                if (p != 0) {
-                        m_seq.intermediates |= (1u << (p - 0x20));
-                }
         }
 
         void set_string(std::u32string const& str)
@@ -229,7 +224,7 @@ public:
 
 private:
         uint32_t m_i[4]{0, 0, 0, 0};
-        uint32_t m_p;
+        uint32_t m_p{0};
         unsigned int m_ni{0};
         std::u32string m_arg_str;
         struct vte_seq m_seq;
@@ -601,7 +596,8 @@ test_seq_esc_charset(uint32_t f, /* final */
                      uint32_t i[], /* intermediates */
                      unsigned int ni, /* number of intermediates */
                      unsigned int cmd, /* expected command */
-                     unsigned int cs /* expected charset */)
+                     unsigned int cs /* expected charset */,
+                     unsigned int slot /* expected slot */)
 {
         vte_seq_builder b{VTE_SEQ_ESCAPE, f};
         b.set_intermediates(i, ni);
@@ -613,7 +609,8 @@ test_seq_esc_charset(uint32_t f, /* final */
         b.assert_equal(seq);
 
         g_assert_cmpint(seq->command, ==, cmd);
-        g_assert_cmpint(seq->charset, ==, cs);
+        g_assert_cmpint(VTE_CHARSET_GET_CHARSET(seq->charset), ==, cs);
+        g_assert_cmpint(VTE_CHARSET_GET_SLOT(seq->charset), ==, slot);
 }
 
 static void
@@ -623,7 +620,8 @@ test_seq_esc_charset(uint32_t i[], /* intermediates */
                      unsigned int ntable, /* number of table entries */
                      uint32_t ts, /* start of table */
                      unsigned int cmd, /* expected command */
-                     unsigned int defaultcs /* default charset */)
+                     unsigned int defaultcs /* default charset */,
+                     unsigned int slot /* expected slot */)
 {
         for (uint32_t f = 0x30; f < 0x7f; f++) {
                 int cs;
@@ -633,7 +631,7 @@ test_seq_esc_charset(uint32_t i[], /* intermediates */
                 else
                         cs = defaultcs;
 
-                test_seq_esc_charset(f, i, ni, cmd, cs);
+                test_seq_esc_charset(f, i, ni, cmd, cs, slot);
         }
 }
 
@@ -644,30 +642,32 @@ test_seq_esc_charset_94(void)
 
         /* Single byte 94-sets */
         for (i[0] = 0x28; i[0] <= 0x2b; i[0]++) {
+                int slot = i[0] - 0x28;
+
                 test_seq_esc_charset(i, 1,
                                      charset_graphic_94,
                                      G_N_ELEMENTS(charset_graphic_94),
-                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 i[1] = 0x20;
                 test_seq_esc_charset(i, 2, nullptr, 0, 0,
-                                     VTE_CMD_GnDm, VTE_CHARSET_DRCS);
+                                     VTE_CMD_GnDm, VTE_CHARSET_DRCS, slot);
 
                 i[1] = 0x21;
                 test_seq_esc_charset(i, 2,
                                      charset_graphic_94_with_2_1,
                                      G_N_ELEMENTS(charset_graphic_94_with_2_1),
-                                     0x40, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x40, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 i[1] = 0x22;
                 test_seq_esc_charset(i, 2,
                                      charset_graphic_94_with_2_2,
                                      G_N_ELEMENTS(charset_graphic_94_with_2_2),
-                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 i[1] = 0x23;
                 test_seq_esc_charset(i, 2, nullptr, 0,
-                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 /* 2/4 is multibyte charsets */
 
@@ -675,17 +675,17 @@ test_seq_esc_charset_94(void)
                 test_seq_esc_charset(i, 2,
                                      charset_graphic_94_with_2_5,
                                      G_N_ELEMENTS(charset_graphic_94_with_2_5),
-                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 i[1] = 0x26;
                 test_seq_esc_charset(i, 2,
                                      charset_graphic_94_with_2_6,
                                      G_N_ELEMENTS(charset_graphic_94_with_2_6),
-                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 i[1] = 0x27;
                 test_seq_esc_charset(i, 2, nullptr, 0, 0,
-                                     VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
         }
 }
 
@@ -696,14 +696,16 @@ test_seq_esc_charset_96(void)
 
         /* Single byte 96-sets */
         for (i[0] = 0x2d; i[0] <= 0x2f; i[0]++) {
+                int slot = i[0] - 0x2c;
+
                 test_seq_esc_charset(i, 1,
                                      charset_graphic_96,
                                      G_N_ELEMENTS(charset_graphic_96),
-                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
 
                 i[1] = 0x20;
                 test_seq_esc_charset(i, 2, nullptr, 0, 0,
-                                     VTE_CMD_GnDm, VTE_CHARSET_DRCS);
+                                     VTE_CMD_GnDm, VTE_CHARSET_DRCS, slot);
 
                 /* 2/4 is multibyte charsets, 2/5 is DOCS. Other indermediates may be present
                  * in Fp sequences, but none are actually in use.
@@ -713,7 +715,7 @@ test_seq_esc_charset_96(void)
                                 continue;
 
                         test_seq_esc_charset(i, 2, nullptr, 0, 0,
-                                             VTE_CMD_GnDm, VTE_CHARSET_NONE);
+                                             VTE_CMD_GnDm, VTE_CHARSET_NONE, slot);
                 }
         }
 }
@@ -726,14 +728,16 @@ test_seq_esc_charset_94_n(void)
         /* Multibyte 94-sets */
         i[0] = 0x24;
         for (i[1] = 0x28; i[1] <= 0x2b; i[1]++) {
+                int slot = i[1] - 0x28;
+
                 test_seq_esc_charset(i, 2,
                                      charset_graphic_94_n,
                                      G_N_ELEMENTS(charset_graphic_94_n),
-                                     0x30, VTE_CMD_GnDMm, VTE_CHARSET_NONE);
+                                     0x30, VTE_CMD_GnDMm, VTE_CHARSET_NONE, slot);
 
                 i[2] = 0x20;
                 test_seq_esc_charset(i, 3, nullptr, 0, 0,
-                                     VTE_CMD_GnDMm, VTE_CHARSET_DRCS);
+                                     VTE_CMD_GnDMm, VTE_CHARSET_DRCS, slot);
 
                 /* There could be one more intermediate byte. */
                 for (i[2] = 0x21; i[2] < 0x28; i[2]++) {
@@ -741,14 +745,14 @@ test_seq_esc_charset_94_n(void)
                                 continue;
 
                         test_seq_esc_charset(i, 3, nullptr, 0, 0,
-                                             VTE_CMD_GnDMm, VTE_CHARSET_NONE);
+                                             VTE_CMD_GnDMm, VTE_CHARSET_NONE, slot);
                 }
         }
 
         /* As a special exception, ESC 2/4 4/[012] are also possible */
-        test_seq_esc_charset(0x40, i, 1, VTE_CMD_GnDMm, charset_graphic_94_n[0x40 - 0x30]);
-        test_seq_esc_charset(0x41, i, 1, VTE_CMD_GnDMm, charset_graphic_94_n[0x41 - 0x30]);
-        test_seq_esc_charset(0x42, i, 1, VTE_CMD_GnDMm, charset_graphic_94_n[0x42 - 0x30]);
+        test_seq_esc_charset(0x40, i, 1, VTE_CMD_GnDMm, charset_graphic_94_n[0x40 - 0x30], 0);
+        test_seq_esc_charset(0x41, i, 1, VTE_CMD_GnDMm, charset_graphic_94_n[0x41 - 0x30], 0);
+        test_seq_esc_charset(0x42, i, 1, VTE_CMD_GnDMm, charset_graphic_94_n[0x42 - 0x30], 0);
 }
 
 static void
@@ -759,17 +763,19 @@ test_seq_esc_charset_96_n(void)
         /* Multibyte 94-sets */
         i[0] = 0x24;
         for (i[1] = 0x2d; i[1] <= 0x2f; i[1]++) {
+                int slot = i[1] - 0x2c;
+
                 test_seq_esc_charset(i, 2, nullptr, 0, 0,
-                                     VTE_CMD_GnDMm, VTE_CHARSET_NONE);
+                                     VTE_CMD_GnDMm, VTE_CHARSET_NONE, slot);
 
                 i[2] = 0x20;
                 test_seq_esc_charset(i, 3, nullptr, 0, 0,
-                                     VTE_CMD_GnDMm, VTE_CHARSET_DRCS);
+                                     VTE_CMD_GnDMm, VTE_CHARSET_DRCS, slot);
 
                 /* There could be one more intermediate byte. */
                 for (i[2] = 0x21; i[2] < 0x28; i[2]++) {
                         test_seq_esc_charset(i, 3, nullptr, 0, 0,
-                                             VTE_CMD_GnDMm, VTE_CHARSET_NONE);
+                                             VTE_CMD_GnDMm, VTE_CHARSET_NONE, slot);
                 }
         }
 }
@@ -784,14 +790,14 @@ test_seq_esc_charset_control(void)
         test_seq_esc_charset(i, 1,
                              charset_control_c0,
                              G_N_ELEMENTS(charset_control_c0),
-                             0x40, VTE_CMD_CnD, VTE_CHARSET_NONE);
+                             0x40, VTE_CMD_CnD, VTE_CHARSET_NONE, 0);
 
         /* C1 controls: ESC 2/2 F */
         i[0] = 0x22;
         test_seq_esc_charset(i, 1,
                              charset_control_c1,
                              G_N_ELEMENTS(charset_control_c1),
-                             0x40, VTE_CMD_CnD, VTE_CHARSET_NONE);
+                             0x40, VTE_CMD_CnD, VTE_CHARSET_NONE, 1);
 }
 
 static void
@@ -804,13 +810,13 @@ test_seq_esc_charset_other(void)
         test_seq_esc_charset(i, 1,
                              charset_ocs_with_return,
                              G_N_ELEMENTS(charset_ocs_with_return),
-                             0x40, VTE_CMD_DOCS, VTE_CHARSET_NONE);
+                             0x40, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
 
         i[1] = 0x2f;
         test_seq_esc_charset(i, 2,
                              charset_ocs_without_return,
                              G_N_ELEMENTS(charset_ocs_without_return),
-                             0x40, VTE_CMD_DOCS, VTE_CHARSET_NONE);
+                             0x40, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
 }
 
 static void
@@ -844,6 +850,32 @@ test_seq_esc_Fpes(void)
                 if (rv != VTE_SEQ_NONE)
                         b.assert_equal(seq);
         }
+}
+
+static void
+test_seq_esc_known(uint32_t f,
+                   uint32_t i,
+                   unsigned int cmd)
+{
+        vte_seq_builder b{VTE_SEQ_ESCAPE, f};
+        if (i != 0)
+                b.set_intermediates(&i, 1);
+
+        struct vte_seq* seq;
+        auto rv = feed_parser(b, &seq);
+        g_assert_cmpint(rv, ==, VTE_SEQ_ESCAPE);
+        g_assert_cmpint(seq->command, ==, cmd);
+}
+
+static void
+test_seq_esc_known(void)
+{
+        vte_parser_reset(parser);
+
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+        test_seq_esc_known(f, VTE_SEQ_INTERMEDIATE_CHAR_##i, VTE_CMD_##cmd);
+#include "parser-esc.hh"
+#undef _VTE_SEQ
 }
 
 static void
@@ -964,6 +996,35 @@ test_seq_sci(void)
 }
 
 static void
+test_seq_csi_known(uint32_t f,
+                   uint32_t p,
+                   uint32_t i,
+                   unsigned int cmd)
+{
+        vte_seq_builder b{VTE_SEQ_CSI, f};
+        if (p != 0)
+                b.set_param_byte(p);
+        if (i != 0)
+                b.set_intermediates(&i, 1);
+
+        struct vte_seq* seq;
+        auto rv = feed_parser(b, &seq);
+        g_assert_cmpint(rv, ==, VTE_SEQ_CSI);
+        g_assert_cmpint(seq->command, ==, cmd);
+}
+
+static void
+test_seq_csi_known(void)
+{
+        vte_parser_reset(parser);
+
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+        test_seq_csi_known(f, VTE_SEQ_PARAMETER_CHAR_##p, VTE_SEQ_INTERMEDIATE_CHAR_##i, VTE_CMD_##cmd);
+#include "parser-csi.hh"
+#undef _VTE_SEQ
+}
+
+static void
 test_seq_dcs(uint32_t f,
              uint32_t p,
              vte_seq_arg_t params[16],
@@ -1056,6 +1117,35 @@ test_seq_dcs(void)
 }
 
 static void
+test_seq_dcs_known(uint32_t f,
+                   uint32_t p,
+                   uint32_t i,
+                   unsigned int cmd)
+{
+        vte_seq_builder b{VTE_SEQ_DCS, f};
+        if (p != 0)
+                b.set_param_byte(p);
+        if (i != 0)
+                b.set_intermediates(&i, 1);
+
+        struct vte_seq* seq;
+        auto rv = feed_parser(b, &seq);
+        g_assert_cmpint(rv, ==, VTE_SEQ_DCS);
+        g_assert_cmpint(seq->command, ==, cmd);
+}
+
+static void
+test_seq_dcs_known(void)
+{
+        vte_parser_reset(parser);
+
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+        test_seq_dcs_known(f, VTE_SEQ_PARAMETER_CHAR_##p, VTE_SEQ_INTERMEDIATE_CHAR_##i, VTE_CMD_##cmd);
+#include "parser-dcs.hh"
+#undef _VTE_SEQ
+}
+
+static void
 test_seq_parse(char const* str,
                struct vte_seq** seq)
 {
@@ -1141,7 +1231,6 @@ test_seq_glue_arg(char const* str,
         g_assert_cmpuint(seq.type(), ==, raw_seq->type);
         g_assert_cmpuint(seq.command(), ==, raw_seq->command);
         g_assert_cmpuint(seq.terminator(), ==, raw_seq->terminator);
-        g_assert_cmpuint(seq.intermediates(), ==, raw_seq->intermediates);
 
         for (unsigned int i = 0; i < raw_seq->n_args; i++)
                 g_assert_cmpuint(seq.param(i), ==, vte_seq_arg_value(raw_seq->args[i]));
@@ -1507,10 +1596,13 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/escape/charset/other", test_seq_esc_charset_other);
         g_test_add_func("/vte/parser/sequences/escape/nF", test_seq_esc_nF);
         g_test_add_func("/vte/parser/sequences/escape/F[pes]", test_seq_esc_Fpes);
+        g_test_add_func("/vte/parser/sequences/escape/known", test_seq_esc_known);
         g_test_add_func("/vte/parser/sequences/csi", test_seq_csi);
+        g_test_add_func("/vte/parser/sequences/csi/known", test_seq_csi_known);
         g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
         g_test_add_func("/vte/parser/sequences/sci", test_seq_sci);
         g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
+        g_test_add_func("/vte/parser/sequences/dcs/known", test_seq_dcs_known);
         g_test_add_func("/vte/parser/sequences/osc", test_seq_osc);
 
         auto rv = g_test_run();

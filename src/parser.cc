@@ -30,7 +30,6 @@
 #include "parser-charset-tables.hh"
 
 #define WARN(num,str) do { } while (0)
-#define hweight32(v) (__builtin_popcount(v))
 #define kzalloc(n,v) calloc((n),1)
 #define kfree(ptr) free(ptr)
 
@@ -54,6 +53,73 @@ struct vte_parser {
  * detect the specific command. Once a sequence is parsed, the command-parsers
  * are used to figure out their meaning.
  */
+
+/*
+ * Intermediates (and, for CSI/DCS, the optional parameter character) are
+ * stored efficiently in an unsigned int. Intermediates can be 2/00..2/15,
+ * plus one value for 'no intermediate'; together that fits into 5 bits.
+ * Parameter character can be 'no parameter character', or one from
+ * 3/12..3/15; that fits into 3 bits.
+ *
+ * In @seq.intermediates, the nth intermediates is stored with shift n * 5,
+ * plus (for CSI/DCS) an additional shift of 3 for the parameter character
+ * which is stored at bits 0..2.
+ *
+ * VTE_SEQ_PARAMETER(u) extracts the parameter character
+ *   of a CSI or DCS sequence
+ * VTE_SEQ_REMOVE_PARAMETER(u) extracts the intermediates
+ *   of a CSI or DCS sequence
+ * VTE_SEQ_INTERMEDIATE(u) extracts the first intermediate from an
+ *   intermediates value (for CSI/DCS, that must be without parameter
+ *   character, see VTE_SEQ_REMOVE_PARAMETER)
+ * VTE_SEQ_REMOVE_INTERMEDIATE(u) extracts the remaining intermediates
+ *   after the first one; use VTE_SEQ_INTERMEDIATE on its return value
+ *   to extract the 2nd intermediate, and so on
+ */
+
+#define VTE_SEQ_PARAMETER_BITS         (3)
+#define VTE_SEQ_INTERMEDIATE_BITS      (5)
+#define VTE_SEQ_INTERMEDIATE_MASK      ((1U << VTE_SEQ_INTERMEDIATE_BITS) - 1U)
+#define VTE_SEQ_PARAMETER_MASK         ((1U << VTE_SEQ_PARAMETER_BITS) - 1U)
+#define VTE_SEQ_PARAMETER(u)           ((u) & VTE_SEQ_PARAMETER_MASK)
+#define VTE_SEQ_REMOVE_PARAMETER(u)    ((u) >> VTE_SEQ_PARAMETER_BITS)
+#define VTE_SEQ_INTERMEDIATE(u)        ((u) & VTE_SEQ_INTERMEDIATE_MASK)
+#define VTE_SEQ_REMOVE_INTERMEDIATE(u) ((u) >> VTE_SEQ_INTERMEDIATE_BITS)
+#define VTE_MAKE_CHARSET(c,s)          ((c) | ((s) << VTE_CHARSET_SLOT_OFFSET))
+
+/*
+ * _VTE_SEQ_CODE_ESC(final, intermediates):
+ *
+ * Make a value combining the final character and the intermediates,
+ * to be used to match a sequence against known sequences.
+ *
+ * Since this is only used with NONE or HASH as first intermediate,
+ * we can reduce the size of the lookup table by slashing the least
+ * significant bit off.
+ *
+ * Final characters is 3/0..7/14, needing 7 bits.
+ */
+#define _VTE_SEQ_CODE_ESC(f,i) (((f) - 0x30) | ((i) >> 1) << 7)
+
+/*
+ * _VTE_SEQ_CODE_COMBINE(parameter, intermediates)
+ *
+ * Combines intermediates and the parameter character into one
+ * value to be used when matching a sequence against known sequences.
+ */
+#define _VTE_SEQ_CODE_COMBINE(p,i) ((p) | ((i) << VTE_SEQ_PARAMETER_BITS))
+
+/*
+ * _VTE_SEQ_CODE(final, intermediates):
+ *
+ * Make a value combining the final character and the intermediates,
+ * to be used to match a sequence against known sequences. Used for
+ * CSI and DCS sequences; use _VTE_SEQ_CODE_COMBINE to combine
+ * parameter and intermediates into one to pass as 2nd argument here.
+ *
+ * Final character is 4/0..7/14, needing 6 bits.
+ */
+#define _VTE_SEQ_CODE(f,i) (((f) - 0x40) | ((i) << 6))
 
 static unsigned int vte_parse_host_control(const struct vte_seq *seq)
 {
@@ -140,44 +206,47 @@ static unsigned int vte_parse_host_control(const struct vte_seq *seq)
 }
 
 static unsigned int vte_parse_charset_94(uint32_t raw,
-                                         unsigned int flags)
+                                         unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
-        if (flags & VTE_SEQ_FLAG_SPACE)
-                return VTE_CHARSET_DRCS;
+        unsigned int remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(intermediates);
 
-        switch (flags) {
-        case 0:
-                if (raw < (0x30 + G_N_ELEMENTS(charset_graphic_94)))
+        switch (VTE_SEQ_INTERMEDIATE(intermediates)) {
+        case VTE_SEQ_INTERMEDIATE_NONE:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_94)))
                         return charset_graphic_94[raw - 0x30];
                 break;
 
-        case VTE_SEQ_FLAG_BANG:
-                if (raw >= 0x40 && (raw < 0x40 + G_N_ELEMENTS(charset_graphic_94_with_2_1)))
+        case VTE_SEQ_INTERMEDIATE_SPACE:
+                return VTE_CHARSET_DRCS;
+
+        case VTE_SEQ_INTERMEDIATE_BANG:
+                if (remaining_intermediates == 0 &&
+                    raw >= 0x40 && (raw < 0x40 + G_N_ELEMENTS(charset_graphic_94_with_2_1)))
                         return charset_graphic_94_with_2_1[raw - 0x40];
                 break;
 
-        case VTE_SEQ_FLAG_DQUOTE:
-                if (raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_with_2_2)))
+        case VTE_SEQ_INTERMEDIATE_DQUOTE:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_with_2_2)))
                         return charset_graphic_94_with_2_2[raw - 0x30];
                 break;
 
-        case VTE_SEQ_FLAG_HASH:
+        case VTE_SEQ_INTERMEDIATE_HASH:
+        case VTE_SEQ_INTERMEDIATE_CASH:
                 break;
 
-        case VTE_SEQ_FLAG_CASH:
-                if (raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_n)))
-                        return charset_graphic_94_n[raw - 0x30];
-                break;
-
-        case VTE_SEQ_FLAG_PERCENT:
-                if (raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_with_2_5)))
+        case VTE_SEQ_INTERMEDIATE_PERCENT:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_with_2_5)))
                         return charset_graphic_94_with_2_5[raw - 0x30];
                 break;
 
-        case VTE_SEQ_FLAG_AND:
-                if (raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_with_2_6)))
+        case VTE_SEQ_INTERMEDIATE_AND:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_with_2_6)))
                         return charset_graphic_94_with_2_6[raw - 0x30];
                 break;
         }
@@ -185,50 +254,100 @@ static unsigned int vte_parse_charset_94(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_96(uint32_t raw,
-                                         unsigned int flags)
+static unsigned int vte_parse_charset_94_n(uint32_t raw,
+                                           unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
-        if (flags == 0) { /* Graphic 96-set */
-                if (raw < (0x30 + G_N_ELEMENTS(charset_graphic_96)))
-                        return charset_graphic_96[raw - 0x30];
-        } else if (flags & VTE_SEQ_FLAG_SPACE) { /* DRCS */
+        unsigned int remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(intermediates);
+
+        switch (VTE_SEQ_INTERMEDIATE(intermediates)) {
+        case VTE_SEQ_INTERMEDIATE_NONE:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_n)))
+                        return charset_graphic_94_n[raw - 0x30];
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_SPACE:
                 return VTE_CHARSET_DRCS;
         }
 
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_ocs(uint32_t raw,
-                                          unsigned int flags)
+static unsigned int vte_parse_charset_96(uint32_t raw,
+                                         unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
-        if (flags == VTE_SEQ_FLAG_PERCENT) {
-                /* OCS with standard return */
-                if (raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_ocs_with_return)))
+        unsigned int remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(intermediates);
+
+        switch (VTE_SEQ_INTERMEDIATE(intermediates)) {
+        case VTE_SEQ_INTERMEDIATE_NONE:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_96)))
+                        return charset_graphic_96[raw - 0x30];
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_SPACE:
+                return VTE_CHARSET_DRCS;
+        }
+
+        return VTE_CHARSET_NONE;
+}
+
+static unsigned int vte_parse_charset_96_n(uint32_t raw,
+                                           unsigned int intermediates)
+{
+        if (VTE_SEQ_INTERMEDIATE(intermediates) == VTE_SEQ_INTERMEDIATE_SPACE)
+                return VTE_CHARSET_DRCS;
+
+        return VTE_CHARSET_NONE;
+}
+
+static unsigned int vte_parse_charset_ocs(uint32_t raw,
+                                          unsigned int intermediates)
+{
+        assert (raw >= 0x30 && raw < 0x7f);
+
+        unsigned int remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(intermediates);
+
+        switch (VTE_SEQ_INTERMEDIATE(intermediates)) {
+        case VTE_SEQ_INTERMEDIATE_NONE:  /* OCS with standard return */
+                if (remaining_intermediates == 0 &&
+                    raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_ocs_with_return)))
                         return charset_ocs_with_return[raw - 0x40];
-        } else if (flags == (VTE_SEQ_FLAG_PERCENT | VTE_SEQ_FLAG_SLASH)) {
-                /* OCS without standard return */
-                if (raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_ocs_without_return)))
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_SLASH: /* OCS without standard return */
+                if (remaining_intermediates == 0 &&
+                    raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_ocs_without_return)))
                         return charset_ocs_without_return[raw - 0x40];
+                break;
         }
 
         return VTE_CHARSET_NONE;
 }
 
 static unsigned int vte_parse_charset_control(uint32_t raw,
-                                              unsigned int flags)
+                                              unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
-        if (flags == VTE_SEQ_FLAG_BANG) { /* C0 controls */
-                if (raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_control_c0)))
+        unsigned int remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(intermediates);
+
+        switch (VTE_SEQ_INTERMEDIATE(intermediates)) {
+        case VTE_SEQ_INTERMEDIATE_BANG: /* C0 controls */
+                if (remaining_intermediates == 0 &&
+                    raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_control_c0)))
                         return charset_control_c0[raw - 0x40];
-        } else if (flags == VTE_SEQ_FLAG_DQUOTE) { /* C1 controls */
-                if (raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_control_c1)))
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_DQUOTE: /* C1 controls */
+                if (remaining_intermediates == 0 &&
+                    raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_control_c1)))
                         return charset_control_c1[raw - 0x40];
+                break;
         }
 
         return VTE_CHARSET_NONE;
@@ -237,175 +356,112 @@ static unsigned int vte_parse_charset_control(uint32_t raw,
 static unsigned int vte_parse_host_escape(const struct vte_seq *seq,
                                           unsigned int *cs_out)
 {
-        unsigned int const flags = seq->intermediates;
+        unsigned int intermediates = seq->intermediates;
+        unsigned int intermediate0 = VTE_SEQ_INTERMEDIATE(intermediates);
 
-        if (flags == 0) {
-                switch (seq->terminator) {
-                case '6': /* DECBI */
-                        return VTE_CMD_DECBI;
-                case '7': /* DECSC */
-                        return VTE_CMD_DECSC;
-                case '8': /* DECRC */
-                        return VTE_CMD_DECRC;
-                case '9': /* DECFI */
-                        return VTE_CMD_DECFI;
-                case '<': /* DECANM */
-                        return VTE_CMD_DECANM;
-                case '=': /* DECKPAM */
-                        return VTE_CMD_DECKPAM;
-                case '>': /* DECKPNM */
-                        return VTE_CMD_DECKPNM;
-                case 'D': /* IND */
-                        return VTE_CMD_IND;
-                case 'E': /* NEL */
-                        return VTE_CMD_NEL;
-                case 'F': /* Cursor to lower-left corner of screen */
-                        return VTE_CMD_XTERM_CLLHP;
-                case 'H': /* HTS */
-                        return VTE_CMD_HTS;
-                case 'M': /* RI */
-                        return VTE_CMD_RI;
-                case 'N': /* SS2 */
-                        return VTE_CMD_SS2;
-                case 'O': /* SS3 */
-                        return VTE_CMD_SS3;
-                case 'P': /* DCS */
-                        /* this is already handled by the state-machine */
-                        break;
-                case 'V': /* SPA */
-                        return VTE_CMD_SPA;
-                case 'W': /* EPA */
-                        return VTE_CMD_EPA;
-                case 'X': /* SOS */
-                        /* this is already handled by the state-machine */
-                        break;
-                case 'Z': /* SCI */
-                        /* this is already handled by the state-machine */
-                        break;
-                case '[': /* CSI */
-                        /* this is already handled by the state-machine */
-                        break;
-                case '\\': /* ST */
-                        return VTE_CMD_ST;
-                case ']': /* OSC */
-                        /* this is already handled by the state-machine */
-                        break;
-                case '^': /* PM */
-                        /* this is already handled by the state-machine */
-                        break;
-                case '_': /* APC */
-                        /* this is already handled by the state-machine */
-                        break;
-                case 'c': /* RIS */
-                        return VTE_CMD_RIS;
-                case 'd': /* CMD */
-                        return VTE_CMD_CMD;
-                case 'l': /* Memory lock */
-                        return VTE_CMD_XTERM_MLHP;
-                case 'm': /* Memory unlock */
-                        return VTE_CMD_XTERM_MUHP;
-                case 'n': /* LS2 */
-                        return VTE_CMD_LS2;
-                case 'o': /* LS3 */
-                        return VTE_CMD_LS3;
-                case '|': /* LS3R */
-                        return VTE_CMD_LS3R;
-                case '}': /* LS2R */
-                        return VTE_CMD_LS2R;
-                case '~': /* LS1R */
-                        return VTE_CMD_LS1R;
-                }
-
-                return VTE_CMD_NONE;
-        }
-
-        unsigned int const g_designators =
-                VTE_SEQ_FLAG_POPEN | VTE_SEQ_FLAG_PCLOSE |
-                VTE_SEQ_FLAG_MULT  | VTE_SEQ_FLAG_PLUS   |
-                VTE_SEQ_FLAG_MINUS | VTE_SEQ_FLAG_DOT    |
-                VTE_SEQ_FLAG_SLASH;
-
-        if (hweight32(flags & g_designators) == 1) {
-                unsigned int const remaining_flags = flags & ~g_designators;
-                int cmd = (remaining_flags & VTE_SEQ_FLAG_CASH) ? VTE_CMD_GnDMm : VTE_CMD_GnDm;
-                int cs = VTE_CHARSET_NONE;
-
-                switch (flags & g_designators) {
-                case VTE_SEQ_FLAG_POPEN:
-                case VTE_SEQ_FLAG_PCLOSE:
-                case VTE_SEQ_FLAG_MULT:
-                case VTE_SEQ_FLAG_PLUS:
-                        cs = vte_parse_charset_94(seq->terminator, remaining_flags);
-                        break;
-                case VTE_SEQ_FLAG_SLASH:
-                        if (remaining_flags == VTE_SEQ_FLAG_PERCENT) { /* DOCS */
-                                cmd = VTE_CMD_DOCS;
-                                cs = vte_parse_charset_ocs(seq->terminator, /* all */ flags);
-                                break;
-                        }
-                        /* fallthrough */
-                case VTE_SEQ_FLAG_MINUS:
-                case VTE_SEQ_FLAG_DOT:
-                        cs = vte_parse_charset_96(seq->terminator, remaining_flags);
-                        break;
-                }
-
-                if (cs_out)
-                        *cs_out = cs;
-
-                return cmd;
-        }
-
-        switch (flags) {
-        case VTE_SEQ_FLAG_SPACE: /* ACS */
-                return VTE_CMD_ACS;
-
-        case VTE_SEQ_FLAG_BANG: /* C0-designate */
-        case VTE_SEQ_FLAG_DQUOTE: /* C1-designate */
-                if (cs_out)
-                        *cs_out = vte_parse_charset_control(seq->terminator, flags);
-                return VTE_CMD_CnD;
-
-        case VTE_SEQ_FLAG_HASH:
-                switch (seq->terminator) {
-                case '3': /* DECDHL top-half */
-                        return VTE_CMD_DECDHL_TH;
-                case '4': /* DECDHL bottom-half */
-                        return VTE_CMD_DECDHL_BH;
-                case '5': /* DECSWL */
-                        return VTE_CMD_DECSWL;
-                case '6': /* DECDWL */
-                        return VTE_CMD_DECDWL;
-                case '8': /* DECALN */
-                        return VTE_CMD_DECALN;
+        /* Switch on the first intermediate */
+        switch (intermediate0) {
+        case VTE_SEQ_INTERMEDIATE_NONE:
+        case VTE_SEQ_INTERMEDIATE_HASH: {  /* Single control functions */
+                switch (_VTE_SEQ_CODE_ESC(seq->terminator, intermediates)) {
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+                        case _VTE_SEQ_CODE_ESC(f, VTE_SEQ_INTERMEDIATE_##i): return VTE_CMD_##cmd;
+#include "parser-esc.hh"
+#undef _VTE_SEQ
+                default: return VTE_CMD_NONE;
                 }
                 break;
+        }
 
-        case VTE_SEQ_FLAG_CASH:
-                /* For compatibility with an earlier version of ISO-2022,
-                 * ESC 2/4 4/0, ESC 2/4 4/1 and ESC 2/4 4/2 designate G0
-                 * sets (i.e., without the 2/8 as 2nd intermediate byte).
-                 */
-                switch (seq->terminator) {
-                case '@':
-                case 'A':
-                case 'B': /* G0-designate multibyte charset */
-                        if (cs_out)
-                                *cs_out = vte_parse_charset_94(seq->terminator,
-                                                               flags /* | VTE_SEQ_FLAG_POPEN */);
+        case VTE_SEQ_INTERMEDIATE_SPACE:   /* Announce code structure */
+                if (VTE_SEQ_REMOVE_INTERMEDIATE(intermediates) == 0)
+                        return VTE_CMD_ACS;
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_BANG:    /* C0-designate */
+        case VTE_SEQ_INTERMEDIATE_DQUOTE:  /* C1-designate */
+                *cs_out = VTE_MAKE_CHARSET(vte_parse_charset_control(seq->terminator, intermediates),
+                                           intermediate0 - VTE_SEQ_INTERMEDIATE_BANG);
+                return VTE_CMD_CnD;
+
+        case VTE_SEQ_INTERMEDIATE_CASH: {  /* Designate multi-byte character sets */
+                unsigned int remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(intermediates);
+                unsigned int intermediate1 = VTE_SEQ_INTERMEDIATE(remaining_intermediates);
+                remaining_intermediates = VTE_SEQ_REMOVE_INTERMEDIATE(remaining_intermediates);
+
+                /* Check the 2nd intermediate */
+                switch (intermediate1) {
+                case VTE_SEQ_INTERMEDIATE_NONE:
+                        /* For compatibility with an earlier version of ISO-2022,
+                         * ESC 2/4 4/0, ESC 2/4 4/1 and ESC 2/4 4/2 designate G0
+                         * sets (i.e., without the 2/8 as 2nd intermediate byte).
+                         */
+                        switch (seq->terminator) {
+                        case '@':
+                        case 'A':
+                        case 'B': /* G0-designate multibyte charset */
+                                *cs_out = VTE_MAKE_CHARSET(vte_parse_charset_94_n(seq->terminator,
+                                                                                  remaining_intermediates),
+                                                           0);
+                                return VTE_CMD_GnDMm;
+                        }
+                        break;
+
+                case VTE_SEQ_INTERMEDIATE_POPEN:  /* G0-designate 94^n-set */
+                case VTE_SEQ_INTERMEDIATE_PCLOSE: /* G1-designate 94^n-set */
+                case VTE_SEQ_INTERMEDIATE_MULT:   /* G2-designate 94^n-set */
+                case VTE_SEQ_INTERMEDIATE_PLUS:   /* G3-designate 94^n-set */
+                        *cs_out = VTE_MAKE_CHARSET(vte_parse_charset_94_n(seq->terminator,
+                                                                          remaining_intermediates),
+                                                   intermediate1 - VTE_SEQ_INTERMEDIATE_POPEN);
+                        return VTE_CMD_GnDMm;
+
+                case VTE_SEQ_INTERMEDIATE_COMMA:  /* Reserved for future standardisation */
+                        break;
+
+                case VTE_SEQ_INTERMEDIATE_MINUS:  /* G1-designate 96^n-set */
+                case VTE_SEQ_INTERMEDIATE_DOT:    /* G2-designate 96^n-set */
+                case VTE_SEQ_INTERMEDIATE_SLASH:  /* G3-designate 96^n-set */
+                        *cs_out = VTE_MAKE_CHARSET(vte_parse_charset_96_n(seq->terminator,
+                                                                          remaining_intermediates),
+                                                   intermediate1 - VTE_SEQ_INTERMEDIATE_COMMA);
                         return VTE_CMD_GnDMm;
                 }
                 break;
+        }
 
-        case VTE_SEQ_FLAG_PERCENT: /* DOCS */
-        case VTE_SEQ_FLAG_PERCENT | VTE_SEQ_FLAG_SLASH: /* DOCS, but already handled above */
-                if (cs_out)
-                        *cs_out = vte_parse_charset_ocs(seq->terminator, flags);
-
+        case VTE_SEQ_INTERMEDIATE_PERCENT: /* Designate other coding system */
+                *cs_out = vte_parse_charset_ocs(seq->terminator,
+                                                VTE_SEQ_REMOVE_INTERMEDIATE(intermediates));
                 return VTE_CMD_DOCS;
 
-        case VTE_SEQ_FLAG_AND: /* IRR */
-                return VTE_CMD_IRR;
+        case VTE_SEQ_INTERMEDIATE_AND:     /* Identify revised registration */
+                if (VTE_SEQ_REMOVE_INTERMEDIATE(intermediates) == 0)
+                        return VTE_CMD_IRR;
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_SQUOTE:  /* Reserved for future standardisation */
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_POPEN:   /* G0-designate 94-set */
+        case VTE_SEQ_INTERMEDIATE_PCLOSE:  /* G1-designate 94-set */
+        case VTE_SEQ_INTERMEDIATE_MULT:    /* G2-designate 94-set */
+        case VTE_SEQ_INTERMEDIATE_PLUS:    /* G3-designate 94-set */
+                *cs_out = VTE_MAKE_CHARSET(vte_parse_charset_94(seq->terminator,
+                                                                VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)),
+                                           intermediate0 - VTE_SEQ_INTERMEDIATE_POPEN);
+                return VTE_CMD_GnDm;
+
+        case VTE_SEQ_INTERMEDIATE_COMMA:   /* Reserved for future standardisation */
+                break;
+
+        case VTE_SEQ_INTERMEDIATE_MINUS:   /* G1-designate 96-set */
+        case VTE_SEQ_INTERMEDIATE_DOT:     /* G2-designate 96-set */
+        case VTE_SEQ_INTERMEDIATE_SLASH:   /* G3-designate 96-set */
+                *cs_out = VTE_MAKE_CHARSET(vte_parse_charset_96(seq->terminator,
+                                                                VTE_SEQ_REMOVE_INTERMEDIATE(intermediates)),
+                                           intermediate0 - VTE_SEQ_INTERMEDIATE_COMMA);
+                return VTE_CMD_GnDm;
         }
 
         return VTE_CMD_NONE;
@@ -413,505 +469,24 @@ static unsigned int vte_parse_host_escape(const struct vte_seq *seq,
 
 static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
 {
-        unsigned int flags;
-
-        flags = seq->intermediates;
-
-        switch (seq->terminator) {
-        case 'A':
-                if (flags == 0) /* CUU */
-                        return VTE_CMD_CUU;
-                break;
-        case 'a':
-                if (flags == 0) /* HPR */
-                        return VTE_CMD_HPR;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* TALE */
-                        return VTE_CMD_TALE;
-                break;
-        case 'B':
-                if (flags == 0) /* CUD */
-                        return VTE_CMD_CUD;
-                break;
-        case 'b':
-                if (flags == 0) /* REP */
-                        return VTE_CMD_REP;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* TAC */
-                        return VTE_CMD_TAC;
-                break;
-        case 'C':
-                if (flags == 0) /* CUF */
-                        return VTE_CMD_CUF;
-                break;
-        case 'c':
-                if (flags == 0) /* DA1 */
-                        return VTE_CMD_DA1;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* TCC */
-                        return VTE_CMD_TCC;
-                else if (flags == VTE_SEQ_FLAG_GT) /* DA2 */
-                        return VTE_CMD_DA2;
-                else if (flags == VTE_SEQ_FLAG_EQUAL) /* DA3 */
-                        return VTE_CMD_DA3;
-                break;
-        case 'D':
-                if (flags == 0) /* CUB */
-                        return VTE_CMD_CUB;
-                break;
-        case 'd':
-                if (flags == 0) /* VPA */
-                        return VTE_CMD_VPA;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* TSR */
-                        return VTE_CMD_TSR;
-                break;
-        case 'E':
-                if (flags == 0) /* CNL */
-                        return VTE_CMD_CNL;
-                break;
-        case 'e':
-                if (flags == 0) /* VPR */
-                        return VTE_CMD_VPR;
-                break;
-        case 'F':
-                if (flags == 0) /* CPL */
-                        return VTE_CMD_CPL;
-                break;
-        case 'f':
-                if (flags == 0) /* HVP */
-                        return VTE_CMD_HVP;
-                break;
-        case 'G':
-                if (flags == 0) /* CHA */
-                        return VTE_CMD_CHA;
-                break;
-        case 'g':
-                if (flags == 0) /* TBC */
-                        return VTE_CMD_TBC;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECLFKC */
-                        return VTE_CMD_DECLFKC;
-                break;
-        case 'H':
-                if (flags == 0) /* CUP */
-                        return VTE_CMD_CUP;
-                break;
-        case 'h':
-                if (flags == 0) /* SM ECMA */
-                        return VTE_CMD_SM_ECMA;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* SM DEC */
-                        return VTE_CMD_SM_DEC;
-                break;
-        case 'I':
-                if (flags == 0) /* CHT */
-                        return VTE_CMD_CHT;
-                break;
-        case 'i':
-                if (flags == 0) /* MC ANSI */
-                        return VTE_CMD_MC_ANSI;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* MC DEC */
-                        return VTE_CMD_MC_DEC;
-                break;
-        case 'J':
-                if (flags == 0) /* ED */
-                        return VTE_CMD_ED;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* DECSED */
-                        return VTE_CMD_DECSED;
-                break;
-        case 'K':
-                if (flags == 0) /* EL */
-                        return VTE_CMD_EL;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* DECSEL */
-                        return VTE_CMD_DECSEL;
-                break;
-        case 'L':
-                if (flags == 0) /* IL */
-                        return VTE_CMD_IL;
-                break;
-        case 'l':
-                if (flags == 0) /* RM ECMA */
-                        return VTE_CMD_RM_ECMA;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* RM DEC */
-                        return VTE_CMD_RM_DEC;
-                break;
-        case 'M':
-                if (flags == 0) /* DL */
-                        return VTE_CMD_DL;
-                break;
-        case 'm':
-                if (flags == 0) /* SGR */
-                        return VTE_CMD_SGR;
-                else if (flags == VTE_SEQ_FLAG_GT) /* XTERM SMR */
-                        return VTE_CMD_XTERM_SRV;
-                break;
-        case 'n':
-                if (flags == 0) /* DSR ECMA */
-                        return VTE_CMD_DSR_ECMA;
-                else if (flags == VTE_SEQ_FLAG_GT) /* XTERM RMR */
-                        return VTE_CMD_XTERM_RRV;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* DSR DEC */
-                        return VTE_CMD_DSR_DEC;
-                break;
-        case 'P':
-                if (flags == 0) /* DCH */
-                        return VTE_CMD_DCH;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* PPA */
-                        return VTE_CMD_PPA;
-                break;
-        case 'p':
-                if (flags == 0) /* DECSSL */
-                        return VTE_CMD_DECSSL;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* DECSSCLS */
-                        return VTE_CMD_DECSSCLS;
-                else if (flags == VTE_SEQ_FLAG_BANG) /* DECSTR */
-                        return VTE_CMD_DECSTR;
-                else if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECSCL */
-                        return VTE_CMD_DECSCL;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECRQM-ECMA */
-                        return VTE_CMD_DECRQM_ECMA;
-                else if (flags == (VTE_SEQ_FLAG_CASH |
-                                   VTE_SEQ_FLAG_WHAT)) /* DECRQM-DEC */
-                        return VTE_CMD_DECRQM_DEC;
-                else if (flags == VTE_SEQ_FLAG_PCLOSE) /* DECSDPT */
-                        return VTE_CMD_DECSDPT;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECSPPCS */
-                        return VTE_CMD_DECSPPCS;
-                else if (flags == VTE_SEQ_FLAG_PLUS) /* DECSR */
-                        return VTE_CMD_DECSR;
-                else if (flags == VTE_SEQ_FLAG_COMMA) /* DECLTOD */
-                        return VTE_CMD_DECLTOD;
-                else if (flags == VTE_SEQ_FLAG_GT) /* XTERM SPM */
-                        return VTE_CMD_XTERM_SPM;
-                break;
-        case 'Q':
-                if (flags == VTE_SEQ_FLAG_SPACE) /* PPR */
-                        return VTE_CMD_PPR;
-                break;
-        case 'q':
-                if (flags == 0) /* DECLL */
-                        return VTE_CMD_DECLL;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* DECSCUSR */
-                        return VTE_CMD_DECSCUSR;
-                else if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECSCA */
-                        return VTE_CMD_DECSCA;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECSDDT */
-                        return VTE_CMD_DECSDDT;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECSRC */
-                        return VTE_CMD_DECSR;
-                else if (flags == VTE_SEQ_FLAG_PLUS) /* DECELF */
-                        return VTE_CMD_DECELF;
-                else if (flags == VTE_SEQ_FLAG_COMMA) /* DECTID */
-                        return VTE_CMD_DECTID;
-                break;
-        case 'R':
-                if (flags == VTE_SEQ_FLAG_SPACE) /* PPB */
-                        return VTE_CMD_PPB;
-                break;
-        case 'r':
-                if (flags == 0) {
-                        /* DECSTBM */
-                        return VTE_CMD_DECSTBM;
-                } else if (flags == VTE_SEQ_FLAG_SPACE) {
-                        /* DECSKCV */
-                        return VTE_CMD_DECSKCV;
-                } else if (flags == VTE_SEQ_FLAG_CASH) {
-                        /* DECCARA */
-                        return VTE_CMD_DECCARA;
-                } else if (flags == VTE_SEQ_FLAG_MULT) {
-                        /* DECSCS */
-                        return VTE_CMD_DECSCS;
-                } else if (flags == VTE_SEQ_FLAG_PLUS) {
-                        /* DECSMKR */
-                        return VTE_CMD_DECSMKR;
-                } else if (flags == VTE_SEQ_FLAG_WHAT) {
-                        /*
-                         * There's a conflict between DECPCTERM and XTERM-RPM.
-                         * XTERM-RPM takes a single argument, DECPCTERM takes 2.
-                         * Split both up and forward the call to the closer
-                         * match.
-                         */
-                        // FIXMEchpe!
-                        if (seq->n_final_args <= 1) /* XTERM RPM */
-                                return VTE_CMD_XTERM_RPM;
-                        else if (seq->n_final_args >= 2) /* DECPCTERM */
-                                return VTE_CMD_DECPCTERM;
-                }
-                break;
-        case 'S':
-                if (flags == 0) /* SU */
-                        return VTE_CMD_SU;
-                else if (flags == VTE_SEQ_FLAG_WHAT) /* XTERM SGFX */
-                        return VTE_CMD_XTERM_SGFX;
-                break;
-        case 's':
-                if (flags == 0) {
-                        /*
-                         * There's a conflict between DECSLRM and SC-ANSI which
-                         * cannot be resolved without knowing the state of
-                         * DECLRMM. We leave that decision up to the caller.
-                         */
-                        return VTE_CMD_DECSLRM_OR_SC;
-                } else if (flags == VTE_SEQ_FLAG_CASH) {
-                        /* DECSPRTT */
-                        return VTE_CMD_DECSPRTT;
-                } else if (flags == VTE_SEQ_FLAG_MULT) {
-                        /* DECSFC */
-                        return VTE_CMD_DECSFC;
-                } else if (flags == VTE_SEQ_FLAG_WHAT) {
-                        /* XTERM SPM */
-                        return VTE_CMD_XTERM_SPM;
-                }
-                break;
-        case 'T':
-                if (flags == 0) {
-                        /*
-                         * There's a conflict between SD and XTERM IHMT that we
-                         * have to resolve by checking the parameter count.
-                         * XTERM_IHMT needs exactly 5 arguments, SD takes 0 or
-                         * 1. We're conservative here and give both a wider
-                         * range to allow unused arguments (compat...).
-                         */
-                        // FIXMEchpe!
-                        if (seq->n_final_args < 5) {
-                                /* SD */
-                                return VTE_CMD_SD;
-                        } else if (seq->n_final_args >= 5) {
-                                /* XTERM IHMT */
-                                return VTE_CMD_XTERM_IHMT;
-                        }
-                } else if (flags == VTE_SEQ_FLAG_GT) {
-                        /* XTERM RTM */
-                        return VTE_CMD_XTERM_RTM;
-                }
-                break;
-        case 't':
-                if (flags == 0) {
-                        /*
-                         * There's a conflict between XTERM_WM and DECSLPP. We
-                         * cannot resolve it as some combinations are valid for
-                         * both. We go with XTERM_WM for now.
-                         *
-                         * TODO: Figure out how to resolve that conflict and
-                         *       return VTE_CMD_DECSLPP if possible.
-                         */
-                        return VTE_CMD_XTERM_WM; /* XTERM WM */
-                } else if (flags == VTE_SEQ_FLAG_SPACE) {
-                        /* DECSWBV */
-                        return VTE_CMD_DECSWBV;
-                } else if (flags == VTE_SEQ_FLAG_DQUOTE) {
-                        /* DECSRFR */
-                        return VTE_CMD_DECSRFR;
-                } else if (flags == VTE_SEQ_FLAG_CASH) {
-                        /* DECRARA */
-                        return VTE_CMD_DECRARA;
-                } else if (flags == VTE_SEQ_FLAG_GT) {
-                        /* XTERM STM */
-                        return VTE_CMD_XTERM_STM;
-                }
-                break;
-        case 'U':
-                if (flags == 0) /* NP */
-                        return VTE_CMD_NP;
-                break;
-        case 'u':
-                if (flags == 0) {
-                        /* RC */
-                        return VTE_CMD_RC;
-                } else if (flags == VTE_SEQ_FLAG_SPACE) {
-                        /* DECSMBV */
-                        return VTE_CMD_DECSMBV;
-                } else if (flags == VTE_SEQ_FLAG_DQUOTE) {
-                        /* DECSTRL */
-                        return VTE_CMD_DECSTRL;
-                } else if (flags == VTE_SEQ_FLAG_WHAT) {
-                        /* DECRQUPSS */
-                        return VTE_CMD_DECRQUPSS;
-                } else if (vte_seq_arg_value(seq->args[0]) == 1 && flags == VTE_SEQ_FLAG_CASH) {
-                        /* DECRQTSR */
-                        return VTE_CMD_DECRQTSR;
-                } else if (flags == VTE_SEQ_FLAG_MULT) {
-                        /* DECSCP */
-                        return VTE_CMD_DECSCP;
-                } else if (flags == VTE_SEQ_FLAG_COMMA) {
-                        /* DECRQKT */
-                        return VTE_CMD_DECRQKT;
-                }
-                break;
-        case 'V':
-                if (flags == 0) /* PP */
-                        return VTE_CMD_PP;
-                break;
-        case 'v':
-                if (flags == VTE_SEQ_FLAG_SPACE) /* DECSLCK */
-                        return VTE_CMD_DECSLCK;
-                else if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECRQDE */
-                        return VTE_CMD_DECRQDE;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECCRA */
-                        return VTE_CMD_DECCRA;
-                else if (flags == VTE_SEQ_FLAG_COMMA) /* DECRPKT */
-                        return VTE_CMD_DECRPKT;
-                break;
-        case 'W':
-                if (vte_seq_arg_value(seq->args[0]) == 5 && flags == VTE_SEQ_FLAG_WHAT) {
-                        /* DECST8C */
-                        return VTE_CMD_DECST8C;
-                }
-                break;
-        case 'w':
-                if (flags == VTE_SEQ_FLAG_CASH) /* DECRQPSR */
-                        return VTE_CMD_DECRQPSR;
-                else if (flags == VTE_SEQ_FLAG_SQUOTE) /* DECEFR */
-                        return VTE_CMD_DECEFR;
-                else if (flags == VTE_SEQ_FLAG_PLUS) /* DECSPP */
-                        return VTE_CMD_DECSPP;
-                break;
-        case 'X':
-                if (flags == 0) /* ECH */
-                        return VTE_CMD_ECH;
-                break;
-        case 'x':
-                if (flags == 0) /* DECREQTPARM */
-                        return VTE_CMD_DECREQTPARM;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECFRA */
-                        return VTE_CMD_DECFRA;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECSACE */
-                        return VTE_CMD_DECSACE;
-                else if (flags == VTE_SEQ_FLAG_PLUS) /* DECRQPKFM */
-                        return VTE_CMD_DECRQPKFM;
-                break;
-        case 'y':
-                if (flags == 0) /* DECTST */
-                        return VTE_CMD_DECTST;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECRQCRA */
-                        return VTE_CMD_DECRQCRA;
-                else if (flags == VTE_SEQ_FLAG_PLUS) /* DECPKFMR */
-                        return VTE_CMD_DECPKFMR;
-                break;
-        case 'Z':
-                if (flags == 0) /* CBT */
-                        return VTE_CMD_CBT;
-                break;
-        case 'z':
-                if (flags == VTE_SEQ_FLAG_CASH) /* DECERA */
-                        return VTE_CMD_DECERA;
-                else if (flags == VTE_SEQ_FLAG_SQUOTE) /* DECELR */
-                        return VTE_CMD_DECELR;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECINVM */
-                        return VTE_CMD_DECINVM;
-                else if (flags == VTE_SEQ_FLAG_PLUS) /* DECPKA */
-                        return VTE_CMD_DECPKA;
-                break;
-        case '@':
-                if (flags == 0) /* ICH */
-                        return VTE_CMD_ICH;
-                break;
-        case '`':
-                if (flags == 0) /* HPA */
-                        return VTE_CMD_HPA;
-                else if (flags == VTE_SEQ_FLAG_SPACE) /* TATE */
-                        return VTE_CMD_TATE;
-                break;
-        case '{':
-                if (flags == VTE_SEQ_FLAG_CASH) /* DECSERA */
-                        return VTE_CMD_DECSERA;
-                else if (flags == VTE_SEQ_FLAG_SQUOTE) /* DECSLE */
-                        return VTE_CMD_DECSLE;
-                break;
-        case '|':
-                if (flags == VTE_SEQ_FLAG_CASH) /* DECSCPP */
-                        return VTE_CMD_DECSCPP;
-                else if (flags == VTE_SEQ_FLAG_SQUOTE) /* DECRQLP */
-                        return VTE_CMD_DECRQLP;
-                else if (flags == VTE_SEQ_FLAG_MULT) /* DECSNLS */
-                        return VTE_CMD_DECSNLS;
-                break;
-        case '}':
-                if (flags == VTE_SEQ_FLAG_SPACE) /* DECKBD */
-                        return VTE_CMD_DECKBD;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECSASD */
-                        return VTE_CMD_DECSASD;
-                else if (flags == VTE_SEQ_FLAG_SQUOTE) /* DECIC */
-                        return VTE_CMD_DECIC;
-                break;
-        case '~':
-                if (flags == VTE_SEQ_FLAG_SPACE) /* DECTME */
-                        return VTE_CMD_DECTME;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECSSDT */
-                        return VTE_CMD_DECSSDT;
-                else if (flags == VTE_SEQ_FLAG_SQUOTE) /* DECDC */
-                        return VTE_CMD_DECDC;
-                break;
+        switch (_VTE_SEQ_CODE(seq->terminator, seq->intermediates)) {
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+                case _VTE_SEQ_CODE(f, _VTE_SEQ_CODE_COMBINE(VTE_SEQ_PARAMETER_##p, VTE_SEQ_INTERMEDIATE_##i)): return VTE_CMD_##cmd;
+#include "parser-csi.hh"
+#undef _VTE_SEQ
+        default: return VTE_CMD_NONE;
         }
-
-        return VTE_CMD_NONE;
 }
 
 static unsigned int vte_parse_host_dcs(const struct vte_seq *seq)
 {
-        unsigned int const flags = seq->intermediates;
-
-        switch (seq->terminator) {
-        case 'p':
-                if (flags == 0) /* DECREGIS */
-                        return VTE_CMD_DECREGIS;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECRSTS */
-                        return VTE_CMD_DECRSTS;
-                break;
-        case 'q':
-                if (flags == 0) /* DECSIXEL */
-                        return VTE_CMD_DECSIXEL;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECRQSS */
-                        return VTE_CMD_DECRQSS;
-                break;
-        case 'r':
-                if (flags == 0) /* DECLBAN */
-                        return VTE_CMD_DECLBAN;
-                else if (flags == VTE_SEQ_FLAG_CASH) /* DECRQSS */
-                        return VTE_CMD_DECRQSS; // FIXMEchpe really??
-                break;
-        case 's':
-                if (flags == VTE_SEQ_FLAG_CASH) /* DECRQTSR */
-                        return VTE_CMD_DECRQTSR;
-                break;
-        case 't':
-                if (flags == VTE_SEQ_FLAG_CASH) /* DECRSPS */
-                        return VTE_CMD_DECRSPS;
-                break;
-        case 'u':
-                if (flags == VTE_SEQ_FLAG_BANG) /* DECAUPSS */
-                        return VTE_CMD_DECAUPSS;
-                break;
-        case 'v':
-                if (flags == 0) /* DECLANS */
-                        return VTE_CMD_DECLANS;
-                break;
-        case 'w':
-                if (flags == 0) /* DECLBD */
-                        return VTE_CMD_DECLBD;
-                break;
-        case 'x':
-                if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECPFK */
-                        return VTE_CMD_DECPFK;
-                break;
-        case 'y':
-                if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECPAK */
-                        return VTE_CMD_DECPAK;
-                break;
-        case 'z':
-                if (flags == VTE_SEQ_FLAG_BANG) /* DECDMAC */
-                        return VTE_CMD_DECDMAC;
-                else if (flags == VTE_SEQ_FLAG_DQUOTE) /* DECCKD */
-                        return VTE_CMD_DECCKD;
-                break;
-        case '{':
-                if (flags == 0) /* DECDLD */
-                        return VTE_CMD_DECDLD;
-                else if (flags == VTE_SEQ_FLAG_BANG) /* DECSTUI */
-                        return VTE_CMD_DECSTUI;
-                break;
-        case '|':
-                if (flags == 0) /* DECUDK */
-                        return VTE_CMD_DECUDK;
-                break;
+        switch (_VTE_SEQ_CODE(seq->terminator, seq->intermediates)) {
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+                case _VTE_SEQ_CODE(f, _VTE_SEQ_CODE_COMBINE(VTE_SEQ_PARAMETER_##p, VTE_SEQ_INTERMEDIATE_##i)): return VTE_CMD_##cmd;
+#include "parser-dcs.hh"
+#undef _VTE_SEQ
+        default: return VTE_CMD_NONE;
         }
-
-        return VTE_CMD_NONE;
 }
 
 static unsigned int vte_parse_host_sci(const struct vte_seq *seq)
@@ -953,24 +528,28 @@ enum parser_state {
 };
 
 enum parser_action {
-        ACTION_NONE,            /* placeholder */
-        ACTION_CLEAR,           /* clear parameters */
-        ACTION_IGNORE,          /* ignore the character entirely */
-        ACTION_PRINT,           /* print the character on the console */
-        ACTION_EXECUTE,         /* execute single control character (C0/C1) */
-        ACTION_COLLECT,         /* collect intermediate character */
-        ACTION_PARAM,           /* collect parameter character */
-        ACTION_ESC_DISPATCH,    /* dispatch escape sequence */
-        ACTION_CSI_DISPATCH,    /* dispatch CSI sequence */
-        ACTION_DCS_START,       /* start of DCS data */
-        ACTION_DCS_CONSUME,     /* consume DCS terminator */
-        ACTION_DCS_COLLECT,     /* collect DCS data */
-        ACTION_DCS_DISPATCH,    /* dispatch DCS sequence */
-        ACTION_OSC_START,       /* clear and clear string data */
-        ACTION_OSC_COLLECT,     /* collect OSC data */
-        ACTION_OSC_DISPATCH,    /* dispatch OSC sequence */
-        ACTION_SCI_DISPATCH,    /* dispatch SCI sequence */
+        ACTION_NONE,              /* placeholder */
+        ACTION_CLEAR,             /* clear parameters */
+        ACTION_IGNORE,            /* ignore the character entirely */
+        ACTION_PRINT,             /* print the character on the console */
+        ACTION_EXECUTE,           /* execute single control character (C0/C1) */
+        ACTION_COLLECT_ESC,       /* collect intermediate character of ESCAPE sequence */
+        ACTION_COLLECT_CSI,       /* collect intermediate character of CSI or DCS sequence */
+        ACTION_COLLECT_PARAMETER, /* collect parameter character of CSI or DCS sequence */
+        ACTION_PARAM,             /* collect parameter character */
+        ACTION_ESC_DISPATCH,      /* dispatch escape sequence */
+        ACTION_CSI_DISPATCH,      /* dispatch CSI sequence */
+        ACTION_DCS_START,         /* start of DCS data */
+        ACTION_DCS_CONSUME,       /* consume DCS terminator */
+        ACTION_DCS_COLLECT,       /* collect DCS data */
+        ACTION_DCS_DISPATCH,      /* dispatch DCS sequence */
+        ACTION_OSC_START,         /* clear and clear string data */
+        ACTION_OSC_COLLECT,       /* collect OSC data */
+        ACTION_OSC_DISPATCH,      /* dispatch OSC sequence */
+        ACTION_SCI_DISPATCH,      /* dispatch SCI sequence */
         ACTION_N,
+
+        ACTION_COLLECT_DCS = ACTION_COLLECT_CSI, /* alias */
 };
 
 /**
@@ -1016,6 +595,7 @@ static inline void parser_clear(struct vte_parser *parser)
         parser->seq.command = VTE_CMD_NONE;
         parser->seq.terminator = 0;
         parser->seq.intermediates = 0;
+        parser->seq.n_intermediates = 0;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.n_args = 0;
         parser->seq.n_final_args = 0;
@@ -1058,19 +638,41 @@ static int parser_execute(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static void parser_collect(struct vte_parser *parser, uint32_t raw)
+static void parser_collect_esc(struct vte_parser *parser, uint32_t raw)
 {
-        /*
-         * Usually, characters from 0x30 to 0x3f are only allowed as leading
-         * markers (or as part of the parameters), characters from 0x20 to 0x2f
-         * are only allowed as trailing markers. However, our state-machine
-         * already verifies those restrictions so we can handle them the same
-         * way here. Note that we safely allow markers to be specified multiple
-         * times.
-         */
+        assert(raw >= 0x20 && raw <= 0x2f);
 
-        if (raw >= 0x20 && raw <= 0x3f)
-                parser->seq.intermediates |= 1 << (raw - 0x20);
+        /* ESCAPE sequences only have intermediates or 2/0..2/15, so there's no
+         * need for the extra shift as below for CSI/DCS sequences
+         */
+        parser->seq.intermediates |= (VTE_SEQ_MAKE_INTERMEDIATE(raw) << (VTE_SEQ_INTERMEDIATE_BITS * parser->seq.n_intermediates++));
+}
+
+static void parser_collect_csi(struct vte_parser *parser, uint32_t raw)
+{
+        assert(raw >= 0x20 && raw <= 0x2f);
+
+        /* In addition to 2/0..2/15 intermediates, CSI/DCS sequence
+         * can also have one parameter byte 3/12..3/15 at the
+         * start of the parameters (see parser_collect_parameter below);
+         * that's what the extra shift is for.
+         */
+        parser->seq.intermediates |= (VTE_SEQ_MAKE_INTERMEDIATE(raw) << (VTE_SEQ_PARAMETER_BITS +
+                                                                         VTE_SEQ_INTERMEDIATE_BITS * parser->seq.n_intermediates++));
+}
+
+static void parser_collect_parameter(struct vte_parser *parser, uint32_t raw)
+{
+        assert(raw >= 0x3c && raw <= 0x3f);
+
+        /* CSI/DCS may optionally have one parameter byte from 3/12..3/15
+         * at the start of the parameters; we put that into the lowest
+         * part of @seq.intermediates.
+         * Note that there can only be *one* such byte; the state machine
+         * already enforces that, so we do not need any additional checks
+         * here.
+         */
+        parser->seq.intermediates |= VTE_SEQ_MAKE_PARAMETER(raw);
 }
 
 static void parser_param(struct vte_parser *parser, uint32_t raw)
@@ -1238,8 +840,14 @@ static int parser_transition(struct vte_parser *parser,
                 return parser_print(parser, raw);
         case ACTION_EXECUTE:
                 return parser_execute(parser, raw);
-        case ACTION_COLLECT:
-                parser_collect(parser, raw);
+        case ACTION_COLLECT_ESC:
+                parser_collect_esc(parser, raw);
+                return VTE_SEQ_NONE;
+        case ACTION_COLLECT_CSI:
+                parser_collect_csi(parser, raw);
+                return VTE_SEQ_NONE;
+        case ACTION_COLLECT_PARAMETER:
+                parser_collect_parameter(parser, raw);
                 return VTE_SEQ_NONE;
         case ACTION_PARAM:
                 parser_param(parser, raw);
@@ -1326,7 +934,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_ESC_INT,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_ESC);
                 case 0x30 ... 0x4f:        /* ['0' - '~'] \ */
                 case 0x51 ... 0x57:        /* { 'P', 'X', 'Z' '[', ']', '^', '_' } */
                 case 0x59:
@@ -1369,7 +977,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_NONE,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_ESC);
                 case 0x30 ... 0x7e:        /* ['0' - '~'] */
                         return parser_transition(parser, raw, STATE_GROUND,
                                                  ACTION_ESC_DISPATCH);
@@ -1391,14 +999,14 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_CSI_INT,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_CSI);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
                 case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_CSI_PARAM,
                                                  ACTION_PARAM);
                 case 0x3c ... 0x3f:        /* ['<' - '?'] */
                         return parser_transition(parser, raw, STATE_CSI_PARAM,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_PARAMETER);
                 case 0x40 ... 0x7e:        /* ['@' - '~'] */
                         return parser_transition(parser, raw, STATE_GROUND,
                                                  ACTION_CSI_DISPATCH);
@@ -1420,7 +1028,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_CSI_INT,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_CSI);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
                 case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_NONE,
@@ -1449,7 +1057,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_NONE,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_CSI);
                 case 0x30 ... 0x3f:        /* ['0' - '?'] */
                         return parser_transition(parser, raw, STATE_CSI_IGNORE,
                                                  ACTION_NONE);
@@ -1496,14 +1104,14 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_DCS_INT,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_DCS);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
                 case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_DCS_PARAM,
                                                  ACTION_PARAM);
                 case 0x3c ... 0x3f:        /* ['<' - '?'] */
                         return parser_transition(parser, raw, STATE_DCS_PARAM,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_PARAMETER);
                 case 0x40 ... 0x7e:        /* ['@' - '~'] */
                         return parser_transition(parser, raw, STATE_DCS_PASS,
                                                  ACTION_DCS_CONSUME);
@@ -1525,7 +1133,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_DCS_INT,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_DCS);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
                 case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_NONE,
@@ -1554,7 +1162,7 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                                                  ACTION_CLEAR);
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_NONE,
-                                                 ACTION_COLLECT);
+                                                 ACTION_COLLECT_DCS);
                 case 0x30 ... 0x3f:        /* ['0' - '?'] */
                         return parser_transition(parser, raw, STATE_DCS_IGNORE,
                                                  ACTION_NONE);

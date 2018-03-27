@@ -2627,6 +2627,21 @@ VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
 }
 
 void
+VteTerminalPrivate::DECPCTERM_OR_XTERM_RPM(vte::parser::Sequence const& seq)
+{
+        /*
+         * There's a conflict between DECPCTERM and XTERM-RPM.
+         * XTERM-RPM takes a single argument, DECPCTERM takes 2.
+         * Note that since both admit default values (which may be
+         * omitted at the end of the sequence), this only an approximation.
+         */
+        if (seq.size_final() <= 1)
+                XTERM_RPM(seq);
+        else
+                DECPCTERM(seq);
+}
+
+void
 VteTerminalPrivate::DECPFK(vte::parser::Sequence const& seq)
 {
         /*
@@ -2990,8 +3005,11 @@ VteTerminalPrivate::DECRQTSR(vte::parser::Sequence const& seq)
         /*
          * DECRQTSR - request-terminal-state-report
          *
-         * Probably not worth implementing.
+         * References: VT525
          */
+
+        if (seq.collect1(0) != 1)
+                return;
 }
 
 void
@@ -4088,22 +4106,7 @@ VteTerminalPrivate::GnDm(vte::parser::Sequence const& seq)
                 break;
         }
 
-        unsigned int slot = 0;
-        if (seq.intermediates() & VTE_SEQ_FLAG_POPEN)
-                slot = 0;
-        else if (seq.intermediates() & VTE_SEQ_FLAG_PCLOSE)
-                slot = 1;
-        else if (seq.intermediates() & VTE_SEQ_FLAG_MULT)
-                slot = 2;
-        else if (seq.intermediates() & VTE_SEQ_FLAG_PLUS)
-                slot = 3;
-        else if (seq.intermediates() & VTE_SEQ_FLAG_MINUS)
-                slot = 1;
-        else if (seq.intermediates() & VTE_SEQ_FLAG_DOT)
-                slot = 2;
-        else if (seq.intermediates() & VTE_SEQ_FLAG_SLASH)
-                slot = 3;
-
+        unsigned int slot = seq.slot();
         if (slot >= G_N_ELEMENTS(m_character_replacements))
                 return;
 
@@ -4842,6 +4845,20 @@ VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
         /* Scroll the text down N lines, but don't move the cursor. */
         auto value = std::max(seq.collect1(0, 1), int(1));
         scroll_text(value);
+}
+
+void
+VteTerminalPrivate::SD_OR_XTERM_IHMT(vte::parser::Sequence const& seq)
+{
+        /*
+         * There's a conflict between SD and XTERM IHMT that we
+         * have to resolve by checking the parameter count.
+         * XTERM_IHMT needs exactly 5 arguments, SD takes 0 or 1.
+         */
+        if (seq.size_final() <= 1)
+                SD(seq);
+        else
+                XTERM_IHMT(seq);
 }
 
 void

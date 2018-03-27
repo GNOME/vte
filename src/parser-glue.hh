@@ -67,18 +67,19 @@ public:
          */
         inline constexpr unsigned int charset() const noexcept
         {
-                return m_seq->charset;
+                return VTE_CHARSET_GET_CHARSET(m_seq->charset);
         }
 
-        /* intermediates:
+        /* slot:
          *
-         * The intermediate bytes of the ESCAPE, CSI or DCS sequence.
+         * This is the slot in a %VTE_CMD_GnDm, %VTE_CMD_GnDMm,
+         * or %VTE_CMD_CnD command.
          *
-         * Returns: the immediates as flag values from the VTE_SEQ_FLAG_* enum
+         * Returns: the slot, a value from the 0..3 for Gn*, or 0..1 for CnD
          */
-        inline constexpr unsigned int intermediates() const noexcept
+        inline constexpr unsigned int slot() const noexcept
         {
-                return m_seq->intermediates;
+                return VTE_CHARSET_GET_SLOT(m_seq->charset);
         }
 
         /* terminator:
@@ -414,7 +415,6 @@ public:
         {
                 assert(unsigned(m_n_intermediates + 1) <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
 
-                m_seq.intermediates |= (1u << (i - 0x20));
                 m_intermediates[m_n_intermediates++] = i;
         }
 
@@ -423,7 +423,6 @@ public:
                 assert(m_n_intermediates + l.size() <= (sizeof(m_intermediates)/sizeof(m_intermediates[0])));
 
                 for (uint32_t i : l) {
-                        m_seq.intermediates |= (1u << (i - 0x20));
                         m_intermediates[m_n_intermediates++] = i;
                 }
         }
@@ -431,9 +430,6 @@ public:
         inline void set_param_intro(unsigned char p) noexcept
         {
                 m_param_intro = p;
-                if (p != 0) {
-                        m_seq.intermediates |= (1u << (p - 0x20));
-                }
         }
 
         inline void append_params(std::initializer_list<int> params) noexcept
@@ -631,9 +627,9 @@ public:
                 case VTE_REPLY_##cmd: \
                         set_type(VTE_SEQ_##type); \
                         set_final(final); \
-                        set_param_intro(VTE_SEQ_INTERMEDIATE_##pintro); \
-                        if (VTE_SEQ_INTERMEDIATE_##intermediate != VTE_SEQ_INTERMEDIATE_NONE) \
-                                append_intermediate(VTE_SEQ_INTERMEDIATE_##intermediate); \
+                        set_param_intro(VTE_SEQ_PARAMETER_CHAR_##pintro); \
+                        if (VTE_SEQ_INTERMEDIATE_CHAR_##intermediate != VTE_SEQ_INTERMEDIATE_CHAR_NONE) \
+                                append_intermediate(VTE_SEQ_INTERMEDIATE_CHAR_##intermediate); \
                         code \
                         break;
 #include "parser-reply.hh"

@@ -64,6 +64,9 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	parser-charset.hh \
 	parser-charset-tables.hh \
 	parser-cmd.hh \
+	parser-csi.hh \
+	parser-dcs.hh \
+	parser-esc.hh \
 	parser-glue.hh \
 	parser-osc.hh \
 	parser-reply.hh \
@@ -250,6 +253,9 @@ parser_cat_SOURCES = \
 	parser-charset.hh \
 	parser-charset-tables.hh \
 	parser-cmd.hh \
+	parser-csi.hh \
+	parser-dcs.hh \
+	parser-esc.hh \
 	parser-glue.hh \
 	parser-osc.hh \
 	parser-reply.hh \
@@ -283,9 +289,12 @@ test_parser_SOURCES = \
 	parser.cc \
 	parser.hh \
 	parser-arg.hh \
-	parser-cmd.hh \
 	parser-charset.hh \
 	parser-charset-tables.hh \
+	parser-cmd.hh \
+	parser-csi.hh \
+	parser-dcs.hh \
+	parser-esc.hh \
 	parser-glue.hh \
 	parser-osc.hh \
 	parser-reply.hh \

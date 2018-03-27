@@ -71,6 +71,7 @@ _VTE_CMD(DECLFKC) /* local-function-key-control */
 _VTE_CMD(DECLL) /* load-leds */
 _VTE_CMD(DECLTOD) /* load-time-of-day */
 _VTE_CMD(DECPCTERM) /* pcterm-mode */
+_VTE_CMD(DECPCTERM_OR_XTERM_RPM) /* ambiguous */
 _VTE_CMD(DECPAK) /* program-alphanumeric-key */
 _VTE_CMD(DECPFK) /* program-function-key */
 _VTE_CMD(DECPKA) /* program-key-action */
@@ -180,6 +181,7 @@ _VTE_CMD(RIS) /* reset-to-initial-state */
 _VTE_CMD(RM_ECMA) /* reset-mode-ecma */
 _VTE_CMD(RM_DEC) /* reset-mode-dec */
 _VTE_CMD(SD) /* scroll-down */
+_VTE_CMD(SD_OR_XTERM_IHMT) /* ambiguous */
 _VTE_CMD(SGR) /* select-graphics-rendition */
 _VTE_CMD(SI) /* shift-in */
 _VTE_CMD(SM_ECMA) /* set-mode-ecma */

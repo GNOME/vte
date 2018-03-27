@@ -138,10 +138,13 @@ private:
         char const* m_outro;
 };
 
-static bool
+static void
 print_params(GString* str,
              struct vte_seq const* seq)
 {
+        if (seq->n_args > 0)
+                g_string_append_c(str, ' ');
+
         for (unsigned int i = 0; i < seq->n_args; i++) {
                 auto arg = seq->args[i];
                 if (!vte_seq_arg_default(arg))
@@ -149,27 +152,46 @@ print_params(GString* str,
                 if (i + 1 < seq->n_args)
                         g_string_append_c(str, vte_seq_arg_nonfinal(arg) ? ':' : ';');
         }
-
-        return seq->n_args > 0;
 }
 
-static bool
-print_intermediates(GString* str,
-                    unsigned int intermediates,
-                    unsigned int start,
-                    unsigned int end)
+static void
+print_pintro(GString* str,
+             unsigned int type,
+             unsigned int intermediates)
 {
-        bool any = false;
-        for (unsigned int i = start; i <= end; i++) {
-                unsigned int mask = (1U << (i - 0x20));
+        if (type != VTE_SEQ_CSI &&
+            type != VTE_SEQ_DCS)
+                return;
 
-                if (intermediates & mask) {
-                        g_string_append_c(str, i);
-                        any = true;
-                }
+        unsigned int p = intermediates & 0x7;
+        if (p == 0)
+                return;
+
+        g_string_append_c(str, ' ');
+        g_string_append_c(str, 0x40 - p);
+}
+
+static void
+print_intermediates(GString* str,
+                    unsigned int type,
+                    unsigned int intermediates)
+{
+        if (type == VTE_SEQ_CSI ||
+            type == VTE_SEQ_DCS)
+                intermediates = intermediates >> 3; /* remove pintro */
+
+        while (intermediates != 0) {
+                unsigned int i = intermediates & 0x1f;
+                char c = 0x20 + i - 1;
+
+                g_string_append_c(str, ' ');
+                if (c == 0x20)
+                        g_string_append(str, "SP");
+                else
+                        g_string_append_c(str, c);
+
+                intermediates = intermediates >> 5;
         }
-
-        return any;
 }
 
 static void
@@ -193,19 +215,14 @@ print_seq_and_params(GString* str,
         printer p(str, plain, SEQ_START, SEQ_END);
 
         if (seq->command != VTE_CMD_NONE) {
-                g_string_append_printf(str, "{%s ", cmd_to_str(seq->command));
+                g_string_append_printf(str, "{%s", cmd_to_str(seq->command));
                 print_params(str, seq);
                 g_string_append_c(str, '}');
         } else {
-                g_string_append_printf(str, "{%s ", seq_to_str(seq->type));
-                if ((seq->intermediates & 0xffff0000U) &&
-                    print_intermediates(str, seq->intermediates, 0x30, 0x3f))
-                        g_string_append_c(str, ' ');
-                if (print_params(str, seq))
-                        g_string_append_c(str, ' ');
-                if ((seq->intermediates & 0x0000ffffU) &&
-                    print_intermediates(str, seq->intermediates, 0x20, 0x2f))
-                        g_string_append_c(str, ' ');
+                g_string_append_printf(str, "{%s", seq_to_str(seq->type));
+                print_pintro(str, seq->type, seq->intermediates);
+                print_params(str, seq);
+                print_intermediates(str, seq->type, seq->intermediates);
                 g_string_append_printf(str, " %c}", seq->terminator);
         }
 }
