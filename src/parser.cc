@@ -563,19 +563,28 @@ void vte_parser_deinit(struct vte_parser *parser)
 
 static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
 {
-        unsigned int i;
-
         parser->seq.command = VTE_CMD_NONE;
         parser->seq.terminator = 0;
         parser->seq.intermediates = 0;
         parser->seq.n_intermediates = 0;
         parser->seq.charset = VTE_CHARSET_NONE;
+
+        /* The (n_args+1)th parameter may have been started but not
+         * finialised, so it needs cleaning too. All further params
+         * have not been touched, so need not be cleaned.
+         */
+        unsigned int n_args = G_UNLIKELY(parser->seq.n_args >= VTE_PARSER_ARG_MAX)
+                ? VTE_PARSER_ARG_MAX
+                : parser->seq.n_args + 1;
+        memset(parser->seq.args, 0, n_args * sizeof(parser->seq.args[0]));
+#ifdef PARSER_EXTRA_CLEAN
+        /* Assert that the assumed-clean params are actually clean. */
+        for (unsigned int n = n_args; n < VTE_PARSER_ARG_MAX; ++n)
+                g_assert_cmpuint(parser->seq.args[n], ==, VTE_SEQ_ARG_INIT_DEFAULT);
+#endif
+
         parser->seq.n_args = 0;
         parser->seq.n_final_args = 0;
-        /* FIXME: we only really need to clear 0..n_args+1 since all others have not been touched */
-        // FIXMEchpe: now that DEFAULT is all-zero, use memset here
-        for (i = 0; i < VTE_PARSER_ARG_MAX; ++i)
-                parser->seq.args[i] = VTE_SEQ_ARG_INIT_DEFAULT;
 
         /* We don't need to do this, since it's only used when it's been set */
         /* parser->seq.introducer = 0; */
