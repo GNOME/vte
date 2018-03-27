@@ -103,7 +103,7 @@ static inline void vte_seq_arg_push(vte_seq_arg_t* arg,
  * @arg:
  * @finalise:
  *
- * Finished @arg; after this no more vte_seq_arg_push() calls
+ * Finishes @arg; after this no more vte_seq_arg_push() calls
  * are allowed.
  *
  * If @nonfinal is %true, marks @arg as a nonfinal parameter, is,

@@ -169,6 +169,19 @@ print_intermediates(GString* str,
 }
 
 static void
+print_string(GString* str,
+             struct vte_seq const* seq)
+{
+        size_t len;
+        auto buf = vte_seq_string_get(&seq->arg_str, &len);
+
+        g_string_append_c(str, '\"');
+        for (size_t i = 0; i < len; ++i)
+                g_string_append_unichar(str, buf[i]);
+        g_string_append_c(str, '\"');
+}
+
+static void
 print_seq_and_params(GString* str,
                      const struct vte_seq *seq,
                      bool plain)
@@ -238,9 +251,16 @@ print_seq(GString* str,
         }
 
         case VTE_SEQ_CSI:
-        case VTE_SEQ_DCS:
-        case VTE_SEQ_OSC: {
+        case VTE_SEQ_DCS: {
                 print_seq_and_params(str, seq, plain);
+                break;
+        }
+
+        case VTE_SEQ_OSC: {
+                printer p(str, plain, SEQ_START, SEQ_END);
+                g_string_append(str, "{OSC ");
+                print_string(str, seq);
+                g_string_append_c(str, '}');
                 break;
         }
 

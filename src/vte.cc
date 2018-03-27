@@ -3693,9 +3693,11 @@ skip_chunk:
 
                         break;
                 }
+
                 case VTE_SEQ_NONE:
                 case VTE_SEQ_IGNORE:
                         break;
+
                 default: {
                         switch (seq.command()) {
 #define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
@@ -8536,21 +8538,11 @@ VteTerminalPrivate::~VteTerminalPrivate()
 
 	remove_update_timeout(this);
 
-	/* discard title updates */
-        g_free(m_window_title);
-        g_free(m_window_title_changed);
-	g_free(m_icon_title_changed);
-        g_free(m_current_directory_uri_changed);
-        g_free(m_current_directory_uri);
-        g_free(m_current_file_uri_changed);
-        g_free(m_current_file_uri);
-
         /* Word char exceptions */
         g_free(m_word_char_exceptions_string);
         g_free(m_word_char_exceptions);
 
 	/* Free public-facing data. */
-	g_free(m_icon_title);
 	if (m_vadjustment != NULL) {
 		/* Disconnect our signal handlers from this object. */
 		g_signal_handlers_disconnect_by_func(m_vadjustment,
@@ -10775,64 +10767,63 @@ VteTerminalPrivate::emit_pending_signals()
 {
 	GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
-        gboolean really_changed;
 
 	emit_adjustment_changed();
 
 	if (m_window_title_changed) {
-                really_changed = (g_strcmp0(m_window_title, m_window_title_changed) != 0);
-		g_free (m_window_title);
-		m_window_title = m_window_title_changed;
-		m_window_title_changed = NULL;
+                if (m_window_title != m_window_title_pending) {
+                        m_window_title.swap(m_window_title_pending);
 
-                if (really_changed) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `window-title-changed'.\n");
                         g_signal_emit(object, signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
                         g_object_notify_by_pspec(object, pspecs[PROP_WINDOW_TITLE]);
                 }
+
+                m_window_title_pending.clear();
+                m_window_title_changed = false;
 	}
 
 	if (m_icon_title_changed) {
-                really_changed = (g_strcmp0(m_icon_title, m_icon_title_changed) != 0);
-		g_free (m_icon_title);
-		m_icon_title = m_icon_title_changed;
-		m_icon_title_changed = NULL;
+                if (m_icon_title != m_icon_title_pending) {
+                        m_icon_title.swap(m_icon_title_pending);
 
-                if (really_changed) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `icon-title-changed'.\n");
                         g_signal_emit(object, signals[SIGNAL_ICON_TITLE_CHANGED], 0);
                         g_object_notify_by_pspec(object, pspecs[PROP_ICON_TITLE]);
                 }
+
+		m_icon_title_pending.clear();
+		m_icon_title_changed = false;
 	}
 
 	if (m_current_directory_uri_changed) {
-                really_changed = (g_strcmp0(m_current_directory_uri, m_current_directory_uri_changed) != 0);
-                g_free (m_current_directory_uri);
-                m_current_directory_uri = m_current_directory_uri_changed;
-                m_current_directory_uri_changed = NULL;
+                if (m_current_directory_uri != m_current_directory_uri_pending) {
+                        m_current_directory_uri.swap(m_current_directory_uri_pending);
 
-                if (really_changed) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `current-directory-uri-changed'.\n");
                         g_signal_emit(object, signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
                         g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_DIRECTORY_URI]);
                 }
+
+                m_current_directory_uri_pending.clear();
+                m_current_directory_uri_changed = false;
         }
 
         if (m_current_file_uri_changed) {
-                really_changed = (g_strcmp0(m_current_file_uri, m_current_file_uri_changed) != 0);
-                g_free (m_current_file_uri);
-                m_current_file_uri = m_current_file_uri_changed;
-                m_current_file_uri_changed = NULL;
+                if (m_current_file_uri != m_current_file_uri_pending) {
+                        m_current_file_uri.swap(m_current_file_uri_pending);
 
-                if (really_changed) {
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `current-file-uri-changed'.\n");
                         g_signal_emit(object, signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
                         g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_FILE_URI]);
                 }
+
+                m_current_file_uri_pending.clear();
+                m_current_file_uri_changed = false;
         }
 
 	/* Flush any pending "inserted" signals. */

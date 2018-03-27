@@ -152,6 +152,7 @@ _VTE_CMD(MC_DEC) /* media-copy-dec */
 _VTE_CMD(NEL) /* next-line */
 _VTE_CMD(NP) /* next-page */
 _VTE_CMD(NUL) /* nul */
+_VTE_CMD(OSC) /* operating-system-command */
 _VTE_CMD(PP) /* preceding-page */
 _VTE_CMD(PPA) /* page-position-absolute */
 _VTE_CMD(PPB) /* page-position-backward */

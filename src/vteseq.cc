@@ -33,7 +33,6 @@
 #include <vte/vte.h>
 #include "vteinternal.hh"
 #include "vtegtk.hh"
-#include "vteutils.h"  /* for strchrnul on non-GNU systems */
 #include "caps.hh"
 #include "debug.h"
 
@@ -41,6 +40,8 @@
 #define ST_C0 _VTE_CAP_ST
 
 #include <algorithm>
+
+using namespace std::literals;
 
 void
 vte::parser::Sequence::print() const
@@ -59,6 +60,11 @@ vte::parser::Sequence::print() const
                         g_printerr("%d", vte_seq_arg_value(m_seq->args[i]));
                 }
                 g_printerr(" ]");
+        }
+        if (m_seq->type == VTE_SEQ_OSC) {
+                char* str = string_param();
+                g_printerr(" \"%s\"", str);
+                g_free(str);
         }
         g_printerr("\n");
 #endif
@@ -102,6 +108,24 @@ vte::parser::Sequence::command_string() const
         }
 }
 
+// FIXMEchpe optimise this
+std::string
+vte::parser::Sequence::string_utf8() const noexcept
+{
+        std::string str;
+
+        size_t len;
+        auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
+
+        char u[6];
+        for (size_t i = 0; i < len; ++i) {
+                auto ulen = g_unichar_to_utf8(buf[i], u);
+                str.append((char const*)u, ulen);
+        }
+
+        return str;
+}
+
 /* A couple are duplicated from vte.c, to keep them static... */
 
 /* Check how long a string of unichars is.  Slow version. */
@@ -118,9 +142,11 @@ vte_unichar_strlen(gunichar const* c)
  * length instead of walking the input twice.
  */
 char*
-vte::parser::Sequence::ucs4_to_utf8(gunichar const* str) const
+vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
+                                    ssize_t len) const
 {
-        auto len = vte_unichar_strlen(str);
+        if (len < 0)
+                len = vte_unichar_strlen(str);
         auto outlen = (len * VTE_UTF8_BPC) + 1;
 
         auto result = (char*)g_try_malloc(outlen);
@@ -408,51 +434,6 @@ void
 VteTerminalPrivate::switch_alternate_screen()
 {
         switch_screen(&m_alternate_screen);
-}
-
-/* Set icon/window titles. */
-void
-VteTerminalPrivate::set_title_internal(vte::parser::Params const& params,
-                                       bool change_icon_title,
-                                       bool change_window_title)
-{
-        if (change_icon_title == FALSE && change_window_title == FALSE)
-		return;
-
-	/* Get the string parameter's value. */
-        char* title;
-        if (!params.string_at(0, title))
-                return;
-
-			char *p, *validated;
-			const char *end;
-
-                        //FIXMEchpe why? it's guaranteed UTF-8 already
-			/* Validate the text. */
-			g_utf8_validate(title, strlen(title), &end);
-			validated = g_strndup(title, end - title);
-
-			/* No control characters allowed. */
-			for (p = validated; *p != '\0'; p++) {
-				if ((*p & 0x1f) == *p) {
-					*p = ' ';
-				}
-			}
-
-			/* Emit the signal */
-                        if (change_window_title) {
-                                g_free(m_window_title_changed);
-                                m_window_title_changed = g_strdup(validated);
-			}
-
-                        if (change_icon_title) {
-                                g_free(m_icon_title_changed);
-                                m_icon_title_changed = g_strdup(validated);
-			}
-
-			g_free (validated);
-
-        g_free(title);
 }
 
 void
@@ -1020,90 +1001,6 @@ VteTerminalPrivate::move_cursor_forward(vte::grid::column_t columns)
 	}
 }
 
-/* Internal helper for changing color in the palette */
-void
-VteTerminalPrivate::change_color(vte::parser::Params const& params,
-                                 const char *terminator)
-{
-        char **pairs;
-        {
-                char* str;
-                if (!params.string_at(0, str))
-                        return;
-
-		pairs = g_strsplit (str, ";", 0);
-                g_free(str);
-        }
-
-        if (!pairs)
-                return;
-
-        vte::color::rgb color;
-        guint idx, i;
-
-		for (i = 0; pairs[i] && pairs[i + 1]; i += 2) {
-			idx = strtoul (pairs[i], (char **) NULL, 10);
-
-			if (idx >= VTE_DEFAULT_FG)
-				continue;
-
-			if (color.parse(pairs[i + 1])) {
-                                set_color(idx, VTE_COLOR_SOURCE_ESCAPE, color);
-			} else if (strcmp (pairs[i + 1], "?") == 0) {
-				gchar buf[128];
-				auto c = get_color(idx);
-				g_assert(c != NULL);
-				g_snprintf (buf, sizeof (buf),
-					    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
-					    idx, c->red, c->green, c->blue, terminator);
-				feed_child(buf, -1);
-			}
-		}
-
-		g_strfreev (pairs);
-
-		/* emit the refresh as the palette has changed and previous
-		 * renders need to be updated. */
-		emit_refresh_window();
-}
-
-/* Change color in the palette, BEL terminated */
-void
-VteTerminalPrivate::seq_change_color_bel(vte::parser::Params const& params)
-{
-	change_color(params, BEL_C0);
-}
-
-/* Change color in the palette, ST_C0 terminated */
-void
-VteTerminalPrivate::seq_change_color_st(vte::parser::Params const& params)
-{
-	change_color(params, ST_C0);
-}
-
-/* Reset color in the palette */
-void
-VteTerminalPrivate::seq_reset_color(vte::parser::Params const& params)
-{
-        auto n_params = params.size();
-        if (n_params) {
-                for (unsigned int i = 0; i < n_params; i++) {
-                        int value;
-                        if (!params.number_at_unchecked(i, value))
-                                continue;
-
-                        if (value < 0 || value >= VTE_DEFAULT_FG)
-                                continue;
-
-                        reset_color(value, VTE_COLOR_SOURCE_ESCAPE);
-                }
-	} else {
-		for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++) {
-			reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
-		}
-	}
-}
-
 void
 VteTerminalPrivate::line_feed()
 {
@@ -1305,161 +1202,6 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
         return false;
 }
 
-/* Set one or the other. */
-void
-VteTerminalPrivate::seq_set_icon_title(vte::parser::Params const& params)
-{
-	set_title_internal(params, true, false);
-}
-
-void
-VteTerminalPrivate::seq_set_window_title(vte::parser::Params const& params)
-{
-	set_title_internal(params, false, true);
-}
-
-/* Set both the window and icon titles to the same string. */
-void
-VteTerminalPrivate::seq_set_icon_and_window_title(vte::parser::Params const& params)
-{
-	set_title_internal(params, true, true);
-}
-
-void
-VteTerminalPrivate::seq_set_current_directory_uri(vte::parser::Params const& params)
-{
-        char* uri = nullptr;
-        if (params.string_at(0, uri)) {
-                /* Validate URI */
-                if (uri[0]) {
-                        auto filename = g_filename_from_uri (uri, nullptr, nullptr);
-                        if (filename == nullptr) {
-                                /* invalid URI */
-                                g_free (uri);
-                                uri = nullptr;
-                        } else {
-                                g_free (filename);
-                        }
-                } else {
-                        g_free(uri);
-                        uri = nullptr;
-                }
-        }
-
-        g_free(m_current_directory_uri_changed);
-        m_current_directory_uri_changed = uri /* adopt */;
-}
-
-void
-VteTerminalPrivate::seq_set_current_file_uri(vte::parser::Params const& params)
-{
-        char* uri = nullptr;
-        if (params.string_at(0, uri)) {
-                /* Validate URI */
-                if (uri[0]) {
-                        auto filename = g_filename_from_uri (uri, nullptr, nullptr);
-                        if (filename == nullptr) {
-                                /* invalid URI */
-                                g_free (uri);
-                                uri = nullptr;
-                        } else {
-                                g_free (filename);
-                        }
-                } else {
-                        g_free(uri);
-                        uri = nullptr;
-                }
-        }
-
-        g_free(m_current_file_uri_changed);
-        m_current_file_uri_changed = uri /* adopt */;
-}
-
-/* Handle OSC 8 hyperlinks.
- * See bug 779734 and https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda. */
-void
-VteTerminalPrivate::seq_set_current_hyperlink(vte::parser::Params const& params)
-{
-
-        char* hyperlink_params = nullptr;
-        char* uri = nullptr;
-        if (params.size() >= 2) {
-                params.string_at_unchecked(0, hyperlink_params);
-                params.string_at_unchecked(1, uri);
-        }
-
-        set_current_hyperlink(hyperlink_params, uri);
-}
-
-void
-VteTerminalPrivate::set_current_hyperlink(char *hyperlink_params /* adopted */,
-                                          char* uri /* adopted */)
-{
-        guint idx;
-        char *id = NULL;
-        char idbuf[24];
-
-        if (!m_allow_hyperlink)
-                return;
-
-        /* Get the "id" parameter */
-        if (hyperlink_params) {
-                if (strncmp(hyperlink_params, "id=", 3) == 0) {
-                        id = hyperlink_params + 3;
-                } else {
-                        id = strstr(hyperlink_params, ":id=");
-                        if (id)
-                                id += 4;
-                }
-        }
-        if (id) {
-                *strchrnul(id, ':') = '\0';
-        }
-        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                          "OSC 8: id=\"%s\" uri=\"%s\"\n",
-                          id, uri);
-
-        if (uri && strlen(uri) > VTE_HYPERLINK_URI_LENGTH_MAX) {
-                _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                  "Overlong URI ignored: \"%s\"\n",
-                                  uri);
-                uri[0] = '\0';
-        }
-
-        if (id && strlen(id) > VTE_HYPERLINK_ID_LENGTH_MAX) {
-                _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                  "Overlong \"id\" ignored: \"%s\"\n",
-                                  id);
-                id[0] = '\0';
-        }
-
-        if (uri && uri[0]) {
-                /* The hyperlink, as we carry around and store in the streams, is "id;uri" */
-                char *hyperlink;
-
-                if (!id || !id[0]) {
-                        /* Automatically generate a unique ID string. The colon makes sure
-                         * it cannot conflict with an explicitly specified one. */
-                        sprintf(idbuf, ":%ld", m_hyperlink_auto_id++);
-                        id = idbuf;
-                        _vte_debug_print (VTE_DEBUG_HYPERLINK,
-                                          "Autogenerated id=\"%s\"\n",
-                                          id);
-                }
-                hyperlink = g_strdup_printf("%s;%s", id, uri);
-                idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, hyperlink);
-                g_free (hyperlink);
-        } else {
-                /* idx = 0; also remove the previous current_idx so that it can be GC'd now. */
-                idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, NULL);
-        }
-
-        m_defaults.attr.hyperlink_idx = idx;
-
-        g_free(hyperlink_params);
-        g_free(uri);
-}
-
 void
 VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
 {
@@ -1467,7 +1209,7 @@ VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
          * bool selective = (seq.command() == VTE_CMD_DECSED);
          */
 
-	switch (seq[0]) {
+        switch (seq.collect1(0)) {
         case -1: /* default */
 	case 0:
 		/* Clear below the current line. */
@@ -1502,7 +1244,7 @@ VteTerminalPrivate::erase_in_line(vte::parser::Sequence const& seq)
          * bool selective = (seq.command() == VTE_CMD_DECSEL);
          */
 
-	switch (seq[0]) {
+        switch (seq.collect1(0)) {
         case -1: /* default */
 	case 0:
 		/* Clear to end of the line. */
@@ -1592,166 +1334,244 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
         m_text_deleted_flag = TRUE;
 }
 
-/* Internal helper for setting/querying special colors */
 void
-VteTerminalPrivate::change_special_color(vte::parser::Params const& params,
-                                         int index,
-                                         int index_fallback,
-                                         int osc,
-                                         const char *terminator)
+VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
+                              vte::parser::StringTokeniser::const_iterator& token,
+                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
-        char* name;
-        if (!params.string_at(0, name))
+        bool any_changed = false;
+
+        while (token != endtoken) {
+                int value;
+                bool has_value = token.number(value);
+
+                if (++token == endtoken)
+                        break;
+
+                if (!has_value ||
+                    value < 0 ||
+                    value >= VTE_DEFAULT_FG) {
+                        ++token;
+                        continue;
+                }
+
+                auto const str = *token;
+
+                if (str == "?"s) {
+                        gchar buf[128];
+                        auto c = get_color(value);
+                        g_assert_nonnull(c);
+                        g_snprintf (buf, sizeof (buf),
+                                    _VTE_CAP_OSC "4;%u;rgb:%04x/%04x/%04x%s",
+                                    value, c->red, c->green, c->blue,
+                                    seq.terminator() == 0x7 ? BEL_C0 : ST_C0);
+                        feed_child(buf, -1);
+                } else {
+                        vte::color::rgb color;
+                        if (color.parse(str.data())) {
+                                set_color(value, VTE_COLOR_SOURCE_ESCAPE, color);
+                                any_changed = true;
+                        }
+                }
+
+                ++token;
+        }
+
+        /* emit the refresh as the palette has changed and previous
+         * renders need to be updated. */
+        if (any_changed)
+                emit_refresh_window();
+}
+
+void
+VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
+                                      vte::parser::StringTokeniser::const_iterator& token,
+                                      vte::parser::StringTokeniser::const_iterator const& endtoken,
+                                      int index,
+                                      int index_fallback,
+                                      int osc)
+{
+        if (token == endtoken)
                 return;
 
-        vte::color::rgb color;
+        auto const str = *token;
+        if (str == "?"s) {
+                gchar buf[128];
+                auto c = get_color(index);
+                if (c == nullptr && index_fallback != -1)
+                        c = get_color(index_fallback);
+                g_assert_nonnull(c);
+                auto len = g_snprintf (buf, sizeof (buf),
+                                       _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",
+                                       osc,
+                                       c->red, c->green, c->blue,
+                                       ST_C0);//seq.terminator() == 7 ? BEL_C0 : ST_C0);
+                feed_child(buf, len);
+        } else {
+                vte::color::rgb color;
+                if (color.parse(str.data())) {
+                        set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
 
-		if (color.parse(name))
-			set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
-		else if (strcmp (name, "?") == 0) {
-			gchar buf[128];
-			auto c = get_color(index);
-			if (c == NULL && index_fallback != -1)
-				c = get_color(index_fallback);
-			g_assert(c != NULL);
-			g_snprintf (buf, sizeof (buf),
-				    _VTE_CAP_OSC "%d;rgb:%04x/%04x/%04x%s",
-				    osc, c->red, c->green, c->blue, terminator);
-			feed_child(buf, -1);
-		}
+                        /* emit the refresh as the palette has changed and previous
+                         * renders need to be updated. */
+                        emit_refresh_window();
+                }
+        }
 }
 
-/* Change the default foreground cursor, BEL terminated */
 void
-VteTerminalPrivate::seq_change_foreground_color_bel(vte::parser::Params const& params)
+VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
+                                vte::parser::StringTokeniser::const_iterator& token,
+                                vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
-        change_special_color(params, VTE_DEFAULT_FG, -1, 10, BEL_C0);
+        /* Empty param? Reset all */
+        if (token == endtoken ||
+            token.size_remaining() == 0) {
+                for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++)
+                        reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
+
+                /* emit the refresh as the palette has changed and previous
+                 * renders need to be updated. */
+                emit_refresh_window();
+                return;
+        }
+
+        bool any_changed = false;
+
+        while (token != endtoken) {
+                int value;
+                if (!token.number(value))
+                        continue;
+
+                if (0 <= value && value < VTE_DEFAULT_FG) {
+                        reset_color(value, VTE_COLOR_SOURCE_ESCAPE);
+                        any_changed = true;
+                }
+
+                ++token;
+        }
+
+        /* emit the refresh as the palette has changed and previous
+         * renders need to be updated. */
+        if (any_changed)
+                emit_refresh_window();
 }
 
-/* Change the default foreground cursor, ST_C0 terminated */
 void
-VteTerminalPrivate::seq_change_foreground_color_st(vte::parser::Params const& params)
+VteTerminalPrivate::set_current_directory_uri(vte::parser::Sequence const& seq,
+                                              vte::parser::StringTokeniser::const_iterator& token,
+                                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
-        change_special_color(params, VTE_DEFAULT_FG, -1, 10, ST_C0);
+        std::string uri;
+        if (token != endtoken && token.size_remaining() > 0) {
+                uri = token.string_remaining();
+
+                auto filename = g_filename_from_uri(uri.data(), nullptr, nullptr);
+                if (filename != nullptr) {
+                        g_free(filename);
+                } else {
+                        /* invalid URI */
+                        uri.clear();
+                }
+        }
+
+        m_current_directory_uri_pending.swap(uri);
+        m_current_directory_uri_changed = true;
 }
 
-/* Reset the default foreground color */
 void
-VteTerminalPrivate::seq_reset_foreground_color(vte::parser::Params const& params)
+VteTerminalPrivate::set_current_file_uri(vte::parser::Sequence const& seq,
+                                         vte::parser::StringTokeniser::const_iterator& token,
+                                         vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+
 {
-        reset_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_ESCAPE);
+        std::string uri;
+        if (token != endtoken && token.size_remaining() > 0) {
+                uri = token.string_remaining();
+
+                auto filename = g_filename_from_uri(uri.data(), nullptr, nullptr);
+                if (filename != nullptr) {
+                        g_free(filename);
+                } else {
+                        /* invalid URI */
+                        uri.clear();
+                }
+        }
+
+        m_current_file_uri_pending.swap(uri);
+        m_current_file_uri_changed = true;
 }
 
-/* Change the default background cursor, BEL terminated */
 void
-VteTerminalPrivate::seq_change_background_color_bel(vte::parser::Params const& params)
+VteTerminalPrivate::set_current_hyperlink(vte::parser::Sequence const& seq,
+                                          vte::parser::StringTokeniser::const_iterator& token,
+                                          vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
-        change_special_color(params, VTE_DEFAULT_BG, -1, 11, BEL_C0);
-}
+        if (token == endtoken)
+                return; // FIXMEchpe or should we treat this as a reset?
 
-/* Change the default background cursor, ST_C0 terminated */
-void
-VteTerminalPrivate::seq_change_background_color_st(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_DEFAULT_BG, -1, 11, ST_C0);
-}
-
-/* Reset the default background color */
-void
-VteTerminalPrivate::seq_reset_background_color(vte::parser::Params const& params)
-{
-        reset_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_ESCAPE);
-}
-
-/* Change the color of the cursor background, BEL terminated */
-void
-VteTerminalPrivate::seq_change_cursor_background_color_bel(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, BEL_C0);
-}
-
-/* Change the color of the cursor background, ST_C0 terminated */
-void
-VteTerminalPrivate::seq_change_cursor_background_color_st(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_CURSOR_BG, VTE_DEFAULT_FG, 12, ST_C0);
-}
-
-/* Reset the color of the cursor */
-void
-VteTerminalPrivate::seq_reset_cursor_background_color(vte::parser::Params const& params)
-{
-        reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_ESCAPE);
-}
-
-/* Change the highlight background color, BEL terminated */
-void
-VteTerminalPrivate::seq_change_highlight_background_color_bel(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, BEL_C0);
-}
-
-/* Change the highlight background color, ST_C0 terminated */
-void
-VteTerminalPrivate::seq_change_highlight_background_color_st(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, 17, ST_C0);
-}
-
-/* Reset the highlight background color */
-void
-VteTerminalPrivate::seq_reset_highlight_background_color(vte::parser::Params const& params)
-{
-        reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_ESCAPE);
-}
-
-/* Change the highlight foreground color, BEL terminated */
-void
-VteTerminalPrivate::seq_change_highlight_foreground_color_bel(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, BEL_C0);
-}
-
-/* Change the highlight foreground color, ST_C0 terminated */
-void
-VteTerminalPrivate::seq_change_highlight_foreground_color_st(vte::parser::Params const& params)
-{
-        change_special_color(params, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, 19, ST_C0);
-}
-
-/* Reset the highlight foreground color */
-void
-VteTerminalPrivate::seq_reset_highlight_foreground_color(vte::parser::Params const& params)
-{
-        reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
-}
-
-/* URXVT generic OSC 777 */
-
-void
-VteTerminalPrivate::seq_urxvt_777(vte::parser::Params const& params)
-{
-        /* Accept but ignore this for compatibility with downstream-patched vte (bug #711059)*/
-}
-
-/* iterm2 OSC 133 & 1337 */
-
-void
-VteTerminalPrivate::seq_iterm2_133(vte::parser::Params const& params)
-{
-        /* Accept but ignore this for compatibility when sshing to an osx host
-         * where the iterm2 integration is loaded even when not actually using
-         * iterm2.
+        /* Handle OSC 8 hyperlinks.
+         * See bug 779734 and https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
          */
-}
 
-void
-VteTerminalPrivate::seq_iterm2_1337(vte::parser::Params const& params)
-{
-        /* Accept but ignore this for compatibility when sshing to an osx host
-         * where the iterm2 integration is loaded even when not actually using
-         * iterm2.
-         */
+        if (!m_allow_hyperlink)
+                return;
+
+        /* The hyperlink, as we carry around and store in the streams, is "id;uri" */
+        std::string hyperlink;
+
+        /* First, find the ID */
+        vte::parser::StringTokeniser subtokeniser{*token, ':'};
+        for (auto subtoken : subtokeniser) {
+                auto const len = subtoken.size();
+                if (len < 3)
+                        continue;
+
+                if (subtoken[0] != 'i' || subtoken[1] != 'd' || subtoken[2] != '=')
+                        continue;
+
+                if (len > 3 + VTE_HYPERLINK_ID_LENGTH_MAX) {
+                        _vte_debug_print (VTE_DEBUG_HYPERLINK, "Overlong \"id\" ignored: \"%s\"\n",
+                                          subtoken.data());
+                        break;
+                }
+
+                hyperlink = subtoken.substr(3);
+                break;
+        }
+
+        if (hyperlink.size() == 0) {
+                /* Automatically generate a unique ID string. The colon makes sure
+                 * it cannot conflict with an explicitly specified one.
+                 */
+                char idbuf[24];
+                auto len = g_snprintf(idbuf, sizeof(idbuf), ":%ld", m_hyperlink_auto_id++);
+                hyperlink.append(idbuf, len);
+                _vte_debug_print (VTE_DEBUG_HYPERLINK, "Autogenerated id=\"%s\"\n", hyperlink.data());
+        }
+
+        /* Now get the URI */
+        if (++token == endtoken)
+                return; // FIXMEchpe or should we treat this the same as 0-length URI ?
+
+        hyperlink.push_back(';');
+        guint idx;
+        auto const len = token.size_remaining();
+        if (len > 0 && len <= VTE_HYPERLINK_URI_LENGTH_MAX) {
+                token.append_remaining(hyperlink);
+
+                _vte_debug_print (VTE_DEBUG_HYPERLINK, "OSC 8: id;uri=\"%s\"\n", hyperlink.data());
+
+                idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, hyperlink.data());
+        } else {
+                if (G_UNLIKELY(len > VTE_HYPERLINK_URI_LENGTH_MAX))
+                        _vte_debug_print (VTE_DEBUG_HYPERLINK, "Overlong URI ignored (len %" G_GSIZE_FORMAT ")\n", len);
+
+                /* idx = 0; also remove the previous current_idx so that it can be GC'd now. */
+                idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, nullptr);
+        }
+
+        m_defaults.attr.hyperlink_idx = idx;
 }
 
 /*
@@ -4350,6 +4170,172 @@ VteTerminalPrivate::NUL(vte::parser::Sequence const& seq)
 {
         /*
          */
+}
+
+void
+VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
+{
+        /*
+         * OSC - operating system command
+         *
+         * References: ECMA-48 § 8.3.89
+         *             XTERM
+         */
+
+        /* Our OSC have the format
+         *   OSC number ; rest of string ST
+         * where the rest of the string may or may not contain more semicolons.
+         *
+         * First, extract the number.
+         */
+
+        auto const str = seq.string_utf8();
+        vte::parser::StringTokeniser tokeniser{str, ';'};
+        auto it = tokeniser.cbegin();
+        int osc;
+        if (!it.number(osc))
+                return;
+
+        auto const cend = tokeniser.cend();
+        ++it; /* could now be cend */
+
+        switch (osc) {
+        case VTE_OSC_VTECWF:
+                set_current_file_uri(seq, it, cend);
+                break;
+
+        case VTE_OSC_VTECWD:
+                set_current_directory_uri(seq, it, cend);
+                break;
+
+        case VTE_OSC_VTEHYPER:
+                set_current_hyperlink(seq, it, cend);
+                break;
+
+        case -1: /* default */
+        case VTE_OSC_XTERM_SET_WINDOW_AND_ICON_TITLE: {
+                std::string title;
+                if (it != cend)
+                        title = it.string_remaining();
+                m_icon_title_pending = title;
+                m_window_title_pending.swap(title);
+                m_icon_title_changed = true;
+                m_window_title_changed = true;
+                break;
+        }
+
+        case VTE_OSC_XTERM_SET_ICON_TITLE: {
+                std::string title;
+                if (it != cend)
+                        title = it.string_remaining();
+                m_icon_title_pending.swap(title);
+                m_icon_title_changed = true;
+                break;
+        }
+
+        case VTE_OSC_XTERM_SET_WINDOW_TITLE: {
+                std::string title;
+                if (it != cend)
+                        title = it.string_remaining();
+                m_window_title_pending.swap(title);
+                m_window_title_changed = true;
+                break;
+        }
+
+        case VTE_OSC_XTERM_SET_COLOR:
+                set_color(seq, it, cend);
+                break;
+
+        case VTE_OSC_XTERM_SET_COLOR_TEXT_FG:
+                set_special_color(seq, it, cend, VTE_DEFAULT_FG, -1, osc);
+                break;
+
+        case VTE_OSC_XTERM_SET_COLOR_TEXT_BG:
+                set_special_color(seq, it, cend, VTE_DEFAULT_BG, -1, osc);
+                break;
+
+        case VTE_OSC_XTERM_SET_COLOR_CURSOR_BG:
+                set_special_color(seq, it, cend, VTE_CURSOR_BG, VTE_DEFAULT_FG, osc);
+                break;
+
+        case VTE_OSC_XTERM_SET_COLOR_HIGHLIGHT_BG:
+                set_special_color(seq, it, cend, VTE_HIGHLIGHT_BG, VTE_DEFAULT_FG, osc);
+                break;
+
+        case VTE_OSC_XTERM_SET_COLOR_HIGHLIGHT_FG:
+                set_special_color(seq, it, cend, VTE_HIGHLIGHT_FG, VTE_DEFAULT_BG, osc);
+                break;
+
+        case VTE_OSC_XTERM_RESET_COLOR:
+                reset_color(seq, it, cend);
+                break;
+
+        case VTE_OSC_XTERM_RESET_COLOR_TEXT_FG:
+                reset_color(VTE_DEFAULT_FG, VTE_COLOR_SOURCE_ESCAPE);
+                break;
+
+        case VTE_OSC_XTERM_RESET_COLOR_TEXT_BG:
+                reset_color(VTE_DEFAULT_BG, VTE_COLOR_SOURCE_ESCAPE);
+                break;
+
+        case VTE_OSC_XTERM_RESET_COLOR_CURSOR_BG:
+                reset_color(VTE_CURSOR_BG, VTE_COLOR_SOURCE_ESCAPE);
+                break;
+
+        case VTE_OSC_XTERM_RESET_COLOR_HIGHLIGHT_BG:
+                reset_color(VTE_HIGHLIGHT_BG, VTE_COLOR_SOURCE_ESCAPE);
+                break;
+
+        case VTE_OSC_XTERM_RESET_COLOR_HIGHLIGHT_FG:
+                reset_color(VTE_HIGHLIGHT_FG, VTE_COLOR_SOURCE_ESCAPE);
+                break;
+
+        case VTE_OSC_XTERM_SET_XPROPERTY:
+        case VTE_OSC_XTERM_SET_COLOR_SPECIAL:
+        case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
+        case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_BG:
+        case VTE_OSC_XTERM_SET_COLOR_TEK_FG:
+        case VTE_OSC_XTERM_SET_COLOR_TEK_BG:
+        case VTE_OSC_XTERM_SET_COLOR_TEK_CURSOR:
+        case VTE_OSC_XTERM_LOGFILE:
+        case VTE_OSC_XTERM_SET_FONT:
+        case VTE_OSC_XTERM_SET_XSELECTION:
+        case VTE_OSC_XTERM_RESET_COLOR_SPECIAL:
+        case VTE_OSC_XTERM_SET_COLOR_MODE:
+        case VTE_OSC_XTERM_RESET_COLOR_MOUSE_CURSOR_FG:
+        case VTE_OSC_XTERM_RESET_COLOR_MOUSE_CURSOR_BG:
+        case VTE_OSC_XTERM_RESET_COLOR_TEK_FG:
+        case VTE_OSC_XTERM_RESET_COLOR_TEK_BG:
+        case VTE_OSC_XTERM_RESET_COLOR_TEK_CURSOR:
+        case VTE_OSC_EMACS_51:
+        case VTE_OSC_ITERM2_133:
+        case VTE_OSC_ITERM2_1337:
+        case VTE_OSC_ITERM2_GROWL:
+        case VTE_OSC_KONSOLE_30:
+        case VTE_OSC_KONSOLE_31:
+        case VTE_OSC_RLOGIN_SET_KANJI_MODE:
+        case VTE_OSC_RLOGIN_SPEECH:
+        case VTE_OSC_RXVT_SET_BACKGROUND_PIXMAP:
+        case VTE_OSC_RXVT_SET_COLOR_FG:
+        case VTE_OSC_RXVT_SET_COLOR_BG:
+        case VTE_OSC_RXVT_DUMP_SCREEN:
+        case VTE_OSC_URXVT_SET_LOCALE:
+        case VTE_OSC_URXVT_VERSION:
+        case VTE_OSC_URXVT_SET_COLOR_TEXT_ITALIC:
+        case VTE_OSC_URXVT_SET_COLOR_TEXT_BOLD:
+        case VTE_OSC_URXVT_SET_COLOR_UNDERLINE:
+        case VTE_OSC_URXVT_SET_COLOR_BORDER:
+        case VTE_OSC_URXVT_SET_FONT:
+        case VTE_OSC_URXVT_SET_FONT_BOLD:
+        case VTE_OSC_URXVT_SET_FONT_ITALIC:
+        case VTE_OSC_URXVT_SET_FONT_BOLD_ITALIC:
+        case VTE_OSC_URXVT_VIEW_UP:
+        case VTE_OSC_URXVT_VIEW_DOWN:
+        case VTE_OSC_URXVT_EXTENSION:
+        case VTE_OSC_YF_RQGWR:
+        default:
+                break;
+        }
 }
 
 void

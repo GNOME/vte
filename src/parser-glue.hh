@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <algorithm>
+#include <string>
 
 #include "parser.hh"
 
@@ -31,7 +32,8 @@ public:
 
         typedef int number;
 
-        char* ucs4_to_utf8(gunichar const* str) const noexcept;
+        char* ucs4_to_utf8(gunichar const* str,
+                           ssize_t len = -1) const noexcept;
 
         void print() const noexcept;
 
@@ -89,6 +91,53 @@ public:
         inline constexpr uint32_t terminator() const noexcept
         {
                 return m_seq->terminator;
+        }
+
+        // FIXMEchpe: upgrade to C++17 and use the u32string_view version below, instead
+        /*
+         * string:
+         *
+         * This is the string argument of a DCS or OSC sequence.
+         *
+         * Returns: the string argument
+         */
+        inline std::u32string string() const noexcept
+        {
+                size_t len;
+                auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
+                return std::u32string(reinterpret_cast<char32_t*>(buf), len);
+        }
+
+        #if 0
+        /*
+         * string:
+         *
+         * This is the string argument of a DCS or OSC sequence.
+         *
+         * Returns: the string argument
+         */
+        inline constexpr std::u32string_view string() const noexcept
+        {
+                size_t len = 0;
+                auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
+                return std::u32string_view(buf, len);
+        }
+        #endif
+
+        /*
+         * string:
+         *
+         * This is the string argument of a DCS or OSC sequence.
+         *
+         * Returns: the string argument
+         */
+        std::string string_utf8() const noexcept;
+
+        inline char* string_param() const noexcept
+        {
+                size_t len = 0;
+                auto buf = vte_seq_string_get(&m_seq->arg_str, &len);
+                return ucs4_to_utf8(buf, len);
         }
 
         /* size:
@@ -274,93 +323,6 @@ public:
                 return idx <= next(start_idx);
         }
 
-        //FIMXE remove this one
-        inline constexpr int operator[](int position) const
-        {
-                return __builtin_expect(position < (int)size(), 1) ? vte_seq_arg_value(m_seq->args[position]) : -1;
-        }
-
-        inline bool has_number_at_unchecked(unsigned int position) const
-        {
-                return true;
-        }
-
-        inline bool number_at_unchecked(unsigned int position, number& v) const
-        {
-                v = vte_seq_arg_value(m_seq->args[position]);
-                return true;
-        }
-
-        inline bool number_at(unsigned int position, number& v) const
-        {
-                if (G_UNLIKELY(position >= size()))
-                        return false;
-
-                return number_at_unchecked(position, v);
-        }
-
-        inline number number_or_default_at_unchecked(unsigned int position, number default_v = 0) const
-        {
-                number v;
-                if (G_UNLIKELY(!number_at_unchecked(position, v)))
-                        v = default_v;
-                return v;
-        }
-
-
-        inline number number_or_default_at(unsigned int position, number default_v = 0) const
-        {
-                number v;
-                if (G_UNLIKELY(!number_at(position, v)))
-                        v = default_v;
-                return v;
-        }
-
-        inline bool string_at_unchecked(unsigned int position, char*& str) const
-        {
-#if 0
-                auto value = value_at_unchecked(position);
-                if (G_LIKELY(G_VALUE_HOLDS_POINTER(value))) {
-                        str = ucs4_to_utf8((gunichar const*)g_value_get_pointer (value));
-                        return str != nullptr;
-                }
-                if (G_VALUE_HOLDS_STRING(value)) {
-                        /* Copy the string into the buffer. */
-                        str = g_value_dup_string(value);
-                        return str != nullptr;
-                }
-                if (G_VALUE_HOLDS_LONG(value)) {
-                        /* Convert the long to a string. */
-                        str = g_strdup_printf("%ld", g_value_get_long(value));
-                        return true;
-                }
-#endif
-                str = nullptr;
-                return false;
-        }
-
-        inline bool string_at(unsigned int position, char*& str) const
-        {
-#if 0
-                if (G_UNLIKELY(position >= size()))
-                        return false;
-
-                return string_at_unchecked(position, str);
-#endif
-                str = nullptr;
-                return false;
-        }
-
-        inline bool has_subparams_at_unchecked(unsigned int position) const
-        {
-                return false;
-        }
-
-        inline Sequence subparams_at_unchecked(unsigned int position) const
-        {
-                return Sequence{};
-        }
-
         struct vte_seq** seq_ptr() { return &m_seq; }
 
         inline explicit operator bool() const { return m_seq != nullptr; }
@@ -372,7 +334,221 @@ private:
         char const* command_string() const;
 };
 
-typedef Sequence Params;
+class StringTokeniser {
+public:
+        using string_type = std::string;
+        using char_type = std::string::value_type;
+
+private:
+        string_type const& m_string;
+        char_type m_separator{';'};
+
+public:
+        StringTokeniser(string_type const& s,
+                        char_type separator = ';')
+                : m_string{s},
+                  m_separator{separator}
+        {
+        }
+
+        StringTokeniser(string_type&& s,
+                        char_type separator = ';')
+                : m_string{s},
+                  m_separator{separator}
+        {
+        }
+
+        StringTokeniser(StringTokeniser const&) = delete;
+        StringTokeniser(StringTokeniser&&) = delete;
+        ~StringTokeniser() = default;
+
+        StringTokeniser& operator=(StringTokeniser const&) = delete;
+        StringTokeniser& operator=(StringTokeniser&&) = delete;
+
+        /*
+         * const_iterator:
+         *
+         * InputIterator for string tokens.
+         */
+        class const_iterator {
+        public:
+                using difference_type = ptrdiff_t;
+                using value_type = string_type;
+                using pointer = string_type;
+                using reference = string_type;
+                using iterator_category = std::input_iterator_tag;
+                using size_type = string_type::size_type;
+
+        private:
+                string_type const* m_string;
+                char_type m_separator{';'};
+                string_type::size_type m_position;
+                string_type::size_type m_next_separator;
+
+        public:
+                const_iterator(string_type const* str,
+                               char_type separator,
+                               size_type position)
+                        : m_string{str},
+                          m_separator{separator},
+                          m_position{position},
+                          m_next_separator{m_string->find(m_separator, m_position)}
+                {
+                }
+
+                const_iterator(string_type const* str,
+                               char_type separator)
+                        : m_string{str},
+                          m_separator{separator},
+                          m_position{string_type::npos},
+                          m_next_separator{string_type::npos}
+                {
+                }
+
+                const_iterator(const_iterator const&) = default;
+                const_iterator(const_iterator&& o)
+                        : m_string{o.m_string},
+                          m_separator{o.m_separator},
+                          m_position{o.m_position},
+                          m_next_separator{o.m_next_separator}
+                {
+                }
+
+                ~const_iterator() = default;
+
+                const_iterator& operator=(const_iterator const& o)
+                {
+                        m_string = o.m_string;
+                        m_separator = o.m_separator;
+                        m_position = o.m_position;
+                        m_next_separator = o.m_next_separator;
+                        return *this;
+                }
+
+                const_iterator& operator=(const_iterator&& o)
+                {
+                        m_string = std::move(o.m_string);
+                        m_separator = o.m_separator;
+                        m_position = o.m_position;
+                        m_next_separator = o.m_next_separator;
+                        return *this;
+                }
+
+                inline bool operator==(const_iterator const& o) const noexcept
+                {
+                        return m_position == o.m_position;
+                }
+
+                inline bool operator!=(const_iterator const& o) const noexcept
+                {
+                        return m_position != o.m_position;
+                }
+
+                inline const_iterator& operator++() noexcept
+                {
+                        if (m_next_separator != string_type::npos) {
+                                m_position = ++m_next_separator;
+                                m_next_separator = m_string->find(m_separator, m_position);
+                        } else
+                                m_position = string_type::npos;
+
+                        return *this;
+                }
+
+                /*
+                 * number:
+                 *
+                 * Returns the value of the iterator as a number, or -1
+                 *   if the string could not be parsed as a number, or
+                 *   the parsed values exceeds the uint16_t range.
+                 *
+                 * Returns: true if a number was parsed
+                 */
+                bool number(int& v) const noexcept
+                {
+                        auto const s = size();
+                        if (s == 0) {
+                                v = -1;
+                                return true;
+                        }
+
+                        v = 0;
+                        size_type i;
+                        for (i = 0; i < s; ++i) {
+                                char_type c = (*m_string)[m_position + i];
+                                if (c < '0' || c > '9')
+                                        return false;
+
+                                v = v * 10 + (c - '0');
+                                if (v > 0xffff)
+                                        return false;
+                        }
+
+                        /* All consumed? */
+                        return i == s;
+                }
+
+                inline size_type size() const noexcept
+                {
+                        if (m_next_separator != string_type::npos)
+                                return m_next_separator - m_position;
+                        else
+                                return m_string->size() - m_position;
+                }
+
+                inline size_type size_remaining() const noexcept
+                {
+                        return m_string->size() - m_position;
+                }
+
+                inline string_type operator*() const noexcept
+                {
+                        return m_string->substr(m_position, size());
+                }
+
+                /*
+                 * string_remaining:
+                 *
+                 * Returns the whole string left, including possibly more separators.
+                 */
+                inline string_type string_remaining() const noexcept
+                {
+                        return m_string->substr(m_position);
+                }
+
+                inline void append(string_type& str) const noexcept
+                {
+                        str.append(m_string->substr(m_position, size()));
+                }
+
+                inline void append_remaining(string_type& str) const noexcept
+                {
+                        str.append(m_string->substr(m_position));
+                }
+
+        }; // class const_iterator
+
+        inline const_iterator cbegin(char_type c = ';') const noexcept
+        {
+                return const_iterator(&m_string, m_separator, 0);
+        }
+
+        inline const_iterator cend() const noexcept
+        {
+                return const_iterator(&m_string, m_separator);
+        }
+
+        inline const_iterator begin(char_type c = ';') const noexcept
+        {
+                return cbegin();
+        }
+
+        inline const_iterator end() const noexcept
+        {
+                return cend();
+        }
+
+}; // class StringTokeniser
 
 } // namespace parser
 

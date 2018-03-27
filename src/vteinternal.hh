@@ -493,15 +493,18 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
-	/* window name changes */
-        char* m_window_title;
-        char* m_window_title_changed;
-        char* m_icon_title;
-        char* m_icon_title_changed;
-        char* m_current_directory_uri;
-        char* m_current_directory_uri_changed;
-        char* m_current_file_uri;
-        char* m_current_file_uri_changed;
+        std::string m_window_title{};
+        std::string m_icon_title{};
+        std::string m_current_directory_uri{};
+        std::string m_current_file_uri{};
+        std::string m_window_title_pending{};
+        std::string m_icon_title_pending{};
+        std::string m_current_directory_uri_pending{};
+        std::string m_current_file_uri_pending{};
+        bool m_icon_title_changed{false};
+        bool m_window_title_changed{false};
+        bool m_current_directory_uri_changed{false};
+        bool m_current_file_uri_changed{false};
 
 	/* Background */
         double m_background_alpha;
@@ -1132,10 +1135,6 @@ public:
                                   GCancellable *cancellable,
                                   GError **error);
 
-        /* Sequence handlers and their helper functions */
-        void handle_sequence(char const* match,
-                             vte::parser::Params const& params);
-
         inline void ensure_cursor_is_onscreen();
         inline void home_cursor();
         inline void clear_screen();
@@ -1147,9 +1146,6 @@ public:
         inline void switch_alternate_screen();
         inline void save_cursor();
         inline void restore_cursor();
-        void set_title_internal(vte::parser::Params const& params,
-                                bool icon_title,
-                                bool window_title);
 
         inline void set_mode_ecma(vte::parser::Sequence const& seq,
                                   bool set) noexcept;
@@ -1191,19 +1187,11 @@ public:
         inline void move_cursor_backward(vte::grid::column_t columns);
         inline void move_cursor_forward(vte::grid::column_t columns);
         inline void move_cursor_tab();
-        inline void change_color(vte::parser::Params const& params,
-                                 char const* terminator);
         inline void line_feed();
-        inline void set_current_hyperlink(char* hyperlink_params /* adopted */, char* uri /* adopted */);
         inline void erase_in_display(vte::parser::Sequence const& seq);
         inline void erase_in_line(vte::parser::Sequence const& seq);
         inline void insert_lines(vte::grid::row_t param);
         inline void delete_lines(vte::grid::row_t param);
-        inline void change_special_color(vte::parser::Params const& params,
-                                         int index,
-                                         int index_fallback,
-                                         int osc,
-                                         char const *terminator);
 
         void subscribe_accessible_events();
         void select_text(vte::grid::column_t start_col,
@@ -1213,11 +1201,34 @@ public:
         void select_empty(vte::grid::column_t col,
                           vte::grid::row_t row);
 
+        /* OSC handlers */
+        void set_color(vte::parser::Sequence const& seq,
+                       vte::parser::StringTokeniser::const_iterator& token,
+                       vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_special_color(vte::parser::Sequence const& seq,
+                               vte::parser::StringTokeniser::const_iterator& token,
+                               vte::parser::StringTokeniser::const_iterator const& endtoken,
+                               int index,
+                               int index_fallback,
+                               int osc) noexcept;
+        void reset_color(vte::parser::Sequence const& seq,
+                         vte::parser::StringTokeniser::const_iterator& token,
+                         vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_current_directory_uri(vte::parser::Sequence const& seq,
+                                       vte::parser::StringTokeniser::const_iterator& token,
+                                       vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_current_file_uri(vte::parser::Sequence const& seq,
+                                  vte::parser::StringTokeniser::const_iterator& token,
+                                  vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+        void set_current_hyperlink(vte::parser::Sequence const& seq,
+                                   vte::parser::StringTokeniser::const_iterator& token,
+                                   vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+
         /* Sequence handlers */
 
         /* old style */
-#define SEQUENCE_HANDLER(name)                                          \
-      inline void seq_ ## name (vte::parser::Params const& params);
+#define SEQUENCE_HANDLER(name) \
+        inline void seq_ ## name (vte::parser::Sequence const& seq);
 #include "vteseq-list.hh"
 #undef SEQUENCE_HANDLER
 

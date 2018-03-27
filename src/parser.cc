@@ -43,11 +43,8 @@
  * detected sequences.
  */
 
-#define VTE_PARSER_ST_MAX (4096)
-
 struct vte_parser {
         struct vte_seq seq;
-        size_t st_alloc;
         unsigned int state;
 };
 
@@ -876,7 +873,7 @@ enum parser_action {
         ACTION_DCS_COLLECT,     /* collect DCS data */
         ACTION_DCS_CONSUME,     /* consume DCS terminator */
         ACTION_DCS_DISPATCH,    /* dispatch DCS sequence */
-        ACTION_OSC_START,       /* start of OSC data */
+        ACTION_OSC_START,        /* clear and clear string data */
         ACTION_OSC_COLLECT,     /* collect OSC data */
         ACTION_OSC_CONSUME,     /* consume OSC terminator */
         ACTION_OSC_DISPATCH,    /* dispatch OSC sequence */
@@ -897,12 +894,7 @@ int vte_parser_new(struct vte_parser **out)
         if (!parser)
                 return -ENOMEM;
 
-        parser->st_alloc = 64;
-        parser->seq.st = (char*)kzalloc(parser->st_alloc + 1, GFP_KERNEL);
-        if (!parser->seq.st) {
-                kfree(parser);
-                return -ENOMEM;
-        }
+        vte_seq_string_init(&parser->seq.arg_str);
 
         *out = parser;
         return 0;
@@ -919,7 +911,7 @@ struct vte_parser *vte_parser_free(struct vte_parser *parser)
         if (!parser)
                 return NULL;
 
-        kfree(parser->seq.st);
+        vte_seq_string_free(&parser->seq.arg_str);
         kfree(parser);
         return NULL;
 }
@@ -935,11 +927,12 @@ static inline void parser_clear(struct vte_parser *parser)
         parser->seq.n_args = 0;
         parser->seq.n_final_args = 0;
         /* FIXME: we only really need to clear 0..n_args+1 since all others have not been touched */
+        // FIXMEchpe: now that DEFAULT is all-zero, use memset here
         for (i = 0; i < VTE_PARSER_ARG_MAX; ++i)
                 parser->seq.args[i] = VTE_SEQ_ARG_INIT_DEFAULT;
 
-        parser->seq.n_st = 0;
-        parser->seq.st[0] = 0;
+        // FIXMEchpe not really needed here, just in parser_st_start
+        vte_seq_string_reset(&parser->seq.arg_str);
 }
 
 static int parser_ignore(struct vte_parser *parser, uint32_t raw)
@@ -1018,6 +1011,21 @@ static void parser_param(struct vte_parser *parser, uint32_t raw)
         }
 }
 
+static inline void parser_osc_start(struct vte_parser *parser)
+{
+        parser_clear(parser);
+}
+
+static void parser_collect_string(struct vte_parser *parser, uint32_t raw)
+{
+        /*
+         * Only characters from 0x20..0x7e and 0xa0..0x10ffff are allowed here.
+         * Our state-machine already verifies those restrictions.
+         */
+
+        vte_seq_string_push(&parser->seq.arg_str, raw);
+}
+
 static int parser_esc(struct vte_parser *parser, uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_ESCAPE;
@@ -1049,6 +1057,21 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
         parser->seq.terminator = raw;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.command = vte_parse_host_csi(&parser->seq);
+
+        return parser->seq.type;
+}
+
+static int parser_osc(struct vte_parser *parser, uint32_t raw)
+{
+        /* parser->seq is cleared during OSC_START state, thus there's no need
+         * to clear invalid fields here. */
+
+        vte_seq_string_finish(&parser->seq.arg_str);
+
+        parser->seq.type = VTE_SEQ_OSC;
+        parser->seq.command = VTE_CMD_OSC;
+        parser->seq.terminator = raw;
+        parser->seq.charset = VTE_CHARSET_NONE;
 
         return parser->seq.type;
 }
@@ -1097,17 +1120,16 @@ static int parser_transition(struct vte_parser *parser,
                 /* not implemented */
                 return VTE_SEQ_NONE;
         case ACTION_OSC_START:
-                /* not implemented */
+                parser_osc_start(parser);
                 return VTE_SEQ_NONE;
         case ACTION_OSC_COLLECT:
-                /* not implemented */
+                parser_collect_string(parser, raw);
                 return VTE_SEQ_NONE;
         case ACTION_OSC_CONSUME:
                 /* not implemented */
                 return VTE_SEQ_NONE;
         case ACTION_OSC_DISPATCH:
-                /* not implemented */
-                return VTE_SEQ_NONE;
+                return parser_osc(parser, raw);
         default:
                 WARN(1, "invalid vte-parser action");
                 return VTE_SEQ_NONE;
@@ -1485,7 +1507,7 @@ int vte_parser_feed(struct vte_parser *parser,
                 break;
         case 0x9d:                /* OSC */
                 ret = parser_transition(parser, raw,
-                                        STATE_OSC_STRING, ACTION_CLEAR);
+                                        STATE_OSC_STRING, ACTION_OSC_START);
                 break;
         case 0x9b:                /* CSI */
                 ret = parser_transition(parser, raw,

@@ -21,6 +21,7 @@
 #include <cstdio>
 
 #include "parser-arg.hh"
+#include "parser-string.hh"
 
 struct vte_parser;
 struct vte_seq;
@@ -133,6 +134,14 @@ enum {
 #undef _VTE_CHARSET_ALIAS
 };
 
+enum {
+#define _VTE_OSC(osc,value) VTE_OSC_##osc = value,
+#include "parser-osc.hh"
+#undef _VTE_OSC
+
+        VTE_OSC_N
+};
+
 struct vte_seq {
         unsigned int type;
         unsigned int command;
@@ -142,8 +151,7 @@ struct vte_seq {
         unsigned int n_args;
         unsigned int n_final_args;
         vte_seq_arg_t args[VTE_PARSER_ARG_MAX];
-        unsigned int n_st;
-        char *st;
+        vte_seq_string_t arg_str;
 };
 
 int vte_parser_new(struct vte_parser **out);
