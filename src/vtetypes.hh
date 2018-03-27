@@ -21,6 +21,8 @@
 #include <gdk/gdk.h>
 #include <errno.h>
 
+#include <cstdint>
+
 #ifdef VTE_DEBUG
 #define IFDEF_DEBUG(str) str
 #else
@@ -153,6 +155,8 @@ namespace color {
                 rgb(PangoColor const& c) { *static_cast<PangoColor*>(this) = c; }
                 rgb(GdkRGBA const* c);
                 rgb(GdkRGBA const& c) : rgb(&c) { }
+                rgb(uint16_t r, uint16_t g, uint16_t b)
+                        : PangoColor{r, g, b} { }
 
                 bool parse(char const* spec);
 

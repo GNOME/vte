@@ -1339,10 +1339,46 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
         m_text_deleted_flag = TRUE;
 }
 
+bool
+VteTerminalPrivate::get_osc_color_index(int osc,
+                                        int value,
+                                        int& index) const noexcept
+{
+        if (value < 0)
+                return false;
+
+        if (osc == VTE_OSC_XTERM_SET_COLOR ||
+            osc == VTE_OSC_XTERM_RESET_COLOR) {
+                if (value < VTE_DEFAULT_FG) {
+                        index = value;
+                        return true;
+                }
+
+                index = value - VTE_DEFAULT_FG;
+        } else {
+                index = value;
+        }
+
+        /* Translate OSC 5 numbers to color index.
+         *
+         * We return -1 for known but umimplemented special colors
+         * so that we can send a dummy reply when queried.
+         */
+        switch (index) {
+        case 0: index = VTE_BOLD_FG; return true; /* Bold */
+        case 1: index = -1; return true; /* Underline */
+        case 2: index = -1; return true; /* Blink */
+        case 3: index = -1; return true; /* Reverse */
+        case 4: index = -1; return true; /* Italic */
+        default: return false;
+        }
+}
+
 void
 VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
                               vte::parser::StringTokeniser::const_iterator& token,
-                              vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+                              vte::parser::StringTokeniser::const_iterator const& endtoken,
+                              int osc) noexcept
 {
         bool any_changed = false;
 
@@ -1353,36 +1389,65 @@ VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
                 if (++token == endtoken)
                         break;
 
+                int index;
                 if (!has_value ||
-                    value < 0 ||
-                    value >= VTE_DEFAULT_FG) {
+                    !get_osc_color_index(osc, value, index)) {
                         ++token;
                         continue;
                 }
 
-                auto const str = *token;
-
-                if (str == "?"s) {
-                        auto c = get_color(value);
-                        g_assert_nonnull(c);
-
-                        reply(seq, VTE_REPLY_OSC, {}, "4;%d;rgb:%04x/%04x/%04x",
-                              value, c->red, c->green, c->blue);
-                } else {
-                        vte::color::rgb color;
-                        if (color.parse(str.data())) {
-                                set_color(value, VTE_COLOR_SOURCE_ESCAPE, color);
-                                any_changed = true;
-                        }
-                }
-
+                any_changed |= set_color_index(seq, token, endtoken, value, index, -1, osc);
                 ++token;
         }
 
         /* emit the refresh as the palette has changed and previous
-         * renders need to be updated. */
+         * renders need to be updated.
+         */
         if (any_changed)
                 emit_refresh_window();
+}
+
+bool
+VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
+                                    vte::parser::StringTokeniser::const_iterator& token,
+                                    vte::parser::StringTokeniser::const_iterator const& endtoken,
+                                    int number,
+                                    int index,
+                                    int index_fallback,
+                                    int osc)
+{
+        bool palette_changed = false;
+
+        auto const str = *token;
+
+        if (str == "?"s) {
+                vte::color::rgb color{0, 0, 0};
+                if (index != -1) {
+                        auto const* c = get_color(index);
+                        if (c == nullptr && index_fallback != -1)
+                                c = get_color(index_fallback);
+                        if (c != nullptr)
+                                color = *c;
+                }
+
+                if (number != -1)
+                        reply(seq, VTE_REPLY_OSC, {}, "%d;%d;rgb:%04x/%04x/%04x",
+                              osc, number, color.red, color.green, color.blue);
+                else
+                        reply(seq, VTE_REPLY_OSC, {}, "%d;rgb:%04x/%04x/%04x",
+                              osc, color.red, color.green, color.blue);
+        } else {
+                vte::color::rgb color;
+
+                if (index != -1 &&
+                    color.parse(str.data())) {
+                        set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
+
+                        palette_changed = true;
+                }
+        }
+
+        return palette_changed;
 }
 
 void
@@ -1391,42 +1456,34 @@ VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
                                       vte::parser::StringTokeniser::const_iterator const& endtoken,
                                       int index,
                                       int index_fallback,
-                                      int osc)
+                                      int osc) noexcept
 {
         if (token == endtoken)
                 return;
 
-        auto const str = *token;
-        if (str == "?"s) {
-                auto c = get_color(index);
-                if (c == nullptr && index_fallback != -1)
-                        c = get_color(index_fallback);
-                g_assert_nonnull(c);
-
-                reply(seq, VTE_REPLY_OSC, {}, "%d;rgb:%04x/%04x/%04x",
-                      osc, c->red, c->green, c->blue);
-        } else {
-                vte::color::rgb color;
-                if (color.parse(str.data())) {
-                        set_color(index, VTE_COLOR_SOURCE_ESCAPE, color);
-
-                        /* emit the refresh as the palette has changed and previous
-                         * renders need to be updated. */
-                        emit_refresh_window();
-                }
-        }
+        /* emit the refresh as the palette has changed and previous
+         * renders need to be updated.
+         */
+        if (set_color_index(seq, token, endtoken, -1, index, index_fallback, osc))
+                emit_refresh_window();
 }
 
 void
 VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
                                 vte::parser::StringTokeniser::const_iterator& token,
-                                vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
+                                vte::parser::StringTokeniser::const_iterator const& endtoken,
+                                int osc) noexcept
 {
         /* Empty param? Reset all */
         if (token == endtoken ||
             token.size_remaining() == 0) {
-                for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++)
-                        reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
+                if (osc == VTE_OSC_XTERM_RESET_COLOR) {
+                        for (unsigned int idx = 0; idx < VTE_DEFAULT_FG; idx++)
+                                reset_color(idx, VTE_COLOR_SOURCE_ESCAPE);
+                }
+
+                reset_color(VTE_BOLD_FG, VTE_COLOR_SOURCE_ESCAPE);
+                /* Add underline/blink/reverse/italic here if/when implemented */
 
                 /* emit the refresh as the palette has changed and previous
                  * renders need to be updated. */
@@ -1441,8 +1498,10 @@ VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
                 if (!token.number(value))
                         continue;
 
-                if (0 <= value && value < VTE_DEFAULT_FG) {
-                        reset_color(value, VTE_COLOR_SOURCE_ESCAPE);
+                int index;
+                if (get_osc_color_index(osc, value, index) &&
+                    index != -1) {
+                        reset_color(index, VTE_COLOR_SOURCE_ESCAPE);
                         any_changed = true;
                 }
 
@@ -6261,7 +6320,8 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
         }
 
         case VTE_OSC_XTERM_SET_COLOR:
-                set_color(seq, it, cend);
+        case VTE_OSC_XTERM_SET_COLOR_SPECIAL:
+                set_color(seq, it, cend, osc);
                 break;
 
         case VTE_OSC_XTERM_SET_COLOR_TEXT_FG:
@@ -6285,7 +6345,8 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR:
-                reset_color(seq, it, cend);
+        case VTE_OSC_XTERM_RESET_COLOR_SPECIAL:
+                reset_color(seq, it, cend, osc);
                 break;
 
         case VTE_OSC_XTERM_RESET_COLOR_TEXT_FG:
@@ -6310,7 +6371,6 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
 
         case VTE_OSC_XTERM_SET_ICON_TITLE:
         case VTE_OSC_XTERM_SET_XPROPERTY:
-        case VTE_OSC_XTERM_SET_COLOR_SPECIAL:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_FG:
         case VTE_OSC_XTERM_SET_COLOR_MOUSE_CURSOR_BG:
         case VTE_OSC_XTERM_SET_COLOR_TEK_FG:
@@ -6319,7 +6379,6 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_LOGFILE:
         case VTE_OSC_XTERM_SET_FONT:
         case VTE_OSC_XTERM_SET_XSELECTION:
-        case VTE_OSC_XTERM_RESET_COLOR_SPECIAL:
         case VTE_OSC_XTERM_SET_COLOR_MODE:
         case VTE_OSC_XTERM_RESET_COLOR_MOUSE_CURSOR_FG:
         case VTE_OSC_XTERM_RESET_COLOR_MOUSE_CURSOR_BG:

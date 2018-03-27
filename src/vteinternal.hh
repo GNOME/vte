@@ -1295,10 +1295,23 @@ public:
                    char const* format,
                    ...) noexcept G_GNUC_PRINTF(5, 6);
 
+        /* OSC handler helpers */
+        bool get_osc_color_index(int osc,
+                                 int value,
+                                 int& index) const noexcept;
+        bool set_color_index(vte::parser::Sequence const& seq,
+                             vte::parser::StringTokeniser::const_iterator& token,
+                             vte::parser::StringTokeniser::const_iterator const& endtoken,
+                             int number,
+                             int index,
+                             int index_fallback,
+                             int osc) noexcept;
+
         /* OSC handlers */
         void set_color(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,
-                       vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+                       vte::parser::StringTokeniser::const_iterator const& endtoken,
+                       int osc) noexcept;
         void set_special_color(vte::parser::Sequence const& seq,
                                vte::parser::StringTokeniser::const_iterator& token,
                                vte::parser::StringTokeniser::const_iterator const& endtoken,
@@ -1307,7 +1320,8 @@ public:
                                int osc) noexcept;
         void reset_color(vte::parser::Sequence const& seq,
                          vte::parser::StringTokeniser::const_iterator& token,
-                         vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+                         vte::parser::StringTokeniser::const_iterator const& endtoken,
+                         int osc) noexcept;
         void set_current_directory_uri(vte::parser::Sequence const& seq,
                                        vte::parser::StringTokeniser::const_iterator& token,
                                        vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
