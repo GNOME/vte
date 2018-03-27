@@ -2053,15 +2053,6 @@ VteTerminalPrivate::seq_full_reset(vte::parser::Params const& params)
 	reset(true, true);
 }
 
-/* Insert a certain number of lines below the current cursor. */
-void
-VteTerminalPrivate::seq_insert_lines(vte::parser::Params const& params)
-{
-	/* The default is one. */
-        auto param = params.number_or_default_at(0, 1);
-        insert_lines(param);
-}
-
 void
 VteTerminalPrivate::insert_lines(vte::grid::row_t param)
 {
@@ -2094,15 +2085,6 @@ VteTerminalPrivate::insert_lines(vte::grid::row_t param)
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
         m_text_inserted_flag = TRUE;
-}
-
-/* Delete certain lines from the scrolling region. */
-void
-VteTerminalPrivate::seq_delete_lines(vte::parser::Params const& params)
-{
-	/* The default is one. */
-        auto param = params.number_or_default_at(0, 1);
-        delete_lines(param);
 }
 
 void
@@ -4267,6 +4249,8 @@ VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.32
          */
 #if 0
         unsigned int num = 1;
@@ -4281,7 +4265,8 @@ VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        seq_delete_lines(seq);
+        auto const count = seq.collect1(0, 1);
+        delete_lines(count);
 }
 
 void
@@ -4748,6 +4733,8 @@ VteTerminalPrivate::IL(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 1
+         *
+         * References: ECMA-48 § 8.3.67
          */
 #if 0
         unsigned int num = 1;
@@ -4763,7 +4750,8 @@ VteTerminalPrivate::IL(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        seq_insert_lines(seq);
+        auto const count = seq.collect1(0, 1);
+        insert_lines(count);
 }
 
 void
