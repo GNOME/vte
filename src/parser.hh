@@ -140,6 +140,7 @@ struct vte_seq {
         unsigned int intermediates;
         unsigned int charset;
         unsigned int n_args;
+        unsigned int n_final_args;
         vte_seq_arg_t args[VTE_PARSER_ARG_MAX];
         unsigned int n_st;
         char *st;

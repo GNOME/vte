@@ -20,14 +20,65 @@
 
 #include <assert.h>
 
+/*
+ * vte_seq_arg_t:
+ *
+ * A type to hold a CSI, OSC or DCS parameter.
+ *
+ * Parameters can be final or nonfinal.
+ *
+ * Final parameters are those that occur at the end of the
+ * parameter list, or the end of a subparameter list.
+ *
+ * Nonfinal parameters are those that have subparameters
+ * after them.
+ *
+ * Parameters have default value or have a nondefault value.
+ */
 typedef int vte_seq_arg_t;
 
+#define VTE_SEQ_ARG_FLAG_VALUE    (1 << 16)
+#define VTE_SEQ_ARG_FLAG_NONFINAL (1 << 17)
+#define VTE_SEQ_ARG_VALUE_MASK    (0xffff)
+
+/*
+ * VTE_SEQ_ARG_INIT_DEFAULT:
+ *
+ * Returns: a parameter with default value
+ */
 #define VTE_SEQ_ARG_INIT_DEFAULT (0)
-#define VTE_SEQ_ARG_FLAG_VALUE (1 << 16)
-#define VTE_SEQ_ARG_VALUE_MASK (0xffff)
 
-#define VTE_SEQ_ARG_INIT(value) (value | VTE_SEQ_ARG_FLAG_VALUE)
+/*
+ * VTE_SEQ_ARG_INIT:
+ * @value:
+ *
+ * Returns: a parameter with value @value
+ */
+#define VTE_SEQ_ARG_INIT(value) ((value & VTE_SEQ_ARG_VALUE_MASK) | VTE_SEQ_ARG_FLAG_VALUE)
 
+/*
+ * vte_seq_arg_init:
+ * @value:
+ *
+ * Returns: a #vte_seq_arg_t for @value, or with default value if @value is -1
+ */
+static constexpr inline vte_seq_arg_t vte_seq_arg_init(int value)
+{
+        if (value == -1)
+                return VTE_SEQ_ARG_INIT_DEFAULT;
+        else
+                return VTE_SEQ_ARG_INIT(value);
+}
+
+/*
+ * vte_seq_arg_push:
+ * @arg:
+ * @c: a value between 3/0 and 3/9 ['0' .. '9']
+ *
+ * Multiplies @arg by 10 and adds the numeric value of @c.
+ *
+ * After this, @arg has a value.
+ */
 static inline void vte_seq_arg_push(vte_seq_arg_t* arg,
                                     uint32_t c)
 {
@@ -46,26 +97,65 @@ static inline void vte_seq_arg_push(vte_seq_arg_t* arg,
         *arg = value | VTE_SEQ_ARG_FLAG_VALUE;
 }
 
-static inline void vte_seq_arg_finish(vte_seq_arg_t* arg)
+/*
+ * vte_seq_arg_finish:
+ * @arg:
+ * @finalise:
+ *
+ * Finished @arg; after this no more vte_seq_arg_push() calls
+ * are allowed.
+ *
+ * If @nonfinal is %true, marks @arg as a nonfinal parameter, is,
+ * there are more subparameters after it.
+ */
+static inline void vte_seq_arg_finish(vte_seq_arg_t* arg,
+                                      bool nonfinal = false)
 {
+        if (nonfinal)
+                *arg |= VTE_SEQ_ARG_FLAG_NONFINAL;
 }
 
-static inline bool vte_seq_arg_started(vte_seq_arg_t arg)
+/*
+ * vte_seq_arg_started:
+ * @arg:
+ *
+ * Returns: whether @arg has nondefault value
+ */
+static constexpr inline bool vte_seq_arg_started(vte_seq_arg_t arg)
 {
         return arg & VTE_SEQ_ARG_FLAG_VALUE;
 }
 
-static inline bool vte_seq_arg_finished(vte_seq_arg_t arg)
-{
-        return true;
-}
-
-static inline bool vte_seq_arg_default(vte_seq_arg_t arg)
+/*
+ * vte_seq_arg_default:
+ * @arg:
+ *
+ * Returns: whether @arg has default value
+ */
+static constexpr inline bool vte_seq_arg_default(vte_seq_arg_t arg)
 {
         return !(arg & VTE_SEQ_ARG_FLAG_VALUE);
 }
 
-static inline int vte_seq_arg_value(vte_seq_arg_t arg)
+/*
+ * vte_seq_arg_nonfinal:
+ * @arg:
+ *
+ * Returns: whether @arg is a nonfinal parameter, i.e. there
+ * are more subparameters after it
+ */
+static constexpr inline int vte_seq_arg_nonfinal(vte_seq_arg_t arg)
 {
-        return arg & VTE_SEQ_ARG_FLAG_VALUE ? arg & VTE_SEQ_ARG_VALUE_MASK : -1;
+        return (arg & VTE_SEQ_ARG_FLAG_NONFINAL);
+}
+
+/*
+ * vte_seq_arg_value:
+ * @arg:
+ *
+ * Returns: the value of @arg, or -1 if @arg has default value
+ */
+static constexpr inline int vte_seq_arg_value(vte_seq_arg_t arg)
+{
+        return (arg & VTE_SEQ_ARG_FLAG_VALUE) ? (arg & VTE_SEQ_ARG_VALUE_MASK) : -1;
 }

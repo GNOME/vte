@@ -619,9 +619,10 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                          * Split both up and forward the call to the closer
                          * match.
                          */
-                        if (seq->n_args <= 1) /* XTERM RPM */
+                        // FIXMEchpe!
+                        if (seq->n_final_args <= 1) /* XTERM RPM */
                                 return VTE_CMD_XTERM_RPM;
-                        else if (seq->n_args >= 2) /* DECPCTERM */
+                        else if (seq->n_final_args >= 2) /* DECPCTERM */
                                 return VTE_CMD_DECPCTERM;
                 }
                 break;
@@ -659,10 +660,11 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
                          * 1. We're conservative here and give both a wider
                          * range to allow unused arguments (compat...).
                          */
-                        if (seq->n_args < 5) {
+                        // FIXMEchpe!
+                        if (seq->n_final_args < 5) {
                                 /* SD */
                                 return VTE_CMD_SD;
-                        } else if (seq->n_args >= 5) {
+                        } else if (seq->n_final_args >= 5) {
                                 /* XTERM IHMT */
                                 return VTE_CMD_XTERM_IHMT;
                         }
@@ -931,6 +933,8 @@ static inline void parser_clear(struct vte_parser *parser)
         parser->seq.intermediates = 0;
         parser->seq.charset = VTE_CHARSET_NONE;
         parser->seq.n_args = 0;
+        parser->seq.n_final_args = 0;
+        /* FIXME: we only really need to clear 0..n_args+1 since all others have not been touched */
         for (i = 0; i < VTE_PARSER_ARG_MAX; ++i)
                 parser->seq.args[i] = VTE_SEQ_ARG_INIT_DEFAULT;
 
@@ -990,7 +994,16 @@ static void parser_param(struct vte_parser *parser, uint32_t raw)
 {
         if (raw == ';') {
                 if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
-                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args]);
+                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
+                        ++parser->seq.n_args;
+                        ++parser->seq.n_final_args;
+                }
+
+                return;
+        }
+        if (raw == ':') {
+                if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
+                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], true);
                         ++parser->seq.n_args;
                 }
 
@@ -1025,8 +1038,9 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
         if (parser->seq.n_args < VTE_PARSER_ARG_MAX) {
                 if (parser->seq.n_args > 0 ||
                     vte_seq_arg_started(parser->seq.args[parser->seq.n_args])) {
-                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args]);
+                        vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
                         ++parser->seq.n_args;
+                        ++parser->seq.n_final_args;
                 }
         }
 
@@ -1190,11 +1204,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_CSI_INT,
                                                  ACTION_COLLECT);
-                case 0x3a:                /* ':' */
-                        return parser_transition(parser, raw, STATE_CSI_IGNORE,
-                                                 ACTION_NONE);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
-                case 0x3b:                /* ';' */
+                case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_CSI_PARAM,
                                                  ACTION_PARAM);
                 case 0x3c ... 0x3f:        /* ['<' - '?'] */
@@ -1222,10 +1233,9 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                         return parser_transition(parser, raw, STATE_CSI_INT,
                                                  ACTION_COLLECT);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
-                case 0x3b:                /* ';' */
+                case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_NONE,
                                                  ACTION_PARAM);
-                case 0x3a:                /* ':' */
                 case 0x3c ... 0x3f:        /* ['<' - '?'] */
                         return parser_transition(parser, raw, STATE_CSI_IGNORE,
                                                  ACTION_NONE);
@@ -1295,11 +1305,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 case 0x20 ... 0x2f:        /* [' ' - '\'] */
                         return parser_transition(parser, raw, STATE_DCS_INT,
                                                  ACTION_COLLECT);
-                case 0x3a:                /* ':' */
-                        return parser_transition(parser, raw, STATE_DCS_IGNORE,
-                                                 ACTION_NONE);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
-                case 0x3b:                /* ';' */
+                case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_DCS_PARAM,
                                                  ACTION_PARAM);
                 case 0x3c ... 0x3f:        /* ['<' - '?'] */
@@ -1327,10 +1334,9 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                         return parser_transition(parser, raw, STATE_DCS_INT,
                                                  ACTION_COLLECT);
                 case 0x30 ... 0x39:        /* ['0' - '9'] */
-                case 0x3b:                /* ';' */
+                case 0x3a ... 0x3b:        /* [':' - ';'] */
                         return parser_transition(parser, raw, STATE_NONE,
                                                  ACTION_PARAM);
-                case 0x3a:                /* ':' */
                 case 0x3c ... 0x3f:        /* ['<' - '?'] */
                         return parser_transition(parser, raw, STATE_DCS_IGNORE,
                                                  ACTION_NONE);

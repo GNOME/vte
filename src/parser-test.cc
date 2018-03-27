@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include <glib.h>
 
@@ -170,7 +171,8 @@ public:
 
         void set_params(vte_seq_arg_t params[16])
         {
-                memcpy(&m_seq.args, params, 16*sizeof(params[0]));
+                for (unsigned int i = 0; i < 16; i++)
+                        m_seq.args[i] = vte_seq_arg_init(params[i]);
         }
 
         void set_n_params(unsigned int n)
@@ -273,13 +275,9 @@ vte_seq_builder::assert_equal_full(struct vte_seq* seq)
 }
 
 static int
-feed_parser(vte_seq_builder& b,
-            struct vte_seq** seq,
-            bool c1 = false)
+feed_parser(std::u32string const& s,
+            struct vte_seq** seq)
 {
-        std::u32string s;
-        b.to_string(s, c1);
-
         int rv = VTE_SEQ_NONE;
         for (auto it : s) {
                 rv = vte_parser_feed(parser, seq, (uint32_t)(char32_t)it);
@@ -287,6 +285,17 @@ feed_parser(vte_seq_builder& b,
                         break;
         }
         return rv;
+}
+
+static int
+feed_parser(vte_seq_builder& b,
+            struct vte_seq** seq,
+            bool c1 = false)
+{
+        std::u32string s;
+        b.to_string(s, c1);
+
+        return feed_parser(s, seq);
 }
 
 static void
@@ -302,7 +311,6 @@ test_seq_arg(void)
         vte_seq_arg_push(&arg, '3');
         vte_seq_arg_finish(&arg);
 
-        g_assert_true(vte_seq_arg_finished(arg));
         g_assert_cmpint(vte_seq_arg_value(arg), ==, 123);
         g_assert_false(vte_seq_arg_default(arg));
 
@@ -315,7 +323,6 @@ test_seq_arg(void)
         vte_seq_arg_push(&arg, '6');
         vte_seq_arg_finish(&arg);
 
-        g_assert_true(vte_seq_arg_finished(arg));
         g_assert_cmpint(vte_seq_arg_value(arg), ==, 65535);
 }
 
@@ -776,25 +783,74 @@ test_seq_csi(void)
          * There could be any number of extra params bytes, but we only test up to 1.
          * CSI can be either the C1 control itself, or ESC [
          */
-        vte_seq_arg_t params1[16]{ VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(0),
-                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(9),
-                        VTE_SEQ_ARG_INIT(10), VTE_SEQ_ARG_INIT(99),
-                        VTE_SEQ_ARG_INIT(100), VTE_SEQ_ARG_INIT(999),
-                        VTE_SEQ_ARG_INIT(1000), VTE_SEQ_ARG_INIT(9999),
-                        VTE_SEQ_ARG_INIT(10000), VTE_SEQ_ARG_INIT(65534),
-                        VTE_SEQ_ARG_INIT(65535), VTE_SEQ_ARG_INIT(65536),
-                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(-1) };
+        vte_seq_arg_t params1[16]{ -1, 0, 1, 9, 10, 99, 100, 999,
+                        1000, 9999, 10000, 65534, 65535, 65536, -1, -1 };
         test_seq_csi(params1);
 
-        vte_seq_arg_t params2[16]{ VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(-1),
-                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(-1),
-                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(-1),
-                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(1),
-                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(-1),
-                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(-1),
-                        VTE_SEQ_ARG_INIT(-1), VTE_SEQ_ARG_INIT(1),
-                        VTE_SEQ_ARG_INIT(1), VTE_SEQ_ARG_INIT(1) };
+        vte_seq_arg_t params2[16]{ 1, -1, -1, -1, 1, -1, 1, 1,
+                        1, -1, -1, -1, -1, 1, 1, 1 };
         test_seq_csi(params2);
+}
+
+static void
+test_seq_csi_param(char const* str,
+                   std::vector<int> args,
+                   std::vector<bool> args_nonfinal)
+{
+        g_assert_cmpuint(args.size(), ==, args_nonfinal.size());
+
+        std::u32string s;
+        s.push_back(0x9B); /* CSI */
+        for (unsigned int i = 0; str[i]; i++)
+                s.push_back(str[i]);
+        s.push_back(0x6d); /* m = SGR */
+
+        struct vte_seq* seq;
+        auto rv = feed_parser(s, &seq);
+        g_assert_cmpint(rv, ==, VTE_SEQ_CSI);
+
+        if (seq->n_args < VTE_PARSER_ARG_MAX)
+                g_assert_cmpuint(seq->n_args, ==, args.size());
+
+        unsigned int n_final_args = 0;
+        for (unsigned int i = 0; i < seq->n_args; i++) {
+                g_assert_cmpint(vte_seq_arg_value(seq->args[i]), ==, args[i]);
+
+                auto is_nonfinal = args_nonfinal[i];
+                if (!is_nonfinal)
+                        n_final_args++;
+
+                g_assert_cmpint(!!vte_seq_arg_nonfinal(seq->args[i]), ==, is_nonfinal);
+        }
+
+        g_assert_cmpuint(seq->n_final_args, ==, n_final_args);
+}
+
+static void
+test_seq_csi_param(void)
+{
+        /* Tests that CSI parameters and subparameters are parsed correctly. */
+
+        test_seq_csi_param("", { }, { });
+        test_seq_csi_param(";", { -1, -1 }, { false, false });
+        test_seq_csi_param(":", { -1, -1 }, { true, false });
+        test_seq_csi_param(";:", { -1, -1, -1 }, { false, true, false });
+        test_seq_csi_param("::;;", { -1, -1, -1, -1, -1 }, { true, true, false, false, false });
+
+        test_seq_csi_param("1;2:3:4:5:6;7:8;9:0",
+                           { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 },
+                           { false, true, true, true, true, false, true, false, true, false });
+
+        test_seq_csi_param("1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1",
+                           { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+                           { false, false, false, false, false, false, false, false,
+                                           false, false, false, false, false, false, false, false });
+
+        test_seq_csi_param("1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1",
+                           { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+                           { true, true, true, true, true, true, true, true,
+                                           true, true, true, true, true, true, true, false });
+
 }
 
 int
@@ -818,6 +874,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/escape/nF", test_seq_esc_nF);
         g_test_add_func("/vte/parser/sequences/escape/F[pes]", test_seq_esc_Fpes);
         g_test_add_func("/vte/parser/sequences/csi", test_seq_csi);
+        g_test_add_func("/vte/parser/sequences/csi/parameters", test_seq_csi_param);
 
         auto rv = g_test_run();
 
