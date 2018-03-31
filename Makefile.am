@@ -8,7 +8,6 @@ EXTRA_DIST = \
 	COPYING.GPL3 \
 	COPYING.LGPL2 \
 	COPYING.LGPL3 \
-	HACKING \
 	autogen.sh \
 	ChangeLog.pre-git \
 	$(NULL)

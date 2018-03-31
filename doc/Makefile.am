@@ -1,11 +1,10 @@
 NULL =
 
-SUBDIRS = reference openi18n
+SUBDIRS = reference
 
 EXTRA_DIST = \
 	ambiguous.txt \
         boxes.txt \
-	readme.txt \
         rewrap.txt \
 	$(NULL)
 

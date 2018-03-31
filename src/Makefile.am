@@ -154,7 +154,7 @@ BUILT_SOURCES = \
 	vte/vtetypebuiltins.h \
 	vteresources.cc \
 	$(NULL)
-EXTRA_DIST += box_drawing.txt box_drawing_generate.sh iso2022.txt
+EXTRA_DIST += box_drawing.txt box_drawing_generate.sh
 CLEANFILES += $(BUILT_SOURCES) stamp-vtetypebuiltins.h
 
 box_drawing.h: box_drawing.txt box_drawing_generate.sh

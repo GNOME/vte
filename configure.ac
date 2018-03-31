@@ -439,7 +439,6 @@ bindings/vala/Makefile
 perf/Makefile
 po/Makefile.in
 doc/Makefile
-doc/openi18n/Makefile
 doc/reference/Makefile
 doc/reference/version.xml
 glade/Makefile
