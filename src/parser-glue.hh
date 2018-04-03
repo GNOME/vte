@@ -622,9 +622,12 @@ private:
                 case VTE_SEQ_ESCAPE:
                 case VTE_SEQ_CSI:
                 case VTE_SEQ_DCS:
+                        #pragma GCC diagnostic push
+                        #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
                         for (unsigned char n = 0; n < m_n_intermediates; n++)
                                 s.push_back(m_intermediates[n]);
                         /* [[fallthrough]]; */
+                        #pragma GCC diagnostic pop
                 case VTE_SEQ_SCI:
                         if (m_seq.terminator != 0)
                                 s.push_back(m_seq.terminator);
