@@ -5297,14 +5297,15 @@ VteTerminalPrivate::widget_paste_received(char const* text)
 
         /* Convert newlines to carriage returns, which more software
          * is able to cope with (cough, pico, cough).
-         * Filter out control chars except ^H, ^I, ^J, ^M and ^? (as per xterm).
+         * Filter out control chars except HT, CR (even stricter than xterm).
          * Also filter out C1 controls: U+0080 (0xC2 0x80) - U+009F (0xC2 0x9F). */
         p = paste = (gchar *) g_malloc(len + 1);
         while (p != nullptr && text[0] != '\0') {
                 run = strcspn(text, "\x01\x02\x03\x04\x05\x06\x07"
-                              "\x0A\x0B\x0C\x0E\x0F"
+                              "\x08\x0A\x0B\x0C\x0E\x0F"
                               "\x10\x11\x12\x13\x14\x15\x16\x17"
-                              "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F\xC2");
+                              "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F"
+                              "\x7F\xC2");
                 memcpy(p, text, run);
                 p += run;
                 text += run;
