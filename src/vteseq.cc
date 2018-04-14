@@ -1549,7 +1549,8 @@ VteTerminalPrivate::set_current_hyperlink(vte::parser::Sequence const& seq,
         std::string hyperlink;
 
         /* First, find the ID */
-        vte::parser::StringTokeniser subtokeniser{*token, ':'};
+        auto tokenstr = *token;
+        vte::parser::StringTokeniser subtokeniser{tokenstr, ':'};
         for (auto subtoken : subtokeniser) {
                 auto const len = subtoken.size();
                 if (len < 3)
@@ -6255,7 +6256,7 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
          * First, extract the number.
          */
 
-        auto const str = seq.string_utf8();
+        auto str = seq.string_utf8();
         vte::parser::StringTokeniser tokeniser{str, ';'};
         auto it = tokeniser.cbegin();
         int osc;

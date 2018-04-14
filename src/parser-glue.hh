@@ -769,7 +769,7 @@ private:
         char_type m_separator{';'};
 
 public:
-        StringTokeniser(string_type const& s,
+        StringTokeniser(string_type& s,
                         char_type separator = ';')
                 : m_string{s},
                   m_separator{separator}
