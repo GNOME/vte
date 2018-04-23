@@ -76,6 +76,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	pty.cc \
 	reaper.cc \
 	reaper.hh \
+	refptr.hh \
 	ring.cc \
 	ring.hh \
 	vte.cc \
@@ -186,7 +187,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += parser-cat slowcat test-modes test-tabstops test-parser
+noinst_PROGRAMS += parser-cat slowcat test-modes test-tabstops test-parser test-refptr
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -209,6 +210,7 @@ dist_check_SCRIPTS = \
 TESTS = \
 	test-modes \
 	test-parser \
+	test-refptr \
 	test-tabstops \
 	reaper \
 	test-vtetypes \
@@ -348,6 +350,21 @@ test_tabstops_CXXFLAGS = \
 	$(AM_CXXFLAGS)
 test_tabstops_LDADD = \
 	$(GLIB_LIBS) \
+	$(NULL)
+
+test_refptr_SOURCES = \
+	refptr.hh \
+	refptr-test.cc \
+	$(NULL)
+test_refptr_CPPFLAGS = \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+test_refptr_CXXFLAGS = \
+	$(GOBJECT_CFLAGS) \
+	$(AM_CXXFLAGS)
+test_refptr_LDADD = \
+	$(GOBJECT_LIBS) \
 	$(NULL)
 
 test_vtetypes_SOURCES = \

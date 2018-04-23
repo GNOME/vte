@@ -30,6 +30,7 @@
 #include "parser-glue.hh"
 #include "modes.hh"
 #include "tabstops.hh"
+#include "refptr.hh"
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"

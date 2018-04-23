@@ -22,6 +22,7 @@
 #include <errno.h>
 
 #include <cstdint>
+#include <memory>
 
 #ifdef VTE_DEBUG
 #define IFDEF_DEBUG(str) str
