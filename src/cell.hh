@@ -137,8 +137,8 @@ typedef struct _VTE_GNUC_PACKED VteCellAttr {
         CELL_ATTR_BOOL(invisible, INVISIBLE)
         /* ATTR_BOOL(boxed, BOXED) */
 } VteCellAttr;
-G_STATIC_ASSERT (sizeof (VteCellAttr) == 16);
-G_STATIC_ASSERT (offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_BYTES);
+static_assert(sizeof (VteCellAttr) == 16, "VteCellAttr has wrong size");
+static_assert(offsetof (VteCellAttr, hyperlink_idx) == VTE_CELL_ATTR_COMMON_BYTES, "VteCellAttr layout is wrong");
 
 /*
  * VteStreamCellAttr: Variant of VteCellAttr to be stored in attr_stream.
@@ -160,8 +160,8 @@ typedef struct _VTE_GNUC_PACKED _VteStreamCellAttr {
         CELL_ATTR_UINT(columns, COLUMNS)
         CELL_ATTR_BOOL(fragment, FRAGMENT)
 } VteStreamCellAttr;
-G_STATIC_ASSERT (sizeof (VteStreamCellAttr) == 14);
-G_STATIC_ASSERT (offsetof (VteStreamCellAttr, hyperlink_length) == VTE_CELL_ATTR_COMMON_BYTES);
+static_assert(sizeof (VteStreamCellAttr) == 14, "VteStreamCellAttr has wrong size");
+static_assert(offsetof (VteStreamCellAttr, hyperlink_length) == VTE_CELL_ATTR_COMMON_BYTES, "VteStreamCellAttr layout is wrong");
 
 #undef CELL_ATTR_BOOL
 #undef CELL_ATTR_UINT

@@ -38,7 +38,7 @@ G_BEGIN_DECLS
 typedef struct _VteRowAttr {
 	guint8 soft_wrapped: 1;
 } VteRowAttr;
-G_STATIC_ASSERT (sizeof (VteRowAttr) == 1);
+static_assert(sizeof (VteRowAttr) == 1, "VteRowAttr has wrong size");
 
 /*
  * VteRowData: A single row's data
