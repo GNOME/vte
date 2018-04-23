@@ -76,7 +76,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	reaper.cc \
 	reaper.hh \
 	ring.cc \
-	ring.h \
+	ring.hh \
 	vte.cc \
 	vteaccess.cc \
 	vteaccess.h \
@@ -93,7 +93,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteregex.cc \
 	vteregexinternal.hh \
 	vterowdata.cc \
-	vterowdata.h \
+	vterowdata.hh \
 	vtespawn.cc \
 	vtespawn.hh \
 	vteseq.cc \

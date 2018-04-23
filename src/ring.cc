@@ -21,7 +21,7 @@
 #include <config.h>
 
 #include "debug.h"
-#include "ring.h"
+#include "ring.hh"
 
 #include <string.h>
 

@@ -99,13 +99,13 @@ IGNORE_HFILES = \
 	parser-osc.hh \
 	parser-reply.hh \
 	parser-string.hh \
-	ring.h \
+	ring.hh \
 	stamp-vtetypebuiltins.h \
 	tabstops.hh \
 	vteconv.h \
 	vtedraw.h \
 	vteinternal.hh \
-	vterowdata.h \
+	vterowdata.hh \
 	vtestream-base.h \
 	vtestream-file.h \
 	vtestream.h \

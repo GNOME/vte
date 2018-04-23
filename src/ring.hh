@@ -20,13 +20,12 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ifndef vte_ring_h_included
-#define vte_ring_h_included
+#pragma once
 
 #include <gio/gio.h>
 #include <vte/vte.h>
 
-#include "vterowdata.h"
+#include "vterowdata.hh"
 #include "vtestream.h"
 
 G_BEGIN_DECLS
@@ -125,5 +124,3 @@ gboolean _vte_ring_write_contents (VteRing *ring,
 				   GError **error);
 
 G_END_DECLS
-
-#endif

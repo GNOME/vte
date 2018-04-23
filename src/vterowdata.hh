@@ -18,8 +18,7 @@
 
 /* The interfaces in this file are subject to change at any time. */
 
-#ifndef vterowdata_h_included
-#define vterowdata_h_included
+#pragma once
 
 #include <string.h>
 
@@ -248,5 +247,3 @@ void _vte_row_data_shrink (VteRowData *row, gulong max_len);
 
 
 G_END_DECLS
-
-#endif

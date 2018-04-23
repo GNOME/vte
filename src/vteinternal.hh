@@ -23,7 +23,7 @@
 #include "vtedefines.hh"
 #include "vtetypes.hh"
 #include "reaper.hh"
-#include "ring.h"
+#include "ring.hh"
 #include "vteconv.h"
 #include "buffer.h"
 #include "parser.hh"

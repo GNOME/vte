@@ -21,7 +21,7 @@
 #include <config.h>
 
 #include "debug.h"
-#include "vterowdata.h"
+#include "vterowdata.hh"
 
 #include <string.h>
 

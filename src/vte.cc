@@ -42,8 +42,7 @@
 #include "vteconv.h"
 #include "vtedraw.hh"
 #include "reaper.hh"
-#include "ring.h"
-#include "caps.hh"
+#include "ring.hh"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
