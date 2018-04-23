@@ -390,10 +390,6 @@ int vte_terminal_match_add_regex(VteTerminal *terminal,
                                  guint32 flags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 /* Set the cursor to be used when the pointer is over a given match. */
 _VTE_PUBLIC
-void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
-					int tag,
-                                        GdkCursorType cursor_type) _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
 void vte_terminal_match_set_cursor_name(VteTerminal *terminal,
 					int tag,
                                         const char *cursor_name) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);

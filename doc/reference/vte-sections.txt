@@ -75,7 +75,6 @@ vte_terminal_match_remove
 vte_terminal_match_remove_all
 vte_terminal_match_check
 vte_terminal_match_check_event
-vte_terminal_match_set_cursor_type
 vte_terminal_match_set_cursor_name
 vte_terminal_set_cjk_ambiguous_width
 vte_terminal_get_cjk_ambiguous_width
@@ -142,6 +141,7 @@ vte_terminal_get_current_file_uri
 <SUBSECTION Deprecated>
 vte_terminal_copy_clipboard
 vte_terminal_match_set_cursor
+vte_terminal_match_set_cursor_type
 vte_terminal_match_add_gregex
 vte_terminal_search_get_gregex
 vte_terminal_search_set_gregex

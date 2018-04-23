@@ -48,6 +48,12 @@ void vte_terminal_match_set_cursor(VteTerminal *terminal,
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
+void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
+					int tag,
+                                        GdkCursorType cursor_type) _VTE_GNUC_NONNULL(1);
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
 char *vte_terminal_match_check(VteTerminal *terminal,
 			       glong column, glong row,
 			       int *tag) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;

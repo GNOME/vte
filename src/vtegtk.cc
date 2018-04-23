@@ -2088,7 +2088,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.  The terminal keeps a reference to @cursor.
  *
- * Deprecated: 0.40: Use vte_terminal_match_set_cursor_type() or vte_terminal_match_set_cursor_named() instead.
+ * Deprecated: 0.40: Use vte_terminal_match_set_cursor_name() instead.
  */
 void
 vte_terminal_match_set_cursor(VteTerminal *terminal,
@@ -2107,6 +2107,8 @@ vte_terminal_match_set_cursor(VteTerminal *terminal,
  *
  * Sets which cursor the terminal will use if the pointer is over the pattern
  * specified by @tag.
+ *
+ * Deprecated: 0.54: Use vte_terminal_match_set_cursor_name() instead.
  */
 void
 vte_terminal_match_set_cursor_type(VteTerminal *terminal,
