@@ -5038,8 +5038,8 @@ static int
 compare_unichar_p(const void *u1p,
                   const void *u2p)
 {
-        const gunichar u1 = *(gunichar*)u1p;
-        const gunichar u2 = *(gunichar*)u2p;
+        const char32_t u1 = *(char32_t*)u1p;
+        const char32_t u2 = *(char32_t*)u2p;
         return u1 < u2 ? -1 : u1 > u2 ? 1 : 0;
 }
 
@@ -5094,10 +5094,10 @@ VteTerminalPrivate::is_word_char(gunichar c) const
 
         /* Do we have an exception? */
         return bsearch(&c,
-                       m_word_char_exceptions,
-                       m_word_char_exceptions_len,
-                       sizeof(gunichar),
-                       compare_unichar_p) != NULL;
+                       m_word_char_exceptions.data(),
+                       m_word_char_exceptions.size(),
+                       sizeof(std::u32string::value_type),
+                       compare_unichar_p) != nullptr;
 }
 
 /* Check if the characters in the two given locations are in the same class
@@ -8544,10 +8544,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
 
 	remove_update_timeout(this);
 
-        /* Word char exceptions */
-        g_free(m_word_char_exceptions_string);
-        g_free(m_word_char_exceptions);
-
 	/* Free public-facing data. */
 	if (m_vadjustment != NULL) {
 		/* Disconnect our signal handlers from this object. */
@@ -11447,22 +11443,15 @@ VteTerminalPrivate::set_input_enabled (bool enabled)
 
 bool
 VteTerminalPrivate::process_word_char_exceptions(char const *str,
-                                                 gunichar **arrayp,
-                                                 gsize *lenp)
+                                                 std::u32string& array) const noexcept
 {
-        const char *p;
-        gunichar *array, c;
-        gsize len, i;
-
-        if (str == NULL)
+        if (str == nullptr)
                 str = WORD_CHAR_EXCEPTIONS_DEFAULT;
 
-        len = g_utf8_strlen(str, -1);
-        array = g_new(gunichar, len);
-        i = 0;
+        array.reserve(g_utf8_strlen(str, -1));
 
-        for (p = str; *p; p = g_utf8_next_char(p)) {
-                c = g_utf8_get_char(p);
+        for (auto const* p = str; *p; p = g_utf8_next_char(p)) {
+                auto const c = g_utf8_get_char(p);
 
                 /* For forward compatibility reasons, we skip
                  * characters that aren't supposed to be here,
@@ -11478,36 +11467,34 @@ VteTerminalPrivate::process_word_char_exceptions(char const *str,
                 if (g_unichar_isalnum(c))
                         continue;
 
-                array[i++] = g_utf8_get_char(p);
+                array.push_back(c);
         }
 
-        g_assert(i <= len);
-        len = i; /* we may have skipped some characters */
-
         /* Sort the result since we want to use bsearch on it */
-        qsort(array, len, sizeof(gunichar), compare_unichar_p);
+        // FIXME remove the const cast when upgrading to C++17
+        qsort(const_cast<char32_t*>(array.data()),
+              array.size(),
+              sizeof(std::u32string::value_type),
+              compare_unichar_p);
 
         /* Check that no character occurs twice */
-        for (i = 1; i < len; i++) {
+        for (size_t i = 1; i < array.size(); ++i) {
                 if (array[i-1] != array[i])
                         continue;
 
-                g_free(array);
                 return false;
         }
 
 #if 0
         /* Debug */
-        for (i = 0; i < len; i++) {
+        for (size_t i = 0; i < array.size(); i++) {
                 char utf[7];
-                c = array[i];
+                auto const c = array[i];
                 utf[g_unichar_to_utf8(c, utf)] = '\0';
                 g_printerr("Word char exception: U+%04X %s\n", c, utf);
         }
 #endif
 
-        *lenp = len;
-        *arrayp = array;
         return true;
 }
 
@@ -11531,21 +11518,15 @@ VteTerminalPrivate::process_word_char_exceptions(char const *str,
 bool
 VteTerminalPrivate::set_word_char_exceptions(char const* exceptions)
 {
-        gunichar *array;
-        gsize len;
-
-        if (g_strcmp0(exceptions, m_word_char_exceptions_string) == 0)
+        if (g_strcmp0(exceptions, m_word_char_exceptions_string.data()) == 0)
                 return false;
 
-        if (!process_word_char_exceptions(exceptions, &array, &len))
+        std::u32string array;
+        if (!process_word_char_exceptions(exceptions, array))
                 return false;
 
-        g_free(m_word_char_exceptions_string);
-        m_word_char_exceptions_string = g_strdup(exceptions);
-
-        g_free(m_word_char_exceptions);
-        m_word_char_exceptions = array;
-        m_word_char_exceptions_len = len;
+        m_word_char_exceptions_string = exceptions ? exceptions : "";
+        m_word_char_exceptions.swap(array);
 
         return true;
 }

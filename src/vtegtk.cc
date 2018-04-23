@@ -4189,7 +4189,8 @@ vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return IMPL(terminal)->m_word_char_exceptions_string;
+        auto impl = IMPL(terminal);
+        return impl->m_word_char_exceptions_string.empty() ? nullptr : impl->m_word_char_exceptions_string.data();
 }
 
 /**

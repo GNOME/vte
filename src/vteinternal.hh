@@ -406,9 +406,8 @@ public:
         VteCharacterReplacement *m_character_replacement;     /* pointer to the active one */
 
         /* Word chars */
-        char *m_word_char_exceptions_string;
-        gunichar *m_word_char_exceptions;
-        gsize m_word_char_exceptions_len;
+        std::string m_word_char_exceptions_string;
+        std::u32string m_word_char_exceptions;
 
 	/* Selection information. */
         gboolean m_has_selection;
@@ -1141,8 +1140,7 @@ public:
                       long rows);
 
         bool process_word_char_exceptions(char const *str,
-                                          gunichar **arrayp,
-                                          gsize *lenp);
+                                          std::u32string& array) const noexcept;
 
         long get_cell_height() { ensure_font(); return m_cell_height; }
         long get_cell_width()  { ensure_font(); return m_cell_width;  }
