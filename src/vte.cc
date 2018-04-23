@@ -262,7 +262,7 @@ VteTerminalPrivate::ring_remove(vte::grid::row_t position)
 void
 VteTerminalPrivate::reset_default_attributes(bool reset_hyperlink)
 {
-        hyperlink_idx_t hyperlink_idx_save = m_defaults.attr.hyperlink_idx;
+        auto const hyperlink_idx_save = m_defaults.attr.hyperlink_idx;
         m_defaults = m_color_defaults = m_fill_defaults = basic_cell;
         if (!reset_hyperlink)
                 m_defaults.attr.hyperlink_idx = hyperlink_idx_save;
@@ -5504,7 +5504,8 @@ VteTerminalPrivate::maybe_send_mouse_drag(vte::grid::coords const& unconfined_ro
  * the new one. Optionally stores the coordinates of the bounding box.
  */
 void
-VteTerminalPrivate::hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRectangle *bbox)
+VteTerminalPrivate::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx,
+                                                      GdkRectangle *bbox)
 {
         auto first_row = first_displayed_row();
         auto end_row = last_displayed_row() + 1;
@@ -5557,7 +5558,7 @@ VteTerminalPrivate::hyperlink_hilite_update()
         const VteRowData *rowdata;
         bool do_check_hilite;
         vte::grid::coords rowcol;
-        hyperlink_idx_t new_hyperlink_hover_idx = 0;
+        vte::base::Ring::hyperlink_idx_t new_hyperlink_hover_idx = 0;
         GdkRectangle bbox;
         const char *separator;
 
@@ -7966,7 +7967,12 @@ VteTerminalPrivate::widget_set_vadjustment(GtkAdjustment *adjustment)
 
 VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_terminal(t),
-        m_widget(&t->widget)
+        m_widget(&t->widget),
+        m_row_count(VTE_ROWS),
+        m_column_count(VTE_COLUMNS),
+        m_normal_screen(VTE_SCROLLBACK_INIT, true),
+        m_alternate_screen(VTE_ROWS, false),
+        m_screen(&m_normal_screen)
 {
         /* Inits allocation to 1x1 @ -1,-1 */
         cairo_rectangle_int_t allocation;
@@ -8020,15 +8026,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         m_overline_thickness = 1;
         m_regex_underline_position = 1;
         m_regex_underline_thickness = 1;
-
-        m_row_count = VTE_ROWS;
-        m_column_count = VTE_COLUMNS;
-
-	/* Initialize the screens and histories. */
-	_vte_ring_init (m_alternate_screen.row_data, m_row_count, FALSE);
-	m_screen = &m_alternate_screen;
-	_vte_ring_init (m_normal_screen.row_data, VTE_SCROLLBACK_INIT, TRUE);
-	m_screen = &m_normal_screen;
 
         reset_default_attributes(true);
 
@@ -8501,10 +8498,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
                         m_selection[sel] = nullptr;
 		}
 	}
-
-	/* Clear the output histories. */
-	_vte_ring_fini(m_normal_screen.row_data);
-	_vte_ring_fini(m_alternate_screen.row_data);
 
 	/* Free conversion descriptors. */
 	if (m_outgoing_conv != VTE_INVALID_CONV) {

@@ -177,12 +177,21 @@ struct _vte_incoming_chunk{
         guchar data[VTE_INPUT_CHUNK_SIZE - 2 * sizeof(void *) - 1];
 };
 
-typedef struct _VteScreen VteScreen;
-struct _VteScreen {
-        VteRing row_data[1];	/* buffer contents */
+struct VteScreen {
+public:
+        VteScreen(gulong max_rows,
+                  bool has_streams) :
+                m_ring{max_rows, has_streams},
+                row_data(&m_ring),
+                cursor{0,0}
+        {
+        }
+
+        vte::base::Ring m_ring; /* buffer contents */
+        VteRing* row_data;
         VteVisualPosition cursor;  /* absolute value, from the beginning of the terminal history */
-        double scroll_delta;	/* scroll offset */
-        long insert_delta;	/* insertion offset */
+        double scroll_delta{0.0}; /* scroll offset */
+        long insert_delta{0}; /* insertion offset */
 
         /* Stuff saved along with the cursor */
         struct {
@@ -379,7 +388,9 @@ public:
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
-        struct _VteScreen m_normal_screen, m_alternate_screen, *m_screen;
+        VteScreen m_normal_screen;
+        VteScreen m_alternate_screen;
+        VteScreen *m_screen; /* points to either m_normal_screen or m_alternate_screen */
 
         VteCell m_defaults;       /* default characteristics
                                      for insertion of any new
@@ -609,7 +620,7 @@ public:
 
         /* Hyperlinks */
         gboolean m_allow_hyperlink;
-        hyperlink_idx_t m_hyperlink_hover_idx;
+        vte::base::Ring::hyperlink_idx_t m_hyperlink_hover_idx;
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
         long m_hyperlink_auto_id;
 
@@ -1029,7 +1040,7 @@ public:
         void emit_paste_clipboard();
         void emit_hyperlink_hover_uri_changed(const GdkRectangle *bbox);
 
-        void hyperlink_invalidate_and_get_bbox(hyperlink_idx_t idx, GdkRectangle *bbox);
+        void hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx, GdkRectangle *bbox);
         void hyperlink_hilite_update();
 
         void match_contents_clear();

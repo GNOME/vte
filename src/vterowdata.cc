@@ -30,11 +30,11 @@
 /* This will be true now that VteCell is POD, but make sure it'll be true
  * once that changes.
  */
-static_assert(std::is_trivially_copy_constructible<VteCell>::value, "VteCell is not trivially copyable");
-static_assert(std::is_trivially_move_constructible<VteCell>::value, "VteCell is not trivially copyable");
+static_assert(std::is_trivially_copy_constructible<VteCell>::value, "VteCell is not copy constructible");
+static_assert(std::is_trivially_move_constructible<VteCell>::value, "VteCell is not move constructible");
 static_assert(std::is_trivially_copyable<VteCell>::value, "VteCell is not trivially copyable");
-static_assert(std::is_trivially_copy_assignable<VteCell>::value, "VteCell is not trivially movable");
-static_assert(std::is_trivially_move_assignable<VteCell>::value, "VteCell is not trivially movable");
+static_assert(std::is_trivially_copy_assignable<VteCell>::value, "VteCell is not copy assignable");
+static_assert(std::is_trivially_move_assignable<VteCell>::value, "VteCell is not move assignable");
 
 /*
  * VteCells: A row's cell array

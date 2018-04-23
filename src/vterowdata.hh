@@ -227,15 +227,6 @@ _vte_row_data_get_writable (VteRowData *row, gulong col)
 	return &row->cells[col];
 }
 
-/*
- * Copy the common attributes from VteCellAttr to VteStreamCellAttr or vice versa.
- */
-static inline void
-_attrcpy (void *dst, void *src)
-{
-        memcpy(dst, src, VTE_CELL_ATTR_COMMON_BYTES);
-}
-
 void _vte_row_data_init (VteRowData *row);
 void _vte_row_data_clear (VteRowData *row);
 void _vte_row_data_fini (VteRowData *row);
