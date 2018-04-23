@@ -2228,7 +2228,7 @@ VteTerminalPrivate::apply_mouse_cursor()
                 if (m_hyperlink_hover_idx != 0) {
                         _vte_debug_print(VTE_DEBUG_CURSOR,
                                         "Setting hyperlink mouse cursor.\n");
-                        gdk_window_set_cursor(m_event_window, m_mouse_hyperlink_cursor);
+                        gdk_window_set_cursor(m_event_window, m_mouse_hyperlink_cursor.get());
                 } else if ((guint)m_match_tag < m_match_regexes->len) {
                         struct vte_match_regex *regex =
                                 &g_array_index(m_match_regexes,
@@ -2238,16 +2238,16 @@ VteTerminalPrivate::apply_mouse_cursor()
                 } else if (m_mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-			gdk_window_set_cursor(m_event_window, m_mouse_mousing_cursor);
+			gdk_window_set_cursor(m_event_window, m_mouse_mousing_cursor.get());
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-			gdk_window_set_cursor(m_event_window, m_mouse_default_cursor);
+			gdk_window_set_cursor(m_event_window, m_mouse_default_cursor.get());
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-		gdk_window_set_cursor(m_event_window, m_mouse_inviso_cursor);
+		gdk_window_set_cursor(m_event_window, m_mouse_inviso_cursor.get());
 	}
 }
 
@@ -8284,14 +8284,10 @@ VteTerminalPrivate::widget_unrealize()
 
 	/* Deallocate the cursors. */
         m_mouse_cursor_over_widget = FALSE;
-	g_object_unref(m_mouse_default_cursor);
-	m_mouse_default_cursor = NULL;
-	g_object_unref(m_mouse_mousing_cursor);
-	m_mouse_mousing_cursor = NULL;
-        g_object_unref(m_mouse_hyperlink_cursor);
-        m_mouse_hyperlink_cursor = NULL;
-	g_object_unref(m_mouse_inviso_cursor);
-	m_mouse_inviso_cursor = NULL;
+        m_mouse_default_cursor.reset();
+        m_mouse_mousing_cursor.reset();
+        m_mouse_hyperlink_cursor.reset();
+        m_mouse_inviso_cursor.reset();
 
 	match_hilite_clear();
 
@@ -8594,7 +8590,7 @@ VteTerminalPrivate::widget_realize()
 				GDK_LEAVE_NOTIFY_MASK |
 				GDK_KEY_PRESS_MASK |
 				GDK_KEY_RELEASE_MASK;
-	attributes.cursor = m_mouse_default_cursor;
+	attributes.cursor = m_mouse_default_cursor.get();
 	guint attributes_mask = GDK_WA_X |
                                 GDK_WA_Y |
                                 (attributes.visual ? GDK_WA_VISUAL : 0) |

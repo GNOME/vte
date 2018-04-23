@@ -551,10 +551,11 @@ public:
         gboolean m_mouse_cursor_over_widget; /* as per enter and leave events */
         gboolean m_mouse_autohide;           /* the API setting */
         gboolean m_mouse_cursor_autohidden;  /* whether the autohiding logic wants to hide it; even if autohiding is disabled via API */
-        GdkCursor* m_mouse_default_cursor;
-        GdkCursor* m_mouse_mousing_cursor;
-        GdkCursor* m_mouse_hyperlink_cursor;
-	GdkCursor* m_mouse_inviso_cursor;
+
+        vte::glib::RefPtr<GdkCursor> m_mouse_default_cursor;
+        vte::glib::RefPtr<GdkCursor> m_mouse_mousing_cursor;
+        vte::glib::RefPtr<GdkCursor> m_mouse_hyperlink_cursor;
+        vte::glib::RefPtr<GdkCursor> m_mouse_inviso_cursor;
 
 	/* Input method support. */
         GtkIMContext *m_im_context;
