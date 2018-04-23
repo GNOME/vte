@@ -43,6 +43,7 @@
 #include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
+#include "caps.hh"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>

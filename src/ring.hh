@@ -37,12 +37,6 @@ typedef struct _VteVisualPosition {
 	long row, col;
 } VteVisualPosition;
 
-typedef struct _VteCellAttrChange {
-	gsize text_end_offset;  /* offset of first character no longer using this attr */
-        VteStreamCellAttr attr;
-} VteCellAttrChange;
-
-
 /*
  * VteRing: A scrollback buffer ring
  */
