@@ -558,7 +558,7 @@ public:
 	/* Input method support. */
         GtkIMContext *m_im_context;
         gboolean m_im_preedit_active;
-        char *m_im_preedit;
+        std::string m_im_preedit;
         PangoAttrList *m_im_preedit_attrs;
         int m_im_preedit_cursor;
 

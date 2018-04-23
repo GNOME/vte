@@ -570,19 +570,17 @@ VteTerminalPrivate::get_preedit_width(bool left_only)
 {
 	gssize ret = 0;
 
-	if (m_im_preedit != NULL) {
-		char const *preedit = m_im_preedit;
-		for (int i = 0;
-                     // FIXMEchpe preddit is != NULL at the start, and next_char never returns NULL either
-		     (preedit != NULL) &&
+        char const *preedit = m_im_preedit.c_str();
+        for (int i = 0;
+             // FIXMEchpe preddit is != NULL at the start, and next_char never returns NULL either
+             (preedit != NULL) &&
 		     (preedit[0] != '\0') &&
 		     (!left_only || (i < m_im_preedit_cursor));
-		     i++) {
-                        gunichar c = g_utf8_get_char(preedit);
-                        ret += _vte_unichar_width(c, m_utf8_ambiguous_width);
-			preedit = g_utf8_next_char(preedit);
-		}
-	}
+             i++) {
+                gunichar c = g_utf8_get_char(preedit);
+                ret += _vte_unichar_width(c, m_utf8_ambiguous_width);
+                preedit = g_utf8_next_char(preedit);
+        }
 
 	return ret;
 }
@@ -593,19 +591,17 @@ VteTerminalPrivate::get_preedit_width(bool left_only)
 gssize
 VteTerminalPrivate::get_preedit_length(bool left_only)
 {
-	int i = 0;
+	ssize_t i = 0;
 
-	if (m_im_preedit != NULL) {
-		char const *preedit = m_im_preedit;
-		for (i = 0;
-                     // FIXMEchpe useless check, see above
-		     (preedit != NULL) &&
+        char const *preedit = m_im_preedit.c_str();
+        for (i = 0;
+             // FIXMEchpe useless check, see above
+             (preedit != NULL) &&
 		     (preedit[0] != '\0') &&
 		     (!left_only || (i < m_im_preedit_cursor));
-		     i++) {
-			preedit = g_utf8_next_char(preedit);
-		}
-	}
+             i++) {
+                preedit = g_utf8_next_char(preedit);
+        }
 
 	return i;
 }
@@ -3425,10 +3421,9 @@ VteTerminalPrivate::im_reset()
 	if (widget_realized() && m_im_context)
 		gtk_im_context_reset(m_im_context);
 
-        if (m_im_preedit) {
-                g_free(m_im_preedit);
-                m_im_preedit = nullptr;
-        }
+        m_im_preedit.clear();
+        m_im_preedit.shrink_to_fit();
+
         if (m_im_preedit_attrs) {
                 pango_attr_list_unref(m_im_preedit_attrs);
                 m_im_preedit_attrs = nullptr;
@@ -4385,8 +4380,8 @@ VteTerminalPrivate::im_preedit_changed()
 	 * for repainting. */
 	invalidate_cursor_once();
 
-	g_free(m_im_preedit);
 	m_im_preedit = str;
+        g_free(str);
 
 	if (m_im_preedit_attrs != NULL) {
 		pango_attr_list_unref(m_im_preedit_attrs);
@@ -8312,10 +8307,8 @@ VteTerminalPrivate::widget_unrealize()
 		m_im_context = nullptr;
 	}
 	m_im_preedit_active = FALSE;
-	if (m_im_preedit != nullptr) {
-		g_free(m_im_preedit);
-		m_im_preedit = NULL;
-	}
+        m_im_preedit.clear();
+        m_im_preedit.shrink_to_fit();
 	if (m_im_preedit_attrs != NULL) {
 		pango_attr_list_unref(m_im_preedit_attrs);
 		m_im_preedit_attrs = NULL;
@@ -9788,7 +9781,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 	long width, height;
 	int i, len;
 
-	if (!m_im_preedit)
+	if (m_im_preedit.empty())
 		return;
 
 	/* Keep local copies of rendering information. */
@@ -9809,7 +9802,7 @@ VteTerminalPrivate::paint_im_preedit_string()
 	/* Draw the preedit string, boxed. */
 	if (len > 0) {
 		struct _vte_draw_text_request *items;
-		const char *preedit = m_im_preedit;
+		const char *preedit = m_im_preedit.c_str();
 		int preedit_cursor;
 
 		items = g_new(struct _vte_draw_text_request, len);
