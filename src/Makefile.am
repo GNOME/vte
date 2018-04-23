@@ -48,6 +48,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	attr.hh \
 	buffer.h \
 	caps.hh \
+	cell.hh \
 	color-triple.hh \
 	debug.cc \
 	debug.h \

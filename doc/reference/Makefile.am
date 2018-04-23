@@ -79,6 +79,7 @@ IGNORE_HFILES = \
 	config.h \
 	buffer.h \
 	caps.hh \
+	cell.hh \
 	debug.h \
 	iso2022.h \
 	keymap.h \
