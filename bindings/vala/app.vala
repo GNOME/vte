@@ -309,6 +309,7 @@ class Window : Gtk.ApplicationWindow
     if (App.Options.object_notifications)
       terminal.notify.connect(notify_cb);
 
+    terminal.shell_precmd.connect(shell_precmd_cb);
     terminal.shell_preexec.connect(shell_preexec_cb);
 
     /* Settings */
@@ -780,6 +781,11 @@ class Window : Gtk.ApplicationWindow
   private void window_title_changed_cb(Vte.Terminal terminal)
   {
     set_title(terminal.get_window_title());
+  }
+
+  private void shell_precmd_cb(Vte.Terminal terminal)
+  {
+    print("[shell] showing command prompt\n");
   }
 
   private void shell_preexec_cb(Vte.Terminal terminal)
