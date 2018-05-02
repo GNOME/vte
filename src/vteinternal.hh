@@ -577,6 +577,7 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
+        gboolean m_shell_precmd;
         gboolean m_shell_preexec;
 
         std::string m_window_title{};

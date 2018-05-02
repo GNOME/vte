@@ -1348,7 +1348,9 @@ VteTerminalPrivate::handle_urxvt_extension(vte::parser::Sequence const& seq,
                 return;
         }
 
-        if (*token == "preexec") {
+        if (*token == "precmd") {
+                m_shell_precmd = TRUE;
+        } else if (*token == "preexec") {
                 m_shell_preexec = TRUE;
         }
 }

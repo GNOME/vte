@@ -10805,6 +10805,13 @@ VteTerminalPrivate::emit_pending_signals()
                 m_shell_preexec = FALSE;
         }
 
+        if (m_shell_precmd) {
+                _vte_debug_print (VTE_DEBUG_SIGNALS,
+                                  "Emitting `shell-precmd'.\n");
+                g_signal_emit(object, signals[SIGNAL_SHELL_PRECMD], 0);
+                m_shell_precmd = FALSE;
+        }
+
 	if (m_window_title_changed) {
                 if (m_window_title != m_window_title_pending) {
                         m_window_title.swap(m_window_title_pending);

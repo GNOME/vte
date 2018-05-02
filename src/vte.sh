@@ -52,7 +52,7 @@ __vte_osc7 () {
 __vte_prompt_command() {
   local pwd='~'
   [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
-  printf "\u009D0;%s@%s:%s\u009C%s" "${USER}" "${HOSTNAME%%.*}" "${pwd}" "$(__vte_osc7)"
+  printf "\u009D777;precmd\u009C\u009D0;%s@%s:%s\u009C%s" "${USER}" "${HOSTNAME%%.*}" "${pwd}" "$(__vte_osc7)"
 }
 
 case "$TERM" in
