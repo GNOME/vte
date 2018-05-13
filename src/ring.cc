@@ -634,7 +634,7 @@ Ring::get_hyperlink_at_position(row_t position,
                 m_cached_row_num = (row_t)-1;
         }
 
-        if (G_UNLIKELY (position == (row_t)-1 || col == -1)) {
+        if (G_UNLIKELY (!contains(position) || col < 0)) {
                 if (update_hover_idx)
                         m_hyperlink_hover_idx = 0;
                 return 0;
