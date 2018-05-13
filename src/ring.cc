@@ -669,7 +669,7 @@ _vte_ring_get_hyperlink_at_position (VteRing *ring, gulong position, int col, bo
                 ring->cached_row_num = (gulong) -1;
         }
 
-        if (G_UNLIKELY (position == (gulong) -1 || col == -1)) {
+        if (G_UNLIKELY (!_vte_ring_contains(ring, position) || col == -1)) {
                 if (update_hover_idx)
                         ring->hyperlink_hover_idx = 0;
                 return 0;
