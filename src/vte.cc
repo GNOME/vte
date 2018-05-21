@@ -8148,7 +8148,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
         char buf[1024];
         auto len = g_snprintf(buf, sizeof(buf), "\e[1m\e[31m%s:\e[39m %s\e[0m\n\e[G",
                               _("WARNING"),
-                              _("GNUTLS not enabled; data will be written to disk unencrypted!"));
+                              _("GnuTLS not enabled; data will be written to disk unencrypted!"));
         feed(buf, len, false);
  }
 #endif

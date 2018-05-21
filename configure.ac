@@ -254,9 +254,9 @@ PCRE2_REQUIRED=10.21
 
 # GNUTLS
 
-AC_MSG_CHECKING([whether gnutls support is requested])
+AC_MSG_CHECKING([whether GnuTLS support is requested])
 AC_ARG_WITH([gnutls],
-  [AS_HELP_STRING([--without-gnutls],[Disable gnutls support])],
+  [AS_HELP_STRING([--without-gnutls],[Disable GnuTLS support])],
   [],[with_gnutls=yes])
 AC_MSG_RESULT([$with_gnutls])
 
@@ -264,7 +264,7 @@ GNUTLS_PKGS=
 if test "$with_gnutls" = "yes"; then
   GNUTLS_PKGS="gnutls >= $GNUTLS_REQUIRED"
 
-  AC_DEFINE([WITH_GNUTLS],[1],[Define to 1 to enable gnutls support])
+  AC_DEFINE([WITH_GNUTLS],[1],[Define to 1 to enable GnuTLS support])
 fi
 
 AM_CONDITIONAL([WITH_GNUTLS],[test "$with_gnutls" = "yes"])
@@ -459,7 +459,7 @@ cat <<EOF | tee -a config.log
 ## -------------- ##
 
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
-	GNUTLS: $with_gnutls
+	GnuTLS: $with_gnutls
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
 	Introspection: $enable_introspection
