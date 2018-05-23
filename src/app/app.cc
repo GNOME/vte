@@ -40,6 +40,7 @@ class Options {
 public:
         gboolean allow_window_ops{false};
         gboolean audible_bell{false};
+        gboolean backdrop{false};
         gboolean console{false};
         gboolean debug{false};
         gboolean icon_title{false};
@@ -327,6 +328,8 @@ public:
                           "Allow window operations (resize, move, raise/lower, (de)iconify)", nullptr },
                         { "audible-bell", 'a', 0, G_OPTION_ARG_NONE, &audible_bell,
                           "Use audible terminal bell", nullptr },
+                        { "backdrop", 0, 0,G_OPTION_ARG_NONE, &backdrop,
+                          "Dim when toplevel unfocused", nullptr },
                         { "background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_bg_color,
                           "Set default background color", nullptr },
                         { "background-image", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_image,
@@ -814,6 +817,8 @@ struct _VteappTerminal {
         VteTerminal parent;
 
         cairo_pattern_t* background_pattern;
+        bool has_backdrop;
+        bool use_backdrop;
 };
 
 struct _VteappTerminalClass {
@@ -823,6 +828,8 @@ struct _VteappTerminalClass {
 static GType vteapp_terminal_get_type(void);
 
 G_DEFINE_TYPE(VteappTerminal, vteapp_terminal, VTE_TYPE_TERMINAL)
+
+#define BACKDROP_ALPHA (0.2)
 
 static void
 vteapp_terminal_realize(GtkWidget* widget)
@@ -880,7 +887,30 @@ vteapp_terminal_draw(GtkWidget* widget,
 
         }
 
-        return GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->draw(widget, cr);
+        auto rv = GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->draw(widget, cr);
+
+        if (terminal->use_backdrop && terminal->has_backdrop) {
+                cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+                cairo_set_source_rgba(cr, 0, 0, 0, BACKDROP_ALPHA);
+                cairo_rectangle(cr, 0.0, 0.0,
+                                gtk_widget_get_allocated_width(widget),
+                                gtk_widget_get_allocated_height(widget));
+                cairo_paint(cr);
+        }
+
+        return rv;
+}
+
+static void
+vteapp_terminal_style_updated(GtkWidget* widget)
+{
+        GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->style_updated(widget);
+
+        auto context = gtk_widget_get_style_context(widget);
+        auto flags = gtk_style_context_get_state(context);
+
+        VteappTerminal* terminal = VTEAPP_TERMINAL(widget);
+        terminal->has_backdrop = (flags & GTK_STATE_FLAG_BACKDROP) != 0;
 }
 
 static void
@@ -890,12 +920,15 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
         widget_class->realize = vteapp_terminal_realize;
         widget_class->unrealize = vteapp_terminal_unrealize;
         widget_class->draw = vteapp_terminal_draw;
+        widget_class->style_updated = vteapp_terminal_style_updated;
 }
 
 static void
 vteapp_terminal_init(VteappTerminal *terminal)
 {
         terminal->background_pattern = nullptr;
+        terminal->has_backdrop = false;
+        terminal->use_backdrop = options.backdrop;
 
         if (options.background_pixbuf != nullptr)
                 vte_terminal_set_clear_background(VTE_TERMINAL(terminal), false);
