@@ -6,44 +6,48 @@
 # Christophe Merlet <redfox@redfoxcenter.org>, 2002-2006.
 # Jonathan Ernst <jonathan@ernstfamily.ch>, 2007.
 # Stéphane Raimbault <stephane.raimbault@gmail.com>, 2007.
+# Charles Monzat <superboa@hotmail.fr>, 2018.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.14.1\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
+"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
 "product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-08-15 12:39+0000\n"
-"PO-Revision-Date: 2016-08-30 08:55+0200\n"
-"Last-Translator: Claude Paroz <claude@2xlibre.net>\n"
-"Language-Team: GNOME French Team <gnomefr@traduc.org>\n"
+"POT-Creation-Date: 2018-05-21 18:38+0000\n"
+"PO-Revision-Date: 2018-05-21 21:39+0200\n"
+"Last-Translator: Charles Monzat <superboa@hotmail.fr>\n"
+"Language-Team: français <gnomefr@traduc.org>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Gtranslator 2.91.7\n"
 
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3069
+#: ../src/iso2022.cc:71 ../src/iso2022.cc:79 ../src/iso2022.cc:109
+#: ../src/vtegtk.cc:3605
 #, c-format
 msgid "Unable to convert characters from %s to %s."
 msgstr "Impossible de convertir les caractères %s en %s."
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4003
+#: ../src/vte.cc:3958
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Erreur lors de la lecture du fils : « %s »."
 
-#: ../src/vte.cc:4142
+#: ../src/vte.cc:4098
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Erreur (%s) lors de la conversion de données pour le fils, abandon."
 
-#: ../src/vte.cc:7911
+#: ../src/vte.cc:8150
 msgid "WARNING"
 msgstr "AVERTISSEMENT"
 
-#: ../src/vte.cc:7912
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+#: ../src/vte.cc:8151
+#| msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
-"GNUTLS n'est pas activé ; les données seront écrites sur le disque sans "
-"être chiffrées !"
+"GnuTLS n’est pas activé ; les données seront écrites sur le disque sans être "
+"chiffrées !"
