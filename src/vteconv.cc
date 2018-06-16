@@ -378,26 +378,6 @@ _vte_conv_cu(VteConv converter,
 			 (guchar**)outbuf, outbytes_left);
 }
 
-size_t
-_vte_conv_uu(VteConv converter,
-	     const gunichar **inbuf, gsize *inbytes_left,
-	     gunichar **outbuf, gsize *outbytes_left)
-{
-	return _vte_conv(converter,
-			 (const guchar**)inbuf, inbytes_left,
-			 (guchar**)outbuf, outbytes_left);
-}
-
-size_t
-_vte_conv_uc(VteConv converter,
-	     const gunichar **inbuf, gsize *inbytes_left,
-	     guchar **outbuf, gsize *outbytes_left)
-{
-	return _vte_conv(converter,
-			 (const guchar**)inbuf, inbytes_left,
-			 outbuf, outbytes_left);
-}
-
 #ifdef VTECONV_MAIN
 
 static gsize
