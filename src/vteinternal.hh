@@ -35,6 +35,11 @@
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
 
+#include "chunk.hh"
+#include "utf8.hh"
+
+#include <list>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -169,14 +174,6 @@ typedef enum _VteCursorStyle {
         VTE_CURSOR_STYLE_BLINK_IBEAM      = 5,
         VTE_CURSOR_STYLE_STEADY_IBEAM     = 6
 } VteCursorStyle;
-
-typedef struct _vte_incoming_chunk _vte_incoming_chunk_t;
-struct _vte_incoming_chunk{
-        _vte_incoming_chunk_t *next;
-        guint len;
-        guchar dataminusone;    /* Hack: Keep it right before data, so that data[-1] is valid and usable */
-        guchar data[VTE_INPUT_CHUNK_SIZE - 2 * sizeof(void *) - 1];
-};
 
 struct VteScreen {
 public:
@@ -360,12 +357,16 @@ public:
         GPid m_pty_pid;	                /* pid of child process */
         VteReaper *m_reaper;
 
-	/* Input data queues. */
+	/* Queue of chunks of data read from the PTY.
+         * Chunks are inserted at the back, and processed from the front.
+         */
+        std::queue<vte::base::Chunk::unique_type, std::list<vte::base::Chunk::unique_type>> m_incoming_queue;
+
+        vte::base::UTF8Decoder m_utf8_decoder;
+
         const char *m_encoding;            /* the pty's encoding */
         int m_utf8_ambiguous_width;
         struct _vte_iso2022_state *m_iso2022;
-        _vte_incoming_chunk_t *m_incoming; /* pending bytestream */
-        GArray *m_pending;                 /* pending characters */
         gunichar m_last_graphic_character; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
@@ -377,7 +378,7 @@ public:
          */
         GList *m_active_terminals_link;
         // FIXMEchpe should these two be g[s]size ?
-        glong m_input_bytes;
+        size_t m_input_bytes;
         glong m_max_input_bytes;
 
 	/* Output data queue. */
@@ -840,7 +841,6 @@ public:
         bool pty_io_write(GIOChannel *channel,
                           GIOCondition condition);
 
-        void feed_chunks(struct _vte_incoming_chunk *chunks);
         void send_child(char const* data,
                         gssize length,
                         bool local_echo) noexcept;

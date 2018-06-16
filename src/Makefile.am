@@ -49,6 +49,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	buffer.h \
 	caps.hh \
 	cell.hh \
+	chunk.cc \
+	chunk.hh \
 	color-triple.hh \
 	debug.cc \
 	debug.h \
@@ -79,6 +81,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	refptr.hh \
 	ring.cc \
 	ring.hh \
+	utf8.cc \
+	utf8.hh \
 	vte.cc \
 	vteaccess.cc \
 	vteaccess.h \
@@ -267,6 +271,8 @@ parser_cat_SOURCES = \
 	parser-reply.hh \
 	parser-string.hh \
 	parser-cat.cc \
+	utf8.cc \
+	utf8.hh \
 	vteconv.cc \
 	vteconv.h \
 	$(NULL)

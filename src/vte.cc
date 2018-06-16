@@ -69,12 +69,6 @@
 
 #include <new> /* placement new */
 
-/* Some sanity checks */
-/* FIXMEchpe: move this to there when splitting _vte_incoming_chunk into its own file */
-static_assert(sizeof(struct _vte_incoming_chunk) <= VTE_INPUT_CHUNK_SIZE, "_vte_incoming_chunk too large");
-static_assert(offsetof(struct _vte_incoming_chunk, data) == offsetof(struct _vte_incoming_chunk, dataminusone) + 1, "_vte_incoming_chunk layout wrong");
-
-
 #ifndef HAVE_ROUND
 static inline double round(double x) {
 	if(x - floor(x) < 0.5) {
@@ -120,96 +114,6 @@ _vte_unichar_width(gunichar c, int utf8_ambiguous_width)
         if (G_UNLIKELY (g_unichar_iswide_cjk (c)))
                 return 2;
         return 1;
-}
-
-/* process incoming data without copying */
-static struct _vte_incoming_chunk *free_chunks;
-static struct _vte_incoming_chunk *
-get_chunk (void)
-{
-	struct _vte_incoming_chunk *chunk = NULL;
-	if (free_chunks) {
-		chunk = free_chunks;
-		free_chunks = free_chunks->next;
-	}
-	if (chunk == NULL) {
-		chunk = g_new (struct _vte_incoming_chunk, 1);
-	}
-	chunk->next = NULL;
-	chunk->len = 0;
-	return chunk;
-}
-static void
-release_chunk (struct _vte_incoming_chunk *chunk)
-{
-	chunk->next = free_chunks;
-	chunk->len = free_chunks ? free_chunks->len + 1 : 0;
-	free_chunks = chunk;
-}
-static void
-prune_chunks (guint len)
-{
-	struct _vte_incoming_chunk *chunk = NULL;
-	if (len && free_chunks != NULL) {
-	    if (free_chunks->len > len) {
-		struct _vte_incoming_chunk *last;
-		chunk = free_chunks;
-		while (free_chunks->len > len) {
-		    last = free_chunks;
-		    free_chunks = free_chunks->next;
-		}
-		last->next = NULL;
-	    }
-	} else {
-	    chunk = free_chunks;
-	    free_chunks = NULL;
-	}
-	while (chunk != NULL) {
-		struct _vte_incoming_chunk *next = chunk->next;
-		g_free (chunk);
-		chunk = next;
-	}
-}
-static void
-_vte_incoming_chunks_release (struct _vte_incoming_chunk *chunk)
-{
-	while (chunk) {
-		struct _vte_incoming_chunk *next = chunk->next;
-		release_chunk (chunk);
-		chunk = next;
-	}
-}
-static gsize
-_vte_incoming_chunks_length (struct _vte_incoming_chunk *chunk)
-{
-	gsize len = 0;
-	while (chunk) {
-		len += chunk->len;
-		chunk = chunk->next;
-	}
-	return len;
-}
-static gsize
-_vte_incoming_chunks_count (struct _vte_incoming_chunk *chunk)
-{
-	gsize cnt = 0;
-	while (chunk) {
-		cnt ++;
-		chunk = chunk->next;
-	}
-	return cnt;
-}
-static struct _vte_incoming_chunk *
-_vte_incoming_chunks_reverse(struct _vte_incoming_chunk *chunk)
-{
-	struct _vte_incoming_chunk *prev = NULL;
-	while (chunk) {
-		struct _vte_incoming_chunk *next = chunk->next;
-		chunk->next = prev;
-		prev = chunk;
-		chunk = next;
-	}
-	return prev;
 }
 
 static void
@@ -3430,8 +3334,6 @@ VteTerminalPrivate::im_reset()
         }
 }
 
-/* Process incoming data, first converting it to unicode characters, and then
- * processing control sequences. */
 void
 VteTerminalPrivate::process_incoming()
 {
@@ -3439,19 +3341,14 @@ VteTerminalPrivate::process_incoming()
 	gboolean saved_cursor_visible;
         VteCursorStyle saved_cursor_style;
 	GdkPoint bbox_topleft, bbox_bottomright;
-	gunichar *wbuf;
-	gsize wcount;
 	gboolean modified, bottom;
 	gboolean invalidated_text;
 	gboolean in_scroll_region;
-	GArray *unichars;
-	struct _vte_incoming_chunk *chunk, *next_chunk, *achunk = NULL;
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks + %d bytes pending.\n",
-			_vte_incoming_chunks_length(m_incoming),
-			_vte_incoming_chunks_count(m_incoming),
-			m_pending->len);
+                         "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
+                         m_input_bytes,
+                         m_incoming_queue.size());
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
         auto previous_screen = m_screen;
@@ -3471,75 +3368,7 @@ VteTerminalPrivate::process_incoming()
             && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
 
 	/* We should only be called when there's data to process. */
-	g_assert(m_incoming ||
-		 (m_pending->len > 0));
-
-	/* Convert the data into unicode characters. */
-	unichars = m_pending;
-	for (chunk = _vte_incoming_chunks_reverse (m_incoming);
-			chunk != NULL;
-			chunk = next_chunk) {
-		gsize processed;
-		next_chunk = chunk->next;
-		if (chunk->len == 0) {
-			goto skip_chunk;
-		}
-		processed = _vte_iso2022_process(m_iso2022,
-				chunk->data, chunk->len,
-				unichars);
-		if (G_UNLIKELY (processed != chunk->len)) {
-			/* shuffle the data about */
-			g_memmove (chunk->data, chunk->data + processed,
-					chunk->len - processed);
-			chunk->len = chunk->len - processed;
-			processed = sizeof (chunk->data) - chunk->len;
-			if (processed != 0 && next_chunk !=  NULL) {
-				if (next_chunk->len <= processed) {
-					/* consume it entirely */
-					memcpy (chunk->data + chunk->len,
-							next_chunk->data,
-							next_chunk->len);
-					chunk->len += next_chunk->len;
-					chunk->next = next_chunk->next;
-					release_chunk (next_chunk);
-				} else {
-					/* next few bytes */
-					memcpy (chunk->data + chunk->len,
-							next_chunk->data,
-							processed);
-					chunk->len += processed;
-					g_memmove (next_chunk->data,
-							next_chunk->data + processed,
-							next_chunk->len - processed);
-					next_chunk->len -= processed;
-				}
-				next_chunk = chunk; /* repeat */
-			} else {
-				break;
-			}
-		} else {
-skip_chunk:
-			/* cache the last chunk */
-			if (achunk) {
-				release_chunk (achunk);
-			}
-			achunk = chunk;
-		}
-	}
-	if (achunk) {
-		if (chunk != NULL) {
-			release_chunk (achunk);
-		} else {
-			chunk = achunk;
-			chunk->next = NULL;
-			chunk->len = 0;
-		}
-	}
-	m_incoming = chunk;
-
-	/* Compute the number of unicode characters we got. */
-	wbuf = &g_array_index(unichars, gunichar, 0);
-	wcount = unichars->len;
+	g_assert(!m_incoming_queue.empty());
 
 	modified = FALSE;
 	invalidated_text = FALSE;
@@ -3551,158 +3380,179 @@ skip_chunk:
 
         m_line_wrapped = false;
 
-        auto const *wp = wbuf;
-        auto const* wend = wbuf + wcount;
-        for ( ; wp < wend; ++wp) {
+        size_t bytes_processed = 0;
 
-                auto rv = m_parser.feed(*wp);
-                if (G_UNLIKELY(rv < 0)) {
-                        char c_buf[7];
-                        g_snprintf(c_buf, sizeof(c_buf), "%lc", *wp);
-                        char const* wp_str = g_unichar_isprint(*wp) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
-                        _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
-                                         *wp, wp_str);
-                        break;
-                }
+        while (!m_incoming_queue.empty()) {
+                auto chunk = std::move(m_incoming_queue.front());
+                m_incoming_queue.pop();
 
-                if (rv != VTE_SEQ_NONE)
-                        g_assert((bool)seq);
+                g_assert_nonnull(chunk.get());
 
-                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
-                        if (rv != VTE_SEQ_NONE) {
-                                seq.print();
-                        }
-                }
+                bytes_processed += chunk->len;
 
-                // FIXMEchpe this assumes that the only handler inserting
-                // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
-                // also do, and invalidate directly for now)...
+                auto const* ip = chunk->data;
+                auto const* iend = chunk->data + chunk->len;
 
-                switch (rv) {
-                case VTE_SEQ_GRAPHIC: {
+                for ( ; ip < iend; ++ip) {
 
-			bbox_topleft.x = MIN(bbox_topleft.x,
-                                             m_screen->cursor.col);
-			bbox_topleft.y = MIN(bbox_topleft.y,
-                                             m_screen->cursor.row);
+                        switch (m_utf8_decoder.decode(*ip)) {
+                        case vte::base::UTF8Decoder::REJECT:
+                                m_utf8_decoder.reset();
+                                /* [[fallthrough]]; */
+                        case vte::base::UTF8Decoder::ACCEPT: {
+                                auto rv = m_parser.feed(m_utf8_decoder.codepoint());
+                                if (G_UNLIKELY(rv < 0)) {
+                                        uint32_t c = m_utf8_decoder.codepoint();
+                                        char c_buf[7];
+                                        g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
+                                        char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
+                                        _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                                         c, wp_str);
+                                        break;
+                                }
 
-			// does insert_char(c, false, false)
-                        GRAPHIC(seq);
-                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                         "Last graphic is now U+%04X %lc\n",
-                                         m_last_graphic_character,
-                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+                                if (rv != VTE_SEQ_NONE)
+                                        g_assert((bool)seq);
 
-                        if (m_line_wrapped) {
-                                m_line_wrapped = false;
-				/* line wrapped, correct bbox */
-				if (invalidated_text &&
-                                                (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
-                                                 m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
-                                                 m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
-                                                 m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
-					/* Clip off any part of the box which isn't already on-screen. */
-					bbox_topleft.x = MAX(bbox_topleft.x, 0);
-                                        bbox_topleft.y = MAX(bbox_topleft.y, top_row);
-					bbox_bottomright.x = MIN(bbox_bottomright.x,
-							m_column_count);
-					/* lazily apply the +1 to the cursor_row */
-					bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-                                                        bottom_row + 1);
+                                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                                        if (rv != VTE_SEQ_NONE) {
+                                                seq.print();
+                                        }
+                                }
 
-					invalidate_cells(
-							bbox_topleft.x,
-							bbox_bottomright.x - bbox_topleft.x,
-							bbox_topleft.y,
-							bbox_bottomright.y - bbox_topleft.y);
-					bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
-					bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+                                // FIXMEchpe this assumes that the only handler inserting
+                                // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
+                                // also do, and invalidate directly for now)...
 
-				}
-				bbox_topleft.x = MIN(bbox_topleft.x, 0);
-				bbox_topleft.y = MIN(bbox_topleft.y,
-                                                     m_screen->cursor.row);
-			}
-			/* Add the cells over which we have moved to the region
-			 * which we need to refresh for the user. */
-			bbox_bottomright.x = MAX(bbox_bottomright.x,
-                                                 m_screen->cursor.col);
-                        /* cursor.row + 1 (defer until inv.) */
-			bbox_bottomright.y = MAX(bbox_bottomright.y,
-                                                 m_screen->cursor.row);
-			invalidated_text = TRUE;
+                                switch (rv) {
+                                case VTE_SEQ_GRAPHIC: {
 
-			/* We *don't* emit flush pending signals here. */
-			modified = TRUE;
+                                        bbox_topleft.x = MIN(bbox_topleft.x,
+                                                             m_screen->cursor.col);
+                                        bbox_topleft.y = MIN(bbox_topleft.y,
+                                                             m_screen->cursor.row);
 
-                        break;
-                }
+                                        // does insert_char(c, false, false)
+                                        GRAPHIC(seq);
+                                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                                         "Last graphic is now U+%04X %lc\n",
+                                                         m_last_graphic_character,
+                                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                case VTE_SEQ_NONE:
-                case VTE_SEQ_IGNORE:
-                        break;
+                                        if (m_line_wrapped) {
+                                                m_line_wrapped = false;
+                                                /* line wrapped, correct bbox */
+                                                if (invalidated_text &&
+                                                    (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
+                                                     m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
+                                                     m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
+                                                     m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+                                                        /* Clip off any part of the box which isn't already on-screen. */
+                                                        bbox_topleft.x = MAX(bbox_topleft.x, 0);
+                                                        bbox_topleft.y = MAX(bbox_topleft.y, top_row);
+                                                        bbox_bottomright.x = MIN(bbox_bottomright.x,
+                                                                                 m_column_count);
+                                                        /* lazily apply the +1 to the cursor_row */
+                                                        bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
+                                                                                 bottom_row + 1);
 
-                default: {
-                        switch (seq.command()) {
+                                                        invalidate_cells(
+                                                                         bbox_topleft.x,
+                                                                         bbox_bottomright.x - bbox_topleft.x,
+                                                                         bbox_topleft.y,
+                                                                         bbox_bottomright.y - bbox_topleft.y);
+                                                        bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
+                                                        bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+
+                                                }
+                                                bbox_topleft.x = MIN(bbox_topleft.x, 0);
+                                                bbox_topleft.y = MIN(bbox_topleft.y,
+                                                                     m_screen->cursor.row);
+                                        }
+                                        /* Add the cells over which we have moved to the region
+                                         * which we need to refresh for the user. */
+                                        bbox_bottomright.x = MAX(bbox_bottomright.x,
+                                                                 m_screen->cursor.col);
+                                        /* cursor.row + 1 (defer until inv.) */
+                                        bbox_bottomright.y = MAX(bbox_bottomright.y,
+                                                                 m_screen->cursor.row);
+                                        invalidated_text = TRUE;
+
+                                        /* We *don't* emit flush pending signals here. */
+                                        modified = TRUE;
+
+                                        break;
+                                }
+
+                                case VTE_SEQ_NONE:
+                                case VTE_SEQ_IGNORE:
+                                        break;
+
+                                default: {
+                                        switch (seq.command()) {
 #define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
 #define _VTE_NOP(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
 #undef _VTE_NOP
-                        default:
-                                _vte_debug_print(VTE_DEBUG_PARSER,
-                                                 "Unknown parser command %d\n", seq.command());
-                                break;
+                                        default:
+                                                _vte_debug_print(VTE_DEBUG_PARSER,
+                                                                 "Unknown parser command %d\n", seq.command());
+                                                break;
+                                        }
+
+                                        m_last_graphic_character = 0;
+
+                                        modified = TRUE;
+
+                                        // FIXME m_screen may be != previous_screen, check for that!
+
+                                        gboolean new_in_scroll_region = m_scrolling_restricted
+                                                && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
+                                                && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
+
+                                        /* delta may have changed from sequence. */
+                                        top_row = first_displayed_row();
+                                        bottom_row = last_displayed_row();
+
+                                        /* if we have moved greatly during the sequence handler, or moved
+                                         * into a scroll_region from outside it, restart the bbox.
+                                         */
+                                        if (invalidated_text &&
+                                            ((new_in_scroll_region && !in_scroll_region) ||
+                                             (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
+                                              m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
+                                              m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
+                                              m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
+                                                /* Clip off any part of the box which isn't already on-screen. */
+                                                bbox_topleft.x = MAX(bbox_topleft.x, 0);
+                                                bbox_topleft.y = MAX(bbox_topleft.y, top_row);
+                                                bbox_bottomright.x = MIN(bbox_bottomright.x,
+                                                                         m_column_count);
+                                                /* lazily apply the +1 to the cursor_row */
+                                                bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
+                                                                         bottom_row + 1);
+
+                                                invalidate_cells(
+                                                                 bbox_topleft.x,
+                                                                 bbox_bottomright.x - bbox_topleft.x,
+                                                                 bbox_topleft.y,
+                                                                 bbox_bottomright.y - bbox_topleft.y);
+
+                                                invalidated_text = FALSE;
+                                                bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
+                                                bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+                                        }
+
+                                        in_scroll_region = new_in_scroll_region;
+
+                                        break;
+                                }
+                                }
                         }
-
-                        m_last_graphic_character = 0;
-
-			modified = TRUE;
-
-                        // FIXME m_screen may be != previous_screen, check for that!
-
-                        gboolean new_in_scroll_region = m_scrolling_restricted
-                            && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
-                            && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
-
-                        /* delta may have changed from sequence. */
-                        top_row = first_displayed_row();
-                        bottom_row = last_displayed_row();
-
-			/* if we have moved greatly during the sequence handler, or moved
-                         * into a scroll_region from outside it, restart the bbox.
-                         */
-			if (invalidated_text &&
-					((new_in_scroll_region && !in_scroll_region) ||
-                                         (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
-                                          m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
-                                          m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
-                                          m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
-				/* Clip off any part of the box which isn't already on-screen. */
-				bbox_topleft.x = MAX(bbox_topleft.x, 0);
-                                bbox_topleft.y = MAX(bbox_topleft.y, top_row);
-				bbox_bottomright.x = MIN(bbox_bottomright.x,
-						m_column_count);
-				/* lazily apply the +1 to the cursor_row */
-				bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-                                                bottom_row + 1);
-
-				invalidate_cells(
-						bbox_topleft.x,
-						bbox_bottomright.x - bbox_topleft.x,
-						bbox_topleft.y,
-						bbox_bottomright.y - bbox_topleft.y);
-
-				invalidated_text = FALSE;
-				bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
-				bbox_topleft.x = bbox_topleft.y = G_MAXINT;
-			}
-
-			in_scroll_region = new_in_scroll_region;
-
-                        break;
-		}
+                        }
                 }
+        }
 
 #ifdef VTE_DEBUG
 		/* Some safety checks: ensure the visible parts of the buffer
@@ -3713,17 +3563,6 @@ skip_chunk:
 		 * part of the display buffer. */
                 g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
 #endif
-	}
-
-	/* Remove most of the processed characters. */
-	if (wp < wend) {
-		g_array_remove_range(m_pending, 0, wp - wbuf);
-	} else {
-		g_array_set_size(m_pending, 0);
-		/* If we're out of data, we needn't pause to let the
-		 * controlling application respond to incoming data, because
-		 * the main loop is already going to do that. */
-	}
 
 	if (modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
@@ -3792,28 +3631,13 @@ skip_chunk:
         im_update_cursor();
 
         /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
-        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, wcount * 4);
+        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
 
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
-			"%ld chars and %ld bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
-			(long) unichars->len,
-			(long) _vte_incoming_chunks_length(m_incoming),
-			_vte_incoming_chunks_count(m_incoming));
-}
-
-void
-VteTerminalPrivate::feed_chunks(struct _vte_incoming_chunk *chunks)
-{
-	struct _vte_incoming_chunk *last;
-
-	_vte_debug_print(VTE_DEBUG_IO, "Feed %" G_GSIZE_FORMAT " bytes, in %" G_GSIZE_FORMAT " chunks.\n",
-			_vte_incoming_chunks_length(chunks),
-			_vte_incoming_chunks_count(chunks));
-
-	for (last = chunks; last->next != NULL; last = last->next) ;
-	last->next = m_incoming;
-	m_incoming = chunks;
+                          "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
+                          m_input_bytes,
+                          m_incoming_queue.size());
 }
 
 bool
@@ -3830,7 +3654,6 @@ VteTerminalPrivate::pty_io_read(GIOChannel *channel,
 
 	/* Read some data in from this channel. */
 	if (condition & (G_IO_IN | G_IO_PRI)) {
-		struct _vte_incoming_chunk *chunk, *chunks = NULL;
 		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
 		int rem, len;
@@ -3853,14 +3676,20 @@ VteTerminalPrivate::pty_io_read(GIOChannel *channel,
 		}
 		bytes = m_input_bytes;
 
-		chunk = m_incoming;
+                vte::base::Chunk* chunk = nullptr;
+                /* If possible, try adding more data to the chunk at the back of the queue */
+                if (!m_incoming_queue.empty())
+                        chunk = m_incoming_queue.back().get();
+
 		do {
-			if (!chunk || chunk->len >= 3*sizeof (chunk->data)/4) {
-				chunk = get_chunk ();
-				chunk->next = chunks;
-				chunks = chunk;
+                        /* No chunk, or chunk at least ¾ full? Get a new chunk */
+			if (!chunk || chunk->len >= 3 * chunk->capacity() / 4) {
+                                m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+
+                                chunk = m_incoming_queue.back().get();
 			}
-			rem = sizeof (chunk->data) - chunk->len;
+
+			rem = chunk->remaining_capacity();
 			bp = chunk->data + chunk->len;
 			len = 0;
 			do {
@@ -3913,15 +3742,12 @@ out:
 			chunk->len += len;
 			bytes += len;
 		} while (bytes < max_bytes &&
-		         chunk->len == sizeof (chunk->data));
-		if (chunk->len == 0 && chunk == chunks) {
-			chunks = chunks->next;
-			release_chunk (chunk);
-		}
+		         chunk->len == chunk->capacity());
 
-		if (chunks != NULL) {
-			feed_chunks(chunks);
-		}
+                /* We may have an empty chunk at the back of the queue, but
+                 * that doesn't matter, we'll fill it next time.
+                 */
+
 		if (!is_processing()) {
                         G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
 			gdk_threads_enter ();
@@ -3994,42 +3820,50 @@ out:
  */
 void
 VteTerminalPrivate::feed(char const* data,
-                         gssize length,
+                         gssize length_,
                          bool start_processing_)
 {
-        g_assert(length == 0 || data != nullptr);
+        g_assert(length_ == 0 || data != nullptr);
 
-	if (length == -1)
+        size_t length;
+	if (length_ == -1)
 		length = strlen(data);
+        else
+                length = size_t(length_);
 
-	/* If we have data, modify the incoming buffer. */
-	if (length > 0) {
-		struct _vte_incoming_chunk *chunk;
-		if (m_incoming &&
-				(gsize)length < sizeof (m_incoming->data) - m_incoming->len) {
-			chunk = m_incoming;
-		} else {
-			chunk = get_chunk ();
-			feed_chunks(chunk);
-		}
-		do { /* break the incoming data into chunks */
-			gsize rem = sizeof (chunk->data) - chunk->len;
-			gsize len = (gsize) length < rem ? (gsize) length : rem;
-			memcpy (chunk->data + chunk->len, data, len);
-			chunk->len += len;
-			length -= len;
-			if (length == 0) {
-				break;
-			}
-			data += len;
+	if (length == 0)
+                return;
 
-			chunk = get_chunk ();
-			feed_chunks(chunk);
-		} while (1);
+        vte::base::Chunk* chunk = nullptr;
+        if (!m_incoming_queue.empty()) {
+                auto& achunk = m_incoming_queue.back();
+                if (length < achunk->remaining_capacity())
+                        chunk = achunk.get();
+        }
+        if (chunk == nullptr) {
+                m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                chunk = m_incoming_queue.back().get();
+        }
 
-                if (start_processing_)
-                        start_processing();
-	}
+        /* Break the incoming data into chunks. */
+        do {
+                auto rem = chunk->remaining_capacity();
+                auto len = std::min(length, rem);
+                memcpy (chunk->data + chunk->len, data, len);
+                chunk->len += len;
+                length -= len;
+                if (length == 0)
+                        break;
+
+                data += len;
+
+                /* Get another chunk for the remaining data */
+                m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                chunk = m_incoming_queue.back().get();
+        } while (true);
+
+        if (start_processing_)
+                start_processing();
 }
 
 bool
@@ -8037,8 +7871,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	/* Set up I/O encodings. */
         m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
         m_iso2022 = _vte_iso2022_state_new(m_encoding);
-	m_incoming = nullptr;
-	m_pending = g_array_new(FALSE, TRUE, sizeof(gunichar));
 	m_max_input_bytes = VTE_MAX_INPUT_READ;
 	m_cursor_blink_tag = 0;
         m_text_blink_tag = 0;
@@ -8506,9 +8338,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	stop_processing(this);
 
 	/* Discard any pending data. */
-	_vte_incoming_chunks_release(m_incoming);
 	_vte_byte_array_free(m_outgoing);
-	g_array_free(m_pending, TRUE);
 	_vte_byte_array_free(m_conv_buffer);
 
 	/* Stop the child and stop watching for input from the child. */
@@ -10454,6 +10284,9 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 	/* Clear the output buffer. */
 	_vte_byte_array_clear(m_outgoing);
 	/* Reset charset substitution state. */
+
+        m_utf8_decoder.reset();
+
 	_vte_iso2022_state_free(m_iso2022);
         m_iso2022 = _vte_iso2022_state_new(nullptr);
 	_vte_iso2022_state_set_codeset(m_iso2022,
@@ -10564,14 +10397,16 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
 		/* Take one last shot at processing whatever data is pending,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
-		if (m_incoming != NULL) {
+		if (!m_incoming_queue.empty()) {
 			process_incoming();
-			_vte_incoming_chunks_release (m_incoming);
-			m_incoming = NULL;
+                        while (!m_incoming_queue.empty())
+                                m_incoming_queue.pop();
+
 			m_input_bytes = 0;
 		}
-		g_array_set_size(m_pending, 0);
 		stop_processing(this);
+
+                m_utf8_decoder.reset(); // FIXMEchpe necessary here?
 
 		/* Clear the outgoing buffer as well. */
 		_vte_byte_array_clear(m_outgoing);
@@ -10871,8 +10706,6 @@ VteTerminalPrivate::time_process_incoming()
 bool
 VteTerminalPrivate::process(bool emit_adj_changed)
 {
-        bool is_active;
-
         if (m_pty_channel) {
                 if (m_pty_input_active ||
                     m_pty_input_source == 0) {
@@ -10883,7 +10716,8 @@ VteTerminalPrivate::process(bool emit_adj_changed)
         }
         if (emit_adj_changed)
                 emit_adjustment_changed();
-        is_active = _vte_incoming_chunks_length(m_incoming) != 0;
+
+        bool is_active = !m_incoming_queue.empty();
         if (is_active) {
                 if (VTE_MAX_PROCESS_TIME) {
                         time_process_incoming();
@@ -10959,7 +10793,7 @@ process_timeout (gpointer data)
 		g_usleep (0);
 	} else if (update_timeout_tag == 0) {
 		/* otherwise free up memory used to capture incoming data */
-		prune_chunks (10);
+                vte::base::Chunk::prune();
 	}
 
 	return again;
@@ -11063,7 +10897,7 @@ update_repeat_timeout (gpointer data)
 		g_usleep (0);
 	} else {
 		/* otherwise free up memory used to capture incoming data */
-		prune_chunks (10);
+                vte::base::Chunk::prune();
 	}
 
         return FALSE;  /* If we need to go again, we already have a new timer for that. */

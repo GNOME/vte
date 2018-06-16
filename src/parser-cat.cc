@@ -32,6 +32,7 @@
 #include "debug.h"
 #include "iso2022.h"
 #include "parser.hh"
+#include "utf8.hh"
 
 static char const*
 seq_to_str(unsigned int type)
@@ -304,11 +305,11 @@ static gsize cmd_stats[VTE_CMD_N];
 static GArray* bench_times;
 
 static void
-process_file(int fd,
-             char const* charset,
-             bool codepoints,
-             bool plain,
-             bool quiet)
+process_file_with_charset(int fd,
+                          char const* charset,
+                          bool codepoints,
+                          bool plain,
+                          bool quiet)
 {
         struct vte_parser parser;
         vte_parser_init(&parser);
@@ -380,6 +381,80 @@ process_file(int fd,
         _vte_iso2022_state_free(subst);
 }
 
+static void
+process_file_utf8(int fd,
+                  bool codepoints,
+                  bool plain,
+                  bool quiet)
+{
+        struct vte_parser parser;
+        vte_parser_init(&parser);
+
+        gsize const buf_size = 16384;
+        guchar* buf = g_new0(guchar, buf_size);
+        auto outbuf = g_string_sized_new(buf_size);
+
+        auto start_time = g_get_monotonic_time();
+
+        vte::base::UTF8Decoder decoder;
+
+        gsize buf_start = 0;
+        for (;;) {
+                auto len = read(fd, buf + buf_start, buf_size - buf_start);
+                if (!len)
+                        break;
+                if (len == -1) {
+                        if (errno == EAGAIN)
+                                continue;
+                        break;
+                }
+
+                auto const bufend = buf + len;
+
+                struct vte_seq *seq = &parser.seq;
+
+                for (auto sptr = buf; sptr < bufend; ++sptr) {
+                        switch (decoder.decode(*sptr)) {
+                        case vte::base::UTF8Decoder::REJECT:
+                                decoder.reset();
+                                /* [[fallthrough]]; */
+                        case vte::base::UTF8Decoder::ACCEPT: {
+                                auto ret = vte_parser_feed(&parser, decoder.codepoint());
+                                if (G_UNLIKELY(ret < 0)) {
+                                        g_printerr("Parser error!\n");
+                                        goto out;
+                                }
+
+                                seq_stats[ret]++;
+                                if (ret != VTE_SEQ_NONE) {
+                                        cmd_stats[seq->command]++;
+                                        if (!quiet) {
+                                                print_seq(outbuf, seq, codepoints, plain);
+                                                if (seq->command == VTE_CMD_LF)
+                                                        printout(outbuf);
+                                        }
+                                }
+                                break;
+                        }
+
+                        default:
+                                break;
+                        }
+                }
+        }
+
+ out:
+        if (!quiet)
+                printout(outbuf);
+
+        int64_t time_spent = g_get_monotonic_time() - start_time;
+        g_array_append_val(bench_times, time_spent);
+
+        g_string_free(outbuf, TRUE);
+        g_free(buf);
+        vte_parser_deinit(&parser);
+}
+
 static bool
 process_file(int fd,
              char const* charset,
@@ -399,7 +474,10 @@ process_file(int fd,
                         return false;
                 }
 
-                process_file(fd, charset, codepoints, plain, quiet);
+                if (charset != nullptr)
+                        process_file_with_charset(fd, charset, codepoints, plain, quiet);
+                else
+                        process_file_utf8(fd, codepoints, plain, quiet);
         }
 
         return true;
