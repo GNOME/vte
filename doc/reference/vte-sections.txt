@@ -78,8 +78,6 @@ vte_terminal_match_check_event
 vte_terminal_match_set_cursor_name
 vte_terminal_set_cjk_ambiguous_width
 vte_terminal_get_cjk_ambiguous_width
-vte_terminal_set_encoding
-vte_terminal_get_encoding
 vte_terminal_set_word_char_exceptions
 vte_terminal_get_word_char_exceptions
 vte_terminal_set_input_enabled
@@ -150,6 +148,8 @@ vte_terminal_spawn_sync
 vte_terminal_get_geometry_hints
 vte_terminal_set_geometry_hints_for_window
 vte_terminal_get_icon_title
+vte_terminal_set_encoding
+vte_terminal_get_encoding
 
 <SUBSECTION Private>
 VteCharAttributes

@@ -870,9 +870,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::encoding-changed:
          * @vteterminal: the object which received the signal
          *
-         * Emitted whenever the terminal's current encoding has changed, either
-         * as a result of receiving a control sequence which toggled between the
-         * local and UTF-8 encodings, or at the parent application's request.
+         * Emitted whenever the terminal's current encoding has changed.
+         *
+         * Note: support for non-UTF-8 is deprecated.
          */
         signals[SIGNAL_ENCODING_CHANGED] =
                 g_signal_new(I_("encoding-changed"),
@@ -1369,9 +1369,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:cjk-ambiguous-width:
          *
-         * This setting controls whether ambiguous-width characters are narrow or wide
-         * when using the UTF-8 encoding (vte_terminal_set_encoding()). In all other encodings,
-         * the width of ambiguous-width characters is fixed.
+         * This setting controls whether ambiguous-width characters are narrow or wide.
+         * (Note that when using a non-UTF-8 encoding set via vte_terminal_set_encoding(),
+         * the width of ambiguous-width characters is fixed and determined by the encoding
+         * itself.)
          *
          * This setting only takes effect the next time the terminal is reset, either
          * via escape sequence or with vte_terminal_reset().
@@ -1435,6 +1436,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * be encoded with.  For certain terminal types, applications executing in the
          * terminal can change the encoding.  The default is defined by the
          * application's locale settings.
+         *
+         * Deprecated: 0.54: Instead of using this, you should use a tool like
+         *   luit(1) when support for non-UTF-8 is required
          */
         pspecs[PROP_ENCODING] =
                 g_param_spec_string ("encoding", NULL, NULL,
@@ -1827,8 +1831,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
  * @terminal: a #VteTerminal
  *
  * Sends the contents of the #GDK_SELECTION_CLIPBOARD selection to the
- * terminal's child.  If necessary, the data is converted from UTF-8 to the
- * terminal's current encoding. It's called on paste menu item, or when
+ * terminal's child. It's called on paste menu item, or when
  * user presses Shift+Insert.
  */
 void
@@ -1844,8 +1847,7 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
  * @terminal: a #VteTerminal
  *
  * Sends the contents of the #GDK_SELECTION_PRIMARY selection to the terminal's
- * child.  If necessary, the data is converted from UTF-8 to the terminal's
- * current encoding.  The terminal will call also paste the
+ * child. The terminal will call also paste the
  * #GDK_SELECTION_PRIMARY selection when the user clicks with the the second
  * mouse button.
  */
@@ -3165,8 +3167,10 @@ vte_terminal_get_char_width(VteTerminal *terminal)
  * vte_terminal_get_cjk_ambiguous_width:
  * @terminal: a #VteTerminal
  *
- * Returns whether ambiguous-width characters are narrow or wide when using
- * the UTF-8 encoding (vte_terminal_set_encoding()).
+ *  Returns whether ambiguous-width characters are narrow or wide.
+ * (Note that when using a non-UTF-8 encoding set via vte_terminal_set_encoding(),
+ * the width of ambiguous-width characters is fixed and determined by the encoding
+ * itself.)
  *
  * Returns: 1 if ambiguous-width characters are narrow, or 2 if they are wide
  */
@@ -3182,9 +3186,10 @@ vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
  * @terminal: a #VteTerminal
  * @width: either 1 (narrow) or 2 (wide)
  *
- * This setting controls whether ambiguous-width characters are narrow or wide
- * when using the UTF-8 encoding (vte_terminal_set_encoding()). In all other encodings,
- * the width of ambiguous-width characters is fixed.
+ * This setting controls whether ambiguous-width characters are narrow or wide.
+ * (Note that when using a non-UTF-8 encoding set via vte_terminal_set_encoding(),
+ * the width of ambiguous-width characters is fixed and determined by the encoding
+ * itself.)
  */
 void
 vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
@@ -3565,6 +3570,8 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
  * encoded.
  *
  * Returns: (transfer none): the current encoding for the terminal
+ *
+ * Deprecated: 0.54: Support for non-UTF-8 is deprecated.
  */
 const char *
 vte_terminal_get_encoding(VteTerminal *terminal)
@@ -3583,8 +3590,14 @@ vte_terminal_get_encoding(VteTerminal *terminal)
  * be encoded with.  For certain terminal types, applications executing in the
  * terminal can change the encoding. If @codeset is %NULL, it uses "UTF-8".
  *
+ * Note: Support for non-UTF-8 is deprecated and may get removed altogether.
+ * Instead of this function, you should use a wrapper like luit(1) when
+ * spawning the child process.
+ *
  * Returns: %TRUE if the encoding could be changed to the specified one,
  *  or %FALSE with @error set to %G_CONVERT_ERROR_NO_CONVERSION.
+ *
+ * Deprecated: 0.54: Support for non-UTF-8 is deprecated.
  */
 gboolean
 vte_terminal_set_encoding(VteTerminal *terminal,

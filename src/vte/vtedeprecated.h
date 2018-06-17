@@ -115,6 +115,17 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 const char *vte_terminal_get_icon_title(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+gboolean vte_terminal_set_encoding(VteTerminal *terminal,
+                                   const char *codeset,
+                                   GError **error) _VTE_GNUC_NONNULL(1);
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
+const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED
