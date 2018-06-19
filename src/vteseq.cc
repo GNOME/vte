@@ -44,7 +44,7 @@
 using namespace std::literals;
 
 void
-vte::parser::Sequence::print() const
+vte::parser::Sequence::print() const noexcept
 {
 #ifdef VTE_DEBUG
         auto c = m_seq != nullptr ? terminator() : 0;
@@ -145,7 +145,7 @@ vte_unichar_strlen(gunichar const* c)
  */
 char*
 vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
-                                    ssize_t len) const
+                                    ssize_t len) const noexcept
 {
         if (len < 0)
                 len = vte_unichar_strlen(str);
@@ -1406,7 +1406,7 @@ VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
                                     int number,
                                     int index,
                                     int index_fallback,
-                                    int osc)
+                                    int osc) noexcept
 {
         auto const str = *token;
 
