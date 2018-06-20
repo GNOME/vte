@@ -149,6 +149,8 @@ _vte_conv_open(const char *target, const char *source)
 	utf8 = ((g_ascii_strcasecmp(real_target, "UTF-8") == 0) &&
 		(g_ascii_strcasecmp(real_source, "UTF-8") == 0));
 
+        g_assert(!utf8);
+
 	/* If we're doing UTF-8 to UTF-8, just use a dummy function which
 	 * checks for bad data. */
 	conv = NULL;

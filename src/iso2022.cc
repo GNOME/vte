@@ -54,6 +54,7 @@ _vte_iso2022_state_new(const char *native_codeset)
 	struct _vte_iso2022_state *state;
 
 	state = g_slice_new0(struct _vte_iso2022_state);
+        state->conv = VTE_INVALID_CONV;
 	state->native_codeset = state->codeset = g_intern_string(native_codeset);
 	if (native_codeset == NULL) {
                 const char *codeset;
@@ -61,10 +62,13 @@ _vte_iso2022_state_new(const char *native_codeset)
 		state->native_codeset = state->codeset = g_intern_string(codeset);
         }
 	state->utf8_codeset = g_intern_string("UTF-8");
-	state->target_codeset = "UTF-8";
+	state->target_codeset = g_intern_string("UTF-8");
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 			"Native codeset \"%s\", currently %s\n",
 			state->native_codeset, state->codeset);
+        if (g_strcmp0(state->native_codeset, "UTF-8") == 0)
+                return state;
+
 	state->conv = _vte_conv_open(state->target_codeset, state->codeset);
 	if (state->conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
@@ -102,6 +106,12 @@ _vte_iso2022_state_set_codeset(struct _vte_iso2022_state *state,
 	g_return_if_fail(strlen(codeset) > 0);
 
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION, "%s\n", codeset);
+	if (codeset == nullptr) {
+		g_get_charset(&codeset);
+        }
+        if (g_strcmp0(codeset, "UTF-8") == 0)
+                return;
+
 	conv = _vte_conv_open(state->target_codeset, codeset);
 	if (conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),

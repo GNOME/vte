@@ -1953,83 +1953,76 @@ VteTerminalPrivate::maybe_scroll_to_bottom()
 bool
 VteTerminalPrivate::set_encoding(char const* codeset)
 {
-	VteConv conv;
-
-        GObject *object = G_OBJECT(m_terminal);
-
-	if (codeset == NULL) {
+	if (codeset == nullptr) {
                 codeset = "UTF-8";
 	}
-	if ((m_encoding != nullptr) && g_str_equal(codeset, m_encoding)) {
-		/* Nothing to do! */
-		return true;
-	}
 
-        m_using_utf8 = g_str_equal(codeset, "UTF-8");
+        bool const using_utf8 = g_str_equal(codeset, "UTF-8");
 
-	/* Open new conversions. */
-	conv = _vte_conv_open(codeset, "UTF-8");
-	if (conv == VTE_INVALID_CONV)
-                return false;
+        if (!using_utf8) {
+                auto conv = _vte_conv_open(codeset, "UTF-8");
+                if (conv == VTE_INVALID_CONV)
+                        return false;
 
-	auto old_codeset = m_encoding;
+                auto old_codeset = m_encoding ? m_encoding : "UTF-8";
 
-        g_object_freeze_notify(object);
+                if (m_outgoing_conv != VTE_INVALID_CONV) {
+                        _vte_conv_close(m_outgoing_conv);
+                }
+                m_outgoing_conv = conv; /* adopted */
 
-	if (m_outgoing_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(m_outgoing_conv);
-	}
-	m_outgoing_conv = conv;
+                /* Set the terminal's encoding to the new value. */
+                m_encoding = g_intern_string(codeset);
 
-	/* Set the terminal's encoding to the new value. */
-	m_encoding = g_intern_string(codeset);
+                /* Convert any buffered output bytes. */
+                if ((_vte_byte_array_length(m_outgoing) > 0) &&
+                    (old_codeset != nullptr)) {
+                        char *obuf1, *obuf2;
+                        gsize bytes_written;
 
-	/* Convert any buffered output bytes. */
-	if ((_vte_byte_array_length(m_outgoing) > 0) &&
-	    (old_codeset != nullptr)) {
-                char *obuf1, *obuf2;
-                gsize bytes_written;
+                        /* Convert back to UTF-8. */
+                        obuf1 = g_convert((char *)m_outgoing->data,
+                                          _vte_byte_array_length(m_outgoing),
+                                          "UTF-8",
+                                          old_codeset,
+                                          NULL,
+                                          &bytes_written,
+                                          NULL);
+                        if (obuf1 != NULL) {
+                                /* Convert to the new encoding. */
+                                obuf2 = g_convert(obuf1,
+                                                  bytes_written,
+                                                  codeset,
+                                                  "UTF-8",
+                                                  NULL,
+                                                  &bytes_written,
+                                                  NULL);
+                                if (obuf2 != NULL) {
+                                        _vte_byte_array_clear(m_outgoing);
+                                        _vte_byte_array_append(m_outgoing,
+                                                               obuf2, bytes_written);
+                                        g_free(obuf2);
+                                }
+                                g_free(obuf1);
+                        }
+                }
 
-		/* Convert back to UTF-8. */
-		obuf1 = g_convert((char *)m_outgoing->data,
-				  _vte_byte_array_length(m_outgoing),
-				  "UTF-8",
-				  old_codeset,
-				  NULL,
-				  &bytes_written,
-				  NULL);
-		if (obuf1 != NULL) {
-			/* Convert to the new encoding. */
-			obuf2 = g_convert(obuf1,
-					  bytes_written,
-					  codeset,
-					  "UTF-8",
-					  NULL,
-					  &bytes_written,
-					  NULL);
-			if (obuf2 != NULL) {
-				_vte_byte_array_clear(m_outgoing);
-				_vte_byte_array_append(m_outgoing,
-						   obuf2, bytes_written);
-				g_free(obuf2);
-			}
-			g_free(obuf1);
-		}
-	}
+                /* Set the encoding for incoming text. */
+                _vte_iso2022_state_set_codeset(m_iso2022,
+                                               m_encoding);
+        }
 
-	/* Set the encoding for incoming text. */
-	_vte_iso2022_state_set_codeset(m_iso2022,
-				       m_encoding);
+        m_using_utf8 = using_utf8;
 
 	_vte_debug_print(VTE_DEBUG_IO,
 			"Set terminal encoding to `%s'.\n",
 			m_encoding);
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `encoding-changed'.\n");
+
+        GObject *object = G_OBJECT(m_terminal);
 	g_signal_emit(object, signals[SIGNAL_ENCODING_CHANGED], 0);
         g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
-
-        g_object_thaw_notify(object);
 
         return true;
 }
@@ -3965,79 +3958,89 @@ VteTerminalPrivate::send_child(char const* data,
                                gssize length,
                                bool local_echo) noexcept
 {
-	gsize icount, ocount;
-	const guchar *ibuf;
-	guchar *obuf, *obufptr;
 	gchar *cooked;
-	VteConv conv;
 	long cooked_length, i;
 
         if (!m_input_enabled)
                 return;
 
-        conv = m_outgoing_conv;
-	if (conv == VTE_INVALID_CONV)
-                return;
+        if (length == -1)
+                length = strlen(data);
 
-	icount = length;
-	ibuf = (const guchar *)data;
-	ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
-	_vte_byte_array_set_minimum_size(m_conv_buffer, ocount);
-	obuf = obufptr = m_conv_buffer->data;
+        if (m_using_utf8) {
+                cooked = (char*)data;
+                cooked_length = length;
+        } else {
+                if (m_outgoing_conv == VTE_INVALID_CONV)
+                        return;
 
-	if (_vte_conv(conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
-		g_warning(_("Error (%s) converting data for child, dropping."),
-			  g_strerror(errno));
-	} else {
+                gsize icount;
+                icount = length;
+                const guchar *ibuf = (const guchar *)data;
+                gsize ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
+                _vte_byte_array_set_minimum_size(m_conv_buffer, ocount);
+                guchar *obuf, *obufptr;
+                obuf = obufptr = m_conv_buffer->data;
+
+                if (_vte_conv(m_outgoing_conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
+                        int errsv = errno;
+                        g_warning(_("Error (%s) converting data for child, dropping."),
+                                  g_strerror(errsv));
+                        return;
+                }
+
                 cooked = (gchar *)obufptr;
                 cooked_length = obuf - obufptr;
+        }
 
-		/* Tell observers that we're sending this to the child. */
-		if (cooked_length > 0) {
-			emit_commit(cooked, cooked_length);
-		}
-		/* Echo the text if we've been asked to do so. */
-		if ((cooked_length > 0) && local_echo) {
-			gunichar *ucs4;
-			ucs4 = g_utf8_to_ucs4(cooked, cooked_length,
-					      NULL, NULL, NULL);
-			if (ucs4 != NULL) {
-				int len;
-				len = g_utf8_strlen(cooked, cooked_length);
-				for (i = 0; i < len; i++) {
-					insert_char(
-								 ucs4[i],
-								 false,
-								 true);
-				}
-				g_free(ucs4);
-			}
-		}
-		/* If there's a place for it to go, add the data to the
-		 * outgoing buffer. */
-		if ((cooked_length > 0) && (m_pty != NULL)) {
-			_vte_byte_array_append(m_outgoing,
-					   cooked, cooked_length);
-			_VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
-				for (i = 0; i < cooked_length; i++) {
-					if ((((guint8) cooked[i]) < 32) ||
-					    (((guint8) cooked[i]) > 127)) {
-						g_printerr(
-							"Sending <%02x> "
-							"to child.\n",
-							cooked[i]);
-					} else {
-						g_printerr(
-							"Sending '%c' "
-							"to child.\n",
-							cooked[i]);
-					}
-				}
-			}
-			/* If we need to start waiting for the child pty to
-			 * become available for writing, set that up here. */
-			connect_pty_write();
-		}
+        /* Tell observers that we're sending this to the child. */
+        if (cooked_length > 0) {
+                emit_commit(cooked, cooked_length);
+        }
+        /* Echo the text if we've been asked to do so. */
+        if ((cooked_length > 0) && local_echo) {
+                gunichar *ucs4;
+                // FIXMEchpe: if (!m_using_utf8), then cooked is NOT UTF-8 !!!
+                // So I think this should use (data, length) not (cooked, cooked_length)
+                ucs4 = g_utf8_to_ucs4(cooked, cooked_length,
+                                      NULL, NULL, NULL);
+                if (ucs4 != NULL) {
+                        int len;
+                        len = g_utf8_strlen(cooked, cooked_length);
+                        for (i = 0; i < len; i++) {
+                                insert_char(
+                                            ucs4[i],
+                                            false,
+                                            true);
+                        }
+                        g_free(ucs4);
+                }
+        }
+
+        /* If there's a place for it to go, add the data to the
+         * outgoing buffer. */
+        // FIXMEchpe: shouldn't require m_pty for this
+        if ((cooked_length > 0) && (m_pty != NULL)) {
+                _vte_byte_array_append(m_outgoing, cooked, cooked_length);
+                _VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
+                        for (i = 0; i < cooked_length; i++) {
+                                if ((((guint8) cooked[i]) < 32) ||
+                                    (((guint8) cooked[i]) > 127)) {
+                                        g_printerr(
+                                                   "Sending <%02x> "
+                                                   "to child.\n",
+                                                   cooked[i]);
+                                } else {
+                                        g_printerr(
+                                                   "Sending '%c' "
+                                                   "to child.\n",
+                                                   cooked[i]);
+                                }
+                        }
+                }
+                /* If we need to start waiting for the child pty to
+                 * become available for writing, set that up here. */
+                connect_pty_write();
 	}
 }
 
@@ -7926,6 +7929,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
 	/* Set up I/O encodings. */
+        g_assert_true(m_using_utf8);
         m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
         m_iso2022 = _vte_iso2022_state_new(m_encoding);
         m_incoming_leftover = _vte_byte_array_new();
@@ -7935,8 +7939,6 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	m_outgoing = _vte_byte_array_new();
 	m_outgoing_conv = VTE_INVALID_CONV;
 	m_conv_buffer = _vte_byte_array_new();
-	set_encoding(nullptr /* UTF-8 */);
-	g_assert_cmpstr(m_encoding, ==, "UTF-8");
         m_last_graphic_character = 0;
 
 	/* Setting the terminal type and size requires the PTY master to
@@ -10493,9 +10495,7 @@ VteTerminalPrivate::set_pty(VtePty *new_pty)
         set_size(m_column_count, m_row_count);
 
         GError *error = nullptr;
-        if (!vte_pty_set_utf8(m_pty,
-                              strcmp(m_encoding, "UTF-8") == 0,
-                              &error)) {
+        if (!vte_pty_set_utf8(m_pty, m_using_utf8, &error)) {
                 g_warning ("Failed to set UTF8 mode: %s\n", error->message);
                 g_error_free (error);
         }
