@@ -33,6 +33,7 @@
 #include "buffer.h"
 #include "iso2022.h"
 #include "vteconv.h"
+#include "vtedefines.hh"
 
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -45,7 +46,6 @@
 struct _vte_iso2022_state {
 	const gchar *codeset, *native_codeset, *utf8_codeset, *target_codeset;
 	VteConv conv;
-	VteByteArray *buffer;
 };
 
 struct _vte_iso2022_state *
@@ -61,12 +61,11 @@ _vte_iso2022_state_new(const char *native_codeset)
 		state->native_codeset = state->codeset = g_intern_string(codeset);
         }
 	state->utf8_codeset = g_intern_string("UTF-8");
-	state->target_codeset = VTE_CONV_GUNICHAR_TYPE;
+	state->target_codeset = "UTF-8";
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
 			"Native codeset \"%s\", currently %s\n",
 			state->native_codeset, state->codeset);
 	state->conv = _vte_conv_open(state->target_codeset, state->codeset);
-	state->buffer = _vte_byte_array_new();
 	if (state->conv == VTE_INVALID_CONV) {
 		g_warning(_("Unable to convert characters from %s to %s."),
 			  state->codeset, state->target_codeset);
@@ -86,7 +85,6 @@ _vte_iso2022_state_new(const char *native_codeset)
 void
 _vte_iso2022_state_free(struct _vte_iso2022_state *state)
 {
-	_vte_byte_array_free(state->buffer);
 	if (state->conv != VTE_INVALID_CONV) {
 		_vte_conv_close(state->conv);
 	}
@@ -126,42 +124,35 @@ _vte_iso2022_state_get_codeset(struct _vte_iso2022_state *state)
 gsize
 _vte_iso2022_process(struct _vte_iso2022_state *state,
                      const guchar *cdata, gsize length,
-                     GArray *gunichars)
+                     VteByteArray *unibuf)
 {
-	glong processed = 0;
-	gsize converted;
-	const guchar *inbuf;
-	gunichar *outbuf, *buf;
-	gsize inbytes, outbytes;
-        guint i, j;
-	gunichar c;
-        gboolean stop;
 
-		inbuf = cdata;
-		inbytes = length;
-		_vte_byte_array_set_minimum_size(state->buffer,
-					     sizeof(gunichar) * length * 2);
-		buf = (gunichar *)state->buffer->data;
-		outbuf = buf;
-		outbytes = sizeof(gunichar) * length * 2;
+		auto inbuf = cdata;
+		size_t inbytes = length;
+		_vte_byte_array_set_minimum_size(unibuf,
+                                                 VTE_UTF8_BPC * length);
+		auto outbuf = unibuf->data;
+		size_t outbytes = unibuf->len;
+                bool stop = false;
 		do {
-			converted = _vte_conv_cu(state->conv,
-					         &inbuf, &inbytes,
-					         &outbuf, &outbytes);
-			stop = FALSE;
+			auto converted = _vte_conv(state->conv,
+                                              &inbuf, &inbytes,
+                                              &outbuf, &outbytes);
 			switch (converted) {
 			case ((gsize)-1):
 				switch (errno) {
-				case EILSEQ:
+				case EILSEQ: {
                                         /* Munge the input. */
                                         inbuf++;
                                         inbytes--;
-                                        *outbuf++ = INVALID_CODEPOINT;
-                                        outbytes -= sizeof(gunichar);
+                                        auto l = g_unichar_to_utf8(INVALID_CODEPOINT, (char*)outbuf);
+                                        outbuf += l;
+                                        outbytes -= l;
 					break;
+                                }
 				case EINVAL:
 					/* Incomplete. Save for later. */
-					stop = TRUE;
+					stop = true;
 					break;
 				case E2BIG:
 					/* Should never happen. */
@@ -177,21 +168,14 @@ _vte_iso2022_process(struct _vte_iso2022_state *state,
 			}
 		} while ((inbytes > 0) && !stop);
 
-                /* skip blanks -- TODOegmont: why here? */
-		j = gunichars->len;
-		g_array_set_size(gunichars, gunichars->len + outbuf-buf);
-		for (i = 0; buf + i < outbuf; i++) {
-			c = buf[i];
-			if (G_UNLIKELY (c == '\0')) {
-				/* Skip the padding character. */
-				continue;
-			}
-			g_array_index(gunichars, gunichar, j++) = c;
-		}
-		gunichars->len = j;
+                /* FIXMEchpe this code used to skip NUL bytes,
+                 * while the _vte_conv call passes NUL bytes through
+                 * specifically. What's goint on!?
+                 */
 
 		/* Done. */
-		processed = length - inbytes;
+		auto processed = length - inbytes;
+                unibuf->len = unibuf->len - outbytes;
 
 	_vte_debug_print(VTE_DEBUG_SUBSTITUTION,
                         "Consuming %ld bytes.\n", (long) processed);

@@ -89,7 +89,7 @@
 #define VTE_CELL_BBOX_SLACK		1
 #define VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH 1
 
-#define VTE_UTF8_BPC                    (6) /* Maximum number of bytes used per UTF-8 character */
+#define VTE_UTF8_BPC                    (4) /* Maximum number of bytes used per UTF-8 character */
 
 /* Keep in decreasing order of precedence. */
 #define VTE_COLOR_SOURCE_ESCAPE 0

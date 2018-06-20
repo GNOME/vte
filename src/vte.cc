@@ -3354,11 +3354,11 @@ VteTerminalPrivate::convert_incoming() noexcept
         }
 
         /* Convert the data into unicode characters. */
-        auto unichars = g_array_new(FALSE, TRUE, sizeof(gunichar));
+        auto unibuf = _vte_byte_array_new();
 
         auto processed = _vte_iso2022_process(m_iso2022,
                                               inbuf->data, inbuf->len,
-                                              unichars);
+                                              unibuf);
 
         /* If anything is left unconverted, store it for the next processing round. */
         if (processed != inbuf->len) {
@@ -3367,20 +3367,9 @@ VteTerminalPrivate::convert_incoming() noexcept
                                        inbuf->len - processed);
         }
 
-        /* Now convert UTF-32 back to UTF-8 and store it in chunks */
-
-        long outlen = 0;
-        auto utf8 = g_ucs4_to_utf8((gunichar*)unichars->data,
-                                   unichars->len,
-                                   nullptr,
-                                   &outlen,
-                                   nullptr);
-        g_array_free(unichars, true);
-
-        if (outlen > 0) {
-                g_assert_nonnull(utf8);
-
-                auto outbuf = utf8;
+        auto outlen = unibuf->len;
+        while (outlen > 0) {
+                auto outbuf = unibuf->data;
                 while (outlen > 0) {
                         m_incoming_queue.push(std::move(vte::base::Chunk::get()));
                         auto chunk = m_incoming_queue.back().get();
@@ -3393,7 +3382,6 @@ VteTerminalPrivate::convert_incoming() noexcept
 
                 g_assert_cmpuint(outlen, ==, 0);
         }
-        g_free(utf8);
 }
 
 void
