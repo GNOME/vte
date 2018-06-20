@@ -10401,8 +10401,10 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 
         m_utf8_decoder.reset();
 
-        if (m_incoming_conv != ((GIConv)-1))
-                _vte_conv_reset(m_incoming_conv);
+        if (m_incoming_conv != ((GIConv)-1)) {
+                /* Reset the converter state */
+                g_iconv(m_incoming_conv, nullptr, nullptr, nullptr, nullptr);
+        }
         _vte_byte_array_clear(m_incoming_leftover);
 
         /* Reset parser */

@@ -94,12 +94,3 @@ _vte_conv(GIConv conv,
 
 	return ret;
 }
-
-void
-_vte_conv_reset(GIConv conv)
-{
-        if (conv == (GIConv)-1)
-                return;
-
-        g_iconv( conv, nullptr, nullptr, nullptr, nullptr);
-}

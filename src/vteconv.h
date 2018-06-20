@@ -29,7 +29,6 @@ G_BEGIN_DECLS
 size_t _vte_conv(GIConv converter,
 		 char **inbuf, gsize *inbytes_left,
 		 char **outbuf, gsize *outbytes_left);
-void _vte_conv_reset(GIConv converter);
 
 G_END_DECLS
 
