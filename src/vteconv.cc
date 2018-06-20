@@ -37,8 +37,6 @@ struct _VteConv {
 	GIConv conv;
 	convert_func convert;
 	gint (*close)(GIConv converter);
-	gboolean out_unichar;
-	VteByteArray *out_scratch;
 };
 
 /* A variant of g_utf8_validate() that allows NUL characters.
@@ -134,7 +132,7 @@ _vte_conv_open(const char *target, const char *source)
 {
 	VteConv ret;
 	GIConv conv;
-	gboolean out_unichar, utf8;
+	gboolean utf8;
 	const char *real_target, *real_source;
 
 	/* No shenanigans. */
@@ -144,17 +142,8 @@ _vte_conv_open(const char *target, const char *source)
 	g_assert(strlen(source) > 0);
 
 	/* Assume normal iconv usage. */
-	out_unichar = FALSE;
 	real_source = source;
 	real_target = target;
-
-	/* Determine if we need to convert UTF-8 to gunichars on output. */
-	if (strcmp(target, VTE_CONV_GUNICHAR_TYPE) == 0) {
-		real_target = "UTF-8";
-		out_unichar = TRUE;
-	}
-
-        g_assert_false(g_str_equal(real_source, VTE_CONV_GUNICHAR_TYPE));
 
 	/* Determine if this is a UTF-8 to UTF-8 conversion. */
 	utf8 = ((g_ascii_strcasecmp(real_target, "UTF-8") == 0) &&
@@ -188,12 +177,6 @@ _vte_conv_open(const char *target, const char *source)
 		ret->close = g_iconv_close;
 	}
 
-	/* Initialize other elements. */
-	ret->out_unichar = out_unichar;
-
-	/* Create scratch buffer. */
-	ret->out_scratch = _vte_byte_array_new();
-
 	return ret;
 }
 
@@ -208,9 +191,6 @@ _vte_conv_close(VteConv converter)
 		g_assert(converter->close != NULL);
 		converter->close(converter->conv);
 	}
-
-	/* Free the scratch buffers. */
-	_vte_byte_array_free(converter->out_scratch);
 
 	/* Free the structure itself. */
 	g_slice_free(struct _VteConv, converter);
@@ -235,15 +215,6 @@ _vte_conv(VteConv converter,
 	work_outbuf_start = work_outbuf_working = *outbuf;
 	work_inbytes = *inbytes_left;
 	work_outbytes = *outbytes_left;
-
-	/* Possibly set the output pointers to point at our scratch buffer. */
-	if (converter->out_unichar) {
-		work_outbytes = *outbytes_left * VTE_UTF8_BPC;
-		_vte_byte_array_set_minimum_size(converter->out_scratch,
-					     work_outbytes);
-		work_outbuf_start = converter->out_scratch->data;
-		work_outbuf_working = work_outbuf_start;
-	}
 
 	/* Call the underlying conversion. */
 	ret = 0;
@@ -284,43 +255,15 @@ _vte_conv(VteConv converter,
 	 * never happen.  (If it does, our caller needs fixing.)  */
 	g_assert((ret != (size_t)-1) || (errno != E2BIG));
 
-	/* Possibly convert the output from UTF-8 to gunichars. */
-	if (converter->out_unichar) {
-		int  left = *outbytes_left;
-		gunichar *g;
-		gchar *p;
-
-		g = (gunichar*) *outbuf;
-		for(p = (gchar *)work_outbuf_start;
-				p < (gchar *)work_outbuf_working;
-				p = g_utf8_next_char(p)) {
-		       g_assert(left>=0);
-		       *g++ = g_utf8_get_char(p);
-		       left -= sizeof(gunichar);
-		}
-		*outbytes_left = left;
-		*outbuf = (guchar*) g;
-	} else {
-		/* Pass on the output results. */
-		*outbuf = work_outbuf_working;
-		*outbytes_left -= (work_outbuf_working - work_outbuf_start);
-	}
+        /* Pass on the output results. */
+        *outbuf = work_outbuf_working;
+        *outbytes_left -= (work_outbuf_working - work_outbuf_start);
 
         /* Pass on the input results. */
         *inbuf = work_inbuf_working;
         *inbytes_left -= (work_inbuf_working - work_inbuf_start);
 
 	return ret;
-}
-
-size_t
-_vte_conv_cu(VteConv converter,
-	     const guchar **inbuf, gsize *inbytes_left,
-	     gunichar **outbuf, gsize *outbytes_left)
-{
-	return _vte_conv(converter,
-			 inbuf, inbytes_left,
-			 (guchar**)outbuf, outbytes_left);
 }
 
 #ifdef VTECONV_MAIN
