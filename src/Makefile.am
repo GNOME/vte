@@ -201,7 +201,6 @@ check_PROGRAMS = \
 	reflect-text-view \
 	reflect-vte mev \
 	xticker \
-	vteconv \
 	vtestream-file \
 	test-vtetypes \
 	$(NULL)
@@ -218,7 +217,6 @@ TESTS = \
 	test-tabstops \
 	reaper \
 	test-vtetypes \
-	vteconv \
 	vtestream-file \
 	$(dist_check_SCRIPTS) \
 	$(NULL)
@@ -403,11 +401,6 @@ vtestream_file_CXXFLAGS = \
 	$(AM_CXXFLAGS)
 vtestream_file_LDADD = \
 	$(VTE_LIBS)
-
-vteconv_SOURCES = buffer.h debug.cc debug.h vteconv.cc vteconv.h
-vteconv_CPPFLAGS = -DVTECONV_MAIN -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
-vteconv_CXXFLAGS = $(VTE_CFLAGS) $(AM_CXXFLAGS)
-vteconv_LDADD = $(VTE_LIBS)
 
 dumpkeys_SOURCES = dumpkeys.c
 dumpkeys_CPPFLAGS = -I$(builddir) -I$(srcdir) $(AM_CPPFLAGS)
