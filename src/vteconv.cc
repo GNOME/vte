@@ -37,22 +37,9 @@ struct _VteConv {
 	GIConv conv;
 	convert_func convert;
 	gint (*close)(GIConv converter);
-	gboolean in_unichar, out_unichar;
-	VteByteArray *in_scratch, *out_scratch;
+	gboolean out_unichar;
+	VteByteArray *out_scratch;
 };
-
-/* We can't use g_utf8_strlen as that's not nul-safe :( */
-static gsize
-_vte_conv_utf8_strlen(const gchar *p, gssize max)
-{
-	const gchar *q = p + max;
-        gsize length = 0;
-        while (p < q) {
-		p = g_utf8_next_char(p);
-                length++;
-        }
-	return length;
-}
 
 /* A variant of g_utf8_validate() that allows NUL characters.
  * Requires that max_len >= 0 && end != NULL. */
@@ -147,7 +134,7 @@ _vte_conv_open(const char *target, const char *source)
 {
 	VteConv ret;
 	GIConv conv;
-	gboolean in_unichar, out_unichar, utf8;
+	gboolean out_unichar, utf8;
 	const char *real_target, *real_source;
 
 	/* No shenanigans. */
@@ -157,22 +144,17 @@ _vte_conv_open(const char *target, const char *source)
 	g_assert(strlen(source) > 0);
 
 	/* Assume normal iconv usage. */
-	in_unichar = FALSE;
 	out_unichar = FALSE;
 	real_source = source;
 	real_target = target;
 
-	/* Determine if we need to convert gunichars to UTF-8 on input. */
+	/* Determine if we need to convert UTF-8 to gunichars on output. */
 	if (strcmp(target, VTE_CONV_GUNICHAR_TYPE) == 0) {
 		real_target = "UTF-8";
 		out_unichar = TRUE;
 	}
 
-	/* Determine if we need to convert UTF-8 to gunichars on output. */
-	if (strcmp(source, VTE_CONV_GUNICHAR_TYPE) == 0) {
-		real_source = "UTF-8";
-		in_unichar = TRUE;
-	}
+        g_assert_false(g_str_equal(real_source, VTE_CONV_GUNICHAR_TYPE));
 
 	/* Determine if this is a UTF-8 to UTF-8 conversion. */
 	utf8 = ((g_ascii_strcasecmp(real_target, "UTF-8") == 0) &&
@@ -207,11 +189,9 @@ _vte_conv_open(const char *target, const char *source)
 	}
 
 	/* Initialize other elements. */
-	ret->in_unichar = in_unichar;
 	ret->out_unichar = out_unichar;
 
-	/* Create scratch buffers. */
-	ret->in_scratch = _vte_byte_array_new();
+	/* Create scratch buffer. */
 	ret->out_scratch = _vte_byte_array_new();
 
 	return ret;
@@ -230,7 +210,6 @@ _vte_conv_close(VteConv converter)
 	}
 
 	/* Free the scratch buffers. */
-	_vte_byte_array_free(converter->in_scratch);
 	_vte_byte_array_free(converter->out_scratch);
 
 	/* Free the structure itself. */
@@ -256,29 +235,6 @@ _vte_conv(VteConv converter,
 	work_outbuf_start = work_outbuf_working = *outbuf;
 	work_inbytes = *inbytes_left;
 	work_outbytes = *outbytes_left;
-
-	/* Possibly convert the input data from gunichars to UTF-8. */
-	if (converter->in_unichar) {
-		int i, char_count;
-		guchar *p, *end;
-		gunichar *g;
-		/* Make sure the scratch buffer has enough space. */
-		char_count = *inbytes_left / sizeof(gunichar);
-		_vte_byte_array_set_minimum_size(converter->in_scratch,
-					     (char_count + 1) * VTE_UTF8_BPC);
-		/* Convert the incoming text. */
-		g = (gunichar*) *inbuf;
-		p = converter->in_scratch->data;
-		end = p + (char_count + 1) * VTE_UTF8_BPC;
-		for (i = 0; i < char_count; i++) {
-			p += g_unichar_to_utf8(g[i], (gchar *)p);
-			g_assert(p <= end);
-		}
-		/* Update our working pointers. */
-		work_inbuf_start = converter->in_scratch->data;
-		work_inbuf_working = work_inbuf_start;
-		work_inbytes = p - work_inbuf_start;
-	}
 
 	/* Possibly set the output pointers to point at our scratch buffer. */
 	if (converter->out_unichar) {
@@ -350,20 +306,9 @@ _vte_conv(VteConv converter,
 		*outbytes_left -= (work_outbuf_working - work_outbuf_start);
 	}
 
-	/* Advance the input pointer to the right place. */
-	if (converter->in_unichar) {
-		/* Get an idea of how many characters were converted, and
-		 * advance the pointer as required. */
-		gsize chars;
-		chars = _vte_conv_utf8_strlen((const gchar *)work_inbuf_start,
-					      work_inbuf_working - work_inbuf_start);
-		*inbuf += (sizeof(gunichar) * chars);
-		*inbytes_left -= (sizeof(gunichar) * chars);
-	} else {
-		/* Pass on the input results. */
-		*inbuf = work_inbuf_working;
-		*inbytes_left -= (work_inbuf_working - work_inbuf_start);
-	}
+        /* Pass on the input results. */
+        *inbuf = work_inbuf_working;
+        *inbytes_left -= (work_inbuf_working - work_inbuf_start);
 
 	return ret;
 }
