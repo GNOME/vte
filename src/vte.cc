@@ -1964,11 +1964,11 @@ VteTerminalPrivate::set_encoding(char const* codeset)
                 if (m_outgoing_conv != ((GIConv)-1))
                         g_iconv_close(m_outgoing_conv);
         } else {
-                auto outconv = _vte_conv_open(codeset, "UTF-8");
+                auto outconv = g_iconv_open(codeset, "UTF-8");
                 if (outconv == ((GIConv)-1))
                         return false;
 
-                auto inconv = _vte_conv_open("UTF-8", codeset);
+                auto inconv = g_iconv_open("UTF-8", codeset);
                 if (inconv == ((GIConv)-1)) {
                         g_iconv_close(outconv);
                         return FALSE;

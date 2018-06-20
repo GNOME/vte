@@ -28,19 +28,6 @@
 #include "vteconv.h"
 #include "vtedefines.hh"
 
-GIConv
-_vte_conv_open(const char *real_target, const char *real_source)
-{
-        char *translit_target = g_strdup_printf ("%s//translit", real_target);
-        auto conv = g_iconv_open(translit_target, real_source);
-        g_free (translit_target);
-        if (conv == ((GIConv) -1)) {
-                conv = g_iconv_open(real_target, real_source);
-        }
-
-	return conv;
-}
-
 size_t
 _vte_conv(GIConv conv,
 	  char **inbuf, gsize *inbytes_left,
@@ -114,5 +101,5 @@ _vte_conv_reset(GIConv conv)
         if (conv == (GIConv)-1)
                 return;
 
-        g_iconv(conv, nullptr, nullptr, nullptr, nullptr);
+        g_iconv( conv, nullptr, nullptr, nullptr, nullptr);
 }
