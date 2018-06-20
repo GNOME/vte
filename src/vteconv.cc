@@ -325,27 +325,6 @@ _vte_conv_cu(VteConv converter,
 
 #ifdef VTECONV_MAIN
 
-static gsize
-ucs4_strlen(const gunichar *p,
-            gsize max_len)
-{
-        const gunichar *q = p + max_len;
-        gsize length = 0;
-        while (p < q && *p++ != 0)
-                length++;
-	return length;
-}
-static void
-clear(gunichar wide[5], gchar narrow[5])
-{
-	wide[0] = 'T';
-	wide[1] = 'E';
-	wide[2] = 'S';
-	wide[3] = 'T';
-	wide[4] = '\0';
-	strcpy(narrow, "test");
-}
-
 static int
 mixed_strcmp(const gunichar *wide, const guchar *narrow)
 {
@@ -357,20 +336,6 @@ mixed_strcmp(const gunichar *wide, const guchar *narrow)
 		narrow++;
 	}
 	return 0;
-}
-
-/* Test _vte_conv_utf8_strlen, especially where it differs from g_utf8_strlen. */
-static void
-test_utf8_strlen (void)
-{
-        g_assert_cmpuint(_vte_conv_utf8_strlen("", 0), ==, 0);
-	g_assert_cmpuint(_vte_conv_utf8_strlen("\0\0\0\0", 4), ==, 4);
-	g_assert_cmpuint(_vte_conv_utf8_strlen("\0A\0\0", 4), ==, 4);
-	g_assert_cmpuint(_vte_conv_utf8_strlen("\0A\0B", 4), ==, 4);
-	g_assert_cmpuint(_vte_conv_utf8_strlen("A\0B\0", 4), ==, 4);
-        g_assert_cmpuint(_vte_conv_utf8_strlen("ABCD", 4), ==, 4);
-	g_assert_cmpuint(_vte_conv_utf8_strlen("ABCDE", 4), ==, 4);
-        g_assert_cmpuint(_vte_conv_utf8_strlen("\xC2\xA0\xC2\xA0", 4), ==, 2);
 }
 
 static void
@@ -490,33 +455,6 @@ test_narrow_to_wide (const TestData *tests,
 }
 
 static void
-test_wide_to_narrow (const TestData *tests,
-                     gsize n_tests)
-{
-        char buf[10];
-	VteConv conv;
-	const guchar *inbuf;
-	guchar *outbuf;
-	gsize inbytes, outbytes, ret;
-        gsize i;
-
-        for (i = 0; i < n_tests; i++) {
-                memset(buf, 0, sizeof(buf));
-                inbuf = (const guchar *)tests[i].wide;
-                inbytes = tests[i].widelen >= 0 ? tests[i].widelen
-                        : ucs4_strlen(tests[i].wide, sizeof(tests[i].wide)) * sizeof(gunichar);
-                outbuf = (guchar *)buf;
-                outbytes = sizeof(buf);
-                conv = _vte_conv_open(tests[i].target, VTE_CONV_GUNICHAR_TYPE);
-                ret = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
-                g_assert_cmpuint(ret, ==, 0);
-                g_assert_cmpuint(inbytes, ==, 0);
-                g_assert_cmpint(mixed_strcmp(tests[i].wide, outbuf), ==, 0);
-                _vte_conv_close(conv);
-        }
-}
-
-static void
 test_g_iconv_narrow_narrow (void)
 {
         static const TestData tests[] = {
@@ -538,16 +476,6 @@ test_g_iconv_narrow_to_wide (void)
 }
 
 static void
-test_g_iconv_wide_to_narrow (void)
-{
-        static const TestData tests[] = {
-                { { 'T', 'E', 'S', 'T', 0 }, -1, "", -1, "ISO-8859-1", VTE_CONV_GUNICHAR_TYPE },
-        };
-
-        test_wide_to_narrow (tests, G_N_ELEMENTS(tests));
-}
-
-static void
 test_utf8_to_utf8 (void)
 {
         static const TestData tests[] = {
@@ -555,71 +483,6 @@ test_utf8_to_utf8 (void)
         };
 
         test_narrow_narrow (tests, G_N_ELEMENTS (tests));
-}
-
-static void
-test_zero_byte_passthrough (void)
-{
-	gunichar wide_test[5];
-	gchar narrow_test[5];
-	VteConv conv;
-	const guchar *inbuf;
-	guchar *outbuf;
-	gsize inbytes, outbytes;
-        int i;
-
-	/* Test zero-byte pass-through. */
-	clear(wide_test, narrow_test);
-	memset(wide_test, 0, sizeof(wide_test));
-	inbuf = (guchar *)wide_test;
-	inbytes = 3 * sizeof(gunichar);
-	outbuf = (guchar *)narrow_test;
-	outbytes = sizeof(narrow_test);
-	conv = _vte_conv_open("UTF-8", VTE_CONV_GUNICHAR_TYPE);
-	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
-	g_assert(inbytes == 0);
-	if ((narrow_test[0] != 0) ||
-	    (narrow_test[1] != 0) ||
-	    (narrow_test[2] != 0)) {
-		g_error("Conversion 6 failed.\n");
-	}
-	_vte_conv_close(conv);
-
-	/* Test zero-byte pass-through. */
-	clear(wide_test, narrow_test);
-	memset(wide_test, 'A', sizeof(wide_test));
-	memset(narrow_test, 0, sizeof(narrow_test));
-	inbuf = (guchar *)narrow_test;
-	inbytes = 3;
-	outbuf = (guchar *)wide_test;
-	outbytes = sizeof(wide_test);
-	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "UTF-8");
-	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
-	g_assert(inbytes == 0);
-	if ((wide_test[0] != 0) ||
-	    (wide_test[1] != 0) ||
-	    (wide_test[2] != 0)) {
-		g_error("Conversion 7 failed.\n");
-	}
-	_vte_conv_close(conv);
-
-	/* Test zero-byte pass-through. */
-	clear(wide_test, narrow_test);
-	memset(wide_test, 'A', sizeof(wide_test));
-	memset(narrow_test, 0, sizeof(narrow_test));
-	inbuf = (guchar *)narrow_test;
-	inbytes = 3;
-	outbuf = (guchar *)wide_test;
-	outbytes = sizeof(wide_test);
-	conv = _vte_conv_open(VTE_CONV_GUNICHAR_TYPE, "ISO-8859-1");
-	i = _vte_conv(conv, &inbuf, &inbytes, &outbuf, &outbytes);
-	g_assert(inbytes == 0);
-	if ((wide_test[0] != 0) ||
-	    (wide_test[1] != 0) ||
-	    (wide_test[2] != 0)) {
-		g_error("Conversion 8 failed.\n");
-	}
-	_vte_conv_close(conv);
 }
 
 static void
@@ -698,15 +561,12 @@ main (int argc,
 {
         g_test_init (&argc, &argv, nullptr);
 
-        g_test_add_func ("/vte/conv/utf8/strlen", test_utf8_strlen);
         g_test_add_func ("/vte/conv/utf8/validate", test_utf8_validate);
         g_test_add_func ("/vte/conv/utf8/get-char", test_utf8_get_char_validated);
         g_test_add_func ("/vte/conv/utf8/conversion", test_utf8_to_utf8);
         g_test_add_func ("/vte/conv/utf8/conversion-with-error", test_utf8_to_utf8_error);
         g_test_add_func ("/vte/conv/narrow-narrow", test_g_iconv_narrow_narrow);
         g_test_add_func ("/vte/conv/narrow-to-wide", test_g_iconv_narrow_to_wide);
-        g_test_add_func ("/vte/conv/wide-to-narrow", test_g_iconv_wide_to_narrow);
-        g_test_add_func ("/vte/conv/zero-byte-passthrough", test_zero_byte_passthrough);
 
 	return g_test_run ();
 }
