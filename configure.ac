@@ -322,6 +322,20 @@ PKG_CHECK_MODULES([APP],[
   gdk-pixbuf-2.0
   gtk+-$GTK_API_VERSION >= $GTK_REQUIRED])
 
+########################
+# Legacy Charset Support
+########################
+
+AC_MSG_CHECKING([whether to enable legacy charset support using iconv])
+AC_ARG_WITH([iconv],
+              [AS_HELP_STRING([--without-iconv],
+                              [Disable legacy charset support using iconv])],
+              [],[with_iconv=yes])
+AC_MSG_RESULT([$with_iconv])
+if test "$with_iconv" = "yes"; then
+        AC_DEFINE([WITH_ICONV],[1],[Enable legacy charset support using iconv])
+fi
+
 ################################################################################
 # Glade catalogue
 ################################################################################
@@ -460,6 +474,7 @@ cat <<EOF | tee -a config.log
 
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	GnuTLS: $with_gnutls
+	IConv: $with_iconv
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug
 	Introspection: $enable_introspection

@@ -365,8 +365,6 @@ public:
         bool m_using_utf8{true};
         const char *m_encoding;            /* the pty's encoding */
         int m_utf8_ambiguous_width;
-        GIConv m_incoming_conv{GIConv(-1)};
-        VteByteArray* m_incoming_leftover;
         gunichar m_last_graphic_character; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
@@ -383,10 +381,16 @@ public:
 
 	/* Output data queue. */
         VteByteArray *m_outgoing; /* pending input characters */
-        GIConv m_outgoing_conv{GIConv(-1)};
 
-	/* IConv buffer. */
+#ifdef WITH_ICONV
+        /* Legacy charset support */
+        GIConv m_incoming_conv{GIConv(-1)};
+        VteByteArray* m_incoming_leftover;
+        GIConv m_outgoing_conv{GIConv(-1)};
         VteByteArray *m_conv_buffer;
+
+        void convert_incoming() noexcept;
+#endif
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
@@ -679,7 +683,6 @@ public:
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
-        void convert_incoming() noexcept;
         void time_process_incoming();
         void process_incoming();
         bool process(bool emit_adj_changed);

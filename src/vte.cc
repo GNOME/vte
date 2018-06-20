@@ -1951,6 +1951,7 @@ VteTerminalPrivate::maybe_scroll_to_bottom()
 bool
 VteTerminalPrivate::set_encoding(char const* codeset)
 {
+#ifdef WITH_ICONV
 	if (codeset == nullptr) {
                 codeset = "UTF-8";
 	}
@@ -2034,6 +2035,9 @@ VteTerminalPrivate::set_encoding(char const* codeset)
         g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
 
         return true;
+#else
+        return false;
+#endif
 }
 
 bool
@@ -3338,6 +3342,8 @@ VteTerminalPrivate::im_reset()
         }
 }
 
+#ifdef WITH_ICONV
+
 static size_t
 _vte_conv(GIConv conv,
 	  char **inbuf, gsize *inbytes_left,
@@ -3499,6 +3505,8 @@ VteTerminalPrivate::convert_incoming() noexcept
         }
 }
 
+#endif /* WITH_ICONV */
+
 void
 VteTerminalPrivate::process_incoming()
 {
@@ -3535,11 +3543,13 @@ VteTerminalPrivate::process_incoming()
 	/* We should only be called when there's data to process. */
 	g_assert(!m_incoming_queue.empty());
 
+#ifdef WITH_ICONV
         /* If we're using a legacy encoding for I/O, we need to
          * convert the input to UTF-8 now.
          */
         if (G_UNLIKELY(!m_using_utf8))
                 convert_incoming();
+#endif
 
 	modified = FALSE;
 	invalidated_text = FALSE;
@@ -4089,9 +4099,12 @@ VteTerminalPrivate::send_child(char const* data,
         if (length == -1)
                 length = strlen(data);
 
+#ifdef WITH_ICONV
         if (m_using_utf8) {
+#endif /* WITH_ICONV */
                 cooked = (char*)data;
                 cooked_length = length;
+#ifdef WITH_ICONV
         } else {
                 if (m_outgoing_conv == ((GIConv)-1))
                         return;
@@ -4114,6 +4127,7 @@ VteTerminalPrivate::send_child(char const* data,
                 cooked = (gchar *)obufptr;
                 cooked_length = obuf - obufptr;
         }
+#endif /* WITH_ICONV */
 
         /* Tell observers that we're sending this to the child. */
         if (cooked_length > 0) {
@@ -8053,13 +8067,16 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	/* Set up I/O encodings. */
         g_assert_true(m_using_utf8);
         m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
-        m_incoming_leftover = _vte_byte_array_new();
 	m_max_input_bytes = VTE_MAX_INPUT_READ;
 	m_cursor_blink_tag = 0;
         m_text_blink_tag = 0;
 	m_outgoing = _vte_byte_array_new();
-	m_conv_buffer = _vte_byte_array_new();
         m_last_graphic_character = 0;
+
+#ifdef WITH_ICONV
+        m_incoming_leftover = _vte_byte_array_new();
+	m_conv_buffer = _vte_byte_array_new();
+#endif
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
@@ -8497,6 +8514,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		}
 	}
 
+#ifdef WITH_ICONV
 	/* Free conversion descriptors. */
 	if (m_incoming_conv != ((GIConv)-1)) {
 		g_iconv_close(m_incoming_conv);
@@ -8504,6 +8522,10 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	if (m_outgoing_conv != ((GIConv)-1)) {
 		g_iconv_close(m_outgoing_conv);
 	}
+
+	_vte_byte_array_free(m_conv_buffer);
+        _vte_byte_array_free(m_incoming_leftover);
+#endif
 
         /* Stop listening for child-exited signals. */
         if (m_reaper) {
@@ -8518,8 +8540,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
 
 	/* Discard any pending data. */
 	_vte_byte_array_free(m_outgoing);
-	_vte_byte_array_free(m_conv_buffer);
-        _vte_byte_array_free(m_incoming_leftover);
 
 	/* Stop the child and stop watching for input from the child. */
 	if (m_pty_pid != -1) {
@@ -10467,11 +10487,13 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 
         m_utf8_decoder.reset();
 
+#ifdef WITH_ICONV
         if (m_incoming_conv != ((GIConv)-1)) {
                 /* Reset the converter state */
                 g_iconv(m_incoming_conv, nullptr, nullptr, nullptr, nullptr);
         }
         _vte_byte_array_clear(m_incoming_leftover);
+#endif
 
         /* Reset parser */
         m_parser.reset();
