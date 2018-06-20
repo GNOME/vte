@@ -28,54 +28,21 @@
 #include "vteconv.h"
 #include "vtedefines.hh"
 
-struct _VteConv {
-	GIConv conv;
-};
-
-VteConv
+GIConv
 _vte_conv_open(const char *real_target, const char *real_source)
 {
-	VteConv ret;
-	GIConv conv;
-
-	conv = NULL;
         char *translit_target = g_strdup_printf ("%s//translit", real_target);
-        conv = g_iconv_open(translit_target, real_source);
+        auto conv = g_iconv_open(translit_target, real_source);
         g_free (translit_target);
         if (conv == ((GIConv) -1)) {
                 conv = g_iconv_open(real_target, real_source);
         }
-        if (conv == ((GIConv) -1)) {
-                return VTE_INVALID_CONV;
-        }
 
-	/* Set up the descriptor. */
-	ret = g_slice_new0(struct _VteConv);
-        g_assert((conv != NULL) && (conv != ((GIConv) -1)));
-        ret->conv = conv;
-
-	return ret;
-}
-
-gint
-_vte_conv_close(VteConv converter)
-{
-	g_assert(converter != NULL);
-	g_assert(converter != VTE_INVALID_CONV);
-
-	/* Close the underlying descriptor, if there is one. */
-	if (converter->conv != (GIConv)-1) {
-		g_iconv_close(converter->conv);
-	}
-
-	/* Free the structure itself. */
-	g_slice_free(struct _VteConv, converter);
-
-	return 0;
+	return conv;
 }
 
 size_t
-_vte_conv(VteConv converter,
+_vte_conv(GIConv conv,
 	  char **inbuf, gsize *inbytes_left,
 	  gchar **outbuf, gsize *outbytes_left)
 {
@@ -84,8 +51,7 @@ _vte_conv(VteConv converter,
 	gchar *work_outbuf_start, *work_outbuf_working;
 	gsize work_inbytes, work_outbytes;
 
-	g_assert(converter != NULL);
-	g_assert(converter != VTE_INVALID_CONV);
+	g_assert(conv != (GIConv) -1);
 
 	work_inbuf_start = work_inbuf_working = *inbuf;
 	work_outbuf_start = work_outbuf_working = *outbuf;
@@ -95,7 +61,7 @@ _vte_conv(VteConv converter,
 	/* Call the underlying conversion. */
 	ret = 0;
 	do {
-		tmp = g_iconv(converter->conv,
+		tmp = g_iconv(conv,
 					 &work_inbuf_working,
 					 &work_inbytes,
 					 &work_outbuf_working,
@@ -143,11 +109,10 @@ _vte_conv(VteConv converter,
 }
 
 void
-_vte_conv_reset(VteConv converter)
+_vte_conv_reset(GIConv conv)
 {
-	g_assert(converter != VTE_INVALID_CONV);
-        if (converter->conv == (GIConv)-1)
+        if (conv == (GIConv)-1)
                 return;
 
-        g_iconv(converter->conv, nullptr, nullptr, nullptr, nullptr);
+        g_iconv(conv, nullptr, nullptr, nullptr, nullptr);
 }

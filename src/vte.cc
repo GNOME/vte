@@ -1959,28 +1959,28 @@ VteTerminalPrivate::set_encoding(char const* codeset)
         bool const using_utf8 = g_str_equal(codeset, "UTF-8");
 
         if (using_utf8) {
-                if (m_incoming_conv != VTE_INVALID_CONV)
-                        _vte_conv_close(m_incoming_conv);
-                if (m_outgoing_conv != VTE_INVALID_CONV)
-                        _vte_conv_close(m_outgoing_conv);
+                if (m_incoming_conv != ((GIConv)-1))
+                        g_iconv_close(m_incoming_conv);
+                if (m_outgoing_conv != ((GIConv)-1))
+                        g_iconv_close(m_outgoing_conv);
         } else {
                 auto outconv = _vte_conv_open(codeset, "UTF-8");
-                if (outconv == VTE_INVALID_CONV)
+                if (outconv == ((GIConv)-1))
                         return false;
 
                 auto inconv = _vte_conv_open("UTF-8", codeset);
-                if (inconv == VTE_INVALID_CONV) {
-                        _vte_conv_close(outconv);
+                if (inconv == ((GIConv)-1)) {
+                        g_iconv_close(outconv);
                         return FALSE;
                 }
 
-                if (m_outgoing_conv != VTE_INVALID_CONV) {
-                        _vte_conv_close(m_outgoing_conv);
+                if (m_outgoing_conv != ((GIConv)-1)) {
+                        g_iconv_close(m_outgoing_conv);
                 }
                 m_outgoing_conv = outconv; /* adopted */
 
-                if (m_incoming_conv != VTE_INVALID_CONV) {
-                        _vte_conv_close(m_incoming_conv);
+                if (m_incoming_conv != ((GIConv)-1)) {
+                        g_iconv_close(m_incoming_conv);
                 }
                 m_incoming_conv = inconv; /* adopted */
 
@@ -4027,7 +4027,7 @@ VteTerminalPrivate::send_child(char const* data,
                 cooked = (char*)data;
                 cooked_length = length;
         } else {
-                if (m_outgoing_conv == VTE_INVALID_CONV)
+                if (m_outgoing_conv == ((GIConv)-1))
                         return;
 
                 gsize icount;
@@ -8432,11 +8432,11 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	}
 
 	/* Free conversion descriptors. */
-	if (m_incoming_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(m_incoming_conv);
+	if (m_incoming_conv != ((GIConv)-1)) {
+		g_iconv_close(m_incoming_conv);
 	}
-	if (m_outgoing_conv != VTE_INVALID_CONV) {
-		_vte_conv_close(m_outgoing_conv);
+	if (m_outgoing_conv != ((GIConv)-1)) {
+		g_iconv_close(m_outgoing_conv);
 	}
 
         /* Stop listening for child-exited signals. */
@@ -10401,7 +10401,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 
         m_utf8_decoder.reset();
 
-        if (m_incoming_conv != VTE_INVALID_CONV)
+        if (m_incoming_conv != ((GIConv)-1))
                 _vte_conv_reset(m_incoming_conv);
         _vte_byte_array_clear(m_incoming_leftover);
 

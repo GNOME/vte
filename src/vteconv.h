@@ -26,17 +26,11 @@
 
 G_BEGIN_DECLS
 
-#define VTE_INVALID_CONV ((VteConv)-1)
-
-struct _VteConv;
-typedef struct _VteConv *VteConv;
-
-VteConv _vte_conv_open(const char *target, const char *source);
-size_t _vte_conv(VteConv converter,
+GIConv _vte_conv_open(const char *target, const char *source);
+size_t _vte_conv(GIConv converter,
 		 char **inbuf, gsize *inbytes_left,
 		 char **outbuf, gsize *outbytes_left);
-void _vte_conv_reset(VteConv converter);
-gint _vte_conv_close(VteConv converter);
+void _vte_conv_reset(GIConv converter);
 
 G_END_DECLS
 

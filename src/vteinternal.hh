@@ -366,7 +366,7 @@ public:
         bool m_using_utf8{true};
         const char *m_encoding;            /* the pty's encoding */
         int m_utf8_ambiguous_width;
-        VteConv m_incoming_conv{VTE_INVALID_CONV};
+        GIConv m_incoming_conv{GIConv(-1)};
         VteByteArray* m_incoming_leftover;
         gunichar m_last_graphic_character; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
@@ -384,7 +384,7 @@ public:
 
 	/* Output data queue. */
         VteByteArray *m_outgoing; /* pending input characters */
-        VteConv m_outgoing_conv{VTE_INVALID_CONV};
+        GIConv m_outgoing_conv{GIConv(-1)};
 
 	/* IConv buffer. */
         VteByteArray *m_conv_buffer;
