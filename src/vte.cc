@@ -1965,6 +1965,8 @@ VteTerminalPrivate::set_encoding(char const* codeset)
 		return true;
 	}
 
+        m_using_utf8 = g_str_equal(codeset, "UTF-8");
+
 	/* Open new conversions. */
 	conv = _vte_conv_open(codeset, "UTF-8");
 	if (conv == VTE_INVALID_CONV)
@@ -3335,6 +3337,66 @@ VteTerminalPrivate::im_reset()
 }
 
 void
+VteTerminalPrivate::convert_incoming() noexcept
+{
+        /* This is for legacy applications, so efficiency is not
+         * of any concern. Flatten the chunks into one big buffer,
+         * process that, and put the resulting UTF-8 back into
+         * chunks.
+         */
+        auto inbuf = _vte_byte_array_new();
+        _vte_byte_array_append(inbuf, m_incoming_leftover->data, m_incoming_leftover->len);
+        _vte_byte_array_clear(m_incoming_leftover);
+        while (!m_incoming_queue.empty()) {
+                auto chunk = m_incoming_queue.front().get();
+                _vte_byte_array_append(inbuf, chunk->data, chunk->len);
+                m_incoming_queue.pop();
+        }
+
+        /* Convert the data into unicode characters. */
+        auto unichars = g_array_new(FALSE, TRUE, sizeof(gunichar));
+
+        auto processed = _vte_iso2022_process(m_iso2022,
+                                              inbuf->data, inbuf->len,
+                                              unichars);
+
+        /* If anything is left unconverted, store it for the next processing round. */
+        if (processed != inbuf->len) {
+                _vte_byte_array_append(m_incoming_leftover,
+                                       inbuf->data + processed,
+                                       inbuf->len - processed);
+        }
+
+        /* Now convert UTF-32 back to UTF-8 and store it in chunks */
+
+        long outlen = 0;
+        auto utf8 = g_ucs4_to_utf8((gunichar*)unichars->data,
+                                   unichars->len,
+                                   nullptr,
+                                   &outlen,
+                                   nullptr);
+        g_array_free(unichars, true);
+
+        if (outlen > 0) {
+                g_assert_nonnull(utf8);
+
+                auto outbuf = utf8;
+                while (outlen > 0) {
+                        m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                        auto chunk = m_incoming_queue.back().get();
+                        auto len = std::min(size_t(outlen), chunk->capacity());
+                        memcpy(chunk->data, outbuf, len);
+                        chunk->len = len;
+                        outbuf += len;
+                        outlen -= len;
+                }
+
+                g_assert_cmpuint(outlen, ==, 0);
+        }
+        g_free(utf8);
+}
+
+void
 VteTerminalPrivate::process_incoming()
 {
 	VteVisualPosition saved_cursor;
@@ -3369,6 +3431,12 @@ VteTerminalPrivate::process_incoming()
 
 	/* We should only be called when there's data to process. */
 	g_assert(!m_incoming_queue.empty());
+
+        /* If we're using a legacy encoding for I/O, we need to
+         * convert the input to UTF-8 now.
+         */
+        if (G_UNLIKELY(!m_using_utf8))
+                convert_incoming();
 
 	modified = FALSE;
 	invalidated_text = FALSE;
@@ -3683,7 +3751,8 @@ VteTerminalPrivate::pty_io_read(GIOChannel *channel,
 
 		do {
                         /* No chunk, or chunk at least ¾ full? Get a new chunk */
-			if (!chunk || chunk->len >= 3 * chunk->capacity() / 4) {
+			if (!chunk ||
+                            chunk->len >= 3 * chunk->capacity() / 4) {
                                 m_incoming_queue.push(std::move(vte::base::Chunk::get()));
 
                                 chunk = m_incoming_queue.back().get();
@@ -7871,6 +7940,7 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	/* Set up I/O encodings. */
         m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
         m_iso2022 = _vte_iso2022_state_new(m_encoding);
+        m_incoming_leftover = _vte_byte_array_new();
 	m_max_input_bytes = VTE_MAX_INPUT_READ;
 	m_cursor_blink_tag = 0;
         m_text_blink_tag = 0;
@@ -8265,6 +8335,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 
 	/* The NLS maps. */
 	_vte_iso2022_state_free(m_iso2022);
+        _vte_byte_array_free(m_incoming_leftover);
 
 	/* Free the font description. */
         if (m_unscaled_font_desc != NULL) {
@@ -10291,6 +10362,7 @@ VteTerminalPrivate::reset(bool clear_tabstops,
         m_iso2022 = _vte_iso2022_state_new(nullptr);
 	_vte_iso2022_state_set_codeset(m_iso2022,
 				       m_encoding);
+        _vte_byte_array_clear(m_incoming_leftover);
 
         /* Reset parser */
         m_parser.reset();

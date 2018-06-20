@@ -363,10 +363,11 @@ public:
         std::queue<vte::base::Chunk::unique_type, std::list<vte::base::Chunk::unique_type>> m_incoming_queue;
 
         vte::base::UTF8Decoder m_utf8_decoder;
-
+        bool m_using_utf8{true};
         const char *m_encoding;            /* the pty's encoding */
         int m_utf8_ambiguous_width;
         struct _vte_iso2022_state *m_iso2022;
+        VteByteArray* m_incoming_leftover;
         gunichar m_last_graphic_character; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
@@ -679,6 +680,7 @@ public:
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
+        void convert_incoming() noexcept;
         void time_process_incoming();
         void process_incoming();
         bool process(bool emit_adj_changed);
