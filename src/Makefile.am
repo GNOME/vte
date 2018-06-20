@@ -254,8 +254,6 @@ parser_cat_SOURCES = \
 	caps.hh \
 	debug.cc \
 	debug.h \
-	iso2022.cc \
-	iso2022.h \
 	parser.cc \
 	parser.hh \
 	parser-arg.hh \
@@ -273,8 +271,6 @@ parser_cat_SOURCES = \
 	parser-cat.cc \
 	utf8.cc \
 	utf8.hh \
-	vteconv.cc \
-	vteconv.h \
 	$(NULL)
 parser_cat_CPPFLAGS = \
 	-I$(builddir) \

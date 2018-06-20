@@ -30,7 +30,6 @@
 #include <cstdlib>
 
 #include "debug.h"
-#include "iso2022.h"
 #include "parser.hh"
 #include "utf8.hh"
 
@@ -305,83 +304,6 @@ static gsize cmd_stats[VTE_CMD_N];
 static GArray* bench_times;
 
 static void
-process_file_with_charset(int fd,
-                          char const* charset,
-                          bool codepoints,
-                          bool plain,
-                          bool quiet)
-{
-        struct vte_parser parser;
-        vte_parser_init(&parser);
-
-        auto subst = _vte_iso2022_state_new(charset);
-
-        gsize const buf_size = 16384;
-        guchar* buf = g_new0(guchar, buf_size);
-        auto unichars = g_array_new(FALSE, FALSE, sizeof(gunichar));
-        auto outbuf = g_string_sized_new(buf_size);
-
-        auto start_time = g_get_monotonic_time();
-
-        gsize buf_start = 0;
-        for (;;) {
-                auto len = read(fd, buf + buf_start, buf_size - buf_start);
-                if (!len)
-                        break;
-                if (len == -1) {
-                        if (errno == EAGAIN)
-                                continue;
-                        break;
-                }
-
-                g_array_set_size(unichars, 0);
-                auto plen = _vte_iso2022_process(subst, buf, len, unichars);
-                if ((gsize)plen != (gsize)len) {
-                        /* Save it for next round */
-                        memmove(buf, buf + plen, len - plen);
-                        buf_start = len - plen;
-                } else
-                        buf_start = 0;
-
-                auto wbuf = &g_array_index(unichars, gunichar, 0);
-                gsize wcount = unichars->len;
-
-                struct vte_seq *seq = &parser.seq;
-                for (gsize i = 0; i < wcount; i++) {
-                        auto ret = vte_parser_feed(&parser,
-                                                   wbuf[i]);
-                        if (G_UNLIKELY(ret < 0)) {
-                                g_printerr("Parser error!\n");
-                                goto out;
-                        }
-
-                        seq_stats[ret]++;
-                        if (ret != VTE_SEQ_NONE) {
-                                cmd_stats[seq->command]++;
-                                if (!quiet) {
-                                        print_seq(outbuf, seq, codepoints, plain);
-                                        if (seq->command == VTE_CMD_LF)
-                                                printout(outbuf);
-                                }
-                        }
-                }
-        }
-
- out:
-        if (!quiet)
-                printout(outbuf);
-
-        int64_t time_spent = g_get_monotonic_time() - start_time;
-        g_array_append_val(bench_times, time_spent);
-
-        g_string_free(outbuf, TRUE);
-        g_array_free(unichars, TRUE);
-        g_free(buf);
-        vte_parser_deinit(&parser);
-        _vte_iso2022_state_free(subst);
-}
-
-static void
 process_file_utf8(int fd,
                   bool codepoints,
                   bool plain,
@@ -457,7 +379,6 @@ process_file_utf8(int fd,
 
 static bool
 process_file(int fd,
-             char const* charset,
              bool codepoints,
              bool plain,
              bool quiet,
@@ -474,10 +395,7 @@ process_file(int fd,
                         return false;
                 }
 
-                if (charset != nullptr)
-                        process_file_with_charset(fd, charset, codepoints, plain, quiet);
-                else
-                        process_file_utf8(fd, codepoints, plain, quiet);
+                process_file_utf8(fd, codepoints, plain, quiet);
         }
 
         return true;
@@ -493,13 +411,10 @@ main(int argc,
         gboolean quiet = false;
         gboolean statistics = false;
         int repeat = 1;
-        char* charset = nullptr;
         char** filenames = nullptr;
         GOptionEntry const entries[] = {
                 { "benchmark", 'b', 0, G_OPTION_ARG_NONE, &benchmark,
                   "Measure time spent parsing each file", nullptr },
-                { "charset", 'c', 0, G_OPTION_ARG_STRING, &charset,
-                  "Charset to use (default: UTF-8)", "CHARSET" },
                 { "codepoints", 'u', 0, G_OPTION_ARG_NONE, &codepoints,
                   "Output unicode code points by number", nullptr },
                 { "plain", 'p', 0, G_OPTION_ARG_NONE, &plain,
@@ -552,7 +467,7 @@ main(int argc,
                                 }
                         }
                         if (fd != -1) {
-                                bool r = process_file(fd, charset, codepoints, plain, quiet, repeat);
+                                bool r = process_file(fd, codepoints, plain, quiet, repeat);
                                 close(fd);
                                 if (!r)
                                         break;
@@ -562,11 +477,9 @@ main(int argc,
                 g_strfreev(filenames);
                 exit_status = EXIT_SUCCESS;
         } else {
-                if (process_file(STDIN_FILENO, charset, codepoints, plain, quiet, repeat))
+                if (process_file(STDIN_FILENO, codepoints, plain, quiet, repeat))
                         exit_status = EXIT_SUCCESS;
         }
-
-        g_free(charset);
 
         if (statistics) {
                 for (unsigned int s = VTE_SEQ_NONE + 1; s < VTE_SEQ_N; s++) {
