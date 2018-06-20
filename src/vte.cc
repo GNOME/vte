@@ -59,7 +59,6 @@
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 #include <pango/pango.h>
-#include "iso2022.h"
 #include "keymap.h"
 #include "marshal.h"
 #include "vteaccess.h"
@@ -1959,19 +1958,34 @@ VteTerminalPrivate::set_encoding(char const* codeset)
 
         bool const using_utf8 = g_str_equal(codeset, "UTF-8");
 
-        if (!using_utf8) {
-                auto conv = _vte_conv_open(codeset, "UTF-8");
-                if (conv == VTE_INVALID_CONV)
+        if (using_utf8) {
+                if (m_incoming_conv != VTE_INVALID_CONV)
+                        _vte_conv_close(m_incoming_conv);
+                if (m_outgoing_conv != VTE_INVALID_CONV)
+                        _vte_conv_close(m_outgoing_conv);
+        } else {
+                auto outconv = _vte_conv_open(codeset, "UTF-8");
+                if (outconv == VTE_INVALID_CONV)
                         return false;
 
-                auto old_codeset = m_encoding ? m_encoding : "UTF-8";
+                auto inconv = _vte_conv_open("UTF-8", codeset);
+                if (inconv == VTE_INVALID_CONV) {
+                        _vte_conv_close(outconv);
+                        return FALSE;
+                }
 
                 if (m_outgoing_conv != VTE_INVALID_CONV) {
                         _vte_conv_close(m_outgoing_conv);
                 }
-                m_outgoing_conv = conv; /* adopted */
+                m_outgoing_conv = outconv; /* adopted */
+
+                if (m_incoming_conv != VTE_INVALID_CONV) {
+                        _vte_conv_close(m_incoming_conv);
+                }
+                m_incoming_conv = inconv; /* adopted */
 
                 /* Set the terminal's encoding to the new value. */
+                auto old_codeset = m_encoding ? m_encoding : "UTF-8";
                 m_encoding = g_intern_string(codeset);
 
                 /* Convert any buffered output bytes. */
@@ -2006,10 +2020,6 @@ VteTerminalPrivate::set_encoding(char const* codeset)
                                 g_free(obuf1);
                         }
                 }
-
-                /* Set the encoding for incoming text. */
-                _vte_iso2022_state_set_codeset(m_iso2022,
-                                               m_encoding);
         }
 
         m_using_utf8 = using_utf8;
@@ -3337,32 +3347,78 @@ VteTerminalPrivate::convert_incoming() noexcept
          * process that, and put the resulting UTF-8 back into
          * chunks.
          */
-        auto inbuf = _vte_byte_array_new();
-        _vte_byte_array_append(inbuf, m_incoming_leftover->data, m_incoming_leftover->len);
+        auto buf = _vte_byte_array_new();
+        _vte_byte_array_append(buf, m_incoming_leftover->data, m_incoming_leftover->len);
         _vte_byte_array_clear(m_incoming_leftover);
         while (!m_incoming_queue.empty()) {
                 auto chunk = m_incoming_queue.front().get();
-                _vte_byte_array_append(inbuf, chunk->data, chunk->len);
+                _vte_byte_array_append(buf, chunk->data, chunk->len);
                 m_incoming_queue.pop();
         }
 
-        /* Convert the data into unicode characters. */
-        auto unibuf = _vte_byte_array_new();
+        /* Convert the data to UTF-8 */
+        auto inbuf = (char*)buf->data;
+        size_t inbytes = buf->len;
 
-        auto processed = _vte_iso2022_process(m_iso2022,
-                                              inbuf->data, inbuf->len,
-                                              unibuf);
+        auto unibuf = _vte_byte_array_new();
+        _vte_byte_array_set_minimum_size(unibuf, VTE_UTF8_BPC * inbytes);
+        auto outbuf = (char*)unibuf->data;
+        size_t outbytes = unibuf->len;
+
+        bool stop = false;
+        do {
+                auto converted = _vte_conv(m_incoming_conv,
+                                           &inbuf, &inbytes,
+                                           &outbuf, &outbytes);
+                switch (converted) {
+                case ((gsize)-1):
+                        switch (errno) {
+                        case EILSEQ: {
+                                /* Munge the input. */
+                                inbuf++;
+                                inbytes--;
+                                auto l = g_unichar_to_utf8(0xfffdU, (char*)outbuf);
+                                outbuf += l;
+                                outbytes -= l;
+                                break;
+                        }
+                        case EINVAL:
+                                /* Incomplete. Save for later. */
+                                stop = true;
+                                break;
+                        case E2BIG:
+                                /* Should never happen. */
+                                g_assert_not_reached();
+                                break;
+                        default:
+                                /* Should never happen. */
+                                g_assert_not_reached();
+                                break;
+                        }
+                default:
+                        break;
+                }
+        } while ((inbytes > 0) && !stop);
+
+        /* FIXMEchpe this code used to skip NUL bytes,
+         * while the _vte_conv call passes NUL bytes through
+         * specifically. What's goint on!?
+         */
+
+        /* Done. */
+        auto processed = buf->len - inbytes;
+        unibuf->len = unibuf->len - outbytes;
 
         /* If anything is left unconverted, store it for the next processing round. */
-        if (processed != inbuf->len) {
+        if (processed != buf->len) {
                 _vte_byte_array_append(m_incoming_leftover,
-                                       inbuf->data + processed,
-                                       inbuf->len - processed);
+                                       buf->data + processed,
+                                       buf->len - processed);
         }
 
         auto outlen = unibuf->len;
         while (outlen > 0) {
-                auto outbuf = unibuf->data;
+                outbuf = (char*)unibuf->data;
                 while (outlen > 0) {
                         m_incoming_queue.push(std::move(vte::base::Chunk::get()));
                         auto chunk = m_incoming_queue.back().get();
@@ -3976,11 +4032,11 @@ VteTerminalPrivate::send_child(char const* data,
 
                 gsize icount;
                 icount = length;
-                const guchar *ibuf = (const guchar *)data;
+                auto ibuf = (char*)data;
                 gsize ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
                 _vte_byte_array_set_minimum_size(m_conv_buffer, ocount);
-                guchar *obuf, *obufptr;
-                obuf = obufptr = m_conv_buffer->data;
+                char *obuf, *obufptr;
+                obuf = obufptr = (char*)m_conv_buffer->data;
 
                 if (_vte_conv(m_outgoing_conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
                         int errsv = errno;
@@ -7931,13 +7987,11 @@ VteTerminalPrivate::VteTerminalPrivate(VteTerminal *t) :
 	/* Set up I/O encodings. */
         g_assert_true(m_using_utf8);
         m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
-        m_iso2022 = _vte_iso2022_state_new(m_encoding);
         m_incoming_leftover = _vte_byte_array_new();
 	m_max_input_bytes = VTE_MAX_INPUT_READ;
 	m_cursor_blink_tag = 0;
         m_text_blink_tag = 0;
 	m_outgoing = _vte_byte_array_new();
-	m_outgoing_conv = VTE_INVALID_CONV;
 	m_conv_buffer = _vte_byte_array_new();
         m_last_graphic_character = 0;
 
@@ -8323,10 +8377,6 @@ VteTerminalPrivate::~VteTerminalPrivate()
 		_vte_draw_free(m_draw);
 	}
 
-	/* The NLS maps. */
-	_vte_iso2022_state_free(m_iso2022);
-        _vte_byte_array_free(m_incoming_leftover);
-
 	/* Free the font description. */
         if (m_unscaled_font_desc != NULL) {
                 pango_font_description_free(m_unscaled_font_desc);
@@ -8382,9 +8432,11 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	}
 
 	/* Free conversion descriptors. */
+	if (m_incoming_conv != VTE_INVALID_CONV) {
+		_vte_conv_close(m_incoming_conv);
+	}
 	if (m_outgoing_conv != VTE_INVALID_CONV) {
 		_vte_conv_close(m_outgoing_conv);
-		m_outgoing_conv = VTE_INVALID_CONV;
 	}
 
         /* Stop listening for child-exited signals. */
@@ -8401,6 +8453,7 @@ VteTerminalPrivate::~VteTerminalPrivate()
 	/* Discard any pending data. */
 	_vte_byte_array_free(m_outgoing);
 	_vte_byte_array_free(m_conv_buffer);
+        _vte_byte_array_free(m_incoming_leftover);
 
 	/* Stop the child and stop watching for input from the child. */
 	if (m_pty_pid != -1) {
@@ -10348,10 +10401,8 @@ VteTerminalPrivate::reset(bool clear_tabstops,
 
         m_utf8_decoder.reset();
 
-	_vte_iso2022_state_free(m_iso2022);
-        m_iso2022 = _vte_iso2022_state_new(nullptr);
-	_vte_iso2022_state_set_codeset(m_iso2022,
-				       m_encoding);
+        if (m_incoming_conv != VTE_INVALID_CONV)
+                _vte_conv_reset(m_incoming_conv);
         _vte_byte_array_clear(m_incoming_leftover);
 
         /* Reset parser */

@@ -76,8 +76,8 @@ _vte_conv_close(VteConv converter)
 
 size_t
 _vte_conv(VteConv converter,
-	  const guchar **inbuf, gsize *inbytes_left,
-	  guchar **outbuf, gsize *outbytes_left)
+	  char **inbuf, gsize *inbytes_left,
+	  gchar **outbuf, gsize *outbytes_left)
 {
 	size_t ret, tmp;
 	gchar *work_inbuf_start, *work_inbuf_working;
@@ -87,8 +87,8 @@ _vte_conv(VteConv converter,
 	g_assert(converter != NULL);
 	g_assert(converter != VTE_INVALID_CONV);
 
-	work_inbuf_start = work_inbuf_working = *(char**)inbuf;
-	work_outbuf_start = work_outbuf_working = *(char**)outbuf;
+	work_inbuf_start = work_inbuf_working = *inbuf;
+	work_outbuf_start = work_outbuf_working = *outbuf;
 	work_inbytes = *inbytes_left;
 	work_outbytes = *outbytes_left;
 
@@ -132,12 +132,22 @@ _vte_conv(VteConv converter,
 	g_assert((ret != (size_t)-1) || (errno != E2BIG));
 
         /* Pass on the output results. */
-        *outbuf = (guchar*)work_outbuf_working;
+        *outbuf = work_outbuf_working;
         *outbytes_left -= (work_outbuf_working - work_outbuf_start);
 
         /* Pass on the input results. */
-        *inbuf = (const guchar*)work_inbuf_working;
+        *inbuf = work_inbuf_working;
         *inbytes_left -= (work_inbuf_working - work_inbuf_start);
 
 	return ret;
+}
+
+void
+_vte_conv_reset(VteConv converter)
+{
+	g_assert(converter != VTE_INVALID_CONV);
+        if (converter->conv == (GIConv)-1)
+                return;
+
+        g_iconv(converter->conv, nullptr, nullptr, nullptr, nullptr);
 }

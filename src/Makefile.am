@@ -54,8 +54,6 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	color-triple.hh \
 	debug.cc \
 	debug.h \
-	iso2022.cc \
-	iso2022.h \
 	keymap.cc \
 	keymap.h \
 	modes.hh \
