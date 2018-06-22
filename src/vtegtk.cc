@@ -2539,10 +2539,12 @@ spawn_async_cb (GObject *source,
 
         /* Automatically watch the child */
         if (terminal != nullptr) {
-                if (pid != -1)
+                if (pid != -1) {
+                        vte_terminal_set_pty(terminal, pty);
                         vte_terminal_watch_child(terminal, pid);
-                else
+                } else {
                         vte_terminal_set_pty(terminal, nullptr);
+                }
         } else {
                 if (pid != -1) {
                         vte_reaper_add_child(pid);
@@ -2666,8 +2668,6 @@ vte_terminal_spawn_async(VteTerminal *terminal,
                 g_error_free(error);
                 return;
         }
-
-        vte_terminal_set_pty(terminal, pty);
 
         guint spawn_flags = (guint)spawn_flags_;
 
