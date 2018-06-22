@@ -3,14 +3,13 @@
 # This file is under the same license as the vte package.
 # Cédric Valmary <cvalmary@yahoo.fr>, 2015.
 # Cédric Valmary (Tot en òc) <cvalmary@yahoo.fr>, 2015.
-# Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>, 2016, 2017.
+# Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>, 2016, 2017, 2018.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte 0.14.1\n"
-"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=vte&ke"
-"ywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2017-03-01 11:47+0000\n"
-"PO-Revision-Date: 2017-03-06 18:38+0200\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2018-06-20 20:20+0000\n"
+"PO-Revision-Date: 2018-06-22 08:58+0200\n"
 "Last-Translator: Cédric Valmary (totenoc.eu) <cvalmary@yahoo.fr>\n"
 "Language-Team: Tot En Òc\n"
 "Language: oc\n"
@@ -21,32 +20,32 @@ msgstr ""
 "X-Generator: Virtaal 0.7.1\n"
 "X-Project-Style: gnome\n"
 
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3262
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Impossible de convertir los caractèrs %s en %s."
-
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4014
+#: ../src/vte.cc:3966
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Error al moment de la lectura del filh : « %s »."
 
-#: ../src/vte.cc:4153
+#: ../src/vte.cc:4122
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Error (%s) al moment de la conversion de donadas pel filh, abandon."
 
-#: ../src/vte.cc:7922
+#: ../src/vte.cc:8179
 msgid "WARNING"
 msgstr "AVERTIMENT"
 
-#: ../src/vte.cc:7923
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+#: ../src/vte.cc:8180
+#| msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
-"GNUTLS es pas activat ; las donadas seràn escritas sul disc sens èsser "
+"GnuTLS es pas activat ; las donadas seràn escritas sul disc sens èsser "
 "chifradas !"
+
+#: ../src/vtegtk.cc:3618
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Impossible de convertir los caractèrs %s en %s."
 
 #~ msgid "Copy"
 #~ msgstr "Copiar"
