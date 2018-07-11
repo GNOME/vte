@@ -22,7 +22,7 @@
 #define vte_debug_h_included
 
 #include <config.h>
-
+#include <stdint.h>
 #include <glib.h>
 
 #ifndef VTE_COMPILATION
@@ -69,6 +69,10 @@ typedef enum {
 void _vte_debug_init(void);
 const char *_vte_debug_sequence_to_string(const char *str,
                                           gssize length);
+
+void _vte_debug_hexdump(char const* str,
+                        uint8_t const* buf,
+                        size_t len);
 
 extern guint _vte_debug_flags;
 static inline gboolean _vte_debug_on(guint flags) G_GNUC_CONST G_GNUC_UNUSED;

@@ -3432,6 +3432,11 @@ VteTerminalPrivate::convert_incoming() noexcept
         auto inbuf = (char*)buf->data;
         size_t inbytes = buf->len;
 
+        _VTE_DEBUG_IF(VTE_DEBUG_IO) {
+                _vte_debug_hexdump("Incoming buffer before conversion to UTF-8",
+                                   (uint8_t const*)inbuf, inbytes);
+        }
+
         auto unibuf = _vte_byte_array_new();
         _vte_byte_array_set_minimum_size(unibuf, VTE_UTF8_BPC * inbytes);
         auto outbuf = (char*)unibuf->data;
@@ -3568,6 +3573,10 @@ VteTerminalPrivate::process_incoming()
                 m_incoming_queue.pop();
 
                 g_assert_nonnull(chunk.get());
+
+                _VTE_DEBUG_IF(VTE_DEBUG_IO) {
+                        _vte_debug_hexdump("Incoming buffer", chunk->data, chunk->len);
+                }
 
                 bytes_processed += chunk->len;
 
@@ -4062,15 +4071,9 @@ VteTerminalPrivate::pty_io_write(GIOChannel *channel,
 		      _vte_byte_array_length(m_outgoing));
 	if (count != -1) {
 		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
-			gssize i;
-			for (i = 0; i < count; i++) {
-				g_printerr("Wrote %c%c\n",
-					((guint8)m_outgoing->data[i]) >= 32 ?
-					' ' : '^',
-					((guint8)m_outgoing->data[i]) >= 32 ?
-					m_outgoing->data[i] :
-					((guint8)m_outgoing->data[i])  + 64);
-			}
+                        _vte_debug_hexdump("Outgoing buffer written",
+                                           (uint8_t const*)m_outgoing->data,
+                                           count);
 		}
 		_vte_byte_array_consume(m_outgoing, count);
 	}

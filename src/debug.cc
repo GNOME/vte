@@ -121,3 +121,47 @@ _vte_debug_sequence_to_string(const char *str,
         return NULL;
 #endif /* VTE_DEBUG */
 }
+
+#ifdef VTE_DEBUG
+static bool
+hexdump_line(GString* str,
+             size_t ofs,
+             uint8_t const* buf,
+             size_t len)
+{
+        g_string_append_printf(str, "%08x  ", (unsigned int)ofs);
+        for (unsigned int i = 0; i < 16; ++i) {
+                if (i < len)
+                        g_string_append_printf(str, "%02x ", buf[i]);
+                else
+                        g_string_append(str, "   ");
+                if (i == 7)
+                        g_string_append_c(str, ' ');
+        }
+
+        g_string_append(str, "  |");
+        for (unsigned int i = 0; i < 16; ++i) {
+                g_string_append_c(str, i < len ? (g_ascii_isprint(buf[i]) ? buf[i] : '.') : ' ');
+        }
+        g_string_append(str, "|\n");
+        return len >= 16;
+}
+#endif /* VTE_DEBUG */
+
+void
+_vte_debug_hexdump(char const* str,
+                   uint8_t const* buf,
+                   size_t len)
+{
+#ifdef VTE_DEBUG
+        GString* s = g_string_new(str);
+        g_string_append_printf(s, " len = 0x%x = %u\n", (unsigned int)len, (unsigned int)len);
+
+        size_t ofs = 0;
+        while (hexdump_line(s, ofs, buf + ofs, len - ofs))
+                ofs += 16;
+
+        g_printerr("%s", s->str);
+        g_string_free(s, true);
+#endif /* VTE_DEBUG */
+}
