@@ -471,6 +471,9 @@ gboolean vte_terminal_get_input_enabled (VteTerminal *terminal) _VTE_GNUC_NONNUL
 _VTE_PUBLIC
 void vte_terminal_set_clear_background(VteTerminal* terminal,
                                        gboolean setting) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+void vte_terminal_get_color_background_for_draw(VteTerminal* terminal,
+                                                GdkRGBA* color) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 /* Writing contents out */
 _VTE_PUBLIC

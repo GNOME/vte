@@ -331,7 +331,7 @@ public:
                         { "backdrop", 0, 0,G_OPTION_ARG_NONE, &backdrop,
                           "Dim when toplevel unfocused", nullptr },
                         { "background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_bg_color,
-                          "Set default background color", nullptr },
+                          "Set default background color", "COLOR" },
                         { "background-image", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_image,
                           "Set background image from file", "FILE" },
                         { "background-extend", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_background_extend,
@@ -347,9 +347,9 @@ public:
                         { "cursor-blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_blink,
                           "Cursor blink mode (system|on|off)", "MODE" },
                         { "cursor-background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_bg_color,
-                          "Enable a colored cursor background", nullptr },
+                          "Enable a colored cursor background", "COLOR" },
                         { "cursor-foreground-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_fg_color,
-                          "Enable a colored cursor foreground", nullptr },
+                          "Enable a colored cursor foreground", "COLOR" },
                         { "cursor-shape", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_shape,
                           "Set cursor shape (block|underline|ibeam)", nullptr },
                         { "dingu", 'D', 0, G_OPTION_ARG_STRING_ARRAY, &dingus,
@@ -365,15 +365,15 @@ public:
                         { "font", 'f', 0, G_OPTION_ARG_STRING, &font_string,
                           "Specify a font to use", nullptr },
                         { "foreground-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_fg_color,
-                          "Set default foreground color", nullptr },
+                          "Set default foreground color", "COLOR" },
                         { "gregex", 0, 0, G_OPTION_ARG_NONE, &use_gregex,
                           "Use GRegex instead of PCRE2", nullptr },
                         { "geometry", 'g', 0, G_OPTION_ARG_STRING, &geometry,
                           "Set the size (in characters) and position", "GEOMETRY" },
                         { "highlight-background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_hl_bg_color,
-                          "Enable distinct highlight background color for selection", nullptr },
+                          "Enable distinct highlight background color for selection", "COLOR" },
                         { "highlight-foreground-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_hl_fg_color,
-                          "Enable distinct highlight foreground color for selection", nullptr },
+                          "Enable distinct highlight foreground color for selection", "COLOR" },
                         { "icon-title", 'i', 0, G_OPTION_ARG_NONE, &icon_title,
                           "Enable the setting of the icon title", nullptr },
                         { "keep", 'k', 0, G_OPTION_ARG_NONE, &keep,
@@ -873,7 +873,8 @@ vteapp_terminal_draw(GtkWidget* widget,
                 cairo_rectangle(cr, 0.0, 0.0,
                                 gtk_widget_get_allocated_width(widget),
                                 gtk_widget_get_allocated_height(widget));
-                auto bg = options.get_color_bg();
+                GdkRGBA bg;
+                vte_terminal_get_color_background_for_draw(VTE_TERMINAL(terminal), &bg);
                 cairo_set_source_rgba(cr, bg.red, bg.green, bg.blue, 1.0);
                 cairo_paint(cr);
 
@@ -883,7 +884,7 @@ vteapp_terminal_draw(GtkWidget* widget,
                 cairo_paint(cr);
 
                 cairo_pop_group_to_source(cr);
-                cairo_paint_with_alpha(cr, options.get_alpha());
+                cairo_paint_with_alpha(cr, bg.alpha);
 
         }
 

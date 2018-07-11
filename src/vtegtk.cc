@@ -4291,3 +4291,36 @@ vte_terminal_set_clear_background(VteTerminal* terminal,
 
         IMPL(terminal)->set_clear_background(setting != FALSE);
 }
+
+/**
+ * vte_terminal_get_color_background_for_draw:
+ * @terminal: a #VteTerminal
+ * @color: (out): a location to store a #GdbRGBA color
+ *
+ * Returns the background colour, as used by @terminal when
+ * drawing the background, which may be different from
+ * the color set by vte_terminal_set_color_background().
+ *
+ * Note: you must only call this function while handling the
+ * GtkWidget::draw signal.
+ *
+ * This function is rarely useful. One use for it is if you disable
+ * drawing the background (see vte_terminal_set_clear_background())
+ * and then need to draw the background yourself.
+ *
+ * Since: 0.54
+ */
+void
+vte_terminal_get_color_background_for_draw(VteTerminal* terminal,
+                                           GdkRGBA* color)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(color != nullptr);
+
+        auto impl = IMPL(terminal);
+        auto const c = impl->get_color(VTE_DEFAULT_BG);
+        color->red = c->red / 65535.;
+        color->green = c->green / 65535.;
+        color->blue = c->blue / 65535.;
+        color->alpha = impl->m_background_alpha;
+}

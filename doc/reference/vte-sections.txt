@@ -105,6 +105,7 @@ vte_terminal_watch_child
 
 <SUBSECTION>
 vte_terminal_set_clear_background
+vte_terminal_get_color_background_for_draw
 
 <SUBSECTION Standard>
 VTE_TYPE_CURSOR_BLINK_MODE
