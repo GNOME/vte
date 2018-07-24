@@ -768,14 +768,15 @@ public:
         void widget_scroll(GdkEventScroll *event);
         bool widget_motion_notify(GdkEventMotion *event);
         void widget_draw(cairo_t *cr);
-        void widget_screen_changed (GdkScreen *previous_screen);
         void widget_get_preferred_width(int *minimum_width,
                                         int *natural_width);
         void widget_get_preferred_height(int *minimum_height,
                                          int *natural_height);
         void widget_size_allocate(GtkAllocation *allocation);
 
-        void widget_settings_notify();
+        void set_blink_settings(bool blink,
+                                int blink_time,
+                                int blink_timeout) noexcept;
 
         void expand_rectangle(cairo_rectangle_int_t& rect) const;
         void paint_area(GdkRectangle const* area);

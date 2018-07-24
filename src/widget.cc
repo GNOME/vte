@@ -82,6 +82,14 @@ im_delete_surrounding_cb(GtkIMContext* im_context,
         return that->terminal()->im_delete_surrounding(offset, n_chars);
 }
 
+static void
+settings_notify_cb(GtkSettings* settings,
+                   GParamSpec* pspec,
+                   vte::platform::Widget* that)
+{
+        that->settings_changed();
+}
+
 Widget::Widget(VteTerminal* t) noexcept :
         m_widget{&t->widget}
 {
@@ -220,6 +228,52 @@ Widget::realize() noexcept
 	gtk_im_context_set_use_preedit(m_im_context.get(), true);
 
         m_terminal->widget_realize();
+}
+
+void
+Widget::screen_changed(GdkScreen *previous_screen) noexcept
+{
+        auto gdk_screen = gtk_widget_get_screen(m_widget);
+        if (previous_screen != nullptr &&
+            (gdk_screen != previous_screen || gdk_screen == nullptr)) {
+                auto settings = gtk_settings_get_for_screen(previous_screen);
+                g_signal_handlers_disconnect_matched(settings, G_SIGNAL_MATCH_DATA,
+                                                     0, 0, nullptr, nullptr,
+                                                     this);
+        }
+
+        if (gdk_screen == previous_screen || gdk_screen == nullptr)
+                return;
+
+        settings_changed();
+
+        auto settings = gtk_widget_get_settings(m_widget);
+        g_signal_connect (settings, "notify::gtk-cursor-blink",
+                          G_CALLBACK(settings_notify_cb), this);
+        g_signal_connect (settings, "notify::gtk-cursor-blink-time",
+                          G_CALLBACK(settings_notify_cb), this);
+        g_signal_connect (settings, "notify::gtk-cursor-blink-timeout",
+                          G_CALLBACK(settings_notify_cb), this);
+}
+
+void
+Widget::settings_changed() noexcept
+{
+        gboolean blink;
+        int blink_time;
+        int blink_timeout;
+
+        g_object_get(gtk_widget_get_settings(m_widget),
+                     "gtk-cursor-blink", &blink,
+                     "gtk-cursor-blink-time", &blink_time,
+                     "gtk-cursor-blink-timeout", &blink_timeout,
+                     nullptr);
+
+        _vte_debug_print(VTE_DEBUG_MISC,
+                         "Cursor blinking settings: blink=%d time=%d timeout=%d\n",
+                         blink, blink_time, blink_timeout);
+
+        m_terminal->set_blink_settings(blink, blink_time, blink_timeout);
 }
 
 void

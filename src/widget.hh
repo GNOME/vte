@@ -56,7 +56,6 @@ public:
         void unmap() noexcept;
         void style_updated() noexcept { m_terminal->widget_style_updated(); }
         void draw(cairo_t *cr) noexcept { m_terminal->widget_draw(cr); }
-        void screen_changed (GdkScreen *previous_screen) noexcept { m_terminal->widget_screen_changed(previous_screen); }
         void get_preferred_width(int *minimum_width,
                                  int *natural_width) const noexcept { m_terminal->widget_get_preferred_width(minimum_width, natural_width); }
         void get_preferred_height(int *minimum_height,
@@ -82,6 +81,9 @@ public:
         void clipboard_requested(GtkClipboard *target_clipboard,
                                  GtkSelectionData *data,
                                  guint info) noexcept { m_terminal->widget_clipboard_requested(target_clipboard, data, info); }
+
+        void screen_changed (GdkScreen *previous_screen) noexcept;
+        void settings_changed() noexcept;
 
         void set_hadjustment(GtkAdjustment *adjustment) noexcept { m_terminal->widget_set_hadjustment(adjustment); }
         GtkAdjustment* get_hadjustment() const noexcept { return m_terminal->m_hadjustment; }
