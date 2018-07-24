@@ -319,6 +319,8 @@ vte_terminal_draw(GtkWidget *widget,
 static void
 vte_terminal_realize(GtkWidget *widget)
 {
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
+
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->realize(widget);
 
         VteTerminal *terminal= VTE_TERMINAL(widget);
@@ -328,6 +330,8 @@ vte_terminal_realize(GtkWidget *widget)
 static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
+
         VteTerminal *terminal = VTE_TERMINAL (widget);
         WIDGET(terminal)->unrealize();
 

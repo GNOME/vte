@@ -3334,8 +3334,7 @@ Terminal::pty_channel_eof()
 void
 Terminal::im_reset()
 {
-	if (widget_realized() && m_im_context)
-		gtk_im_context_reset(m_im_context);
+        m_real_widget->im_reset();
 
         m_im_preedit.clear();
         m_im_preedit.shrink_to_fit();
@@ -4339,15 +4338,6 @@ Terminal::reply(vte::parser::Sequence const& seq,
         send(seq, builder);
 }
 
-/* Send text from the input method to the child. */
-static void
-vte_terminal_im_commit_cb(GtkIMContext *im_context,
-                          char const* text,
-                          vte::terminal::Terminal* that)
-{
-        that->im_commit(text);
-}
-
 void
 Terminal::im_commit(char const* text)
 {
@@ -4361,70 +4351,27 @@ Terminal::im_commit(char const* text)
 	}
 }
 
-/* We've started pre-editing. */
-static void
-vte_terminal_im_preedit_start_cb(GtkIMContext *im_context,
-                                 vte::terminal::Terminal* that)
+void
+Terminal::im_preedit_set_active(bool active) noexcept
 {
-        that->im_preedit_start();
+	m_im_preedit_active = active;
 }
 
 void
-Terminal::im_preedit_start()
+Terminal::im_preedit_changed(char const* str,
+                             int cursorpos,
+                             PangoAttrList* attrs) noexcept
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Input method pre-edit started.\n");
-	m_im_preedit_active = true;
-}
-
-/* We've stopped pre-editing. */
-static void
-vte_terminal_im_preedit_end_cb(GtkIMContext *im_context,
-                               vte::terminal::Terminal* that)
-{
-        that->im_preedit_end();
-}
-
-void
-Terminal::im_preedit_end()
-{
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Input method pre-edit ended.\n");
-	m_im_preedit_active = false;
-}
-
-/* The pre-edit string changed. */
-static void
-vte_terminal_im_preedit_changed_cb(GtkIMContext *im_context,
-                                   vte::terminal::Terminal* that)
-{
-        that->im_preedit_changed();
-}
-
-void
-Terminal::im_preedit_changed()
-{
-	gchar *str;
-	PangoAttrList *attrs;
-	gint cursorpos;
-
-	gtk_im_context_get_preedit_string(m_im_context, &str, &attrs, &cursorpos);
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Input method pre-edit changed (%s,%d).\n",
-			str, cursorpos);
-
 	/* Queue the area where the current preedit string is being displayed
 	 * for repainting. */
 	invalidate_cursor_once();
 
 	m_im_preedit = str;
-        g_free(str);
 
-	if (m_im_preedit_attrs != NULL) {
+	if (m_im_preedit_attrs != nullptr) {
 		pango_attr_list_unref(m_im_preedit_attrs);
 	}
 	m_im_preedit_attrs = attrs;
-
 	m_im_preedit_cursor = cursorpos;
 
         /* Invalidate again with the new cursor position */
@@ -4434,39 +4381,18 @@ Terminal::im_preedit_changed()
         im_update_cursor();
 }
 
-static gboolean
-vte_terminal_im_retrieve_surrounding_cb(GtkIMContext *im_context,
-                                        vte::terminal::Terminal* that)
-{
-        return that->im_retrieve_surrounding();
-}
-
 bool
 Terminal::im_retrieve_surrounding()
 {
         /* FIXME: implement this! Bug #726191 */
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Input method retrieve-surrounding.\n");
         return false;
-}
-
-static gboolean
-vte_terminal_im_delete_surrounding_cb(GtkIMContext *im_context,
-                                      int offset,
-                                      int n_chars,
-                                      vte::terminal::Terminal* that)
-{
-        return that->im_delete_surrounding(offset, n_chars);
 }
 
 bool
 Terminal::im_delete_surrounding(int offset,
-                                          int n_chars)
+                                int n_chars)
 {
         /* FIXME: implement this! Bug #726191 */
-        _vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Input method delete-surrounding offset %d n-chars %d.\n",
-                         offset, n_chars);
         return false;
 }
 
@@ -4482,7 +4408,7 @@ Terminal::im_update_cursor()
         rect.width = m_cell_width; // FIXMEchpe: if columns > 1 ?
         rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
         rect.height = m_cell_height;
-        gtk_im_context_set_cursor_location(m_im_context, &rect);
+        m_real_widget->im_set_cursor_location(&rect);
 }
 
 void
@@ -4765,7 +4691,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 
 	/* Let the input method at this one first. */
 	if (!steal && m_input_enabled) {
-		if (m_im_context && gtk_im_context_filter_keypress(m_im_context, event)) {
+                if (m_real_widget->im_filter_keypress(event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Keypress taken by IM.\n");
 			return true;
@@ -5059,8 +4985,7 @@ Terminal::widget_key_release(GdkEventKey *event)
 	read_modifiers((GdkEvent*)event);
 
 	if (m_input_enabled &&
-            m_im_context &&
-            gtk_im_context_filter_keypress(m_im_context, event))
+            m_real_widget->im_filter_keypress(event))
                 return true;
 
         return false;
@@ -7374,7 +7299,7 @@ Terminal::widget_focus_in(GdkEventFocus *event)
 
 		check_cursor_blink();
 
-		gtk_im_context_focus_in(m_im_context);
+                m_real_widget->im_focus_in();
 		invalidate_cursor_once();
                 maybe_feed_focus_event(true);
 	}
@@ -7403,7 +7328,7 @@ Terminal::widget_focus_out(GdkEventFocus *event)
                         invalidate_all();
                 }
 
-		gtk_im_context_focus_out(m_im_context);
+                m_real_widget->im_focus_out();
 		invalidate_cursor_once();
 
                 m_mouse_pressed_buttons = 0;
@@ -8312,24 +8237,11 @@ Terminal::widget_size_allocate(GtkAllocation *allocation)
 void
 Terminal::widget_unrealize()
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
-
 	/* Deallocate the cursors. */
         m_mouse_cursor_over_widget = FALSE;
 
 	match_hilite_clear();
 
-	/* Shut down input methods. */
-	if (m_im_context != nullptr) {
-	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
-                                                     0, 0, NULL, NULL,
-                                                     this);
-		im_reset();
-		gtk_im_context_set_client_window(m_im_context,
-						 NULL);
-		g_object_unref(m_im_context);
-		m_im_context = nullptr;
-	}
 	m_im_preedit_active = FALSE;
         m_im_preedit.clear();
         m_im_preedit.shrink_to_fit();
@@ -8577,8 +8489,6 @@ Terminal::~Terminal()
 void
 Terminal::widget_realize()
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
-
         m_mouse_cursor_over_widget = FALSE;  /* We'll receive an enter_notify_event if the window appears under the cursor. */
 
 	/* Create rendering data if this is a re-realise */
@@ -8586,32 +8496,7 @@ Terminal::widget_realize()
                 m_draw = _vte_draw_new();
         }
 
-        // FIXMEchpe this shouldn't ever be true:
-	if (m_im_context != nullptr) {
-	        g_signal_handlers_disconnect_matched(m_im_context, G_SIGNAL_MATCH_DATA,
-                                                     0, 0, NULL, NULL,
-                                                     this);
-		im_reset();
-		gtk_im_context_set_client_window(m_im_context, nullptr);
-		g_object_unref(m_im_context);
-		m_im_context = nullptr;
-	}
 	m_im_preedit_active = FALSE;
-	m_im_context = gtk_im_multicontext_new();
-	gtk_im_context_set_client_window(m_im_context, m_real_widget->event_window());
-	g_signal_connect(m_im_context, "commit",
-			 G_CALLBACK(vte_terminal_im_commit_cb), this);
-	g_signal_connect(m_im_context, "preedit-start",
-			 G_CALLBACK(vte_terminal_im_preedit_start_cb), this);
-	g_signal_connect(m_im_context, "preedit-changed",
-			 G_CALLBACK(vte_terminal_im_preedit_changed_cb), this);
-	g_signal_connect(m_im_context, "preedit-end",
-			 G_CALLBACK(vte_terminal_im_preedit_end_cb), this);
-	g_signal_connect(m_im_context, "retrieve-surrounding",
-			 G_CALLBACK(vte_terminal_im_retrieve_surrounding_cb), this);
-	g_signal_connect(m_im_context, "delete-surrounding",
-			 G_CALLBACK(vte_terminal_im_delete_surrounding_cb), this);
-	gtk_im_context_set_use_preedit(m_im_context, TRUE);
 
 	/* Clear modifiers. */
 	m_modifiers = 0;
@@ -11385,13 +11270,13 @@ Terminal::set_input_enabled (bool enabled)
 
         if (enabled) {
                 if (gtk_widget_has_focus(m_widget))
-                        gtk_im_context_focus_in(m_im_context);
+                        m_real_widget->im_focus_in();
 
                 gtk_style_context_remove_class (context, GTK_STYLE_CLASS_READ_ONLY);
         } else {
                 im_reset();
                 if (gtk_widget_has_focus(m_widget))
-                        gtk_im_context_focus_out(m_im_context);
+                        m_real_widget->im_focus_out();
 
                 disconnect_pty_write();
                 _vte_byte_array_clear(m_outgoing);

@@ -21,12 +21,66 @@
 #include "widget.hh"
 
 #include <new>
+#include <string>
 
 #include "debug.h"
+
+using namespace std::literals;
 
 namespace vte {
 
 namespace platform {
+
+static void
+im_commit_cb(GtkIMContext* im_context,
+             char const* text,
+             Widget* that)
+{
+        that->terminal()->im_commit(text);
+}
+
+static void
+im_preedit_start_cb(GtkIMContext* im_context,
+                    Widget* that)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit started.\n");
+        that->terminal()->im_preedit_set_active(true);
+}
+
+static void
+im_preedit_end_cb(GtkIMContext* im_context,
+                  Widget* that)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit ended.\n");
+        that->terminal()->im_preedit_set_active(false);
+}
+
+static void
+im_preedit_changed_cb(GtkIMContext* im_context,
+                      Widget* that)
+{
+        that->im_preedit_changed();
+}
+
+static gboolean
+im_retrieve_surrounding_cb(GtkIMContext* im_context,
+                           Widget* that)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method retrieve-surrounding.\n");
+        return that->terminal()->im_retrieve_surrounding();
+}
+
+static gboolean
+im_delete_surrounding_cb(GtkIMContext* im_context,
+                         int offset,
+                         int n_chars,
+                         Widget* that)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Input method delete-surrounding offset %d n-chars %d.\n",
+                         offset, n_chars);
+        return that->terminal()->im_delete_surrounding(offset, n_chars);
+}
 
 Widget::Widget(VteTerminal* t) noexcept :
         m_widget{&t->widget}
@@ -50,8 +104,49 @@ Widget::create_cursor(GdkCursorType cursor_type) const noexcept
 	return gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type);
 }
 
+bool
+Widget::im_filter_keypress(GdkEventKey* event) noexcept
+{
+        // FIXMEchpe this can only be called when realized, so the m_im_context check is redundant
+        return m_im_context &&
+                gtk_im_context_filter_keypress(m_im_context.get(), event);
+}
+
 void
-Widget::map()
+Widget::im_focus_in() noexcept
+{
+        gtk_im_context_focus_in(m_im_context.get());
+}
+
+void
+Widget::im_focus_out() noexcept
+{
+        gtk_im_context_focus_out(m_im_context.get());
+}
+
+void
+Widget::im_preedit_changed() noexcept
+{
+        char* str;
+	PangoAttrList* attrs;
+	int cursorpos;
+
+        gtk_im_context_get_preedit_string(m_im_context.get(), &str, &attrs, &cursorpos);
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit changed (%s,%d).\n",
+                         str, cursorpos);
+
+        m_terminal->im_preedit_changed(str, cursorpos, attrs);
+        g_free(str);
+}
+
+void
+Widget::im_set_cursor_location(cairo_rectangle_int_t const* rect) noexcept
+{
+        gtk_im_context_set_cursor_location(m_im_context.get(), rect);
+}
+
+void
+Widget::map() noexcept
 {
         if (m_event_window)
                 gdk_window_show_unraised(m_event_window);
@@ -107,6 +202,23 @@ Widget::realize() noexcept
                                         &attributes, attributes_mask);
         gtk_widget_register_window(m_widget, m_event_window);
 
+        assert(!m_im_context);
+	m_im_context = gtk_im_multicontext_new();
+	gtk_im_context_set_client_window(m_im_context.get(), m_event_window);
+	g_signal_connect(m_im_context.get(), "commit",
+			 G_CALLBACK(im_commit_cb), this);
+	g_signal_connect(m_im_context.get(), "preedit-start",
+			 G_CALLBACK(im_preedit_start_cb), this);
+	g_signal_connect(m_im_context.get(), "preedit-changed",
+			 G_CALLBACK(im_preedit_changed_cb), this);
+	g_signal_connect(m_im_context.get(), "preedit-end",
+			 G_CALLBACK(im_preedit_end_cb), this);
+	g_signal_connect(m_im_context.get(), "retrieve-surrounding",
+			 G_CALLBACK(im_retrieve_surrounding_cb), this);
+	g_signal_connect(m_im_context.get(), "delete-surrounding",
+			 G_CALLBACK(im_delete_surrounding_cb), this);
+	gtk_im_context_set_use_preedit(m_im_context.get(), true);
+
         m_terminal->widget_realize();
 }
 
@@ -151,6 +263,17 @@ Widget::unrealize() noexcept
         m_mousing_cursor.reset();
         m_hyperlink_cursor.reset();
 
+	/* Shut down input methods. */
+        assert(m_im_context);
+        g_signal_handlers_disconnect_matched(m_im_context.get(),
+                                             G_SIGNAL_MATCH_DATA,
+                                             0, 0, NULL, NULL,
+                                             this);
+        m_terminal->im_preedit_changed("", 0, nullptr);
+        gtk_im_context_set_client_window(m_im_context.get(), nullptr);
+        m_im_context.reset();
+
+        /* Destroy input window */
         gtk_widget_unregister_window(m_widget, m_event_window);
         gdk_window_destroy(m_event_window);
         m_event_window = nullptr;

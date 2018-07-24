@@ -116,6 +116,22 @@ protected:
                 gdk_window_set_cursor(m_event_window, cursor);
         }
 
+        bool im_filter_keypress(GdkEventKey* event) noexcept;
+
+        void im_focus_in() noexcept;
+        void im_focus_out() noexcept;
+
+        void im_reset() noexcept
+        {
+                if (m_im_context)
+                        gtk_im_context_reset(m_im_context.get());
+        }
+
+        void im_set_cursor_location(cairo_rectangle_int_t const* rect) noexcept;
+
+public: // FIXMEchpe
+        void im_preedit_changed() noexcept;
+
 private:
         GtkWidget* m_widget;
 
@@ -129,6 +145,9 @@ private:
         vte::glib::RefPtr<GdkCursor> m_invisible_cursor;
         vte::glib::RefPtr<GdkCursor> m_mousing_cursor;
         vte::glib::RefPtr<GdkCursor> m_hyperlink_cursor;
+
+        /* Input method */
+        vte::glib::RefPtr<GtkIMContext> m_im_context;
 };
 
 } // namespace platform

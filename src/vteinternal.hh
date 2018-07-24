@@ -565,8 +565,7 @@ public:
         gboolean m_mouse_cursor_autohidden;  /* whether the autohiding logic wants to hide it; even if autohiding is disabled via API */
 
 	/* Input method support. */
-        GtkIMContext *m_im_context;
-        gboolean m_im_preedit_active;
+        bool m_im_preedit_active;
         std::string m_im_preedit;
         PangoAttrList *m_im_preedit_attrs;
         int m_im_preedit_cursor;
@@ -853,9 +852,10 @@ public:
                               int status);
 
         void im_commit(char const* text);
-        void im_preedit_start();
-        void im_preedit_end();
-        void im_preedit_changed();
+        void im_preedit_set_active(bool active) noexcept;
+        void im_preedit_changed(char const* str,
+                                int cursorpos,
+                                PangoAttrList* attrs) noexcept;
         bool im_retrieve_surrounding();
         bool im_delete_surrounding(int offset,
                                    int n_chars);
