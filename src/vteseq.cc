@@ -164,9 +164,12 @@ vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
         return result;
 }
 
+namespace vte {
+namespace terminal {
+
 /* Emit a "bell" signal. */
 void
-VteTerminalPrivate::emit_bell()
+Terminal::emit_bell()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `bell'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_BELL], 0);
@@ -174,7 +177,7 @@ VteTerminalPrivate::emit_bell()
 
 /* Emit a "deiconify-window" signal. */
 void
-VteTerminalPrivate::emit_deiconify_window()
+Terminal::emit_deiconify_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `deiconify-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_DEICONIFY_WINDOW], 0);
@@ -182,7 +185,7 @@ VteTerminalPrivate::emit_deiconify_window()
 
 /* Emit a "iconify-window" signal. */
 void
-VteTerminalPrivate::emit_iconify_window()
+Terminal::emit_iconify_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `iconify-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_ICONIFY_WINDOW], 0);
@@ -190,7 +193,7 @@ VteTerminalPrivate::emit_iconify_window()
 
 /* Emit a "raise-window" signal. */
 void
-VteTerminalPrivate::emit_raise_window()
+Terminal::emit_raise_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `raise-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_RAISE_WINDOW], 0);
@@ -198,7 +201,7 @@ VteTerminalPrivate::emit_raise_window()
 
 /* Emit a "lower-window" signal. */
 void
-VteTerminalPrivate::emit_lower_window()
+Terminal::emit_lower_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `lower-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_LOWER_WINDOW], 0);
@@ -206,7 +209,7 @@ VteTerminalPrivate::emit_lower_window()
 
 /* Emit a "maximize-window" signal. */
 void
-VteTerminalPrivate::emit_maximize_window()
+Terminal::emit_maximize_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `maximize-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_MAXIMIZE_WINDOW], 0);
@@ -214,7 +217,7 @@ VteTerminalPrivate::emit_maximize_window()
 
 /* Emit a "refresh-window" signal. */
 void
-VteTerminalPrivate::emit_refresh_window()
+Terminal::emit_refresh_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `refresh-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_REFRESH_WINDOW], 0);
@@ -222,7 +225,7 @@ VteTerminalPrivate::emit_refresh_window()
 
 /* Emit a "restore-window" signal. */
 void
-VteTerminalPrivate::emit_restore_window()
+Terminal::emit_restore_window()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `restore-window'.\n");
         g_signal_emit(m_terminal, signals[SIGNAL_RESTORE_WINDOW], 0);
@@ -230,7 +233,7 @@ VteTerminalPrivate::emit_restore_window()
 
 /* Emit a "move-window" signal.  (Pixels.) */
 void
-VteTerminalPrivate::emit_move_window(guint x,
+Terminal::emit_move_window(guint x,
                                      guint y)
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `move-window'.\n");
@@ -239,7 +242,7 @@ VteTerminalPrivate::emit_move_window(guint x,
 
 /* Emit a "resize-window" signal.  (Grid size.) */
 void
-VteTerminalPrivate::emit_resize_window(guint columns,
+Terminal::emit_resize_window(guint columns,
                                        guint rows)
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `resize-window'.\n");
@@ -264,20 +267,20 @@ VteTerminalPrivate::emit_resize_window(guint columns,
  * sequences that disable the special cased mode in xterm).  (Bug 731155.)
  */
 void
-VteTerminalPrivate::ensure_cursor_is_onscreen()
+Terminal::ensure_cursor_is_onscreen()
 {
         if (G_UNLIKELY (m_screen->cursor.col >= m_column_count))
                 m_screen->cursor.col = m_column_count - 1;
 }
 
 void
-VteTerminalPrivate::home_cursor()
+Terminal::home_cursor()
 {
         set_cursor_coords(0, 0);
 }
 
 void
-VteTerminalPrivate::clear_screen()
+Terminal::clear_screen()
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
         auto initial = _vte_ring_next(m_screen->row_data);
@@ -297,7 +300,7 @@ VteTerminalPrivate::clear_screen()
 
 /* Clear the current line. */
 void
-VteTerminalPrivate::clear_current_line()
+Terminal::clear_current_line()
 {
 	VteRowData *rowdata;
 
@@ -323,7 +326,7 @@ VteTerminalPrivate::clear_current_line()
 
 /* Clear above the current line. */
 void
-VteTerminalPrivate::clear_above_current()
+Terminal::clear_above_current()
 {
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
@@ -347,7 +350,7 @@ VteTerminalPrivate::clear_above_current()
 
 /* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
 void
-VteTerminalPrivate::scroll_text(vte::grid::row_t scroll_amount)
+Terminal::scroll_text(vte::grid::row_t scroll_amount)
 {
         vte::grid::row_t start, end;
         if (m_scrolling_restricted) {
@@ -385,27 +388,27 @@ VteTerminalPrivate::scroll_text(vte::grid::row_t scroll_amount)
 }
 
 void
-VteTerminalPrivate::restore_cursor()
+Terminal::restore_cursor()
 {
         restore_cursor(m_screen);
         ensure_cursor_is_onscreen();
 }
 
 void
-VteTerminalPrivate::save_cursor()
+Terminal::save_cursor()
 {
         save_cursor(m_screen);
 }
 
 /* Switch to normal screen. */
 void
-VteTerminalPrivate::switch_normal_screen()
+Terminal::switch_normal_screen()
 {
         switch_screen(&m_normal_screen);
 }
 
 void
-VteTerminalPrivate::switch_screen(VteScreen *new_screen)
+Terminal::switch_screen(VteScreen *new_screen)
 {
         /* if (new_screen == m_screen) return; ? */
 
@@ -431,13 +434,13 @@ VteTerminalPrivate::switch_screen(VteScreen *new_screen)
 
 /* Switch to alternate screen. */
 void
-VteTerminalPrivate::switch_alternate_screen()
+Terminal::switch_alternate_screen()
 {
         switch_screen(&m_alternate_screen);
 }
 
 void
-VteTerminalPrivate::set_mode_ecma(vte::parser::Sequence const& seq,
+Terminal::set_mode_ecma(vte::parser::Sequence const& seq,
                                   bool set) noexcept
 {
         auto const n_params = seq.size();
@@ -458,7 +461,7 @@ VteTerminalPrivate::set_mode_ecma(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::update_mouse_protocol() noexcept
+Terminal::update_mouse_protocol() noexcept
 {
         if (m_modes_private.XTERM_MOUSE_ANY_EVENT())
                 m_mouse_tracking_mode = MOUSE_TRACKING_ALL_MOTION_TRACKING;
@@ -483,7 +486,7 @@ VteTerminalPrivate::update_mouse_protocol() noexcept
 }
 
 void
-VteTerminalPrivate::set_mode_private(int mode,
+Terminal::set_mode_private(int mode,
                                      bool set) noexcept
 {
         /* Pre actions */
@@ -588,7 +591,7 @@ VteTerminalPrivate::set_mode_private(int mode,
 }
 
 void
-VteTerminalPrivate::set_mode_private(vte::parser::Sequence const& seq,
+Terminal::set_mode_private(vte::parser::Sequence const& seq,
                                      bool set) noexcept
 {
         auto const n_params = seq.size();
@@ -609,7 +612,7 @@ VteTerminalPrivate::set_mode_private(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::save_mode_private(vte::parser::Sequence const& seq,
+Terminal::save_mode_private(vte::parser::Sequence const& seq,
                                       bool save) noexcept
 {
         auto const n_params = seq.size();
@@ -645,7 +648,7 @@ VteTerminalPrivate::save_mode_private(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::set_character_replacement(unsigned slot)
+Terminal::set_character_replacement(unsigned slot)
 {
         g_assert(slot < G_N_ELEMENTS(m_character_replacements));
         m_character_replacement = &m_character_replacements[slot];
@@ -653,7 +656,7 @@ VteTerminalPrivate::set_character_replacement(unsigned slot)
 
 /* Clear from the cursor position (inclusive!) to the beginning of the line. */
 void
-VteTerminalPrivate::clear_to_bol()
+Terminal::clear_to_bol()
 {
         ensure_cursor_is_onscreen();
 
@@ -685,7 +688,7 @@ VteTerminalPrivate::clear_to_bol()
 
 /* Clear to the right of the cursor and below the current line. */
 void
-VteTerminalPrivate::clear_below_current()
+Terminal::clear_below_current()
 {
         ensure_cursor_is_onscreen();
 
@@ -742,7 +745,7 @@ VteTerminalPrivate::clear_below_current()
 
 /* Clear from the cursor position to the end of the line. */
 void
-VteTerminalPrivate::clear_to_eol()
+Terminal::clear_to_eol()
 {
 	/* If we were to strictly emulate xterm, we'd ensure the cursor is onscreen.
 	 * But due to https://bugzilla.gnome.org/show_bug.cgi?id=740789 we intentionally
@@ -777,13 +780,13 @@ VteTerminalPrivate::clear_to_eol()
 }
 
 /*
- * VteTerminalPrivate::set_cursor_column:
+ * Terminal::set_cursor_column:
  * @col: the column. 0-based from 0 to m_column_count - 1
  *
  * Sets the cursor column to @col, clamped to the range 0..m_column_count-1.
  */
 void
-VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
+Terminal::set_cursor_column(vte::grid::column_t col)
 {
 	_vte_debug_print(VTE_DEBUG_PARSER,
                          "Moving cursor to column %ld.\n", col);
@@ -791,20 +794,20 @@ VteTerminalPrivate::set_cursor_column(vte::grid::column_t col)
 }
 
 void
-VteTerminalPrivate::set_cursor_column1(vte::grid::column_t col)
+Terminal::set_cursor_column1(vte::grid::column_t col)
 {
         set_cursor_column(col - 1);
 }
 
 /*
- * VteTerminalPrivate::set_cursor_row:
+ * Terminal::set_cursor_row:
  * @row: the row. 0-based and relative to the scrolling region
  *
  * Sets the cursor row to @row. @row is relative to the scrolling region
  * (0 if restricted scrolling is off).
  */
 void
-VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
+Terminal::set_cursor_row(vte::grid::row_t row)
 {
         vte::grid::row_t start_row, end_row;
         if (m_modes_private.DEC_ORIGIN() &&
@@ -822,19 +825,19 @@ VteTerminalPrivate::set_cursor_row(vte::grid::row_t row)
 }
 
 void
-VteTerminalPrivate::set_cursor_row1(vte::grid::row_t row)
+Terminal::set_cursor_row1(vte::grid::row_t row)
 {
         set_cursor_row(row - 1);
 }
 
 /*
- * VteTerminalPrivate::get_cursor_row:
+ * Terminal::get_cursor_row:
  *
  * Returns: the relative cursor row, 0-based and relative to the scrolling region
  * if set (regardless of origin mode).
  */
 vte::grid::row_t
-VteTerminalPrivate::get_cursor_row() const
+Terminal::get_cursor_row() const
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
         /* Note that we do NOT check DEC_ORIGIN mode here! */
@@ -845,13 +848,13 @@ VteTerminalPrivate::get_cursor_row() const
 }
 
 vte::grid::column_t
-VteTerminalPrivate::get_cursor_column() const
+Terminal::get_cursor_column() const
 {
         return m_screen->cursor.col;
 }
 
 /*
- * VteTerminalPrivate::set_cursor_coords:
+ * Terminal::set_cursor_coords:
  * @row: the row. 0-based and relative to the scrolling region
  * @col: the column. 0-based from 0 to m_column_count - 1
  *
@@ -861,7 +864,7 @@ VteTerminalPrivate::get_cursor_column() const
  * Sets the cursor column to @col, clamped to the range 0..m_column_count-1.
  */
 void
-VteTerminalPrivate::set_cursor_coords(vte::grid::row_t row,
+Terminal::set_cursor_coords(vte::grid::row_t row,
                                       vte::grid::column_t column)
 {
         set_cursor_column(column);
@@ -869,7 +872,7 @@ VteTerminalPrivate::set_cursor_coords(vte::grid::row_t row,
 }
 
 void
-VteTerminalPrivate::set_cursor_coords1(vte::grid::row_t row,
+Terminal::set_cursor_coords1(vte::grid::row_t row,
                                       vte::grid::column_t column)
 {
         set_cursor_column1(column);
@@ -878,7 +881,7 @@ VteTerminalPrivate::set_cursor_coords1(vte::grid::row_t row,
 
 /* Delete a character at the current cursor position. */
 void
-VteTerminalPrivate::delete_character()
+Terminal::delete_character()
 {
 	VteRowData *rowdata;
 	long col;
@@ -915,7 +918,7 @@ VteTerminalPrivate::delete_character()
 }
 
 void
-VteTerminalPrivate::move_cursor_down(vte::grid::row_t rows)
+Terminal::move_cursor_down(vte::grid::row_t rows)
 {
         rows = CLAMP(rows, 1, m_row_count);
 
@@ -934,7 +937,7 @@ VteTerminalPrivate::move_cursor_down(vte::grid::row_t rows)
 }
 
 void
-VteTerminalPrivate::erase_characters(long count)
+Terminal::erase_characters(long count)
 {
 	VteCell *cell;
 	long col, i;
@@ -974,7 +977,7 @@ VteTerminalPrivate::erase_characters(long count)
 
 /* Insert a blank character. */
 void
-VteTerminalPrivate::insert_blank_character()
+Terminal::insert_blank_character()
 {
         ensure_cursor_is_onscreen();
 
@@ -984,7 +987,7 @@ VteTerminalPrivate::insert_blank_character()
 }
 
 void
-VteTerminalPrivate::move_cursor_backward(vte::grid::column_t columns)
+Terminal::move_cursor_backward(vte::grid::column_t columns)
 {
         ensure_cursor_is_onscreen();
 
@@ -994,7 +997,7 @@ VteTerminalPrivate::move_cursor_backward(vte::grid::column_t columns)
 }
 
 void
-VteTerminalPrivate::move_cursor_forward(vte::grid::column_t columns)
+Terminal::move_cursor_forward(vte::grid::column_t columns)
 {
         columns = CLAMP(columns, 1, m_column_count);
 
@@ -1009,14 +1012,14 @@ VteTerminalPrivate::move_cursor_forward(vte::grid::column_t columns)
 }
 
 void
-VteTerminalPrivate::line_feed()
+Terminal::line_feed()
 {
         ensure_cursor_is_onscreen();
         cursor_down(true);
 }
 
 void
-VteTerminalPrivate::move_cursor_tab_backward(int count)
+Terminal::move_cursor_tab_backward(int count)
 {
         if (count == 0)
                 return;
@@ -1026,7 +1029,7 @@ VteTerminalPrivate::move_cursor_tab_backward(int count)
 }
 
 void
-VteTerminalPrivate::move_cursor_tab_forward(int count)
+Terminal::move_cursor_tab_forward(int count)
 {
         if (count == 0)
                 return;
@@ -1086,7 +1089,7 @@ VteTerminalPrivate::move_cursor_tab_forward(int count)
 }
 
 void
-VteTerminalPrivate::move_cursor_up(vte::grid::row_t rows)
+Terminal::move_cursor_up(vte::grid::row_t rows)
 {
         // FIXMEchpe allow 0 as no-op?
         rows = CLAMP(rows, 1, m_row_count);
@@ -1123,7 +1126,7 @@ VteTerminalPrivate::move_cursor_up(vte::grid::row_t rows)
  */
 template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
 bool
-VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
+Terminal::seq_parse_sgr_color(vte::parser::Sequence const& seq,
                                         unsigned int &idx,
                                         uint32_t& color) const noexcept
 {
@@ -1208,7 +1211,7 @@ VteTerminalPrivate::seq_parse_sgr_color(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
+Terminal::erase_in_display(vte::parser::Sequence const& seq)
 {
         /* We don't implement the protected attribute, so we can ignore selective:
          * bool selective = (seq.command() == VTE_CMD_DECSED);
@@ -1243,7 +1246,7 @@ VteTerminalPrivate::erase_in_display(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::erase_in_line(vte::parser::Sequence const& seq)
+Terminal::erase_in_line(vte::parser::Sequence const& seq)
 {
         /* We don't implement the protected attribute, so we can ignore selective:
          * bool selective = (seq.command() == VTE_CMD_DECSEL);
@@ -1271,7 +1274,7 @@ VteTerminalPrivate::erase_in_line(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::insert_lines(vte::grid::row_t param)
+Terminal::insert_lines(vte::grid::row_t param)
 {
         vte::grid::row_t end, i;
 
@@ -1305,7 +1308,7 @@ VteTerminalPrivate::insert_lines(vte::grid::row_t param)
 }
 
 void
-VteTerminalPrivate::delete_lines(vte::grid::row_t param)
+Terminal::delete_lines(vte::grid::row_t param)
 {
         vte::grid::row_t end, i;
 
@@ -1340,7 +1343,7 @@ VteTerminalPrivate::delete_lines(vte::grid::row_t param)
 }
 
 bool
-VteTerminalPrivate::get_osc_color_index(int osc,
+Terminal::get_osc_color_index(int osc,
                                         int value,
                                         int& index) const noexcept
 {
@@ -1375,7 +1378,7 @@ VteTerminalPrivate::get_osc_color_index(int osc,
 }
 
 void
-VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
+Terminal::set_color(vte::parser::Sequence const& seq,
                               vte::parser::StringTokeniser::const_iterator& token,
                               vte::parser::StringTokeniser::const_iterator const& endtoken,
                               int osc) noexcept
@@ -1400,7 +1403,7 @@ VteTerminalPrivate::set_color(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
+Terminal::set_color_index(vte::parser::Sequence const& seq,
                                     vte::parser::StringTokeniser::const_iterator& token,
                                     vte::parser::StringTokeniser::const_iterator const& endtoken,
                                     int number,
@@ -1437,7 +1440,7 @@ VteTerminalPrivate::set_color_index(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
+Terminal::set_special_color(vte::parser::Sequence const& seq,
                                       vte::parser::StringTokeniser::const_iterator& token,
                                       vte::parser::StringTokeniser::const_iterator const& endtoken,
                                       int index,
@@ -1451,7 +1454,7 @@ VteTerminalPrivate::set_special_color(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
+Terminal::reset_color(vte::parser::Sequence const& seq,
                                 vte::parser::StringTokeniser::const_iterator& token,
                                 vte::parser::StringTokeniser::const_iterator const& endtoken,
                                 int osc) noexcept
@@ -1486,7 +1489,7 @@ VteTerminalPrivate::reset_color(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::set_current_directory_uri(vte::parser::Sequence const& seq,
+Terminal::set_current_directory_uri(vte::parser::Sequence const& seq,
                                               vte::parser::StringTokeniser::const_iterator& token,
                                               vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
@@ -1508,7 +1511,7 @@ VteTerminalPrivate::set_current_directory_uri(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::set_current_file_uri(vte::parser::Sequence const& seq,
+Terminal::set_current_file_uri(vte::parser::Sequence const& seq,
                                          vte::parser::StringTokeniser::const_iterator& token,
                                          vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 
@@ -1531,7 +1534,7 @@ VteTerminalPrivate::set_current_file_uri(vte::parser::Sequence const& seq,
 }
 
 void
-VteTerminalPrivate::set_current_hyperlink(vte::parser::Sequence const& seq,
+Terminal::set_current_hyperlink(vte::parser::Sequence const& seq,
                                           vte::parser::StringTokeniser::const_iterator& token,
                                           vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept
 {
@@ -1613,12 +1616,12 @@ VteTerminalPrivate::set_current_hyperlink(vte::parser::Sequence const& seq,
  */
 
 void
-VteTerminalPrivate::NONE(vte::parser::Sequence const& seq)
+Terminal::NONE(vte::parser::Sequence const& seq)
 {
 }
 
 void
-VteTerminalPrivate::GRAPHIC(vte::parser::Sequence const& seq)
+Terminal::GRAPHIC(vte::parser::Sequence const& seq)
 {
 #if 0
         struct vte_char ch = VTE_CHAR_NULL;
@@ -1654,7 +1657,7 @@ VteTerminalPrivate::GRAPHIC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ACK(vte::parser::Sequence const& seq)
+Terminal::ACK(vte::parser::Sequence const& seq)
 {
         /*
          * ACK - acknowledge
@@ -1666,7 +1669,7 @@ VteTerminalPrivate::ACK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
+Terminal::ACS(vte::parser::Sequence const& seq)
 {
         /* ACS - announce-code-structure
          *
@@ -1748,7 +1751,7 @@ VteTerminalPrivate::ACS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::BEL(vte::parser::Sequence const& seq)
+Terminal::BEL(vte::parser::Sequence const& seq)
 {
         /*
          * BEL - sound bell tone
@@ -1761,7 +1764,7 @@ VteTerminalPrivate::BEL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::BPH(vte::parser::Sequence const& seq)
+Terminal::BPH(vte::parser::Sequence const& seq)
 {
         /*
          * BPH - break permitted here
@@ -1773,7 +1776,7 @@ VteTerminalPrivate::BPH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::BS(vte::parser::Sequence const& seq)
+Terminal::BS(vte::parser::Sequence const& seq)
 {
         /*
          * BS - backspace
@@ -1797,7 +1800,7 @@ VteTerminalPrivate::BS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
+Terminal::CBT(vte::parser::Sequence const& seq)
 {
         /*
          * CBT - cursor-backward-tabulation
@@ -1819,7 +1822,7 @@ VteTerminalPrivate::CBT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CCH(vte::parser::Sequence const& seq)
+Terminal::CCH(vte::parser::Sequence const& seq)
 {
         /*
          * CCH - cancel character
@@ -1835,7 +1838,7 @@ VteTerminalPrivate::CCH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CHA(vte::parser::Sequence const& seq)
+Terminal::CHA(vte::parser::Sequence const& seq)
 {
         /*
          * CHA - cursor-horizontal-absolute
@@ -1868,7 +1871,7 @@ VteTerminalPrivate::CHA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
+Terminal::CHT(vte::parser::Sequence const& seq)
 {
         /*
          * CHT - cursor-horizontal-forward-tabulation
@@ -1893,7 +1896,7 @@ VteTerminalPrivate::CHT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CMD(vte::parser::Sequence const& seq)
+Terminal::CMD(vte::parser::Sequence const& seq)
 {
         /*
          * CMD - coding method delimiter
@@ -1906,7 +1909,7 @@ VteTerminalPrivate::CMD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CNL(vte::parser::Sequence const& seq)
+Terminal::CNL(vte::parser::Sequence const& seq)
 {
         /*
          * CNL - cursor-next-line
@@ -1939,7 +1942,7 @@ VteTerminalPrivate::CNL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CPL(vte::parser::Sequence const& seq)
+Terminal::CPL(vte::parser::Sequence const& seq)
 {
         /*
          * CPL - cursor-preceding-line
@@ -1970,7 +1973,7 @@ VteTerminalPrivate::CPL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CR(vte::parser::Sequence const& seq)
+Terminal::CR(vte::parser::Sequence const& seq)
 {
         /*
          * CR - carriage-return
@@ -1987,7 +1990,7 @@ VteTerminalPrivate::CR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CTC(vte::parser::Sequence const& seq)
+Terminal::CTC(vte::parser::Sequence const& seq)
 {
         /*
          * CTC - cursor tabulation control
@@ -2036,7 +2039,7 @@ VteTerminalPrivate::CTC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CUB(vte::parser::Sequence const& seq)
+Terminal::CUB(vte::parser::Sequence const& seq)
 {
         /*
          * CUB - cursor-backward
@@ -2066,7 +2069,7 @@ VteTerminalPrivate::CUB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CUD(vte::parser::Sequence const& seq)
+Terminal::CUD(vte::parser::Sequence const& seq)
 {
         /*
          * CUD - cursor-down
@@ -2097,7 +2100,7 @@ VteTerminalPrivate::CUD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CUF(vte::parser::Sequence const& seq)
+Terminal::CUF(vte::parser::Sequence const& seq)
 {
         /*
          * CUF -cursor-forward
@@ -2127,7 +2130,7 @@ VteTerminalPrivate::CUF(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CUP(vte::parser::Sequence const& seq)
+Terminal::CUP(vte::parser::Sequence const& seq)
 {
         /*
          * CUP - cursor-position
@@ -2164,7 +2167,7 @@ VteTerminalPrivate::CUP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
+Terminal::CUU(vte::parser::Sequence const& seq)
 {
         /*
          * CUU - cursor-up
@@ -2195,7 +2198,7 @@ VteTerminalPrivate::CUU(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CVT(vte::parser::Sequence const& seq)
+Terminal::CVT(vte::parser::Sequence const& seq)
 {
         /*
          * CVT - cursor line tabulation
@@ -2216,7 +2219,7 @@ VteTerminalPrivate::CVT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::CnD(vte::parser::Sequence const& seq)
+Terminal::CnD(vte::parser::Sequence const& seq)
 {
         /*
          * CnD - Cn-designate
@@ -2231,7 +2234,7 @@ VteTerminalPrivate::CnD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
+Terminal::DA1(vte::parser::Sequence const& seq)
 {
         /*
          * DA1 - primary-device-attributes
@@ -2318,7 +2321,7 @@ VteTerminalPrivate::DA1(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
+Terminal::DA2(vte::parser::Sequence const& seq)
 {
         /*
          * DA2 - secondary-device-attributes
@@ -2348,7 +2351,7 @@ VteTerminalPrivate::DA2(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
+Terminal::DA3(vte::parser::Sequence const& seq)
 {
         /*
          * DA3 - tertiary-device-attributes
@@ -2369,7 +2372,7 @@ VteTerminalPrivate::DA3(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DAQ(vte::parser::Sequence const& seq)
+Terminal::DAQ(vte::parser::Sequence const& seq)
 {
         /*
          * DAQ - define area qualification
@@ -2385,7 +2388,7 @@ VteTerminalPrivate::DAQ(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DC1(vte::parser::Sequence const& seq)
+Terminal::DC1(vte::parser::Sequence const& seq)
 {
         /*
          * DC1 - device-control-1 or XON
@@ -2398,7 +2401,7 @@ VteTerminalPrivate::DC1(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DC2(vte::parser::Sequence const& seq)
+Terminal::DC2(vte::parser::Sequence const& seq)
 {
         /*
          * DC2 - device-control-2
@@ -2410,7 +2413,7 @@ VteTerminalPrivate::DC2(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DC3(vte::parser::Sequence const& seq)
+Terminal::DC3(vte::parser::Sequence const& seq)
 {
         /*
          * DC3 - device-control-3 or XOFF
@@ -2424,7 +2427,7 @@ VteTerminalPrivate::DC3(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DC4(vte::parser::Sequence const& seq)
+Terminal::DC4(vte::parser::Sequence const& seq)
 {
         /*
          * DC4 - device-control-4
@@ -2436,7 +2439,7 @@ VteTerminalPrivate::DC4(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DCH(vte::parser::Sequence const& seq)
+Terminal::DCH(vte::parser::Sequence const& seq)
 {
         /*
          * DCH - delete-character
@@ -2471,7 +2474,7 @@ VteTerminalPrivate::DCH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECAC(vte::parser::Sequence const& seq)
+Terminal::DECAC(vte::parser::Sequence const& seq)
 {
         /*
          * DECAC - assign color
@@ -2490,7 +2493,7 @@ VteTerminalPrivate::DECAC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
+Terminal::DECALN(vte::parser::Sequence const& seq)
 {
         /*
          * DECALN - screen-alignment-pattern
@@ -2530,7 +2533,7 @@ VteTerminalPrivate::DECALN(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECARR(vte::parser::Sequence const& seq)
+Terminal::DECARR(vte::parser::Sequence const& seq)
 {
         /*
          * DECARR - auto repeat rate
@@ -2545,7 +2548,7 @@ VteTerminalPrivate::DECARR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECATC(vte::parser::Sequence const& seq)
+Terminal::DECATC(vte::parser::Sequence const& seq)
 {
         /*
          * DECATC - alternate text color
@@ -2567,7 +2570,7 @@ VteTerminalPrivate::DECATC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECAUPSS(vte::parser::Sequence const& seq)
+Terminal::DECAUPSS(vte::parser::Sequence const& seq)
 {
         /*
          * DECAUPSS - assign user preferred supplemental sets
@@ -2589,7 +2592,7 @@ VteTerminalPrivate::DECAUPSS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECBI(vte::parser::Sequence const& seq)
+Terminal::DECBI(vte::parser::Sequence const& seq)
 {
         /*
          * DECBI - back-index
@@ -2606,7 +2609,7 @@ VteTerminalPrivate::DECBI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECCARA(vte::parser::Sequence const& seq)
+Terminal::DECCARA(vte::parser::Sequence const& seq)
 {
         /*
          * DECCARA - change-attributes-in-rectangular-area
@@ -2642,7 +2645,7 @@ VteTerminalPrivate::DECCARA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECCKD(vte::parser::Sequence const& seq)
+Terminal::DECCKD(vte::parser::Sequence const& seq)
 {
         /*
          * DECCKD - copy key default
@@ -2655,7 +2658,7 @@ VteTerminalPrivate::DECCKD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECCRA(vte::parser::Sequence const& seq)
+Terminal::DECCRA(vte::parser::Sequence const& seq)
 {
         /*
          * DECCRA - copy-rectangular-area
@@ -2694,7 +2697,7 @@ VteTerminalPrivate::DECCRA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECCRTST(vte::parser::Sequence const& seq)
+Terminal::DECCRTST(vte::parser::Sequence const& seq)
 {
         /*
          * DECCRTST - CRT saver time
@@ -2714,7 +2717,7 @@ VteTerminalPrivate::DECCRTST(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDC(vte::parser::Sequence const& seq)
+Terminal::DECDC(vte::parser::Sequence const& seq)
 {
         /*
          * DECDC - delete-column
@@ -2726,7 +2729,7 @@ VteTerminalPrivate::DECDC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDHL_BH(vte::parser::Sequence const& seq)
+Terminal::DECDHL_BH(vte::parser::Sequence const& seq)
 {
         /*
          * DECDHL_BH - double-width-double-height-line: bottom half
@@ -2738,7 +2741,7 @@ VteTerminalPrivate::DECDHL_BH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDHL_TH(vte::parser::Sequence const& seq)
+Terminal::DECDHL_TH(vte::parser::Sequence const& seq)
 {
         /*
          * DECDHL_TH - double-width-double-height-line: top half
@@ -2750,7 +2753,7 @@ VteTerminalPrivate::DECDHL_TH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDLD(vte::parser::Sequence const& seq)
+Terminal::DECDLD(vte::parser::Sequence const& seq)
 {
         /*
          * DECDLD - dynamically redefinable character sets extension
@@ -2763,7 +2766,7 @@ VteTerminalPrivate::DECDLD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDLDA(vte::parser::Sequence const& seq)
+Terminal::DECDLDA(vte::parser::Sequence const& seq)
 {
         /*
          * DECDLD - down line load allocation
@@ -2777,7 +2780,7 @@ VteTerminalPrivate::DECDLDA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDMAC(vte::parser::Sequence const& seq)
+Terminal::DECDMAC(vte::parser::Sequence const& seq)
 {
         /*
          * DECDMAC - define-macro
@@ -2790,7 +2793,7 @@ VteTerminalPrivate::DECDMAC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECDWL(vte::parser::Sequence const& seq)
+Terminal::DECDWL(vte::parser::Sequence const& seq)
 {
         /*
          * DECDWL - double-width-single-height-line
@@ -2802,7 +2805,7 @@ VteTerminalPrivate::DECDWL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECEFR(vte::parser::Sequence const& seq)
+Terminal::DECEFR(vte::parser::Sequence const& seq)
 {
         /*
          * DECEFR - enable-filter-rectangle
@@ -2826,7 +2829,7 @@ VteTerminalPrivate::DECEFR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECELF(vte::parser::Sequence const& seq)
+Terminal::DECELF(vte::parser::Sequence const& seq)
 {
         /*
          * DECELF - enable-local-functions
@@ -2840,7 +2843,7 @@ VteTerminalPrivate::DECELF(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECELR(vte::parser::Sequence const& seq)
+Terminal::DECELR(vte::parser::Sequence const& seq)
 {
         /*
          * DECELR - enable-locator-reporting
@@ -2861,7 +2864,7 @@ VteTerminalPrivate::DECELR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECERA(vte::parser::Sequence const& seq)
+Terminal::DECERA(vte::parser::Sequence const& seq)
 {
         /*
          * DECERA - erase-rectangular-area
@@ -2895,7 +2898,7 @@ VteTerminalPrivate::DECERA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECES(vte::parser::Sequence const& seq)
+Terminal::DECES(vte::parser::Sequence const& seq)
 {
         /*
          * DECES - enable session
@@ -2910,7 +2913,7 @@ VteTerminalPrivate::DECES(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECFI(vte::parser::Sequence const& seq)
+Terminal::DECFI(vte::parser::Sequence const& seq)
 {
         /*
          * DECFI - forward-index
@@ -2930,7 +2933,7 @@ VteTerminalPrivate::DECFI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECFRA(vte::parser::Sequence const& seq)
+Terminal::DECFRA(vte::parser::Sequence const& seq)
 {
         /*
          * DECFRA - fill-rectangular-area
@@ -2973,7 +2976,7 @@ VteTerminalPrivate::DECFRA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECIC(vte::parser::Sequence const& seq)
+Terminal::DECIC(vte::parser::Sequence const& seq)
 {
         /*
          * DECIC - insert-column
@@ -2988,7 +2991,7 @@ VteTerminalPrivate::DECIC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECINVM(vte::parser::Sequence const& seq)
+Terminal::DECINVM(vte::parser::Sequence const& seq)
 {
         /*
          * DECINVM - invoke-macro
@@ -3001,7 +3004,7 @@ VteTerminalPrivate::DECINVM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECKBD(vte::parser::Sequence const& seq)
+Terminal::DECKBD(vte::parser::Sequence const& seq)
 {
         /*
          * DECKBD - keyboard-language-selection
@@ -3014,7 +3017,7 @@ VteTerminalPrivate::DECKBD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECKPAM(vte::parser::Sequence const& seq)
+Terminal::DECKPAM(vte::parser::Sequence const& seq)
 {
         /*
          * DECKPAM - keypad-application-mode
@@ -3031,7 +3034,7 @@ VteTerminalPrivate::DECKPAM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECKPNM(vte::parser::Sequence const& seq)
+Terminal::DECKPNM(vte::parser::Sequence const& seq)
 {
         /*
          * DECKPNM - keypad-numeric-mode
@@ -3046,7 +3049,7 @@ VteTerminalPrivate::DECKPNM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECLANS(vte::parser::Sequence const& seq)
+Terminal::DECLANS(vte::parser::Sequence const& seq)
 {
         /*
          * DECLANS - load answerback message
@@ -3058,7 +3061,7 @@ VteTerminalPrivate::DECLANS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECLBAN(vte::parser::Sequence const& seq)
+Terminal::DECLBAN(vte::parser::Sequence const& seq)
 {
         /*
          * DECLBAN - load banner message
@@ -3072,7 +3075,7 @@ VteTerminalPrivate::DECLBAN(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECLBD(vte::parser::Sequence const& seq)
+Terminal::DECLBD(vte::parser::Sequence const& seq)
 {
         /*
          * DECLBD - locator button define
@@ -3082,7 +3085,7 @@ VteTerminalPrivate::DECLBD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECLFKC(vte::parser::Sequence const& seq)
+Terminal::DECLFKC(vte::parser::Sequence const& seq)
 {
         /*
          * DECLFKC - local-function-key-control
@@ -3095,7 +3098,7 @@ VteTerminalPrivate::DECLFKC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECLL(vte::parser::Sequence const& seq)
+Terminal::DECLL(vte::parser::Sequence const& seq)
 {
         /*
          * DECLL - load-leds
@@ -3115,7 +3118,7 @@ VteTerminalPrivate::DECLL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECLTOD(vte::parser::Sequence const& seq)
+Terminal::DECLTOD(vte::parser::Sequence const& seq)
 {
         /*
          * DECLTOD - load-time-of-day
@@ -3128,7 +3131,7 @@ VteTerminalPrivate::DECLTOD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPAK(vte::parser::Sequence const& seq)
+Terminal::DECPAK(vte::parser::Sequence const& seq)
 {
         /*
          * DECPAK - program alphanumeric key
@@ -3141,7 +3144,7 @@ VteTerminalPrivate::DECPAK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
+Terminal::DECPCTERM(vte::parser::Sequence const& seq)
 {
         /*
          * DECPCTERM - pcterm-mode
@@ -3155,7 +3158,7 @@ VteTerminalPrivate::DECPCTERM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPCTERM_OR_XTERM_RPM(vte::parser::Sequence const& seq)
+Terminal::DECPCTERM_OR_XTERM_RPM(vte::parser::Sequence const& seq)
 {
         /*
          * There's a conflict between DECPCTERM and XTERM-RPM.
@@ -3172,7 +3175,7 @@ VteTerminalPrivate::DECPCTERM_OR_XTERM_RPM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPFK(vte::parser::Sequence const& seq)
+Terminal::DECPFK(vte::parser::Sequence const& seq)
 {
         /*
          * DECPFK - program function key
@@ -3185,7 +3188,7 @@ VteTerminalPrivate::DECPFK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPKA(vte::parser::Sequence const& seq)
+Terminal::DECPKA(vte::parser::Sequence const& seq)
 {
         /*
          * DECPKA - program-key-action
@@ -3204,7 +3207,7 @@ VteTerminalPrivate::DECPKA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPKFMR(vte::parser::Sequence const& seq)
+Terminal::DECPKFMR(vte::parser::Sequence const& seq)
 {
         /*
          * DECPKFMR - program-key-free-memory-report
@@ -3216,7 +3219,7 @@ VteTerminalPrivate::DECPKFMR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECPS(vte::parser::Sequence const& seq)
+Terminal::DECPS(vte::parser::Sequence const& seq)
 {
         /*
          * DECPS - play sound
@@ -3239,7 +3242,7 @@ VteTerminalPrivate::DECPS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRARA(vte::parser::Sequence const& seq)
+Terminal::DECRARA(vte::parser::Sequence const& seq)
 {
         /*
          * DECRARA - reverse-attributes-in-rectangular-area
@@ -3278,7 +3281,7 @@ VteTerminalPrivate::DECRARA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRC(vte::parser::Sequence const& seq)
+Terminal::DECRC(vte::parser::Sequence const& seq)
 {
         /*
          * DECRC - restore-cursor
@@ -3301,7 +3304,7 @@ VteTerminalPrivate::DECRC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECREGIS(vte::parser::Sequence const& seq)
+Terminal::DECREGIS(vte::parser::Sequence const& seq)
 {
         /*
          * DECREGIS - ReGIS graphics
@@ -3311,7 +3314,7 @@ VteTerminalPrivate::DECREGIS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
+Terminal::DECREQTPARM(vte::parser::Sequence const& seq)
 {
         /*
          * DECREQTPARM - request-terminal-parameters
@@ -3380,7 +3383,7 @@ VteTerminalPrivate::DECREQTPARM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQCRA(vte::parser::Sequence const& seq)
+Terminal::DECRQCRA(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQCRA - request checksum of rectangular area
@@ -3464,7 +3467,7 @@ VteTerminalPrivate::DECRQCRA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQDE(vte::parser::Sequence const& seq)
+Terminal::DECRQDE(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQDE - request-display-extent
@@ -3477,7 +3480,7 @@ VteTerminalPrivate::DECRQDE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQKT(vte::parser::Sequence const& seq)
+Terminal::DECRQKT(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQKT - request-key-type
@@ -3489,7 +3492,7 @@ VteTerminalPrivate::DECRQKT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQLP(vte::parser::Sequence const& seq)
+Terminal::DECRQLP(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQLP - request-locator-position
@@ -3502,7 +3505,7 @@ VteTerminalPrivate::DECRQLP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQM_ECMA(vte::parser::Sequence const& seq)
+Terminal::DECRQM_ECMA(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQM_ECMA - request-mode-ecma
@@ -3540,7 +3543,7 @@ VteTerminalPrivate::DECRQM_ECMA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQM_DEC(vte::parser::Sequence const& seq)
+Terminal::DECRQM_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQM_DEC - request-mode-dec
@@ -3569,7 +3572,7 @@ VteTerminalPrivate::DECRQM_DEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQPKFM(vte::parser::Sequence const& seq)
+Terminal::DECRQPKFM(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQPKFM - request-program-key-free-memory
@@ -3581,7 +3584,7 @@ VteTerminalPrivate::DECRQPKFM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQPSR(vte::parser::Sequence const& seq)
+Terminal::DECRQPSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQPSR - request-presentation-state-report
@@ -3623,7 +3626,7 @@ VteTerminalPrivate::DECRQPSR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQSS(vte::parser::Sequence const& seq)
+Terminal::DECRQSS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQSS - request selection or setting
@@ -3719,7 +3722,7 @@ VteTerminalPrivate::DECRQSS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQTSR(vte::parser::Sequence const& seq)
+Terminal::DECRQTSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQTSR - request-terminal-state-report
@@ -3765,7 +3768,7 @@ VteTerminalPrivate::DECRQTSR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRQUPSS(vte::parser::Sequence const& seq)
+Terminal::DECRQUPSS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRQUPSS - request-user-preferred-supplemental-set
@@ -3782,7 +3785,7 @@ VteTerminalPrivate::DECRQUPSS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRSPS(vte::parser::Sequence const& seq)
+Terminal::DECRSPS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRSPS - restore presentation state
@@ -3811,7 +3814,7 @@ VteTerminalPrivate::DECRSPS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECRSTS(vte::parser::Sequence const& seq)
+Terminal::DECRSTS(vte::parser::Sequence const& seq)
 {
         /*
          * DECRSTS - restore terminal state
@@ -3840,7 +3843,7 @@ VteTerminalPrivate::DECRSTS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSACE(vte::parser::Sequence const& seq)
+Terminal::DECSACE(vte::parser::Sequence const& seq)
 {
         /*
          * DECSACE - select-attribute-change-extent
@@ -3865,7 +3868,7 @@ VteTerminalPrivate::DECSACE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSASD(vte::parser::Sequence const& seq)
+Terminal::DECSASD(vte::parser::Sequence const& seq)
 {
         /*
          * DECSASD - select-active-status-display
@@ -3886,7 +3889,7 @@ VteTerminalPrivate::DECSASD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSC(vte::parser::Sequence const& seq)
+Terminal::DECSC(vte::parser::Sequence const& seq)
 {
         /*
          * DECSC - save-cursor
@@ -3910,7 +3913,7 @@ VteTerminalPrivate::DECSC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSCA(vte::parser::Sequence const& seq)
+Terminal::DECSCA(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCA - select character protection attribute
@@ -3947,7 +3950,7 @@ VteTerminalPrivate::DECSCA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSCL(vte::parser::Sequence const& seq)
+Terminal::DECSCL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCL - select-conformance-level
@@ -4003,7 +4006,7 @@ VteTerminalPrivate::DECSCL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSCP(vte::parser::Sequence const& seq)
+Terminal::DECSCP(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCP - select-communication-port
@@ -4015,7 +4018,7 @@ VteTerminalPrivate::DECSCP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSCPP(vte::parser::Sequence const& seq)
+Terminal::DECSCPP(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCPP - select-columns-per-page
@@ -4037,7 +4040,7 @@ VteTerminalPrivate::DECSCPP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSCS(vte::parser::Sequence const& seq)
+Terminal::DECSCS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCS - select-communication-speed
@@ -4049,7 +4052,7 @@ VteTerminalPrivate::DECSCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSCUSR(vte::parser::Sequence const& seq)
+Terminal::DECSCUSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSCUSR - set-cursor-style
@@ -4081,7 +4084,7 @@ VteTerminalPrivate::DECSCUSR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSDDT(vte::parser::Sequence const& seq)
+Terminal::DECSDDT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSDDT - select-disconnect-delay-time
@@ -4093,7 +4096,7 @@ VteTerminalPrivate::DECSDDT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSDPT(vte::parser::Sequence const& seq)
+Terminal::DECSDPT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSDPT - select-digital-printed-data-type
@@ -4105,7 +4108,7 @@ VteTerminalPrivate::DECSDPT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSED(vte::parser::Sequence const& seq)
+Terminal::DECSED(vte::parser::Sequence const& seq)
 {
         /*
          * DECSED - selective-erase-in-display
@@ -4127,7 +4130,7 @@ VteTerminalPrivate::DECSED(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSEL(vte::parser::Sequence const& seq)
+Terminal::DECSEL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSEL - selective-erase-in-line
@@ -4149,7 +4152,7 @@ VteTerminalPrivate::DECSEL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSERA(vte::parser::Sequence const& seq)
+Terminal::DECSERA(vte::parser::Sequence const& seq)
 {
         /*
          * DECSERA - selective-erase-rectangular-area
@@ -4184,7 +4187,7 @@ VteTerminalPrivate::DECSERA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSEST(vte::parser::Sequence const& seq)
+Terminal::DECSEST(vte::parser::Sequence const& seq)
 {
         /*
          * DECSEST - energy saver time
@@ -4205,7 +4208,7 @@ VteTerminalPrivate::DECSEST(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSFC(vte::parser::Sequence const& seq)
+Terminal::DECSFC(vte::parser::Sequence const& seq)
 {
         /*
          * DECSFC - select-flow-control
@@ -4217,7 +4220,7 @@ VteTerminalPrivate::DECSFC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSIXEL(vte::parser::Sequence const& seq)
+Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSIXEL - SIXEL graphics
@@ -4227,7 +4230,7 @@ VteTerminalPrivate::DECSIXEL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSKCV(vte::parser::Sequence const& seq)
+Terminal::DECSKCV(vte::parser::Sequence const& seq)
 {
         /*
          * DECSKCV - set-key-click-volume
@@ -4249,7 +4252,7 @@ VteTerminalPrivate::DECSKCV(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSLCK(vte::parser::Sequence const& seq)
+Terminal::DECSLCK(vte::parser::Sequence const& seq)
 {
         /*
          * DECSLCK - set-lock-key-style
@@ -4262,7 +4265,7 @@ VteTerminalPrivate::DECSLCK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSLE(vte::parser::Sequence const& seq)
+Terminal::DECSLE(vte::parser::Sequence const& seq)
 {
         /*
          * DECSLE - select-locator-events
@@ -4274,7 +4277,7 @@ VteTerminalPrivate::DECSLE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSLPP(vte::parser::Sequence const& seq)
+Terminal::DECSLPP(vte::parser::Sequence const& seq)
 {
         /*
          * DECSLPP - set-lines-per-page
@@ -4309,7 +4312,7 @@ VteTerminalPrivate::DECSLPP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSLRM(vte::parser::Sequence const& seq)
+Terminal::DECSLRM(vte::parser::Sequence const& seq)
 {
         /*
          * DECSLRM - set left and right margins
@@ -4349,7 +4352,7 @@ VteTerminalPrivate::DECSLRM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSMBV(vte::parser::Sequence const& seq)
+Terminal::DECSMBV(vte::parser::Sequence const& seq)
 {
         /*
          * DECSMBV - set-margin-bell-volume
@@ -4371,7 +4374,7 @@ VteTerminalPrivate::DECSMBV(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSMKR(vte::parser::Sequence const& seq)
+Terminal::DECSMKR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSMKR - select-modifier-key-reporting
@@ -4386,7 +4389,7 @@ VteTerminalPrivate::DECSMKR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSNLS(vte::parser::Sequence const& seq)
+Terminal::DECSNLS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSNLS - set-lines-per-screen
@@ -4407,7 +4410,7 @@ VteTerminalPrivate::DECSNLS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSPMA(vte::parser::Sequence const& seq)
+Terminal::DECSPMA(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPMA - session page memory allocation
@@ -4420,7 +4423,7 @@ VteTerminalPrivate::DECSPMA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSPP(vte::parser::Sequence const& seq)
+Terminal::DECSPP(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPP - set-port-parameter
@@ -4434,7 +4437,7 @@ VteTerminalPrivate::DECSPP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSPPCS(vte::parser::Sequence const& seq)
+Terminal::DECSPPCS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPPCS - select-pro-printer-character-set
@@ -4447,7 +4450,7 @@ VteTerminalPrivate::DECSPPCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSPRTT(vte::parser::Sequence const& seq)
+Terminal::DECSPRTT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSPRTT - select-printer-type
@@ -4460,7 +4463,7 @@ VteTerminalPrivate::DECSPRTT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSR(vte::parser::Sequence const& seq)
+Terminal::DECSR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSR - secure-reset
@@ -4489,7 +4492,7 @@ VteTerminalPrivate::DECSR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSRFR(vte::parser::Sequence const& seq)
+Terminal::DECSRFR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSRFR - select-refresh-rate
@@ -4502,7 +4505,7 @@ VteTerminalPrivate::DECSRFR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSSCLS(vte::parser::Sequence const& seq)
+Terminal::DECSSCLS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSSCLS - set-scroll-speed
@@ -4515,7 +4518,7 @@ VteTerminalPrivate::DECSSCLS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSSDT(vte::parser::Sequence const& seq)
+Terminal::DECSSDT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSSDT - select-status-display-line-type
@@ -4537,7 +4540,7 @@ VteTerminalPrivate::DECSSDT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSSL(vte::parser::Sequence const& seq)
+Terminal::DECSSL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSSL - select-setup-language
@@ -4557,7 +4560,7 @@ VteTerminalPrivate::DECSSL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECST8C(vte::parser::Sequence const& seq)
+Terminal::DECST8C(vte::parser::Sequence const& seq)
 {
         /*
          * DECST8C - set-tab-at-every-8-columns
@@ -4576,7 +4579,7 @@ VteTerminalPrivate::DECST8C(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
+Terminal::DECSTBM(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTBM - set-top-and-bottom-margins
@@ -4660,7 +4663,7 @@ VteTerminalPrivate::DECSTBM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSTGLT(vte::parser::Sequence const& seq)
+Terminal::DECSTGLT(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTGLT - select color lookup table
@@ -4688,7 +4691,7 @@ VteTerminalPrivate::DECSTGLT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSTR(vte::parser::Sequence const& seq)
+Terminal::DECSTR(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTR - soft-terminal-reset
@@ -4702,7 +4705,7 @@ VteTerminalPrivate::DECSTR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSTRL(vte::parser::Sequence const& seq)
+Terminal::DECSTRL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTRL - set-transmit-rate-limit
@@ -4714,7 +4717,7 @@ VteTerminalPrivate::DECSTRL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSTUI(vte::parser::Sequence const& seq)
+Terminal::DECSTUI(vte::parser::Sequence const& seq)
 {
         /*
          * DECSTUI - set terminal unit ID
@@ -4727,7 +4730,7 @@ VteTerminalPrivate::DECSTUI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSWBV(vte::parser::Sequence const& seq)
+Terminal::DECSWBV(vte::parser::Sequence const& seq)
 {
         /*
          * DECSWBV - set-warning-bell-volume
@@ -4749,7 +4752,7 @@ VteTerminalPrivate::DECSWBV(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSWL(vte::parser::Sequence const& seq)
+Terminal::DECSWL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSWL - single-width-single-height-line
@@ -4761,7 +4764,7 @@ VteTerminalPrivate::DECSWL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECSZS(vte::parser::Sequence const& seq)
+Terminal::DECSZS(vte::parser::Sequence const& seq)
 {
         /*
          * DECSZS - select zero symbol
@@ -4784,7 +4787,7 @@ VteTerminalPrivate::DECSZS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECTID(vte::parser::Sequence const& seq)
+Terminal::DECTID(vte::parser::Sequence const& seq)
 {
         /*
          * DECTID - select-terminal-id
@@ -4798,7 +4801,7 @@ VteTerminalPrivate::DECTID(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECTME(vte::parser::Sequence const& seq)
+Terminal::DECTME(vte::parser::Sequence const& seq)
 {
         /*
          * DECTME - terminal-mode-emulation
@@ -4814,7 +4817,7 @@ VteTerminalPrivate::DECTME(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECTST(vte::parser::Sequence const& seq)
+Terminal::DECTST(vte::parser::Sequence const& seq)
 {
         /*
          * DECTST - invoke-confidence-test
@@ -4831,7 +4834,7 @@ VteTerminalPrivate::DECTST(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECUDK(vte::parser::Sequence const& seq)
+Terminal::DECUDK(vte::parser::Sequence const& seq)
 {
         /*
          * DECUDK - user define keys
@@ -4844,7 +4847,7 @@ VteTerminalPrivate::DECUDK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DECUS(vte::parser::Sequence const& seq)
+Terminal::DECUS(vte::parser::Sequence const& seq)
 {
         /*
          * DECUS - update session
@@ -4856,7 +4859,7 @@ VteTerminalPrivate::DECUS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
+Terminal::DL(vte::parser::Sequence const& seq)
 {
         /*
          * DL - delete-line
@@ -4891,7 +4894,7 @@ VteTerminalPrivate::DL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DLE(vte::parser::Sequence const& seq)
+Terminal::DLE(vte::parser::Sequence const& seq)
 {
         /*
          * DLE - data link escape
@@ -4905,7 +4908,7 @@ VteTerminalPrivate::DLE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DMI(vte::parser::Sequence const& seq)
+Terminal::DMI(vte::parser::Sequence const& seq)
 {
         /*
          * DMI - disable manual input
@@ -4917,7 +4920,7 @@ VteTerminalPrivate::DMI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DOCS(vte::parser::Sequence const& seq)
+Terminal::DOCS(vte::parser::Sequence const& seq)
 {
         /*
          * DOCS - designate other coding systyem
@@ -4930,7 +4933,7 @@ VteTerminalPrivate::DOCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
+Terminal::DSR_ECMA(vte::parser::Sequence const& seq)
 {
         /*
          * DSR_ECMA - Device Status Report
@@ -4995,7 +4998,7 @@ VteTerminalPrivate::DSR_ECMA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
+Terminal::DSR_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * DSR_DEC - device-status-report-dec
@@ -5158,7 +5161,7 @@ VteTerminalPrivate::DSR_DEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::DTA(vte::parser::Sequence const& seq)
+Terminal::DTA(vte::parser::Sequence const& seq)
 {
         /*
          * DTA - dimension text area
@@ -5177,7 +5180,7 @@ VteTerminalPrivate::DTA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EA(vte::parser::Sequence const& seq)
+Terminal::EA(vte::parser::Sequence const& seq)
 {
         /*
          * EA - erase in area
@@ -5211,7 +5214,7 @@ VteTerminalPrivate::EA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ECH(vte::parser::Sequence const& seq)
+Terminal::ECH(vte::parser::Sequence const& seq)
 {
         /*
          * ECH - erase-character
@@ -5256,7 +5259,7 @@ VteTerminalPrivate::ECH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ED(vte::parser::Sequence const& seq)
+Terminal::ED(vte::parser::Sequence const& seq)
 {
         /*
          * ED - erase-in-display
@@ -5292,7 +5295,7 @@ VteTerminalPrivate::ED(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EF(vte::parser::Sequence const& seq)
+Terminal::EF(vte::parser::Sequence const& seq)
 {
         /*
          * EF - erase in field
@@ -5320,7 +5323,7 @@ VteTerminalPrivate::EF(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EL(vte::parser::Sequence const& seq)
+Terminal::EL(vte::parser::Sequence const& seq)
 {
         /*
          * EL - erase-in-line
@@ -5352,7 +5355,7 @@ VteTerminalPrivate::EL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EM(vte::parser::Sequence const& seq)
+Terminal::EM(vte::parser::Sequence const& seq)
 {
         /*
          * EM - end of medium
@@ -5362,7 +5365,7 @@ VteTerminalPrivate::EM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EMI(vte::parser::Sequence const& seq)
+Terminal::EMI(vte::parser::Sequence const& seq)
 {
         /*
          * DMI - enable manual input
@@ -5374,7 +5377,7 @@ VteTerminalPrivate::EMI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ENQ(vte::parser::Sequence const& seq)
+Terminal::ENQ(vte::parser::Sequence const& seq)
 {
         /*
          * ENQ - enquiry
@@ -5388,7 +5391,7 @@ VteTerminalPrivate::ENQ(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EOT(vte::parser::Sequence const& seq)
+Terminal::EOT(vte::parser::Sequence const& seq)
 {
         /*
          * EOT - end of transmission
@@ -5401,7 +5404,7 @@ VteTerminalPrivate::EOT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::EPA(vte::parser::Sequence const& seq)
+Terminal::EPA(vte::parser::Sequence const& seq)
 {
         /*
          * EPA - end of guarded area
@@ -5418,7 +5421,7 @@ VteTerminalPrivate::EPA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ESA(vte::parser::Sequence const& seq)
+Terminal::ESA(vte::parser::Sequence const& seq)
 {
         /*
          * ESA - end of selected area
@@ -5431,7 +5434,7 @@ VteTerminalPrivate::ESA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ETB(vte::parser::Sequence const& seq)
+Terminal::ETB(vte::parser::Sequence const& seq)
 {
         /*
          * ETB - end of transmission block
@@ -5444,7 +5447,7 @@ VteTerminalPrivate::ETB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ETX(vte::parser::Sequence const& seq)
+Terminal::ETX(vte::parser::Sequence const& seq)
 {
         /*
          * ETX - end of text
@@ -5457,7 +5460,7 @@ VteTerminalPrivate::ETX(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::FF(vte::parser::Sequence const& seq)
+Terminal::FF(vte::parser::Sequence const& seq)
 {
         /*
          * FF - form-feed
@@ -5470,7 +5473,7 @@ VteTerminalPrivate::FF(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::FNK(vte::parser::Sequence const& seq)
+Terminal::FNK(vte::parser::Sequence const& seq)
 {
         /*
          * FNK - function key
@@ -5488,7 +5491,7 @@ VteTerminalPrivate::FNK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::FNT(vte::parser::Sequence const& seq)
+Terminal::FNT(vte::parser::Sequence const& seq)
 {
         /*
          * FNT - font selection
@@ -5509,7 +5512,7 @@ VteTerminalPrivate::FNT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::GCC(vte::parser::Sequence const& seq)
+Terminal::GCC(vte::parser::Sequence const& seq)
 {
         /*
          * GCC - graphic character combination
@@ -5531,7 +5534,7 @@ VteTerminalPrivate::GCC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::GSM(vte::parser::Sequence const& seq)
+Terminal::GSM(vte::parser::Sequence const& seq)
 {
         /*
          * GSM - graphic size modification
@@ -5551,7 +5554,7 @@ VteTerminalPrivate::GSM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::GSS(vte::parser::Sequence const& seq)
+Terminal::GSS(vte::parser::Sequence const& seq)
 {
         /*
          * GSM - graphic size selection
@@ -5569,7 +5572,7 @@ VteTerminalPrivate::GSS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::GnDm(vte::parser::Sequence const& seq)
+Terminal::GnDm(vte::parser::Sequence const& seq)
 {
         /*
          * GnDm - Gn-designate 9m-charset
@@ -5611,7 +5614,7 @@ VteTerminalPrivate::GnDm(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::GnDMm(vte::parser::Sequence const& seq)
+Terminal::GnDMm(vte::parser::Sequence const& seq)
 {
         /*
          * GnDm - Gn-designate multibyte 9m-charset
@@ -5626,7 +5629,7 @@ VteTerminalPrivate::GnDMm(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
+Terminal::HPA(vte::parser::Sequence const& seq)
 {
         /*
          * HPA - horizontal position absolute
@@ -5658,7 +5661,7 @@ VteTerminalPrivate::HPA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HPB(vte::parser::Sequence const& seq)
+Terminal::HPB(vte::parser::Sequence const& seq)
 {
         /*
          * HPA - horizontal position backward
@@ -5676,7 +5679,7 @@ VteTerminalPrivate::HPB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HPR(vte::parser::Sequence const& seq)
+Terminal::HPR(vte::parser::Sequence const& seq)
 {
         /*
          * HPR - horizontal-position-relative
@@ -5704,7 +5707,7 @@ VteTerminalPrivate::HPR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HT(vte::parser::Sequence const& seq)
+Terminal::HT(vte::parser::Sequence const& seq)
 {
         /*
          * HT - character tabulation
@@ -5727,7 +5730,7 @@ VteTerminalPrivate::HT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HTJ(vte::parser::Sequence const& seq)
+Terminal::HTJ(vte::parser::Sequence const& seq)
 {
         /*
          * HTJ - character tabulation with justification
@@ -5743,7 +5746,7 @@ VteTerminalPrivate::HTJ(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
+Terminal::HTS(vte::parser::Sequence const& seq)
 {
         /*
          * HTS - horizontal-tab-set
@@ -5759,7 +5762,7 @@ VteTerminalPrivate::HTS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::HVP(vte::parser::Sequence const& seq)
+Terminal::HVP(vte::parser::Sequence const& seq)
 {
         /*
          * HVP - horizontal-and-vertical-position
@@ -5784,7 +5787,7 @@ VteTerminalPrivate::HVP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
+Terminal::ICH(vte::parser::Sequence const& seq)
 {
         /*
          * ICH - insert-character
@@ -5827,7 +5830,7 @@ VteTerminalPrivate::ICH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IDCS(vte::parser::Sequence const& seq)
+Terminal::IDCS(vte::parser::Sequence const& seq)
 {
         /*
          * IDCS - identify device control string
@@ -5845,7 +5848,7 @@ VteTerminalPrivate::IDCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IGS(vte::parser::Sequence const& seq)
+Terminal::IGS(vte::parser::Sequence const& seq)
 {
         /*
          * IGS - identify graphic subrepertoire
@@ -5867,7 +5870,7 @@ VteTerminalPrivate::IGS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IL(vte::parser::Sequence const& seq)
+Terminal::IL(vte::parser::Sequence const& seq)
 {
         /*
          * IL - insert-line
@@ -5906,7 +5909,7 @@ VteTerminalPrivate::IL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IND(vte::parser::Sequence const& seq)
+Terminal::IND(vte::parser::Sequence const& seq)
 {
         /*
          * IND - index - DEPRECATED
@@ -5918,7 +5921,7 @@ VteTerminalPrivate::IND(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::INT(vte::parser::Sequence const& seq)
+Terminal::INT(vte::parser::Sequence const& seq)
 {
         /*
          * INT - interrupt
@@ -5928,7 +5931,7 @@ VteTerminalPrivate::INT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IRR(vte::parser::Sequence const& seq)
+Terminal::IRR(vte::parser::Sequence const& seq)
 {
         /*
          * IRR - identify-revised-registration
@@ -5942,7 +5945,7 @@ VteTerminalPrivate::IRR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IS1(vte::parser::Sequence const& seq)
+Terminal::IS1(vte::parser::Sequence const& seq)
 {
         /*
          * IS1 - information separator 1 / unit separator (US)
@@ -5952,7 +5955,7 @@ VteTerminalPrivate::IS1(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IS2(vte::parser::Sequence const& seq)
+Terminal::IS2(vte::parser::Sequence const& seq)
 {
         /*
          * IS2 - information separator 2 / record separator (RS)
@@ -5962,7 +5965,7 @@ VteTerminalPrivate::IS2(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IS3(vte::parser::Sequence const& seq)
+Terminal::IS3(vte::parser::Sequence const& seq)
 {
         /*
          * IS3 - information separator 3 / group separator (GS)
@@ -5972,7 +5975,7 @@ VteTerminalPrivate::IS3(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::IS4(vte::parser::Sequence const& seq)
+Terminal::IS4(vte::parser::Sequence const& seq)
 {
         /*
          * IS4 - information separator 4 / file separator (FS)
@@ -5982,7 +5985,7 @@ VteTerminalPrivate::IS4(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::JFY(vte::parser::Sequence const& seq)
+Terminal::JFY(vte::parser::Sequence const& seq)
 {
         /*
          * JFY - justify
@@ -5994,7 +5997,7 @@ VteTerminalPrivate::JFY(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
+Terminal::LF(vte::parser::Sequence const& seq)
 {
         /*
          * LF - line-feed
@@ -6013,7 +6016,7 @@ VteTerminalPrivate::LF(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS0(vte::parser::Sequence const& seq)
+Terminal::LS0(vte::parser::Sequence const& seq)
 {
         /*
          * LS0 -locking shift 0 (8 bit)
@@ -6032,7 +6035,7 @@ VteTerminalPrivate::LS0(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS1(vte::parser::Sequence const& seq)
+Terminal::LS1(vte::parser::Sequence const& seq)
 {
         /*
          * LS1 -locking shift 1 (8 bit)
@@ -6051,7 +6054,7 @@ VteTerminalPrivate::LS1(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS1R(vte::parser::Sequence const& seq)
+Terminal::LS1R(vte::parser::Sequence const& seq)
 {
         /*
          * LS1R - locking-shift-1-right
@@ -6066,7 +6069,7 @@ VteTerminalPrivate::LS1R(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS2(vte::parser::Sequence const& seq)
+Terminal::LS2(vte::parser::Sequence const& seq)
 {
         /*
          * LS2 - locking-shift-2
@@ -6081,7 +6084,7 @@ VteTerminalPrivate::LS2(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS2R(vte::parser::Sequence const& seq)
+Terminal::LS2R(vte::parser::Sequence const& seq)
 {
         /*
          * LS2R - locking-shift-2-right
@@ -6096,7 +6099,7 @@ VteTerminalPrivate::LS2R(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS3(vte::parser::Sequence const& seq)
+Terminal::LS3(vte::parser::Sequence const& seq)
 {
         /*
          * LS3 - locking-shift-3
@@ -6112,7 +6115,7 @@ VteTerminalPrivate::LS3(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::LS3R(vte::parser::Sequence const& seq)
+Terminal::LS3R(vte::parser::Sequence const& seq)
 {
         /*
          * LS3R - locking-shift-3-right
@@ -6127,7 +6130,7 @@ VteTerminalPrivate::LS3R(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::MC_ECMA(vte::parser::Sequence const& seq)
+Terminal::MC_ECMA(vte::parser::Sequence const& seq)
 {
         /*
          * MC_ECMA - media-copy-ecma
@@ -6140,7 +6143,7 @@ VteTerminalPrivate::MC_ECMA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::MC_DEC(vte::parser::Sequence const& seq)
+Terminal::MC_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * MC_DEC - media-copy-dec
@@ -6152,7 +6155,7 @@ VteTerminalPrivate::MC_DEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::MW(vte::parser::Sequence const& seq)
+Terminal::MW(vte::parser::Sequence const& seq)
 {
         /*
          * MW - message waiting
@@ -6164,7 +6167,7 @@ VteTerminalPrivate::MW(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::NAK(vte::parser::Sequence const& seq)
+Terminal::NAK(vte::parser::Sequence const& seq)
 {
         /*
          * NAK - negative acknowledge
@@ -6177,7 +6180,7 @@ VteTerminalPrivate::NAK(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::NBH(vte::parser::Sequence const& seq)
+Terminal::NBH(vte::parser::Sequence const& seq)
 {
         /*
          * BPH - no break permitted here
@@ -6189,7 +6192,7 @@ VteTerminalPrivate::NBH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::NEL(vte::parser::Sequence const& seq)
+Terminal::NEL(vte::parser::Sequence const& seq)
 {
         /*
          * NEL - next-line
@@ -6209,7 +6212,7 @@ VteTerminalPrivate::NEL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::NP(vte::parser::Sequence const& seq)
+Terminal::NP(vte::parser::Sequence const& seq)
 {
         /*
          * NP - next-page
@@ -6230,7 +6233,7 @@ VteTerminalPrivate::NP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::NUL(vte::parser::Sequence const& seq)
+Terminal::NUL(vte::parser::Sequence const& seq)
 {
         /*
          * NUL - nothing
@@ -6240,7 +6243,7 @@ VteTerminalPrivate::NUL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
+Terminal::OSC(vte::parser::Sequence const& seq)
 {
         /*
          * OSC - operating system command
@@ -6390,7 +6393,7 @@ VteTerminalPrivate::OSC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PEC(vte::parser::Sequence const& seq)
+Terminal::PEC(vte::parser::Sequence const& seq)
 {
         /*
          * PEC - presentation expand or contract
@@ -6402,7 +6405,7 @@ VteTerminalPrivate::PEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PFS(vte::parser::Sequence const& seq)
+Terminal::PFS(vte::parser::Sequence const& seq)
 {
         /*
          * PFS - page format selection
@@ -6414,7 +6417,7 @@ VteTerminalPrivate::PFS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PLD(vte::parser::Sequence const& seq)
+Terminal::PLD(vte::parser::Sequence const& seq)
 {
         /*
          * PLD - partial line forward
@@ -6426,7 +6429,7 @@ VteTerminalPrivate::PLD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PLU(vte::parser::Sequence const& seq)
+Terminal::PLU(vte::parser::Sequence const& seq)
 {
         /*
          * PLU - partial line backward
@@ -6438,7 +6441,7 @@ VteTerminalPrivate::PLU(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PP(vte::parser::Sequence const& seq)
+Terminal::PP(vte::parser::Sequence const& seq)
 {
         /*
          * PP - preceding page
@@ -6459,7 +6462,7 @@ VteTerminalPrivate::PP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PPA(vte::parser::Sequence const& seq)
+Terminal::PPA(vte::parser::Sequence const& seq)
 {
         /*
          * PPA - page position absolute
@@ -6481,7 +6484,7 @@ VteTerminalPrivate::PPA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PPB(vte::parser::Sequence const& seq)
+Terminal::PPB(vte::parser::Sequence const& seq)
 {
         /*
          * PPB - page position backward
@@ -6502,7 +6505,7 @@ VteTerminalPrivate::PPB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PPR(vte::parser::Sequence const& seq)
+Terminal::PPR(vte::parser::Sequence const& seq)
 {
         /*
          * PPR - page position foward
@@ -6523,7 +6526,7 @@ VteTerminalPrivate::PPR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PTX(vte::parser::Sequence const& seq)
+Terminal::PTX(vte::parser::Sequence const& seq)
 {
         /*
          * PTX - parallel texts
@@ -6551,7 +6554,7 @@ VteTerminalPrivate::PTX(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PU1(vte::parser::Sequence const& seq)
+Terminal::PU1(vte::parser::Sequence const& seq)
 {
         /*
          * PU1 - private use 1
@@ -6563,7 +6566,7 @@ VteTerminalPrivate::PU1(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::PU2(vte::parser::Sequence const& seq)
+Terminal::PU2(vte::parser::Sequence const& seq)
 {
         /*
          * PU1 - private use 2
@@ -6575,7 +6578,7 @@ VteTerminalPrivate::PU2(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::QUAD(vte::parser::Sequence const& seq)
+Terminal::QUAD(vte::parser::Sequence const& seq)
 {
         /*
          * QUAD - quad
@@ -6587,7 +6590,7 @@ VteTerminalPrivate::QUAD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::REP(vte::parser::Sequence const& seq)
+Terminal::REP(vte::parser::Sequence const& seq)
 {
         /*
          * REP - repeat
@@ -6611,7 +6614,7 @@ VteTerminalPrivate::REP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::RI(vte::parser::Sequence const& seq)
+Terminal::RI(vte::parser::Sequence const& seq)
 {
         /*
          * RI - reverse-index
@@ -6655,7 +6658,7 @@ VteTerminalPrivate::RI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
+Terminal::RIS(vte::parser::Sequence const& seq)
 {
         /*
          * RIS - reset-to-initial-state
@@ -6669,7 +6672,7 @@ VteTerminalPrivate::RIS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::RLOGIN_MML(vte::parser::Sequence const& seq)
+Terminal::RLOGIN_MML(vte::parser::Sequence const& seq)
 {
         /*
          * RLOGIN_MML - RLogin music markup language
@@ -6681,7 +6684,7 @@ VteTerminalPrivate::RLOGIN_MML(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::RM_ECMA(vte::parser::Sequence const& seq)
+Terminal::RM_ECMA(vte::parser::Sequence const& seq)
 {
         /*
          * RM_ECMA - reset-mode-ecma
@@ -6695,7 +6698,7 @@ VteTerminalPrivate::RM_ECMA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
+Terminal::RM_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * RM_DEC - reset-mode-dec
@@ -6710,7 +6713,7 @@ VteTerminalPrivate::RM_DEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SCORC(vte::parser::Sequence const& seq)
+Terminal::SCORC(vte::parser::Sequence const& seq)
 {
         /*
          * SCORC - SCO restore-cursor
@@ -6722,7 +6725,7 @@ VteTerminalPrivate::SCORC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SACS(vte::parser::Sequence const& seq)
+Terminal::SACS(vte::parser::Sequence const& seq)
 {
         /*
          * SACS - set additional character separation
@@ -6740,7 +6743,7 @@ VteTerminalPrivate::SACS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SAPV(vte::parser::Sequence const& seq)
+Terminal::SAPV(vte::parser::Sequence const& seq)
 {
         /*
          * SAPV - select alternative presentation variants
@@ -6759,7 +6762,7 @@ VteTerminalPrivate::SAPV(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SCO(vte::parser::Sequence const& seq)
+Terminal::SCO(vte::parser::Sequence const& seq)
 {
         /*
          * SCO - select character orientation
@@ -6777,7 +6780,7 @@ VteTerminalPrivate::SCO(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SCP(vte::parser::Sequence const& seq)
+Terminal::SCP(vte::parser::Sequence const& seq)
 {
         /*
          * SCP - select character path
@@ -6802,7 +6805,7 @@ VteTerminalPrivate::SCP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SCS(vte::parser::Sequence const& seq)
+Terminal::SCS(vte::parser::Sequence const& seq)
 {
         /*
          * SCS - set character spacing
@@ -6818,7 +6821,7 @@ VteTerminalPrivate::SCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
+Terminal::SD(vte::parser::Sequence const& seq)
 {
         /*
          * SD - scroll down / pan up
@@ -6852,7 +6855,7 @@ VteTerminalPrivate::SD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SD_OR_XTERM_IHMT(vte::parser::Sequence const& seq)
+Terminal::SD_OR_XTERM_IHMT(vte::parser::Sequence const& seq)
 {
         /*
          * There's a conflict between SD and XTERM IHMT that we
@@ -6868,7 +6871,7 @@ VteTerminalPrivate::SD_OR_XTERM_IHMT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SDS(vte::parser::Sequence const& seq)
+Terminal::SDS(vte::parser::Sequence const& seq)
 {
         /*
          * SDS - start directed string
@@ -6887,7 +6890,7 @@ VteTerminalPrivate::SDS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SEE(vte::parser::Sequence const& seq)
+Terminal::SEE(vte::parser::Sequence const& seq)
 {
         /*
          * SEE - select editing extent
@@ -6908,7 +6911,7 @@ VteTerminalPrivate::SEE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SEF(vte::parser::Sequence const& seq)
+Terminal::SEF(vte::parser::Sequence const& seq)
 {
         /*
          * SEF - sheet eject and feed
@@ -6928,7 +6931,7 @@ VteTerminalPrivate::SEF(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
+Terminal::SGR(vte::parser::Sequence const& seq)
 {
         /*
          * SGR - select-graphics-rendition
@@ -7073,7 +7076,7 @@ VteTerminalPrivate::SGR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SHS(vte::parser::Sequence const& seq)
+Terminal::SHS(vte::parser::Sequence const& seq)
 {
         /*
          * SHS - select character spacing
@@ -7091,7 +7094,7 @@ VteTerminalPrivate::SHS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SIMD(vte::parser::Sequence const& seq)
+Terminal::SIMD(vte::parser::Sequence const& seq)
 {
         /*
          * SIMD - select implicit movement direction
@@ -7109,7 +7112,7 @@ VteTerminalPrivate::SIMD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SL(vte::parser::Sequence const& seq)
+Terminal::SL(vte::parser::Sequence const& seq)
 {
         /*
          * SL - scroll left
@@ -7127,7 +7130,7 @@ VteTerminalPrivate::SL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SLH(vte::parser::Sequence const& seq)
+Terminal::SLH(vte::parser::Sequence const& seq)
 {
         /*
          * SLH - set line home
@@ -7146,7 +7149,7 @@ VteTerminalPrivate::SLH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SLL(vte::parser::Sequence const& seq)
+Terminal::SLL(vte::parser::Sequence const& seq)
 {
         /*
          * SLL - set line limit
@@ -7165,7 +7168,7 @@ VteTerminalPrivate::SLL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SLS(vte::parser::Sequence const& seq)
+Terminal::SLS(vte::parser::Sequence const& seq)
 {
         /*
          * SLS - set line spacing
@@ -7183,7 +7186,7 @@ VteTerminalPrivate::SLS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SM_ECMA(vte::parser::Sequence const& seq)
+Terminal::SM_ECMA(vte::parser::Sequence const& seq)
 {
         /*
          * SM_ECMA - set-mode-ecma
@@ -7197,7 +7200,7 @@ VteTerminalPrivate::SM_ECMA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
+Terminal::SM_DEC(vte::parser::Sequence const& seq)
 {
         /*
          * SM_DEC - set-mode-dec
@@ -7212,7 +7215,7 @@ VteTerminalPrivate::SM_DEC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SOH(vte::parser::Sequence const& seq)
+Terminal::SOH(vte::parser::Sequence const& seq)
 {
         /*
          * SOH - start of heading
@@ -7222,7 +7225,7 @@ VteTerminalPrivate::SOH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SPA(vte::parser::Sequence const& seq)
+Terminal::SPA(vte::parser::Sequence const& seq)
 {
         /*
          * SPA - start of protected area
@@ -7239,7 +7242,7 @@ VteTerminalPrivate::SPA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SPD(vte::parser::Sequence const& seq)
+Terminal::SPD(vte::parser::Sequence const& seq)
 {
         /*
          * SPD - select presentation directions
@@ -7269,7 +7272,7 @@ VteTerminalPrivate::SPD(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SPH(vte::parser::Sequence const& seq)
+Terminal::SPH(vte::parser::Sequence const& seq)
 {
         /*
          * SPH - set page home
@@ -7288,7 +7291,7 @@ VteTerminalPrivate::SPH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SPI(vte::parser::Sequence const& seq)
+Terminal::SPI(vte::parser::Sequence const& seq)
 {
         /*
          * SPI - spacing increment
@@ -7307,7 +7310,7 @@ VteTerminalPrivate::SPI(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SPL(vte::parser::Sequence const& seq)
+Terminal::SPL(vte::parser::Sequence const& seq)
 {
         /*
          * SPL - set page limit
@@ -7326,7 +7329,7 @@ VteTerminalPrivate::SPL(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SPQR(vte::parser::Sequence const& seq)
+Terminal::SPQR(vte::parser::Sequence const& seq)
 {
         /*
          * SPQR - select print quality and rapidity
@@ -7342,7 +7345,7 @@ VteTerminalPrivate::SPQR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SR(vte::parser::Sequence const& seq)
+Terminal::SR(vte::parser::Sequence const& seq)
 {
         /*
          * SL - scroll right
@@ -7360,7 +7363,7 @@ VteTerminalPrivate::SR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SRCS(vte::parser::Sequence const& seq)
+Terminal::SRCS(vte::parser::Sequence const& seq)
 {
         /*
          * SRCS - set reduced character separation
@@ -7378,7 +7381,7 @@ VteTerminalPrivate::SRCS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SRS(vte::parser::Sequence const& seq)
+Terminal::SRS(vte::parser::Sequence const& seq)
 {
         /*
          * SRS - start reversed string
@@ -7396,7 +7399,7 @@ VteTerminalPrivate::SRS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SSA(vte::parser::Sequence const& seq)
+Terminal::SSA(vte::parser::Sequence const& seq)
 {
         /*
          * SSA - start of selected area
@@ -7413,7 +7416,7 @@ VteTerminalPrivate::SSA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SSU(vte::parser::Sequence const& seq)
+Terminal::SSU(vte::parser::Sequence const& seq)
 {
         /*
          * SSU - set size unit
@@ -7429,7 +7432,7 @@ VteTerminalPrivate::SSU(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SSW(vte::parser::Sequence const& seq)
+Terminal::SSW(vte::parser::Sequence const& seq)
 {
         /*
          * SSW - set space width
@@ -7445,7 +7448,7 @@ VteTerminalPrivate::SSW(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SS2(vte::parser::Sequence const& seq)
+Terminal::SS2(vte::parser::Sequence const& seq)
 {
         /*
          * SS2 - single-shift-2
@@ -7461,7 +7464,7 @@ VteTerminalPrivate::SS2(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SS3(vte::parser::Sequence const& seq)
+Terminal::SS3(vte::parser::Sequence const& seq)
 {
         /*
          * SS3 - single-shift-3
@@ -7477,7 +7480,7 @@ VteTerminalPrivate::SS3(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::ST(vte::parser::Sequence const& seq)
+Terminal::ST(vte::parser::Sequence const& seq)
 {
         /*
          * ST - string-terminator
@@ -7490,7 +7493,7 @@ VteTerminalPrivate::ST(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::STAB(vte::parser::Sequence const& seq)
+Terminal::STAB(vte::parser::Sequence const& seq)
 {
         /*
          * STAB - selective tabulation
@@ -7507,7 +7510,7 @@ VteTerminalPrivate::STAB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::STS(vte::parser::Sequence const& seq)
+Terminal::STS(vte::parser::Sequence const& seq)
 {
         /*
          * STS - set transmit state
@@ -7519,7 +7522,7 @@ VteTerminalPrivate::STS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::STX(vte::parser::Sequence const& seq)
+Terminal::STX(vte::parser::Sequence const& seq)
 {
         /*
          * STX - start of text
@@ -7532,7 +7535,7 @@ VteTerminalPrivate::STX(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SU(vte::parser::Sequence const& seq)
+Terminal::SU(vte::parser::Sequence const& seq)
 {
         /*
          * SU - scroll-up / pan down
@@ -7565,7 +7568,7 @@ VteTerminalPrivate::SU(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
+Terminal::SUB(vte::parser::Sequence const& seq)
 {
         /*
          * SUB - substitute
@@ -7580,7 +7583,7 @@ VteTerminalPrivate::SUB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SVS(vte::parser::Sequence const& seq)
+Terminal::SVS(vte::parser::Sequence const& seq)
 {
         /*
          * SVS - select line spacing
@@ -7599,7 +7602,7 @@ VteTerminalPrivate::SVS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::SYN(vte::parser::Sequence const& seq)
+Terminal::SYN(vte::parser::Sequence const& seq)
 {
         /*
          * SYN - synchronous idle
@@ -7612,7 +7615,7 @@ VteTerminalPrivate::SYN(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TAC(vte::parser::Sequence const& seq)
+Terminal::TAC(vte::parser::Sequence const& seq)
 {
         /*
          * TAC - tabulation aligned centre
@@ -7625,7 +7628,7 @@ VteTerminalPrivate::TAC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TALE(vte::parser::Sequence const& seq)
+Terminal::TALE(vte::parser::Sequence const& seq)
 {
         /*
          * TALE - tabulation aligned leading edge
@@ -7638,7 +7641,7 @@ VteTerminalPrivate::TALE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TATE(vte::parser::Sequence const& seq)
+Terminal::TATE(vte::parser::Sequence const& seq)
 {
         /*
          * TATE - tabulation aligned trailing edge
@@ -7651,7 +7654,7 @@ VteTerminalPrivate::TATE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
+Terminal::TBC(vte::parser::Sequence const& seq)
 {
         /*
          * TBC - tab-clear
@@ -7698,7 +7701,7 @@ VteTerminalPrivate::TBC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TCC(vte::parser::Sequence const& seq)
+Terminal::TCC(vte::parser::Sequence const& seq)
 {
         /*
          * TCC - tabulation centred on character
@@ -7712,7 +7715,7 @@ VteTerminalPrivate::TCC(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TSR(vte::parser::Sequence const& seq)
+Terminal::TSR(vte::parser::Sequence const& seq)
 {
         /*
          * TSR - tabulation stop remove
@@ -7733,7 +7736,7 @@ VteTerminalPrivate::TSR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::TSS(vte::parser::Sequence const& seq)
+Terminal::TSS(vte::parser::Sequence const& seq)
 {
         /*
          * TSS - thin space specification
@@ -7751,7 +7754,7 @@ VteTerminalPrivate::TSS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::VPA(vte::parser::Sequence const& seq)
+Terminal::VPA(vte::parser::Sequence const& seq)
 {
         /*
          * VPA - vertical line position absolute
@@ -7784,7 +7787,7 @@ VteTerminalPrivate::VPA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::VPB(vte::parser::Sequence const& seq)
+Terminal::VPB(vte::parser::Sequence const& seq)
 {
         /*
          * VPB - line position backward
@@ -7812,7 +7815,7 @@ VteTerminalPrivate::VPB(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::VPR(vte::parser::Sequence const& seq)
+Terminal::VPR(vte::parser::Sequence const& seq)
 {
         /*
          * VPR - vertical line position relative
@@ -7840,7 +7843,7 @@ VteTerminalPrivate::VPR(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::VT(vte::parser::Sequence const& seq)
+Terminal::VT(vte::parser::Sequence const& seq)
 {
         /*
          * VT - vertical-tab
@@ -7854,7 +7857,7 @@ VteTerminalPrivate::VT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::VTS(vte::parser::Sequence const& seq)
+Terminal::VTS(vte::parser::Sequence const& seq)
 {
         /*
          * VTS - line tabulation set
@@ -7867,7 +7870,7 @@ VteTerminalPrivate::VTS(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::WYCAA(vte::parser::Sequence const& seq)
+Terminal::WYCAA(vte::parser::Sequence const& seq)
 {
         /*
          * WYCAA - redefine character display attribute association
@@ -8027,7 +8030,7 @@ VteTerminalPrivate::WYCAA(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::WYDHL_BH(vte::parser::Sequence const& seq)
+Terminal::WYDHL_BH(vte::parser::Sequence const& seq)
 {
         /*
          * WYDHL_BH - single width double height line: bottom half
@@ -8039,7 +8042,7 @@ VteTerminalPrivate::WYDHL_BH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::WYDHL_TH(vte::parser::Sequence const& seq)
+Terminal::WYDHL_TH(vte::parser::Sequence const& seq)
 {
         /*
          * WYDHL_TH - single width double height line: top half
@@ -8051,7 +8054,7 @@ VteTerminalPrivate::WYDHL_TH(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::WYSCRATE(vte::parser::Sequence const& seq)
+Terminal::WYSCRATE(vte::parser::Sequence const& seq)
 {
         /*
          * WYSCRATE - set smooth scroll rate
@@ -8064,7 +8067,7 @@ VteTerminalPrivate::WYSCRATE(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::WYLSFNT(vte::parser::Sequence const& seq)
+Terminal::WYLSFNT(vte::parser::Sequence const& seq)
 {
         /*
          * WYLSFNT - load soft font
@@ -8076,7 +8079,7 @@ VteTerminalPrivate::WYLSFNT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_IHMT(vte::parser::Sequence const& seq)
+Terminal::XTERM_IHMT(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_IHMT - xterm-initiate-highlight-mouse-tracking
@@ -8086,7 +8089,7 @@ VteTerminalPrivate::XTERM_IHMT(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_MLHP(vte::parser::Sequence const& seq)
+Terminal::XTERM_MLHP(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_MLHP - xterm-memory-lock-hp-bugfix
@@ -8096,7 +8099,7 @@ VteTerminalPrivate::XTERM_MLHP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_MUHP(vte::parser::Sequence const& seq)
+Terminal::XTERM_MUHP(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_MUHP - xterm-memory-unlock-hp-bugfix
@@ -8106,7 +8109,7 @@ VteTerminalPrivate::XTERM_MUHP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_RPM(vte::parser::Sequence const& seq)
+Terminal::XTERM_RPM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_RPM - xterm-restore-private-mode
@@ -8120,7 +8123,7 @@ VteTerminalPrivate::XTERM_RPM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_RQTCAP(vte::parser::Sequence const& seq)
+Terminal::XTERM_RQTCAP(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_TQTCAP - xterm request termcap/terminfo
@@ -8130,7 +8133,7 @@ VteTerminalPrivate::XTERM_RQTCAP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_RRV(vte::parser::Sequence const& seq)
+Terminal::XTERM_RRV(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_RRV - xterm-reset-resource-value
@@ -8140,7 +8143,7 @@ VteTerminalPrivate::XTERM_RRV(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_RTM(vte::parser::Sequence const& seq)
+Terminal::XTERM_RTM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_RTM - xterm-reset-title-mode
@@ -8150,7 +8153,7 @@ VteTerminalPrivate::XTERM_RTM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_SGFX(vte::parser::Sequence const& seq)
+Terminal::XTERM_SGFX(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_SGFX - xterm-sixel-graphics
@@ -8160,7 +8163,7 @@ VteTerminalPrivate::XTERM_SGFX(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_SPM(vte::parser::Sequence const& seq)
+Terminal::XTERM_SPM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_SPM - xterm-set-private-mode
@@ -8174,7 +8177,7 @@ VteTerminalPrivate::XTERM_SPM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_SRV(vte::parser::Sequence const& seq)
+Terminal::XTERM_SRV(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_SRV - xterm-set-resource-value
@@ -8184,7 +8187,7 @@ VteTerminalPrivate::XTERM_SRV(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_STM(vte::parser::Sequence const& seq)
+Terminal::XTERM_STM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_STM - xterm-set-title-mode
@@ -8194,7 +8197,7 @@ VteTerminalPrivate::XTERM_STM(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_STCAP(vte::parser::Sequence const& seq)
+Terminal::XTERM_STCAP(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_STCAP - xterm set termcap/terminfo
@@ -8204,7 +8207,7 @@ VteTerminalPrivate::XTERM_STCAP(vte::parser::Sequence const& seq)
 }
 
 void
-VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
+Terminal::XTERM_WM(vte::parser::Sequence const& seq)
 {
         /*
          * XTERM_WM - xterm-window-management
@@ -8459,3 +8462,6 @@ VteTerminalPrivate::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
         }
 }
+
+} // namespace terminal
+} // namespace vte

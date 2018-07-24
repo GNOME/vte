@@ -53,7 +53,7 @@ typedef struct _VteCharAttributes       VteCharAttributes;
 struct _VteTerminal {
 	GtkWidget widget;
         /*< private >*/
-	gpointer *_unused_padding[1];
+	gpointer *_unused_padding[1]; /* FIXMEchpe: remove this field on the next ABI break */
 };
 
 /**

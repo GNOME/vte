@@ -22,6 +22,7 @@
 
 #include "vtedefines.hh"
 #include "vtetypes.hh"
+#include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
 #include "buffer.h"
@@ -323,11 +324,13 @@ private:
         Request *m_request;
 };
 
-/* Terminal private data. */
-class VteTerminalPrivate {
+namespace vte {
+namespace terminal {
+
+class Terminal {
 public:
-        VteTerminalPrivate(VteTerminal *t);
-        ~VteTerminalPrivate();
+        Terminal(VteTerminal *t);
+        ~Terminal();
 
 public:
         VteTerminal *m_terminal;
@@ -434,7 +437,7 @@ public:
         GString *m_selection[LAST_VTE_SELECTION];
         GtkClipboard *m_clipboard[LAST_VTE_SELECTION];
 
-        ClipboardTextRequestGtk<VteTerminalPrivate> m_paste_request;
+        ClipboardTextRequestGtk<Terminal> m_paste_request;
 
 	/* Miscellaneous options. */
         VteEraseBinding m_backspace_binding;
@@ -1354,9 +1357,12 @@ public:
 #undef _VTE_NOP
 };
 
+} // namespace terminal
+} // namespace vte
+
 extern GTimer *process_timer;
 
-VteTerminalPrivate *_vte_terminal_get_impl(VteTerminal *terminal);
+vte::terminal::Terminal* _vte_terminal_get_impl(VteTerminal *terminal);
 
 static inline bool
 _vte_double_equal(double a,
