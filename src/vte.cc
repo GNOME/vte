@@ -8098,8 +8098,8 @@ Terminal::Terminal(vte::platform::Widget* w,
         update_view_extents();
 
 #ifdef VTE_DEBUG
-        if (g_test_mode) {
-                static char const warning[] = "\e[1m\e[31mWARNING:\e[39m Test mode enabled.\e[0m\n\e[G";
+        if (g_test_flags != 0) {
+                static char const warning[] = "\e[1m\e[31mWARNING:\e[39m Test mode enabled. This is insecure!\e[0m\n\e[G";
                 feed(warning, strlen(warning), false);
         }
 #endif

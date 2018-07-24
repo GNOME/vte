@@ -31,6 +31,12 @@ char *vte_get_user_shell(void);
 _VTE_PUBLIC
 const char *vte_get_features (void);
 
+#define VTE_TEST_FLAGS_NONE (G_GUINT64_CONSTANT(0))
+#define VTE_TEST_FLAGS_ALL (~G_GUINT64_CONSTANT(0))
+
+_VTE_PUBLIC
+void vte_set_test_flags(guint64 flags);
+
 G_END_DECLS
 
 #endif /* __VTE_VTE_GLOBALS_H__ */

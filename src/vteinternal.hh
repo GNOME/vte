@@ -1369,4 +1369,6 @@ _vte_double_equal(double a,
 #pragma GCC diagnostic pop
 }
 
-extern bool g_test_mode;
+#define VTE_TEST_FLAG_DECRQCRA (G_GUINT64_CONSTANT(1) << 0)
+
+extern uint64_t g_test_flags;

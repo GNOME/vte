@@ -2145,10 +2145,8 @@ main(int argc,
                gdk_window_set_debug_updates(true);
 #ifdef VTE_DEBUG
        if (options.test_mode) {
-               g_setenv("VTE_TEST", "1", true);
+               vte_set_test_flags(VTE_TEST_FLAGS_ALL);
                options.allow_window_ops = true;
-       } else {
-               g_unsetenv("VTE_TEST");
        }
 #endif
 

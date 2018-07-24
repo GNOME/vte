@@ -3427,7 +3427,7 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
 #else
 
         /* Not in test mode? Send a dummy reply */
-        if (!g_test_mode) {
+        if ((g_test_flags & VTE_TEST_FLAG_DECRQCRA) == 0) {
                 return reply(seq, VTE_REPLY_DECCKSR, {id}, "0000");
         }
 

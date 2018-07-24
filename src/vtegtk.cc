@@ -110,7 +110,7 @@ _vte_terminal_get_impl(VteTerminal *terminal)
 guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
 GTimer *process_timer;
-bool g_test_mode = false;
+uint64_t g_test_flags = 0;
 
 static bool
 valid_color(GdkRGBA const* color)
@@ -664,12 +664,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                  "  =  vte_terminal_paint\n"
                                  "  ]} end update_timeout\n"
                                  "  >  end process_timeout\n");
-
-                char const* test_env = g_getenv("VTE_TEST");
-                if (test_env != nullptr) {
-                        g_test_mode = g_str_equal(test_env, "1");
-                        g_unsetenv("VTE_TEST");
-                }
 	}
 #endif
 
@@ -1770,6 +1764,23 @@ vte_get_user_shell (void)
                 return g_strdup (pwd->pw_shell);
 
         return NULL;
+}
+
+/**
+ * vte_set_test_flags: (skip):
+ * @flags: flags
+ *
+ * Sets test flags. This function is only useful for implementing
+ * unit tests for vte itself; it is a no-op in non-debug builds.
+ *
+ * Since: 0.54
+ */
+void
+vte_set_test_flags(guint64 flags)
+{
+#ifdef VTE_DEBUG
+        g_test_flags = flags;
+#endif
 }
 
 /* VteTerminal public API */
