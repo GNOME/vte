@@ -325,19 +325,23 @@ private:
 };
 
 namespace vte {
+
+namespace platform {
+class Widget;
+}
+
 namespace terminal {
 
 class Terminal {
 public:
-        Terminal(VteTerminal *t);
+        Terminal(vte::platform::Widget* w,
+                 VteTerminal *t);
         ~Terminal();
 
 public:
+        vte::platform::Widget* m_real_widget;
         VteTerminal *m_terminal;
         GtkWidget *m_widget;
-
-        /* Event window */
-        GdkWindow *m_event_window;
 
         /* Metric and sizing data: dimensions of the window */
         vte::grid::row_t m_row_count{VTE_ROWS};
@@ -560,11 +564,6 @@ public:
         gboolean m_mouse_autohide;           /* the API setting */
         gboolean m_mouse_cursor_autohidden;  /* whether the autohiding logic wants to hide it; even if autohiding is disabled via API */
 
-        vte::glib::RefPtr<GdkCursor> m_mouse_default_cursor;
-        vte::glib::RefPtr<GdkCursor> m_mouse_mousing_cursor;
-        vte::glib::RefPtr<GdkCursor> m_mouse_hyperlink_cursor;
-        vte::glib::RefPtr<GdkCursor> m_mouse_inviso_cursor;
-
 	/* Input method support. */
         GtkIMContext *m_im_context;
         gboolean m_im_preedit_active;
@@ -720,7 +719,7 @@ public:
                                            m_allocated_rect.height - m_padding.top - m_padding.bottom);
         }
 
-        inline bool widget_realized() const { return gtk_widget_get_realized(m_widget); }
+        bool widget_realized() const noexcept;
         inline cairo_rectangle_int_t const& get_allocated_rect() const { return m_allocated_rect; }
         inline vte::view::coord_t get_allocated_width() const { return m_allocated_rect.width; }
         inline vte::view::coord_t get_allocated_height() const { return m_allocated_rect.height; }
@@ -743,8 +742,6 @@ public:
         void confine_coordinates(long *xp,
                                  long *yp);
 
-        GdkCursor *widget_cursor_new(GdkCursorType cursor_type) const;
-
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel,
                          VteFormat format);
@@ -760,8 +757,6 @@ public:
         void widget_constructed();
         void widget_realize();
         void widget_unrealize();
-        void widget_map();
-        void widget_unmap();
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);

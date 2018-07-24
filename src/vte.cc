@@ -43,6 +43,7 @@
 #include "reaper.hh"
 #include "ring.hh"
 #include "caps.hh"
+#include "widget.hh"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
@@ -946,7 +947,7 @@ Terminal::set_cursor_from_regex_match(struct vte_match_regex *regex)
 			return;
         }
 
-	gdk_window_set_cursor(m_event_window, gdk_cursor);
+        m_real_widget->set_cursor(gdk_cursor);
 
         if (gdk_cursor)
                 g_object_unref(gdk_cursor);
@@ -990,12 +991,6 @@ Terminal::regex_match_remove(int tag)
                 regex_match_clear (regex);
 	}
 	match_hilite_clear();
-}
-
-GdkCursor *
-Terminal::widget_cursor_new(GdkCursorType cursor_type) const
-{
-	return gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type);
 }
 
 int
@@ -1520,11 +1515,17 @@ Terminal::view_coords_from_event(GdkEvent const* event) const
 {
         double x, y;
         if (event == nullptr ||
-            ((reinterpret_cast<GdkEventAny const*>(event))->window != m_event_window) ||
+            ((reinterpret_cast<GdkEventAny const*>(event))->window != m_real_widget->event_window()) ||
             !gdk_event_get_coords(event, &x, &y))
                 return vte::view::coords(-1, -1);
 
         return vte::view::coords(x - m_padding.left, y - m_padding.top);
+}
+
+bool
+Terminal::widget_realized() const noexcept
+{
+        return m_real_widget ? m_real_widget->realized() : false;
 }
 
 /*
@@ -2143,7 +2144,7 @@ Terminal::apply_mouse_cursor()
                 if (m_hyperlink_hover_idx != 0) {
                         _vte_debug_print(VTE_DEBUG_CURSOR,
                                         "Setting hyperlink mouse cursor.\n");
-                        gdk_window_set_cursor(m_event_window, m_mouse_hyperlink_cursor.get());
+                        m_real_widget->set_cursor(vte::platform::Widget::Cursor::eHyperlink);
                 } else if ((guint)m_match_tag < m_match_regexes->len) {
                         struct vte_match_regex *regex =
                                 &g_array_index(m_match_regexes,
@@ -2153,16 +2154,16 @@ Terminal::apply_mouse_cursor()
                 } else if (m_mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-			gdk_window_set_cursor(m_event_window, m_mouse_mousing_cursor.get());
+                        m_real_widget->set_cursor(vte::platform::Widget::Cursor::eMousing);
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-			gdk_window_set_cursor(m_event_window, m_mouse_default_cursor.get());
+                        m_real_widget->set_cursor(vte::platform::Widget::Cursor::eDefault);
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-		gdk_window_set_cursor(m_event_window, m_mouse_inviso_cursor.get());
+                m_real_widget->set_cursor(vte::platform::Widget::Cursor::eInvisible);
 	}
 }
 
@@ -7996,7 +7997,9 @@ Terminal::widget_set_vadjustment(GtkAdjustment *adjustment)
 				 this);
 }
 
-Terminal::Terminal(VteTerminal *t) :
+Terminal::Terminal(vte::platform::Widget* w,
+                   VteTerminal *t) :
+        m_real_widget(w),
         m_terminal(t),
         m_widget(&t->widget),
         m_row_count(VTE_ROWS),
@@ -8297,13 +8300,7 @@ Terminal::widget_size_allocate(GtkAllocation *allocation)
 		queue_contents_changed();
 	}
 
-	/* Resize the GDK window. */
 	if (widget_realized()) {
-		gdk_window_move_resize(m_event_window,
-					allocation->x,
-					allocation->y,
-					allocation->width,
-					allocation->height);
 		/* Force a repaint if we were resized. */
 		if (repaint) {
 			reset_update_rects();
@@ -8319,10 +8316,6 @@ Terminal::widget_unrealize()
 
 	/* Deallocate the cursors. */
         m_mouse_cursor_over_widget = FALSE;
-        m_mouse_default_cursor.reset();
-        m_mouse_mousing_cursor.reset();
-        m_mouse_hyperlink_cursor.reset();
-        m_mouse_inviso_cursor.reset();
 
 	match_hilite_clear();
 
@@ -8377,11 +8370,6 @@ Terminal::widget_unrealize()
 
 	/* Clear modifiers. */
 	m_modifiers = 0;
-
-        /* Destroy the even window */
-        gtk_widget_unregister_window(m_widget, m_event_window);
-        gdk_window_destroy(m_event_window);
-        m_event_window = nullptr;
 }
 
 static void
@@ -8591,50 +8579,7 @@ Terminal::widget_realize()
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
-        auto allocation = get_allocated_rect();
-
-	/* Create the stock cursors. */
         m_mouse_cursor_over_widget = FALSE;  /* We'll receive an enter_notify_event if the window appears under the cursor. */
-	m_mouse_default_cursor = widget_cursor_new(VTE_DEFAULT_CURSOR);
-	m_mouse_mousing_cursor = widget_cursor_new(VTE_MOUSING_CURSOR);
-        if (_vte_debug_on(VTE_DEBUG_HYPERLINK))
-                /* Differ from the standard regex match cursor in debug mode. */
-                m_mouse_hyperlink_cursor = widget_cursor_new(VTE_HYPERLINK_CURSOR_DEBUG);
-        else
-                m_mouse_hyperlink_cursor = widget_cursor_new(VTE_HYPERLINK_CURSOR);
-	m_mouse_inviso_cursor = widget_cursor_new(GDK_BLANK_CURSOR);
-
-	/* Create a GDK window for the widget. */
-	GdkWindowAttr attributes;
-	attributes.window_type = GDK_WINDOW_CHILD;
-	attributes.x = allocation.x;
-	attributes.y = allocation.y;
-	attributes.width = allocation.width;
-	attributes.height = allocation.height;
-	attributes.wclass = GDK_INPUT_ONLY;
-	attributes.visual = gtk_widget_get_visual(m_widget);
-	attributes.event_mask = gtk_widget_get_events(m_widget) |
-				GDK_EXPOSURE_MASK |
-				GDK_FOCUS_CHANGE_MASK |
-				GDK_SMOOTH_SCROLL_MASK |
-				GDK_SCROLL_MASK |
-				GDK_BUTTON_PRESS_MASK |
-				GDK_BUTTON_RELEASE_MASK |
-				GDK_POINTER_MOTION_MASK |
-				GDK_BUTTON1_MOTION_MASK |
-				GDK_ENTER_NOTIFY_MASK |
-				GDK_LEAVE_NOTIFY_MASK |
-				GDK_KEY_PRESS_MASK |
-				GDK_KEY_RELEASE_MASK;
-	attributes.cursor = m_mouse_default_cursor.get();
-	guint attributes_mask = GDK_WA_X |
-                                GDK_WA_Y |
-                                (attributes.visual ? GDK_WA_VISUAL : 0) |
-                                GDK_WA_CURSOR;
-
-	m_event_window = gdk_window_new(gtk_widget_get_parent_window (m_widget),
-                                        &attributes, attributes_mask);
-        gtk_widget_register_window(m_widget, m_event_window);
 
 	/* Create rendering data if this is a re-realise */
         if (m_draw == NULL) {
@@ -8653,7 +8598,7 @@ Terminal::widget_realize()
 	}
 	m_im_preedit_active = FALSE;
 	m_im_context = gtk_im_multicontext_new();
-	gtk_im_context_set_client_window(m_im_context, m_event_window);
+	gtk_im_context_set_client_window(m_im_context, m_real_widget->event_window());
 	g_signal_connect(m_im_context, "commit",
 			 G_CALLBACK(vte_terminal_im_commit_cb), this);
 	g_signal_connect(m_im_context, "preedit-start",
@@ -8672,20 +8617,6 @@ Terminal::widget_realize()
 	m_modifiers = 0;
 
 	ensure_font();
-}
-
-void
-Terminal::widget_map()
-{
-        if (m_event_window)
-                gdk_window_show_unraised(m_event_window);
-}
-
-void
-Terminal::widget_unmap()
-{
-        if (m_event_window)
-                gdk_window_hide(m_event_window);
 }
 
 static inline void

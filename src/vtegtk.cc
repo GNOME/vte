@@ -429,10 +429,10 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_object (value, widget->get_vadjustment());
                         break;
                 case PROP_HSCROLL_POLICY:
-                        g_value_set_enum (value, widget->get_hscroll_policy());
+                        g_value_set_enum (value, widget->hscroll_policy());
                         break;
                 case PROP_VSCROLL_POLICY:
-                        g_value_set_enum (value, widget->get_vscroll_policy());
+                        g_value_set_enum (value, widget->vscroll_policy());
                         break;
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));

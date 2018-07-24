@@ -22,12 +22,20 @@
 #include "vteterminal.h"
 #include "vteinternal.hh"
 
+#include "refptr.hh"
+
 namespace vte {
+
+namespace terminal {
+class Terminal;
+}
 
 namespace platform {
 
 class Widget {
 public:
+        friend class vte::terminal::Terminal;
+
         Widget(VteTerminal* t) noexcept;
         ~Widget() noexcept;
 
@@ -36,16 +44,16 @@ public:
         Widget& operator= (Widget const&) = delete;
         Widget& operator= (Widget&&) = delete;
 
-        VteTerminal* vte() const noexcept { return m_widget; }
+        GtkWidget* gtk() const noexcept { return m_widget; }
+        VteTerminal* vte() const noexcept { return reinterpret_cast<VteTerminal*>(m_widget); }
 
         vte::terminal::Terminal* terminal() const noexcept { return m_terminal; }
 
-
         void constructed() noexcept { m_terminal->widget_constructed(); }
-        void realize() noexcept { m_terminal->widget_realize(); }
-        void unrealize() noexcept { m_terminal->widget_unrealize(); }
-        void map() noexcept { m_terminal->widget_map(); }
-        void unmap() noexcept { m_terminal->widget_unmap(); }
+        void realize() noexcept;
+        void unrealize() noexcept;
+        void map() noexcept;
+        void unmap() noexcept;
         void style_updated() noexcept { m_terminal->widget_style_updated(); }
         void draw(cairo_t *cr) noexcept { m_terminal->widget_draw(cr); }
         void screen_changed (GdkScreen *previous_screen) noexcept { m_terminal->widget_screen_changed(previous_screen); }
@@ -53,7 +61,7 @@ public:
                                  int *natural_width) const noexcept { m_terminal->widget_get_preferred_width(minimum_width, natural_width); }
         void get_preferred_height(int *minimum_height,
                                   int *natural_height) const noexcept { m_terminal->widget_get_preferred_height(minimum_height, natural_height); }
-        void size_allocate(GtkAllocation *allocation) noexcept { m_terminal->widget_size_allocate(allocation); }
+        void size_allocate(GtkAllocation *allocation) noexcept;
 
         void focus_in(GdkEventFocus *event) noexcept { m_terminal->widget_focus_in(event); }
         void focus_out(GdkEventFocus *event) noexcept { m_terminal->widget_focus_out(event); }
@@ -80,13 +88,47 @@ public:
         void set_vadjustment(GtkAdjustment *adjustment) noexcept { m_terminal->widget_set_vadjustment(adjustment); }
         GtkAdjustment* get_vadjustment() const noexcept { return m_terminal->m_vadjustment; }
 
-        int get_hscroll_policy() const noexcept { return m_terminal->m_hscroll_policy; }
-        int get_vscroll_policy() const noexcept { return m_terminal->m_vscroll_policy; }
+        int hscroll_policy() const noexcept { return m_terminal->m_hscroll_policy; }
+        int vscroll_policy() const noexcept { return m_terminal->m_vscroll_policy; }
+
+protected:
+
+        enum class Cursor {
+                eDefault,
+                eInvisible,
+                eMousing,
+                eHyperlink
+        };
+
+        GdkWindow* event_window() const noexcept { return m_event_window; }
+
+        bool realized() const noexcept
+        {
+                return gtk_widget_get_realized(m_widget);
+        }
+
+        GdkCursor *create_cursor(GdkCursorType cursor_type) const noexcept;
+
+        void set_cursor(Cursor type) noexcept;
+
+        void set_cursor(GdkCursor* cursor) noexcept
+        {
+                gdk_window_set_cursor(m_event_window, cursor);
+        }
 
 private:
-        VteTerminal* m_widget;
+        GtkWidget* m_widget;
 
         vte::terminal::Terminal* m_terminal;
+
+        /* Event window */
+        GdkWindow *m_event_window;
+
+        /* Cursors */
+        vte::glib::RefPtr<GdkCursor> m_default_cursor;
+        vte::glib::RefPtr<GdkCursor> m_invisible_cursor;
+        vte::glib::RefPtr<GdkCursor> m_mousing_cursor;
+        vte::glib::RefPtr<GdkCursor> m_hyperlink_cursor;
 };
 
 } // namespace platform
