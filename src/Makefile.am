@@ -109,6 +109,8 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	vteunistr.h \
 	vteutils.cc \
 	vteutils.h \
+	widget.cc \
+	widget.hh \
 	$(NULL)
 
 nodist_libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \

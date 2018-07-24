@@ -53,6 +53,7 @@
 #include "vtedefines.hh"
 #include "vteinternal.hh"
 #include "vteaccess.h"
+#include "widget.hh"
 
 #include "vtegtk.hh"
 #include "vteregexinternal.hh"
@@ -69,11 +70,12 @@ struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
 
-typedef vte::terminal::Terminal VteTerminalPrivate;
-
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-                        G_ADD_PRIVATE(VteTerminal)
+                        {
+                                VteTerminal_private_offset =
+                                        g_type_add_instance_private(g_define_type_id, sizeof(vte::platform::Widget));
+                        }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL)
                         if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
@@ -81,12 +83,29 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         })
 #else
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
-                        G_ADD_PRIVATE(VteTerminal)
+                        {
+                                VteTerminal_private_offset =
+                                        g_type_add_instance_private(g_define_type_id, sizeof(vte::platform::Widget));
+                        }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, NULL))
 #endif
 
-#define IMPL(t) (reinterpret_cast<vte::terminal::Terminal*>(vte_terminal_get_instance_private(t)))
+static inline
+vte::platform::Widget* get_widget(VteTerminal* terminal)
+{
+        return reinterpret_cast<vte::platform::Widget*>(vte_terminal_get_instance_private(terminal));
+}
+
+#define WIDGET(t) (get_widget(t))
+
+vte::terminal::Terminal*
+_vte_terminal_get_impl(VteTerminal *terminal)
+{
+        return WIDGET(terminal)->terminal();
+}
+
+#define IMPL(t) (_vte_terminal_get_impl(t))
 
 guint signals[LAST_SIGNAL];
 GParamSpec *pspecs[LAST_PROP];
@@ -102,17 +121,12 @@ valid_color(GdkRGBA const* color)
                color->alpha >= 0. && color->alpha <= 1.;
 }
 
-vte::terminal::Terminal* _vte_terminal_get_impl(VteTerminal *terminal)
-{
-        return IMPL(terminal);
-}
-
 static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
-        IMPL(terminal)->widget_set_hadjustment(adjustment);
+        WIDGET(terminal)->set_hadjustment(adjustment);
 }
 
 static void
@@ -120,7 +134,7 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
-        IMPL(terminal)->widget_set_vadjustment(adjustment);
+        WIDGET(terminal)->set_vadjustment(adjustment);
 }
 
 static void
@@ -143,13 +157,13 @@ vte_terminal_set_vscroll_policy(VteTerminal *terminal,
 static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal)
 {
-	IMPL(terminal)->widget_copy(VTE_SELECTION_CLIPBOARD, VTE_FORMAT_TEXT);
+	WIDGET(terminal)->copy(VTE_SELECTION_CLIPBOARD, VTE_FORMAT_TEXT);
 }
 
 static void
 vte_terminal_real_paste_clipboard(VteTerminal *terminal)
 {
-	IMPL(terminal)->widget_paste(GDK_SELECTION_CLIPBOARD);
+	WIDGET(terminal)->paste(GDK_SELECTION_CLIPBOARD);
 }
 
 static void
@@ -159,7 +173,7 @@ vte_terminal_style_updated (GtkWidget *widget)
 
         GTK_WIDGET_CLASS (vte_terminal_parent_class)->style_updated (widget);
 
-        IMPL(terminal)->widget_style_updated();
+        WIDGET(terminal)->style_updated();
 }
 
 static gboolean
@@ -183,42 +197,42 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 		}
 	}
 
-        return IMPL(terminal)->widget_key_press(event);
+        return WIDGET(terminal)->key_press(event);
 }
 
 static gboolean
 vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return IMPL(terminal)->widget_key_release(event);
+        return WIDGET(terminal)->key_release(event);
 }
 
 static gboolean
 vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
 {
         VteTerminal *terminal = VTE_TERMINAL(widget);
-        return IMPL(terminal)->widget_motion_notify(event);
+        return WIDGET(terminal)->motion_notify(event);
 }
 
 static gboolean
 vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return IMPL(terminal)->widget_button_press(event);
+        return WIDGET(terminal)->button_press(event);
 }
 
 static gboolean
 vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return IMPL(terminal)->widget_button_release(event);
+        return WIDGET(terminal)->button_release(event);
 }
 
 static gboolean
 vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_scroll(event);
+        WIDGET(terminal)->scroll(event);
         return TRUE;
 }
 
@@ -226,7 +240,7 @@ static gboolean
 vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_focus_in(event);
+        WIDGET(terminal)->focus_in(event);
         return FALSE;
 }
 
@@ -234,7 +248,7 @@ static gboolean
 vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_focus_out(event);
+        WIDGET(terminal)->focus_out(event);
         return FALSE;
 }
 
@@ -248,7 +262,7 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
 	}
 
-        IMPL(terminal)->widget_enter(event);
+        WIDGET(terminal)->enter(event);
 
         return ret;
 }
@@ -263,7 +277,7 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event (widget, event);
 	}
 
-        IMPL(terminal)->widget_leave(event);
+        WIDGET(terminal)->leave(event);
 
         return ret;
 }
@@ -274,7 +288,7 @@ vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *natural_width)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_get_preferred_width(minimum_width, natural_width);
+        WIDGET(terminal)->get_preferred_width(minimum_width, natural_width);
 }
 
 static void
@@ -283,14 +297,14 @@ vte_terminal_get_preferred_height(GtkWidget *widget,
 				  int       *natural_height)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_get_preferred_height(minimum_height, natural_height);
+        WIDGET(terminal)->get_preferred_height(minimum_height, natural_height);
 }
 
 static void
 vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_size_allocate(allocation);
+        WIDGET(terminal)->size_allocate(allocation);
 }
 
 static gboolean
@@ -298,7 +312,7 @@ vte_terminal_draw(GtkWidget *widget,
                   cairo_t *cr)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
-        IMPL(terminal)->widget_draw(cr);
+        WIDGET(terminal)->draw(cr);
         return FALSE;
 }
 
@@ -308,14 +322,14 @@ vte_terminal_realize(GtkWidget *widget)
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->realize(widget);
 
         VteTerminal *terminal= VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_realize();
+        WIDGET(terminal)->realize();
 }
 
 static void
 vte_terminal_unrealize(GtkWidget *widget)
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
-        IMPL(terminal)->widget_unrealize();
+        WIDGET(terminal)->unrealize();
 
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->unrealize(widget);
 }
@@ -328,7 +342,7 @@ vte_terminal_map(GtkWidget *widget)
         VteTerminal *terminal = VTE_TERMINAL(widget);
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->map(widget);
 
-        IMPL(terminal)->widget_map();
+        WIDGET(terminal)->map();
 }
 
 static void
@@ -337,7 +351,7 @@ vte_terminal_unmap(GtkWidget *widget)
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unmap()\n");
 
         VteTerminal *terminal = VTE_TERMINAL(widget);
-        IMPL(terminal)->widget_unmap();
+        WIDGET(terminal)->unmap();
 
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->unmap(widget);
 }
@@ -352,7 +366,7 @@ vte_terminal_screen_changed (GtkWidget *widget,
                 GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed (widget, previous_screen);
         }
 
-        IMPL(terminal)->widget_screen_changed(previous_screen);
+        WIDGET(terminal)->screen_changed(previous_screen);
 }
 
 static void
@@ -362,7 +376,7 @@ vte_terminal_constructed (GObject *object)
 
         G_OBJECT_CLASS (vte_terminal_parent_class)->constructed (object);
 
-        IMPL(terminal)->widget_constructed();
+        WIDGET(terminal)->constructed();
 }
 
 static void
@@ -380,7 +394,7 @@ vte_terminal_init(VteTerminal *terminal)
 
 	/* Initialize private data. NOTE: place is zeroed */
 	place = vte_terminal_get_instance_private(terminal);
-        new (place) vte::terminal::Terminal(terminal);
+        new (place) vte::platform::Widget(terminal);
 
         gtk_widget_set_has_window(&terminal->widget, FALSE);
 }
@@ -390,7 +404,7 @@ vte_terminal_finalize(GObject *object)
 {
     	VteTerminal *terminal = VTE_TERMINAL (object);
 
-        IMPL(terminal)->~Terminal();
+        WIDGET(terminal)->~Widget();
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
@@ -403,21 +417,22 @@ vte_terminal_get_property (GObject *object,
                            GParamSpec *pspec)
 {
         VteTerminal *terminal = VTE_TERMINAL (object);
+        auto widget = WIDGET(terminal);
         auto impl = IMPL(terminal);
 
 	switch (prop_id)
                 {
                 case PROP_HADJUSTMENT:
-                        g_value_set_object (value, impl->m_hadjustment);
+                        g_value_set_object (value, widget->get_hadjustment());
                         break;
                 case PROP_VADJUSTMENT:
-                        g_value_set_object (value, impl->m_vadjustment);
+                        g_value_set_object (value, widget->get_vadjustment());
                         break;
                 case PROP_HSCROLL_POLICY:
-                        g_value_set_enum (value, impl->m_hscroll_policy);
+                        g_value_set_enum (value, widget->get_hscroll_policy());
                         break;
                 case PROP_VSCROLL_POLICY:
-                        g_value_set_enum (value, impl->m_vscroll_policy);
+                        g_value_set_enum (value, widget->get_vscroll_policy());
                         break;
                 case PROP_ALLOW_BOLD:
                         g_value_set_boolean (value, vte_terminal_get_allow_bold (terminal));
@@ -1810,7 +1825,7 @@ vte_terminal_copy_clipboard_format(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(format == VTE_FORMAT_TEXT || format == VTE_FORMAT_HTML);
 
-        IMPL(terminal)->widget_copy(VTE_SELECTION_CLIPBOARD, format);
+        WIDGET(terminal)->copy(VTE_SELECTION_CLIPBOARD, format);
 }
 
 /**
@@ -1825,7 +1840,7 @@ vte_terminal_copy_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	IMPL(terminal)->widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
+	WIDGET(terminal)->copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 }
 
 /**
@@ -1858,7 +1873,7 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
-	IMPL(terminal)->widget_paste(GDK_SELECTION_PRIMARY);
+	WIDGET(terminal)->paste(GDK_SELECTION_PRIMARY);
 }
 
 /**
