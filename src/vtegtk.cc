@@ -406,8 +406,9 @@ vte_terminal_init(VteTerminal *terminal)
 static void
 vte_terminal_finalize(GObject *object)
 {
-    	VteTerminal *terminal = VTE_TERMINAL (object);
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
 
+	VteTerminal *terminal = VTE_TERMINAL (object);
         WIDGET(terminal)->~Widget();
 
 	/* Call the inherited finalize() method. */

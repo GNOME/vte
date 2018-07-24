@@ -4499,10 +4499,8 @@ Terminal::remove_text_blink_timeout()
 void
 Terminal::beep()
 {
-	if (m_audible_bell) {
-                GdkWindow *window = gtk_widget_get_window(m_widget);
-                gdk_window_beep(window);
-	}
+	if (m_audible_bell)
+                m_real_widget->beep();
 }
 
 guint
@@ -8310,8 +8308,6 @@ Terminal::~Terminal()
 	struct vte_match_regex *regex;
 	int sel;
 	guint i;
-
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
 
 	/* Free the draw structure. */
 	if (m_draw != NULL) {

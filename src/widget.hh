@@ -85,6 +85,8 @@ public:
         void screen_changed (GdkScreen *previous_screen) noexcept;
         void settings_changed() noexcept;
 
+        void beep() noexcept;
+
         void set_hadjustment(GtkAdjustment *adjustment) noexcept { m_terminal->widget_set_hadjustment(adjustment); }
         GtkAdjustment* get_hadjustment() const noexcept { return m_terminal->m_hadjustment; }
         void set_vadjustment(GtkAdjustment *adjustment) noexcept { m_terminal->widget_set_vadjustment(adjustment); }

@@ -106,6 +106,13 @@ Widget::~Widget() noexcept
         g_free(m_terminal);
 }
 
+void
+Widget::beep() noexcept
+{
+        if (realized())
+                gdk_window_beep(gtk_widget_get_window(m_widget));
+}
+
 GdkCursor*
 Widget::create_cursor(GdkCursorType cursor_type) const noexcept
 {
