@@ -8978,10 +8978,7 @@ Terminal::translate_pango_cells(PangoAttrList *attrs,
 								 attr->start_index,
 								 MIN(n_cells, attr->end_index) -
 								 attr->start_index);
-				g_slist_foreach(list,
-                                                (GFunc)pango_attribute_destroy,
-						nullptr);
-				g_slist_free(list);
+				g_slist_free_full(list, (GDestroyNotify)pango_attribute_destroy);
 			}
 		} while (pango_attr_iterator_next(attriter) == TRUE);
 		pango_attr_iterator_destroy(attriter);
