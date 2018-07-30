@@ -5592,7 +5592,8 @@ Terminal::hyperlink_hilite_update()
 void
 Terminal::match_hilite_clear()
 {
-        invalidate_match_span();
+        if (m_match != nullptr)
+                invalidate_match_span();
 
         m_match_span.clear();
         m_match_tag = -1;
