@@ -60,7 +60,7 @@ public:
 
 protected:
         struct vte_parser m_parser;
-};
+}; // class Parser
 
 class Sequence {
 public:
@@ -379,7 +379,7 @@ private:
 
         char const* type_string() const;
         char const* command_string() const;
-};
+}; // class Sequence
 
 /* Helper classes to unify UTF-32 and UTF-8 versions of SequenceBuilder.
  * ::put will only be called with C1 controls, so it's ok to simplify
@@ -393,7 +393,7 @@ public:
         {
                 s.push_back(c);
         }
-};
+}; // class DirectEncoder
 
 class UTF8Encoder {
 public:
@@ -403,7 +403,7 @@ public:
                 s.push_back(0xc2);
                 s.push_back(c);
         }
-};
+}; // class UTF8Encoder
 
 template<class S, class E = DirectEncoder<typename S::value_type>>
 class SequenceBuilder {
@@ -660,7 +660,6 @@ private:
                                 break;
                         case ST::DEFAULT:
                                 if (c1) {
-                                        // s.push_back(0xc2); // fixmechpe
                                         m_encoder.put(s, 0x9c); // ST
                                 } else {
                                         s.push_back(0x1b); // ESC
@@ -724,7 +723,7 @@ public:
                                 g_assert_cmpint(vte_seq_arg_value(m_seq.args[n]), ==, seq.param(n));
                 }
         }
-};
+}; // class SequenceBuilder
 
 using u8SequenceBuilder = SequenceBuilder<std::string, UTF8Encoder>;
 using u32SequenceBuilder = SequenceBuilder<std::u32string>;
