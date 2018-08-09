@@ -127,6 +127,17 @@ public:
                 return VTE_CHARSET_GET_SLOT(m_seq->charset);
         }
 
+        /* introducer:
+         *
+         * This is the character introducing the sequence, if any.
+         *
+         * Returns: the introducing character
+         */
+        inline constexpr uint32_t introducer() const noexcept
+        {
+                return m_seq->introducer;
+        }
+
         /* terminator:
          *
          * This is the character terminating the sequence, or, for a
@@ -137,6 +148,18 @@ public:
         inline constexpr uint32_t terminator() const noexcept
         {
                 return m_seq->terminator;
+        }
+
+
+        /* is_c1:
+         *
+         * Whether the sequence was introduced with a C0 or C1 control.
+         *
+         * Returns: the introducing character
+         */
+        inline constexpr bool is_c1() const noexcept
+        {
+                return (introducer() & 0x80) != 0;
         }
 
         // FIXMEchpe: upgrade to C++17 and use the u32string_view version below, instead
