@@ -3635,12 +3635,12 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
          * selection or setting to report.
          *
          * Reply: DECRPSS
-         *   @args[0]: 0 if the request was valid, otherwise 1
+         *   @args[0]: 1 if the request was valid, otherwise 0
          *   DATA: the current value of the selection or setting
          *
-         * Note that xterm is buggy; it sends 1 for a valid and
-         *   0 for an invalid request; we follow the VT525
-         *   behaviour instead of xterm.
+         * Note that the VT525 documentation is buggy, is says it
+         *   sends 0 for a valid and 1 or an invalid request; we
+         *   follow the STD 070 and XTERM behaviour.
          *
          * References: VT525
          */
@@ -3665,21 +3665,21 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
 
         vte::parser::Sequence request{parser};
         if (rv != VTE_SEQ_CSI || request.size() > 0 /* any parameters */)
-                return reply(seq, VTE_REPLY_DECRPSS, {1});
+                return reply(seq, VTE_REPLY_DECRPSS, {0});
 
         switch (request.command()) {
 
         case VTE_CMD_DECSCUSR:
-                return reply(seq, VTE_REPLY_DECRPSS, {0}, {VTE_REPLY_DECSCUSR, {m_cursor_style}});
+                return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSCUSR, {m_cursor_style}});
 
         case VTE_CMD_DECSTBM:
                 if (m_scrolling_restricted)
-                        return reply(seq, VTE_REPLY_DECRPSS, {0},
+                        return reply(seq, VTE_REPLY_DECRPSS, {1},
                                      {VTE_REPLY_DECSTBM,
                                                      {m_scrolling_region.start + 1,
                                                                      m_scrolling_region.end + 1}});
                 else
-                        return reply(seq, VTE_REPLY_DECRPSS, {0}, {VTE_REPLY_DECSTBM, {}});
+                        return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSTBM, {}});
 
         case VTE_CMD_DECAC:
         case VTE_CMD_DECARR:
@@ -3717,7 +3717,7 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECTME:
         case VTE_CMD_SGR:
         default:
-                return reply(seq, VTE_REPLY_DECRPSS, {1});
+                return reply(seq, VTE_REPLY_DECRPSS, {0});
         }
 }
 
