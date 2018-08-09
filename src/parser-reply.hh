@@ -29,7 +29,7 @@ _VTE_REPLY(XTERM_FOCUS_IN,                            CSI, 'I', NONE, NONE,  ) /
 _VTE_REPLY(URXVT_MOUSE_EXT_REPORT,                    CSI, 'M', NONE, NONE,  ) /* URXVT mouse mode report */
 _VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,   CSI, 'M', LT,   NONE,  ) /* XTERM SGR mouse mode button press report */
 _VTE_REPLY(XTERM_FOCUS_OUT,                           CSI, 'O', NONE, NONE,  ) /* XTERM focus out report */
-_VTE_REPLY(DECXCPR,                                   CSI, 'R', NONE, NONE,  ) /* extended cursor position report */
+_VTE_REPLY(DECXCPR,                                   CSI, 'R', WHAT, NONE,  ) /* extended cursor position report */
 _VTE_REPLY(CPR,                                       CSI, 'R', NONE, NONE,  ) /* cursor position report */
 _VTE_REPLY(DECDA1R,                                   CSI, 'c', WHAT, NONE,  ) /* DA1 report */
 _VTE_REPLY(DECDA2R,                                   CSI, 'c', GT,   NONE,  ) /* DA2 report */
