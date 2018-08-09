@@ -1236,14 +1236,18 @@ public:
         inline void delete_character();
         inline void set_cursor_column(vte::grid::column_t col);
         inline void set_cursor_column1(vte::grid::column_t col); /* 1-based */
+        inline int get_cursor_column() const noexcept { return CLAMP(m_screen->cursor.col, 0, m_column_count - 1); }
+        inline int get_cursor_column1() const noexcept { return get_cursor_column() + 1; }
         inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
         inline void set_cursor_row1(vte::grid::row_t row /* relative to scrolling region */); /* 1-based */
+        inline int get_cursor_row() const noexcept { return CLAMP(m_screen->cursor.row, 0, m_row_count - 1); }
+        inline int get_cursor_row1() const noexcept { return get_cursor_row() + 1; }
         inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
                                       vte::grid::column_t column);
         inline void set_cursor_coords1(vte::grid::row_t row /* relative to scrolling region */,
                                        vte::grid::column_t column); /* 1-based */
-        inline vte::grid::row_t get_cursor_row() const;
-        inline vte::grid::column_t get_cursor_column() const;
+        inline vte::grid::row_t get_cursor_row_unclamped() const;
+        inline vte::grid::column_t get_cursor_column_unclamped() const;
         inline void move_cursor_up(vte::grid::row_t rows);
         inline void move_cursor_down(vte::grid::row_t rows);
         inline void erase_characters(long count);

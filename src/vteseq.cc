@@ -837,7 +837,7 @@ Terminal::set_cursor_row1(vte::grid::row_t row)
  * if set (regardless of origin mode).
  */
 vte::grid::row_t
-Terminal::get_cursor_row() const
+Terminal::get_cursor_row_unclamped() const
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
         /* Note that we do NOT check DEC_ORIGIN mode here! */
@@ -848,7 +848,7 @@ Terminal::get_cursor_row() const
 }
 
 vte::grid::column_t
-Terminal::get_cursor_column() const
+Terminal::get_cursor_column_unclamped() const
 {
         return m_screen->cursor.col;
 }
@@ -991,7 +991,7 @@ Terminal::move_cursor_backward(vte::grid::column_t columns)
 {
         ensure_cursor_is_onscreen();
 
-        auto col = get_cursor_column();
+        auto col = get_cursor_column_unclamped();
         columns = CLAMP(columns, 1, col);
         set_cursor_column(col - columns);
 }
@@ -1004,7 +1004,7 @@ Terminal::move_cursor_forward(vte::grid::column_t columns)
         ensure_cursor_is_onscreen();
 
         /* The cursor can be further to the right, don't move in that case. */
-        auto col = get_cursor_column();
+        auto col = get_cursor_column_unclamped();
         if (col < m_column_count) {
 		/* There's room to move right. */
                 set_cursor_column(col + columns);
@@ -1024,7 +1024,7 @@ Terminal::move_cursor_tab_backward(int count)
         if (count == 0)
                 return;
 
-        auto const newcol = m_tabstops.get_previous(m_screen->cursor.col, count, 0);
+        auto const newcol = m_tabstops.get_previous(get_cursor_column(), count, 0);
         set_cursor_column(newcol);
 }
 
@@ -1034,11 +1034,10 @@ Terminal::move_cursor_tab_forward(int count)
         if (count == 0)
                 return;
 
-        auto const col = m_screen->cursor.col;
-	g_assert (col >= 0);
+        auto const col = get_cursor_column();
 
 	/* Find the next tabstop, but don't go beyond the end of the line */
-        auto const newcol = m_tabstops.get_next(col, count, m_column_count - 1);
+        int const newcol = m_tabstops.get_next(col, count, m_column_count - 1);
 
 	/* Make sure we don't move cursor back (see bug #340631) */
         // FIXMEchpe how could this happen!?
@@ -2005,7 +2004,7 @@ Terminal::CTC(vte::parser::Sequence const& seq)
         case -1:
         case 0:
                 /* Set tabstop at the current cursor position */
-                m_tabstops.set(m_screen->cursor.col);
+                m_tabstops.set(get_cursor_column());
                 break;
 
         case 1:
@@ -2014,7 +2013,7 @@ Terminal::CTC(vte::parser::Sequence const& seq)
 
         case 2:
                 /* Clear tabstop at the current cursor position */
-                m_tabstops.unset(m_screen->cursor.col);
+                m_tabstops.unset(get_cursor_column());
                 break;
 
         case 3:
@@ -5758,7 +5757,7 @@ Terminal::HTS(vte::parser::Sequence const& seq)
          *             VT525
          */
 
-        m_tabstops.set(m_screen->cursor.col);
+        m_tabstops.set(get_cursor_column());
 }
 
 void
@@ -7674,7 +7673,7 @@ Terminal::TBC(vte::parser::Sequence const& seq)
         case -1:
         case 0:
                 /* Clear character tabstop at the current presentation position */
-                m_tabstops.unset(m_screen->cursor.col);
+                m_tabstops.unset(get_cursor_column());
                 break;
         case 1:
                 /* Clear line tabstop at the current line */
