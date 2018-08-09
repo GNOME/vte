@@ -1330,5 +1330,5 @@ int vte_parser_feed(struct vte_parser *parser,
 
 void vte_parser_reset(struct vte_parser *parser)
 {
-        vte_parser_feed(parser, 0x18 /* CAN */);
+        parser_transition(parser, 0, STATE_GROUND, ACTION_IGNORE);
 }
