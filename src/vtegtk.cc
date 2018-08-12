@@ -3480,7 +3480,7 @@ vte_terminal_get_column_count(VteTerminal *terminal)
  * vte_terminal_get_current_directory_uri:
  * @terminal: a #VteTerminal
  *
- * Returns: (transfer none): the URI of the current directory of the
+ * Returns: (nullable) (transfer none): the URI of the current directory of the
  *   process running in the terminal, or %NULL
  */
 const char *
@@ -3495,7 +3495,7 @@ vte_terminal_get_current_directory_uri(VteTerminal *terminal)
  * vte_terminal_get_current_file_uri:
  * @terminal: a #VteTerminal
  *
- * Returns: (transfer none): the URI of the current file the
+ * Returns: (nullable) (transfer none): the URI of the current file the
  *   process running in the terminal is operating on, or %NULL if
  *   not set
  */
