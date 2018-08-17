@@ -287,6 +287,16 @@ print_seq(GString* str,
                 break;
         }
 
+        case VTE_SEQ_SCI: {
+                if (seq->terminator <= 0x20)
+                  g_string_append_printf(str, "{SCI %d/%d}",
+                                         seq->terminator / 16,
+                                         seq->terminator % 16);
+                else
+                  g_string_append_printf(str, "{SCI %c}", seq->terminator);
+                break;
+        }
+
         default:
                 assert(false);
         }
