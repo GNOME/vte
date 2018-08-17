@@ -9,10 +9,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2017-02-28 06:44+0000\n"
-"PO-Revision-Date: 2018-03-03 18:20+0200\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2018-06-20 20:20+0000\n"
+"PO-Revision-Date: 2018-08-17 21:03+0300\n"
 "Last-Translator: Jiri Grönroos <jiri.gronroos+l10n@iki.fi>\n"
 "Language-Team: suomi <gnome-fi-laatu@lists.sourceforge.net>\n"
 "Language: fi\n"
@@ -20,32 +19,31 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.8.7.1\n"
-
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3262
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Merkkien muuntaminen merkistöstä %s merkistöön %s ei onnistu."
+"X-Generator: Poedit 2.0.6\n"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4014
+#: ../src/vte.cc:3966
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Virhe lapselta lukemisessa: %s."
 
-#: ../src/vte.cc:4153
+#: ../src/vte.cc:4122
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Virhe (%s) datan muuntamisessa lapselle, putoaa pois."
 
-#: ../src/vte.cc:7922
+#: ../src/vte.cc:8179
 msgid "WARNING"
 msgstr "VAROITUS"
 
-#: ../src/vte.cc:7923
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
-msgstr "GNUTLS ei ole käytössä; tiedot kirjoitetaan levylle salaamattomina!"
+#: ../src/vte.cc:8180
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GnuTLS ei ole käytössä; tiedot kirjoitetaan levylle ilman salausta!"
+
+#: ../src/vtegtk.cc:3618
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Merkkien muuntaminen merkistöstä %s merkistöön %s ei onnistu."
 
 #~ msgid "Copy"
 #~ msgstr "Kopioi"
@@ -54,8 +52,7 @@ msgstr "GNUTLS ei ole käytössä; tiedot kirjoitetaan levylle salaamattomina!"
 #~ msgstr "Liitä"
 
 #~ msgid "Reset (use Ctrl to reset and clear)"
-#~ msgstr ""
-#~ "Palauta asetukset (käytä Ctrl-näppäintä palauttaaksesi ja tyhjentääksesi)"
+#~ msgstr "Palauta asetukset (käytä Ctrl-näppäintä palauttaaksesi ja tyhjentääksesi)"
 
 #~ msgid "Reset"
 #~ msgstr "Palauta asetukset"
@@ -76,8 +73,7 @@ msgstr "GNUTLS ei ole käytössä; tiedot kirjoitetaan levylle salaamattomina!"
 #~ msgstr "Konsolin avaaminen ei onnistunut.\n"
 
 #~ msgid "Could not parse the geometry spec passed to --geometry"
-#~ msgstr ""
-#~ "Geometriamäärittelyä parametrissa --geometry ei voitu tulkita oikein"
+#~ msgstr "Geometriamäärittelyä parametrissa --geometry ei voitu tulkita oikein"
 
 #~ msgid "Unable to send data to child, invalid charset convertor"
 #~ msgstr "Tietoja ei voitu lähettää lapselle, virheellinen merkistömuunnin"
