@@ -1,0 +1,63 @@
+Done:
+- Implicit (level 1) and Explicit (a small subset only) modes (SM / RM 8).
+- Overall LTR or RTL direction (SCP 1 / 2 or SPD 0 / 3).
+- Possibility to autodetect paragraph direction (DECSET / DECRST 2501).
+- Possibility to make box drawing characters mirrorable (DECSET / DECRST 2500).
+- I-Beam cursor shows the character's resolved directionality when the
+  paragraph has a foreign directionality character.
+- Mouse highlighting, text copying (logical in normal modes, visual in
+  rectangle mode).
+- Mouse reporting.
+- Regex match and explicit hyperlink underlining on hover.
+- VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
+- Arabic shaping using Unicode presentation forms.
+- Test file.
+- Configure flag.
+- Keyboard arrow swapping.
+
+Bugs:
+- The way the modes apply to paragraphs, and what happens when a paragraph
+  is split or two paragraphs are joined is just a first hack, needs to be
+  reviewed, adjusted, fixed properly.
+- SPD should also update all the onscreen lines – really?
+- Or should we drop SPD?
+
+Missing from first release:
+- The entire screen is always invalidated. Have some more fine grained
+  solution (see also vte #26).
+- Probably we'd need to make Erase in Display (Below or All) sequences turn
+  the previous line to hard wrapped, requiring to keep one more line in the
+  ring's writable area.
+- Code cleanup and review, of course.
+
+Planned future improvements:
+- Real shaping (harfbuzz?).
+- Right-align RTL glyphs.
+- Implicit mode level 2 (handling BiDi control characters).
+- Mirror the glyphs that don't have mirrored counterpart.
+- Play with other possibilities for placing the cursor (especially when it's
+  at the end of the logical line).
+- Play with better placement of the preedit box.
+- Remember some lines that are no longer user-accessible as they scroll out,
+  to properly BiDi the still remaining part of that paragraph.
+- Possibility for default RTL directionality?
+- API (for what exactly)?
+
+Not planned at all:
+- Operating on the presentation component (DCSM reset).
+- BiDi in explicit mode by transferring the embedding levels (SDS, SRS...).
+- Escape sequences that modify the emulation behavior (SIMD...).
+
+Useful aliases:
+  alias ltr='echo -ne "\e[1 k"'
+  alias rtl='echo -ne "\e[2 k"'
+  alias implicit='echo -ne "\e[8h"'
+  alias explicit='echo -ne "\e[8l"'
+  alias bidi='echo -ne "\e[8h"'    # same as implicit
+  alias nobidi='echo -ne "\e[8l"'  # same as explicit
+  alias box-mirror='echo -ne "\e[?2500h"'
+  alias box-normal='echo -ne "\e[?2500l"'
+  alias auto='echo -ne "\e[?2501h"'
+  alias noauto='echo -ne "\e[?2501l"'
+  alias kbdswap='echo -ne "\e[?1243h"'
+  alias nokbdswap='echo -ne "\e[?1243l"'
