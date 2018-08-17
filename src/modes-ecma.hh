@@ -27,17 +27,26 @@
  * References: ECMA-48 § 7
  *             WY370
  */
+
+/*
+ * IRM - insertion replacement mode
+ *
+ * Default: reset
+ *
+ * References: ECMA-48 § 7.2.10
+ *             VT525
+ */
 MODE(IRM,  4)
 
 /*
  * SRM - local echo send/receive mode
- * If set, characters entered by the keyboard are shown on the
- * screen as well as being sent to the host; if reset, the
+ * If reset, characters entered by the keyboard are shown on the
+ * screen as well as being sent to the host; if set, the
  * keyboard input is only sent to the host.
  *
- * Default: reset
+ * Default: set
  *
- * References: ECMA-48 § XXX
+ * References: ECMA-48 § 7.2.15
  *             VT525
  */
 MODE(SRM, 12)
