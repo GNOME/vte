@@ -22,6 +22,7 @@
 #include <locale.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -1530,7 +1531,12 @@ window_child_exited_cb(VteTerminal* term,
                        int status,
                        VteappWindow* window)
 {
-        verbose_printerr("Child exited with status %x\n", status);
+        if (WIFEXITED(status))
+                verbose_printerr("Child exited with status %x\n", WEXITSTATUS(status));
+        else if (WIFSIGNALED(status))
+                verbose_printerr("Child terminated by signal %d\n", WTERMSIG(status));
+        else
+                verbose_printerr("Child terminated\n");
 
         if (options.output_filename != nullptr) {
                 auto file = g_file_new_for_commandline_arg(options.output_filename);

@@ -404,6 +404,18 @@ vte_terminal_init(VteTerminal *terminal)
 }
 
 static void
+vte_terminal_dispose(GObject *object)
+{
+	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_dispose()\n");
+
+	VteTerminal *terminal = VTE_TERMINAL (object);
+        WIDGET(terminal)->dispose();
+
+	/* Call the inherited dispose() method. */
+	G_OBJECT_CLASS(vte_terminal_parent_class)->dispose(object);
+}
+
+static void
 vte_terminal_finalize(GObject *object)
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
@@ -679,6 +691,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
 	/* Override some of the default handlers. */
         gobject_class->constructed = vte_terminal_constructed;
+        gobject_class->dispose = vte_terminal_dispose;
 	gobject_class->finalize = vte_terminal_finalize;
         gobject_class->get_property = vte_terminal_get_property;
         gobject_class->set_property = vte_terminal_set_property;

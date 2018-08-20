@@ -44,12 +44,14 @@ public:
         Widget& operator= (Widget const&) = delete;
         Widget& operator= (Widget&&) = delete;
 
+        GObject* object() const noexcept { return reinterpret_cast<GObject*>(m_widget); }
         GtkWidget* gtk() const noexcept { return m_widget; }
         VteTerminal* vte() const noexcept { return reinterpret_cast<VteTerminal*>(m_widget); }
 
         vte::terminal::Terminal* terminal() const noexcept { return m_terminal; }
 
         void constructed() noexcept { m_terminal->widget_constructed(); }
+        void dispose() noexcept;
         void realize() noexcept;
         void unrealize() noexcept;
         void map() noexcept;
@@ -94,6 +96,8 @@ public:
 
         int hscroll_policy() const noexcept { return m_terminal->m_hscroll_policy; }
         int vscroll_policy() const noexcept { return m_terminal->m_vscroll_policy; }
+
+        void emit_child_exited(int status) noexcept;
 
 protected:
 

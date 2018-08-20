@@ -20,9 +20,12 @@
 
 #include "widget.hh"
 
+#include <sys/wait.h> // for W_EXITCODE
+
 #include <new>
 #include <string>
 
+#include "vtegtk.hh"
 #include "debug.h"
 
 using namespace std::literals;
@@ -117,6 +120,22 @@ GdkCursor*
 Widget::create_cursor(GdkCursorType cursor_type) const noexcept
 {
 	return gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type);
+}
+
+void
+Widget::dispose() noexcept
+{
+        if (m_terminal->terminate_child()) {
+                int status = W_EXITCODE(0, SIGKILL);
+                emit_child_exited(status);
+        }
+}
+
+void
+Widget::emit_child_exited(int status) noexcept
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `child-exited'.\n");
+        g_signal_emit(object(), signals[SIGNAL_CHILD_EXITED], 0, status);
 }
 
 bool

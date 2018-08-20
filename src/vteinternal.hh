@@ -360,7 +360,7 @@ public:
         guint m_pty_input_source;
         guint m_pty_output_source;
         gboolean m_pty_input_active;
-        GPid m_pty_pid;	                /* pid of child process */
+        pid_t m_pty_pid{-1};           /* pid of child process */
         VteReaper *m_reaper;
 
 	/* Queue of chunks of data read from the PTY.
@@ -848,8 +848,9 @@ public:
         void feed_child_using_modes(char const* data,
                                     gssize length);
 
-        void watch_child (GPid child_pid);
-        void child_watch_done(GPid pid,
+        void watch_child (pid_t child_pid);
+        bool terminate_child () noexcept;
+        void child_watch_done(pid_t pid,
                               int status);
 
         void im_commit(char const* text);

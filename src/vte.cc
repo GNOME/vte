@@ -3012,7 +3012,7 @@ reaper_child_exited_cb(VteReaper *reaper,
                        int status,
                        vte::terminal::Terminal* that)
 {
-        GPid pid = GPid(ipid);
+        pid_t pid = pid_t{ipid};
 
         auto terminal = that->m_terminal;
         /* keep the vte::terminal::Terminal in a death grip */
@@ -3023,8 +3023,8 @@ reaper_child_exited_cb(VteReaper *reaper,
 }
 
 void
-Terminal::child_watch_done(GPid pid,
-                                     int status)
+Terminal::child_watch_done(pid_t pid,
+                           int status)
 {
 	if (pid != m_pty_pid)
                 return;
@@ -3061,9 +3061,8 @@ Terminal::child_watch_done(GPid pid,
         set_pty(nullptr);
 
         /* Tell observers what's happened. */
-        _vte_debug_print(VTE_DEBUG_SIGNALS,
-                         "Emitting `child-exited'.\n");
-        g_signal_emit(object, signals[SIGNAL_CHILD_EXITED], 0, status);
+        if (m_real_widget)
+                m_real_widget->emit_child_exited(status);
 
         g_object_thaw_notify(object);
 }
@@ -3182,7 +3181,7 @@ Terminal::pty_scroll_lock_changed(bool locked)
 
 /*
  * Terminal::watch_child:
- * @child_pid: a #GPid
+ * @child_pid: a #pid_t
  *
  * Watches @child_pid. When the process exists, the #VteTerminal::child-exited
  * signal will be called with the child's exit status.
@@ -3199,7 +3198,7 @@ Terminal::pty_scroll_lock_changed(bool locked)
  * the %G_SPAWN_DO_NOT_REAP_CHILD flag MUST have been passed.
  */
 void
-Terminal::watch_child (GPid child_pid)
+Terminal::watch_child (pid_t child_pid)
 {
         // FIXMEchpe: support passing child_pid = -1 to remove the wathch
         g_assert(child_pid != -1);
@@ -8017,7 +8016,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         set_size(VTE_COLUMNS, VTE_ROWS);
 	m_pty_input_source = 0;
 	m_pty_output_source = 0;
-	m_pty_pid = -1;
 
 	/* Scrolling options. */
 	m_scroll_on_keystroke = TRUE;
@@ -8310,6 +8308,13 @@ Terminal::~Terminal()
 	int sel;
 	guint i;
 
+        terminate_child();
+        set_pty(nullptr);
+        remove_update_timeout(this);
+
+        /* Stop processing input. */
+        stop_processing(this);
+
 	/* Free the draw structure. */
 	if (m_draw != NULL) {
 		_vte_draw_free(m_draw);
@@ -8390,33 +8395,9 @@ Terminal::~Terminal()
                 g_object_unref(m_reaper);
         }
 
-	/* Stop processing input. */
-	stop_processing(this);
-
 	/* Discard any pending data. */
 	_vte_byte_array_free(m_outgoing);
-
-	/* Stop the child and stop watching for input from the child. */
-	if (m_pty_pid != -1) {
-#ifdef HAVE_GETPGID
-		pid_t pgrp;
-		pgrp = getpgid(m_pty_pid);
-		if (pgrp != -1) {
-			kill(-pgrp, SIGHUP);
-		}
-#endif
-		kill(m_pty_pid, SIGHUP);
-	}
-	disconnect_pty_read();
-	disconnect_pty_write();
-	if (m_pty_channel != NULL) {
-		g_io_channel_unref (m_pty_channel);
-	}
-	if (m_pty != NULL) {
-                g_object_unref(m_pty);
-	}
-
-	remove_update_timeout(this);
+        m_outgoing = nullptr;
 
 	/* Free public-facing data. */
 	if (m_vadjustment != NULL) {
@@ -10356,13 +10337,13 @@ Terminal::set_pty(VtePty *new_pty)
         if (new_pty == m_pty)
                 return false;
 
-        if (m_pty != NULL) {
+        if (m_pty != nullptr) {
                 disconnect_pty_read();
                 disconnect_pty_write();
 
-                if (m_pty_channel != NULL) {
+                if (m_pty_channel != nullptr) {
                         g_io_channel_unref (m_pty_channel);
-                        m_pty_channel = NULL;
+                        m_pty_channel = nullptr;
                 }
 
 		/* Take one last shot at processing whatever data is pending,
@@ -10383,11 +10364,11 @@ Terminal::set_pty(VtePty *new_pty)
 		_vte_byte_array_clear(m_outgoing);
 
                 g_object_unref(m_pty);
-                m_pty = NULL;
+                m_pty = nullptr;
         }
 
-        if (new_pty == NULL) {
-                m_pty = NULL;
+        if (new_pty == nullptr) {
+                m_pty = nullptr;
                 return true;
         }
 
@@ -10411,6 +10392,24 @@ Terminal::set_pty(VtePty *new_pty)
 
         /* Open channels to listen for input on. */
         connect_pty_read();
+
+        return true;
+}
+
+bool
+Terminal::terminate_child() noexcept
+{
+	if (m_pty_pid == -1)
+                return false;
+
+#ifdef HAVE_GETPGID
+        auto pgrp = getpgid(m_pty_pid);
+        if (pgrp != -1) {
+                kill(-pgrp, SIGHUP);
+        }
+#endif
+        kill(m_pty_pid, SIGHUP);
+        m_pty_pid = -1;
 
         return true;
 }
