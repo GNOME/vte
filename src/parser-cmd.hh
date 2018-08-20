@@ -322,6 +322,9 @@ _VTE_NOP(XTERM_MUHP) /* xterm memory unlock hp bugfix */
 _VTE_NOP(XTERM_RQTCAP) /* xterm request termcap/terminfo */
 _VTE_NOP(XTERM_RRV) /* xterm reset resource value */
 _VTE_NOP(XTERM_SGFX) /* xterm sixel graphics */
+_VTE_NOP(XTERM_SGR_STACK_POP) /* xterm pop SGR stack */
+_VTE_NOP(XTERM_SGR_STACK_PUSH) /* xterm push SGR stack */
+_VTE_NOP(XTERM_SGR_REPORT) /* xterm SGR report */
 _VTE_NOP(XTERM_SRV) /* xterm set resource value */
 _VTE_NOP(XTERM_STCAP) /* xterm set termcap/terminfo */
 _VTE_NOP(XTERM_STM) /* xterm set title mode */

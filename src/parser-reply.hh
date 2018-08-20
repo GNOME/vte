@@ -33,6 +33,7 @@ _VTE_REPLY(DECXCPR,                                   CSI, 'R', WHAT, NONE,  ) /
 _VTE_REPLY(CPR,                                       CSI, 'R', NONE, NONE,  ) /* cursor position report */
 _VTE_REPLY(DECDA1R,                                   CSI, 'c', WHAT, NONE,  ) /* DA1 report */
 _VTE_REPLY(DECDA2R,                                   CSI, 'c', GT,   NONE,  ) /* DA2 report */
+_VTE_REPLY(SGR,                                       CSI, 'm', NONE, NONE,  ) /* SGR */
 _VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE, CSI, 'm', LT,   NONE,  ) /* XTERM SGR mouse mode button release report */
 _VTE_REPLY(DSR,                                       CSI, 'n', NONE, NONE,  ) /* device status report */
 _VTE_REPLY(DECDSR,                                    CSI, 'n', WHAT, NONE,  ) /* device status report */

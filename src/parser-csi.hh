@@ -191,14 +191,17 @@ _VTE_NOQ(DECELR,                 CSI,    'z',  NONE,  1, SQUOTE   ) /* enable-lo
 _VTE_NOQ(DECINVM,                CSI,    'z',  NONE,  1, MULT     ) /* invoke-macro */
 _VTE_NOQ(DECPKA,                 CSI,    'z',  NONE,  1, PLUS     ) /* program-key-action */
 _VTE_NOQ(DECDLDA,                CSI,    'z',  NONE,  1, COMMA    ) /* down line load allocation */
+_VTE_NOQ(XTERM_SGR_STACK_PUSH,   CSI,    '{',  NONE,  1, HASH     ) /* push SGR stack */
 _VTE_NOQ(DECSERA,                CSI,    '{',  NONE,  1, CASH     ) /* selective-erase-rectangular-area */
 _VTE_NOQ(DECSLE,                 CSI,    '{',  NONE,  1, SQUOTE   ) /* select-locator-events */
 _VTE_NOQ(DECSTGLT,               CSI,    '{',  NONE,  1, PCLOSE   ) /* select color lookup table */
 _VTE_NOQ(DECSZS,                 CSI,    '{',  NONE,  1, COMMA    ) /* select zero symbol */
+_VTE_NOQ(XTERM_SGR_REPORT,       CSI,    '|',  NONE,  1, HASH     ) /* SGR report */
 _VTE_NOQ(DECSCPP,                CSI,    '|',  NONE,  1, CASH     ) /* select-columns-per-page */
 _VTE_NOQ(DECRQLP,                CSI,    '|',  NONE,  1, SQUOTE   ) /* request-locator-position */
 _VTE_NOQ(DECSNLS,                CSI,    '|',  NONE,  1, MULT     ) /* set-lines-per-screen */
 _VTE_NOQ(DECAC,                  CSI,    '|',  NONE,  1, COMMA    ) /* assign color */
+_VTE_NOQ(XTERM_SGR_STACK_POP,    CSI,    '}',  NONE,  1, HASH     ) /* pop SGR stack */
 _VTE_NOQ(DECKBD,                 CSI,    '}',  NONE,  1, SPACE    ) /* keyboard-language-selection */
 _VTE_NOQ(DECSASD,                CSI,    '}',  NONE,  1, CASH     ) /* select-active-status-display */
 _VTE_NOQ(DECIC,                  CSI,    '}',  NONE,  1, SQUOTE   ) /* insert-column */
