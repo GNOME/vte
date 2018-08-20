@@ -8078,6 +8078,32 @@ Terminal::WYLSFNT(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::XDGSYNC(vte::parser::Sequence const& seq)
+{
+        /*
+         * XDGSYNC - synchronous update
+         * Content received between BSU and ESU will be committed
+         * atomically on ESU. This is to avoid half-drawn screen
+         * content.
+         * The terminal may ignore this, or apply a timeout, or
+         * terminate the synchronous update prematurely for any
+         * reason.
+         *
+         * Arguments:
+         *   args[0]:
+         *     1: start (begin synchronous update, BSU)
+         *     2: end   (end synchronous update, ESU)
+         *
+         * Defaults:
+         *   args[0]: no defaults
+         *
+         * References: https://gitlab.com/gnachman/iterm2/wikis/synchronized-updates-spec
+         */
+
+        /* TODO: implement this! https://gitlab.gnome.org/GNOME/vte/issues/15 */
+}
+
+void
 Terminal::XTERM_IHMT(vte::parser::Sequence const& seq)
 {
         /*

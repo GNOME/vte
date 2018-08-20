@@ -315,6 +315,7 @@ _VTE_NOP(WYDHL_BH) /* single width double height line: bottom half */
 _VTE_NOP(WYDHL_TH) /* single width double height line: top half */
 _VTE_NOP(WYLSFNT) /* load soft font */
 _VTE_NOP(WYSCRATE) /* set smooth scroll rate */
+_VTE_NOP(XDGSYNC) /* synchronous update */
 _VTE_NOP(XTERM_IHMT) /* xterm initiate highlight mouse tracking */
 _VTE_NOP(XTERM_MLHP) /* xterm memory lock hp bugfix */
 _VTE_NOP(XTERM_MUHP) /* xterm memory unlock hp bugfix */
