@@ -3613,9 +3613,9 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Determines the name of the encoding in which the terminal expects data to be
- * encoded.
+ * encoded, or %NULL if UTF-8 is in use.
  *
- * Returns: (transfer none): the current encoding for the terminal
+ * Returns: (nullable) (transfer none): the current encoding for the terminal
  *
  * Deprecated: 0.54: Support for non-UTF-8 is deprecated.
  */
@@ -3934,14 +3934,13 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
  * vte_terminal_get_icon_title:
  * @terminal: a #VteTerminal
  *
- * Returns: (transfer none): %NULL
+ * Returns: (nullable) (transfer none): %NULL
  *
  * Deprecated: 0.54:
  */
 const char *
 vte_terminal_get_icon_title(VteTerminal *terminal)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
 	return nullptr;
 }
 
@@ -4222,12 +4221,12 @@ vte_terminal_get_scroll_on_output(VteTerminal *terminal)
  * vte_terminal_get_window_title:
  * @terminal: a #VteTerminal
  *
- * Returns: (transfer none): the window title
+ * Returns: (nullable) (transfer none): the window title, or %NULL
  */
 const char *
 vte_terminal_get_window_title(VteTerminal *terminal)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), "");
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 	return IMPL(terminal)->m_window_title.data();
 }
 
@@ -4241,7 +4240,7 @@ vte_terminal_get_window_title(VteTerminal *terminal)
  *
  * If %NULL, a built-in set is used.
  *
- * Returns: (transfer none): a string, or %NULL
+ * Returns: (nullable) (transfer none): a string, or %NULL
  *
  * Since: 0.40
  */
