@@ -97,6 +97,11 @@ public:
         int hscroll_policy() const noexcept { return m_terminal->m_hscroll_policy; }
         int vscroll_policy() const noexcept { return m_terminal->m_vscroll_policy; }
 
+        char const* encoding() const noexcept
+        {
+                return m_terminal->m_encoding ? m_terminal->m_encoding : "UTF-8";
+        }
+
         void emit_child_exited(int status) noexcept;
 
 protected:

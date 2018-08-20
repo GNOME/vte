@@ -3623,7 +3623,7 @@ const char *
 vte_terminal_get_encoding(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-	return IMPL(terminal)->m_encoding;
+	return WIDGET(terminal)->encoding();
 }
 
 /**
