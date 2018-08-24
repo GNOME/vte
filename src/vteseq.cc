@@ -3653,6 +3653,9 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         /* If at the end, the parser returns a VTE_SEQ_CSI sequence,
          * we interpret that; otherwise we ignore the request and
          * send only a dummy reply.
+         * Note that this makes sure there is only one setting
+         * requested; if there were more than one, the parser would
+         * parse them as GRAPHIC and thus we reply 'invalid'.
          */
         auto const str = seq.string();
         for (size_t i = 0; i < str.size(); ++i) {
