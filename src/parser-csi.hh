@@ -201,8 +201,8 @@ _VTE_NOQ(DECSCPP,                CSI,    '|',  NONE,  1, CASH     ) /* select-co
 _VTE_NOQ(DECRQLP,                CSI,    '|',  NONE,  1, SQUOTE   ) /* request-locator-position */
 _VTE_NOQ(DECSNLS,                CSI,    '|',  NONE,  1, MULT     ) /* set-lines-per-screen */
 _VTE_NOQ(DECAC,                  CSI,    '|',  NONE,  1, COMMA    ) /* assign color */
-_VTE_NOQ(XTERM_SGR_STACK_POP,    CSI,    '}',  NONE,  1, HASH     ) /* pop SGR stack */
 _VTE_NOQ(DECKBD,                 CSI,    '}',  NONE,  1, SPACE    ) /* keyboard-language-selection */
+_VTE_NOQ(XTERM_SGR_STACK_POP,    CSI,    '}',  NONE,  1, HASH     ) /* pop SGR stack */
 _VTE_NOQ(DECSASD,                CSI,    '}',  NONE,  1, CASH     ) /* select-active-status-display */
 _VTE_NOQ(DECIC,                  CSI,    '}',  NONE,  1, SQUOTE   ) /* insert-column */
 _VTE_NOQ(DECATC,                 CSI,    '}',  NONE,  1, COMMA    ) /* alternate text color */
