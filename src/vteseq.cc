@@ -3658,7 +3658,8 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
          * parse them as GRAPHIC and thus we reply 'invalid'.
          */
         auto const str = seq.string();
-        for (size_t i = 0; i < str.size(); ++i) {
+        size_t i;
+        for (i = 0; i < str.size(); ++i) {
                 auto const c = str[i];
                 if (c < 0x20 || c >= 0x7f)
                         break;
@@ -3666,7 +3667,11 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         }
 
         vte::parser::Sequence request{parser};
-        if (rv != VTE_SEQ_CSI || request.size() > 0 /* any parameters */)
+        /* If not the whole string was parsed, or the sequence
+         * is not a CSI sequence, or it has parameters, reject
+         * the request as invalid.
+         */
+        if (i != str.size() || rv != VTE_SEQ_CSI || request.size() > 0 /* any parameters */)
                 return reply(seq, VTE_REPLY_DECRPSS, {0});
 
         switch (request.command()) {
