@@ -7736,10 +7736,10 @@ Terminal::TSR(vte::parser::Sequence const& seq)
          */
 
         auto const pos = seq.collect1(0);
-        if (pos < 0 || pos >= m_column_count)
+        if (pos < 1 || pos > m_column_count)
                 return;
 
-        m_tabstops.unset(pos);
+        m_tabstops.unset(pos - 1);
 }
 
 void
