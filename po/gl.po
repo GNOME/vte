@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gl\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
 "POT-Creation-Date: 2018-06-20 20:20+0000\n"
-"PO-Revision-Date: 2018-08-30 00:28+0200\n"
+"PO-Revision-Date: 2018-08-30 00:33+0200\n"
 "Last-Translator: Fran Dieguez <frandieguez@gnome.org>\n"
 "Language-Team: Proxecto Trasno <proxecto@trasno.gal>\n"
 "Language: gl\n"
@@ -37,7 +37,6 @@ msgid "WARNING"
 msgstr "AVISO"
 
 #: ../src/vte.cc:8180
-#, fuzzy
 #| msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GnuTLS non está activado; os datos escribiranse no disco sen cifrar!"
