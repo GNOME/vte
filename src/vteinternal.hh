@@ -855,6 +855,7 @@ public:
 
         void im_commit(char const* text);
         void im_preedit_set_active(bool active) noexcept;
+        void im_preedit_reset() noexcept;
         void im_preedit_changed(char const* str,
                                 int cursorpos,
                                 PangoAttrList* attrs) noexcept;

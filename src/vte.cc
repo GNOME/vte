@@ -4357,6 +4357,18 @@ Terminal::im_preedit_set_active(bool active) noexcept
 }
 
 void
+Terminal::im_preedit_reset() noexcept
+{
+        m_im_preedit.clear();
+        m_im_preedit.shrink_to_fit();
+        m_im_preedit_cursor = 0;
+        if (m_im_preedit_attrs != nullptr) {
+                pango_attr_list_unref(m_im_preedit_attrs);
+                m_im_preedit_attrs = nullptr;
+        }
+}
+
+void
 Terminal::im_preedit_changed(char const* str,
                              int cursorpos,
                              PangoAttrList* attrs) noexcept
@@ -4365,13 +4377,10 @@ Terminal::im_preedit_changed(char const* str,
 	 * for repainting. */
 	invalidate_cursor_once();
 
+        im_preedit_reset();
 	m_im_preedit = str;
-
-	if (m_im_preedit_attrs != nullptr) {
-		pango_attr_list_unref(m_im_preedit_attrs);
-	}
-	m_im_preedit_attrs = attrs;
-	m_im_preedit_cursor = cursorpos;
+        m_im_preedit_attrs = attrs;
+        m_im_preedit_cursor = cursorpos;
 
         /* Invalidate again with the new cursor position */
 	invalidate_cursor_once();
@@ -8240,13 +8249,6 @@ Terminal::widget_unrealize()
 	match_hilite_clear();
 
 	m_im_preedit_active = FALSE;
-        m_im_preedit.clear();
-        m_im_preedit.shrink_to_fit();
-	if (m_im_preedit_attrs != NULL) {
-		pango_attr_list_unref(m_im_preedit_attrs);
-		m_im_preedit_attrs = NULL;
-	}
-	m_im_preedit_cursor = 0;
 
 	/* Clean up our draw structure. */
 	if (m_draw != NULL) {

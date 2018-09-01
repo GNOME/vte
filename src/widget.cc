@@ -349,7 +349,7 @@ Widget::unrealize() noexcept
                                              G_SIGNAL_MATCH_DATA,
                                              0, 0, NULL, NULL,
                                              this);
-        m_terminal->im_preedit_changed("", 0, nullptr);
+        m_terminal->im_preedit_reset();
         gtk_im_context_set_client_window(m_im_context.get(), nullptr);
         m_im_context.reset();
 
