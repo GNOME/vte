@@ -189,7 +189,7 @@ vteresources.cc: vte.gresource.xml Makefile $(shell $(GLIB_COMPILE_RESOURCES) --
 
 # Misc unit tests and utilities
 
-noinst_PROGRAMS += parser-cat slowcat test-modes test-tabstops test-parser test-refptr
+noinst_PROGRAMS += parser-cat slowcat test-modes test-tabstops test-parser test-refptr test-utf8
 noinst_SCRIPTS = decset osc window
 EXTRA_DIST += $(noinst_SCRIPTS)
 
@@ -213,6 +213,7 @@ TESTS = \
 	test-parser \
 	test-refptr \
 	test-tabstops \
+	test-utf8 \
 	reaper \
 	test-vtetypes \
 	vtestream-file \
@@ -363,6 +364,22 @@ test_refptr_CXXFLAGS = \
 	$(AM_CXXFLAGS)
 test_refptr_LDADD = \
 	$(GOBJECT_LIBS) \
+	$(NULL)
+
+test_utf8_SOURCES = \
+	utf8-test.cc \
+	utf8.cc \
+	utf8.hh \
+	$(NULL)
+test_utf8_CPPFLAGS = \
+	-I$(builddir) \
+	-I$(srcdir) \
+	$(AM_CPPFLAGS)
+test_utf8_CXXFLAGS = \
+	$(GLIB_CFLAGS) \
+	$(AM_CXXFLAGS)
+test_utf8_LDADD = \
+	$(GLIB_LIBS) \
 	$(NULL)
 
 test_vtetypes_SOURCES = \

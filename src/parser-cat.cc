@@ -349,6 +349,17 @@ process_file_utf8(int fd,
                         switch (decoder.decode(*sptr)) {
                         case vte::base::UTF8Decoder::REJECT:
                                 decoder.reset();
+
+                                /* If a start byte occurred in the middle of a sequence,
+                                 * rewind the stream so we try to start a new character
+                                 * with it.
+                                 * Note that this will never lead to a loop, since in the
+                                 * next round this byte *will* be consumed.
+                                 */
+                                if (decoder.is_start_byte(*sptr))
+                                        --sptr;
+
+                                /* Fall through to insert the U+FFFD replacement character. */
                                 /* [[fallthrough]]; */
                         case vte::base::UTF8Decoder::ACCEPT: {
                                 auto ret = vte_parser_feed(&parser, decoder.codepoint());

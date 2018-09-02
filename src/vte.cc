@@ -3590,6 +3590,17 @@ Terminal::process_incoming()
                         switch (m_utf8_decoder.decode(*ip)) {
                         case vte::base::UTF8Decoder::REJECT:
                                 m_utf8_decoder.reset();
+
+                                /* If a start byte occurred in the middle of a sequence,
+                                 * rewind the stream so we try to start a new character
+                                 * with it.
+                                 * Note that this will never lead to a loop, since in the
+                                 * next round this byte *will* be consumed.
+                                 */
+                                if (m_utf8_decoder.is_start_byte(*ip))
+                                        --ip;
+
+                                /* Fall through to insert the U+FFFD replacement character. */
                                 /* [[fallthrough]]; */
                         case vte::base::UTF8Decoder::ACCEPT: {
                                 auto rv = m_parser.feed(m_utf8_decoder.codepoint());
@@ -3741,6 +3752,7 @@ Terminal::process_incoming()
                                         break;
                                 }
                                 }
+                                break;
                         }
                         }
                 }

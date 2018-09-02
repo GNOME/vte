@@ -66,6 +66,10 @@ public:
                 m_codepoint = 0xfffdU;
         }
 
+        inline bool is_start_byte(uint32_t byte) const noexcept {
+                return kTable[256 + 0 /* start state */ + kTable[byte]] != REJECT;
+        }
+
 private:
         uint32_t m_state{ACCEPT};
         uint32_t m_codepoint{0};
