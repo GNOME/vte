@@ -3614,8 +3614,10 @@ Terminal::process_incoming()
                                         break;
                                 }
 
+#ifdef VTE_DEBUG
                                 if (rv != VTE_SEQ_NONE)
                                         g_assert((bool)seq);
+#endif
 
                                 _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
                                         if (rv != VTE_SEQ_NONE) {
