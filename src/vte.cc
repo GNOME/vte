@@ -5113,65 +5113,6 @@ Terminal::line_is_wrappable(vte::grid::row_t row) const
 	return rowdata && rowdata->attr.soft_wrapped;
 }
 
-/* Check if the given point is in the region between the two points */
-static gboolean
-vte_cell_is_between(glong col, glong row,
-		    glong acol, glong arow, glong bcol, glong brow)
-{
-	/* Negative between never allowed. */
-	if ((arow > brow) || ((arow == brow) && (acol > bcol))) {
-		return FALSE;
-	}
-	/* Degenerate span? */
-	if ((row == arow) && (row == brow) && (col == acol) && (col == bcol)) {
-		return TRUE;
-	}
-	/* A cell is between two points if it's on a line after the
-	 * specified area starts, or before the line where it ends,
-	 * or any of the lines in between. */
-	if ((row > arow) && (row < brow)) {
-		return TRUE;
-	}
-	/* It's also between the two points if they're on the same row
-	 * the cell lies between the start and end columns. */
-	if ((row == arow) && (row == brow)) {
-		if (col >= acol) {
-			if (col < bcol) {
-				return TRUE;
-			} else {
-				if (col == bcol) {
-					return TRUE;
-				} else {
-					return FALSE;
-				}
-			}
-		} else {
-			return FALSE;
-		}
-	}
-	/* It's also "between" if it's on the line where the area starts and
-	 * at or after the start column, or on the line where the area ends and
-	 * before the end column. */
-	if ((row == arow) && (col >= acol)) {
-		return TRUE;
-	} else {
-		if (row == brow) {
-			if (col < bcol) {
-				return TRUE;
-			} else {
-				if (col == bcol) {
-					return TRUE;
-				} else {
-					return FALSE;
-				}
-			}
-		} else {
-			return FALSE;
-		}
-	}
-	return FALSE;
-}
-
 /* Check if a cell is selected or not. */
 // FIXMEchpe: replace this by just using vte::grid::span for selection and then this simply becomes .contains()
 bool
@@ -5189,15 +5130,15 @@ Terminal::cell_is_selected(vte::grid::column_t col,
 		return false;
 	}
 
-	/* Limit selection in block mode. */
-	if (m_selection_block_mode) {
-		if (col < ss.col || col > se.col)
-			return false;
-	}
-
 	/* Now it boils down to whether or not the point is between the
 	 * begin and endpoint of the selection. */
-	return vte_cell_is_between(col, row, ss.col, ss.row, se.col, se.row);
+        if (m_selection_block_mode) {
+                return (row >= ss.row && row <= se.row &&
+                        col >= ss.col && col <= se.col);
+        } else {
+                return ((row > ss.row || (row == ss.row && col >= ss.col)) &&
+                        (row < se.row || (row == se.row && col <= se.col)));
+        }
 }
 
 void
