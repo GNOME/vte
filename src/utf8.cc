@@ -26,6 +26,7 @@
 #include "utf8.hh"
 
 #define RJ vte::base::UTF8Decoder::REJECT
+#define RW vte::base::UTF8Decoder::REJECT_REWIND
 
 uint8_t const vte::base::UTF8Decoder::kTable[] = {
         // The first part of the table maps bytes to character classes that
@@ -40,7 +41,7 @@ uint8_t const vte::base::UTF8Decoder::kTable[] = {
         // 0xe0:       10
         // 0xe1..0xec: 3
         // 0xed:       4
-        // 0xee..0xff: 3
+        // 0xee..0xef: 3
         // 0xf0:       11
         // 0xf1..0xf3: 6
         // 0xf4:       5
@@ -64,6 +65,35 @@ uint8_t const vte::base::UTF8Decoder::kTable[] = {
 
         // To understand this DFA, see transitions graph on the website
         // linked above.
+        //
+        // The following translates the states of the DFA to the
+        // algorithm of the UTF-8 decoder from the W3 Encodings spec
+        // [https://www.w3.org/TR/encoding/#utf-8]:
+        //
+        // DFA   │ bytes   bytes   lower   upper
+        // state │ seen    needed  bound   bound
+        // ──────┼─────────────────────────────────
+        //   0   │ 0       0       0x80    0xbf
+        //  12   │
+        //  24   │ 1,2,3   1       0x80    0xbf
+        //  36   │ 1,2     2       0x80    0xbf
+        //  48   │ 1       2       0xa0    0xbf
+        //  60   │ 1       2       0x80    0x9f
+        //  72   │ 1       3       0x90    0xbf
+        //  84   │ 1       3       0x80    0xbf
+        //  96   │ 1       3       0x80    0x8f
+        // 108   │
+        //
+        // If an unexpected byte is read in a non-ACCEPT/REJECT* state,
+        // transition to REJECT_REWIND so that the decoder will read that
+        // byte again after being reset; this makes the decoder conform
+        // to the Unicode recommendation for insering replacement
+        // characters, and to the W3 Encoding TR spec.
+        //
+        // If an unexpected byte is read in the ACCEPT or a REJECT* state,
+        // transition to REJECT; that byte must not be read again, since
+        // that would lead to an infinite loop.
+        //
         // For each state (row), the table records which state will
         // be transitioned to when consuming a character of the class
         // (column).
@@ -72,11 +102,12 @@ uint8_t const vte::base::UTF8Decoder::kTable[] = {
         */
          0, RJ, 24, 36, 60, 96, 84, RJ, RJ, RJ, 48, 72, // state 0 (accept)
         RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 12 (reject)
-        RJ,  0, RJ, RJ, RJ, RJ, RJ,  0, RJ,  0, RJ, RJ, // state 24
-        RJ, 24, RJ, RJ, RJ, RJ, RJ, 24, RJ, 24, RJ, RJ, // state 36
-        RJ, RJ, RJ, RJ, RJ, RJ, RJ, 24, RJ, RJ, RJ, RJ, // state 48
-        RJ, 24, RJ, RJ, RJ, RJ, RJ, RJ, RJ, 24, RJ, RJ, // state 60
-        RJ, RJ, RJ, RJ, RJ, RJ, RJ, 36, RJ, 36, RJ, RJ, // state 72
-        RJ, 36, RJ, RJ, RJ, RJ, RJ, 36, RJ, 36, RJ, RJ, // state 84
-        RJ, 36, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 96
+        RW,  0, RW, RW, RW, RW, RW,  0, RW,  0, RW, RW, // state 24
+        RW, 24, RW, RW, RW, RW, RW, 24, RW, 24, RW, RW, // state 36
+        RW, RW, RW, RW, RW, RW, RW, 24, RW, RW, RW, RW, // state 48
+        RW, 24, RW, RW, RW, RW, RW, RW, RW, 24, RW, RW, // state 60
+        RW, RW, RW, RW, RW, RW, RW, 36, RW, 36, RW, RW, // state 72
+        RW, 36, RW, RW, RW, RW, RW, 36, RW, 36, RW, RW, // state 84
+        RW, 36, RW, RW, RW, RW, RW, RW, RW, RW, RW, RW, // state 96
+        RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 108 (reject-rewind)
 };
