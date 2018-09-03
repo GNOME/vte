@@ -133,7 +133,7 @@ _VTE_NOQ(DECSPPCS,               CSI,    'p',  NONE,  1, MULT     ) /* select-pr
 _VTE_SEQ(DECSR,                  CSI,    'p',  NONE,  1, PLUS     ) /* secure-reset */
 _VTE_NOQ(DECLTOD,                CSI,    'p',  NONE,  1, COMMA    ) /* load-time-of-day */
 _VTE_NOQ(DECARR,                 CSI,    'p',  NONE,  1, MINUS    ) /* auto repeat rate */
-_VTE_SEQ(XTERM_SPM,              CSI,    'p',  GT,    0, NONE     ) /* xterm-set-private-mode */
+_VTE_NOQ(XTERM_PTRMODE,          CSI,    'p',  GT,    0, NONE     ) /* xterm set pointer mode */
 _VTE_SEQ(DECRQM_DEC,             CSI,    'p',  WHAT,  1, CASH     ) /* request-mode-dec */
 _VTE_NOQ(DECLL,                  CSI,    'q',  NONE,  0, NONE     ) /* load-leds */
 _VTE_SEQ(DECSCUSR,               CSI,    'q',  NONE,  1, SPACE    ) /* set-cursor-style */
@@ -149,11 +149,11 @@ _VTE_NOQ(DECCARA,                CSI,    'r',  NONE,  1, CASH     ) /* change-at
 _VTE_NOQ(DECSCS,                 CSI,    'r',  NONE,  1, MULT     ) /* select-communication-speed */
 _VTE_NOQ(DECSMKR,                CSI,    'r',  NONE,  1, PLUS     ) /* select-modifier-key-reporting */
 _VTE_NOQ(DECSEST,                CSI,    'r',  NONE,  1, MINUS    ) /* energy saver time */
-_VTE_SEQ(DECPCTERM_OR_XTERM_RPM, CSI,    'r',  WHAT,  0, NONE     ) /* pcterm or xterm-restore-private-mode */
+_VTE_SEQ(DECPCTERM_OR_XTERM_RPM, CSI,    'r',  WHAT,  0, NONE     ) /* pcterm or xterm restore DEC private mode */
 _VTE_SEQ(DECSLRM,                CSI,    's',  NONE,  0, NONE     ) /* set-left-and-right-margins */
 _VTE_NOQ(DECSPRTT,               CSI,    's',  NONE,  1, CASH     ) /* select-printer-type */
 _VTE_NOQ(DECSFC,                 CSI,    's',  NONE,  1, MULT     ) /* select-flow-control */
-_VTE_SEQ(XTERM_SPM,              CSI,    's',  WHAT,  0, NONE     ) /* xterm-set-private-mode */
+_VTE_SEQ(XTERM_SPM,              CSI,    's',  WHAT,  0, NONE     ) /* xterm save private mode */
 _VTE_SEQ(XTERM_WM,               CSI,    't',  NONE,  0, NONE     ) /* xterm-window-management */
 _VTE_NOQ(DECSWBV,                CSI,    't',  NONE,  1, SPACE    ) /* set-warning-bell-volume */
 _VTE_NOQ(DECSRFR,                CSI,    't',  NONE,  1, DQUOTE   ) /* select-refresh-rate */

@@ -48,7 +48,7 @@ _VTE_CMD(DECALN) /* screen alignment pattern */
 _VTE_CMD(DECBI) /* back index */
 _VTE_CMD(DECKPAM) /* keypad application mode */
 _VTE_CMD(DECKPNM) /* keypad numeric mode */
-_VTE_CMD(DECPCTERM_OR_XTERM_RPM) /* pcterm or xterm restore private mode */
+_VTE_CMD(DECPCTERM_OR_XTERM_RPM) /* pcterm or xterm restore DEC private mode */
 _VTE_CMD(DECRC) /* restore cursor */
 _VTE_CMD(DECREQTPARM) /* request terminal parameters */
 _VTE_CMD(DECRQCRA) /* request checksum of rectangular area */
@@ -116,9 +116,8 @@ _VTE_CMD(TSR) /* tabulation stop remove */
 _VTE_CMD(VPA) /* vertical line position absolute */
 _VTE_CMD(VPR) /* vertical line position relative */
 _VTE_CMD(VT) /* vertical tab */
-_VTE_CMD(XTERM_RTM) /* xterm reset title mode */
-_VTE_CMD(XTERM_RPM) /* xterm restore private mode */
-_VTE_CMD(XTERM_SPM) /* xterm set private mode */
+_VTE_CMD(XTERM_RPM) /* xterm restore DEC private mode */
+_VTE_CMD(XTERM_SPM) /* xterm save DEC private mode */
 _VTE_CMD(XTERM_WM) /* xterm window management */
 
 /* Unimplemented in VTE: */
@@ -319,8 +318,10 @@ _VTE_NOP(XDGSYNC) /* synchronous update */
 _VTE_NOP(XTERM_IHMT) /* xterm initiate highlight mouse tracking */
 _VTE_NOP(XTERM_MLHP) /* xterm memory lock hp bugfix */
 _VTE_NOP(XTERM_MUHP) /* xterm memory unlock hp bugfix */
+_VTE_NOP(XTERM_PTRMODE) /* xterm set pointer mode */
 _VTE_NOP(XTERM_RQTCAP) /* xterm request termcap/terminfo */
 _VTE_NOP(XTERM_RRV) /* xterm reset resource value */
+_VTE_NOP(XTERM_RTM) /* xterm reset title mode */
 _VTE_NOP(XTERM_SGFX) /* xterm sixel graphics */
 _VTE_NOP(XTERM_SGR_STACK_POP) /* xterm pop SGR stack */
 _VTE_NOP(XTERM_SGR_STACK_PUSH) /* xterm push SGR stack */
