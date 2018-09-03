@@ -25,6 +25,8 @@
 
 #include "utf8.hh"
 
+#define RJ vte::base::UTF8Decoder::REJECT
+
 uint8_t const vte::base::UTF8Decoder::kTable[] = {
         // The first part of the table maps bytes to character classes that
         // to reduce the size of the transition table and create bitmasks.
@@ -68,13 +70,13 @@ uint8_t const vte::base::UTF8Decoder::kTable[] = {
         /*
          0   1   2   3   4   5   6   7   8   9  10  11 // character class
         */
-         0, 12, 24, 36, 60, 96, 84, 12, 12, 12, 48, 72, // state 0 (accept)
-        12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, // state 12 (reject)
-        12,  0, 12, 12, 12, 12, 12,  0, 12,  0, 12, 12, // state 24
-        12, 24, 12, 12, 12, 12, 12, 24, 12, 24, 12, 12, // state 36
-        12, 12, 12, 12, 12, 12, 12, 24, 12, 12, 12, 12, // state 48
-        12, 24, 12, 12, 12, 12, 12, 12, 12, 24, 12, 12, // state 60
-        12, 12, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, // state 72
-        12, 36, 12, 12, 12, 12, 12, 36, 12, 36, 12, 12, // state 84
-        12, 36, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, // state 96
+         0, RJ, 24, 36, 60, 96, 84, RJ, RJ, RJ, 48, 72, // state 0 (accept)
+        RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 12 (reject)
+        RJ,  0, RJ, RJ, RJ, RJ, RJ,  0, RJ,  0, RJ, RJ, // state 24
+        RJ, 24, RJ, RJ, RJ, RJ, RJ, 24, RJ, 24, RJ, RJ, // state 36
+        RJ, RJ, RJ, RJ, RJ, RJ, RJ, 24, RJ, RJ, RJ, RJ, // state 48
+        RJ, 24, RJ, RJ, RJ, RJ, RJ, RJ, RJ, 24, RJ, RJ, // state 60
+        RJ, RJ, RJ, RJ, RJ, RJ, RJ, 36, RJ, 36, RJ, RJ, // state 72
+        RJ, 36, RJ, RJ, RJ, RJ, RJ, 36, RJ, 36, RJ, RJ, // state 84
+        RJ, 36, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 96
 };
