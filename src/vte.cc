@@ -5413,7 +5413,7 @@ VteTerminalPrivate::feed_mouse_event(vte::grid::coords const& rowcol /* confined
 	} else if (m_mouse_urxvt_extension) {
 		/* urxvt's extended mode (1015) */
 		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "%d;%ld;%ldM", 32 + cb, cx, cy);
-	} else if (cx <= 231 && cy <= 231) {
+	} else if (cx <= 223 && cy <= 223) {
 		/* legacy mode */
 		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
 	}
