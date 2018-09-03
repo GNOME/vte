@@ -48,21 +48,6 @@ test_utf8_decoder_decode(void)
         }
 }
 
-static constexpr bool
-is_utf8_start_byte(uint32_t c)
-{
-        return (c < 0x80u || (c >= 0xc2u && c <= 0xf4u));
-}
-
-static void
-test_utf8_decoder_start(void)
-{
-        decoder.reset();
-        for (uint32_t c = 0; c < 0x100u; ++c) {
-                g_assert_cmpint(decoder.is_start_byte(c), ==, is_utf8_start_byte(c));
-        }
-}
-
 static void
 decode(uint8_t const* in,
        size_t len,
@@ -74,19 +59,15 @@ decode(uint8_t const* in,
         uint32_t state = UTF8Decoder::ACCEPT;
         for (auto iptr = in; iptr < iend; ++iptr) {
                 switch ((state = decoder.decode(*iptr))) {
+                case vte::base::UTF8Decoder::REJECT_REWIND:
+                        /* Note that this will never lead to a loop, since in the
+                         * next round this byte *will* be consumed.
+                         */
+                        --iptr;
+                        // [[fallthrough]]; */
                 case vte::base::UTF8Decoder::REJECT:
                         decoder.reset();
                         state = UTF8Decoder::ACCEPT;
-
-                        /* If a start byte occurred in the middle of a sequence,
-                         * rewind the stream so we try to start a new character
-                         * with it.
-                         * Note that this will never lead to a loop, since in the
-                         * next round this byte *will* be consumed.
-                         */
-                        if (decoder.is_start_byte(*iptr))
-                                --iptr;
-
                         /* Fall through to insert the U+FFFD replacement character. */
                         /* [[fallthrough]]; */
                 case vte::base::UTF8Decoder::ACCEPT:
@@ -210,13 +191,11 @@ test_utf8_decoder_replacement(void)
         assert_decode("a\xC0\x80", -1, U"a\uFFFD\uFFFD"s);
         assert_decode("a\xC0\x80Z", -1, U"a\uFFFD\uFFFDZ"s);
         // Lowest single-byte as three-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xE0\x80\x80", -1, U"a\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xE0\x80\x80Z", -1, U"a\uFFFD\uFFFD\uFFFDZ"s);
         // Lowest single-byte as four-byte overlong sequence
         assert_decode("a\xF0\x80\x80\x80", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x80\x80\x80Z", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // One below lowest single-byte
         assert_decode("a\xFF", -1, U"a\uFFFD"s);
         assert_decode("a\xFFZ", -1, U"a\uFFFDZ"s);
@@ -227,13 +206,11 @@ test_utf8_decoder_replacement(void)
         assert_decode("a\xC1\xBF", -1, U"a\uFFFD\uFFFD"s);
         assert_decode("a\xC1\xBFZ", -1, U"a\uFFFD\uFFFDZ"s);
         // Highest single-byte as three-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xE0\x81\xBF", -1, U"a\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xE0\x81\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFDZ"s);
         // Highest single-byte as four-byte overlong sequence
         assert_decode("a\xF0\x80\x81\xBF", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x80\x81\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // One past highest single byte (also lone continuation)
         assert_decode("a\x80Z", -1, U"a\uFFFDZ"s);
         assert_decode("a\x80", -1, U"a\uFFFD"s);
@@ -250,13 +227,11 @@ test_utf8_decoder_replacement(void)
         assert_decode("a\xC2\x80", -1, U"a\u0080"s);
         assert_decode("a\xC2\x80Z", -1, U"a\u0080Z"s);
         // Lowest two-byte as three-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xE0\x82\x80", -1, U"a\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xE0\x82\x80Z", -1, U"a\uFFFD\uFFFD\uFFFDZ"s);
         // Lowest two-byte as four-byte overlong sequence
         assert_decode("a\xF0\x80\x82\x80", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x80\x82\x80Z", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // Lead one below lowest two-byte
         assert_decode("a\xC1\x80", -1, U"a\uFFFD\uFFFD"s);
         assert_decode("a\xC1\x80Z", -1, U"a\uFFFD\uFFFDZ"s);
@@ -267,26 +242,21 @@ test_utf8_decoder_replacement(void)
         assert_decode("a\xDF\xBF", -1, U"a\u07FF"s);
         assert_decode("a\xDF\xBFZ", -1, U"a\u07FFZ"s);
         // Highest two-byte as three-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xE0\x9F\xBF", -1, U"a\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xE0\x9F\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFDZ"s);
         // Highest two-byte as four-byte overlong sequence
         assert_decode("a\xF0\x80\x9F\xBF", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x80\x9F\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // Lowest three-byte
         assert_decode("a\xE0\xA0\x80", -1, U"a\u0800"s);
         assert_decode("a\xE0\xA0\x80Z", -1, U"a\u0800Z"s);
         // Lowest three-byte as four-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xF0\x80\xA0\x80", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x80\xA0\x80Z", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // Highest below surrogates
         assert_decode("a\xED\x9F\xBF", -1, U"a\uD7FF"s);
         assert_decode("a\xED\x9F\xBFZ", -1, U"a\uD7FFZ"s);
         // Highest below surrogates as four-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xF0\x8D\x9F\xBF", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x8D\x9F\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
         // First surrogate
@@ -301,38 +271,31 @@ test_utf8_decoder_replacement(void)
         // Last surrogate as four-byte overlong sequence
         assert_decode("a\xF0\x8D\xBF\xBF", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x8D\xBF\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // Lowest above surrogates
         assert_decode("a\xEE\x80\x80", -1, U"a\uE000"s);
         assert_decode("a\xEE\x80\x80Z", -1, U"a\uE000Z"s);
         // Lowest above surrogates as four-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xF0\x8E\x80\x80", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x8E\x80\x80Z", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
         // Highest three-byte
         assert_decode("a\xEF\xBF\xBF", -1, U"a\uFFFF"s);
         assert_decode("a\xEF\xBF\xBFZ", -1, U"a\uFFFFZ"s);
         // Highest three-byte as four-byte overlong sequence
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xF0\x8F\xBF\xBF", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF0\x8F\xBF\xBFZ", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
         // Lowest four-byte
-        assert_decode("a\xF0\x90\x80\x80", -1, U"a\u10000"s);
-        assert_decode("a\xF0\x90\x80\x80Z", -1, U"a\u10000Z"s);
+        assert_decode("a\xF0\x90\x80\x80", -1, U"a\U00010000"s);
+        assert_decode("a\xF0\x90\x80\x80Z", -1, U"a\U00010000Z"s);
         // Highest four-byte
-        assert_decode("a\xF4\x8F\xBF\xBF", -1, U"a\u10FFFF"s);
-        assert_decode("a\xF4\x8F\xBF\xBFZ", -1, U"a\u10FFFFZ"s);
+        assert_decode("a\xF4\x8F\xBF\xBF", -1, U"a\U0010FFFF"s);
+        assert_decode("a\xF4\x8F\xBF\xBFZ", -1, U"a\U0010FFFFZ"s);
         // One past highest four-byte
         assert_decode("a\xF4\x90\x80\x80", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFD"s);
         assert_decode("a\xF4\x90\x80\x80Z", -1, U"a\uFFFD\uFFFD\uFFFD\uFFFDZ"s);
-        #endif
 
         // Highest four-byte with last byte replaced with 0xFF
-        #ifdef INCLUDE_KNOWN_FAIL
         assert_decode("a\xF4\x8F\xBF\xFF", -1, U"a\uFFFD\uFFFD"s);
         assert_decode("a\xF4\x8F\xBF\xFFZ", -1, U"a\uFFFD\uFFFDZ"s);
-        #endif
 }
 
 int
@@ -342,7 +305,6 @@ main(int argc,
         g_test_init(&argc, &argv, nullptr);
 
         g_test_add_func("/vte/utf8/decoder/decode", test_utf8_decoder_decode);
-        g_test_add_func("/vte/utf8/decoder/start", test_utf8_decoder_start);
         g_test_add_func("/vte/utf8/decoder/replacement", test_utf8_decoder_replacement);
 
         return g_test_run();

@@ -38,7 +38,8 @@ class UTF8Decoder {
 public:
         enum {
                 ACCEPT = 0,
-                REJECT = 12
+                REJECT = 12,
+                REJECT_REWIND = 108
         };
 
         UTF8Decoder() noexcept = default;
@@ -64,10 +65,6 @@ public:
         inline void reset() noexcept {
                 m_state = ACCEPT;
                 m_codepoint = 0xfffdU;
-        }
-
-        inline bool is_start_byte(uint32_t byte) const noexcept {
-                return kTable[256 + 0 /* start state */ + kTable[byte]] != REJECT;
         }
 
 private:

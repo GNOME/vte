@@ -3588,18 +3588,15 @@ Terminal::process_incoming()
                 for ( ; ip < iend; ++ip) {
 
                         switch (m_utf8_decoder.decode(*ip)) {
-                        case vte::base::UTF8Decoder::REJECT:
-                                m_utf8_decoder.reset();
-
-                                /* If a start byte occurred in the middle of a sequence,
-                                 * rewind the stream so we try to start a new character
-                                 * with it.
+                        case vte::base::UTF8Decoder::REJECT_REWIND:
+                                /* Rewind the stream.
                                  * Note that this will never lead to a loop, since in the
                                  * next round this byte *will* be consumed.
                                  */
-                                if (m_utf8_decoder.is_start_byte(*ip))
-                                        --ip;
-
+                                --ip;
+                                /* [[fallthrough]]; */
+                        case vte::base::UTF8Decoder::REJECT:
+                                m_utf8_decoder.reset();
                                 /* Fall through to insert the U+FFFD replacement character. */
                                 /* [[fallthrough]]; */
                         case vte::base::UTF8Decoder::ACCEPT: {
