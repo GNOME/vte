@@ -5,42 +5,40 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.master\n"
-"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2017-03-20 22:37+0000\n"
-"PO-Revision-Date: 2017-04-16 13:05+0300\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2018-09-02 17:55+0000\n"
+"PO-Revision-Date: 2018-09-07 14:20+0300\n"
 "Last-Translator: Yuras Shumovich <shumovichy@gmail.com>\n"
 "Language-Team: Belarusian <i18n-bel-googlegroups.com>\n"
 "Language: be\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.11\n"
-
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3262
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Не ўдалося пераўтварыць знакі з %s у %s."
+"X-Generator: Poedit 2.1.1\n"
 
 #. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4014
+#: ../src/vte.cc:3989
 #, c-format
 msgid "Error reading from child: %s."
 msgstr "Памылка чытання даных ад нашчадка: %s."
 
-#: ../src/vte.cc:4153
+#: ../src/vte.cc:4139
 #, c-format
 msgid "Error (%s) converting data for child, dropping."
 msgstr "Памылка (%s) пераўтварэння даных ад нашчадка: ігнаруецца."
 
-#: ../src/vte.cc:7922
+#: ../src/vte.cc:8131
 msgid "WARNING"
 msgstr "АСЦЯРОЖНА"
 
-#: ../src/vte.cc:7923
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
-msgstr "GNUTLS не ўключаны; даныя будуць запісаны на дыск незашыфраванымі!"
+#: ../src/vte.cc:8132
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GnuTLS не ўключаны; даныя будуць запісаны на дыск незашыфраванымі!"
+
+#: ../src/vtegtk.cc:3664
+#, c-format
+msgid "Unable to convert characters from %s to %s."
+msgstr "Не ўдалося пераўтварыць знакі з %s у %s."
 
 #~ msgid "Attempt to set invalid NRC map '%c'."
 #~ msgstr "Спроба ўжыць хібную NRC-карту \"%c\"."
@@ -58,16 +56,13 @@ msgstr "GNUTLS не ўключаны; даныя будуць запісаны �
 #~ msgstr "Не ўдалося адкрыць кансоль.\n"
 
 #~ msgid "Could not parse the geometry spec passed to --geometry"
-#~ msgstr ""
-#~ "Не ўдалося разабраць спецыфікацыю памераў акна, пададзеных для опцыі --"
-#~ "geometry"
+#~ msgstr "Не ўдалося разабраць спецыфікацыю памераў акна, пададзеных для опцыі --geometry"
 
 #~ msgid "Error compiling regular expression \"%s\"."
 #~ msgstr "Памылка кампіляцыі рэгулярнага выразу \"%s\"."
 
 #~ msgid "Unable to send data to child, invalid charset convertor"
-#~ msgstr ""
-#~ "Не ўдалося паслаць даныя нашчадку: хібны модуль пераўтварэння знаказбору"
+#~ msgstr "Не ўдалося паслаць даныя нашчадку: хібны модуль пераўтварэння знаказбору"
 
 #~ msgid "Error reading PTY size, using defaults: %s\n"
 #~ msgstr "Памылка чытання памеру PTY: выкарыстоўваецца прадвызначаны: %s\n"
