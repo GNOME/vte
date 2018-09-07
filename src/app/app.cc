@@ -42,13 +42,13 @@ public:
         gboolean allow_window_ops{false};
         gboolean audible_bell{false};
         gboolean backdrop{false};
+        gboolean bold_is_bright{false};
         gboolean console{false};
         gboolean debug{false};
         gboolean icon_title{false};
         gboolean keep{false};
         gboolean no_argb_visual{false};
         gboolean no_bold{false};
-        gboolean no_bold_is_bright{false};
         gboolean no_builtin_dingus{false};
         gboolean no_context_menu{false};
         gboolean no_double_buffer{false};
@@ -339,6 +339,8 @@ public:
                           "Set background image extend", "EXTEND" },
                         { "blink", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_text_blink,
                           "Text blink mode (never|focused|unfocused|always)", "MODE" },
+                        { "bold-is-bright", 'B', 0, G_OPTION_ARG_NONE, &bold_is_bright,
+                          "Bold also brightens colors", nullptr },
                         { "cell-height-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_height_scale,
                           "Add extra line spacing", "1.0..2.0" },
                         { "cell-width-scale", 0, 0, G_OPTION_ARG_DOUBLE, &cell_width_scale,
@@ -383,8 +385,6 @@ public:
                           "Don't use an ARGB visual", nullptr },
                         { "no-bold", 0, 0, G_OPTION_ARG_NONE, &no_bold,
                           "Disable bold", nullptr },
-                        { "no-bold-is-bright", 'B', 0, G_OPTION_ARG_NONE, &no_bold_is_bright,
-                          "Bold does not brightens colors", nullptr },
                         { "no-builtin-dingus", 0, 0, G_OPTION_ARG_NONE, &no_builtin_dingus,
                           "Highlight URLs inside the terminal", nullptr },
                         { "no-context-menu", 0, 0, G_OPTION_ARG_NONE, &no_context_menu,
@@ -1873,7 +1873,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_allow_hyperlink(window->terminal, !options.no_hyperlink);
         vte_terminal_set_audible_bell(window->terminal, options.audible_bell);
         vte_terminal_set_allow_bold(window->terminal, !options.no_bold);
-        vte_terminal_set_bold_is_bright(window->terminal, !options.no_bold_is_bright);
+        vte_terminal_set_bold_is_bright(window->terminal, options.bold_is_bright);
         vte_terminal_set_cell_height_scale(window->terminal, options.cell_height_scale);
         vte_terminal_set_cell_width_scale(window->terminal, options.cell_width_scale);
         vte_terminal_set_cjk_ambiguous_width(window->terminal, options.cjk_ambiguous_width);

@@ -7996,7 +7996,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 	m_audible_bell = TRUE;
         m_text_blink_mode = VTE_TEXT_BLINK_ALWAYS;
 	m_allow_bold = TRUE;
-        m_bold_is_bright = TRUE;
+        m_bold_is_bright = FALSE;
         m_rewrap_on_resize = TRUE;
 
         m_input_enabled = TRUE;
