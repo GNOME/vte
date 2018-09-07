@@ -875,7 +875,6 @@ Terminal::match_contents_refresh()
 	match_contents_clear();
 	GArray *array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
         auto match_contents = get_text_displayed(true /* wrap */,
-                                                 false /* include trailing whitespace */,
                                                  array);
         m_match_contents = g_string_free(match_contents, FALSE);
 	m_match_attributes = array;
@@ -5785,7 +5784,6 @@ Terminal::get_text(vte::grid::row_t start_row,
                              vte::grid::column_t end_col,
                              bool block,
                              bool wrap,
-                             bool include_trailing_spaces,
                              GArray *attributes)
 {
 	const VteCell *pcell = NULL;
@@ -5807,12 +5805,7 @@ Terminal::get_text(vte::grid::row_t start_row,
         vte::grid::row_t row;
 	for (row = start_row; row < end_row + 1; row++, col = next_first_column) {
 		VteRowData const* row_data = find_row_data(row);
-                gsize last_empty, last_nonempty;
-                vte::grid::column_t last_emptycol, last_nonemptycol;
                 vte::grid::column_t line_last_column = (block || row == end_row) ? end_col : G_MAXLONG;
-
-		last_empty = last_nonempty = string->len;
-		last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
 		attr.column = col;
@@ -5845,12 +5838,8 @@ Terminal::get_text(vte::grid::row_t start_row,
 					/* Store the cell string */
 					if (pcell->c == 0) {
 						g_string_append_c (string, ' ');
-						last_empty = string->len;
-						last_emptycol = col;
 					} else {
 						_vte_unistr_append_to_string (pcell->c, string);
-						last_nonempty = string->len;
-						last_nonemptycol = col;
 					}
 
 					/* If we added text to the string, record its
@@ -5862,32 +5851,6 @@ Terminal::get_text(vte::grid::row_t start_row,
 				}
 
 				col++;
-			}
-		}
-
-	       /* If the last thing we saw was a empty, and we stopped at the
-		* right edge of the range, trim the trailing spaces
-		* off of the line. */
-		if (!include_trailing_spaces && last_empty > last_nonempty) {
-
-			col = last_emptycol + 1;
-
-			if (row_data != NULL) {
-				while ((pcell = _vte_row_data_get (row_data, col))) {
-					col++;
-
-					if (pcell->attr.fragment())
-						continue;
-
-					if (pcell->c != 0)
-						break;
-				}
-			}
-			if (pcell == NULL) {
-				g_string_truncate(string, last_nonempty);
-				if (attributes)
-					g_array_set_size(attributes, string->len);
-				attr.column = last_nonemptycol;
 			}
 		}
 
@@ -5924,12 +5887,11 @@ Terminal::get_text(vte::grid::row_t start_row,
 
 GString*
 Terminal::get_text_displayed(bool wrap,
-                                       bool include_trailing_spaces,
                                        GArray *attributes)
 {
         return get_text(first_displayed_row(), 0,
                         last_displayed_row() + 1, -1,
-                        false /* block */, wrap, include_trailing_spaces,
+                        false /* block */, wrap,
                         attributes);
 }
 
@@ -5938,12 +5900,11 @@ Terminal::get_text_displayed(bool wrap,
  */
 GString*
 Terminal::get_text_displayed_a11y(bool wrap,
-                                            bool include_trailing_spaces,
                                             GArray *attributes)
 {
         return get_text(m_screen->scroll_delta, 0,
                         m_screen->scroll_delta + m_row_count - 1 + 1, -1,
-                        false /* block */, wrap, include_trailing_spaces,
+                        false /* block */, wrap,
                         attributes);
 }
 
@@ -5956,7 +5917,6 @@ Terminal::get_selected_text(GArray *attributes)
                         m_selection_end.col,
                         m_selection_block_mode,
                         true /* wrap */,
-                        false /* include trailing whitespace */,
                         attributes);
 }
 
@@ -5971,7 +5931,6 @@ Terminal::checksum_area(vte::grid::row_t start_row,
 
         auto text = get_text(start_row, start_col, end_row, end_col,
                              true /* block */, false /* wrap */,
-                             true /* trailing whitespace */,
                              nullptr /* not interested in attributes */);
         if (text == nullptr)
                 return checksum;
@@ -10950,7 +10909,6 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
                                  end_row, -1,
                                  false /* block */,
                                  true /* wrap */,
-                                 false /* include trailing whitespace */, /* FIXMEchpe maybe do include it since the match may depend on it? */
                                  nullptr);
 
         int (* match_fn) (const pcre2_code_8 *,
@@ -11002,7 +10960,6 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
                             end_row, -1,
                             false /* block */,
                             true /* wrap */,
-                            false /* include trailing whitespace */, /* FIXMEchpe maybe true? */
                             attrs);
 
 	ca = &g_array_index (attrs, VteCharAttributes, start);

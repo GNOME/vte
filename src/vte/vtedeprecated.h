@@ -125,6 +125,12 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
+						    VteSelectionFunc is_selected,
+						    gpointer user_data,
+						    GArray *attributes) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 G_END_DECLS
 

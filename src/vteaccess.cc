@@ -284,7 +284,6 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 
 		/* Get a new view of the uber-label. */
 		priv->snapshot_text = impl->get_text_displayed_a11y(true /* wrap */,
-                                                                             true /* include trailing whitespace */,
                                                                              priv->snapshot_attributes);
 
 		/* Get the offsets to the beginnings of each character. */

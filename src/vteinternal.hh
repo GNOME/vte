@@ -917,15 +917,12 @@ public:
                           vte::grid::column_t end_col,
                           bool block,
                           bool wrap,
-                          bool include_trailing_spaces,
                           GArray* attributes = nullptr);
 
         GString* get_text_displayed(bool wrap,
-                                    bool include_trailing_spaces,
                                     GArray* attributes = nullptr);
 
         GString* get_text_displayed_a11y(bool wrap,
-                                         bool include_trailing_spaces,
                                          GArray* attributes = nullptr);
 
         GString* get_selected_text(GArray* attributes = nullptr);

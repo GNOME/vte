@@ -2851,7 +2851,6 @@ vte_terminal_get_text(VteTerminal *terminal,
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
         auto text = IMPL(terminal)->get_text_displayed(true /* wrap */,
-                                                       false /* include trailing whitespace */,
                                                        attributes);
         if (text == nullptr)
                 return nullptr;
@@ -2869,11 +2868,11 @@ vte_terminal_get_text(VteTerminal *terminal,
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
- * the character's position, colors, and other characteristics. This function
- * differs from vte_terminal_get_text() in that trailing spaces at the end of
- * lines are included.
+ * the character's position, colors, and other characteristics.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
+ *
+ * Deprecated: 0.56: Use vte_terminal_get_text() instead.
  */
 char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
@@ -2881,14 +2880,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 					      gpointer user_data,
 					      GArray *attributes)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        warn_if_callback(is_selected);
-        auto text = IMPL(terminal)->get_text_displayed(true /* wrap */,
-                                                       true /* include trailing whitespace */,
-                                                       attributes);
-        if (text == nullptr)
-                return nullptr;
-        return (char*)g_string_free(text, FALSE);
+        return vte_terminal_get_text(terminal, is_selected, user_data, attributes);
 }
 
 /**
@@ -2928,7 +2920,6 @@ vte_terminal_get_text_range(VteTerminal *terminal,
                                              end_row, end_col,
                                              false /* block */,
                                              true /* wrap */,
-                                             true /* include trailing whitespace */,
                                              attributes);
         if (text == nullptr)
                 return nullptr;
