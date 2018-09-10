@@ -28,7 +28,6 @@ _VTE_NOQ(DECSIXEL,               DCS,    'q',  NONE,  0, NONE     ) /* SIXEL-gra
 _VTE_SEQ(DECRQSS,                DCS,    'q',  NONE,  1, CASH     ) /* request-selection-or-setting */
 _VTE_NOQ(XTERM_RQTCAP,           DCS,    'q',  NONE,  1, PLUS     ) /* xterm request termcap/terminfo */
 _VTE_NOQ(DECLBAN,                DCS,    'r',  NONE,  0, NONE     ) /* load-banner-message */
-_VTE_SEQ(DECRQSS,                DCS,    'r',  NONE,  1, CASH     ) /* request-selection-or-setting */
 _VTE_SEQ(DECRQTSR,               DCS,    's',  NONE,  1, CASH     ) /* request-terminal-state-report */
 _VTE_SEQ(XDGSYNC,                DCS,    's',  EQUAL, 0, NONE     ) /* synchronous update */
 _VTE_NOQ(DECRSPS,                DCS,    't',  NONE,  1, CASH     ) /* restore-presentation-state */
