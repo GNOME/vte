@@ -5596,7 +5596,8 @@ Terminal::hyperlink_hilite_update()
 
         /* Underlining hyperlinks has precedence over regex matches. So when the hovered hyperlink changes,
          * the regex match might need to become or stop being underlined. */
-        invalidate_match_span();
+        if (m_match != nullptr)
+                invalidate_match_span();
 
         apply_mouse_cursor();
 
