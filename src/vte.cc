@@ -1967,6 +1967,8 @@ Terminal::set_encoding(char const* codeset)
                         g_iconv_close(m_incoming_conv);
                 if (m_outgoing_conv != ((GIConv)-1))
                         g_iconv_close(m_outgoing_conv);
+                m_incoming_conv = (GIConv)-1;
+                m_outgoing_conv = (GIConv)-1;
         } else {
                 auto outconv = g_iconv_open(codeset, "UTF-8");
                 if (outconv == ((GIConv)-1))
