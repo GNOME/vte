@@ -104,8 +104,11 @@ set_gerror_from_pcre_error(int errcode,
         return FALSE;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
 G_DEFINE_BOXED_TYPE(VteRegex, vte_regex,
                     vte_regex_ref, (GBoxedFreeFunc)vte_regex_unref)
+#pragma GCC diagnostic pop
 
 G_DEFINE_QUARK(vte-regex-error, vte_regex_error)
 
