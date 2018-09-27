@@ -8112,6 +8112,30 @@ Terminal::XDGSYNC(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::XTERM_CHECKSUM_MODE(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_CHECKSUM_MODE - xterm DECRQCRA checksum mode
+         * Sets how DECRQCRA calculates the area checksum.
+         *
+         * Arguments:
+         *   args[0]: flag value composed of the following flags:
+         *     1: no negation
+         *     2: don't report attributes
+         *     4: checksum trailing blanks
+         *     8: don't checksum empty cells
+         *     16: no 8-bit masking or ignoring combining characters
+         *
+         * Defaults:
+         *   args[0]: 0, matching the output from VTxxx terminals
+         *
+         * References: XTERM (since 335)
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
 Terminal::XTERM_IHMT(vte::parser::Sequence const& seq)
 {
         /*

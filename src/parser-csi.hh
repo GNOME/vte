@@ -182,6 +182,7 @@ _VTE_NOQ(DECSACE,                CSI,    'x',  NONE,  1, MULT     ) /* select-at
 _VTE_NOQ(DECRQPKFM,              CSI,    'x',  NONE,  1, PLUS     ) /* request-program-key-free-memory */
 _VTE_NOQ(DECSPMA,                CSI,    'x',  NONE,  1, COMMA    ) /* session page memory allocation */
 _VTE_NOQ(DECTST,                 CSI,    'y',  NONE,  0, NONE     ) /* invoke-confidence-test */
+_VTE_NOQ(XTERM_CHECKSUM_MODE,    CSI,    'y',  NONE,  1, HASH     ) /* xterm DECRQCRA checksum mode */
 _VTE_SEQ(DECRQCRA,               CSI,    'y',  NONE,  1, MULT     ) /* request-checksum-of-rectangular-area */
 _VTE_NOQ(DECPKFMR,               CSI,    'y',  NONE,  1, PLUS     ) /* program-key-free-memory-report */
 _VTE_NOQ(DECUS,                  CSI,    'y',  NONE,  1, COMMA    ) /* update session */
