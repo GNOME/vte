@@ -8125,6 +8125,7 @@ Terminal::XTERM_CHECKSUM_MODE(vte::parser::Sequence const& seq)
          *     4: checksum trailing blanks
          *     8: don't checksum empty cells
          *     16: no 8-bit masking or ignoring combining characters
+         *     32: no 7-bit masking
          *
          * Defaults:
          *   args[0]: 0, matching the output from VTxxx terminals
