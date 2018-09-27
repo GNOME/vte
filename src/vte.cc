@@ -3595,11 +3595,11 @@ Terminal::process_incoming()
                                  * next round this byte *will* be consumed.
                                  */
                                 --ip;
-                                /* [[fallthrough]]; */
+                                [[fallthrough]];
                         case vte::base::UTF8Decoder::REJECT:
                                 m_utf8_decoder.reset();
                                 /* Fall through to insert the U+FFFD replacement character. */
-                                /* [[fallthrough]]; */
+                                [[fallthrough]];
                         case vte::base::UTF8Decoder::ACCEPT: {
                                 auto rv = m_parser.feed(m_utf8_decoder.codepoint());
                                 if (G_UNLIKELY(rv < 0)) {

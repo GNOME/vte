@@ -353,11 +353,11 @@ process_file_utf8(int fd,
                                  * next round this byte *will* be consumed.
                                  */
                                 --sptr;
-                                /* [[fallthrough]]; */
+                                [[fallthrough]];
                         case vte::base::UTF8Decoder::REJECT:
                                 decoder.reset();
                                 /* Fall through to insert the U+FFFD replacement character. */
-                                /* [[fallthrough]]; */
+                                [[fallthrough]];
                         case vte::base::UTF8Decoder::ACCEPT: {
                                 auto ret = vte_parser_feed(&parser, decoder.codepoint());
                                 if (G_UNLIKELY(ret < 0)) {

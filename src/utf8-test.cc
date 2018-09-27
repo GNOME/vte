@@ -64,12 +64,12 @@ decode(uint8_t const* in,
                          * next round this byte *will* be consumed.
                          */
                         --iptr;
-                        // [[fallthrough]]; */
+                        [[fallthrough]];
                 case vte::base::UTF8Decoder::REJECT:
                         decoder.reset();
                         state = UTF8Decoder::ACCEPT;
                         /* Fall through to insert the U+FFFD replacement character. */
-                        /* [[fallthrough]]; */
+                        [[fallthrough]];
                 case vte::base::UTF8Decoder::ACCEPT:
                         out.push_back(decoder.codepoint());
                         break;

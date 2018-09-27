@@ -183,6 +183,7 @@ m4_define([compiler_flags_common],[ dnl
 m4_define([compiler_flags_only_c],[ dnl
   -Waggregate-return dnl
   -Wimplicit dnl
+  -Wimplicit-fallthrough=3 dnl
   -Wnested-externs dnl
   -Wold-style-definition dnl
   -Wstrict-prototypes dnl
@@ -190,6 +191,7 @@ m4_define([compiler_flags_only_c],[ dnl
 
 m4_define([compiler_flags_only_cxx],[ dnl
   -Wstrict-null-sentinel dnl
+  -Wimplicit-fallthrough=5 dnl
   -fno-rtti dnl
   -fno-exceptions dnl
   -fvisibility=hidden dnl

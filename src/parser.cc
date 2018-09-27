@@ -936,7 +936,8 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
                 /* Do the deferred clear and fallthrough to STATE_ESC */
                 parser_transition(parser, 0x1b /* ESC */, STATE_ESC,
                                   ACTION_CLEAR_INT);
-                /* fallthrough */
+
+                [[fallthrough]];
         case STATE_ESC:
                 switch (raw) {
                 case 0x00 ... 0x1a:        /* C0 \ { ESC } */
