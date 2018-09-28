@@ -352,6 +352,7 @@ parse(void)
 
 static struct termios tcattr, original;
 
+G_GNUC_NORETURN
 static void
 sigint_handler(int signum)
 {
