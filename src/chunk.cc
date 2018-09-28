@@ -32,7 +32,7 @@ static_assert(offsetof(Chunk, data) == offsetof(Chunk, dataminusone) + 1, "Chunk
 void
 Chunk::recycle() noexcept
 {
-        g_free_chunks.push(std::move(std::unique_ptr<Chunk>(this)));
+        g_free_chunks.push(std::unique_ptr<Chunk>(this));
         /* FIXME: bzero out the chunk for security? */
 }
 

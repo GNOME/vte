@@ -3500,7 +3500,7 @@ Terminal::convert_incoming() noexcept
         while (outlen > 0) {
                 outbuf = (char*)unibuf->data;
                 while (outlen > 0) {
-                        m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                        m_incoming_queue.push(vte::base::Chunk::get());
                         auto chunk = m_incoming_queue.back().get();
                         auto len = std::min(size_t(outlen), chunk->capacity());
                         memcpy(chunk->data, outbuf, len);
@@ -3889,7 +3889,7 @@ Terminal::pty_io_read(GIOChannel *channel,
                         /* No chunk, or chunk at least ¾ full? Get a new chunk */
 			if (!chunk ||
                             chunk->len >= 3 * chunk->capacity() / 4) {
-                                m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                                m_incoming_queue.push(vte::base::Chunk::get());
 
                                 chunk = m_incoming_queue.back().get();
 			}
@@ -4046,7 +4046,7 @@ Terminal::feed(char const* data,
                         chunk = achunk.get();
         }
         if (chunk == nullptr) {
-                m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                m_incoming_queue.push(vte::base::Chunk::get());
                 chunk = m_incoming_queue.back().get();
         }
 
@@ -4063,7 +4063,7 @@ Terminal::feed(char const* data,
                 data += len;
 
                 /* Get another chunk for the remaining data */
-                m_incoming_queue.push(std::move(vte::base::Chunk::get()));
+                m_incoming_queue.push(vte::base::Chunk::get());
                 chunk = m_incoming_queue.back().get();
         } while (true);
 
