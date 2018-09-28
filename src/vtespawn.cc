@@ -510,7 +510,7 @@ enum
   CHILD_FORK_FAILED
 };
 
-static void
+static G_GNUC_NORETURN void
 do_exec (gint                  child_err_report_fd,
          gint                  stdin_fd,
          gint                  stdout_fd,
