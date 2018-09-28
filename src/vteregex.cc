@@ -105,7 +105,9 @@ set_gerror_from_pcre_error(int errcode,
 }
 
 #pragma GCC diagnostic push
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 G_DEFINE_BOXED_TYPE(VteRegex, vte_regex,
                     vte_regex_ref, (GBoxedFreeFunc)vte_regex_unref)
 #pragma GCC diagnostic pop
