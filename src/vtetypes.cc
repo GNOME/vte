@@ -144,6 +144,8 @@ vte::color::rgb::to_string() const
 
 #ifdef MAIN
 
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 #include <glib.h>
 
 using namespace vte::grid;
