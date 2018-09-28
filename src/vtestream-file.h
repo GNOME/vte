@@ -1248,6 +1248,10 @@ G_END_DECLS
 
 #ifdef VTESTREAM_MAIN
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wstring-plus-int"
+#endif
+
 /* Some helpers. Macros rather than functions to report useful line numbers on failure. */
 
 /* Check for the file's exact contents */
