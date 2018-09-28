@@ -21,6 +21,17 @@
 
 #pragma once
 
+#ifdef __clang__
+/* Clang generates lots of warnings for the code below. However while
+ * the pointer in the VteCellAttr struct is indeed only 4-byte aligned,
+ * the VteCellAttr is only used when a member of a VteCell, where it is
+ * at offset 4, resulting in a sufficient overall alignment. So we can
+ * safely ignore the warning.
+ */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Waddress-of-packed-member"
+#endif /* __clang__ */
+
 #include <string.h>
 
 #include "vteunistr.h"
@@ -185,3 +196,7 @@ static const VteCell basic_cell = {
                 0, /* hyperlink_idx */
 	}
 };
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
