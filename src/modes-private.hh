@@ -375,7 +375,8 @@ MODE_FIXED(DECKBUM,    68, ALWAYS_RESET)
  *
  * References: VT525
  *
- * Probably not worth implementing.
+ * Needs to be implemented if DECSLRM is implemented, to resolve a
+ * conflict between DECSLRM and SCOSC.
  */
 MODE_FIXED(DECLRMM, 69, ALWAYS_RESET) /* aka DECVSSM */
 

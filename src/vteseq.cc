@@ -4343,19 +4343,36 @@ Terminal::DECSLRM(vte::parser::Sequence const& seq)
          *
          * References: VT525
          *
-         * Note: There is a conflict between SCOSC and DECSLRM that both
-         * have final character 's' (7/3). SCOSC has 0 parameters, and
-         * DECSLRM has 2 parameters which both have default values, and
-         * my reading of ECMA-48 § 5.4.2h says that this allows for an
-         * empty parameter string to represent them.
-         *
-         * We could either fudge it by dispatching zero params to SCOSC
-         * and anything else to DECSLRM, or, since we already implement
-         * DECSC/DECRC, we can just drop support for the extra SCOSC/SCORC.
-         * Do the latter.
-         *
          * FIXMEchpe: Consider implementing this.
          */
+}
+
+void
+Terminal::DECSLRM_OR_SCOSC(vte::parser::Sequence const& seq)
+{
+        /*
+         * set left and right margins or SCO restore cursor - DECSLRM or SCOSC
+         * There is a conflict between SCOSC and DECSLRM that both are
+         * CSI s (CSI 7/3). SCOSC has 0 parameters, and DECSLRM has 2
+         * parameters which both have default values, and my reading
+         * of ECMA-48 § 5.4.2h says that this allows for an empty
+         * parameter string to represent them.
+         *
+         * While the DEC manuals say that SCOSC/SCORC only operates in
+         * "SCO Console Mode" (which is entered by DECTME 13), and not in
+         * "VT mode" (i.e. native mode), we instead distinguish the cases
+         * by private mode DECLRMM: If DECLRMM is set, dispatch DECSLRM;
+         * if it's reset, dispatch SCOSC.
+         *
+         * See issue #48.
+         */
+
+#ifdef PARSER_INCLUDE_NOP
+        if (m_modes_private.DECLRMM())
+                DECSLRM(seq);
+        else
+#endif
+                SCOSC(seq);
 }
 
 void
@@ -6723,12 +6740,32 @@ void
 Terminal::SCORC(vte::parser::Sequence const& seq)
 {
         /*
-         * SCORC - SCO restore-cursor
+         * SCORC - SCO restore cursor
+         * Works like DECRC, except in that it does not restore the page.
+         * While this is an obsolete sequence from an obsolete terminal,
+         * and not used in terminfo, there still are some programmes
+         * that use it and break when it's not implemented; see issue#48.
          *
          * References: VT525
-         *
-         * Not worth implementing, given that we already support DECSC/DECRC.
          */
+
+        restore_cursor();
+}
+
+void
+Terminal::SCOSC(vte::parser::Sequence const& seq)
+{
+        /*
+         * SCORC - SCO save cursor
+         * Works like DECSC, except in that it does not save the page.
+         * While this is an obsolete sequence from an obsolete terminal,
+         * and not used in terminfo, there still are some programmes
+         * that use it and break when it's not implemented; see issue#48.
+         *
+         * References: VT525
+         */
+
+        save_cursor();
 }
 
 void
