@@ -671,14 +671,11 @@ public:
                          bool insert,
                          bool invalidate_now);
 
-        void invalidate(vte::grid::span const& s, bool block = false);
+        void invalidate_row(vte::grid::row_t row);
+        void invalidate_rows(vte::grid::row_t row_start,
+                             vte::grid::row_t row_end /* inclusive */);
+        void invalidate(vte::grid::span const& s);
         void invalidate_match_span();
-        void invalidate_cell(vte::grid::column_t column, vte::grid::row_t row);
-        void invalidate_cells(vte::grid::column_t sc, int cc,
-                              vte::grid::row_t sr, int rc);
-        void invalidate_region(vte::grid::column_t sc, vte::grid::column_t ec,
-                               vte::grid::row_t sr, vte::grid::row_t er,
-                               bool block = false);
         void invalidate_selection();
         void invalidate_all();
 
@@ -819,10 +816,6 @@ public:
         bool autoscroll();
         void start_autoscroll();
         void stop_autoscroll();
-
-        void scroll_region (long row,
-                            long count,
-                            long delta);
 
         void connect_pty_read();
         void disconnect_pty_read();

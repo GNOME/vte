@@ -229,33 +229,33 @@ Terminal::last_displayed_row() const
         return r;
 }
 
+/* Note that end_row is inclusive. This is not as nice as end-exclusive,
+ * but saves us from a +1 almost everywhere where this method is called. */
 void
-Terminal::invalidate_cells(vte::grid::column_t column_start,
-                                     int n_columns,
-                                     vte::grid::row_t row_start,
-                                     int n_rows)
+Terminal::invalidate_rows(vte::grid::row_t row_start,
+                          vte::grid::row_t row_end /* inclusive */)
 {
 	if (G_UNLIKELY (!widget_realized()))
                 return;
 
-        /* FIXMEchpe: == 0 is fine, but somehow sometimes we
-         * get an actual negative n_columns value passed!?
-         */
-        if (n_columns <= 0 || n_rows <= 0)
+        if (m_invalidated_all)
+		return;
+
+        if (G_UNLIKELY (row_end < row_start))
                 return;
 
-	if (m_invalidated_all) {
-		return;
-	}
-
 	_vte_debug_print (VTE_DEBUG_UPDATES,
-			"Invalidating cells at (%ld,%ld)x(%d,%d).\n",
-			column_start, row_start,
-			n_columns, n_rows);
+                          "Invalidating rows %ld..%ld.\n",
+                          row_start, row_end);
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
-	if (n_columns == m_column_count &&
-            n_rows == m_row_count) {
+        /* Scrolled back, visible parts didn't change. */
+        if (row_start > last_displayed_row())
+                return;
+
+        /* Scrollbar is at default position, all the writable rows changed. */
+        if (row_start == first_displayed_row() &&
+            row_end - row_start + 1 == m_row_count) {
 		invalidate_all();
 		return;
 	}
@@ -265,12 +265,13 @@ Terminal::invalidate_cells(vte::grid::column_t column_start,
 	 * by multiplying by the size of a character cell.
 	 * Always include the extra pixel border and overlap pixel.
 	 */
-        rect.x = column_start * m_cell_width - 1;
-        int xend = (column_start + n_columns) * m_cell_width + 1;
+        // FIXMEegmont invalidate the left and right padding too
+        rect.x = -1;
+        int xend = m_column_count * m_cell_width + 1;
         rect.width = xend - rect.x;
 
         rect.y = row_to_pixel(row_start) - 1;
-        int yend = row_to_pixel(row_start + n_rows) + 1;
+        int yend = row_to_pixel(row_end + 1) + 1;
         rect.height = yend - rect.y;
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
@@ -294,36 +295,18 @@ Terminal::invalidate_cells(vte::grid::column_t column_start,
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
 }
 
+/* Convenience method */
 void
-Terminal::invalidate_region(vte::grid::column_t scolumn,
-                                      vte::grid::column_t ecolumn,
-                                      vte::grid::row_t srow,
-                                      vte::grid::row_t erow,
-                                      bool block)
+Terminal::invalidate_row(vte::grid::row_t row)
 {
-	if (block || srow == erow) {
-		invalidate_cells(
-				scolumn, ecolumn - scolumn + 1,
-				srow, erow - srow + 1);
-	} else {
-		invalidate_cells(
-				scolumn,
-				m_column_count - scolumn,
-				srow, 1);
-		invalidate_cells(
-				0, m_column_count,
-				srow + 1, erow - srow - 1);
-		invalidate_cells(
-				0, ecolumn + 1,
-				erow, 1);
-	}
+        invalidate_rows(row, row);
 }
 
 void
-Terminal::invalidate(vte::grid::span const& s,
-                               bool block)
+Terminal::invalidate(vte::grid::span const& s)
 {
-        invalidate_region(s.start_column(), s.end_column(), s.start_row(), s.end_row(), block);
+        invalidate_rows(s.start_row(),
+                        s.end_column() < 0 ? s.end_row() - 1 : s.end_row());
 }
 
 void
@@ -357,32 +340,6 @@ Terminal::invalidate_all()
 		add_update_timeout(this);
 	} else {
                 gtk_widget_queue_draw(m_widget);
-	}
-}
-
-/* FIXMEchpe: remove this obsolete function. It became useless long ago
- * when we stopped moving window contents around on scrolling. */
-/* Scroll a rectangular region up or down by a fixed number of lines,
- * negative = up, positive = down. */
-void
-Terminal::scroll_region (long row,
-                                   long count,
-                                   long delta)
-{
-	if ((delta == 0) || (count == 0)) {
-		/* Shenanigans! */
-		return;
-	}
-
-	if (count >= m_row_count) {
-		/* We have to repaint the entire window. */
-		invalidate_all();
-	} else {
-		/* We have to repaint the area which is to be
-		 * scrolled. */
-		invalidate_cells(
-				     0, m_column_count,
-				     row, count);
 	}
 }
 
@@ -513,46 +470,6 @@ Terminal::get_preedit_length(bool left_only)
 }
 
 void
-Terminal::invalidate_cell(vte::grid::column_t col,
-                                    vte::grid::row_t row)
-{
-	int columns;
-	guint style;
-
-	if (G_UNLIKELY (!widget_realized()))
-                return;
-
-	if (m_invalidated_all) {
-		return;
-	}
-
-	columns = 1;
-	auto row_data = find_row_data(row);
-	if (row_data != NULL) {
-		const VteCell *cell;
-		cell = _vte_row_data_get (row_data, col);
-		if (cell != NULL) {
-			while (cell->attr.fragment() && col> 0) {
-				cell = _vte_row_data_get (row_data, --col);
-			}
-			columns = cell->attr.columns();
-			style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
-                        if (cell->c != 0) {
-                                int right;
-                                _vte_draw_get_char_edges(m_draw, cell->c, columns, style, NULL, &right);
-                                columns = MAX(columns, howmany(right, m_cell_width));
-			}
-		}
-	}
-
-	_vte_debug_print(VTE_DEBUG_UPDATES,
-			"Invalidating cell at (%ld,%ld-%ld).\n",
-			row, col, col + columns);
-
-        invalidate_cells(col, columns, row, 1);
-}
-
-void
 Terminal::invalidate_cursor_once(bool periodic)
 {
         if (G_UNLIKELY(!widget_realized()))
@@ -569,33 +486,12 @@ Terminal::invalidate_cursor_once(bool periodic)
 	}
 
 	if (m_modes_private.DEC_TEXT_CURSOR()) {
-		auto preedit_width = get_preedit_width(false);
                 auto row = m_screen->cursor.row;
-                auto column = m_screen->cursor.col;
-		long columns = 1;
-		column = find_start_column(column, row);
-
-		auto cell = find_charcell(column, row);
-		if (cell != NULL) {
-			columns = cell->attr.columns();
-			auto style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
-                        if (cell->c != 0) {
-                                int right;
-                                _vte_draw_get_char_edges(m_draw, cell->c, columns, style, NULL, &right);
-                                columns = MAX(columns, howmany(right, m_cell_width));
-			}
-		}
-		columns = MAX(columns, preedit_width);
-		if (column + columns > m_column_count) {
-			column = MAX(0, m_column_count - columns);
-		}
 
 		_vte_debug_print(VTE_DEBUG_UPDATES,
-				"Invalidating cursor at (%ld,%ld-%ld).\n",
-				row, column, column + columns);
-		invalidate_cells(
-				     column, columns,
-				     row, 1);
+                                 "Invalidating cursor in row %ld.\n",
+                                 row);
+                invalidate_row(row);
 	}
 }
 
@@ -830,7 +726,7 @@ void
 Terminal::deselect_all()
 {
 	if (m_has_selection) {
-		gint sx, sy, ex, ey, extra;
+                gint sy, ey;
 
 		_vte_debug_print(VTE_DEBUG_SELECTION,
 				"Deselecting all text.\n");
@@ -841,15 +737,9 @@ Terminal::deselect_all()
 
 		emit_selection_changed();
 
-		sx = m_selection_start.col;
 		sy = m_selection_start.row;
-		ex = m_selection_end.col;
 		ey = m_selection_end.row;
-                extra = m_selection_block_mode ? (VTE_TAB_WIDTH_MAX - 1) : 0;
-		invalidate_region(
-				MIN (sx, ex), MAX (sx, ex) + extra,
-				MIN (sy, ey),   MAX (sy, ey),
-				false);
+                invalidate_rows(sy, ey);
 	}
 }
 
@@ -2623,9 +2513,7 @@ Terminal::cleanup_fragments(long start,
                         cell_end->c = ' ';
                         cell_end->attr.set_fragment(false);
                         cell_end->attr.set_columns(1);
-                        invalidate_cells(
-                                              end, 1,
-                                              m_screen->cursor.row, 1);
+                        invalidate_row(m_screen->cursor.row);
                 }
         }
 
@@ -2649,9 +2537,7 @@ Terminal::cleanup_fragments(long start,
                                                          "Cleaning CJK left half at %ld\n",
                                                          col);
                                         g_assert(start - col == 1);
-                                        invalidate_cells(
-                                                              col, 1,
-                                                              m_screen->cursor.row, 1);
+                                        invalidate_row(m_screen->cursor.row);
                                 }
                                 keep_going = FALSE;
                         }
@@ -2690,8 +2576,7 @@ Terminal::cursor_down(bool explicit_sequence)
                                 ring_insert(m_screen->cursor.row, false);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
-				scroll_region(start,
-							    end - start + 1, 1);
+                                invalidate_rows(start, end);
 				/* Force scroll. */
 				adjust_adjustments();
 			} else {
@@ -2701,11 +2586,7 @@ Terminal::cursor_down(bool explicit_sequence)
 				ring_remove(start);
 				ring_insert(end, true);
 				/* Update the display. */
-				scroll_region(start,
-							   end - start + 1, -1);
-				invalidate_cells(
-						      0, m_column_count,
-						      end - 2, 2);
+                                invalidate_rows(start, end);
 			}
 		} else {
 			/* Scroll up with history. */
@@ -2939,10 +2820,8 @@ Terminal::insert_char(gunichar c,
 
 		/* Always invalidate since we put the mark on the *previous* cell
 		 * and the higher level code doesn't know this. */
-		invalidate_cells(
-				      col - columns,
-				      columns,
-				      row_num, 1);
+                // FIXMEegmont could this be cleaned up now that we invalidate rows?
+                invalidate_row(row_num);
 
 		goto done;
         } else {
@@ -2987,10 +2866,7 @@ Terminal::insert_char(gunichar c,
 
 	/* Signal that this part of the window needs drawing. */
 	if (G_UNLIKELY (invalidate_now)) {
-		invalidate_cells(
-				col - columns,
-				insert ? m_column_count : columns,
-                                m_screen->cursor.row, 1);
+                invalidate_row(m_screen->cursor.row);
 	}
 
         m_screen->cursor.col = col;
@@ -3521,7 +3397,7 @@ Terminal::process_incoming()
 	VteVisualPosition saved_cursor;
 	gboolean saved_cursor_visible;
         VteCursorStyle saved_cursor_style;
-	GdkPoint bbox_topleft, bbox_bottomright;
+        vte::grid::row_t bbox_top, bbox_bottom;
 	gboolean modified, bottom;
 	gboolean invalidated_text;
 	gboolean in_scroll_region;
@@ -3562,8 +3438,8 @@ Terminal::process_incoming()
 	modified = FALSE;
 	invalidated_text = FALSE;
 
-	bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
-	bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+        bbox_bottom = -G_MAXINT;
+        bbox_top = G_MAXINT;
 
         vte::parser::Sequence seq{m_parser};
 
@@ -3630,10 +3506,8 @@ Terminal::process_incoming()
                                 switch (rv) {
                                 case VTE_SEQ_GRAPHIC: {
 
-                                        bbox_topleft.x = MIN(bbox_topleft.x,
-                                                             m_screen->cursor.col);
-                                        bbox_topleft.y = MIN(bbox_topleft.y,
-                                                             m_screen->cursor.row);
+                                        bbox_top = std::min(bbox_top,
+                                                            m_screen->cursor.row);
 
                                         // does insert_char(c, false, false)
                                         GRAPHIC(seq);
@@ -3646,39 +3520,24 @@ Terminal::process_incoming()
                                                 m_line_wrapped = false;
                                                 /* line wrapped, correct bbox */
                                                 if (invalidated_text &&
-                                                    (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK	||
-                                                     m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK	||
-                                                     m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK	||
-                                                     m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK)) {
+                                                    (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
+                                                     m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK)) {
                                                         /* Clip off any part of the box which isn't already on-screen. */
-                                                        bbox_topleft.x = MAX(bbox_topleft.x, 0);
-                                                        bbox_topleft.y = MAX(bbox_topleft.y, top_row);
-                                                        bbox_bottomright.x = MIN(bbox_bottomright.x,
-                                                                                 m_column_count);
-                                                        /* lazily apply the +1 to the cursor_row */
-                                                        bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-                                                                                 bottom_row + 1);
+                                                        bbox_top = std::max(bbox_top, top_row);
+                                                        bbox_bottom = std::min(bbox_bottom, bottom_row);
 
-                                                        invalidate_cells(
-                                                                         bbox_topleft.x,
-                                                                         bbox_bottomright.x - bbox_topleft.x,
-                                                                         bbox_topleft.y,
-                                                                         bbox_bottomright.y - bbox_topleft.y);
-                                                        bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
-                                                        bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+                                                        invalidate_rows(bbox_top, bbox_bottom);
+                                                        bbox_bottom = -G_MAXINT;
+                                                        bbox_top = G_MAXINT;
 
                                                 }
-                                                bbox_topleft.x = MIN(bbox_topleft.x, 0);
-                                                bbox_topleft.y = MIN(bbox_topleft.y,
-                                                                     m_screen->cursor.row);
+                                                bbox_top = std::min(bbox_top,
+                                                                    m_screen->cursor.row);
                                         }
                                         /* Add the cells over which we have moved to the region
                                          * which we need to refresh for the user. */
-                                        bbox_bottomright.x = MAX(bbox_bottomright.x,
-                                                                 m_screen->cursor.col);
-                                        /* cursor.row + 1 (defer until inv.) */
-                                        bbox_bottomright.y = MAX(bbox_bottomright.y,
-                                                                 m_screen->cursor.row);
+                                        bbox_bottom = std::max(bbox_bottom,
+                                                               m_screen->cursor.row);
                                         invalidated_text = TRUE;
 
                                         /* We *don't* emit flush pending signals here. */
@@ -3723,28 +3582,17 @@ Terminal::process_incoming()
                                          */
                                         if (invalidated_text &&
                                             ((new_in_scroll_region && !in_scroll_region) ||
-                                             (m_screen->cursor.col > bbox_bottomright.x + VTE_CELL_BBOX_SLACK ||
-                                              m_screen->cursor.col < bbox_topleft.x - VTE_CELL_BBOX_SLACK     ||
-                                              m_screen->cursor.row > bbox_bottomright.y + VTE_CELL_BBOX_SLACK ||
-                                              m_screen->cursor.row < bbox_topleft.y - VTE_CELL_BBOX_SLACK))) {
+                                             (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
+                                              m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK))) {
                                                 /* Clip off any part of the box which isn't already on-screen. */
-                                                bbox_topleft.x = MAX(bbox_topleft.x, 0);
-                                                bbox_topleft.y = MAX(bbox_topleft.y, top_row);
-                                                bbox_bottomright.x = MIN(bbox_bottomright.x,
-                                                                         m_column_count);
-                                                /* lazily apply the +1 to the cursor_row */
-                                                bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-                                                                         bottom_row + 1);
+                                                bbox_top = std::max(bbox_top, top_row);
+                                                bbox_bottom = std::min(bbox_bottom, bottom_row);
 
-                                                invalidate_cells(
-                                                                 bbox_topleft.x,
-                                                                 bbox_bottomright.x - bbox_topleft.x,
-                                                                 bbox_topleft.y,
-                                                                 bbox_bottomright.y - bbox_topleft.y);
+                                                invalidate_rows(bbox_top, bbox_bottom);
 
                                                 invalidated_text = FALSE;
-                                                bbox_bottomright.x = bbox_bottomright.y = -G_MAXINT;
-                                                bbox_topleft.x = bbox_topleft.y = G_MAXINT;
+                                                bbox_bottom = -G_MAXINT;
+                                                bbox_top = G_MAXINT;
                                         }
 
                                         in_scroll_region = new_in_scroll_region;
@@ -3799,35 +3647,24 @@ Terminal::process_incoming()
 
 	if (invalidated_text) {
 		/* Clip off any part of the box which isn't already on-screen. */
-		bbox_topleft.x = MAX(bbox_topleft.x, 0);
-                bbox_topleft.y = MAX(bbox_topleft.y, top_row);
-		bbox_bottomright.x = MIN(bbox_bottomright.x,
-				m_column_count);
-		/* lazily apply the +1 to the cursor_row */
-		bbox_bottomright.y = MIN(bbox_bottomright.y + 1,
-                                bottom_row + 1);
+                bbox_top = std::max(bbox_top, top_row);
+                bbox_bottom = std::min(bbox_bottom, bottom_row);
 
-		invalidate_cells(
-				bbox_topleft.x,
-				bbox_bottomright.x - bbox_topleft.x,
-				bbox_topleft.y,
-				bbox_bottomright.y - bbox_topleft.y);
+                invalidate_rows(bbox_top, bbox_bottom);
 	}
 
-        // FIXMEchpe: also need to take into account if the number of columns the cursor 
-        // occupies has changed due to the cell it's on being changed...
         if ((saved_cursor.col != m_screen->cursor.col) ||
             (saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
 		if (saved_cursor_visible)
-			invalidate_cell(saved_cursor.col, saved_cursor.row);
+                        invalidate_row(saved_cursor.row);
 		invalidate_cursor_once();
 		check_cursor_blink();
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
         } else if ((saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
                    (saved_cursor_style != m_cursor_style)) {
-		invalidate_cell(saved_cursor.col, saved_cursor.row);
+                invalidate_row(saved_cursor.row);
 		check_cursor_blink();
 	}
 
@@ -5434,14 +5271,18 @@ Terminal::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx
         for (row = first_row; row < end_row; row++) {
                 rowdata = _vte_ring_index(m_screen->row_data, row);
                 if (rowdata != NULL) {
+                        bool do_invalidate_row = false;
                         for (col = 0; col < rowdata->len; col++) {
                                 if (G_UNLIKELY (rowdata->cells[col].attr.hyperlink_idx == idx)) {
-                                        invalidate_cells(col, 1, row, 1);
+                                        do_invalidate_row = true;
                                         top = MIN(top, row);
                                         bottom = MAX(bottom, row);
                                         left = MIN(left, col);
                                         right = MAX(right, col);
                                 }
+                        }
+                        if (G_UNLIKELY (do_invalidate_row)) {
+                                invalidate_row(row);
                         }
                 }
         }
@@ -6257,11 +6098,7 @@ Terminal::widget_paste(GdkAtom board)
 void
 Terminal::invalidate_selection()
 {
-        invalidate_region(m_selection_start.col,
-                          m_selection_end.col,
-                          m_selection_start.row,
-                          m_selection_end.row,
-                          m_selection_block_mode);
+        invalidate_rows(m_selection_start.row, m_selection_end.row);
 }
 
 /* Confine coordinates into the visible area. Padding is already subtracted. */
@@ -6728,72 +6565,21 @@ Terminal::extend_selection(long x,
 	if (had_selection) {
 
 		if (m_selection_block_mode) {
-			/* Update the selection area diff in block mode. */
-
-			/* The top band */
-			invalidate_region(
-						MIN(sc->col, so->col),
-						MAX(ec->col, eo->col),
-						MIN(sc->row, so->row),
-						MAX(sc->row, so->row) - 1,
-						true);
-			/* The bottom band */
-			invalidate_region(
-						MIN(sc->col, so->col),
-						MAX(ec->col, eo->col),
-						MIN(ec->row, eo->row) + 1,
-						MAX(ec->row, eo->row),
-						true);
-			/* The left band */
-			invalidate_region(
-						MIN(sc->col, so->col),
-						MAX(sc->col, so->col) - 1 + (VTE_TAB_WIDTH_MAX - 1),
-						MIN(sc->row, so->row),
-						MAX(ec->row, eo->row),
-						true);
-			/* The right band */
-			invalidate_region(
-						MIN(ec->col, eo->col) + 1,
-						MAX(ec->col, eo->col) + (VTE_TAB_WIDTH_MAX - 1),
-						MIN(sc->row, so->row),
-						MAX(ec->row, eo->row),
-						true);
+                        /* Update the selection area diff in block mode.
+                         * We could optimize when the columns don't change, probably not worth it. */
+                        invalidate_rows(std::min(sc->row, so->row), std::max(ec->row, eo->row));
 		} else {
 			/* Update the selection area diff in non-block mode. */
 
 			/* The before band */
-			if (sc->row < so->row)
-				invalidate_region(
-							sc->col, so->col - 1,
-							sc->row, so->row,
-							false);
-			else if (sc->row > so->row)
-				invalidate_region(
-							so->col, sc->col - 1,
-							so->row, sc->row,
-							false);
-			else
-				invalidate_region(
-							MIN(sc->col, so->col), MAX(sc->col, so->col) - 1,
-							sc->row, sc->row,
-							true);
-
+                        // FIXMEegmont simplify these conditions when sc becomes a grid:coords.
+                        if (sc->row != so->row || sc->col != so->col)
+                                invalidate_rows(std::min(sc->row, so->row),
+                                                std::max(sc->row, so->row));
 			/* The after band */
-			if (ec->row < eo->row)
-				invalidate_region(
-							ec->col + 1, eo->col,
-							ec->row, eo->row,
-							false);
-			else if (ec->row > eo->row)
-				invalidate_region(
-							eo->col + 1, ec->col,
-							eo->row, ec->row,
-							false);
-			else
-				invalidate_region(
-							MIN(ec->col, eo->col) + 1, MAX(ec->col, eo->col),
-							ec->row, ec->row,
-							true);
+                        if (ec->row != eo->row || ec->col != eo->col)
+                                invalidate_rows(std::min(ec->row, eo->row),
+                                                std::max(ec->row, eo->row));
 		}
 	}
 
@@ -7871,6 +7657,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 	gtk_widget_set_redraw_on_allocate(m_widget, FALSE);
 
         m_invalidated_all = false;
+        // FIXMEegmont make this store row indices only, maybe convert to a bitmap
         m_update_rects = g_array_sized_new(FALSE /* zero terminated */,
                                            FALSE /* clear */,
                                            sizeof(cairo_rectangle_int_t),
@@ -10207,10 +9994,7 @@ Terminal::select_text(vte::grid::column_t start_col,
         widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 	emit_selection_changed();
 
-	invalidate_region(MIN (start_col, end_col), MAX (start_col, end_col),
-                          MIN (start_row, end_row), MAX (start_row, end_row),
-                          false);
-
+        invalidate_rows(start_row, end_row);
 }
 
 void

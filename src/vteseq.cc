@@ -316,8 +316,7 @@ Terminal::clear_current_line()
                 _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		invalidate_cells(0, m_column_count,
-                                 m_screen->cursor.row, 1);
+                invalidate_row(m_screen->cursor.row);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -341,7 +340,7 @@ Terminal::clear_above_current()
                         _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
-			invalidate_cells(0, m_column_count, i, 1);
+                        invalidate_row(i);
 		}
 	}
 	/* We've modified the display.  Make a note of it. */
@@ -377,7 +376,7 @@ Terminal::scroll_text(vte::grid::row_t scroll_amount)
 	}
 
 	/* Update the display. */
-        scroll_region(start, end - start + 1, scroll_amount);
+        invalidate_rows(start, end);
 
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
@@ -679,8 +678,7 @@ Terminal::clear_to_bol()
 		}
 	}
 	/* Repaint this row. */
-        invalidate_cells(0, m_screen->cursor.col+1,
-                         m_screen->cursor.row, 1);
+        invalidate_row(m_screen->cursor.row);
 
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
@@ -735,8 +733,7 @@ Terminal::clear_below_current()
 		}
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
-		invalidate_cells(0, m_column_count,
-                                 i, 1);
+                invalidate_row(i);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -775,8 +772,7 @@ Terminal::clear_to_eol()
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
-	invalidate_cells(m_screen->cursor.col, m_column_count - m_screen->cursor.col,
-                         m_screen->cursor.row, 1);
+        invalidate_row(m_screen->cursor.row);
 }
 
 /*
@@ -908,8 +904,7 @@ Terminal::delete_character()
 			}
                         rowdata->attr.soft_wrapped = 0;
 			/* Repaint this row. */
-                        invalidate_cells(col, len - col,
-                                         m_screen->cursor.row, 1);
+                        invalidate_row(m_screen->cursor.row);
 		}
 	}
 
@@ -967,8 +962,7 @@ Terminal::erase_characters(long count)
 			}
 		}
 		/* Repaint this row. */
-                invalidate_cells(m_screen->cursor.col, count,
-                                 m_screen->cursor.row, 1);
+                invalidate_row(m_screen->cursor.row);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -1082,8 +1076,7 @@ Terminal::move_cursor_tab_forward(int count)
                 }
         }
 
-        invalidate_cells(m_screen->cursor.col, newcol - m_screen->cursor.col,
-                         m_screen->cursor.row, 1);
+        invalidate_row(m_screen->cursor.row);
         m_screen->cursor.col = newcol;
 }
 
@@ -1299,7 +1292,7 @@ Terminal::insert_lines(vte::grid::row_t param)
 	}
         m_screen->cursor.col = 0;
 	/* Update the display. */
-        scroll_region(row, end - row + 1, param);
+        invalidate_rows(row, end);
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -1334,7 +1327,7 @@ Terminal::delete_lines(vte::grid::row_t param)
 	}
         m_screen->cursor.col = 0;
 	/* Update the display. */
-        scroll_region(row, end - row + 1, -param);
+        invalidate_rows(row, end);
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -6668,9 +6661,7 @@ Terminal::RI(vte::parser::Sequence const& seq)
 		ring_remove(end);
 		ring_insert(start, true);
 		/* Update the display. */
-		scroll_region(start, end - start + 1, 1);
-                invalidate_cells(0, m_column_count,
-                                 start, 2);
+                invalidate_rows(start, end);
 	} else {
 		/* Otherwise, just move the cursor up. */
                 m_screen->cursor.row--;
