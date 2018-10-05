@@ -8533,7 +8533,8 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 		columns = 0;
 		x = items[i].x;
 		y = items[i].y;
-		for (; i < n && items[i].y == y; i++) {
+                /* Items are not necessarily contiguous. */
+                for (; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
 			columns += items[i].columns;
 		}
 		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
@@ -8573,7 +8574,8 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 		do {
 			x = items[i].x;
 			y = items[i].y;
-			for (columns = 0; i < n && items[i].y == y; i++) {
+                        /* Items are not necessarily contiguous. */
+                        for (columns = 0; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
 				columns += items[i].columns;
 			}
                         switch (vte_attr_get_value(attr, VTE_ATTR_UNDERLINE_VALUE_MASK, VTE_ATTR_UNDERLINE_SHIFT)) {
@@ -8940,295 +8942,161 @@ Terminal::draw_rows(VteScreen *screen_,
                               gint column_width,
                               gint row_height)
 {
-	struct _vte_draw_text_request items[4*VTE_DRAW_MAX_LENGTH];
-        vte::grid::row_t row, rows;
-        vte::grid::column_t i, j;
-        long x, y;
+        struct _vte_draw_text_request *items;
+        vte::grid::row_t row;
+        vte::grid::column_t i, j, col;
+        long y;
         guint fore, nfore, back, nback, deco, ndeco;
-        gboolean hyperlink, nhyperlink, hilite, nhilite,
-                selected, nselected;
+        gboolean hyperlink = FALSE, nhyperlink, hilite = FALSE, nhilite;
+        gboolean selected;
+        uint32_t attr = 0, nattr;
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
 
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
 
-	/* adjust for the absolute start of row */
+        items = g_newa (struct _vte_draw_text_request, m_column_count);
+
+        /* Adjust for the absolute start of row. */
 	start_x -= start_column * column_width;
 
-	/* clear the background */
-	x = start_x;
-	y = start_y;
-	row = start_row;
-	rows = end_row - start_row;
-	do {
+        /* Paint the background.
+         * Do it first for all the cells we're about to paint, before drawing the glyphs,
+         * so that overflowing bits of a glyph won't be chopped off by another cell's background.
+         * Process each row independently. */
+        for (row = start_row, y = start_y; row < end_row; row++, y += row_height) {
 		row_data = find_row_data(row);
-		/* Back up in case this is a multicolumn character,
-		 * making the drawing area a little wider. */
-		i = start_column;
-		if (row_data != NULL) {
-			cell = _vte_row_data_get (row_data, i);
-			if (cell != NULL) {
-				while (cell->attr.fragment() && i > 0) {
-					cell = _vte_row_data_get (row_data, --i);
-				}
-			}
-			/* Walk the line. */
-			do {
-				/* Get the character cell's contents. */
-				cell = _vte_row_data_get (row_data, i);
-				/* Find the colors for this cell. */
-				selected = cell_is_selected(i, row);
-                                determine_colors(cell, selected, &fore, &back, &deco);
-
-				j = i + (cell ? cell->attr.columns() : 1);
-
-				while (j < end_column){
-					/* Retrieve the cell. */
-					cell = _vte_row_data_get (row_data, j);
-					/* Don't render fragments of multicolumn characters
-					 * which have the same attributes as the initial
-					 * portions. */
-					if (cell != NULL && cell->attr.fragment()) {
-						j++;
-						continue;
-					}
-					/* Resolve attributes to colors where possible and
-					 * compare visual attributes to the first character
-					 * in this chunk. */
-					selected = cell_is_selected(j, row);
-                                        determine_colors(cell, selected, &nfore, &nback, &ndeco);
-					if (nback != back) {
-						break;
-					}
-					j += cell ? cell->attr.columns() : 1;
-				}
-				if (back != VTE_DEFAULT_BG) {
-					vte::color::rgb bg;
-                                        rgb_from_index<8, 8, 8>(back, bg);
-					_vte_draw_fill_rectangle (
-							m_draw,
-							x + i * column_width,
-							y,
-                                                        (j - i) * column_width,
-							row_height,
-							&bg, VTE_DRAW_OPAQUE);
-				}
-				/* We'll need to continue at the first cell which didn't
-				 * match the first one in this set. */
-				i = j;
-			} while (i < end_column);
-		} else {
-			do {
-				selected = cell_is_selected(i, row);
-				j = i + 1;
-				while (j < end_column){
-					nselected = cell_is_selected(j, row);
-					if (nselected != selected) {
-						break;
-					}
-					j++;
-				}
-                                determine_colors(nullptr, selected, &fore, &back, &deco);
-				if (back != VTE_DEFAULT_BG) {
-					vte::color::rgb bg;
-                                        rgb_from_index<8, 8, 8>(back, bg);
-					_vte_draw_fill_rectangle (m_draw,
-								  x + i *column_width,
-								  y,
-								  (j - i)  * column_width,
-								  row_height,
-								  &bg, VTE_DRAW_OPAQUE);
-				}
-				i = j;
-			} while (i < end_column);
-		}
-		row++;
-		y += row_height;
-	} while (--rows);
-
-
-	/* render the text */
-	y = start_y;
-	row = start_row;
-	rows = end_row - start_row;
-	item_count = 1;
-	do {
-		row_data = find_row_data(row);
-		if (row_data == NULL) {
-			goto fg_skip_row;
-		}
-		/* Back up in case this is a multicolumn character,
-		 * making the drawing area a little wider. */
-		i = start_column;
-		cell = _vte_row_data_get (row_data, i);
-		if (cell == NULL) {
-			goto fg_skip_row;
-		}
-		while (cell->attr.fragment() && i > 0)
-			cell = _vte_row_data_get (row_data, --i);
-
-		/* Walk the line. */
-		do {
-			/* Get the character cell's contents. */
-			cell = _vte_row_data_get (row_data, i);
-			if (cell == NULL) {
-				goto fg_skip_row;
-			}
-			while (cell->c == 0 || cell->attr.invisible() ||
-					(cell->c == ' ' &&
-                                         cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
-                                                             VTE_ATTR_STRIKETHROUGH_MASK |
-                                                             VTE_ATTR_OVERLINE_MASK) &&
-                                         (!m_allow_hyperlink || cell->attr.hyperlink_idx == 0)) ||
-                               cell->attr.fragment()) {
-				if (++i >= end_column) {
-					goto fg_skip_row;
-				}
-				cell = _vte_row_data_get (row_data, i);
-				if (cell == NULL) {
-					goto fg_skip_row;
-				}
-			}
-			/* Find the colors for this cell. */
-			selected = cell_is_selected(i, row);
+                i = j = start_column;
+                /* Walk the line.
+                 * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
+                do {
+                        /* Get the first cell's contents. */
+                        cell = row_data ? _vte_row_data_get (row_data, i) : nullptr;
+                        /* Find the colors for this cell. */
+                        selected = cell_is_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
 
-                        uint32_t const attr = cell->attr.attr;
+                        while (++j < end_column) {
+                                /* Retrieve the next cell. */
+                                cell = row_data ? _vte_row_data_get (row_data, j) : nullptr;
+                                /* Resolve attributes to colors where possible and
+                                 * compare visual attributes to the first character
+                                 * in this chunk. */
+                                selected = cell_is_selected(j, row);
+                                determine_colors(cell, selected, &nfore, &nback, &ndeco);
+                                if (nback != back) {
+                                        break;
+                                }
+                        }
+                        if (back != VTE_DEFAULT_BG) {
+                                vte::color::rgb bg;
+                                rgb_from_index<8, 8, 8>(back, bg);
+                                _vte_draw_fill_rectangle (m_draw,
+                                                          start_x + i * column_width,
+                                                          y,
+                                                          (j - i) * column_width,
+                                                          row_height,
+                                                          &bg, VTE_DRAW_OPAQUE);
+                        }
+                        /* We'll need to continue at the first cell which didn't
+                         * match the first one in this set. */
+                        i = j;
+                } while (i < end_column);
+        }
 
-                        hyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
-                        hilite = (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
-                                 (m_hyperlink_hover_idx == 0 && m_match != nullptr && m_match_span.contains(row, i));
 
-			items[0].c = cell->c;
-			items[0].columns = cell->attr.columns();
-			items[0].x = start_x + i * column_width;
-			items[0].y = y;
-			j = i + items[0].columns;
+        /* Render one more column to the left and right, to make sure CJKs are drawn correctly. */
+        start_column = MAX(start_column - 1, 0);
+        end_column = MIN(end_column + 1, m_column_count);
 
-			/* Now find out how many cells have the same attributes. */
-			do {
-				while (j < end_column &&
-						item_count < G_N_ELEMENTS(items)) {
-					/* Retrieve the cell. */
-					cell = _vte_row_data_get (row_data, j);
-					if (cell == NULL) {
-						goto fg_next_row;
-					}
-                                        /* Ignore the attributes on a fragment, the attributes
-                                         * of the preceding character cell should apply. */
-                                        if (cell->attr.fragment()) {
-						j++;
-						continue;
-					}
-					if (cell->c == 0){
-						/* only break the run if we
-						 * are drawing attributes
-						 */
-                                                if ((attr & (VTE_ATTR_UNDERLINE_MASK |
-                                                             VTE_ATTR_STRIKETHROUGH_MASK |
-                                                             VTE_ATTR_OVERLINE_MASK)) |
-                                                    hyperlink | hilite) {
-							break;
-						} else {
-							j++;
-							continue;
-						}
-					}
-					/* Resolve attributes to colors where possible and
-					 * compare visual attributes to the first character
-					 * in this chunk. */
-					selected = cell_is_selected(j, row);
-                                        determine_colors(cell, selected, &nfore, &nback, &ndeco);
-					if (nfore != fore) {
-						break;
-					}
-                                        if (ndeco != deco) {
-                                                break;
-                                        }
+        /* Render the text. */
+        for (row = start_row, y = start_y; row < end_row; row++, y += row_height) {
+                row_data = find_row_data(row);
+                if (row_data == NULL) {
+                        /* Skip row. */
+                        continue;
+                }
 
-                                        /* Bold, italic, underline, strikethrough,
-                                         * overline, blink, or invisible differ;
-                                         * break the run.
-                                         */
-                                        if ((cell->attr.attr ^ attr) & (VTE_ATTR_BOLD_MASK |
-                                                                        VTE_ATTR_ITALIC_MASK |
-                                                                        VTE_ATTR_UNDERLINE_MASK |
-                                                                        VTE_ATTR_STRIKETHROUGH_MASK |
-                                                                        VTE_ATTR_OVERLINE_MASK |
-                                                                        VTE_ATTR_BLINK_MASK |
-                                                                        VTE_ATTR_INVISIBLE_MASK))
-                                                break;
+                /* Walk the line.
+                 * Locate runs of identical attributes within a row, and draw each run using a single draw_cells() call. */
+                item_count = 0;
+                for (col = start_column; col < end_column; col++) {
+                        /* Get the character cell's contents. */
+                        cell = _vte_row_data_get (row_data, col);
+                        if (cell == NULL) {
+                                /* There'll be no more real cells in this row. */
+                                break;
+                        }
 
-                                        nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
-                                        if (nhyperlink != hyperlink) {
-                                                break;
-                                        }
-					/* Break up matched/not-matched text. */
-                                        nhilite = (cell->attr.hyperlink_idx != 0 && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
-                                                  (m_hyperlink_hover_idx == 0 && m_match != nullptr && m_match_span.contains(row, j));
-					if (nhilite != hilite) {
-						break;
-					}
-					/* Add this cell to the draw list. */
-					items[item_count].c = cell->c;
-					items[item_count].columns = cell->attr.columns();
-					items[item_count].x = start_x + j * column_width;
-					items[item_count].y = y;
-					j +=  items[item_count].columns;
-					item_count++;
-				}
-				/* have we encountered a state change? */
-				if (j < end_column) {
-					break;
-				}
-fg_next_row:
-				/* is this the last column, on the last row? */
-				do {
-					do {
-						if (!--rows) {
-							goto fg_draw;
-						}
+                        nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
+                        if (cell->c == 0 ||
+                                ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
+                                 cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
+                                                     VTE_ATTR_STRIKETHROUGH_MASK |
+                                                     VTE_ATTR_OVERLINE_MASK) &&
+                                 !nhyperlink) ||
+                            cell->attr.fragment() ||
+                            cell->attr.invisible()) {
+                                /* Skip empty or fragment cell. */
+                                continue;
+                        }
 
-						/* restart on the next row */
-						row++;
-						y += row_height;
-						row_data = find_row_data(row);
-					} while (row_data == NULL);
+                        /* Find the colors for this cell. */
+                        nattr = cell->attr.attr;
+                        selected = cell_is_selected(col, row);
+                        determine_colors(cell, selected, &nfore, &nback, &ndeco);
 
-					/* Back up in case this is a
-					 * multicolumn character, making the drawing
-					 * area a little wider. */
-					j = start_column;
-					cell = _vte_row_data_get (row_data, j);
-				} while (cell == NULL);
-				while (cell->attr.fragment() && j > 0) {
-					cell = _vte_row_data_get (row_data, --j);
-				}
-			} while (TRUE);
-fg_draw:
-			/* Draw the cells. */
-			draw_cells(
-					items,
-					item_count,
-                                        fore, back, deco, FALSE, FALSE,
-                                        attr & attr_mask,
-                                        hyperlink, hilite,
-					column_width, row_height);
-			item_count = 1;
-			/* We'll need to continue at the first cell which didn't
-			 * match the first one in this set. */
-			i = j;
-			if (!rows) {
-				goto fg_out;
-			}
-		} while (i < end_column);
-fg_skip_row:
-		row++;
-		y += row_height;
-	} while (--rows);
-fg_out:
-	return;
+                        nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
+                                  (!nhyperlink && m_match != nullptr && m_match_span.contains(row, col));
+
+                        /* See if it no longer fits the run. */
+                        if (item_count > 0 &&
+                                   (((attr ^ nattr) & (VTE_ATTR_BOLD_MASK |
+                                                       VTE_ATTR_ITALIC_MASK |
+                                                       VTE_ATTR_UNDERLINE_MASK |
+                                                       VTE_ATTR_STRIKETHROUGH_MASK |
+                                                       VTE_ATTR_OVERLINE_MASK |
+                                                       VTE_ATTR_BLINK_MASK |
+                                                       VTE_ATTR_INVISIBLE_MASK)) ||  // FIXME or just simply "attr != nattr"?
+                                    fore != nfore ||
+                                    back != nback ||
+                                    deco != ndeco ||
+                                    hyperlink != nhyperlink ||
+                                    hilite != nhilite)) {
+                                /* Draw the completed run of cells and start a new one. */
+                                draw_cells(items, item_count,
+                                           fore, back, deco, FALSE, FALSE,
+                                           attr & attr_mask,
+                                           hyperlink, hilite,
+                                           column_width, row_height);
+                                item_count = 0;
+                        }
+
+                        attr = nattr;
+                        fore = nfore;
+                        back = nback;
+                        deco = ndeco;
+                        hyperlink = nhyperlink;
+                        hilite = nhilite;
+
+                        g_assert_cmpint (item_count, <, m_column_count);
+                        items[item_count].c = cell->c;
+                        items[item_count].columns = cell->attr.columns();
+                        items[item_count].x = start_x + col * column_width;
+                        items[item_count].y = y;
+                        item_count++;
+                }
+
+                /* Draw the last run of cells in the row. */
+                if (item_count > 0) {
+                        draw_cells(items, item_count,
+                                   fore, back, deco, FALSE, FALSE,
+                                   attr & attr_mask,
+                                   hyperlink, hilite,
+                                   column_width, row_height);
+                }
+        }
 }
 
 void

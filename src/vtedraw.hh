@@ -30,7 +30,6 @@
 G_BEGIN_DECLS
 
 #define VTE_DRAW_OPAQUE (1.0)
-#define VTE_DRAW_MAX_LENGTH 1024
 
 #define VTE_DRAW_NORMAL 0
 #define VTE_DRAW_BOLD   1

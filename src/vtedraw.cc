@@ -148,9 +148,6 @@ _vte_double_equal(double a,
  *
  * Setting this to a large value can cause dramatic slow-downs for some
  * xservers (notably fglrx), see bug #410534.
- *
- * Moreover, setting it larger than %VTE_DRAW_MAX_LENGTH is nonsensical,
- * as the higher layers will not submit runs longer than that value.
  */
 #define MAX_RUN_LENGTH 100
 
