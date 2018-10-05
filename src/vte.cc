@@ -8935,9 +8935,6 @@ void
 Terminal::draw_rows(VteScreen *screen_,
                               vte::grid::row_t start_row,
                               vte::grid::row_t end_row,
-                              vte::grid::column_t start_column,
-                              vte::grid::column_t end_column,
-                              gint start_x,
                               gint start_y,
                               gint column_width,
                               gint row_height)
@@ -8954,20 +8951,20 @@ Terminal::draw_rows(VteScreen *screen_,
 	const VteCell *cell;
 	VteRowData const* row_data;
 
+        auto const column_count = m_column_count;
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
 
-        items = g_newa (struct _vte_draw_text_request, m_column_count);
-
-        /* Adjust for the absolute start of row. */
-	start_x -= start_column * column_width;
+        items = g_newa (struct _vte_draw_text_request, column_count);
 
         /* Paint the background.
          * Do it first for all the cells we're about to paint, before drawing the glyphs,
-         * so that overflowing bits of a glyph won't be chopped off by another cell's background.
+         * so that overflowing bits of a glyph (to the right or downwards) won't be
+         * chopped off by another cell's background, not even across changes of the
+         * background or any other attribute.
          * Process each row independently. */
         for (row = start_row, y = start_y; row < end_row; row++, y += row_height) {
 		row_data = find_row_data(row);
-                i = j = start_column;
+                i = j = 0;
                 /* Walk the line.
                  * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
                 do {
@@ -8977,7 +8974,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         selected = cell_is_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
 
-                        while (++j < end_column) {
+                        while (++j < column_count) {
                                 /* Retrieve the next cell. */
                                 cell = row_data ? _vte_row_data_get (row_data, j) : nullptr;
                                 /* Resolve attributes to colors where possible and
@@ -8993,7 +8990,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 vte::color::rgb bg;
                                 rgb_from_index<8, 8, 8>(back, bg);
                                 _vte_draw_fill_rectangle (m_draw,
-                                                          start_x + i * column_width,
+                                                          i * column_width,
                                                           y,
                                                           (j - i) * column_width,
                                                           row_height,
@@ -9002,13 +8999,9 @@ Terminal::draw_rows(VteScreen *screen_,
                         /* We'll need to continue at the first cell which didn't
                          * match the first one in this set. */
                         i = j;
-                } while (i < end_column);
+                } while (i < column_count);
         }
 
-
-        /* Render one more column to the left and right, to make sure CJKs are drawn correctly. */
-        start_column = MAX(start_column - 1, 0);
-        end_column = MIN(end_column + 1, m_column_count);
 
         /* Render the text. */
         for (row = start_row, y = start_y; row < end_row; row++, y += row_height) {
@@ -9021,7 +9014,7 @@ Terminal::draw_rows(VteScreen *screen_,
                 /* Walk the line.
                  * Locate runs of identical attributes within a row, and draw each run using a single draw_cells() call. */
                 item_count = 0;
-                for (col = start_column; col < end_column; col++) {
+                for (col = 0; col < column_count; col++) {
                         /* Get the character cell's contents. */
                         cell = _vte_row_data_get (row_data, col);
                         if (cell == NULL) {
@@ -9080,10 +9073,10 @@ Terminal::draw_rows(VteScreen *screen_,
                         hyperlink = nhyperlink;
                         hilite = nhilite;
 
-                        g_assert_cmpint (item_count, <, m_column_count);
+                        g_assert_cmpint (item_count, <, column_count);
                         items[item_count].c = cell->c;
                         items[item_count].columns = cell->attr.columns();
-                        items[item_count].x = start_x + col * column_width;
+                        items[item_count].x = col * column_width;
                         items[item_count].y = y;
                         item_count++;
                 }
@@ -9137,7 +9130,6 @@ void
 Terminal::paint_area(GdkRectangle const* area)
 {
         vte::grid::row_t row, row_stop;
-        vte::grid::column_t col, col_stop;
 
         row = pixel_to_row(MAX(0, area->y));
         /* Both the value given by MIN() and row_stop are exclusive.
@@ -9148,30 +9140,22 @@ Terminal::paint_area(GdkRectangle const* area)
 	if (row_stop <= row) {
 		return;
 	}
-	col = MAX(0, area->x / m_cell_width);
-	col_stop = MIN((area->width + area->x) / m_cell_width,
-		       m_column_count);
-	if (col_stop <= col) {
-		return;
-	}
 	_vte_debug_print (VTE_DEBUG_UPDATES,
 			"paint_area"
 			"	(%d,%d)x(%d,%d) pixels,"
 			" (%ld,%ld)x(%ld,%ld) cells"
 			" [(%ld,%ld)x(%ld,%ld) pixels]\n",
 			area->x, area->y, area->width, area->height,
-			col, row, col_stop - col, row_stop - row,
-			col * m_cell_width,
+                        0L, row, m_column_count, row_stop - row,
+                        0L,
 			row * m_cell_height,
-			(col_stop - col) * m_cell_width,
+                        m_column_count * m_cell_width,
 			(row_stop - row) * m_cell_height);
 
 	/* Now we're ready to draw the text.  Iterate over the rows we
 	 * need to draw. */
 	draw_rows(m_screen,
 			      row, row_stop,
-			      col, col_stop,
-			      col * m_cell_width,
 			      row_to_pixel(row),
 			      m_cell_width,
 			      m_cell_height);
