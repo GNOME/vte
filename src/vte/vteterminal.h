@@ -115,7 +115,7 @@ struct _VteCharAttributes {
         /*< private >*/
 	long row, column;
 	PangoColor fore, back;
-	guint underline:1, strikethrough:1;
+	guint underline:1, strikethrough:1, columns:4;
 };
 
 typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,

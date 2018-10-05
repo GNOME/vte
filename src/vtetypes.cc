@@ -111,7 +111,7 @@ vte::grid::span::to_string() const
                 return "grid[empty]";
 
         char *buf = debug_get_buf();
-        g_snprintf(buf, DEBUG_STRING_SIZE, "grid[%ld,%ld .. %ld,%ld]",
+        g_snprintf(buf, DEBUG_STRING_SIZE, "grid[(%ld,%ld), (%ld,%ld))",
                    start_row(), start_column(), end_row(), end_column());
         return buf;
 }
@@ -256,8 +256,7 @@ test_grid_span (void)
         g_assert_false(s6.contains(coords(16, 15)));
         g_assert_true (s6.contains(coords(16, 16)));
         g_assert_true (s6.contains(coords(16, 31)));
-        g_assert_true (s6.contains(coords(16, 32)));
-        g_assert_false(s6.contains(coords(16, 33)));
+        g_assert_false(s6.contains(coords(16, 32)));
         g_assert_false(s6.contains(coords(17, 15)));
         g_assert_false(s6.contains(coords(17, 16)));
 
@@ -268,8 +267,8 @@ test_grid_span (void)
         g_assert_true (s7.contains(coords(16, 42)));
         g_assert_true (s7.contains(coords(17, 42)));
         g_assert_true (s7.contains(coords(31, 100)));
-        g_assert_true (s7.contains(coords(32, 8)));
-        g_assert_false(s7.contains(coords(32, 9)));
+        g_assert_true (s7.contains(coords(32, 7)));
+        g_assert_false(s7.contains(coords(32, 8)));
         g_assert_false(s7.contains(coords(33, 2)));
 
         span s8(16, 16, 32, 32);
@@ -279,25 +278,25 @@ test_grid_span (void)
         g_assert_false(s8.box_contains(coords(16, 15)));
         g_assert_true (s8.box_contains(coords(16, 16)));
         g_assert_true (s8.box_contains(coords(16, 24)));
-        g_assert_true (s8.box_contains(coords(16, 32)));
-        g_assert_false(s8.box_contains(coords(16, 33)));
+        g_assert_true (s8.box_contains(coords(16, 31)));
+        g_assert_false(s8.box_contains(coords(16, 32)));
         g_assert_false(s8.box_contains(coords(24, 15)));
         g_assert_true (s8.box_contains(coords(24, 16)));
         g_assert_true (s8.box_contains(coords(24, 24)));
-        g_assert_true (s8.box_contains(coords(24, 32)));
-        g_assert_false(s8.box_contains(coords(24, 33)));
+        g_assert_true (s8.box_contains(coords(24, 31)));
+        g_assert_false(s8.box_contains(coords(24, 32)));
         g_assert_false(s8.box_contains(coords(32, 15)));
         g_assert_true (s8.box_contains(coords(32, 16)));
         g_assert_true (s8.box_contains(coords(32, 24)));
-        g_assert_true (s8.box_contains(coords(32, 32)));
-        g_assert_false(s8.box_contains(coords(32, 33)));
+        g_assert_true (s8.box_contains(coords(32, 31)));
+        g_assert_false(s8.box_contains(coords(32, 32)));
         g_assert_false(s8.box_contains(coords(33, 15)));
         g_assert_false(s8.box_contains(coords(33, 24)));
-        g_assert_false(s8.box_contains(coords(3, 42)));
+        g_assert_false(s8.box_contains(coords(33, 42)));
 
 #ifdef VTE_DEBUG
         /* to_string() */
-        g_assert_cmpstr(vte::grid::span(17, 42, 18, 3).to_string(), ==, "grid[17,42 .. 18,3]");
+        g_assert_cmpstr(vte::grid::span(17, 42, 18, 3).to_string(), ==, "grid[(17,42), (18,3))");
 #endif
 }
 

@@ -63,6 +63,7 @@ namespace grid {
                 column_t m_column;
         };
 
+        /* end is exclusive (or: start and end point to boundaries between cells) */
         struct span {
         public:
                 span() = default;
@@ -83,13 +84,13 @@ namespace grid {
                 inline column_t start_column() const { return m_start.column(); }
                 inline column_t end_column()   const { return m_end.column(); }
 
-                inline void clear() { m_start = coords(-1, -1); m_end = coords(-2, -2); }
-                inline bool empty() const { return m_start > m_end; }
+                inline void clear() { m_start = coords(-1, -1); m_end = coords(-1, -1); }
+                inline bool empty() const { return m_start >= m_end; }
                 inline explicit operator bool() const { return !empty(); }
 
-                inline bool contains(coords const& p) const { return m_start <= p && p <= m_end; }
+                inline bool contains(coords const& p) const { return m_start <= p && p < m_end; }
                 inline bool box_contains(coords const& p) const { return m_start.row() <= p.row() && p.row() <= m_end.row() &&
-                                                                         m_start.column() <= p.column() && p.column() <= m_end.column(); }
+                                                                         m_start.column() <= p.column() && p.column() < m_end.column(); }
 
                 inline bool contains(row_t row, column_t column) { return contains(coords(row, column)); }
 

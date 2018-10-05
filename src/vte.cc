@@ -1006,7 +1006,7 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 			eattr = offset;
 		}
 		if (row == attr->row &&
-		    column == attr->column) {
+		    column >= attr->column && column < attr->column + attr->columns) {
 			break;
 		}
 	}
@@ -5473,7 +5473,8 @@ Terminal::match_hilite_update()
                                     struct _VteCharAttributes,
                                     end);
 
-                m_match_span = vte::grid::span(sa->row, sa->column, ea->row, ea->column);
+                /* convert from inclusive to exclusive (a.k.a. boundary) ending, taking a possible last CJK character into account */
+                m_match_span = vte::grid::span(sa->row, sa->column, ea->row, ea->column + ea->columns);
 	}
 
         g_assert(!m_match); /* from match_hilite_clear() above */
@@ -5678,6 +5679,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 					attr.back.blue = back.blue;
 					attr.underline = (pcell->attr.underline() == 1);
 					attr.strikethrough = pcell->attr.strikethrough();
+                                        attr.columns = pcell->attr.columns();
 
 					/* Store the cell string */
 					if (pcell->c == 0) {
@@ -10606,7 +10608,7 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	start_col = ca->column;
 	ca = &g_array_index (attrs, VteCharAttributes, end - 1);
 	end_row = ca->row;
-	end_col = ca->column;
+	end_col = ca->column + ca->columns - 1 /* select_text is end-inclusive */;
 
 	g_string_free (row_text, TRUE);
 
