@@ -6740,6 +6740,9 @@ Terminal::SCORC(vte::parser::Sequence const& seq)
          * References: VT525
          */
 
+        if (m_modes_private.DECLRMM())
+                return;
+
         restore_cursor();
 }
 
