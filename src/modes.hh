@@ -36,6 +36,12 @@ namespace modes {
                 return get(e##name); \
         }
 
+#define MODE_FIXED_ACCESSOR(name,value) \
+        inline constexpr bool name() const noexcept \
+        { \
+                return value; \
+        }
+
 template <typename T>
 static inline void vte_modes_set_bool(T* modes,
                                       unsigned int shift,
@@ -159,7 +165,7 @@ public:
         }
 
 #define MODE(name,param) MODE_ACCESSOR(name)
-#define MODE_FIXED(name,param,value)
+#define MODE_FIXED(name,param,value) MODE_FIXED_ACCESSOR(name, e##value == eALWAYS_SET)
 #include "modes-ecma.hh"
 #undef MODE
 #undef MODE_FIXED
@@ -213,7 +219,7 @@ public:
         }
 
 #define MODE(name,param) MODE_ACCESSOR(name)
-#define MODE_FIXED(name,param,value)
+#define MODE_FIXED(name,param,value) MODE_FIXED_ACCESSOR(name, e##value == eALWAYS_SET)
 #include "modes-private.hh"
 #undef MODE
 #undef MODE_FIXED
@@ -244,6 +250,7 @@ private:
 }; // class Private
 
 #undef MODE_ACCESSOR
+#undef MODE_FIXED_ACCESSOR
 
 } // namespace modes
 } // namespace terminal
