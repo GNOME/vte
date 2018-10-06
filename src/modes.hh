@@ -39,7 +39,7 @@ namespace modes {
 #define MODE_FIXED_ACCESSOR(name,value) \
         inline constexpr bool name() const noexcept \
         { \
-                return value; \
+                return (value); \
         }
 
 template <typename T>
