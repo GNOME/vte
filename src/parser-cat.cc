@@ -143,7 +143,6 @@ private:
         private:
                 PrettyPrinter* m_printer;
                 std::string m_outro;
-                bool m_plain;
         }; // class Attribute
 
         class ReverseAttr : private Attribute {
@@ -613,74 +612,127 @@ public:
 
 }; // class Processor
 
+class Options {
+private:
+        bool m_benchmark{false};
+        bool m_codepoints{false};
+        bool m_lint{false};
+        bool m_plain{false};
+        bool m_quiet{false};
+        bool m_statistics{false};
+        int m_repeat{1};
+        char** m_filenames{nullptr};
+
+        template<typename T1, typename T2 = T1>
+        class OptionArg {
+        private:
+                T1* m_return_ptr;
+                T2 m_value;
+        public:
+                OptionArg(T1* ptr, T2 v) : m_return_ptr{ptr}, m_value{v} { }
+                ~OptionArg() { *m_return_ptr = m_value; }
+
+                inline constexpr T2* ptr() noexcept { return &m_value; }
+        };
+
+        using BoolArg = OptionArg<bool, gboolean>;
+        using IntArg = OptionArg<int>;
+        using StrvArg = OptionArg<char**>;
+
+public:
+
+        Options() noexcept = default;
+        Options(Options const&) = delete;
+        Options(Options&&) = delete;
+
+        ~Options() {
+                if (m_filenames != nullptr)
+                        g_strfreev(m_filenames);
+        }
+
+        inline constexpr bool benchmark()  const noexcept { return m_benchmark;  }
+        inline constexpr bool codepoints() const noexcept { return m_codepoints; }
+        inline constexpr bool lint()       const noexcept { return m_lint;       }
+        inline constexpr bool plain()      const noexcept { return m_plain;      }
+        inline constexpr bool quiet()      const noexcept { return m_quiet;      }
+        inline constexpr bool statistics() const noexcept { return m_statistics; }
+        inline constexpr int  repeat()     const noexcept { return m_repeat;     }
+        inline constexpr char const* const* filenames() const noexcept { return m_filenames; }
+
+        bool parse(int argc,
+                   char* argv[],
+                   GError** error) noexcept
+        {
+                BoolArg benchmark{&m_benchmark, false};
+                BoolArg codepoints{&m_codepoints, false};
+                BoolArg lint{&m_lint, false};
+                BoolArg plain{&m_plain, false};
+                BoolArg quiet{&m_quiet, false};
+                BoolArg statistics{&m_statistics, false};
+                IntArg repeat{&m_repeat, 1};
+                StrvArg filenames{&m_filenames, nullptr};
+                GOptionEntry const entries[] = {
+                        { "benchmark", 'b', 0, G_OPTION_ARG_NONE, benchmark.ptr(),
+                          "Measure time spent parsing each file", nullptr },
+                        { "codepoints", 'u', 0, G_OPTION_ARG_NONE, codepoints.ptr(),
+                          "Output unicode code points by number", nullptr },
+                        { "lint", 'l', 0, G_OPTION_ARG_NONE, lint.ptr(),
+                          "Check input", nullptr },
+                        { "plain", 'p', 0, G_OPTION_ARG_NONE, plain.ptr(),
+                          "Output plain text without attributes", nullptr },
+                        { "quiet", 'q', 0, G_OPTION_ARG_NONE, quiet.ptr(),
+                          "Suppress output except for statistics and benchmark", nullptr },
+                        { "repeat", 'r', 0, G_OPTION_ARG_INT, repeat.ptr(),
+                          "Repeat each file COUNT times", "COUNT" },
+                        { "statistics", 's', 0, G_OPTION_ARG_NONE, statistics.ptr(),
+                          "Output statistics", nullptr },
+                        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, filenames.ptr(),
+                          nullptr, nullptr },
+                        { nullptr },
+                };
+
+                auto context = g_option_context_new("[FILE…] — parser cat");
+                g_option_context_set_help_enabled(context, true);
+                g_option_context_add_main_entries(context, entries, nullptr);
+
+                bool rv = g_option_context_parse(context, &argc, &argv, error);
+                g_option_context_free(context);
+                return rv;
+        }
+}; // class Options
+
 int
 main(int argc,
      char *argv[])
 {
-        gboolean benchmark = false;
-        gboolean codepoints = false;
-        gboolean lint = false;
-        gboolean plain = false;
-        gboolean quiet = false;
-        gboolean statistics = false;
-        int repeat = 1;
-        char** filenames = nullptr;
-        GOptionEntry const entries[] = {
-                { "benchmark", 'b', 0, G_OPTION_ARG_NONE, &benchmark,
-                  "Measure time spent parsing each file", nullptr },
-                { "codepoints", 'u', 0, G_OPTION_ARG_NONE, &codepoints,
-                  "Output unicode code points by number", nullptr },
-                { "lint", 'l', 0, G_OPTION_ARG_NONE, &lint,
-                  "Check input", nullptr },
-                { "plain", 'p', 0, G_OPTION_ARG_NONE, &plain,
-                  "Output plain text without attributes", nullptr },
-                { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
-                  "Suppress output except for statistics and benchmark", nullptr },
-                { "repeat", 'r', 0, G_OPTION_ARG_INT, &repeat,
-                  "Repeat each file COUNT times", "COUNT" },
-                { "statistics", 's', 0, G_OPTION_ARG_NONE, &statistics,
-                  "Output statistics", nullptr },
-                { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames,
-                  nullptr, nullptr },
-                { nullptr }
-        };
-
         setlocale(LC_ALL, "");
         _vte_debug_init();
 
-        auto context = g_option_context_new("[FILE…] — parser cat");
-        g_option_context_set_help_enabled(context, true);
-        g_option_context_add_main_entries(context, entries, nullptr);
-
+        Options options{};
         GError* err = nullptr;
-        bool rv = g_option_context_parse(context, &argc, &argv, &err);
-        g_option_context_free(context);
-
-        if (!rv) {
+        if (!options.parse(argc, argv, &err)) {
                 g_printerr("Failed to parse arguments: %s\n", err->message);
                 g_error_free(err);
                 return EXIT_FAILURE;
         }
 
+        bool rv;
         Processor proc{};
-        if (lint) {
+        if (options.lint()) {
                 Linter linter{};
-                rv = proc.process_files(filenames, 1, linter);
-        } else if (quiet) {
+                rv = proc.process_files(options.filenames(), 1, linter);
+        } else if (options.quiet()) {
                 Sink sink{};
-                rv = proc.process_files(filenames, repeat, sink);
+                rv = proc.process_files(options.filenames(), options.repeat(), sink);
         } else {
-                PrettyPrinter pp{plain, codepoints};
-                rv = proc.process_files(filenames, repeat, pp);
+                PrettyPrinter pp{options.plain(), options.codepoints()};
+                rv = proc.process_files(options.filenames(), options.repeat(), pp);
         }
 
-        if (statistics)
+        if (options.statistics())
                 proc.print_statistics();
-        if (benchmark)
+        if (options.benchmark())
                 proc.print_benchmark();
-
-        if (filenames != nullptr)
-                g_strfreev(filenames);
 
         return rv ? EXIT_SUCCESS : EXIT_FAILURE;
 }
