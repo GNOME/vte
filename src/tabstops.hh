@@ -17,11 +17,9 @@
 
 #pragma once
 
-#include <assert.h>
-#include <string.h>
-
+#include <cassert>
 #include <cstdint>
-#include <vector>
+#include <cstring>
 
 #include "vtedefines.hh"
 
