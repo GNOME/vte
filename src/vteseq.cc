@@ -4220,6 +4220,31 @@ Terminal::DECSFC(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::DECSGR(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSGR - DEC select graphics rendition
+         * Selects the character attributes to use for newly inserted
+         * characters.
+         *
+         * Arguments:
+         *   args[0:]: the attributes
+         *     0 = reset all attributes (deprecated; same as SGR 0)
+         *     4 = set superscript and reset subscript
+         *     5 = set subscript and reset superscript
+         *     6 = set overline (deprecated; same as SGR 53)
+         *     24 = reset superscript and subscript
+         *     26 = reset overline (deprecated; same as SGR 55)
+         *
+         * Defaults:
+         *   args[0]: 0 (reset all attributes)
+         *
+         * References: DEC PPLV2
+         */
+        /* TODO: consider implementing sub/superscript? */
+}
+
+void
 Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 {
         /*

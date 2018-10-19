@@ -61,6 +61,7 @@ _VTE_CMD(DECSC) /* save cursor */
 _VTE_CMD(DECSCUSR) /* set cursor style */
 _VTE_CMD(DECSED) /* selective erase in display */
 _VTE_CMD(DECSEL) /* selective erase in line */
+_VTE_CMD(DECSGR) /* DEC select graphics rendition */
 _VTE_CMD(DECSLPP) /* set lines per page */
 _VTE_CMD(DECSLRM_OR_SCOSC) /* set left and right margins or SCO save cursor */
 _VTE_CMD(DECSR) /* secure reset */

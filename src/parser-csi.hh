@@ -118,6 +118,7 @@ _VTE_NOQ(SCP,                    CSI,    'k',  NONE,  1, SPACE    ) /* select ch
 _VTE_SEQ(RM_ECMA,                CSI,    'l',  NONE,  0, NONE     ) /* reset-mode-ecma */
 _VTE_SEQ(RM_DEC,                 CSI,    'l',  WHAT,  0, NONE     ) /* reset-mode-dec */
 _VTE_SEQ(SGR,                    CSI,    'm',  NONE,  0, NONE     ) /* select-graphics-rendition */
+_VTE_NOQ(DECSGR,                 CSI,    'm',  WHAT,  0, NONE     ) /* DEC select graphics rendition */
 _VTE_NOQ(XTERM_SRV,              CSI,    'm',  GT,    0, NONE     ) /* xterm-set-resource-value */
 _VTE_SEQ(DSR_ECMA,               CSI,    'n',  NONE,  0, NONE     ) /* device-status-report-ecma */
 _VTE_NOQ(XTERM_RRV,              CSI,    'n',  GT,    0, NONE     ) /* xterm-reset-resource-value */
