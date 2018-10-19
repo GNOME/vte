@@ -489,6 +489,10 @@ Ring::thaw_row(row_t position,
 			if (G_LIKELY (row->len)) {
 				/* Combine it */
 				row->cells[row->len - 1].c = _vte_unistr_append_unichar (row->cells[row->len - 1].c, cell.c);
+                                /* Spread it to all the previous cells of a potentially multicell character */
+                                for (int i = row->len - 1; i >= 1 && row->cells[i].attr.fragment(); i--) {
+                                        row->cells[i - 1].c = row->cells[i].c;
+                                }
 			} else {
 				cell.attr.set_columns(1);
                                 if (row->len == hyperlink_column && hyperlink != nullptr)
