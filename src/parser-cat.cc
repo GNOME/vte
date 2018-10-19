@@ -392,7 +392,7 @@ public:
 
         void operator()(struct vte_seq const* seq) noexcept
         {
-                auto const cmd = seq->command;
+                auto cmd = seq->command;
                 switch (cmd) {
                 case VTE_CMD_OSC:
                         if (seq->terminator == 7 /* BEL */)
@@ -400,8 +400,10 @@ public:
                         break;
 
                 case VTE_CMD_DECSLRM_OR_SCOSC:
+                        cmd = VTE_CMD_SCOSC;
+                        [[fallthrough]];
                 case VTE_CMD_SCOSC:
-                        warn_deprecated(VTE_CMD_SCOSC, VTE_CMD_DECSC);
+                        warn_deprecated(cmd, VTE_CMD_DECSC);
                         break;
 
                 case VTE_CMD_SCORC:
@@ -424,7 +426,7 @@ private:
         gsize m_cmd_stats[VTE_CMD_N];
         GArray* m_bench_times;
 
-        template <class Functor>
+        template<class Functor>
         void
         process_file_utf8(int fd,
                           Functor& func)
@@ -497,7 +499,7 @@ private:
                 vte_parser_deinit(&parser);
         }
 
-        template <class Functor>
+        template<class Functor>
         bool
         process_file(int fd,
                      int repeat,
@@ -534,7 +536,7 @@ public:
                 g_array_free(m_bench_times, true);
         }
 
-        template <class Functor>
+        template<class Functor>
         bool
         process_files(char const* const* filenames,
                       int repeat,
