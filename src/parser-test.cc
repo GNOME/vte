@@ -578,7 +578,7 @@ test_seq_esc_charset_other(void)
         test_seq_esc_charset(i, 1,
                              charset_ocs_with_return,
                              G_N_ELEMENTS(charset_ocs_with_return),
-                             0x40, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
+                             0x30, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
 
         i[1] = 0x2f;
         test_seq_esc_charset(i, 2,

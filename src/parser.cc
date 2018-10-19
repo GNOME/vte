@@ -253,8 +253,8 @@ static unsigned int vte_parse_charset_ocs(uint32_t raw,
         switch (VTE_SEQ_INTERMEDIATE(intermediates)) {
         case VTE_SEQ_INTERMEDIATE_NONE:  /* OCS with standard return */
                 if (remaining_intermediates == 0 &&
-                    raw >= 0x40 && raw < (0x40 + G_N_ELEMENTS(charset_ocs_with_return)))
-                        return charset_ocs_with_return[raw - 0x40];
+                    raw >= 0x30 && raw < (0x30 + G_N_ELEMENTS(charset_ocs_with_return)))
+                        return charset_ocs_with_return[raw - 0x30];
                 break;
 
         case VTE_SEQ_INTERMEDIATE_SLASH: /* OCS without standard return */

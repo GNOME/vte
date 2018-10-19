@@ -208,6 +208,9 @@ static uint8_t const charset_control_single[] = {
  * ESC 2/5 F
  */
 static uint8_t const charset_ocs_with_return[] = {
+        /* 3/0..3/15 */
+        NA, NA, NA, NA, NA, NA, NA, NA,
+        NA, NA, NA, NA, NA, DEC(IBM_PROPRINTER), NA, NA,
         /* 4/0..4/8 */
         RET, IR(108), IR(178), IR(131), IR(145), IR(160), IR(161), IR(196),
         IR(188)
