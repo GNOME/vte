@@ -4115,10 +4115,22 @@ Terminal::send(vte::parser::u8SequenceBuilder const& builder,
 
 void
 Terminal::send(vte::parser::Sequence const& seq,
-                         vte::parser::u8SequenceBuilder const& builder) noexcept
+               vte::parser::u8SequenceBuilder const& builder) noexcept
 {
-        // FIXMEchpe take c1 & ST from @seq
-        send(builder, false);
+        // FIXMEchpe always take c1 & ST from @seq?
+        if (seq.type() == VTE_SEQ_OSC &&
+            builder.type() == VTE_SEQ_OSC) {
+                /* If we reply to a BEL-terminated OSC, reply with BEL-terminated OSC
+                 * as well, see https://bugzilla.gnome.org/show_bug.cgi?id=722446 and
+                 * https://gitlab.gnome.org/GNOME/vte/issues/65 .
+                 */
+                send(builder, false,
+                     vte::parser::u8SequenceBuilder::Introducer::DEFAULT,
+                     seq.terminator() == 0x7 ? vte::parser::u8SequenceBuilder::ST::BEL
+                     : vte::parser::u8SequenceBuilder::ST::DEFAULT);
+        } else {
+                send(builder, false);
+        }
 }
 
 void

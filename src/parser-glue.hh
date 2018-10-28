@@ -477,6 +477,8 @@ public:
         SequenceBuilder& operator= (SequenceBuilder const&) = delete;
         SequenceBuilder& operator= (SequenceBuilder&&) = delete;
 
+        inline constexpr unsigned int type() const noexcept { return m_seq.type; }
+
         inline void set_type(unsigned int type) noexcept
         {
                 m_seq.type = type;
