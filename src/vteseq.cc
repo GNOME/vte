@@ -1667,13 +1667,34 @@ Terminal::ACS(vte::parser::Sequence const& seq)
          *
          * The final byte of the sequence identifies the facility number
          * from 1 to 62 starting with 4/01.
+         * DEC uses some final characters in the 3/00..3/15 range for
+         * private purposes.
          *
          * References: ECMA-35 § 15.2
+         *             DEC VT525
+         *             DEC PPLV2
          */
 
         /* Since we mostly don't implement ECMA-35 anymore, we can mostly ignore this */
 
         switch (seq.terminator() - 0x40) {
+        case -10: /* '6' */
+                /* S7C1R/DECTC1 - truncate C1 controls
+                 *
+                 * Masks the high bit from C1 controls and then
+                 * processes them as if received like that.
+                 *
+                 * References: DEC PPLV2
+                 */
+                 break;
+        case -9: /* '7' */
+                /* S8C1R/DECAC1 - accept C1 controls
+                 *
+                 * Accept both C0 and C1 controls.
+                 *
+                 * References: DEC PPLV2
+                 */
+                 break;
         case 6:
                 /*
                  * This causes the terminal to start sending C1 controls as 7bit
