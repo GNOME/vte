@@ -4254,13 +4254,16 @@ Terminal::DECSGR(vte::parser::Sequence const& seq)
          *     4 = set superscript and reset subscript
          *     5 = set subscript and reset superscript
          *     6 = set overline (deprecated; same as SGR 53)
+         *     8 = set transparency mode
          *     24 = reset superscript and subscript
          *     26 = reset overline (deprecated; same as SGR 55)
+         *     28 = reset transparency mode
          *
          * Defaults:
          *   args[0]: 0 (reset all attributes)
          *
          * References: DEC PPLV2
+         *             DEC LJ250
          */
         /* TODO: consider implementing sub/superscript? */
 }
