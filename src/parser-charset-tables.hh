@@ -207,7 +207,7 @@ static uint8_t const charset_control_single[] = {
 /* Non-ISO-2022 coding systems, with standard return:
  * ESC 2/5 F
  */
-static uint8_t const charset_ocs_with_return[] = {
+static uint8_t const charset_ocs[] = {
         /* 3/0..3/15 */
         NA, NA, NA, NA, NA, NA, NA, NA,
         NA, NA, NA, NA, NA, DEC(IBM_PROPRINTER), NA, NA,
@@ -216,10 +216,18 @@ static uint8_t const charset_ocs_with_return[] = {
         IR(188)
 };
 
+/* Non-ISO-2022 coding systems, with standard return:
+ * ESC 2/5 SP F
+ */
+static uint8_t const charset_ocs_with_2_0[] = {
+        /* 03/00 */
+        DEC(BARCODE)
+};
+
 /* Non-ISO-2022 coding systems, without standard return:
  * ESC 2/5 2/15 F
  */
-static uint8_t const charset_ocs_without_return[] = {
+static uint8_t const charset_ocs_with_2_15[] = {
         /* 4/0..4/12 */
         IR(162), IR(163), IR(125), IR(174), IR(175), IR(176), IR(177), IR(190),
         IR(191), IR(192), IR(193), IR(194), IR(195)

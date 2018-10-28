@@ -573,17 +573,23 @@ test_seq_esc_charset_other(void)
 {
         uint32_t i[4];
 
-        /* Other coding systems: ESC 2/5 F or ESC 2/5 2/15 F */
+        /* Other coding systems: ESC 2/5 F or ESC 2/5 I F */
         i[0] = 0x25;
         test_seq_esc_charset(i, 1,
-                             charset_ocs_with_return,
-                             G_N_ELEMENTS(charset_ocs_with_return),
+                             charset_ocs,
+                             G_N_ELEMENTS(charset_ocs),
+                             0x30, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
+
+        i[1] = 0x20;
+        test_seq_esc_charset(i, 2,
+                             charset_ocs_with_2_0,
+                             G_N_ELEMENTS(charset_ocs_with_2_0),
                              0x30, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
 
         i[1] = 0x2f;
         test_seq_esc_charset(i, 2,
-                             charset_ocs_without_return,
-                             G_N_ELEMENTS(charset_ocs_without_return),
+                             charset_ocs_with_2_15,
+                             G_N_ELEMENTS(charset_ocs_with_2_15),
                              0x40, VTE_CMD_DOCS, VTE_CHARSET_NONE, 0);
 }
 
