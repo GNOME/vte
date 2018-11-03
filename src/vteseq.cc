@@ -1677,7 +1677,7 @@ Terminal::ACS(vte::parser::Sequence const& seq)
 
         /* Since we mostly don't implement ECMA-35 anymore, we can mostly ignore this */
 
-        switch (seq.terminator() - 0x40) {
+        switch (int(seq.terminator()) - 0x40) {
         case -10: /* '6' */
                 /* S7C1R/DECTC1 - truncate C1 controls
                  *
