@@ -36,31 +36,53 @@ namespace grid {
 
         typedef long row_t;
         typedef long column_t;
+        typedef int half_t;
 
-        struct coords {
+        struct coords : public std::pair<row_t, column_t> {
         public:
+                using base_type = std::pair<row_t, column_t>;
+
                 coords() = default;
-                coords(row_t r, column_t c) : m_row(r), m_column(c) { }
+                coords(row_t r, column_t c) : base_type{r, c} { }
 
-                inline void set_row(row_t r)       { m_row = r; }
-                inline void set_column(column_t c) { m_column = c; }
+                inline void set_row(row_t r)       { first = r;  }
+                inline void set_column(column_t c) { second = c; }
 
-                inline row_t row()       const { return m_row; }
-                inline column_t column() const { return m_column; }
-
-                inline bool operator == (coords const& rhs) const { return m_row == rhs.m_row && m_column == rhs.m_column; }
-                inline bool operator != (coords const& rhs) const { return m_row != rhs.m_row || m_column != rhs.m_column; }
-
-                inline bool operator <  (coords const& rhs) const { return m_row < rhs.m_row || (m_row == rhs.m_row && m_column <  rhs.m_column); }
-                inline bool operator <= (coords const& rhs) const { return m_row < rhs.m_row || (m_row == rhs.m_row && m_column <= rhs.m_column); }
-                inline bool operator >  (coords const& rhs) const { return m_row > rhs.m_row || (m_row == rhs.m_row && m_column >  rhs.m_column); }
-                inline bool operator >= (coords const& rhs) const { return m_row > rhs.m_row || (m_row == rhs.m_row && m_column >= rhs.m_column); }
+                inline row_t row()       const { return first;  }
+                inline column_t column() const { return second; }
 
                 IFDEF_DEBUG(char const* to_string() const);
+        };
 
-        private:
-                row_t m_row;
-                column_t m_column;
+        struct halfcolumn_t : public std::pair<column_t, half_t> {
+        public:
+                using base_type = std::pair<column_t, half_t>;
+
+                halfcolumn_t() = default;
+                halfcolumn_t(column_t c, half_t h) : base_type{c, h} { }
+
+                inline void set_column(column_t c) { first = c;  }
+                inline void set_half(half_t h)     { second = h; }
+
+                inline column_t column() const { return first;  }
+                inline half_t half()     const { return second; }
+        };
+
+        struct halfcoords : public std::pair<row_t, halfcolumn_t> {
+        public:
+                using base_type = std::pair<row_t, halfcolumn_t>;
+
+                halfcoords() = default;
+                halfcoords(row_t r, halfcolumn_t hc) : base_type{r, hc} { }
+                halfcoords(row_t r, column_t c, half_t h) : base_type{r, halfcolumn_t(c, h)} { }
+
+                inline void set_row(row_t r)                { first = r;   }
+                inline void set_halfcolumn(halfcolumn_t hc) { second = hc; }
+
+                inline row_t row()               const { return first;  }
+                inline halfcolumn_t halfcolumn() const { return second; }
+
+                IFDEF_DEBUG(char const* to_string() const);
         };
 
         /* end is exclusive (or: start and end point to boundaries between cells) */
@@ -81,6 +103,8 @@ namespace grid {
                 inline coords const& end()   const { return m_end; }
                 inline row_t start_row()       const { return m_start.row(); }
                 inline row_t end_row()         const { return m_end.row(); }
+                /* Get the last row that actually contains characters belonging to this span. */
+                inline row_t last_row()        const { return m_end.column() > 0 ? m_end.row() : m_end.row() - 1; }
                 inline column_t start_column() const { return m_start.column(); }
                 inline column_t end_column()   const { return m_end.column(); }
 
@@ -89,6 +113,7 @@ namespace grid {
                 inline explicit operator bool() const { return !empty(); }
 
                 inline bool contains(coords const& p) const { return m_start <= p && p < m_end; }
+                // FIXME make "block" a member of the span? Or subclasses for regular and block spans?
                 inline bool box_contains(coords const& p) const { return m_start.row() <= p.row() && p.row() <= m_end.row() &&
                                                                          m_start.column() <= p.column() && p.column() < m_end.column(); }
 

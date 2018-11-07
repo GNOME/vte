@@ -423,22 +423,19 @@ public:
         std::u32string m_word_char_exceptions;
 
 	/* Selection information. */
-        gboolean m_has_selection;
         gboolean m_selecting;
-        gboolean m_selecting_after_threshold;
-        gboolean m_selecting_restart;
+        gboolean m_will_select_after_threshold;
         gboolean m_selecting_had_delta;
-        gboolean m_selection_block_mode;
+        gboolean m_selection_block_mode;  // FIXMEegmont move it into a 4th value in vte_selection_type?
         enum vte_selection_type m_selection_type;
-        vte::view::coords m_selection_origin, m_selection_last;
-        VteVisualPosition m_selection_start, m_selection_end;
+        vte::grid::halfcoords m_selection_origin, m_selection_last;
+        vte::grid::span m_selection_resolved;
 
 	/* Clipboard data information. */
-        // FIXMEchpe check if this can make m_has_selection obsolete!
         bool m_selection_owned[LAST_VTE_SELECTION];
         VteFormat m_selection_format[LAST_VTE_SELECTION];
         bool m_changing_selection;
-        GString *m_selection[LAST_VTE_SELECTION];
+        GString *m_selection[LAST_VTE_SELECTION];  // FIXMEegmont rename this so that m_selection_resolved can become m_selection?
         GtkClipboard *m_clipboard[LAST_VTE_SELECTION];
 
         ClipboardTextRequestGtk<Terminal> m_paste_request;
@@ -675,8 +672,8 @@ public:
         void invalidate_rows(vte::grid::row_t row_start,
                              vte::grid::row_t row_end /* inclusive */);
         void invalidate(vte::grid::span const& s);
+        void invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid::span const& b, bool block);
         void invalidate_match_span();
-        void invalidate_selection();
         void invalidate_all();
 
         void reset_update_rects();
@@ -726,6 +723,7 @@ public:
         vte::view::coords view_coords_from_grid_coords(vte::grid::coords const& rowcol) const;
         vte::grid::coords grid_coords_from_view_coords(vte::view::coords const& pos) const;
 
+        vte::grid::halfcoords selection_grid_halfcoords_from_view_coords(vte::view::coords const& pos) const;
         bool view_coords_visible(vte::view::coords const& pos) const;
         bool grid_coords_visible(vte::grid::coords const& rowcol) const;
 
@@ -944,20 +942,17 @@ public:
         GString* attributes_to_html(GString* text_string,
                                     GArray* attrs);
 
-        void start_selection(long x,
-                             long y,
-                             enum vte_selection_type selection_type);
+        void start_selection(vte::view::coords const& pos,
+                             enum vte_selection_type type);
         bool maybe_end_selection();
-
-        void extend_selection_expand();
-        void extend_selection(long x,
-                              long y,
-                              bool always_grow,
-                              bool force);
 
         void select_all();
         void deselect_all();
 
+        vte::grid::coords resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bool after) const;
+        void resolve_selection();
+        void selection_maybe_swap_endpoints(vte::view::coords const& pos);
+        void modify_selection(vte::view::coords const& pos);
         bool cell_is_selected(vte::grid::column_t col,
                               vte::grid::row_t) const;
 

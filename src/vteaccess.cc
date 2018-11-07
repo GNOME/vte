@@ -1421,14 +1421,11 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 
         auto impl = IMPL_FROM_WIDGET(widget);
 
-	if (!impl->m_has_selection || impl->m_selection[VTE_SELECTION_PRIMARY] == nullptr)
+        if (impl->m_selection_resolved.empty() || impl->m_selection[VTE_SELECTION_PRIMARY] == nullptr)
 		return NULL;
 
-        auto start_sel = impl->m_selection_start;
-        auto end_sel = impl->m_selection_end;
-
-	*start_offset = offset_from_xy (priv, start_sel.col, start_sel.row);
-	*end_offset = offset_from_xy (priv, end_sel.col, end_sel.row);
+        *start_offset = offset_from_xy (priv, impl->m_selection_resolved.start_column(), impl->m_selection_resolved.start_row());
+        *end_offset = offset_from_xy (priv, impl->m_selection_resolved.end_column(), impl->m_selection_resolved.end_row());
 
 	return g_strdup(impl->m_selection[VTE_SELECTION_PRIMARY]->str);
 }
