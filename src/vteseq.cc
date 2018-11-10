@@ -7069,6 +7069,7 @@ Terminal::SGR(vte::parser::Sequence const& seq)
                         break;
                 }
                 case VTE_SGR_SET_BLINK:
+                case VTE_SGR_SET_BLINK_RAPID:
                         m_defaults.attr.set_blink(true);
                         break;
                 case VTE_SGR_SET_REVERSE:
