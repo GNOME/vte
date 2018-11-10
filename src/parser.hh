@@ -162,6 +162,22 @@ enum {
         VTE_OSC_N
 };
 
+enum {
+#define _VTE_SGR(name, value) VTE_SGR_##name = value,
+#define _VTE_NGR(...)
+#include "parser-sgr.hh"
+#undef _VTE_SGR
+#undef _VTE_NGR
+};
+
+enum {
+#define _VTE_SGR(name, value) VTE_DECSGR_##name = value,
+#define _VTE_NGR(...)
+#include "parser-decsgr.hh"
+#undef _VTE_SGR
+#undef _VTE_NGR
+};
+
 #define VTE_CHARSET_CHARSET_MASK   ((1U << 16) - 1U)
 #define VTE_CHARSET_SLOT_OFFSET    (16)
 #define VTE_CHARSET_GET_CHARSET(c) ((c) & VTE_CHARSET_CHARSET_MASK)

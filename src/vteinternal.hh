@@ -82,42 +82,6 @@ enum {
 };
 
 enum {
-        VTE_SGR_SET_BOLD                     =   1,
-        VTE_SGR_SET_DIM                      =   2,
-        VTE_SGR_SET_ITALIC                   =   3,
-        VTE_SGR_SET_UNDERLINE                =   4,
-        VTE_SGR_SET_BLINK                    =   5,
-        VTE_SGR_SET_REVERSE                  =   7,
-        VTE_SGR_SET_INVISIBLE                =   8,
-        VTE_SGR_SET_STRIKETHROUGH            =   9,
-        VTE_SGR_SET_UNDERLINE_DOUBLE         =  21,
-        VTE_SGR_SET_FORE_LEGACY_START        =  30,
-        VTE_SGR_SET_FORE_LEGACY_END          =  37,
-        VTE_SGR_SET_FORE_SPEC                =  38,
-        VTE_SGR_SET_BACK_LEGACY_START        =  40,
-        VTE_SGR_SET_BACK_LEGACY_END          =  47,
-        VTE_SGR_SET_BACK_SPEC                =  48,
-        VTE_SGR_SET_OVERLINE                 =  53,
-        VTE_SGR_SET_DECO_SPEC                =  58,
-        VTE_SGR_SET_FORE_LEGACY_BRIGHT_START =  90,
-        VTE_SGR_SET_FORE_LEGACY_BRIGHT_END   =  97,
-        VTE_SGR_SET_BACK_LEGACY_BRIGHT_START = 100,
-        VTE_SGR_SET_BACK_LEGACY_BRIGHT_END   = 107,
-        VTE_SGR_RESET_ALL                    =   0,
-        VTE_SGR_RESET_BOLD_AND_DIM           =  22,
-        VTE_SGR_RESET_ITALIC                 =  23,
-        VTE_SGR_RESET_UNDERLINE              =  24,
-        VTE_SGR_RESET_BLINK                  =  25,
-        VTE_SGR_RESET_REVERSE                =  27,
-        VTE_SGR_RESET_INVISIBLE              =  28,
-        VTE_SGR_RESET_STRIKETHROUGH          =  29,
-        VTE_SGR_RESET_FORE                   =  39,
-        VTE_SGR_RESET_BACK                   =  49,
-        VTE_SGR_RESET_OVERLINE               =  55,
-        VTE_SGR_RESET_DECO                   =  59,
-};
-
-enum {
         VTE_SGR_COLOR_SPEC_RGB    = 2,
         VTE_SGR_COLOR_SPEC_LEGACY = 5
 };
