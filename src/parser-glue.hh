@@ -162,6 +162,17 @@ public:
                 return (introducer() & 0x80) != 0;
         }
 
+        /* intermediates:
+         *
+         * This is the pintro and intermediate characters in the sequence, if any.
+         *
+         * Returns: the intermediates
+         */
+        inline constexpr unsigned int intermediates() const noexcept
+        {
+                return m_seq->intermediates;
+        }
+
         // FIXMEchpe: upgrade to C++17 and use the u32string_view version below, instead
         /*
          * string:

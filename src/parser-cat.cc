@@ -32,9 +32,17 @@
 
 #include "debug.h"
 #include "parser.hh"
+#include "parser-glue.hh"
 #include "utf8.hh"
 
 using namespace std::literals;
+
+char*
+vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
+                                    ssize_t len) const noexcept
+{
+        return g_ucs4_to_utf8(str, len, nullptr, nullptr, nullptr);
+}
 
 static constexpr char const*
 seq_to_str(unsigned int type) noexcept
@@ -160,29 +168,29 @@ private:
         };
 
         void
-        print_params(struct vte_seq const* seq) noexcept
+        print_params(vte::parser::Sequence const& seq) noexcept
         {
-                if (seq->n_args > 0)
+                auto const size = seq.size();
+                if (size > 0)
                         m_str.push_back(' ');
 
-                for (unsigned int i = 0; i < seq->n_args; i++) {
-                        auto arg = seq->args[i];
-                        if (!vte_seq_arg_default(arg))
-                                print_format("%d", vte_seq_arg_value(arg));
-                        if (i + 1 < seq->n_args)
-                                m_str.push_back(vte_seq_arg_nonfinal(arg) ? ':' : ';');
+                for (unsigned int i = 0; i < size; i++) {
+                        if (!seq.param_default(i))
+                                print_format("%d", seq.param(i));
+                        if (i + 1 < size)
+                                m_str.push_back(seq.param_nonfinal(i) ? ':' : ';');
                 }
         }
 
         void
-        print_pintro(unsigned int type,
-                     unsigned int intermediates) noexcept
+        print_pintro(vte::parser::Sequence const& seq) noexcept
         {
+                auto const type = seq.type();
                 if (type != VTE_SEQ_CSI &&
                     type != VTE_SEQ_DCS)
                         return;
 
-                unsigned int p = intermediates & 0x7;
+                auto const p = seq.intermediates() & 0x7;
                 if (p == 0)
                         return;
 
@@ -191,9 +199,10 @@ private:
         }
 
         void
-        print_intermediates(unsigned int type,
-                            unsigned int intermediates) noexcept
+        print_intermediates(vte::parser::Sequence const& seq) noexcept
         {
+                auto const type = seq.type();
+                auto intermediates = seq.intermediates();
                 if (type == VTE_SEQ_CSI ||
                     type == VTE_SEQ_DCS)
                         intermediates = intermediates >> 3; /* remove pintro */
@@ -235,45 +244,43 @@ private:
         }
 
         void
-        print_string(struct vte_seq const* seq) noexcept
+        print_string(vte::parser::Sequence const& seq) noexcept
         {
-                size_t len;
-                auto buf = vte_seq_string_get(&seq->arg_str, &len);
-                long u8len;
-                auto u8str = g_ucs4_to_utf8(buf, len, nullptr, &u8len, nullptr);
+                auto u8str = seq.string_param();
 
                 m_str.push_back('\"');
-                m_str.append(u8str, size_t(u8len));
+                m_str.append(u8str);
                 m_str.push_back('\"');
 
                 g_free(u8str);
         }
 
         void
-        print_seq_and_params(const struct vte_seq *seq) noexcept
+        print_seq_and_params(vte::parser::Sequence const& seq) noexcept
         {
                 ReverseAttr attr(this);
 
-                if (seq->command != VTE_CMD_NONE) {
+                if (seq.command() != VTE_CMD_NONE) {
                         m_str.push_back('{');
-                        m_str.append(cmd_to_str(seq->command));
+                        m_str.append(cmd_to_str(seq.command()));
                         print_params(seq);
                         m_str.push_back('}');
                 } else {
                         m_str.push_back('{');
-                        m_str.append(seq_to_str(seq->type));
-                        print_pintro(seq->type, seq->intermediates);
+                        m_str.append(seq_to_str(seq.type()));
+                        print_pintro(seq);
                         print_params(seq);
-                        print_intermediates(seq->type, seq->intermediates);
-                        m_str.push_back(seq->terminator);
+                        print_intermediates(seq);
+                        m_str.push_back(' ');
+                        m_str.push_back(seq.terminator());
                         m_str.push_back('}');
                 }
         }
 
         void
-        print_seq(struct vte_seq const* seq) noexcept
+        print_seq(vte::parser::Sequence const& seq) noexcept
         {
-                switch (seq->type) {
+                switch (seq.type()) {
                 case VTE_SEQ_NONE: {
                         RedAttr attr(this);
                         m_str.append("{NONE}"s);
@@ -287,17 +294,18 @@ private:
                 }
 
                 case VTE_SEQ_GRAPHIC: {
-                        bool const printable = g_unichar_isprint(seq->terminator);
+                        auto const terminator = seq.terminator();
+                        bool const printable = g_unichar_isprint(terminator);
                         if (m_codepoints || !printable) {
                                 if (printable) {
                                         char ubuf[7];
-                                        ubuf[g_unichar_to_utf8(seq->terminator, ubuf)] = 0;
-                                        print_format("[%04X %s]", seq->terminator, ubuf);
+                                        ubuf[g_unichar_to_utf8(terminator, ubuf)] = 0;
+                                        print_format("[%04X %s]", terminator, ubuf);
                                 } else {
-                                        print_format("[%04X]", seq->terminator);
+                                        print_format("[%04X]", terminator);
                                 }
                         } else {
-                                print_unichar(seq->terminator);
+                                print_unichar(terminator);
                         }
                         break;
                 }
@@ -305,7 +313,7 @@ private:
                 case VTE_SEQ_CONTROL:
                 case VTE_SEQ_ESCAPE: {
                         ReverseAttr attr(this);
-                        print_format("{%s}", cmd_to_str(seq->command));
+                        print_format("{%s}", cmd_to_str(seq.command()));
                         break;
                 }
 
@@ -324,12 +332,13 @@ private:
                 }
 
                 case VTE_SEQ_SCI: {
-                        if (seq->terminator <= 0x20)
+                        auto const terminator = seq.terminator();
+                        if (terminator <= 0x20)
                                 print_format("{SCI %d/%d}",
-                                             seq->terminator / 16,
-                                             seq->terminator % 16);
+                                             terminator / 16,
+                                             terminator % 16);
                         else
-                                print_format("{SCI %c}", seq->terminator);
+                                print_format("{SCI %c}", terminator);
                         break;
                 }
 
@@ -359,10 +368,10 @@ public:
                 printout();
         }
 
-        void operator()(struct vte_seq const* seq) noexcept
+        void operator()(vte::parser::Sequence const& seq) noexcept
         {
                 print_seq(seq);
-                if (seq->command == VTE_CMD_LF)
+                if (seq.command() == VTE_CMD_LF)
                         printout();
         }
 
@@ -370,31 +379,38 @@ public:
 
 class Linter {
 private:
+        G_GNUC_PRINTF(2, 3)
         void
-        warn(char const* str) const noexcept
+        warn(char const* format,
+             ...) const noexcept
         {
+                va_list args;
+                va_start(args, format);
+                char* str = g_strdup_vprintf(format, args);
+                va_end(args);
                 g_printerr("WARNING: %s\n", str);
+                g_free(str);
         }
 
         void
         warn_deprecated(int cmd,
                         int replacement_cmd) const noexcept
         {
-                g_printerr("WARNING: %s is deprecated; use %s instead.\n",
-                           cmd_to_str(cmd),
-                           cmd_to_str(replacement_cmd));
+                warn("%s is deprecated; use %s instead",
+                     cmd_to_str(cmd),
+                     cmd_to_str(replacement_cmd));
         }
 
 public:
         constexpr Linter() noexcept = default;
         ~Linter() noexcept = default;
 
-        void operator()(struct vte_seq const* seq) noexcept
+        void operator()(vte::parser::Sequence const& seq) noexcept
         {
-                auto cmd = seq->command;
+                auto cmd = seq.command();
                 switch (cmd) {
                 case VTE_CMD_OSC:
-                        if (seq->terminator == 7 /* BEL */)
+                        if (seq.terminator() == 7 /* BEL */)
                                 warn("OSC terminated by BEL may be ignored; use ST (ESC \\) instead.");
                         break;
 
@@ -408,6 +424,11 @@ public:
                 case VTE_CMD_SCORC:
                         warn_deprecated(cmd, VTE_CMD_DECRC);
                         break;
+
+                default:
+                        if (cmd >= VTE_CMD_NOP_FIRST)
+                                warn("%s is unimplemented", cmd_to_str(cmd));
+                        break;
                 }
         }
 
@@ -415,7 +436,7 @@ public:
 
 class Sink {
 public:
-        void operator()(struct vte_seq const* seq) noexcept { }
+        void operator()(vte::parser::Sequence const& seq) noexcept { }
 
 }; // class Sink
 
@@ -430,8 +451,8 @@ private:
         process_file_utf8(int fd,
                           Functor& func)
         {
-                struct vte_parser parser;
-                vte_parser_init(&parser);
+                vte::parser::Parser parser{};
+                vte::parser::Sequence seq{parser};
 
                 gsize const buf_size = 16384;
                 guchar* buf = g_new0(guchar, buf_size);
@@ -452,9 +473,6 @@ private:
                         }
 
                         auto const bufend = buf + len;
-
-                        struct vte_seq *seq = &parser.seq;
-
                         for (auto sptr = buf; sptr < bufend; ++sptr) {
                                 switch (decoder.decode(*sptr)) {
                                 case vte::base::UTF8Decoder::REJECT_REWIND:
@@ -469,7 +487,7 @@ private:
                                         /* Fall through to insert the U+FFFD replacement character. */
                                         [[fallthrough]];
                                 case vte::base::UTF8Decoder::ACCEPT: {
-                                        auto ret = vte_parser_feed(&parser, decoder.codepoint());
+                                        auto ret = parser.feed(decoder.codepoint());
                                         if (G_UNLIKELY(ret < 0)) {
                                                 g_printerr("Parser error!\n");
                                                 goto out;
@@ -477,7 +495,7 @@ private:
 
                                         m_seq_stats[ret]++;
                                         if (ret != VTE_SEQ_NONE) {
-                                                m_cmd_stats[seq->command]++;
+                                                m_cmd_stats[seq.command()]++;
                                                 func(seq);
                                         }
                                         break;
@@ -495,7 +513,6 @@ private:
                 g_array_append_val(m_bench_times, time_spent);
 
                 g_free(buf);
-                vte_parser_deinit(&parser);
         }
 
         template<class Functor>
