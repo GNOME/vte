@@ -21,6 +21,12 @@
   <menu id="gear_menu_model">
     <section>
       <item>
+        <attribute name="label" translatable="yes">_New Terminal</attribute>
+        <attribute name="action">app.new</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
         <attribute name="label" translatable="yes">_Copy</attribute>
         <attribute name="action">win.copy</attribute>
         <attribute name="target">text</attribute>
