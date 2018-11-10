@@ -439,7 +439,13 @@ static unsigned int vte_parse_host_dcs(const struct vte_seq *seq)
 
 static unsigned int vte_parse_host_sci(const struct vte_seq *seq)
 {
-        return VTE_CMD_NONE;
+        switch (_VTE_SEQ_CODE(seq->terminator, 0)) {
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+                case _VTE_SEQ_CODE(f, 0): return VTE_CMD_##cmd;
+#include "parser-sci.hh"
+#undef _VTE_SEQ
+        default: return VTE_CMD_NONE;
+        }
 }
 
 /*

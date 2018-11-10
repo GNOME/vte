@@ -765,6 +765,29 @@ test_seq_sci(void)
                 test_seq_sci(f, false);
 }
 
+G_GNUC_UNUSED
+static void
+test_seq_sci_known(uint32_t f,
+                   unsigned int cmd)
+{
+        vte_seq_builder b{VTE_SEQ_SCI, f};
+
+        auto rv = feed_parser(b);
+        g_assert_cmpint(rv, ==, VTE_SEQ_SCI);
+        g_assert_cmpint(seq.command(), ==, cmd);
+}
+
+static void
+test_seq_sci_known(void)
+{
+        parser.reset();
+
+#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+        test_seq_sci_known(f, VTE_CMD_##cmd);
+#include "parser-sci.hh"
+#undef _VTE_SEQ
+}
+
 static void
 test_seq_csi_known(uint32_t f,
                    uint32_t p,
@@ -1482,6 +1505,7 @@ main(int argc,
         g_test_add_func("/vte/parser/sequences/csi/clear", test_seq_csi_clear);
         g_test_add_func("/vte/parser/sequences/csi/max", test_seq_csi_max);
         g_test_add_func("/vte/parser/sequences/sci", test_seq_sci);
+        g_test_add_func("/vte/parser/sequences/sci/known", test_seq_sci_known);
         g_test_add_func("/vte/parser/sequences/dcs", test_seq_dcs);
         g_test_add_func("/vte/parser/sequences/dcs/known", test_seq_dcs_known);
         g_test_add_func("/vte/parser/sequences/osc", test_seq_osc);

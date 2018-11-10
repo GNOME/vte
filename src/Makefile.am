@@ -73,6 +73,7 @@ libvte_@VTE_API_MAJOR_VERSION@_@VTE_API_MINOR_VERSION@_la_SOURCES = \
 	parser-glue.hh \
 	parser-osc.hh \
 	parser-reply.hh \
+	parser-sci.hh \
 	parser-sgr.hh \
 	parser-string.hh \
 	pty.cc \
@@ -267,6 +268,7 @@ parser_cat_SOURCES = \
 	parser-glue.hh \
 	parser-osc.hh \
 	parser-reply.hh \
+	parser-sci.hh \
 	parser-sgr.hh \
 	parser-string.hh \
 	parser-cat.cc \
@@ -310,6 +312,7 @@ test_parser_SOURCES = \
 	parser-glue.hh \
 	parser-osc.hh \
 	parser-reply.hh \
+	parser-sci.hh \
 	parser-sgr.hh \
 	parser-string.hh \
 	$(NULL)
