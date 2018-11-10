@@ -35,6 +35,14 @@
 #include "parser-glue.hh"
 #include "utf8.hh"
 
+enum {
+#define _VTE_SGR(...)
+#define _VTE_NGR(name, value) VTE_SGR_##name = value,
+#include "parser-sgr.hh"
+#undef _VTE_SGR
+#undef _VTE_NGR
+};
+
 using namespace std::literals;
 
 char*
@@ -401,6 +409,167 @@ private:
                      cmd_to_str(replacement_cmd));
         }
 
+        void
+        check_sgr_number(int sgr) noexcept
+        {
+                switch (sgr) {
+                case -1:
+#define _VTE_SGR(name, value) case value:
+#define _VTE_NGR(...)
+#include "parser-sgr.hh"
+#undef _VTE_SGR
+#undef _VTE_NGR
+                case VTE_SGR_SET_FORE_LEGACY_START+1 ... VTE_SGR_SET_FORE_LEGACY_END-1:
+                case VTE_SGR_SET_FORE_LEGACY_BRIGHT_START+1 ... VTE_SGR_SET_FORE_LEGACY_BRIGHT_END-1:
+                case VTE_SGR_SET_BACK_LEGACY_START+1 ... VTE_SGR_SET_BACK_LEGACY_END-1:
+                case VTE_SGR_SET_BACK_LEGACY_BRIGHT_START+1 ... VTE_SGR_SET_BACK_LEGACY_BRIGHT_END-1:
+                        break;
+
+#define _VTE_SGR(...)
+#define _VTE_NGR(name, value) case value:
+#include "parser-sgr.hh"
+#undef _VTE_SGR
+#undef _VTE_NGR
+                case VTE_SGR_SET_FONT_FIRST+1 ... VTE_SGR_SET_FONT_LAST-1:
+                        warn("SGR %d is unsupported", sgr);
+                        break;
+
+                default:
+                        warn("SGR %d is unknown", sgr);
+                        break;
+
+                }
+        }
+
+        void
+        check_sgr_color(vte::parser::Sequence const& seq,
+                        unsigned int& idx) noexcept
+        {
+                auto const sgr = seq.param(idx);
+
+                /* Simplified and adapted from Terminal::seq_parse_sgr_color() */
+                if (seq.param_nonfinal(idx)) {
+                        /* Colon version */
+                        auto const param = seq.param(++idx);
+                        switch (param) {
+                        case 2: {
+                                auto const n = seq.next(idx) - idx;
+                                if (n < 4)
+                                        warn("SGR %d:2 not enough parameters", sgr);
+                                else if (n == 4)
+                                        warn("SGR %d:2:r:g:b is deprecated; use SGR %d:2::r:g:b instead",
+                                             sgr, sgr);
+                                break;
+                        }
+                        case 5: {
+                                auto const n = seq.next(idx) - idx;
+                                if (n < 2)
+                                        warn("SGR %d:5 not enough parameters", sgr);
+                                break;
+                        }
+                        case -1:
+                                warn("SGR %d does not admit default parameters", sgr);
+                                break;
+                        case 0:
+                        case 1:
+                        case 3:
+                        case 4:
+                                warn("SGR %d:%d is unsupported", sgr, param);
+                                break;
+                        default:
+                                warn("SGR %d:%d is unknown", sgr, param);
+                        }
+                } else {
+                        /* Semicolon version */
+                        idx = seq.next(idx);
+                        auto const param = seq.param(idx);
+                        switch (param) {
+                        case 2:
+                                /* Consume 3 more parameters */
+                                idx = seq.next(idx);
+                                idx = seq.next(idx);
+                                idx = seq.next(idx);
+                                warn("SGR %d;%d;r;g;b is deprecated; use SGR %d:%d::r:g:b instead",
+                                     sgr, param, sgr, param);
+                                break;
+                        case 5:
+                                /* Consume 1 more parameter */
+                                idx = seq.next(idx);
+                                warn("SGR %d;%d;index is deprecated; use SGR %d:%d:index instead",
+                                     sgr, param, sgr, param);
+                                break;
+                        case -1:
+                                warn("SGR %d does not admit default parameters", sgr);
+                                break;
+                        case 0:
+                        case 1:
+                        case 3:
+                        case 4:
+                                warn("SGR %d;%d;... is unsupported; use SGR %d:%d:... instead",
+                                     sgr, param, sgr, param);
+                                break;
+                        default:
+                                warn("SGR %d;%d is unknown", sgr, param);
+                                break;
+                        }
+                }
+        }
+
+        void
+        check_sgr_underline(vte::parser::Sequence const& seq,
+                            unsigned int idx) noexcept
+        {
+                auto const sgr = seq.param(idx);
+
+                unsigned int param = 1;
+                /* If we have a subparameter, get it */
+                if (seq.param_nonfinal(idx))
+                        param = seq.param(idx + 1);
+
+                switch (param) {
+                case -1:
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                        break;
+                case 4:
+                case 5:
+                        warn("SGR %d:%d is unsupported", sgr, param);
+                        break;
+                default:
+                        warn("SGR %d:%d is unknown", sgr, param);
+                        break;
+                }
+        }
+
+        void
+        check_sgr(vte::parser::Sequence const& seq) noexcept
+        {
+                for (unsigned int i = 0; i < seq.size(); i = seq.next(i)) {
+                        auto const param = seq.param(i, 0);
+
+                        check_sgr_number(param);
+
+                        switch (param) {
+                        case VTE_SGR_SET_UNDERLINE:
+                                check_sgr_underline(seq, i);
+                                break;
+
+                        case VTE_SGR_SET_FORE_SPEC:
+                        case VTE_SGR_SET_BACK_SPEC:
+                        case VTE_SGR_SET_DECO_SPEC:
+                                check_sgr_color(seq, i);
+                                break;
+
+                        default:
+                                if (seq.param_nonfinal(i))
+                                        warn("SGR %d does not admit subparameters", param);
+                                break;
+                        }
+                }
+        }
+
 public:
         constexpr Linter() noexcept = default;
         ~Linter() noexcept = default;
@@ -423,6 +592,10 @@ public:
 
                 case VTE_CMD_SCORC:
                         warn_deprecated(cmd, VTE_CMD_DECRC);
+                        break;
+
+                case VTE_CMD_SGR:
+                        check_sgr(seq);
                         break;
 
                 default:
