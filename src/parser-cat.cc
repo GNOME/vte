@@ -521,7 +521,7 @@ private:
         {
                 auto const sgr = seq.param(idx);
 
-                unsigned int param = 1;
+                int param = 1;
                 /* If we have a subparameter, get it */
                 if (seq.param_nonfinal(idx))
                         param = seq.param(idx + 1);
