@@ -6095,7 +6095,12 @@ Terminal::get_text(vte::grid::row_t start_row,
         vte::grid::row_t row;
 	for (row = start_row; row < end_row + 1; row++, col = next_first_column) {
 		VteRowData const* row_data = find_row_data(row);
+                gsize last_empty, last_nonempty;
+                vte::grid::column_t last_emptycol, last_nonemptycol;
                 vte::grid::column_t line_last_column = (block || row == end_row) ? end_col : G_MAXLONG;
+
+                last_empty = last_nonempty = string->len;
+                last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
 		attr.column = col;
@@ -6128,9 +6133,16 @@ Terminal::get_text(vte::grid::row_t start_row,
 
 					/* Store the cell string */
 					if (pcell->c == 0) {
+                                                /* Empty cells of nondefault background color are
+                                                 * stored as NUL characters. Treat them as spaces,
+                                                 * but make a note of the last occurrence. */
 						g_string_append_c (string, ' ');
+                                                last_empty = string->len;
+                                                last_emptycol = col;
 					} else {
 						_vte_unistr_append_to_string (pcell->c, string);
+                                                last_nonempty = string->len;
+                                                last_nonemptycol = col;
 					}
 
 					/* If we added text to the string, record its
@@ -6144,6 +6156,33 @@ Terminal::get_text(vte::grid::row_t start_row,
 				col++;
 			}
 		}
+
+                /* Empty cells of nondefault background color can appear anywhere in a line,
+                 * not just at the end, e.g. between "foo" and "bar" here:
+                 *   echo -e '\e[46mfoo\e[K\e[7Gbar\e[m'
+                 * Strip off the trailing ones, preserve the middle ones. */
+                if (last_empty > last_nonempty) {
+
+                        col = last_emptycol + 1;
+
+                        if (row_data != NULL) {
+                                while ((pcell = _vte_row_data_get (row_data, col))) {
+                                        col++;
+
+                                        if (pcell->attr.fragment())
+                                                continue;
+
+                                        if (pcell->c != 0)
+                                                break;
+                                }
+                        }
+                        if (pcell == NULL) {
+                                g_string_truncate(string, last_nonempty);
+                                if (attributes)
+                                        g_array_set_size(attributes, string->len);
+                                attr.column = last_nonemptycol;
+                        }
+                }
 
 		/* Adjust column, in case we want to append a newline */
                 //FIXMEchpe MIN ?
