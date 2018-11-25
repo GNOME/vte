@@ -7957,6 +7957,7 @@ VteTerminalPrivate::vadjustment_value_changed()
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
                 invalidate_all();
+                match_contents_clear();
 		emit_text_scrolled(dy);
 		queue_contents_changed();
 	} else {
