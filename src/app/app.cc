@@ -1465,26 +1465,43 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 }
 
                 /* Test extra match API */
+                static const char extra_pattern[] = "(\\d+)\\s*(\\w+)";
                 char* extra_match = nullptr;
+                char *extra_subst = nullptr;
                 if (options.use_gregex) {
-                        auto regex = compile_gregex("\\d+", false, nullptr);
+                        auto regex = compile_gregex(extra_pattern, false, nullptr);
                         vte_terminal_event_check_gregex_simple(window->terminal, event,
                                                                &regex, 1,
                                                                GRegexMatchFlags(0),
                                                                &extra_match);
                         g_regex_unref(regex);
                 } else {
-                        auto regex = compile_regex_for_match("\\d+", false, nullptr);
+                        auto regex = compile_regex_for_match(extra_pattern, false, nullptr);
                         vte_terminal_event_check_regex_simple(window->terminal, event,
                                                               &regex, 1, 0,
                                                               &extra_match);
+
+                        GError *err = nullptr;
+                        if (extra_match != nullptr &&
+                            (extra_subst = vte_regex_substitute(regex, extra_match, "$2 $1",
+                                                                PCRE2_SUBSTITUTE_EXTENDED |
+                                                                PCRE2_SUBSTITUTE_GLOBAL,
+                                                                &err)) == nullptr) {
+                                verbose_printerr("Substitution failed: %s\n", err->message);
+                                g_error_free(err);
+                        }
+
                         vte_regex_unref(regex);
                 }
 
                 if (extra_match != nullptr) {
-                        verbose_print("\\d+ match: %s\n", extra_match);
-                        g_free(extra_match);
+                        if (extra_subst != nullptr)
+                                verbose_print("%s match: %s => %s\n", extra_pattern, extra_match, extra_subst);
+                        else
+                                verbose_print("%s match: %s\n", extra_pattern, extra_match);
                 }
+                g_free(extra_match);
+                g_free(extra_subst);
         }
 
         g_menu_append(menu, "_Paste", "win.paste");

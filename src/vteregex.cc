@@ -386,7 +386,7 @@ _vte_regex_has_purpose(VteRegex *regex,
  * Returns: the #pcre2_code_8 from @regex
  */
 const pcre2_code_8 *
-_vte_regex_get_pcre(VteRegex *regex)
+_vte_regex_get_pcre(VteRegex const* regex)
 {
         g_return_val_if_fail(regex != NULL, NULL);
 
@@ -456,4 +456,69 @@ _vte_regex_get_compile_flags(VteRegex *regex)
         int r = pcre2_pattern_info_8(regex->code, PCRE2_INFO_ARGOPTIONS, &v);
 
         return r == 0 ? v : 0u;
+}
+
+/**
+ * vte_regex_substitute:
+ * @regex: a #VteRegex
+ * @subject: the subject string
+ * @replacement: the replacement string
+ * @flags: PCRE2 match flags
+ * @error: (nullable): return location for a #GError, or %NULL
+ *
+ * See man:pcre2api(3) on pcre2_substitute() for more information.
+ *
+ * Returns: (transfer full): the substituted string, or %NULL
+ *   if an error occurred
+ *
+ * Since: 0.56
+ */
+char *
+vte_regex_substitute(VteRegex *regex,
+                     const char *subject,
+                     const char *replacement,
+                     guint32 flags,
+                     GError **error)
+{
+        g_return_val_if_fail(regex != nullptr, nullptr);
+        g_return_val_if_fail(subject != nullptr, nullptr);
+        g_return_val_if_fail(replacement != nullptr, nullptr);
+        g_return_val_if_fail (!(flags & PCRE2_SUBSTITUTE_OVERFLOW_LENGTH), nullptr);
+
+        uint8_t outbuf[2048];
+        PCRE2_SIZE outlen = sizeof(outbuf);
+        int r = pcre2_substitute_8(_vte_regex_get_pcre(regex),
+                                   (PCRE2_SPTR8)subject, PCRE2_ZERO_TERMINATED,
+                                   0 /* start offset */,
+                                   flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
+                                   nullptr /* match data */,
+                                   nullptr /* match context */,
+                                   (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED,
+                                   (PCRE2_UCHAR8*)outbuf, &outlen);
+
+        if (r >= 0)
+                return g_strndup((char*)outbuf, outlen);
+
+        if (r == PCRE2_ERROR_NOMEMORY) {
+                /* The buffer was not large enough; allocated a buffer of the
+                 * required size and try again. Note that @outlen as returned
+                 * from pcre2_substitute_8() above includes the trailing \0.
+                 */
+                uint8_t *outbuf2 = (uint8_t*)g_malloc(outlen);
+                r = pcre2_substitute_8(_vte_regex_get_pcre(regex),
+                                       (PCRE2_SPTR8)subject, PCRE2_ZERO_TERMINATED,
+                                       0 /* start offset */,
+                                       flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
+                                       nullptr /* match data */,
+                                       nullptr /* match context */,
+                                       (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED,
+                                       (PCRE2_UCHAR8*)outbuf2, &outlen);
+                if (r >= 0)
+                        return (char*)outbuf2;
+
+                g_free(outbuf2);
+       }
+
+        set_gerror_from_pcre_error(r, error);
+        return nullptr;
 }

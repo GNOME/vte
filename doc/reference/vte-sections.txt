@@ -166,6 +166,7 @@ vte_regex_unref
 vte_regex_new_for_match
 vte_regex_new_for_search
 vte_regex_jit
+vte_regex_substitute
 
 <SUBSECTION Standard>
 VTE_TYPE_REGEX

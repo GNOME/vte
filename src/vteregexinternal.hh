@@ -29,7 +29,7 @@ gboolean _vte_regex_get_jited(VteRegex *regex);
 
 guint32 _vte_regex_get_compile_flags (VteRegex *regex);
 
-const pcre2_code_8 *_vte_regex_get_pcre (VteRegex *regex);
+const pcre2_code_8 *_vte_regex_get_pcre (VteRegex const* regex);
 
 /* GRegex translation */
 VteRegex *_vte_regex_new_gregex(VteRegexPurpose purpose,
