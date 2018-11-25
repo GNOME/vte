@@ -172,3 +172,16 @@ void _vte_row_data_shrink (VteRowData *row, gulong max_len)
 		row->len = max_len;
 }
 
+/* Get the length, ignoring trailing empty cells (with a custom background color). */
+guint16 _vte_row_data_nonempty_length (const VteRowData *row)
+{
+        guint16 len;
+        const VteCell *cell;
+        for (len = row->len; len > 0; len--) {
+                cell = &row->cells[len - 1];
+                if (cell->attr.fragment() || cell->c != 0)
+                        break;
+        }
+        return len;
+}
+

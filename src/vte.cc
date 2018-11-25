@@ -5146,7 +5146,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                         } else {
                                 vte::grid::column_t char_begin, char_end;  /* cell boundaries */
                                 rowdata = find_row_data(row);
-                                if (rowdata && col < rowdata->len) {
+                                if (rowdata && col < _vte_row_data_nonempty_length(rowdata)) {
                                         /* Clicked over a used cell. Check for multi-cell characters. */
                                         char_begin = col;
                                         while (char_begin > 0) {
@@ -5169,7 +5169,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                         col = char_end;
 
                                 /* Maybe wrap to the beginning of the next line. */
-                                if (col > (rowdata ? rowdata->len : 0)) {
+                                if (col > (rowdata ? _vte_row_data_nonempty_length(rowdata) : 0)) {
                                         col = 0;
                                         row++;
                                 }
@@ -5188,7 +5188,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                 if (row > 0 &&
                                     (rowdata = find_row_data(row - 1)) != nullptr &&
                                     rowdata->attr.soft_wrapped &&
-                                    (len = rowdata->len) > 0 &&
+                                    (len = _vte_row_data_nonempty_length(rowdata)) > 0 &&
                                     is_same_class(len - 1, row - 1, 0, row) /* invalidates rowdata! */) {
                                         if (!after) {
                                                 col = len - 1;
@@ -5201,7 +5201,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                         col = 0;  /* end-exclusive */
                                         break;  /* done, don't expand any more */
                                 }
-                        } else if (col >= (rowdata ? rowdata->len : 0)) {
+                        } else if (col >= (rowdata ? _vte_row_data_nonempty_length(rowdata) : 0)) {
                                 /* Clicked over the right margin, or right unused area.
                                  * - If within a word (that is, the last letter in this row, and the first
                                  *   letter of the next row belong to the same word) then select the letter
@@ -5212,7 +5212,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                  * - Otherwise select the newline only and stop. */
                                 if (rowdata != nullptr &&
                                     rowdata->attr.soft_wrapped) {
-                                        if ((len = rowdata->len) > 0 &&
+                                        if ((len = _vte_row_data_nonempty_length(rowdata)) > 0 &&
                                             is_same_class(len - 1, row, 0, row + 1) /* invalidates rowdata! */) {
                                                 if (!after) {
                                                         col = len - 1;
@@ -5228,7 +5228,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                         }
                                 } else {
                                         if (!after) {
-                                                col = rowdata ? rowdata->len : 0;  /* end-exclusive */
+                                                col = rowdata ? _vte_row_data_nonempty_length(rowdata) : 0;  /* end-exclusive */
                                         } else {
                                                 col = 0;  /* end-exclusive */
                                                 row++;
@@ -5261,7 +5261,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                                 /* Reached a hard newline. */
                                                 break;
                                         }
-                                        len = rowdata->len;
+                                        len = _vte_row_data_nonempty_length(rowdata);
                                         /* len might be smaller than m_column_count if a CJK wrapped */
                                         if (!is_same_class(len - 1, row - 1, col, row) /* invalidates rowdata! */) {
                                                 break;
@@ -5278,7 +5278,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                         if (!rowdata) {
                                                 break;
                                         }
-                                        len = rowdata->len;
+                                        len = _vte_row_data_nonempty_length(rowdata);
                                         bool soft_wrapped = rowdata->attr.soft_wrapped;
                                         /* Move forward within the row. */
                                         for (; col < len - 1; col++) {
