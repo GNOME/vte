@@ -9045,7 +9045,10 @@ Terminal::paint_cursor()
 	width = m_cell_width;
 	height = m_cell_height;
 
-        /* TODOegmont: clamp on rows? tricky... */
+        /* Show a tiny bit of an outline rectangle cursor just under the last displayed row,
+         * hence the +1. The cursor can't be offscreen in the other direction vertically. */
+        if (drow > last_displayed_row() + 1)
+                return;
 	if (CLAMP(col, 0, m_column_count - 1) != col)
 		return;
 
