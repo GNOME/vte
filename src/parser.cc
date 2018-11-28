@@ -42,6 +42,29 @@
  * control sequences and generic escape sequences.
  * The parser itself does not perform any actions but lets the caller react to
  * detected sequences.
+ *
+ * This parser is mostly DEC VT100+ compatible; known differences are:
+ *
+ * * DEC only recognises up to 16 parameters; vte up to 32 (and that can be easily
+ *   extended)
+ *
+ * * When the number of parameter exceeds that number, DEC executes the function
+ *   with these parameters, ignoring the excessive parameters; vte ignores the
+ *   whole function instead.
+ *
+ * * DEC ignores CSI sequences with colon-separated parameters; vte implements colon-
+ *   separated parameters as subparameters (this is an extension taken from ITU-T T.416).
+ *
+ * * DEC executes format effector controls in CSI, OSC, DCS sequences as if the
+ *   control was received before the control sequence; vte only does this for CSI
+ *   sequences and ignores all controls except ESC and BEL in OSC control strings,
+ *   and passes all controls except ESC through to the control string in DCS sequences.
+ *
+ * * DEC only allows ST (either C0 or C1) to terminate OSC strings; vte allows
+ *   OSC to be terminated by BEL (this is a deprecated xterm extension).
+ *
+ * * DEC parses ESC Z as DECID, a deprecated function equivalent to DA1; vte
+ *   implements ECMA-48's SCI (single character introducer) instead.
  */
 
 /*
