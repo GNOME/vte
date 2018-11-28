@@ -24,8 +24,8 @@
 #include "parser-arg.hh"
 #include "parser-string.hh"
 
-struct vte_parser;
-struct vte_seq;
+struct vte_parser_t;
+struct vte_seq_t;
 
 /*
  * Parsers
@@ -183,7 +183,7 @@ enum {
 #define VTE_CHARSET_GET_CHARSET(c) ((c) & VTE_CHARSET_CHARSET_MASK)
 #define VTE_CHARSET_GET_SLOT(c)    ((c) >> VTE_CHARSET_SLOT_OFFSET)
 
-struct vte_seq {
+struct vte_seq_t {
         unsigned int type;
         unsigned int command;
         uint32_t terminator;
@@ -197,13 +197,13 @@ struct vte_seq {
         uint32_t introducer;
 };
 
-struct vte_parser {
-        struct vte_seq seq;
+struct vte_parser_t {
+        vte_seq_t seq;
         unsigned int state;
 };
 
-void vte_parser_init(struct vte_parser *parser);
-void vte_parser_deinit(struct vte_parser *parser);
-int vte_parser_feed(struct vte_parser *parser,
+void vte_parser_init(vte_parser_t* parser);
+void vte_parser_deinit(vte_parser_t* parser);
+int vte_parser_feed(vte_parser_t* parser,
                     uint32_t raw);
-void vte_parser_reset(struct vte_parser *parser);
+void vte_parser_reset(vte_parser_t* parser);

@@ -59,7 +59,7 @@ public:
         }
 
 protected:
-        struct vte_parser m_parser;
+        vte_parser_t m_parser;
 }; // class Parser
 
 class Sequence {
@@ -406,10 +406,10 @@ public:
         inline explicit operator bool() const { return m_seq != nullptr; }
 
         /* This is only used in the test suite */
-        struct vte_seq** seq_ptr() { return &m_seq; }
+        vte_seq_t** seq_ptr() { return &m_seq; }
 
 private:
-        struct vte_seq *m_seq{nullptr};
+        vte_seq_t* m_seq{nullptr};
 
         char const* type_string() const;
         char const* command_string() const;
@@ -446,7 +446,7 @@ public:
         using encoder_type = E;
 
 private:
-        struct vte_seq m_seq;
+        vte_seq_t m_seq;
         string_type m_arg_str;
         unsigned char m_intermediates[4];
         unsigned char m_n_intermediates{0};

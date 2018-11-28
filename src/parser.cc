@@ -127,13 +127,15 @@
  *
  * For OSC, this check allows C0 OSC with BEL-as-ST to pass, too.
  */
-static inline bool parser_check_matching_controls(uint32_t introducer,
-                                                  uint32_t terminator)
+static inline bool
+parser_check_matching_controls(uint32_t introducer,
+                               uint32_t terminator)
 {
         return ((introducer ^ terminator) & 0x80) == 0;
 }
 
-static unsigned int vte_parse_host_control(const struct vte_seq *seq)
+static unsigned int
+vte_parse_host_control(vte_seq_t const* seq)
 {
         switch (seq->terminator) {
 #define _VTE_SEQ(cmd,type,f,pi,ni,i0) case f: return VTE_CMD_##cmd;
@@ -143,8 +145,9 @@ static unsigned int vte_parse_host_control(const struct vte_seq *seq)
         }
 }
 
-static unsigned int vte_parse_charset_94(uint32_t raw,
-                                         unsigned int intermediates)
+static unsigned int
+vte_parse_charset_94(uint32_t raw,
+                     unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
@@ -192,8 +195,9 @@ static unsigned int vte_parse_charset_94(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_94_n(uint32_t raw,
-                                           unsigned int intermediates)
+static unsigned int
+vte_parse_charset_94_n(uint32_t raw,
+                       unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
@@ -213,8 +217,9 @@ static unsigned int vte_parse_charset_94_n(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_96(uint32_t raw,
-                                         unsigned int intermediates)
+static unsigned int
+vte_parse_charset_96(uint32_t raw,
+                     unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
@@ -234,8 +239,9 @@ static unsigned int vte_parse_charset_96(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_96_n(uint32_t raw,
-                                           unsigned int intermediates)
+static unsigned int
+vte_parse_charset_96_n(uint32_t raw,
+                       unsigned int intermediates)
 {
         if (VTE_SEQ_INTERMEDIATE(intermediates) == VTE_SEQ_INTERMEDIATE_SPACE)
                 return VTE_CHARSET_DRCS;
@@ -243,8 +249,9 @@ static unsigned int vte_parse_charset_96_n(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_ocs(uint32_t raw,
-                                          unsigned int intermediates)
+static unsigned int
+vte_parse_charset_ocs(uint32_t raw,
+                      unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
@@ -277,8 +284,9 @@ static unsigned int vte_parse_charset_ocs(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_charset_control(uint32_t raw,
-                                              unsigned int intermediates)
+static unsigned int
+vte_parse_charset_control(uint32_t raw,
+                          unsigned int intermediates)
 {
         assert (raw >= 0x30 && raw < 0x7f);
 
@@ -301,8 +309,9 @@ static unsigned int vte_parse_charset_control(uint32_t raw,
         return VTE_CHARSET_NONE;
 }
 
-static unsigned int vte_parse_host_escape(const struct vte_seq *seq,
-                                          unsigned int *cs_out)
+static unsigned int
+vte_parse_host_escape(vte_seq_t const* seq,
+                      unsigned int *cs_out)
 {
         unsigned int intermediates = seq->intermediates;
         unsigned int intermediate0 = VTE_SEQ_INTERMEDIATE(intermediates);
@@ -415,7 +424,8 @@ static unsigned int vte_parse_host_escape(const struct vte_seq *seq,
         return VTE_CMD_NONE;
 }
 
-static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
+static unsigned int
+vte_parse_host_csi(vte_seq_t const* seq)
 {
         switch (_VTE_SEQ_CODE(seq->terminator, seq->intermediates)) {
 #define _VTE_SEQ(cmd,type,f,p,ni,i) \
@@ -426,7 +436,8 @@ static unsigned int vte_parse_host_csi(const struct vte_seq *seq)
         }
 }
 
-static unsigned int vte_parse_host_dcs(const struct vte_seq *seq)
+static unsigned int
+vte_parse_host_dcs(vte_seq_t const* seq)
 {
         switch (_VTE_SEQ_CODE(seq->terminator, seq->intermediates)) {
 #define _VTE_SEQ(cmd,type,f,p,ni,i) \
@@ -437,7 +448,8 @@ static unsigned int vte_parse_host_dcs(const struct vte_seq *seq)
         }
 }
 
-static unsigned int vte_parse_host_sci(const struct vte_seq *seq)
+static unsigned int
+vte_parse_host_sci(vte_seq_t const* seq)
 {
         switch (_VTE_SEQ_CODE(seq->terminator, 0)) {
 #define _VTE_SEQ(cmd,type,f,p,ni,i) \
@@ -458,7 +470,7 @@ static unsigned int vte_parse_host_sci(const struct vte_seq *seq)
  * input. It's the callers responsibility to do any UTF-8 parsing.
  */
 
-enum parser_state {
+enum parser_state_t {
         STATE_GROUND,           /* initial state and ground */
         STATE_DCS_PASS_ESC,     /* ESC after DCS which may be ESC \ aka C0 ST */
         STATE_OSC_STRING_ESC,   /* ESC after OSC which may be ESC \ aka C0 ST */
@@ -482,7 +494,7 @@ enum parser_state {
 
 /* Parser state transitioning */
 
-typedef int (* parser_action_func)(struct vte_parser *parser, uint32_t raw);
+typedef int (* parser_action_func)(vte_parser_t* parser, uint32_t raw);
 
 // FIXMEchpe: I get weird performance results here from
 // either not inlining, inlining these function or the
@@ -495,33 +507,37 @@ typedef int (* parser_action_func)(struct vte_parser *parser, uint32_t raw);
 #define PTINLINE
 
 /* nop */
-static PTINLINE int parser_nop(struct vte_parser *parser,
-                               uint32_t raw)
+static PTINLINE int
+parser_nop(vte_parser_t* parser,
+           uint32_t raw)
 {
         return VTE_SEQ_NONE;
 }
 /* dispatch related actions */
-static PTINLINE int parser_action(struct vte_parser *parser,
-                                  uint32_t raw,
-                                  parser_action_func action)
+static PTINLINE int
+parser_action(vte_parser_t* parser,
+              uint32_t raw,
+              parser_action_func action)
 {
         return action(parser, raw);
 }
 
 /* perform state transition */
-static PTINLINE int parser_transition_no_action(struct vte_parser *parser,
-                                                uint32_t raw,
-                                                unsigned int state)
+static PTINLINE int
+parser_transition_no_action(vte_parser_t* parser,
+                            uint32_t raw,
+                            unsigned int state)
 {
         parser->state = state;
         return VTE_SEQ_NONE;
 }
 
 /* perform state transition and dispatch related actions */
-static PTINLINE int parser_transition(struct vte_parser *parser,
-                                      uint32_t raw,
-                                      unsigned int state,
-                                      parser_action_func action)
+static PTINLINE int
+parser_transition(vte_parser_t* parser,
+                  uint32_t raw,
+                  unsigned int state,
+                  parser_action_func action)
 {
         parser->state = state;
 
@@ -562,7 +578,8 @@ static PTINLINE int parser_transition(struct vte_parser *parser,
  * vte_parser_init() - Initialise parser object
  * @parser: the struct vte_parser
  */
-void vte_parser_init(struct vte_parser *parser)
+void
+vte_parser_init(vte_parser_t* parser)
 {
         memset(parser, 0, sizeof(*parser));
         vte_seq_string_init(&parser->seq.arg_str);
@@ -572,12 +589,15 @@ void vte_parser_init(struct vte_parser *parser)
  * vte_parser_deinit() - Deinitialises parser object
  * @parser: parser object to deinitialise
  */
-void vte_parser_deinit(struct vte_parser *parser)
+void
+vte_parser_deinit(vte_parser_t* parser)
 {
         vte_seq_string_free(&parser->seq.arg_str);
 }
 
-static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
+static inline int
+parser_clear(vte_parser_t* parser,
+             uint32_t raw)
 {
         /* seq.command is set when the sequence is executed,
          * seq.terminator is set when the final character is received,
@@ -588,7 +608,9 @@ static inline int parser_clear(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static inline int parser_clear_int(struct vte_parser *parser, uint32_t raw)
+static inline int
+parser_clear_int(vte_parser_t* parser,
+                 uint32_t raw)
 {
         parser->seq.intermediates = 0;
         parser->seq.n_intermediates = 0;
@@ -596,7 +618,9 @@ static inline int parser_clear_int(struct vte_parser *parser, uint32_t raw)
         return parser_clear(parser, raw);
 }
 
-static inline int parser_clear_params(struct vte_parser *parser, uint32_t raw)
+static inline int
+parser_clear_params(vte_parser_t* parser,
+                    uint32_t raw)
 {
         /* The (n_args+1)th parameter may have been started but not
          * finialised, so it needs cleaning too. All further params
@@ -618,13 +642,17 @@ static inline int parser_clear_params(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static inline int parser_clear_int_and_params(struct vte_parser *parser, uint32_t raw)
+static inline int
+parser_clear_int_and_params(vte_parser_t* parser,
+                            uint32_t raw)
 {
         parser_clear_int(parser, raw);
         return parser_clear_params(parser, raw);
 }
 
-static int parser_ignore(struct vte_parser *parser, uint32_t raw)
+static int
+parser_ignore(vte_parser_t* parser,
+              uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_IGNORE;
         parser->seq.command = VTE_CMD_NONE;
@@ -633,7 +661,9 @@ static int parser_ignore(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_print(struct vte_parser *parser, uint32_t raw)
+static int
+parser_print(vte_parser_t* parser,
+             uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_GRAPHIC;
         parser->seq.command = VTE_CMD_GRAPHIC;
@@ -642,7 +672,9 @@ static int parser_print(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_execute(struct vte_parser *parser, uint32_t raw)
+static int
+parser_execute(vte_parser_t* parser,
+               uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_CONTROL;
         parser->seq.terminator = raw;
@@ -651,7 +683,9 @@ static int parser_execute(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_collect_esc(struct vte_parser *parser, uint32_t raw)
+static int
+parser_collect_esc(vte_parser_t* parser,
+                   uint32_t raw)
 {
         assert(raw >= 0x20 && raw <= 0x2f);
 
@@ -663,7 +697,9 @@ static int parser_collect_esc(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_collect_csi(struct vte_parser *parser, uint32_t raw)
+static int
+parser_collect_csi(vte_parser_t* parser,
+                   uint32_t raw)
 {
         assert(raw >= 0x20 && raw <= 0x2f);
 
@@ -678,7 +714,9 @@ static int parser_collect_csi(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_collect_parameter(struct vte_parser *parser, uint32_t raw)
+static int
+parser_collect_parameter(vte_parser_t* parser,
+                         uint32_t raw)
 {
         assert(raw >= 0x3c && raw <= 0x3f);
 
@@ -694,7 +732,9 @@ static int parser_collect_parameter(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static void parser_params_overflow(struct vte_parser *parser, uint32_t raw)
+static void
+parser_params_overflow(vte_parser_t* parser,
+                       uint32_t raw)
 {
         /* An overflow of the parameter number can only happen in
          * STATE_{CSI,DCS}_PARAM, and it occurs when
@@ -718,7 +758,9 @@ static void parser_params_overflow(struct vte_parser *parser, uint32_t raw)
  * the MAXth parameter and there would be a default or non-default
  * MAX+1th parameter following it.
  */
-static int parser_finish_param(struct vte_parser *parser, uint32_t raw)
+static int
+parser_finish_param(vte_parser_t* parser,
+                    uint32_t raw)
 {
         if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX - 1)) {
                 vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], false);
@@ -730,7 +772,9 @@ static int parser_finish_param(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_finish_subparam(struct vte_parser *parser, uint32_t raw)
+static int
+parser_finish_subparam(vte_parser_t* parser,
+                       uint32_t raw)
 {
         if (G_LIKELY(parser->seq.n_args < VTE_PARSER_ARG_MAX - 1)) {
                 vte_seq_arg_finish(&parser->seq.args[parser->seq.n_args], true);
@@ -741,7 +785,9 @@ static int parser_finish_subparam(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_param(struct vte_parser *parser, uint32_t raw)
+static int
+parser_param(vte_parser_t* parser,
+             uint32_t raw)
 {
         /* assert(raw >= '0' && raw <= '9'); */
 
@@ -753,7 +799,9 @@ static int parser_param(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static inline int parser_osc_start(struct vte_parser *parser, uint32_t raw)
+static inline int
+parser_osc_start(vte_parser_t* parser,
+                 uint32_t raw)
 {
         parser_clear(parser, raw);
 
@@ -763,7 +811,9 @@ static inline int parser_osc_start(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_osc_collect(struct vte_parser *parser, uint32_t raw)
+static int
+parser_osc_collect(vte_parser_t* parser,
+                   uint32_t raw)
 {
         /*
          * Only characters from 0x20..0x7e and >= 0xa0 are allowed here.
@@ -776,7 +826,9 @@ static int parser_osc_collect(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_dcs_start(struct vte_parser *parser, uint32_t raw)
+static int
+parser_dcs_start(vte_parser_t* parser,
+                 uint32_t raw)
 {
         parser_clear_int_and_params(parser, raw);
 
@@ -786,7 +838,9 @@ static int parser_dcs_start(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_dcs_consume(struct vte_parser *parser, uint32_t raw)
+static int
+parser_dcs_consume(vte_parser_t* parser,
+                   uint32_t raw)
 {
         /* parser->seq is cleared during DCS-START state, thus there's no need
          * to clear invalid fields here. */
@@ -807,7 +861,9 @@ static int parser_dcs_consume(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_dcs_collect(struct vte_parser *parser, uint32_t raw)
+static int
+parser_dcs_collect(vte_parser_t* parser,
+                   uint32_t raw)
 {
         if (G_UNLIKELY(!vte_seq_string_push(&parser->seq.arg_str, raw)))
                 parser->state = STATE_DCS_IGNORE;
@@ -815,7 +871,9 @@ static int parser_dcs_collect(struct vte_parser *parser, uint32_t raw)
         return VTE_SEQ_NONE;
 }
 
-static int parser_esc(struct vte_parser *parser, uint32_t raw)
+static int
+parser_esc(vte_parser_t* parser,
+           uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_ESCAPE;
         parser->seq.terminator = raw;
@@ -826,7 +884,9 @@ static int parser_esc(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_csi(struct vte_parser *parser, uint32_t raw)
+static int
+parser_csi(vte_parser_t* parser,
+           uint32_t raw)
 {
         /* parser->seq is cleared during CSI-ENTER state, thus there's no need
          * to clear invalid fields here. */
@@ -847,7 +907,9 @@ static int parser_csi(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_osc(struct vte_parser *parser, uint32_t raw)
+static int
+parser_osc(vte_parser_t* parser,
+           uint32_t raw)
 {
         /* parser->seq is cleared during OSC_START state, thus there's no need
          * to clear invalid fields here. */
@@ -868,7 +930,9 @@ static int parser_osc(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_dcs(struct vte_parser *parser, uint32_t raw)
+static int
+parser_dcs(vte_parser_t* parser,
+           uint32_t raw)
 {
         /* parser->seq was already filled in parser_dcs_consume() */
 
@@ -884,7 +948,9 @@ static int parser_dcs(struct vte_parser *parser, uint32_t raw)
         return parser->seq.type;
 }
 
-static int parser_sci(struct vte_parser *parser, uint32_t raw)
+static int
+parser_sci(vte_parser_t* parser,
+           uint32_t raw)
 {
         parser->seq.type = VTE_SEQ_SCI;
         parser->seq.terminator = raw;
@@ -918,7 +984,9 @@ static int parser_sci(struct vte_parser *parser, uint32_t raw)
 #define ACTION_OSC_DISPATCH parser_osc
 #define ACTION_SCI_DISPATCH parser_sci
 
-static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
+static int
+parser_feed_to_state(vte_parser_t* parser,
+                     uint32_t raw)
 {
         switch (parser->state) {
         case STATE_GROUND:
@@ -1297,8 +1365,9 @@ static int parser_feed_to_state(struct vte_parser *parser, uint32_t raw)
         return -EINVAL;
 }
 
-int vte_parser_feed(struct vte_parser *parser,
-                    uint32_t raw)
+int
+vte_parser_feed(vte_parser_t* parser,
+                uint32_t raw)
 {
         /*
          * Notes:
@@ -1345,7 +1414,8 @@ int vte_parser_feed(struct vte_parser *parser,
         }
 }
 
-void vte_parser_reset(struct vte_parser *parser)
+void
+vte_parser_reset(vte_parser_t* parser)
 {
         parser_transition(parser, 0, STATE_GROUND, ACTION_IGNORE);
 }
