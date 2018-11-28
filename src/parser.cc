@@ -1361,8 +1361,8 @@ parser_feed_to_state(vte_parser_t* parser,
                                          ACTION_IGNORE);
         }
 
-        g_warning("bad vte-parser state");
-        return -EINVAL;
+        g_assert_not_reached();
+        return VTE_SEQ_NONE;
 }
 
 int
