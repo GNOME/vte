@@ -819,6 +819,8 @@ class App : Gtk.Application
 
   public struct Options
   {
+    //FIXME Merge this struct into App class
+    public int dummy;
     public static bool audible = false;
     public static string? command = null;
     private static string? cjk_ambiguous_width_string = null;
