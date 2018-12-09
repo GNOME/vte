@@ -8425,10 +8425,6 @@ Terminal::~Terminal()
 		g_object_unref(m_vadjustment);
 	}
 
-        g_signal_handlers_disconnect_matched (gtk_widget_get_settings(m_widget), G_SIGNAL_MATCH_DATA,
-                                              0, 0, NULL, NULL,
-                                              this);
-
         /* Update rects */
         g_array_free(m_update_rects, TRUE /* free segment */);
 }
