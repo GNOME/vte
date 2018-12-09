@@ -103,6 +103,11 @@ Widget::Widget(VteTerminal* t) noexcept :
 
 Widget::~Widget() noexcept
 {
+        g_signal_handlers_disconnect_matched(gtk_widget_get_settings(m_widget),
+                                             G_SIGNAL_MATCH_DATA,
+                                             0, 0, NULL, NULL,
+                                             this);
+
         m_widget = nullptr;
 
         m_terminal->~Terminal();
