@@ -33,6 +33,9 @@
 /* NOTE: 4/8 'H' for IR(11) (SWEDISH_NRCS) conflicts with the
  * primary choice on ISO_HEBREW_SUPPLEMENTAL.
  * VT510 always chooses HEBREW; the table below prefers IR #11.
+ * Also note that ARIB STD-B24 defines charsets with 03/01..03/08
+ * which conflict with the DEC and NRCS charsets below; so they
+ * have not been added here.
  */
 static uint8_t const charset_graphic_94[] = {
         /* 3/0..3/15 */
@@ -143,6 +146,8 @@ static uint8_t const charset_graphic_96[] = {
  *
  * Note that exceptionally, ESC 2/4 4/0, ESC 2/4 4/1 and ESC 2/4 4/2 designate
  * G0 sets for compatibility with an earlier version of ISO-2022.
+ * Also note that ARIB STD-B24 defines 2-byte charsets with 03/09..03/11
+ * which have not been added here.
  */
 static uint8_t const charset_graphic_94_n[] = {
         /* 3/0..3/15 */
