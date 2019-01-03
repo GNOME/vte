@@ -170,6 +170,7 @@ m4_define([compiler_flags_common],[ dnl
   -Wundef dnl
   -Wuninitialized dnl
   -Wunsafe-loop-optimizations dnl
+  -Wvla dnl
   -Wwrite-strings dnl
   -fno-common dnl
   -fdiagnostics-show-option dnl
