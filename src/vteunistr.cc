@@ -140,6 +140,19 @@ _vte_unistr_append_unichar (vteunistr s, gunichar c)
 	return ret;
 }
 
+vteunistr
+_vte_unistr_append_unistr (vteunistr s, vteunistr t)
+{
+        g_return_val_if_fail (s < unistr_next, s);
+        g_return_val_if_fail (t < unistr_next, s);
+        if (G_UNLIKELY (t >= VTE_UNISTR_START)) {
+                s = _vte_unistr_append_unistr (s, DECOMP_FROM_UNISTR (t).prefix);
+                return _vte_unistr_append_unichar (s, DECOMP_FROM_UNISTR (t).suffix);
+        } else {
+                return _vte_unistr_append_unichar (s, t);
+        }
+}
+
 gunichar
 _vte_unistr_get_base (vteunistr s)
 {

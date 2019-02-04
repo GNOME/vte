@@ -57,6 +57,19 @@ typedef guint32 vteunistr;
 vteunistr
 _vte_unistr_append_unichar (vteunistr s, gunichar c);
 
+/**
+ * _vte_unistr_append_unistr:
+ * @s: a #vteunistr
+ * @t: another #vteunistr to append to @s
+ *
+ * Creates a vteunistr value for the string @s followed by the
+ * string @t.
+ *
+ * Returns: the new #vteunistr value
+ **/
+vteunistr
+_vte_unistr_append_unistr (vteunistr s, vteunistr t);
+
 gunichar
 _vte_unistr_get_base (vteunistr s);
 
