@@ -8863,7 +8863,7 @@ Terminal::draw_rows(VteScreen *screen_,
                 /* Walk the line.
                  * Locate runs of identical attributes within a row, and draw each run using a single draw_cells() call. */
                 item_count = 0;
-                for (col = 0; col < column_count; col++) {
+                for (col = 0; col < column_count; ) {
                         /* Get the character cell's contents. */
                         cell = _vte_row_data_get (row_data, col);
                         if (cell == NULL) {
@@ -8881,6 +8881,7 @@ Terminal::draw_rows(VteScreen *screen_,
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
                                 /* Skip empty or fragment cell. */
+                                col++;
                                 continue;
                         }
 
@@ -8915,6 +8916,28 @@ Terminal::draw_rows(VteScreen *screen_,
                                 item_count = 0;
                         }
 
+                        /* Combine with subsequent spacing marks. */
+                        vteunistr c = cell->c;
+                        j = col + cell->attr.columns();
+                        if (G_UNLIKELY (col == 0 && g_unichar_ismark (_vte_unistr_get_base (cell->c)))) {
+                                /* A rare special case: the first cell contains a spacing mark.
+                                 * Place on top of a NBSP, along with additional spacing marks if any,
+                                 * and display beginning at offscreen column -1.
+                                 * Additional spacing marks, if any, will be combined by the loop below. */
+                                c = _vte_unistr_append_unistr (0x00A0, cell->c);
+                                col = -1;
+                        }
+                        while (j < m_column_count) {
+                                /* Combine with subsequent spacing marks. */
+                                cell = _vte_row_data_get (row_data, j);
+                                if (cell && !cell->attr.fragment() && g_unichar_ismark (_vte_unistr_get_base (cell->c))) {
+                                        c = _vte_unistr_append_unistr (c, cell->c);
+                                        j += cell->attr.columns();
+                                } else {
+                                        break;
+                                }
+                        }
+
                         attr = nattr;
                         fore = nfore;
                         back = nback;
@@ -8923,11 +8946,14 @@ Terminal::draw_rows(VteScreen *screen_,
                         hilite = nhilite;
 
                         g_assert_cmpint (item_count, <, column_count);
-                        items[item_count].c = cell->c;
-                        items[item_count].columns = cell->attr.columns();
+                        items[item_count].c = c;
+                        items[item_count].columns = j - col;
                         items[item_count].x = col * column_width;
                         items[item_count].y = y;
                         item_count++;
+
+                        g_assert_cmpint (j, >, col);
+                        col = j;
                 }
 
                 /* Draw the last run of cells in the row. */
