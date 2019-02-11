@@ -5319,15 +5319,17 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
 	}
 
 	/* Encode the modifiers. */
-	if (m_modifiers & GDK_SHIFT_MASK) {
-		cb |= 4;
-	}
-	if (m_modifiers & VTE_META_MASK) {
-		cb |= 8;
-	}
-	if (m_modifiers & GDK_CONTROL_MASK) {
-		cb |= 16;
-	}
+        if (m_mouse_tracking_mode >= MOUSE_TRACKING_SEND_XY_ON_BUTTON) {
+                if (m_modifiers & GDK_SHIFT_MASK) {
+                        cb |= 4;
+                }
+                if (m_modifiers & VTE_META_MASK) {
+                        cb |= 8;
+                }
+                if (m_modifiers & GDK_CONTROL_MASK) {
+                        cb |= 16;
+                }
+        }
 
 	/* Encode a drag event. */
 	if (is_drag) {
