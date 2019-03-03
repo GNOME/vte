@@ -8321,6 +8321,9 @@ Terminal::set_blink_settings(bool blink,
 
 Terminal::~Terminal()
 {
+        /* Make sure not to change selection while in destruction. See issue vte#89. */
+        m_changing_selection = true;
+
 	struct vte_match_regex *regex;
 	int sel;
 	guint i;
