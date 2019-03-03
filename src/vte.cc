@@ -8492,6 +8492,9 @@ VteTerminalPrivate::widget_screen_changed (GdkScreen *previous_screen)
 
 VteTerminalPrivate::~VteTerminalPrivate()
 {
+        /* Make sure not to change selection while in destruction. See issue vte#89. */
+        m_changing_selection = true;
+
 	struct vte_match_regex *regex;
 	int sel;
 	guint i;
