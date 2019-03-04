@@ -63,6 +63,12 @@
         <attribute name="action">win.input-enabled</attribute>
       </item>
     </section>
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_Fullscreen</attribute>
+        <attribute name="action">win.fullscreen</attribute>
+      </item>
+    </section>
   </menu>
   <template class="VteappWindow" parent="GtkApplicationWindow">
     <property name="can_focus">False</property>

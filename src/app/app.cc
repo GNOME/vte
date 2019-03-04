@@ -973,6 +973,8 @@ struct _VteappWindow {
         GPid child_pid;
         GtkWidget* search_popover;
 
+        bool fullscreen{false};
+
         /* used for updating the geometry hints */
         int cached_cell_width{0};
         int cached_cell_height{0};
@@ -1125,7 +1127,9 @@ vteapp_window_resize(VteappWindow* window)
         /* Don't do this for maximised or tiled windows. */
         auto win = gtk_widget_get_window(GTK_WIDGET(window));
         if (win != nullptr &&
-            (gdk_window_get_state(win) & (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_TILED)) != 0)
+            (gdk_window_get_state(win) & (GDK_WINDOW_STATE_MAXIMIZED |
+                                          GDK_WINDOW_STATE_FULLSCREEN |
+                                          GDK_WINDOW_STATE_TILED)) != 0)
                 return;
 
         /* First, update the geometry hints, so that the cached_* members are up-to-date */
@@ -1430,6 +1434,25 @@ window_action_find_cb(GSimpleAction* action,
         gtk_toggle_button_set_active(window->find_button, true);
 }
 
+
+static void
+window_action_fullscreen_state_cb (GSimpleAction *action,
+                                   GVariant *state,
+                                   void* data)
+{
+        VteappWindow* window = VTEAPP_WINDOW(data);
+
+        if (!gtk_widget_get_realized(GTK_WIDGET(window)))
+                return;
+
+        if (g_variant_get_boolean(state))
+                gtk_window_fullscreen(GTK_WINDOW(window));
+        else
+                gtk_window_unfullscreen(GTK_WINDOW(window));
+
+        /* The window-state-changed callback will update the action's actual state */
+}
+
 static bool
 vteapp_window_show_context_menu(VteappWindow* window,
                                 guint button,
@@ -1505,6 +1528,9 @@ vteapp_window_show_context_menu(VteappWindow* window,
         }
 
         g_menu_append(menu, "_Paste", "win.paste");
+
+        if (window->fullscreen)
+                g_menu_append(menu, "_Fullscreen", "win.fullscreen");
 
         auto popup = gtk_menu_new_from_model(G_MENU_MODEL(menu));
         gtk_menu_attach_to_widget(GTK_MENU(popup), GTK_WIDGET(window->terminal), nullptr);
@@ -1814,6 +1840,7 @@ vteapp_window_constructed(GObject *object)
                 { "paste",       window_action_paste_cb,  nullptr, nullptr, nullptr },
                 { "reset",       window_action_reset_cb,      "b", nullptr, nullptr },
                 { "find",        window_action_find_cb,   nullptr, nullptr, nullptr },
+                { "fullscreen",  nullptr,                 nullptr, "false", window_action_fullscreen_state_cb },
         };
 
         GActionMap* map = G_ACTION_MAP(window);
@@ -1998,6 +2025,22 @@ vteapp_window_style_updated(GtkWidget* widget)
         vteapp_window_resize(window);
 }
 
+static gboolean
+vteapp_window_state_event (GtkWidget* widget,
+                           GdkEventWindowState* event)
+{
+        VteappWindow* window = VTEAPP_WINDOW(widget);
+
+        if (event->changed_mask & GDK_WINDOW_STATE_FULLSCREEN) {
+                window->fullscreen = (event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0;
+
+                auto action = reinterpret_cast<GSimpleAction*>(g_action_map_lookup_action(G_ACTION_MAP(window), "fullscreen"));
+                g_simple_action_set_state(action, g_variant_new_boolean (window->fullscreen));
+        }
+
+        return GTK_WIDGET_CLASS(vteapp_window_parent_class)->window_state_event(widget, event);
+}
+
 static void
 vteapp_window_class_init(VteappWindowClass* klass)
 {
@@ -2009,6 +2052,7 @@ vteapp_window_class_init(VteappWindowClass* klass)
         widget_class->realize = vteapp_window_realize;
         widget_class->show = vteapp_window_show;
         widget_class->style_updated = vteapp_window_style_updated;
+        widget_class->window_state_event = vteapp_window_state_event;
 
         gtk_widget_class_set_template_from_resource(widget_class, "/org/gnome/vte/app/ui/window.ui");
 
