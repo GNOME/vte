@@ -22,7 +22,7 @@
 #define VTE_ATTR_VALUE_MASK(bits)      ((1U << (bits)) - 1U)
 #define VTE_ATTR_MASK(shift,bits)      (VTE_ATTR_VALUE_MASK(bits) << (shift))
 
-/* Number of visible columns (as determined by g_unicode_iswide(c)).
+/* Number of visible columns (as determined by g_unichar_iswide(c)).
  * Also (ab)used for tabs; bug 353610.
  */
 #define VTE_ATTR_COLUMNS_SHIFT         (0)
