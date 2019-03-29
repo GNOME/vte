@@ -1,0 +1,14 @@
+image: fedora:rawhide
+
+variables:
+  DEPENDENCIES: gtk-doc gtk3-devel glib-devel gobject-introspection-devel
+                gnutls-devel glade-devel pango-devel pcre2-devel zlib-devel
+                gettext intltool meson redhat-rpm-config gcc g++ vala glibc-devel
+  GIT_SUBMODULE_STRATEGY: recursive
+
+build:
+  before_script:
+    - dnf update -y --nogpgcheck && dnf install -y --nogpgcheck $DEPENDENCIES
+  script:
+    - meson . _build -Dgtk_doc=true
+    - ninja -C _build test install
