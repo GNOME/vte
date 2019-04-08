@@ -6651,6 +6651,7 @@ Terminal::maybe_end_selection()
                         widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 			emit_selection_changed();
 		}
+                stop_autoscroll();  /* Required before setting m_selecting to false, see #105. */
 		m_selecting = false;
 
 		/* Reconnect to input from the child if we paused it. */
@@ -9952,6 +9953,7 @@ Terminal::reset(bool clear_tabstops,
         /* Reset the visual bits of selection on hard reset, see bug 789954. */
         if (clear_history) {
                 deselect_all();
+                stop_autoscroll();  /* Required before setting m_selecting to false, see #105. */
                 m_selecting = FALSE;
                 m_selecting_had_delta = FALSE;
                 m_selection_origin = m_selection_last = { -1, -1, 1 };
