@@ -133,7 +133,7 @@ vte_regex_ref(VteRegex *regex)
 }
 
 /**
- * vte_regex_ref:
+ * vte_regex_unref:
  * @regex: (transfer full): a #VteRegex
  *
  * Decreases the reference count of @regex by one, and frees @regex
