@@ -76,6 +76,8 @@
 
 #define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
 
+#define VTE_TERMINFO_NAME "xterm-256color"
+
 #if !GLIB_CHECK_VERSION(2, 42, 0)
 #define G_PARAM_EXPLICIT_NOTIFY 0
 #endif
@@ -229,7 +231,7 @@ vte_pty_child_setup (VtePty *pty)
         /* Now set the TERM environment variable */
         /* FIXME: Setting environment here seems to have no effect, the merged envp2 will override on exec.
          * By the way, we'd need to set the one from there, if any. */
-        g_setenv("TERM", VTE_DEFAULT_TERM, TRUE);
+        g_setenv("TERM", VTE_TERMINFO_NAME, TRUE);
 
         char version[7];
         g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
@@ -279,7 +281,7 @@ __vte_pty_merge_environ (char **envp,
 	}
 
         /* Make sure the one in envp overrides the default. */
-        g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (VTE_DEFAULT_TERM));
+        g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (VTE_TERMINFO_NAME));
 
 	if (envp != NULL) {
 		for (i = 0; envp[i] != NULL; i++) {

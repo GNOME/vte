@@ -682,9 +682,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);
 
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
-#ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
-#endif
 
 	gobject_class = G_OBJECT_CLASS(klass);
 	widget_class = GTK_WIDGET_CLASS(klass);

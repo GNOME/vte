@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 # Copyright © 2013 Christian Persch
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,13 +14,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-set -ei
+set -e
 
 export VTE_VERSION=9999
 
-source $srcdir/vte.sh
+source "$1" || exit 126
 
 check_urlencode() (
+  set -e
   input=$(echo -ne "$1")
   encoded=$(__vte_urlencode "$input")
   if test "$encoded" != "$2"; then
@@ -29,7 +29,6 @@ check_urlencode() (
     echo "Input   : \"$input\""
     echo "Output  : \"$encoded\""
     echo "Expected: \"$2\""
-    exit 1
   fi
 )
 

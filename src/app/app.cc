@@ -2182,9 +2182,7 @@ main(int argc,
         setlocale(LC_ALL, "");
 
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
-#ifdef HAVE_DECL_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
-#endif
 
         /* Not interested in silly debug spew, bug #749195 */
         if (g_getenv("G_ENABLE_DIAGNOSTIC") == nullptr)
