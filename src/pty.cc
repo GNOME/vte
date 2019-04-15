@@ -988,7 +988,7 @@ vte_pty_new_sync (VtePtyFlags flags,
 
 /**
  * vte_pty_new_foreign_sync: (constructor)
- * @fd: (transfer full): a file descriptor to the PTY
+ * @fd: a file descriptor to the PTY
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
@@ -1019,8 +1019,9 @@ vte_pty_new_foreign_sync (int fd,
  * vte_pty_get_fd:
  * @pty: a #VtePty
  *
- * Returns: (transfer none): the file descriptor of the PTY master in @pty. The
- *   file descriptor belongs to @pty and must not be closed
+ * Returns: the file descriptor of the PTY master in @pty. The
+ *   file descriptor belongs to @pty and must not be closed of have
+ *   its flags changed
  */
 int
 vte_pty_get_fd (VtePty *pty)

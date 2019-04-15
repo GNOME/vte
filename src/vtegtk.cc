@@ -2657,8 +2657,8 @@ spawn_async_cb (GObject *source,
  * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, or -1 to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
- * @callback: a #VteTerminalSpawnAsyncCallback, or %NULL
- * @user_data: user data for @callback, or %NULL
+ * @callback: (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
+ * @user_data: (closure callback): user data for @callback, or %NULL
  *
  * A convenience function that wraps creating the #VtePty and spawning
  * the child process on it. See vte_pty_new_sync(), vte_pty_spawn_async(),
