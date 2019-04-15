@@ -336,8 +336,8 @@ parse(void)
                                 i += consumed;
                                 break;
                         }
-                        /* else fall-trough */
                 }
+                        /* fallthrough */
 		default:
                         i += print_data(&bytes->data[i], bytes->len - i);
 			fprintf(stdout, "\r\n");
