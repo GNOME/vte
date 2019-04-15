@@ -209,6 +209,14 @@ endforeach
 assert(get_option('c_std') == 'gnu11', 'cannot override C std version')
 assert(get_option('cpp_std') == 'gnu++17', 'cannot override C++ std version')
 
+# Meson only checks that -std supports the given string, but *not* that
+# the compiler really supports that C++ standard version. Do a simple version
+# check based on https://gcc.gnu.org/projects/cxx-status.html#cxx17
+
+if cxx.get_id() == 'gcc'
+  assert(cxx.version().version_compare('>= 7.0'), 'needs G++ >= 7 for C++17 support')
+endif
+
 # Compiler flags
 
 compiler_flags_common = [
