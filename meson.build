@@ -381,6 +381,15 @@ configure_file(
   configuration: makefile_conf,
 )
 
+# .gitignore everything in the build directory
+
+configure_file(
+  output: '.gitignore',
+  command: ['echo', '**/**',],
+  capture: true,
+  install: false,
+)
+
 # Summary
 
 output = '\n'
