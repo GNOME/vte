@@ -63,7 +63,9 @@ vapp_cflags = [
   '-Wno-unused-variable',
 ]
 
-vapp_valaflags = []
+vapp_valaflags = [
+  '--enable-deprecated'
+]
 
 if valac.version().version_compare('>= 0.31.1')
   vapp_valaflags += '--disable-since-check'

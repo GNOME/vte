@@ -819,8 +819,6 @@ class App : Gtk.Application
 
   public struct Options
   {
-    //FIXME Merge this struct into App class
-    public int dummy;
     public static bool audible = false;
     public static string? command = null;
     private static string? cjk_ambiguous_width_string = null;
@@ -983,7 +981,7 @@ class App : Gtk.Application
       return value;
     }
 
-    public static const OptionEntry[] entries = {
+    public const OptionEntry[] entries = {
       { "audible-bell", 'a', 0, OptionArg.NONE, ref audible,
         "Use audible terminal bell", null },
       { "command", 'c', 0, OptionArg.STRING, ref command,
