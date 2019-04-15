@@ -1182,15 +1182,14 @@ Ring::rewrap(column_t columns,
 		/* Find the boundaries of the next paragraph */
 		gboolean prev_record_was_soft_wrapped = FALSE;
 		gboolean paragraph_is_ascii = TRUE;
-		gsize paragraph_start_row = old_row_index - 1;
-		gsize paragraph_end_row;  /* points to beyond the end */
 		gsize text_offset = paragraph_start_text_offset;
 		RowRecord new_record;
 		column_t col = 0;
 
 		_vte_debug_print(VTE_DEBUG_RING,
 				"  Old paragraph:  row %" G_GSIZE_FORMAT "  (text_offset %" G_GSIZE_FORMAT ")  up to (exclusive)  ",  /* no '\n' */
-				paragraph_start_row, paragraph_start_text_offset);
+                                 old_row_index - 1,
+                                 paragraph_start_text_offset);
 		while (old_row_index <= m_end) {
 			prev_record_was_soft_wrapped = old_record.soft_wrapped;
 			paragraph_is_ascii = paragraph_is_ascii && old_record.is_ascii;
@@ -1205,13 +1204,14 @@ Ring::rewrap(column_t columns,
 			if (!prev_record_was_soft_wrapped)
 				break;
 		}
-		paragraph_end_row = old_row_index - 1;
+
 		paragraph_len = paragraph_end_text_offset - paragraph_start_text_offset;
 		if (!prev_record_was_soft_wrapped)  /* The last paragraph can be soft wrapped! */
 			paragraph_len--;  /* Strip trailing '\n' */
 		_vte_debug_print(VTE_DEBUG_RING,
 				"row %" G_GSIZE_FORMAT "  (text_offset %" G_GSIZE_FORMAT ")%s  len %" G_GSIZE_FORMAT "  is_ascii %d\n",
-				paragraph_end_row, paragraph_end_text_offset,
+                                 old_row_index - 1,
+                                 paragraph_end_text_offset,
 				prev_record_was_soft_wrapped ? "  soft_wrapped" : "",
 				paragraph_len, paragraph_is_ascii);
 
