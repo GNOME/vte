@@ -216,7 +216,6 @@ compiler_flags_common = [
   '-Wextra',
   '-Wcast-align',
   '-Wendif-labels',
-  '-Werror=declaration-after-statement',
   '-Werror=implicit-function-declaration',
   '-Werror=init-self',
   '-Werror=missing-include-dirs',
