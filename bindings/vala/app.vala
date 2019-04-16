@@ -109,7 +109,7 @@ class SearchPopover : Gtk.Popover
 
     if (search_text.length != 0) {
       try {
-        if (!App.Options.no_pcre) {
+        if (!Options.no_pcre) {
           uint32 flags;
 
           flags = 0x40080400u /* PCRE2_UTF | PCRE2_NO_UTF_CHECK | PCRE2_MULTILINE */;
@@ -148,7 +148,7 @@ class SearchPopover : Gtk.Popover
       search_entry.set_tooltip_text(null);
     }
 
-    if (!App.Options.no_pcre) {
+    if (!Options.no_pcre) {
       has_regex = regex != null;
       terminal.search_set_regex(regex, 0);
     } else {
@@ -210,7 +210,7 @@ class Window : Gtk.ApplicationWindow
 
     /* Create terminal and connect scrollbar */
     terminal = new Vte.Terminal();
-    var margin = App.Options.extra_margin;
+    var margin = Options.extra_margin;
     if (margin > 0) {
       terminal.margin_start =
         terminal.margin_end =
@@ -274,8 +274,8 @@ class Window : Gtk.ApplicationWindow
     title = "Terminal";
 
     /* Set ARGB visual */
-    if (App.Options.transparency_percent != 0) {
-      if (!App.Options.no_argb_visual) {
+    if (Options.transparency_percent != 0) {
+      if (!Options.no_argb_visual) {
         var screen = get_screen();
         Gdk.Visual? visual = screen.get_rgba_visual();
         if (visual != null)
@@ -306,54 +306,54 @@ class Window : Gtk.ApplicationWindow
     terminal.restore_window.connect(restore_window_cb);
     terminal.selection_changed.connect(selection_changed_cb);
     terminal.window_title_changed.connect(window_title_changed_cb);
-    if (App.Options.object_notifications)
+    if (Options.object_notifications)
       terminal.notify.connect(notify_cb);
 
     /* Settings */
-    if (App.Options.no_double_buffer)
+    if (Options.no_double_buffer)
       terminal.set_double_buffered(false);
 
-    if (App.Options.encoding != null) {
+    if (Options.encoding != null) {
       try {
-        terminal.set_encoding(App.Options.encoding);
+        terminal.set_encoding(Options.encoding);
       } catch (Error e) {
         printerr("Failed to set encoding: %s\n", e.message);
       }
     }
 
-    if (App.Options.word_char_exceptions != null)
-      terminal.set_word_char_exceptions(App.Options.word_char_exceptions);
+    if (Options.word_char_exceptions != null)
+      terminal.set_word_char_exceptions(Options.word_char_exceptions);
 
-    terminal.set_allow_hyperlink(!App.Options.no_hyperlink);
-    terminal.set_audible_bell(App.Options.audible);
-    terminal.set_cjk_ambiguous_width(App.Options.get_cjk_ambiguous_width());
-    terminal.set_cursor_blink_mode(App.Options.get_cursor_blink_mode());
-    terminal.set_cursor_shape(App.Options.get_cursor_shape());
+    terminal.set_allow_hyperlink(!Options.no_hyperlink);
+    terminal.set_audible_bell(Options.audible);
+    terminal.set_cjk_ambiguous_width(Options.get_cjk_ambiguous_width());
+    terminal.set_cursor_blink_mode(Options.get_cursor_blink_mode());
+    terminal.set_cursor_shape(Options.get_cursor_shape());
     terminal.set_mouse_autohide(true);
-    terminal.set_rewrap_on_resize(!App.Options.no_rewrap);
+    terminal.set_rewrap_on_resize(!Options.no_rewrap);
     terminal.set_scroll_on_output(false);
     terminal.set_scroll_on_keystroke(true);
-    terminal.set_scrollback_lines(App.Options.scrollback_lines);
+    terminal.set_scrollback_lines(Options.scrollback_lines);
 
     /* Style */
-    if (App.Options.font_string != null) {
-      var desc = Pango.FontDescription.from_string(App.Options.font_string);
+    if (Options.font_string != null) {
+      var desc = Pango.FontDescription.from_string(Options.font_string);
       terminal.set_font(desc);
     }
 
-    terminal.set_colors(App.Options.get_color_fg(),
-                        App.Options.get_color_bg(),
+    terminal.set_colors(Options.get_color_fg(),
+                        Options.get_color_bg(),
                         null);
-    terminal.set_color_cursor(App.Options.get_color_cursor_background());
-    terminal.set_color_cursor_foreground(App.Options.get_color_cursor_foreground());
-    terminal.set_color_highlight(App.Options.get_color_hl_bg());
-    terminal.set_color_highlight_foreground(App.Options.get_color_hl_fg());
+    terminal.set_color_cursor(Options.get_color_cursor_background());
+    terminal.set_color_cursor_foreground(Options.get_color_cursor_foreground());
+    terminal.set_color_highlight(Options.get_color_hl_bg());
+    terminal.set_color_highlight_foreground(Options.get_color_hl_fg());
 
     /* Dingus */
-    if (!App.Options.no_builtin_dingus)
+    if (!Options.no_builtin_dingus)
       add_dingus(builtin_dingus);
-    if (App.Options.dingus != null)
-      add_dingus(App.Options.dingus);
+    if (Options.dingus != null)
+      add_dingus(Options.dingus);
 
     /* Done! */
     terminal_box.pack_start(terminal);
@@ -375,7 +375,7 @@ class Window : Gtk.ApplicationWindow
       try {
         int tag;
 
-        if (!App.Options.no_pcre) {
+        if (!Options.no_pcre) {
           Vte.Regex regex;
 
           regex = new Vte.Regex.for_match(dingus[i], dingus[i].length,
@@ -424,8 +424,8 @@ class Window : Gtk.ApplicationWindow
      */
     terminal.realize();
 
-    if (App.Options.geometry != null) {
-      if (parse_geometry(App.Options.geometry)) {
+    if (Options.geometry != null) {
+      if (parse_geometry(Options.geometry)) {
         /* After parse_geometry(), we can get the default size in
          * width/height increments, i.e. in grid size.
          */
@@ -434,7 +434,7 @@ class Window : Gtk.ApplicationWindow
         terminal.set_size(columns, rows);
         resize_to_geometry(columns, rows);
       } else
-        printerr("Failed to parse geometry spec \"%s\"\n", App.Options.geometry);
+        printerr("Failed to parse geometry spec \"%s\"\n", Options.geometry);
     } else {
       /* In GTK+ 3.0, the default size of a window comes from its minimum
        * size not its natural size, so we need to set the right default size
@@ -452,9 +452,9 @@ class Window : Gtk.ApplicationWindow
     launch_idle_id = GLib.Idle.add(() => {
         try {
           terminal.spawn_sync(Vte.PtyFlags.DEFAULT,
-                              App.Options.working_directory,
+                              Options.working_directory,
                               argv,
-                              App.Options.environment,
+                              Options.environment,
                               GLib.SpawnFlags.SEARCH_PATH,
                               null, /* child setup */
                               out child_pid,
@@ -521,9 +521,9 @@ class Window : Gtk.ApplicationWindow
   public void launch()
   {
     try {
-      if (App.Options.command != null)
-        launch_command(App.Options.command);
-      else if (!App.Options.no_shell)
+      if (Options.command != null)
+        launch_command(Options.command);
+      else if (!Options.no_shell)
         launch_shell();
       else
         fork();
@@ -554,7 +554,7 @@ class Window : Gtk.ApplicationWindow
 
   private void update_geometry()
   {
-    if (App.Options.no_geometry_hints)
+    if (Options.no_geometry_hints)
       return;
     if (!terminal.get_realized())
       return;
@@ -624,7 +624,7 @@ class Window : Gtk.ApplicationWindow
 
   private bool show_context_menu(uint button, uint32 timestamp, Gdk.Event? event)
   {
-    if (App.Options.no_context_menu)
+    if (Options.no_context_menu)
       return false;
 
     var menu = new GLib.Menu();
@@ -662,18 +662,18 @@ class Window : Gtk.ApplicationWindow
   {
     printerr("Child exited with status %x\n", status);
 
-    if (App.Options.output_filename != null) {
+    if (Options.output_filename != null) {
       try {
-        var file = GLib.File.new_for_commandline_arg(App.Options.output_filename);
+        var file = GLib.File.new_for_commandline_arg(Options.output_filename);
         var stream = file.replace(null, false, GLib.FileCreateFlags.NONE, null);
         terminal.write_contents_sync(stream, Vte.WriteFlags.DEFAULT, null);
       } catch (Error e) {
         printerr("Failed to write output to \"%s\": %s\n",
-                 App.Options.output_filename, e.message);
+                 Options.output_filename, e.message);
       }
     }
 
-    if (App.Options.keep)
+    if (Options.keep)
       return;
 
     destroy();
@@ -800,7 +800,7 @@ class App : Gtk.Application
   {
     base.startup();
 
-    for (uint i = 0; i < App.Options.n_windows.clamp(0, 16); i++)
+    for (uint i = 0; i < Options.n_windows.clamp(0, 16); i++)
       new Window(this);
   }
 
@@ -816,8 +816,9 @@ class App : Gtk.Application
       window.launch();
     }
   }
+} /* class App */
 
-  public struct Options
+  namespace Options
   {
     public static bool audible = false;
     public static string? command = null;
@@ -1094,6 +1095,5 @@ class App : Gtk.Application
     var app = new App();
     return app.run(null);
   }
-} /* class App */
 
 } /* namespace */
