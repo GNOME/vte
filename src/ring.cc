@@ -1187,7 +1187,7 @@ Ring::rewrap(column_t columns,
 		column_t col = 0;
 
 		_vte_debug_print(VTE_DEBUG_RING,
-				"  Old paragraph:  row %" G_GSIZE_FORMAT "  (text_offset %" G_GSIZE_FORMAT ")  up to (exclusive)  ",  /* no '\n' */
+				"  Old paragraph:  row %lu  (text_offset %" G_GSIZE_FORMAT ")  up to (exclusive)  ",  /* no '\n' */
                                  old_row_index - 1,
                                  paragraph_start_text_offset);
 		while (old_row_index <= m_end) {
@@ -1209,7 +1209,7 @@ Ring::rewrap(column_t columns,
 		if (!prev_record_was_soft_wrapped)  /* The last paragraph can be soft wrapped! */
 			paragraph_len--;  /* Strip trailing '\n' */
 		_vte_debug_print(VTE_DEBUG_RING,
-				"row %" G_GSIZE_FORMAT "  (text_offset %" G_GSIZE_FORMAT ")%s  len %" G_GSIZE_FORMAT "  is_ascii %d\n",
+				"row %lu  (text_offset %" G_GSIZE_FORMAT ")%s  len %" G_GSIZE_FORMAT "  is_ascii %d\n",
                                  old_row_index - 1,
                                  paragraph_end_text_offset,
 				prev_record_was_soft_wrapped ? "  soft_wrapped" : "",
