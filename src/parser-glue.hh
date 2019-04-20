@@ -273,7 +273,7 @@ public:
          * Returns: the value of the parameter at index @idx, or @default_v if
          *   the parameter at this index has default value, or the index
          *   is out of bounds. The returned value is clamped to the
-         *   range @min_v..@max_v.
+         *   range @min_v..@max_v (or returns min_v, if min_v > max_v).
          */
         inline constexpr int param(unsigned int idx,
                                    int default_v,
@@ -281,7 +281,8 @@ public:
                                    int max_v) const noexcept
         {
                 auto v = param(idx, default_v);
-                return std::min(std::max(v, min_v), max_v);
+                // not using std::clamp() since it's not guaranteed that min_v <= max_v
+                return std::max(std::min(v, max_v), min_v);
         }
 
         /* param_nonfinal:
@@ -372,7 +373,8 @@ public:
          *
          * Collects one final parameter.
          *
-         * Returns: the parameter value clamped to the @min_v .. @max_v range,
+         * Returns: the parameter value clamped to the @min_v .. @max_v range (or @min_v,
+         * if min_v > max_v),
          *   or @default_v if the parameter has default value or is not a final parameter
          */
         inline constexpr int collect1(unsigned int idx,
@@ -381,7 +383,8 @@ public:
                                       int max_v) const noexcept
         {
                 int v = __builtin_expect(idx < size(), 1) ? vte_seq_arg_value_final(m_seq->args[idx], default_v) : default_v;
-                return std::min(std::max(v, min_v), max_v);
+                // not using std::clamp() since it's not guaranteed that min_v <= max_v
+                return std::max(std::min(v, max_v), min_v);
         }
 
         /* collect_subparams:
