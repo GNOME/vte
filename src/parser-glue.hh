@@ -281,7 +281,7 @@ public:
                                    int max_v) const noexcept
         {
                 auto v = param(idx, default_v);
-                return std::clamp(v, min_v, max_v);
+                return std::min(std::max(v, min_v), max_v);
         }
 
         /* param_nonfinal:
@@ -381,7 +381,7 @@ public:
                                       int max_v) const noexcept
         {
                 int v = __builtin_expect(idx < size(), 1) ? vte_seq_arg_value_final(m_seq->args[idx], default_v) : default_v;
-                return std::clamp(v, min_v, max_v);
+                return std::min(std::max(v, min_v), max_v);
         }
 
         /* collect_subparams:
