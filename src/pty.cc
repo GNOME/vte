@@ -174,16 +174,19 @@ vte_pty_child_setup (VtePty *pty)
                 _exit(127);
         }
 
-	/* Start a new session and become process-group leader. */
 #if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
-	_vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
-	setsid();
-	setpgid(0, 0);
+        if (!(priv->flags & VTE_PTY_NO_SESSION)) {
+                /* Start a new session and become process-group leader. */
+                _vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
+                setsid();
+                setpgid(0, 0);
+        }
 #endif
 
 #ifdef TIOCSCTTY
-	/* TIOCSCTTY is defined?  Let's try that, too. */
-	ioctl(fd, TIOCSCTTY, fd);
+        if (!(priv->flags & VTE_PTY_NO_CTTY)) {
+                ioctl(fd, TIOCSCTTY, fd);
+        }
 #endif
 
 #if defined(__sun) && defined(HAVE_STROPTS_H)

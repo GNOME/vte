@@ -114,6 +114,10 @@ typedef enum {
  * @VTE_PTY_NO_WTMP: Unused. Deprecated: 0.38
  * @VTE_PTY_NO_HELPER: Unused. Deprecated: 0.38
  * @VTE_PTY_NO_FALLBACK: Unused. Deprecated: 0.38
+ * @VTE_PTY_NO_SESSION: Do not start a new session for the child in
+ *   vte_pty_child_setup(). See man:setsid(2) for more information. Since: 0.58
+ * @VTE_PTY_NO_CTTY: Do not set the PTY as the controlling TTY for the child
+ *   in vte_pty_child_setup(). See man:tty_ioctl(4) for more information. Since: 0.58
  * @VTE_PTY_DEFAULT: the default flags
  */
 typedef enum {
@@ -122,6 +126,8 @@ typedef enum {
   VTE_PTY_NO_WTMP     = 1 << 2,
   VTE_PTY_NO_HELPER   = 1 << 3,
   VTE_PTY_NO_FALLBACK = 1 << 4,
+  VTE_PTY_NO_SESSION  = 1 << 5,
+  VTE_PTY_NO_CTTY     = 1 << 6,
   VTE_PTY_DEFAULT     = 0
 } VtePtyFlags;
 
