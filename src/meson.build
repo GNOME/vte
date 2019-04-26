@@ -426,6 +426,7 @@ foreach test: test_units
     test[0],
     test[1],
     env: test_env,
+    timeout: 600, # See issue vte#120
   )
 endforeach
 
