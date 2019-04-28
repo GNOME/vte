@@ -24,6 +24,7 @@ project(
     'c_std=gnu11',
     'cpp_std=gnu++17',
     'warning_level=0',
+    'b_ndebug=false',
   ],
   meson_version: '>= 0.49.0',
 )
@@ -87,7 +88,7 @@ vte_sysconfdir = get_option('sysconfdir')
 
 # Debug
 
-enable_debug = get_option('debugg') or get_option('buildtype').contains('debug')
+enable_debug = get_option('debugg') or get_option('debug') or get_option('buildtype').contains('debug')
 
 # Meson modules
 
@@ -217,6 +218,10 @@ assert(get_option('cpp_std') == 'gnu++17', 'cannot override C++ std version')
 if cxx.get_id() == 'gcc'
   assert(cxx.version().version_compare('>= 7.0'), 'needs G++ >= 7 for C++17 support')
 endif
+
+# Asserts must not be disabled
+
+assert(get_option('b_ndebug') == 'false', 'assertions may not be disabled')
 
 # Compiler flags
 
