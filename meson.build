@@ -23,6 +23,7 @@ project(
     'buildtype=release',
     'c_std=gnu11',
     'cpp_std=gnu++17',
+    'warning_level=0',
   ],
   meson_version: '>= 0.49.0',
 )
@@ -234,6 +235,7 @@ compiler_flags_common = [
   '-Werror=pointer-arith',
   '-Wfloat-equal',
   '-Wignored-qualifiers',
+  '-Winvalid-pch',
   '-Wlogical-op',
   '-Wmisleading-indentation',
   '-Wmissing-declarations',
@@ -299,6 +301,7 @@ compiler_flags_c_only = [
 
 compiler_flags_cxx_only = [
   '-Wimplicit-fallthrough=5',
+  '-Wnon-virtual-dtor',
   '-Wstrict-null-sentinel',
 ]
 
