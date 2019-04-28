@@ -273,6 +273,12 @@ compiler_flags_common = [
   '-fstack-protector-strong',
 ]
 
+if enable_debug
+  compiler_flags_common += [
+    '-ggdb3',
+  ]
+endif
+
 # These are currently needed but the code should be fixed instead
 compiler_flags_common_undesirable = [
   '-fno-strict-aliasing'
