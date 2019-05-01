@@ -1140,7 +1140,8 @@ public:
         bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
-        bool set_pty(VtePty *pty);
+        bool set_pty(VtePty *pty,
+                     bool proces_remaining = true);
         bool set_rewrap_on_resize(bool rewrap);
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);
