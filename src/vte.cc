@@ -8084,7 +8084,7 @@ Terminal::~Terminal()
 	guint i;
 
         terminate_child();
-        set_pty(nullptr);
+        set_pty(nullptr, false /* don't process remaining data */);
         remove_update_timeout(this);
 
         /* Stop processing input. */
@@ -9977,7 +9977,8 @@ Terminal::reset(bool clear_tabstops,
 }
 
 bool
-Terminal::set_pty(VtePty *new_pty)
+Terminal::set_pty(VtePty *new_pty,
+                  bool process_remaining)
 {
         if (new_pty == m_pty)
                 return false;
@@ -9994,7 +9995,7 @@ Terminal::set_pty(VtePty *new_pty)
 		/* Take one last shot at processing whatever data is pending,
 		 * then flush the buffers in case we're about to run a new
 		 * command, disconnecting the timeout. */
-		if (!m_incoming_queue.empty()) {
+		if (!m_incoming_queue.empty() && process_remaining) {
 			process_incoming();
                         while (!m_incoming_queue.empty())
                                 m_incoming_queue.pop();
