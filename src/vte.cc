@@ -9365,7 +9365,17 @@ Terminal::widget_draw(cairo_t *cr)
 
         /* and now paint them */
         for (n = 0; n < n_rectangles; n++) {
+                /* paint_area() paints more than asked to (entire rows). Without an individual
+                 * cropping rectangle around each invocation we might end up with text getting
+                 * overstriked with itself, thus appearing bolder. See vte#4.
+                 * TODO: refactor so that paint_area() is called at most once for each row, see vte#56. */
+                cairo_save(cr);
+                cairo_rectangle(cr, rectangles[n].x, rectangles[n].y, rectangles[n].width, rectangles[n].height);
+                cairo_clip(cr);
+
                 paint_area(&rectangles[n]);
+
+                cairo_restore(cr);
         }
         g_free (rectangles);
 
