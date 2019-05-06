@@ -1523,6 +1523,8 @@ vteapp_window_show_context_menu(VteappWindow* window,
                         else
                                 verbose_print("%s match: %s\n", extra_pattern, extra_match);
                 }
+                g_free(hyperlink);
+                g_free(match);
                 g_free(extra_match);
                 g_free(extra_subst);
         }
