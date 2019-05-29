@@ -133,6 +133,7 @@ libvte_common_sources += gnome.genmarshal(
   sources: 'marshal.list',
   prefix: '_vte_marshal',
   internal: true,
+  valist_marshallers: true,
 )
 
 libvte_common_public_deps = [

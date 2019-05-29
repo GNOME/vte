@@ -782,6 +782,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_EOF],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::child-exited:
@@ -801,6 +804,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              g_cclosure_marshal_VOID__INT,
                              G_TYPE_NONE,
                              1, G_TYPE_INT);
+        g_signal_set_va_marshaller(signals[SIGNAL_CHILD_EXITED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__INTv);
 
         /**
          * VteTerminal::window-title-changed:
@@ -817,6 +823,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_WINDOW_TITLE_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::icon-title-changed:
@@ -833,6 +842,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_ICON_TITLE_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::current-directory-uri-changed:
@@ -849,6 +861,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::current-file-uri-changed:
@@ -865,6 +880,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_CURRENT_FILE_URI_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::hyperlink-hover-uri-changed:
@@ -892,6 +910,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              _vte_marshal_VOID__STRING_BOXED,
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, GDK_TYPE_RECTANGLE | G_SIGNAL_TYPE_STATIC_SCOPE);
+        g_signal_set_va_marshaller(signals[SIGNAL_HYPERLINK_HOVER_URI_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   _vte_marshal_VOID__STRING_BOXEDv);
 
         /**
          * VteTerminal::encoding-changed:
@@ -910,6 +931,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_ENCODING_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::commit:
@@ -930,6 +954,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              _vte_marshal_VOID__STRING_UINT,
                              G_TYPE_NONE, 2, G_TYPE_STRING, G_TYPE_UINT);
+        g_signal_set_va_marshaller(signals[SIGNAL_COMMIT],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   _vte_marshal_VOID__STRING_UINTv);
 
         /**
          * VteTerminal::char-size-changed:
@@ -951,6 +978,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              _vte_marshal_VOID__UINT_UINT,
                              G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+        g_signal_set_va_marshaller(signals[SIGNAL_CHAR_SIZE_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   _vte_marshal_VOID__UINT_UINTv);
 
         /**
          * VteTerminal::selection-changed:
@@ -967,6 +997,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                               NULL,
                               g_cclosure_marshal_VOID__VOID,
                               G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_SELECTION_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::contents-changed:
@@ -984,6 +1017,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_CONTENTS_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::cursor-moved:
@@ -1001,6 +1037,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_CURSOR_MOVED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::deiconify-window:
@@ -1017,6 +1056,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_DEICONIFY_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::iconify-window:
@@ -1033,6 +1075,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_ICONIFY_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::raise-window:
@@ -1049,6 +1094,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_RAISE_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::lower-window:
@@ -1065,6 +1113,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_LOWER_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::refresh-window:
@@ -1081,6 +1132,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_REFRESH_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::restore-window:
@@ -1097,6 +1151,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_RESTORE_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::maximize-window:
@@ -1113,6 +1170,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_MAXIMIZE_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::resize-window:
@@ -1131,6 +1191,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              _vte_marshal_VOID__UINT_UINT,
                              G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+        g_signal_set_va_marshaller(signals[SIGNAL_RESIZE_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   _vte_marshal_VOID__UINT_UINTv);
 
         /**
          * VteTerminal::move-window:
@@ -1149,6 +1212,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              _vte_marshal_VOID__UINT_UINT,
                              G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+        g_signal_set_va_marshaller(signals[SIGNAL_MOVE_WINDOW],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   _vte_marshal_VOID__UINT_UINTv);
 
         /**
          * VteTerminal::increase-font-size:
@@ -1165,6 +1231,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_INCREASE_FONT_SIZE],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::decrease-font-size:
@@ -1181,6 +1250,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_DECREASE_FONT_SIZE],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::text-modified:
@@ -1199,6 +1271,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_MODIFIED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::text-inserted:
@@ -1217,6 +1292,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_INSERTED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::text-deleted:
@@ -1235,6 +1313,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_DELETED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::text-scrolled:
@@ -1254,6 +1335,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__INT,
                              G_TYPE_NONE, 1, G_TYPE_INT);
+        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_SCROLLED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__INTv);
 
         /**
          * VteTerminal::copy-clipboard:
@@ -1270,6 +1354,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_COPY_CLIPBOARD],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::paste-clipboard:
@@ -1286,6 +1373,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
 			     NULL,
                              g_cclosure_marshal_VOID__VOID,
 			     G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_PASTE_CLIPBOARD],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal::bell:
@@ -1303,6 +1393,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              NULL,
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_BELL],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
 
         /**
          * VteTerminal:allow-bold:
