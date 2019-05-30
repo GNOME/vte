@@ -228,6 +228,21 @@ Terminal::last_displayed_row() const
         return r;
 }
 
+/* Checks if the cursor is potentially at least partially onscreen.
+ * An outline cursor has an additional height of VTE_LINE_WIDTH pixels.
+ * It's also intentionally painted over the padding, up to VTE_LINE_WIDTH
+ * pixels under the real contents area. This method takes these into account.
+ * Only checks the cursor's row; not its visibility, shape, or offscreen column.
+ */
+inline bool
+Terminal::cursor_is_onscreen() const noexcept
+{
+        /* Note: the cursor can only be offscreen below the visible area, not above. */
+        auto cursor_top = row_to_pixel (m_screen->cursor.row) - VTE_LINE_WIDTH;
+        auto display_bottom = m_view_usable_extents.height() + MIN(m_padding.bottom, VTE_LINE_WIDTH);
+        return cursor_top < display_bottom;
+}
+
 /* Note that end_row is inclusive. This is not as nice as end-exclusive,
  * but saves us from a +1 almost everywhere where this method is called. */
 void
@@ -9073,9 +9088,7 @@ Terminal::paint_cursor()
 	width = m_cell_width;
 	height = m_cell_height;
 
-        /* Show a tiny bit of an outline rectangle cursor just under the last displayed row,
-         * hence the +1. The cursor can't be offscreen in the other direction vertically. */
-        if (drow > last_displayed_row() + 1)
+        if (!cursor_is_onscreen())
                 return;
 	if (CLAMP(col, 0, m_column_count - 1) != col)
 		return;
@@ -9383,10 +9396,10 @@ Terminal::widget_draw(cairo_t *cr)
 
         cairo_restore(cr);
 
-        /* Re-clip, allowing 1 more pixel row for the outline cursor. */
+        /* Re-clip, allowing VTE_LINE_WIDTH more pixel rows for the outline cursor. */
         /* TODOegmont: It's really ugly to do it here. */
         cairo_save(cr);
-        extra_area_for_cursor = (decscusr_cursor_shape() == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? 1 : 0;
+        extra_area_for_cursor = (decscusr_cursor_shape() == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? VTE_LINE_WIDTH : 0;
         cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
         cairo_clip(cr);
 

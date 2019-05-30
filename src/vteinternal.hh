@@ -613,6 +613,7 @@ public:
         inline vte::view::coord_t row_to_pixel(vte::grid::row_t row) const;
         inline vte::grid::row_t first_displayed_row() const;
         inline vte::grid::row_t last_displayed_row() const;
+        inline bool cursor_is_onscreen() const noexcept;
 
         inline VteRowData *insert_rows (guint cnt);
         VteRowData *ensure_row();
