@@ -55,6 +55,11 @@ void _vte_draw_free(struct _vte_draw *draw);
 void _vte_draw_set_cairo(struct _vte_draw *draw,
                          cairo_t *cr);
 
+void _vte_draw_clip(struct _vte_draw *draw,
+                    cairo_rectangle_int_t const* rect);
+
+void _vte_draw_unclip(struct _vte_draw *draw);
+
 void _vte_draw_clear(struct _vte_draw *draw,
 		     gint x, gint y, gint width, gint height,
                      vte::color::rgb const* color, double alpha);
@@ -101,5 +106,22 @@ _vte_draw_draw_undercurl(struct _vte_draw *draw,
                          vte::color::rgb const *color, double alpha);
 
 G_END_DECLS
+
+class _vte_draw_autoclip_t {
+private:
+        struct _vte_draw* m_draw;
+public:
+        _vte_draw_autoclip_t(struct _vte_draw* draw,
+                             cairo_rectangle_int_t const* rect)
+                : m_draw{draw}
+        {
+                _vte_draw_clip(m_draw, rect);
+        }
+
+        ~_vte_draw_autoclip_t()
+        {
+                _vte_draw_unclip(m_draw);
+        }
+};
 
 #endif

@@ -812,6 +812,22 @@ _vte_draw_set_cairo (struct _vte_draw *draw,
         }
 }
 
+void
+_vte_draw_clip(struct _vte_draw *draw,
+               cairo_rectangle_int_t const* rect)
+{
+        cairo_save(draw->cr);
+        cairo_rectangle(draw->cr,
+                        rect->x, rect->y, rect->width, rect->height);
+        cairo_clip(draw->cr);
+}
+
+void
+_vte_draw_unclip(struct _vte_draw *draw)
+{
+        cairo_restore(draw->cr);
+}
+
 static void
 _vte_draw_set_source_color_alpha (struct _vte_draw *draw,
                                   vte::color::rgb const* color,
