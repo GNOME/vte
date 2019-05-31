@@ -2694,7 +2694,8 @@ Terminal::cursor_down(bool explicit_sequence)
                                 ring_insert(m_screen->cursor.row, false);
 				/* Force the areas below the region to be
 				 * redrawn -- they've moved. */
-                                invalidate_rows(start, end);
+                                invalidate_rows(m_screen->cursor.row,
+                                                m_screen->insert_delta + m_row_count - 1);
 				/* Force scroll. */
 				adjust_adjustments();
 			} else {
