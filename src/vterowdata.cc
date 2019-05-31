@@ -82,7 +82,10 @@ _vte_cells_free (VteCells *cells)
 void
 _vte_row_data_init (VteRowData *row)
 {
+        // FIXME pass the bidi attrs to this method?
+//      guint8 bidi_flags_save = row->attr.bidi_flags;
 	memset (row, 0, sizeof (*row));
+//      row->attr.bidi_flags = bidi_flags_save;
 }
 
 void

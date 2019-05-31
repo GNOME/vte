@@ -59,7 +59,7 @@ _VTE_NOQ(SEE,                    CSI,    'Q',  NONE,  0, NONE     ) /* select ed
 _VTE_NOQ(PPR,                    CSI,    'Q',  NONE,  1, SPACE    ) /* page-position-relative */
 _VTE_NOQ(PPB,                    CSI,    'R',  NONE,  1, SPACE    ) /* page-position-backward */
 _VTE_SEQ(SU,                     CSI,    'S',  NONE,  0, NONE     ) /* scroll-up */
-_VTE_NOQ(SPD,                    CSI,    'S',  NONE,  1, SPACE    ) /* select presentation directions */
+_VTE_SEQ(SPD,                    CSI,    'S',  NONE,  1, SPACE    ) /* select presentation directions */
 _VTE_NOQ(XTERM_SGFX,             CSI,    'S',  WHAT,  0, NONE     ) /* xterm-sixel-graphics */
 _VTE_SEQ(SD_OR_XTERM_IHMT,       CSI,    'T',  NONE,  0, NONE     ) /* scroll-down or xterm-initiate-highlight-mouse-tracking */
 _VTE_NOQ(DTA,                    CSI,    'T',  NONE,  1, SPACE    ) /* dimension text area */
@@ -114,7 +114,7 @@ _VTE_NOQ(MC_DEC,                 CSI,    'i',  WHAT,  0, NONE     ) /* media-cop
 _VTE_NOQ(HPB,                    CSI,    'j',  NONE,  0, NONE     ) /* horizontal position backward */
 _VTE_NOQ(SPL,                    CSI,    'j',  NONE,  1, SPACE    ) /* set page limit */
 _VTE_NOQ(VPB,                    CSI,    'k',  NONE,  0, NONE     ) /* line position backward */
-_VTE_NOQ(SCP,                    CSI,    'k',  NONE,  1, SPACE    ) /* select character path */
+_VTE_SEQ(SCP,                    CSI,    'k',  NONE,  1, SPACE    ) /* select character path */
 _VTE_SEQ(RM_ECMA,                CSI,    'l',  NONE,  0, NONE     ) /* reset-mode-ecma */
 _VTE_SEQ(RM_DEC,                 CSI,    'l',  WHAT,  0, NONE     ) /* reset-mode-dec */
 _VTE_SEQ(SGR,                    CSI,    'm',  NONE,  0, NONE     ) /* select-graphics-rendition */

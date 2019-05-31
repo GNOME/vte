@@ -373,6 +373,7 @@ Ring::freeze_row(row_t position,
 	if (!row->attr.soft_wrapped)
 		g_string_append_c (buffer, '\n');
 	record.soft_wrapped = row->attr.soft_wrapped;
+        record.bidi_flags = row->attr.bidi_flags;
 
 	_vte_stream_append(m_text_stream, buffer->str, buffer->len);
 	append_row_record(&record, position);
@@ -435,6 +436,7 @@ Ring::thaw_row(row_t position,
                 g_string_truncate (buffer, buffer->len - 1);
 	else
 		row->attr.soft_wrapped = TRUE;
+        row->attr.bidi_flags = records[0].bidi_flags;
 
 	p = buffer->str;
 	end = p + buffer->len;
@@ -849,7 +851,7 @@ Ring::shrink(row_t max_len)
  * Return: the newly added row.
  */
 VteRowData*
-Ring::insert(row_t position)
+Ring::insert(row_t position, guint8 bidi_flags)
 {
 	row_t i;
 	VteRowData* row, tmp;
@@ -872,6 +874,7 @@ Ring::insert(row_t position)
 
 	row = get_writable_index(position);
 	_vte_row_data_clear (row);
+        row->attr.bidi_flags = bidi_flags;
 	m_end++;
 
 	maybe_freeze_one_row();
@@ -921,9 +924,9 @@ Ring::remove(row_t position)
  * Return: the newly added row.
  */
 VteRowData*
-Ring::append()
+Ring::append(guint8 bidi_flags)
 {
-	return insert(next());
+        return insert(next(), bidi_flags);
 }
 
 
@@ -1187,6 +1190,7 @@ Ring::rewrap(column_t columns,
 		/* Find the boundaries of the next paragraph */
 		gboolean prev_record_was_soft_wrapped = FALSE;
 		gboolean paragraph_is_ascii = TRUE;
+                guint8 paragraph_bidi_flags = old_record.bidi_flags;
 		gsize text_offset = paragraph_start_text_offset;
 		RowRecord new_record;
 		column_t col = 0;
@@ -1234,6 +1238,7 @@ Ring::rewrap(column_t columns,
 		new_record.text_start_offset = text_offset;
 		new_record.attr_start_offset = attr_offset;
 		new_record.is_ascii = paragraph_is_ascii;
+                new_record.bidi_flags = paragraph_bidi_flags;
 
 		while (paragraph_len > 0) {
 			/* Wrap one continuous run of identical attributes within the paragraph. */
