@@ -8397,23 +8397,24 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
         else
                 rgb_from_index<4, 5, 4>(deco, dc);
 
-	i = 0;
-	do {
-		columns = 0;
-		x = items[i].x;
-		y = items[i].y;
-                /* Items are not necessarily contiguous. */
-                for (; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
-			columns += items[i].columns;
-		}
-		if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
+        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
+                /* Paint the background. */
+                i = 0;
+                do {
+                        columns = 0;
+                        x = items[i].x;
+                        y = items[i].y;
+                        /* Items are not necessarily contiguous. */
+                        for (; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
+                                columns += items[i].columns;
+                        }
 			_vte_draw_fill_rectangle(m_draw,
 					x,
                                         y,
                                         columns * column_width, row_height,
 					&bg, VTE_DRAW_OPAQUE);
-		}
-	} while (i < n);
+                } while (i < n);
+        }
 
         if (attr & VTE_ATTR_BLINK) {
                 /* Notify the caller that cells with the "blink" attribute were encountered (regardless of
