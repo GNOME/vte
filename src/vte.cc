@@ -8366,7 +8366,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                int column_width,
                                int row_height)
 {
-	int i, x, y;
+        int i, xl, xr, y;
 	gint columns = 0;
         vte::color::rgb fg, bg, dc;
 
@@ -8400,20 +8400,27 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
         if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
                 /* Paint the background. */
                 i = 0;
-                do {
-                        columns = 0;
-                        x = items[i].x;
+                while (i < n) {
+                        xl = items[i].x;
+                        xr = items[i].x + items[i].columns * column_width;
                         y = items[i].y;
-                        /* Items are not necessarily contiguous. */
-                        for (; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
-                                columns += items[i].columns;
+                        /* Items are not necessarily contiguous in LTR order.
+                         * Combine as long as they form a single visual run. */
+                        for (i++; i < n && items[i].y == y; i++) {
+                                if (G_LIKELY (items[i].x == xr)) {
+                                        xr += items[i].columns * column_width;  /* extend to the right */
+                                } else if (items[i].x + items[i].columns * column_width == xl) {
+                                        xl = items[i].x;                        /* extend to the left */
+                                } else {
+                                        break;                                  /* break the run */
+                                }
                         }
 			_vte_draw_fill_rectangle(m_draw,
-					x,
-                                        y,
-                                        columns * column_width, row_height,
-					&bg, VTE_DRAW_OPAQUE);
-                } while (i < n);
+                                                 xl,
+                                                 y,
+                                                 xr - xl, row_height,
+                                                 &bg, VTE_DRAW_OPAQUE);
+                }
         }
 
         if (attr & VTE_ATTR_BLINK) {
@@ -8441,42 +8448,53 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                      VTE_ATTR_BOXED_MASK)) |
             hyperlink | hilite) {
 		i = 0;
-		do {
-			x = items[i].x;
+                while (i < n) {
+                        xl = items[i].x;
+                        xr = items[i].x + items[i].columns * column_width;
+                        columns = items[i].columns;
 			y = items[i].y;
-                        /* Items are not necessarily contiguous. */
-                        for (columns = 0; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
-				columns += items[i].columns;
+                        /* Items are not necessarily contiguous in LTR order.
+                         * Combine as long as they form a single visual run. */
+                        for (i++; i < n && items[i].y == y; i++) {
+                                if (G_LIKELY (items[i].x == xr)) {
+                                        xr += items[i].columns * column_width;  /* extend to the right */
+                                        columns += items[i].columns;
+                                } else if (items[i].x + items[i].columns * column_width == xl) {
+                                        xl = items[i].x;                        /* extend to the left */
+                                        columns += items[i].columns;
+                                } else {
+                                        break;                                  /* break the run */
+                                }
 			}
                         switch (vte_attr_get_value(attr, VTE_ATTR_UNDERLINE_VALUE_MASK, VTE_ATTR_UNDERLINE_SHIFT)) {
                         case 1:
                                 _vte_draw_draw_line(m_draw,
-                                                    x,
+                                                    xl,
                                                     y + m_underline_position,
-                                                    x + (columns * column_width) - 1,
+                                                    xr - 1,
                                                     y + m_underline_position + m_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 2:
                                 _vte_draw_draw_line(m_draw,
-                                                    x,
+                                                    xl,
                                                     y + m_double_underline_position,
-                                                    x + (columns * column_width) - 1,
+                                                    xr - 1,
                                                     y + m_double_underline_position + m_double_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &dc, VTE_DRAW_OPAQUE);
                                 _vte_draw_draw_line(m_draw,
-                                                    x,
+                                                    xl,
                                                     y + m_double_underline_position + 2 * m_double_underline_thickness,
-                                                    x + (columns * column_width) - 1,
+                                                    xr - 1,
                                                     y + m_double_underline_position + 3 * m_double_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 3:
                                 _vte_draw_draw_undercurl(m_draw,
-                                                         x,
+                                                         xl,
                                                          y + m_undercurl_position,
                                                          m_undercurl_thickness,
                                                          columns,
@@ -8485,34 +8503,34 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 			}
 			if (attr & VTE_ATTR_STRIKETHROUGH) {
                                 _vte_draw_draw_line(m_draw,
-                                                    x,
+                                                    xl,
                                                     y + m_strikethrough_position,
-                                                    x + (columns * column_width) - 1,
+                                                    xr - 1,
                                                     y + m_strikethrough_position + m_strikethrough_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
 			}
                         if (attr & VTE_ATTR_OVERLINE) {
                                 _vte_draw_draw_line(m_draw,
-                                                    x,
+                                                    xl,
                                                     y + m_overline_position,
-                                                    x + (columns * column_width) - 1,
+                                                    xr - 1,
                                                     y + m_overline_position + m_overline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
                         }
 			if (hilite) {
                                 _vte_draw_draw_line(m_draw,
-                                                    x,
+                                                    xl,
                                                     y + m_regex_underline_position,
-                                                    x + (columns * column_width) - 1,
+                                                    xr - 1,
                                                     y + m_regex_underline_position + m_regex_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &fg, VTE_DRAW_OPAQUE);
                         } else if (hyperlink) {
                                 for (double j = 1.0 / 6.0; j < columns; j += 0.5) {
                                         _vte_draw_fill_rectangle(m_draw,
-                                                                 x + j * column_width,
+                                                                 xl + j * column_width,
                                                                  y + m_regex_underline_position,
                                                                  MAX(column_width / 6.0, 1.0),
                                                                  m_regex_underline_thickness,
@@ -8521,12 +8539,13 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                         }
 			if (attr & VTE_ATTR_BOXED) {
                                 _vte_draw_draw_rectangle(m_draw,
-						x, y,
-						MAX(0, (columns * column_width)),
-                                                         MAX(0, row_height),
+                                                         xl,
+                                                         y,
+                                                         xr - xl,
+                                                         row_height,
                                                          &fg, VTE_DRAW_OPAQUE);
 			}
-                } while (i < n);
+                }
 	}
 
         _vte_draw_text(m_draw,
