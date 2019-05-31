@@ -636,6 +636,9 @@ public:
         VteRowData *ensure_cursor();
         void update_insert_delta();
 
+        void set_hard_wrapped(vte::grid::row_t row);
+        void set_soft_wrapped(vte::grid::row_t row);
+
         void cleanup_fragments(long start,
                                long end);
 

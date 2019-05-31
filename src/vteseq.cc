@@ -314,7 +314,7 @@ Terminal::clear_current_line()
 		_vte_row_data_shrink (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the row. */
                 _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
-		rowdata->attr.soft_wrapped = 0;
+                set_hard_wrapped(m_screen->cursor.row);
 		/* Repaint this row. */
                 invalidate_row(m_screen->cursor.row);
 	}
@@ -338,7 +338,7 @@ Terminal::clear_above_current()
 			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
                         _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
-			rowdata->attr.soft_wrapped = 0;
+                        set_hard_wrapped(i);
 			/* Repaint the row. */
                         invalidate_row(i);
 		}
@@ -731,7 +731,7 @@ Terminal::clear_below_current()
                 if (not_default_bg) {
                         _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 		}
-		rowdata->attr.soft_wrapped = 0;
+                set_hard_wrapped(i);
 		/* Repaint this row. */
                 invalidate_row(i);
 	}
@@ -770,7 +770,7 @@ Terminal::clear_to_eol()
 		/* Add enough cells to fill out the row. */
                 _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 	}
-	rowdata->attr.soft_wrapped = 0;
+        set_hard_wrapped(m_screen->cursor.row);
 	/* Repaint this row. */
         invalidate_row(m_screen->cursor.row);
 }
@@ -902,7 +902,7 @@ Terminal::delete_character()
                                 _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
                                 len = m_column_count;
 			}
-                        rowdata->attr.soft_wrapped = 0;
+                        set_hard_wrapped(m_screen->cursor.row);
 			/* Repaint this row. */
                         invalidate_row(m_screen->cursor.row);
 		}

@@ -470,6 +470,36 @@ Terminal::find_end_column(vte::grid::column_t col,
 	return MIN(col + columns, m_column_count);
 }
 
+/* Sets the line ending to hard wrapped (explicit newline). */
+void
+Terminal::set_hard_wrapped(vte::grid::row_t row)
+{
+        /* We can set the row just above insert_delta to hard wrapped. */
+        g_assert_cmpint(row, >=, m_screen->insert_delta - 1);
+        g_assert_cmpint(row, <, m_screen->insert_delta + m_row_count);
+
+        VteRowData *row_data = find_row_data_writable(row);
+
+        /* It's okay for this row not to be covered by the ring. */
+        if (row_data == nullptr)
+                return;
+
+        row_data->attr.soft_wrapped = false;
+}
+
+/* Sets the line ending to soft wrapped (overflow to the next line). */
+void
+Terminal::set_soft_wrapped(vte::grid::row_t row)
+{
+        g_assert_cmpint(row, >=, m_screen->insert_delta);
+        g_assert_cmpint(row, <, m_screen->insert_delta + m_row_count);
+
+        VteRowData *row_data = find_row_data_writable(row);
+        g_assert(row_data != nullptr);
+
+        row_data->attr.soft_wrapped = true;
+}
+
 /* Determine the width of the portion of the preedit string which lies
  * to the left of the cursor, or the entire string, in columns. */
 // FIXMEchpe this is for the view, so use int not gssize
@@ -2855,7 +2885,7 @@ Terminal::insert_char(gunichar c,
                         col = m_screen->cursor.col = 0;
 			/* Mark this line as soft-wrapped. */
 			row = ensure_row();
-			row->attr.soft_wrapped = 1;
+                        set_soft_wrapped(m_screen->cursor.row);
                         cursor_down(false);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
