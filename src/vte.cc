@@ -3528,9 +3528,6 @@ Terminal::process_incoming()
 
         bottom = m_screen->insert_delta == (long)m_screen->scroll_delta;
 
-        auto top_row = first_displayed_row();
-        auto bottom_row = last_displayed_row();
-
 	/* Save the current cursor position. */
         saved_cursor = m_screen->cursor;
 	saved_cursor_visible = m_modes_private.DEC_TEXT_CURSOR();
@@ -3638,14 +3635,9 @@ Terminal::process_incoming()
                                                 if (invalidated_text &&
                                                     (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
                                                      m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK)) {
-                                                        /* Clip off any part of the box which isn't already on-screen. */
-                                                        bbox_top = std::max(bbox_top, top_row);
-                                                        bbox_bottom = std::min(bbox_bottom, bottom_row);
-
                                                         invalidate_rows(bbox_top, bbox_bottom);
                                                         bbox_bottom = -G_MAXINT;
                                                         bbox_top = G_MAXINT;
-
                                                 }
                                                 bbox_top = std::min(bbox_top,
                                                                     m_screen->cursor.row);
@@ -3689,10 +3681,6 @@ Terminal::process_incoming()
                                                 && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
                                                 && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
 
-                                        /* delta may have changed from sequence. */
-                                        top_row = first_displayed_row();
-                                        bottom_row = last_displayed_row();
-
                                         /* if we have moved greatly during the sequence handler, or moved
                                          * into a scroll_region from outside it, restart the bbox.
                                          */
@@ -3700,12 +3688,7 @@ Terminal::process_incoming()
                                             ((new_in_scroll_region && !in_scroll_region) ||
                                              (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
                                               m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK))) {
-                                                /* Clip off any part of the box which isn't already on-screen. */
-                                                bbox_top = std::max(bbox_top, top_row);
-                                                bbox_bottom = std::min(bbox_bottom, bottom_row);
-
                                                 invalidate_rows(bbox_top, bbox_bottom);
-
                                                 invalidated_text = FALSE;
                                                 bbox_bottom = -G_MAXINT;
                                                 bbox_top = G_MAXINT;
@@ -3762,10 +3745,6 @@ Terminal::process_incoming()
 	emit_pending_signals();
 
 	if (invalidated_text) {
-		/* Clip off any part of the box which isn't already on-screen. */
-                bbox_top = std::max(bbox_top, top_row);
-                bbox_bottom = std::min(bbox_bottom, bottom_row);
-
                 invalidate_rows(bbox_top, bbox_bottom);
 	}
 
