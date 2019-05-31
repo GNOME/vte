@@ -139,11 +139,11 @@ Terminal::ring_insert(vte::grid::row_t position,
         bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
-		row = _vte_ring_append (ring);
+                row = _vte_ring_append (ring, get_bidi_flags());
                 if (not_default_bg)
                         _vte_row_data_fill (row, &m_color_defaults, m_column_count);
 	}
-	row = _vte_ring_insert (ring, position);
+        row = _vte_ring_insert (ring, position, get_bidi_flags());
         if (fill && not_default_bg)
                 _vte_row_data_fill (row, &m_color_defaults, m_column_count);
 	return row;
@@ -487,7 +487,8 @@ Terminal::set_hard_wrapped(vte::grid::row_t row)
         row_data->attr.soft_wrapped = false;
 }
 
-/* Sets the line ending to soft wrapped (overflow to the next line). */
+/* Sets the line ending to soft wrapped (overflow to the next line).
+ * Also makes sure that the joined new paragraph receives the first one's bidi flags. */
 void
 Terminal::set_soft_wrapped(vte::grid::row_t row)
 {
@@ -497,7 +498,24 @@ Terminal::set_soft_wrapped(vte::grid::row_t row)
         VteRowData *row_data = find_row_data_writable(row);
         g_assert(row_data != nullptr);
 
+        if (row_data->attr.soft_wrapped)
+                return;
+
         row_data->attr.soft_wrapped = true;
+
+        /* Each paragraph has to have consistent bidi flags across all of its rows.
+         * Spread the first paragraph's flags across the second one (if they differ). */
+        guint8 bidi_flags = row_data->attr.bidi_flags;
+        vte::grid::row_t i = row + 1;
+        row_data = find_row_data_writable(i);
+        if (row_data != nullptr && row_data->attr.bidi_flags != bidi_flags) {
+                do {
+                        row_data->attr.bidi_flags = bidi_flags;
+                        if (!row_data->attr.soft_wrapped)
+                                break;
+                        row_data = find_row_data_writable(++i);
+                } while (row_data != nullptr);
+        }
 }
 
 /* Determine the width of the portion of the preedit string which lies
@@ -2892,6 +2910,8 @@ Terminal::insert_char(gunichar c,
 			row = ensure_row();
                         set_soft_wrapped(m_screen->cursor.row);
                         cursor_down(false);
+                        ensure_row();
+                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_FLAG_ALL);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = m_screen->cursor.col =
@@ -3025,6 +3045,84 @@ not_inserted:
 			(long)m_screen->insert_delta);
 
         m_line_wrapped = line_wrapped;
+}
+
+guint8
+Terminal::get_bidi_flags() const noexcept
+{
+        return (m_modes_ecma.BDSM() ? VTE_BIDI_FLAG_IMPLICIT : 0) |
+               (m_bidi_rtl ? VTE_BIDI_FLAG_RTL : 0) |
+               (m_modes_private.VTE_BIDI_AUTO() ? VTE_BIDI_FLAG_AUTO : 0) |
+               (m_modes_private.VTE_BIDI_BOX_MIRROR() ? VTE_BIDI_FLAG_BOX_MIRROR : 0);
+}
+
+/* Apply the specified BiDi parameters on the paragraph beginning at the specified line. */
+void
+Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint8 bidi_flags_mask)
+{
+        vte::grid::row_t row = start;
+        VteRowData *rowdata;
+
+        bidi_flags &= bidi_flags_mask;
+
+        _vte_debug_print(VTE_DEBUG_BIDI,
+                         "Applying BiDi parameters from row %ld.\n", row);
+
+        rowdata = _vte_ring_index_writable (m_screen->row_data, row);
+        if (rowdata == nullptr || (rowdata->attr.bidi_flags & bidi_flags_mask) == bidi_flags) {
+                _vte_debug_print(VTE_DEBUG_BIDI,
+                                 "BiDi parameters didn't change for this paragraph.\n");
+                return;
+        }
+
+        while (true) {
+                rowdata->attr.bidi_flags &= ~bidi_flags_mask;
+                rowdata->attr.bidi_flags |= bidi_flags;
+
+                if (!rowdata->attr.soft_wrapped)
+                        break;
+
+                rowdata = _vte_ring_index_writable (m_screen->row_data, row + 1);
+                if (rowdata == nullptr)
+                        break;
+                row++;
+        }
+
+        _vte_debug_print(VTE_DEBUG_BIDI,
+                         "Applied BiDi parameters to rows %ld..%ld.\n", start, row);
+
+        invalidate_rows(start, row);
+}
+
+/* Apply the current BiDi parameters covered by bidi_flags_mask on the current paragraph
+ * if the cursor is at the first position of this paragraph. */
+void
+Terminal::maybe_apply_bidi_attributes(guint8 bidi_flags_mask)
+{
+        _vte_debug_print(VTE_DEBUG_BIDI,
+                         "Maybe applying BiDi parameters on current paragraph.\n");
+
+        if (m_screen->cursor.col != 0) {
+                _vte_debug_print(VTE_DEBUG_BIDI,
+                                 "No, cursor not in first column.\n");
+                return;
+        }
+
+        auto row = m_screen->cursor.row;
+
+        if (row > _vte_ring_delta (m_screen->row_data)) {
+                const VteRowData *rowdata = _vte_ring_index (m_screen->row_data, row - 1);
+                if (rowdata != nullptr && rowdata->attr.soft_wrapped) {
+                        _vte_debug_print(VTE_DEBUG_BIDI,
+                                         "No, we're not after a hard wrap.\n");
+                        return;
+                }
+        }
+
+        _vte_debug_print(VTE_DEBUG_BIDI,
+                         "Yes, applying.\n");
+
+        apply_bidi_attributes (row, get_bidi_flags(), bidi_flags_mask);
 }
 
 static void
@@ -9940,6 +10038,8 @@ Terminal::reset(bool clear_tabstops,
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
+        /* BiDi */
+        m_bidi_rtl = FALSE;
 	/* Cause everything to be redrawn (or cleared). */
 	invalidate_all();
 

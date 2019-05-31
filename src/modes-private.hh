@@ -120,6 +120,31 @@ MODE(DEC_TEXT_CURSOR, 25)
  */
 MODE(DEC_APPLICATION_KEYPAD, 66)
 
+/* Terminal-wg */
+
+/*
+ * Whether to swap the Left and Right arrow keys if the cursor
+ * stands over an RTL paragraph.
+ *
+ * Reference: Terminal-wg/bidi
+ */
+MODE(VTE_BIDI_SWAP_ARROW_KEYS, 1243)
+
+/*
+ * Whether box drawing characters in the U+2500..U+257F range
+ * are to be mirrored in RTL context.
+ *
+ * Reference: Terminal-wg/bidi
+ */
+MODE(VTE_BIDI_BOX_MIRROR, 2500)
+
+/*
+ * Whether BiDi paragraph direction is autodetected.
+ *
+ * Reference: Terminal-wg/bidi
+ */
+MODE(VTE_BIDI_AUTO, 2501)
+
 /* XTERM */
 
 MODE(XTERM_MOUSE_X10,                   9)

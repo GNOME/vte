@@ -315,6 +315,7 @@ Terminal::clear_current_line()
 		/* Add enough cells to the end of the line to fill out the row. */
                 _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
                 set_hard_wrapped(m_screen->cursor.row);
+                rowdata->attr.bidi_flags = get_bidi_flags();
 		/* Repaint this row. */
                 invalidate_row(m_screen->cursor.row);
 	}
@@ -342,6 +343,7 @@ Terminal::clear_above_current()
 			/* Add new cells until we fill the row. */
                         _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
                         set_hard_wrapped(i);
+                        rowdata->attr.bidi_flags = get_bidi_flags();
 			/* Repaint the row. */
                         invalidate_row(i);
 		}
@@ -469,6 +471,13 @@ Terminal::set_mode_ecma(vte::parser::Sequence const& seq,
                         continue;
 
                 m_modes_ecma.set(mode, set);
+
+                if (mode == m_modes_ecma.eBDSM) {
+                        _vte_debug_print(VTE_DEBUG_BIDI,
+                                         "BiDi %s mode\n",
+                                         set ? "implicit" : "explicit");
+                        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_IMPLICIT);
+                }
         }
 }
 
@@ -595,6 +604,20 @@ Terminal::set_mode_private(int mode,
         case vte::terminal::modes::Private::eXTERM_FOCUS:
                 if (set)
                         feed_focus_event_initial();
+                break;
+
+        case vte::terminal::modes::Private::eVTE_BIDI_BOX_MIRROR:
+                _vte_debug_print(VTE_DEBUG_BIDI,
+                                 "BiDi box drawing mirroring %s\n",
+                                 set ? "enabled" : "disabled");
+                maybe_apply_bidi_attributes(VTE_BIDI_FLAG_BOX_MIRROR);
+                break;
+
+        case vte::terminal::modes::Private::eVTE_BIDI_AUTO:
+                        _vte_debug_print(VTE_DEBUG_BIDI,
+                                         "BiDi dir autodetection %s\n",
+                                         set ? "enabled" : "disabled");
+                maybe_apply_bidi_attributes(VTE_BIDI_FLAG_AUTO);
                 break;
 
         default:
@@ -745,6 +768,8 @@ Terminal::clear_below_current()
                         _vte_row_data_fill(rowdata, &m_color_defaults, m_column_count);
 		}
                 set_hard_wrapped(i);
+                if (i > m_screen->cursor.row)
+                        rowdata->attr.bidi_flags = get_bidi_flags();
 		/* Repaint this row. */
                 invalidate_row(i);
 	}
@@ -1030,6 +1055,7 @@ Terminal::line_feed()
 {
         ensure_cursor_is_onscreen();
         cursor_down(true);
+        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_ALL);
 }
 
 void
@@ -4754,7 +4780,7 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
 	} else {
 		/* Maybe extend the ring -- bug 710483 */
                 while (_vte_ring_next(m_screen->row_data) < m_screen->insert_delta + m_row_count)
-                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
+                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data), get_bidi_flags());
 	}
 
         home_cursor();
@@ -4963,8 +4989,11 @@ Terminal::DL(vte::parser::Sequence const& seq)
          * DL - delete-line
          * Delete lines starting from the active line (presentation).
          *
-         * This function is affected by the DCSM, TSM and VEM modes,
-         * and the SLH and SEE functions.
+         * Depending on DCSM, this function works on the presentation
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
+         *
+         * Also affected by TSM and VEM modes, and the SLH and SEE
+         * functions.
          *
          * Arguments:
          *  args[0]: number of lines to delete
@@ -4973,6 +5002,7 @@ Terminal::DL(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.32
+         *             Terminal-wg/bidi
          */
 #if 0
         unsigned int num = 1;
@@ -5300,9 +5330,10 @@ Terminal::EA(vte::parser::Sequence const& seq)
          * ERM is reset, erases all areas.
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.37
+         *             Terminal-wg/bidi
          */
 
         switch (seq.collect1(0)) {
@@ -5333,9 +5364,10 @@ Terminal::ECH(vte::parser::Sequence const& seq)
          * ERM is reset, erases all characters.
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.38
+         *             Terminal-wg/bidi
          */
 #if 0
         unsigned int num = 1;
@@ -5384,10 +5416,11 @@ Terminal::ED(vte::parser::Sequence const& seq)
          * ERM is reset, erases all characters.
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.39
          *             VT525
+         *             Terminal-wg/bidi
          */
 
         erase_in_display(seq);
@@ -5415,9 +5448,10 @@ Terminal::EF(vte::parser::Sequence const& seq)
          * ERM is reset, erases all characters.
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.40
+         *             Terminal-wg/bidi
          */
 }
 
@@ -5444,10 +5478,11 @@ Terminal::EL(vte::parser::Sequence const& seq)
          * ERM is reset, erases all characters.
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.41
          *             VT525
+         *             Terminal-wg/bidi
          */
 
         erase_in_line(seq);
@@ -5899,12 +5934,13 @@ Terminal::ICH(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
 
          * Also affected by HEM mode, and the SLH, and SEE functions.
          *
          * References: ECMA-48 §8.3.64
          *             VT525
+         *             Terminal-wg/bidi
          */
 #if 0
         unsigned int num = 1;
@@ -5982,12 +6018,13 @@ Terminal::IL(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * Also affected by the TSM and VEM modes,
          * and the SLH and SEE functions.
          *
          * References: ECMA-48 § 8.3.67
+         *             Terminal-wg/bidi
          */
 #if 0
         unsigned int num = 1;
@@ -6915,19 +6952,46 @@ Terminal::SCP(vte::parser::Sequence const& seq)
          *
          * Arguments:
          *   args[0]: path
+         *     0 in Terminal-wg/bidi and VTE = terminal's default
          *     1 = LTR or TTB (for horizontal/vertical line orientation)
          *     2 = RTL or BTT (for horizontal/vertical line orientation)
          *   args[1]: effect
-         *     0 = implementation-defined
+         *     0 in ECMA = implementation-defined
+         *     0 in Terminal-wg/bidi and VTE = see Terminal-wg/bidi
          *     1 = ...
          *     2 = ...
          *
          * Defaults:
-         *   args[0]: no default
-         *   args[1]: no default
+         *   args[0] in ECMA: no default
+         *   args[1] in ECMA: no default
+         *   args[0] in Terminal-wg/bidi: 0
+         *   args[1] in Terminal-wg/bidi: 0
          *
          * References: ECMA-48 § 8.3.111
+         *             Terminal-wg/bidi
          */
+
+        auto const param = seq.collect1(0);
+        switch (param) {
+        case -1:
+        case 0:
+                /* FIXME switch to the emulator's default, once we have that concept */
+                m_bidi_rtl = FALSE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: default direction restored\n");
+                break;
+        case 1:
+                m_bidi_rtl = FALSE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: switch to LTR\n");
+                break;
+        case 2:
+                m_bidi_rtl = TRUE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: switch to RTL\n");
+                break;
+        default:
+                return;
+        }
+
+        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_RTL);
 }
 
 void
@@ -7268,9 +7332,10 @@ Terminal::SLH(vte::parser::Sequence const& seq)
          *   args[0]: no default
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.122
+         *             Terminal-wg/bidi
          */
 }
 
@@ -7287,9 +7352,10 @@ Terminal::SLL(vte::parser::Sequence const& seq)
          *   args[0]: no default
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.123
+         *             Terminal-wg/bidi
          */
 }
 
@@ -7395,7 +7461,27 @@ Terminal::SPD(vte::parser::Sequence const& seq)
          *   args[1]: 0
          *
          * References: ECMA-48 § 8.3.130
+         *             Terminal-wg/bidi
          */
+
+        auto const param = seq.collect1(0);
+        switch (param) {
+        case -1:
+        case 0:
+                m_bidi_rtl = FALSE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: switch to LTR\n");
+                break;
+        case 3:
+                m_bidi_rtl = TRUE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: switch to RTL\n");
+                break;
+        default:
+                return;
+        }
+
+        maybe_apply_bidi_attributes(VTE_BIDI_FLAG_RTL);
+
+        /* FIXME maybe apply to all the onscreen lines? */
 }
 
 void
@@ -7411,9 +7497,10 @@ Terminal::SPH(vte::parser::Sequence const& seq)
          *   args[0]: no default
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.131
+         *             Terminal-wg/bidi
          */
 }
 
@@ -7449,9 +7536,10 @@ Terminal::SPL(vte::parser::Sequence const& seq)
          *   args[0]: no default
          *
          * Depending on DCSM, this function works on the presentation
-         * or data position.
+         * or data position. Terminal-wg/bidi forces DCSM to DATA.
          *
          * References: ECMA-48 § 8.3.133
+         *             Terminal-wg/bidi
          */
 }
 
