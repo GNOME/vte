@@ -2830,7 +2830,6 @@ Terminal::insert_char(gunichar c,
         };
 
         insert |= m_modes_ecma.IRM();
-	invalidate_now |= insert;
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
@@ -2934,11 +2933,6 @@ Terminal::insert_char(gunichar c,
 			cell->c = c;
 		}
 
-		/* Always invalidate since we put the mark on the *previous* cell
-		 * and the higher level code doesn't know this. */
-                // FIXMEegmont could this be cleaned up now that we invalidate rows?
-                invalidate_row(row_num);
-
 		goto done;
         } else {
                 m_last_graphic_character = c_unmapped;
@@ -2980,14 +2974,14 @@ Terminal::insert_char(gunichar c,
 		cleanup_fragments(m_column_count, _vte_row_data_length (row));
 	_vte_row_data_shrink (row, m_column_count);
 
-	/* Signal that this part of the window needs drawing. */
-	if (G_UNLIKELY (invalidate_now)) {
-                invalidate_row(m_screen->cursor.row);
-	}
-
         m_screen->cursor.col = col;
 
 done:
+        /* Signal that this part of the window needs drawing. */
+        if (G_UNLIKELY (invalidate_now)) {
+                invalidate_row(m_screen->cursor.row);
+        }
+
 	/* We added text, so make a note of it. */
 	m_text_inserted_flag = TRUE;
 
