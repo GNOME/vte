@@ -2687,8 +2687,7 @@ Terminal::cursor_down(bool explicit_sequence)
 				 * line and scrolling the area up. */
 				m_screen->insert_delta++;
                                 m_screen->cursor.row++;
-				/* update start and end, as they are relative
-				 * to insert_delta. */
+                                /* Update start and end, too. */
 				start++;
 				end++;
                                 ring_insert(m_screen->cursor.row, false);
@@ -2699,9 +2698,7 @@ Terminal::cursor_down(bool explicit_sequence)
 				/* Force scroll. */
 				adjust_adjustments();
 			} else {
-				/* If we're at the bottom of the scrolling
-				 * region, add a line at the top to scroll the
-				 * bottom off. */
+                                /* Scroll by removing a line and inserting a new one. */
 				ring_remove(start);
 				ring_insert(end, true);
 				/* Update the display. */
