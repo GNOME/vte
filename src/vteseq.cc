@@ -327,8 +327,11 @@ Terminal::clear_current_line()
 void
 Terminal::clear_above_current()
 {
-	/* If the cursor is actually on the screen, clear data in the row
-	 * which corresponds to the cursor. */
+        /* Make the line just above the writable area hard wrapped. */
+        if (m_screen->insert_delta > _vte_ring_delta(m_screen->row_data)) {
+                set_hard_wrapped(m_screen->insert_delta - 1);
+        }
+        /* Clear data in all the writable rows above (excluding) the cursor's. */
         for (auto i = m_screen->insert_delta; i < m_screen->cursor.row; i++) {
                 if (_vte_ring_next(m_screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
@@ -364,11 +367,21 @@ Terminal::scroll_text(vte::grid::row_t scroll_amount)
                 ring_append(false);
 
 	if (scroll_amount > 0) {
+                /* Scroll down. */
 		for (auto i = 0; i < scroll_amount; i++) {
                         ring_remove(end);
                         ring_insert(start, true);
 		}
+                /* Set the boundaries to hard wrapped where we tore apart the contents.
+                 * Need to do it after scrolling down, for the end row to be the desired one. */
+                set_hard_wrapped(start - 1);
+                set_hard_wrapped(end);
 	} else {
+                /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
+                 * Need to do it before scrolling up, for the end row to be the desired one. */
+                set_hard_wrapped(start - 1);
+                set_hard_wrapped(end);
+                /* Scroll up. */
 		for (auto i = 0; i < -scroll_amount; i++) {
                         ring_remove(start);
                         ring_insert(end, true);
@@ -1290,6 +1303,12 @@ Terminal::insert_lines(vte::grid::row_t param)
                 ring_remove(end);
                 ring_insert(row, true);
 	}
+
+        /* Set the boundaries to hard wrapped where we tore apart the contents.
+         * Need to do it after scrolling down, for the end row to be the desired one. */
+        set_hard_wrapped(row - 1);
+        set_hard_wrapped(end);
+
         m_screen->cursor.col = 0;
 	/* Update the display. */
         invalidate_rows(row, end);
@@ -1311,6 +1330,11 @@ Terminal::delete_lines(vte::grid::row_t param)
 	} else {
                 end = m_screen->insert_delta + m_row_count - 1;
 	}
+
+        /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
+         * Need to do it before scrolling up, for the end row to be the desired one. */
+        set_hard_wrapped(row - 1);
+        set_hard_wrapped(end);
 
         /* Only allow to delete as many lines as there are between this row
          * and the end of the scrolling region. See bug #676090.
@@ -6709,6 +6733,12 @@ Terminal::RI(vte::parser::Sequence const& seq)
 		 * line at the top to scroll the bottom off. */
 		ring_remove(end);
 		ring_insert(start, true);
+
+                /* Set the boundaries to hard wrapped where we tore apart the contents.
+                 * Need to do it after scrolling down, for the end row to be the desired one. */
+                set_hard_wrapped(start - 1);
+                set_hard_wrapped(end);
+
 		/* Update the display. */
                 invalidate_rows(start, end);
 	} else {
