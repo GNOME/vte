@@ -25,6 +25,7 @@
 #include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
+#include "ringview.hh"
 #include "buffer.h"
 #include "parser.hh"
 #include "parser-glue.hh"
@@ -612,6 +613,9 @@ public:
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
         long m_hyperlink_auto_id;
 
+        /* RingView and friends */
+        vte::base::RingView m_ringview;
+
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl : 1;
 
@@ -749,6 +753,7 @@ public:
         void widget_constructed();
         void widget_realize();
         void widget_unrealize();
+        void widget_unmap();
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);
@@ -1326,6 +1331,8 @@ public:
         void set_current_hyperlink(vte::parser::Sequence const& seq,
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
+
+        void ringview_update();
 
         /* Sequence handlers */
         bool m_line_wrapped; // signals line wrapped from character insertion

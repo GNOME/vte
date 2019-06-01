@@ -41,6 +41,7 @@
 #include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
+#include "ringview.hh"
 #include "caps.hh"
 #include "widget.hh"
 
@@ -561,6 +562,7 @@ Terminal::set_hard_wrapped(vte::grid::row_t row)
 
         row_data->attr.soft_wrapped = false;
 
+        m_ringview.invalidate();
         invalidate_rows_and_context(row, row + 1);
 }
 
@@ -595,6 +597,7 @@ Terminal::set_soft_wrapped(vte::grid::row_t row)
                 } while (row_data != nullptr);
         }
 
+        m_ringview.invalidate();
         invalidate_rows_and_context(row, row + 1);
 }
 
@@ -1628,6 +1631,9 @@ Terminal::confined_grid_coords_from_event(GdkEvent const* event) const
 vte::grid::coords
 Terminal::grid_coords_from_view_coords(vte::view::coords const& pos) const
 {
+        /* Our caller had to update the ringview (we can't do because we're const). */
+        g_assert(m_ringview.is_updated());
+
         vte::grid::column_t col;
         if (pos.x >= 0 && pos.x < m_view_usable_extents.width())
                 col = pos.x / m_cell_width;
@@ -1715,6 +1721,9 @@ Terminal::confine_grid_coords(vte::grid::coords const& rowcol) const
 vte::grid::halfcoords
 Terminal::selection_grid_halfcoords_from_view_coords(vte::view::coords const& pos) const
 {
+        /* Our caller had to update the ringview (we can't do because we're const). */
+        g_assert(m_ringview.is_updated());
+
         vte::grid::row_t row = pixel_to_row(pos.y);
         vte::grid::halfcolumn_t halfcolumn;
 
@@ -1745,6 +1754,9 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
 {
         if (m_selection_resolved.empty())
                 return;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -1797,7 +1809,13 @@ Terminal::hyperlink_check(GdkEvent *event)
         const char *hyperlink;
         const char *separator;
 
-        if (!m_allow_hyperlink || !rowcol_from_event(event, &col, &row))
+        if (!m_allow_hyperlink)
+                return NULL;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
+        if (!rowcol_from_event(event, &col, &row))
                 return NULL;
 
         _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, false, &hyperlink);
@@ -1821,6 +1839,10 @@ Terminal::regex_match_check(GdkEvent *event,
                                       int *tag)
 {
         long col, row;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         if (!rowcol_from_event(event, &col, &row))
                 return FALSE;
 
@@ -1846,6 +1868,9 @@ Terminal::regex_match_check_extra(GdkEvent *event,
         g_assert(event);
         g_assert(regexes != nullptr || n_regexes == 0);
         g_assert(matches != nullptr);
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
         if (!rowcol_from_event(event, &col, &row))
                 return false;
@@ -3175,6 +3200,7 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Applied BiDi parameters to rows %ld..%ld.\n", start, row);
 
+        m_ringview.invalidate();
         invalidate_rows(start, row);
 }
 
@@ -3948,6 +3974,7 @@ Terminal::process_incoming()
 	}
 
 	if (modified || (m_screen != previous_screen)) {
+                m_ringview.invalidate();
 		/* Signal that the visible contents changed. */
 		queue_contents_changed();
 	}
@@ -5593,6 +5620,9 @@ Terminal::modify_selection (vte::view::coords const& pos)
 {
         g_assert (m_selecting);
 
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
         if (current == m_selection_last)
@@ -5611,6 +5641,9 @@ bool
 Terminal::cell_is_selected(vte::grid::column_t col,
                                      vte::grid::row_t row) const
 {
+        /* Our caller had to update the ringview (we can't do because we're const). */
+        g_assert(m_ringview.is_updated());
+
         if (m_selection_block_mode) {
                 /* In block mode, make sure CJKs and TABs aren't cut in half. */
                 while (col > 0) {
@@ -5856,6 +5889,9 @@ bool
 Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
                                           GdkEventType event_type)
 {
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         auto rowcol = confine_grid_coords(unconfined_rowcol);
 
 	/* First determine if we even want to send notification. */
@@ -5975,6 +6011,9 @@ Terminal::hyperlink_hilite_update()
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                          "hyperlink_hilite_update\n");
 
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         /* m_mouse_last_position contains the current position, see bug 789536 comment 24. */
         auto pos = m_mouse_last_position;
 
@@ -6076,6 +6115,9 @@ Terminal::invalidate_match_span()
 void
 Terminal::match_hilite_update()
 {
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         /* m_mouse_last_position contains the current position, see bug 789536 comment 24. */
         auto pos = m_mouse_last_position;
 
@@ -6826,6 +6868,9 @@ Terminal::start_selection (vte::view::coords const& pos,
 	if (m_selection_block_mode)
 		type = selection_type_char;
 
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         m_selection_origin = m_selection_last = selection_grid_halfcoords_from_view_coords(pos);
 
 	/* Record the selection type. */
@@ -6987,6 +7032,9 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 {
 	bool handled = false;
 
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
@@ -7051,6 +7099,9 @@ Terminal::widget_button_press(GdkEventButton *event)
 {
 	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
@@ -7200,6 +7251,9 @@ bool
 Terminal::widget_button_release(GdkEventButton *event)
 {
 	bool handled = false;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
@@ -8215,6 +8269,12 @@ Terminal::widget_size_allocate(GtkAllocation *allocation)
 }
 
 void
+Terminal::widget_unmap()
+{
+        m_ringview.pause();
+}
+
+void
 Terminal::widget_unrealize()
 {
 	/* Deallocate the cursors. */
@@ -9006,6 +9066,19 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 	g_free(cells);
 }
 
+void
+Terminal::ringview_update()
+{
+        auto first_row = first_displayed_row();
+        auto last_row = last_displayed_row();
+        if (cursor_is_onscreen())
+                last_row = std::max(last_row, m_screen->cursor.row);
+
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows (first_row, last_row - first_row + 1);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+}
 
 /* Paint the contents of a given row at the given location.  Take advantage
  * of multiple-draw APIs by finding runs of characters with identical
@@ -9033,6 +9106,9 @@ Terminal::draw_rows(VteScreen *screen_,
 
         auto const column_count = m_column_count;
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
         items = g_newa (struct _vte_draw_text_request, column_count);
 
@@ -9259,6 +9335,9 @@ Terminal::paint_cursor()
 	if (CLAMP(col, 0, m_column_count - 1) != col)
 		return;
 
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
 	auto cell = find_charcell(col, drow);
@@ -9389,6 +9468,9 @@ Terminal::paint_im_preedit_string()
 
 	if (m_im_preedit.empty())
 		return;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
 	/* Keep local copies of rendering information. */
 	width = m_cell_width;
@@ -9608,6 +9690,9 @@ Terminal::widget_scroll(GdkEventScroll *event)
 	gdouble v;
 	gint cnt, i;
 	int button;
+
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
 
         GdkEvent *base_event = reinterpret_cast<GdkEvent*>(event);
         auto rowcol = confined_grid_coords_from_event(base_event);
