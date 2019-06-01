@@ -9471,6 +9471,12 @@ Terminal::paint_cursor()
                                                  x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
                                                  &bg, VTE_DRAW_OPAQUE);
 
+                        if (focus && row_data && bidirow->has_foreign())
+                                _vte_draw_fill_rectangle(m_draw,
+                                                         bidirow->vis_is_rtl(viscol) ? x - stem_width : x + stem_width, y + m_char_padding.top,
+                                                         stem_width, stem_width,
+                                                         &bg, VTE_DRAW_OPAQUE);
+
 			break;
                 }
 
