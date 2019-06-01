@@ -41,6 +41,7 @@
 #include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
+#include "ringview.hh"
 #include "caps.hh"
 #include "widget.hh"
 
@@ -1729,6 +1730,8 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
 {
         if (m_selection_resolved.empty())
                 return;
+
+        ringview_update();
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -3940,6 +3943,11 @@ Terminal::process_incoming()
 		queue_contents_changed();
 	}
 
+        /* BiDi properties might have changed, even when !modified.
+         * emit_pending_signals() requires the ringview to be updated. */
+        m_ringview.invalidate();
+        ringview_update();
+
 	emit_pending_signals();
 
 	if (invalidated_text) {
@@ -5581,6 +5589,8 @@ Terminal::modify_selection (vte::view::coords const& pos)
 {
         g_assert (m_selecting);
 
+        ringview_update();
+
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
         if (current == m_selection_last)
@@ -6975,6 +6985,8 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 {
 	bool handled = false;
 
+        ringview_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
@@ -7039,6 +7051,8 @@ Terminal::widget_button_press(GdkEventButton *event)
 {
 	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
+
+        ringview_update();
 
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
@@ -7189,6 +7203,8 @@ Terminal::widget_button_release(GdkEventButton *event)
 {
 	bool handled = false;
 
+        ringview_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
@@ -7306,6 +7322,8 @@ Terminal::widget_focus_out(GdkEventFocus *event)
 void
 Terminal::widget_enter(GdkEventCrossing *event)
 {
+        ringview_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
 
@@ -7323,6 +7341,8 @@ Terminal::widget_enter(GdkEventCrossing *event)
 void
 Terminal::widget_leave(GdkEventCrossing *event)
 {
+        ringview_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
 
@@ -8203,6 +8223,12 @@ Terminal::widget_size_allocate(GtkAllocation *allocation)
 }
 
 void
+Terminal::widget_unmap()
+{
+        m_ringview.pause();
+}
+
+void
 Terminal::widget_unrealize()
 {
 	/* Deallocate the cursors. */
@@ -8994,6 +9020,19 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 	g_free(cells);
 }
 
+void
+Terminal::ringview_update()
+{
+        auto first_row = first_displayed_row();
+        auto last_row = last_displayed_row();
+        if (cursor_is_onscreen())
+                last_row = std::max(last_row, m_screen->cursor.row);
+
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows (first_row, last_row - first_row + 1);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+}
 
 /* Paint the contents of a given row at the given location.  Take advantage
  * of multiple-draw APIs by finding runs of characters with identical
@@ -9469,6 +9508,8 @@ Terminal::widget_draw(cairo_t *cr)
         if (region == NULL)
                 return;
 
+        ringview_update();
+
         allocated_width = get_allocated_width();
         allocated_height = get_allocated_height();
 
@@ -9601,7 +9642,8 @@ Terminal::widget_scroll(GdkEventScroll *event)
 	int button;
 
         GdkEvent *base_event = reinterpret_cast<GdkEvent*>(event);
-        auto rowcol = confined_grid_coords_from_event(base_event);
+
+//        ringview_update();  // needed?
 
 	read_modifiers(base_event);
 
@@ -9635,6 +9677,8 @@ Terminal::widget_scroll(GdkEventScroll *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
 				cnt, m_mouse_smooth_scroll_delta);
+
+                auto rowcol = confined_grid_coords_from_event(base_event);
 
 		button = cnt > 0 ? 5 : 4;
 		if (cnt < 0)
@@ -10480,8 +10524,13 @@ Terminal::process(bool emit_adj_changed)
                         process_incoming();
                 }
                 m_input_bytes = 0;
-        } else
+        } else {
+                // FIXMEegmont why is it needed here, and is this the best place?
+                // Without this, sudden two-finger kinetic scrolls result in crash.
+                ringview_update();
+
                 emit_pending_signals();
+        }
 
         return is_active;
 }

@@ -57,6 +57,7 @@ _vte_debug_init(void)
     { "hyperlink",    VTE_DEBUG_HYPERLINK    },
     { "modes",        VTE_DEBUG_MODES        },
     { "emulation",    VTE_DEBUG_EMULATION    },
+    { "ringview",     VTE_DEBUG_RINGVIEW     },
     { "bidi",         VTE_DEBUG_BIDI         },
   };
 

@@ -334,6 +334,8 @@ Widget::size_allocate(GtkAllocation* allocation) noexcept
 void
 Widget::unmap() noexcept
 {
+        m_terminal->widget_unmap();
+
         if (m_event_window)
                 gdk_window_hide(m_event_window);
 }

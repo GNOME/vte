@@ -70,6 +70,8 @@ libvte_common_sources = debug_sources + modes_sources + parser_sources + utf8_so
   'refptr.hh',
   'ring.cc',
   'ring.hh',
+  'ringview.cc',
+  'ringview.hh',
   'utf8.cc',
   'utf8.hh',
   'vte.cc',

@@ -175,6 +175,15 @@ void _vte_row_data_shrink (VteRowData *row, gulong max_len)
 		row->len = max_len;
 }
 
+// FIXME swap the two params a la memcpy?
+void _vte_row_data_copy (const VteRowData *src, VteRowData *dst)
+{
+        _vte_row_data_ensure (dst, src->len);
+        dst->len = src->len;
+        dst->attr = src->attr;
+        memcpy(dst->cells, src->cells, src->len * sizeof (src->cells[0]));
+}
+
 /* Get the length, ignoring trailing empty cells (with a custom background color). */
 guint16 _vte_row_data_nonempty_length (const VteRowData *row)
 {
