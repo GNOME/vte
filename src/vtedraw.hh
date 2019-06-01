@@ -44,6 +44,8 @@ struct _vte_draw;
 struct _vte_draw_text_request {
 	vteunistr c;
 	gshort x, y, columns;
+        guint8 mirror : 1;      /* Char has RTL resolved directionality, mirror if mirrorable. */
+        guint8 box_mirror : 1;  /* Add box drawing chars to the set of mirrorable characters. */
 };
 
 guint _vte_draw_get_style(gboolean bold, gboolean italic);
