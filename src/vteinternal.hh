@@ -663,9 +663,11 @@ public:
                          bool insert,
                          bool invalidate_now);
 
-        void invalidate_row(vte::grid::row_t row);
+        void invalidate_row(vte::grid::row_t row,
+                            bool extend);
         void invalidate_rows(vte::grid::row_t row_start,
-                             vte::grid::row_t row_end /* inclusive */);
+                             vte::grid::row_t row_end /* inclusive */,
+                             bool extend);
         void invalidate(vte::grid::span const& s);
         void invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid::span const& b, bool block);
         void invalidate_match_span();

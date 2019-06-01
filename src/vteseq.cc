@@ -316,8 +316,8 @@ Terminal::clear_current_line()
                 _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
                 set_hard_wrapped(m_screen->cursor.row);
                 rowdata->attr.bidi_flags = get_bidi_flags();
-		/* Repaint this row. */
-                invalidate_row(m_screen->cursor.row);
+                /* Repaint this row's paragraph (might need to extend upwards). */
+                invalidate_row(m_screen->cursor.row, true);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -344,10 +344,11 @@ Terminal::clear_above_current()
                         _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
                         set_hard_wrapped(i);
                         rowdata->attr.bidi_flags = get_bidi_flags();
-			/* Repaint the row. */
-                        invalidate_row(i);
 		}
 	}
+        /* Repaint the cleared area. No need to extend, set_hard_wrapped() took care of
+         * invalidating the context lines if necessary. */
+        invalidate_rows(m_screen->insert_delta, m_screen->cursor.row - 1, false);
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
 }
@@ -390,8 +391,9 @@ Terminal::scroll_text(vte::grid::row_t scroll_amount)
 		}
 	}
 
-	/* Update the display. */
-        invalidate_rows(start, end);
+        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+         * invalidating the context lines if necessary. */
+        invalidate_rows(start, end, false);
 
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
@@ -713,8 +715,8 @@ Terminal::clear_to_bol()
                         _vte_row_data_append (rowdata, &m_color_defaults);
 		}
 	}
-	/* Repaint this row. */
-        invalidate_row(m_screen->cursor.row);
+        /* Repaint this row's paragraph. */
+        invalidate_row(m_screen->cursor.row, true);
 
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
@@ -770,9 +772,9 @@ Terminal::clear_below_current()
                 set_hard_wrapped(i);
                 if (i > m_screen->cursor.row)
                         rowdata->attr.bidi_flags = get_bidi_flags();
-		/* Repaint this row. */
-                invalidate_row(i);
 	}
+        /* Repaint the cleared area (might need to extend upwards). */
+        invalidate_rows(m_screen->cursor.row, m_screen->insert_delta + m_row_count - 1, true);
 
 	/* We've modified the display.  Make a note of it. */
 	m_text_deleted_flag = TRUE;
@@ -809,8 +811,8 @@ Terminal::clear_to_eol()
                 _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 	}
         set_hard_wrapped(m_screen->cursor.row);
-	/* Repaint this row. */
-        invalidate_row(m_screen->cursor.row);
+        /* Repaint this row's paragraph. */
+        invalidate_row(m_screen->cursor.row, true);
 }
 
 /*
@@ -941,8 +943,8 @@ Terminal::delete_character()
                                 len = m_column_count;
 			}
                         set_hard_wrapped(m_screen->cursor.row);
-			/* Repaint this row. */
-                        invalidate_row(m_screen->cursor.row);
+                        /* Repaint this row's paragraph. */
+                        invalidate_row(m_screen->cursor.row, true);
 		}
 	}
 
@@ -999,8 +1001,8 @@ Terminal::erase_characters(long count)
 				}
 			}
 		}
-		/* Repaint this row. */
-                invalidate_row(m_screen->cursor.row);
+                /* Repaint this row's paragraph. */
+                invalidate_row(m_screen->cursor.row, true);
 	}
 
 	/* We've modified the display.  Make a note of it. */
@@ -1115,7 +1117,8 @@ Terminal::move_cursor_tab_forward(int count)
                 }
         }
 
-        invalidate_row(m_screen->cursor.row);
+        /* Repaint the cursor. */
+        invalidate_row(m_screen->cursor.row, false);
         m_screen->cursor.col = newcol;
 }
 
@@ -1336,8 +1339,10 @@ Terminal::insert_lines(vte::grid::row_t param)
         set_hard_wrapped(end);
 
         m_screen->cursor.col = 0;
-	/* Update the display. */
-        invalidate_rows(row, end);
+
+        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+         * invalidating the context lines if necessary. */
+        invalidate_rows(row, end, false);
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -1376,8 +1381,10 @@ Terminal::delete_lines(vte::grid::row_t param)
                 ring_insert(end, true);
 	}
         m_screen->cursor.col = 0;
-	/* Update the display. */
-        invalidate_rows(row, end);
+
+        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+         * invalidating the context lines if necessary. */
+        invalidate_rows(row, end, false);
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -6776,8 +6783,9 @@ Terminal::RI(vte::parser::Sequence const& seq)
                 set_hard_wrapped(start - 1);
                 set_hard_wrapped(end);
 
-		/* Update the display. */
-                invalidate_rows(start, end);
+                /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+                 * invalidating the context lines if necessary. */
+                invalidate_rows(start, end, false);
 	} else {
 		/* Otherwise, just move the cursor up. */
                 m_screen->cursor.row--;

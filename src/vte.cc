@@ -244,10 +244,22 @@ Terminal::cursor_is_onscreen() const noexcept
 }
 
 /* Note that end_row is inclusive. This is not as nice as end-exclusive,
- * but saves us from a +1 almost everywhere where this method is called. */
+ * but saves us from a +1 almost everywhere where this method is called.
+ *
+ * If @extend, the region is extended in both directions up to an explicit
+ * newline (or a safety limit) to invalidate entire paragraphs of text.
+ * This is to be used whenever the underlying data changes, because any such
+ * change might alter the desired BiDi, syntax highlighting etc. of all other
+ * rows of the involved paragraph(s).
+ *
+ * If not @extend, only the requested rows are invalidated. This is to be
+ * used when only the desired rendering changes but not the underlying data,
+ * e.g. moving or blinking cursor, highligthing with the mouse etc.
+ */
 void
 Terminal::invalidate_rows(vte::grid::row_t row_start,
-                          vte::grid::row_t row_end /* inclusive */)
+                          vte::grid::row_t row_end /* inclusive */,
+                          bool extend)
 {
 	if (G_UNLIKELY (!widget_realized()))
                 return;
@@ -259,17 +271,58 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
                 return;
 
 	_vte_debug_print (VTE_DEBUG_UPDATES,
-                          "Invalidating rows %ld..%ld.\n",
-                          row_start, row_end);
+                          "Invalidating rows %ld..%ld (extend: %s).\n",
+                          row_start, row_end, extend ? "true" : "false");
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
-        /* Scrolled back, visible parts didn't change. */
-        if (row_start > last_displayed_row())
-                return;
+        if (extend) {
+                /* Scrolled back by so much that changes to the writable area
+                 * may not affect the current viewport's rendering. */
+                if (m_screen->insert_delta - VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX > last_displayed_row())
+                        return;
+        } else {
+                /* Scrolled back, visible parts didn't change. */
+                if (row_start > last_displayed_row())
+                        return;
+        }
 
-        /* Scrollbar is at default position, all the writable rows changed. */
-        if (row_start == first_displayed_row() &&
-            row_end - row_start + 1 == m_row_count) {
+        if (extend) {
+                /* Extending the start is a bit tricky.
+                 *
+                 * First extend it (towards lower numbered indices), but only up to
+                 * insert_delta - 1. Remember that the row at insert_delta - 1 is
+                 * still in the ring, hence checking its soft_wrapped flag is fast. */
+                while (row_start >= m_screen->insert_delta) {
+                        if (!m_screen->row_data->is_soft_wrapped(row_start - 1))
+                                break;
+                        row_start--;
+                }
+
+                /* If we haven't seen a newline yet, stop walking backwards row by row.
+                 * This is because we might need to access row_stream in order to check
+                 * the wrapped state, a way too expensive operation while processing
+                 * incoming data. Let displaying do extra work instead.
+                 * So just invalidate everything to the top. */
+                if (row_start < m_screen->insert_delta) {
+                        row_start = first_displayed_row();
+                }
+
+                /* Extending the end is simple. Just walk until we go offscreen or
+                 * find an explicit newline. */
+                while (row_end < last_displayed_row()) {
+                        if (!m_screen->row_data->is_soft_wrapped(row_end))
+                                break;
+                        row_end++;
+                }
+
+                _vte_debug_print (VTE_DEBUG_UPDATES,
+                                  "Invalidating rows extended to %ld..%ld.\n",
+                                  row_start, row_end);
+        }
+
+        /* Recognize if we're already invalidating everything. */
+        if (row_start <= first_displayed_row() &&
+            row_end >= last_displayed_row()) {
 		invalidate_all();
 		return;
 	}
@@ -312,19 +365,21 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 
 /* Convenience method */
 void
-Terminal::invalidate_row(vte::grid::row_t row)
+Terminal::invalidate_row(vte::grid::row_t row, bool extend)
 {
-        invalidate_rows(row, row);
+        invalidate_rows(row, row, extend);
 }
 
+/* This is only used by the selection code, so no need to extend the area. */
 void
 Terminal::invalidate(vte::grid::span const& s)
 {
         if (!s.empty())
-                invalidate_rows(s.start_row(), s.last_row());
+                invalidate_rows(s.start_row(), s.last_row(), false);
 }
 
-/* Invalidates the symmetrical difference ("XOR" area) of the two spans */
+/* Invalidates the symmetrical difference ("XOR" area) of the two spans.
+ * This is only used by the selection code, so no need to extend the area. */
 void
 Terminal::invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid::span const& b, bool block)
 {
@@ -338,15 +393,18 @@ Terminal::invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid:
         if (block) {
                 /* We could optimize when the columns don't change, probably not worth it. */
                 invalidate_rows (std::min (a.start_row(), b.start_row()),
-                                 std::max (a.last_row(),  b.last_row()));
+                                 std::max (a.last_row(),  b.last_row()),
+                                 false);
         } else {
                 if (a.start() != b.start()) {
                         invalidate_rows (std::min (a.start_row(), b.start_row()),
-                                         std::max (a.start_row(), b.start_row()));
+                                         std::max (a.start_row(), b.start_row()),
+                                         false);
                 }
                 if (a.end() != b.end()) {
                         invalidate_rows (std::min (a.last_row(), b.last_row()),
-                                         std::max (a.last_row(), b.last_row()));
+                                         std::max (a.last_row(), b.last_row()),
+                                         false);
                 }
         }
 }
@@ -470,7 +528,8 @@ Terminal::find_end_column(vte::grid::column_t col,
 	return MIN(col + columns, m_column_count);
 }
 
-/* Sets the line ending to hard wrapped (explicit newline). */
+/* Sets the line ending to hard wrapped (explicit newline).
+ * Takes care of invalidating if this operation splits a paragraph into two. */
 void
 Terminal::set_hard_wrapped(vte::grid::row_t row)
 {
@@ -481,13 +540,16 @@ Terminal::set_hard_wrapped(vte::grid::row_t row)
         VteRowData *row_data = find_row_data_writable(row);
 
         /* It's okay for this row not to be covered by the ring. */
-        if (row_data == nullptr)
+        if (row_data == nullptr || !row_data->attr.soft_wrapped)
                 return;
 
         row_data->attr.soft_wrapped = false;
+
+        invalidate_rows(row, row + 1, true);
 }
 
 /* Sets the line ending to soft wrapped (overflow to the next line).
+ * Takes care of invalidating if this operation joins two paragraphs into one.
  * Also makes sure that the joined new paragraph receives the first one's bidi flags. */
 void
 Terminal::set_soft_wrapped(vte::grid::row_t row)
@@ -516,6 +578,8 @@ Terminal::set_soft_wrapped(vte::grid::row_t row)
                         row_data = find_row_data_writable(++i);
                 } while (row_data != nullptr);
         }
+
+        invalidate_rows(row, row + 1, true);
 }
 
 /* Determine the width of the portion of the preedit string which lies
@@ -585,7 +649,7 @@ Terminal::invalidate_cursor_once(bool periodic)
 		_vte_debug_print(VTE_DEBUG_UPDATES,
                                  "Invalidating cursor in row %ld.\n",
                                  row);
-                invalidate_row(row);
+                invalidate_row(row, false);
 	}
 }
 
@@ -2679,7 +2743,7 @@ Terminal::cleanup_fragments(long start,
                         cell_end->c = ' ';
                         cell_end->attr.set_fragment(false);
                         cell_end->attr.set_columns(1);
-                        invalidate_row(m_screen->cursor.row);
+                        invalidate_row(m_screen->cursor.row, true /* FIXME can we do cheaper? */);
                 }
         }
 
@@ -2703,7 +2767,7 @@ Terminal::cleanup_fragments(long start,
                                                          "Cleaning CJK left half at %ld\n",
                                                          col);
                                         g_assert(start - col == 1);
-                                        invalidate_row(m_screen->cursor.row);
+                                        invalidate_row(m_screen->cursor.row, true /* FIXME can we do cheaper? */);
                                 }
                                 keep_going = FALSE;
                         }
@@ -2742,10 +2806,13 @@ Terminal::cursor_down(bool explicit_sequence)
 				start++;
 				end++;
                                 ring_insert(m_screen->cursor.row, false);
-				/* Force the areas below the region to be
-				 * redrawn -- they've moved. */
+                                /* Repaint the affected lines, which is _below_
+                                 * the region (bug 131). No need to extend,
+                                 * set_hard_wrapped() took care of invalidating
+                                 * the context lines if necessary. */
                                 invalidate_rows(m_screen->cursor.row,
-                                                m_screen->insert_delta + m_row_count - 1);
+                                                m_screen->insert_delta + m_row_count - 1,
+                                                false);
 				/* Force scroll. */
 				adjust_adjustments();
 			} else {
@@ -2756,8 +2823,10 @@ Terminal::cursor_down(bool explicit_sequence)
                                 /* Scroll by removing a line and inserting a new one. */
 				ring_remove(start);
 				ring_insert(end, true);
-				/* Update the display. */
-                                invalidate_rows(start, end);
+                                /* Repaint the affected lines. No need to extend,
+                                 * set_hard_wrapped() took care of invalidating
+                                 * the context lines if necessary. */
+                                invalidate_rows(start, end, false);
 			}
 		} else {
 			/* Scroll up with history. */
@@ -3036,7 +3105,7 @@ Terminal::insert_char(gunichar c,
 done:
         /* Signal that this part of the window needs drawing. */
         if (G_UNLIKELY (invalidate_now)) {
-                invalidate_row(m_screen->cursor.row);
+                invalidate_row(m_screen->cursor.row, true);
         }
 
 	/* We added text, so make a note of it. */
@@ -3094,7 +3163,7 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Applied BiDi parameters to rows %ld..%ld.\n", start, row);
 
-        invalidate_rows(start, row);
+        invalidate_rows(start, row, false);
 }
 
 /* Apply the current BiDi parameters covered by bidi_flags_mask on the current paragraph
@@ -3764,7 +3833,7 @@ Terminal::process_incoming()
                                                 if (invalidated_text &&
                                                     (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
                                                      m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK)) {
-                                                        invalidate_rows(bbox_top, bbox_bottom);
+                                                        invalidate_rows(bbox_top, bbox_bottom, true);
                                                         bbox_bottom = -G_MAXINT;
                                                         bbox_top = G_MAXINT;
                                                 }
@@ -3817,7 +3886,7 @@ Terminal::process_incoming()
                                             ((new_in_scroll_region && !in_scroll_region) ||
                                              (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
                                               m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK))) {
-                                                invalidate_rows(bbox_top, bbox_bottom);
+                                                invalidate_rows(bbox_top, bbox_bottom, true);
                                                 invalidated_text = FALSE;
                                                 bbox_bottom = -G_MAXINT;
                                                 bbox_top = G_MAXINT;
@@ -3874,21 +3943,21 @@ Terminal::process_incoming()
 	emit_pending_signals();
 
 	if (invalidated_text) {
-                invalidate_rows(bbox_top, bbox_bottom);
+                invalidate_rows(bbox_top, bbox_bottom, true);
 	}
 
         if ((saved_cursor.col != m_screen->cursor.col) ||
             (saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
 		if (saved_cursor_visible)
-                        invalidate_row(saved_cursor.row);
+                        invalidate_row(saved_cursor.row, false);
 		invalidate_cursor_once();
 		check_cursor_blink();
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
         } else if ((saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
                    (saved_cursor_style != m_cursor_style)) {
-                invalidate_row(saved_cursor.row);
+                invalidate_row(saved_cursor.row, false);
 		check_cursor_blink();
 	}
 
@@ -5851,7 +5920,7 @@ Terminal::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx
                                 }
                         }
                         if (G_UNLIKELY (do_invalidate_row)) {
-                                invalidate_row(row);
+                                invalidate_row(row, false);
                         }
                 }
         }
@@ -5976,6 +6045,7 @@ Terminal::match_hilite_clear()
 	}
 }
 
+/* This is only used by the dingu matching code, so no need to extend the area. */
 void
 Terminal::invalidate_match_span()
 {
@@ -10159,7 +10229,7 @@ Terminal::select_text(vte::grid::column_t start_col,
         widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
 	emit_selection_changed();
 
-        invalidate_rows(start_row, end_row);
+        invalidate_rows(start_row, end_row, false);
 }
 
 void
