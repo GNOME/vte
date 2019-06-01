@@ -74,6 +74,7 @@ public:
         //FIXMEchpe use references not pointers
         VteRowData const* index(row_t position); /* const? */
         VteRowData* index_writable(row_t position);
+        bool is_soft_wrapped(row_t position);
 
         void hyperlink_maybe_gc(row_t increment);
         hyperlink_idx_t get_hyperlink_idx(char const* hyperlink);

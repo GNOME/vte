@@ -609,6 +609,27 @@ Ring::index(row_t position)
 	return &m_cached_row;
 }
 
+bool
+Ring::is_soft_wrapped(row_t position)
+{
+        const VteRowData *row;
+        RowRecord record;
+
+        if (G_UNLIKELY (position < m_start || position >= m_end))
+                return false;
+
+        if (G_LIKELY (position >= m_writable)) {
+                row = get_writable_index(position);
+                return row->attr.soft_wrapped;
+        }
+
+        /* The row is scrolled out to the stream. Save work by not reading the actual row.
+         * The requested information is readily available in row_stream, too. */
+        if (G_UNLIKELY (!read_row_record(&record, position)))
+                return false;
+        return record.soft_wrapped;
+}
+
 /*
  * Returns the hyperlink idx at the given position.
  *
