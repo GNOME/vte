@@ -26,6 +26,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#include "bidi.hh"
 #include "vtedraw.hh"
 #include "vtedefines.hh"
 #include "debug.h"
@@ -1487,6 +1488,11 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
 	for (i = 0; i < n_requests; i++) {
 		vteunistr c = requests[i].c;
+
+                if (G_UNLIKELY (requests[i].mirror)) {
+                        vte_bidi_get_mirror_char (c, requests[i].box_mirror, &c);
+                }
+
 		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
 		union unistr_font_info *ufi = &uinfo->ufi;
                 int x, y;

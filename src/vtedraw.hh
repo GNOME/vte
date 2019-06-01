@@ -44,6 +44,8 @@ struct _vte_draw;
 struct _vte_draw_text_request {
 	vteunistr c;
 	gshort x, y, columns;
+        guint8 mirror : 1;
+        guint8 box_mirror : 1;
 };
 
 guint _vte_draw_get_style(gboolean bold, gboolean italic);

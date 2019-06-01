@@ -24,6 +24,7 @@
 #include "vtetypes.hh"
 #include "vtedraw.hh"
 #include "reaper.hh"
+#include "bidi.hh"
 #include "ring.hh"
 #include "ringview.hh"
 #include "buffer.h"
@@ -401,7 +402,7 @@ public:
         gboolean m_selecting_had_delta;
         gboolean m_selection_block_mode;  // FIXMEegmont move it into a 4th value in vte_selection_type?
         enum vte_selection_type m_selection_type;
-        vte::grid::halfcoords m_selection_origin, m_selection_last;
+        vte::grid::halfcoords m_selection_origin, m_selection_last;  /* BiDi: logical in normal modes, visual in m_selection_block_mode */
         vte::grid::span m_selection_resolved;
 
 	/* Clipboard data information. */
@@ -736,6 +737,7 @@ public:
 
         inline bool grid_coords_in_scrollback(vte::grid::coords const& rowcol) const { return rowcol.row() < m_screen->insert_delta; }
 
+        vte::grid::row_t confine_grid_row(vte::grid::row_t const& row) const;
         vte::grid::coords confine_grid_coords(vte::grid::coords const& rowcol) const;
         vte::grid::coords confined_grid_coords_from_event(GdkEvent const* event) const;
         vte::grid::coords confined_grid_coords_from_view_coords(vte::view::coords const& pos) const;
@@ -960,8 +962,8 @@ public:
         void resolve_selection();
         void selection_maybe_swap_endpoints(vte::view::coords const& pos);
         void modify_selection(vte::view::coords const& pos);
-        bool cell_is_selected(vte::grid::column_t col,
-                              vte::grid::row_t) const;
+        bool cell_is_selected_vis(vte::grid::column_t col,
+                                  vte::grid::row_t) const;
 
         void reset_default_attributes(bool reset_hyperlink);
 
