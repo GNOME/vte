@@ -1823,6 +1823,12 @@ const char *
 vte_get_features (void)
 {
         return
+#ifdef WITH_FRIBIDI
+                "+BIDI"
+#else
+                "-BIDI"
+#endif
+                " "
 #ifdef WITH_GNUTLS
                 "+GNUTLS"
 #else

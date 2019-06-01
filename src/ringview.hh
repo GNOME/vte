@@ -20,6 +20,7 @@
 
 #include <glib.h>
 
+#include "bidi.hh"
 #include "ring.hh"
 #include "vterowdata.hh"
 #include "vtetypes.hh"
@@ -28,6 +29,9 @@
 namespace vte {
 
 namespace base {  // FIXME ???
+
+class BidiRow;
+class BidiRunner;
 
 /*
  * RingView provides a "view" to a continuous segment of the Ring (or stream),
@@ -49,6 +53,8 @@ namespace base {  // FIXME ???
  * infrastructure one day.
  */
 class RingView {
+        friend class BidiRunner;
+
 public:
         RingView();
         ~RingView();
@@ -65,6 +71,8 @@ public:
         void set_rows(vte::grid::row_t start, vte::grid::row_t len);
         void set_width(vte::grid::column_t width);
         vte::grid::column_t get_width() { return m_width; }
+        void set_enable_bidi(bool enable_bidi);
+        void set_enable_shaping(bool enable_shaping);
 
         inline void invalidate() { m_invalid = true; }
         void update();
@@ -72,12 +80,21 @@ public:
 
         VteRowData const* get_row(vte::grid::row_t row) const;
 
+        BidiRow const* get_bidirow(vte::grid::row_t row) const;
+
 private:
         Ring *m_ring;
 
         VteRowData **m_rows;
         int m_rows_len;
         int m_rows_alloc_len;
+
+        bool m_enable_bidi;
+        bool m_enable_shaping;
+        BidiRow **m_bidirows;
+        int m_bidirows_alloc_len;
+
+        BidiRunner *m_bidirunner;
 
         vte::grid::row_t m_top;  /* the row of the Ring corresponding to m_rows[0] */
 
@@ -89,6 +106,8 @@ private:
         bool m_paused;
 
         void resume();
+
+        BidiRow* get_bidirow_writable(vte::grid::row_t row) const;
 };
 
 }; /* namespace base */

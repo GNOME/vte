@@ -18,6 +18,7 @@
 
 #include <config.h>
 
+#include "bidi.hh"
 #include "debug.h"
 #include "vtedefines.hh"
 #include "vteinternal.hh"
@@ -30,6 +31,11 @@ RingView::RingView()
         m_start = m_len = m_width = 0;
         m_rows_alloc_len = 0;
 
+        m_enable_bidi = true;      /* These two are the most convenient defaults */
+        m_enable_shaping = false;  /* for short-lived ringviews. */
+        m_bidirunner = new BidiRunner(this);
+        m_bidirows_alloc_len = 0;
+
         m_invalid = true;
         m_paused = true;
 }
@@ -37,6 +43,7 @@ RingView::RingView()
 RingView::~RingView()
 {
         pause();
+        delete m_bidirunner;
 }
 
 /* Pausing a RingView frees up pretty much all of its memory.
@@ -54,8 +61,8 @@ void RingView::pause()
         if (m_paused)
                 return;
 
-        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: pause, freeing %d rows.\n",
-                                              m_rows_alloc_len);
+        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: pause, freeing %d rows, %d bidirows.\n",
+                                              m_rows_alloc_len, m_bidirows_alloc_len);
 
         for (i = 0; i < m_rows_alloc_len; i++) {
                 _vte_row_data_fini(m_rows[i]);
@@ -63,6 +70,12 @@ void RingView::pause()
         }
         g_free (m_rows);
         m_rows_alloc_len = 0;
+
+        for (i = 0; i < m_bidirows_alloc_len; i++) {
+                delete m_bidirows[i];
+        }
+        g_free (m_bidirows);
+        m_bidirows_alloc_len = 0;
 
         m_invalid = true;
         m_paused = true;
@@ -82,8 +95,19 @@ void RingView::resume()
                 _vte_row_data_init (m_rows[i]);
         }
 
-        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: resume, allocating %d rows\n",
-                                              m_rows_alloc_len);
+        /* +2: Likely prevent a quickly following realloc.
+         * The number of lines of interest keeps jumping up and down by one
+         * due to per-pixel scrolling, and by another one due sometimes having
+         * to reshuffle another line below the bottom for the overflowing bits
+         * of the outline rectangle cursor. */
+        m_bidirows_alloc_len = m_len + 2;
+        m_bidirows = (BidiRow **) g_malloc (sizeof (BidiRow *) * m_bidirows_alloc_len);
+        for (int i = 0; i < m_bidirows_alloc_len; i++) {
+                m_bidirows[i] = new BidiRow();
+        }
+
+        _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: resume, allocating %d rows, %d bidirows\n",
+                                              m_rows_alloc_len, m_bidirows_alloc_len);
 
         m_paused = false;
 }
@@ -121,6 +145,21 @@ void RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
 
         /* m_rows is expanded on demand in update() */
 
+        /* m_bidirows needs exactly this many lines */
+        if (G_UNLIKELY (!m_paused && len > m_bidirows_alloc_len)) {
+                int i = m_bidirows_alloc_len;
+                while (len > m_bidirows_alloc_len) {
+                        /* Don't realloc too aggressively. */
+                        m_bidirows_alloc_len = std::max(m_bidirows_alloc_len + 1, m_bidirows_alloc_len * 5 / 4 /* whatever */);
+                }
+                _vte_debug_print (VTE_DEBUG_RINGVIEW, "Ringview: reallocate to %d bidirows\n",
+                                                      m_bidirows_alloc_len);
+                m_bidirows = (BidiRow **) g_realloc (m_bidirows, sizeof (BidiRow *) * m_bidirows_alloc_len);
+                for (; i < m_bidirows_alloc_len; i++) {
+                        m_bidirows[i] = new BidiRow();
+                }
+        }
+
         m_start = start;
         m_len = len;
         m_invalid = true;
@@ -132,6 +171,24 @@ VteRowData const* RingView::get_row(vte::grid::row_t row) const
         g_assert_cmpint(row, <, m_top + m_rows_len);
 
         return m_rows[row - m_top];
+}
+
+void RingView::set_enable_bidi(bool enable_bidi)
+{
+        if (G_LIKELY (enable_bidi == m_enable_bidi))
+                return;
+
+        m_enable_bidi = enable_bidi;
+        m_invalid = true;
+}
+
+void RingView::set_enable_shaping(bool enable_shaping)
+{
+        if (G_LIKELY (enable_shaping == m_enable_shaping))
+                return;
+
+        m_enable_shaping = enable_shaping;
+        m_invalid = true;
 }
 
 void RingView::update()
@@ -210,7 +267,11 @@ void RingView::update()
                 if (!row_data->attr.soft_wrapped || row == m_top + m_rows_len - 1) {
                         /* Found a paragraph from @top to @row, inclusive. */
 
-                        /* Doing BiDi, syntax highlighting etc. come here in the future. */
+                        /* Run the BiDi algorithm. */
+                        m_bidirunner->paragraph(top, row + 1,
+                                                m_enable_bidi, m_enable_shaping);
+
+                        /* Doing syntax highlighting etc. come here in the future. */
 
                         top = row + 1;
                 }
@@ -218,4 +279,24 @@ void RingView::update()
         }
 
         m_invalid = false;
+}
+
+BidiRow const* RingView::get_bidirow(vte::grid::row_t row) const
+{
+        g_assert_cmpint (row, >=, m_start);
+        g_assert_cmpint (row, <, m_start + m_len);
+        g_assert_false (m_invalid);
+        g_assert_false (m_paused);
+
+        return m_bidirows[row - m_start];
+}
+
+/* For internal use by BidiRunner. Get where the BiDi mapping for the given row
+ * needs to be stored, of nullptr if it's a context row. */
+BidiRow* RingView::get_bidirow_writable(vte::grid::row_t row) const
+{
+        if (row < m_start || row >= m_start + m_len)
+                return nullptr;
+
+        return m_bidirows[row - m_start];
 }
