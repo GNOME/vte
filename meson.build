@@ -34,6 +34,7 @@ project(
 gtk3_req_version          = '3.8.0'
 gtk4_req_version          = '4.0.0'
 
+fribidi_req_version       = '1.0.0'
 gio_req_version           = '2.40.0'
 glib_req_version          = '2.40.0'
 gnutls_req_version        = '3.2.7'
@@ -109,6 +110,7 @@ config_h = configuration_data()
 config_h.set_quoted('GETTEXT_PACKAGE', vte_gettext_domain)
 config_h.set_quoted('VERSION', vte_version)
 config_h.set('VTE_DEBUG', enable_debug)
+config_h.set('WITH_FRIBIDI', get_option('fribidi'))
 config_h.set('WITH_GNUTLS', get_option('gnutls'))
 config_h.set('WITH_ICONV', get_option('iconv'))
 
@@ -373,6 +375,12 @@ pcre2_dep    = dependency('libpcre2-8', version: '>=' + pcre2_req_version)
 pthreads_dep = dependency('threads')
 zlib_dep     = dependency('zlib')
 
+if get_option('fribidi')
+  fribidi_dep = dependency('fribidi', version: '>=' + fribidi_req_version)
+else
+  fribidi_dep = dependency('', required: false)
+endif
+
 if get_option('gnutls')
   gnutls_dep = dependency('gnutls', version: '>=' + gnutls_req_version)
 else
@@ -443,6 +451,7 @@ output += '\n'
 output += '  Coverage:     ' + get_option('b_coverage').to_string() + '\n'
 output += '  Debug:        ' + enable_debug.to_string() + '\n'
 output += '  Docs:         ' + get_option('docs').to_string() + '\n'
+output += '  FRIBIDI:      ' + get_option('fribidi').to_string() + '\n'
 output += '  GNUTLS:       ' + get_option('gnutls').to_string() + '\n'
 output += '  GTK+ 3.0:     ' + get_option('gtk3').to_string() + '\n'
 output += '  GTK+ 4.0:     ' + get_option('gtk4').to_string() + '\n'

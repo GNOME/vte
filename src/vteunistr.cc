@@ -163,6 +163,39 @@ _vte_unistr_get_base (vteunistr s)
 }
 
 void
+_vte_unistr_append_to_gunichars (vteunistr s, GArray *a)
+{
+        if (G_UNLIKELY (s >= VTE_UNISTR_START)) {
+                struct VteUnistrDecomp *decomp;
+                decomp = &DECOMP_FROM_UNISTR (s);
+                _vte_unistr_append_to_gunichars (decomp->prefix, a);
+                s = decomp->suffix;
+        }
+        gunichar val = (gunichar) s;
+        g_array_append_val (a, val);
+}
+
+vteunistr
+_vte_unistr_replace_base (vteunistr s, gunichar c)
+{
+        g_return_val_if_fail (s < unistr_next, s);
+
+        if (G_LIKELY (_vte_unistr_get_base(s) == c))
+                return s;
+
+        GArray *a = g_array_new (FALSE, FALSE, sizeof (gunichar));
+        _vte_unistr_append_to_gunichars (s, a);
+        g_assert_cmpint(a->len, >=, 1);
+
+        s = c;
+        for (glong i = 1; i < a->len; i++)
+                s = _vte_unistr_append_unichar (s, g_array_index (a, gunichar, i));
+
+        g_array_free (a, TRUE);
+        return s;
+}
+
+void
 _vte_unistr_append_to_string (vteunistr s, GString *gs)
 {
 	g_return_if_fail (s < unistr_next);

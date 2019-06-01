@@ -76,6 +76,19 @@ _vte_unistr_get_base (vteunistr s);
 /**
  * _vte_unistr_append_to_string:
  * @s: a #vteunistr
+ * @c: Unicode character to replace the base character of @s.
+ *
+ * Creates a vteunistr value where the base character from @s is
+ * replaced by @c, while the combining characters from @s are carried over.
+ *
+ * Returns: the new #vteunistr value
+ */
+vteunistr
+_vte_unistr_replace_base (vteunistr s, gunichar c);
+
+/**
+ * _vte_unistr_append_to_string:
+ * @s: a #vteunistr
  * @gs: a #GString to append @s to
  *
  * Appends @s to @gs.  This is how one converts a #vteunistr to a
@@ -83,6 +96,16 @@ _vte_unistr_get_base (vteunistr s);
  **/
 void
 _vte_unistr_append_to_string (vteunistr s, GString *gs);
+
+/**
+ * _vte_unistr_append_to_gunichars:
+ * @s: a #vteunistr
+ * @a: a #GArray of #gunichar items to append @s to
+ *
+ * Appends @s to @a.
+ **/
+void
+_vte_unistr_append_to_gunichars (vteunistr s, GArray *a);
 
 /**
  * _vte_unistr_strlen:

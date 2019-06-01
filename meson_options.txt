@@ -35,6 +35,13 @@ option(
 )
 
 option(
+  'fribidi',
+  type: 'boolean',
+  value: true,
+  description: 'Enable FriBidi support',
+)
+
+option(
   'gnutls',
   type: 'boolean',
   value: true,
