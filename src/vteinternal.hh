@@ -619,6 +619,8 @@ public:
 
         /* RingView and friends */
         vte::base::RingView m_ringview;
+        bool m_enable_bidi;
+        bool m_enable_shaping;
 
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl : 1;
@@ -1176,6 +1178,8 @@ public:
         bool set_cursor_shape(VteCursorShape shape);
         bool set_cursor_style(VteCursorStyle style);
         bool set_delete_binding(VteEraseBinding binding);
+        bool set_enable_bidi(bool setting);
+        bool set_enable_shaping(bool setting);
         bool set_encoding(char const* codeset);
         bool set_font_desc(PangoFontDescription const* desc);
         bool set_font_scale(double scale);

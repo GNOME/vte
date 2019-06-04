@@ -337,6 +337,19 @@ _VTE_PUBLIC
 void vte_terminal_set_delete_binding(VteTerminal *terminal,
 				     VteEraseBinding binding) _VTE_GNUC_NONNULL(1);
 
+/* BiDi and shaping */
+_VTE_PUBLIC
+void vte_terminal_set_enable_bidi(VteTerminal *terminal,
+                                  gboolean enable_bidi) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_enable_bidi(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+void vte_terminal_set_enable_shaping(VteTerminal *terminal,
+                                     gboolean enable_shaping) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_enable_shaping(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 /* Manipulate the autohide setting. */
 _VTE_PUBLIC
 void vte_terminal_set_mouse_autohide(VteTerminal *terminal,

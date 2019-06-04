@@ -48,6 +48,7 @@ public:
         gboolean icon_title{false};
         gboolean keep{false};
         gboolean no_argb_visual{false};
+        gboolean no_bidi{false};
         gboolean no_bold{false};
         gboolean no_builtin_dingus{false};
         gboolean no_context_menu{false};
@@ -55,6 +56,7 @@ public:
         gboolean no_geometry_hints{false};
         gboolean no_hyperlink{false};
         gboolean no_rewrap{false};
+        gboolean no_shaping{false};
         gboolean no_shell{false};
         gboolean object_notifications{false};
         gboolean reverse{false};
@@ -383,6 +385,8 @@ public:
                           "Live on after the command exits", nullptr },
                         { "no-argb-visual", 0, 0, G_OPTION_ARG_NONE, &no_argb_visual,
                           "Don't use an ARGB visual", nullptr },
+                        { "no-bidi", 0, 0, G_OPTION_ARG_NONE, &no_bidi,
+                          "Disable BiDi", nullptr },
                         { "no-bold", 0, 0, G_OPTION_ARG_NONE, &no_bold,
                           "Disable bold", nullptr },
                         { "no-builtin-dingus", 0, 0, G_OPTION_ARG_NONE, &no_builtin_dingus,
@@ -397,6 +401,8 @@ public:
                           "Disable hyperlinks", nullptr },
                         { "no-rewrap", 'R', 0, G_OPTION_ARG_NONE, &no_rewrap,
                           "Disable rewrapping on resize", nullptr },
+                        { "no-shaping", 0, 0, G_OPTION_ARG_NONE, &no_shaping,
+                          "Disable Arabic shaping", nullptr },
                         { "no-shell", 'S', 0, G_OPTION_ARG_NONE, &no_shell,
                           "Disable spawning a shell inside the terminal", nullptr },
                         { "object-notifications", 'N', 0, G_OPTION_ARG_NONE, &object_notifications,
@@ -1925,6 +1931,8 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_cjk_ambiguous_width(window->terminal, options.cjk_ambiguous_width);
         vte_terminal_set_cursor_blink_mode(window->terminal, options.cursor_blink_mode);
         vte_terminal_set_cursor_shape(window->terminal, options.cursor_shape);
+        vte_terminal_set_enable_bidi(window->terminal, !options.no_bidi);
+        vte_terminal_set_enable_shaping(window->terminal, !options.no_shaping);
         vte_terminal_set_mouse_autohide(window->terminal, true);
         vte_terminal_set_rewrap_on_resize(window->terminal, !options.no_rewrap);
         vte_terminal_set_scroll_on_output(window->terminal, false);

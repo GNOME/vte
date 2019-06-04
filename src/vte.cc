@@ -8028,6 +8028,8 @@ Terminal::Terminal(vte::platform::Widget* w,
 	m_allow_bold = TRUE;
         m_bold_is_bright = FALSE;
         m_rewrap_on_resize = TRUE;
+        m_enable_bidi = true;
+        m_enable_shaping = true;
 
         m_input_enabled = TRUE;
 
@@ -9751,6 +9753,30 @@ Terminal::set_text_blink_mode(VteTextBlinkMode setting)
                 return false;
 
         m_text_blink_mode = setting;
+        invalidate_all();
+
+        return true;
+}
+
+bool
+Terminal::set_enable_bidi(bool setting)
+{
+        if (setting == m_enable_bidi)
+                return false;
+
+        m_enable_bidi = setting;
+        invalidate_all();
+
+        return true;
+}
+
+bool
+Terminal::set_enable_shaping(bool setting)
+{
+        if (setting == m_enable_shaping)
+                return false;
+
+        m_enable_shaping = setting;
         invalidate_all();
 
         return true;
