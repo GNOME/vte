@@ -490,6 +490,12 @@ vte_terminal_get_property (GObject *object,
                 case PROP_DELETE_BINDING:
                         g_value_set_enum (value, impl->m_delete_binding);
                         break;
+                case PROP_ENABLE_BIDI:
+                        g_value_set_boolean (value, vte_terminal_get_enable_bidi (terminal));
+                        break;
+                case PROP_ENABLE_SHAPING:
+                        g_value_set_boolean (value, vte_terminal_get_enable_shaping (terminal));
+                        break;
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
                         break;
@@ -596,6 +602,12 @@ vte_terminal_set_property (GObject *object,
                         break;
                 case PROP_DELETE_BINDING:
                         vte_terminal_set_delete_binding (terminal, (VteEraseBinding)g_value_get_enum (value));
+                        break;
+                case PROP_ENABLE_BIDI:
+                        vte_terminal_set_enable_bidi (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_ENABLE_SHAPING:
+                        vte_terminal_set_enable_shaping (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_ENCODING:
                         vte_terminal_set_encoding (terminal, g_value_get_string (value), NULL);
@@ -1536,6 +1548,30 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    VTE_TYPE_ERASE_BINDING,
                                    VTE_ERASE_AUTO,
                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:enable-bidi:
+         *
+         * Controls whether or not the terminal will perform bidirectional text rendering.
+         *
+         * Since: 0.58
+         */
+        pspecs[PROP_ENABLE_BIDI] =
+                g_param_spec_boolean ("enable-bidi", NULL, NULL,
+                                      TRUE,
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:enable-shaping:
+         *
+         * Controls whether or not the terminal will shape Arabic text.
+         *
+         * Since: 0.58
+         */
+        pspecs[PROP_ENABLE_SHAPING] =
+                g_param_spec_boolean ("enable-shaping", NULL, NULL,
+                                      TRUE,
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:font-scale:
@@ -3690,6 +3726,78 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 
         if (IMPL(terminal)->set_delete_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
+}
+
+/**
+ * vte_terminal_get_enable_bidi:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether the terminal performs bidirectional text rendering.
+ *
+ * Returns: %TRUE if BiDi is enabled, %FALSE if not
+ *
+ * Since: 0.58
+ */
+gboolean
+vte_terminal_get_enable_bidi(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        return IMPL(terminal)->m_enable_bidi;
+}
+
+/**
+ * vte_terminal_set_enable_bidi:
+ * @terminal: a #VteTerminal
+ * @enable_bidi: %TRUE to enable BiDi support
+ *
+ * Controls whether or not the terminal will perform bidirectional text rendering.
+ *
+ * Since: 0.58
+ */
+void
+vte_terminal_set_enable_bidi(VteTerminal *terminal,
+                             gboolean enable_bidi)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_enable_bidi(enable_bidi != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_BIDI]);
+}
+
+/**
+ * vte_terminal_get_enable_shaping:
+ * @terminal: a #VteTerminal
+ *
+ * Checks whether the terminal shapes Arabic text.
+ *
+ * Returns: %TRUE if Arabic shaping is enabled, %FALSE if not
+ *
+ * Since: 0.58
+ */
+gboolean
+vte_terminal_get_enable_shaping(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        return IMPL(terminal)->m_enable_shaping;
+}
+
+/**
+ * vte_terminal_set_enable_shaping:
+ * @terminal: a #VteTerminal
+ * @enable_shaping: %TRUE to enable Arabic shaping
+ *
+ * Controls whether or not the terminal will shape Arabic text.
+ *
+ * Since: 0.58
+ */
+void
+vte_terminal_set_enable_shaping(VteTerminal *terminal,
+                                gboolean enable_shaping)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_enable_shaping(enable_shaping != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_SHAPING]);
 }
 
 /**
