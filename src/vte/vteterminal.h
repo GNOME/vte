@@ -113,7 +113,7 @@ struct _VteTerminalClass {
 /* The structure we return as the supplemental attributes for strings. */
 struct _VteCharAttributes {
         /*< private >*/
-	long row, column;
+        long row, column;  /* logical column */
 	PangoColor fore, back;
 	guint underline:1, strikethrough:1, columns:4;
 };
