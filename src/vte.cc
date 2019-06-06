@@ -7900,7 +7900,7 @@ Terminal::widget_get_preferred_width(int *minimum_width,
 
         refresh_size();
 
-	*minimum_width = m_cell_width * 1;
+	*minimum_width = m_cell_width * 2;  /* have room for a CJK or emoji */
         *natural_width = m_cell_width * m_column_count;
 
 	*minimum_width += m_padding.left +
