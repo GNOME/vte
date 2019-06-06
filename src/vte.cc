@@ -8837,9 +8837,6 @@ Terminal::draw_rows(VteScreen *screen_,
                         continue;
 
 		row_data = find_row_data(row);
-                if (row_data == nullptr)
-                        continue; /* Skip row. FIXME: just paint this row empty? */
-
                 i = j = 0;
                 /* Walk the line.
                  * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
