@@ -132,6 +132,14 @@ char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						    gpointer user_data,
 						    GArray *attributes) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+void vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
+                                       gboolean rewrap) _VTE_GNUC_NONNULL(1);
+_VTE_DEPRECATED
+_VTE_PUBLIC
+gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED

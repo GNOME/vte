@@ -34,8 +34,6 @@ vte_terminal_set_scroll_on_output
 vte_terminal_get_scroll_on_output
 vte_terminal_set_scroll_on_keystroke
 vte_terminal_get_scroll_on_keystroke
-vte_terminal_set_rewrap_on_resize
-vte_terminal_get_rewrap_on_resize
 vte_terminal_set_cell_height_scale
 vte_terminal_get_cell_height_scale
 vte_terminal_set_cell_width_scale
@@ -151,6 +149,8 @@ vte_terminal_get_icon_title
 vte_terminal_set_encoding
 vte_terminal_get_encoding
 vte_terminal_get_text_include_trailing_spaces
+vte_terminal_set_rewrap_on_resize
+vte_terminal_get_rewrap_on_resize
 
 <SUBSECTION Private>
 VteCharAttributes

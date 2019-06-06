@@ -1628,6 +1628,8 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * Controls whether or not the terminal will rewrap its contents, including
          * the scrollback buffer, whenever the terminal's width changes.
+         *
+         * Deprecated: 0.58
          */
         pspecs[PROP_REWRAP_ON_RESIZE] =
                 g_param_spec_boolean ("rewrap-on-resize", NULL, NULL,
@@ -4143,6 +4145,8 @@ vte_terminal_get_pty(VteTerminal *terminal)
  * Checks whether or not the terminal will rewrap its contents upon resize.
  *
  * Returns: %TRUE if rewrapping is enabled, %FALSE if not
+ *
+ * Deprecated: 0.58
  */
 gboolean
 vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
@@ -4158,6 +4162,8 @@ vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
  *
  * Controls whether or not the terminal will rewrap its contents, including
  * the scrollback history, whenever the terminal's width changes.
+ *
+ * Deprecated: 0.58
  */
 void
 vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
