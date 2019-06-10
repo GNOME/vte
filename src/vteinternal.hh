@@ -40,6 +40,7 @@
 
 #include <list>
 #include <queue>
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -108,6 +109,18 @@ typedef enum _VteCharacterReplacement {
         VTE_CHARACTER_REPLACEMENT_LINE_DRAWING,
         VTE_CHARACTER_REPLACEMENT_BRITISH
 } VteCharacterReplacement;
+
+struct VteContainer {
+public:
+        VteContainer(const std::string &name, const std::string &runtime) :
+                m_name{name},
+                m_runtime{runtime}
+        {
+        }
+
+        std::string m_name;
+        std::string m_runtime;
+};
 
 typedef struct _VtePaletteColor {
 	struct {
@@ -554,6 +567,10 @@ public:
         gboolean m_adjustment_value_changed_pending;
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
+
+        bool m_containers_popped{false};
+        bool m_containers_pushed{false};
+        std::stack<VteContainer> m_containers;
 
         std::string m_window_title{};
         std::string m_current_directory_uri{};
@@ -1286,6 +1303,9 @@ public:
                              int osc) noexcept;
 
         /* OSC handlers */
+        void handle_urxvt_extension(vte::parser::Sequence const& seq,
+                                    vte::parser::StringTokeniser::const_iterator& token,
+                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
         void set_color(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,
                        vte::parser::StringTokeniser::const_iterator const& endtoken,

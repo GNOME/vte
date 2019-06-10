@@ -10156,6 +10156,26 @@ Terminal::emit_pending_signals()
                 m_window_title_changed = false;
 	}
 
+        if (m_containers_popped) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `current-container-popped'.\n");
+
+                g_signal_emit(object, signals[SIGNAL_CURRENT_CONTAINER_POPPED], 0);
+                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_CONTAINER_NAME]);
+                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_CONTAINER_RUNTIME]);
+                m_containers_popped = false;
+        }
+
+        if (m_containers_pushed) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Emitting `current-container-pushed'.\n");
+
+                g_signal_emit(object, signals[SIGNAL_CURRENT_CONTAINER_PUSHED], 0);
+                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_CONTAINER_NAME]);
+                g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_CONTAINER_RUNTIME]);
+                m_containers_pushed = false;
+        }
+
 	if (m_current_directory_uri_changed) {
                 if (m_current_directory_uri != m_current_directory_uri_pending) {
                         m_current_directory_uri.swap(m_current_directory_uri_pending);

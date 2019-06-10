@@ -478,6 +478,12 @@ vte_terminal_get_property (GObject *object,
                 case PROP_CURSOR_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
                         break;
+                case PROP_CURRENT_CONTAINER_NAME:
+                        g_value_set_string (value, vte_terminal_get_current_container_name (terminal));
+                        break;
+                case PROP_CURRENT_CONTAINER_RUNTIME:
+                        g_value_set_string (value, vte_terminal_get_current_container_runtime (terminal));
+                        break;
                 case PROP_CURRENT_DIRECTORY_URI:
                         g_value_set_string (value, vte_terminal_get_current_directory_uri (terminal));
                         break;
@@ -843,6 +849,50 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              g_cclosure_marshal_VOID__VOID,
                              G_TYPE_NONE, 0);
         g_signal_set_va_marshaller(signals[SIGNAL_ICON_TITLE_CHANGED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
+
+        /**
+         * VteTerminal::current-container-popped:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted when leaving the current container being used
+         * inside the terminal. There must have been a matching
+         * #VteTerminal::current-container-pushed signal when this
+         * container was entered.
+         */
+        signals[SIGNAL_CURRENT_CONTAINER_POPPED] =
+                g_signal_new(I_("current-container-popped"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, current_container_popped),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_CURRENT_CONTAINER_POPPED],
+                                   G_OBJECT_CLASS_TYPE(klass),
+                                   g_cclosure_marshal_VOID__VOIDv);
+
+        /**
+         * VteTerminal::current-container-pushed:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted when spawning a child process inside a new
+         * container. There should be a matching
+         * #VteTerminal::current-container-popped signal when this
+         * process exits.
+         */
+        signals[SIGNAL_CURRENT_CONTAINER_PUSHED] =
+                g_signal_new(I_("current-container-pushed"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, current_container_pushed),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
+        g_signal_set_va_marshaller(signals[SIGNAL_CURRENT_CONTAINER_PUSHED],
                                    G_OBJECT_CLASS_TYPE(klass),
                                    g_cclosure_marshal_VOID__VOIDv);
 
@@ -1695,6 +1745,27 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_WINDOW_TITLE] =
                 g_param_spec_string ("window-title", NULL, NULL,
+                                     NULL,
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:current-container-name:
+         *
+         * The name of the current container, or %NULL if unset.
+         */
+        pspecs[PROP_CURRENT_CONTAINER_NAME] =
+                g_param_spec_string ("current-container-name", NULL, NULL,
+                                     NULL,
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:current-container-runtime:
+         *
+         * The name of the runtime toolset used to set up the current
+         * container, or %NULL if unset.
+         */
+        pspecs[PROP_CURRENT_CONTAINER_RUNTIME] =
+                g_param_spec_string ("current-container-runtime", NULL, NULL,
                                      NULL,
                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
@@ -3571,6 +3642,44 @@ vte_terminal_get_column_count(VteTerminal *terminal)
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	return IMPL(terminal)->m_column_count;
+}
+
+/**
+ * vte_terminal_get_current_container_name:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable) (transfer none): the name of the current
+ *   container, or %NULL
+ */
+const char *
+vte_terminal_get_current_container_name(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        auto impl = IMPL(terminal);
+        if (impl->m_containers.empty())
+                return NULL;
+
+        const VteContainer &container = impl->m_containers.top();
+        return container.m_name.c_str();
+}
+
+/**
+ * vte_terminal_get_current_container_runtime:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable) (transfer none): the name of the runtime
+ *   toolset used to set up the current container, or %NULL
+ */
+const char *
+vte_terminal_get_current_container_runtime(VteTerminal *terminal)
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        auto impl = IMPL(terminal);
+        if (impl->m_containers.empty())
+                return NULL;
+
+        const VteContainer &container = impl->m_containers.top();
+        return container.m_runtime.c_str();
 }
 
 /**
