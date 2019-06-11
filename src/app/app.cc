@@ -1621,6 +1621,24 @@ window_clipboard_owner_change_cb(GtkClipboard* clipboard,
 }
 
 static void
+window_container_popped_cb (VteTerminal *terminal,
+                            gpointer user_data)
+{
+        const char *name = vte_terminal_get_current_container_name (terminal);
+        const char *runtime = vte_terminal_get_current_container_runtime (terminal);
+        g_print ("[container] popped: %s, %s\n", name, runtime);
+}
+
+static void
+window_container_pushed_cb (VteTerminal *terminal,
+                            gpointer user_data)
+{
+        const char *name = vte_terminal_get_current_container_name (terminal);
+        const char *runtime = vte_terminal_get_current_container_runtime (terminal);
+        g_print ("[container] pushed: %s, %s\n", name, runtime);
+}
+
+static void
 window_decrease_font_size_cb(VteTerminal* terminal,
                              VteappWindow* window)
 {
@@ -1884,6 +1902,14 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "button-press-event", G_CALLBACK(window_button_press_cb), window);
         g_signal_connect(window->terminal, "char-size-changed", G_CALLBACK(window_cell_size_changed_cb), window);
         g_signal_connect(window->terminal, "child-exited", G_CALLBACK(window_child_exited_cb), window);
+        g_signal_connect(window->terminal,
+                         "current-container-popped",
+                         G_CALLBACK(window_container_popped_cb),
+                         window);
+        g_signal_connect(window->terminal,
+                         "current-container-pushed",
+                         G_CALLBACK(window_container_pushed_cb),
+                         window);
         g_signal_connect(window->terminal, "decrease-font-size", G_CALLBACK(window_decrease_font_size_cb), window);
         g_signal_connect(window->terminal, "deiconify-window", G_CALLBACK(window_deiconify_window_cb), window);
         g_signal_connect(window->terminal, "icon-title-changed", G_CALLBACK(window_icon_title_changed_cb), window);

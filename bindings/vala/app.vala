@@ -291,6 +291,8 @@ class Window : Gtk.ApplicationWindow
     terminal.button_press_event.connect(button_press_event_cb);
     terminal.char_size_changed.connect(char_size_changed_cb);
     terminal.child_exited.connect(child_exited_cb);
+    terminal.current_container_popped.connect(container_popped_cb);
+    terminal.current_container_pushed.connect(container_pushed_cb);
     terminal.decrease_font_size.connect(decrease_font_size_cb);
     terminal.deiconify_window.connect(deiconify_window_cb);
     terminal.icon_title_changed.connect(icon_title_changed_cb);
@@ -682,6 +684,20 @@ class Window : Gtk.ApplicationWindow
   private void clipboard_owner_change_cb(Gtk.Clipboard clipboard, Gdk.Event event)
   {
     update_paste_sensitivity();
+  }
+
+  private void container_popped_cb(Vte.Terminal terminal)
+  {
+    var name = terminal.get_current_container_name();
+    var runtime = terminal.get_current_container_runtime();
+    print("[container] popped: %s, %s\n", name, runtime);
+  }
+
+  private void container_pushed_cb(Vte.Terminal terminal)
+  {
+    var name = terminal.get_current_container_name();
+    var runtime = terminal.get_current_container_runtime();
+    print("[container] pushed: %s, %s\n", name, runtime);
   }
 
   private void decrease_font_size_cb(Vte.Terminal terminal)
