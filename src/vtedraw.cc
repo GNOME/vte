@@ -1493,7 +1493,9 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
                 _vte_draw_get_char_edges(draw, c, requests[i].columns, style, &x, NULL);
                 x += requests[i].x;
-                y = requests[i].y + draw->char_spacing.top + font->ascent;
+                /* Bold/italic versions might have different ascents. In order to align their
+                 * baselines, we offset by the normal font's ascent here. (Bug 137.) */
+                y = requests[i].y + draw->char_spacing.top + draw->fonts[VTE_DRAW_NORMAL]->ascent;
 
                 if (_vte_draw_unichar_is_local_graphic(c)) {
                         _vte_draw_terminal_draw_graphic(draw, c, color,
