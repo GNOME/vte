@@ -1655,6 +1655,7 @@ Terminal::ACK(vte::parser::Sequence const& seq)
          * ACK - acknowledge
          *
          * References: ECMA-48 § 8.3.1
+         *             ECMA-16 § 3.1.6
          */
 
         m_bell_pending = true;
@@ -4967,7 +4968,8 @@ Terminal::DLE(vte::parser::Sequence const& seq)
          * Supplementary transmission control functions.
          *
          * References: ECMA-48 § 8.3.33
-         *             ISO 1745
+         *             ECMA-16 § 3.1.7
+         *             ECMA-37
          *
          * Not worth implementing.
          */
@@ -5450,7 +5452,7 @@ Terminal::ENQ(vte::parser::Sequence const& seq)
          * Transmit the answerback-string. If none is set, do nothing.
          *
          * References: ECMA-48 § 8.3.44
-         *             ISO 1745
+         *             ECMA-16 § 3.1.5
          */
 
         /* No-op for security reasons */
@@ -5463,7 +5465,7 @@ Terminal::EOT(vte::parser::Sequence const& seq)
          * EOT - end of transmission
          *
          * References: ECMA-48 § 8.3.45
-         *             ISO 1745
+         *             ECMA-16 § 3.1.4
          *
          * Not worth implementing.
          */
@@ -5506,7 +5508,7 @@ Terminal::ETB(vte::parser::Sequence const& seq)
          * ETB - end of transmission block
          *
          * References: ECMA-48 § 8.3.49
-         *             ISO 1745
+         *             ECMA-16 § 3.1.10
          *
          * Not worth implementing.
          */
@@ -5519,7 +5521,7 @@ Terminal::ETX(vte::parser::Sequence const& seq)
          * ETX - end of text
          *
          * References: ECMA-48 § 8.3.49
-         *             ISO 1745
+         *             ECMA-16 § 3.1.3
          *
          * Not worth implementing.
          */
@@ -6239,7 +6241,7 @@ Terminal::NAK(vte::parser::Sequence const& seq)
          * NAK - negative acknowledge
          *
          * References: ECMA-48 § 8.3.84
-         *             ISO 1745
+         *             ECMA-16 § 3.1.8
          *
          * Not worth implementing.
          */
@@ -7309,6 +7311,7 @@ Terminal::SOH(vte::parser::Sequence const& seq)
          * SOH - start of heading
          *
          * References: ECMA-48 § 8.3.127
+         *             ECMA-16 § 3.1.1
          */
 }
 
@@ -7616,7 +7619,7 @@ Terminal::STX(vte::parser::Sequence const& seq)
          * STX - start of text
          *
          * References: ECMA-48 § 8.3.146
-         *             ISO 1745
+         *             ECMA-16 § 3.1.2
          *
          * Not worth implementing.
          */
@@ -7696,7 +7699,7 @@ Terminal::SYN(vte::parser::Sequence const& seq)
          * SYN - synchronous idle
          *
          * References: ECMA-48 § 8.3.150
-         *             ISO 1745
+         *             ECMA-16 § 3.1.9
          *
          * Not worth implementing.
          */
