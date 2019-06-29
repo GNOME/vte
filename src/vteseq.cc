@@ -891,12 +891,18 @@ Terminal::delete_character()
 		g_assert(rowdata != NULL);
                 col = m_screen->cursor.col;
 		len = _vte_row_data_length (rowdata);
+
+                bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
+                if (not_default_bg) {
+                        _vte_row_data_fill(rowdata, &basic_cell, m_column_count);
+                        len = m_column_count;
+                }
+
 		/* Remove the column. */
 		if (col < len) {
                         /* Clean up Tab/CJK fragments. */
                         cleanup_fragments(col, col + 1);
 			_vte_row_data_remove (rowdata, col);
-                        bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
                         if (not_default_bg) {
                                 _vte_row_data_fill(rowdata, &m_color_defaults, m_column_count);
@@ -947,6 +953,7 @@ Terminal::erase_characters(long count)
                 cleanup_fragments(m_screen->cursor.col, m_screen->cursor.col + count);
 		/* Write over the characters.  (If there aren't enough, we'll
 		 * need to create them.) */
+                _vte_row_data_fill (rowdata, &basic_cell, m_screen->cursor.col);
 		for (i = 0; i < count; i++) {
                         col = m_screen->cursor.col + i;
 			if (col >= 0) {

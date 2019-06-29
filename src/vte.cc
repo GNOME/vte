@@ -2943,14 +2943,13 @@ Terminal::insert_char(gunichar c,
 	if (insert) {
                 cleanup_fragments(col, col);
 		for (i = 0; i < columns; i++)
-                        _vte_row_data_insert (row, col + i, &m_color_defaults);
+                        _vte_row_data_insert (row, col + i, &basic_cell);
 	} else {
                 cleanup_fragments(col, col + columns);
 		_vte_row_data_fill (row, &basic_cell, col + columns);
 	}
 
         attr = m_defaults.attr;
-        attr.copy_colors(m_color_defaults.attr);
 	attr.set_columns(columns);
 
 	{
