@@ -136,16 +136,16 @@ Terminal::ring_insert(vte::grid::row_t position,
 {
 	VteRowData *row;
 	VteRing *ring = m_screen->row_data;
-        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+        bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
 		row = _vte_ring_append (ring);
                 if (not_default_bg)
-                        _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
+                        _vte_row_data_fill (row, &m_color_defaults, m_column_count);
 	}
 	row = _vte_ring_insert (ring, position);
         if (fill && not_default_bg)
-                _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
+                _vte_row_data_fill (row, &m_color_defaults, m_column_count);
 	return row;
 }
 
@@ -168,7 +168,7 @@ void
 Terminal::reset_default_attributes(bool reset_hyperlink)
 {
         auto const hyperlink_idx_save = m_defaults.attr.hyperlink_idx;
-        m_defaults = m_color_defaults = m_fill_defaults = basic_cell;
+        m_defaults = m_color_defaults = basic_cell;
         if (!reset_hyperlink)
                 m_defaults.attr.hyperlink_idx = hyperlink_idx_save;
 }
@@ -2714,11 +2714,11 @@ Terminal::cursor_down(bool explicit_sequence)
                  * only fill the new row with the background color if scrolling
                  * happens due to an explicit escape sequence, not due to autowrapping.
                  * See bug 754596 for details. */
-                bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+                bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
                 if (explicit_sequence && not_default_bg) {
 			VteRowData *rowdata = ensure_row();
-                        _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
+                        _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
 		}
 	} else {
 		/* Otherwise, just move the cursor down. */
@@ -2755,7 +2755,6 @@ Terminal::restore_cursor(VteScreen *screen__)
 
         m_defaults = screen__->saved.defaults;
         m_color_defaults = screen__->saved.color_defaults;
-        m_fill_defaults = screen__->saved.fill_defaults;
         m_character_replacements[0] = screen__->saved.character_replacements[0];
         m_character_replacements[1] = screen__->saved.character_replacements[1];
         m_character_replacement = screen__->saved.character_replacement;
@@ -2775,7 +2774,6 @@ Terminal::save_cursor(VteScreen *screen__)
 
         screen__->saved.defaults = m_defaults;
         screen__->saved.color_defaults = m_color_defaults;
-        screen__->saved.fill_defaults = m_fill_defaults;
         screen__->saved.character_replacements[0] = m_character_replacements[0];
         screen__->saved.character_replacements[1] = m_character_replacements[1];
         screen__->saved.character_replacement = m_character_replacement;
@@ -8719,7 +8717,7 @@ Terminal::translate_pango_cells(PangoAttrList *attrs,
 	guint i;
 
 	for (i = 0; i < n_cells; i++) {
-                cells[i] = m_fill_defaults;
+                cells[i] = m_color_defaults;
 	}
 
 	attriter = pango_attr_list_get_iterator(attrs);

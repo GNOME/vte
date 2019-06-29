@@ -313,7 +313,7 @@ Terminal::clear_current_line()
 		/* Remove it. */
 		_vte_row_data_shrink (rowdata, 0);
 		/* Add enough cells to the end of the line to fill out the row. */
-                _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
+                _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
                 invalidate_row(m_screen->cursor.row);
@@ -337,7 +337,7 @@ Terminal::clear_above_current()
 			/* Remove it. */
 			_vte_row_data_shrink (rowdata, 0);
 			/* Add new cells until we fill the row. */
-                        _vte_row_data_fill (rowdata, &m_fill_defaults, m_column_count);
+                        _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
 			rowdata->attr.soft_wrapped = 0;
 			/* Repaint the row. */
                         invalidate_row(i);
@@ -715,7 +715,7 @@ Terminal::clear_below_current()
 			_vte_row_data_shrink (rowdata, 0);
 	}
 	/* Now fill the cleared areas. */
-        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+        bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
         for (i = m_screen->cursor.row;
 	     i < m_screen->insert_delta + m_row_count;
@@ -729,7 +729,7 @@ Terminal::clear_below_current()
 		}
 		/* Pad out the row. */
                 if (not_default_bg) {
-                        _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
+                        _vte_row_data_fill(rowdata, &m_color_defaults, m_column_count);
 		}
 		rowdata->attr.soft_wrapped = 0;
 		/* Repaint this row. */
@@ -764,11 +764,11 @@ Terminal::clear_to_eol()
 		/* We've modified the display.  Make a note of it. */
 		m_text_deleted_flag = TRUE;
 	}
-        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+        bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
         if (not_default_bg) {
 		/* Add enough cells to fill out the row. */
-                _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
+                _vte_row_data_fill(rowdata, &m_color_defaults, m_column_count);
 	}
 	rowdata->attr.soft_wrapped = 0;
 	/* Repaint this row. */
@@ -896,10 +896,10 @@ Terminal::delete_character()
                         /* Clean up Tab/CJK fragments. */
                         cleanup_fragments(col, col + 1);
 			_vte_row_data_remove (rowdata, col);
-                        bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
+                        bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
 
                         if (not_default_bg) {
-                                _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
+                                _vte_row_data_fill(rowdata, &m_color_defaults, m_column_count);
                                 len = m_column_count;
 			}
                         rowdata->attr.soft_wrapped = 0;
@@ -7162,7 +7162,6 @@ Terminal::SGR(vte::parser::Sequence const& seq)
 
 	/* Save the new colors. */
         m_color_defaults.attr.copy_colors(m_defaults.attr);
-        m_fill_defaults.attr.copy_colors(m_defaults.attr);
 }
 
 void

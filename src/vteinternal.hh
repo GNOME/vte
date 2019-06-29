@@ -163,7 +163,6 @@ public:
                 bool origin_mode;
                 VteCell defaults;
                 VteCell color_defaults;
-                VteCell fill_defaults;
                 VteCharacterReplacement character_replacements[2];
                 VteCharacterReplacement *character_replacement;
         } saved;
@@ -369,16 +368,13 @@ public:
         VteScreen m_alternate_screen;
         VteScreen *m_screen; /* points to either m_normal_screen or m_alternate_screen */
 
-        VteCell m_defaults;       /* default characteristics
-                                     for insertion of any new
-                                     characters */
-        VteCell m_color_defaults; /* original defaults
-                                     plus the current
-                                     fore/back */
-        VteCell m_fill_defaults;  /* original defaults
-                                     plus the current
-                                     fore/back with no
-                                     character data */
+        VteCell m_defaults;        /* Default characteristics for insertion of new characters:
+                                      colors (fore, back, deco) and other attributes (bold, italic,
+                                      explicit hyperlink etc.). */
+        VteCell m_color_defaults;  /* Default characteristics for erasing characters:
+                                      colors (fore, back, deco) but no other attributes,
+                                      and the U+0000 character that denotes erased cells. */
+
         VteCharacterReplacement m_character_replacements[2];  /* charsets in the G0 and G1 slots */
         VteCharacterReplacement *m_character_replacement;     /* pointer to the active one */
 
