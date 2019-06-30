@@ -36,6 +36,7 @@
 
 #include <vte/vte.h>
 #include "vteinternal.hh"
+#include "bidi.hh"
 #include "buffer.h"
 #include "debug.h"
 #include "vtedraw.hh"
@@ -1644,7 +1645,20 @@ Terminal::grid_coords_from_view_coords(vte::view::coords const& pos) const
 
         vte::grid::row_t row = pixel_to_row(pos.y);
 
+        /* BiDi: convert to logical column. */
+        vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(confine_grid_row(row));
+        col = bidirow->vis2log(col);
+
         return vte::grid::coords(row, col);
+}
+
+vte::grid::row_t
+Terminal::confine_grid_row(vte::grid::row_t const& row) const
+{
+        auto first_row = first_displayed_row();
+        auto last_row = last_displayed_row();
+
+        return std::clamp(row, first_row, last_row);
 }
 
 /*
@@ -1708,15 +1722,18 @@ Terminal::confine_grid_coords(vte::grid::coords const& rowcol) const
 
 /*
  * Track mouse click and drag positions (the "origin" and "last" coordinates) with half cell accuracy,
- * that is, know whether the event occurred over the left or right half of the cell.
+ * that is, know whether the event occurred over the left/start or right/end half of the cell.
  * This is required because some selection modes care about the cell over which the event occurred,
  * while some care about the closest boundary between cells.
  *
  * Storing the actual view coordinates would become problematic when the font size changes (bug 756058),
  * and would cause too much work when the mouse moves within the half cell.
  *
- * Left margin or anything further to the left is denoted by column -1's right half,
- * right margin or anything further to the right is denoted by column m_column_count's left half.
+ * Left/start margin or anything further to the left/start is denoted by column -1's right half,
+ * right/end margin or anything further to the right/end is denoted by column m_column_count's left half.
+ *
+ * BiDi: returns logical position (start or end) for normal selection modes, visual position (left or
+ * right) for block mode.
  */
 vte::grid::halfcoords
 Terminal::selection_grid_halfcoords_from_view_coords(vte::view::coords const& pos) const
@@ -1725,20 +1742,30 @@ Terminal::selection_grid_halfcoords_from_view_coords(vte::view::coords const& po
         g_assert(m_ringview.is_updated());
 
         vte::grid::row_t row = pixel_to_row(pos.y);
-        vte::grid::halfcolumn_t halfcolumn;
+        vte::grid::column_t col;
+        vte::grid::half_t half;
 
         if (pos.x < 0) {
-                halfcolumn.set_column(-1);
-                halfcolumn.set_half(1);
+                col = -1;
+                half = 1;
         } else if (pos.x >= m_column_count * m_cell_width) {
-                halfcolumn.set_column(m_column_count);
-                halfcolumn.set_half(0);
+                col = m_column_count;
+                half = 0;
         } else {
-                halfcolumn.set_column(pos.x / m_cell_width);
-                halfcolumn.set_half((pos.x * 2 / m_cell_width) % 2);
+                col = pos.x / m_cell_width;
+                half = (pos.x * 2 / m_cell_width) % 2;
         }
 
-        return { row, halfcolumn };
+        if (!m_selection_block_mode) {
+                /* BiDi: convert from visual to logical half column. */
+                vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(confine_grid_row(row));
+
+                if (bidirow->vis_is_rtl(col))
+                        half = 1 - half;
+                col = bidirow->vis2log(col);
+        }
+
+        return { row, vte::grid::halfcolumn_t(col, half) };
 }
 
 /*
@@ -5336,7 +5363,7 @@ Terminal::line_is_wrappable(vte::grid::row_t row) const
  * In block mode, similarly to char mode, we care about vertical character boundary. (This is somewhat
  * debatable, as results in asymmetrical behavior along the two axes: a rectangle can disappear by
  * becoming zero wide, but not zero high.) We cannot take care of CJKs at the endpoints now because CJKs
- * can cross the boundary in any included row. Taking care of them needs to go to cell_is_selected().
+ * can cross the boundary in any included row. Taking care of them needs to go to cell_is_selected_*().
  * We don't care about used vs. unused cells either. The event coordinate is simply rounded to the
  * nearest vertical cell boundary.
  */
@@ -5636,27 +5663,45 @@ Terminal::modify_selection (vte::view::coords const& pos)
         resolve_selection();
 }
 
-/* Check if a cell is selected or not. */
+/* Check if a cell is selected or not. BiDi: the coordinate is logical. */
 bool
-Terminal::cell_is_selected(vte::grid::column_t col,
-                                     vte::grid::row_t row) const
+Terminal::cell_is_selected_log(vte::grid::column_t lcol,
+                               vte::grid::row_t row) const
 {
         /* Our caller had to update the ringview (we can't do because we're const). */
         g_assert(m_ringview.is_updated());
 
         if (m_selection_block_mode) {
                 /* In block mode, make sure CJKs and TABs aren't cut in half. */
-                while (col > 0) {
-                        VteCell const* cell = find_charcell(col, row);
+                while (lcol > 0) {
+                        VteCell const* cell = find_charcell(lcol, row);
                         if (!cell || !cell->attr.fragment())
                                 break;
-                        col--;
+                        lcol--;
                 }
-                return m_selection_resolved.box_contains ({ row, col });
+                /* Convert to visual. */
+                vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(row);
+                vte::grid::column_t vcol = bidirow->log2vis(lcol);
+                return m_selection_resolved.box_contains ({ row, vcol });
         } else {
                 /* In normal modes, resolve_selection() made sure to generate such boundaries for m_selection_resolved. */
-                return m_selection_resolved.contains ({ row, col });
+                return m_selection_resolved.contains ({ row, lcol });
         }
+}
+
+/* Check if a cell is selected or not. BiDi: the coordinate is visual. */
+bool
+Terminal::cell_is_selected_vis(vte::grid::column_t vcol,
+                               vte::grid::row_t row) const
+{
+        /* Our caller had to update the ringview (we can't do because we're const). */
+        g_assert(m_ringview.is_updated());
+
+        /* Convert to logical column. */
+        vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(row);
+        vte::grid::column_t lcol = bidirow->vis2log(vcol);
+
+        return cell_is_selected_log(lcol, row);
 }
 
 void
@@ -6124,6 +6169,10 @@ Terminal::match_hilite_update()
         glong col = pos.x / m_cell_width;
         glong row = pixel_to_row(pos.y);
 
+        /* BiDi: convert to logical column. */
+        vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(confine_grid_row(row));
+        col = bidirow->vis2log(col);
+
 	_vte_debug_print(VTE_DEBUG_EVENTS,
                          "Match hilite update (%ld, %ld) -> %ld, %ld\n",
                          pos.x, pos.y, col, row);
@@ -6328,6 +6377,9 @@ Terminal::get_text(vte::grid::row_t start_row,
 	GString *string;
 	struct _VteCharAttributes attr;
 	vte::color::rgb fore, back;
+        std::unique_ptr<vte::base::RingView> ringview;
+        vte::base::BidiRow const *bidirow = nullptr;
+        vte::grid::column_t vcol;
 
 	if (attributes)
 		g_array_set_size (attributes, 0);
@@ -6338,26 +6390,49 @@ Terminal::get_text(vte::grid::row_t start_row,
         if (start_col < 0)
                 start_col = 0;
 
-        vte::grid::column_t next_first_column = block ? start_col : 0;
-        vte::grid::column_t col = start_col;
+        if (m_enable_bidi && block) {
+                /* Rectangular selection operates on the visual contents, not the logical.
+                 * m_ringview corresponds to the currently onscreen bits, therefore does not
+                 * necessarily include the entire selection. Also we want m_ringview's size
+                 * to be limited, even if the user selects a giant rectangle.
+                 * So use a new ringview for the selection. */
+                ringview = std::make_unique<vte::base::RingView>();
+                ringview->set_ring(m_screen->row_data);
+                ringview->set_rows(start_row, end_row - start_row + 1);
+                ringview->set_width(m_column_count);
+                ringview->update();
+        }
+
+        vte::grid::column_t lcol = block ? 0 : start_col;
         vte::grid::row_t row;
-	for (row = start_row; row < end_row + 1; row++, col = next_first_column) {
+        for (row = start_row; row < end_row + 1; row++, lcol = 0) {
 		VteRowData const* row_data = find_row_data(row);
                 gsize last_empty, last_nonempty;
                 vte::grid::column_t last_emptycol, last_nonemptycol;
-                vte::grid::column_t line_last_column = (block || row == end_row) ? end_col : G_MAXLONG;
+                vte::grid::column_t line_last_column = (!block && row == end_row) ? end_col : m_column_count;
 
                 last_empty = last_nonempty = string->len;
                 last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
-		attr.column = col;
+                attr.column = lcol;
 		pcell = NULL;
 		if (row_data != NULL) {
-                        while (col < line_last_column &&
-                               (pcell = _vte_row_data_get (row_data, col))) {
+                        bidirow = ringview ? ringview->get_bidirow(row) : nullptr;
+                        while (lcol < line_last_column &&
+                               (pcell = _vte_row_data_get (row_data, lcol))) {
 
-				attr.column = col;
+                                /* In block mode, we scan each row from its very beginning to its very end in logical order,
+                                 * and here filter out the characters that are visually outside of the block. */
+                                if (bidirow) {
+                                        vcol = bidirow->log2vis(lcol);
+                                        if (vcol < start_col || vcol >= end_col) {
+                                                lcol++;
+                                                continue;
+                                        }
+                                }
+
+                                attr.column = lcol;
 
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
@@ -6386,11 +6461,11 @@ Terminal::get_text(vte::grid::row_t start_row,
                                                  * but make a note of the last occurrence. */
 						g_string_append_c (string, ' ');
                                                 last_empty = string->len;
-                                                last_emptycol = col;
+                                                last_emptycol = lcol;
 					} else {
 						_vte_unistr_append_to_string (pcell->c, string);
                                                 last_nonempty = string->len;
-                                                last_nonemptycol = col;
+                                                last_nonemptycol = lcol;
 					}
 
 					/* If we added text to the string, record its
@@ -6401,7 +6476,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 					}
 				}
 
-				col++;
+                                lcol++;
 			}
 		}
 
@@ -6411,11 +6486,11 @@ Terminal::get_text(vte::grid::row_t start_row,
                  * Strip off the trailing ones, preserve the middle ones. */
                 if (last_empty > last_nonempty) {
 
-                        col = last_emptycol + 1;
+                        lcol = last_emptycol + 1;
 
                         if (row_data != NULL) {
-                                while ((pcell = _vte_row_data_get (row_data, col))) {
-                                        col++;
+                                while ((pcell = _vte_row_data_get (row_data, lcol))) {
+                                        lcol++;
 
                                         if (pcell->attr.fragment())
                                                 continue;
@@ -9096,15 +9171,17 @@ Terminal::draw_rows(VteScreen *screen_,
 {
         struct _vte_draw_text_request *items;
         vte::grid::row_t row;
-        vte::grid::column_t i, j, col;
+        vte::grid::column_t i, j, lcol, vcol;
         int y;
         guint fore = VTE_DEFAULT_FG, nfore, back = VTE_DEFAULT_BG, nback, deco = VTE_DEFAULT_FG, ndeco;
         gboolean hyperlink = FALSE, nhyperlink, hilite = FALSE, nhilite;
         gboolean selected;
+        gboolean nrtl = FALSE, rtl;  /* for debugging */
         uint32_t attr = 0, nattr;
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
+        vte::base::BidiRow const* bidirow;
 
         auto const column_count = m_column_count;
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
@@ -9132,25 +9209,53 @@ Terminal::draw_rows(VteScreen *screen_,
                         continue;
 
 		row_data = find_row_data(row);
+                bidirow = m_ringview.get_bidirow(row);
+
+                _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
+                        /* Debug: Highlight the paddings of RTL rows with a slightly different background. */
+                        if (bidirow->base_is_rtl()) {
+                                vte::color::rgb bg;
+                                rgb_from_index<8, 8, 8>(VTE_DEFAULT_BG, bg);
+                                /* Go halfway towards #C0C0C0. */
+                                bg.red   = (bg.red   + 0xC000) / 2;
+                                bg.green = (bg.green + 0xC000) / 2;
+                                bg.blue  = (bg.blue  + 0xC000) / 2;
+                                _vte_draw_fill_rectangle (m_draw,
+                                                          -m_padding.left,
+                                                          y,
+                                                          m_padding.left,
+                                                          row_height,
+                                                          &bg, VTE_DRAW_OPAQUE);
+                                _vte_draw_fill_rectangle (m_draw,
+                                                          column_count * column_width,
+                                                          y,
+                                                          rect_width - m_padding.left - column_count * column_width,
+                                                          row_height,
+                                                          &bg, VTE_DRAW_OPAQUE);
+                        }
+                }
+
                 i = j = 0;
                 /* Walk the line.
                  * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
                 do {
                         /* Get the first cell's contents. */
-                        cell = row_data ? _vte_row_data_get (row_data, i) : nullptr;
+                        cell = row_data ? _vte_row_data_get (row_data, bidirow->vis2log(i)) : nullptr;
                         /* Find the colors for this cell. */
-                        selected = cell_is_selected(i, row);
+                        selected = cell_is_selected_vis(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
+                        rtl = bidirow->vis_is_rtl(i);
 
                         while (++j < column_count) {
                                 /* Retrieve the next cell. */
-                                cell = row_data ? _vte_row_data_get (row_data, j) : nullptr;
+                                cell = row_data ? _vte_row_data_get (row_data, bidirow->vis2log(j)) : nullptr;
                                 /* Resolve attributes to colors where possible and
                                  * compare visual attributes to the first character
                                  * in this chunk. */
-                                selected = cell_is_selected(j, row);
+                                selected = cell_is_selected_vis(j, row);
                                 determine_colors(cell, selected, &nfore, &nback, &ndeco);
-                                if (nback != back) {
+                                nrtl = bidirow->vis_is_rtl(j);
+                                if (nback != back || (_vte_debug_on (VTE_DEBUG_BIDI) && nrtl != rtl)) {
                                         break;
                                 }
                         }
@@ -9164,6 +9269,45 @@ Terminal::draw_rows(VteScreen *screen_,
                                                           row_height,
                                                           &bg, VTE_DRAW_OPAQUE);
                         }
+
+                        _VTE_DEBUG_IF (VTE_DEBUG_BIDI) {
+                                /* Debug: Highlight RTL letters and RTL rows with a slightly different background. */
+                                vte::color::rgb bg;
+                                rgb_from_index<8, 8, 8>(back, bg);
+                                /* Go halfway towards #C0C0C0. */
+                                bg.red   = (bg.red   + 0xC000) / 2;
+                                bg.green = (bg.green + 0xC000) / 2;
+                                bg.blue  = (bg.blue  + 0xC000) / 2;
+                                int y1 = y + round(row_height / 8.);
+                                int y2 = y + row_height - round(row_height / 8.);
+                                /* Paint the top and bottom eighth of the cell with this more gray background
+                                 * if the paragraph has a resolved RTL base direction. */
+                                if (bidirow->base_is_rtl()) {
+                                        _vte_draw_fill_rectangle (m_draw,
+                                                                  i * column_width,
+                                                                  y,
+                                                                  (j - i) * column_width,
+                                                                  y1 - y,
+                                                                  &bg, VTE_DRAW_OPAQUE);
+                                        _vte_draw_fill_rectangle (m_draw,
+                                                                  i * column_width,
+                                                                  y2,
+                                                                  (j - i) * column_width,
+                                                                  y + row_height - y2,
+                                                                  &bg, VTE_DRAW_OPAQUE);
+                                }
+                                /* Paint the middle three quarters of the cell with this more gray background
+                                 * if the current character has a resolved RTL direction. */
+                                if (rtl) {
+                                        _vte_draw_fill_rectangle (m_draw,
+                                                                  i * column_width,
+                                                                  y1,
+                                                                  (j - i) * column_width,
+                                                                  y2 - y1,
+                                                                  &bg, VTE_DRAW_OPAQUE);
+                                }
+                        }
+
                         /* We'll need to continue at the first cell which didn't
                          * match the first one in this set. */
                         i = j;
@@ -9194,16 +9338,18 @@ Terminal::draw_rows(VteScreen *screen_,
                 /* Ensure that drawing is restricted to the cell (plus the overdraw area) */
                 _vte_draw_autoclip_t clipper{m_draw, &rect};
 
-                /* Walk the line.
+                bidirow = m_ringview.get_bidirow(row);
+
+                /* Walk the line in logical order.
                  * Locate runs of identical attributes within a row, and draw each run using a single draw_cells() call. */
                 item_count = 0;
-                for (col = 0; col < column_count; ) {
+                // FIXME No need for the "< column_count" safety cap once bug 135 is addressed.
+                for (lcol = 0; lcol < row_data->len && lcol < column_count; ) {
+                        vcol = bidirow->log2vis(lcol);
+
                         /* Get the character cell's contents. */
-                        cell = _vte_row_data_get (row_data, col);
-                        if (cell == NULL) {
-                                /* There'll be no more real cells in this row. */
-                                break;
-                        }
+                        cell = _vte_row_data_get (row_data, lcol);
+                        g_assert(cell != nullptr);
 
                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
                         if (cell->c == 0 ||
@@ -9215,17 +9361,17 @@ Terminal::draw_rows(VteScreen *screen_,
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
                                 /* Skip empty or fragment cell. */
-                                col++;
+                                lcol++;
                                 continue;
                         }
 
                         /* Find the colors for this cell. */
                         nattr = cell->attr.attr;
-                        selected = cell_is_selected(col, row);
+                        selected = cell_is_selected_log(lcol, row);
                         determine_colors(cell, selected, &nfore, &nback, &ndeco);
 
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
-                                  (!nhyperlink && m_match != nullptr && m_match_span.contains(row, col));
+                                  (!nhyperlink && m_match != nullptr && m_match_span.contains(row, lcol));
 
                         /* See if it no longer fits the run. */
                         if (item_count > 0 &&
@@ -9252,16 +9398,17 @@ Terminal::draw_rows(VteScreen *screen_,
 
                         /* Combine with subsequent spacing marks. */
                         vteunistr c = cell->c;
-                        j = col + cell->attr.columns();
-                        if (G_UNLIKELY (col == 0 && g_unichar_ismark (_vte_unistr_get_base (cell->c)))) {
+                        j = lcol + cell->attr.columns();
+                        if (G_UNLIKELY (lcol == 0 && g_unichar_ismark (_vte_unistr_get_base (cell->c)))) {
                                 /* A rare special case: the first cell contains a spacing mark.
                                  * Place on top of a NBSP, along with additional spacing marks if any,
                                  * and display beginning at offscreen column -1.
                                  * Additional spacing marks, if any, will be combined by the loop below. */
                                 c = _vte_unistr_append_unistr (0x00A0, cell->c);
-                                col = -1;
+                                lcol = -1;
                         }
-                        while (j < m_column_count) {
+                        // FIXME No need for the "< column_count" safety cap once bug 135 is addressed.
+                        while (j < row_data->len && j < column_count) {
                                 /* Combine with subsequent spacing marks. */
                                 cell = _vte_row_data_get (row_data, j);
                                 if (cell && !cell->attr.fragment() && g_unichar_ismark (_vte_unistr_get_base (cell->c))) {
@@ -9280,14 +9427,16 @@ Terminal::draw_rows(VteScreen *screen_,
                         hilite = nhilite;
 
                         g_assert_cmpint (item_count, <, column_count);
-                        items[item_count].c = c;
-                        items[item_count].columns = j - col;
-                        items[item_count].x = col * column_width;
+                        items[item_count].c = bidirow->vis_get_shaped_char(vcol, c);
+                        items[item_count].columns = j - lcol;
+                        items[item_count].x = (vcol - (bidirow->vis_is_rtl(vcol) ? items[item_count].columns - 1 : 0)) * column_width;
                         items[item_count].y = y;
+                        items[item_count].mirror = bidirow->vis_is_rtl(vcol);
+                        items[item_count].box_mirror = !!(row_data->attr.bidi_flags & VTE_BIDI_FLAG_BOX_MIRROR);
                         item_count++;
 
-                        g_assert_cmpint (j, >, col);
-                        col = j;
+                        g_assert_cmpint (j, >, lcol);
+                        lcol = j;
                 }
 
                 /* Draw the last run of cells in the row. */
@@ -9306,7 +9455,7 @@ Terminal::paint_cursor()
 {
 	struct _vte_draw_text_request item;
         vte::grid::row_t drow;
-        vte::grid::column_t col;
+        vte::grid::column_t lcol, vcol;
         int width, height, cursor_width;
         guint style = 0;
         guint fore, back, deco;
@@ -9327,14 +9476,14 @@ Terminal::paint_cursor()
 	if (focus && !blink)
 		return;
 
-        col = m_screen->cursor.col;
+        lcol = m_screen->cursor.col;
         drow = m_screen->cursor.row;
 	width = m_cell_width;
 	height = m_cell_height;
 
         if (!cursor_is_onscreen())
                 return;
-	if (CLAMP(col, 0, m_column_count - 1) != col)
+        if (CLAMP(lcol, 0, m_column_count - 1) != lcol)
 		return;
 
         /* Need to ensure the ringview is updated. */
@@ -9342,22 +9491,28 @@ Terminal::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-	auto cell = find_charcell(col, drow);
-        while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
-		col--;
-		cell = find_charcell(col, drow);
+        VteRowData const *row_data = find_row_data(drow);
+        vte::base::BidiRow const *bidirow = m_ringview.get_bidirow(drow);
+
+        auto cell = find_charcell(lcol, drow);
+        while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && lcol > 0) {
+                lcol--;
+                cell = find_charcell(lcol, drow);
 	}
 
 	/* Draw the cursor. */
-	item.c = (cell && cell->c) ? cell->c : ' ';
+        vcol = bidirow->log2vis(lcol);
+        item.c = (cell && cell->c) ? bidirow->vis_get_shaped_char(vcol, cell->c) : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-	item.x = col * width;
+        item.x = (vcol - ((cell && bidirow->vis_is_rtl(vcol)) ? cell->attr.columns() - 1 : 0)) * width;
 	item.y = row_to_pixel(drow);
+        item.mirror = bidirow->vis_is_rtl(vcol);
+        item.box_mirror = (row_data && (row_data->attr.bidi_flags & VTE_BIDI_FLAG_BOX_MIRROR));
 	if (cell && cell->c != 0) {
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
 	}
 
-	selected = cell_is_selected(col, drow);
+        selected = cell_is_selected_log(lcol, drow);
         determine_cursor_colors(cell, selected, &fore, &back, &deco);
         rgb_from_index<8, 8, 8>(back, bg);
 
@@ -9378,6 +9533,10 @@ Terminal::paint_cursor()
 
                         stem_width = (int) (((float) (m_char_ascent + m_char_descent)) * m_cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, m_cell_width);
+
+                        /* The I-beam goes to the right edge of the cell if its character has RTL resolved direction. */
+                        if (bidirow->vis_is_rtl(vcol))
+                                x += item.columns * m_cell_width - stem_width;
 
                         _vte_draw_fill_rectangle(m_draw,
                                                  x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
@@ -9464,7 +9623,8 @@ Terminal::paint_cursor()
 void
 Terminal::paint_im_preedit_string()
 {
-	int col, columns;
+        int vcol, columns;
+        long row;
 	long width, height;
 	int i, len;
 
@@ -9473,6 +9633,12 @@ Terminal::paint_im_preedit_string()
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
+
+        /* Get the row's BiDi information. */
+        row = m_screen->cursor.row;
+        if (row < first_displayed_row() || row > last_displayed_row())
+                return;
+        vte::base::BidiRow const *bidirow = m_ringview.get_bidirow(row);
 
 	/* Keep local copies of rendering information. */
 	width = m_cell_width;
@@ -9484,9 +9650,9 @@ Terminal::paint_im_preedit_string()
 
 	/* If the pre-edit string won't fit on the screen if we start
 	 * drawing it at the cursor's position, move it left. */
-        col = m_screen->cursor.col;
-	if (col + columns > m_column_count) {
-		col = MAX(0, m_column_count - columns);
+        vcol = bidirow->log2vis(m_screen->cursor.col);
+        if (vcol + columns > m_column_count) {
+                vcol = MAX(0, m_column_count - columns);
 	}
 
 	/* Draw the preedit string, boxed. */
@@ -9495,19 +9661,19 @@ Terminal::paint_im_preedit_string()
 		const char *preedit = m_im_preedit.c_str();
 		int preedit_cursor;
 
-		items = g_new(struct _vte_draw_text_request, len);
+                items = g_new0(struct _vte_draw_text_request, len);
 		for (i = columns = 0; i < len; i++) {
 			items[i].c = g_utf8_get_char(preedit);
                         items[i].columns = _vte_unichar_width(items[i].c,
                                                               m_utf8_ambiguous_width);
-			items[i].x = (col + columns) * width;
+                        items[i].x = (vcol + columns) * width;
 			items[i].y = row_to_pixel(m_screen->cursor.row);
 			columns += items[i].columns;
 			preedit = g_utf8_next_char(preedit);
 		}
                 if (G_LIKELY(m_clear_background)) {
                         _vte_draw_clear(m_draw,
-                                        col * width,
+                                        vcol * width,
                                         row_to_pixel(m_screen->cursor.row),
                                         width * columns,
                                         height,
