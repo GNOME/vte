@@ -57,6 +57,7 @@ _vte_debug_init(void)
     { "hyperlink",    VTE_DEBUG_HYPERLINK    },
     { "modes",        VTE_DEBUG_MODES        },
     { "emulation",    VTE_DEBUG_EMULATION    },
+    { "bidi",         VTE_DEBUG_BIDI         },
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),

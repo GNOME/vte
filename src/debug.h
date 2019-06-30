@@ -64,6 +64,7 @@ typedef enum {
         VTE_DEBUG_HYPERLINK     = 1 << 24,
         VTE_DEBUG_MODES         = 1 << 25,
         VTE_DEBUG_EMULATION     = 1 << 26,
+        VTE_DEBUG_BIDI          = 1 << 27,
 } VteDebugFlags;
 
 void _vte_debug_init(void);

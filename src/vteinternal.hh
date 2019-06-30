@@ -86,6 +86,14 @@ enum {
         VTE_SGR_COLOR_SPEC_LEGACY = 5
 };
 
+enum {
+        VTE_BIDI_FLAG_IMPLICIT   = 1 << 0,
+        VTE_BIDI_FLAG_RTL        = 1 << 1,
+        VTE_BIDI_FLAG_AUTO       = 1 << 2,
+        VTE_BIDI_FLAG_BOX_MIRROR = 1 << 3,
+        VTE_BIDI_FLAG_ALL        = (1 << 4) - 1,
+};
+
 struct vte_regex_and_flags {
         VteRegex *regex;
         guint32 match_flags;
@@ -604,6 +612,9 @@ public:
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
         long m_hyperlink_auto_id;
 
+        /* BiDi parameters outside of ECMA and DEC private modes */
+        guint m_bidi_rtl : 1;
+
 public:
 
         // FIXMEchpe inline!
@@ -655,6 +666,10 @@ public:
         void invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid::span const& b, bool block);
         void invalidate_match_span();
         void invalidate_all();
+
+        guint8 get_bidi_flags() const noexcept;
+        void apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint8 bidi_flags_mask);
+        void maybe_apply_bidi_attributes(guint8 bidi_flags_mask);
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
