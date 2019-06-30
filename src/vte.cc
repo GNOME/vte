@@ -5369,15 +5369,6 @@ Terminal::is_same_class(vte::grid::column_t acol,
 	return false;
 }
 
-/* Check if we soft-wrapped on the given line. */
-// FIXMEchpe replace this with a method on VteRing
-bool
-Terminal::line_is_wrappable(vte::grid::row_t row) const
-{
-	VteRowData const* rowdata = find_row_data(row);
-	return rowdata && rowdata->attr.soft_wrapped;
-}
-
 /*
  * Convert the mouse click or drag location (left or right half of a cell) into a selection endpoint
  * (a boundary between characters), extending the selection according to the current mode, in the
@@ -5613,13 +5604,13 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                                 /* Back up as far as we can go. */
                                 while (row > 0 &&
                                        _vte_ring_contains (m_screen->row_data, row - 1) &&
-                                       line_is_wrappable(row - 1)) {
+                                       m_screen->row_data->is_soft_wrapped(row - 1)) {
                                         row--;
                                 }
                         } else {
                                 /* Move forward as far as we can go. */
                                 while (_vte_ring_contains (m_screen->row_data, row) &&
-                                       line_is_wrappable(row)) {
+                                       m_screen->row_data->is_soft_wrapped(row)) {
                                         row++;
                                 }
                                 row++;  /* One more row, since the column is 0. */
@@ -6566,7 +6557,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 		else if (row < end_row) {
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
-			if (!line_is_wrappable(row)) {
+                        if (!m_screen->row_data->is_soft_wrapped(row)) {
 				string = g_string_append_c(string, '\n');
 			}
 		}

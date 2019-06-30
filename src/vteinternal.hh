@@ -902,8 +902,6 @@ public:
                            vte::grid::column_t bcol,
                            vte::grid::row_t brow) const;
 
-        inline bool line_is_wrappable(vte::grid::row_t row) const;
-
         GString* get_text(vte::grid::row_t start_row,
                           vte::grid::column_t start_col,
                           vte::grid::row_t end_row,
