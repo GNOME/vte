@@ -9541,6 +9541,16 @@ Terminal::paint_cursor()
                         _vte_draw_fill_rectangle(m_draw,
                                                  x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
                                                  &bg, VTE_DRAW_OPAQUE);
+
+                        /* Show the direction of the current character if the paragraph contains a mixture
+                         * of directions.
+                         * FIXME Do this for the other cursor shapes, too. Need to find a good visual design. */
+                        if (focus && bidirow->has_foreign())
+                                _vte_draw_fill_rectangle(m_draw,
+                                                         bidirow->vis_is_rtl(vcol) ? x - stem_width : x + stem_width,
+                                                         y + m_char_padding.top,
+                                                         stem_width, stem_width,
+                                                         &bg, VTE_DRAW_OPAQUE);
 			break;
                 }
 
