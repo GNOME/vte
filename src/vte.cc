@@ -9807,6 +9807,42 @@ Terminal::set_text_blink_mode(VteTextBlinkMode setting)
 }
 
 bool
+Terminal::set_enable_bidi(bool setting)
+{
+        if (setting == m_enable_bidi)
+                return false;
+
+        m_enable_bidi = setting;
+        m_ringview.invalidate();
+        invalidate_all();
+
+        /* Chances are that we can free up some BiDi/shaping buffers that we
+         * won't need for a while. */
+        if (!setting)
+                m_ringview.pause();
+
+        return true;
+}
+
+bool
+Terminal::set_enable_shaping(bool setting)
+{
+        if (setting == m_enable_shaping)
+                return false;
+
+        m_enable_shaping = setting;
+        m_ringview.invalidate();
+        invalidate_all();
+
+        /* Chances are that we can free up some BiDi/shaping buffers that we
+         * won't need for a while. */
+        if (!setting)
+                m_ringview.pause();
+
+        return true;
+}
+
+bool
 Terminal::set_allow_bold(bool setting)
 {
         if (setting == m_allow_bold)
