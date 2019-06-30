@@ -136,3 +136,6 @@
 
 /* Max depth of title stack */
 #define VTE_WINDOW_TITLE_STACK_MAX_DEPTH (8)
+
+/* Maximum length of a paragraph, in lines, that might get proper RingView (BiDi) treatment. */
+#define VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX   500
