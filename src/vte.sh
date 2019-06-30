@@ -52,6 +52,7 @@ __vte_osc7 () {
 __vte_prompt_command() {
   local pwd='~'
   [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
+  pwd="${pwd//[[:cntrl:]]}"
   printf "\033]0;%s@%s:%s\033\\%s" "${USER}" "${HOSTNAME%%.*}" "${pwd}" "$(__vte_osc7)"
 }
 
