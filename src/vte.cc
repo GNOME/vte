@@ -2712,6 +2712,9 @@ Terminal::cursor_down(bool explicit_sequence)
         if (m_screen->cursor.row == end) {
                 if (m_scrolling_restricted) {
 			if (start == m_screen->insert_delta) {
+                                /* Set the boundary to hard wrapped where
+                                 * we're about to tear apart the contents. */
+                                set_hard_wrapped(m_screen->cursor.row);
 				/* Scroll this line into the scrollback
 				 * buffer by inserting a line at the next
 				 * line and scrolling the area up. */
@@ -2728,6 +2731,10 @@ Terminal::cursor_down(bool explicit_sequence)
 				/* Force scroll. */
 				adjust_adjustments();
 			} else {
+                                /* Set the boundaries to hard wrapped where
+                                 * we're about to tear apart the contents. */
+                                set_hard_wrapped(start - 1);
+                                set_hard_wrapped(end);
                                 /* Scroll by removing a line and inserting a new one. */
 				ring_remove(start);
 				ring_insert(end, true);
