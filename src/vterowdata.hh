@@ -80,6 +80,7 @@ void _vte_row_data_append (VteRowData *row, const VteCell *cell);
 void _vte_row_data_remove (VteRowData *row, gulong col);
 void _vte_row_data_fill (VteRowData *row, const VteCell *cell, gulong len);
 void _vte_row_data_shrink (VteRowData *row, gulong max_len);
+void _vte_row_data_copy (const VteRowData *src, VteRowData *dst);
 guint16 _vte_row_data_nonempty_length (const VteRowData *row);
 
 G_END_DECLS
