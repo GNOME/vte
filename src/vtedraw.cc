@@ -21,7 +21,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h> /* howmany() */
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -382,17 +381,31 @@ font_info_measure_font (struct font_info *info)
 {
 	PangoRectangle logical;
 
-	/* Estimate for ASCII characters. */
+        /* Measure U+0021..U+007E individually instead of all together and then
+         * averaging. For monospace fonts, the results should be the same, but
+         * if the user (by design, or trough mis-configuration) uses a proportional
+         * font, the latter method will greatly underestimate the required width,
+         * leading to unreadable, overlapping characters.
+         * https://gitlab.gnome.org/GNOME/vte/issues/138
+         */
+        int max_width{1};
+        int max_height{1};
+        for (char c = 0x21; c < 0x7f; ++c) {
+                pango_layout_set_text(info->layout, &c, 1);
+                pango_layout_get_extents (info->layout, NULL, &logical);
+                max_width = std::max(max_width, PANGO_PIXELS_CEIL(logical.width));
+                max_height = std::max(max_height, PANGO_PIXELS_CEIL(logical.height));
+        }
+
+        /* Use the sample text to get the baseline */
 	pango_layout_set_text (info->layout, VTE_DRAW_SINGLE_WIDE_CHARACTERS, -1);
 	pango_layout_get_extents (info->layout, NULL, &logical);
 	/* We don't do CEIL for width since we are averaging;
 	 * rounding is more accurate */
-	info->width  = PANGO_PIXELS (howmany (logical.width, strlen(VTE_DRAW_SINGLE_WIDE_CHARACTERS)));
-        /* Guard against pathological font since width=0 causes a FPE later on */
-	info->width = MAX (info->width, 1);
-
-	info->height = PANGO_PIXELS_CEIL (logical.height);
 	info->ascent = PANGO_PIXELS_CEIL (pango_layout_get_baseline (info->layout));
+
+        info->height = max_height;
+        info->width = max_width;
 
 	/* Now that we shaped the entire ASCII character string, cache glyph
 	 * info for them */

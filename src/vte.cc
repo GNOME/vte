@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/param.h> /* howmany() */
 #include <errno.h>
 #include <fcntl.h>
 #ifdef HAVE_SYS_TERMIOS_H
