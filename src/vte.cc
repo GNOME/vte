@@ -5121,6 +5121,52 @@ Terminal::widget_key_press(GdkEventKey *event)
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
                 if (handled == FALSE) {
+                        if (G_UNLIKELY (m_enable_bidi &&
+                                        m_modes_private.VTE_BIDI_SWAP_ARROW_KEYS() &&
+                                        (keyval == GDK_KEY_Left ||
+                                         keyval == GDK_KEY_Right ||
+                                         keyval == GDK_KEY_KP_Left ||
+                                         keyval == GDK_KEY_KP_Right))) {
+                                /* In keyboard arrow swapping mode, the left and right arrows need swapping
+                                 * if the cursor stands inside a (possibly autodetected) RTL paragraph. */
+                                ensure_row();
+                                VteRowData const *row_data = find_row_data(m_screen->cursor.row);
+                                bool rtl;
+                                if ((row_data->attr.bidi_flags & (VTE_BIDI_FLAG_IMPLICIT | VTE_BIDI_FLAG_AUTO))
+                                                              == (VTE_BIDI_FLAG_IMPLICIT | VTE_BIDI_FLAG_AUTO)) {
+                                        /* Implicit paragraph with autodetection. Need to run the BiDi algorithm
+                                         * to get the autodetected direction.
+                                         * m_ringview is for the onscreen contents and the cursor may be offscreen.
+                                         * Better leave that alone and use a temporary ringview for the cursor's row. */
+                                        vte::base::RingView ringview;
+                                        ringview.set_ring(m_screen->row_data);
+                                        ringview.set_rows(m_screen->cursor.row, 1);
+                                        ringview.set_width(m_column_count);
+                                        ringview.update();
+                                        rtl = ringview.get_bidirow(m_screen->cursor.row)->base_is_rtl();
+                                } else {
+                                        /* Not an implicit paragraph with autodetection, no autodetection
+                                         * is required. Take the direction straight from the stored data. */
+                                        rtl = !!(row_data->attr.bidi_flags & VTE_BIDI_FLAG_RTL);
+                                }
+                                if (rtl) {
+                                        switch (keyval) {
+                                        case GDK_KEY_Left:
+                                                keyval = GDK_KEY_Right;
+                                                break;
+                                        case GDK_KEY_Right:
+                                                keyval = GDK_KEY_Left;
+                                                break;
+                                        case GDK_KEY_KP_Left:
+                                                keyval = GDK_KEY_KP_Right;
+                                                break;
+                                        case GDK_KEY_KP_Right:
+                                                keyval = GDK_KEY_KP_Left;
+                                                break;
+                                        }
+                                }
+                        }
+
 			_vte_keymap_map(keyval, m_modifiers,
                                         m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
                                         m_modes_private.DEC_APPLICATION_KEYPAD(),
