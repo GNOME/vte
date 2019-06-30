@@ -2533,6 +2533,8 @@ vte_terminal_unselect_all(VteTerminal *terminal)
  *
  * Reads the location of the insertion cursor and returns it.  The row
  * coordinate is absolute.
+ *
+ * This method is unaware of BiDi. The returned column is logical column.
  */
 void
 vte_terminal_get_cursor_position(VteTerminal *terminal,
@@ -2975,6 +2977,9 @@ warn_if_callback(VteSelectionFunc func)
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
  *
+ * This method is unaware of BiDi. The columns returned in @attributes are
+ * logical columns.
+ *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
 char *
@@ -3004,6 +3009,9 @@ vte_terminal_get_text(VteTerminal *terminal,
  * passed the column and row, respectively.  A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.
+ *
+ * This method is unaware of BiDi. The columns returned in @attributes are
+ * logical columns.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  *
@@ -3036,6 +3044,9 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * the character's position, colors, and other characteristics.  The
  * entire scrollback buffer is scanned, so it is possible to read the entire
  * contents of the buffer using this function.
+ *
+ * This method is unaware of BiDi. The columns passed in @start_col and @end_row,
+ * and returned in @attributes are logical columns.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  */
