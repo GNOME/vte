@@ -56,6 +56,8 @@ utf8_sources = files(
 
 libvte_common_sources = debug_sources + modes_sources + parser_sources + utf8_sources + files(
   'attr.hh',
+  'bidi.cc',
+  'bidi.hh',
   'buffer.h',
   'caps.hh',
   'cell.hh',
@@ -146,6 +148,7 @@ libvte_common_public_deps = [
 ]
 
 libvte_common_deps = libvte_common_public_deps + [
+  fribidi_dep,
   gnutls_dep,
   pcre2_dep,
   libm_dep,

@@ -9077,6 +9077,8 @@ Terminal::ringview_update()
         m_ringview.set_ring (m_screen->row_data);
         m_ringview.set_rows (first_row, last_row - first_row + 1);
         m_ringview.set_width (m_column_count);
+        m_ringview.set_enable_bidi (m_enable_bidi);
+        m_ringview.set_enable_shaping (m_enable_shaping);
         m_ringview.update ();
 }
 
