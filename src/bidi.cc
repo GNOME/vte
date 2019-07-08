@@ -56,6 +56,9 @@
 static_assert (sizeof (FriBidiChar) == sizeof (gunichar), "Unexpected FriBidiChar size");
 #endif
 
+/* Don't do Arabic ligatures as per bug 142. */
+#define VTE_ARABIC_SHAPING_FLAGS (FRIBIDI_FLAGS_ARABIC & ~FRIBIDI_FLAG_SHAPE_ARAB_LIGA)
+
 using namespace vte::base;
 
 BidiRow::~BidiRow()
@@ -276,7 +279,7 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
 
                 /* Shaping. */
                 fribidi_join_arabic (fribidi_chartypes, count, fribidi_levels, fribidi_joiningtypes);
-                fribidi_shape_arabic (FRIBIDI_FLAGS_ARABIC, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
+                fribidi_shape_arabic (VTE_ARABIC_SHAPING_FLAGS, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
 
                 /* If we have the shortcut notation for the trivial LTR mapping, we need to
                  * expand it to the nontrivial notation, in order to store the shaped character. */
@@ -585,7 +588,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         if (do_shaping) {
                 /* Arabic shaping (on the entire paragraph in a single run). */
                 fribidi_join_arabic (fribidi_chartypes, count, fribidi_levels, fribidi_joiningtypes);
-                fribidi_shape_arabic (FRIBIDI_FLAGS_ARABIC, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
+                fribidi_shape_arabic (VTE_ARABIC_SHAPING_FLAGS, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
         }
 
         /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
