@@ -33,6 +33,7 @@
 #include "vtetypes.hh"
 #include "vtespawn.hh"
 
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -159,23 +160,38 @@ vte_pty_child_setup (VtePty *pty)
         }
 
         /* Note: *not* O_CLOEXEC! */
-        auto const fd_flags = O_RDWR | ((priv->flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0);
+        auto const fd_flags = int{O_RDWR | ((priv->flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0)};
+        auto fd = int{-1};
 
-	char *name = ptsname(masterfd);
-        if (name == nullptr) {
-		_vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
+#ifdef __linux__
+        fd = ioctl(masterfd, TIOCGPTPEER, fd_flags);
+        if (fd == -1 && errno != EINVAL) {
+		_vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTPEER)");
 		_exit(127);
-	}
-
-        _vte_debug_print (VTE_DEBUG_PTY,
-                          "Setting up child pty: master FD = %d name = %s\n",
-                          masterfd, name);
-
-        int fd = open(name, fd_flags);
-        if (fd == -1) {
-                _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
-                _exit(127);
         }
+
+        /* EINVAL means the kernel doesn't support this ioctl; fall back to ptsname + open */
+#endif
+
+        if (fd == -1) {
+                auto const name = ptsname(masterfd);
+                if (name == nullptr) {
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
+                        _exit(127);
+                }
+
+                _vte_debug_print (VTE_DEBUG_PTY,
+                                  "Setting up child pty: master FD = %d name = %s\n",
+                                  masterfd, name);
+
+                fd = open(name, fd_flags);
+                if (fd == -1) {
+                        _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
+                        _exit(127);
+                }
+        }
+
+        assert(fd != -1);
 
 #if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
         if (!(priv->flags & VTE_PTY_NO_SESSION)) {
