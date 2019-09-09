@@ -235,10 +235,8 @@ compiler_flags_common = [
   '-Wclobbered',
   '-Wempty-body',
   '-Wendif-labels',
-  '-Werror=implicit-function-declaration',
   '-Werror=init-self',
   '-Werror=missing-include-dirs',
-  '-Werror=missing-prototypes',
   '-Werror=pointer-arith',
   '-Wfloat-equal',
   '-Wignored-qualifiers',
@@ -295,6 +293,8 @@ compiler_flags_common_undesirable = [
 
 compiler_flags_c_only = [
   '-Waggregate-return',
+  '-Werror=implicit-function-declaration',
+  '-Werror=missing-prototypes',
   '-Wimplicit',
   '-Wimplicit-fallthrough=3',
   '-Wmissing-parameter-type',
