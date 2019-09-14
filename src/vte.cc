@@ -2983,7 +2983,8 @@ Terminal::insert_char(gunichar c,
         gunichar c_unmapped = c;
 
         /* DEC Special Character and Line Drawing Set.  VT100 and higher (per XTerm docs). */
-        static const gunichar line_drawing_map[31] = {
+        static const gunichar line_drawing_map[32] = {
+                0x0020,  /* _ => blank (space) */
                 0x25c6,  /* ` => diamond */
                 0x2592,  /* a => checkerboard */
                 0x2409,  /* b => HT symbol */
@@ -3022,8 +3023,8 @@ Terminal::insert_char(gunichar c,
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
         if (G_UNLIKELY (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING)) {
-                if (c >= 96 && c <= 126)
-                        c = line_drawing_map[c - 96];
+                if (c >= 95 && c <= 126)
+                        c = line_drawing_map[c - 95];
         } else if (G_UNLIKELY (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_BRITISH)) {
                 if (G_UNLIKELY (c == '#'))
                         c = 0x00a3;  /* pound sign */
