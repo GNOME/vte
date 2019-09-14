@@ -45,7 +45,6 @@ enum {
 	tracking_all_motion = 1003,
         tracking_focus = 1004,
         tracking_xterm_ext = 1006,
-        tracking_urxvt = 1015
 };
 
 static int tracking_mode = 0;
@@ -66,7 +65,6 @@ reset_mouse_tracking_mode(void)
 	decset(tracking_cell_motion, FALSE);
 	decset(tracking_all_motion, FALSE);
 	decset(tracking_xterm_ext, FALSE);
-	decset(tracking_urxvt, FALSE);
 	fflush(stdout);
 }
 
@@ -113,10 +111,6 @@ clear(void)
 		fprintf(stdout, "Xterm 1006 mouse tracking extension enabled.\r\n");
 		decset(tracking_xterm_ext, TRUE);
 		break;
-	case tracking_urxvt:
-		fprintf(stdout, "rxvt-unicode 1015 mouse tracking extension enabled.\r\n");
-		decset(tracking_urxvt, TRUE);
-		break;
 	default:
 		fprintf(stdout, "Tracking disabled.\r\n");
 		break;
@@ -128,7 +122,6 @@ clear(void)
 	fprintf(stdout, "D - Cell motion tracking.\r\n");
 	fprintf(stdout, "E - All motion tracking.\r\n");
 	fprintf(stdout, "F - Xterm 1006 extension.\r\n");
-	fprintf(stdout, "G - rxvt-unicode extension.\r\n");
 	fprintf(stdout, "I - Focus tracking.\r\n");
 	fprintf(stdout, "Q - Quit.\r\n");
 	fprintf(stdout, "%s", _VTE_CAP_ESC "8");
@@ -208,7 +201,7 @@ parse_esc(guint8 *data,
         if (data[2] == 'M')
                 return parse_legacy_mouse_mode(data, len);
 
-        /* FIXME: add support for xterm extended mode (1006) and urxvt mode (1015) */
+        /* FIXME: add support for xterm extended mode (1006) */
 
         if (data[2] == 'I' || data[2] == 'O') {
                 fprintf(stdout, "focus %s\r\n", data[2] == 'I' ? "in" : "out");
@@ -311,12 +304,6 @@ parse(void)
 		case 'f':
 			tracking_mode = (tracking_mode == tracking_xterm_ext) ?
 					0 : tracking_xterm_ext;
-			i++;
-			break;
-		case 'G':
-		case 'g':
-			tracking_mode = (tracking_mode == tracking_urxvt) ?
-					0 : tracking_urxvt;
 			i++;
 			break;
 		case 'I':

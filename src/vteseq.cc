@@ -599,7 +599,6 @@ Terminal::set_mode_private(int mode,
         case vte::terminal::modes::Private::eXTERM_MOUSE_ANY_EVENT:
         case vte::terminal::modes::Private::eXTERM_MOUSE_EXT:
         case vte::terminal::modes::Private::eXTERM_MOUSE_EXT_SGR:
-        case vte::terminal::modes::Private::eURXVT_MOUSE_EXT:
                 update_mouse_protocol();
                 break;
 

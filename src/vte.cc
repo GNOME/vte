@@ -5861,9 +5861,6 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                 send(is_release ? VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_RELEASE
                                 : VTE_REPLY_XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,
                      {cb, (int)cx, (int)cy});
-	} else if (m_modes_private.URXVT_MOUSE_EXT()) {
-		/* urxvt's extended mode (1015) */
-                send(VTE_REPLY_URXVT_MOUSE_EXT_REPORT, {32 + cb, (int)cx, (int)cy});
 	} else if (cx <= 223 && cy <= 223) {
 		/* legacy mode */
 		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);

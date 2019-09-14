@@ -26,7 +26,6 @@ _VTE_REPLY(APC,         APC, 0,   NONE, NONE,  ) /* application program command 
 _VTE_REPLY(DECEKBD,     APC, 0,   NONE, NONE,  ) /* extended keyboard report */
 
 _VTE_REPLY(XTERM_FOCUS_IN,                            CSI, 'I', NONE, NONE,  ) /* XTERM focus in report */
-_VTE_REPLY(URXVT_MOUSE_EXT_REPORT,                    CSI, 'M', NONE, NONE,  ) /* URXVT mouse mode report */
 _VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,   CSI, 'M', LT,   NONE,  ) /* XTERM SGR mouse mode button press report */
 _VTE_REPLY(XTERM_FOCUS_OUT,                           CSI, 'O', NONE, NONE,  ) /* XTERM focus out report */
 _VTE_REPLY(DECXCPR,                                   CSI, 'R', WHAT, NONE,  ) /* extended cursor position report */
