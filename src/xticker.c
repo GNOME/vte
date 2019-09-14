@@ -79,7 +79,10 @@ main(int argc, char **argv)
 		if (fd != -1) {
 			if (fstat(fd, &st) != -1) {
 				buffer = g_malloc(st.st_size);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 				read(fd, buffer, st.st_size);
+#pragma GCC diagnostic pop
 				for (j = 0; j < st.st_size; j++) {
 					switch (buffer[j]) {
 					case '\r':
@@ -113,9 +116,12 @@ main(int argc, char **argv)
 					       buffer + j,
 					       length);
 					outbuf[length + 4] = '\007';
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 					write(STDERR_FILENO,
 					      outbuf,
 					      length + 5);
+#pragma GCC diagnostic pop
 					my_usleep(delay);
 					if ((j == 0) ||
 					    (j == st.st_size - length - 1)) {
@@ -132,7 +138,10 @@ main(int argc, char **argv)
 						 "\007",
 						 argv[i],
 						 strerror(errno));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 			write(STDERR_FILENO, errbuf, strlen(errbuf));
+#pragma GCC diagnostic pop
 			g_free(errbuf);
 			my_usleep(1000000);
 		}
