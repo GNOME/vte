@@ -4299,8 +4299,7 @@ Terminal::pty_io_write(GIOChannel *channel,
 /* Convert some UTF-8 data to send to the child. */
 void
 Terminal::send_child(char const* data,
-                               gssize length,
-                               bool local_echo) noexcept
+                     gssize length) noexcept
 {
 	gchar *cooked;
 	long cooked_length, i;
@@ -4344,25 +4343,6 @@ Terminal::send_child(char const* data,
         /* Tell observers that we're sending this to the child. */
         if (cooked_length > 0) {
                 emit_commit(cooked, cooked_length);
-        }
-        /* Echo the text if we've been asked to do so. */
-        if ((cooked_length > 0) && local_echo) {
-                gunichar *ucs4;
-                // FIXMEchpe: if (!m_using_utf8), then cooked is NOT UTF-8 !!!
-                // So I think this should use (data, length) not (cooked, cooked_length)
-                ucs4 = g_utf8_to_ucs4(cooked, cooked_length,
-                                      NULL, NULL, NULL);
-                if (ucs4 != NULL) {
-                        int len;
-                        len = g_utf8_strlen(cooked, cooked_length);
-                        for (i = 0; i < len; i++) {
-                                insert_char(
-                                            ucs4[i],
-                                            false,
-                                            true);
-                        }
-                        g_free(ucs4);
-                }
         }
 
         /* If there's a place for it to go, add the data to the
@@ -4413,7 +4393,7 @@ Terminal::feed_child(char const *text,
 		length = strlen(text);
 
 	if (length > 0) {
-		send_child(text, length, false);
+                send_child(text, length);
 	}
 }
 
@@ -4457,7 +4437,7 @@ Terminal::feed_child_using_modes(char const* data,
 		length = strlen(data);
 
 	if (length > 0)
-		send_child(data, length, !m_modes_ecma.SRM());
+                send_child(data, length);
 }
 
 void

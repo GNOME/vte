@@ -52,19 +52,6 @@ MODE(IRM,  4)
  */
 MODE(BDSM, 8)
 
-/*
- * SRM - local echo send/receive mode
- * If reset, characters entered by the keyboard are shown on the
- * screen as well as being sent to the host; if set, the
- * keyboard input is only sent to the host.
- *
- * Default: set
- *
- * References: ECMA-48 § 7.2.15
- *             VT525
- */
-MODE(SRM, 12)
-
 /* Unsupported */
 
 MODE_FIXED(GATM,  1, ALWAYS_RESET)
@@ -77,6 +64,22 @@ MODE_FIXED(VEM,   7, ALWAYS_RESET)
 MODE_FIXED(DCSM,  9, ALWAYS_SET)
 MODE_FIXED(HEM,  10, ALWAYS_RESET)
 MODE_FIXED(PUM,  11, ALWAYS_RESET) /* ECMA-48 § F.4.1 Deprecated */
+
+/*
+ * SRM - local echo send/receive mode
+ * If reset, characters entered by the keyboard are shown on the
+ * screen as well as being sent to the host; if set, the
+ * keyboard input is only sent to the host.
+ *
+ * Default: set
+ *
+ * References: ECMA-48 § 7.2.15
+ *             VT525
+ *
+ * Removed in VTE 0.60: issue #69
+ */
+MODE_FIXED(SRM,  12, ALWAYS_SET)
+
 MODE_FIXED(FEAM, 13, ALWAYS_RESET)
 MODE_FIXED(FETM, 14, ALWAYS_RESET)
 MODE_FIXED(MATM, 15, ALWAYS_RESET)

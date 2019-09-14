@@ -35,22 +35,22 @@ test_modes_ecma(void)
         vte::terminal::modes::ECMA modes{};
 
         g_assert_false(modes.IRM());
-        g_assert_true(modes.SRM());
+        g_assert_true(modes.BDSM());
         modes.set_IRM(true);
         g_assert_true(modes.IRM());
-        g_assert_true(modes.SRM());
-        modes.set_SRM(false);
+        g_assert_true(modes.BDSM());
+        modes.set_BDSM(false);
         g_assert_true(modes.IRM());
-        g_assert_false(modes.SRM());
+        g_assert_false(modes.BDSM());
 
         vte::terminal::modes::ECMA copy{modes};
         g_assert_cmpuint(copy.get_modes(), ==, modes.get_modes());
         g_assert_cmpint(copy.IRM(), ==, modes.IRM());
-        g_assert_cmpint(copy.SRM(), ==, modes.SRM());
+        g_assert_cmpint(copy.BDSM(), ==, modes.BDSM());
 
         modes.reset();
         g_assert_false(modes.IRM());
-        g_assert_true(modes.SRM());
+        g_assert_true(modes.BDSM());
 }
 
 static void

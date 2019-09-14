@@ -836,8 +836,7 @@ public:
                           GIOCondition condition);
 
         void send_child(char const* data,
-                        gssize length,
-                        bool local_echo) noexcept;
+                        gssize length) noexcept;
         void feed_child_using_modes(char const* data,
                                     gssize length);
 
