@@ -4564,7 +4564,7 @@ Terminal::im_commit(char const* text)
 	feed_child_using_modes(text, -1);
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
-	if (m_scroll_on_keystroke) {
+        if (m_scroll_on_keystroke && m_input_enabled) {
 		maybe_scroll_to_bottom();
 	}
 }
@@ -5242,7 +5242,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 		}
 		/* Keep the cursor on-screen. */
 		if (!scrolled && !modifier &&
-		    m_scroll_on_keystroke) {
+                    m_scroll_on_keystroke && m_input_enabled) {
 			maybe_scroll_to_bottom();
 		}
 		return true;
