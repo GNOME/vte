@@ -661,14 +661,9 @@ private:
                 case VTE_SEQ_ESCAPE:
                 case VTE_SEQ_CSI:
                 case VTE_SEQ_DCS:
-                        #pragma GCC diagnostic push
-                        #if G_GNUC_CHECK_VERSION(7, 0)
-                        #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
-                        #endif
                         for (unsigned char n = 0; n < m_n_intermediates; n++)
                                 s.push_back(m_intermediates[n]);
-                        /* [[fallthrough]]; */
-                        #pragma GCC diagnostic pop
+                        [[fallthrough]];
                 case VTE_SEQ_SCI:
                         if (m_seq.terminator != 0)
                                 s.push_back(m_seq.terminator);

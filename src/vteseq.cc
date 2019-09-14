@@ -553,9 +553,9 @@ Terminal::set_mode_private(int mode,
                 break;
 
         case vte::terminal::modes::Private::eXTERM_ALTBUF:
-                /* [[fallthrough]]; */
+                [[fallthrough]];
         case vte::terminal::modes::Private::eXTERM_OPT_ALTBUF:
-                /* [[fallthrough]]; */
+                [[fallthrough]];
         case vte::terminal::modes::Private::eXTERM_OPT_ALTBUF_SAVE_CURSOR:
                 if (set) {
                         if (mode == vte::terminal::modes::Private::eXTERM_OPT_ALTBUF_SAVE_CURSOR)
@@ -2101,7 +2101,7 @@ Terminal::CTC(vte::parser::Sequence const& seq)
 
         case 4:
                 /* Clear all tabstops in the active line */
-                /* [[fallthrough]]; */
+                [[fallthrough]];
         case 5:
                 /* Clear all tabstops */
                 m_tabstops.clear();
@@ -5223,7 +5223,7 @@ Terminal::DSR_DEC(vte::parser::Sequence const& seq)
 
         case 53:
                 /* XTERM alias for 55 */
-                /* [[fallthrough]]; */
+                [[fallthrough]];
         case 55:
                 /* Request locator status report
                  * Reply: DECDSR
