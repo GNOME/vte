@@ -91,9 +91,7 @@ gboolean vte_pty_set_utf8 (VtePty *pty,
                            gboolean utf8,
                            GError **error) _VTE_GNUC_NONNULL(1);
 
-#if GLIB_CHECK_VERSION(2, 44, 0)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VtePty, g_object_unref)
-#endif
 
 _VTE_PUBLIC
 void vte_pty_spawn_async(VtePty *pty,

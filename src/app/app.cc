@@ -723,10 +723,8 @@ vteapp_search_popover_init(VteappSearchPopover* popover)
                                popover->revealer, "reveal-child",
                                GBindingFlags(G_BINDING_DEFAULT | G_BINDING_SYNC_CREATE));
 
-#if GTK_CHECK_VERSION(3, 16, 0)
         g_signal_connect_swapped(popover->search_entry, "next-match", G_CALLBACK(vteapp_search_popover_search_forward), popover);
         g_signal_connect_swapped(popover->search_entry, "previous-match", G_CALLBACK(vteapp_search_popover_search_backward), popover);
-#endif
         g_signal_connect_swapped(popover->search_entry, "search-changed", G_CALLBACK(vteapp_search_popover_update_regex), popover);
 
         g_signal_connect_swapped(popover->search_next_button,"clicked", G_CALLBACK(vteapp_search_popover_search_forward), popover);
@@ -1096,11 +1094,7 @@ vteapp_window_update_geometry(VteappWindow* window)
                         geometry.min_height = geometry.base_height + cell_height * MIN_ROWS;
 
                         gtk_window_set_geometry_hints(GTK_WINDOW(window),
-#if GTK_CHECK_VERSION (3, 19, 5)
                                                       nullptr,
-#else
-                                                      terminal_widget,
-#endif
                                                       &geometry,
                                                       GdkWindowHints(GDK_HINT_RESIZE_INC |
                                                                      GDK_HINT_MIN_SIZE |

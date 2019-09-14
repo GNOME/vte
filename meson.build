@@ -31,12 +31,12 @@ project(
 
 # Requirements
 
-gtk3_req_version          = '3.8.0'
+gtk3_req_version          = '3.20.0'
 gtk4_req_version          = '4.0.0'
 
 fribidi_req_version       = '1.0.0'
-gio_req_version           = '2.40.0'
-glib_req_version          = '2.40.0'
+gio_req_version           = '2.44.0'
+glib_req_version          = '2.44.0'
 gnutls_req_version        = '3.2.7'
 pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'

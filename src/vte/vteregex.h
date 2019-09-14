@@ -74,9 +74,7 @@ char *vte_regex_substitute(VteRegex *regex,
                            guint32 flags,
                            GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) _VTE_GNUC_NONNULL(3) G_GNUC_MALLOC;
 
-#if GLIB_CHECK_VERSION(2, 44, 0)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteRegex, vte_regex_unref)
-#endif
 
 G_END_DECLS
 

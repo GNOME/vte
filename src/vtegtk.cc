@@ -58,10 +58,6 @@
 #include "vtegtk.hh"
 #include "vteregexinternal.hh"
 
-#if !GLIB_CHECK_VERSION(2, 42, 0)
-#define G_PARAM_EXPLICIT_NOTIFY 0
-#endif
-
 #define I_(string) (g_intern_static_string(string))
 
 #define VTE_TERMINAL_CSS_NAME "vte-terminal"
@@ -726,13 +722,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->size_allocate = vte_terminal_size_allocate;
         widget_class->screen_changed = vte_terminal_screen_changed;
 
-#if GTK_CHECK_VERSION(3, 19, 5)
         gtk_widget_class_set_css_name(widget_class, VTE_TERMINAL_CSS_NAME);
-#else
-        /* Bug #763538 */
-        if (gtk_check_version(3, 19, 5) == nullptr)
-                g_printerr("VTE needs to be recompiled against a newer gtk+ version.\n");
-#endif
 
 	/* Initialize default handlers. */
 	klass->eof = NULL;
@@ -4111,11 +4101,7 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
 
         vte_terminal_get_geometry_hints(terminal, &hints, MIN_ROWS, MIN_COLUMNS);
         gtk_window_set_geometry_hints(window,
-#if GTK_CHECK_VERSION (3, 19, 5)
                                       NULL,
-#else
-                                      &terminal->widget,
-#endif
                                       &hints,
                                       (GdkWindowHints)(GDK_HINT_RESIZE_INC |
                                                        GDK_HINT_MIN_SIZE |
