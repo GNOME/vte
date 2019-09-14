@@ -23,10 +23,10 @@ project(
     'buildtype=release',
     'c_std=gnu11',
     'cpp_std=gnu++17',
-    'warning_level=' + (meson.version().version_compare('>= 0.50.0') ? '0' : '1'),
+    'warning_level=0',
     'b_ndebug=false',
   ],
-  meson_version: '>= 0.49.0',
+  meson_version: '>= 0.50.0',
 )
 
 # Requirements
