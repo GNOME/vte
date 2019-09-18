@@ -32,7 +32,8 @@
 #include "regex.hh"
 #include "vteregexinternal.hh"
 
-#define IMPL(wrapper) (regex_from_wrapper(wrapper))
+#define WRAPPER(impl) (reinterpret_cast<VteRegex*>(impl))
+#define IMPL(wrapper) (reinterpret_cast<vte::base::Regex*>(wrapper))
 
 /* GRegex translation */
 
@@ -86,7 +87,7 @@ vte_regex_ref(VteRegex *regex)
 {
         g_return_val_if_fail(regex != nullptr, nullptr);
 
-        return wrapper_from_regex(IMPL(regex)->ref());
+        return WRAPPER(IMPL(regex)->ref());
 }
 
 /**
@@ -114,7 +115,7 @@ vte_regex_new(vte::base::Regex::Purpose purpose,
               uint32_t flags,
               GError** error)
 {
-        return wrapper_from_regex(vte::base::Regex::compile(purpose, pattern, pattern_length, flags, error));
+        return WRAPPER(vte::base::Regex::compile(purpose, pattern, pattern_length, flags, error));
 }
 
 VteRegex*
@@ -266,6 +267,22 @@ _vte_regex_has_purpose(VteRegex *regex,
         g_return_val_if_fail(regex != nullptr, false);
 
         return IMPL(regex)->has_purpose(purpose);
+}
+
+const pcre2_code_8 *
+_vte_regex_get_pcre(VteRegex* regex)
+{
+        g_return_val_if_fail(regex != nullptr, nullptr);
+
+        return IMPL(regex)->code();
+}
+
+bool
+_vte_regex_get_jited(VteRegex *regex)
+{
+        g_return_val_if_fail(regex != nullptr, false);
+
+        return IMPL(regex)->jited();
 }
 
 bool
