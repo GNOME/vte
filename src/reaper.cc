@@ -170,7 +170,6 @@ main(int argc, char **argv)
 
         _vte_debug_init();
 
-        g_type_init();
         context = g_main_context_default();
         loop = g_main_loop_new(context, FALSE);
         reaper = vte_reaper_ref();
