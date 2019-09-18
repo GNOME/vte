@@ -48,7 +48,7 @@ terminal_shell_text_view(GtkWidget *widget)
 static GtkAdjustment *
 terminal_adjustment_text_view(GtkWidget *terminal)
 {
-	return gtk_text_view_get_vadjustment(GTK_TEXT_VIEW(terminal));
+        return gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(terminal));
 }
 #endif
 #ifdef USE_VTE
@@ -260,13 +260,14 @@ main(int argc, char **argv)
 				       GTK_POLICY_AUTOMATIC);
 	gtk_container_add(GTK_CONTAINER(tophalf), terminal);
 #else
-	tophalf = gtk_hbox_new(FALSE, 0);
+        tophalf = gtk_grid_new();
 
-	gtk_box_pack_start(GTK_BOX(tophalf), terminal, TRUE, TRUE, 0);
+        gtk_grid_attach(GTK_GRID(tophalf), terminal, 0, 0, 1, 1);
 	gtk_widget_show(terminal);
 
-	GtkWidget* scrollbar = gtk_vscrollbar_new(terminal_adjustment(terminal));
-	gtk_box_pack_start(GTK_BOX(tophalf), scrollbar, FALSE, TRUE, 0);
+        GtkWidget* scrollbar = gtk_scrollbar_new(GTK_ORIENTATION_VERTICAL,
+                                                 terminal_adjustment(terminal));
+        gtk_grid_attach(GTK_GRID(tophalf), scrollbar, 1, 0, 1, 1);
 	gtk_widget_show(scrollbar);
 #endif
 	gtk_widget_show(terminal);

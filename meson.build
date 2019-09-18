@@ -32,7 +32,7 @@ project(
 # Requirements
 
 gtk3_req_version          = '3.20.0'
-gtk3_min_req_version      = '3.0'
+gtk3_min_req_version      = '3.4'
 gtk3_max_allowed_version  = '3.20'
 gtk4_req_version          = '4.0.0'
 
