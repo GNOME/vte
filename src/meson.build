@@ -49,12 +49,17 @@ parser_sources = files(
   'parser.hh',
 )
 
+regex_sources = files(
+  'regex.cc',
+  'regex.hh'
+)
+
 utf8_sources = files(
   'utf8.cc',
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + modes_sources + parser_sources + utf8_sources + files(
+libvte_common_sources = debug_sources + modes_sources + parser_sources + regex_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',

@@ -29,17 +29,11 @@
 #include "vteregex.h"
 #include "vtepcre2.h"
 
+#include "regex.hh"
 #include "vteregexinternal.hh"
 
-struct _VteRegex {
-        volatile int ref_count;
-        VteRegexPurpose purpose;
-        pcre2_code_8 *code;
-};
-
-#define DEFAULT_COMPILE_OPTIONS (PCRE2_UTF)
-#define JIT_OPTIONS (PCRE2_JIT_COMPLETE)
-#define DEFAULT_MATCH_OPTIONS (0)
+#define WRAPPER(impl) (reinterpret_cast<VteRegex*>(impl))
+#define IMPL(wrapper) (reinterpret_cast<vte::base::Regex*>(wrapper))
 
 /* GRegex translation */
 
@@ -68,41 +62,7 @@ translate_flags(FlagTranslation const* const table,
         *pflagsptr = pflags;
 }
 
-/* internal */
-
-static VteRegex *
-regex_new(pcre2_code_8 *code,
-          VteRegexPurpose purpose)
-{
-        VteRegex *regex;
-
-        regex = g_slice_new(VteRegex);
-        regex->ref_count = 1;
-        regex->purpose = purpose;
-        regex->code = code;
-
-        return regex;
-}
-
-static void
-regex_free(VteRegex *regex)
-{
-        pcre2_code_free_8(regex->code);
-        g_slice_free(VteRegex, regex);
-}
-
-static gboolean
-set_gerror_from_pcre_error(int errcode,
-                           GError **error)
-{
-        PCRE2_UCHAR8 buf[128];
-        int n;
-
-        n = pcre2_get_error_message_8(errcode, buf, sizeof (buf));
-        g_assert(n >= 0);
-        g_set_error_literal(error, VTE_REGEX_ERROR, errcode, (const char*)buf);
-        return FALSE;
-}
+/* Type registration */
 
 #pragma GCC diagnostic push
 #if defined(__GNUC__) && !defined(__clang__)
@@ -125,11 +85,9 @@ G_DEFINE_QUARK(vte-regex-error, vte_regex_error)
 VteRegex *
 vte_regex_ref(VteRegex *regex)
 {
-        g_return_val_if_fail (regex, NULL);
+        g_return_val_if_fail(regex != nullptr, nullptr);
 
-        g_atomic_int_inc (&regex->ref_count);
-
-        return regex;
+        return WRAPPER(IMPL(regex)->ref());
 }
 
 /**
@@ -142,86 +100,26 @@ vte_regex_ref(VteRegex *regex)
  * Returns: %NULL
  */
 VteRegex *
-vte_regex_unref(VteRegex *regex)
+vte_regex_unref(VteRegex* regex)
 {
-        g_return_val_if_fail (regex, NULL);
+        g_return_val_if_fail(regex != nullptr, nullptr);
 
-        if (g_atomic_int_dec_and_test (&regex->ref_count))
-                regex_free (regex);
-
-        return NULL;
+        IMPL(regex)->unref();
+        return nullptr;
 }
 
-static gboolean
-check_pcre_config_unicode(GError** error)
+static VteRegex*
+vte_regex_new(vte::base::Regex::Purpose purpose,
+              char const* pattern,
+              ssize_t pattern_length,
+              uint32_t flags,
+              GError** error)
 {
-        /* Check library compatibility */
-        guint32 v;
-        int r = pcre2_config_8(PCRE2_CONFIG_UNICODE, &v);
-        if (r != 0 || v != 1) {
-                g_set_error(error, VTE_REGEX_ERROR, VTE_REGEX_ERROR_INCOMPATIBLE,
-                            "PCRE2 library was built without unicode support");
-                return FALSE;
-        }
-
-        return TRUE;
+        return WRAPPER(vte::base::Regex::compile(purpose, pattern, pattern_length, flags, error));
 }
 
-static gboolean
-check_pcre_config_jit(void)
-{
-        static gboolean warned = FALSE;
-
-        char s[256];
-        int r = pcre2_config_8(PCRE2_CONFIG_JITTARGET, &s);
-        if (r == PCRE2_ERROR_BADOPTION && !warned) {
-                g_printerr("PCRE2 library was built without JIT support\n");
-                warned = TRUE;
-        }
-
-        return r >= 1;
-}
-
-static VteRegex *
-vte_regex_new(VteRegexPurpose purpose,
-              const char *pattern,
-              gssize      pattern_length,
-              guint32     flags,
-              GError    **error)
-{
-        pcre2_code_8 *code;
-        int errcode;
-        PCRE2_SIZE erroffset;
-
-        g_return_val_if_fail(pattern != NULL, NULL);
-        g_return_val_if_fail(pattern_length >= -1, NULL);
-        g_return_val_if_fail(error == NULL || *error == NULL, NULL);
-
-        if (!check_pcre_config_unicode(error))
-                return FALSE;
-
-        code = pcre2_compile_8((PCRE2_SPTR8)pattern,
-                               pattern_length >= 0 ? pattern_length : PCRE2_ZERO_TERMINATED,
-                               (uint32_t)flags |
-                               PCRE2_UTF |
-                               (flags & PCRE2_UTF ? PCRE2_NO_UTF_CHECK : 0) |
-                               PCRE2_NEVER_BACKSLASH_C |
-                               PCRE2_USE_OFFSET_LIMIT,
-                               &errcode, &erroffset,
-                               NULL);
-
-        if (code == nullptr) {
-                set_gerror_from_pcre_error(errcode, error);
-                g_prefix_error(error, "Failed to compile pattern to regex at offset %" G_GSIZE_FORMAT ":",
-                               erroffset);
-                return NULL;
-        }
-
-        return regex_new(code, purpose);
-}
-
-VteRegex *
-_vte_regex_new_gregex(VteRegexPurpose purpose,
+VteRegex*
+_vte_regex_new_gregex(vte::base::Regex::Purpose purpose,
                       GRegex *gregex)
 {
         g_return_val_if_fail(gregex != NULL, NULL);
@@ -250,9 +148,9 @@ _vte_regex_new_gregex(VteRegexPurpose purpose,
                 g_warning("Incompatible GRegex compile flags left untranslated: %08x", gflags);
         }
 
-        GError *err = nullptr;
+        GError* err = nullptr;
         auto regex = vte_regex_new(purpose, g_regex_get_pattern(gregex), -1, pflags, &err);
-        if (regex == NULL) {
+        if (regex == nullptr) {
                 g_warning("Failed to translated GRegex: %s", err->message);
                 g_error_free(err);
         }
@@ -306,7 +204,7 @@ vte_regex_new_for_match(const char *pattern,
                         guint32     flags,
                         GError    **error)
 {
-        return vte_regex_new(VteRegexPurpose::match,
+        return vte_regex_new(vte::base::Regex::Purpose::eMatch,
                              pattern, pattern_length,
                              flags,
                              error);
@@ -337,60 +235,10 @@ vte_regex_new_for_search(const char *pattern,
                          guint32     flags,
                          GError    **error)
 {
-        return vte_regex_new(VteRegexPurpose::search,
+        return vte_regex_new(vte::base::Regex::Purpose::eSearch,
                              pattern, pattern_length,
                              flags,
                              error);
-}
-
-#if 0
-/*
- * vte_regex_new_pcre:
- * @code: a #pcre2_code_8
- *
- * Creates a new #VteRegex for @code. @code must have been compiled with
- * %PCRE2_UTF and %PCRE2_NEVER_BACKSLASH_C.
- *
- * Returns: (transfer full): a newly created #VteRegex, or %NULL if VTE
- *   was not compiled with PCRE2 support.
- */
-VteRegex *
-vte_regex_new_pcre(pcre2_code_8 *code,
-                   GError      **error)
-{
-        guint32 flags;
-
-        g_return_val_if_fail(code != NULL, NULL);
-        g_return_val_if_fail(error == NULL || *error == NULL, NULL);
-
-        pcre2_pattern_info_8(code, PCRE2_INFO_ALLOPTIONS, &flags);
-        g_return_val_if_fail(flags & PCRE2_UTF, NULL);
-        g_return_val_if_fail(flags & PCRE2_NEVER_BACKSLASH_C, NULL);
-
-        return regex_new(code);
-}
-#endif
-
-gboolean
-_vte_regex_has_purpose(VteRegex *regex,
-                       VteRegexPurpose purpose)
-{
-        return regex->purpose == purpose;
-}
-
-/*
- * _vte_regex_get_pcre:
- * @regex: a #VteRegex
- *
- *
- * Returns: the #pcre2_code_8 from @regex
- */
-const pcre2_code_8 *
-_vte_regex_get_pcre(VteRegex const* regex)
-{
-        g_return_val_if_fail(regex != NULL, NULL);
-
-        return regex->code;
 }
 
 /**
@@ -407,55 +255,42 @@ vte_regex_jit(VteRegex *regex,
               guint     flags,
               GError  **error)
 {
-        int r;
+        g_return_val_if_fail(regex != nullptr, false);
 
-        g_return_val_if_fail(regex != NULL, FALSE);
-
-        if (!check_pcre_config_jit())
-                return TRUE;
-
-        r = pcre2_jit_compile_8(regex->code, flags);
-        if (r < 0)
-                return set_gerror_from_pcre_error(r, error);
-
-        return TRUE;
+        return IMPL(regex)->jit(flags, error);
 }
 
-/*
- * _vte_regex_get_jited:
- *
- * Note: We can't tell if the regex has been JITed for a particular mode,
- * just if it has been JITed at all.
- *
- * Returns: %TRUE iff the regex has been JITed
- */
-gboolean
+bool
+_vte_regex_has_purpose(VteRegex *regex,
+                       vte::base::Regex::Purpose purpose)
+{
+        g_return_val_if_fail(regex != nullptr, false);
+
+        return IMPL(regex)->has_purpose(purpose);
+}
+
+const pcre2_code_8 *
+_vte_regex_get_pcre(VteRegex* regex)
+{
+        g_return_val_if_fail(regex != nullptr, nullptr);
+
+        return IMPL(regex)->code();
+}
+
+bool
 _vte_regex_get_jited(VteRegex *regex)
 {
-        PCRE2_SIZE s;
-        int r;
+        g_return_val_if_fail(regex != nullptr, false);
 
-        g_return_val_if_fail(regex != NULL, FALSE);
-
-        r = pcre2_pattern_info_8(regex->code, PCRE2_INFO_JITSIZE, &s);
-
-        return r == 0 && s != 0;
+        return IMPL(regex)->jited();
 }
 
-/*
- * _vte_regex_get_compile_flags:
- *
- * Returns: the PCRE2 flags used to compile @regex
- */
-guint32
-_vte_regex_get_compile_flags(VteRegex *regex)
+bool
+_vte_regex_has_multiline_compile_flag(VteRegex *regex)
 {
         g_return_val_if_fail(regex != nullptr, 0);
 
-        uint32_t v;
-        int r = pcre2_pattern_info_8(regex->code, PCRE2_INFO_ARGOPTIONS, &v);
-
-        return r == 0 ? v : 0u;
+        return IMPL(regex)->has_compile_flags(PCRE2_MULTILINE);
 }
 
 /**
@@ -485,40 +320,5 @@ vte_regex_substitute(VteRegex *regex,
         g_return_val_if_fail(replacement != nullptr, nullptr);
         g_return_val_if_fail (!(flags & PCRE2_SUBSTITUTE_OVERFLOW_LENGTH), nullptr);
 
-        uint8_t outbuf[2048];
-        PCRE2_SIZE outlen = sizeof(outbuf);
-        int r = pcre2_substitute_8(_vte_regex_get_pcre(regex),
-                                   (PCRE2_SPTR8)subject, PCRE2_ZERO_TERMINATED,
-                                   0 /* start offset */,
-                                   flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
-                                   nullptr /* match data */,
-                                   nullptr /* match context */,
-                                   (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED,
-                                   (PCRE2_UCHAR8*)outbuf, &outlen);
-
-        if (r >= 0)
-                return g_strndup((char*)outbuf, outlen);
-
-        if (r == PCRE2_ERROR_NOMEMORY) {
-                /* The buffer was not large enough; allocated a buffer of the
-                 * required size and try again. Note that @outlen as returned
-                 * from pcre2_substitute_8() above includes the trailing \0.
-                 */
-                uint8_t *outbuf2 = (uint8_t*)g_malloc(outlen);
-                r = pcre2_substitute_8(_vte_regex_get_pcre(regex),
-                                       (PCRE2_SPTR8)subject, PCRE2_ZERO_TERMINATED,
-                                       0 /* start offset */,
-                                       flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
-                                       nullptr /* match data */,
-                                       nullptr /* match context */,
-                                       (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED,
-                                       (PCRE2_UCHAR8*)outbuf2, &outlen);
-                if (r >= 0)
-                        return (char*)outbuf2;
-
-                g_free(outbuf2);
-       }
-
-        set_gerror_from_pcre_error(r, error);
-        return nullptr;
+        return IMPL(regex)->substitute(subject, replacement, flags, error);
 }

@@ -13,3 +13,7 @@
               (c-basic-offset . 2)
               (tab-width . 2)
               (show-trailing-whitespace . t))))
+
+(defun my-c-setup ()
+   (c-set-offset 'innamespace [0]))
+(add-hook 'c++-mode-hook 'my-c-setup)

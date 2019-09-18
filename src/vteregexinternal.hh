@@ -17,22 +17,19 @@
 
 #pragma once
 
-enum class VteRegexPurpose {
-        match,
-        search
-};
+#include "regex.hh"
 
-gboolean _vte_regex_has_purpose(VteRegex *regex,
-                                VteRegexPurpose purpose);
+bool _vte_regex_has_purpose(VteRegex* regex,
+                            vte::base::Regex::Purpose purpose);
 
-gboolean _vte_regex_get_jited(VteRegex *regex);
+bool _vte_regex_get_jited(VteRegex* regex);
 
-guint32 _vte_regex_get_compile_flags (VteRegex *regex);
+bool _vte_regex_has_multiline_compile_flag(VteRegex* regex);
 
-const pcre2_code_8 *_vte_regex_get_pcre (VteRegex const* regex);
+const pcre2_code_8 *_vte_regex_get_pcre(VteRegex* regex);
 
 /* GRegex translation */
-VteRegex *_vte_regex_new_gregex(VteRegexPurpose purpose,
-                                GRegex *gregex);
+VteRegex* _vte_regex_new_gregex(vte::base::Regex::Purpose purpose,
+                                GRegex* gregex);
 
-guint32 _vte_regex_translate_gregex_match_flags(GRegexMatchFlags flags);
+uint32_t _vte_regex_translate_gregex_match_flags(GRegexMatchFlags flags);

@@ -19,9 +19,10 @@
 
 #define PCRE2_CODE_UNIT_WIDTH 0
 #include <pcre2.h>
+#include <cstdint>
 
 /* Assert compatibility of PCRE2 and GLib types */
-G_STATIC_ASSERT(sizeof(PCRE2_UCHAR8) == sizeof (guint8));
-G_STATIC_ASSERT(sizeof(PCRE2_SIZE) == sizeof (gsize));
-G_STATIC_ASSERT(PCRE2_UNSET == (gsize)-1);
-G_STATIC_ASSERT(PCRE2_ZERO_TERMINATED == (gsize)-1);
+static_assert(sizeof(PCRE2_UCHAR8) == sizeof (uint8_t), "PCRE2_UCHAR2 has wrong size");
+static_assert(sizeof(PCRE2_SIZE) == sizeof (size_t), "PCRE2_SIZE has wrong size");
+static_assert(PCRE2_UNSET == (size_t)-1, "PCRE2_UNSET has wrong value");
+static_assert(PCRE2_ZERO_TERMINATED == (size_t)-1, "PCRE2_ZERO_TERMINATED has wrong value");
