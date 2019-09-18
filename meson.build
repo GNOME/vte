@@ -124,12 +124,14 @@ ver = glib_max_allowed_version.split('.')
 config_h.set('GLIB_VERSION_MAX_ALLOWED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
 
 if get_option('gtk3')
-  ver = gtk3_min_req_version.split('.')
-  config_h.set('GDK_VERSION_MIN_REQUIRED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
-  ver = gtk3_max_allowed_version.split('.')
-  config_h.set('GDK_VERSION_MAX_ALLOWED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
-endif
+  gtk3_version_cppflags = []
 
+  ver = gtk3_min_req_version.split('.')
+  gtk3_version_cppflags += '-DGDK_VERSION_MIN_REQUIRED=(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))'
+
+  ver = gtk3_max_allowed_version.split('.')
+  gtk3_version_cppflags += '-DGDK_VERSION_MAX_ALLOWED=(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))'
+endif
 
 # FIXME AC_USE_SYSTEM_EXTENSIONS also supported non-gnu systems
 config_h.set10('_GNU_SOURCE', true)

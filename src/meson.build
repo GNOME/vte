@@ -171,6 +171,7 @@ libvte_common_cppflags = [
 
 if get_option('gtk3')
   libvte_gtk3_sources = libvte_common_sources + libvte_gtk3_public_headers + libvte_gtk3_enum_sources
+  libvte_gtk3_cppflags = libvte_common_cppflags + gtk3_version_cppflags
   libvte_gtk3_deps = libvte_common_deps + [gtk3_dep]
   libvte_gtk3_public_deps = libvte_common_public_deps + [gtk3_dep]
 
@@ -180,7 +181,7 @@ if get_option('gtk3')
     version: libvte_gtk3_soversion,
     include_directories: incs,
     dependencies: libvte_gtk3_deps,
-    cpp_args: libvte_common_cppflags,
+    cpp_args: libvte_gtk3_cppflags,
     install: true,
   )
 
@@ -281,7 +282,10 @@ reflect_vte = executable(
   'reflect-vte',
   sources: reflect_sources,
   dependencies: [gtk3_dep, libvte_gtk3_dep],
-  c_args: ['-DUSE_VTE', '-DVTE_DISABLE_DEPRECATION_WARNINGS'],
+  c_args: [
+    '-DUSE_VTE',
+    '-DVTE_DISABLE_DEPRECATION_WARNINGS',
+  ],
   include_directories: top_inc,
   install: false,
 )
@@ -296,7 +300,7 @@ xticker = executable(
   'xticker',
   sources: xticker_sources,
   dependencies: [glib_dep],
-  c_args: ['-DVTE_DISABLE_DEPRECATION_WARNINGS'],
+  c_args: ['-DVTE_DISABLE_DEPRECATION_WARNINGS',],
   include_directories: top_inc,
   install: false,
 )
