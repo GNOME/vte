@@ -3847,12 +3847,14 @@ Terminal::process_incoming()
                         case vte::base::UTF8Decoder::ACCEPT: {
                                 auto rv = m_parser.feed(m_utf8_decoder.codepoint());
                                 if (G_UNLIKELY(rv < 0)) {
+#ifdef DEBUG
                                         uint32_t c = m_utf8_decoder.codepoint();
                                         char c_buf[7];
                                         g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
                                         char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
                                         _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
                                                          c, wp_str);
+#endif
                                         break;
                                 }
 
