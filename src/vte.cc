@@ -761,15 +761,7 @@ Terminal::queue_cursor_moved()
 static gboolean
 emit_eof_idle_cb(VteTerminal *terminal)
 {
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_enter ();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
-
         _vte_terminal_get_impl(terminal)->emit_eof();
-
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_leave ();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
 
         return G_SOURCE_REMOVE;
 }
@@ -4150,15 +4142,7 @@ out:
                  */
 
 		if (!is_processing()) {
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-			gdk_threads_enter ();
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-
 			add_process_timeout(this);
-
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-			gdk_threads_leave ();
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
 		}
 		m_pty_input_active = len != 0;
 		m_input_bytes = bytes;
@@ -4189,20 +4173,7 @@ out:
 
 	/* If we detected an eof condition, signal one. */
 	if (eof) {
-		/* potential deadlock ... */
-		if (!is_processing()) {
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-			gdk_threads_enter ();
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-
-			pty_channel_eof();
-
-                        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-			gdk_threads_leave ();
-                        G_GNUC_END_IGNORE_DEPRECATIONS;
-		} else {
-			pty_channel_eof();
-		}
+                pty_channel_eof();
 
 		again = FALSE;
 	}
@@ -10817,10 +10788,6 @@ process_timeout (gpointer data)
 	GList *l, *next;
 	gboolean again;
 
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_enter();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
-
 	in_process_timeout = TRUE;
 
 	_vte_debug_print (VTE_DEBUG_WORK, "<");
@@ -10858,10 +10825,6 @@ process_timeout (gpointer data)
 	}
 
 	in_process_timeout = FALSE;
-
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_leave();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
@@ -10912,10 +10875,6 @@ update_repeat_timeout (gpointer data)
 	GList *l, *next;
 	bool again;
 
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_enter();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
-
 	in_update_timeout = TRUE;
 
 	_vte_debug_print (VTE_DEBUG_WORK, "[");
@@ -10963,10 +10922,6 @@ update_repeat_timeout (gpointer data)
 
 	in_update_timeout = FALSE;
 
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_leave();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
-
 	if (again) {
 		/* Force us to relinquish the CPU as the child is running
 		 * at full tilt and making us run to keep up...
@@ -10984,10 +10939,6 @@ static gboolean
 update_timeout (gpointer data)
 {
 	GList *l, *next;
-
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_enter();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	in_update_timeout = TRUE;
 
@@ -11022,10 +10973,6 @@ update_timeout (gpointer data)
 				    update_repeat_timeout, NULL,
 				    NULL);
 	in_update_timeout = FALSE;
-
-        G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
-	gdk_threads_leave();
-        G_GNUC_END_IGNORE_DEPRECATIONS;
 
 	return FALSE;
 }
