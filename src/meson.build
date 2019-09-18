@@ -164,7 +164,7 @@ incs = [
 libvte_common_cppflags = [
   '-DG_LOG_DOMAIN="VTE"',
   '-DLOCALEDIR="@0@"'.format(vte_prefix / vte_localedir),
-  '-DGLIB_DISABLE_DEPRECATION_WARNINGS',
+  '-DVTE_DISABLE_DEPRECATION_WARNINGS',
   '-DVTE_COMPILATION',
   '-UPARSER_INCLUDE_NOP',
 ]
@@ -281,7 +281,7 @@ reflect_vte = executable(
   'reflect-vte',
   sources: reflect_sources,
   dependencies: [gtk3_dep, libvte_gtk3_dep],
-  c_args: ['-DUSE_VTE'],
+  c_args: ['-DUSE_VTE', '-DVTE_DISABLE_DEPRECATION_WARNINGS'],
   include_directories: top_inc,
   install: false,
 )
@@ -296,6 +296,7 @@ xticker = executable(
   'xticker',
   sources: xticker_sources,
   dependencies: [glib_dep],
+  c_args: ['-DVTE_DISABLE_DEPRECATION_WARNINGS'],
   include_directories: top_inc,
   install: false,
 )

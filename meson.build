@@ -32,11 +32,15 @@ project(
 # Requirements
 
 gtk3_req_version          = '3.20.0'
+gtk3_min_req_version      = '3.0'
+gtk3_max_allowed_version  = '3.20'
 gtk4_req_version          = '4.0.0'
 
 fribidi_req_version       = '1.0.0'
 gio_req_version           = '2.44.0'
 glib_req_version          = '2.44.0'
+glib_min_req_version      = '2.26'
+glib_max_allowed_version  = '2.44'
 gnutls_req_version        = '3.2.7'
 pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'
@@ -113,6 +117,19 @@ config_h.set('VTE_DEBUG', enable_debug)
 config_h.set('WITH_FRIBIDI', get_option('fribidi'))
 config_h.set('WITH_GNUTLS', get_option('gnutls'))
 config_h.set('WITH_ICONV', get_option('iconv'))
+
+ver = glib_min_req_version.split('.')
+config_h.set('GLIB_VERSION_MIN_REQUIRED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
+ver = glib_max_allowed_version.split('.')
+config_h.set('GLIB_VERSION_MAX_ALLOWED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
+
+if get_option('gtk3')
+  ver = gtk3_min_req_version.split('.')
+  config_h.set('GDK_VERSION_MIN_REQUIRED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
+  ver = gtk3_max_allowed_version.split('.')
+  config_h.set('GDK_VERSION_MAX_ALLOWED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
+endif
+
 
 # FIXME AC_USE_SYSTEM_EXTENSIONS also supported non-gnu systems
 config_h.set10('_GNU_SOURCE', true)
@@ -249,7 +266,6 @@ compiler_flags_common = [
   '-Wmissing-include-dirs',
   '-Wmissing-noreturn',
   '-Wno-address-of-packed-member',
-  '-Wno-deprecated-declarations',
   '-Wno-missing-field-initializers',
   '-Wno-packed',
   '-Wno-switch-enum',
