@@ -935,205 +935,24 @@ Terminal::match_contents_refresh()
 	m_match_attributes = array;
 }
 
-static void
-regex_match_clear_cursor (struct vte_match_regex *regex)
-{
-        switch (regex->cursor_mode) {
-                case VTE_REGEX_CURSOR_GDKCURSOR:
-                        if (regex->cursor.cursor != NULL) {
-                                g_object_unref(regex->cursor.cursor);
-                                regex->cursor.cursor = NULL;
-                        }
-                        break;
-                case VTE_REGEX_CURSOR_GDKCURSORTYPE:
-                        break;
-                case VTE_REGEX_CURSOR_NAME:
-                        g_free (regex->cursor.cursor_name);
-                        regex->cursor.cursor_name = NULL;
-                        break;
-		default:
-			g_assert_not_reached ();
-			return;
-        }
-}
-
-static void
-regex_and_flags_clear(struct vte_regex_and_flags *regex)
-{
-        if (regex->regex) {
-                vte_regex_unref(regex->regex);
-                regex->regex = nullptr;
-        }
-}
-
-static void
-regex_match_clear (struct vte_match_regex *regex)
-{
-        regex_and_flags_clear(&regex->regex);
-        regex_match_clear_cursor(regex);
-
-        regex->tag = -1;
-}
-
-void
-Terminal::set_cursor_from_regex_match(struct vte_match_regex *regex)
-{
-        GdkCursor *gdk_cursor = nullptr;
-
-        if (!widget_realized())
-                return;
-
-        switch (regex->cursor_mode) {
-                case VTE_REGEX_CURSOR_GDKCURSOR:
-                        if (regex->cursor.cursor != NULL &&
-                            gdk_cursor_get_display(regex->cursor.cursor) == gtk_widget_get_display(m_widget)) {
-                                gdk_cursor = (GdkCursor *)g_object_ref(regex->cursor.cursor);
-                        }
-                        break;
-                case VTE_REGEX_CURSOR_GDKCURSORTYPE:
-                        gdk_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), regex->cursor.cursor_type);
-                        break;
-                case VTE_REGEX_CURSOR_NAME:
-                        gdk_cursor = gdk_cursor_new_from_name(gtk_widget_get_display(m_widget), regex->cursor.cursor_name);
-                        break;
-		default:
-			g_assert_not_reached ();
-			return;
-        }
-
-        m_real_widget->set_cursor(gdk_cursor);
-
-        if (gdk_cursor)
-                g_object_unref(gdk_cursor);
-}
-
 void
 Terminal::regex_match_remove_all()
 {
-	struct vte_match_regex *regex;
-	guint i;
-
-	for (i = 0; i < m_match_regexes->len; i++) {
-		regex = &g_array_index(m_match_regexes,
-				       struct vte_match_regex,
-				       i);
-		/* Unless this is a hole, clean it up. */
-		if (regex->tag >= 0) {
-                        regex_match_clear (regex);
-		}
-	}
-	g_array_set_size(m_match_regexes, 0);
+        auto& match_regexes = match_regexes_writable();
+        match_regexes.clear();
+        match_regexes.shrink_to_fit();
 
 	match_hilite_clear();
 }
 
 void
-Terminal::regex_match_remove(int tag)
+Terminal::regex_match_remove(int tag) noexcept
 {
-	struct vte_match_regex *regex;
-
-	if (m_match_regexes->len > (guint)tag) {
-		/* The tag is an index, so find the corresponding struct. */
-		regex = &g_array_index(m_match_regexes,
-				       struct vte_match_regex,
-				       tag);
-		/* If it's already been removed, return. */
-		if (regex->tag < 0) {
-			return;
-		}
-		/* Remove this item and leave a hole in its place. */
-                regex_match_clear (regex);
-	}
-	match_hilite_clear();
-}
-
-int
-Terminal::regex_match_add(struct vte_match_regex *new_regex_match)
-{
-        struct vte_match_regex *regex_match;
-        guint ret, len;
-
-        /* Search for a hole. */
-        len = m_match_regexes->len;
-        for (ret = 0; ret < len; ret++) {
-                regex_match = &g_array_index(m_match_regexes,
-                                             struct vte_match_regex,
-                                             ret);
-                if (regex_match->tag == -1) {
-                        break;
-                }
-        }
-
-        /* Set the tag to the insertion point. */
-        new_regex_match->tag = ret;
-
-        if (ret < len) {
-                /* Overwrite. */
-                g_array_index(m_match_regexes,
-                              struct vte_match_regex,
-                              ret) = *new_regex_match;
-        } else {
-                /* Append. */
-                g_array_append_vals(m_match_regexes, new_regex_match, 1);
-        }
-
-        /* FIXMEchpe: match_hilite_clear() so we can redo the highlighting with the new regex added? */
-
-        return ret;
-}
-
-struct vte_match_regex *
-Terminal::regex_match_get(int tag)
-{
-	if ((guint)tag >= m_match_regexes->len)
-                return nullptr;
-
-	return &g_array_index(m_match_regexes, struct vte_match_regex, tag);
-}
-
-void
-Terminal::regex_match_set_cursor(int tag,
-                                           GdkCursor *gdk_cursor)
-{
-        struct vte_match_regex *regex = regex_match_get(tag);
-        if (regex == nullptr)
+        auto i = regex_match_get_iter(tag);
+        if (i == std::end(m_match_regexes))
                 return;
 
-        regex_match_clear_cursor(regex);
-        regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSOR;
-	regex->cursor.cursor = gdk_cursor ? (GdkCursor *)g_object_ref(gdk_cursor) : NULL;
-
-	match_hilite_clear();
-}
-
-void
-Terminal::regex_match_set_cursor(int tag,
-                                           GdkCursorType cursor_type)
-{
-        struct vte_match_regex *regex = regex_match_get(tag);
-        if (regex == nullptr)
-                return;
-
-        regex_match_clear_cursor(regex);
-        regex->cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
-	regex->cursor.cursor_type = cursor_type;
-
-	match_hilite_clear();
-}
-
-void
-Terminal::regex_match_set_cursor(int tag,
-                                           char const* cursor_name)
-{
-        struct vte_match_regex *regex = regex_match_get(tag);
-        if (regex == nullptr)
-                return;
-
-        regex_match_clear_cursor(regex);
-        regex->cursor_mode = VTE_REGEX_CURSOR_NAME;
-	regex->cursor.cursor_name = g_strdup (cursor_name);
-
-	match_hilite_clear();
+        match_regexes_writable().erase(i);
 }
 
 /*
@@ -1279,19 +1098,18 @@ Terminal::create_match_context()
 }
 
 bool
-Terminal::match_check_pcre(
-                 pcre2_match_data_8 *match_data,
-                 pcre2_match_context_8 *match_context,
-                 VteRegex *regex,
-                 guint32 match_flags,
-                 gsize sattr,
-                 gsize eattr,
-                 gsize offset,
-                 char **result_ptr,
-                 gsize *start,
-                 gsize *end,
-                 gsize *sblank_ptr,
-                 gsize *eblank_ptr)
+Terminal::match_check_pcre(pcre2_match_data_8 *match_data,
+                           pcre2_match_context_8 *match_context,
+                           vte::base::Regex const* regex,
+                           uint32_t match_flags,
+                           gsize sattr,
+                           gsize eattr,
+                           gsize offset,
+                           char **result_ptr,
+                           gsize *start,
+                           gsize *end,
+                           gsize *sblank_ptr,
+                           gsize *eblank_ptr)
 {
         int (* match_fn) (const pcre2_code_8 *,
                           PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
@@ -1301,7 +1119,7 @@ Terminal::match_check_pcre(
         const char *line;
         int r = 0;
 
-        if (_vte_regex_get_jited(regex))
+        if (regex->jited())
                 match_fn = pcre2_jit_match_8;
         else
                 match_fn = pcre2_match_8;
@@ -1319,7 +1137,7 @@ Terminal::match_check_pcre(
         pcre2_set_offset_limit_8(match_context, eattr);
         position = sattr;
         while (position < eattr &&
-               ((r = match_fn(_vte_regex_get_pcre(regex),
+               ((r = match_fn(regex->code(),
                               (PCRE2_SPTR8)line, line_length, /* subject, length */
                               position, /* start offset */
                               match_flags |
@@ -1399,17 +1217,14 @@ Terminal::match_check_pcre(
 
 char *
 Terminal::match_check_internal_pcre(vte::grid::column_t column,
-                                              vte::grid::row_t row,
-                                              int *tag,
-                                              gsize *start,
-                                              gsize *end)
+                                    vte::grid::row_t row,
+                                    MatchRegex const** match,
+                                    size_t* start,
+                                    size_t* end)
 {
-        struct vte_match_regex *regex;
-        guint i;
 	gsize offset, sattr, eattr, start_blank, end_blank;
         pcre2_match_data_8 *match_data;
         pcre2_match_context_8 *match_context;
-        char *dingu_match = nullptr;
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for pcre match at (%ld,%ld).\n", row, column);
@@ -1425,26 +1240,19 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
         match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
 
 	/* Now iterate over each regex we need to match against. */
-	for (i = 0; i < m_match_regexes->len; i++) {
+        char* dingu_match{nullptr};
+        for (auto const& rem : m_match_regexes) {
                 gsize sblank, eblank;
 
-		regex = &g_array_index(m_match_regexes,
-				       struct vte_match_regex,
-				       i);
-		/* Skip holes. */
-		if (regex->tag < 0) {
-			continue;
-		}
-
                 if (match_check_pcre(match_data, match_context,
-                                     regex->regex.regex,
-                                     regex->regex.match_flags,
+                                     rem.regex(),
+                                     rem.match_flags(),
                                      sattr, eattr, offset,
                                      &dingu_match,
                                      start, end,
                                      &sblank, &eblank)) {
-                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", regex->tag);
-                        *tag = regex->tag;
+                        _vte_debug_print(VTE_DEBUG_REGEX, "Matched dingu with tag %d\n", rem.tag());
+                        *match = std::addressof(rem);
                         break;
                 }
 
@@ -1462,6 +1270,7 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
                  */
                 *start = start_blank;
                 *end = end_blank - 1;
+                *match = nullptr;
 
                 _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                         struct _VteCharAttributes *_sattr, *_eattr;
@@ -1488,69 +1297,69 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
  * @terminal:
  * @column:
  * @row:
- * @tag: (out):
+ * @match: (out):
  * @start: (out):
  * @end: (out):
  *
- * Checks m_match_contents for dingu matches, and returns the tag, start, and
- * end of the match in @tag, @start, @end. If no match occurs, @tag will be set to
- * -1, and if they are nonzero, @start and @end mark the smallest span in the @row
+ * Checks m_match_contents for dingu matches, and returns the start, and
+ * end of the match in @start, @end, and the matched regex in @match.
+ * If no match occurs, @match will be set to %nullptr,
+ * and if they are nonzero, @start and @end mark the smallest span in the @row
  * in which none of the dingus match.
  *
- * Returns: (transfer full): the matched string, or %NULL
+ * Returns: (transfer full): the matched string, or %nullptr
  */
 char *
 Terminal::match_check_internal(vte::grid::column_t column,
-                                         vte::grid::row_t row,
-                                         int *tag,
-                                         gsize *start,
-                                         gsize *end)
+                               vte::grid::row_t row,
+                               MatchRegex const** match,
+                               size_t* start,
+                               size_t* end)
 {
 	if (m_match_contents == nullptr) {
 		match_contents_refresh();
 	}
 
-        g_assert(tag != NULL);
-        g_assert(start != NULL);
-        g_assert(end != NULL);
+        assert(match != nullptr);
+        assert(start != nullptr);
+        assert(end != nullptr);
 
-        *tag = -1;
+        *match = nullptr;
         *start = 0;
         *end = 0;
 
-        return match_check_internal_pcre(column, row, tag, start, end);
+        return match_check_internal_pcre(column, row, match, start, end);
 }
 
-char *
+char*
 Terminal::regex_match_check(vte::grid::column_t column,
-                                      vte::grid::row_t row,
-                                      int *tag)
+                            vte::grid::row_t row,
+                            int* tag)
 {
-	char *ret;
-
 	long delta = m_screen->scroll_delta;
 	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
 			"Checking for match at (%ld,%ld).\n",
 			row, column);
+
+        char* ret{nullptr};
+        Terminal::MatchRegex const* match{nullptr};
+
         if (m_match_span.contains(row + delta, column)) {
-		if (tag) {
-			*tag = m_match_tag;
-		}
-		ret = m_match != NULL ?
-			g_strdup (m_match) :
-			NULL;
+                match = regex_match_current(); /* may be nullptr */
+                ret = g_strdup(m_match);
 	} else {
                 gsize start, end;
-                int ltag;
 
-		ret = match_check_internal(
-                                                        column, row + delta,
-                                                        tag ? tag : &ltag,
-                                                        &start, &end);
+                ret = match_check_internal(column, row + delta,
+                                           &match,
+                                           &start, &end);
 	}
 	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX) {
 		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
 	}
+        if (tag != nullptr)
+                *tag = (match != nullptr) ? match->tag() : -1;
+
 	return ret;
 }
 
@@ -1853,8 +1662,8 @@ Terminal::hyperlink_check(GdkEvent *event)
 }
 
 char *
-Terminal::regex_match_check(GdkEvent *event,
-                                      int *tag)
+Terminal::regex_match_check(GdkEvent* event,
+                            int *tag)
 {
         long col, row;
 
@@ -1871,10 +1680,10 @@ Terminal::regex_match_check(GdkEvent *event,
 
 bool
 Terminal::regex_match_check_extra(GdkEvent *event,
-                                            VteRegex **regexes,
-                                            gsize n_regexes,
-                                            guint32 match_flags,
-                                            char **matches)
+                                  vte::base::Regex const** regexes,
+                                  size_t n_regexes,
+                                  uint32_t match_flags,
+                                  char** matches)
 {
 	gsize offset, sattr, eattr;
         pcre2_match_data_8 *match_data;
@@ -1883,9 +1692,9 @@ Terminal::regex_match_check_extra(GdkEvent *event,
         long col, row;
         guint i;
 
-        g_assert(event);
-        g_assert(regexes != nullptr || n_regexes == 0);
-        g_assert(matches != nullptr);
+        assert(event);
+        assert(regexes != nullptr || n_regexes == 0);
+        assert(matches != nullptr);
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -1910,8 +1719,7 @@ Terminal::regex_match_check_extra(GdkEvent *event,
 
                 g_return_val_if_fail(regexes[i] != nullptr, false);
 
-                if (match_check_pcre(
-                                     match_data, match_context,
+                if (match_check_pcre(match_data, match_context,
                                      regexes[i], match_flags,
                                      sattr, eattr, offset,
                                      &match_string,
@@ -2324,26 +2132,22 @@ Terminal::apply_mouse_cursor()
                 if (m_hyperlink_hover_idx != 0) {
                         _vte_debug_print(VTE_DEBUG_CURSOR,
                                         "Setting hyperlink mouse cursor.\n");
-                        m_real_widget->set_cursor(vte::platform::Widget::Cursor::eHyperlink);
-                } else if ((guint)m_match_tag < m_match_regexes->len) {
-                        struct vte_match_regex *regex =
-                                &g_array_index(m_match_regexes,
-					       struct vte_match_regex,
-					       m_match_tag);
-                        set_cursor_from_regex_match(regex);
+                        m_real_widget->set_cursor(vte::platform::Widget::CursorType::eHyperlink);
+                } else if (regex_match_has_current()) {
+                        m_real_widget->set_cursor(regex_match_current()->cursor());
                 } else if (m_mouse_tracking_mode) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
-                        m_real_widget->set_cursor(vte::platform::Widget::Cursor::eMousing);
+                        m_real_widget->set_cursor(vte::platform::Widget::CursorType::eMousing);
 		} else {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting default mouse cursor.\n");
-                        m_real_widget->set_cursor(vte::platform::Widget::Cursor::eDefault);
+                        m_real_widget->set_cursor(vte::platform::Widget::CursorType::eDefault);
 		}
 	} else {
 		_vte_debug_print(VTE_DEBUG_CURSOR,
 				"Setting to invisible cursor.\n");
-                m_real_widget->set_cursor(vte::platform::Widget::Cursor::eInvisible);
+                m_real_widget->set_cursor(vte::platform::Widget::CursorType::eInvisible);
 	}
 }
 
@@ -6100,7 +5904,7 @@ Terminal::hyperlink_hilite_update()
 
         /* Underlining hyperlinks has precedence over regex matches. So when the hovered hyperlink changes,
          * the regex match might need to become or stop being underlined. */
-        if (m_match != nullptr)
+        if (regex_match_has_current())
                 invalidate_match_span();
 
         apply_mouse_cursor();
@@ -6116,16 +5920,14 @@ Terminal::hyperlink_hilite_update()
 void
 Terminal::match_hilite_clear()
 {
-        if (m_match != nullptr)
+        if (regex_match_has_current())
                 invalidate_match_span();
 
         m_match_span.clear();
-        m_match_tag = -1;
+        m_match_current = nullptr;
 
-	if (m_match != nullptr) {
-		g_free (m_match);
-		m_match = nullptr;
-	}
+        g_free(m_match);
+        m_match = nullptr;
 }
 
 /* This is only used by the dingu matching code, so no need to extend the area. */
@@ -6170,7 +5972,7 @@ Terminal::match_hilite_update()
                                !(m_mouse_autohide && m_mouse_cursor_autohidden) &&
                                !m_selecting;
         if (!do_check_hilite) {
-                if (m_match != nullptr)
+                if (regex_match_has_current())
                          match_hilite_clear();
                 return;
         }
@@ -6187,7 +5989,7 @@ Terminal::match_hilite_update()
 	gsize start, end;
         auto new_match = match_check_internal(col,
                                               row,
-                                              &m_match_tag,
+                                              &m_match_current,
                                               &start,
                                               &end);
 
@@ -8157,15 +7959,8 @@ Terminal::Terminal(vte::platform::Widget* w,
         save_cursor(&m_alternate_screen);
 
 	/* Matching data. */
-	m_match_regexes = g_array_new(FALSE, TRUE,
-					 sizeof(struct vte_match_regex));
-        m_match_tag = -1;
-        m_match_span.clear();
+        m_match_span.clear(); // FIXMEchpe unnecessary
 	match_hilite_clear(); // FIXMEchpe unnecessary
-
-        /* Search data */
-        m_search_regex.regex = nullptr;
-        m_search_regex.match_flags = 0;
 
 	/* Rendering data */
 	m_draw = _vte_draw_new();
@@ -8405,9 +8200,7 @@ Terminal::~Terminal()
         /* Make sure not to change selection while in destruction. See issue vte#89. */
         m_changing_selection = true;
 
-	struct vte_match_regex *regex;
 	int sel;
-	guint i;
 
         terminate_child();
         set_pty(nullptr, false /* don't process remaining data */);
@@ -8434,21 +8227,7 @@ Terminal::~Terminal()
 		g_array_free(m_match_attributes, TRUE);
 	}
 	g_free(m_match_contents);
-	if (m_match_regexes != NULL) {
-		for (i = 0; i < m_match_regexes->len; i++) {
-			regex = &g_array_index(m_match_regexes,
-					       struct vte_match_regex,
-					       i);
-			/* Skip holes. */
-			if (regex->tag < 0) {
-				continue;
-			}
-                        regex_match_clear(regex);
-		}
-		g_array_free(m_match_regexes, TRUE);
-	}
 
-        regex_and_flags_clear(&m_search_regex);
 	if (m_search_attrs)
 		g_array_free (m_search_attrs, TRUE);
 
@@ -9358,7 +9137,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         determine_colors(cell, selected, &nfore, &nback, &ndeco);
 
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
-                                  (!nhyperlink && m_match != nullptr && m_match_span.contains(row, lcol));
+                                  (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
 
                         /* See if it no longer fits the run. */
                         if (item_count > 0 &&
@@ -11004,23 +10783,15 @@ Terminal::write_contents_sync (GOutputStream *stream,
  * Sets the regex to search for. Unsets the search regex when passed %nullptr.
  */
 bool
-Terminal::search_set_regex (VteRegex *regex,
-                                      guint32 flags)
+Terminal::search_set_regex (vte::base::RefPtr<vte::base::Regex>&& regex,
+                            uint32_t flags)
 {
-        struct vte_regex_and_flags *rx;
-
-        rx = &m_search_regex;
-
-        if (rx->regex == regex &&
-            rx->match_flags == flags)
+        if (regex == m_search_regex &&
+            flags == m_search_regex_match_flags)
                 return false;
 
-        regex_and_flags_clear(rx);
-
-        if (regex != nullptr) {
-                rx->regex = vte_regex_ref(regex);
-                rx->match_flags = flags;
-        }
+        m_search_regex = std::move(regex);
+        m_search_regex_match_flags = flags;
 
 	invalidate_all();
 
@@ -11039,10 +10810,10 @@ Terminal::search_set_wrap_around(bool wrap)
 
 bool
 Terminal::search_rows(pcre2_match_context_8 *match_context,
-                                pcre2_match_data_8 *match_data,
-                                vte::grid::row_t start_row,
-                                vte::grid::row_t end_row,
-                                bool backward)
+                      pcre2_match_data_8 *match_data,
+                      vte::grid::row_t start_row,
+                      vte::grid::row_t end_row,
+                      bool backward)
 {
 	int start, end;
 	long start_col, end_col;
@@ -11062,15 +10833,15 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
         gsize *ovector, so, eo;
         int r;
 
-        if (_vte_regex_get_jited(m_search_regex.regex))
+        if (m_search_regex->jited())
                 match_fn = pcre2_jit_match_8;
         else
                 match_fn = pcre2_match_8;
 
-        r = match_fn(_vte_regex_get_pcre(m_search_regex.regex),
+        r = match_fn(m_search_regex->code(),
                      (PCRE2_SPTR8)row_text->str, row_text->len , /* subject, length */
                      0, /* start offset */
-                     m_search_regex.match_flags |
+                     m_search_regex_match_flags |
                      PCRE2_NO_UTF_CHECK | PCRE2_NOTEMPTY | PCRE2_PARTIAL_SOFT /* FIXME: HARD? */,
                      match_data,
                      match_context);
@@ -11181,7 +10952,7 @@ Terminal::search_find (bool backward)
         vte::grid::row_t last_start_row, last_end_row;
         bool match_found = true;
 
-        if (m_search_regex.regex == nullptr)
+        if (!m_search_regex)
                 return false;
 
 	/* TODO

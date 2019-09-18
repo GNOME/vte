@@ -18,6 +18,8 @@
 #pragma once
 
 #include <memory>
+#include <string>
+#include <variant>
 
 #include "vteterminal.h"
 #include "vteinternal.hh"
@@ -27,8 +29,10 @@
 namespace vte {
 
 namespace terminal {
+
 class Terminal;
-}
+
+} // namespace terminal
 
 namespace platform {
 
@@ -106,7 +110,7 @@ public:
 
 protected:
 
-        enum class Cursor {
+        enum class CursorType {
                 eDefault,
                 eInvisible,
                 eMousing,
@@ -120,14 +124,11 @@ protected:
                 return gtk_widget_get_realized(m_widget);
         }
 
-        GdkCursor *create_cursor(GdkCursorType cursor_type) const noexcept;
+        vte::glib::RefPtr<GdkCursor> create_cursor(GdkCursorType cursor_type) const noexcept;
 
-        void set_cursor(Cursor type) noexcept;
-
-        void set_cursor(GdkCursor* cursor) noexcept
-        {
-                gdk_window_set_cursor(m_event_window, cursor);
-        }
+        void set_cursor(CursorType type) noexcept;
+        void set_cursor(GdkCursor* cursor) noexcept;
+        void set_cursor(Cursor const& cursor) noexcept;
 
         bool im_filter_keypress(GdkEventKey* event) noexcept;
 

@@ -121,10 +121,47 @@ Widget::beep() noexcept
                 gdk_window_beep(gtk_widget_get_window(m_widget));
 }
 
-GdkCursor*
+vte::glib::RefPtr<GdkCursor>
 Widget::create_cursor(GdkCursorType cursor_type) const noexcept
 {
-	return gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type);
+	return vte::glib::take_ref(gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type));
+}
+
+void
+Widget::set_cursor(GdkCursor* cursor) noexcept
+{
+        gdk_window_set_cursor(m_event_window, cursor);
+}
+
+void
+Widget::set_cursor(Cursor const& cursor) noexcept
+{
+        if (!realized())
+                return;
+
+        auto display = gtk_widget_get_display(m_widget);
+        GdkCursor* gdk_cursor{nullptr};
+        switch (cursor.index()) {
+        case 0:
+                gdk_cursor = gdk_cursor_new_from_name(display, std::get<0>(cursor).c_str());
+                break;
+        case 1:
+                gdk_cursor = std::get<1>(cursor).get();
+                if (gdk_cursor != nullptr &&
+                    gdk_cursor_get_display(gdk_cursor) == display) {
+                        g_object_ref(gdk_cursor);
+                } else {
+                        gdk_cursor = nullptr;
+                }
+                break;
+        case 2:
+                gdk_cursor = gdk_cursor_new_for_display(display, std::get<2>(cursor));
+                break;
+        }
+
+        set_cursor(gdk_cursor);
+        if (gdk_cursor)
+                g_object_unref(gdk_cursor);
 }
 
 void
@@ -308,13 +345,13 @@ Widget::settings_changed() noexcept
 }
 
 void
-Widget::set_cursor(Cursor type) noexcept
+Widget::set_cursor(CursorType type) noexcept
 {
         switch (type) {
-        case Cursor::eDefault:   return set_cursor(m_default_cursor.get());
-        case Cursor::eInvisible: return set_cursor(m_invisible_cursor.get());
-        case Cursor::eMousing:   return set_cursor(m_mousing_cursor.get());
-        case Cursor::eHyperlink: return set_cursor(m_hyperlink_cursor.get());
+        case CursorType::eDefault:   return set_cursor(m_default_cursor.get());
+        case CursorType::eInvisible: return set_cursor(m_invisible_cursor.get());
+        case CursorType::eMousing:   return set_cursor(m_mousing_cursor.get());
+        case CursorType::eHyperlink: return set_cursor(m_hyperlink_cursor.get());
         }
 }
 

@@ -21,7 +21,6 @@
 #include "vte/vteenums.h"
 #include "vte/vteregex.h"
 
-
 #include <cassert>
 
 namespace vte {
@@ -32,7 +31,7 @@ static bool
 set_gerror_from_pcre_error(int errcode,
                            GError **error)
 {
-        PCRE2_UCHAR8 buf[128];
+        PCRE2_UCHAR8 buf[256];
         int n = pcre2_get_error_message_8(errcode, buf, sizeof(buf));
         assert(n >= 0);
         g_set_error_literal(error, VTE_REGEX_ERROR, errcode, (char const*)buf);
