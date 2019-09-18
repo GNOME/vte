@@ -1902,8 +1902,11 @@ vteapp_window_constructed(GObject *object)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
 
         /* Settings */
-        if (options.no_double_buffer)
+        if (options.no_double_buffer) {
+                G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
                 gtk_widget_set_double_buffered(GTK_WIDGET(window->terminal), false);
+                G_GNUC_END_IGNORE_DEPRECATIONS;
+        }
 
         if (options.encoding != nullptr) {
                 GError* err = nullptr;

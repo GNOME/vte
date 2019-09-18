@@ -274,10 +274,11 @@ main(int argc, char **argv)
 
 	label = gtk_label_new("");
 	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
-	gtk_misc_set_alignment(GTK_MISC(label), 0, 0);
+        gtk_label_set_xalign(GTK_LABEL(label), 0.0);
+        gtk_label_set_yalign(GTK_LABEL(label), 0.0);
 
 	sw = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(sw), label);
+        gtk_container_add(GTK_CONTAINER(sw), label);
 	gtk_widget_show(label);
 
 	pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
