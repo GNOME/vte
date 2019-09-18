@@ -34,5 +34,55 @@ public:
         RefPtr(T* obj = nullptr) : base_type{obj, &g_object_unref} { }
 };
 
+template<typename T>
+RefPtr<T>
+make_ref(T* obj)
+{
+        if (obj)
+                g_object_ref(obj);
+        return {obj};
+}
+
+template<typename T>
+RefPtr<T>
+take_ref(T* obj)
+{
+        return {obj};
+}
+
 } // namespace glib
+
+namespace base {
+
+template<class T>
+class Unreffer {
+public:
+        void operator()(T* obj) const
+        {
+                if (obj)
+                        obj->unref();
+        }
+};
+
+template<class T>
+using RefPtr = std::unique_ptr<T, Unreffer<T>>;
+
+template<class T>
+RefPtr<T>
+make_ref(T* obj)
+{
+        if (obj)
+                obj->ref();
+        return RefPtr<T>{obj};
+}
+
+template<class T>
+RefPtr<T>
+take_ref(T* obj)
+{
+        return RefPtr<T>{obj};
+}
+
+} // namespace base
+
 } // namespace vte

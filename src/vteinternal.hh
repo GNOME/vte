@@ -42,6 +42,7 @@
 #include <list>
 #include <queue>
 #include <string>
+#include <variant>
 #include <vector>
 
 typedef enum {
@@ -95,22 +96,21 @@ enum {
         VTE_BIDI_FLAG_ALL        = (1 << 4) - 1,
 };
 
-struct vte_regex_and_flags {
-        VteRegex *regex;
-        guint32 match_flags;
-};
+namespace vte {
+namespace platform {
 
-/* A match regex, with a tag. */
-struct vte_match_regex {
-	gint tag;
-        struct vte_regex_and_flags regex;
-        VteRegexCursorMode cursor_mode;
-        union {
-	       GdkCursor *cursor;
-               char *cursor_name;
-               GdkCursorType cursor_type;
-        } cursor;
-};
+/*
+ * Cursor:
+ *
+ * Holds a platform cursor. This is either a named cursor (string),
+ * a reference to a GdkCursor*, or a cursor type.
+ */
+using Cursor = std::variant<std::string,
+                            vte::glib::RefPtr<GdkCursor>,
+                            GdkCursorType>;
+
+} // namespace platform
+} // namespace vte
 
 typedef enum _VteCharacterReplacement {
         VTE_CHARACTER_REPLACEMENT_NONE,
@@ -470,11 +470,81 @@ public:
         double m_mouse_smooth_scroll_delta{0.0};
 
 	/* State variables for handling match checks. */
+        int m_match_regex_next_tag{0};
+        auto regex_match_next_tag() noexcept { return m_match_regex_next_tag++; }
+
+        class MatchRegex {
+        public:
+                MatchRegex() = default;
+                MatchRegex(MatchRegex&&) = default;
+                MatchRegex& operator= (MatchRegex&&) = default;
+
+                MatchRegex(MatchRegex const&) = delete;
+                MatchRegex& operator= (MatchRegex const&) = delete;
+
+                MatchRegex(vte::base::RefPtr<vte::base::Regex>&& regex,
+                           uint32_t match_flags,
+                           vte::platform::Cursor&& cursor,
+                           int tag = -1)
+                        : m_regex{std::move(regex)},
+                          m_match_flags{match_flags},
+                          m_cursor{std::move(cursor)},
+                          m_tag{tag}
+                {
+                }
+
+                auto regex() const noexcept { return m_regex.get(); }
+                auto match_flags() const noexcept { return m_match_flags; }
+                auto const& cursor() const noexcept { return m_cursor; }
+                auto tag() const noexcept { return m_tag; }
+
+                void set_cursor(vte::platform::Cursor&& cursor) { m_cursor = std::move(cursor); }
+
+        private:
+                vte::base::RefPtr<vte::base::Regex> m_regex{};
+                uint32_t m_match_flags{0};
+                vte::platform::Cursor m_cursor{VTE_DEFAULT_CURSOR};
+                int m_tag{-1};
+        };
+
+        MatchRegex const* m_match_current{nullptr};
+        bool regex_match_has_current() const noexcept { return m_match_current != nullptr; }
+        auto const* regex_match_current() const noexcept { return m_match_current; }
+
+        std::vector<MatchRegex> m_match_regexes{};
+
+        // m_match_current points into m_match_regex, so every write access to
+        // m_match_regex must go through this function that clears m_current_match
+        auto& match_regexes_writable() noexcept
+        {
+                match_hilite_clear();
+                return m_match_regexes;
+        }
+
+        auto regex_match_get_iter(int tag) noexcept
+        {
+                return std::find_if(std::begin(m_match_regexes), std::end(m_match_regexes),
+                                    [tag](MatchRegex const& rem) { return rem.tag() == tag; });
+        }
+
+        MatchRegex* regex_match_get(int tag) noexcept
+        {
+                auto i = regex_match_get_iter(tag);
+                if (i == std::end(m_match_regexes))
+                        return nullptr;
+
+                return std::addressof(*i);
+        }
+
+        template<class... Args>
+        auto& regex_match_add(Args&&... args)
+        {
+                return match_regexes_writable().emplace_back(std::forward<Args>(args)...);
+        }
+
         char* m_match_contents;
         GArray* m_match_attributes;
-        GArray* m_match_regexes;
         char* m_match;
-        int m_match_tag;
         /* If m_match non-null, then m_match_span contains the region of the match.
          * If m_match is null, and m_match_span is not .empty(), then it contains
          * the minimal region around the last checked coordinates that don't contain
@@ -483,7 +553,8 @@ public:
         vte::grid::span m_match_span;
 
 	/* Search data. */
-        struct vte_regex_and_flags m_search_regex;
+        vte::base::RefPtr<vte::base::Regex> m_search_regex{};
+        uint32_t m_search_regex_match_flags{0};
         gboolean m_search_wrap_around;
         GArray* m_search_attrs; /* Cache attrs */
 
@@ -1036,7 +1107,6 @@ public:
 
         void match_contents_clear();
         void match_contents_refresh();
-        void set_cursor_from_regex_match(struct vte_match_regex *regex);
         void match_hilite_clear();
         void match_hilite_update();
 
@@ -1046,21 +1116,19 @@ public:
 
         char *hyperlink_check(GdkEvent *event);
 
-        bool regex_match_check_extra(GdkEvent *event,
-                                     VteRegex **regexes,
-                                     gsize n_regexes,
-                                     guint32 match_flags,
-                                     char **matches);
+        bool regex_match_check_extra(GdkEvent* event,
+                                     vte::base::Regex const** regexes,
+                                     size_t n_regexes,
+                                     uint32_t match_flags,
+                                     char** matches);
 
-        int regex_match_add(struct vte_match_regex *new_regex_match);
-        struct vte_match_regex *regex_match_get(int tag);
         char *regex_match_check(vte::grid::column_t column,
                                 vte::grid::row_t row,
                                 int *tag);
         char *regex_match_check(GdkEvent *event,
                                 int *tag);
-        void regex_match_remove(int tag);
-        void regex_match_remove_all();
+        void regex_match_remove(int tag) noexcept;
+        void regex_match_remove_all() noexcept;
         void regex_match_set_cursor(int tag,
                                     GdkCursor *gdk_cursor);
         void regex_match_set_cursor(int tag,
@@ -1076,8 +1144,8 @@ public:
         pcre2_match_context_8 *create_match_context();
         bool match_check_pcre(pcre2_match_data_8 *match_data,
                               pcre2_match_context_8 *match_context,
-                              VteRegex *regex,
-                              guint32 match_flags,
+                              vte::base::Regex const* regex,
+                              uint32_t match_flags,
                               gsize sattr,
                               gsize eattr,
                               gsize offset,
@@ -1088,13 +1156,13 @@ public:
                               gsize *eblank_ptr);
         char *match_check_internal_pcre(vte::grid::column_t column,
                                         vte::grid::row_t row,
-                                        int *tag,
+                                        MatchRegex const** match,
                                         gsize *start,
                                         gsize *end);
 
         char *match_check_internal(vte::grid::column_t column,
                                    vte::grid::row_t row,
-                                   int *tag,
+                                   MatchRegex const** match,
                                    gsize *start,
                                    gsize *end);
 
@@ -1112,8 +1180,9 @@ public:
         void feed_focus_event_initial();
         void maybe_feed_focus_event(bool in);
 
-        bool search_set_regex (VteRegex *regex,
-                               guint32 flags);
+        bool search_set_regex(vte::base::RefPtr<vte::base::Regex>&& regex,
+                              uint32_t flags) noexcept;
+        auto search_regex() const noexcept { return m_search_regex.get(); }
 
         bool search_rows(pcre2_match_context_8 *match_context,
                          pcre2_match_data_8 *match_data,

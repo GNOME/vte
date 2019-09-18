@@ -2081,21 +2081,16 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
                              VteRegex    *regex,
                              guint32      flags)
 {
-	struct vte_match_regex new_regex_match;
-
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	g_return_val_if_fail(regex != NULL, -1);
         g_return_val_if_fail(_vte_regex_has_purpose(regex, vte::base::Regex::Purpose::eMatch), -1);
         g_warn_if_fail(_vte_regex_has_multiline_compile_flag(regex));
 
         auto impl = IMPL(terminal);
-
-        new_regex_match.regex.regex = vte_regex_ref(regex);
-        new_regex_match.regex.match_flags = flags;
-        new_regex_match.cursor_mode = VTE_REGEX_CURSOR_GDKCURSORTYPE;
-        new_regex_match.cursor.cursor_type = VTE_DEFAULT_CURSOR;
-
-        return impl->regex_match_add(&new_regex_match);
+        return impl->regex_match_add(vte::base::make_ref(regex_from_wrapper(regex)),
+                                     flags,
+                                     VTE_DEFAULT_CURSOR,
+                                     impl->regex_match_next_tag()).tag();
 }
 
 /**
@@ -2216,7 +2211,11 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         }
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        return IMPL(terminal)->regex_match_check_extra(event, regexes, n_regexes, match_flags, matches);
+        return IMPL(terminal)->regex_match_check_extra(event,
+                                                       regex_array_from_wrappers(regexes),
+                                                       n_regexes,
+                                                       match_flags,
+                                                       matches);
 }
 
 /**
@@ -2269,7 +2268,9 @@ vte_terminal_match_set_cursor(VteTerminal *terminal,
                               GdkCursor *cursor)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->regex_match_set_cursor(tag, cursor);
+        g_return_if_fail(tag >= 0);
+        if (auto rem = IMPL(terminal)->regex_match_get(tag))
+                rem->set_cursor(vte::glib::make_ref<GdkCursor>(cursor));
 }
 
 /**
@@ -2289,7 +2290,9 @@ vte_terminal_match_set_cursor_type(VteTerminal *terminal,
                                    GdkCursorType cursor_type)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->regex_match_set_cursor(tag, cursor_type);
+        g_return_if_fail(tag >= 0);
+        if (auto rem = IMPL(terminal)->regex_match_get(tag))
+                rem->set_cursor(cursor_type);
 }
 
 /**
@@ -2307,9 +2310,10 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
                                    const char *cursor_name)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        IMPL(terminal)->regex_match_set_cursor(tag, cursor_name);
+        g_return_if_fail(tag >= 0);
+        if (auto rem = IMPL(terminal)->regex_match_get(tag))
+                rem->set_cursor(cursor_name);
 }
-
 
 /**
  * vte_terminal_match_remove:
@@ -2324,7 +2328,6 @@ void
 vte_terminal_match_remove(VteTerminal *terminal, int tag)
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(tag != -1);
         IMPL(terminal)->regex_match_remove(tag);
 }
 
@@ -2393,7 +2396,7 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
         g_return_if_fail(regex == nullptr || _vte_regex_has_purpose(regex, vte::base::Regex::Purpose::eSearch));
         g_warn_if_fail(regex == nullptr || _vte_regex_has_multiline_compile_flag(regex));
 
-        IMPL(terminal)->search_set_regex(regex, flags);
+        IMPL(terminal)->search_set_regex(vte::base::make_ref(regex_from_wrapper(regex)), flags);
 }
 
 /**
@@ -2407,10 +2410,9 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
 VteRegex *
 vte_terminal_search_get_regex(VteTerminal *terminal)
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        auto impl = IMPL(terminal);
-        return impl->m_search_regex.regex;
+        return wrapper_from_regex(IMPL(terminal)->search_regex());
 }
 
 /**

@@ -19,14 +19,25 @@
 
 #include "regex.hh"
 
+static inline auto wrapper_from_regex(vte::base::Regex* regex)
+{
+        return reinterpret_cast<VteRegex*>(regex);
+}
+
+static inline auto regex_from_wrapper(VteRegex* regex)
+{
+        return reinterpret_cast<vte::base::Regex*>(regex);
+}
+
+static inline auto regex_array_from_wrappers(VteRegex** regexes)
+{
+        return const_cast<vte::base::Regex const**>(reinterpret_cast<vte::base::Regex**>(regexes));
+}
+
 bool _vte_regex_has_purpose(VteRegex* regex,
                             vte::base::Regex::Purpose purpose);
 
-bool _vte_regex_get_jited(VteRegex* regex);
-
 bool _vte_regex_has_multiline_compile_flag(VteRegex* regex);
-
-const pcre2_code_8 *_vte_regex_get_pcre(VteRegex* regex);
 
 /* GRegex translation */
 VteRegex* _vte_regex_new_gregex(vte::base::Regex::Purpose purpose,
