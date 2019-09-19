@@ -130,7 +130,7 @@ Regex::compile(Regex::Purpose purpose,
  */
 bool
 Regex::jit(uint32_t flags,
-           GError** error)
+           GError** error) noexcept
 {
         if (!check_pcre_config_jit())
                 return TRUE;
