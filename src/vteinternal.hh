@@ -1181,7 +1181,7 @@ public:
         void maybe_feed_focus_event(bool in);
 
         bool search_set_regex(vte::base::RefPtr<vte::base::Regex>&& regex,
-                              uint32_t flags) noexcept;
+                              uint32_t flags);
         auto search_regex() const noexcept { return m_search_regex.get(); }
 
         bool search_rows(pcre2_match_context_8 *match_context,
