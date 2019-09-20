@@ -350,19 +350,25 @@ foreach flag: compiler_flags_cxx_required
 endforeach
 
 
-# Meson problem: GCC only accepts the latter 2 options of the 3 below
-# if the first is *also* passed, which doesn't work with get_supported_arguments()
-# above. So just add these unconditionally, since all compilers we support
-# accept these flags.
+# These flags have to be tested together
 
-compiler_flags_format_warnings = [
-  '-Werror=format=2',
-  '-Werror=format-nonliteral',
-  '-Werror=format-security',
+compiler_flags_common_multi = [
+  # These only work together with -Wformat
+  [
+    '-Werror=format=2',
+    '-Werror=format-nonliteral',
+    '-Werror=format-security',
+  ],
 ]
 
-global_cflags += compiler_flags_format_warnings
-global_cxxflags += compiler_flags_format_warnings
+foreach flags : compiler_flags_common_multi
+  if cc.has_multi_arguments(flags)
+    global_cflags += flags
+  endif
+  if cxx.has_multi_arguments(flags)
+    global_cxxflags += flags
+  endif
+endforeach
 
 # ... and now make these flags the default
 
