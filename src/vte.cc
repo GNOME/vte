@@ -2910,8 +2910,9 @@ Terminal::cursor_down(bool explicit_sequence)
 			VteRowData *rowdata = ensure_row();
                         _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
 		}
-	} else {
-		/* Otherwise, just move the cursor down. */
+        } else if (m_screen->cursor.row < m_screen->insert_delta + m_row_count - 1) {
+                /* Otherwise, just move the cursor down; unless it's already in the last
+                 * physical row (which is possible with scrolling region, see #176). */
                 m_screen->cursor.row++;
 	}
 }
