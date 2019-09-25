@@ -32,7 +32,7 @@ public:
         using position_t = unsigned int;
         using signed_position_t = int;
 
-        static position_t const npos = position_t(signed_position_t(-1));
+        static inline constexpr position_t const npos = -1;
 
 private:
         typedef unsigned long storage_t;
