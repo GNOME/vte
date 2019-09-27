@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Not bash or zsh?
-[ -n "$BASH_VERSION" -o -n "$ZSH_VERSION" ] || return 0
+[ -n "${BASH_VERSION:-}" -o -n "${ZSH_VERSION:-}" ] || return 0
 
 # Not an interactive shell?
 [[ $- == *i* ]] || return 0
@@ -36,8 +36,8 @@ __vte_prompt_command() {
 
 case "$TERM" in
   xterm*|vte*)
-    [ -n "$BASH_VERSION" ] && PROMPT_COMMAND="__vte_prompt_command"
-    [ -n "$ZSH_VERSION"  ] && precmd_functions+=(__vte_osc7)
+    [ -n "${BASH_VERSION:-}" ] && PROMPT_COMMAND="__vte_prompt_command"
+    [ -n "${ZSH_VERSION:-}"  ] && precmd_functions+=(__vte_osc7)
     ;;
 esac
 
