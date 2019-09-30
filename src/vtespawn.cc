@@ -38,7 +38,7 @@
 
 #include <glib-unix.h>
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__DragonFly__)
 #include <sys/syscall.h>  /* for syscall and SYS_getdents64 */
 #endif
 
@@ -413,7 +413,15 @@ set_cloexec (void *data, gint fd)
   return 0;
 }
 
-#ifndef HAVE_FDWALK
+G_GNUC_UNUSED static int
+close_func (void *data, int fd)
+{
+  if (fd >= GPOINTER_TO_INT (data))
+    (void) close (fd);
+
+  return 0;
+}
+
 #ifdef __linux__
 struct linux_dirent64
 {
@@ -452,13 +460,18 @@ filename_to_fd (const char *p)
 }
 #endif
 
+#ifndef HAVE_FDWALK
 static int
 fdwalk (int (*cb)(void *data, int fd), void *data)
 {
+  /* Fallback implementation of fdwalk. It should be async-signal safe, but it
+   * may be slow on non-Linux operating systems, especially on systems allowing
+   * very high number of open file descriptors.
+   */
   gint open_max;
   gint fd;
   gint res = 0;
-  
+
 #ifdef HAVE_SYS_RESOURCE_H
   struct rlimit rl;
 #endif
@@ -497,7 +510,7 @@ fdwalk (int (*cb)(void *data, int fd), void *data)
 #endif
 
 #ifdef HAVE_SYS_RESOURCE_H
-      
+
   if (getrlimit(RLIMIT_NOFILE, &rl) == 0 && rl.rlim_max != RLIM_INFINITY)
       open_max = rl.rlim_max;
   else
@@ -510,17 +523,48 @@ fdwalk (int (*cb)(void *data, int fd), void *data)
 
   return res;
 }
+#endif /* HAVE_FDWALK */
+
+static void
+safe_closefrom (int lowfd)
+{
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+  /* Use closefrom function provided by the system if it is known to be
+   * async-signal safe.
+   *
+   * FreeBSD: closefrom is included in the list of async-signal safe functions
+   * found in https://man.freebsd.org/sigaction(2).
+   *
+   * OpenBSD: closefrom is not included in the list, but a direct system call
+   * should be safe to use.
+   */
+  (void) closefrom (lowfd);
+#elif defined(__DragonFly__)
+  /* It is unclear whether closefrom function included in DragonFlyBSD libc_r
+   * is safe to use because it calls a lot of library functions. It is also
+   * unclear whether libc_r itself is still being used. Therefore, we do a
+   * direct system call here ourselves to avoid possible issues.
+   */
+  (void) syscall (SYS_closefrom, lowfd);
+#elif defined(F_CLOSEM)
+  /* NetBSD and AIX have a special fcntl command which does the same thing as
+   * closefrom. NetBSD also includes closefrom function, which seems to be a
+   * simple wrapper of the fcntl command.
+   */
+  (void) fcntl (lowfd, F_CLOSEM);
+#else
+  (void) fdwalk (close_func, GINT_TO_POINTER (lowfd));
 #endif
+}
 
 static gint
 sane_dup2 (gint fd1, gint fd2)
 {
   gint ret;
 
- retry:
-  ret = dup2 (fd1, fd2);
-  if (ret < 0 && errno == EINTR)
-    goto retry;
+  do
+    ret = dup2 (fd1, fd2);
+  while (ret < 0 && (errno == EINTR || errno == EBUSY));
 
   return ret;
 }
@@ -530,10 +574,9 @@ sane_open (const char *path, gint mode)
 {
   gint ret;
 
- retry:
-  ret = open (path, mode);
-  if (ret < 0 && errno == EINTR)
-    goto retry;
+  do
+    ret = open (path, mode);
+  while (ret < 0 && errno == EINTR);
 
   return ret;
 }
@@ -567,21 +610,6 @@ do_exec (gint                  child_err_report_fd,
   if (working_directory && chdir (working_directory) < 0)
     write_err_and_exit (child_err_report_fd,
                         CHILD_CHDIR_FAILED);
-
-  /* Close all file descriptors but stdin stdout and stderr as
-   * soon as we exec. Note that this includes
-   * child_err_report_fd, which keeps the parent from blocking
-   * forever on the other end of that pipe.
-   */
-  if (close_descriptors)
-    {
-      fdwalk (set_cloexec, GINT_TO_POINTER(3));
-    }
-  else
-    {
-      /* We need to do child_err_report_fd anyway */
-      set_cloexec (GINT_TO_POINTER(0), child_err_report_fd);
-    }
   
   /* Redirect pipes as required */
   
@@ -640,6 +668,31 @@ do_exec (gint                  child_err_report_fd,
       gint write_null = sane_open ("/dev/null", O_WRONLY);
       sane_dup2 (write_null, 2);
       close_and_invalidate (&write_null);
+    }
+
+  /* Close all file descriptors but stdin, stdout and stderr
+   * before we exec. Note that this includes
+   * child_err_report_fd, which keeps the parent from blocking
+   * forever on the other end of that pipe.
+   */
+  if (close_descriptors)
+    {
+      if (child_setup == NULL)
+        {
+          sane_dup2 (child_err_report_fd, 3);
+          set_cloexec (GINT_TO_POINTER (0), 3);
+          safe_closefrom (4);
+          child_err_report_fd = 3;
+        }
+      else
+        {
+          fdwalk (set_cloexec, GINT_TO_POINTER (3));
+        }
+    }
+  else
+    {
+      /* We need to do child_err_report_fd anyway */
+      set_cloexec (GINT_TO_POINTER (0), child_err_report_fd);
     }
   
   /* Call user function just before we exec */
