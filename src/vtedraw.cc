@@ -1043,12 +1043,12 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         left_half = width / 2;
         right_half = width - left_half;
 
-        /* Note that the upper/left halves above are the same as 4 eights */
+        /* Note that the upper/left halves above are the same as 4 eighths */
         /* FIXME: this could be smarter for very small n (< 8 resp. < 4) */
-#define EIGHTS(n, k) \
-        ({ int k_eights = (n) * (k) / 8; \
-           k_eights = MAX(k_eights, 1); \
-           k_eights; \
+#define EIGHTHS(n, k) \
+        ({ int k_eighths = (n) * (k) / 8; \
+           k_eighths = MAX(k_eighths, 1); \
+           k_eighths; \
         })
 
         /* Exclude the spacing for line width computation. */
@@ -1351,10 +1351,10 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         case 0x2587: /* lower seven eighths block */
         {
                 const guint v = c - 0x2580;
-                /* Use the number of eights from the top, so that
+                /* Use the number of eighths from the top, so that
                  * U+2584 aligns with U+2596..U+259f.
                  */
-                const int h = EIGHTS (height, 8 - v);
+                const int h = EIGHTHS (height, 8 - v);
 
                 cairo_rectangle(cr, x, y + h, width, height - h);
                 cairo_fill (cr);
@@ -1371,10 +1371,10 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         case 0x258f: /* left one eighth block */
         {
                 const guint v = c - 0x2588;
-                /* Use the number of eights from the top, so that
+                /* Use the number of eighths from the top, so that
                  * U+258c aligns with U+2596..U+259f.
                  */
-                const int w = EIGHTS (width, 8 - v);
+                const int w = EIGHTHS (width, 8 - v);
 
                 cairo_rectangle(cr, x, y, w, height);
                 cairo_fill (cr);
@@ -1400,7 +1400,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
 
         case 0x2594: /* upper one eighth block */
         {
-                const int h = EIGHTS (height, 1); /* Align with U+2587 */
+                const int h = EIGHTHS (height, 1); /* Align with U+2587 */
                 cairo_rectangle(cr, x, y, width, h);
                 cairo_fill (cr);
                 break;
@@ -1408,7 +1408,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
 
         case 0x2595: /* right one eighth block */
         {
-                const int w = EIGHTS (width, 7);  /* Align with U+2589 */
+                const int w = EIGHTHS (width, 7);  /* Align with U+2589 */
                 cairo_rectangle(cr, x + w, y, width - w, height);
                 cairo_fill (cr);
                 break;
@@ -1478,7 +1478,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
                 g_assert_not_reached();
         }
 
-#undef EIGHTS
+#undef EIGHTHS
 
         cairo_restore(cr);
 }
