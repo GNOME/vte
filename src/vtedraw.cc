@@ -343,7 +343,7 @@ font_info_cache_ascii (struct font_info *info)
 		 * characters as common characters get their font from their neighbors
 		 * and we don't want to force Latin on them. */
 		if (!latin_uses_default_language &&
-		    pango_script_for_unichar (c) <= PANGO_SCRIPT_INHERITED)
+                    g_unichar_get_script (c) <= G_UNICODE_SCRIPT_INHERITED)
 			continue;
 
 		/* Only cache simple glyphs */
