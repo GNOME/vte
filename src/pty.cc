@@ -165,12 +165,19 @@ vte_pty_child_setup (VtePty *pty)
 
 #ifdef __linux__
         fd = ioctl(masterfd, TIOCGPTPEER, fd_flags);
-        if (fd == -1 && errno != EINVAL) {
+        /* Note: According to the kernel's own tests (tools/testing/selftests/filesystems/devpts_pts.c),
+         * the error returned when the running kernel does not support this ioctl should be EINVAL.
+         * However it appears that the actual error returned is ENOTTY. So we check for both of them.
+         * See issue#182.
+         */
+        if (fd == -1 &&
+            errno != EINVAL &&
+            errno != ENOTTY) {
 		_vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTPEER)");
 		_exit(127);
         }
 
-        /* EINVAL means the kernel doesn't support this ioctl; fall back to ptsname + open */
+        /* Fall back to ptsname + open */
 #endif
 
         if (fd == -1) {
