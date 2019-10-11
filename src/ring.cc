@@ -1026,7 +1026,7 @@ Ring::frozen_row_column_to_text_offset(row_t position,
 		return false;
 
 	if (G_LIKELY (buffer->len && buffer->str[buffer->len - 1] == '\n'))
-		buffer->len--;
+                g_string_truncate (buffer, buffer->len - 1);
 
 	row = index(position);
 
@@ -1101,7 +1101,7 @@ Ring::frozen_row_text_offset_to_column(row_t position,
 		return false;
 
 	if (G_LIKELY (buffer->len && buffer->str[buffer->len - 1] == '\n'))
-		buffer->len--;
+                g_string_truncate (buffer, buffer->len - 1);
 
         /* Now that we've chopped off the likely trailing newline (which is only rarely missing,
          * if the ring ends in a soft wrapped line; see bug 181), the position we're about to
