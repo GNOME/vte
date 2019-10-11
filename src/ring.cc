@@ -1107,14 +1107,18 @@ _vte_frozen_row_text_offset_to_column (VteRing *ring,
 	} else
 		records[1].text_start_offset = _vte_stream_head (ring->text_stream);
 
-	g_assert(offset->text_offset >= records[0].text_start_offset && offset->text_offset < records[1].text_start_offset);
-
 	g_string_set_size (buffer, records[1].text_start_offset - records[0].text_start_offset);
 	if (!_vte_stream_read (ring->text_stream, records[0].text_start_offset, buffer->str, buffer->len))
 		return FALSE;
 
 	if (G_LIKELY (buffer->len && buffer->str[buffer->len - 1] == '\n'))
 		buffer->len--;
+
+        /* Now that we've chopped off the likely trailing newline (which is only rarely missing,
+         * if the ring ends in a soft wrapped line; see bug 181), the position we're about to
+         * locate can be anywhere in the string, including just after its last character,
+         * but not beyond that. */
+        g_assert(offset->text_offset >= records[0].text_start_offset && offset->text_offset <= records[0].text_start_offset + buffer->len);
 
 	row = _vte_ring_index(ring, position);
 
@@ -1123,7 +1127,7 @@ _vte_frozen_row_text_offset_to_column (VteRing *ring,
 	/* count the number of characters for the given UTF-8 text offset */
 	off = offset->text_offset - records[0].text_start_offset;
 	num_chars = 0;
-	for (i = 0; i < off && i < buffer->len; i++) {
+	for (i = 0; i < off; i++) {
 		if ((buffer->str[i] & 0xC0) != 0x80) num_chars++;
 	}
 
