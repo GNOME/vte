@@ -302,11 +302,6 @@ void vte_terminal_set_font(VteTerminal *terminal,
 			   const PangoFontDescription *font_desc) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 const PangoFontDescription *vte_terminal_get_font(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
-void vte_terminal_set_allow_bold(VteTerminal *terminal,
-                                 gboolean allow_bold) _VTE_GNUC_NONNULL(1);
-_VTE_PUBLIC
-gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 void vte_terminal_set_bold_is_bright(VteTerminal *terminal,

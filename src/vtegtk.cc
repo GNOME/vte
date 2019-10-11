@@ -1402,9 +1402,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /**
          * VteTerminal:allow-bold:
          *
-         * Controls whether or not the terminal will attempt to draw bold text.
-         * This may happen either by using a bold font variant, or by
-         * repainting text with a different offset.
+         * Controls whether or not the terminal will attempt to draw bold text,
+         * by using a bold font variant.
+         *
+         * Deprecated: 0.60: There's probably no reason for this feature to exist.
          */
         pspecs[PROP_ALLOW_BOLD] =
                 g_param_spec_boolean ("allow-bold", NULL, NULL,
@@ -3146,10 +3147,11 @@ vte_terminal_set_text_blink_mode(VteTerminal *terminal,
  * @terminal: a #VteTerminal
  *
  * Checks whether or not the terminal will attempt to draw bold text,
- * either by using a bold font variant or by repainting text with a different
- * offset.
+ * by using a bold font variant.
  *
  * Returns: %TRUE if bolding is enabled, %FALSE if not
+ *
+ * Deprecated: 0.60: There's probably no reason for this feature to exist.
  */
 gboolean
 vte_terminal_get_allow_bold(VteTerminal *terminal)
@@ -3164,8 +3166,9 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
  * @allow_bold: %TRUE if the terminal should attempt to draw bold text
  *
  * Controls whether or not the terminal will attempt to draw bold text,
- * either by using a bold font variant or by repainting text with a different
- * offset.
+ * by using a bold font variant.
+ *
+ * Deprecated: 0.60: There's probably no reason for this feature to exist.
  */
 void
 vte_terminal_set_allow_bold(VteTerminal *terminal,

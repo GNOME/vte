@@ -140,6 +140,14 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+void vte_terminal_set_allow_bold(VteTerminal *terminal,
+                                 gboolean allow_bold) _VTE_GNUC_NONNULL(1);
+_VTE_DEPRECATED
+_VTE_PUBLIC
+gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED
