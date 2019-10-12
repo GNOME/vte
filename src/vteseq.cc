@@ -85,6 +85,10 @@ vte::parser::Sequence::type_string() const
         case VTE_SEQ_CSI:     return "CSI";
         case VTE_SEQ_DCS:     return "DCS";
         case VTE_SEQ_OSC:     return "OSC";
+        case VTE_SEQ_SCI:     return "SCI";
+        case VTE_SEQ_APC:     return "APC";
+        case VTE_SEQ_PM:      return "PM";
+        case VTE_SEQ_SOS:     return "SOS";
         default:
                 g_assert(false);
                 return nullptr;
