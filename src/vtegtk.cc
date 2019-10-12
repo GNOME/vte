@@ -2872,6 +2872,7 @@ vte_terminal_spawn_async(VteTerminal *terminal,
          * process, simply use a child setup function that unsets the CLOEXEC flag
          * on that FD.
          */
+        g_warn_if_fail((spawn_flags & G_SPAWN_LEAVE_DESCRIPTORS_OPEN) == 0);
         spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
 
         vte_pty_spawn_async(pty,
