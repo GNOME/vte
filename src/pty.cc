@@ -337,7 +337,7 @@ __vte_pty_merge_environ (char **envp,
 static void
 pty_child_setup_cb(void* data)
 {
-        vte::base::Pty* pty = reinterpret_cast<vte::base::Pty*>(data);
+        auto pty = reinterpret_cast<vte::base::Pty*>(data);
         pty->child_setup();
 }
 
