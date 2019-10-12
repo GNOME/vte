@@ -104,7 +104,7 @@ Pty::child_setup() const noexcept
         sigset_t set;
         sigemptyset(&set);
         if (pthread_sigmask(SIG_SETMASK, &set, nullptr) == -1) {
-                _vte_debug_print(VTE_DEBUG_PTY, "Failed to unblock signals: %m");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "pthread_sigmask");
                 _exit(127);
         }
 
@@ -122,12 +122,12 @@ Pty::child_setup() const noexcept
                 _exit(127);
 
         if (grantpt(masterfd) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "grantpt");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
                 _exit(127);
         }
 
 	if (unlockpt(masterfd) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "unlockpt");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
                 _exit(127);
         }
 
@@ -137,8 +137,15 @@ Pty::child_setup() const noexcept
                  * This also loses the controlling TTY.
                  */
                 _vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
-                setsid();
-                setpgid(0, 0);
+                if (setsid() == -1) {
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setsid");
+                        _exit(127);
+                }
+
+                if (setpgid(0, 0) == -1) {
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setpgid");
+                        /* _exit(127); */
+                }
         }
 #endif
 
@@ -185,7 +192,10 @@ Pty::child_setup() const noexcept
 
 #ifdef TIOCSCTTY
         if (!(m_flags & VTE_PTY_NO_CTTY)) {
-                ioctl(fd, TIOCSCTTY, fd);
+                if (ioctl(fd, TIOCSCTTY, fd) != 0) {
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
+                        _exit(127);
+                }
         }
 #endif
 
