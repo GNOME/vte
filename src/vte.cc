@@ -31,6 +31,7 @@
 #endif
 
 #include <glib.h>
+#include <glib-unix.h>
 #include <glib/gi18n-lib.h>
 
 #include <vte/vte.h>
@@ -3130,84 +3131,78 @@ Terminal::child_watch_done(pid_t pid,
 static void
 mark_input_source_invalid_cb(vte::terminal::Terminal* that)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "removed poll of io_read_cb\n");
+	_vte_debug_print (VTE_DEBUG_IO, "Removed PTY input source\n");
 	that->m_pty_input_source = 0;
 }
 
 /* Read and handle data from the child. */
 static gboolean
-io_read_cb(GIOChannel *channel,
+io_read_cb(int fd,
            GIOCondition condition,
            vte::terminal::Terminal* that)
 {
-        return that->pty_io_read(channel, condition);
+        return that->pty_io_read(fd, condition);
 }
 
 void
 Terminal::connect_pty_read()
 {
-	if (m_pty_channel == NULL)
+	if (m_pty_input_source != 0 || !pty())
 		return;
 
-	if (m_pty_input_source == 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_read\n");
-		m_pty_input_source =
-			g_io_add_watch_full(m_pty_channel,
-					    VTE_CHILD_INPUT_PRIORITY,
-					    (GIOCondition)(G_IO_IN | G_IO_PRI | G_IO_HUP),
-					    (GIOFunc)io_read_cb,
-					    this,
-					    (GDestroyNotify)mark_input_source_invalid_cb);
-	}
+        _vte_debug_print (VTE_DEBUG_IO, "Adding PTY input source\n");
+
+        m_pty_input_source = g_unix_fd_add_full(VTE_CHILD_INPUT_PRIORITY,
+                                                pty()->fd(),
+                                                (GIOCondition)(G_IO_IN | G_IO_PRI | G_IO_HUP),
+                                                (GUnixFDSourceFunc)io_read_cb,
+                                                this,
+                                                (GDestroyNotify)mark_input_source_invalid_cb);
 }
 
 static void
 mark_output_source_invalid_cb(vte::terminal::Terminal* that)
 {
-	_vte_debug_print (VTE_DEBUG_IO, "removed poll of io_write_cb\n");
+	_vte_debug_print (VTE_DEBUG_IO, "Removed PTY output source\n");
 	that->m_pty_output_source = 0;
 }
 
 /* Send locally-encoded characters to the child. */
 static gboolean
-io_write_cb(GIOChannel *channel,
+io_write_cb(int fd,
             GIOCondition condition,
             vte::terminal::Terminal* that)
 {
-        return that->pty_io_write(channel, condition);
+        return that->pty_io_write(fd, condition);
 }
 
 void
 Terminal::connect_pty_write()
 {
-        assert(pty());
+        if (m_pty_output_source != 0 || !pty())
+                return;
+
         g_warn_if_fail(m_input_enabled);
 
-	if (m_pty_channel == nullptr) {
-		m_pty_channel =
-			g_io_channel_unix_new(pty()->fd());
-	}
+        /* Do one write. FIXMEchpe why? */
+        if (!pty_io_write (pty()->fd(), G_IO_OUT))
+                return;
 
-	if (m_pty_output_source == 0) {
-		if (pty_io_write (m_pty_channel, G_IO_OUT))
-		{
-			_vte_debug_print (VTE_DEBUG_IO, "polling vte_terminal_io_write\n");
-			m_pty_output_source =
-				g_io_add_watch_full(m_pty_channel,
-						    VTE_CHILD_OUTPUT_PRIORITY,
-						    G_IO_OUT,
-						    (GIOFunc)io_write_cb,
-						    this,
-						    (GDestroyNotify)mark_output_source_invalid_cb);
-		}
-	}
+        _vte_debug_print (VTE_DEBUG_IO, "Adding PTY output source\n");
+
+        m_pty_output_source = g_unix_fd_add_full(VTE_CHILD_OUTPUT_PRIORITY,
+                                                 pty()->fd(),
+                                                 G_IO_OUT,
+                                                 (GUnixFDSourceFunc)io_write_cb,
+                                                 this,
+                                                 (GDestroyNotify)mark_output_source_invalid_cb);
 }
 
 void
 Terminal::disconnect_pty_read()
 {
 	if (m_pty_input_source != 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_read\n");
+		_vte_debug_print (VTE_DEBUG_IO, "Removing PTY input source\n");
 		g_source_remove(m_pty_input_source);
                 // FIXMEchpe the destroy notify should already have done this!
 		m_pty_input_source = 0;
@@ -3218,7 +3213,7 @@ void
 Terminal::disconnect_pty_write()
 {
 	if (m_pty_output_source != 0) {
-		_vte_debug_print (VTE_DEBUG_IO, "disconnecting poll of vte_terminal_io_write\n");
+		_vte_debug_print (VTE_DEBUG_IO, "Removing PTY output source\n");
 		g_source_remove(m_pty_output_source);
                 // FIXMEchpe the destroy notify should already have done this!
 		m_pty_output_source = 0;
@@ -3768,8 +3763,8 @@ Terminal::process_incoming()
 }
 
 bool
-Terminal::pty_io_read(GIOChannel *channel,
-                                GIOCondition condition)
+Terminal::pty_io_read(int const fd,
+                      GIOCondition const condition)
 {
 	int err = 0;
 	gboolean eof, again = TRUE;
@@ -3781,7 +3776,6 @@ Terminal::pty_io_read(GIOChannel *channel,
 
 	/* Read some data in from this channel. */
 	if (condition & (G_IO_IN | G_IO_PRI)) {
-		const int fd = g_io_channel_unix_get_fd (channel);
 		guchar *bp;
 		int rem, len;
 		guint bytes, max_bytes;
@@ -3974,17 +3968,12 @@ Terminal::feed(char const* data,
 }
 
 bool
-Terminal::pty_io_write(GIOChannel *channel,
-                                 GIOCondition condition)
+Terminal::pty_io_write(int const fd,
+                       GIOCondition const condition)
 {
-	gssize count;
-	int fd;
-	gboolean leave_open;
-
-	fd = g_io_channel_unix_get_fd(channel);
-
-	count = write(fd, m_outgoing->data,
-		      _vte_byte_array_length(m_outgoing));
+        auto const count = write(fd,
+                                 m_outgoing->data,
+                                 _vte_byte_array_length(m_outgoing));
 	if (count != -1) {
 		_VTE_DEBUG_IF (VTE_DEBUG_IO) {
                         _vte_debug_hexdump("Outgoing buffer written",
@@ -3994,13 +3983,8 @@ Terminal::pty_io_write(GIOChannel *channel,
 		_vte_byte_array_consume(m_outgoing, count);
 	}
 
-	if (_vte_byte_array_length(m_outgoing) == 0) {
-		leave_open = FALSE;
-	} else {
-		leave_open = TRUE;
-	}
-
-	return leave_open;
+        /* Run again if there are more bytes to write */
+        return _vte_byte_array_length(m_outgoing) != 0;
 }
 
 /* Convert some UTF-8 data to send to the child. */
@@ -7839,8 +7823,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         set_size(VTE_COLUMNS, VTE_ROWS);
-	m_pty_input_source = 0;
-	m_pty_output_source = 0;
 
 	/* Scrolling options. */
 	m_scroll_on_keystroke = TRUE;
@@ -10131,11 +10113,6 @@ Terminal::unset_pty(bool notify_widget,
         disconnect_pty_read();
         disconnect_pty_write();
 
-        if (m_pty_channel != nullptr) {
-                g_io_channel_unref (m_pty_channel);
-                m_pty_channel = nullptr;
-        }
-
         /* Take one last shot at processing whatever data is pending,
          * then flush the buffers in case we're about to run a new
          * command, disconnecting the timeout. */
@@ -10173,9 +10150,6 @@ Terminal::set_pty(vte::base::Pty *new_pty,
         m_pty = vte::base::make_ref(new_pty);
         if (!new_pty)
                 return true;
-
-        m_pty_channel = g_io_channel_unix_new(pty()->fd());
-        g_io_channel_set_close_on_unref(m_pty_channel, FALSE);
 
         set_size(m_column_count, m_row_count);
 
@@ -10460,11 +10434,12 @@ Terminal::time_process_incoming()
 bool
 Terminal::process(bool emit_adj_changed)
 {
-        if (m_pty_channel) {
+        if (pty()) {
                 if (m_pty_input_active ||
                     m_pty_input_source == 0) {
                         m_pty_input_active = false;
-                        pty_io_read(m_pty_channel, G_IO_IN);
+                        /* Do one read directly. FIXMEchpe: Why? */
+                        pty_io_read(pty()->fd(), G_IO_IN);
                 }
                 connect_pty_read();
         }

@@ -343,10 +343,9 @@ public:
         bool set_pty(vte::base::Pty* pty,
                      bool process_remaining = true);
 
-        GIOChannel *m_pty_channel;      /* master channel */
-        guint m_pty_input_source;
-        guint m_pty_output_source;
-        gboolean m_pty_input_active;
+        guint m_pty_input_source{0};
+        guint m_pty_output_source{0};
+        bool m_pty_input_active{false};
         pid_t m_pty_pid{-1};           /* pid of child process */
         VteReaper *m_reaper;
 
@@ -916,10 +915,10 @@ public:
         void pty_scroll_lock_changed(bool locked);
 
         void pty_channel_eof();
-        bool pty_io_read(GIOChannel *channel,
-                         GIOCondition condition);
-        bool pty_io_write(GIOChannel *channel,
-                          GIOCondition condition);
+        bool pty_io_read(int const fd,
+                         GIOCondition const condition);
+        bool pty_io_write(int const fd,
+                          GIOCondition const condition);
 
         void send_child(char const* data,
                         gssize length) noexcept;
