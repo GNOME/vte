@@ -49,6 +49,13 @@ parser_sources = files(
   'parser.hh',
 )
 
+pty_sources = files(
+  'pty.cc',
+  'pty.hh',
+  'vtepty.cc',
+  'vteptyinternal.hh',
+)
+
 regex_sources = files(
   'regex.cc',
   'regex.hh'
@@ -59,7 +66,7 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + modes_sources + parser_sources + regex_sources + utf8_sources + files(
+libvte_common_sources = debug_sources + modes_sources + parser_sources + pty_sources + regex_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -71,7 +78,6 @@ libvte_common_sources = debug_sources + modes_sources + parser_sources + regex_s
   'color-triple.hh',
   'keymap.cc',
   'keymap.h',
-  'pty.cc',
   'reaper.cc',
   'reaper.hh',
   'refptr.hh',
@@ -91,7 +97,6 @@ libvte_common_sources = debug_sources + modes_sources + parser_sources + regex_s
   'vtegtk.hh',
   'vteinternal.hh',
   'vtepcre2.h',
-  'vtepty-private.h',
   'vteregex.cc',
   'vteregexinternal.hh',
   'vterowdata.cc',

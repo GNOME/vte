@@ -37,6 +37,7 @@
 #include "vteregexinternal.hh"
 
 #include "chunk.hh"
+#include "pty.hh"
 #include "utf8.hh"
 
 #include <list>
@@ -311,9 +312,16 @@ public:
         ~Terminal();
 
 public:
-        vte::platform::Widget* m_real_widget;
-        VteTerminal *m_terminal;
-        GtkWidget *m_widget;
+        vte::platform::Widget* m_real_widget{nullptr};
+        inline constexpr auto widget() const noexcept { return m_real_widget; }
+
+        VteTerminal *m_terminal{nullptr};
+        inline constexpr auto vte_terminal() const noexcept { return m_terminal; }
+
+        GtkWidget *m_widget{nullptr};
+        inline constexpr auto gtk_widget() const noexcept { return m_widget; }
+
+        void unset_widget() noexcept;
 
         /* Metric and sizing data: dimensions of the window */
         vte::grid::row_t m_row_count{VTE_ROWS};
@@ -327,7 +335,14 @@ public:
         vte::terminal::modes::Private m_modes_private{};
 
 	/* PTY handling data. */
-        VtePty *m_pty;
+        vte::base::RefPtr<vte::base::Pty> m_pty{};
+        inline constexpr auto& pty() const noexcept { return m_pty; }
+
+        void unset_pty(bool notify_widget = true,
+                       bool process_remaining = true);
+        bool set_pty(vte::base::Pty* pty,
+                     bool process_remaining = true);
+
         GIOChannel *m_pty_channel;      /* master channel */
         guint m_pty_input_source;
         guint m_pty_output_source;
@@ -928,32 +943,6 @@ public:
         void im_reset();
         void im_update_cursor();
 
-        bool spawn_sync(VtePtyFlags pty_flags,
-                        const char *working_directory,
-                        char **argv,
-                        char **envv,
-                        GSpawnFlags spawn_flags_,
-                        GSpawnChildSetupFunc child_setup,
-                        gpointer child_setup_data,
-                        GPid *child_pid /* out */,
-                        GCancellable *cancellable,
-                        GError **error);
-#if 0
-        void spawn_async(VtePtyFlags pty_flags,
-                         const char *working_directory,
-                         char **argv,
-                         char **envv,
-                         GSpawnFlags spawn_flags_,
-                         GSpawnChildSetupFunc child_setup,
-                         gpointer child_setup_data,
-                         GDestroyNotify child_setup_data_destroy,
-                         GCancellable *cancellable,
-                         GAsyncReadyCallback callback,
-                         gpointer user_data);
-        bool spawn_finish(GAsyncResult *result,
-                          GPid *child_pid /* out */);
-#endif
-
         void reset(bool clear_tabstops,
                    bool clear_history,
                    bool from_api = false);
@@ -1251,8 +1240,6 @@ public:
         bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
-        bool set_pty(VtePty *pty,
-                     bool proces_remaining = true);
         bool set_rewrap_on_resize(bool rewrap);
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);

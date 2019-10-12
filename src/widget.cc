@@ -26,6 +26,7 @@
 #include <string>
 
 #include "vtegtk.hh"
+#include "vteptyinternal.hh"
 #include "debug.h"
 
 using namespace std::literals;
@@ -353,6 +354,32 @@ Widget::set_cursor(CursorType type) noexcept
         case CursorType::eMousing:   return set_cursor(m_mousing_cursor.get());
         case CursorType::eHyperlink: return set_cursor(m_hyperlink_cursor.get());
         }
+}
+
+bool
+Widget::set_pty(VtePty* pty_obj) noexcept
+{
+        if (pty() == pty_obj)
+                return false;
+
+        m_pty = vte::glib::make_ref(pty_obj);
+        terminal()->set_pty(_vte_pty_get_impl(pty()));
+
+        return true;
+}
+
+void
+Widget::unset_pty() noexcept
+{
+        if (!pty())
+                return;
+
+        /* This is only called from Terminal, so we need
+         * to explicitly notify the VteTerminal:pty property,
+         * but we do NOT need to call Terminal::set_pty(nullptr).
+         */
+        m_pty.reset();
+        g_object_notify_by_pspec(object(), pspecs[PROP_PTY]);
 }
 
 void

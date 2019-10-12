@@ -22,8 +22,11 @@
 #include <variant>
 
 #include "vteterminal.h"
+#include "vtepty.h"
+
 #include "vteinternal.hh"
 
+#include "fwd.hh"
 #include "refptr.hh"
 
 namespace vte {
@@ -52,7 +55,7 @@ public:
         GtkWidget* gtk() const noexcept { return m_widget; }
         VteTerminal* vte() const noexcept { return reinterpret_cast<VteTerminal*>(m_widget); }
 
-        vte::terminal::Terminal* terminal() const noexcept { return m_terminal; }
+        inline constexpr vte::terminal::Terminal* terminal() const noexcept { return m_terminal; }
 
         void constructed() noexcept { m_terminal->widget_constructed(); }
         void dispose() noexcept;
@@ -108,6 +111,9 @@ public:
 
         void emit_child_exited(int status) noexcept;
 
+        bool set_pty(VtePty* pty) noexcept;
+        inline auto pty() const noexcept { return m_pty.get(); }
+
 protected:
 
         enum class CursorType {
@@ -143,6 +149,8 @@ protected:
 
         void im_set_cursor_location(cairo_rectangle_int_t const* rect) noexcept;
 
+        void unset_pty() noexcept;
+
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
 
@@ -162,6 +170,9 @@ private:
 
         /* Input method */
         vte::glib::RefPtr<GtkIMContext> m_im_context;
+
+        /* PTY */
+        vte::glib::RefPtr<VtePty> m_pty;
 };
 
 } // namespace platform

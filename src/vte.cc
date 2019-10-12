@@ -63,7 +63,6 @@
 #include "marshal.h"
 #include "vteaccess.h"
 #include "vtepty.h"
-#include "vtepty-private.h"
 #include "vtegtk.hh"
 
 #include <new> /* placement new */
@@ -128,6 +127,14 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 	do {
 		g_array_append_vals(array, item, 1);
 	} while (--final_size);
+}
+
+void
+Terminal::unset_widget() noexcept
+{
+        m_real_widget = nullptr;
+        m_terminal = nullptr;
+        m_widget = nullptr;
 }
 
 // FIXMEchpe replace this with a method on VteRing
@@ -3111,7 +3118,7 @@ Terminal::child_watch_done(pid_t pid,
         m_pty_pid = -1;
 
         /* Close out the PTY. */
-        set_pty(nullptr);
+        unset_pty();
 
         /* Tell observers what's happened. */
         if (m_real_widget)
@@ -3173,12 +3180,12 @@ io_write_cb(GIOChannel *channel,
 void
 Terminal::connect_pty_write()
 {
-        g_assert(m_pty != nullptr);
+        assert(pty());
         g_warn_if_fail(m_input_enabled);
 
 	if (m_pty_channel == nullptr) {
 		m_pty_channel =
-			g_io_channel_unix_new(vte_pty_get_fd(m_pty));
+			g_io_channel_unix_new(pty()->fd());
 	}
 
 	if (m_pty_output_source == 0) {
@@ -3255,7 +3262,8 @@ Terminal::watch_child (pid_t child_pid)
 {
         // FIXMEchpe: support passing child_pid = -1 to remove the wathch
         g_assert(child_pid != -1);
-        g_assert(m_pty != nullptr);
+        if (!pty())
+                return;
 
         GObject *object = G_OBJECT(m_terminal);
         g_object_freeze_notify(object);
@@ -3286,86 +3294,6 @@ Terminal::watch_child (pid_t child_pid)
         g_object_thaw_notify(object);
 }
 
-/*
- * Terminal::spawn_sync:
- * @pty_flags: flags from #VtePtyFlags
- * @working_directory: (allow-none): the name of a directory the command should start
- *   in, or %NULL to use the current working directory
- * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
- * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
- *   variables to be added to the environment before starting the process, or %NULL
- * @spawn_flags: flags from #GSpawnFlags
- * @child_setup: (allow-none) (scope call): an extra child setup function to run in the child just before exec(), or %NULL
- * @child_setup_data: user data for @child_setup
- * @child_pid: (out) (allow-none) (transfer full): a location to store the child PID, or %NULL
- * @cancellable: (allow-none): a #GCancellable, or %NULL
- * @error: (allow-none): return location for a #GError, or %NULL
- *
- * Starts the specified command under a newly-allocated controlling
- * pseudo-terminal.  The @argv and @envv lists should be %NULL-terminated.
- * The "TERM" environment variable is automatically set to a default value,
- * but can be overridden from @envv.
- * @pty_flags controls logging the session to the specified system log files.
- *
- * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
- *
- * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
- *
- * Returns: %TRUE on success, or %FALSE on error with @error filled in
- */
-bool
-Terminal::spawn_sync(VtePtyFlags pty_flags,
-                               const char *working_directory,
-                               char **argv,
-                               char **envv,
-                               GSpawnFlags spawn_flags_,
-                               GSpawnChildSetupFunc child_setup,
-                               gpointer child_setup_data,
-                               GPid *child_pid /* out */,
-                               GCancellable *cancellable,
-                               GError **error)
-{
-        guint spawn_flags = (guint)spawn_flags_;
-        VtePty *new_pty;
-        GPid pid;
-
-        g_assert(argv != nullptr);
-        g_assert(child_setup_data == nullptr || child_setup != nullptr);
-        g_assert(error == nullptr || *error == nullptr);
-
-        new_pty = vte_terminal_pty_new_sync(m_terminal, pty_flags, cancellable, error);
-        if (new_pty == nullptr)
-                return false;
-
-        /* We do NOT support this flag. If you want to have some FD open in the child
-         * process, simply use a child setup function that unsets the CLOEXEC flag
-         * on that FD.
-         */
-        spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
-
-        if (!__vte_pty_spawn(new_pty,
-                             working_directory,
-                             argv,
-                             envv,
-                             (GSpawnFlags)spawn_flags,
-                             child_setup, child_setup_data,
-                             &pid,
-                             -1 /* no timeout */, cancellable,
-                             error)) {
-                g_object_unref(new_pty);
-                return false;
-        }
-
-        set_pty(new_pty);
-        g_object_unref (new_pty);
-        watch_child(pid);
-
-        if (child_pid)
-                *child_pid = pid;
-
-        return true;
-}
-
 /* Handle an EOF from the client. */
 void
 Terminal::pty_channel_eof()
@@ -3374,7 +3302,7 @@ Terminal::pty_channel_eof()
 
         g_object_freeze_notify(object);
 
-        set_pty(nullptr);
+        unset_pty();
 
 	/* Emit a signal that we read an EOF. */
 	queue_eof();
@@ -4126,8 +4054,8 @@ Terminal::send_child(char const* data,
 
         /* If there's a place for it to go, add the data to the
          * outgoing buffer. */
-        // FIXMEchpe: shouldn't require m_pty for this
-        if ((cooked_length > 0) && (m_pty != NULL)) {
+        // FIXMEchpe: shouldn't require pty for this
+        if ((cooked_length > 0) && pty()) {
                 _vte_byte_array_append(m_outgoing, cooked, cooked_length);
                 _VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
                         for (i = 0; i < cooked_length; i++) {
@@ -4198,7 +4126,7 @@ Terminal::feed_child_binary(guint8 const* data,
 
 		/* If there's a place for it to go, add the data to the
 		 * outgoing buffer. */
-		if (m_pty != NULL) {
+		if (pty()) {
 			_vte_byte_array_append(m_outgoing,
 					   data, length);
 			/* If we need to start waiting for the child pty to
@@ -4706,8 +4634,8 @@ Terminal::widget_key_press(GdkEventKey *event)
 				suppress_meta_esc = TRUE;
 				break;
 			case VTE_ERASE_TTY:
-				if (m_pty != nullptr &&
-				    tcgetattr(vte_pty_get_fd(m_pty), &tio) != -1)
+				if (pty() &&
+				    tcgetattr(pty()->fd(), &tio) != -1)
 				{
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
 					normal_length = 1;
@@ -4719,8 +4647,8 @@ Terminal::widget_key_press(GdkEventKey *event)
 #ifndef _POSIX_VDISABLE
 #define _POSIX_VDISABLE '\0'
 #endif
-				if (m_pty != nullptr &&
-				    tcgetattr(vte_pty_get_fd(m_pty), &tio) != -1 &&
+				if (pty() &&
+				    tcgetattr(pty()->fd(), &tio) != -1 &&
 				    tio.c_cc[VERASE] != _POSIX_VDISABLE)
 				{
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
@@ -4756,8 +4684,8 @@ Terminal::widget_key_press(GdkEventKey *event)
 				normal_length = 1;
 				break;
 			case VTE_ERASE_TTY:
-				if (m_pty != nullptr &&
-				    tcgetattr(vte_pty_get_fd(m_pty), &tio) != -1)
+				if (pty() &&
+				    tcgetattr(pty()->fd(), &tio) != -1)
 				{
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
 					normal_length = 1;
@@ -7529,11 +7457,11 @@ Terminal::set_cell_height_scale(double scale)
 void
 Terminal::refresh_size()
 {
-        if (!m_pty)
+        if (!pty())
                 return;
 
 	int rows, columns;
-        if (!vte_pty_get_size(m_pty, &rows, &columns, nullptr)) {
+        if (!pty()->get_size(&rows, &columns)) {
                 /* Error reading PTY size, use defaults */
                 rows = VTE_ROWS;
                 columns = VTE_COLUMNS;
@@ -7701,16 +7629,12 @@ Terminal::set_size(long columns,
 	old_rows = m_row_count;
 	old_columns = m_column_count;
 
-	if (m_pty != NULL) {
-                GError *error = NULL;
-
+	if (pty()) {
 		/* Try to set the terminal size, and read it back,
 		 * in case something went awry.
                  */
-		if (!vte_pty_set_size(m_pty, rows, columns, &error)) {
-			g_warning("%s\n", error->message);
-                        g_error_free(error);
-		}
+		if (!pty()->set_size(rows, columns))
+			g_warning("Failed to set PTY size: %m\n");
 		refresh_size();
 	} else {
 		m_row_count = rows;
@@ -7914,7 +7838,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
-        m_pty = nullptr;
         set_size(VTE_COLUMNS, VTE_ROWS);
 	m_pty_input_source = 0;
 	m_pty_output_source = 0;
@@ -8204,7 +8127,7 @@ Terminal::~Terminal()
 	int sel;
 
         terminate_child();
-        set_pty(nullptr, false /* don't process remaining data */);
+        unset_pty(false /* don't notify widget */, false /* don't process remaining data */);
         remove_update_timeout(this);
 
         /* Stop processing input. */
@@ -10197,50 +10120,61 @@ Terminal::reset(bool clear_tabstops,
         g_object_thaw_notify(object);
 }
 
+void
+Terminal::unset_pty(bool notify_widget,
+                    bool process_remaining)
+{
+        /* This may be called from inside or from widget,
+         * and must notify the widget if not called from it.
+         */
+
+        disconnect_pty_read();
+        disconnect_pty_write();
+
+        if (m_pty_channel != nullptr) {
+                g_io_channel_unref (m_pty_channel);
+                m_pty_channel = nullptr;
+        }
+
+        /* Take one last shot at processing whatever data is pending,
+         * then flush the buffers in case we're about to run a new
+         * command, disconnecting the timeout. */
+        if (!m_incoming_queue.empty() && process_remaining) {
+                process_incoming();
+                while (!m_incoming_queue.empty())
+                        m_incoming_queue.pop();
+
+                m_input_bytes = 0;
+        }
+        stop_processing(this);
+
+        m_utf8_decoder.reset(); // FIXMEchpe necessary here?
+
+        /* Clear the outgoing buffer as well. */
+        _vte_byte_array_clear(m_outgoing);
+
+        m_pty.reset();
+
+        if (notify_widget && widget())
+                widget()->unset_pty();
+}
+
 bool
-Terminal::set_pty(VtePty *new_pty,
+Terminal::set_pty(vte::base::Pty *new_pty,
                   bool process_remaining)
 {
-        if (new_pty == m_pty)
+        if (pty().get() == new_pty)
                 return false;
 
-        if (m_pty != nullptr) {
-                disconnect_pty_read();
-                disconnect_pty_write();
-
-                if (m_pty_channel != nullptr) {
-                        g_io_channel_unref (m_pty_channel);
-                        m_pty_channel = nullptr;
-                }
-
-		/* Take one last shot at processing whatever data is pending,
-		 * then flush the buffers in case we're about to run a new
-		 * command, disconnecting the timeout. */
-		if (!m_incoming_queue.empty() && process_remaining) {
-			process_incoming();
-                        while (!m_incoming_queue.empty())
-                                m_incoming_queue.pop();
-
-			m_input_bytes = 0;
-		}
-		stop_processing(this);
-
-                m_utf8_decoder.reset(); // FIXMEchpe necessary here?
-
-		/* Clear the outgoing buffer as well. */
-		_vte_byte_array_clear(m_outgoing);
-
-                g_object_unref(m_pty);
-                m_pty = nullptr;
+        if (pty()) {
+                unset_pty(false /* don't notify widget */, process_remaining);
         }
 
-        if (new_pty == nullptr) {
-                m_pty = nullptr;
+        m_pty = vte::base::make_ref(new_pty);
+        if (!new_pty)
                 return true;
-        }
 
-        m_pty = (VtePty *)g_object_ref(new_pty);
-        int pty_master = vte_pty_get_fd(m_pty);
+        int pty_master = pty()->fd();
 
         /* Ensure the FD is non-blocking */
         int flags = fcntl(pty_master, F_GETFL);
@@ -10251,11 +10185,8 @@ Terminal::set_pty(VtePty *new_pty,
 
         set_size(m_column_count, m_row_count);
 
-        GError *error = nullptr;
-        if (!vte_pty_set_utf8(m_pty, m_using_utf8, &error)) {
-                g_warning ("Failed to set UTF8 mode: %s\n", error->message);
-                g_error_free (error);
-        }
+        if (!pty()->set_utf8(m_using_utf8))
+                g_warning ("Failed to set UTF8 mode: %m\n");
 
         /* Open channels to listen for input on. */
         connect_pty_read();

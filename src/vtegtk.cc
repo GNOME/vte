@@ -56,6 +56,7 @@
 #include "widget.hh"
 
 #include "vtegtk.hh"
+#include "vteptyinternal.hh"
 #include "vteregexinternal.hh"
 
 #define I_(string) (g_intern_static_string(string))
@@ -2600,10 +2601,9 @@ vte_terminal_watch_child (VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(child_pid != -1);
 
-        auto impl = IMPL(terminal);
-        g_return_if_fail(impl->m_pty != NULL);
+        g_return_if_fail(WIDGET(terminal)->pty() != nullptr);
 
-        impl->watch_child(child_pid);
+        IMPL(terminal)->watch_child(child_pid);
 }
 
 /**
@@ -2663,16 +2663,34 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        return IMPL(terminal)->spawn_sync(pty_flags,
-                                         working_directory,
-                                         argv,
-                                         envv,
-                                         spawn_flags_,
-                                         child_setup,
-                                         child_setup_data,
-                                         child_pid,
-                                         cancellable,
-                                         error);
+        auto new_pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
+        if (new_pty == nullptr)
+                return false;
+
+        GPid pid;
+        if (!_vte_pty_spawn(new_pty,
+                            working_directory,
+                            argv,
+                            envv,
+                            spawn_flags_,
+                            child_setup, child_setup_data,
+                            &pid,
+                            -1 /* no timeout */,
+                            cancellable,
+                            error)) {
+                g_object_unref(new_pty);
+                return false;
+        }
+
+        vte_terminal_set_pty(terminal, new_pty);
+        g_object_unref (new_pty);
+
+        vte_terminal_watch_child(terminal, pid);
+
+        if (child_pid)
+                *child_pid = pid;
+
+        return true;
 }
 
 typedef struct {
@@ -4232,7 +4250,7 @@ vte_terminal_set_pty(VteTerminal *terminal,
         GObject *object = G_OBJECT(terminal);
         g_object_freeze_notify(object);
 
-        if (IMPL(terminal)->set_pty(pty))
+        if (WIDGET(terminal)->set_pty(pty))
                 g_object_notify_by_pspec(object, pspecs[PROP_PTY]);
 
         g_object_thaw_notify(object);
@@ -4251,7 +4269,7 @@ vte_terminal_get_pty(VteTerminal *terminal)
 {
         g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
 
-        return IMPL(terminal)->m_pty;
+        return WIDGET(terminal)->pty();
 }
 
 /**
