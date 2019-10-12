@@ -131,6 +131,17 @@ Pty::child_setup() const noexcept
                 _exit(127);
         }
 
+#if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
+        if (!(m_flags & VTE_PTY_NO_SESSION)) {
+                /* Start a new session and become process-group leader.
+                 * This also loses the controlling TTY.
+                 */
+                _vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
+                setsid();
+                setpgid(0, 0);
+        }
+#endif
+
         /* Note: *not* O_CLOEXEC! */
         auto const fd_flags = int{O_RDWR | ((m_flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0)};
         auto fd = int{-1};
@@ -171,15 +182,6 @@ Pty::child_setup() const noexcept
         }
 
         assert(fd != -1);
-
-#if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
-        if (!(m_flags & VTE_PTY_NO_SESSION)) {
-                /* Start a new session and become process-group leader. */
-                _vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
-                setsid();
-                setpgid(0, 0);
-        }
-#endif
 
 #ifdef TIOCSCTTY
         if (!(m_flags & VTE_PTY_NO_CTTY)) {
