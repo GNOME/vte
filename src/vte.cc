@@ -10200,12 +10200,11 @@ Terminal::terminate_child() noexcept
 	if (m_pty_pid == -1)
                 return false;
 
-#ifdef HAVE_GETPGID
         auto pgrp = getpgid(m_pty_pid);
         if (pgrp != -1) {
                 kill(-pgrp, SIGHUP);
         }
-#endif
+
         kill(m_pty_pid, SIGHUP);
         m_pty_pid = -1;
 

@@ -183,8 +183,6 @@ foreach func: check_functions_required
 endforeach
 
 check_functions = [
-  # Misc PTY handling functions
-  'getpgid',
   # Misc I/O routines.
   'explicit_bzero',
   'pread',

@@ -2755,13 +2755,12 @@ spawn_async_cb (GObject *source,
         if (terminal == nullptr) {
                 /* If the terminal was destroyed, we need to abort the child process, if any */
                 if (pid != -1) {
-#ifdef HAVE_GETPGID
                         pid_t pgrp;
                         pgrp = getpgid(pid);
                         if (pgrp != -1) {
                                 kill(-pgrp, SIGHUP);
                         }
-#endif
+
                         kill(pid, SIGHUP);
                 }
         }
