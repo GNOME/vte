@@ -186,8 +186,6 @@ check_functions = [
   # Misc PTY handling functions
   'cfmakeraw',
   'getpgid',
-  'setpgid',
-  'setsid',
   'tcsetattr',
   # Misc I/O routines.
   'explicit_bzero',

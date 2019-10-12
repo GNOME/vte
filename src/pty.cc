@@ -131,24 +131,22 @@ Pty::child_setup() const noexcept
                 _exit(127);
         }
 
-#if defined(HAVE_SETSID) && defined(HAVE_SETPGID)
         if (!(m_flags & VTE_PTY_NO_SESSION)) {
-                /* Start a new session and become process-group leader.
-                 * This also loses the controlling TTY.
+                /* This starts a new session; we become its process-group leader,
+                 * and lose our controlling TTY.
                  */
                 _vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
                 if (setsid() == -1) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setsid");
                         _exit(127);
                 }
-
-                if (setpgid(0, 0) == -1) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setpgid");
-                        /* _exit(127); */
-                }
         }
-#endif
+        /* FIXME? else if (m_flags & VTE_PTY_NO_CTTTY)
+         * No session and no controlling TTY wanted, do we need to lose our controlling TTY,
+         * perhaps by open("/dev/tty") + ioctl(TIOCNOTTY) ?
+         */
 
+        /* Now open the PTY peer. Note that this also makes the PTY our controlling TTY. */
         /* Note: *not* O_CLOEXEC! */
         auto const fd_flags = int{O_RDWR | ((m_flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0)};
         auto fd = int{-1};
@@ -191,6 +189,10 @@ Pty::child_setup() const noexcept
         assert(fd != -1);
 
 #ifdef TIOCSCTTY
+        /* On linux, opening the PTY peer above already made it our controlling TTY (since
+         * previously there was none, after the setsid() call). However, it appears that e.g.
+         * on *BSD, that doesn't happen, so we need this explicit ioctl here.
+         */
         if (!(m_flags & VTE_PTY_NO_CTTY)) {
                 if (ioctl(fd, TIOCSCTTY, fd) != 0) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
