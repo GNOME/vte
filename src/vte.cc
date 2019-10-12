@@ -10174,13 +10174,7 @@ Terminal::set_pty(vte::base::Pty *new_pty,
         if (!new_pty)
                 return true;
 
-        int pty_master = pty()->fd();
-
-        /* Ensure the FD is non-blocking */
-        int flags = fcntl(pty_master, F_GETFL);
-        g_warn_if_fail(flags >= 0 && (flags & O_NONBLOCK) == O_NONBLOCK);
-
-        m_pty_channel = g_io_channel_unix_new(pty_master);
+        m_pty_channel = g_io_channel_unix_new(pty()->fd());
         g_io_channel_set_close_on_unref(m_pty_channel, FALSE);
 
         set_size(m_column_count, m_row_count);
