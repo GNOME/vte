@@ -184,9 +184,7 @@ endforeach
 
 check_functions = [
   # Misc PTY handling functions
-  'cfmakeraw',
   'getpgid',
-  'tcsetattr',
   # Misc I/O routines.
   'explicit_bzero',
   'pread',

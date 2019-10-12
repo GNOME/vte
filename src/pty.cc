@@ -697,7 +697,7 @@ _vte_pty_open_foreign(int masterfd /* consumed */)
 bool
 Pty::set_utf8(bool utf8) const noexcept
 {
-#if defined(HAVE_TCSETATTR) && defined(IUTF8)
+#ifdef IUTF8
 	struct termios tio;
         if (tcgetattr(fd(), &tio) == -1) {
                 vte::util::restore_errno errsv;

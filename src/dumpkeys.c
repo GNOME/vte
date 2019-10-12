@@ -167,17 +167,7 @@ main(int argc, char **argv)
 	}
 	original = tcattr;
 	signal(SIGINT, sigint_handler);
-	/* Here we approximate what cfmakeraw() would do, for the benefit
-	 * of systems which don't actually provide the function. */
-	tcattr.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP |
-			    INLCR | IGNCR | ICRNL | IXON);
-	tcattr.c_oflag &= ~(OPOST);
-	tcattr.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-	tcattr.c_cflag &= ~(CSIZE | PARENB);
-	tcattr.c_cflag |= CS8;
-#ifdef HAVE_CFMAKERAW
 	cfmakeraw(&tcattr);
-#endif
 	if (tcsetattr(STDIN_FILENO, TCSANOW, &tcattr) != 0) {
 		perror("tcsetattr");
 		return 1;
