@@ -372,15 +372,21 @@ add_project_arguments(global_cxxflags, language: 'cpp')
 # Linker flags
 
 linker_flags = [
-  '-Wl,-Bsymbolic-functions'
+  [ '-Wl,-Bsymbolic-functions', get_option('_b_symbolic_functions'),],
 ]
 
 foreach flag: linker_flags
-  assert(cc.has_link_argument(flag), flag + ' is required but not supported')
-  add_project_link_arguments(flag, language: 'c')
+  if cc.has_link_argument(flag[0])
+    add_project_link_arguments(flag[0], language: 'c')
+  elif flag[1]
+    assert(false, flag[0] + ' is required but not supported')
+  endif
 
-  assert(cxx.has_link_argument(flag), flag + ' is required but not supported')
-  add_project_link_arguments(flag, language: 'cpp')
+  if cxx.has_link_argument(flag[0])
+    add_project_link_arguments(flag[0], language: 'cpp')
+  elif flag[1]
+    assert(false, flag[0] + ' is required but not supported')
+  endif
 endforeach
 
 # Dependencies
