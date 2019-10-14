@@ -18,6 +18,23 @@
 
 #pragma once
 
+/* BEGIN sanity checks */
+
+/* Some distributions pass -fexceptions in a way that overrides vte's
+ * own -fno-exceptions. This is a hard error; fail the build.
+ * See https://gitlab.gnome.org/GNOME/gnome-build-meta/issues/207
+ */
+#ifdef __EXCEPTIONS
+#error You CANNOT use -fexceptions to build vte! Fix your build; and DO NOT file a bug upstream!
+#endif
+
+/* While we're at it, check -fno-rtti too */
+#ifdef __GXX_RTTI
+#error You CANNOT use -frtti to build vte! Fix your build system; and DO NOT file a bug upstream!
+#endif
+
+/* END sanity checks */
+
 #include <glib.h>
 
 #include "vtedefines.hh"
