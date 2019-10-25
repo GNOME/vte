@@ -39,12 +39,6 @@ __vte_urlencode() (
   done
 )
 
-# Print a warning so that anyone who's added this manually to his PS1 can adapt.
-# The function will be removed in a later version.
-__vte_ps1() {
-  echo -n "(__vte_ps1 is obsolete)"
-}
-
 __vte_osc7 () {
   printf "\033]7;file://%s%s\033\\" "${HOSTNAME:-}" "$(__vte_urlencode "${PWD}")"
 }
