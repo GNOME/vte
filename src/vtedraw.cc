@@ -971,12 +971,28 @@ _vte_draw_get_text_metrics(struct _vte_draw *draw,
                 *char_spacing = draw->char_spacing;
 }
 
+/* Check if a unicode character is actually a graphic character we draw
+ * ourselves to handle cases where fonts don't have glyphs for them. */
+static gboolean
+_vte_draw_unichar_is_local_graphic(vteunistr c)
+{
+        /* Box Drawing & Block Elements */
+        return (c >= 0x2500) && (c <= 0x259f);
+}
 
 /* Stores the left and right edges of the given glyph, relative to the cell's left edge. */
 void
 _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guint style,
                           int *left, int *right)
 {
+        if (G_UNLIKELY (_vte_draw_unichar_is_local_graphic (c))) {
+                if (left)
+                        *left = 0;
+                if (right)
+                        *right = draw->cell_width * columns;
+                return;
+        }
+
         int l, w, normal_width, fits_width;
 
         if (G_UNLIKELY (draw->fonts[VTE_DRAW_NORMAL] == NULL)) {
@@ -1008,15 +1024,6 @@ _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guin
                 *left = l;
         if (right)
                 *right = l + w;
-}
-
-/* Check if a unicode character is actually a graphic character we draw
- * ourselves to handle cases where fonts don't have glyphs for them. */
-static gboolean
-_vte_draw_unichar_is_local_graphic(vteunistr c)
-{
-        /* Box Drawing & Block Elements */
-        return (c >= 0x2500) && (c <= 0x259f);
 }
 
 #include "box_drawing.h"
@@ -1507,6 +1514,13 @@ _vte_draw_text_internal (struct _vte_draw *draw,
                         vte_bidi_get_mirror_char (c, requests[i].box_mirror, &c);
                 }
 
+                if (_vte_draw_unichar_is_local_graphic(c)) {
+                        _vte_draw_terminal_draw_graphic(draw, c, color,
+                                                        requests[i].x, requests[i].y,
+                                                        font->width, requests[i].columns, font->height);
+                        continue;
+                }
+
 		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
 		union unistr_font_info *ufi = &uinfo->ufi;
                 int x, y;
@@ -1516,13 +1530,6 @@ _vte_draw_text_internal (struct _vte_draw *draw,
                 /* Bold/italic versions might have different ascents. In order to align their
                  * baselines, we offset by the normal font's ascent here. (Bug 137.) */
                 y = requests[i].y + draw->char_spacing.top + draw->fonts[VTE_DRAW_NORMAL]->ascent;
-
-                if (_vte_draw_unichar_is_local_graphic(c)) {
-                        _vte_draw_terminal_draw_graphic(draw, c, color,
-                                                        requests[i].x, requests[i].y,
-                                                        font->width, requests[i].columns, font->height);
-                        continue;
-                }
 
 		switch (uinfo->coverage) {
 		default:
