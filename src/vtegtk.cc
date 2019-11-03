@@ -2559,8 +2559,9 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @error: (allow-none): return location for a #GError, or %NULL
  *
- * Creates a new #VtePty, and sets the emulation property
- * from #VteTerminal:emulation.
+ * Creates a new #VtePty, sets the emulation property
+ * from #VteTerminal:emulation, and sets the size using
+ * @terminal's size.
  *
  * See vte_pty_new() for more information.
  *
@@ -2577,6 +2578,8 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
         VtePty *pty = vte_pty_new_sync(flags, cancellable, error);
         if (pty == NULL)
                 return NULL;
+
+        vte_pty_set_size(pty, IMPL(terminal)->m_row_count, IMPL(terminal)->m_column_count, NULL);
 
         return pty;
 }
