@@ -480,6 +480,12 @@ vte_pty_error_quark(void)
  *
  * Also, you MUST pass the %G_SPAWN_DO_NOT_REAP_CHILD flag.
  *
+ * Note that you should set the PTY's size using vte_pty_set_size() before
+ * spawning the child process, so that the child process has the correct
+ * size from the start instead of starting with a default size and then
+ * shortly afterwards receiving a SIGWINCH signal. You should prefer
+ * using vte_terminal_pty_new_sync() which does this automatically.
+ *
  * Returns: (transfer full): a new #VtePty, or %NULL on error with @error filled in
  */
 VtePty *
