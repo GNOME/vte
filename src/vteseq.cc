@@ -5808,7 +5808,7 @@ void
 Terminal::HPB(vte::parser::Sequence const& seq)
 {
         /*
-         * HPA - horizontal position backward
+         * HPB - horizontal position backward
          * Move the active position (data) to the backward by @args[0] positions
          * in the active line.
          *
