@@ -654,7 +654,9 @@ public:
         PangoAttrList *m_im_preedit_attrs;
         int m_im_preedit_cursor;
 
+        #ifdef WITH_A11Y
         gboolean m_accessible_emit;
+        #endif
 
         /* Adjustment updates pending. */
         gboolean m_adjustment_changed_pending;

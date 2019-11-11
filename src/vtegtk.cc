@@ -52,12 +52,15 @@
 #include "reaper.hh"
 #include "vtedefines.hh"
 #include "vteinternal.hh"
-#include "vteaccess.h"
 #include "widget.hh"
 
 #include "vtegtk.hh"
 #include "vteptyinternal.hh"
 #include "vteregexinternal.hh"
+
+#ifdef WITH_A11Y
+#include "vteaccess.h"
+#endif
 
 #define I_(string) (g_intern_static_string(string))
 
@@ -1798,8 +1801,10 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                          "}\n",
                                          -1, NULL);
 
+#ifdef WITH_A11Y
         /* a11y */
         gtk_widget_class_set_accessible_type(widget_class, VTE_TYPE_TERMINAL_ACCESSIBLE);
+#endif
 }
 
 /* public API */

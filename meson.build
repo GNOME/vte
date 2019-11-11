@@ -114,6 +114,7 @@ config_h = configuration_data()
 config_h.set_quoted('GETTEXT_PACKAGE', vte_gettext_domain)
 config_h.set_quoted('VERSION', vte_version)
 config_h.set('VTE_DEBUG', enable_debug)
+config_h.set('WITH_A11Y', get_option('a11y'))
 config_h.set('WITH_FRIBIDI', get_option('fribidi'))
 config_h.set('WITH_GNUTLS', get_option('gnutls'))
 config_h.set('WITH_ICONV', get_option('iconv'))
@@ -478,6 +479,8 @@ output += '  C++ compiler: ' + cxx.get_id() + ' (version ' + cxx.version() + ')\
 output += '\n'
 output += '  Coverage:     ' + get_option('b_coverage').to_string() + '\n'
 output += '  Debug:        ' + enable_debug.to_string() + '\n'
+output += '\n'
+output += '  A11y:         ' + get_option('a11y').to_string() + '\n'
 output += '  Docs:         ' + get_option('docs').to_string() + '\n'
 output += '  FRIBIDI:      ' + get_option('fribidi').to_string() + '\n'
 output += '  GNUTLS:       ' + get_option('gnutls').to_string() + '\n'

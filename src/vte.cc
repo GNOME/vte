@@ -62,9 +62,12 @@
 #include <pango/pango.h>
 #include "keymap.h"
 #include "marshal.h"
-#include "vteaccess.h"
 #include "vtepty.h"
 #include "vtegtk.hh"
+
+#ifdef WITH_A11Y
+#include "vteaccess.h"
+#endif
 
 #include <new> /* placement new */
 
@@ -828,42 +831,49 @@ Terminal::emit_decrease_font_size()
 void
 Terminal::emit_text_inserted()
 {
+#ifdef WITH_A11Y
 	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-inserted'.\n");
 	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_INSERTED], 0);
+#endif
 }
 
 /* Emit a "text-deleted" signal. */
 void
 Terminal::emit_text_deleted()
 {
+#ifdef WITH_A11Y
 	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `text-deleted'.\n");
 	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_DELETED], 0);
+#endif
 }
 
 /* Emit a "text-modified" signal. */
 void
 Terminal::emit_text_modified()
 {
+#ifdef WITH_A11Y
 	if (!m_accessible_emit) {
 		return;
 	}
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
                          "Emitting `text-modified'.\n");
 	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_MODIFIED], 0);
+#endif
 }
 
 /* Emit a "text-scrolled" signal. */
 void
 Terminal::emit_text_scrolled(long delta)
 {
+#ifdef WITH_A11Y
 	if (!m_accessible_emit) {
 		return;
 	}
@@ -871,6 +881,7 @@ Terminal::emit_text_scrolled(long delta)
 			"Emitting `text-scrolled'(%ld).\n", delta);
         // FIXMEchpe fix signal signature?
 	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_SCROLLED], 0, (int)delta);
+#endif
 }
 
 void
@@ -10184,7 +10195,9 @@ Terminal::terminate_child() noexcept
 void
 Terminal::subscribe_accessible_events()
 {
+#ifdef WITH_A11Y
 	m_accessible_emit = true;
+#endif
 }
 
 void

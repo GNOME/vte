@@ -18,6 +18,11 @@ subdir('vte')
 
 src_inc = include_directories('.')
 
+a11y_sources = files(
+  'vteaccess.cc',
+  'vteaccess.h',
+)
+
 debug_sources = files(
   'debug.cc',
   'debug.h',
@@ -88,8 +93,6 @@ libvte_common_sources = debug_sources + modes_sources + parser_sources + pty_sou
   'utf8.cc',
   'utf8.hh',
   'vte.cc',
-  'vteaccess.cc',
-  'vteaccess.h',
   'vtedefines.hh',
   'vtedraw.cc',
   'vtedraw.hh',
@@ -117,6 +120,10 @@ libvte_common_sources = debug_sources + modes_sources + parser_sources + pty_sou
   'widget.cc',
   'widget.hh',
 )
+
+if get_option('a11y')
+  libvte_common_sources += a11y_sources
+endif
 
 libvte_common_doc_sources = files(
   # These file contain gtk-doc comments to be extracted for docs and gir
