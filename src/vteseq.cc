@@ -1317,15 +1317,21 @@ Terminal::erase_in_line(vte::parser::Sequence const& seq)
 void
 Terminal::insert_lines(vte::grid::row_t param)
 {
-        vte::grid::row_t end, i;
+        vte::grid::row_t start, end, i;
 
 	/* Find the region we're messing with. */
         auto row = m_screen->cursor.row;
         if (m_scrolling_restricted) {
+                start = m_screen->insert_delta + m_scrolling_region.start;
                 end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
+                start = m_screen->insert_delta;
                 end = m_screen->insert_delta + m_row_count - 1;
 	}
+
+        /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
+        if (m_screen->cursor.row < start || m_screen->cursor.row > end)
+                return;
 
 	/* Only allow to insert as many lines as there are between this row
          * and the end of the scrolling region. See bug #676090.
@@ -1359,15 +1365,21 @@ Terminal::insert_lines(vte::grid::row_t param)
 void
 Terminal::delete_lines(vte::grid::row_t param)
 {
-        vte::grid::row_t end, i;
+        vte::grid::row_t start, end, i;
 
 	/* Find the region we're messing with. */
         auto row = m_screen->cursor.row;
         if (m_scrolling_restricted) {
+                start = m_screen->insert_delta + m_scrolling_region.start;
                 end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
+                start = m_screen->insert_delta;
                 end = m_screen->insert_delta + m_row_count - 1;
 	}
+
+        /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
+        if (m_screen->cursor.row < start || m_screen->cursor.row > end)
+                return;
 
         /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
          * Need to do it before scrolling up, for the end row to be the desired one. */
@@ -5011,6 +5023,7 @@ Terminal::DL(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.32
+         *             DEC STD 070 page 5-148
          *             Terminal-wg/bidi
          */
 #if 0
@@ -6033,6 +6046,7 @@ Terminal::IL(vte::parser::Sequence const& seq)
          * and the SLH and SEE functions.
          *
          * References: ECMA-48 § 8.3.67
+         *             DEC STD 070 page 5-146
          *             Terminal-wg/bidi
          */
 #if 0
