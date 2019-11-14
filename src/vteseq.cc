@@ -441,8 +441,10 @@ Terminal::switch_screen(VteScreen *new_screen)
 
         /* cursor.row includes insert_delta, adjust accordingly */
         auto cr = m_screen->cursor.row - m_screen->insert_delta;
+        auto cc = m_screen->cursor.col;
         m_screen = new_screen;
         m_screen->cursor.row = cr + m_screen->insert_delta;
+        m_screen->cursor.col = cc;
 
         /* Make sure the ring is large enough */
         ensure_row();
