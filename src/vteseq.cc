@@ -971,7 +971,7 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
 
         vte::grid::row_t end;
         // FIXMEchpe why not check DEC_ORIGIN here?
-        if (m_scrolling_restricted) {
+        if (m_scrolling_restricted && m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.end) {
                 end = m_screen->insert_delta + m_scrolling_region.end;
 	} else {
                 end = m_screen->insert_delta + m_row_count - 1;
@@ -1143,7 +1143,7 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
 
         vte::grid::row_t start;
         //FIXMEchpe why not check DEC_ORIGIN mode here?
-        if (m_scrolling_restricted) {
+        if (m_scrolling_restricted && m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.start) {
                 start = m_screen->insert_delta + m_scrolling_region.start;
 	} else {
 		start = m_screen->insert_delta;
@@ -2165,6 +2165,7 @@ Terminal::CUD(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.19
+         *             DEC STD 070 page 5-43
          */
 #if 0
         unsigned int num = 1;
@@ -2263,6 +2264,7 @@ Terminal::CUU(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.22
+         *             DEC STD 070 page 5-41
          */
 #if 0
         unsigned int num = 1;
