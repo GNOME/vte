@@ -107,6 +107,7 @@ public:
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
         void emit_child_exited(int status) noexcept;
+        void emit_eof() noexcept;
 
         bool set_pty(VtePty* pty) noexcept;
         inline auto pty() const noexcept { return m_pty.get(); }

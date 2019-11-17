@@ -181,6 +181,13 @@ Widget::emit_child_exited(int status) noexcept
         g_signal_emit(object(), signals[SIGNAL_CHILD_EXITED], 0, status);
 }
 
+void
+Widget::emit_eof() noexcept
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `eof'.\n");
+        g_signal_emit(object(), signals[SIGNAL_EOF], 0);
+}
+
 bool
 Widget::im_filter_keypress(GdkEventKey* event) noexcept
 {

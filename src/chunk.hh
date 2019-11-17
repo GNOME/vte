@@ -41,14 +41,20 @@ private:
 
         static unsigned int const k_max_free_chunks = 16;
 
+        enum class Flags : uint8_t {
+                eSEALED = 1u << 0,
+                eEOS    = 1u << 1,
+        };
+
 public:
         using unique_type = std::unique_ptr<Chunk, Recycler>;
 
         static unsigned int const k_chunk_size = 0x2000;
 
         unsigned int len{0};
+        uint8_t m_flags{0};
         uint8_t dataminusone;    /* Hack: Keep it right before data, so that data[-1] is valid and usable */
-        uint8_t data[k_chunk_size - 2 * sizeof(void*) - 1 - sizeof(unsigned int)];
+        uint8_t data[k_chunk_size - 2 * sizeof(void*) - 2 - sizeof(unsigned int)];
 
         Chunk() = default;
         Chunk(Chunk const&) = delete;
@@ -61,6 +67,7 @@ public:
         void reset() noexcept
         {
                 len = 0;
+                m_flags = 0;
         }
 
         inline constexpr size_t capacity() const noexcept { return sizeof(data); }
@@ -68,6 +75,12 @@ public:
 
         static unique_type get() noexcept;
         static void prune(unsigned int max_size = k_max_free_chunks) noexcept;
+
+        inline constexpr bool sealed() const noexcept { return m_flags & (uint8_t)Flags::eSEALED; }
+        inline void set_sealed() noexcept { m_flags |= (uint8_t)Flags::eSEALED; }
+
+        inline constexpr bool eos() const noexcept { return m_flags & (uint8_t)Flags::eEOS; }
+        inline void set_eos() noexcept { m_flags |= (uint8_t)Flags::eEOS; }
 
 private:
 

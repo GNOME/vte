@@ -359,15 +359,16 @@ public:
         vte::base::RefPtr<vte::base::Pty> m_pty{};
         inline constexpr auto& pty() const noexcept { return m_pty; }
 
-        void unset_pty(bool notify_widget = true,
-                       bool process_remaining = true);
-        bool set_pty(vte::base::Pty* pty,
-                     bool process_remaining = true);
+        void unset_pty(bool notify_widget = true);
+        bool set_pty(vte::base::Pty* pty);
 
         guint m_pty_input_source{0};
         guint m_pty_output_source{0};
         bool m_pty_input_active{false};
         pid_t m_pty_pid{-1};           /* pid of child process */
+        int m_child_exit_status{-1};   /* pid's exit status, or -1 */
+        bool m_eos_pending{false};
+        bool m_child_exited_after_eos_pending{false};
         VteReaper *m_reaper;
 
 	/* Queue of chunks of data read from the PTY.
@@ -973,6 +974,7 @@ public:
         bool terminate_child () noexcept;
         void child_watch_done(pid_t pid,
                               int status);
+        void emit_child_exited();
 
         void im_commit(char const* text);
         void im_preedit_set_active(bool active) noexcept;
@@ -1108,7 +1110,7 @@ public:
 
         void queue_cursor_moved();
         void queue_contents_changed();
-        void queue_eof();
+        void queue_child_exited();
 
         void emit_text_deleted();
         void emit_text_inserted();
