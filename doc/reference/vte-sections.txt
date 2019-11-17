@@ -94,6 +94,8 @@ vte_terminal_event_check_regex_simple
 <SUBSECTION>
 vte_get_user_shell
 vte_get_features
+vte_get_encodings
+vte_get_encoding_supported
 
 <SUBSECTION>
 VteTerminalSpawnAsyncCallback

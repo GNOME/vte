@@ -67,6 +67,13 @@ public:
                 m_codepoint = 0xfffdU;
         }
 
+        inline bool flush() noexcept {
+                auto state = m_state;
+                if (m_state != ACCEPT)
+                        reset();
+                return state != m_state;
+        }
+
 private:
         uint32_t m_state{ACCEPT};
         uint32_t m_codepoint{0};

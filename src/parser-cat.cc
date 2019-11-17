@@ -358,7 +358,8 @@ private:
         void
         printout() noexcept
         {
-                g_print("%s\n", m_str.c_str());
+                m_str.push_back('\n');
+                write(STDOUT_FILENO, m_str.data(), m_str.size());
                 m_str.clear();
         }
 
@@ -747,7 +748,8 @@ public:
                                 }
                                 if (fd != -1) {
                                         r = process_file(fd, repeat, func);
-                                        close(fd);
+                                        if (fd != STDIN_FILENO)
+                                                close(fd);
                                         if (!r)
                                                 break;
                                 }

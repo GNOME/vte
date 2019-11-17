@@ -56,9 +56,8 @@ decode(uint8_t const* in,
         decoder.reset();
 
         auto const iend = in + len;
-        uint32_t state = UTF8Decoder::ACCEPT;
         for (auto iptr = in; iptr < iend; ++iptr) {
-                switch ((state = decoder.decode(*iptr))) {
+                switch (decoder.decode(*iptr)) {
                 case vte::base::UTF8Decoder::REJECT_REWIND:
                         /* Note that this will never lead to a loop, since in the
                          * next round this byte *will* be consumed.
@@ -67,7 +66,6 @@ decode(uint8_t const* in,
                         [[fallthrough]];
                 case vte::base::UTF8Decoder::REJECT:
                         decoder.reset();
-                        state = UTF8Decoder::ACCEPT;
                         /* Fall through to insert the U+FFFD replacement character. */
                         [[fallthrough]];
                 case vte::base::UTF8Decoder::ACCEPT:
@@ -82,8 +80,8 @@ decode(uint8_t const* in,
          * we need to insert a replacement character since we're
          * aborting a sequence mid-way.
          */
-        if (state != UTF8Decoder::ACCEPT) {
-                out.push_back(0xfffdu);
+        if (decoder.flush()) {
+                out.push_back(decoder.codepoint());
         }
 }
 

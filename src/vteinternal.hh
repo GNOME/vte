@@ -63,6 +63,10 @@
 #include <variant>
 #include <vector>
 
+#ifdef WITH_ICU
+#include "icu-converter.hh"
+#endif
+
 typedef enum {
         VTE_REGEX_CURSOR_GDKCURSOR,
         VTE_REGEX_CURSOR_GDKCURSORTYPE,
@@ -372,8 +376,19 @@ public:
         std::queue<vte::base::Chunk::unique_type, std::list<vte::base::Chunk::unique_type>> m_incoming_queue;
 
         vte::base::UTF8Decoder m_utf8_decoder;
-        bool m_using_utf8{true};
-        const char *m_encoding;            /* the pty's encoding */
+
+        enum class DataSyntax {
+                eECMA48_UTF8,
+                #ifdef WITH_ICU
+                eECMA48_PCTERM,
+                #endif
+                /* eECMA48_ECMA35, not supported */
+        };
+
+        DataSyntax m_data_syntax{DataSyntax::eECMA48_UTF8};
+
+        auto data_syntax() const noexcept { return m_data_syntax; }
+
         int m_utf8_ambiguous_width;
         gunichar m_last_graphic_character; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
@@ -392,15 +407,21 @@ public:
 	/* Output data queue. */
         VteByteArray *m_outgoing; /* pending input characters */
 
-#ifdef WITH_ICONV
+#ifdef WITH_ICU
         /* Legacy charset support */
-        GIConv m_incoming_conv{GIConv(-1)};
-        VteByteArray* m_incoming_leftover;
-        GIConv m_outgoing_conv{GIConv(-1)};
-        VteByteArray *m_conv_buffer;
+        std::unique_ptr<vte::base::ICUConverter> m_converter;
+#endif /* WITH_ICU */
 
-        void convert_incoming() noexcept;
-#endif
+        char const* encoding() const noexcept
+        {
+                switch (m_data_syntax) {
+                case DataSyntax::eECMA48_UTF8:   return "UTF-8";
+                #ifdef WITH_ICU
+                case DataSyntax::eECMA48_PCTERM: return m_converter->charset().c_str();
+                #endif
+                default: g_assert_not_reached(); return nullptr;
+                }
+        }
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
@@ -788,6 +809,10 @@ public:
         bool invalidate_dirty_rects_and_process_updates();
         void time_process_incoming();
         void process_incoming();
+        void process_incoming_utf8();
+        #ifdef WITH_ICU
+        void process_incoming_pcterm();
+        #endif
         bool process(bool emit_adj_changed);
         inline bool is_processing() const { return m_active_terminals_link != nullptr; }
         void start_processing();
@@ -964,6 +989,7 @@ public:
         void reset(bool clear_tabstops,
                    bool clear_history,
                    bool from_api = false);
+        void reset_decoder();
 
         void feed(char const* data,
                   gssize length,
@@ -1253,7 +1279,8 @@ public:
         bool set_delete_binding(VteEraseBinding binding);
         bool set_enable_bidi(bool setting);
         bool set_enable_shaping(bool setting);
-        bool set_encoding(char const* codeset);
+        bool set_encoding(char const* codeset,
+                          GError** error);
         bool set_font_desc(PangoFontDescription const* desc);
         bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);

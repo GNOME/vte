@@ -154,6 +154,14 @@ void vte_terminal_feed_child_binary(VteTerminal *terminal,
                                     const guint8 *data,
                                     gsize length) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+char **vte_get_encodings(gboolean include_aliases);
+
+_VTE_DEPRECATED
+_VTE_PUBLIC
+gboolean vte_get_encoding_supported(const char *encoding);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED

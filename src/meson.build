@@ -28,6 +28,15 @@ debug_sources = files(
   'debug.h',
 )
 
+icu_sources = files(
+  'icu-converter.cc',
+  'icu-converter.hh',
+  'icu-decoder.cc',
+  'icu-decoder.hh',
+  'icu-glue.cc',
+  'icu-glue.hh',
+)
+
 modes_sources = files(
   'modes-ecma.hh',
   'modes-private.hh',
@@ -125,6 +134,10 @@ if get_option('a11y')
   libvte_common_sources += a11y_sources
 endif
 
+if get_option('icu')
+  libvte_common_sources += icu_sources
+endif
+
 libvte_common_doc_sources = files(
   # These file contain gtk-doc comments to be extracted for docs and gir
   'pty.cc',
@@ -167,6 +180,7 @@ libvte_common_public_deps = [
 libvte_common_deps = libvte_common_public_deps + [
   fribidi_dep,
   gnutls_dep,
+  icu_dep,
   pcre2_dep,
   libm_dep,
   pthreads_dep,
@@ -223,7 +237,22 @@ endif
 
 ## Tests
 
-# cat
+# decoder cat
+
+decoder_cat_sources = icu_sources + utf8_sources + debug_sources + files(
+  'decoder-cat.cc'
+)
+
+decoder_cat = executable(
+  'decoder-cat',
+  decoder_cat_sources,
+  dependencies: [glib_dep, icu_dep,],
+  cpp_args: [],
+  include_directories: top_inc,
+  install: false,
+)
+
+# parser cat
 
 parser_cat_sources = parser_sources + utf8_sources + debug_sources + files(
   'parser-cat.cc'
@@ -232,7 +261,7 @@ parser_cat_sources = parser_sources + utf8_sources + debug_sources + files(
 parser_cat = executable(
   'parser-cat',
   parser_cat_sources,
-  dependencies: [glib_dep],
+  dependencies: [glib_dep,],
   cpp_args: ['-DPARSER_INCLUDE_NOP'],
   include_directories: top_inc,
   install: false,

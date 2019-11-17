@@ -42,6 +42,7 @@ glib_req_version          = '2.44.0'
 glib_min_req_version      = '2.44'
 glib_max_allowed_version  = '2.44'
 gnutls_req_version        = '3.2.7'
+icu_uc_req_version        = '4.8'
 pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'
 
@@ -117,7 +118,7 @@ config_h.set('VTE_DEBUG', enable_debug)
 config_h.set('WITH_A11Y', get_option('a11y'))
 config_h.set('WITH_FRIBIDI', get_option('fribidi'))
 config_h.set('WITH_GNUTLS', get_option('gnutls'))
-config_h.set('WITH_ICONV', get_option('iconv'))
+config_h.set('WITH_ICU', get_option('icu'))
 
 ver = glib_min_req_version.split('.')
 config_h.set('GLIB_VERSION_MIN_REQUIRED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
@@ -428,6 +429,12 @@ else
   gtk4_dep = dependency('', required: false)
 endif
 
+if get_option('icu')
+  icu_dep = dependency('icu-uc', version: '>=' + icu_uc_req_version)
+else
+  icu_dep = dependency('', required: false)
+endif
+
 # Write config.h
 
 configure_file(
@@ -486,7 +493,7 @@ output += '  FRIBIDI:      ' + get_option('fribidi').to_string() + '\n'
 output += '  GNUTLS:       ' + get_option('gnutls').to_string() + '\n'
 output += '  GTK+ 3.0:     ' + get_option('gtk3').to_string() + '\n'
 output += '  GTK+ 4.0:     ' + get_option('gtk4').to_string() + '\n'
-output += '  IConv:        ' + get_option('iconv').to_string() + '\n'
+output += '  ICU:          ' + get_option('icu').to_string() + '\n'
 output += '  GIR:          ' + get_option('gir').to_string() + '\n'
 output += '  Vala:         ' + get_option('vapi').to_string() + '\n'
 output += '\n'

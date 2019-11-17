@@ -728,8 +728,11 @@ Terminal::emit_selection_changed()
 /* Emit a "commit" signal. */
 void
 Terminal::emit_commit(char const* text,
-                                gssize length)
+                      gssize length)
 {
+        if (length == 0)
+                return;
+
 	char const* result = NULL;
 	char *wrapped = NULL;
 
@@ -745,6 +748,23 @@ Terminal::emit_commit(char const* text,
 		memcpy(wrapped, text, length);
 		wrapped[length] = '\0';
 	}
+
+        _VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
+                for (gssize i = 0; i < length; i++) {
+                        if ((((guint8) result[i]) < 32) ||
+                            (((guint8) result[i]) > 127)) {
+                                g_printerr(
+                                           "Sending <%02x> "
+                                           "to child.\n",
+                                           result[i]);
+                        } else {
+                                g_printerr(
+                                           "Sending '%c' "
+                                           "to child.\n",
+                                           result[i]);
+                        }
+                }
+        }
 
 	g_signal_emit(m_terminal, signals[SIGNAL_COMMIT], 0, result, (guint)length);
 
@@ -1949,97 +1969,53 @@ Terminal::maybe_scroll_to_bottom()
 
 /*
  * Terminal::set_encoding:
- * @codeset: (allow-none): a valid #GIConv target, or %NULL to use UTF-8
+ * @charset: (allow-none): target charset, or %NULL to use UTF-8
  *
  * Changes the encoding the terminal will expect data from the child to
- * be encoded with.  For certain terminal types, applications executing in the
- * terminal can change the encoding. If @codeset is %NULL, it uses "UTF-8".
+ * be encoded with.  If @charset is %NULL, it uses "UTF-8".
  *
  * Returns: %true if the encoding could be changed to the specified one
  */
 bool
-Terminal::set_encoding(char const* codeset)
+Terminal::set_encoding(char const* charset,
+                       GError** error)
 {
-#ifdef WITH_ICONV
-	if (codeset == nullptr) {
-                codeset = "UTF-8";
-	}
+#ifdef WITH_ICU
+        auto const using_utf8 = bool{charset == nullptr || g_ascii_strcasecmp(charset, "UTF-8") == 0};
+        auto const syntax = using_utf8 ? DataSyntax::eECMA48_UTF8 : DataSyntax::eECMA48_PCTERM;
 
-        bool const using_utf8 = g_str_equal(codeset, "UTF-8");
+        if (syntax == data_syntax())
+                return true;
+
+        /* Note: we DON'T convert any pending output from the previous charset to
+         * the new charset, since that is in general not possible without loss, and
+         * also the output may include binary data (Terminal::feed_child_binary()).
+         * So we just clear the outgoing queue. (FIXMEchpe: instead, we could flush
+         * the outgooing and only change charsets once it's empty.)
+         * Do not clear the incoming queue.
+         */
+
+        _vte_byte_array_clear(m_outgoing);
 
         if (using_utf8) {
-                if (m_incoming_conv != ((GIConv)-1))
-                        g_iconv_close(m_incoming_conv);
-                if (m_outgoing_conv != ((GIConv)-1))
-                        g_iconv_close(m_outgoing_conv);
-                m_incoming_conv = (GIConv)-1;
-                m_outgoing_conv = (GIConv)-1;
+                m_converter.reset();
         } else {
-                auto outconv = g_iconv_open(codeset, "UTF-8");
-                if (outconv == ((GIConv)-1))
+                m_converter = vte::base::ICUConverter::make(charset, error);
+                if (!m_converter)
                         return false;
-
-                auto inconv = g_iconv_open("UTF-8", codeset);
-                if (inconv == ((GIConv)-1)) {
-                        g_iconv_close(outconv);
-                        return FALSE;
-                }
-
-                if (m_outgoing_conv != ((GIConv)-1)) {
-                        g_iconv_close(m_outgoing_conv);
-                }
-                m_outgoing_conv = outconv; /* adopted */
-
-                if (m_incoming_conv != ((GIConv)-1)) {
-                        g_iconv_close(m_incoming_conv);
-                }
-                m_incoming_conv = inconv; /* adopted */
-
-                /* Set the terminal's encoding to the new value. */
-                auto old_codeset = m_encoding ? m_encoding : "UTF-8";
-                m_encoding = g_intern_string(codeset);
-
-                /* Convert any buffered output bytes. */
-                if ((_vte_byte_array_length(m_outgoing) > 0) &&
-                    (old_codeset != nullptr)) {
-                        char *obuf1, *obuf2;
-                        gsize bytes_written;
-
-                        /* Convert back to UTF-8. */
-                        obuf1 = g_convert((char *)m_outgoing->data,
-                                          _vte_byte_array_length(m_outgoing),
-                                          "UTF-8",
-                                          old_codeset,
-                                          NULL,
-                                          &bytes_written,
-                                          NULL);
-                        if (obuf1 != NULL) {
-                                /* Convert to the new encoding. */
-                                obuf2 = g_convert(obuf1,
-                                                  bytes_written,
-                                                  codeset,
-                                                  "UTF-8",
-                                                  NULL,
-                                                  &bytes_written,
-                                                  NULL);
-                                if (obuf2 != NULL) {
-                                        _vte_byte_array_clear(m_outgoing);
-                                        _vte_byte_array_append(m_outgoing,
-                                                               obuf2, bytes_written);
-                                        g_free(obuf2);
-                                }
-                                g_free(obuf1);
-                        }
-                }
         }
 
-        m_using_utf8 = using_utf8;
+        m_data_syntax = syntax;
+        reset_decoder();
+
+        if (pty())
+                pty()->set_utf8(using_utf8);
 
 	_vte_debug_print(VTE_DEBUG_IO,
-			"Set terminal encoding to `%s'.\n",
-			m_encoding);
+                         "Set terminal encoding to `%s'.\n",
+                         encoding());
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `encoding-changed'.\n");
+                         "Emitting `encoding-changed'.\n");
 
         GObject *object = G_OBJECT(m_terminal);
 	g_signal_emit(object, signals[SIGNAL_ENCODING_CHANGED], 0);
@@ -3195,6 +3171,10 @@ Terminal::connect_pty_write()
 
         g_warn_if_fail(m_input_enabled);
 
+        /* Anything to write? */
+        if (_vte_byte_array_length(m_outgoing) == 0)
+                return;
+
         /* Do one write. FIXMEchpe why? */
         if (!pty_io_write (pty()->fd(), G_IO_OUT))
                 return;
@@ -3331,178 +3311,25 @@ Terminal::im_reset()
         }
 }
 
-#ifdef WITH_ICONV
-
-static size_t
-_vte_conv(GIConv conv,
-	  char **inbuf, gsize *inbytes_left,
-	  gchar **outbuf, gsize *outbytes_left)
-{
-	size_t ret, tmp;
-	gchar *work_inbuf_start, *work_inbuf_working;
-	gchar *work_outbuf_start, *work_outbuf_working;
-	gsize work_inbytes, work_outbytes;
-
-	g_assert(conv != (GIConv) -1);
-
-	work_inbuf_start = work_inbuf_working = *inbuf;
-	work_outbuf_start = work_outbuf_working = *outbuf;
-	work_inbytes = *inbytes_left;
-	work_outbytes = *outbytes_left;
-
-	/* Call the underlying conversion. */
-	ret = 0;
-	do {
-		tmp = g_iconv(conv,
-					 &work_inbuf_working,
-					 &work_inbytes,
-					 &work_outbuf_working,
-					 &work_outbytes);
-		if (tmp == (size_t) -1) {
-			/* Check for zero bytes, which we pass right through. */
-			if (errno == EILSEQ) {
-				if ((work_inbytes > 0) &&
-				    (work_inbuf_working[0] == '\0') &&
-				    (work_outbytes > 0)) {
-					work_outbuf_working[0] = '\0';
-					work_outbuf_working++;
-					work_inbuf_working++;
-					work_outbytes--;
-					work_inbytes--;
-					ret++;
-				} else {
-					/* No go. */
-					ret = -1;
-					break;
-				}
-			} else {
-				ret = -1;
-				break;
-			}
-		} else {
-			ret += tmp;
-			break;
-		}
-	} while (work_inbytes > 0);
-
-	/* We can't handle this particular failure, and it should
-	 * never happen.  (If it does, our caller needs fixing.)  */
-	g_assert((ret != (size_t)-1) || (errno != E2BIG));
-
-        /* Pass on the output results. */
-        *outbuf = work_outbuf_working;
-        *outbytes_left -= (work_outbuf_working - work_outbuf_start);
-
-        /* Pass on the input results. */
-        *inbuf = work_inbuf_working;
-        *inbytes_left -= (work_inbuf_working - work_inbuf_start);
-
-	return ret;
-}
-
-void
-Terminal::convert_incoming() noexcept
-{
-        /* This is for legacy applications, so efficiency is not
-         * of any concern. Flatten the chunks into one big buffer,
-         * process that, and put the resulting UTF-8 back into
-         * chunks.
-         */
-        auto buf = _vte_byte_array_new();
-        _vte_byte_array_append(buf, m_incoming_leftover->data, m_incoming_leftover->len);
-        _vte_byte_array_clear(m_incoming_leftover);
-        while (!m_incoming_queue.empty()) {
-                auto chunk = m_incoming_queue.front().get();
-                _vte_byte_array_append(buf, chunk->data, chunk->len);
-                m_incoming_queue.pop();
-        }
-
-        /* Convert the data to UTF-8 */
-        auto inbuf = (char*)buf->data;
-        size_t inbytes = buf->len;
-
-        _VTE_DEBUG_IF(VTE_DEBUG_IO) {
-                _vte_debug_hexdump("Incoming buffer before conversion to UTF-8",
-                                   (uint8_t const*)inbuf, inbytes);
-        }
-
-        auto unibuf = _vte_byte_array_new();
-        _vte_byte_array_set_minimum_size(unibuf, VTE_UTF8_BPC * inbytes);
-        auto outbuf = (char*)unibuf->data;
-        size_t outbytes = unibuf->len;
-
-        bool stop = false;
-        do {
-                auto converted = _vte_conv(m_incoming_conv,
-                                           &inbuf, &inbytes,
-                                           &outbuf, &outbytes);
-                switch (converted) {
-                case ((gsize)-1):
-                        switch (errno) {
-                        case EILSEQ: {
-                                /* Munge the input. */
-                                inbuf++;
-                                inbytes--;
-                                auto l = g_unichar_to_utf8(0xfffdU, (char*)outbuf);
-                                outbuf += l;
-                                outbytes -= l;
-                                break;
-                        }
-                        case EINVAL:
-                                /* Incomplete. Save for later. */
-                                stop = true;
-                                break;
-                        case E2BIG:
-                                /* Should never happen. */
-                                g_assert_not_reached();
-                                break;
-                        default:
-                                /* Should never happen. */
-                                g_assert_not_reached();
-                                break;
-                        }
-                default:
-                        break;
-                }
-        } while ((inbytes > 0) && !stop);
-
-        /* FIXMEchpe this code used to skip NUL bytes,
-         * while the _vte_conv call passes NUL bytes through
-         * specifically. What's goint on!?
-         */
-
-        /* Done. */
-        auto processed = buf->len - inbytes;
-        unibuf->len = unibuf->len - outbytes;
-
-        /* If anything is left unconverted, store it for the next processing round. */
-        if (processed != buf->len) {
-                _vte_byte_array_append(m_incoming_leftover,
-                                       buf->data + processed,
-                                       buf->len - processed);
-        }
-
-        auto outlen = unibuf->len;
-        while (outlen > 0) {
-                outbuf = (char*)unibuf->data;
-                while (outlen > 0) {
-                        m_incoming_queue.push(vte::base::Chunk::get());
-                        auto chunk = m_incoming_queue.back().get();
-                        auto len = std::min(size_t(outlen), chunk->capacity());
-                        memcpy(chunk->data, outbuf, len);
-                        chunk->len = len;
-                        outbuf += len;
-                        outlen -= len;
-                }
-
-                g_assert_cmpuint(outlen, ==, 0);
-        }
-}
-
-#endif /* WITH_ICONV */
-
 void
 Terminal::process_incoming()
+{
+        switch (data_syntax()) {
+        case DataSyntax::eECMA48_UTF8:   process_incoming_utf8();    break;
+#ifdef WITH_ICU
+        case DataSyntax::eECMA48_PCTERM: process_incoming_pcterm(); break;
+#endif
+        default: g_assert_not_reached(); break;
+        }
+}
+
+
+/* Note that this code is mostly copied to process_incoming_pcterm() below; any non-charset-decoding
+ * related changes made here need to be made there, too.
+ * FIXMEchpe: refactor this to share more code with process_incoming_pcterm().
+ */
+void
+Terminal::process_incoming_utf8()
 {
 	VteVisualPosition saved_cursor;
 	gboolean saved_cursor_visible;
@@ -3533,14 +3360,6 @@ Terminal::process_incoming()
 
 	/* We should only be called when there's data to process. */
 	g_assert(!m_incoming_queue.empty());
-
-#ifdef WITH_ICONV
-        /* If we're using a legacy encoding for I/O, we need to
-         * convert the input to UTF-8 now.
-         */
-        if (G_UNLIKELY(!m_using_utf8))
-                convert_incoming();
-#endif
 
 	modified = FALSE;
 	invalidated_text = FALSE;
@@ -3773,6 +3592,279 @@ Terminal::process_incoming()
                           m_incoming_queue.size());
 }
 
+#ifdef WITH_ICU
+
+/* Note that this is mostly a copy of process_incoming_utf8() above; any non-charset-decoding
+ * related changes made here need to be made there, too.
+ * FIXMEchpe: refactor this to share more code with process_incoming_utf8().
+ */
+void
+Terminal::process_incoming_pcterm()
+{
+	VteVisualPosition saved_cursor;
+	gboolean saved_cursor_visible;
+        VteCursorStyle saved_cursor_style;
+        vte::grid::row_t bbox_top, bbox_bottom;
+	gboolean modified, bottom;
+	gboolean invalidated_text;
+	gboolean in_scroll_region;
+
+	_vte_debug_print(VTE_DEBUG_IO,
+                         "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
+                         m_input_bytes,
+                         m_incoming_queue.size());
+	_vte_debug_print (VTE_DEBUG_WORK, "(");
+
+        auto previous_screen = m_screen;
+
+        bottom = m_screen->insert_delta == (long)m_screen->scroll_delta;
+
+	/* Save the current cursor position. */
+        saved_cursor = m_screen->cursor;
+	saved_cursor_visible = m_modes_private.DEC_TEXT_CURSOR();
+        saved_cursor_style = m_cursor_style;
+
+        in_scroll_region = m_scrolling_restricted
+            && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
+            && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
+
+	/* We should only be called when there's data to process. */
+	g_assert(!m_incoming_queue.empty());
+
+	modified = FALSE;
+	invalidated_text = FALSE;
+
+        bbox_bottom = -G_MAXINT;
+        bbox_top = G_MAXINT;
+
+        vte::parser::Sequence seq{m_parser};
+
+        m_line_wrapped = false;
+
+        size_t bytes_processed = 0;
+
+        auto& decoder = m_converter->decoder();
+
+        while (!m_incoming_queue.empty()) {
+                auto chunk = std::move(m_incoming_queue.front());
+                m_incoming_queue.pop();
+
+                g_assert_nonnull(chunk.get());
+
+                _VTE_DEBUG_IF(VTE_DEBUG_IO) {
+                        _vte_debug_hexdump("Incoming buffer", chunk->data, chunk->len);
+                }
+
+                bytes_processed += chunk->len;
+
+                auto const* ip = chunk->data;
+                auto const* iend = chunk->data + chunk->len;
+
+                auto flush = bool{false};
+                while (ip < iend || flush) {
+
+                        switch (decoder.decode(&ip, flush)) {
+                        case vte::base::ICUDecoder::Result::eSomething: {
+                                auto rv = m_parser.feed(decoder.codepoint());
+                                if (G_UNLIKELY(rv < 0)) {
+#ifdef VTE_DEBUG
+                                        uint32_t c = decoder.codepoint();
+                                        char c_buf[7];
+                                        g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
+                                        char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
+                                        _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                                         c, wp_str);
+#endif
+                                        break;
+                                }
+
+#ifdef VTE_DEBUG
+                                if (rv != VTE_SEQ_NONE)
+                                        g_assert((bool)seq);
+#endif
+
+                                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                                        if (rv != VTE_SEQ_NONE) {
+                                                seq.print();
+                                        }
+                                }
+
+                                // FIXMEchpe this assumes that the only handler inserting
+                                // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
+                                // also do, and invalidate directly for now)...
+
+                                switch (rv) {
+                                case VTE_SEQ_GRAPHIC: {
+
+                                        bbox_top = std::min(bbox_top,
+                                                            m_screen->cursor.row);
+
+                                        // does insert_char(c, false, false)
+                                        GRAPHIC(seq);
+                                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                                         "Last graphic is now U+%04X %lc\n",
+                                                         m_last_graphic_character,
+                                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+
+                                        if (m_line_wrapped) {
+                                                m_line_wrapped = false;
+                                                /* line wrapped, correct bbox */
+                                                if (invalidated_text &&
+                                                    (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
+                                                     m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK)) {
+                                                        invalidate_rows_and_context(bbox_top, bbox_bottom);
+                                                        bbox_bottom = -G_MAXINT;
+                                                        bbox_top = G_MAXINT;
+                                                }
+                                                bbox_top = std::min(bbox_top,
+                                                                    m_screen->cursor.row);
+                                        }
+                                        /* Add the cells over which we have moved to the region
+                                         * which we need to refresh for the user. */
+                                        bbox_bottom = std::max(bbox_bottom,
+                                                               m_screen->cursor.row);
+                                        invalidated_text = TRUE;
+
+                                        /* We *don't* emit flush pending signals here. */
+                                        modified = TRUE;
+
+                                        break;
+                                }
+
+                                case VTE_SEQ_NONE:
+                                case VTE_SEQ_IGNORE:
+                                        break;
+
+                                default: {
+                                        switch (seq.command()) {
+#define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
+#define _VTE_NOP(cmd)
+#include "parser-cmd.hh"
+#undef _VTE_CMD
+#undef _VTE_NOP
+                                        default:
+                                                _vte_debug_print(VTE_DEBUG_PARSER,
+                                                                 "Unknown parser command %d\n", seq.command());
+                                                break;
+                                        }
+
+                                        m_last_graphic_character = 0;
+
+                                        modified = TRUE;
+
+                                        // FIXME m_screen may be != previous_screen, check for that!
+
+                                        gboolean new_in_scroll_region = m_scrolling_restricted
+                                                && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
+                                                && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
+
+                                        /* if we have moved greatly during the sequence handler, or moved
+                                         * into a scroll_region from outside it, restart the bbox.
+                                         */
+                                        if (invalidated_text &&
+                                            ((new_in_scroll_region && !in_scroll_region) ||
+                                             (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
+                                              m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK))) {
+                                                invalidate_rows_and_context(bbox_top, bbox_bottom);
+                                                invalidated_text = FALSE;
+                                                bbox_bottom = -G_MAXINT;
+                                                bbox_top = G_MAXINT;
+                                        }
+
+                                        in_scroll_region = new_in_scroll_region;
+
+                                        break;
+                                }
+                                }
+                                break;
+                        }
+                        case vte::base::ICUDecoder::Result::eNothing:
+                                flush = false;
+                                break;
+
+                        case vte::base::ICUDecoder::Result::eError:
+                                // FIXMEchpe do we need ++ip here?
+                                decoder.reset();
+                                break;
+
+                        }
+                }
+        }
+
+#ifdef VTE_DEBUG
+		/* Some safety checks: ensure the visible parts of the buffer
+		 * are all in the buffer. */
+		g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
+
+		/* The cursor shouldn't be above or below the addressable
+		 * part of the display buffer. */
+                g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
+#endif
+
+	if (modified) {
+		/* Keep the cursor on-screen if we scroll on output, or if
+		 * we're currently at the bottom of the buffer. */
+		update_insert_delta();
+		if (m_scroll_on_output || bottom) {
+			maybe_scroll_to_bottom();
+		}
+		/* Deselect the current selection if its contents are changed
+		 * by this insertion. */
+                if (!m_selection_resolved.empty()) {
+                        //FIXMEchpe: this is atrocious
+			auto selection = get_selected_text();
+			if ((selection == nullptr) ||
+			    (m_selection[VTE_SELECTION_PRIMARY] == nullptr) ||
+			    (strcmp(selection->str, m_selection[VTE_SELECTION_PRIMARY]->str) != 0)) {
+				deselect_all();
+			}
+                        if (selection)
+                                g_string_free(selection, TRUE);
+		}
+	}
+
+	if (modified || (m_screen != previous_screen)) {
+                m_ringview.invalidate();
+		/* Signal that the visible contents changed. */
+		queue_contents_changed();
+	}
+
+	emit_pending_signals();
+
+	if (invalidated_text) {
+                invalidate_rows_and_context(bbox_top, bbox_bottom);
+	}
+
+        if ((saved_cursor.col != m_screen->cursor.col) ||
+            (saved_cursor.row != m_screen->cursor.row)) {
+		/* invalidate the old and new cursor positions */
+		if (saved_cursor_visible)
+                        invalidate_row(saved_cursor.row);
+		invalidate_cursor_once();
+		check_cursor_blink();
+		/* Signal that the cursor moved. */
+		queue_cursor_moved();
+        } else if ((saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
+                   (saved_cursor_style != m_cursor_style)) {
+                invalidate_row(saved_cursor.row);
+		check_cursor_blink();
+	}
+
+	/* Tell the input method where the cursor is. */
+        im_update_cursor();
+
+        /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
+        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
+
+	_vte_debug_print (VTE_DEBUG_WORK, ")");
+	_vte_debug_print (VTE_DEBUG_IO,
+                          "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
+                          m_input_bytes,
+                          m_incoming_queue.size());
+}
+
+#endif /* WITH_ICU */
+
 bool
 Terminal::pty_io_read(int const fd,
                       GIOCondition const condition)
@@ -3998,80 +4090,47 @@ Terminal::pty_io_write(int const fd,
         return _vte_byte_array_length(m_outgoing) != 0;
 }
 
-/* Convert some UTF-8 data to send to the child. */
+/* Send some UTF-8 data to the child. */
 void
 Terminal::send_child(char const* data,
                      gssize length) noexcept
 {
-	gchar *cooked;
-	long cooked_length, i;
-
         if (!m_input_enabled)
                 return;
 
         if (length == -1)
                 length = strlen(data);
-
-#ifdef WITH_ICONV
-        if (m_using_utf8) {
-#endif /* WITH_ICONV */
-                cooked = (char*)data;
-                cooked_length = length;
-#ifdef WITH_ICONV
-        } else {
-                if (m_outgoing_conv == ((GIConv)-1))
-                        return;
-
-                gsize icount;
-                icount = length;
-                auto ibuf = (char*)data;
-                gsize ocount = ((length + 1) * VTE_UTF8_BPC) + 1;
-                _vte_byte_array_set_minimum_size(m_conv_buffer, ocount);
-                char *obuf, *obufptr;
-                obuf = obufptr = (char*)m_conv_buffer->data;
-
-                if (_vte_conv(m_outgoing_conv, &ibuf, &icount, &obuf, &ocount) == (gsize)-1) {
-                        int errsv = errno;
-                        g_warning(_("Error (%s) converting data for child, dropping."),
-                                  g_strerror(errsv));
-                        return;
-                }
-
-                cooked = (gchar *)obufptr;
-                cooked_length = obuf - obufptr;
-        }
-#endif /* WITH_ICONV */
-
-        /* Tell observers that we're sending this to the child. */
-        if (cooked_length > 0) {
-                emit_commit(cooked, cooked_length);
-        }
+        if (length == 0)
+                return;
 
         /* If there's a place for it to go, add the data to the
          * outgoing buffer. */
         // FIXMEchpe: shouldn't require pty for this
-        if ((cooked_length > 0) && pty()) {
-                _vte_byte_array_append(m_outgoing, cooked, cooked_length);
-                _VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
-                        for (i = 0; i < cooked_length; i++) {
-                                if ((((guint8) cooked[i]) < 32) ||
-                                    (((guint8) cooked[i]) > 127)) {
-                                        g_printerr(
-                                                   "Sending <%02x> "
-                                                   "to child.\n",
-                                                   cooked[i]);
-                                } else {
-                                        g_printerr(
-                                                   "Sending '%c' "
-                                                   "to child.\n",
-                                                   cooked[i]);
-                                }
-                        }
-                }
-                /* If we need to start waiting for the child pty to
-                 * become available for writing, set that up here. */
-                connect_pty_write();
-	}
+        if (!pty())
+                return;
+
+        switch (data_syntax()) {
+        case DataSyntax::eECMA48_UTF8:
+                emit_commit(data, length);
+                _vte_byte_array_append(m_outgoing, data, length);
+                break;
+
+        case DataSyntax::eECMA48_PCTERM: {
+                auto converted = m_converter->convert(data, length);
+
+                emit_commit(converted.data(), converted.size());
+                _vte_byte_array_append(m_outgoing, converted.data(), converted.size());
+                break;
+        }
+
+        default:
+                g_assert_not_reached();
+                return;
+        }
+
+        /* If we need to start waiting for the child pty to
+         * become available for writing, set that up here. */
+        connect_pty_write();
 }
 
 /*
@@ -7818,18 +7877,12 @@ Terminal::Terminal(vte::platform::Widget* w,
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
 	/* Set up I/O encodings. */
-        g_assert_true(m_using_utf8);
         m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
 	m_max_input_bytes = VTE_MAX_INPUT_READ;
 	m_cursor_blink_tag = 0;
         m_text_blink_tag = 0;
 	m_outgoing = _vte_byte_array_new();
         m_last_graphic_character = 0;
-
-#ifdef WITH_ICONV
-        m_incoming_leftover = _vte_byte_array_new();
-	m_conv_buffer = _vte_byte_array_new();
-#endif
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
@@ -8170,19 +8223,6 @@ Terminal::~Terminal()
                         m_selection[sel] = nullptr;
 		}
 	}
-
-#ifdef WITH_ICONV
-	/* Free conversion descriptors. */
-	if (m_incoming_conv != ((GIConv)-1)) {
-		g_iconv_close(m_incoming_conv);
-	}
-	if (m_outgoing_conv != ((GIConv)-1)) {
-		g_iconv_close(m_outgoing_conv);
-	}
-
-	_vte_byte_array_free(m_conv_buffer);
-        _vte_byte_array_free(m_incoming_leftover);
-#endif
 
         /* Stop listening for child-exited signals. */
         if (m_reaper) {
@@ -9993,6 +10033,23 @@ Terminal::set_mouse_autohide(bool autohide)
         return true;
 }
 
+void
+Terminal::reset_decoder()
+{
+        switch (data_syntax()) {
+        case DataSyntax::eECMA48_UTF8:
+                m_utf8_decoder.reset();
+                break;
+
+        case DataSyntax::eECMA48_PCTERM:
+                m_converter->decoder().reset();
+                break;
+
+        default:
+                g_assert_not_reached();
+        }
+}
+
 /*
  * Terminal::reset:
  * @clear_tabstops: whether to reset tabstops
@@ -10019,17 +10076,11 @@ Terminal::reset(bool clear_tabstops,
 
 	/* Clear the output buffer. */
 	_vte_byte_array_clear(m_outgoing);
+
 	/* Reset charset substitution state. */
 
-        m_utf8_decoder.reset();
-
-#ifdef WITH_ICONV
-        if (m_incoming_conv != ((GIConv)-1)) {
-                /* Reset the converter state */
-                g_iconv(m_incoming_conv, nullptr, nullptr, nullptr, nullptr);
-        }
-        _vte_byte_array_clear(m_incoming_leftover);
-#endif
+        /* Reset decoder */
+        reset_decoder();
 
         /* Reset parser */
         m_parser.reset();
@@ -10136,7 +10187,7 @@ Terminal::unset_pty(bool notify_widget,
         }
         stop_processing(this);
 
-        m_utf8_decoder.reset(); // FIXMEchpe necessary here?
+        reset_decoder();
 
         /* Clear the outgoing buffer as well. */
         _vte_byte_array_clear(m_outgoing);
@@ -10164,7 +10215,7 @@ Terminal::set_pty(vte::base::Pty *new_pty,
 
         set_size(m_column_count, m_row_count);
 
-        if (!pty()->set_utf8(m_using_utf8))
+        if (!pty()->set_utf8(data_syntax() == DataSyntax::eECMA48_UTF8))
                 g_warning ("Failed to set UTF8 mode: %m\n");
 
         /* Open channels to listen for input on. */

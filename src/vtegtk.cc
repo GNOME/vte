@@ -62,6 +62,10 @@
 #include "vteaccess.h"
 #endif
 
+#ifdef WITH_ICU
+#include "icu-glue.hh"
+#endif
+
 #define I_(string) (g_intern_static_string(string))
 #define _VTE_PARAM_DEPRECATED (_vte_debug_on(VTE_DEBUG_SIGNALS) ? G_PARAM_DEPRECATED : 0)
 
@@ -1834,6 +1838,12 @@ vte_get_features (void)
 #else
                 "-GNUTLS"
 #endif
+                " "
+#ifdef WITH_ICU
+                "+ICU"
+#else
+                "-ICU"
+#endif
                 ;
 }
 
@@ -1926,6 +1936,61 @@ vte_set_test_flags(guint64 flags)
 {
 #ifdef VTE_DEBUG
         g_test_flags = flags;
+#endif
+}
+
+/**
+ * vte_get_encodings:
+ * @include_aliases: whether to include alias names
+ *
+ * Gets the list of supported legacy encodings.
+ *
+ * If ICU support is not available, this returns an empty vector.
+ * Note that UTF-8 is always supported; you can select it by
+ * passing %NULL to vte_terminal_set_encoding().
+ *
+ * Returns: (transfer full): the list of supported encodings; free with
+ *   g_strfreev()
+ *
+ * Since: 0.60
+ * Deprecated: 0.60
+ */
+char **
+vte_get_encodings(gboolean include_aliases)
+{
+#ifdef WITH_ICU
+        return vte::base::get_icu_charsets(include_aliases != FALSE);
+#else
+        char *empty[] = { nullptr };
+        return g_strdupv(empty);
+#endif
+}
+
+/**
+ * vte_get_encoding_supported:
+ * @encoding: the name of the legacy encoding
+ *
+ * Queries whether the legacy encoding @encoding is supported.
+ *
+ * If ICU support is not available, this function always returns %FALSE.
+ *
+ * Note that UTF-8 is always supported; you can select it by
+ * passing %NULL to vte_terminal_set_encoding().
+ *
+ * Returns: %TRUE iff the legacy encoding @encoding is supported
+ *
+ * Since: 0.60
+ * Deprecated: 0.60
+ */
+gboolean
+vte_get_encoding_supported(const char *encoding)
+{
+        g_return_val_if_fail(encoding != nullptr, false);
+
+#ifdef WITH_ICU
+        return vte::base::get_icu_charset_supported(encoding);
+#else
+        return false;
 #endif
 }
 
@@ -3863,7 +3928,7 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 /**
  * vte_terminal_set_encoding:
  * @terminal: a #VteTerminal
- * @codeset: (allow-none): a valid #GIConv target, or %NULL to use UTF-8
+ * @codeset: (allow-none): target charset, or %NULL to use UTF-8
  * @error: (allow-none): return location for a #GError, or %NULL
  *
  * Changes the encoding the terminal will expect data from the child to
@@ -3890,13 +3955,9 @@ vte_terminal_set_encoding(VteTerminal *terminal,
         GObject *object = G_OBJECT(terminal);
         g_object_freeze_notify(object);
 
-        bool rv = IMPL(terminal)->set_encoding(codeset);
+        auto const rv = IMPL(terminal)->set_encoding(codeset, error);
         if (rv)
                 g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
-        else
-                g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
-                            _("Unable to convert characters from %s to %s."),
-                            "UTF-8", codeset);
 
         g_object_thaw_notify(object);
         return rv;

@@ -59,6 +59,7 @@ _vte_debug_init(void)
     { "emulation",    VTE_DEBUG_EMULATION    },
     { "ringview",     VTE_DEBUG_RINGVIEW     },
     { "bidi",         VTE_DEBUG_BIDI         },
+    { "conversion",   VTE_DEBUG_CONVERSION   },
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),

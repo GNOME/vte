@@ -1911,7 +1911,7 @@ vteapp_window_constructed(GObject *object)
         if (options.encoding != nullptr) {
                 GError* err = nullptr;
                 if (!vte_terminal_set_encoding(window->terminal, options.encoding, &err)) {
-                        verbose_printerr("Failed to set encoding: %s\n", err->message);
+                        g_printerr("Failed to set encoding: %s\n", err->message);
                         g_error_free(err);
                 }
         }
@@ -2209,7 +2209,7 @@ main(int argc,
                 verbose_printerr("VTE_CJK_WIDTH is not supported anymore, use --cjk-width instead\n");
 
        if (options.version) {
-               g_print("VTE Application %s\n", VERSION);
+               g_print("VTE Application %s %s\n", VERSION, vte_get_features());
                return EXIT_SUCCESS;
        }
 

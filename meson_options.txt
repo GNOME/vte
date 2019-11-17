@@ -79,10 +79,10 @@ option(
 )
 
 option(
-  'iconv',
+  'icu',
   type: 'boolean',
   value: true,
-  description: 'Enable legacy charset support using iconv',
+  description: 'Enable legacy charset support using ICU',
 )
 
 option(
