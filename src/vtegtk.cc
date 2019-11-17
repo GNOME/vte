@@ -63,6 +63,7 @@
 #endif
 
 #define I_(string) (g_intern_static_string(string))
+#define _VTE_PARAM_DEPRECATED (_vte_debug_on(VTE_DEBUG_SIGNALS) ? G_PARAM_DEPRECATED : 0)
 
 #define VTE_TERMINAL_CSS_NAME "vte-terminal"
 
@@ -1594,7 +1595,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
         pspecs[PROP_ENCODING] =
                 g_param_spec_string ("encoding", NULL, NULL,
                                      NULL,
-                                     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+                                     (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | _VTE_PARAM_DEPRECATED));
 
         /**
          * VteTerminal:font-desc:
@@ -2943,6 +2944,9 @@ vte_terminal_feed_child(VteTerminal *terminal,
  * @length: length of @data
  *
  * Sends a block of binary data to the child.
+ *
+ * Deprecated: 0.60: Don't send binary data. Use vte_terminal_feed_child() instead to send
+ *   UTF-8 text
  */
 void
 vte_terminal_feed_child_binary(VteTerminal *terminal,

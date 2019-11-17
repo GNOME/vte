@@ -148,6 +148,12 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
+_VTE_DEPRECATED
+_VTE_PUBLIC
+void vte_terminal_feed_child_binary(VteTerminal *terminal,
+                                    const guint8 *data,
+                                    gsize length) _VTE_GNUC_NONNULL(1);
+
 G_END_DECLS
 
 #undef _VTE_DEPRECATED
