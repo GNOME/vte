@@ -465,7 +465,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_boolean (value, vte_terminal_get_audible_bell (terminal));
                         break;
                 case PROP_BACKSPACE_BINDING:
-                        g_value_set_enum (value, impl->m_backspace_binding);
+                        g_value_set_enum (value, widget->backspace_binding());
                         break;
                 case PROP_BOLD_IS_BRIGHT:
                         g_value_set_boolean (value, vte_terminal_get_bold_is_bright (terminal));
@@ -492,7 +492,7 @@ vte_terminal_get_property (GObject *object,
                         g_value_set_enum (value, vte_terminal_get_cursor_shape (terminal));
                         break;
                 case PROP_DELETE_BINDING:
-                        g_value_set_enum (value, impl->m_delete_binding);
+                        g_value_set_enum (value, widget->delete_binding());
                         break;
                 case PROP_ENABLE_BIDI:
                         g_value_set_boolean (value, vte_terminal_get_enable_bidi (terminal));
@@ -3360,7 +3360,7 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
 
-        if (IMPL(terminal)->set_backspace_binding(binding))
+        if (WIDGET(terminal)->set_backspace_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BACKSPACE_BINDING]);
 }
 
@@ -3830,7 +3830,7 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
 
-        if (IMPL(terminal)->set_delete_binding(binding))
+        if (WIDGET(terminal)->set_delete_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
 }
 

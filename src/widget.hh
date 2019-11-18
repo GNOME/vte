@@ -111,6 +111,12 @@ public:
         bool set_cursor_shape(VteCursorShape shape) { return terminal()->set_cursor_shape(vte::terminal::Terminal::CursorShape(shape)); }
         auto cursor_shape() const noexcept { return VteCursorShape(terminal()->cursor_shape()); }
 
+        bool set_backspace_binding(VteEraseBinding mode) { return terminal()->set_backspace_binding(vte::terminal::Terminal::EraseMode(mode)); }
+        auto backspace_binding() const noexcept { return VteEraseBinding(terminal()->backspace_binding()); }
+
+        bool set_delete_binding(VteEraseBinding mode) { return terminal()->set_delete_binding(vte::terminal::Terminal::EraseMode(mode)); }
+        auto delete_binding() const noexcept { return VteEraseBinding(terminal()->delete_binding()); }
+
         bool set_text_blink_mode(VteTextBlinkMode mode) { return terminal()->set_text_blink_mode(vte::terminal::Terminal::TextBlinkMode(mode)); }
         auto text_blink_mode() const noexcept { return VteTextBlinkMode(terminal()->text_blink_mode()); }
 

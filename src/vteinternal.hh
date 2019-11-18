@@ -348,6 +348,15 @@ protected:
                 eUNDERLINE
         };
 
+        /* NOTE: This needs to be kept in sync with the public VteEraseMode enum */
+        enum EraseMode {
+                eAUTO,
+                eASCII_BACKSPACE,
+                eASCII_DELETE,
+                eDELETE_SEQUENCE,
+                eTTY,
+        };
+
         /* NOTE: This needs to be kept in sync with the public VteTextBlinkMode enum */
         enum class TextBlinkMode {
                 eNEVER     = 0,
@@ -494,8 +503,8 @@ public:
         ClipboardTextRequestGtk<Terminal> m_paste_request;
 
 	/* Miscellaneous options. */
-        VteEraseBinding m_backspace_binding;
-        VteEraseBinding m_delete_binding;
+        EraseMode m_backspace_binding{EraseMode::eAUTO};
+        EraseMode m_delete_binding{EraseMode::eAUTO};
         bool m_audible_bell{true};
         bool m_allow_bold{true};
         bool m_bold_is_bright{false};
@@ -1283,7 +1292,8 @@ public:
         auto text_blink_mode() const noexcept { return m_text_blink_mode; }
         bool set_allow_bold(bool setting);
         bool set_allow_hyperlink(bool setting);
-        bool set_backspace_binding(VteEraseBinding binding);
+        bool set_backspace_binding(EraseMode binding);
+        auto backspace_binding() const noexcept { return m_backspace_binding; }
         bool set_background_alpha(double alpha);
         bool set_bold_is_bright(bool setting);
         bool set_cell_height_scale(double scale);
@@ -1311,7 +1321,8 @@ public:
         bool set_cursor_shape(CursorShape shape);
         auto cursor_shape() const noexcept { return m_cursor_shape; }
         bool set_cursor_style(CursorStyle style);
-        bool set_delete_binding(VteEraseBinding binding);
+        bool set_delete_binding(EraseMode binding);
+        auto delete_binding() const noexcept { return m_delete_binding; }
         bool set_enable_bidi(bool setting);
         bool set_enable_shaping(bool setting);
         bool set_encoding(char const* codeset,

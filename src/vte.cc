@@ -4716,23 +4716,23 @@ Terminal::widget_key_press(GdkEventKey *event)
 		switch (keyval) {
 		case GDK_KEY_BackSpace:
 			switch (m_backspace_binding) {
-			case VTE_ERASE_ASCII_BACKSPACE:
+			case EraseMode::eASCII_BACKSPACE:
 				normal = g_strdup("");
 				normal_length = 1;
 				suppress_meta_esc = FALSE;
 				break;
-			case VTE_ERASE_ASCII_DELETE:
+			case EraseMode::eASCII_DELETE:
 				normal = g_strdup("");
 				normal_length = 1;
 				suppress_meta_esc = FALSE;
 				break;
-			case VTE_ERASE_DELETE_SEQUENCE:
+			case EraseMode::eDELETE_SEQUENCE:
                                 normal = g_strdup("\e[3~");
                                 normal_length = 4;
                                 add_modifiers = TRUE;
 				suppress_meta_esc = TRUE;
 				break;
-			case VTE_ERASE_TTY:
+			case EraseMode::eTTY:
 				if (pty() &&
 				    tcgetattr(pty()->fd(), &tio) != -1)
 				{
@@ -4741,7 +4741,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				}
 				suppress_meta_esc = FALSE;
 				break;
-			case VTE_ERASE_AUTO:
+			case EraseMode::eAUTO:
 			default:
 #ifndef _POSIX_VDISABLE
 #define _POSIX_VDISABLE '\0'
@@ -4774,15 +4774,15 @@ Terminal::widget_key_press(GdkEventKey *event)
 		case GDK_KEY_KP_Delete:
 		case GDK_KEY_Delete:
 			switch (m_delete_binding) {
-			case VTE_ERASE_ASCII_BACKSPACE:
+			case EraseMode::eASCII_BACKSPACE:
 				normal = g_strdup("\010");
 				normal_length = 1;
 				break;
-			case VTE_ERASE_ASCII_DELETE:
+			case EraseMode::eASCII_DELETE:
 				normal = g_strdup("\177");
 				normal_length = 1;
 				break;
-			case VTE_ERASE_TTY:
+			case EraseMode::eTTY:
 				if (pty() &&
 				    tcgetattr(pty()->fd(), &tio) != -1)
 				{
@@ -4791,8 +4791,8 @@ Terminal::widget_key_press(GdkEventKey *event)
 				}
 				suppress_meta_esc = FALSE;
 				break;
-			case VTE_ERASE_DELETE_SEQUENCE:
-			case VTE_ERASE_AUTO:
+			case EraseMode::eDELETE_SEQUENCE:
+			case EraseMode::eAUTO:
 			default:
                                 normal = g_strdup("\e[3~");
                                 normal_length = 4;
@@ -7873,10 +7873,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_selection_owned[VTE_SELECTION_PRIMARY] = false;
         m_selection_owned[VTE_SELECTION_CLIPBOARD] = false;
 
-	/* Miscellaneous options. */
-	set_backspace_binding(VTE_ERASE_AUTO);
-	set_delete_binding(VTE_ERASE_AUTO);
-
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -9922,7 +9918,7 @@ Terminal::set_scrollback_lines(long lines)
 }
 
 bool
-Terminal::set_backspace_binding(VteEraseBinding binding)
+Terminal::set_backspace_binding(EraseMode binding)
 {
         if (binding == m_backspace_binding)
                 return false;
@@ -9932,7 +9928,7 @@ Terminal::set_backspace_binding(VteEraseBinding binding)
 }
 
 bool
-Terminal::set_delete_binding(VteEraseBinding binding)
+Terminal::set_delete_binding(EraseMode binding)
 {
         if (binding == m_delete_binding)
                 return false;
