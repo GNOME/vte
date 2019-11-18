@@ -68,12 +68,6 @@
 #include "icu-converter.hh"
 #endif
 
-typedef enum {
-        VTE_REGEX_CURSOR_GDKCURSOR,
-        VTE_REGEX_CURSOR_GDKCURSORTYPE,
-        VTE_REGEX_CURSOR_NAME
-} VteRegexCursorMode;
-
 /* The order is important */
 typedef enum {
 	MOUSE_TRACKING_NONE,
