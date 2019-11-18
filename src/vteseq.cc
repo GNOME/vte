@@ -493,17 +493,17 @@ void
 Terminal::update_mouse_protocol() noexcept
 {
         if (m_modes_private.XTERM_MOUSE_ANY_EVENT())
-                m_mouse_tracking_mode = MOUSE_TRACKING_ALL_MOTION_TRACKING;
+                m_mouse_tracking_mode = MouseTrackingMode::eALL_MOTION_TRACKING;
         else if (m_modes_private.XTERM_MOUSE_BUTTON_EVENT())
-                m_mouse_tracking_mode = MOUSE_TRACKING_CELL_MOTION_TRACKING;
+                m_mouse_tracking_mode = MouseTrackingMode::eCELL_MOTION_TRACKING;
         else if (m_modes_private.XTERM_MOUSE_VT220_HIGHLIGHT())
-                m_mouse_tracking_mode = MOUSE_TRACKING_HILITE_TRACKING;
+                m_mouse_tracking_mode = MouseTrackingMode::eHILITE_TRACKING;
         else if (m_modes_private.XTERM_MOUSE_VT220())
-                m_mouse_tracking_mode = MOUSE_TRACKING_SEND_XY_ON_BUTTON;
+                m_mouse_tracking_mode = MouseTrackingMode::eSEND_XY_ON_BUTTON;
         else if (m_modes_private.XTERM_MOUSE_X10())
-                m_mouse_tracking_mode = MOUSE_TRACKING_SEND_XY_ON_CLICK;
+                m_mouse_tracking_mode = MouseTrackingMode::eSEND_XY_ON_CLICK;
         else
-                m_mouse_tracking_mode = MOUSE_TRACKING_NONE;
+                m_mouse_tracking_mode = MouseTrackingMode::eNONE;
 
         m_mouse_smooth_scroll_delta = 0.0;
 
@@ -511,7 +511,7 @@ Terminal::update_mouse_protocol() noexcept
         apply_mouse_cursor();
 
         _vte_debug_print(VTE_DEBUG_MODES,
-                         "Mouse protocol is now %d\n", m_mouse_tracking_mode);
+                         "Mouse protocol is now %d\n", (int)m_mouse_tracking_mode);
 }
 
 void

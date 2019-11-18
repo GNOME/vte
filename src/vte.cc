@@ -2150,7 +2150,7 @@ Terminal::apply_mouse_cursor()
                         m_real_widget->set_cursor(vte::platform::Widget::CursorType::eHyperlink);
                 } else if (regex_match_has_current()) {
                         m_real_widget->set_cursor(regex_match_current()->cursor());
-                } else if (m_mouse_tracking_mode) {
+                } else if (m_mouse_tracking_mode != MouseTrackingMode::eNONE) {
 			_vte_debug_print(VTE_DEBUG_CURSOR,
 					"Setting mousing cursor.\n");
                         m_real_widget->set_cursor(vte::platform::Widget::CursorType::eMousing);
@@ -5631,7 +5631,7 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
 	}
 
 	/* Encode the modifiers. */
-        if (m_mouse_tracking_mode >= MOUSE_TRACKING_SEND_XY_ON_BUTTON) {
+        if (m_mouse_tracking_mode >= MouseTrackingMode::eSEND_XY_ON_BUTTON) {
                 if (m_modifiers & GDK_SHIFT_MASK) {
                         cb |= 4;
                 }
@@ -5704,12 +5704,12 @@ Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
 {
 	switch (event_type) {
 	case GDK_BUTTON_PRESS:
-		if (m_mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_CLICK) {
+		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK) {
 			return false;
 		}
 		break;
 	case GDK_BUTTON_RELEASE: {
-		if (m_mouse_tracking_mode < MOUSE_TRACKING_SEND_XY_ON_BUTTON) {
+		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON) {
 			return false;
 		}
 		break;
@@ -5748,10 +5748,10 @@ Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
 	/* First determine if we even want to send notification. */
 	switch (event_type) {
 	case GDK_MOTION_NOTIFY:
-		if (m_mouse_tracking_mode < MOUSE_TRACKING_CELL_MOTION_TRACKING)
+		if (m_mouse_tracking_mode < MouseTrackingMode::eCELL_MOTION_TRACKING)
 			return false;
 
-		if (m_mouse_tracking_mode < MOUSE_TRACKING_ALL_MOTION_TRACKING) {
+		if (m_mouse_tracking_mode < MouseTrackingMode::eALL_MOTION_TRACKING) {
 
                         if (m_mouse_pressed_buttons == 0) {
 				return false;
@@ -7006,7 +7006,7 @@ Terminal::widget_button_press(GdkEventButton *event)
 
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
-			if (m_mouse_tracking_mode) {
+			if (m_mouse_tracking_mode != MouseTrackingMode::eNONE) {
 				if (m_modifiers & GDK_SHIFT_MASK) {
 					start_selecting = TRUE;
 				}
@@ -7040,7 +7040,7 @@ Terminal::widget_button_press(GdkEventButton *event)
 		 * to the app. */
 		case 2:
 			if ((m_modifiers & GDK_SHIFT_MASK) ||
-			    !m_mouse_tracking_mode) {
+			    m_mouse_tracking_mode == MouseTrackingMode::eNONE) {
                                 gboolean do_paste;
 
                                 g_object_get (gtk_widget_get_settings(m_widget),
@@ -9540,7 +9540,7 @@ Terminal::widget_scroll(GdkEventScroll *event)
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */
-	if (m_mouse_tracking_mode) {
+	if (m_mouse_tracking_mode != MouseTrackingMode::eNONE) {
 		cnt = m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
 			return;

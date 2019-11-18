@@ -68,16 +68,6 @@
 #include "icu-converter.hh"
 #endif
 
-/* The order is important */
-typedef enum {
-	MOUSE_TRACKING_NONE,
-	MOUSE_TRACKING_SEND_XY_ON_CLICK,
-	MOUSE_TRACKING_SEND_XY_ON_BUTTON,
-	MOUSE_TRACKING_HILITE_TRACKING,
-	MOUSE_TRACKING_CELL_MOTION_TRACKING,
-	MOUSE_TRACKING_ALL_MOTION_TRACKING
-} MouseTrackingMode;
-
 enum {
         VTE_XTERM_WM_RESTORE_WINDOW = 1,
         VTE_XTERM_WM_MINIMIZE_WINDOW = 2,
@@ -326,6 +316,16 @@ private:
                 eSTEADY_IBEAM     = 6,
         };
 
+        /* The order is important */
+        enum class MouseTrackingMode {
+	        eNONE,
+                eSEND_XY_ON_CLICK,
+                eSEND_XY_ON_BUTTON,
+                eHILITE_TRACKING,
+                eCELL_MOTION_TRACKING,
+                eALL_MOTION_TRACKING,
+        };
+
 protected:
 
         /* NOTE: This needs to be kept in sync with the public VteCursorBlinkMode enum */
@@ -546,7 +546,7 @@ public:
         bool m_input_enabled{true};
         time_t m_last_keypress_time;
 
-        MouseTrackingMode m_mouse_tracking_mode{MOUSE_TRACKING_NONE};
+        MouseTrackingMode m_mouse_tracking_mode{MouseTrackingMode::eNONE};
         guint m_mouse_pressed_buttons;      /* bits 0, 1, 2 resp. for buttons 1, 2, 3 */
         guint m_mouse_handled_buttons;      /* similar bitmap for buttons we handled ourselves */
         /* The last known position the mouse pointer from an event. We don't store
