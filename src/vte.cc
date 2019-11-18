@@ -71,6 +71,8 @@
 
 #include <new> /* placement new */
 
+using namespace std::literals;
+
 #ifndef HAVE_ROUND
 static inline double round(double x) {
 	if(x - floor(x) < 0.5) {
@@ -81,7 +83,7 @@ static inline double round(double x) {
 }
 #endif
 
-#define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"
+#define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"sv
 
 #define I_(string) (g_intern_static_string(string))
 
@@ -5046,15 +5048,6 @@ Terminal::widget_key_release(GdkEventKey *event)
         return false;
 }
 
-static int
-compare_unichar_p(const void *u1p,
-                  const void *u2p)
-{
-        const char32_t u1 = *(char32_t*)u1p;
-        const char32_t u2 = *(char32_t*)u2p;
-        return u1 < u2 ? -1 : u1 > u2 ? 1 : 0;
-}
-
 static const guint8 word_char_by_category[] = {
         [G_UNICODE_CONTROL]             = 2,
         [G_UNICODE_FORMAT]              = 2,
@@ -5105,11 +5098,7 @@ Terminal::is_word_char(gunichar c) const
                 return v == 1;
 
         /* Do we have an exception? */
-        return bsearch(&c,
-                       m_word_char_exceptions.data(),
-                       m_word_char_exceptions.size(),
-                       sizeof(std::u32string::value_type),
-                       compare_unichar_p) != nullptr;
+        return std::find(std::begin(m_word_char_exceptions), std::end(m_word_char_exceptions), char32_t(c)) != std::end(m_word_char_exceptions);
 }
 
 /* Check if the characters in the two given locations are in the same class
@@ -10962,13 +10951,15 @@ Terminal::set_input_enabled (bool enabled)
         return true;
 }
 
-bool
-Terminal::process_word_char_exceptions(char const *str,
-                                                 std::u32string& array) const noexcept
+std::optional<std::vector<char32_t>>
+Terminal::process_word_char_exceptions(std::string_view str_view) const noexcept
 {
-        if (str == nullptr)
-                str = WORD_CHAR_EXCEPTIONS_DEFAULT;
+        if (str_view.empty())
+                str_view = WORD_CHAR_EXCEPTIONS_DEFAULT;
 
+        auto str = str_view.data();
+
+        auto array = std::vector<char32_t>{};
         array.reserve(g_utf8_strlen(str, -1));
 
         for (auto const* p = str; *p; p = g_utf8_next_char(p)) {
@@ -10992,31 +10983,26 @@ Terminal::process_word_char_exceptions(char const *str,
         }
 
         /* Sort the result since we want to use bsearch on it */
-        // FIXME remove the const cast when upgrading to C++17
-        qsort(const_cast<char32_t*>(array.data()),
-              array.size(),
-              sizeof(std::u32string::value_type),
-              compare_unichar_p);
+        std::sort(std::begin(array), std::end(array));
 
         /* Check that no character occurs twice */
         for (size_t i = 1; i < array.size(); ++i) {
                 if (array[i-1] != array[i])
                         continue;
 
-                return false;
+                return std::nullopt;
         }
 
 #if 0
         /* Debug */
-        for (size_t i = 0; i < array.size(); i++) {
+        for (auto const c : array) {
                 char utf[7];
-                auto const c = array[i];
                 utf[g_unichar_to_utf8(c, utf)] = '\0';
                 g_printerr("Word char exception: U+%04X %s\n", c, utf);
         }
 #endif
 
-        return true;
+        return array;
 }
 
 /*
@@ -11037,19 +11023,14 @@ Terminal::process_word_char_exceptions(char const *str,
  * Returns: %true if the word char exceptions changed
  */
 bool
-Terminal::set_word_char_exceptions(char const* exceptions)
+Terminal::set_word_char_exceptions(std::string_view str)
 {
-        if (g_strcmp0(exceptions, m_word_char_exceptions_string.data()) == 0)
-                return false;
+        if (auto array = process_word_char_exceptions(str)) {
+                m_word_char_exceptions = *array;
+                return true;
+        }
 
-        std::u32string array;
-        if (!process_word_char_exceptions(exceptions, array))
-                return false;
-
-        m_word_char_exceptions_string = exceptions ? exceptions : "";
-        m_word_char_exceptions.swap(array);
-
-        return true;
+        return false;
 }
 
 void

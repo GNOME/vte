@@ -59,6 +59,7 @@
 
 #include <list>
 #include <queue>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -472,8 +473,7 @@ public:
         VteCharacterReplacement *m_character_replacement{&m_character_replacements[0]};
 
         /* Word chars */
-        std::string m_word_char_exceptions_string;
-        std::u32string m_word_char_exceptions;
+        std::vector<char32_t> m_word_char_exceptions;
 
 	/* Selection information. */
         gboolean m_selecting;
@@ -1266,8 +1266,7 @@ public:
         void set_size(long columns,
                       long rows);
 
-        bool process_word_char_exceptions(char const *str,
-                                          std::u32string& array) const noexcept;
+        std::optional<std::vector<char32_t>> process_word_char_exceptions(std::string_view str) const noexcept;
 
         long get_cell_height() { ensure_font(); return m_cell_height; }
         long get_cell_width()  { ensure_font(); return m_cell_width;  }
@@ -1325,7 +1324,7 @@ public:
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
-        bool set_word_char_exceptions(char const* exceptions);
+        bool set_word_char_exceptions(std::string_view str_view);
         void set_clear_background(bool setting);
 
         bool write_contents_sync (GOutputStream *stream,

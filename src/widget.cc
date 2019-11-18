@@ -384,6 +384,20 @@ Widget::set_pty(VtePty* pty_obj) noexcept
         return true;
 }
 
+bool
+Widget::set_word_char_exceptions(std::string_view str)
+{
+        if (m_word_char_exceptions == str)
+                return false;
+
+        if (terminal()->set_word_char_exceptions(str)) {
+                m_word_char_exceptions = str;
+                return true;
+        }
+
+        return false;
+}
+
 void
 Widget::unset_pty() noexcept
 {

@@ -4543,8 +4543,7 @@ vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        auto impl = IMPL(terminal);
-        return impl->m_word_char_exceptions_string.empty() ? nullptr : impl->m_word_char_exceptions_string.data();
+        return WIDGET(terminal)->word_char_exceptions();
 }
 
 /**
@@ -4571,7 +4570,7 @@ vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (IMPL(terminal)->set_word_char_exceptions(exceptions))
+        if (WIDGET(terminal)->set_word_char_exceptions(exceptions))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_WORD_CHAR_EXCEPTIONS]);
 }
 
