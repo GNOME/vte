@@ -100,6 +100,12 @@ Widget::Widget(VteTerminal* t) noexcept :
         m_vscroll_policy{GTK_SCROLL_NATURAL}
 
 {
+        gtk_widget_set_can_focus(gtk(), true);
+
+        /* We do our own redrawing. */
+        // FIXMEchpe is this still necessary?
+        gtk_widget_set_redraw_on_allocate(gtk(), false);
+
         /* Until Terminal init is completely fixed, use zero'd memory */
         auto place = g_malloc0(sizeof(vte::terminal::Terminal));
         m_terminal = new (place) vte::terminal::Terminal(this, t);

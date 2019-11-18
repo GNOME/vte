@@ -7848,12 +7848,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* NOTE! We allocated zeroed memory, just fill in non-zero stuff. */
 
-	gtk_widget_set_can_focus(m_widget, TRUE);
-
-	/* We do our own redrawing. */
-        // FIXMEchpe still necessary?
-	gtk_widget_set_redraw_on_allocate(m_widget, FALSE);
-
         m_invalidated_all = false;
         // FIXMEegmont make this store row indices only, maybe convert to a bitmap
         m_update_rects = g_array_sized_new(FALSE /* zero terminated */,
