@@ -3775,7 +3775,7 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         switch (request.command()) {
 
         case VTE_CMD_DECSCUSR:
-                return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSCUSR, {m_cursor_style}});
+                return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSCUSR, {int(m_cursor_style)}});
 
         case VTE_CMD_DECSTBM:
                 if (m_scrolling_restricted)
@@ -4181,7 +4181,7 @@ Terminal::DECSCUSR(vte::parser::Sequence const& seq)
         auto param = seq.collect1(0, 0);
         switch (param) {
         case 0 ... 6:
-                set_cursor_style(VteCursorStyle(param));
+                set_cursor_style(CursorStyle(param));
                 break;
         default:
                 break;

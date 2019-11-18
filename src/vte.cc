@@ -3330,7 +3330,7 @@ Terminal::process_incoming_utf8()
 {
 	VteVisualPosition saved_cursor;
 	gboolean saved_cursor_visible;
-        VteCursorStyle saved_cursor_style;
+        CursorStyle saved_cursor_style;
         vte::grid::row_t bbox_top, bbox_bottom;
 	gboolean modified, bottom;
 	gboolean invalidated_text;
@@ -3610,7 +3610,7 @@ Terminal::process_incoming_pcterm()
 {
 	VteVisualPosition saved_cursor;
 	gboolean saved_cursor_visible;
-        VteCursorStyle saved_cursor_style;
+        CursorStyle saved_cursor_style;
         vte::grid::row_t bbox_top, bbox_bottom;
 	gboolean modified, bottom;
 	gboolean invalidated_text;
@@ -7895,10 +7895,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Cursor blinking. */
         m_cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
-        /* DECSCUSR cursor style (shape and blinking possibly overridden
-         * via escape sequence) */
-        m_cursor_style = VTE_CURSOR_STYLE_TERMINAL_DEFAULT;
-
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -9818,7 +9814,7 @@ Terminal::set_cursor_shape(VteCursorShape shape)
 
 /* DECSCUSR set cursor style */
 bool
-Terminal::set_cursor_style(VteCursorStyle style)
+Terminal::set_cursor_style(CursorStyle style)
 {
         if (m_cursor_style == style)
                 return false;
@@ -9845,15 +9841,15 @@ Terminal::decscusr_cursor_blink()
 {
         switch (m_cursor_style) {
         default:
-        case VTE_CURSOR_STYLE_TERMINAL_DEFAULT:
+        case CursorStyle::eTERMINAL_DEFAULT:
                 return m_cursor_blink_mode;
-        case VTE_CURSOR_STYLE_BLINK_BLOCK:
-        case VTE_CURSOR_STYLE_BLINK_UNDERLINE:
-        case VTE_CURSOR_STYLE_BLINK_IBEAM:
+        case CursorStyle::eBLINK_BLOCK:
+        case CursorStyle::eBLINK_UNDERLINE:
+        case CursorStyle::eBLINK_IBEAM:
                 return VTE_CURSOR_BLINK_ON;
-        case VTE_CURSOR_STYLE_STEADY_BLOCK:
-        case VTE_CURSOR_STYLE_STEADY_UNDERLINE:
-        case VTE_CURSOR_STYLE_STEADY_IBEAM:
+        case CursorStyle::eSTEADY_BLOCK:
+        case CursorStyle::eSTEADY_UNDERLINE:
+        case CursorStyle::eSTEADY_IBEAM:
                 return VTE_CURSOR_BLINK_OFF;
         }
 }
@@ -9873,16 +9869,16 @@ Terminal::decscusr_cursor_shape()
 {
         switch (m_cursor_style) {
         default:
-        case VTE_CURSOR_STYLE_TERMINAL_DEFAULT:
+        case CursorStyle::eTERMINAL_DEFAULT:
                 return m_cursor_shape;
-        case VTE_CURSOR_STYLE_BLINK_BLOCK:
-        case VTE_CURSOR_STYLE_STEADY_BLOCK:
+        case CursorStyle::eBLINK_BLOCK:
+        case CursorStyle::eSTEADY_BLOCK:
                 return VTE_CURSOR_SHAPE_BLOCK;
-        case VTE_CURSOR_STYLE_BLINK_UNDERLINE:
-        case VTE_CURSOR_STYLE_STEADY_UNDERLINE:
+        case CursorStyle::eBLINK_UNDERLINE:
+        case CursorStyle::eSTEADY_UNDERLINE:
                 return VTE_CURSOR_SHAPE_UNDERLINE;
-        case VTE_CURSOR_STYLE_BLINK_IBEAM:
-        case VTE_CURSOR_STYLE_STEADY_IBEAM:
+        case CursorStyle::eBLINK_IBEAM:
+        case CursorStyle::eSTEADY_IBEAM:
                 return VTE_CURSOR_SHAPE_IBEAM;
         }
 }
@@ -10078,7 +10074,7 @@ Terminal::reset(bool clear_tabstops,
 		adjust_adjustments_full();
 	}
         /* DECSCUSR cursor style */
-        set_cursor_style(VTE_CURSOR_STYLE_TERMINAL_DEFAULT);
+        set_cursor_style(CursorStyle::eTERMINAL_DEFAULT);
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
         m_scrolling_restricted = FALSE;

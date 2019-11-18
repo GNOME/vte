@@ -147,29 +147,6 @@ typedef struct _VtePaletteColor {
 	} sources[2];
 } VtePaletteColor;
 
-/* These correspond to the parameters for DECSCUSR (Set cursor style). */
-typedef enum _VteCursorStyle {
-        /* We treat 0 and 1 differently, assuming that the VT510 does so too.
-         *
-         * See, according to the "VT510 Video Terminal Programmer Information",
-         * from vt100.net, paragraph "2.5.7 Cursor Display", there was a menu
-         * item in the "Terminal Set-Up" to set the cursor's style. It looks
-         * like that defaulted to blinking block. So it makes sense for 0 to
-         * mean "set cursor style to default (set by Set-Up)" and 1 to mean
-         * "set cursor style to blinking block", since that default need not be
-         * blinking block. Access to a VT510 is needed to test this theory,
-         * but it seems plausible. And, anyhow, we can even decide we know
-         * better than the VT510 designers! */
-        VTE_CURSOR_STYLE_TERMINAL_DEFAULT = 0,
-        VTE_CURSOR_STYLE_BLINK_BLOCK      = 1,
-        VTE_CURSOR_STYLE_STEADY_BLOCK     = 2,
-        VTE_CURSOR_STYLE_BLINK_UNDERLINE  = 3,
-        VTE_CURSOR_STYLE_STEADY_UNDERLINE = 4,
-        /* *_IBEAM are xterm extensions */
-        VTE_CURSOR_STYLE_BLINK_IBEAM      = 5,
-        VTE_CURSOR_STYLE_STEADY_IBEAM     = 6
-} VteCursorStyle;
-
 struct VteScreen {
 public:
         VteScreen(gulong max_rows,
@@ -327,6 +304,31 @@ class Widget;
 namespace terminal {
 
 class Terminal {
+private:
+        /* These correspond to the parameters for DECSCUSR (Set cursor style). */
+        enum class CursorStyle {
+                /* We treat 0 and 1 differently, assuming that the VT510 does so too.
+                 *
+                 * See, according to the "VT510 Video Terminal Programmer Information",
+                 * from vt100.net, paragraph "2.5.7 Cursor Display", there was a menu
+                 * item in the "Terminal Set-Up" to set the cursor's style. It looks
+                 * like that defaulted to blinking block. So it makes sense for 0 to
+                 * mean "set cursor style to default (set by Set-Up)" and 1 to mean
+                 * "set cursor style to blinking block", since that default need not be
+                 * blinking block. Access to a VT510 is needed to test this theory,
+                 * but it seems plausible. And, anyhow, we can even decide we know
+                 * better than the VT510 designers!
+                 */
+                eTERMINAL_DEFAULT = 0,
+                eBLINK_BLOCK      = 1,
+                eSTEADY_BLOCK     = 2,
+                eBLINK_UNDERLINE  = 3,
+                eSTEADY_UNDERLINE = 4,
+                /* *_IBEAM are xterm extensions */
+                eBLINK_IBEAM      = 5,
+                eSTEADY_IBEAM     = 6,
+        };
+
 public:
         Terminal(vte::platform::Widget* w,
                  VteTerminal *t);
@@ -508,7 +510,8 @@ public:
 
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
-        VteCursorStyle m_cursor_style;
+
+        CursorStyle m_cursor_style{CursorStyle::eTERMINAL_DEFAULT};
 
 	/* Input device options. */
         bool m_input_enabled{true};
@@ -1279,7 +1282,7 @@ public:
         void set_colors_default();
         bool set_cursor_blink_mode(VteCursorBlinkMode mode);
         bool set_cursor_shape(VteCursorShape shape);
-        bool set_cursor_style(VteCursorStyle style);
+        bool set_cursor_style(CursorStyle style);
         bool set_delete_binding(VteEraseBinding binding);
         bool set_enable_bidi(bool setting);
         bool set_enable_shaping(bool setting);
