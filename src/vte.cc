@@ -7809,8 +7809,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_real_widget(w),
         m_terminal(t),
         m_widget(&t->widget),
-        m_row_count(VTE_ROWS),
-        m_column_count(VTE_COLUMNS),
         m_normal_screen(VTE_SCROLLBACK_INIT, true),
         m_alternate_screen(VTE_ROWS, false),
         m_screen(&m_normal_screen)
