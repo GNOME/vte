@@ -616,9 +616,12 @@ public:
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
-        PangoFontDescription *m_unscaled_font_desc;
-        PangoFontDescription *m_fontdesc;
+        using pango_font_description_unique_type = std::unique_ptr<PangoFontDescription, decltype(&pango_font_description_free)>;
+        pango_font_description_unique_type m_unscaled_font_desc{nullptr, &pango_font_description_free};
+        pango_font_description_unique_type  m_fontdesc{nullptr, &pango_font_description_free};
         double m_font_scale{1.};
+
+        auto unscaled_font_description() const noexcept { return m_unscaled_font_desc.get(); }
 
         /* First, the dimensions of ASCII characters are measured. The result
          * could probably be called char_{width,height} or font_{width,height}

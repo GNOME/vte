@@ -3979,7 +3979,7 @@ vte_terminal_get_font(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        return IMPL(terminal)->m_unscaled_font_desc;
+        return IMPL(terminal)->unscaled_font_description();
 }
 
 /**

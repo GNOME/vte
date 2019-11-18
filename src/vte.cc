@@ -4425,7 +4425,7 @@ Terminal::im_update_cursor()
 void
 Terminal::widget_style_updated()
 {
-        set_font_desc(m_unscaled_font_desc);
+        set_font_desc(m_unscaled_font_desc.get());
 
         auto context = gtk_widget_get_style_context(m_widget);
         GtkBorder new_padding;
@@ -7391,7 +7391,7 @@ Terminal::ensure_font()
 	if (m_draw != NULL) {
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!m_has_fonts) {
-			set_font_desc(m_unscaled_font_desc);
+			set_font_desc(m_unscaled_font_desc.get());
 		}
 		if (m_fontdirty) {
                         int cell_width, cell_height;
@@ -7400,7 +7400,7 @@ Terminal::ensure_font()
 			m_fontdirty = false;
 			_vte_draw_set_text_font (m_draw,
                                                  m_widget,
-                                                 m_fontdesc,
+                                                 m_fontdesc.get(),
                                                  m_cell_width_scale,
                                                  m_cell_height_scale);
 			_vte_draw_get_text_metrics (m_draw,
@@ -7418,10 +7418,10 @@ void
 Terminal::update_font()
 {
         /* We'll get called again later */
-        if (m_unscaled_font_desc == nullptr)
+        if (!m_unscaled_font_desc)
                 return;
 
-        auto desc = pango_font_description_copy(m_unscaled_font_desc);
+        auto desc = pango_font_description_copy(m_unscaled_font_desc.get());
 
         double size = pango_font_description_get_size(desc);
         if (pango_font_description_get_size_is_absolute(desc)) {
@@ -7430,11 +7430,7 @@ Terminal::update_font()
                 pango_font_description_set_size(desc, m_font_scale * size);
         }
 
-        if (m_fontdesc) {
-                pango_font_description_free(m_fontdesc);
-        }
-        m_fontdesc = desc;
-
+        m_fontdesc = {desc, &pango_font_description_free};
         m_fontdirty = true;
         m_has_fonts = true;
 
@@ -7482,8 +7478,8 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 				"Using default monospace font.\n");
 	}
 
-        bool same_desc = m_unscaled_font_desc &&
-                pango_font_description_equal(m_unscaled_font_desc, desc);
+        bool const same_desc = m_unscaled_font_desc &&
+                pango_font_description_equal(m_unscaled_font_desc.get(), desc);
 
 	/* Note that we proceed to recreating the font even if the description
 	 * are the same.  This is because maybe screen
@@ -7491,13 +7487,7 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 	 * detected at font creation time and respected.
 	 */
 
-	/* Free the old font description and save the new one. */
-	if (m_unscaled_font_desc != nullptr) {
-		pango_font_description_free(m_unscaled_font_desc);
-	}
-
-        m_unscaled_font_desc = desc /* adopted */;
-
+        m_unscaled_font_desc = {desc, &pango_font_description_free};
         update_font();
 
         return !same_desc;
@@ -7923,10 +7913,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         /* Word chars */
         set_word_char_exceptions(WORD_CHAR_EXCEPTIONS_DEFAULT);
 
-        /* Selection */
-        m_unscaled_font_desc = nullptr;
-        m_fontdesc = nullptr;
-
         update_view_extents();
 
 #ifdef VTE_DEBUG
@@ -8151,14 +8137,6 @@ Terminal::~Terminal()
 	/* Free the draw structure. */
 	if (m_draw != NULL) {
 		_vte_draw_free(m_draw);
-	}
-
-	/* Free the font description. */
-        if (m_unscaled_font_desc != NULL) {
-                pango_font_description_free(m_unscaled_font_desc);
-        }
-	if (m_fontdesc != NULL) {
-		pango_font_description_free(m_fontdesc);
 	}
 
 	/* Free matching data. */
