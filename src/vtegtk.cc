@@ -3794,7 +3794,7 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
 
-        return IMPL(terminal)->m_cursor_shape;
+        return WIDGET(terminal)->cursor_shape();
 }
 
 /**
@@ -3810,7 +3810,7 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(shape >= VTE_CURSOR_SHAPE_BLOCK && shape <= VTE_CURSOR_SHAPE_UNDERLINE);
 
-        if (IMPL(terminal)->set_cursor_shape(shape))
+        if (WIDGET(terminal)->set_cursor_shape(shape))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_SHAPE]);
 }
 

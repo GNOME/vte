@@ -340,6 +340,13 @@ protected:
                 eOFF
         };
 
+        /* NOTE: This needs to be kept in sync with the public VteCursorShape enum */
+        enum class CursorShape {
+                eBLOCK,
+                eIBEAM,
+                eUNDERLINE
+        };
+
 public:
         Terminal(vte::platform::Widget* w,
                  VteTerminal *t);
@@ -499,7 +506,7 @@ public:
         gboolean m_scrolling_restricted;
 
 	/* Cursor shape, as set via API */
-        VteCursorShape m_cursor_shape;
+        CursorShape m_cursor_shape{CursorShape::eBLOCK};
         double m_cursor_aspect_ratio{0.04};
 
 	/* Cursor blinking */
@@ -845,7 +852,7 @@ public:
         void remove_cursor_timeout();
         void update_cursor_blinks();
         CursorBlinkMode decscusr_cursor_blink() const noexcept;
-        VteCursorShape decscusr_cursor_shape();
+        CursorShape decscusr_cursor_shape() const noexcept;
 
         void remove_text_blink_timeout();
 
@@ -1293,7 +1300,8 @@ public:
         void set_colors_default();
         bool set_cursor_blink_mode(CursorBlinkMode mode);
         auto cursor_blink_mode() const noexcept { return m_cursor_blink_mode; }
-        bool set_cursor_shape(VteCursorShape shape);
+        bool set_cursor_shape(CursorShape shape);
+        auto cursor_shape() const noexcept { return m_cursor_shape; }
         bool set_cursor_style(CursorStyle style);
         bool set_delete_binding(VteEraseBinding binding);
         bool set_enable_bidi(bool setting);

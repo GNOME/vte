@@ -7889,9 +7889,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	set_delete_binding(VTE_ERASE_AUTO);
         m_text_blink_mode = VTE_TEXT_BLINK_ALWAYS;
 
-	/* Cursor shape. */
-	m_cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
-
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -9183,7 +9180,7 @@ Terminal::paint_cursor()
 
         switch (decscusr_cursor_shape()) {
 
-		case VTE_CURSOR_SHAPE_IBEAM: {
+		case CursorShape::eIBEAM: {
                         /* Draw at the very left of the cell (before the spacing), even in case of CJK.
                          * IMO (egmont) not overrunning the letter improves readability, vertical movement
                          * looks good (no zigzag even when a somewhat wider glyph that starts filling up
@@ -9216,7 +9213,7 @@ Terminal::paint_cursor()
 			break;
                 }
 
-		case VTE_CURSOR_SHAPE_UNDERLINE: {
+		case CursorShape::eUNDERLINE: {
                         /* The width is at least the overall width of the cell (or two cells) minus the two
                          * half spacings on the two edges. That is, underlines under a CJK are more than twice
                          * as wide as narrow characters in case of letter spacing. Plus, if necessary, the width
@@ -9247,7 +9244,7 @@ Terminal::paint_cursor()
 			break;
                 }
 
-		case VTE_CURSOR_SHAPE_BLOCK:
+		case CursorShape::eBLOCK:
                         /* Include the spacings in the cursor, see bug 781479 comments 39-44.
                          * Make the cursor even wider if the glyph is wider. */
 
@@ -9451,7 +9448,7 @@ Terminal::widget_draw(cairo_t *cr)
         /* Re-clip, allowing VTE_LINE_WIDTH more pixel rows for the outline cursor. */
         /* TODOegmont: It's really ugly to do it here. */
         cairo_save(cr);
-        extra_area_for_cursor = (decscusr_cursor_shape() == VTE_CURSOR_SHAPE_BLOCK && !m_has_focus) ? VTE_LINE_WIDTH : 0;
+        extra_area_for_cursor = (decscusr_cursor_shape() == CursorShape::eBLOCK && !m_has_focus) ? VTE_LINE_WIDTH : 0;
         cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
         cairo_clip(cr);
 
@@ -9798,7 +9795,7 @@ Terminal::set_cursor_blink_mode(CursorBlinkMode mode)
 }
 
 bool
-Terminal::set_cursor_shape(VteCursorShape shape)
+Terminal::set_cursor_shape(CursorShape shape)
 {
         if (shape == m_cursor_shape)
                 return false;
@@ -9861,8 +9858,8 @@ Terminal::decscusr_cursor_blink() const noexcept
  *
  * Return value: cursor shape
  */
-VteCursorShape
-Terminal::decscusr_cursor_shape()
+Terminal::CursorShape
+Terminal::decscusr_cursor_shape() const noexcept
 {
         switch (m_cursor_style) {
         default:
@@ -9870,13 +9867,13 @@ Terminal::decscusr_cursor_shape()
                 return m_cursor_shape;
         case CursorStyle::eBLINK_BLOCK:
         case CursorStyle::eSTEADY_BLOCK:
-                return VTE_CURSOR_SHAPE_BLOCK;
+                return CursorShape::eBLOCK;
         case CursorStyle::eBLINK_UNDERLINE:
         case CursorStyle::eSTEADY_UNDERLINE:
-                return VTE_CURSOR_SHAPE_UNDERLINE;
+                return CursorShape::eUNDERLINE;
         case CursorStyle::eBLINK_IBEAM:
         case CursorStyle::eSTEADY_IBEAM:
-                return VTE_CURSOR_SHAPE_IBEAM;
+                return CursorShape::eIBEAM;
         }
 }
 
