@@ -7878,12 +7878,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
 	/* Set up I/O encodings. */
-        m_utf8_ambiguous_width = VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH;
-	m_max_input_bytes = VTE_MAX_INPUT_READ;
-	m_cursor_blink_tag = 0;
-        m_text_blink_tag = 0;
 	m_outgoing = _vte_byte_array_new();
-        m_last_graphic_character = 0;
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
@@ -7891,7 +7886,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* Scrolling options. */
 	m_scroll_on_keystroke = TRUE;
-        m_scrollback_lines = -1; /* force update in vte_terminal_set_scrollback_lines */
+        /* Default is -1, forces update in vte_terminal_set_scrollback_lines */
 	set_scrollback_lines(VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
@@ -7914,10 +7909,8 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* Cursor shape. */
 	m_cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
-        m_cursor_aspect_ratio = 0.04;
 
 	/* Cursor blinking. */
-	m_cursor_blink_timeout = 500;
         m_cursor_blinks = FALSE;
         m_cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
@@ -7936,9 +7929,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Rendering data */
 	m_draw = _vte_draw_new();
 
-	/* Set up background information. */
-        m_background_alpha = 1.;
-
         /* Word chars */
         set_word_char_exceptions(WORD_CHAR_EXCEPTIONS_DEFAULT);
 
@@ -7946,19 +7936,11 @@ Terminal::Terminal(vte::platform::Widget* w,
 	m_selection_block_mode = FALSE;
         m_unscaled_font_desc = nullptr;
         m_fontdesc = nullptr;
-        m_font_scale = 1.;
-        m_cell_width_scale = 1.;
-        m_cell_height_scale = 1.;
 	m_has_fonts = FALSE;
 
         /* Hyperlink */
         m_allow_hyperlink = FALSE;
-        m_hyperlink_auto_id = 0;
 
-        /* Mouse */
-        m_mouse_last_position = vte::view::coords(-1, -1);
-
-        m_padding = default_padding;
         update_view_extents();
 
 #ifdef VTE_DEBUG

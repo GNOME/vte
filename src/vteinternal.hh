@@ -390,8 +390,8 @@ public:
 
         auto data_syntax() const noexcept { return m_data_syntax; }
 
-        int m_utf8_ambiguous_width;
-        gunichar m_last_graphic_character; /* for REP */
+        int m_utf8_ambiguous_width{VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH};
+        gunichar m_last_graphic_character{0}; /* for REP */
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
          */
@@ -403,7 +403,7 @@ public:
         GList *m_active_terminals_link;
         // FIXMEchpe should these two be g[s]size ?
         size_t m_input_bytes;
-        glong m_max_input_bytes;
+        long m_max_input_bytes{VTE_MAX_INPUT_READ};
 
 	/* Output data queue. */
         VteByteArray *m_outgoing; /* pending input characters */
@@ -479,7 +479,7 @@ public:
 	/* Scrolling options. */
         gboolean m_scroll_on_output;
         gboolean m_scroll_on_keystroke;
-        vte::grid::row_t m_scrollback_lines;
+        vte::grid::row_t m_scrollback_lines{0};
 
         /* Restricted scrolling */
         struct vte_scrolling_region m_scrolling_region;     /* the region we scroll in */
@@ -487,14 +487,14 @@ public:
 
 	/* Cursor shape, as set via API */
         VteCursorShape m_cursor_shape;
-        double m_cursor_aspect_ratio;
+        double m_cursor_aspect_ratio{0.04};
 
 	/* Cursor blinking, as set in dconf. */
         VteCursorBlinkMode m_cursor_blink_mode;
         gboolean m_cursor_blink_state;
-        guint m_cursor_blink_tag;           /* cursor blinking timeout ID */
+        guint m_cursor_blink_tag{0};           /* cursor blinking timeout ID */
         gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
-        gint m_cursor_blink_timeout;        /* gtk-cursor-blink-timeout */
+        int m_cursor_blink_timeout{500};        /* gtk-cursor-blink-timeout */
         gboolean m_cursor_blinks;           /* whether the cursor is actually blinking */
         gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
         gboolean m_has_focus;               /* is the terminal window focused */
@@ -504,7 +504,7 @@ public:
         gint m_text_blink_cycle;  /* gtk-cursor-blink-time / 2 */
         bool m_text_blink_state;  /* whether blinking text should be visible at this very moment */
         bool m_text_to_blink;     /* drawing signals here if it encounters any cell with blink attribute */
-        guint m_text_blink_tag;   /* timeout ID for redrawing due to blinking */
+        guint m_text_blink_tag{0};   /* timeout ID for redrawing due to blinking */
 
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
@@ -521,7 +521,7 @@ public:
          * this in grid coordinates because we want also to check if they were outside
          * the viewable area, and also want to catch in-cell movements if they make the pointer visible.
          */
-        vte::view::coords m_mouse_last_position;
+        vte::view::coords m_mouse_last_position{-1, -1};
         guint m_mouse_autoscroll_tag;
         double m_mouse_smooth_scroll_delta{0.0};
 
@@ -618,7 +618,7 @@ public:
 	 * resources and which can be kept after unrealizing. */
         PangoFontDescription *m_unscaled_font_desc;
         PangoFontDescription *m_fontdesc;
-        gdouble m_font_scale;
+        double m_font_scale{1.};
         gboolean m_fontdirty;
 
         /* First, the dimensions of ASCII characters are measured. The result
@@ -702,7 +702,7 @@ public:
         std::vector<std::string> m_window_title_stack{};
 
 	/* Background */
-        double m_background_alpha;
+        double m_background_alpha{1.};
 
         /* Bell */
         int64_t m_bell_timestamp;
@@ -728,7 +728,7 @@ public:
         double m_undercurl_thickness{VTE_LINE_WIDTH};
 
         /* Style stuff */
-        GtkBorder m_padding;
+        GtkBorder m_padding{1, 1, 1, 1};
 
         vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
         auto vadjustment() noexcept { return m_vadjustment.get(); }
@@ -737,7 +737,7 @@ public:
         gboolean m_allow_hyperlink;
         vte::base::Ring::hyperlink_idx_t m_hyperlink_hover_idx;
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
-        long m_hyperlink_auto_id;
+        long m_hyperlink_auto_id{0};
 
         /* RingView and friends */
         vte::base::RingView m_ringview;

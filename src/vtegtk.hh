@@ -102,5 +102,3 @@ enum {
         PROP_VSCROLL_POLICY
 };
 extern GParamSpec *pspecs[LAST_PROP];
-
-const GtkBorder default_padding = { 1, 1, 1, 1 };
