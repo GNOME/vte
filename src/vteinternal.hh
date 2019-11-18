@@ -304,6 +304,8 @@ class Widget;
 namespace terminal {
 
 class Terminal {
+        friend class vte::platform::Widget;
+
 private:
         /* These correspond to the parameters for DECSCUSR (Set cursor style). */
         enum class CursorStyle {
@@ -327,6 +329,15 @@ private:
                 /* *_IBEAM are xterm extensions */
                 eBLINK_IBEAM      = 5,
                 eSTEADY_IBEAM     = 6,
+        };
+
+protected:
+
+        /* NOTE: This needs to be kept in sync with the public VteCursorBlinkMode enum */
+        enum class CursorBlinkMode {
+                eSYSTEM,
+                eON,
+                eOFF
         };
 
 public:
@@ -491,8 +502,8 @@ public:
         VteCursorShape m_cursor_shape;
         double m_cursor_aspect_ratio{0.04};
 
-	/* Cursor blinking, as set in dconf. */
-        VteCursorBlinkMode m_cursor_blink_mode;
+	/* Cursor blinking */
+        CursorBlinkMode m_cursor_blink_mode{CursorBlinkMode::eSYSTEM};
         gboolean m_cursor_blink_state;
         guint m_cursor_blink_tag{0};           /* cursor blinking timeout ID */
         gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
@@ -833,7 +844,7 @@ public:
         void add_cursor_timeout();
         void remove_cursor_timeout();
         void update_cursor_blinks();
-        VteCursorBlinkMode decscusr_cursor_blink();
+        CursorBlinkMode decscusr_cursor_blink() const noexcept;
         VteCursorShape decscusr_cursor_shape();
 
         void remove_text_blink_timeout();
@@ -1280,7 +1291,8 @@ public:
                         vte::color::rgb const *palette,
                         gsize palette_size);
         void set_colors_default();
-        bool set_cursor_blink_mode(VteCursorBlinkMode mode);
+        bool set_cursor_blink_mode(CursorBlinkMode mode);
+        auto cursor_blink_mode() const noexcept { return m_cursor_blink_mode; }
         bool set_cursor_shape(VteCursorShape shape);
         bool set_cursor_style(CursorStyle style);
         bool set_delete_binding(VteEraseBinding binding);

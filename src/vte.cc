@@ -7892,9 +7892,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Cursor shape. */
 	m_cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
 
-	/* Cursor blinking. */
-        m_cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
-
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -9766,17 +9763,17 @@ Terminal::update_cursor_blinks()
         bool blink = false;
 
         switch (decscusr_cursor_blink()) {
-        case VTE_CURSOR_BLINK_SYSTEM:
+        case CursorBlinkMode::eSYSTEM:
                 gboolean v;
                 g_object_get(gtk_widget_get_settings(m_widget),
                                                      "gtk-cursor-blink",
                                                      &v, nullptr);
                 blink = v != FALSE;
                 break;
-        case VTE_CURSOR_BLINK_ON:
+        case CursorBlinkMode::eON:
                 blink = true;
                 break;
-        case VTE_CURSOR_BLINK_OFF:
+        case CursorBlinkMode::eOFF:
                 blink = false;
                 break;
         }
@@ -9789,7 +9786,7 @@ Terminal::update_cursor_blinks()
 }
 
 bool
-Terminal::set_cursor_blink_mode(VteCursorBlinkMode mode)
+Terminal::set_cursor_blink_mode(CursorBlinkMode mode)
 {
         if (mode == m_cursor_blink_mode)
                 return false;
@@ -9836,8 +9833,8 @@ Terminal::set_cursor_style(CursorStyle style)
  *
  * Return value: cursor blink mode
  */
-VteCursorBlinkMode
-Terminal::decscusr_cursor_blink()
+Terminal::CursorBlinkMode
+Terminal::decscusr_cursor_blink() const noexcept
 {
         switch (m_cursor_style) {
         default:
@@ -9846,11 +9843,11 @@ Terminal::decscusr_cursor_blink()
         case CursorStyle::eBLINK_BLOCK:
         case CursorStyle::eBLINK_UNDERLINE:
         case CursorStyle::eBLINK_IBEAM:
-                return VTE_CURSOR_BLINK_ON;
+                return CursorBlinkMode::eON;
         case CursorStyle::eSTEADY_BLOCK:
         case CursorStyle::eSTEADY_UNDERLINE:
         case CursorStyle::eSTEADY_IBEAM:
-                return VTE_CURSOR_BLINK_OFF;
+                return CursorBlinkMode::eOFF;
         }
 }
 

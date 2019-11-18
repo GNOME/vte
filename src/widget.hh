@@ -105,6 +105,9 @@ public:
         auto hscroll_policy() const noexcept { return m_hscroll_policy; }
         auto vscroll_policy() const noexcept { return m_vscroll_policy; }
 
+        bool set_cursor_blink_mode(VteCursorBlinkMode mode) { return terminal()->set_cursor_blink_mode(vte::terminal::Terminal::CursorBlinkMode(mode)); }
+        auto cursor_blink_mode() const noexcept { return VteCursorBlinkMode(terminal()->cursor_blink_mode()); }
+
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
         void emit_child_exited(int status) noexcept;

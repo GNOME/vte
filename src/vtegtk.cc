@@ -3759,7 +3759,7 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
 
-        return IMPL(terminal)->m_cursor_blink_mode;
+        return WIDGET(terminal)->cursor_blink_mode();
 }
 
 /**
@@ -3777,7 +3777,7 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(mode >= VTE_CURSOR_BLINK_SYSTEM && mode <= VTE_CURSOR_BLINK_OFF);
 
-        if (IMPL(terminal)->set_cursor_blink_mode(mode))
+        if (WIDGET(terminal)->set_cursor_blink_mode(mode))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_BLINK_MODE]);
 }
 
