@@ -1798,63 +1798,65 @@ Terminal::emit_adjustment_changed()
 		bool changed = false;
 		gdouble current, v;
 
-		g_object_freeze_notify (G_OBJECT(m_vadjustment));
+                auto vadjustment = m_vadjustment.get();
+
+                g_object_freeze_notify(G_OBJECT(vadjustment));
 
 		v = _vte_ring_delta (m_screen->row_data);
-		current = gtk_adjustment_get_lower(m_vadjustment);
+                current = gtk_adjustment_get_lower(vadjustment);
 		if (!_vte_double_equal(current, v)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing lower bound from %.0f to %f\n",
 					 current, v);
-			gtk_adjustment_set_lower(m_vadjustment, v);
+                        gtk_adjustment_set_lower(vadjustment, v);
 			changed = true;
 		}
 
 		v = m_screen->insert_delta + m_row_count;
-		current = gtk_adjustment_get_upper(m_vadjustment);
+                current = gtk_adjustment_get_upper(vadjustment);
 		if (!_vte_double_equal(current, v)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing upper bound from %.0f to %f\n",
 					 current, v);
-			gtk_adjustment_set_upper(m_vadjustment, v);
+                        gtk_adjustment_set_upper(vadjustment, v);
 			changed = true;
 		}
 
 		/* The step increment should always be one. */
-		v = gtk_adjustment_get_step_increment(m_vadjustment);
+                v = gtk_adjustment_get_step_increment(vadjustment);
 		if (!_vte_double_equal(v, 1)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing step increment from %.0lf to 1\n", v);
-			gtk_adjustment_set_step_increment(m_vadjustment, 1);
+                        gtk_adjustment_set_step_increment(vadjustment, 1);
 			changed = true;
 		}
 
 		/* Set the number of rows the user sees to the number of rows the
 		 * user sees. */
-		v = gtk_adjustment_get_page_size(m_vadjustment);
+                v = gtk_adjustment_get_page_size(vadjustment);
 		if (!_vte_double_equal(v, m_row_count)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing page size from %.0f to %ld\n",
 					 v, m_row_count);
-			gtk_adjustment_set_page_size(m_vadjustment,
+                        gtk_adjustment_set_page_size(vadjustment,
 						     m_row_count);
 			changed = true;
 		}
 
 		/* Clicking in the empty area should scroll one screen, so set the
 		 * page size to the number of visible rows. */
-		v = gtk_adjustment_get_page_increment(m_vadjustment);
+                v = gtk_adjustment_get_page_increment(vadjustment);
 		if (!_vte_double_equal(v, m_row_count)) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Changing page increment from "
 					"%.0f to %ld\n",
 					v, m_row_count);
-			gtk_adjustment_set_page_increment(m_vadjustment,
+                        gtk_adjustment_set_page_increment(vadjustment,
 							  m_row_count);
 			changed = true;
 		}
 
-		g_object_thaw_notify (G_OBJECT (m_vadjustment));
+                g_object_thaw_notify(G_OBJECT(vadjustment));
 
 		if (changed)
 			_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -1866,7 +1868,9 @@ Terminal::emit_adjustment_changed()
 		_vte_debug_print(VTE_DEBUG_SIGNALS,
 				"Emitting adjustment_value_changed.\n");
 		m_adjustment_value_changed_pending = FALSE;
-		v = gtk_adjustment_get_value(m_vadjustment);
+
+                auto vadjustment = m_vadjustment.get();
+                v = gtk_adjustment_get_value(vadjustment);
 		if (!_vte_double_equal(v, m_screen->scroll_delta)) {
 			/* this little dance is so that the scroll_delta is
 			 * updated immediately, but we still handled scrolling
@@ -1875,7 +1879,7 @@ Terminal::emit_adjustment_changed()
 			 */
 			delta = m_screen->scroll_delta;
 			m_screen->scroll_delta = v;
-			gtk_adjustment_set_value(m_vadjustment, delta);
+                        gtk_adjustment_set_value(vadjustment, delta);
 		}
 	}
 }
@@ -1905,8 +1909,9 @@ Terminal::queue_adjustment_value_changed(double v)
 void
 Terminal::queue_adjustment_value_changed_clamped(double v)
 {
-	double lower = gtk_adjustment_get_lower(m_vadjustment);
-	double upper = gtk_adjustment_get_upper(m_vadjustment);
+        auto vadjustment = m_vadjustment.get();
+        auto const lower = gtk_adjustment_get_lower(vadjustment);
+        auto const upper = gtk_adjustment_get_upper(vadjustment);
 
 	v = CLAMP(v, lower, MAX (lower, upper - m_row_count));
 
@@ -7772,7 +7777,7 @@ void
 Terminal::vadjustment_value_changed()
 {
 	/* Read the new adjustment value and save the difference. */
-	double adj = gtk_adjustment_get_value(m_vadjustment);
+        auto const adj = gtk_adjustment_get_value(m_vadjustment.get());
 	double dy = adj - m_screen->scroll_delta;
 	m_screen->scroll_delta = adj;
 
@@ -7794,44 +7799,27 @@ Terminal::vadjustment_value_changed()
 }
 
 void
-Terminal::widget_set_hadjustment(GtkAdjustment *adjustment)
+Terminal::widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment)
 {
-  if (adjustment == m_hadjustment)
-    return;
+        if (adjustment && adjustment == m_vadjustment)
+                return;
+        if (!adjustment && m_vadjustment)
+                return;
 
-  if (m_hadjustment)
-    g_object_unref (m_hadjustment);
-
-  m_hadjustment = adjustment ? (GtkAdjustment *)g_object_ref_sink(adjustment) : nullptr;
-}
-
-void
-Terminal::widget_set_vadjustment(GtkAdjustment *adjustment)
-{
-	if (adjustment != nullptr && adjustment == m_vadjustment)
-		return;
-	if (adjustment == nullptr && m_vadjustment != nullptr)
-		return;
-
-	if (adjustment == nullptr)
-		adjustment = GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0));
-
-	/* Add a reference to the new adjustment object. */
-	g_object_ref_sink(adjustment);
-	/* Get rid of the old adjustment object. */
-	if (m_vadjustment != nullptr) {
+        if (m_vadjustment) {
 		/* Disconnect our signal handlers from this object. */
-		g_signal_handlers_disconnect_by_func(m_vadjustment,
+                g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
 						     (void*)vte_terminal_vadjustment_value_changed_cb,
 						     this);
-		g_object_unref(m_vadjustment);
 	}
 
-	/* Set the new adjustment object. */
-	m_vadjustment = adjustment;
+        if (adjustment)
+                m_vadjustment = std::move(adjustment);
+        else
+                m_vadjustment = vte::glib::make_ref_sink(GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0)));
 
 	/* We care about the offset, not the top or bottom. */
-	g_signal_connect_swapped(m_vadjustment,
+        g_signal_connect_swapped(m_vadjustment.get(),
 				 "value-changed",
 				 G_CALLBACK(vte_terminal_vadjustment_value_changed_cb),
 				 this);
@@ -7848,6 +7836,8 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_alternate_screen(VTE_ROWS, false),
         m_screen(&m_normal_screen)
 {
+	widget_set_vadjustment({});
+
         /* Inits allocation to 1x1 @ -1,-1 */
         cairo_rectangle_int_t allocation;
         gtk_widget_get_allocation(m_widget, &allocation);
@@ -7870,17 +7860,6 @@ Terminal::Terminal(vte::platform::Widget* w,
                                            FALSE /* clear */,
                                            sizeof(cairo_rectangle_int_t),
                                            32 /* preallocated size */);
-
-	/* Set an adjustment for the application to use to control scrolling. */
-        m_vadjustment = nullptr;
-        m_hadjustment = nullptr;
-
-        /* GtkScrollable */
-        m_hscroll_policy = GTK_SCROLL_NATURAL;
-        m_vscroll_policy = GTK_SCROLL_NATURAL;
-
-        widget_set_hadjustment(nullptr);
-	widget_set_vadjustment(nullptr);
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
 	m_cell_width = 1;
@@ -8275,12 +8254,11 @@ Terminal::~Terminal()
         m_outgoing = nullptr;
 
 	/* Free public-facing data. */
-	if (m_vadjustment != NULL) {
+        if (m_vadjustment) {
 		/* Disconnect our signal handlers from this object. */
-		g_signal_handlers_disconnect_by_func(m_vadjustment,
+                g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
 						     (void*)vte_terminal_vadjustment_value_changed_cb,
 						     this);
-		g_object_unref(m_vadjustment);
 	}
 
         /* Update rects */
@@ -9682,7 +9660,7 @@ Terminal::widget_scroll(GdkEventScroll *event)
 		return;
 	}
 
-	v = MAX (1., ceil (gtk_adjustment_get_page_increment (m_vadjustment) / 10.));
+        v = MAX (1., ceil (gtk_adjustment_get_page_increment (m_vadjustment.get()) / 10.));
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Scroll speed is %d lines per non-smooth scroll unit\n",
 			(int) v);
@@ -10895,8 +10873,8 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 
 	select_text(start_col, start_row, end_col, end_row);
 	/* Quite possibly the math here should not access adjustment directly... */
-	value = gtk_adjustment_get_value(m_vadjustment);
-	page_size = gtk_adjustment_get_page_size(m_vadjustment);
+        value = gtk_adjustment_get_value(m_vadjustment.get());
+        page_size = gtk_adjustment_get_page_size(m_vadjustment.get());
 	if (backward) {
 		if (end_row < value || end_row > value + page_size - 1)
 			queue_adjustment_value_changed_clamped(end_row - page_size + 1);

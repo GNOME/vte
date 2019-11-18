@@ -95,7 +95,10 @@ settings_notify_cb(GtkSettings* settings,
 }
 
 Widget::Widget(VteTerminal* t) noexcept :
-        m_widget{&t->widget}
+        m_widget{&t->widget},
+        m_hscroll_policy{GTK_SCROLL_NATURAL},
+        m_vscroll_policy{GTK_SCROLL_NATURAL}
+
 {
         /* Until Terminal init is completely fixed, use zero'd memory */
         auto place = g_malloc0(sizeof(vte::terminal::Terminal));

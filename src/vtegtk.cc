@@ -131,7 +131,7 @@ vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
-        WIDGET(terminal)->set_hadjustment(adjustment);
+        WIDGET(terminal)->set_hadjustment(vte::glib::make_ref_sink(adjustment));
 }
 
 static void
@@ -139,23 +139,22 @@ vte_terminal_set_vadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment)
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
-        WIDGET(terminal)->set_vadjustment(adjustment);
+        WIDGET(terminal)->set_vadjustment(vte::glib::make_ref_sink(adjustment));
 }
 
 static void
 vte_terminal_set_hscroll_policy(VteTerminal *terminal,
                                 GtkScrollablePolicy policy)
 {
-        IMPL(terminal)->m_hscroll_policy = policy;
+        WIDGET(terminal)->set_hscroll_policy(policy);
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
-
 
 static void
 vte_terminal_set_vscroll_policy(VteTerminal *terminal,
                                 GtkScrollablePolicy policy)
 {
-        IMPL(terminal)->m_vscroll_policy = policy;
+        WIDGET(terminal)->set_vscroll_policy(policy);
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
 
@@ -445,10 +444,10 @@ vte_terminal_get_property (GObject *object,
 	switch (prop_id)
                 {
                 case PROP_HADJUSTMENT:
-                        g_value_set_object (value, widget->get_hadjustment());
+                        g_value_set_object (value, widget->hadjustment());
                         break;
                 case PROP_VADJUSTMENT:
-                        g_value_set_object (value, widget->get_vadjustment());
+                        g_value_set_object (value, widget->vadjustment());
                         break;
                 case PROP_HSCROLL_POLICY:
                         g_value_set_enum (value, widget->hscroll_policy());

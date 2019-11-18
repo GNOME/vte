@@ -727,11 +727,8 @@ public:
         /* Style stuff */
         GtkBorder m_padding;
 
-        /* GtkScrollable impl */
-        GtkAdjustment* m_hadjustment; /* unused */
-        GtkAdjustment* m_vadjustment;
-        guint m_hscroll_policy : 1; /* unused */
-        guint m_vscroll_policy : 1;
+        vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
+        auto vadjustment() noexcept { return m_vadjustment.get(); }
 
         /* Hyperlinks */
         gboolean m_allow_hyperlink;
@@ -880,8 +877,7 @@ public:
                                         GtkSelectionData *data,
                                         guint info);
 
-        void widget_set_hadjustment(GtkAdjustment *adjustment);
-        void widget_set_vadjustment(GtkAdjustment *adjustment);
+        void widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment);
 
         void widget_constructed();
         void widget_realize();

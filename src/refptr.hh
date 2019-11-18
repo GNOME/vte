@@ -45,6 +45,15 @@ make_ref(T* obj)
 
 template<typename T>
 RefPtr<T>
+make_ref_sink(T* obj)
+{
+        if (obj)
+                g_object_ref_sink(obj);
+        return {obj};
+}
+
+template<typename T>
+RefPtr<T>
 take_ref(T* obj)
 {
         return {obj};

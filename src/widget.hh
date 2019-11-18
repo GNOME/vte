@@ -96,13 +96,14 @@ public:
 
         void beep() noexcept;
 
-        void set_hadjustment(GtkAdjustment *adjustment) noexcept { m_terminal->widget_set_hadjustment(adjustment); }
-        GtkAdjustment* get_hadjustment() const noexcept { return m_terminal->m_hadjustment; }
-        void set_vadjustment(GtkAdjustment *adjustment) noexcept { m_terminal->widget_set_vadjustment(adjustment); }
-        GtkAdjustment* get_vadjustment() const noexcept { return m_terminal->m_vadjustment; }
-
-        int hscroll_policy() const noexcept { return m_terminal->m_hscroll_policy; }
-        int vscroll_policy() const noexcept { return m_terminal->m_vscroll_policy; }
+        void set_hadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment) noexcept { m_hadjustment = std::move(adjustment); }
+        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment) { terminal()->widget_set_vadjustment(std::move(adjustment)); }
+        auto hadjustment() noexcept { return m_hadjustment.get(); }
+        auto vadjustment() noexcept { return terminal()->vadjustment(); }
+        void set_hscroll_policy(GtkScrollablePolicy policy) noexcept { m_hscroll_policy = policy; }
+        void set_vscroll_policy(GtkScrollablePolicy policy) noexcept { m_vscroll_policy = policy; }
+        auto hscroll_policy() const noexcept { return m_hscroll_policy; }
+        auto vscroll_policy() const noexcept { return m_vscroll_policy; }
 
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
@@ -171,6 +172,11 @@ private:
 
         /* PTY */
         vte::glib::RefPtr<VtePty> m_pty;
+
+        /* Misc */
+        vte::glib::RefPtr<GtkAdjustment> m_hadjustment{};
+        uint32_t m_hscroll_policy : 1;
+        uint32_t m_vscroll_policy : 1;
 };
 
 } // namespace platform
