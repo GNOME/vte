@@ -477,8 +477,8 @@ public:
         gboolean m_rewrap_on_resize;
 
 	/* Scrolling options. */
-        gboolean m_scroll_on_output;
-        gboolean m_scroll_on_keystroke;
+        bool m_scroll_on_output{false};
+        bool m_scroll_on_keystroke{true};
         vte::grid::row_t m_scrollback_lines{0};
 
         /* Restricted scrolling */

@@ -7884,9 +7884,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 	 * be set up properly first. */
         set_size(VTE_COLUMNS, VTE_ROWS);
 
-	/* Scrolling options. */
-	m_scroll_on_keystroke = TRUE;
-        /* Default is -1, forces update in vte_terminal_set_scrollback_lines */
+        /* Default is 0, forces update in vte_terminal_set_scrollback_lines */
 	set_scrollback_lines(VTE_SCROLLBACK_INIT);
 
 	/* Selection info. */
