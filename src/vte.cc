@@ -5194,7 +5194,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                 col = std::clamp (col, 0L, m_column_count);
         } else {
                 switch (m_selection_type) {
-                case selection_type_char:
+                case SelectionType::eCHAR:
                         /* Find the nearest actual character boundary, taking CJKs and TABs into account.
                          * If at least halfway through the first unused cell, or over the right margin
                          * then wrap to the beginning of the next line.
@@ -5242,7 +5242,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                         }
                         break;
 
-                case selection_type_word:
+                case SelectionType::eWORD:
                         /* Initialization for the cumbersome cases where the click didn't occur over an actual used cell. */
                         rowdata = find_row_data(row);
                         if (col < 0) {
@@ -5371,7 +5371,7 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                         }
                         break;
 
-                case selection_type_line:
+                case SelectionType::eLINE:
                         if (!after) {
                                 /* Back up as far as we can go. */
                                 while (row > 0 &&
@@ -6742,10 +6742,10 @@ Terminal::confine_coordinates(long *xp,
  */
 void
 Terminal::start_selection (vte::view::coords const& pos,
-                           enum vte_selection_type type)
+                           SelectionType type)
 {
 	if (m_selection_block_mode)
-		type = selection_type_char;
+		type = SelectionType::eCHAR;
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -6934,7 +6934,7 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 				return true;
 
                         start_selection(vte::view::coords(m_mouse_last_position.x, m_mouse_last_position.y),
-                                        selection_type_char);
+                                        SelectionType::eCHAR);
 		}
 
 		if (m_selecting &&
@@ -7076,12 +7076,12 @@ Terminal::widget_button_press(GdkEventButton *event)
 		case 1:
                         if (m_will_select_after_threshold) {
                                 start_selection(pos,
-                                                selection_type_char);
+                                                SelectionType::eCHAR);
 				handled = true;
 			}
                         if ((m_mouse_handled_buttons & 1) != 0) {
                                 start_selection(pos,
-                                                selection_type_word);
+                                                SelectionType::eWORD);
 				handled = true;
 			}
 			break;
@@ -7100,7 +7100,7 @@ Terminal::widget_button_press(GdkEventButton *event)
 		case 1:
                         if ((m_mouse_handled_buttons & 1) != 0) {
                                 start_selection(pos,
-                                                selection_type_line);
+                                                SelectionType::eLINE);
 				handled = true;
 			}
 			break;
@@ -10167,7 +10167,7 @@ Terminal::select_text(vte::grid::column_t start_col,
 {
 	deselect_all();
 
-	m_selection_type = selection_type_char;
+	m_selection_type = SelectionType::eCHAR;
 	m_selecting_had_delta = true;
         m_selection_resolved.set ({ start_row, start_col },
                                   { end_row, end_col });

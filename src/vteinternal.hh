@@ -134,12 +134,6 @@ public:
         } saved;
 };
 
-enum vte_selection_type {
-        selection_type_char,
-        selection_type_word,
-        selection_type_line
-};
-
 /* Until the selection can be generated on demand, let's not enable this on stable */
 #include "vte/vteversion.h"
 #if (VTE_MINOR_VERSION % 2) == 0
@@ -299,6 +293,12 @@ private:
                 eALL_MOTION_TRACKING,
         };
 
+        enum class SelectionType {
+               eCHAR,
+               eWORD,
+               eLINE,
+        };
+
 protected:
 
         /* NOTE: This needs to be kept in sync with the public VteCursorBlinkMode enum */
@@ -455,8 +455,8 @@ public:
         gboolean m_selecting;
         gboolean m_will_select_after_threshold;
         gboolean m_selecting_had_delta;
-        bool m_selection_block_mode{false};  // FIXMEegmont move it into a 4th value in vte_selection_type?
-        enum vte_selection_type m_selection_type;
+        bool m_selection_block_mode{false};  // FIXMEegmont move it into a 4th value in SelectionType?
+        SelectionType m_selection_type{SelectionType::eCHAR};
         vte::grid::halfcoords m_selection_origin, m_selection_last;  /* BiDi: logical in normal modes, visual in m_selection_block_mode */
         vte::grid::span m_selection_resolved;
 
@@ -1058,7 +1058,7 @@ public:
                                     GArray* attrs);
 
         void start_selection(vte::view::coords const& pos,
-                             enum vte_selection_type type);
+                             SelectionType type);
         bool maybe_end_selection();
 
         void select_all();
