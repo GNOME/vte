@@ -111,6 +111,9 @@ public:
         bool set_cursor_shape(VteCursorShape shape) { return terminal()->set_cursor_shape(vte::terminal::Terminal::CursorShape(shape)); }
         auto cursor_shape() const noexcept { return VteCursorShape(terminal()->cursor_shape()); }
 
+        bool set_text_blink_mode(VteTextBlinkMode mode) { return terminal()->set_text_blink_mode(vte::terminal::Terminal::TextBlinkMode(mode)); }
+        auto text_blink_mode() const noexcept { return VteTextBlinkMode(terminal()->text_blink_mode()); }
+
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
         void emit_child_exited(int status) noexcept;

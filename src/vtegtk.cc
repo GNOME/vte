@@ -3214,7 +3214,7 @@ VteTextBlinkMode
 vte_terminal_get_text_blink_mode(VteTerminal *terminal)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_TEXT_BLINK_ALWAYS);
-        return IMPL(terminal)->m_text_blink_mode;
+        return WIDGET(terminal)->text_blink_mode();
 }
 
 /**
@@ -3232,7 +3232,7 @@ vte_terminal_set_text_blink_mode(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (IMPL(terminal)->set_text_blink_mode(text_blink_mode))
+        if (WIDGET(terminal)->set_text_blink_mode(text_blink_mode))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_TEXT_BLINK_MODE]);
 }
 

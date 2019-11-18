@@ -7212,8 +7212,8 @@ Terminal::widget_focus_in(GdkEventFocus *event)
                 /* If blinking gets enabled now, do a full repaint.
                  * If blinking gets disabled, only repaint if there's blinking stuff present
                  * (we could further optimize by checking its current phase). */
-                if (m_text_blink_mode == VTE_TEXT_BLINK_FOCUSED ||
-                    (m_text_blink_mode == VTE_TEXT_BLINK_UNFOCUSED && m_text_blink_tag != 0)) {
+                if (m_text_blink_mode == TextBlinkMode::eFOCUSED ||
+                    (m_text_blink_mode == TextBlinkMode::eUNFOCUSED && m_text_blink_tag != 0)) {
                         invalidate_all();
                 }
 
@@ -7243,8 +7243,8 @@ Terminal::widget_focus_out(GdkEventFocus *event)
                 /* If blinking gets enabled now, do a full repaint.
                  * If blinking gets disabled, only repaint if there's blinking stuff present
                  * (we could further optimize by checking its current phase). */
-                if (m_text_blink_mode == VTE_TEXT_BLINK_UNFOCUSED ||
-                    (m_text_blink_mode == VTE_TEXT_BLINK_FOCUSED && m_text_blink_tag != 0)) {
+                if (m_text_blink_mode == TextBlinkMode::eUNFOCUSED ||
+                    (m_text_blink_mode == TextBlinkMode::eFOCUSED && m_text_blink_tag != 0)) {
                         invalidate_all();
                 }
 
@@ -7887,7 +7887,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Miscellaneous options. */
 	set_backspace_binding(VTE_ERASE_AUTO);
 	set_delete_binding(VTE_ERASE_AUTO);
-        m_text_blink_mode = VTE_TEXT_BLINK_ALWAYS;
 
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
@@ -9422,7 +9421,7 @@ Terminal::widget_draw(cairo_t *cr)
 
         /* Whether blinking text should be visible now */
         m_text_blink_state = true;
-        text_blink_enabled_now = m_text_blink_mode & (m_has_focus ? VTE_TEXT_BLINK_FOCUSED : VTE_TEXT_BLINK_UNFOCUSED);
+        text_blink_enabled_now = (unsigned)m_text_blink_mode & (unsigned)(m_has_focus ? TextBlinkMode::eFOCUSED : TextBlinkMode::eUNFOCUSED);
         if (text_blink_enabled_now) {
                 now = g_get_monotonic_time() / 1000;
                 if (now % (m_text_blink_cycle * 2) >= m_text_blink_cycle)
@@ -9632,7 +9631,7 @@ Terminal::set_audible_bell(bool setting)
 }
 
 bool
-Terminal::set_text_blink_mode(VteTextBlinkMode setting)
+Terminal::set_text_blink_mode(TextBlinkMode setting)
 {
         if (setting == m_text_blink_mode)
                 return false;

@@ -347,6 +347,14 @@ protected:
                 eUNDERLINE
         };
 
+        /* NOTE: This needs to be kept in sync with the public VteTextBlinkMode enum */
+        enum class TextBlinkMode {
+                eNEVER     = 0,
+                eFOCUSED   = 1,
+                eUNFOCUSED = 2,
+                eALWAYS    = 3
+        };
+
 public:
         Terminal(vte::platform::Widget* w,
                  VteTerminal *t);
@@ -520,7 +528,7 @@ public:
         bool m_cursor_blinks{false};           /* whether the cursor is actually blinking */
 
         /* Contents blinking */
-        VteTextBlinkMode m_text_blink_mode;
+        TextBlinkMode m_text_blink_mode{TextBlinkMode::eALWAYS};
         gint m_text_blink_cycle;  /* gtk-cursor-blink-time / 2 */
         bool m_text_blink_state;  /* whether blinking text should be visible at this very moment */
         bool m_text_to_blink;     /* drawing signals here if it encounters any cell with blink attribute */
@@ -1272,7 +1280,8 @@ public:
                          int source);
 
         bool set_audible_bell(bool setting);
-        bool set_text_blink_mode(VteTextBlinkMode setting);
+        bool set_text_blink_mode(TextBlinkMode setting);
+        auto text_blink_mode() const noexcept { return m_text_blink_mode; }
         bool set_allow_bold(bool setting);
         bool set_allow_hyperlink(bool setting);
         bool set_backspace_binding(VteEraseBinding binding);
