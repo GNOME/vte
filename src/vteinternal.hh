@@ -396,7 +396,7 @@ public:
          * add allocation origin and padding when passing to gtk.
          */
         GArray *m_update_rects;
-        gboolean m_invalidated_all;       /* pending refresh of entire terminal */
+        bool m_invalidated_all{false};       /* pending refresh of entire terminal */
         /* If non-nullptr, contains the GList element for @this in g_active_terminals
          * and means that this terminal is processing data.
          */
@@ -437,8 +437,11 @@ public:
                                       colors (fore, back, deco) but no other attributes,
                                       and the U+0000 character that denotes erased cells. */
 
-        VteCharacterReplacement m_character_replacements[2];  /* charsets in the G0 and G1 slots */
-        VteCharacterReplacement *m_character_replacement;     /* pointer to the active one */
+        /* charsets in the G0 and G1 slots */
+        VteCharacterReplacement m_character_replacements[2] = { VTE_CHARACTER_REPLACEMENT_NONE,
+                                                                VTE_CHARACTER_REPLACEMENT_NONE };
+        /* pointer to the active one */
+        VteCharacterReplacement *m_character_replacement{&m_character_replacements[0]};
 
         /* Word chars */
         std::string m_word_char_exceptions_string;
@@ -633,13 +636,13 @@ public:
          * reconstructed from m_char_{ascent,descent}, one of which is redundant,
          * stored for convenience only.
          */
-        long m_char_ascent;
-        long m_char_descent;
-        double m_cell_width_scale;
-        double m_cell_height_scale;
-        GtkBorder m_char_padding;
-        glong m_cell_width;
-        glong m_cell_height;
+        long m_char_ascent{0};
+        long m_char_descent{0};
+        double m_cell_width_scale{1.};
+        double m_cell_height_scale{1.};
+        GtkBorder m_char_padding{0, 0, 0, 0};
+        long m_cell_width{0};
+        long m_cell_height{0};
 
         /* We allow the cell's text to draw a bit outside the cell at the top
          * and bottom. The following two functions return how much is the
@@ -710,19 +713,19 @@ public:
 
 	/* Font stuff. */
         gboolean m_has_fonts;
-        long m_line_thickness;
-        long m_underline_position;
-        long m_underline_thickness;
-        long m_double_underline_position;
-        long m_double_underline_thickness;
-        double m_undercurl_position;
-        double m_undercurl_thickness;
-        long m_strikethrough_position;
-        long m_strikethrough_thickness;
-        long m_overline_position;
-        long m_overline_thickness;
-        long m_regex_underline_position;
-        long m_regex_underline_thickness;
+        long m_line_thickness{VTE_LINE_WIDTH};
+        long m_underline_position{0};
+        long m_underline_thickness{VTE_LINE_WIDTH};
+        long m_double_underline_position{0};
+        long m_double_underline_thickness{VTE_LINE_WIDTH};
+        long m_strikethrough_position{0};
+        long m_strikethrough_thickness{VTE_LINE_WIDTH};
+        long m_overline_position{0};
+        long m_overline_thickness{VTE_LINE_WIDTH};
+        long m_regex_underline_position{0};
+        long m_regex_underline_thickness{VTE_LINE_WIDTH};
+        double m_undercurl_position{0.};
+        double m_undercurl_thickness{VTE_LINE_WIDTH};
 
         /* Style stuff */
         GtkBorder m_padding;

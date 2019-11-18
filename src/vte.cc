@@ -7848,7 +7848,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* NOTE! We allocated zeroed memory, just fill in non-zero stuff. */
 
-        m_invalidated_all = false;
         // FIXMEegmont make this store row indices only, maybe convert to a bitmap
         m_update_rects = g_array_sized_new(FALSE /* zero terminated */,
                                            FALSE /* clear */,
@@ -7856,6 +7855,8 @@ Terminal::Terminal(vte::platform::Widget* w,
                                            32 /* preallocated size */);
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
+        // FIXMEchpe this is wrong. These values must not be used before
+        // the view has been set up, so if they are, that's a bug
 	m_cell_width = 1;
 	m_cell_height = 1;
 	m_char_ascent = 1;
@@ -7863,24 +7864,13 @@ Terminal::Terminal(vte::platform::Widget* w,
 	m_char_padding = {0, 0, 0, 0};
 	m_line_thickness = 1;
 	m_underline_position = 1;
-        m_underline_thickness = 1;
         m_double_underline_position = 1;
-        m_double_underline_thickness = 1;
         m_undercurl_position = 1.;
-        m_undercurl_thickness = 1.;
 	m_strikethrough_position = 1;
-        m_strikethrough_thickness = 1;
         m_overline_position = 1;
-        m_overline_thickness = 1;
         m_regex_underline_position = 1;
-        m_regex_underline_thickness = 1;
 
         reset_default_attributes(true);
-
-        /* Initialize charset modes. */
-        m_character_replacements[0] = VTE_CHARACTER_REPLACEMENT_NONE;
-        m_character_replacements[1] = VTE_CHARACTER_REPLACEMENT_NONE;
-        m_character_replacement = &m_character_replacements[0];
 
 	/* Set up the desired palette. */
 	set_colors_default();
