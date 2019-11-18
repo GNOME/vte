@@ -7397,7 +7397,7 @@ Terminal::ensure_font()
                         int cell_width, cell_height;
                         int char_ascent, char_descent;
                         GtkBorder char_spacing;
-			m_fontdirty = FALSE;
+			m_fontdirty = false;
 			_vte_draw_set_text_font (m_draw,
                                                  m_widget,
                                                  m_fontdesc,
@@ -7435,8 +7435,8 @@ Terminal::update_font()
         }
         m_fontdesc = desc;
 
-        m_fontdirty = TRUE;
-        m_has_fonts = TRUE;
+        m_fontdirty = true;
+        m_has_fonts = true;
 
         /* Set the drawing font. */
         if (widget_realized()) {
@@ -7525,7 +7525,7 @@ Terminal::set_cell_width_scale(double scale)
 
         m_cell_width_scale = scale;
         /* Set the drawing font. */
-        m_fontdirty = TRUE;
+        m_fontdirty = true;
         if (widget_realized()) {
                 ensure_font();
         }
@@ -7542,7 +7542,7 @@ Terminal::set_cell_height_scale(double scale)
 
         m_cell_height_scale = scale;
         /* Set the drawing font. */
-        m_fontdirty = TRUE;
+        m_fontdirty = true;
         if (widget_realized()) {
                 ensure_font();
         }
@@ -7897,19 +7897,12 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Miscellaneous options. */
 	set_backspace_binding(VTE_ERASE_AUTO);
 	set_delete_binding(VTE_ERASE_AUTO);
-	m_audible_bell = TRUE;
         m_text_blink_mode = VTE_TEXT_BLINK_ALWAYS;
-	m_allow_bold = TRUE;
-        m_bold_is_bright = FALSE;
-        m_rewrap_on_resize = TRUE;
-
-        m_input_enabled = TRUE;
 
 	/* Cursor shape. */
 	m_cursor_shape = VTE_CURSOR_SHAPE_BLOCK;
 
 	/* Cursor blinking. */
-        m_cursor_blinks = FALSE;
         m_cursor_blink_mode = VTE_CURSOR_BLINK_SYSTEM;
 
         /* DECSCUSR cursor style (shape and blinking possibly overridden
@@ -7931,13 +7924,8 @@ Terminal::Terminal(vte::platform::Widget* w,
         set_word_char_exceptions(WORD_CHAR_EXCEPTIONS_DEFAULT);
 
         /* Selection */
-	m_selection_block_mode = FALSE;
         m_unscaled_font_desc = nullptr;
         m_fontdesc = nullptr;
-	m_has_fonts = FALSE;
-
-        /* Hyperlink */
-        m_allow_hyperlink = FALSE;
 
         update_view_extents();
 
@@ -8097,7 +8085,7 @@ Terminal::widget_unrealize()
 		_vte_draw_free(m_draw);
 		m_draw = NULL;
 	}
-	m_fontdirty = TRUE;
+	m_fontdirty = true;
 
 	/* Unmap the widget if it hasn't been already. */
         // FIXMEchpe this can't happen

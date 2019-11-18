@@ -451,7 +451,7 @@ public:
         gboolean m_selecting;
         gboolean m_will_select_after_threshold;
         gboolean m_selecting_had_delta;
-        gboolean m_selection_block_mode;  // FIXMEegmont move it into a 4th value in vte_selection_type?
+        bool m_selection_block_mode{false};  // FIXMEegmont move it into a 4th value in vte_selection_type?
         enum vte_selection_type m_selection_type;
         vte::grid::halfcoords m_selection_origin, m_selection_last;  /* BiDi: logical in normal modes, visual in m_selection_block_mode */
         vte::grid::span m_selection_resolved;
@@ -468,13 +468,13 @@ public:
 	/* Miscellaneous options. */
         VteEraseBinding m_backspace_binding;
         VteEraseBinding m_delete_binding;
-        gboolean m_audible_bell;
-        gboolean m_allow_bold;
-        gboolean m_bold_is_bright;
+        bool m_audible_bell{true};
+        bool m_allow_bold{true};
+        bool m_bold_is_bright{false};
+        bool m_rewrap_on_resize{true};
         gboolean m_text_modified_flag;
         gboolean m_text_inserted_flag;
         gboolean m_text_deleted_flag;
-        gboolean m_rewrap_on_resize;
 
 	/* Scrolling options. */
         bool m_scroll_on_output{false};
@@ -495,9 +495,9 @@ public:
         guint m_cursor_blink_tag{0};           /* cursor blinking timeout ID */
         gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
         int m_cursor_blink_timeout{500};        /* gtk-cursor-blink-timeout */
-        gboolean m_cursor_blinks;           /* whether the cursor is actually blinking */
         gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
         gboolean m_has_focus;               /* is the terminal window focused */
+        bool m_cursor_blinks{false};           /* whether the cursor is actually blinking */
 
         /* Contents blinking */
         VteTextBlinkMode m_text_blink_mode;
@@ -511,7 +511,7 @@ public:
         VteCursorStyle m_cursor_style;
 
 	/* Input device options. */
-        gboolean m_input_enabled;
+        bool m_input_enabled{true};
         time_t m_last_keypress_time;
 
         MouseTrackingMode m_mouse_tracking_mode{MOUSE_TRACKING_NONE};
@@ -619,7 +619,6 @@ public:
         PangoFontDescription *m_unscaled_font_desc;
         PangoFontDescription *m_fontdesc;
         double m_font_scale{1.};
-        gboolean m_fontdirty;
 
         /* First, the dimensions of ASCII characters are measured. The result
          * could probably be called char_{width,height} or font_{width,height}
@@ -712,7 +711,8 @@ public:
         guint m_modifiers;
 
 	/* Font stuff. */
-        gboolean m_has_fonts;
+        bool m_has_fonts{false};
+        bool m_fontdirty{true};
         long m_line_thickness{VTE_LINE_WIDTH};
         long m_underline_position{0};
         long m_underline_thickness{VTE_LINE_WIDTH};
@@ -734,7 +734,7 @@ public:
         auto vadjustment() noexcept { return m_vadjustment.get(); }
 
         /* Hyperlinks */
-        gboolean m_allow_hyperlink;
+        bool m_allow_hyperlink{false};
         vte::base::Ring::hyperlink_idx_t m_hyperlink_hover_idx;
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
         long m_hyperlink_auto_id{0};
