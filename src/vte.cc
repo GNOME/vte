@@ -798,6 +798,26 @@ Terminal::emit_eof()
                 widget()->emit_eof();
 }
 
+static gboolean
+emit_eof_idle_cb(VteTerminal *terminal)
+{
+        _vte_terminal_get_impl(terminal)->emit_eof();
+        // @terminal might be destroyed at this point
+
+        return G_SOURCE_REMOVE;
+}
+
+void
+Terminal::queue_eof()
+{
+        _vte_debug_print(VTE_DEBUG_SIGNALS, "Queueing `eof'.\n");
+
+        g_idle_add_full(G_PRIORITY_HIGH,
+                        (GSourceFunc)emit_eof_idle_cb,
+                        g_object_ref(m_terminal),
+                        g_object_unref);
+}
+
 void
 Terminal::emit_child_exited()
 {
@@ -10394,7 +10414,7 @@ Terminal::emit_pending_signals()
 
         auto const eos = m_eos_pending;
         if (m_eos_pending) {
-                emit_eof();
+                queue_eof();
                 m_eos_pending = false;
 
                 unset_pty();
