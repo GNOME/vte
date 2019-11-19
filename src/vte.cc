@@ -10948,9 +10948,6 @@ Terminal::set_input_enabled (bool enabled)
 std::optional<std::vector<char32_t>>
 Terminal::process_word_char_exceptions(std::string_view str_view) const noexcept
 {
-        if (str_view.empty())
-                str_view = WORD_CHAR_EXCEPTIONS_DEFAULT;
-
         auto str = str_view.data();
 
         auto array = std::vector<char32_t>{};
@@ -11017,9 +11014,9 @@ Terminal::process_word_char_exceptions(std::string_view str_view) const noexcept
  * Returns: %true if the word char exceptions changed
  */
 bool
-Terminal::set_word_char_exceptions(std::string_view str)
+Terminal::set_word_char_exceptions(std::optional<std::string_view> stropt)
 {
-        if (auto array = process_word_char_exceptions(str)) {
+        if (auto array = process_word_char_exceptions(stropt ? stropt.value() : WORD_CHAR_EXCEPTIONS_DEFAULT)) {
                 m_word_char_exceptions = *array;
                 return true;
         }

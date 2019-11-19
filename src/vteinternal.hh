@@ -1302,7 +1302,7 @@ public:
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
-        bool set_word_char_exceptions(std::string_view str_view);
+        bool set_word_char_exceptions(std::optional<std::string_view> stropt);
         void set_clear_background(bool setting);
 
         bool write_contents_sync (GOutputStream *stream,

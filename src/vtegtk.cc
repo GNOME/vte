@@ -4570,7 +4570,8 @@ vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (WIDGET(terminal)->set_word_char_exceptions(exceptions))
+        auto stropt = exceptions ? std::make_optional<std::string_view>(exceptions) : std::nullopt;
+        if (WIDGET(terminal)->set_word_char_exceptions(stropt))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_WORD_CHAR_EXCEPTIONS]);
 }
 

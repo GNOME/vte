@@ -385,13 +385,13 @@ Widget::set_pty(VtePty* pty_obj) noexcept
 }
 
 bool
-Widget::set_word_char_exceptions(std::string_view str)
+Widget::set_word_char_exceptions(std::optional<std::string_view> stropt)
 {
-        if (m_word_char_exceptions == str)
+        if (m_word_char_exceptions == stropt)
                 return false;
 
-        if (terminal()->set_word_char_exceptions(str)) {
-                m_word_char_exceptions = str;
+        if (terminal()->set_word_char_exceptions(stropt)) {
+                m_word_char_exceptions = stropt;
                 return true;
         }
 

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 
@@ -120,8 +121,8 @@ public:
         bool set_text_blink_mode(VteTextBlinkMode mode) { return terminal()->set_text_blink_mode(vte::terminal::Terminal::TextBlinkMode(mode)); }
         auto text_blink_mode() const noexcept { return VteTextBlinkMode(terminal()->text_blink_mode()); }
 
-        bool set_word_char_exceptions(std::string_view str);
-        auto word_char_exceptions() const noexcept { return m_word_char_exceptions.empty() ? nullptr : m_word_char_exceptions.c_str(); }
+        bool set_word_char_exceptions(std::optional<std::string_view> stropt);
+        auto word_char_exceptions() const noexcept { return m_word_char_exceptions ? m_word_char_exceptions.value().c_str() : nullptr; }
 
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
@@ -192,7 +193,7 @@ private:
         vte::glib::RefPtr<VtePty> m_pty;
 
         /* Misc */
-        std::string m_word_char_exceptions;
+        std::optional<std::string> m_word_char_exceptions{};
 
         vte::glib::RefPtr<GtkAdjustment> m_hadjustment{};
         uint32_t m_hscroll_policy : 1;
