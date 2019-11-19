@@ -359,7 +359,10 @@ private:
         printout() noexcept
         {
                 m_str.push_back('\n');
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
                 write(STDOUT_FILENO, m_str.data(), m_str.size());
+#pragma GCC diagnostic pop
                 m_str.clear();
         }
 
