@@ -1126,6 +1126,47 @@ create_mosaic_separation_pattern(int width,
         return pattern;
 }
 
+/* pixman data must have stride 0 mod 4 */
+static unsigned char const hatching_pattern_lr_data[16] = {
+        0xff, 0x00, 0x00, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+        0x00, 0x00, 0xff, 0x00,
+        0x00, 0x00, 0x00, 0xff,
+};
+static unsigned char const hatching_pattern_rl_data[16] = {
+        0x00, 0x00, 0x00, 0xff,
+        0x00, 0x00, 0xff, 0x00,
+        0x00, 0xff, 0x00, 0x00,
+        0xff, 0x00, 0x00, 0x00,
+};
+
+#define DEFINE_STATIC_PATTERN_FUNC(name,data,width,height,stride) \
+static cairo_pattern_t* \
+name(void) \
+{ \
+        static cairo_pattern_t* pattern = nullptr; \
+\
+        if (pattern == nullptr) { \
+                auto surface = cairo_image_surface_create_for_data(const_cast<unsigned char*>(data), \
+                                                                   CAIRO_FORMAT_A8, \
+                                                                   width, \
+                                                                   height, \
+                                                                   stride); \
+                pattern = cairo_pattern_create_for_surface(surface); \
+                cairo_surface_destroy(surface); \
+\
+                cairo_pattern_set_extend (pattern, CAIRO_EXTEND_REPEAT); \
+                cairo_pattern_set_filter (pattern, CAIRO_FILTER_NEAREST); \
+       } \
+\
+       return pattern; \
+}
+
+DEFINE_STATIC_PATTERN_FUNC(create_hatching_pattern_lr, hatching_pattern_lr_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_hatching_pattern_rl, hatching_pattern_rl_data, 4, 4, 4)
+
+#undef DEFINE_STATIC_PATTERN_FUNC
+
 #endif /* WITH_UNICODE_NEXT */
 
 #include "box_drawing.h"
@@ -1177,6 +1218,15 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                         i += 2; \
                 } \
                 cairo_fill (cr); \
+        } while (0)
+
+#define PATTERN(cr, pattern, width, height) \
+        do { \
+                cairo_push_group(cr); \
+                cairo_rectangle(cr, x, y, width, height); \
+                cairo_fill(cr); \
+                cairo_pop_group_to_source(cr); \
+                cairo_mask(cr, pattern); \
         } while (0)
 
         /* Exclude the spacing for line width computation. */
@@ -1989,6 +2039,14 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 RECTANGLE(cr, x, y, width, height, 1, 4,  0, 3,  1, 4);
                 break;
 
+        case 0x1fb98:
+                PATTERN(cr, create_hatching_pattern_lr(), width, height);
+                break;
+
+        case 0x1fb99:
+                PATTERN(cr, create_hatching_pattern_rl(), width, height);
+                break;
+
         case 0x1fb9a:
         {
                 /* Self-intersecting polygon, is this officially allowed by cairo? */
@@ -2111,6 +2169,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
 #undef RECTANGLE
 #undef POLYGON
+#undef PATTERN
 
 #ifdef WITH_UNICODE_NEXT
         if (separated) {
