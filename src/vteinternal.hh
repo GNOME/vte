@@ -972,9 +972,7 @@ public:
         bool pty_io_write(int const fd,
                           GIOCondition const condition);
 
-        void send_child(std::string_view const& str);
-        void send_child(char const* data,
-                        gssize length) noexcept;
+        void send_child(std::string_view const& data);
 
         void watch_child (pid_t child_pid);
         bool terminate_child () noexcept;
@@ -1098,9 +1096,7 @@ public:
         void beep();
 
         void emit_adjustment_changed();
-        void emit_commit(char const* text,
-                         gssize length);
-        void emit_commit(std::string_view const& str) { emit_commit(str.data(), str.size()); }
+        void emit_commit(std::string_view const& str);
         void emit_eof();
         void emit_selection_changed();
         void queue_adjustment_changed();

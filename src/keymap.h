@@ -36,7 +36,7 @@ void _vte_keymap_map(guint keyval,
 		     gboolean app_cursor_keys,
 		     gboolean app_keypad_keys,
 		     char **normal,
-		     gssize *normal_length);
+		     gsize *normal_length);
 
 /* Return TRUE if a keyval is just a modifier key. */
 gboolean _vte_keymap_key_is_modifier(guint keyval);
@@ -46,7 +46,7 @@ void _vte_keymap_key_add_key_modifiers(guint keyval,
 				       guint modifiers,
 				       gboolean app_cursor_keys,
 				       char **normal,
-				       gssize *normal_length);
+				       gsize *normal_length);
 
 G_END_DECLS
 

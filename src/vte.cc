@@ -727,32 +727,24 @@ Terminal::emit_selection_changed()
 	g_signal_emit(m_terminal, signals[SIGNAL_SELECTION_CHANGED], 0);
 }
 
-/* Emit a "commit" signal. */
+/* Emit a "commit" signal.
+ * FIXMEchpe: remove this function
+ */
 void
-Terminal::emit_commit(char const* text,
-                      gssize length)
+Terminal::emit_commit(std::string_view const& str)
 {
-        if (length == 0)
+        if (str.size() == 0)
                 return;
 
-	char const* result = NULL;
-	char *wrapped = NULL;
-
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `commit' of %" G_GSSIZE_FORMAT" bytes.\n", length);
+                         "Emitting `commit' of %" G_GSSIZE_FORMAT" bytes.\n", str.size());
 
-	if (length == -1) {
-		length = strlen(text);
-		result = text;
-	} else {
-                // FIXMEchpe why use the slice allocator here?
-		result = wrapped = (char *) g_slice_alloc(length + 1);
-		memcpy(wrapped, text, length);
-		wrapped[length] = '\0';
-	}
+        // FIXMEchpe we do know for a fact that all uses of this function
+        // actually passed a 0-terminated string, so we can use @str directly
+        std::string result{str}; // 0-terminated
 
         _VTE_DEBUG_IF(VTE_DEBUG_KEYBOARD) {
-                for (gssize i = 0; i < length; i++) {
+                for (size_t i = 0; i < result.size(); i++) {
                         if ((((guint8) result[i]) < 32) ||
                             (((guint8) result[i]) > 127)) {
                                 g_printerr(
@@ -768,10 +760,7 @@ Terminal::emit_commit(char const* text,
                 }
         }
 
-	g_signal_emit(m_terminal, signals[SIGNAL_COMMIT], 0, result, (guint)length);
-
-	if(wrapped)
-		g_slice_free1(length+1, wrapped);
+	g_signal_emit(m_terminal, signals[SIGNAL_COMMIT], 0, result.c_str(), (guint)result.size());
 }
 
 void
@@ -4145,41 +4134,29 @@ Terminal::pty_io_write(int const fd,
         return _vte_byte_array_length(m_outgoing) != 0;
 }
 
-void
-Terminal::send_child(std::string_view const& str)
-{
-        send_child(str.data(), str.size());
-}
-
 /* Send some UTF-8 data to the child. */
 void
-Terminal::send_child(char const* data,
-                     gssize length) noexcept
+Terminal::send_child(std::string_view const& data)
 {
+        // FIXMEchpe remove
         if (!m_input_enabled)
-                return;
-
-        if (length == -1)
-                length = strlen(data);
-        if (length == 0)
                 return;
 
         /* If there's a place for it to go, add the data to the
          * outgoing buffer. */
-        // FIXMEchpe: shouldn't require pty for this
         if (!pty())
                 return;
 
         switch (data_syntax()) {
         case DataSyntax::eECMA48_UTF8:
-                emit_commit(data, length);
-                _vte_byte_array_append(m_outgoing, data, length);
+                emit_commit(data);
+                _vte_byte_array_append(m_outgoing, data.data(), data.size());
                 break;
 
         case DataSyntax::eECMA48_PCTERM: {
-                auto converted = m_converter->convert(data, length);
+                auto converted = m_converter->convert(data);
 
-                emit_commit(converted.data(), converted.size());
+                emit_commit(converted);
                 _vte_byte_array_append(m_outgoing, converted.data(), converted.size());
                 break;
         }
@@ -4228,7 +4205,6 @@ Terminal::feed_child_binary(std::string_view const& data)
 
         /* If there's a place for it to go, add the data to the
          * outgoing buffer. */
-        // FIXMEchpe shouldn't require a PTY
         if (!pty())
                 return;
 
@@ -4575,8 +4551,7 @@ bool
 Terminal::widget_key_press(GdkEventKey *event)
 {
 	char *normal = NULL;
-	gssize normal_length = 0;
-	int i;
+	gsize normal_length = 0;
 	struct termios tio;
 	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
 		 suppress_meta_esc = FALSE, add_modifiers = FALSE;
@@ -4989,7 +4964,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 			    (m_modifiers & GDK_CONTROL_MASK)) {
 				/* Replace characters which have "control"
 				 * counterparts with those counterparts. */
-				for (i = 0; i < normal_length; i++) {
+				for (size_t i = 0; i < normal_length; i++) {
 					if ((((guint8)normal[i]) >= 0x40) &&
 					    (((guint8)normal[i]) <  0x80)) {
 						normal[i] &= (~(0x60));
@@ -5020,7 +4995,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				feed_child(_VTE_CAP_ESC, 1);
 			}
 			if (normal_length > 0) {
-				send_child(normal, normal_length);
+				send_child({normal, normal_length});
 			}
 			g_free(normal);
 		}
@@ -9565,7 +9540,7 @@ Terminal::widget_scroll(GdkEventScroll *event)
 	if (m_screen == &m_alternate_screen &&
             m_modes_private.XTERM_ALTBUF_SCROLL()) {
 		char *normal;
-		gssize normal_length;
+		gsize normal_length;
 
 		cnt = v * m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
@@ -9588,7 +9563,7 @@ Terminal::widget_scroll(GdkEventScroll *event)
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
-			send_child(normal, normal_length);
+			send_child({normal, normal_length});
 		}
 		g_free (normal);
 	} else {

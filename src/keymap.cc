@@ -713,7 +713,7 @@ _vte_keymap_map(guint keyval,
 		gboolean app_cursor_keys,
 		gboolean app_keypad_keys,
 		char **normal,
-		gssize *normal_length)
+		gsize *normal_length)
 {
 	gsize i;
 	const struct _vte_keymap_entry *entries;
@@ -942,7 +942,7 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 				  guint modifiers,
 				  gboolean cursor_app_mode,
 				  char **normal,
-				  gssize *normal_length)
+				  gsize *normal_length)
 {
 	int modifier, offset;
 	char *nnormal;

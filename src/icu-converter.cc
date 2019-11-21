@@ -52,8 +52,7 @@ ICUConverter::make(char const* charset,
 }
 
 std::string
-ICUConverter::convert(char const* data,
-                      size_t length)
+ICUConverter::convert(std::string_view const& data)
 {
         /* We can't use ucnv_convertEx since that doesn't support preflighting.
          * Instead, convert to UTF-16 first, and the to the target, with
@@ -61,7 +60,7 @@ ICUConverter::convert(char const* data,
          * code path, so we don't care.
          */
 
-        if (length == 0)
+        if (data.size() == 0)
                 return {};
 
         ucnv_resetToUnicode(m_u8_converter.get());
@@ -69,7 +68,7 @@ ICUConverter::convert(char const* data,
         auto err = icu::ErrorCode{};
         auto u16_size = ucnv_toUChars(m_u8_converter.get(),
                                       nullptr, 0,
-                                      data, length,
+                                      data.data(), data.size(),
                                       err);
         if (err.isFailure() && (err.get() != U_BUFFER_OVERFLOW_ERROR)) {
                 _vte_debug_print(VTE_DEBUG_CONVERSION,
@@ -87,8 +86,8 @@ ICUConverter::convert(char const* data,
         u16_size = ucnv_toUChars(m_u8_converter.get(),
                                  u16_buffer.data(),
                                  u16_buffer.size(),
-                                 data,
-                                 length,
+                                 data.data(),
+                                 data.size(),
                                  err);
         if (err.isFailure()) {
                 _vte_debug_print(VTE_DEBUG_CONVERSION,

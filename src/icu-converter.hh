@@ -61,8 +61,7 @@ public:
         auto u32_converter() noexcept     { return m_u32_converter.get();     }
         auto u8_converter() noexcept      { return m_u8_converter.get();      }
 
-        std::string convert(char const* data,
-                            size_t length);
+        std::string convert(std::string_view const& data);
 
 private:
         std::string m_charset;
