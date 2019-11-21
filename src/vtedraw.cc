@@ -1518,17 +1518,19 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x2572: /* box drawings light diagonal upper left to lower right */
         case 0x2573: /* box drawings light diagonal cross */
         {
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                auto const dx = (light_line_width + 1) / 2;
+                cairo_rectangle(cr, x - dx, y, width + 2 * dx, height);
+                cairo_clip(cr);
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
                 cairo_set_line_width(cr, light_line_width);
-                adjust = light_line_width / 2.;
                 if (c != 0x2571) {
-                        cairo_move_to(cr, x + adjust, y + adjust);
-                        cairo_line_to(cr, xright - adjust, ybottom - adjust);
+                        cairo_move_to(cr, x, y);
+                        cairo_line_to(cr, xright, ybottom);
                         cairo_stroke(cr);
                 }
                 if (c != 0x2572) {
-                        cairo_move_to(cr, xright - adjust, y + adjust);
-                        cairo_line_to(cr, x + adjust, ybottom - adjust);
+                        cairo_move_to(cr, xright, y);
+                        cairo_line_to(cr, x, ybottom);
                         cairo_stroke(cr);
                 }
                 break;
