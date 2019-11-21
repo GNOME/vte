@@ -999,13 +999,12 @@ public:
                    bool from_api = false);
         void reset_decoder();
 
-        void feed(char const* data,
-                  gssize length,
+        void feed(std::string_view const& data,
                   bool start_processsing_ = true);
-        void feed_child(char const *text,
-                        gssize length);
-        void feed_child_binary(guint8 const* data,
-                               gsize length);
+        void feed_child(char const* data,
+                        size_t length) { assert(data); feed_child({data, length}); }
+        void feed_child(std::string_view const& str);
+        void feed_child_binary(std::string_view const& data);
 
         bool is_word_char(gunichar c) const;
         bool is_same_class(vte::grid::column_t acol,
@@ -1101,6 +1100,7 @@ public:
         void emit_adjustment_changed();
         void emit_commit(char const* text,
                          gssize length);
+        void emit_commit(std::string_view const& str) { emit_commit(str.data(), str.size()); }
         void emit_eof();
         void emit_selection_changed();
         void queue_adjustment_changed();

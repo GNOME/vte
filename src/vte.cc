@@ -4080,28 +4080,18 @@ out:
 
 /*
  * Terminal::feed:
- * @data: (array length=length) (element-type guint8): a string in the terminal's current encoding
- * @length: the length of the string, or -1 to use the full length or a nul-terminated string
+ * @data: data
  *
  * Interprets @data as if it were data received from a child process.  This
  * can either be used to drive the terminal without a child process, or just
  * to mess with your users.
  */
 void
-Terminal::feed(char const* data,
-                         gssize length_,
-                         bool start_processing_)
+Terminal::feed(std::string_view const& data,
+               bool start_processing_)
 {
-        g_assert(length_ == 0 || data != nullptr);
-
-        size_t length;
-	if (length_ == -1)
-		length = strlen(data);
-        else
-                length = size_t(length_);
-
-	if (length == 0)
-                return;
+        auto length = data.size();
+        auto ptr = data.data();
 
         vte::base::Chunk* chunk = nullptr;
         if (!m_incoming_queue.empty()) {
@@ -4118,13 +4108,13 @@ Terminal::feed(char const* data,
         do {
                 auto rem = chunk->remaining_capacity();
                 auto len = std::min(length, rem);
-                memcpy (chunk->data + chunk->len, data, len);
+                memcpy (chunk->data + chunk->len, ptr, len);
                 chunk->len += len;
                 length -= len;
                 if (length == 0)
                         break;
 
-                data += len;
+                ptr += len;
 
                 /* Get another chunk for the remaining data */
                 m_incoming_queue.push(vte::base::Chunk::get());
@@ -4206,59 +4196,48 @@ Terminal::send_child(char const* data,
 
 /*
  * VteTerminal::feed_child:
- * @text: data to send to the child
- * @length: length of @text in bytes, or -1 if @text is NUL-terminated
+ * @str: data to send to the child
  *
- * Sends a block of UTF-8 text to the child as if it were entered by the user
+ * Sends UTF-8 text to the child as if it were entered by the user
  * at the keyboard.
+ *
+ * Does nothing if input is disabled.
  */
 void
-Terminal::feed_child(char const *text,
-                               gssize length)
+Terminal::feed_child(std::string_view const& str)
 {
-        g_assert(length == 0 || text != nullptr);
-
         if (!m_input_enabled)
                 return;
 
-	if (length == -1)
-		length = strlen(text);
-
-	if (length > 0) {
-                send_child(text, length);
-	}
+        send_child(str);
 }
 
 /*
  * Terminal::feed_child_binary:
  * @data: data to send to the child
- * @length: length of @data
  *
  * Sends a block of binary data to the child.
+ *
+ * Does nothing if input is disabled.
  */
 void
-Terminal::feed_child_binary(guint8 const* data,
-                                      gsize length)
+Terminal::feed_child_binary(std::string_view const& data)
 {
-        g_assert(length == 0 || data != nullptr);
-
         if (!m_input_enabled)
                 return;
 
-	/* Tell observers that we're sending this to the child. */
-	if (length > 0) {
-		emit_commit((char const*)data, length);
+        /* If there's a place for it to go, add the data to the
+         * outgoing buffer. */
+        // FIXMEchpe shouldn't require a PTY
+        if (!pty())
+                return;
 
-		/* If there's a place for it to go, add the data to the
-		 * outgoing buffer. */
-		if (pty()) {
-			_vte_byte_array_append(m_outgoing,
-					   data, length);
-			/* If we need to start waiting for the child pty to
-			 * become available for writing, set that up here. */
-			connect_pty_write();
-		}
-	}
+        emit_commit(data);
+        _vte_byte_array_append(m_outgoing, data.data(), data.size());
+
+        /* If we need to start waiting for the child pty to
+         * become available for writing, set that up here. */
+        connect_pty_write();
 }
 
 void
@@ -4269,7 +4248,7 @@ Terminal::send(vte::parser::u8SequenceBuilder const& builder,
 {
         std::string str;
         builder.to_string(str, c1, -1, introducer, st);
-        feed_child(str.data(), str.size());
+        feed_child(str);
 }
 
 void
@@ -5595,11 +5574,11 @@ Terminal::widget_paste_received(char const* text)
         bool const bracketed_paste = m_modes_private.XTERM_READLINE_BRACKETED_PASTE();
         // FIXMEchpe can we not hardcode C0 controls here?
         if (bracketed_paste)
-                feed_child("\e[200~", -1);
+                feed_child("\e[200~"sv);
         // FIXMEchpe add a way to avoid the extra string copy done here
         feed_child(paste, p - paste);
         if (bracketed_paste)
-                feed_child("\e[201~", -1);
+                feed_child("\e[201~"sv);
         g_free(paste);
 }
 
@@ -5610,8 +5589,6 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                                      bool is_release)
 {
 	unsigned char cb = 0;
-	char buf[LINE_MAX];
-	gint len = 0;
 
         /* Don't send events on scrollback contents: bug 755187. */
         if (grid_coords_in_scrollback(rowcol))
@@ -5675,10 +5652,11 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                      {cb, (int)cx, (int)cy});
 	} else if (cx <= 223 && cy <= 223) {
 		/* legacy mode */
-		len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
+                char buf[8];
+                size_t len = g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "M%c%c%c", 32 + cb, 32 + (guchar)cx, 32 + (guchar)cy);
 
                 /* Send event direct to the child, this is binary not text data */
-                feed_child_binary((guint8*) buf, len);
+                feed_child_binary({buf, len});
 	}
 
         return true;
@@ -7908,19 +7886,18 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 #ifdef VTE_DEBUG
         if (g_test_flags != 0) {
-                static char const warning[] = "\e[1m\e[31mWARNING:\e[39m Test mode enabled. This is insecure!\e[0m\n\e[G";
-                feed(warning, strlen(warning), false);
+                feed("\e[1m\e[31mWARNING:\e[39m Test mode enabled. This is insecure!\e[0m\n\e[G"sv, false);
         }
 #endif
 
 #ifndef WITH_GNUTLS
-{
-        char buf[1024];
-        auto len = g_snprintf(buf, sizeof(buf), "\e[1m\e[31m%s:\e[39m %s\e[0m\n\e[G",
-                              _("WARNING"),
-                              _("GnuTLS not enabled; data will be written to disk unencrypted!"));
-        feed(buf, len, false);
- }
+        std::string str{"\e[1m\e[31m"};
+        str.append(_("WARNING"));
+        str.append(":\e[39m ");
+        str.append(_("GnuTLS not enabled; data will be written to disk unencrypted!"));
+        str.append("\e[0m\n\e[G");
+
+        feed(str, false);
 #endif
 }
 

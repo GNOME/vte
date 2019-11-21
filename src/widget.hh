@@ -132,6 +132,10 @@ public:
         bool set_pty(VtePty* pty) noexcept;
         inline auto pty() const noexcept { return m_pty.get(); }
 
+        void feed(std::string_view const& str) { terminal()->feed(str); }
+        void feed_child(std::string_view const& str) { terminal()->feed_child(str); }
+        void feed_child_binary(std::string_view const& str) { terminal()->feed_child_binary(str); }
+
 protected:
 
         enum class CursorType {

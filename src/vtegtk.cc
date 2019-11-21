@@ -2978,7 +2978,11 @@ vte_terminal_feed(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || data != NULL);
 
-        IMPL(terminal)->feed(data, length);
+        if (length == 0)
+                return;
+
+        auto const len = size_t{length == -1 ? strlen(data) : size_t(length)};
+        WIDGET(terminal)->feed({data, len});
 }
 
 /**
@@ -2998,7 +3002,11 @@ vte_terminal_feed_child(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || text != NULL);
 
-        IMPL(terminal)->feed_child(text, length);
+        if (length == 0)
+                return;
+
+        auto const len = size_t{length == -1 ? strlen(text) : size_t(length)};
+        WIDGET(terminal)->feed_child({text, len});
 }
 
 /**
@@ -3020,7 +3028,10 @@ vte_terminal_feed_child_binary(VteTerminal *terminal,
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || data != NULL);
 
-        IMPL(terminal)->feed_child_binary(data, length);
+        if (length == 0)
+                return;
+
+        WIDGET(terminal)->feed_child_binary({(char*)data, length});
 }
 
 /**
