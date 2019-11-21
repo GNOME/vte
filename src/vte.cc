@@ -4155,6 +4155,12 @@ Terminal::pty_io_write(int const fd,
         return _vte_byte_array_length(m_outgoing) != 0;
 }
 
+void
+Terminal::send_child(std::string_view const& str)
+{
+        send_child(str.data(), str.size());
+}
+
 /* Send some UTF-8 data to the child. */
 void
 Terminal::send_child(char const* data,
@@ -4352,11 +4358,15 @@ Terminal::reply(vte::parser::Sequence const& seq,
 }
 
 void
-Terminal::im_commit(char const* text)
+Terminal::im_commit(std::string_view const& str)
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-			"Input method committed `%s'.\n", text);
-	send_child(text, strlen(text));
+        if (!m_input_enabled)
+                return;
+
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Input method committed `%s'.\n", std::string{str}.c_str());
+        send_child(str);
+
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
         if (m_scroll_on_keystroke && m_input_enabled) {

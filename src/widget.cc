@@ -40,6 +40,9 @@ im_commit_cb(GtkIMContext* im_context,
              char const* text,
              Widget* that)
 {
+        if (text == nullptr)
+                return;
+
         that->terminal()->im_commit(text);
 }
 

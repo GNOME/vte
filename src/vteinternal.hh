@@ -972,6 +972,7 @@ public:
         bool pty_io_write(int const fd,
                           GIOCondition const condition);
 
+        void send_child(std::string_view const& str);
         void send_child(char const* data,
                         gssize length) noexcept;
 
@@ -981,7 +982,7 @@ public:
                               int status);
         void emit_child_exited();
 
-        void im_commit(char const* text);
+        void im_commit(std::string_view const& str);
         void im_preedit_set_active(bool active) noexcept;
         void im_preedit_reset() noexcept;
         void im_preedit_changed(char const* str,
