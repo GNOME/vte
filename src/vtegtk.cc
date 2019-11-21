@@ -2180,7 +2180,7 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
  * vte_terminal_match_add(), then expressions are checked in the order in
  * which they were added.
  *
- * Returns: (transfer full): a newly allocated string which matches one of the previously
+ * Returns: (transfer full) (nullable): a newly allocated string which matches one of the previously
  *   set regular expressions
  *
  * Deprecated: 0.46: Use vte_terminal_match_check_event() instead.
@@ -2211,8 +2211,8 @@ vte_terminal_match_check(VteTerminal *terminal,
  * vte_terminal_match_add(), then expressions are checked in the order in
  * which they were added.
  *
- * Returns: (transfer full): a newly allocated string which matches one of the previously
- *   set regular expressions
+ * Returns: (transfer full) (nullable): a newly allocated string which matches one of the previously
+ *   set regular expressions, or %NULL if there is no match
  */
 char *
 vte_terminal_match_check_event(VteTerminal *terminal,
@@ -2235,7 +2235,8 @@ vte_terminal_match_check_event(VteTerminal *terminal,
  * like "http://", "https://", "file://", "mailto:" etc. This is, however, not enforced by VTE.
  * The caller must tolerate the returned string potentially not being a valid URI.
  *
- * Returns: (transfer full): a newly allocated string containing the target of the hyperlink
+ * Returns: (transfer full) (nullable): a newly allocated string containing the target of the hyperlink,
+ *  or %NULL
  *
  * Since: 0.50
  */
