@@ -1267,6 +1267,13 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         switch (c) {
 
         /* Box Drawing */
+#ifdef WITH_UNICODE_NEXT
+        case 0x1fbaf: /* box drawings light horizontal with vertical stroke */
+                RECTANGLE(cr, x + left_half - light_line_width / 2, y,
+                          light_line_width, height, 1, 3, 0, 1, 1, 2);
+                c = 0x2500;
+                [[fallthrough]];
+#endif
         case 0x2500: /* box drawings light horizontal */
         case 0x2501: /* box drawings heavy horizontal */
         case 0x2502: /* box drawings light vertical */

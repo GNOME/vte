@@ -111,6 +111,11 @@ Mixed width, starting, ending and changing width mid-character.
 ╽ ╿ ╺╾╴
 ╹ ╵
 
+Single line with vertical lines crossing
+ ║ ┃ │ │ │ ┃ ║
+─╫─╂─┼─🮯─┼─╂─╫─
+ ║ ┃ │ │ │ ┃ ║
+
 Rounded.
 ╭─╮
 │ │
