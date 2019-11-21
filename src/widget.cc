@@ -223,18 +223,19 @@ Widget::im_focus_out() noexcept
 void
 Widget::im_preedit_changed() noexcept
 {
-        char* str;
-	PangoAttrList* attrs;
-	int cursorpos;
+        char* str = nullptr;
+	PangoAttrList* attrs = nullptr;
+	int cursorpos = 0;
 
         gtk_im_context_get_preedit_string(m_im_context.get(), &str, &attrs, &cursorpos);
-        if (str == nullptr)
-                return;
-
         _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit changed (%s,%d).\n",
                          str, cursorpos);
 
-        m_terminal->im_preedit_changed(str, cursorpos, attrs);
+        if (str != nullptr)
+                m_terminal->im_preedit_changed(str, cursorpos, {attrs, &pango_attr_list_unref});
+        else
+                pango_attr_list_unref(attrs);
+
         g_free(str);
 }
 

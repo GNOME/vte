@@ -683,7 +683,8 @@ public:
 	/* Input method support. */
         bool m_im_preedit_active;
         std::string m_im_preedit;
-        PangoAttrList *m_im_preedit_attrs;
+        using pango_attr_list_unique_type = std::unique_ptr<PangoAttrList, decltype(&pango_attr_list_unref)>;
+        pango_attr_list_unique_type m_im_preedit_attrs{nullptr, &pango_attr_list_unref};
         int m_im_preedit_cursor;
 
         #ifdef WITH_A11Y
@@ -985,7 +986,7 @@ public:
         void im_preedit_reset() noexcept;
         void im_preedit_changed(std::string_view const& str,
                                 int cursorpos,
-                                PangoAttrList* attrs) noexcept;
+                                pango_attr_list_unique_type&& attrs) noexcept;
         bool im_retrieve_surrounding();
         bool im_delete_surrounding(int offset,
                                    int n_chars);

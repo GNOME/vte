@@ -3311,15 +3311,10 @@ Terminal::watch_child (pid_t child_pid)
 void
 Terminal::im_reset()
 {
-        m_real_widget->im_reset();
+        if (widget())
+                widget()->im_reset();
 
-        m_im_preedit.clear();
-        m_im_preedit.shrink_to_fit();
-
-        if (m_im_preedit_attrs) {
-                pango_attr_list_unref(m_im_preedit_attrs);
-                m_im_preedit_attrs = nullptr;
-        }
+        im_preedit_reset();
 }
 
 void
@@ -4342,16 +4337,13 @@ Terminal::im_preedit_reset() noexcept
         m_im_preedit.clear();
         m_im_preedit.shrink_to_fit();
         m_im_preedit_cursor = 0;
-        if (m_im_preedit_attrs != nullptr) {
-                pango_attr_list_unref(m_im_preedit_attrs);
-                m_im_preedit_attrs = nullptr;
-        }
+        m_im_preedit_attrs.reset();
 }
 
 void
 Terminal::im_preedit_changed(std::string_view const& str,
                              int cursorpos,
-                             PangoAttrList* attrs) noexcept
+                             pango_attr_list_unique_type&& attrs) noexcept
 {
 	/* Queue the area where the current preedit string is being displayed
 	 * for repainting. */
@@ -4359,7 +4351,7 @@ Terminal::im_preedit_changed(std::string_view const& str,
 
         im_preedit_reset();
 	m_im_preedit = str;
-        m_im_preedit_attrs = attrs;
+        m_im_preedit_attrs = std::move(attrs);
         m_im_preedit_cursor = cursorpos;
 
         /* Invalidate again with the new cursor position */
@@ -9304,7 +9296,7 @@ Terminal::paint_im_preedit_string()
                 }
 		draw_cells_with_attributes(
 							items, len,
-							m_im_preedit_attrs,
+							m_im_preedit_attrs.get(),
 							TRUE,
 							width, height);
 		preedit_cursor = m_im_preedit_cursor;
