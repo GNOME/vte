@@ -2138,31 +2138,42 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 const int v = c - 0x1fba0;
                 const int map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
                                       0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
-                cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
                 cairo_set_line_width(cr, light_line_width);
-                adjust = light_line_width / 2.;
+                adjust = (light_line_width & 1) ? .5 : 0.;
+                double const dx = light_line_width / 2.;
+                double const dy = light_line_width / 2.;
                 if (map[v] & 1) {
                         /* upper left */
-                        cairo_move_to(cr, x + adjust, y + upper_half);
-                        cairo_line_to(cr, x + left_half, y + adjust);
+                        cairo_move_to(cr, x, ycenter + adjust);
+                        cairo_line_to(cr, x + dx, ycenter + adjust);
+                        cairo_line_to(cr, xcenter + adjust, y + dy);
+                        cairo_line_to(cr, xcenter + adjust, y);
                         cairo_stroke(cr);
                 }
                 if (map[v] & 2) {
                         /* upper right */
-                        cairo_move_to(cr, xright - adjust, y + upper_half);
-                        cairo_line_to(cr, x + left_half, y + adjust);
+                        cairo_move_to(cr, xright, ycenter + adjust);
+                        cairo_line_to(cr, xright - dx, ycenter + adjust);
+                        cairo_line_to(cr, xcenter + adjust, y + dy);
+                        cairo_line_to(cr, xcenter + adjust, y);
                         cairo_stroke(cr);
                 }
                 if (map[v] & 4) {
                         /* lower left */
-                        cairo_move_to(cr, x + adjust, y + upper_half);
-                        cairo_line_to(cr, x + left_half, ybottom - adjust);
+                        cairo_move_to(cr, x, ycenter + adjust);
+                        cairo_line_to(cr, x + dx, ycenter + adjust);
+                        cairo_line_to(cr, xcenter + adjust, ybottom - dy);
+                        cairo_line_to(cr, xcenter + adjust, ybottom);
                         cairo_stroke(cr);
                 }
                 if (map[v] & 8) {
                         /* lower right */
-                        cairo_move_to(cr, xright - adjust, y + upper_half);
-                        cairo_line_to(cr, x + left_half, ybottom - adjust);
+                        cairo_move_to(cr, xright, ycenter + adjust);
+                        cairo_line_to(cr, xright - dx, ycenter + adjust);
+                        cairo_line_to(cr, xcenter + adjust, ybottom - dy);
+                        cairo_line_to(cr, xcenter + adjust, ybottom);
                         cairo_stroke(cr);
                 }
                 break;
