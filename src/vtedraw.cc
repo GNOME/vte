@@ -977,7 +977,12 @@ static gboolean
 _vte_draw_unichar_is_local_graphic(vteunistr c)
 {
         /* Box Drawing & Block Elements */
-        return (c >= 0x2500) && (c <= 0x259f);
+        return ((c >=  0x2500 && c <=  0x259f) ||
+                (c >=  0x25e2 && c <=  0x25e5)
+#ifdef WITH_UNICODE_NEXT
+                || (c >= 0x1fb00 && c <= 0x1fbff)
+#endif
+                );
 }
 
 /* Stores the left and right edges of the given glyph, relative to the cell's left edge. */
@@ -1036,7 +1041,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
                                 gint font_width, gint columns, gint font_height)
 {
         gint width, height, xcenter, xright, ycenter, ybottom;
-        int upper_half, lower_half, left_half, right_half;
+        int upper_half, left_half;
         int light_line_width, heavy_line_width;
         double adjust;
         cairo_t *cr = draw->cr;
@@ -1046,17 +1051,33 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         width = draw->cell_width * columns;
         height = draw->cell_height;
         upper_half = height / 2;
-        lower_half = height - upper_half;
         left_half = width / 2;
-        right_half = width - left_half;
 
-        /* Note that the upper/left halves above are the same as 4 eighths */
-        /* FIXME: this could be smarter for very small n (< 8 resp. < 4) */
-#define EIGHTHS(n, k) \
-        ({ int k_eighths = (n) * (k) / 8; \
-           k_eighths = MAX(k_eighths, 1); \
-           k_eighths; \
-        })
+#define RECTANGLE(cr, x, y, w, h, xdenom, ydenom, xb1, yb1, xb2, yb2) \
+        do { \
+                int x1 = (w) * (xb1) / (xdenom); \
+                int y1 = (h) * (yb1) / (ydenom); \
+                int x2 = (w) * (xb2) / (xdenom); \
+                int y2 = (h) * (yb2) / (ydenom); \
+                cairo_rectangle ((cr), (x) + x1, (y) + y1, MAX(x2 - x1, 1), MAX(y2 - y1, 1)); \
+                cairo_fill (cr); \
+        } while (0)
+
+#define POLYGON(cr, x, y, w, h, xdenom, ydenom, coords) \
+        do { \
+                const int *cc = coords; \
+                int x1 = (w) * (cc[0]) / (xdenom); \
+                int y1 = (h) * (cc[1]) / (ydenom); \
+                cairo_move_to ((cr), (x) + x1, (y) + y1); \
+                int i = 2; \
+                while (cc[i] != -1) { \
+                        x1 = (w) * (cc[i]) / (xdenom); \
+                        y1 = (h) * (cc[i + 1]) / (ydenom); \
+                        cairo_line_to ((cr), (x) + x1, (y) + y1); \
+                        i += 2; \
+                } \
+                cairo_fill (cr); \
+        } while (0)
 
         /* Exclude the spacing for line width computation. */
         light_line_width = font_width / 5;
@@ -1345,8 +1366,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
 
         /* Block Elements */
         case 0x2580: /* upper half block */
-                cairo_rectangle(cr, x, y, width, upper_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
                 break;
 
         case 0x2581: /* lower one eighth block */
@@ -1357,14 +1377,8 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         case 0x2586: /* lower three quarters block */
         case 0x2587: /* lower seven eighths block */
         {
-                const guint v = c - 0x2580;
-                /* Use the number of eighths from the top, so that
-                 * U+2584 aligns with U+2596..U+259f.
-                 */
-                const int h = EIGHTHS (height, 8 - v);
-
-                cairo_rectangle(cr, x, y + h, width, height - h);
-                cairo_fill (cr);
+                const guint v = 0x2588 - c;
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, v,  1, 8);
                 break;
         }
 
@@ -1377,20 +1391,13 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         case 0x258e: /* left one quarter block */
         case 0x258f: /* left one eighth block */
         {
-                const guint v = c - 0x2588;
-                /* Use the number of eighths from the top, so that
-                 * U+258c aligns with U+2596..U+259f.
-                 */
-                const int w = EIGHTHS (width, 8 - v);
-
-                cairo_rectangle(cr, x, y, w, height);
-                cairo_fill (cr);
+                const guint v = 0x2590 - c;
+                RECTANGLE(cr, x, y, width, height, 8, 1,  0, 0,  v, 1);
                 break;
         }
 
         case 0x2590: /* right half block */
-                cairo_rectangle(cr, x + left_half, y, right_half, height);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
                 break;
 
         case 0x2591: /* light shade */
@@ -1407,85 +1414,597 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
 
         case 0x2594: /* upper one eighth block */
         {
-                const int h = EIGHTHS (height, 1); /* Align with U+2587 */
-                cairo_rectangle(cr, x, y, width, h);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
                 break;
         }
 
         case 0x2595: /* right one eighth block */
         {
-                const int w = EIGHTHS (width, 7);  /* Align with U+2589 */
-                cairo_rectangle(cr, x + w, y, width - w, height);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
                 break;
         }
 
         case 0x2596: /* quadrant lower left */
-                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
                 break;
 
         case 0x2597: /* quadrant lower right */
-                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
                 break;
 
         case 0x2598: /* quadrant upper left */
-                cairo_rectangle(cr, x, y, left_half, upper_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
                 break;
 
         case 0x2599: /* quadrant upper left and lower left and lower right */
-                cairo_rectangle(cr, x, y, left_half, upper_half);
-                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
-                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
                 break;
 
         case 0x259a: /* quadrant upper left and lower right */
-                cairo_rectangle(cr, x, y, left_half, upper_half);
-                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
                 break;
 
         case 0x259b: /* quadrant upper left and upper right and lower left */
-                cairo_rectangle(cr, x, y, left_half, upper_half);
-                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
-                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
                 break;
 
         case 0x259c: /* quadrant upper left and upper right and lower right */
-                cairo_rectangle(cr, x, y, left_half, upper_half);
-                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
-                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
                 break;
 
         case 0x259d: /* quadrant upper right */
-                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
                 break;
 
         case 0x259e: /* quadrant upper right and lower left */
-                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
-                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
                 break;
 
         case 0x259f: /* quadrant upper right and lower left and lower right */
-                cairo_rectangle(cr, x + left_half, y, right_half, upper_half);
-                cairo_rectangle(cr, x, y + upper_half, left_half, lower_half);
-                cairo_rectangle(cr, x + left_half, y + upper_half, right_half, lower_half);
-                cairo_fill (cr);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
                 break;
 
+        case 0x25e2: /* black lower right triangle */
+        {
+                int coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x25e3: /* black lower left triangle */
+        {
+                int coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x25e4: /* black upper left triangle */
+        {
+                int coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x25e5: /* black upper right triangle */
+        {
+                int coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+#ifdef WITH_UNICODE_NEXT
+        case 0x1fb00:
+        case 0x1fb01:
+        case 0x1fb02:
+        case 0x1fb03:
+        case 0x1fb04:
+        case 0x1fb05:
+        case 0x1fb06:
+        case 0x1fb07:
+        case 0x1fb08:
+        case 0x1fb09:
+        case 0x1fb0a:
+        case 0x1fb0b:
+        case 0x1fb0c:
+        case 0x1fb0d:
+        case 0x1fb0e:
+        case 0x1fb0f:
+        case 0x1fb10:
+        case 0x1fb11:
+        case 0x1fb12:
+        case 0x1fb13:
+        case 0x1fb14:
+        case 0x1fb15:
+        case 0x1fb16:
+        case 0x1fb17:
+        case 0x1fb18:
+        case 0x1fb19:
+        case 0x1fb1a:
+        case 0x1fb1b:
+        case 0x1fb1c:
+        case 0x1fb1d:
+        case 0x1fb1e:
+        case 0x1fb1f:
+        case 0x1fb20:
+        case 0x1fb21:
+        case 0x1fb22:
+        case 0x1fb23:
+        case 0x1fb24:
+        case 0x1fb25:
+        case 0x1fb26:
+        case 0x1fb27:
+        case 0x1fb28:
+        case 0x1fb29:
+        case 0x1fb2a:
+        case 0x1fb2b:
+        case 0x1fb2c:
+        case 0x1fb2d:
+        case 0x1fb2e:
+        case 0x1fb2f:
+        case 0x1fb30:
+        case 0x1fb31:
+        case 0x1fb32:
+        case 0x1fb33:
+        case 0x1fb34:
+        case 0x1fb35:
+        case 0x1fb36:
+        case 0x1fb37:
+        case 0x1fb38:
+        case 0x1fb39:
+        case 0x1fb3a:
+        case 0x1fb3b:
+        {
+                guint32 bitmap = c - 0x1fb00 + 1;
+                if (bitmap >= 0x15) bitmap++;
+                if (bitmap >= 0x2a) bitmap++;
+                int xi, yi;
+                cairo_set_line_width(cr, 0);
+                for (yi = 0; yi <= 2; yi++) {
+                        for (xi = 0; xi <= 1; xi++) {
+                                if (bitmap & 1) {
+                                        RECTANGLE(cr, x, y, width, height, 2, 3,  xi, yi, xi + 1,  yi + 1);
+                                }
+                                bitmap >>= 1;
+                        }
+                }
+                break;
+        }
+
+        case 0x1fb3c:
+        case 0x1fb3d:
+        case 0x1fb3e:
+        case 0x1fb3f:
+        case 0x1fb40:
+        case 0x1fb41:
+        case 0x1fb42:
+        case 0x1fb43:
+        case 0x1fb44:
+        case 0x1fb45:
+        case 0x1fb46:
+        case 0x1fb47:
+        case 0x1fb48:
+        case 0x1fb49:
+        case 0x1fb4a:
+        case 0x1fb4b:
+        case 0x1fb4c:
+        case 0x1fb4d:
+        case 0x1fb4e:
+        case 0x1fb4f:
+        case 0x1fb50:
+        case 0x1fb51:
+        case 0x1fb52:
+        case 0x1fb53:
+        case 0x1fb54:
+        case 0x1fb55:
+        case 0x1fb56:
+        case 0x1fb57:
+        case 0x1fb58:
+        case 0x1fb59:
+        case 0x1fb5a:
+        case 0x1fb5b:
+        case 0x1fb5c:
+        case 0x1fb5d:
+        case 0x1fb5e:
+        case 0x1fb5f:
+        case 0x1fb60:
+        case 0x1fb61:
+        case 0x1fb62:
+        case 0x1fb63:
+        case 0x1fb64:
+        case 0x1fb65:
+        case 0x1fb66:
+        case 0x1fb67:
+        {
+                const int v = c - 0x1fb3c;
+                const int coords[46][11] = {
+                        { 0, 2,  1, 3,  0, 3,  -1 },                /* 3c */
+                        { 0, 2,  2, 3,  0, 3,  -1 },                /* 3d */
+                        { 0, 1,  1, 3,  0, 3,  -1 },                /* 3e */
+                        { 0, 1,  2, 3,  0, 3,  -1 },                /* 3f */
+                        { 0, 0,  1, 3,  0, 3,  -1 },                /* 40 */
+                        { 0, 1,  1, 0,  2, 0,  2, 3,  0, 3,  -1 },  /* 41 */
+                        { 0, 1,  2, 0,  2, 3,  0, 3,  -1 },         /* 42 */
+                        { 0, 2,  1, 0,  2, 0,  2, 3,  0, 3,  -1 },  /* 43 */
+                        { 0, 2,  2, 0,  2, 3,  0, 3,  -1 },         /* 44 */
+                        { 0, 3,  1, 0,  2, 0,  2, 3,  -1 },         /* 45 */
+                        { 0, 2,  2, 1,  2, 3,  0, 3,  -1 },         /* 46 */
+                        { 1, 3,  2, 2,  2, 3,  -1 },                /* 47 */
+                        { 0, 3,  2, 2,  2, 3,  -1 },                /* 48 */
+                        { 1, 3,  2, 1,  2, 3,  -1 },                /* 49 */
+                        { 0, 3,  2, 1,  2, 3,  -1 },                /* 4a */
+                        { 1, 3,  2, 0,  2, 3,  -1 },                /* 4b */
+                        { 0, 0,  1, 0,  2, 1,  2, 3,  0, 3,  -1 },  /* 4c */
+                        { 0, 0,  2, 1,  2, 3,  0, 3,  -1 },         /* 4d */
+                        { 0, 0,  1, 0,  2, 2,  2, 3,  0, 3,  -1 },  /* 4e */
+                        { 0, 0,  2, 2,  2, 3,  0, 3,  -1 },         /* 4f */
+                        { 0, 0,  1, 0,  2, 3,  0, 3,  -1 },         /* 50 */
+                        { 0, 1,  2, 2,  2, 3,  0, 3,  -1 },         /* 51 */
+                        { 0, 0,  2, 0,  2, 3,  1, 3,  0, 2,  -1 },  /* 52 */
+                        { 0, 0,  2, 0,  2, 3,  0, 2,  -1 },         /* 53 */
+                        { 0, 0,  2, 0,  2, 3,  1, 3,  0, 1,  -1 },  /* 54 */
+                        { 0, 0,  2, 0,  2, 3,  0, 1,  -1 },         /* 55 */
+                        { 0, 0,  2, 0,  2, 3,  1, 3,  -1 },         /* 56 */
+                        { 0, 0,  1, 0,  0, 1,  -1 },                /* 57 */
+                        { 0, 0,  2, 0,  0, 1,  -1 },                /* 58 */
+                        { 0, 0,  1, 0,  0, 2,  -1 },                /* 59 */
+                        { 0, 0,  2, 0,  0, 2,  -1 },                /* 5a */
+                        { 0, 0,  1, 0,  0, 3,  -1 },                /* 5b */
+                        { 0, 0,  2, 0,  2, 1,  0, 2,  -1 },         /* 5c */
+                        { 0, 0,  2, 0,  2, 2,  1, 3,  0, 3,  -1 },  /* 5d */
+                        { 0, 0,  2, 0,  2, 2,  0, 3,  -1 },         /* 5e */
+                        { 0, 0,  2, 0,  2, 1,  1, 3,  0, 3,  -1 },  /* 5f */
+                        { 0, 0,  2, 0,  2, 1,  0, 3,  -1 },         /* 60 */
+                        { 0, 0,  2, 0,  1, 3,  0, 3,  -1 },         /* 61 */
+                        { 1, 0,  2, 0,  2, 1,  -1 },                /* 62 */
+                        { 0, 0,  2, 0,  2, 1,  -1 },                /* 63 */
+                        { 1, 0,  2, 0,  2, 2,  -1 },                /* 64 */
+                        { 0, 0,  2, 0,  2, 2,  -1 },                /* 65 */
+                        { 1, 0,  2, 0,  2, 3,  -1 },                /* 66 */
+                        { 0, 0,  2, 0,  2, 2,  0, 1,  -1 },         /* 67 */
+                };
+                POLYGON(cr, x, y, width, height, 2, 3, coords[v]);
+                break;
+        }
+
+        case 0x1fb68:
+        case 0x1fb69:
+        case 0x1fb6a:
+        case 0x1fb6b:
+        case 0x1fb6c:
+        case 0x1fb6d:
+        case 0x1fb6e:
+        case 0x1fb6f:
+        {
+                const int v = c - 0x1fb68;
+                const int coords[8][11] = {
+                        { 0, 0,  2, 0,  2, 2,  0, 2,  1, 1,  -1 },  /* 68 */
+                        { 0, 0,  1, 1,  2, 0,  2, 2,  0, 2,  -1 },  /* 69 */
+                        { 0, 0,  2, 0,  1, 1,  2, 2,  0, 2,  -1 },  /* 6a */
+                        { 0, 0,  2, 0,  2, 2,  1, 1,  0, 2,  -1 },  /* 6b */
+                        { 0, 0,  1, 1,  0, 2,  -1 },                /* 6c */
+                        { 0, 0,  2, 0,  1, 1,  -1 },                /* 6d */
+                        { 1, 1,  2, 0,  2, 2,  -1 },                /* 6e */
+                        { 1, 1,  2, 2,  0, 2,  -1 },                /* 6f */
+                };
+                POLYGON(cr, x, y, width, height, 2, 2, coords[v]);
+                break;
+        }
+
+        case 0x1fb70:
+        case 0x1fb71:
+        case 0x1fb72:
+        case 0x1fb73:
+        case 0x1fb74:
+        case 0x1fb75:
+        {
+                const int v = c - 0x1fb70 + 1;
+                RECTANGLE(cr, x, y, width, height, 8, 1,  v, 0,  v + 1, 1);
+                break;
+        }
+
+        case 0x1fb76:
+        case 0x1fb77:
+        case 0x1fb78:
+        case 0x1fb79:
+        case 0x1fb7a:
+        case 0x1fb7b:
+        {
+                const int v = c - 0x1fb76 + 1;
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, v,  1, v + 1);
+                break;
+        }
+
+        case 0x1fb7c:
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                RECTANGLE(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb7d:
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                RECTANGLE(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb7e:
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                RECTANGLE(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                break;
+
+        case 0x1fb7f:
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                RECTANGLE(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                break;
+
+        case 0x1fb80:
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                break;
+
+        case 0x1fb81:
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 2,  1, 3);
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 4,  1, 5);
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                break;
+
+        case 0x1fb82:
+        case 0x1fb83:
+        case 0x1fb84:
+        case 0x1fb85:
+        case 0x1fb86:
+        {
+                int v = c - 0x1fb82 + 2;
+                if (v >= 4) v++;
+                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, v);
+                break;
+        }
+
+        case 0x1fb87:
+        case 0x1fb88:
+        case 0x1fb89:
+        case 0x1fb8a:
+        case 0x1fb8b:
+        {
+                int v = c - 0x1fb87 + 2;
+                if (v >= 4) v++;
+                RECTANGLE(cr, x, y, width, height, 8, 1,  8 - v, 0,  8, 1);
+                break;
+        }
+
+        case 0x1fb8c:
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb8d:
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                break;
+
+        case 0x1fb8e:
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb8f:
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                break;
+
+        case 0x1fb90:
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 1, 1,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb91:
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                break;
+
+        case 0x1fb92:
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb93:
+#if 0
+                /* codepoint not assigned */
+                RECTANGLE(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+#endif
+                break;
+
+        case 0x1fb94:
+                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                RECTANGLE(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                break;
+
+        case 0x1fb95:
+        case 0x1fb96:
+        {
+                int xi, yi;
+                for (yi = 3; yi >= 0; yi--) {
+                        for (xi = 3; xi >= 0; xi--) {
+                                if ((xi ^ yi ^ c) & 1) {
+                                        RECTANGLE(cr, x, y, width, height, 4, 4,  xi, yi,  xi + 1, yi + 1);
+                                }
+                        }
+                }
+                break;
+        }
+
+        case 0x1fb97:
+                RECTANGLE(cr, x, y, width, height, 1, 4,  0, 1,  1, 2);
+                RECTANGLE(cr, x, y, width, height, 1, 4,  0, 3,  1, 4);
+                break;
+
+        case 0x1fb9a:
+        {
+                /* Self-intersecting polygon, is this officially allowed by cairo? */
+                int coords[] = { 0, 0,  1, 0,  0, 1,  1, 1,  -1 };
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x1fb9b:
+        {
+                /* Self-intersecting polygon, is this officially allowed by cairo? */
+                int coords[] = { 0, 0,  1, 1,  1, 0,  0, 1,  -1 };
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x1fb9c:
+        {
+                int coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x1fb9d:
+        {
+                int coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x1fb9e:
+        {
+                int coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x1fb9f:
+        {
+                int coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
+                cairo_set_source_rgba (cr,
+                                       fg->red / 65535.,
+                                       fg->green / 65535.,
+                                       fg->blue / 65535.,
+                                       0.5);
+                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                break;
+        }
+
+        case 0x1fba0:
+        case 0x1fba1:
+        case 0x1fba2:
+        case 0x1fba3:
+        case 0x1fba4:
+        case 0x1fba5:
+        case 0x1fba6:
+        case 0x1fba7:
+        case 0x1fba8:
+        case 0x1fba9:
+        case 0x1fbaa:
+        case 0x1fbab:
+        case 0x1fbac:
+        case 0x1fbad:
+        case 0x1fbae:
+        {
+                const int v = c - 0x1fba0;
+                const int map[15] = { 1, 2, 4, 8, 5, 10, 12, 3, 9, 6, 14, 13, 11, 7, 15 };
+                cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+                cairo_set_line_width(cr, light_line_width);
+                adjust = light_line_width / 2.;
+                if (map[v] & 1) {
+                        /* upper left */
+                        cairo_move_to(cr, x + adjust, y + upper_half);
+                        cairo_line_to(cr, x + left_half, y + adjust);
+                        cairo_stroke(cr);
+                }
+                if (map[v] & 2) {
+                        /* upper right */
+                        cairo_move_to(cr, xright - adjust, y + upper_half);
+                        cairo_line_to(cr, x + left_half, y + adjust);
+                        cairo_stroke(cr);
+                }
+                if (map[v] & 4) {
+                        /* lower left */
+                        cairo_move_to(cr, x + adjust, y + upper_half);
+                        cairo_line_to(cr, x + left_half, ybottom - adjust);
+                        cairo_stroke(cr);
+                }
+                if (map[v] & 8) {
+                        /* lower right */
+                        cairo_move_to(cr, xright - adjust, y + upper_half);
+                        cairo_line_to(cr, x + left_half, ybottom - adjust);
+                        cairo_stroke(cr);
+                }
+                break;
+        }
+#endif /* WITH_UNICODE_NEXT */
+
         default:
+#ifdef WITH_UNICODE_NEXT
+                break; /* FIXME temporary */
+#endif
                 g_assert_not_reached();
         }
 
-#undef EIGHTHS
+#undef RECTANGLE
+#undef POLYGON
 
         cairo_restore(cr);
 }
