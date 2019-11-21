@@ -4256,17 +4256,6 @@ Terminal::feed_child_binary(guint8 const* data,
 }
 
 void
-Terminal::feed_child_using_modes(char const* data,
-                                           gssize length)
-{
-	if (length == -1)
-		length = strlen(data);
-
-	if (length > 0)
-                send_child(data, length);
-}
-
-void
 Terminal::send(vte::parser::u8SequenceBuilder const& builder,
                          bool c1,
                          vte::parser::u8SequenceBuilder::Introducer introducer,
@@ -4367,7 +4356,7 @@ Terminal::im_commit(char const* text)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Input method committed `%s'.\n", text);
-	feed_child_using_modes(text, -1);
+	send_child(text, strlen(text));
 	/* Committed text was committed because the user pressed a key, so
 	 * we need to obey the scroll-on-keystroke setting. */
         if (m_scroll_on_keystroke && m_input_enabled) {
@@ -5042,7 +5031,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				feed_child(_VTE_CAP_ESC, 1);
 			}
 			if (normal_length > 0) {
-				feed_child_using_modes(normal, normal_length);
+				send_child(normal, normal_length);
 			}
 			g_free(normal);
 		}
@@ -9612,7 +9601,7 @@ Terminal::widget_scroll(GdkEventScroll *event)
 		if (cnt < 0)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
-			feed_child_using_modes(normal, normal_length);
+			send_child(normal, normal_length);
 		}
 		g_free (normal);
 	} else {

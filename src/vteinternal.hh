@@ -974,8 +974,6 @@ public:
 
         void send_child(char const* data,
                         gssize length) noexcept;
-        void feed_child_using_modes(char const* data,
-                                    gssize length);
 
         void watch_child (pid_t child_pid);
         bool terminate_child () noexcept;
