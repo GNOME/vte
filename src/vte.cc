@@ -4071,9 +4071,7 @@ out:
  * Terminal::feed:
  * @data: data
  *
- * Interprets @data as if it were data received from a child process.  This
- * can either be used to drive the terminal without a child process, or just
- * to mess with your users.
+ * Interprets @data as if it were data received from a child process.
  */
 void
 Terminal::feed(std::string_view const& data,

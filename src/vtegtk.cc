@@ -952,8 +952,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @size: the length of that string of text
          *
          * Emitted whenever the terminal receives input from the user and
-         * prepares to send it to the child process.  The signal is emitted even
-         * when there is no child process.
+         * prepares to send it to the child process.
          */
         signals[SIGNAL_COMMIT] =
                 g_signal_new(I_("commit"),
@@ -2966,9 +2965,7 @@ vte_terminal_spawn_async(VteTerminal *terminal,
  * @data: (array length=length) (element-type guint8) (allow-none): a string in the terminal's current encoding
  * @length: the length of the string, or -1 to use the full length or a nul-terminated string
  *
- * Interprets @data as if it were data received from a child process.  This
- * can either be used to drive the terminal without a child process, or just
- * to mess with your users.
+ * Interprets @data as if it were data received from a child process.
  */
 void
 vte_terminal_feed(VteTerminal *terminal,
