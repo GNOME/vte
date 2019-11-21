@@ -2136,7 +2136,8 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fbae:
         {
                 const int v = c - 0x1fba0;
-                const int map[15] = { 1, 2, 4, 8, 5, 10, 12, 3, 9, 6, 14, 13, 11, 7, 15 };
+                const int map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
+                                      0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
                 cairo_set_line_width(cr, light_line_width);
                 adjust = light_line_width / 2.;
