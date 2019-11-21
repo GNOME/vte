@@ -79,9 +79,11 @@ void _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns,
 
 void _vte_draw_text(struct _vte_draw *draw,
 		    struct _vte_draw_text_request *requests, gsize n_requests,
+                    uint32_t attr,
 		    vte::color::rgb const* color, double alpha, guint style);
 gboolean _vte_draw_char(struct _vte_draw *draw,
 			struct _vte_draw_text_request *request,
+                        uint32_t attr,
 			vte::color::rgb const* color, double alpha, guint style);
 gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, guint style);
 

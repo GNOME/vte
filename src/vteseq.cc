@@ -7302,6 +7302,12 @@ Terminal::SGR(vte::parser::Sequence const& seq)
                                 m_defaults.attr.set_deco(deco);
                         break;
                 }
+                case VTE_SGR_SET_SEPARATED_MOSAIC:
+                        m_defaults.attr.set_separated_mosaic(true);
+                        break;
+                case VTE_SGR_RESET_SEPARATED_MOSAIC:
+                        m_defaults.attr.set_separated_mosaic(false);
+                        break;
                 case VTE_SGR_RESET_DECO:
                         /* default decoration color, that is, same as the cell's foreground */
                         m_defaults.attr.set_deco(VTE_DEFAULT_FG);

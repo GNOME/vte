@@ -8480,6 +8480,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 
         _vte_draw_text(m_draw,
                        items, n,
+                       attr,
                        &fg, VTE_DRAW_OPAQUE,
                        _vte_draw_get_style(attr & VTE_ATTR_BOLD,
                                            attr & VTE_ATTR_ITALIC));
@@ -8986,7 +8987,8 @@ Terminal::draw_rows(VteScreen *screen_,
                                                        VTE_ATTR_STRIKETHROUGH_MASK |
                                                        VTE_ATTR_OVERLINE_MASK |
                                                        VTE_ATTR_BLINK_MASK |
-                                                       VTE_ATTR_INVISIBLE_MASK)) ||  // FIXME or just simply "attr != nattr"?
+                                                       VTE_ATTR_INVISIBLE_MASK |
+                                                       VTE_ATTR_SEPARATED_MOSAIC_MASK)) ||  // FIXME or just simply "attr != nattr"?
                                     fore != nfore ||
                                     back != nback ||
                                     deco != ndeco ||

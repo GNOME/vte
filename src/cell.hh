@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2002 Red Hat, Inc.
- * Copyright © 2018 Christian Persch
+ * Copyright © 2018, 2019 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -146,6 +146,7 @@ typedef struct _VTE_GNUC_PACKED VteCellAttr {
         CELL_ATTR_BOOL(blink, BLINK)
         CELL_ATTR_BOOL(dim, DIM)
         CELL_ATTR_BOOL(invisible, INVISIBLE)
+        CELL_ATTR_BOOL(separated_mosaic, SEPARATED_MOSAIC)
         /* ATTR_BOOL(boxed, BOXED) */
 } VteCellAttr;
 static_assert(sizeof (VteCellAttr) == 16, "VteCellAttr has wrong size");

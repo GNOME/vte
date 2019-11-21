@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2003,2008 Red Hat, Inc.
+ * Copyright © 2019 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,6 +27,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#include "attr.hh"
 #include "bidi.hh"
 #include "vtedraw.hh"
 #include "vtedefines.hh"
@@ -1031,12 +1033,110 @@ _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guin
                 *right = l + w;
 }
 
+#ifdef WITH_UNICODE_NEXT
+
+static bool
+_vte_draw_is_separable_mosaic(vteunistr c)
+{
+        // FIXMEchpe check from T.101 which characters should be separable
+        return ((c >= 0x1fb00 && c <= 0x1fb9f)||
+                (c >= 0x25e2 && c <= 0x25e5) ||
+                (c >= 0x2580 && c <= 0x259f));
+}
+
+/* Create separated mosaic pattern.
+ * Transparent pixels will not be drawn; opaque pixels will draw that part of the
+ * mosaic onto the target surface.
+ */
+static cairo_pattern_t*
+create_mosaic_separation_pattern(int width,
+                                 int height,
+                                 int line_thickness)
+{
+        auto surface = cairo_image_surface_create(CAIRO_FORMAT_A1, width, height);
+        // or CAIRO_FORMAT_A8, whichever is better/faster?
+
+        auto cr = cairo_create(surface);
+
+        /* It's not quite clear how the separated mosaics should be drawn.
+         *
+         * ITU-T T.101 Annex C, C.2.1.2, and Annex D, D.5.4, show the separation
+         * being done by blanking a line on the left and bottom parts only of each
+         * of the 3x2 blocks.
+         * The minitel specification STUM 1B, Schéma 2.7 also shows them drawn that
+         * way.
+         *
+         * On the other hand, ETS 300 706 §15.7.1, Table 47, shows the separation
+         * being done by blanking a line around all four sides of each of the
+         * 3x2 blocks.
+         * That is also how ITU-T T.100 §5.4.2.1, Figure 6, shows the separation.
+         *
+         * Each of these has its own drawbacks. The T.101 way makes the 3x2 blocks
+         * asymmetric, leaving differing amount of lit pixels for the smooth mosaics
+         * comparing a mosaic with its corresponding vertically mirrored mosaic. It
+         * keeps more lit pixels overall, which make it more suitable for low-resolution
+         * display, which is probably why minitel uses that.
+         * The ETS 300 706 way keeps symmetry, but removes even more lit pixels.
+         *
+         * Here we implement the T.101 way.
+         */
+
+        /* FIXMEchpe: Check that this fulfills [T.101 Appendix IV]:
+         * "All separated and contiguous mosaics shall be uniquely presented for character
+         * field sizes greater than or equal to dx = 6/256, dy = 8/256 [see D.8.3.3, item 7)]."
+         */
+
+        /* First, fill completely with transparent pixels */
+        cairo_set_source_rgba(cr, 0., 0., 0., 0.);
+        cairo_rectangle(cr, 0, 0, width, height);
+        cairo_fill(cr);
+
+        /* Now, fill the reduced blocks with opaque pixels */
+
+        auto const pel = line_thickness; /* see T.101 D.5.3.2.2.6 for definition of 'logical pel' */
+
+        if (width > 2 * pel && height > 3 * pel) {
+
+                auto const width_half = width / 2;
+                auto const height_thirds = height / 3;
+                auto const remaining_height = height - 3 * height_thirds;
+
+                int const y[4] = { 0, height_thirds, 2 * height_thirds + (remaining_height ? 1 : 0), height };
+                int const x[3] = { 0, width_half, width };
+                // FIXMEchpe: or use 2 * width_half instead of width, so that for width odd,
+                // the extra row of pixels is unlit, and the lit blocks have equal width?
+
+                cairo_set_source_rgba(cr, 0., 0., 0., 1.);
+                for (auto yi = 0; yi < 3; ++yi) {
+                        for (auto xi = 0; xi < 2; xi++) {
+                                cairo_rectangle(cr, x[xi] + pel, y[yi], x[xi+1] - x[xi] - pel, y[yi+1] - y[yi] - pel);
+                                cairo_fill(cr);
+                        }
+                }
+        }
+
+        cairo_destroy(cr);
+
+        auto pattern = cairo_pattern_create_for_surface(surface);
+        cairo_surface_destroy(surface);
+
+        cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
+        cairo_pattern_set_filter(pattern, CAIRO_FILTER_NEAREST);
+
+        return pattern;
+}
+
+#endif /* WITH_UNICODE_NEXT */
+
 #include "box_drawing.h"
 
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static void
-_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color::rgb const* fg,
+_vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
+                                vteunistr c,
+                                uint32_t attr,
+                                vte::color::rgb const* fg,
                                 gint x, gint y,
                                 gint font_width, gint columns, gint font_height)
 {
@@ -1093,6 +1193,12 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         ycenter = y + upper_half;
         xright = x + width;
         ybottom = y + height;
+
+#ifdef WITH_UNICODE_NEXT
+        auto const separated = vte_attr_get_bool(attr, VTE_ATTR_SEPARATED_MOSAIC_SHIFT) &&_vte_draw_is_separable_mosaic(c);
+        if (separated)
+                cairo_push_group(cr);
+#endif
 
         switch (c) {
 
@@ -2006,12 +2112,22 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
 #undef RECTANGLE
 #undef POLYGON
 
+#ifdef WITH_UNICODE_NEXT
+        if (separated) {
+                cairo_pop_group_to_source(cr);
+                auto pattern = create_mosaic_separation_pattern(width, height, light_line_width);
+                cairo_mask(cr, pattern);
+                cairo_pattern_destroy(pattern);
+        }
+#endif
+
         cairo_restore(cr);
 }
 
 static void
 _vte_draw_text_internal (struct _vte_draw *draw,
 			 struct _vte_draw_text_request *requests, gsize n_requests,
+                         uint32_t attr,
 			 vte::color::rgb const* color, double alpha, guint style)
 {
 	gsize i;
@@ -2034,7 +2150,9 @@ _vte_draw_text_internal (struct _vte_draw *draw,
                 }
 
                 if (_vte_draw_unichar_is_local_graphic(c)) {
-                        _vte_draw_terminal_draw_graphic(draw, c, color,
+                        _vte_draw_terminal_draw_graphic(draw, c,
+                                                        attr,
+                                                        color,
                                                         requests[i].x, requests[i].y,
                                                         font->width, requests[i].columns, font->height);
                         continue;
@@ -2096,6 +2214,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 void
 _vte_draw_text (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *requests, gsize n_requests,
+                uint32_t attr,
 	       vte::color::rgb const* color, double alpha, guint style)
 {
         g_assert(draw->cr);
@@ -2115,7 +2234,7 @@ _vte_draw_text (struct _vte_draw *draw,
 		g_free (str);
 	}
 
-	_vte_draw_text_internal (draw, requests, n_requests, color, alpha, style);
+	_vte_draw_text_internal (draw, requests, n_requests, attr, color, alpha, style);
 }
 
 /* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
@@ -2139,6 +2258,7 @@ _vte_draw_has_char (struct _vte_draw *draw, vteunistr c, guint style)
 gboolean
 _vte_draw_char (struct _vte_draw *draw,
 	       struct _vte_draw_text_request *request,
+                uint32_t attr,
 	       vte::color::rgb const* color, double alpha, guint style)
 {
 	gboolean has_char;
@@ -2153,7 +2273,7 @@ _vte_draw_char (struct _vte_draw *draw,
 
 	has_char =_vte_draw_has_char (draw, request->c, style);
 	if (has_char)
-		_vte_draw_text (draw, request, 1, color, alpha, style);
+		_vte_draw_text (draw, request, 1, attr, color, alpha, style);
 
 	return has_char;
 }
