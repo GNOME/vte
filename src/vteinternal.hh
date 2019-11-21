@@ -983,7 +983,7 @@ public:
         void im_commit(std::string_view const& str);
         void im_preedit_set_active(bool active) noexcept;
         void im_preedit_reset() noexcept;
-        void im_preedit_changed(char const* str,
+        void im_preedit_changed(std::string_view const& str,
                                 int cursorpos,
                                 PangoAttrList* attrs) noexcept;
         bool im_retrieve_surrounding();

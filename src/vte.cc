@@ -4349,7 +4349,7 @@ Terminal::im_preedit_reset() noexcept
 }
 
 void
-Terminal::im_preedit_changed(char const* str,
+Terminal::im_preedit_changed(std::string_view const& str,
                              int cursorpos,
                              PangoAttrList* attrs) noexcept
 {

@@ -228,6 +228,9 @@ Widget::im_preedit_changed() noexcept
 	int cursorpos;
 
         gtk_im_context_get_preedit_string(m_im_context.get(), &str, &attrs, &cursorpos);
+        if (str == nullptr)
+                return;
+
         _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit changed (%s,%d).\n",
                          str, cursorpos);
 
