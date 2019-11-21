@@ -1227,6 +1227,8 @@ polygon(cairo_t* cr,
         cairo_fill (cr);
 }
 
+#ifdef WITH_UNICODE_NEXT
+
 static void
 pattern(cairo_t* cr,
         cairo_pattern_t* pattern,
@@ -1241,6 +1243,8 @@ pattern(cairo_t* cr,
         cairo_pop_group_to_source(cr);
         cairo_mask(cr, pattern);
 }
+
+#endif /* WITH_UNICODE_NEXT */
 
 #include "box_drawing.h"
 
