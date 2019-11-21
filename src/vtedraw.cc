@@ -1220,7 +1220,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
 #define POLYGON(cr, x, y, w, h, xdenom, ydenom, coords) \
         do { \
-                const int *cc = coords; \
+                const int8_t *cc = coords; \
                 int x1 = (w) * (cc[0]) / (xdenom); \
                 int y1 = (h) * (cc[1]) / (ydenom); \
                 cairo_move_to ((cr), (x) + x1, (y) + y1); \
@@ -1651,28 +1651,28 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         case 0x25e2: /* black lower right triangle */
         {
-                int coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
+                static int8_t const coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
                 POLYGON(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x25e3: /* black lower left triangle */
         {
-                int coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
                 POLYGON(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x25e4: /* black upper left triangle */
         {
-                int coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
                 POLYGON(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x25e5: /* black upper right triangle */
         {
-                int coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
                 POLYGON(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
@@ -1800,8 +1800,8 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb66:
         case 0x1fb67:
         {
-                const int v = c - 0x1fb3c;
-                const int coords[46][11] = {
+                auto const v = c - 0x1fb3c;
+                static int8_t const coords[46][11] = {
                         { 0, 2,  1, 3,  0, 3,  -1 },                /* 3c */
                         { 0, 2,  2, 3,  0, 3,  -1 },                /* 3d */
                         { 0, 1,  1, 3,  0, 3,  -1 },                /* 3e */
@@ -1860,8 +1860,8 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb6e:
         case 0x1fb6f:
         {
-                const int v = c - 0x1fb68;
-                const int coords[8][11] = {
+                auto const v = c - 0x1fb68;
+                static int8_t const coords[8][11] = {
                         { 0, 0,  2, 0,  2, 2,  0, 2,  1, 1,  -1 },  /* 68 */
                         { 0, 0,  1, 1,  2, 0,  2, 2,  0, 2,  -1 },  /* 69 */
                         { 0, 0,  2, 0,  1, 1,  2, 2,  0, 2,  -1 },  /* 6a */
@@ -1882,7 +1882,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb74:
         case 0x1fb75:
         {
-                const int v = c - 0x1fb70 + 1;
+                auto const v = c - 0x1fb70 + 1;
                 RECTANGLE(cr, x, y, width, height, 8, 1,  v, 0,  v + 1, 1);
                 break;
         }
@@ -1894,7 +1894,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb7a:
         case 0x1fb7b:
         {
-                const int v = c - 0x1fb76 + 1;
+                auto const v = c - 0x1fb76 + 1;
                 RECTANGLE(cr, x, y, width, height, 1, 8,  0, v,  1, v + 1);
                 break;
         }
@@ -1937,7 +1937,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb85:
         case 0x1fb86:
         {
-                int v = c - 0x1fb82 + 2;
+                auto v = c - 0x1fb82 + 2;
                 if (v >= 4) v++;
                 RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, v);
                 break;
@@ -1949,7 +1949,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb8a:
         case 0x1fb8b:
         {
-                int v = c - 0x1fb87 + 2;
+                auto v = c - 0x1fb87 + 2;
                 if (v >= 4) v++;
                 RECTANGLE(cr, x, y, width, height, 8, 1,  8 - v, 0,  8, 1);
                 break;
@@ -2066,23 +2066,21 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         case 0x1fb9a:
         {
-                /* Self-intersecting polygon, is this officially allowed by cairo? */
-                int coords[] = { 0, 0,  1, 0,  0, 1,  1, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 0,  0, 1,  1, 1,  -1 };
                 POLYGON(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x1fb9b:
         {
-                /* Self-intersecting polygon, is this officially allowed by cairo? */
-                int coords[] = { 0, 0,  1, 1,  1, 0,  0, 1,  -1 };
+                static int8_t coords[] = { 0, 0,  1, 1,  1, 0,  0, 1,  -1 };
                 POLYGON(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x1fb9c:
         {
-                int coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
@@ -2094,7 +2092,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         case 0x1fb9d:
         {
-                int coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
@@ -2106,7 +2104,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         case 0x1fb9e:
         {
-                int coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
+                static int8_t const coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
@@ -2118,7 +2116,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         case 0x1fb9f:
         {
-                int coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
+                static int8_t const coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
@@ -2144,9 +2142,9 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fbad:
         case 0x1fbae:
         {
-                const int v = c - 0x1fba0;
-                const int map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
-                                      0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
+                auto const v = c - 0x1fba0;
+                static uint8_t const map[15] = { 0b0001, 0b0010, 0b0100, 0b1000, 0b0101, 0b1010, 0b1100, 0b0011,
+                                                 0b1001, 0b0110, 0b1110, 0b1101, 0b1011, 0b0111, 0b1111 };
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
                 cairo_set_line_width(cr, light_line_width);
