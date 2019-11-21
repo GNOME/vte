@@ -982,7 +982,7 @@ _vte_draw_unichar_is_local_graphic(vteunistr c)
         return ((c >=  0x2500 && c <=  0x259f) ||
                 (c >=  0x25e2 && c <=  0x25e5)
 #ifdef WITH_UNICODE_NEXT
-                || (c >= 0x1fb00 && c <= 0x1fbff)
+                || (c >= 0x1fb00 && c <= 0x1fbca)
 #endif
                 );
 }
