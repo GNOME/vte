@@ -4081,7 +4081,7 @@ Terminal::feed(std::string_view const& data,
         vte::base::Chunk* chunk = nullptr;
         if (!m_incoming_queue.empty()) {
                 auto& achunk = m_incoming_queue.back();
-                if (length < achunk->remaining_capacity())
+                if (length < achunk->remaining_capacity() && !achunk->sealed())
                         chunk = achunk.get();
         }
         if (chunk == nullptr) {
