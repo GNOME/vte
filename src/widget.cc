@@ -428,6 +428,15 @@ Widget::size_allocate(GtkAllocation* allocation) noexcept
                                        allocation->height);
 }
 
+bool
+Widget::should_emit_signal(int id) noexcept
+{
+        return g_signal_has_handler_pending(object(),
+                                            signals[id],
+                                            0 /* detail */,
+                                            false /* not interested in blocked handlers */) != FALSE;
+}
+
 void
 Widget::unmap() noexcept
 {

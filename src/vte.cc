@@ -736,6 +736,9 @@ Terminal::emit_commit(std::string_view const& str)
         if (str.size() == 0)
                 return;
 
+        if (!widget() || !widget()->should_emit_signal(SIGNAL_COMMIT))
+                return;
+
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
                          "Emitting `commit' of %" G_GSSIZE_FORMAT" bytes.\n", str.size());
 

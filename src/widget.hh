@@ -136,6 +136,8 @@ public:
         void feed_child(std::string_view const& str) { terminal()->feed_child(str); }
         void feed_child_binary(std::string_view const& str) { terminal()->feed_child_binary(str); }
 
+        bool should_emit_signal(int id) noexcept;
+
 protected:
 
         enum class CursorType {
