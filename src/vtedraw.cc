@@ -1183,6 +1183,65 @@ DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_rev
 
 #endif /* WITH_UNICODE_NEXT */
 
+static void
+rectangle(cairo_t* cr,
+          double x,
+          double y,
+          double w,
+          double h,
+          int xdenom,
+          int ydenom,
+          int xb1,
+          int yb1,
+          int xb2,
+          int yb2)
+{
+        int const x1 = (w) * (xb1) / (xdenom);
+        int const y1 = (h) * (yb1) / (ydenom);
+        int const x2 = (w) * (xb2) / (xdenom);
+        int const y2 = (h) * (yb2) / (ydenom);
+        cairo_rectangle ((cr), (x) + x1, (y) + y1, MAX(x2 - x1, 1), MAX(y2 - y1, 1));
+        cairo_fill (cr);
+}
+
+static void
+polygon(cairo_t* cr,
+        double x,
+        double y,
+        double w,
+        double h,
+        int xdenom,
+        int ydenom,
+        int8_t const* cc)
+{
+        int x1 = (w) * (cc[0]) / (xdenom);
+        int y1 = (h) * (cc[1]) / (ydenom);
+        cairo_move_to ((cr), (x) + x1, (y) + y1);
+        int i = 2;
+        while (cc[i] != -1) {
+                x1 = (w) * (cc[i]) / (xdenom);
+                y1 = (h) * (cc[i + 1]) / (ydenom);
+                cairo_line_to ((cr), (x) + x1, (y) + y1);
+                i += 2;
+        }
+        cairo_fill (cr);
+}
+
+static void
+pattern(cairo_t* cr,
+        cairo_pattern_t* pattern,
+        double x,
+        double y,
+        double width,
+        double height)
+{
+        cairo_push_group(cr);
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_fill(cr);
+        cairo_pop_group_to_source(cr);
+        cairo_mask(cr, pattern);
+}
+
 #include "box_drawing.h"
 
 /* Draw the graphic representation of a line-drawing or special graphics
@@ -1207,41 +1266,6 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         height = draw->cell_height;
         upper_half = height / 2;
         left_half = width / 2;
-
-#define RECTANGLE(cr, x, y, w, h, xdenom, ydenom, xb1, yb1, xb2, yb2) \
-        do { \
-                int x1 = (w) * (xb1) / (xdenom); \
-                int y1 = (h) * (yb1) / (ydenom); \
-                int x2 = (w) * (xb2) / (xdenom); \
-                int y2 = (h) * (yb2) / (ydenom); \
-                cairo_rectangle ((cr), (x) + x1, (y) + y1, MAX(x2 - x1, 1), MAX(y2 - y1, 1)); \
-                cairo_fill (cr); \
-        } while (0)
-
-#define POLYGON(cr, x, y, w, h, xdenom, ydenom, coords) \
-        do { \
-                const int8_t *cc = coords; \
-                int x1 = (w) * (cc[0]) / (xdenom); \
-                int y1 = (h) * (cc[1]) / (ydenom); \
-                cairo_move_to ((cr), (x) + x1, (y) + y1); \
-                int i = 2; \
-                while (cc[i] != -1) { \
-                        x1 = (w) * (cc[i]) / (xdenom); \
-                        y1 = (h) * (cc[i + 1]) / (ydenom); \
-                        cairo_line_to ((cr), (x) + x1, (y) + y1); \
-                        i += 2; \
-                } \
-                cairo_fill (cr); \
-        } while (0)
-
-#define PATTERN(cr, pattern, width, height) \
-        do { \
-                cairo_push_group(cr); \
-                cairo_rectangle(cr, x, y, width, height); \
-                cairo_fill(cr); \
-                cairo_pop_group_to_source(cr); \
-                cairo_mask(cr, pattern); \
-        } while (0)
 
         /* Exclude the spacing for line width computation. */
         light_line_width = font_width / 5;
@@ -1269,7 +1293,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         /* Box Drawing */
 #ifdef WITH_UNICODE_NEXT
         case 0x1fbaf: /* box drawings light horizontal with vertical stroke */
-                RECTANGLE(cr, x + left_half - light_line_width / 2, y,
+                rectangle(cr, x + left_half - light_line_width / 2, y,
                           light_line_width, height, 1, 3, 0, 1, 1, 2);
                 c = 0x2500;
                 [[fallthrough]];
@@ -1545,7 +1569,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         /* Block Elements */
         case 0x2580: /* upper half block */
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
                 break;
 
         case 0x2581: /* lower one eighth block */
@@ -1557,7 +1581,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x2587: /* lower seven eighths block */
         {
                 const guint v = 0x2588 - c;
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, v,  1, 8);
+                rectangle(cr, x, y, width, height, 1, 8,  0, v,  1, 8);
                 break;
         }
 
@@ -1571,12 +1595,12 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x258f: /* left one eighth block */
         {
                 const guint v = 0x2590 - c;
-                RECTANGLE(cr, x, y, width, height, 8, 1,  0, 0,  v, 1);
+                rectangle(cr, x, y, width, height, 8, 1,  0, 0,  v, 1);
                 break;
         }
 
         case 0x2590: /* right half block */
-                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
                 break;
 
         case 0x2591: /* light shade */
@@ -1593,87 +1617,87 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 
         case 0x2594: /* upper one eighth block */
         {
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
                 break;
         }
 
         case 0x2595: /* right one eighth block */
         {
-                RECTANGLE(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                rectangle(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
                 break;
         }
 
         case 0x2596: /* quadrant lower left */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
                 break;
 
         case 0x2597: /* quadrant lower right */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
                 break;
 
         case 0x2598: /* quadrant upper left */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
                 break;
 
         case 0x2599: /* quadrant upper left and lower left and lower right */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
                 break;
 
         case 0x259a: /* quadrant upper left and lower right */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
-                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
                 break;
 
         case 0x259b: /* quadrant upper left and upper right and lower left */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
                 break;
 
         case 0x259c: /* quadrant upper left and upper right and lower right */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
-                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
                 break;
 
         case 0x259d: /* quadrant upper right */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
                 break;
 
         case 0x259e: /* quadrant upper right and lower left */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
                 break;
 
         case 0x259f: /* quadrant upper right and lower left and lower right */
-                RECTANGLE(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
-                RECTANGLE(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
+                rectangle(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
                 break;
 
         case 0x25e2: /* black lower right triangle */
         {
                 static int8_t const coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x25e3: /* black lower left triangle */
         {
                 static int8_t const coords[] = { 0, 0,  1, 1,  0, 1,  -1 };
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x25e4: /* black upper left triangle */
         {
                 static int8_t const coords[] = { 0, 0,  1, 0,  0, 1,  -1 };
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x25e5: /* black upper right triangle */
         {
                 static int8_t const coords[] = { 0, 0,  1, 0,  1, 1,  -1 };
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
@@ -1747,7 +1771,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 for (yi = 0; yi <= 2; yi++) {
                         for (xi = 0; xi <= 1; xi++) {
                                 if (bitmap & 1) {
-                                        RECTANGLE(cr, x, y, width, height, 2, 3,  xi, yi, xi + 1,  yi + 1);
+                                        rectangle(cr, x, y, width, height, 2, 3,  xi, yi, xi + 1,  yi + 1);
                                 }
                                 bitmap >>= 1;
                         }
@@ -1847,7 +1871,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                         { 1, 0,  2, 0,  2, 3,  -1 },                /* 66 */
                         { 0, 0,  2, 0,  2, 2,  0, 1,  -1 },         /* 67 */
                 };
-                POLYGON(cr, x, y, width, height, 2, 3, coords[v]);
+                polygon(cr, x, y, width, height, 2, 3, coords[v]);
                 break;
         }
 
@@ -1871,7 +1895,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                         { 1, 1,  2, 0,  2, 2,  -1 },                /* 6e */
                         { 1, 1,  2, 2,  0, 2,  -1 },                /* 6f */
                 };
-                POLYGON(cr, x, y, width, height, 2, 2, coords[v]);
+                polygon(cr, x, y, width, height, 2, 2, coords[v]);
                 break;
         }
 
@@ -1883,7 +1907,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb75:
         {
                 auto const v = c - 0x1fb70 + 1;
-                RECTANGLE(cr, x, y, width, height, 8, 1,  v, 0,  v + 1, 1);
+                rectangle(cr, x, y, width, height, 8, 1,  v, 0,  v + 1, 1);
                 break;
         }
 
@@ -1895,40 +1919,40 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         case 0x1fb7b:
         {
                 auto const v = c - 0x1fb76 + 1;
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, v,  1, v + 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, v,  1, v + 1);
                 break;
         }
 
         case 0x1fb7c:
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
-                RECTANGLE(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                rectangle(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
                 break;
 
         case 0x1fb7d:
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                RECTANGLE(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
                 break;
 
         case 0x1fb7e:
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                RECTANGLE(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
                 break;
 
         case 0x1fb7f:
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
-                RECTANGLE(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                rectangle(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
                 break;
 
         case 0x1fb80:
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
                 break;
 
         case 0x1fb81:
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 2,  1, 3);
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 4,  1, 5);
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 2,  1, 3);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 4,  1, 5);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
                 break;
 
         case 0x1fb82:
@@ -1939,7 +1963,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         {
                 auto v = c - 0x1fb82 + 2;
                 if (v >= 4) v++;
-                RECTANGLE(cr, x, y, width, height, 1, 8,  0, 0,  1, v);
+                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, v);
                 break;
         }
 
@@ -1951,7 +1975,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         {
                 auto v = c - 0x1fb87 + 2;
                 if (v >= 4) v++;
-                RECTANGLE(cr, x, y, width, height, 8, 1,  8 - v, 0,  8, 1);
+                rectangle(cr, x, y, width, height, 8, 1,  8 - v, 0,  8, 1);
                 break;
         }
 
@@ -1961,7 +1985,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
                 break;
 
         case 0x1fb8d:
@@ -1970,7 +1994,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
                 break;
 
         case 0x1fb8e:
@@ -1979,7 +2003,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
                 break;
 
         case 0x1fb8f:
@@ -1988,7 +2012,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
                 break;
 
         case 0x1fb90:
@@ -1997,84 +2021,84 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 1, 1,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 1,  0, 0,  1, 1);
                 break;
 
         case 0x1fb91:
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
                 break;
 
         case 0x1fb92:
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
                 break;
 
         case 0x1fb93:
 #if 0
                 /* codepoint not assigned */
-                RECTANGLE(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
 #endif
                 break;
 
         case 0x1fb94:
-                RECTANGLE(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
                 cairo_set_source_rgba (cr,
                                        fg->red / 65535.,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                RECTANGLE(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
                 break;
 
         case 0x1fb95:
-                PATTERN(cr, create_checkerboard_pattern(), width, height);
+                pattern(cr, create_checkerboard_pattern(), x, y, width, height);
                 break;
 
         case 0x1fb96:
-                PATTERN(cr, create_checkerboard_reverse_pattern(), width, height);
+                pattern(cr, create_checkerboard_reverse_pattern(), x, y, width, height);
                 break;
 
         case 0x1fb97:
-                RECTANGLE(cr, x, y, width, height, 1, 4,  0, 1,  1, 2);
-                RECTANGLE(cr, x, y, width, height, 1, 4,  0, 3,  1, 4);
+                rectangle(cr, x, y, width, height, 1, 4,  0, 1,  1, 2);
+                rectangle(cr, x, y, width, height, 1, 4,  0, 3,  1, 4);
                 break;
 
         case 0x1fb98:
-                PATTERN(cr, create_hatching_pattern_lr(), width, height);
+                pattern(cr, create_hatching_pattern_lr(), x, y, width, height);
                 break;
 
         case 0x1fb99:
-                PATTERN(cr, create_hatching_pattern_rl(), width, height);
+                pattern(cr, create_hatching_pattern_rl(), x, y, width, height);
                 break;
 
         case 0x1fb9a:
         {
                 static int8_t const coords[] = { 0, 0,  1, 0,  0, 1,  1, 1,  -1 };
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
         case 0x1fb9b:
         {
                 static int8_t coords[] = { 0, 0,  1, 1,  1, 0,  0, 1,  -1 };
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
@@ -2086,7 +2110,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
@@ -2098,7 +2122,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
@@ -2110,7 +2134,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
@@ -2122,7 +2146,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                                        fg->green / 65535.,
                                        fg->blue / 65535.,
                                        0.5);
-                POLYGON(cr, x, y, width, height, 1, 1, coords);
+                polygon(cr, x, y, width, height, 1, 1, coords);
                 break;
         }
 
@@ -2193,10 +2217,6 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
 #endif
                 g_assert_not_reached();
         }
-
-#undef RECTANGLE
-#undef POLYGON
-#undef PATTERN
 
 #ifdef WITH_UNICODE_NEXT
         if (separated) {
