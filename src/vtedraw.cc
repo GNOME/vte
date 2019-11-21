@@ -1139,6 +1139,18 @@ static unsigned char const hatching_pattern_rl_data[16] = {
         0x00, 0xff, 0x00, 0x00,
         0xff, 0x00, 0x00, 0x00,
 };
+static unsigned char const checkerboard_pattern_data[16] = {
+        0xff, 0xff, 0x00, 0x00,
+        0xff, 0xff, 0x00, 0x00,
+        0x00, 0x00, 0xff, 0xff,
+        0x00, 0x00, 0xff, 0xff,
+};
+static unsigned char const checkerboard_reverse_pattern_data[16] = {
+        0x00, 0x00, 0xff, 0xff,
+        0x00, 0x00, 0xff, 0xff,
+        0xff, 0xff, 0x00, 0x00,
+        0xff, 0xff, 0x00, 0x00,
+};
 
 #define DEFINE_STATIC_PATTERN_FUNC(name,data,width,height,stride) \
 static cairo_pattern_t* \
@@ -1164,6 +1176,8 @@ name(void) \
 
 DEFINE_STATIC_PATTERN_FUNC(create_hatching_pattern_lr, hatching_pattern_lr_data, 4, 4, 4)
 DEFINE_STATIC_PATTERN_FUNC(create_hatching_pattern_rl, hatching_pattern_rl_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_pattern, checkerboard_pattern_data, 4, 4, 4)
+DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_reverse_pattern_data, 4, 4, 4)
 
 #undef DEFINE_STATIC_PATTERN_FUNC
 
@@ -2021,18 +2035,12 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 break;
 
         case 0x1fb95:
-        case 0x1fb96:
-        {
-                int xi, yi;
-                for (yi = 3; yi >= 0; yi--) {
-                        for (xi = 3; xi >= 0; xi--) {
-                                if ((xi ^ yi ^ c) & 1) {
-                                        RECTANGLE(cr, x, y, width, height, 4, 4,  xi, yi,  xi + 1, yi + 1);
-                                }
-                        }
-                }
+                PATTERN(cr, create_checkerboard_pattern(), width, height);
                 break;
-        }
+
+        case 0x1fb96:
+                PATTERN(cr, create_checkerboard_reverse_pattern(), width, height);
+                break;
 
         case 0x1fb97:
                 RECTANGLE(cr, x, y, width, height, 1, 4,  0, 1,  1, 2);
