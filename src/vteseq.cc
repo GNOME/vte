@@ -8749,17 +8749,8 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_XTERM_WM_GET_WINDOW_POSITION: {
-                /* Send window location, in pixels. */
-                /* FIXME: this is not supported on wayland; just hardwire
-                 * it to a fixed return always.
-                 */
-                int x0, y0;
-                gdk_window_get_origin(gtk_widget_get_window(m_widget), &x0, &y0);
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting window location (%d,%d).\n", x0, y0);
-
-                reply(seq, VTE_REPLY_XTERM_WM,
-                      {3, x0 + m_padding.left, y0 + m_padding.top});
+                /* Send window location, in pixels. Reply with fixed origin. */
+                reply(seq, VTE_REPLY_XTERM_WM, {3, 0, 0});
                 break;
         }
 
