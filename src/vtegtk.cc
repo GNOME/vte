@@ -1054,7 +1054,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::deiconify-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_DEICONIFY_WINDOW] =
                 g_signal_new(I_("deiconify-window"),
@@ -1073,7 +1075,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::iconify-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_ICONIFY_WINDOW] =
                 g_signal_new(I_("iconify-window"),
@@ -1092,7 +1096,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::raise-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_RAISE_WINDOW] =
                 g_signal_new(I_("raise-window"),
@@ -1111,7 +1117,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::lower-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_LOWER_WINDOW] =
                 g_signal_new(I_("lower-window"),
@@ -1130,7 +1138,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::refresh-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_REFRESH_WINDOW] =
                 g_signal_new(I_("refresh-window"),
@@ -1149,7 +1159,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::restore-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_RESTORE_WINDOW] =
                 g_signal_new(I_("restore-window"),
@@ -1168,7 +1180,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::maximize-window:
          * @vteterminal: the object which received the signal
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_MAXIMIZE_WINDOW] =
                 g_signal_new(I_("maximize-window"),
@@ -1210,7 +1224,9 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * @x: the terminal's desired location, X coordinate
          * @y: the terminal's desired location, Y coordinate
          *
-         * Emitted at the child application's request.
+         * Never emitted.
+         *
+         * Deprecated: 0.60
          */
         signals[SIGNAL_MOVE_WINDOW] =
                 g_signal_new(I_("move-window"),

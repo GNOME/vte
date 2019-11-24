@@ -206,71 +206,6 @@ Terminal::emit_bell()
         g_signal_emit(m_terminal, signals[SIGNAL_BELL], 0);
 }
 
-/* Emit a "deiconify-window" signal. */
-void
-Terminal::emit_deiconify_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `deiconify-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_DEICONIFY_WINDOW], 0);
-}
-
-/* Emit a "iconify-window" signal. */
-void
-Terminal::emit_iconify_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `iconify-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_ICONIFY_WINDOW], 0);
-}
-
-/* Emit a "raise-window" signal. */
-void
-Terminal::emit_raise_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `raise-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_RAISE_WINDOW], 0);
-}
-
-/* Emit a "lower-window" signal. */
-void
-Terminal::emit_lower_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `lower-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_LOWER_WINDOW], 0);
-}
-
-/* Emit a "maximize-window" signal. */
-void
-Terminal::emit_maximize_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `maximize-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_MAXIMIZE_WINDOW], 0);
-}
-
-/* Emit a "refresh-window" signal. */
-void
-Terminal::emit_refresh_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `refresh-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_REFRESH_WINDOW], 0);
-}
-
-/* Emit a "restore-window" signal. */
-void
-Terminal::emit_restore_window()
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `restore-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_RESTORE_WINDOW], 0);
-}
-
-/* Emit a "move-window" signal.  (Pixels.) */
-void
-Terminal::emit_move_window(guint x,
-                                     guint y)
-{
-        _vte_debug_print(VTE_DEBUG_SIGNALS, "Emitting `move-window'.\n");
-        g_signal_emit(m_terminal, signals[SIGNAL_MOVE_WINDOW], 0, x, y);
-}
-
 /* Emit a "resize-window" signal.  (Grid size.) */
 void
 Terminal::emit_resize_window(guint columns,
@@ -8649,24 +8584,16 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_XTERM_WM_RESTORE_WINDOW:
-                _vte_debug_print(VTE_DEBUG_EMULATION, "Deiconifying window.\n");
-                emit_deiconify_window();
+                m_xterm_wm_iconified = false;
                 break;
 
         case VTE_XTERM_WM_MINIMIZE_WINDOW:
-                _vte_debug_print(VTE_DEBUG_EMULATION, "Iconifying window.\n");
-                emit_iconify_window();
+                m_xterm_wm_iconified = true;
                 break;
 
-        case VTE_XTERM_WM_SET_WINDOW_POSITION: {
-                int pos_x = seq.collect1(1, 0);
-                int pos_y = seq.collect1(2, 0);
-
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Moving window to %d,%d.\n", pos_x, pos_y);
-                emit_move_window(pos_x, pos_y);
+        case VTE_XTERM_WM_SET_WINDOW_POSITION:
+                /* No-op */
                 break;
-        }
 
         case VTE_XTERM_WM_SET_WINDOW_SIZE_PIXELS: {
                 int width, height;
@@ -8683,19 +8610,12 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
         }
 
         case VTE_XTERM_WM_RAISE_WINDOW:
-                _vte_debug_print(VTE_DEBUG_EMULATION, "Raising window.\n");
-                emit_raise_window();
                 break;
 
         case VTE_XTERM_WM_LOWER_WINDOW:
-                _vte_debug_print(VTE_DEBUG_EMULATION, "Lowering window.\n");
-                emit_lower_window();
                 break;
 
         case VTE_XTERM_WM_REFRESH_WINDOW:
-                _vte_debug_print(VTE_DEBUG_EMULATION, "Refreshing window.\n");
-                invalidate_all();
-                emit_refresh_window();
                 break;
 
         case VTE_XTERM_WM_SET_WINDOW_SIZE_CELLS: {
@@ -8716,13 +8636,9 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 case -1: /* default */
                 case 0:
                         /* Restore */
-                        _vte_debug_print(VTE_DEBUG_EMULATION, "Restoring window.\n");
-                        emit_restore_window();
                         break;
                 case 1:
                         /* Maximise */
-                        _vte_debug_print(VTE_DEBUG_EMULATION, "Maximizing window.\n");
-                        emit_maximize_window();
                         break;
                 case 2:
                         /* Maximise Vertically */
@@ -8739,39 +8655,22 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_XTERM_WM_GET_WINDOW_STATE:
-                /* If we're unmapped, then we're iconified. */
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting window state %siconified.\n",
-                                 gtk_widget_get_mapped(m_widget) ? "non-" : "");
-
-                reply(seq, VTE_REPLY_XTERM_WM,
-                      {gtk_widget_get_mapped(m_widget) ? 1 : 2});
+                reply(seq, VTE_REPLY_XTERM_WM, {m_xterm_wm_iconified ? 2 : 1});
                 break;
 
-        case VTE_XTERM_WM_GET_WINDOW_POSITION: {
-                /* Send window location, in pixels. Reply with fixed origin. */
+        case VTE_XTERM_WM_GET_WINDOW_POSITION:
+                /* Reply with fixed origin. */
                 reply(seq, VTE_REPLY_XTERM_WM, {3, 0, 0});
                 break;
-        }
 
         case VTE_XTERM_WM_GET_WINDOW_SIZE_PIXELS: {
-                /* Send window size, in pixels. */
                 int width = m_row_count * m_cell_height;
                 int height = m_column_count * m_cell_width;
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting window size (%dx%d)\n",
-                                 width, height);
-
                 reply(seq, VTE_REPLY_XTERM_WM, {4, height, width});
                 break;
         }
 
         case VTE_XTERM_WM_GET_WINDOW_SIZE_CELLS:
-                /* Send widget size, in cells. */
-                _vte_debug_print(VTE_DEBUG_EMULATION,
-                                 "Reporting widget size %ldx%ld\n",
-                                 m_row_count, m_column_count);
-
                 reply(seq, VTE_REPLY_XTERM_WM,
                       {8, (int)m_row_count, (int)m_column_count});
                 break;

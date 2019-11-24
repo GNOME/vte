@@ -10045,6 +10045,9 @@ Terminal::reset(bool clear_tabstops,
 	/* Cause everything to be redrawn (or cleared). */
 	invalidate_all();
 
+        /* Reset XTerm window controls */
+        m_xterm_wm_iconified = false;
+
         g_object_thaw_notify(object);
 }
 
