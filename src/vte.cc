@@ -3900,6 +3900,7 @@ Terminal::pty_io_read(int const fd,
                       GIOCondition const condition)
 {
 	_vte_debug_print (VTE_DEBUG_WORK, ".");
+        _vte_debug_print(VTE_DEBUG_IO, "::pty_io_read condition %02x\n", condition);
 
         /* We need to check for EOS so that we can shut down the PTY.
          * When we get G_IO_HUP without G_IO_IN, we can process the EOF now.
@@ -4048,6 +4049,8 @@ out:
 	}
 
         if (eos) {
+		_vte_debug_print(VTE_DEBUG_IO, "got PTY EOF\n");
+
                 /* Make a note of the EOS; but do not process it since there may be data
                  * to be processed first in the incomding queue.
                  */
