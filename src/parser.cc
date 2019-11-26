@@ -48,6 +48,8 @@
  * * DEC only recognises up to 16 parameters; vte up to 32 (and that can be easily
  *   extended)
  *
+ * * DEC's parameter values range is 0..16384; vte supports 0..65535 (16-bit range).
+ *
  * * When the number of parameter exceeds that number, DEC executes the function
  *   with these parameters, ignoring the excessive parameters; vte ignores the
  *   whole function instead.
