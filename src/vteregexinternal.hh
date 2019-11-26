@@ -38,9 +38,3 @@ bool _vte_regex_has_purpose(VteRegex* regex,
                             vte::base::Regex::Purpose purpose);
 
 bool _vte_regex_has_multiline_compile_flag(VteRegex* regex);
-
-/* GRegex translation */
-VteRegex* _vte_regex_new_gregex(vte::base::Regex::Purpose purpose,
-                                GRegex* gregex);
-
-uint32_t _vte_regex_translate_gregex_match_flags(GRegexMatchFlags flags);

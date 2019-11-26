@@ -61,7 +61,6 @@ public:
         gboolean object_notifications{false};
         gboolean reverse{false};
         gboolean test_mode{false};
-        gboolean use_gregex{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
         bool bg_color_set{false};
@@ -371,8 +370,6 @@ public:
                           "Specify a font to use", nullptr },
                         { "foreground-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_fg_color,
                           "Set default foreground color", "COLOR" },
-                        { "gregex", 0, 0, G_OPTION_ARG_NONE, &use_gregex,
-                          "Use GRegex instead of PCRE2", nullptr },
                         { "geometry", 'g', 0, G_OPTION_ARG_STRING, &geometry,
                           "Set the size (in characters) and position", "GEOMETRY" },
                         { "highlight-background-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_hl_bg_color,
@@ -511,18 +508,6 @@ verbose_fprintf(FILE* fp,
 
 /* regex */
 
-static GRegex*
-compile_gregex(char const* pattern,
-               bool caseless,
-               GError** error)
-{
-        GRegexCompileFlags flags = GRegexCompileFlags(G_REGEX_OPTIMIZE |
-                                                      G_REGEX_MULTILINE |
-                                                      caseless ? G_REGEX_CASELESS : 0);
-
-        return g_regex_new(pattern, flags, GRegexMatchFlags(0), error);
-}
-
 static void
 jit_regex(VteRegex* regex,
           char const* pattern)
@@ -654,17 +639,10 @@ vteapp_search_popover_update_regex(VteappSearchPopover* popover)
         if (search_text[0] != '\0') {
                 GError* error = nullptr;
 
-                if (options.use_gregex) {
-                        auto regex = compile_gregex(pattern, caseless, &error);
-                        vte_terminal_search_set_gregex(popover->terminal, regex, GRegexMatchFlags(0));
-                        if (regex != nullptr)
-                                g_regex_unref(regex);
-                } else {
-                        auto regex = compile_regex_for_search(pattern, caseless, &error);
-                        vte_terminal_search_set_regex(popover->terminal, regex, 0);
-                        if (regex != nullptr)
-                                vte_regex_unref(regex);
-                }
+                auto regex = compile_regex_for_search(pattern, caseless, &error);
+                vte_terminal_search_set_regex(popover->terminal, regex, 0);
+                if (regex != nullptr)
+                        vte_regex_unref(regex);
 
                 if (error == nullptr) {
                         popover->has_regex = true;
@@ -1011,19 +989,10 @@ vteapp_window_add_dingus(VteappWindow* window,
         for (auto i = 0; dingus[i] != nullptr; i++) {
                 int tag = -1;
                 GError* error = nullptr;
-                if (options.use_gregex) {
-                        auto regex = compile_gregex(dingus[i], true, &error);
-                        if (regex) {
-                                tag = vte_terminal_match_add_gregex(window->terminal, regex,
-                                                                    GRegexMatchFlags(0));
-                                g_regex_unref(regex);
-                        }
-                } else {
-                        auto regex = compile_regex_for_match(dingus[i], true, &error);
-                        if (regex) {
-                                tag = vte_terminal_match_add_regex(window->terminal, regex, 0);
-                                vte_regex_unref(regex);
-                        }
+                auto regex = compile_regex_for_match(dingus[i], true, &error);
+                if (regex) {
+                        tag = vte_terminal_match_add_regex(window->terminal, regex, 0);
+                        vte_regex_unref(regex);
                 }
 
                 if (error != nullptr) {
@@ -1491,31 +1460,23 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 static const char extra_pattern[] = "(\\d+)\\s*(\\w+)";
                 char* extra_match = nullptr;
                 char *extra_subst = nullptr;
-                if (options.use_gregex) {
-                        auto regex = compile_gregex(extra_pattern, false, nullptr);
-                        vte_terminal_event_check_gregex_simple(window->terminal, event,
-                                                               &regex, 1,
-                                                               GRegexMatchFlags(0),
-                                                               &extra_match);
-                        g_regex_unref(regex);
-                } else {
-                        auto regex = compile_regex_for_match(extra_pattern, false, nullptr);
-                        vte_terminal_event_check_regex_simple(window->terminal, event,
-                                                              &regex, 1, 0,
-                                                              &extra_match);
+                GError* err = nullptr;
+                auto regex = compile_regex_for_match(extra_pattern, false, &err);
+                g_assert_no_error(err);
+                vte_terminal_event_check_regex_simple(window->terminal, event,
+                                                      &regex, 1, 0,
+                                                      &extra_match);
 
-                        GError *err = nullptr;
-                        if (extra_match != nullptr &&
-                            (extra_subst = vte_regex_substitute(regex, extra_match, "$2 $1",
-                                                                PCRE2_SUBSTITUTE_EXTENDED |
-                                                                PCRE2_SUBSTITUTE_GLOBAL,
-                                                                &err)) == nullptr) {
-                                verbose_printerr("Substitution failed: %s\n", err->message);
-                                g_error_free(err);
-                        }
-
-                        vte_regex_unref(regex);
+                if (extra_match != nullptr &&
+                    (extra_subst = vte_regex_substitute(regex, extra_match, "$2 $1",
+                                                        PCRE2_SUBSTITUTE_EXTENDED |
+                                                        PCRE2_SUBSTITUTE_GLOBAL,
+                                                        &err)) == nullptr) {
+                        verbose_printerr("Substitution failed: %s\n", err->message);
+                        g_error_free(err);
                 }
+
+                vte_regex_unref(regex);
 
                 if (extra_match != nullptr) {
                         if (extra_subst != nullptr)

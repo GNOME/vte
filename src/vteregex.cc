@@ -34,33 +34,6 @@
 
 #define IMPL(wrapper) (regex_from_wrapper(wrapper))
 
-/* GRegex translation */
-
-typedef struct {
-        guint32 gflag;
-        guint32 pflag;
-} FlagTranslation;
-
-static void
-translate_flags(FlagTranslation const* const table,
-                gsize table_len,
-                guint32 *gflagsptr /* inout */,
-                guint32 *pflagsptr /* inout */)
-{
-        auto gflags = *gflagsptr;
-        auto pflags = *pflagsptr;
-        for (guint i = 0; i < table_len; i++) {
-                auto gflag = table[i].gflag;
-                if ((gflags & gflag) == gflag) {
-                        pflags |= table[i].pflag;
-                        gflags &= ~gflag;
-                }
-        }
-
-        *gflagsptr = gflags;
-        *pflagsptr = pflags;
-}
-
 /* Type registration */
 
 #pragma GCC diagnostic push
@@ -115,66 +88,6 @@ vte_regex_new(vte::base::Regex::Purpose purpose,
               GError** error)
 {
         return wrapper_from_regex(vte::base::Regex::compile(purpose, pattern, pattern_length, flags, error));
-}
-
-VteRegex*
-_vte_regex_new_gregex(vte::base::Regex::Purpose purpose,
-                      GRegex *gregex)
-{
-        g_return_val_if_fail(gregex != NULL, NULL);
-
-        guint32 pflags = 0;
-
-        static FlagTranslation const table[] = {
-                { G_REGEX_CASELESS,        PCRE2_CASELESS        },
-                { G_REGEX_MULTILINE,       PCRE2_MULTILINE       },
-                { G_REGEX_DOTALL,          PCRE2_DOTALL          },
-                { G_REGEX_EXTENDED,        PCRE2_EXTENDED        },
-                { G_REGEX_ANCHORED,        PCRE2_ANCHORED        },
-                { G_REGEX_DOLLAR_ENDONLY,  PCRE2_DOLLAR_ENDONLY  },
-                { G_REGEX_UNGREEDY,        PCRE2_UNGREEDY        },
-                { G_REGEX_NO_AUTO_CAPTURE, PCRE2_NO_AUTO_CAPTURE },
-                { G_REGEX_OPTIMIZE,        0                     }, /* accepted but unused */
-                { G_REGEX_FIRSTLINE,       PCRE2_FIRSTLINE       },
-                { G_REGEX_DUPNAMES,        PCRE2_DUPNAMES        }
-        };
-
-        /* Always add the MULTILINE option */
-        guint32 gflags = g_regex_get_compile_flags(gregex) | G_REGEX_MULTILINE;
-        translate_flags(table, G_N_ELEMENTS(table), &gflags, &pflags);
-
-        if (gflags != 0) {
-                g_warning("Incompatible GRegex compile flags left untranslated: %08x", gflags);
-        }
-
-        GError* err = nullptr;
-        auto regex = vte_regex_new(purpose, g_regex_get_pattern(gregex), -1, pflags, &err);
-        if (regex == nullptr) {
-                g_warning("Failed to translated GRegex: %s", err->message);
-                g_error_free(err);
-        }
-        return regex;
-}
-
-guint32
-_vte_regex_translate_gregex_match_flags(GRegexMatchFlags flags)
-{
-        static FlagTranslation const table[] = {
-                { G_REGEX_MATCH_ANCHORED,         PCRE2_ANCHORED         },
-                { G_REGEX_MATCH_NOTBOL,           PCRE2_NOTBOL           },
-                { G_REGEX_MATCH_NOTEOL,           PCRE2_NOTEOL           },
-                { G_REGEX_MATCH_NOTEMPTY,         PCRE2_NOTEMPTY         },
-                { G_REGEX_MATCH_NOTEMPTY_ATSTART, PCRE2_NOTEMPTY_ATSTART }
-        };
-
-        guint32 gflags = flags;
-        guint32 pflags = 0;
-        translate_flags(table, G_N_ELEMENTS(table), &gflags, &pflags);
-        if (gflags != 0) {
-                g_warning("Incompatible GRegex match flags left untranslated: %08x", gflags);
-        }
-
-        return pflags;
 }
 
 /**

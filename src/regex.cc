@@ -89,7 +89,6 @@ Regex::compile(Regex::Purpose purpose,
                uint32_t flags,
                GError** error)
 {
-
         assert(pattern != nullptr || pattern_length == 0);
         assert(error == nullptr || *error == nullptr);
 

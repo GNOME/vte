@@ -2123,12 +2123,9 @@ vte_terminal_paste_primary(VteTerminal *terminal)
  * @gregex: a #GRegex
  * @gflags: the #GRegexMatchFlags to use when matching the regex
  *
- * Adds the regular expression @regex to the list of matching expressions.  When the
- * user moves the mouse cursor over a section of displayed text which matches
- * this expression, the text will be highlighted.
+ * This function does nothing since version 0.60.
  *
- * Returns: an integer associated with this expression, or -1 if @gregex could not be
- *   transformed into a #VteRegex or @gflags were incompatible
+ * Returns: -1
  *
  * Deprecated: 0.46: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
  */
@@ -2137,16 +2134,7 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
                               GRegex *gregex,
                               GRegexMatchFlags gflags)
 {
-        g_return_val_if_fail(gregex != NULL, -1);
-
-        auto regex = _vte_regex_new_gregex(vte::base::Regex::Purpose::eMatch, gregex);
-        if (regex == nullptr)
-                return -1;
-
-        auto rv = vte_terminal_match_add_regex(terminal, regex,
-                                               _vte_regex_translate_gregex_match_flags(gflags));
-        vte_regex_unref(regex);
-        return rv;
+        return -1;
 }
 
 /**
@@ -2330,11 +2318,6 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
                                        GRegexMatchFlags match_flags,
                                        char **matches)
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(event != NULL, FALSE);
-        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
-        g_return_val_if_fail(matches != NULL, FALSE);
-
         return FALSE;
 }
 
@@ -2509,7 +2492,7 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
  * @gregex: (allow-none): a #GRegex, or %NULL
  * @gflags: flags from #GRegexMatchFlags
  *
- * Sets the #GRegex regex to search for. Unsets the search regex when passed %NULL.
+ * This function does nothing since version 0.60.
  *
  * Deprecated: 0.46: use vte_terminal_search_set_regex() instead.
  */
@@ -2518,15 +2501,6 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
 				GRegex      *gregex,
                                 GRegexMatchFlags gflags)
 {
-        VteRegex *regex = nullptr;
-        if (gregex)
-                regex = _vte_regex_new_gregex(vte::base::Regex::Purpose::eSearch, gregex);
-
-        vte_terminal_search_set_regex(terminal, regex,
-                                      _vte_regex_translate_gregex_match_flags(gflags));
-
-        if (regex)
-                vte_regex_unref(regex);
 }
 
 /**
