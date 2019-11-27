@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <glib.h>
@@ -71,10 +72,10 @@ public:
 
         bool jited() const noexcept;
 
-        char* substitute(char const* subject,
-                         char const* replacement,
-                         uint32_t flags,
-                         GError** error) const noexcept;
+        std::optional<std::string> substitute(std::string_view const& subject,
+                                              std::string_view const& replacement,
+                                              uint32_t flags,
+                                              GError** error) const;
 
 }; // class Regex
 

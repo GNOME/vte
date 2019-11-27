@@ -217,5 +217,6 @@ vte_regex_substitute(VteRegex *regex,
         g_return_val_if_fail(replacement != nullptr, nullptr);
         g_return_val_if_fail (!(flags & PCRE2_SUBSTITUTE_OVERFLOW_LENGTH), nullptr);
 
-        return IMPL(regex)->substitute(subject, replacement, flags, error);
+        auto const r = IMPL(regex)->substitute(subject, replacement, flags, error);
+        return r ? g_strndup(r->c_str(), r->size()) : nullptr;
 }

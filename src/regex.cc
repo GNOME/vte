@@ -179,55 +179,56 @@ Regex::has_compile_flags(uint32_t flags) const noexcept
  *
  * See man:pcre2api(3) on pcre2_substitute() for more information.
  *
- * Returns: (transfer full): the substituted string, or %NULL
- *   if an error occurred
+ * Returns: the substituted string, or std::nullopt if an error occurred
  */
-char*
-Regex::substitute(char const* subject,
-                  char const* replacement,
+std::optional<std::string>
+Regex::substitute(std::string_view const& subject,
+                  std::string_view const& replacement,
                   uint32_t flags,
-                  GError** error) const noexcept
+                  GError** error) const
 {
-        assert(subject != nullptr);
-        assert(replacement != nullptr);
         assert (!(flags & PCRE2_SUBSTITUTE_OVERFLOW_LENGTH));
 
-        uint8_t outbuf[2048];
-        PCRE2_SIZE outlen = sizeof(outbuf);
-        int r = pcre2_substitute_8(code(),
-                                   (PCRE2_SPTR8)subject, PCRE2_ZERO_TERMINATED,
-                                   0 /* start offset */,
-                                   flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
-                                   nullptr /* match data */,
-                                   nullptr /* match context */,
-                                   (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED,
-                                   (PCRE2_UCHAR8*)outbuf, &outlen);
-
+        char outbuf[2048];
+        PCRE2_SIZE outlen = sizeof(outbuf) - 1;
+        auto r = pcre2_substitute_8(code(),
+                                    (PCRE2_SPTR8)subject.data(), subject.size(),
+                                    0 /* start offset */,
+                                    flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
+                                    nullptr /* match data */,
+                                    nullptr /* match context */,
+                                    (PCRE2_SPTR8)replacement.data(), replacement.size(),
+                                    (PCRE2_UCHAR8*)outbuf, &outlen);
+        /* Note that on success, outlen excludes the trailing NUL. */
         if (r >= 0)
-                return g_strndup((char*)outbuf, outlen);
+                return std::string{outbuf, outlen};
 
         if (r == PCRE2_ERROR_NOMEMORY) {
                 /* The buffer was not large enough; allocated a buffer of the
-                 * required size and try again. Note that @outlen as returned
-                 * from pcre2_substitute_8() above includes the trailing \0.
+                 * required size and try again. Note that as opposed to the successful
+                 * call to pcre2_substitute_8() above, in the error case outlen *includes*
+                 * the trailing NUL.
                  */
-                uint8_t *outbuf2 = (uint8_t*)g_malloc(outlen);
+                std::string outbuf2;
+                outbuf2.resize(outlen);
+
                 r = pcre2_substitute_8(code(),
-                                       (PCRE2_SPTR8)subject, PCRE2_ZERO_TERMINATED,
+                                       (PCRE2_SPTR8)subject.data(), subject.size(),
                                        0 /* start offset */,
                                        flags | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH,
                                        nullptr /* match data */,
                                        nullptr /* match context */,
-                                       (PCRE2_SPTR8)replacement, PCRE2_ZERO_TERMINATED,
-                                       (PCRE2_UCHAR8*)outbuf2, &outlen);
-                if (r >= 0)
-                        return (char*)outbuf2;
-
-                g_free(outbuf2);
+                                       (PCRE2_SPTR8)replacement.data(), replacement.size(),
+                                       (PCRE2_UCHAR8*)outbuf2.data(), &outlen);
+                if (r >= 0) {
+                        /* Note that on success, outlen excludes the trailing NUL. */
+                        outbuf2.resize(outlen);
+                        return outbuf2;
+                }
        }
 
         set_gerror_from_pcre_error(r, error);
-        return nullptr;
+        return std::nullopt;
 }
 
 } // namespace base
