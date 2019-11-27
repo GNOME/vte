@@ -82,12 +82,11 @@ vte_regex_unref(VteRegex* regex)
 
 static VteRegex*
 vte_regex_new(vte::base::Regex::Purpose purpose,
-              char const* pattern,
-              ssize_t pattern_length,
+              std::string_view const& pattern,
               uint32_t flags,
               GError** error)
 {
-        return wrapper_from_regex(vte::base::Regex::compile(purpose, pattern, pattern_length, flags, error));
+        return wrapper_from_regex(vte::base::Regex::compile(purpose, pattern, flags, error));
 }
 
 /**
@@ -116,8 +115,9 @@ vte_regex_new_for_match(const char *pattern,
                         guint32     flags,
                         GError    **error)
 {
+        auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
         return vte_regex_new(vte::base::Regex::Purpose::eMatch,
-                             pattern, pattern_length,
+                             {pattern, len},
                              flags,
                              error);
 }
@@ -147,8 +147,9 @@ vte_regex_new_for_search(const char *pattern,
                          guint32     flags,
                          GError    **error)
 {
+        auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
         return vte_regex_new(vte::base::Regex::Purpose::eSearch,
-                             pattern, pattern_length,
+                             {pattern, len},
                              flags,
                              error);
 }

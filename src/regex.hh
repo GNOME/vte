@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include <glib.h>
 
@@ -37,8 +38,7 @@ public:
         static bool check_pcre_config_unicode(GError** error);
         static bool check_pcre_config_jit(void);
         static Regex* compile(Purpose purpose,
-                              char const* pattern,
-                              ssize_t pattern_length,
+                              std::string_view const& pattern,
                               uint32_t flags,
                               GError** error);
 

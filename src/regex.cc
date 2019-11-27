@@ -84,12 +84,10 @@ Regex::check_pcre_config_jit(void)
 
 Regex*
 Regex::compile(Regex::Purpose purpose,
-               char const* pattern,
-               ssize_t pattern_length,
+               std::string_view const& pattern,
                uint32_t flags,
                GError** error)
 {
-        assert(pattern != nullptr || pattern_length == 0);
         assert(error == nullptr || *error == nullptr);
 
         if (!check_pcre_config_unicode(error))
@@ -97,8 +95,8 @@ Regex::compile(Regex::Purpose purpose,
 
         int errcode;
         PCRE2_SIZE erroffset;
-        auto code = pcre2_compile_8((PCRE2_SPTR8)pattern,
-                                    pattern_length >= 0 ? pattern_length : PCRE2_ZERO_TERMINATED,
+        auto code = pcre2_compile_8((PCRE2_SPTR8)pattern.data(),
+                                    pattern.size(),
                                     (uint32_t)flags |
                                     PCRE2_UTF |
                                     (flags & PCRE2_UTF ? PCRE2_NO_UTF_CHECK : 0) |
