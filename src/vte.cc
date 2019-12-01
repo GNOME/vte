@@ -687,20 +687,12 @@ Terminal::invalidate_cursor_once(bool periodic)
 
 /* Invalidate the cursor repeatedly. */
 // FIXMEchpe this continually adds and removes the blink timeout. Find a better solution
-static gboolean
-invalidate_cursor_periodic_cb(vte::terminal::Terminal* that)
-{
-        that->invalidate_cursor_periodic();
-        return G_SOURCE_REMOVE;
-}
-
-void
-Terminal::invalidate_cursor_periodic()
+bool
+Terminal::cursor_blink_timer_callback() noexcept
 {
 	m_cursor_blink_state = !m_cursor_blink_state;
 	m_cursor_blink_time += m_cursor_blink_cycle;
 
-        m_cursor_blink_tag = 0;
 	invalidate_cursor_once(true);
 
 	/* only disable the blink if the cursor is currently shown.
@@ -708,14 +700,11 @@ Terminal::invalidate_cursor_periodic()
 	 */
 	if (m_cursor_blink_time / 1000 >= m_cursor_blink_timeout &&
 	    m_cursor_blink_state) {
-		return;
+		return false;
         }
 
-	m_cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-                                                m_cursor_blink_cycle,
-                                                (GSourceFunc)invalidate_cursor_periodic_cb,
-                                                this,
-                                                NULL);
+        m_cursor_blink_timer.schedule(m_cursor_blink_cycle, vte::glib::Timer::Priority::eLOW);
+        return false;
 }
 
 /* Emit a "selection_changed" signal. */
@@ -4432,25 +4421,20 @@ Terminal::widget_style_updated()
 void
 Terminal::add_cursor_timeout()
 {
-	if (m_cursor_blink_tag)
+	if (m_cursor_blink_timer)
 		return; /* already added */
 
 	m_cursor_blink_time = 0;
-	m_cursor_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-                                                m_cursor_blink_cycle,
-                                                (GSourceFunc)invalidate_cursor_periodic_cb,
-                                                this,
-                                                NULL);
+        m_cursor_blink_timer.schedule(m_cursor_blink_cycle, vte::glib::Timer::Priority::eLOW);
 }
 
 void
 Terminal::remove_cursor_timeout()
 {
-	if (m_cursor_blink_tag == 0)
+	if (!m_cursor_blink_timer)
 		return; /* already removed */
 
-	g_source_remove(m_cursor_blink_tag);
-	m_cursor_blink_tag = 0;
+        m_cursor_blink_timer.abort();
         if (!m_cursor_blink_state) {
                 invalidate_cursor_once();
                 m_cursor_blink_state = true;
@@ -4563,7 +4547,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 		read_modifiers((GdkEvent*)event);
 
                 // FIXMEchpe?
-		if (m_cursor_blink_tag != 0) {
+		if (m_cursor_blink_timer) {
 			remove_cursor_timeout();
 			add_cursor_timeout();
 		}

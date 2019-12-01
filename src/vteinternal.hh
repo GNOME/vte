@@ -36,6 +36,7 @@
 /* END sanity checks */
 
 #include <glib.h>
+#include "glib-glue.hh"
 
 #include "vtedefines.hh"
 #include "vtetypes.hh"
@@ -494,14 +495,16 @@ public:
         double m_cursor_aspect_ratio{0.04};
 
 	/* Cursor blinking */
+        vte::glib::Timer m_cursor_blink_timer{std::bind(&Terminal::cursor_blink_timer_callback,
+                                                        this),
+                                              "cursor-blink-timer"};
         CursorBlinkMode m_cursor_blink_mode{CursorBlinkMode::eSYSTEM};
-        gboolean m_cursor_blink_state;
-        guint m_cursor_blink_tag{0};           /* cursor blinking timeout ID */
+        bool m_cursor_blink_state{false};
+        bool m_cursor_blinks{false};           /* whether the cursor is actually blinking */
         gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
         int m_cursor_blink_timeout{500};        /* gtk-cursor-blink-timeout */
         gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
         gboolean m_has_focus;               /* is the terminal window focused */
-        bool m_cursor_blinks{false};           /* whether the cursor is actually blinking */
 
         /* Contents blinking */
         TextBlinkMode m_text_blink_mode{TextBlinkMode::eALWAYS};
@@ -831,7 +834,7 @@ public:
         gssize get_preedit_length(bool left_only);
 
         void invalidate_cursor_once(bool periodic = false);
-        void invalidate_cursor_periodic();
+        bool cursor_blink_timer_callback() noexcept;
         void check_cursor_blink();
         void add_cursor_timeout();
         void remove_cursor_timeout();
