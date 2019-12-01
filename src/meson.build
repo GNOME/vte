@@ -28,6 +28,10 @@ debug_sources = files(
   'debug.h',
 )
 
+glib_glue_sources = files(
+  'glib-glue.hh',
+)
+
 icu_sources = files(
   'icu-converter.cc',
   'icu-converter.hh',
@@ -80,7 +84,7 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + modes_sources + parser_sources + pty_sources + regex_sources + utf8_sources + files(
+libvte_common_sources = debug_sources + glib_glue_sources + modes_sources + parser_sources + pty_sources + regex_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -239,8 +243,8 @@ endif
 
 # decoder cat
 
-decoder_cat_sources = icu_sources + utf8_sources + debug_sources + files(
-  'decoder-cat.cc'
+decoder_cat_sources = glib_glue_sources + icu_sources + utf8_sources + debug_sources + files(
+  'decoder-cat.cc',
 )
 
 decoder_cat = executable(
@@ -254,8 +258,8 @@ decoder_cat = executable(
 
 # parser cat
 
-parser_cat_sources = parser_sources + utf8_sources + debug_sources + files(
-  'parser-cat.cc'
+parser_cat_sources = glib_glue_sources + parser_sources + utf8_sources + debug_sources + files(
+  'parser-cat.cc',
 )
 
 parser_cat = executable(

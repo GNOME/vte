@@ -31,6 +31,7 @@
 #include <string>
 
 #include "debug.h"
+#include "glib-glue.hh"
 #include "parser.hh"
 #include "parser-glue.hh"
 #include "utf8.hh"
@@ -904,10 +905,9 @@ main(int argc,
         _vte_debug_init();
 
         Options options{};
-        GError* err = nullptr;
-        if (!options.parse(argc, argv, &err)) {
-                g_printerr("Failed to parse arguments: %s\n", err->message);
-                g_error_free(err);
+        auto error = vte::glib::Error{};
+        if (!options.parse(argc, argv, error)) {
+                g_printerr("Failed to parse arguments: %s\n", error.message());
                 return EXIT_FAILURE;
         }
 

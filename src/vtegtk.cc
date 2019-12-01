@@ -48,6 +48,7 @@
 #include "vte/vtetypebuiltins.h"
 
 #include "debug.h"
+#include "glib-glue.hh"
 #include "marshal.h"
 #include "reaper.hh"
 #include "vtedefines.hh"
@@ -2792,8 +2793,8 @@ spawn_async_cb (GObject *source,
         VtePty *pty = VTE_PTY(source);
 
         GPid pid = -1;
-        GError *error = nullptr;
-        vte_pty_spawn_finish(pty, result, &pid, &error);
+        auto error = vte::glib::Error{};
+        vte_pty_spawn_finish(pty, result, &pid, error);
 
         /* Now get a ref to the terminal */
         VteTerminal* terminal = (VteTerminal*)g_weak_ref_get(&data->wref);
@@ -2827,9 +2828,6 @@ spawn_async_cb (GObject *source,
                         kill(pid, SIGHUP);
                 }
         }
-
-        if (error)
-                g_error_free(error);
 
         spawn_async_callback_data_free(data);
 
@@ -2917,15 +2915,13 @@ vte_terminal_spawn_async(VteTerminal *terminal,
         g_return_if_fail(!child_setup_data_destroy || child_setup_data);
         g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
 
-        GError *error = NULL;
-        VtePty* pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, &error);
+        auto error = vte::glib::Error{};
+        auto pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
         if (pty == nullptr) {
                 if (child_setup_data_destroy)
                         child_setup_data_destroy(child_setup_data);
 
                 callback(terminal, -1, error, user_data);
-
-                g_error_free(error);
                 return;
         }
 

@@ -72,6 +72,8 @@
 
 #include <glib/gi18n-lib.h>
 
+#include "glib-glue.hh"
+
 /* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
 #ifndef NSIG
 #define NSIG (8 * sizeof(sigset_t))
@@ -389,7 +391,6 @@ Pty::spawn(char const* directory,
         bool inherit_envv;
         char** envp2;
         int i;
-        GError* err{nullptr};
         GPollFD pollfd;
 
         if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd)) {
@@ -431,6 +432,7 @@ Pty::spawn(char const* directory,
 	m_extra_child_setup.func = child_setup_func;
 	m_extra_child_setup.data = child_setup_data;
 
+        auto err = vte::glib::Error{};
         ret = vte_spawn_async_with_pipes_cancellable(directory,
                                                      argv, envp2,
                                                      (GSpawnFlags)spawn_flags,
@@ -440,12 +442,12 @@ Pty::spawn(char const* directory,
                                                      nullptr, nullptr, nullptr,
                                                      timeout,
                                                      cancellable ? &pollfd : nullptr,
-                                                     &err);
+                                                     err);
         if (!ret &&
             directory != nullptr &&
-            g_error_matches(err, G_SPAWN_ERROR, G_SPAWN_ERROR_CHDIR)) {
+            err.matches(G_SPAWN_ERROR, G_SPAWN_ERROR_CHDIR)) {
                 /* try spawning in our working directory */
-                g_clear_error(&err);
+                err.reset();
                 ret = vte_spawn_async_with_pipes_cancellable(nullptr,
                                                              argv, envp2,
                                                              (GSpawnFlags)spawn_flags,
@@ -455,7 +457,7 @@ Pty::spawn(char const* directory,
                                                              nullptr, nullptr, nullptr,
                                                              timeout,
                                                              cancellable ? &pollfd : nullptr,
-                                                             &err);
+                                                             err);
         }
 
         g_strfreev (envp2);
@@ -469,8 +471,7 @@ Pty::spawn(char const* directory,
         if (ret)
                 return true;
 
-        g_propagate_error(error, err);
-        return false;
+        return err.propagate(error);
 }
 
 /*

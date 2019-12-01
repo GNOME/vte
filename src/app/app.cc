@@ -32,6 +32,7 @@
 #include <cairo/cairo-gobject.h>
 #include <vte/vte.h>
 #include "vtepcre2.h"
+#include "glib-glue.hh"
 
 #include <algorithm>
 
@@ -512,12 +513,11 @@ static void
 jit_regex(VteRegex* regex,
           char const* pattern)
 {
-        GError *err = nullptr;
-        if (!vte_regex_jit(regex, PCRE2_JIT_COMPLETE, &err) ||
-            !vte_regex_jit(regex, PCRE2_JIT_PARTIAL_SOFT, &err)) {
-                if (!g_error_matches(err, VTE_REGEX_ERROR, -45 /* PCRE2_ERROR_JIT_BADOPTION: JIT not supported */))
-                        verbose_printerr("JITing regex \"%s\" failed: %s\n", pattern, err->message);
-                g_error_free(err);
+        auto error = vte::glib::Error{};
+        if (!vte_regex_jit(regex, PCRE2_JIT_COMPLETE, error) ||
+            !vte_regex_jit(regex, PCRE2_JIT_PARTIAL_SOFT, error)) {
+                if (!error.matches(VTE_REGEX_ERROR, -45 /* PCRE2_ERROR_JIT_BADOPTION: JIT not supported */))
+                        verbose_printerr("JITing regex \"%s\" failed: %s\n", pattern, error.message());
         }
 }
 
@@ -637,22 +637,20 @@ vteapp_search_popover_update_regex(VteappSearchPopover* popover)
         popover->regex_pattern = nullptr;
 
         if (search_text[0] != '\0') {
-                GError* error = nullptr;
-
-                auto regex = compile_regex_for_search(pattern, caseless, &error);
+                auto error = vte::glib::Error{};
+                auto regex = compile_regex_for_search(pattern, caseless, error);
                 vte_terminal_search_set_regex(popover->terminal, regex, 0);
                 if (regex != nullptr)
                         vte_regex_unref(regex);
 
-                if (error == nullptr) {
+                if (error.error()) {
                         popover->has_regex = true;
                         popover->regex_pattern = pattern; /* adopt */
                         pattern = nullptr; /* adopted */
                         gtk_widget_set_tooltip_text(popover->search_entry, nullptr);
                 } else {
                         popover->has_regex = false;
-                        gtk_widget_set_tooltip_text(popover->search_entry, error->message);
-                        g_error_free(error);
+                        gtk_widget_set_tooltip_text(popover->search_entry, error.message());
                 }
         }
 
@@ -987,17 +985,17 @@ vteapp_window_add_dingus(VteappWindow* window,
                          char const* const* dingus)
 {
         for (auto i = 0; dingus[i] != nullptr; i++) {
-                int tag = -1;
-                GError* error = nullptr;
-                auto regex = compile_regex_for_match(dingus[i], true, &error);
+                auto tag = int{-1};
+                auto error = vte::glib::Error{};
+                auto regex = compile_regex_for_match(dingus[i], true, error);
                 if (regex) {
                         tag = vte_terminal_match_add_regex(window->terminal, regex, 0);
                         vte_regex_unref(regex);
                 }
 
-                if (error != nullptr) {
-                        verbose_printerr("Failed to compile regex \"%s\": %s\n", dingus[i], error->message);
-                        g_error_free(error);
+                if (error.error()) {
+                        verbose_printerr("Failed to compile regex \"%s\": %s\n",
+                                         dingus[i], error.message());
                 }
 
                 if (tag != -1)
@@ -1298,22 +1296,20 @@ vteapp_window_fork(VteappWindow* window,
 static void
 vteapp_window_launch(VteappWindow* window)
 {
-        bool rv;
-        GError* err = nullptr;
+        auto rv = bool{};
+        auto error = vte::glib::Error{};
 
         if (options.exec_argv != nullptr)
-                rv = vteapp_window_launch_argv(window, options.exec_argv, &err);
+                rv = vteapp_window_launch_argv(window, options.exec_argv, error);
         else if (options.command != nullptr)
-                rv = vteapp_window_launch_commandline(window, options.command, &err);
+                rv = vteapp_window_launch_commandline(window, options.command, error);
         else if (!options.no_shell)
-                rv = vteapp_window_launch_shell(window, &err);
+                rv = vteapp_window_launch_shell(window, error);
         else
-                rv = vteapp_window_fork(window, &err);
+                rv = vteapp_window_fork(window, error);
 
-        if (!rv) {
-                verbose_printerr("Error launching: %s\n", err->message);
-                g_error_free(err);
-        }
+        if (!rv)
+                verbose_printerr("Error launching: %s\n", error.message());
 }
 
 static void
@@ -1460,9 +1456,9 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 static const char extra_pattern[] = "(\\d+)\\s*(\\w+)";
                 char* extra_match = nullptr;
                 char *extra_subst = nullptr;
-                GError* err = nullptr;
-                auto regex = compile_regex_for_match(extra_pattern, false, &err);
-                g_assert_no_error(err);
+                auto error = vte::glib::Error{};
+                auto regex = compile_regex_for_match(extra_pattern, false, error);
+                error.assert_no_error();
                 vte_terminal_event_check_regex_simple(window->terminal, event,
                                                       &regex, 1, 0,
                                                       &extra_match);
@@ -1471,9 +1467,8 @@ vteapp_window_show_context_menu(VteappWindow* window,
                     (extra_subst = vte_regex_substitute(regex, extra_match, "$2 $1",
                                                         PCRE2_SUBSTITUTE_EXTENDED |
                                                         PCRE2_SUBSTITUTE_GLOBAL,
-                                                        &err)) == nullptr) {
-                        verbose_printerr("Substitution failed: %s\n", err->message);
-                        g_error_free(err);
+                                                        error)) == nullptr) {
+                        verbose_printerr("Substitution failed: %s\n", error.message());
                 }
 
                 vte_regex_unref(regex);
@@ -1546,22 +1541,20 @@ window_child_exited_cb(VteTerminal* term,
 
         if (options.output_filename != nullptr) {
                 auto file = g_file_new_for_commandline_arg(options.output_filename);
-
-                GError* err = nullptr;
-                auto stream = g_file_replace(file, nullptr, false, G_FILE_CREATE_NONE, nullptr, &err);
+                auto error = vte::glib::Error{};
+                auto stream = g_file_replace(file, nullptr, false, G_FILE_CREATE_NONE, nullptr, error);
                 g_object_unref(file);
                 if (stream != nullptr) {
                         vte_terminal_write_contents_sync(window->terminal,
                                                          G_OUTPUT_STREAM(stream),
                                                          VTE_WRITE_DEFAULT,
-                                                         nullptr, &err);
+                                                         nullptr, error);
                         g_object_unref(stream);
                 }
 
-                if (err != nullptr) {
+                if (error.error()) {
                         verbose_printerr("Failed to write output to \"%s\": %s\n",
-                                         options.output_filename, err->message);
-                        g_error_free(err);
+                                         options.output_filename, error.message());
                 }
         }
 
@@ -1870,11 +1863,9 @@ vteapp_window_constructed(GObject *object)
         }
 
         if (options.encoding != nullptr) {
-                GError* err = nullptr;
-                if (!vte_terminal_set_encoding(window->terminal, options.encoding, &err)) {
-                        g_printerr("Failed to set encoding: %s\n", err->message);
-                        g_error_free(err);
-                }
+                auto error = vte::glib::Error{};
+                if (!vte_terminal_set_encoding(window->terminal, options.encoding, error))
+                        g_printerr("Failed to set encoding: %s\n", error.message());
         }
 
         if (options.word_char_exceptions != nullptr)
@@ -2159,10 +2150,9 @@ main(int argc,
        g_set_prgname("Terminal");
        g_set_application_name("Terminal");
 
-       GError* error = nullptr;
-       if (!options.parse_argv(argc, argv, &error)) {
-               g_printerr("Error parsing arguments: %s\n", error->message);
-               g_error_free(error);
+       auto error = vte::glib::Error{};
+       if (!options.parse_argv(argc, argv, error)) {
+               g_printerr("Error parsing arguments: %s\n", error.message());
                return EXIT_FAILURE;
        }
 
