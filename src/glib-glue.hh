@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <cassert>
+
+#include <functional>
 #include <memory>
 
 #include <glib.h>
@@ -54,6 +57,128 @@ public:
 
 private:
         GError* m_error{nullptr};
+};
+
+class Timer {
+public:
+        /* If the callback returns true, the timer is repeated; if the
+         * callback returns false, the timer is removed.
+         */
+        using callback_type = std::function<bool()>;
+
+        Timer(callback_type callback,
+              char const* name)
+                : m_callback(callback),
+                  m_name(name)
+        {
+        }
+
+        ~Timer() noexcept
+        {
+                abort();
+        }
+
+        Timer(Timer const&) = delete;
+        Timer(Timer&&) = delete;
+        Timer& operator=(Timer const&) = delete;
+        Timer& operator=(Timer&&) = delete;
+
+        constexpr operator bool() const noexcept { return m_source_id != 0; }
+
+        class Priority {
+        public:
+                enum {
+                      eHIGH = G_PRIORITY_HIGH,
+                      eDEFAULT = G_PRIORITY_DEFAULT,
+                      eHIGH_IDLE = G_PRIORITY_HIGH_IDLE,
+                      eDEFAULT_IDLE = G_PRIORITY_DEFAULT_IDLE,
+                      eLOW = G_PRIORITY_LOW,
+                };
+        };
+
+        void schedule(unsigned int timeout,
+                      int priority = Priority::eDEFAULT) noexcept
+        {
+                abort();
+                m_source_id = g_timeout_add_full(priority,
+                                                 timeout,
+                                                 s_dispatch_timer_cb,
+                                                 this,
+                                                 s_destroy_timer_cb);
+        }
+
+        void schedule_seconds(unsigned int timeout,
+                              int priority = Priority::eDEFAULT) noexcept
+        {
+                abort();
+                m_source_id = g_timeout_add_seconds_full(priority,
+                                                         timeout,
+                                                         s_dispatch_timer_cb,
+                                                         this,
+                                                         s_destroy_timer_cb);
+        }
+
+        void schedule_idle(int priority = Priority::eDEFAULT) noexcept
+        {
+                abort();
+                m_source_id = g_idle_add_full(priority,
+                                              s_dispatch_timer_cb,
+                                              this,
+                                              s_destroy_timer_cb);
+        }
+
+        void abort() noexcept
+        {
+                if (m_source_id != 0) {
+                        g_source_remove(m_source_id);
+                        m_source_id = 0;
+                }
+
+                m_rescheduled = false;
+        }
+
+private:
+        callback_type m_callback{};
+        char const* m_name{nullptr};
+        guint m_source_id{0};
+        bool m_rescheduled{false};
+
+        bool dispatch() noexcept {
+                auto const id = m_source_id;
+                auto const rv = m_callback();
+
+                /* The Timer may have been re-scheduled from within the callback.
+                 * In this case, the callback must return false!
+                 * m_source_id is now different (since the old source
+                 * ID is still associated with the main context until we return from
+                 * this function), after which invalidate_source() will be called,
+                 * but must not overwrite m_source_id.
+                 * In the non-rescheduled case, invalidate_source() must set
+                 * m_source_id to 0.
+                 */
+                m_rescheduled = id != m_source_id;
+                assert(!m_rescheduled || rv == false);
+                return rv;
+        }
+
+        static gboolean s_dispatch_timer_cb(void* data) noexcept
+        {
+                auto timer = reinterpret_cast<Timer*>(data);
+                return timer->dispatch();
+        }
+
+        void invalidate_source() noexcept
+        {
+                if (!m_rescheduled)
+                        m_source_id = 0;
+                m_rescheduled = false;
+        }
+
+        static void s_destroy_timer_cb(void* data) noexcept
+        {
+                auto timer = reinterpret_cast<Timer*>(data);
+                timer->invalidate_source();
+        }
 };
 
 } // namespace vte::glib
