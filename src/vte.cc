@@ -6759,24 +6759,14 @@ Terminal::select_all()
 	invalidate_all();
 }
 
-/* Autoscroll a bit. */
-static gboolean
-vte_terminal_autoscroll_cb(vte::terminal::Terminal* that)
-{
-        return that->autoscroll() ? G_SOURCE_CONTINUE : G_SOURCE_REMOVE;
-}
-
-/*
- * Terminal::autoscroll():
- *
- * Returns: %true to continue autoscrolling, %false to stop
- */
 bool
-Terminal::autoscroll()
+Terminal::mouse_autoscroll_timer_callback() noexcept
 {
 	bool extend = false;
 	long x, y, xmax, ymax;
 	glong adj;
+
+        auto again = bool{true};
 
 	/* Provide an immediate effect for mouse wigglers. */
 	if (m_mouse_last_position.y < 0) {
@@ -6817,35 +6807,20 @@ Terminal::autoscroll()
                 modify_selection(vte::view::coords(x, y));
 	} else {
 		/* Stop autoscrolling. */
-		m_mouse_autoscroll_tag = 0;
+                again = false;
 	}
-	return (m_mouse_autoscroll_tag != 0);
+	return again;
 }
 
 /* Start autoscroll. */
 void
 Terminal::start_autoscroll()
 {
-	if (m_mouse_autoscroll_tag != 0)
+	if (m_mouse_autoscroll_timer)
                 return;
 
-        m_mouse_autoscroll_tag =
-                g_timeout_add_full(G_PRIORITY_LOW,
-                                   666 / m_row_count, // FIXME WTF?
-                                   (GSourceFunc)vte_terminal_autoscroll_cb,
-                                   this,
-                                   NULL);// FIXME make sure m_mouse_autoscroll_tag is nulled!
-}
-
-/* Stop autoscroll. */
-void
-Terminal::stop_autoscroll()
-{
-	if (m_mouse_autoscroll_tag == 0)
-                return;
-
-        g_source_remove(m_mouse_autoscroll_tag);
-        m_mouse_autoscroll_tag = 0;
+        m_mouse_autoscroll_timer.schedule(666 / m_row_count, // FIXME WTF?
+                                          vte::glib::Timer::Priority::eLOW);
 }
 
 bool
@@ -6888,9 +6863,7 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 			if (pos.y < 0 || pos.y >= m_view_usable_extents.height()) {
 				/* Give mouse wigglers something. */
                                 stop_autoscroll();
-				autoscroll();
-				/* Start a timed autoscroll if we're not doing it
-				 * already. */
+				mouse_autoscroll_timer_callback();
 				start_autoscroll();
 			}
 

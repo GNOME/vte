@@ -533,8 +533,11 @@ public:
          * the viewable area, and also want to catch in-cell movements if they make the pointer visible.
          */
         vte::view::coords m_mouse_last_position{-1, -1};
-        guint m_mouse_autoscroll_tag;
         double m_mouse_smooth_scroll_delta{0.0};
+        bool mouse_autoscroll_timer_callback() noexcept;
+        vte::glib::Timer m_mouse_autoscroll_timer{std::bind(&Terminal::mouse_autoscroll_timer_callback,
+                                                            this),
+                                                  "mouse-autoscroll-timer"};
 
 	/* State variables for handling match checks. */
         int m_match_regex_next_tag{0};
@@ -958,9 +961,8 @@ public:
                        gint column_width,
                        gint row_height);
 
-        bool autoscroll();
         void start_autoscroll();
-        void stop_autoscroll();
+        void stop_autoscroll() noexcept { m_mouse_autoscroll_timer.abort(); }
 
         void connect_pty_read();
         void disconnect_pty_read();
