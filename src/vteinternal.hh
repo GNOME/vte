@@ -507,11 +507,14 @@ public:
         gboolean m_has_focus;               /* is the terminal window focused */
 
         /* Contents blinking */
+        bool text_blink_timer_callback() noexcept;
+        vte::glib::Timer m_text_blink_timer{std::bind(&Terminal::text_blink_timer_callback,
+                                                      this),
+                                            "text-blink-timer"};
+        bool m_text_blink_state{false};  /* whether blinking text should be visible at this very moment */
+        bool m_text_to_blink{false};     /* drawing signals here if it encounters any cell with blink attribute */
         TextBlinkMode m_text_blink_mode{TextBlinkMode::eALWAYS};
         gint m_text_blink_cycle;  /* gtk-cursor-blink-time / 2 */
-        bool m_text_blink_state;  /* whether blinking text should be visible at this very moment */
-        bool m_text_to_blink;     /* drawing signals here if it encounters any cell with blink attribute */
-        guint m_text_blink_tag{0};   /* timeout ID for redrawing due to blinking */
 
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
@@ -841,8 +844,6 @@ public:
         void update_cursor_blinks();
         CursorBlinkMode decscusr_cursor_blink() const noexcept;
         CursorShape decscusr_cursor_shape() const noexcept;
-
-        void remove_text_blink_timeout();
 
         /* The allocation of the widget */
         cairo_rectangle_int_t m_allocated_rect;

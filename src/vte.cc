@@ -4454,16 +4454,6 @@ Terminal::check_cursor_blink()
 }
 
 void
-Terminal::remove_text_blink_timeout()
-{
-        if (m_text_blink_tag == 0)
-                return;
-
-        g_source_remove (m_text_blink_tag);
-        m_text_blink_tag = 0;
-}
-
-void
 Terminal::beep()
 {
 	if (m_audible_bell)
@@ -7154,7 +7144,7 @@ Terminal::widget_focus_in(GdkEventFocus *event)
                  * If blinking gets disabled, only repaint if there's blinking stuff present
                  * (we could further optimize by checking its current phase). */
                 if (m_text_blink_mode == TextBlinkMode::eFOCUSED ||
-                    (m_text_blink_mode == TextBlinkMode::eUNFOCUSED && m_text_blink_tag != 0)) {
+                    (m_text_blink_mode == TextBlinkMode::eUNFOCUSED && m_text_blink_timer)) {
                         invalidate_all();
                 }
 
@@ -7185,7 +7175,7 @@ Terminal::widget_focus_out(GdkEventFocus *event)
                  * If blinking gets disabled, only repaint if there's blinking stuff present
                  * (we could further optimize by checking its current phase). */
                 if (m_text_blink_mode == TextBlinkMode::eUNFOCUSED ||
-                    (m_text_blink_mode == TextBlinkMode::eFOCUSED && m_text_blink_tag != 0)) {
+                    (m_text_blink_mode == TextBlinkMode::eFOCUSED && m_text_blink_timer)) {
                         invalidate_all();
                 }
 
@@ -8006,7 +7996,7 @@ Terminal::widget_unrealize()
 	remove_cursor_timeout();
 
         /* Remove the contents blink timeout function. */
-        remove_text_blink_timeout();
+        m_text_blink_timer.abort();
 
 	/* Cancel any pending redraws. */
 	remove_update_timeout(this);
@@ -8034,11 +8024,11 @@ Terminal::set_blink_settings(bool blink,
 
         /* Misuse gtk-cursor-blink-time for text blinking as well. This might change in the future. */
         m_text_blink_cycle = m_cursor_blink_cycle;
-        if (m_text_blink_tag != 0) {
+        if (m_text_blink_timer) {
                 /* The current phase might have changed, and an already installed
                  * timer to blink might fire too late. So remove the timer and
                  * repaint the contents (which will install a correct new timer). */
-                remove_text_blink_timeout();
+                m_text_blink_timer.abort();
                 invalidate_all();
         }
 }
@@ -8260,12 +8250,12 @@ Terminal::determine_cursor_colors(VteCell const* cell,
                          fore, back, deco);
 }
 
-static gboolean
-invalidate_text_blink_cb(vte::terminal::Terminal* that)
+// FIXMEchpe this constantly removes and reschedules the timer. improve this!
+bool
+Terminal::text_blink_timer_callback()
 {
-        that->m_text_blink_tag = 0;
-        that->invalidate_all();
-        return G_SOURCE_REMOVE;
+        invalidate_all();
+        return false; /* don't run again */
 }
 
 /* Draw a string of characters with similar attributes. */
@@ -9404,12 +9394,9 @@ Terminal::widget_draw(cairo_t *cr)
          * for an explicit step to stop the timer when blinking cells are no longer present, this happens
          * implicitly by the timer not getting reinstalled anymore (often after a final unnecessary but
          * harmless repaint). */
-        if (G_UNLIKELY (m_text_to_blink && text_blink_enabled_now && m_text_blink_tag == 0))
-                m_text_blink_tag = g_timeout_add_full(G_PRIORITY_LOW,
-                                                      m_text_blink_cycle - now % m_text_blink_cycle,
-                                                      (GSourceFunc)invalidate_text_blink_cb,
-                                                      this,
-                                                      NULL);
+        if (G_UNLIKELY (m_text_to_blink && text_blink_enabled_now && !m_text_blink_timer))
+                m_text_blink_timer.schedule(m_text_blink_cycle - now % m_text_blink_cycle,
+                                            vte::glib::Timer::Priority::eLOW);
 
         m_invalidated_all = FALSE;
 }
