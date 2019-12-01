@@ -8252,7 +8252,7 @@ Terminal::determine_cursor_colors(VteCell const* cell,
 
 // FIXMEchpe this constantly removes and reschedules the timer. improve this!
 bool
-Terminal::text_blink_timer_callback()
+Terminal::text_blink_timer_callback() noexcept
 {
         invalidate_all();
         return false; /* don't run again */
