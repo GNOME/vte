@@ -304,6 +304,11 @@ Widget::realize() noexcept
 
         assert(!m_im_context);
 	m_im_context = gtk_im_multicontext_new();
+#if GTK_CHECK_VERSION (3, 24, 14)
+        g_object_set(m_im_context.get(),
+                     "input-purpose", GTK_INPUT_PURPOSE_TERMINAL,
+                     nullptr);
+#endif
 	gtk_im_context_set_client_window(m_im_context.get(), m_event_window);
 	g_signal_connect(m_im_context.get(), "commit",
 			 G_CALLBACK(im_commit_cb), this);
