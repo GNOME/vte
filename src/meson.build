@@ -542,6 +542,18 @@ foreach test: test_scripts_interactive
   )
 endforeach
 
+test_scripts_with_arg = [
+  ['vte-urlencode-cwd', 'test-vte-urlencode-cwd.sh', vte_urlencode_cwd],
+]
+
+foreach test: test_scripts_with_arg
+  test(
+    test[0],
+    files(test[1]),
+    args: [test[2]],
+  )
+endforeach
+
 # Shell integration
 
 install_data(
