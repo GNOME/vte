@@ -1,5 +1,4 @@
-# Copyright © 2006 Shaun McCance <shaunm@gnome.org>
-# Copyright © 2013 Peter De Wachter <pdewacht@gmail.com>
+# Copyright © 2012 Christian Persch
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,31 +22,16 @@
 # Not running under vte?
 [ "${VTE_VERSION:-0}" -ge 3405 ] || return 0
 
-__vte_urlencode() (
-  # This is important to make sure string manipulation is handled
-  # byte-by-byte.
-  LC_ALL=C
-  str="$1"
-  while [ -n "$str" ]; do
-    safe="${str%%[!a-zA-Z0-9/:_\.\-\!\'\(\)~]*}"
-    printf "%s" "$safe"
-    str="${str#"$safe"}"
-    if [ -n "$str" ]; then
-      printf "%%%02X" "'$str"
-      str="${str#?}"
-    fi
-  done
-)
-
 __vte_osc7 () {
-  printf "\033]7;file://%s%s\033\\" "${HOSTNAME:-}" "$(__vte_urlencode "${PWD}")"
+  printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
 }
 
 __vte_prompt_command() {
   local pwd='~'
   [ "$PWD" != "$HOME" ] && pwd=${PWD/#$HOME\//\~\/}
   pwd="${pwd//[[:cntrl:]]}"
-  printf "\033]0;%s@%s:%s\033\\%s" "${USER}" "${HOSTNAME%%.*}" "${pwd}" "$(__vte_osc7)"
+  printf "\033]0;%s@%s:%s\033\\" "${USER}" "${HOSTNAME%%.*}" "${pwd}"
+  __vte_osc7
 }
 
 case "$TERM" in

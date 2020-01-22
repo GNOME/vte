@@ -508,11 +508,6 @@ foreach test: test_units
   )
 endforeach
 
-test_script_env = test_env + [
-  # srcdir is needed for the vte.sh test
-  'srcdir=@0@'.format(meson.current_source_dir()),
-]
-
 test_scripts = [
   ['doc syntax', 'check-doc-syntax.sh'],
 ]
@@ -521,24 +516,6 @@ foreach test: test_scripts
   test(
     test[0],
     files(test[1]),
-    env: test_script_env,
-  )
-endforeach
-
-test_scripts_interactive = [
-  ['vte.sh', 'test-vte-sh.sh', files('vte.sh')],
-]
-
-# vte.sh needs to be run in an interactive shell, but there is way to
-# specify that in test(), except by running bash itself explicitly with -i.
-bash = find_program('bash')
-
-foreach test: test_scripts_interactive
-  test(
-    test[0],
-    bash,
-    args: ['-i', files(test[1]), test[2]],
-    env: test_script_env,
   )
 endforeach
 
@@ -556,8 +533,13 @@ endforeach
 
 # Shell integration
 
-install_data(
-  'vte.sh',
+vte_sh = configure_file(
+  input: 'vte.sh.in',
+  output: '@BASENAME@',
+  configuration: {
+    'libexecdir': vte_prefix / vte_libexecdir,
+  },
+  install: true,
   install_dir: vte_sysconfdir / 'profile.d',
 )
 
