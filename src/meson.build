@@ -533,6 +533,16 @@ endforeach
 
 # Shell integration
 
+vte_csh = configure_file(
+  input: 'vte.csh.in',
+  output: '@BASENAME@',
+  configuration: {
+    'libexecdir': vte_prefix / vte_libexecdir,
+  },
+  install: true,
+  install_dir: vte_sysconfdir / 'profile.d',
+)
+
 vte_sh = configure_file(
   input: 'vte.sh.in',
   output: '@BASENAME@',
