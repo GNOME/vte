@@ -340,6 +340,23 @@ reflect_vte = executable(
   install: false,
 )
 
+# vte-urlencode-cwd
+
+vte_urlencode_cwd_sources = files(
+  'urlencode.cc',
+)
+
+vte_urlencode_cwd = executable(
+  'vte-urlencode-cwd',
+  cpp_args: [
+    '-nostdlib',
+  ],
+  include_directories: [top_inc,],
+  install: true,
+  install_dir: vte_libexecdir,
+  sources: vte_urlencode_cwd_sources,
+)
+
 # xticker
 
 xticker_sources = files(
