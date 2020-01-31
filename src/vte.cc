@@ -2855,9 +2855,6 @@ Terminal::insert_char(gunichar c,
         if (G_UNLIKELY (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_LINE_DRAWING)) {
                 if (c >= 95 && c <= 126)
                         c = line_drawing_map[c - 95];
-        } else if (G_UNLIKELY (*m_character_replacement == VTE_CHARACTER_REPLACEMENT_BRITISH)) {
-                if (G_UNLIKELY (c == '#'))
-                        c = 0x00a3;  /* pound sign */
         }
 
 	/* Figure out how many columns this character should occupy. */

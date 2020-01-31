@@ -95,8 +95,7 @@ using Cursor = std::variant<std::string,
 
 typedef enum _VteCharacterReplacement {
         VTE_CHARACTER_REPLACEMENT_NONE,
-        VTE_CHARACTER_REPLACEMENT_LINE_DRAWING,
-        VTE_CHARACTER_REPLACEMENT_BRITISH
+        VTE_CHARACTER_REPLACEMENT_LINE_DRAWING
 } VteCharacterReplacement;
 
 typedef struct _VtePaletteColor {

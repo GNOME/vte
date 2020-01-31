@@ -5717,13 +5717,6 @@ Terminal::GnDm(vte::parser::Sequence const& seq)
                 replacement = VTE_CHARACTER_REPLACEMENT_LINE_DRAWING;
                 break;
 
-        case VTE_CHARSET_BRITISH_NRCS:
-                /* # is converted to £ */
-                /* FIXME: Remove this */
-                replacement = VTE_CHARACTER_REPLACEMENT_BRITISH;
-                break;
-
-        /* FIXME: are any of the other charsets still useful? */
         default:
                 replacement = VTE_CHARACTER_REPLACEMENT_NONE;
                 break;
