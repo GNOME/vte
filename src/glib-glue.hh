@@ -26,6 +26,24 @@
 
 namespace vte::glib {
 
+template<typename T>
+using free_ptr = std::unique_ptr<T, decltype(&g_free)>;
+
+template<typename T>
+free_ptr<T>
+take_free_ptr(T* ptr)
+{
+        return {ptr, &g_free};
+}
+
+using string_ptr = free_ptr<char>;
+
+inline string_ptr
+take_string(char* str)
+{
+        return take_free_ptr(str);
+}
+
 class Error {
 public:
         Error() = default;
