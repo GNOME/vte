@@ -93,6 +93,10 @@ vte_localedir = get_option('localedir')
 vte_prefix = get_option('prefix')
 vte_sysconfdir = get_option('sysconfdir')
 
+# It is correct for this to be in ${prefix}/lib, even on systems where that
+# does not match ${libdir}. This is what systemd uses on such platforms.
+vte_systemduserunitdir = vte_prefix / 'lib' / 'systemd' / 'user'
+
 # Debug
 
 enable_debug = get_option('debugg') or get_option('debug') or get_option('buildtype').contains('debug')

@@ -65,7 +65,6 @@ create_scope_for_pid_sync(pid_t pid,
         // Unit properties
         g_variant_builder_open(builder, G_VARIANT_TYPE("a(sv)"));
 
-        g_variant_builder_add(builder, "(sv)", "CollectMode", g_variant_new_string("inactive-or-failed"));
         g_variant_builder_add(builder, "(sv)", "Description", g_variant_new_string(description.get()));
 
         g_variant_builder_open(builder, G_VARIANT_TYPE("(sv)"));

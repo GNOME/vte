@@ -563,6 +563,16 @@ vte_sh = configure_file(
   install_dir: vte_sysconfdir / 'profile.d',
 )
 
+# Systemd integration
+
+if host_machine.system() == 'linux'
+  install_data(
+    sources: 'vte-spawn-.scope.conf',
+    install_dir: vte_systemduserunitdir / 'vte-spawn-.scope.d',
+    rename: 'defaults.conf'
+  )
+endif
+
 # Demo application
 
 subdir('app')
