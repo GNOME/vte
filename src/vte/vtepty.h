@@ -30,7 +30,9 @@
 
 G_BEGIN_DECLS
 
-#define VTE_SPAWN_NO_PARENT_ENVV (1 << 25)
+#define VTE_SPAWN_NO_PARENT_ENVV        (1 << 25)
+#define VTE_SPAWN_NO_SYSTEMD_SCOPE      (1 << 26)
+#define VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE (1 << 27)
 
 _VTE_PUBLIC
 GQuark vte_pty_error_quark (void);

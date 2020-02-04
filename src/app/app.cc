@@ -59,7 +59,9 @@ public:
         gboolean no_rewrap{false};
         gboolean no_shaping{false};
         gboolean no_shell{false};
+        gboolean no_systemd_scope{false};
         gboolean object_notifications{false};
+        gboolean require_systemd_scope{false};
         gboolean reverse{false};
         gboolean test_mode{false};
         gboolean version{false};
@@ -403,12 +405,16 @@ public:
                           "Disable Arabic shaping", nullptr },
                         { "no-shell", 'S', 0, G_OPTION_ARG_NONE, &no_shell,
                           "Disable spawning a shell inside the terminal", nullptr },
+                        { "no-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &no_systemd_scope,
+                          "Don't use systemd user scope", nullptr },
                         { "object-notifications", 'N', 0, G_OPTION_ARG_NONE, &object_notifications,
                           "Print VteTerminal object notifications", nullptr },
                         { "output-file", 0, 0, G_OPTION_ARG_FILENAME, &output_filename,
                           "Save terminal contents to file at exit", nullptr },
                         { "reverse", 0, 0, G_OPTION_ARG_NONE, &reverse,
                           "Reverse foreground/background colors", nullptr },
+                        { "require-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &require_systemd_scope,
+                          "Require use of a systemd user scope", nullptr },
                         { "scrollback-lines", 'n', 0, G_OPTION_ARG_INT, &scrollback_lines,
                           "Specify the number of scrollback-lines (-1 for infinite)", nullptr },
                         { "transparent", 'T', 0, G_OPTION_ARG_INT, &transparency_percent,
@@ -1201,12 +1207,15 @@ vteapp_window_launch_argv(VteappWindow* window,
                           char** argv,
                           GError** error)
 {
+        auto const spawn_flags = GSpawnFlags(G_SPAWN_SEARCH_PATH_FROM_ENVP |
+                                             (options.no_systemd_scope ? VTE_SPAWN_NO_SYSTEMD_SCOPE : 0) |
+                                             (options.require_systemd_scope ? VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE : 0));
         vte_terminal_spawn_async(window->terminal,
                                  VTE_PTY_DEFAULT,
                                  options.working_directory,
                                  argv,
                                  options.environment,
-                                 G_SPAWN_SEARCH_PATH_FROM_ENVP,
+                                 spawn_flags,
                                  nullptr, nullptr, nullptr, /* child setup, data and destroy */
                                  30 * 1000 /* 30s timeout */,
                                  nullptr /* cancellable */,

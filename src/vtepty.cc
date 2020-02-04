@@ -95,6 +95,32 @@ _vte_pty_get_impl(VtePty* pty)
  */
 
 /**
+ * VTE_SPAWN_NO_SYSTEMD_SCOPE:
+ *
+ * Use this as a spawn flag (together with flags from #GSpawnFlags) in
+ * vte_pty_spawn_async().
+ *
+ * Prevents vte_pty_spawn_async() etc. from moving the newly created child
+ * process to a systemd user scope.
+ *
+ * Since: 0.60
+ */
+
+/**
+ * VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE
+ *
+ * Use this as a spawn flag (together with flags from #GSpawnFlags) in
+ * vte_pty_spawn_async().
+ *
+ * Requires vte_pty_spawn_async() etc. to move the newly created child
+ * process to a systemd user scope; if that fails, the whole spawn fails.
+ *
+ * This is supported on Linux only.
+ *
+ * Since: 0.60
+ */
+
+/**
  * vte_pty_child_setup:
  * @pty: a #VtePty
  *
@@ -663,6 +689,14 @@ async_spawn_run_in_thread(GTask *task,
  * to keep some file descriptor open for use in the child process, you need to
  * use a child setup function that unsets the FD_CLOEXEC flag on that file
  * descriptor.
+ *
+ * Beginning with 0.60, and on linux only, and unless %VTE_SPAWN_NO_SYSTEMD_SCOPE is
+ * passed in @spawn_flags, the newly created child process will be moved to its own
+ * systemd user scope; and if %VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE is passed, and creation
+ * of the systemd user scope fails, the whole spawn will fail.
+ * You can override the options used for the systemd user scope by
+ * providing a systemd override file for 'vte-spawn-.scope' unit. See man:systemd.unit(5)
+ * for further information.
  *
  * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
  *

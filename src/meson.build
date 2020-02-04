@@ -79,6 +79,11 @@ regex_sources = files(
   'regex.hh'
 )
 
+systemd_sources = files(
+  'systemd.cc',
+  'systemd.hh',
+)
+
 utf8_sources = files(
   'utf8.cc',
   'utf8.hh',
@@ -142,6 +147,10 @@ if get_option('icu')
   libvte_common_sources += icu_sources
 endif
 
+if host_machine.system() == 'linux'
+  libvte_common_sources += systemd_sources
+endif
+
 libvte_common_doc_sources = files(
   # These file contain gtk-doc comments to be extracted for docs and gir
   'pty.cc',
@@ -188,6 +197,7 @@ libvte_common_deps = libvte_common_public_deps + [
   pcre2_dep,
   libm_dep,
   pthreads_dep,
+  systemd_dep,
   zlib_dep,
 ]
 

@@ -74,6 +74,10 @@
 
 #include "glib-glue.hh"
 
+#ifdef __linux__
+#include "systemd.hh"
+#endif
+
 /* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
 #ifndef NSIG
 #define NSIG (8 * sizeof(sigset_t))
@@ -344,20 +348,19 @@ pty_child_setup_cb(void* data)
 }
 
 /*
- * __vte_pty_spawn:
- * @pty: a #VtePty
- * @directory: the name of a directory the command should start in, or %NULL
+ * Pty::spawn:
+ * @directory: the name of a directory the command should start in, or %nullptr
  *   to use the cwd
  * @argv: child's argument vector
  * @envv: a list of environment variables to be added to the environment before
- *   starting the process, or %NULL
+ *   starting the process, or %nullptr
  * @spawn_flags: flags from #GSpawnFlags
  * @child_setup: function to run in the child just before exec()
  * @child_setup_data: user data for @child_setup
- * @child_pid: a location to store the child PID, or %NULL
- * @timeout: a timeout value in ms, or %NULL
- * @cancellable: a #GCancellable, or %NULL
- * @error: return location for a #GError, or %NULL
+ * @child_pid: a location to store the child PID, or %nullptr
+ * @timeout: a timeout value in ms, or %nullptr
+ * @cancellable: a #GCancellable, or %nullptr
+ * @error: return location for a #GError, or %nullptr
  *
  * Uses g_spawn_async() to spawn the command in @argv. The child's environment will
  * be the parent environment with the variables in @envv set afterwards.
@@ -392,6 +395,14 @@ Pty::spawn(char const* directory,
         char** envp2;
         int i;
         GPollFD pollfd;
+
+#ifndef __linux__
+        if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE) {
+                g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+                            "systemd not available");
+                return false;
+        }
+#endif
 
         if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd)) {
                 vte::util::restore_errno errsv;
@@ -432,13 +443,14 @@ Pty::spawn(char const* directory,
 	m_extra_child_setup.func = child_setup_func;
 	m_extra_child_setup.data = child_setup_data;
 
+        auto pid = pid_t{-1};
         auto err = vte::glib::Error{};
         ret = vte_spawn_async_with_pipes_cancellable(directory,
                                                      argv, envp2,
                                                      (GSpawnFlags)spawn_flags,
                                                      (GSpawnChildSetupFunc)pty_child_setup_cb,
                                                      this,
-                                                     child_pid,
+                                                     &pid,
                                                      nullptr, nullptr, nullptr,
                                                      timeout,
                                                      cancellable ? &pollfd : nullptr,
@@ -453,7 +465,7 @@ Pty::spawn(char const* directory,
                                                              (GSpawnFlags)spawn_flags,
                                                              (GSpawnChildSetupFunc)pty_child_setup_cb,
                                                              this,
-                                                             child_pid,
+                                                             &pid,
                                                              nullptr, nullptr, nullptr,
                                                              timeout,
                                                              cancellable ? &pollfd : nullptr,
@@ -468,10 +480,33 @@ Pty::spawn(char const* directory,
         if (cancellable)
                 g_cancellable_release_fd(cancellable);
 
-        if (ret)
-                return true;
+#ifdef __linux__
+        if (ret &&
+            !(spawn_flags & VTE_SPAWN_NO_SYSTEMD_SCOPE) &&
+            !vte::systemd::create_scope_for_pid_sync(pid,
+                                                     timeout, // FIXME: recalc timeout
+                                                     cancellable,
+                                                     err)) {
+                if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE) {
+                        auto pgrp = getpgid(pid);
+                        if (pgrp != -1) {
+                                kill(-pgrp, SIGHUP);
+                        }
 
-        return err.propagate(error);
+                        kill(pid, SIGHUP);
+
+                        ret = false;
+                } else {
+                        err.reset();
+                }
+        }
+#endif // __linux__
+
+        if (!ret)
+                return err.propagate(error);
+
+        *child_pid = pid;
+        return true;
 }
 
 /*

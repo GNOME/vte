@@ -2715,7 +2715,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                         const char *working_directory,
                         char **argv,
                         char **envv,
-                        GSpawnFlags spawn_flags_,
+                        GSpawnFlags spawn_flags,
                         GSpawnChildSetupFunc child_setup,
                         gpointer child_setup_data,
                         GPid *child_pid /* out */,
@@ -2724,6 +2724,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(argv != NULL, FALSE);
+        g_return_val_if_fail((spawn_flags & (VTE_SPAWN_NO_SYSTEMD_SCOPE | VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE)) == 0, FALSE);
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
@@ -2736,7 +2737,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                             working_directory,
                             argv,
                             envv,
-                            spawn_flags_,
+                            spawn_flags,
                             child_setup, child_setup_data,
                             &pid,
                             -1 /* no timeout */,
@@ -2880,6 +2881,14 @@ spawn_async_cb (GObject *source,
  *
  * When the operation fails, @callback will be called with a -1 #GPid,
  * and a non-%NULL #GError containing the error information.
+ *
+ * Beginning with 0.60, and on linux only, and unless %VTE_SPAWN_NO_SYSTEMD_SCOPE is
+ * passed in @spawn_flags, the newly created child process will be moved to its own
+ * systemd user scope; and if %VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE is passed, and creation
+ * of the systemd user scope fails, the whole spawn will fail.
+ * You can override the options used for the systemd user scope by
+ * providing a systemd override file for 'vte-spawn-.scope' unit. See man:systemd.unit(5)
+ * for further information.
  *
  * Note that if @terminal has been destroyed before the operation is called,
  * @callback will be called with a %NULL @terminal; you must not do anything

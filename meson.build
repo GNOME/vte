@@ -37,14 +37,15 @@ gtk3_max_allowed_version  = '3.20'
 gtk4_req_version          = '4.0.0'
 
 fribidi_req_version       = '1.0.0'
-gio_req_version           = '2.44.0'
-glib_req_version          = '2.44.0'
-glib_min_req_version      = '2.44'
-glib_max_allowed_version  = '2.44'
+gio_req_version           = '2.52.0'
+glib_req_version          = '2.52.0'
+glib_min_req_version      = '2.52'
+glib_max_allowed_version  = '2.52'
 gnutls_req_version        = '3.2.7'
 icu_uc_req_version        = '4.8'
 pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'
+systemd_req_version       = '202'
 
 # API
 
@@ -433,6 +434,12 @@ if get_option('icu')
   icu_dep = dependency('icu-uc', version: '>=' + icu_uc_req_version)
 else
   icu_dep = dependency('', required: false)
+endif
+
+if host_machine.system() == 'linux'
+  systemd_dep = dependency('libsystemd', version: '>=' + systemd_req_version)
+else
+  systemd_dep = dependency('', required: false)
 endif
 
 # Write config.h
