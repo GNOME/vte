@@ -34,9 +34,11 @@ create_scope_for_pid_sync(pid_t pid,
                           GCancellable* cancellable,
                           GError** error)
 {
+        auto const parent_pid = getpid();
+
         {
                 char* unit = nullptr;
-                if (auto r = sd_pid_get_user_unit(pid, &unit) < 0) {
+                if (auto r = sd_pid_get_user_unit(parent_pid, &unit) < 0) {
                         g_set_error(error, G_IO_ERROR, g_io_error_from_errno(-r),
                                     "Failed sd_pid_get_user_unit(%d): %s",
                                     pid,
@@ -75,6 +77,15 @@ create_scope_for_pid_sync(pid_t pid,
         g_variant_builder_close(builder); // au
         g_variant_builder_close(builder); // v
         g_variant_builder_close(builder); // (sv)
+
+        char* slice = nullptr;
+        if (sd_pid_get_user_slice(parent_pid, &slice) >= 0) {
+                g_variant_builder_add(builder, "(sv)", "Slice", g_variant_new_string(slice));
+                free(slice);
+        } else {
+                // Fallback
+                g_variant_builder_add(builder, "(sv)", "Slice", g_variant_new_string("apps-org.gnome.vte.slice"));
+        }
 
         g_variant_builder_close(builder); // a(sv)
 
