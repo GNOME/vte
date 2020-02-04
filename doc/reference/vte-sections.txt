@@ -197,6 +197,7 @@ vte_pty_set_term
 vte_pty_set_utf8
 
 <SUBSECTION>
+VTE_SPAWN_NO_PARENT_ENVV
 vte_pty_spawn_async
 vte_pty_spawn_finish
 

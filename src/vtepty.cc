@@ -84,6 +84,17 @@ _vte_pty_get_impl(VtePty* pty)
 #define IMPL(wrapper) (_vte_pty_get_impl(wrapper))
 
 /**
+ * VTE_SPAWN_NO_PARENT_ENVV:
+ *
+ * Use this as a spawn flag (together with flags from #GSpawnFlags) in
+ * vte_pty_spawn_async().
+ *
+ * Normally, the spawned process inherits the environment from the parent
+ * process; when this flag is used, only the environment variables passed
+ * to vte_pty_spawn_async() etc. are passed to the child process.
+ */
+
+/**
  * vte_pty_child_setup:
  * @pty: a #VtePty
  *
