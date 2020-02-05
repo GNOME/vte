@@ -45,7 +45,7 @@ gnutls_req_version        = '3.2.7'
 icu_uc_req_version        = '4.8'
 pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'
-systemd_req_version       = '202'
+systemd_req_version       = '220'
 
 # API
 
