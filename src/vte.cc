@@ -3138,7 +3138,7 @@ Terminal::child_watch_done(pid_t pid,
                 m_child_exit_status = status;
                 m_child_exited_after_eos_pending = true;
 
-                m_child_exited_eos_wait_timer.schedule_seconds(5); // FIXME: better value?
+                m_child_exited_eos_wait_timer.schedule_seconds(2); // FIXME: better value?
         } else {
                 m_child_exited_after_eos_pending = false;
 
