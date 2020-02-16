@@ -74,7 +74,7 @@
 
 #include "glib-glue.hh"
 
-#ifdef __linux__
+#ifdef WITH_SYSTEMD
 #include "systemd.hh"
 #endif
 
@@ -396,7 +396,7 @@ Pty::spawn(char const* directory,
         int i;
         GPollFD pollfd;
 
-#ifndef __linux__
+#ifndef WITH_SYSTEMD
         if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE) {
                 g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
                             "systemd not available");
@@ -480,7 +480,7 @@ Pty::spawn(char const* directory,
         if (cancellable)
                 g_cancellable_release_fd(cancellable);
 
-#ifdef __linux__
+#ifdef WITH_SYSTEMD
         if (ret &&
             !(spawn_flags & VTE_SPAWN_NO_SYSTEMD_SCOPE) &&
             !vte::systemd::create_scope_for_pid_sync(pid,
@@ -497,10 +497,13 @@ Pty::spawn(char const* directory,
 
                         ret = false;
                 } else {
+                        _vte_debug_print(VTE_DEBUG_PTY,
+                                         "Failed to create systemd scope: %s",
+                                         err.message());
                         err.reset();
                 }
         }
-#endif // __linux__
+#endif // WITH_SYSTEMD
 
         if (!ret)
                 return err.propagate(error);

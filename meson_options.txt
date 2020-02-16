@@ -86,6 +86,13 @@ option(
 )
 
 option(
+  '_systemd',
+  type: 'boolean',
+  value: true,
+  description: 'Enable systemd support',
+)
+
+option(
   'vapi', # would use 'vala' but that name is reserved
   type: 'boolean',
   value: true,

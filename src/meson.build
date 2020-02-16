@@ -147,7 +147,7 @@ if get_option('icu')
   libvte_common_sources += icu_sources
 endif
 
-if host_machine.system() == 'linux'
+if systemd_dep.found()
   libvte_common_sources += systemd_sources
 endif
 
@@ -565,7 +565,7 @@ vte_sh = configure_file(
 
 # Systemd integration
 
-if host_machine.system() == 'linux'
+if systemd_dep.found()
   install_data(
     sources: 'vte-spawn-.scope.conf',
     install_dir: vte_systemduserunitdir / 'vte-spawn-.scope.d',

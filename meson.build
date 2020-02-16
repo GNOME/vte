@@ -440,11 +440,13 @@ else
   icu_dep = dependency('', required: false)
 endif
 
-if host_machine.system() == 'linux'
+if host_machine.system() == 'linux' and get_option('_systemd')
   systemd_dep = dependency('libsystemd', version: '>=' + systemd_req_version)
 else
   systemd_dep = dependency('', required: false)
 endif
+
+config_h.set('WITH_SYSTEMD', systemd_dep.found())
 
 # Write config.h
 
@@ -506,6 +508,7 @@ output += '  GTK+ 3.0:     ' + get_option('gtk3').to_string() + '\n'
 output += '  GTK+ 4.0:     ' + get_option('gtk4').to_string() + '\n'
 output += '  ICU:          ' + get_option('icu').to_string() + '\n'
 output += '  GIR:          ' + get_option('gir').to_string() + '\n'
+output += '  systemd:      ' + systemd_dep.found().to_string() + '\n'
 output += '  Vala:         ' + get_option('vapi').to_string() + '\n'
 output += '\n'
 output += '  Prefix:       ' + get_option('prefix') + '\n'

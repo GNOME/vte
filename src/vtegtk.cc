@@ -1859,6 +1859,14 @@ vte_get_features (void)
 #else
                 "-ICU"
 #endif
+#ifdef __linux__
+                " "
+#ifdef WITH_SYSTEMD
+                "+SYSTEMD"
+#else
+                "-SYSTEMD"
+#endif
+#endif // __linux__
                 ;
 }
 
