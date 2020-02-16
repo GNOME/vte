@@ -1035,6 +1035,7 @@ _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guin
 
 #ifdef WITH_UNICODE_NEXT
 
+#ifdef WITH_SEPARATED_MOSAICS
 static bool
 _vte_draw_is_separable_mosaic(vteunistr c)
 {
@@ -1125,6 +1126,7 @@ create_mosaic_separation_pattern(int width,
 
         return pattern;
 }
+#endif /* WITH_SEPARATED_MOSAICS */
 
 /* pixman data must have stride 0 mod 4 */
 static unsigned char const hatching_pattern_lr_data[16] = {
@@ -1287,9 +1289,11 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         ybottom = y + height;
 
 #ifdef WITH_UNICODE_NEXT
+#ifdef WITH_SEPARATED_MOSAICS
         auto const separated = vte_attr_get_bool(attr, VTE_ATTR_SEPARATED_MOSAIC_SHIFT) &&_vte_draw_is_separable_mosaic(c);
         if (separated)
                 cairo_push_group(cr);
+#endif
 #endif
 
         switch (c) {
@@ -2223,12 +2227,14 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         }
 
 #ifdef WITH_UNICODE_NEXT
+#ifdef WITH_SEPARATED_MOSAICS
         if (separated) {
                 cairo_pop_group_to_source(cr);
                 auto pattern = create_mosaic_separation_pattern(width, height, light_line_width);
                 cairo_mask(cr, pattern);
                 cairo_pattern_destroy(pattern);
         }
+#endif
 #endif
 
         cairo_restore(cr);
