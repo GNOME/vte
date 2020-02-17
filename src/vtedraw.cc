@@ -1030,99 +1030,6 @@ _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guin
                 *right = l + w;
 }
 
-#ifdef WITH_SEPARATED_MOSAICS
-static bool
-_vte_draw_is_separable_mosaic(vteunistr c)
-{
-        // FIXMEchpe check from T.101 which characters should be separable
-        return ((c >= 0x1fb00 && c <= 0x1fb9f)||
-                (c >= 0x25e2 && c <= 0x25e5) ||
-                (c >= 0x2580 && c <= 0x259f));
-}
-
-/* Create separated mosaic pattern.
- * Transparent pixels will not be drawn; opaque pixels will draw that part of the
- * mosaic onto the target surface.
- */
-static cairo_pattern_t*
-create_mosaic_separation_pattern(int width,
-                                 int height,
-                                 int line_thickness)
-{
-        auto surface = cairo_image_surface_create(CAIRO_FORMAT_A1, width, height);
-        // or CAIRO_FORMAT_A8, whichever is better/faster?
-
-        auto cr = cairo_create(surface);
-
-        /* It's not quite clear how the separated mosaics should be drawn.
-         *
-         * ITU-T T.101 Annex C, C.2.1.2, and Annex D, D.5.4, show the separation
-         * being done by blanking a line on the left and bottom parts only of each
-         * of the 3x2 blocks.
-         * The minitel specification STUM 1B, Schéma 2.7 also shows them drawn that
-         * way.
-         *
-         * On the other hand, ETS 300 706 §15.7.1, Table 47, shows the separation
-         * being done by blanking a line around all four sides of each of the
-         * 3x2 blocks.
-         * That is also how ITU-T T.100 §5.4.2.1, Figure 6, shows the separation.
-         *
-         * Each of these has its own drawbacks. The T.101 way makes the 3x2 blocks
-         * asymmetric, leaving differing amount of lit pixels for the smooth mosaics
-         * comparing a mosaic with its corresponding vertically mirrored mosaic. It
-         * keeps more lit pixels overall, which make it more suitable for low-resolution
-         * display, which is probably why minitel uses that.
-         * The ETS 300 706 way keeps symmetry, but removes even more lit pixels.
-         *
-         * Here we implement the T.101 way.
-         */
-
-        /* FIXMEchpe: Check that this fulfills [T.101 Appendix IV]:
-         * "All separated and contiguous mosaics shall be uniquely presented for character
-         * field sizes greater than or equal to dx = 6/256, dy = 8/256 [see D.8.3.3, item 7)]."
-         */
-
-        /* First, fill completely with transparent pixels */
-        cairo_set_source_rgba(cr, 0., 0., 0., 0.);
-        cairo_rectangle(cr, 0, 0, width, height);
-        cairo_fill(cr);
-
-        /* Now, fill the reduced blocks with opaque pixels */
-
-        auto const pel = line_thickness; /* see T.101 D.5.3.2.2.6 for definition of 'logical pel' */
-
-        if (width > 2 * pel && height > 3 * pel) {
-
-                auto const width_half = width / 2;
-                auto const height_thirds = height / 3;
-                auto const remaining_height = height - 3 * height_thirds;
-
-                int const y[4] = { 0, height_thirds, 2 * height_thirds + (remaining_height ? 1 : 0), height };
-                int const x[3] = { 0, width_half, width };
-                // FIXMEchpe: or use 2 * width_half instead of width, so that for width odd,
-                // the extra row of pixels is unlit, and the lit blocks have equal width?
-
-                cairo_set_source_rgba(cr, 0., 0., 0., 1.);
-                for (auto yi = 0; yi < 3; ++yi) {
-                        for (auto xi = 0; xi < 2; xi++) {
-                                cairo_rectangle(cr, x[xi] + pel, y[yi], x[xi+1] - x[xi] - pel, y[yi+1] - y[yi] - pel);
-                                cairo_fill(cr);
-                        }
-                }
-        }
-
-        cairo_destroy(cr);
-
-        auto pattern = cairo_pattern_create_for_surface(surface);
-        cairo_surface_destroy(surface);
-
-        cairo_pattern_set_extend(pattern, CAIRO_EXTEND_REPEAT);
-        cairo_pattern_set_filter(pattern, CAIRO_FILTER_NEAREST);
-
-        return pattern;
-}
-#endif /* WITH_SEPARATED_MOSAICS */
-
 /* pixman data must have stride 0 mod 4 */
 static unsigned char const hatching_pattern_lr_data[16] = {
         0xff, 0x00, 0x00, 0x00,
@@ -1276,12 +1183,6 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         ycenter = y + upper_half;
         xright = x + width;
         ybottom = y + height;
-
-#ifdef WITH_SEPARATED_MOSAICS
-        auto const separated = vte_attr_get_bool(attr, VTE_ATTR_SEPARATED_MOSAIC_SHIFT) &&_vte_draw_is_separable_mosaic(c);
-        if (separated)
-                cairo_push_group(cr);
-#endif
 
         switch (c) {
 
@@ -2205,15 +2106,6 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         default:
                 g_assert_not_reached();
         }
-
-#ifdef WITH_SEPARATED_MOSAICS
-        if (separated) {
-                cairo_pop_group_to_source(cr);
-                auto pattern = create_mosaic_separation_pattern(width, height, light_line_width);
-                cairo_mask(cr, pattern);
-                cairo_pattern_destroy(pattern);
-        }
-#endif
 
         cairo_restore(cr);
 }

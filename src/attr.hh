@@ -85,11 +85,6 @@
 #define VTE_ATTR_INVISIBLE_MASK        (VTE_ATTR_MASK(VTE_ATTR_INVISIBLE_SHIFT, VTE_ATTR_INVISIBLE_BITS))
 #define VTE_ATTR_INVISIBLE             (1U << VTE_ATTR_INVISIBLE_SHIFT)
 
-#define VTE_ATTR_SEPARATED_MOSAIC_SHIFT (VTE_ATTR_INVISIBLE_SHIFT + VTE_ATTR_INVISIBLE_BITS)
-#define VTE_ATTR_SEPARATED_MOSAIC_BITS  (1)
-#define VTE_ATTR_SEPARATED_MOSAIC_MASK  (VTE_ATTR_MASK(VTE_ATTR_SEPARATED_MOSAIC_SHIFT, VTE_ATTR_SEPARATED_MOSAIC_BITS))
-#define VTE_ATTR_SEPARATED_MOSAIC       (1U << VTE_ATTR_SEPARATED_MOSAIC_SHIFT)
-
 /* Used internally only */
 #define VTE_ATTR_BOXED_SHIFT           (31)
 #define VTE_ATTR_BOXED_BITS            (1)
@@ -104,8 +99,7 @@
                                         VTE_ATTR_OVERLINE_MASK | \
                                         VTE_ATTR_REVERSE_MASK | \
                                         VTE_ATTR_BLINK_MASK | \
-                                        VTE_ATTR_INVISIBLE_MASK | \
-                                        VTE_ATTR_SEPARATED_MOSAIC_MASK)
+                                        VTE_ATTR_INVISIBLE_MASK)
 
 #define VTE_ATTR_NONE                  (0U)
 #define VTE_ATTR_DEFAULT               (VTE_ATTR_COLUMNS(1))
