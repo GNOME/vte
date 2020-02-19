@@ -57,6 +57,7 @@ public:
         gboolean no_geometry_hints{false};
         gboolean no_hyperlink{false};
         gboolean no_rewrap{false};
+        gboolean no_scrollbar{false};
         gboolean no_shaping{false};
         gboolean no_shell{false};
         gboolean no_systemd_scope{false};
@@ -401,6 +402,8 @@ public:
                           "Disable hyperlinks", nullptr },
                         { "no-rewrap", 'R', 0, G_OPTION_ARG_NONE, &no_rewrap,
                           "Disable rewrapping on resize", nullptr },
+                        { "no-scrollbar", 0, 0, G_OPTION_ARG_NONE, &no_scrollbar,
+                          "Disable scrollbar", nullptr },
                         { "no-shaping", 0, 0, G_OPTION_ARG_NONE, &no_shaping,
                           "Disable Arabic shaping", nullptr },
                         { "no-shell", 'S', 0, G_OPTION_ARG_NONE, &no_shell,
@@ -1797,6 +1800,10 @@ vteapp_window_constructed(GObject *object)
 
         gtk_range_set_adjustment(GTK_RANGE(window->scrollbar),
                                  gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(window->terminal)));
+        if (options.no_scrollbar) {
+                gtk_widget_destroy(GTK_WIDGET(window->scrollbar));
+                window->scrollbar = nullptr;
+        }
 
         /* Create actions */
         GActionEntry const entries[] = {
