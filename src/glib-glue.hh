@@ -71,7 +71,7 @@ public:
 
         void reset() noexcept { g_clear_error(&m_error); }
 
-        bool propagate(GError** error) noexcept { *error = m_error; m_error = nullptr; return false; }
+        bool propagate(GError** error) noexcept { g_propagate_error(error, m_error); m_error = nullptr; return false; }
 
 private:
         GError* m_error{nullptr};
