@@ -980,11 +980,8 @@ _vte_draw_unichar_is_local_graphic(vteunistr c)
 {
         /* Box Drawing & Block Elements */
         return ((c >=  0x2500 && c <=  0x259f) ||
-                (c >=  0x25e2 && c <=  0x25e5)
-#ifdef WITH_UNICODE_NEXT
-                || (c >= 0x1fb00 && c <= 0x1fbca)
-#endif
-                );
+                (c >=  0x25e2 && c <=  0x25e5) ||
+                (c >= 0x1fb00 && c <= 0x1fbaf));
 }
 
 /* Stores the left and right edges of the given glyph, relative to the cell's left edge. */
@@ -1032,8 +1029,6 @@ _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guin
         if (right)
                 *right = l + w;
 }
-
-#ifdef WITH_UNICODE_NEXT
 
 #ifdef WITH_SEPARATED_MOSAICS
 static bool
@@ -1183,8 +1178,6 @@ DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_rev
 
 #undef DEFINE_STATIC_PATTERN_FUNC
 
-#endif /* WITH_UNICODE_NEXT */
-
 static void
 rectangle(cairo_t* cr,
           double x,
@@ -1229,8 +1222,6 @@ polygon(cairo_t* cr,
         cairo_fill (cr);
 }
 
-#ifdef WITH_UNICODE_NEXT
-
 static void
 pattern(cairo_t* cr,
         cairo_pattern_t* pattern,
@@ -1245,8 +1236,6 @@ pattern(cairo_t* cr,
         cairo_pop_group_to_source(cr);
         cairo_mask(cr, pattern);
 }
-
-#endif /* WITH_UNICODE_NEXT */
 
 #include "box_drawing.h"
 
@@ -1288,24 +1277,20 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
         xright = x + width;
         ybottom = y + height;
 
-#ifdef WITH_UNICODE_NEXT
 #ifdef WITH_SEPARATED_MOSAICS
         auto const separated = vte_attr_get_bool(attr, VTE_ATTR_SEPARATED_MOSAIC_SHIFT) &&_vte_draw_is_separable_mosaic(c);
         if (separated)
                 cairo_push_group(cr);
 #endif
-#endif
 
         switch (c) {
 
         /* Box Drawing */
-#ifdef WITH_UNICODE_NEXT
         case 0x1fbaf: /* box drawings light horizontal with vertical stroke */
                 rectangle(cr, x + left_half - light_line_width / 2, y,
                           light_line_width, height, 1, 3, 0, 1, 1, 2);
                 c = 0x2500;
                 [[fallthrough]];
-#endif
         case 0x2500: /* box drawings light horizontal */
         case 0x2501: /* box drawings heavy horizontal */
         case 0x2502: /* box drawings light vertical */
@@ -1709,7 +1694,6 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 break;
         }
 
-#ifdef WITH_UNICODE_NEXT
         case 0x1fb00:
         case 0x1fb01:
         case 0x1fb02:
@@ -2217,16 +2201,11 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 }
                 break;
         }
-#endif /* WITH_UNICODE_NEXT */
 
         default:
-#ifdef WITH_UNICODE_NEXT
-                break; /* FIXME temporary */
-#endif
                 g_assert_not_reached();
         }
 
-#ifdef WITH_UNICODE_NEXT
 #ifdef WITH_SEPARATED_MOSAICS
         if (separated) {
                 cairo_pop_group_to_source(cr);
@@ -2234,7 +2213,6 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw,
                 cairo_mask(cr, pattern);
                 cairo_pattern_destroy(pattern);
         }
-#endif
 #endif
 
         cairo_restore(cr);
