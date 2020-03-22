@@ -153,7 +153,7 @@ endif
 
 libvte_common_doc_sources = files(
   # These file contain gtk-doc comments to be extracted for docs and gir
-  'pty.cc',
+  'vtepty.cc',
   'vtegtk.cc',
 )
 
