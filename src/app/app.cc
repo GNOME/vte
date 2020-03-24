@@ -23,10 +23,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <termios.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <glib/gi18n.h>
+#include <glib-unix.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gtk/gtk.h>
 #include <cairo/cairo-gobject.h>
@@ -46,6 +48,7 @@ public:
         gboolean bold_is_bright{false};
         gboolean console{false};
         gboolean debug{false};
+        gboolean feed_stdin{false};
         gboolean icon_title{false};
         gboolean keep{false};
         gboolean no_argb_visual{false};
@@ -370,6 +373,8 @@ public:
                           "Add environment variable to the child\'s environment", "VAR=VALUE" },
                         { "extra-margin", 0, 0, G_OPTION_ARG_INT, &extra_margin,
                           "Add extra margin around the terminal widget", "MARGIN" },
+                        { "feed-stdin", 'B', 0, G_OPTION_ARG_NONE, &feed_stdin,
+                          "Feed input to the terminal", nullptr },
                         { "font", 'f', 0, G_OPTION_ARG_STRING, &font_string,
                           "Specify a font to use", nullptr },
                         { "foreground-color", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_fg_color,
@@ -2063,6 +2068,8 @@ typedef struct _VteappApplicationClass  VteappApplicationClass;
 
 struct _VteappApplication {
         GtkApplication parent;
+
+        guint input_source;
 };
 
 struct _VteappApplicationClass {
@@ -2094,6 +2101,37 @@ app_action_close_cb(GSimpleAction* action,
                 gtk_widget_destroy(GTK_WIDGET(window));
 }
 
+static gboolean
+app_stdin_readable_cb(int fd,
+                      GIOCondition condition,
+                      VteappApplication* application)
+{
+        auto eos = bool{false};
+        if (condition & G_IO_IN) {
+                auto window = gtk_application_get_active_window(GTK_APPLICATION(application));
+                auto terminal = VTEAPP_IS_WINDOW(window) ? VTEAPP_WINDOW(window)->terminal : nullptr;
+
+                char buf[4096];
+                auto r = int{0};
+                do {
+                        errno = 0;
+                        r = read(fd, buf, sizeof(buf));
+                        if (r > 0 && terminal != nullptr)
+                                vte_terminal_feed_child(terminal, buf, r);
+                } while (r > 0 || errno == EINTR);
+
+                if (r == 0)
+                        eos = true;
+        }
+
+        if (eos) {
+                application->input_source = 0;
+                return G_SOURCE_REMOVE;
+        }
+
+        return G_SOURCE_CONTINUE;
+}
+
 G_DEFINE_TYPE(VteappApplication, vteapp_application, GTK_TYPE_APPLICATION)
 
 static void
@@ -2105,6 +2143,27 @@ vteapp_application_init(VteappApplication* application)
                      /* Make gtk+ CSD not steal F10 from the terminal */
                      "gtk-menu-bar-accel", nullptr,
                      nullptr);
+
+        if (options.feed_stdin) {
+                g_unix_set_fd_nonblocking(STDIN_FILENO, true, nullptr);
+                application->input_source = g_unix_fd_add(STDIN_FILENO,
+                                                          GIOCondition(G_IO_IN | G_IO_HUP | G_IO_ERR),
+                                                          (GUnixFDSourceFunc)app_stdin_readable_cb,
+                                                          application);
+        }
+}
+
+static void
+vteapp_application_dispose(GObject* object)
+{
+        VteappApplication* application = VTEAPP_APPLICATION(object);
+
+        if (application->input_source != 0) {
+                g_source_remove(application->input_source);
+                application->input_source = 0;
+        }
+
+        G_OBJECT_CLASS(vteapp_application_parent_class)->dispose(object);
 }
 
 static void
@@ -2134,6 +2193,9 @@ vteapp_application_activate(GApplication* application)
 static void
 vteapp_application_class_init(VteappApplicationClass* klass)
 {
+        GObjectClass* object_class = G_OBJECT_CLASS(klass);
+        object_class->dispose = vteapp_application_dispose;
+
         GApplicationClass* application_class = G_APPLICATION_CLASS(klass);
         application_class->startup = vteapp_application_startup;
         application_class->activate = vteapp_application_activate;
@@ -2189,9 +2251,26 @@ main(int argc,
        }
 #endif
 
+       auto reset_termios = bool{false};
+       struct termios saved_tcattr;
+       if (options.feed_stdin && isatty(STDIN_FILENO)) {
+               /* Put terminal in raw mode */
+
+               struct termios tcattr;
+               if (tcgetattr(STDIN_FILENO, &tcattr) == 0) {
+                       saved_tcattr = tcattr;
+                       cfmakeraw(&tcattr);
+                       if (tcsetattr(STDIN_FILENO, TCSANOW, &tcattr) == 0)
+                               reset_termios = true;
+               }
+       }
+
        auto app = vteapp_application_new();
        auto rv = g_application_run(app, 0, nullptr);
        g_object_unref(app);
+
+       if (reset_termios)
+               tcsetattr(STDIN_FILENO, TCSANOW, &saved_tcattr);
 
        return rv;
 }
