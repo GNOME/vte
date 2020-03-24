@@ -1313,29 +1313,21 @@ vteapp_window_fork(VteappWindow* window,
         return true;
 }
 
-static bool
-vteapp_window_fork_no_pty(VteappWindow* window,
-                          GError** error)
+static gboolean
+tick_cb(VteappWindow* window)
 {
-        auto pid = fork();
-        switch (pid) {
-        case -1: /* error */
-                g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Error forking: %m");
-                return false;
+        static int i = 0;
+        char buf[256];
+        auto s = g_snprintf(buf, sizeof(buf), "%d\r\n", i++);
+        vte_terminal_feed(window->terminal, buf, s);
+        return G_SOURCE_CONTINUE;
+}
 
-        case 0: /* child */ {
-                for (auto i = 0; ; i++) {
-                        char buf[256];
-                        auto s = g_snprintf(buf, sizeof(buf), "%d\n", i);
-                        vte_terminal_feed(window->terminal, buf, s);
-                        g_usleep(G_USEC_PER_SEC);
-                }
-        }
-        default: /* parent */
-                verbose_print("Child PID is %d (mine is %d).\n", (int)pid, (int)getpid());
-                break;
-        }
-
+static bool
+vteapp_window_tick(VteappWindow* window,
+                   GError** error)
+{
+        g_timeout_add_seconds(1, (GSourceFunc) tick_cb, window);
         return true;
 }
 
@@ -1354,7 +1346,7 @@ vteapp_window_launch(VteappWindow* window)
         else if (!options.no_pty)
                 rv = vteapp_window_fork(window, error);
         else
-                rv = vteapp_window_fork_no_pty(window, error);
+                rv = vteapp_window_tick(window, error);
 
         if (!rv)
                 verbose_printerr("Error launching: %s\n", error.message());
