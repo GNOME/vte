@@ -59,6 +59,7 @@ public:
         gboolean no_double_buffer{false};
         gboolean no_geometry_hints{false};
         gboolean no_hyperlink{false};
+        gboolean no_pty{false};
         gboolean no_rewrap{false};
         gboolean no_scrollbar{false};
         gboolean no_shaping{false};
@@ -405,6 +406,8 @@ public:
                           "Allow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters", nullptr },
                         { "no-hyperlink", 'H', 0, G_OPTION_ARG_NONE, &no_hyperlink,
                           "Disable hyperlinks", nullptr },
+                        { "no-pty", 0, 0, G_OPTION_ARG_NONE, &no_pty,
+                          "Disable PTY creation with --no-shell", nullptr },
                         { "no-rewrap", 'R', 0, G_OPTION_ARG_NONE, &no_rewrap,
                           "Disable rewrapping on resize", nullptr },
                         { "no-scrollbar", 0, 0, G_OPTION_ARG_NONE, &no_scrollbar,
@@ -1310,6 +1313,32 @@ vteapp_window_fork(VteappWindow* window,
         return true;
 }
 
+static bool
+vteapp_window_fork_no_pty(VteappWindow* window,
+                          GError** error)
+{
+        auto pid = fork();
+        switch (pid) {
+        case -1: /* error */
+                g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Error forking: %m");
+                return false;
+
+        case 0: /* child */ {
+                for (auto i = 0; ; i++) {
+                        char buf[256];
+                        auto s = g_snprintf(buf, sizeof(buf), "%d\n", i);
+                        vte_terminal_feed(window->terminal, buf, s);
+                        g_usleep(G_USEC_PER_SEC);
+                }
+        }
+        default: /* parent */
+                verbose_print("Child PID is %d (mine is %d).\n", (int)pid, (int)getpid());
+                break;
+        }
+
+        return true;
+}
+
 static void
 vteapp_window_launch(VteappWindow* window)
 {
@@ -1322,8 +1351,10 @@ vteapp_window_launch(VteappWindow* window)
                 rv = vteapp_window_launch_commandline(window, options.command, error);
         else if (!options.no_shell)
                 rv = vteapp_window_launch_shell(window, error);
-        else
+        else if (!options.no_pty)
                 rv = vteapp_window_fork(window, error);
+        else
+                rv = vteapp_window_fork_no_pty(window, error);
 
         if (!rv)
                 verbose_printerr("Error launching: %s\n", error.message());
@@ -2117,7 +2148,7 @@ app_stdin_readable_cb(int fd,
                         errno = 0;
                         r = read(fd, buf, sizeof(buf));
                         if (r > 0 && terminal != nullptr)
-                                vte_terminal_feed_child(terminal, buf, r);
+                                vte_terminal_feed(terminal, buf, r);
                 } while (r > 0 || errno == EINTR);
 
                 if (r == 0)
