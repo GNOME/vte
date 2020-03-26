@@ -4154,22 +4154,23 @@ Terminal::send_child(std::string_view const& data)
         if (!m_input_enabled)
                 return;
 
-        /* If there's a place for it to go, add the data to the
-         * outgoing buffer. */
-        if (!pty())
-                return;
+        /* Note that for backward compatibility, we need to emit the
+         * ::commit signal even if there is no PTY. See issue vte#222.
+         */
 
         switch (data_syntax()) {
         case DataSyntax::eECMA48_UTF8:
                 emit_commit(data);
-                _vte_byte_array_append(m_outgoing, data.data(), data.size());
+                if (pty())
+                        _vte_byte_array_append(m_outgoing, data.data(), data.size());
                 break;
 
         case DataSyntax::eECMA48_PCTERM: {
                 auto converted = m_converter->convert(data);
 
                 emit_commit(converted);
-                _vte_byte_array_append(m_outgoing, converted.data(), converted.size());
+                if (pty())
+                        _vte_byte_array_append(m_outgoing, converted.data(), converted.size());
                 break;
         }
 
