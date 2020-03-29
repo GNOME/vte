@@ -2156,6 +2156,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
  * user moves the mouse cursor over a section of displayed text which matches
  * this expression, the text will be highlighted.
  *
+ * Note that @regex should have been created using the %PCRE2_MULTILINE flag.
+ *
  * Returns: an integer associated with this expression
  *
  * Since: 0.46
@@ -2464,6 +2466,8 @@ vte_terminal_search_find_next (VteTerminal *terminal)
  * @flags: PCRE2 match flags, or 0
  *
  * Sets the regex to search for. Unsets the search regex when passed %NULL.
+ *
+ * Note that @regex should have been created using the %PCRE2_MULTILINE flag.
  *
  * Since: 0.46
  */
