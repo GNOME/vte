@@ -153,8 +153,9 @@ endif
 
 libvte_common_doc_sources = files(
   # These file contain gtk-doc comments to be extracted for docs and gir
-  'vtepty.cc',
   'vtegtk.cc',
+  'vtepty.cc',
+  'vteregex.cc',
 )
 
 # FIXMEchpe this should use files('...') (allowed as per docs, afaict), but that crashes meson
