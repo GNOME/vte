@@ -2277,6 +2277,8 @@ vte_terminal_hyperlink_check_event(VteTerminal *terminal,
  * text is stored in @matches at the position of the regex in @regexes; otherwise
  * %NULL is stored there.
  *
+ * Note that the regexes in @regexes should have been created using the %PCRE2_MULTILINE flag.
+ *
  * Returns: %TRUE iff any of the regexes produced a match
  *
  * Since: 0.46
