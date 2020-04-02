@@ -1817,7 +1817,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                          "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
                                          "padding: 1px 1px 1px 1px;\n"
                                          "background-color: @theme_base_color;\n"
-                                         "color: @theme_fg_color;\n"
+                                         "color: @theme_text_color;\n"
                                          "}\n",
                                          -1, NULL);
 
