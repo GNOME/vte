@@ -69,6 +69,7 @@ public:
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
         gboolean test_mode{false};
+        gboolean use_theme_colors{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
         bool bg_color_set{false};
@@ -307,7 +308,7 @@ public:
                 return double(100 - CLAMP(transparency_percent, 0, 100)) / 100.0;
         }
 
-        GdkRGBA get_color_bg() const
+        double get_alpha_bg() const
         {
                 double alpha;
                 if (background_pixbuf != nullptr)
@@ -317,8 +318,13 @@ public:
                 else
                         alpha = get_alpha();
 
+                return alpha;
+        }
+
+        GdkRGBA get_color_bg() const
+        {
                 GdkRGBA color{bg_color};
-                color.alpha = alpha;
+                color.alpha = get_alpha_bg();
                 return color;
         }
 
@@ -463,6 +469,8 @@ public:
                         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
                           "Enable test mode", nullptr },
 #endif
+                        { "use-theme-colors", 0, 0, G_OPTION_ARG_NONE, &use_theme_colors,
+                          "Use foreground and background colors from the gtk+ theme", nullptr },
                         { nullptr }
                 };
 
@@ -900,6 +908,8 @@ vteapp_terminal_draw(GtkWidget* widget,
         return rv;
 }
 
+static auto dti(double d) -> unsigned { return CLAMP((d*255), 0, 255); }
+
 static void
 vteapp_terminal_style_updated(GtkWidget* widget)
 {
@@ -910,6 +920,23 @@ vteapp_terminal_style_updated(GtkWidget* widget)
 
         VteappTerminal* terminal = VTEAPP_TERMINAL(widget);
         terminal->has_backdrop = (flags & GTK_STATE_FLAG_BACKDROP) != 0;
+
+        if (options.use_theme_colors) {
+                auto theme_fg = GdkRGBA{};
+                gtk_style_context_get_color(context, flags, &theme_fg);
+                G_GNUC_BEGIN_IGNORE_DEPRECATIONS;
+                auto theme_bg = GdkRGBA{};
+                gtk_style_context_get_background_color(context, flags, &theme_bg);
+                G_GNUC_END_IGNORE_DEPRECATIONS;
+
+                verbose_print("Theme colors: foreground is #%02X%02X%02X, background is #%02X%02X%02X\n",
+                              dti(theme_fg.red), dti(theme_fg.green), dti(theme_fg.blue),
+                              dti(theme_bg.red), dti(theme_bg.green), dti(theme_bg.blue));
+
+                theme_fg.alpha = 1.;
+                theme_bg.alpha = options.get_alpha_bg();
+                vte_terminal_set_colors(VTE_TERMINAL(terminal), &theme_fg, &theme_bg, nullptr, 0);
+        }
 }
 
 static void
