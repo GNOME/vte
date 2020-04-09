@@ -34,6 +34,7 @@
 #include "vteptyinternal.hh"
 #include "vtetypes.hh"
 #include "vtespawn.hh"
+#include "reaper.hh"
 
 #include <assert.h>
 #include <sys/types.h>
@@ -488,6 +489,8 @@ Pty::spawn(char const* directory,
                                                      cancellable,
                                                      err)) {
                 if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE) {
+			vte_reaper_add_child(pid);
+
                         auto pgrp = getpgid(pid);
                         if (pgrp != -1) {
                                 kill(-pgrp, SIGHUP);
