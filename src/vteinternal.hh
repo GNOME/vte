@@ -78,6 +78,18 @@ enum {
 };
 
 namespace vte {
+
+// This is like std::clamp, except that it doesn't throw when
+// max_v<min_v, but instead returns min_v in that case.
+template<typename T>
+constexpr inline T const&
+clamp(T const& v,
+      T const& min_v,
+      T const& max_v)
+{
+        return std::max(std::min(v, max_v), min_v);
+}
+
 namespace platform {
 
 /*

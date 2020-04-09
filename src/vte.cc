@@ -1530,7 +1530,7 @@ Terminal::confine_grid_row(vte::grid::row_t const& row) const
         auto first_row = first_displayed_row();
         auto last_row = last_displayed_row();
 
-        return std::clamp(row, first_row, last_row);
+        return vte::clamp(row, first_row, last_row);
 }
 
 /*
