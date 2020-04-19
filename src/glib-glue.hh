@@ -86,8 +86,10 @@ public:
 
         Timer(callback_type callback,
               char const* name)
-                : m_callback(callback),
-                  m_name(name)
+                : m_callback(callback)
+#ifdef VTE_DEBUG
+                , m_name(name)
+#endif
         {
         }
 
@@ -123,6 +125,7 @@ public:
                                                  s_dispatch_timer_cb,
                                                  this,
                                                  s_destroy_timer_cb);
+                set_source_name();
         }
 
         void schedule_seconds(unsigned int timeout,
@@ -134,6 +137,7 @@ public:
                                                          s_dispatch_timer_cb,
                                                          this,
                                                          s_destroy_timer_cb);
+                set_source_name();
         }
 
         void schedule_idle(int priority = Priority::eDEFAULT) noexcept
@@ -143,6 +147,7 @@ public:
                                               s_dispatch_timer_cb,
                                               this,
                                               s_destroy_timer_cb);
+                set_source_name();
         }
 
         void abort() noexcept
@@ -157,7 +162,9 @@ public:
 
 private:
         callback_type m_callback{};
+#ifdef VTE_DEBUG
         char const* m_name{nullptr};
+#endif
         guint m_source_id{0};
         bool m_rescheduled{false};
 
@@ -177,6 +184,13 @@ private:
                 m_rescheduled = id != m_source_id;
                 assert(!m_rescheduled || rv == false);
                 return rv;
+        }
+
+        inline void set_source_name() const noexcept
+        {
+                #ifdef VTE_DEBUG
+                g_source_set_name_by_id(m_source_id, m_name);
+                #endif
         }
 
         static gboolean s_dispatch_timer_cb(void* data) noexcept
