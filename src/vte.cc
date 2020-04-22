@@ -4165,6 +4165,7 @@ Terminal::send_child(std::string_view const& data)
                         _vte_byte_array_append(m_outgoing, data.data(), data.size());
                 break;
 
+#ifdef WITH_ICU
         case DataSyntax::eECMA48_PCTERM: {
                 auto converted = m_converter->convert(data);
 
@@ -4173,6 +4174,7 @@ Terminal::send_child(std::string_view const& data)
                         _vte_byte_array_append(m_outgoing, converted.data(), converted.size());
                 break;
         }
+#endif
 
         default:
                 g_assert_not_reached();
@@ -9896,9 +9898,11 @@ Terminal::reset_decoder()
                 m_utf8_decoder.reset();
                 break;
 
+#ifdef WITH_ICU
         case DataSyntax::eECMA48_PCTERM:
                 m_converter->decoder().reset();
                 break;
+#endif
 
         default:
                 g_assert_not_reached();

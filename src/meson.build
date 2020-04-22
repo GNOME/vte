@@ -254,9 +254,13 @@ endif
 
 # decoder cat
 
-decoder_cat_sources = glib_glue_sources + icu_sources + utf8_sources + debug_sources + files(
+decoder_cat_sources = glib_glue_sources + utf8_sources + debug_sources + files(
   'decoder-cat.cc',
 )
+
+if get_option('icu')
+  decoder_cat_sources += icu_sources
+endif
 
 decoder_cat = executable(
   'decoder-cat',
