@@ -2061,6 +2061,8 @@ Terminal::set_encoding(char const* charset,
 
         return true;
 #else
+        g_set_error_literal(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
+                            "ICU support not available");
         return false;
 #endif
 }
