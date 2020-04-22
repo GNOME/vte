@@ -33,9 +33,12 @@
 
 #include "debug.h"
 #include "glib-glue.hh"
+#include "utf8.hh"
+
+#ifdef WITH_ICU
 #include "icu-decoder.hh"
 #include "icu-glue.hh"
-#include "utf8.hh"
+#endif
 
 using namespace std::literals;
 
@@ -228,6 +231,8 @@ public:
 
 }; // class Sink
 
+#ifdef WITH_ICU
+
 static std::unique_ptr<vte::base::ICUDecoder>
 make_decoder(Options const& options)
 {
@@ -260,6 +265,8 @@ make_decoder(Options const& options)
 
         return std::make_unique<vte::base::ICUDecoder>(converter, u32_converter);
 }
+
+#endif /* WITH_ICU */
 
 class Processor {
 private:
@@ -329,6 +336,7 @@ private:
                 g_free(buf);
         }
 
+#ifdef WITH_ICU
         template<class Functor>
         void
         process_file_icu(int fd,
@@ -393,6 +401,7 @@ private:
 
                 g_free(buf);
         }
+#endif /* WITH_ICU */
 
         template<class Functor>
         bool
@@ -400,6 +409,7 @@ private:
                      Options const& options,
                      Functor& func)
         {
+#ifdef WITH_ICU
                 auto decoder = std::unique_ptr<vte::base::ICUDecoder>{};
                 if (options.charset()) {
                         decoder = make_decoder(options);
@@ -408,6 +418,7 @@ private:
                 }
 
                 assert(decoder != nullptr || options.charset() == nullptr);
+#endif
 
                 for (auto i = 0; i < options.repeat(); ++i) {
                         if (i > 0 && lseek(fd, 0, SEEK_SET) != 0) {
@@ -415,9 +426,12 @@ private:
                                 return false;
                         }
 
+#ifdef WITH_ICU
                         if (decoder) {
                                 process_file_icu(fd, decoder.get(), func);
-                        } else {
+                        } else
+#endif
+                        {
                                 process_file_utf8(fd, func);
                         }
                 }
@@ -526,12 +540,17 @@ main(int argc,
         }
 
         if (options.list()) {
+#ifdef WITH_ICU
                 auto charsets = vte::base::get_icu_charsets(true);
                 for (auto i = 0; charsets[i]; ++i)
                         g_print("%s\n", charsets[i]);
                 g_strfreev(charsets);
 
                 return EXIT_SUCCESS;
+#else
+                g_printerr("ICU support not available.\n");
+                return EXIT_FAILURE;
+#endif
         }
 
         auto rv = bool{};
