@@ -111,10 +111,35 @@ make_icu_converter(char const* charset,
 {
         auto err = icu::ErrorCode{};
         auto converter = std::shared_ptr<UConverter>{ucnv_open(charset, err), &ucnv_close};
-        if (err.isFailure())
+        if (err.isFailure()) {
                 g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
                             "Failed to open converter for charset \"%s\": %s",
                             charset, err.errorName());
+                return {};
+        }
+
+        /* The unicode->target conversion is only used when converting
+         * user input (keyboard, clipboard) to be sent to the PTY, and
+         * we don't want the ucnv_fromUChars to substitute the SUB character
+         * for illegal input, since SUB is U+001A which is Ctrl-Z, which
+         * the default UCNV_FROM_U_CALLBACK_SUBSTITUTE callback does.
+         * Use UCNV_FROM_U_CALLBACK_STOP to stop conversion when encountering
+         * illegal input.
+         */
+        err.reset();
+        ucnv_setFromUCallBack(converter.get(),
+                              UCNV_FROM_U_CALLBACK_STOP,
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              err);
+        if (err.isFailure()) {
+                g_set_error(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
+                            "Failed ucnv_setFromUCallBack for charset \"%s\": %s",
+                            charset, err.errorName());
+                return {};
+        }
+
         return converter;
 }
 
