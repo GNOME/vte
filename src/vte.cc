@@ -2019,11 +2019,22 @@ Terminal::set_encoding(char const* charset,
                        GError** error)
 {
 #ifdef WITH_ICU
-        auto const using_utf8 = bool{charset == nullptr || g_ascii_strcasecmp(charset, "UTF-8") == 0};
-        auto const syntax = using_utf8 ? DataSyntax::eECMA48_UTF8 : DataSyntax::eECMA48_PCTERM;
+        auto const to_utf8 = bool{charset == nullptr || g_ascii_strcasecmp(charset, "UTF-8") == 0};
 
-        if (syntax == data_syntax())
-                return true;
+        if (to_utf8) {
+                if (data_syntax() == DataSyntax::eECMA48_UTF8)
+                        return true;
+
+                m_converter.reset();
+                m_data_syntax = DataSyntax::eECMA48_UTF8;
+        } else {
+                auto converter = vte::base::ICUConverter::make(charset, error);
+                if (!converter)
+                        return false;
+
+                m_converter = std::move(converter);
+                m_data_syntax = DataSyntax::eECMA48_PCTERM;
+        }
 
         /* Note: we DON'T convert any pending output from the previous charset to
          * the new charset, since that is in general not possible without loss, and
@@ -2032,22 +2043,12 @@ Terminal::set_encoding(char const* charset,
          * the outgooing and only change charsets once it's empty.)
          * Do not clear the incoming queue.
          */
-
         _vte_byte_array_clear(m_outgoing);
 
-        if (using_utf8) {
-                m_converter.reset();
-        } else {
-                m_converter = vte::base::ICUConverter::make(charset, error);
-                if (!m_converter)
-                        return false;
-        }
-
-        m_data_syntax = syntax;
         reset_decoder();
 
         if (pty())
-                pty()->set_utf8(using_utf8);
+                pty()->set_utf8(data_syntax() == DataSyntax::eECMA48_UTF8);
 
 	_vte_debug_print(VTE_DEBUG_IO,
                          "Set terminal encoding to `%s'.\n",
