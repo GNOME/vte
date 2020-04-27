@@ -32,16 +32,8 @@
 #include <stdlib.h>   /* for fdwalk */
 #include <dirent.h>
 
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif /* HAVE_SYS_RESOURCE_H */
-
 #include <glib-unix.h>
 #include <gio/gio.h>
-
-#if defined(__linux__) || defined(__DragonFly__)
-#include <sys/syscall.h>  /* for syscall and SYS_getdents64 */
-#endif
 
 #include "vtespawn.hh"
 #include "vteutils.h"  /* for strchrnul on non-GNU systems */
@@ -82,16 +74,6 @@ _vte_write_err (int fd,
 }
 
 static int
-fd_set_cloexec(int fd)
-{
-        int flags = fcntl(fd, F_GETFD, 0);
-        if (flags < 0)
-                return flags;
-
-        return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-}
-
-static int
 fd_set_nonblocking(int fd)
 {
         int flags = fcntl(fd, F_GETFL, 0);
@@ -102,15 +84,6 @@ fd_set_nonblocking(int fd)
         return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-static int
-set_cloexec (void *data, int fd)
-{
-  if (fd >= GPOINTER_TO_INT (data))
-    fd_set_cloexec (fd);
-
-  return 0;
-}
-
 G_GNUC_UNUSED static int
 close_func (void *data, int fd)
 {
@@ -118,118 +91,6 @@ close_func (void *data, int fd)
     (void) close (fd);
 
   return 0;
-}
-
-#ifdef __linux__
-struct linux_dirent64
-{
-  guint64        d_ino;    /* 64-bit inode number */
-  guint64        d_off;    /* 64-bit offset to next structure */
-  unsigned short d_reclen; /* Size of this dirent */
-  unsigned char  d_type;   /* File type */
-  char           d_name[]; /* Filename (null-terminated) */
-};
-
-static int
-filename_to_fd (const char *p)
-{
-  char c;
-  int fd = 0;
-  const int cutoff = G_MAXINT / 10;
-  const int cutlim = G_MAXINT % 10;
-
-  if (*p == '\0')
-    return -1;
-
-  while ((c = *p++) != '\0')
-    {
-      if (!g_ascii_isdigit (c))
-        return -1;
-      c -= '0';
-
-      /* Check for overflow. */
-      if (fd > cutoff || (fd == cutoff && c > cutlim))
-        return -1;
-
-      fd = fd * 10 + c;
-    }
-
-  return fd;
-}
-#endif
-
-#ifndef HAVE_FDWALK
-int
-fdwalk (int (*cb)(void *data, int fd), void *data);
-
-int
-fdwalk (int (*cb)(void *data, int fd), void *data)
-{
-  /* Fallback implementation of fdwalk. It should be async-signal safe, but it
-   * may be slow on non-Linux operating systems, especially on systems allowing
-   * very high number of open file descriptors.
-   */
-  int open_max;
-  int fd;
-  int res = 0;
-
-#ifdef HAVE_SYS_RESOURCE_H
-  struct rlimit rl;
-#endif
-
-#ifdef __linux__
-  /* Avoid use of opendir/closedir since these are not async-signal-safe. */
-  int dir_fd = open ("/proc/self/fd", O_RDONLY | O_DIRECTORY);
-  if (dir_fd >= 0)
-    {
-      char buf[4096];
-      int pos, nread;
-      struct linux_dirent64 *de;
-
-      while ((nread = syscall (SYS_getdents64, dir_fd, buf, sizeof(buf))) > 0)
-        {
-          for (pos = 0; pos < nread; pos += de->d_reclen)
-            {
-              de = (struct linux_dirent64 *)(buf + pos);
-
-              fd = filename_to_fd (de->d_name);
-              if (fd < 0 || fd == dir_fd)
-                  continue;
-
-              if ((res = cb (data, fd)) != 0)
-                  break;
-            }
-        }
-
-      close (dir_fd);
-      return res;
-    }
-
-  /* If /proc is not mounted or not accessible we fall back to the old
-   * rlimit trick */
-
-#endif
-
-#ifdef HAVE_SYS_RESOURCE_H
-
-  if (getrlimit(RLIMIT_NOFILE, &rl) == 0 && rl.rlim_max != RLIM_INFINITY)
-      open_max = rl.rlim_max;
-  else
-#endif
-      open_max = sysconf (_SC_OPEN_MAX);
-
-  for (fd = 0; fd < open_max; fd++)
-      if ((res = cb (data, fd)) != 0)
-          break;
-
-  return res;
-}
-#endif /* HAVE_FDWALK */
-
-void
-_vte_cloexec_from(int fd)
-{
-        fdwalk(set_cloexec, GINT_TO_POINTER(fd));
 }
 
 bool

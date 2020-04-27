@@ -22,12 +22,6 @@
 
 #include <glib.h>
 
-void _vte_cloexec_from(int fd);
-
-char** _vte_merge_envv(char** envp,
-                       char const* cwd,
-                       bool inherit);
-
 int _vte_execute(char const* file,
                  char** argv,
                  char** envp,

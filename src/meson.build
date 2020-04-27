@@ -105,6 +105,7 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'color-triple.hh',
   'keymap.cc',
   'keymap.h',
+  'missing.cc',
   'missing.hh',
   'reaper.cc',
   'reaper.hh',

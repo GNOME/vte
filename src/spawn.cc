@@ -46,7 +46,24 @@
 
 #include "vtedefines.hh"
 
+#include "missing.hh"
+
 namespace vte::base {
+
+static int
+set_cloexec_cb(void* data,
+               int fd)
+{
+        if (fd >= *reinterpret_cast<int*>(data))
+                return vte::libc::fd_set_cloexec(fd);
+        return 0;
+}
+
+static int
+cloexec_from(int fd)
+{
+        return fdwalk(set_cloexec_cb, &fd);
+}
 
 static bool
 make_pipe(int flags,
@@ -186,7 +203,8 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write) noexcept
          * child_error_report_pipe_write, which keeps the parent from blocking
          * forever on the other end of that pipe.
          */
-        _vte_cloexec_from(3);
+        if (cloexec_from(3) < 0)
+                return ExecError::FDWALK;
 
         /* Working directory */
         if (m_cwd && chdir(m_cwd.get()) < 0) {
@@ -427,6 +445,10 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
                 return false;
 
         if (n_read >= 2) {
+                /* Spawn failed. buf[0] contains an error from
+                 * SpawnContext::ExecError, and buf[1] contains errno.
+                 */
+
                 /* The process will have called _exit(127) already, no need to kill it */
                 m_kill_pid = false;
 
@@ -457,6 +479,12 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
                 case SpawnContext::ExecError::EXEC:
                         error.set(G_IO_ERROR, g_io_error_from_errno(err),
                                   "Failed to execve: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::FDWALK:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to fdwalk: %s",
                                   g_strerror(err));
                         break;
 
@@ -499,8 +527,9 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
 
                 auto arg0 = vte::glib::take_string(g_utf8_make_valid(context().argv()[0], -1));
                 g_prefix_error(error,
-                               _("Failed to execute child process “%s”"),
+                               _("Failed to execute child process “%s”: "),
                                arg0.get());
+
                 return false;
         }
 

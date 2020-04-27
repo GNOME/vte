@@ -23,3 +23,8 @@
 #ifndef NSIG
 #define NSIG (8 * sizeof(sigset_t))
 #endif
+
+#ifndef HAVE_FDWALK
+int fdwalk(int (*cb)(void* data, int fd),
+           void* data);
+#endif

@@ -179,6 +179,7 @@ public:
                 DUP,
                 DUP2,
                 EXEC,
+                FDWALK,
                 GETPTPEER,
                 SCTTY,
                 SETSID,
