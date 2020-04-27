@@ -330,12 +330,6 @@ vte_pty_initable_init (GInitable *initable,
         VtePty *pty = VTE_PTY (initable);
         VtePtyPrivate *priv = pty->priv;
 
-        if (cancellable != NULL) {
-                g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
-                                    "Cancellable initialisation not supported");
-                return FALSE;
-        }
-
         if (priv->foreign_fd != -1) {
                 priv->pty = vte::base::Pty::create_foreign(priv->foreign_fd, priv->flags);
                 priv->foreign_fd = -1;
@@ -350,7 +344,7 @@ vte_pty_initable_init (GInitable *initable,
                 return FALSE;
         }
 
-        return TRUE;
+        return !g_cancellable_set_error_if_cancelled(cancellable, error);
 }
 
 static void
