@@ -80,6 +80,120 @@ make_pipe(int flags,
         return true;
 }
 
+/* Code for read_ints copied from glib/glib/gspawn.c, there under LGPL2.1+,
+ * and used here under LGPL3+.
+ *
+ * Copyright 2000 Red Hat, Inc.
+ */
+static bool
+read_ints(int fd,
+          int* buf,
+          int n_ints_in_buf,
+          int *n_ints_read,
+          int timeout,
+          GPollFD *cancellable_pollfd,
+          vte::glib::Error& error)
+{
+        GPollFD pollfds[2];
+        auto n_pollfds = unsigned{0};
+
+        if (timeout >= 0 || cancellable_pollfd != nullptr) {
+                if (vte::libc::fd_set_nonblock(fd) < 0) {
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        error.set(G_IO_ERROR, g_io_error_from_errno(errsv),
+                                  _("Failed to set pipe nonblocking: %s"), g_strerror(errsv));
+                        return false;
+                }
+
+                pollfds[0].fd = fd;
+                pollfds[0].events = G_IO_IN | G_IO_HUP | G_IO_ERR;
+                n_pollfds = 1;
+
+                if (cancellable_pollfd != nullptr) {
+                        pollfds[1] = *cancellable_pollfd;
+                        n_pollfds = 2;
+                }
+        } else
+                n_pollfds = 0;
+
+        auto start_time = int64_t{0};
+        if (timeout >= 0)
+                start_time = g_get_monotonic_time();
+
+        auto bytes = size_t{0};
+        while (true) {
+                if (bytes >= sizeof(int)*2)
+                        break; /* give up, who knows what happened, should not be
+                                * possible.
+                                */
+
+        again:
+                if (n_pollfds != 0) {
+                        pollfds[0].revents = pollfds[1].revents = 0;
+
+                        auto const r = g_poll(pollfds, n_pollfds, timeout);
+
+                        /* Update timeout */
+                        if (timeout >= 0) {
+                                timeout -= (g_get_monotonic_time () - start_time) / 1000;
+                                if (timeout < 0)
+                                        timeout = 0;
+                        }
+
+                        if (r < 0 && errno == EINTR)
+                                goto again;
+                        if (r < 0) {
+                                auto errsv = vte::libc::ErrnoSaver{};
+                                error.set(G_IO_ERROR, g_io_error_from_errno(errsv),
+                                          _("poll error: %s"), g_strerror(errsv));
+                                return false;
+                        }
+                        if (r == 0) {
+                                auto errsv = vte::libc::ErrnoSaver{};
+                                error.set_literal(G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
+                                                  _("Operation timed out"));
+                                return false;
+                        }
+
+                        /* If the passed-in poll FD becomes readable, that's the signal
+                         * to cancel the operation. We do NOT actually read from its FD!
+                         */
+                        if (n_pollfds == 2 && pollfds[1].revents) {
+                                auto errsv = vte::libc::ErrnoSaver{};
+                                error.set_literal(G_IO_ERROR, G_IO_ERROR_CANCELLED,
+                                                  _("Operation was cancelled"));
+                                return false;
+                        }
+
+                        /* Now we know we can try to read from the child */
+                }
+
+                auto const chunk = read(fd,
+                                        ((char*)buf) + bytes,
+                                        sizeof(int) * n_ints_in_buf - bytes);
+                if (chunk < 0 && errno == EINTR)
+                        goto again;
+
+                if (chunk < 0) {
+                        auto errsv = vte::libc::ErrnoSaver{};
+
+                        /* Some weird shit happened, bail out */
+                        error.set(G_IO_ERROR, g_io_error_from_errno(errsv),
+                                  _("Failed to read from child pipe (%s)"),
+                                  g_strerror(errsv));
+
+                        return false;
+                } else if (chunk == 0)
+                        break; /* EOF */
+                else /* chunk > 0 */
+                        bytes += chunk;
+        }
+
+        *n_ints_read = int(bytes / sizeof(int));
+
+        return true;
+}
+
 static char**
 merge_environ(char** envp /* consumed */,
               char const* cwd,
@@ -437,11 +551,12 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
         g_assert_cmpint(m_child_report_error_pipe_read.get(), !=, -1);
         assert(m_child_report_error_pipe_read);
 
-        if (!_vte_read_ints(m_child_report_error_pipe_read.get(),
-                            buf, 2, &n_read,
-                            m_timeout,
-                            &m_cancellable_pollfd,
-                            error))
+        if (!read_ints(m_child_report_error_pipe_read.get(),
+                       buf, 2,
+                       &n_read,
+                       m_timeout,
+                       &m_cancellable_pollfd,
+                       error))
                 return false;
 
         if (n_read >= 2) {

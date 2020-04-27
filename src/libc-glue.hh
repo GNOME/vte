@@ -102,18 +102,6 @@ constexpr bool operator!=(FD const& lhs, int rhs) { return !(lhs == rhs); }
 /* FD convenience functions */
 
 static inline int
-fd_dupfd_cloexec(int oldfd,
-                 int newfd)
-{
-        auto fd = int{};
-        do {
-                fd = fcntl(F_DUPFD_CLOEXEC, oldfd, newfd);
-        } while (fd == -1 && errno == EINTR);
-
-        return fd;
-}
-
-static inline int
 fd_get_descriptor_flags(int fd)
 {
         auto flags = int{};
@@ -152,6 +140,45 @@ fd_change_descriptor_flags(int fd,
         return fd_set_descriptor_flags(fd, new_flags);
 }
 
+static inline int
+fd_get_status_flags(int fd)
+{
+        auto flags = int{};
+        do {
+                flags = fcntl(fd, F_GETFL, 0);
+        } while (flags == -1 && errno == EINTR);
+
+        return flags;
+}
+
+static inline int
+fd_set_status_flags(int fd,
+                    int flags)
+{
+        auto r = int{};
+        do {
+                r = fcntl(fd, F_SETFL, flags);
+        } while (r == -1 && errno == EINTR);
+
+        return r;
+}
+
+static inline int
+fd_change_status_flags(int fd,
+                       int set_flags,
+                       int unset_flags)
+{
+        auto const flags = fd_get_status_flags(fd);
+        if (flags == -1)
+                return -1;
+
+        auto const new_flags = (flags | set_flags) & ~unset_flags;
+        if (new_flags == flags)
+                return 0;
+
+        return fd_set_status_flags(fd, new_flags);
+}
+
 static inline bool
 fd_get_cloexec(int fd)
 {
@@ -169,6 +196,12 @@ static inline int
 fd_unset_cloexec(int fd)
 {
         return fd_change_descriptor_flags(fd, 0, FD_CLOEXEC);
+}
+
+static inline int
+fd_set_nonblock(int fd)
+{
+        return fd_change_status_flags(fd, O_NONBLOCK, 0);
 }
 
 static inline int

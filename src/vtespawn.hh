@@ -28,13 +28,5 @@ int _vte_execute(char const* file,
                  bool search_path,
                  bool search_path_from_envp);
 
-bool _vte_read_ints(int     fd,
-                    int*    buf,
-                    int     n_ints_in_buf,
-                    int    *n_ints_read,
-                    int     timeout,
-                    GPollFD *cancellable_pollfd,
-                    GError **error);
-
 void _vte_write_err (int fd,
                      int msg);
