@@ -667,12 +667,6 @@ fork_exec (const gchar          *working_directory,
        */
       signal (SIGPIPE, SIG_DFL);
 
-      /* Close the parent's end of the pipes;
-       * not needed in the close_descriptors case,
-       * though. FIXMEchpe: remove this then since we always set all FDs CLOEXEC
-       */
-      close_and_invalidate (&child_err_report_pipe[0]);
-
       do_exec (child_err_report_pipe[1],
                working_directory,
                argv,
