@@ -75,77 +75,24 @@ static gint g_execute (const gchar  *file,
                        gboolean search_path,
                        gboolean search_path_from_envp);
 
-static gboolean fork_exec_with_pipes (gboolean              intermediate_child,
-                                      const gchar          *working_directory,
-                                      gchar               **argv,
-                                      gchar               **envp,
-                                      gboolean              close_descriptors,
-                                      gboolean              search_path,
-                                      gboolean              search_path_from_envp,
-                                      gboolean              stdout_to_null,
-                                      gboolean              stderr_to_null,
-                                      gboolean              child_inherits_stdin,
-                                      gboolean              file_and_argv_zero,
-                                      gboolean              cloexec_pipes,
-                                      GSpawnChildSetupFunc  child_setup,
-                                      gpointer              user_data,
-                                      GPid                 *child_pid,
-                                      gint                 *standard_input,
-                                      gint                 *standard_output,
-                                      gint                 *standard_error,
-                                      gint                  timeout,
-                                      GPollFD              *pollfd,
-                                      GError              **error);
-
-/*
- * vte_spawn_async_cancellable:
- * @working_directory: (type filename) (allow-none): child's current working directory, or %NULL to inherit parent's
- * @argv: (array zero-terminated=1): child's argument vector
- * @envp: (array zero-terminated=1) (allow-none): child's environment, or %NULL to inherit parent's
- * @flags: flags from #GSpawnFlags
- * @child_setup: (scope async) (allow-none): function to run in the child just before exec()
- * @user_data: (closure): user data for @child_setup
- * @child_pid: (out) (allow-none): return location for child process reference, or %NULL
- * @timeout: a timeout value in ms, or -1 to wait indefinitely
- * @pollfd: (allow-none): a #GPollFD, or %NULL
- * @error: return location for error
- * 
- * See vte_spawn_async_with_pipes_cancellable() for a full description; this function
- * simply calls the vte_spawn_async_with_pipes_cancellable() without any pipes.
- *
- * You should call vte_spawn_close_pid() on the returned child process
- * reference when you don't need it any more.
- * 
- * Note that the returned @child_pid on Windows is a handle to the child
- * process and not its identifier. Process handles and process identifiers
- * are different concepts on Windows.
- *
- * Returns: %TRUE on success, %FALSE if error is set
- *
- * Since: 2.52
- **/
-gboolean
-vte_spawn_async_cancellable (const gchar          *working_directory,
-                             gchar               **argv,
-                             gchar               **envp,
-                             GSpawnFlags           flags,
-                             GSpawnChildSetupFunc  child_setup,
-                             gpointer              user_data,
-                             GPid                 *child_pid,
-                             gint                  timeout,
-                             GPollFD              *pollfd,
-                             GError              **error)
-{
-  return vte_spawn_async_with_pipes_cancellable (working_directory,
-                                               argv, envp,
-                                               flags,
-                                               child_setup,
-                                               user_data,
-                                               child_pid,
-                                               NULL, NULL, NULL,
-                                               timeout, pollfd,
-                                               error);
-}
+static gboolean fork_exec (gboolean              intermediate_child,
+                           const gchar          *working_directory,
+                           gchar               **argv,
+                           gchar               **envp,
+                           gboolean              close_descriptors,
+                           gboolean              search_path,
+                           gboolean              search_path_from_envp,
+                           gboolean              stdout_to_null,
+                           gboolean              stderr_to_null,
+                           gboolean              child_inherits_stdin,
+                           gboolean              file_and_argv_zero,
+                           gboolean              cloexec_pipes,
+                           GSpawnChildSetupFunc  child_setup,
+                           gpointer              user_data,
+                           GPid                 *child_pid,
+                           gint                  timeout,
+                           GPollFD              *pollfd,
+                           GError              **error);
 
 /* Avoids a danger in threaded situations (calling close()
  * on a file descriptor twice, and another thread has
@@ -154,7 +101,7 @@ vte_spawn_async_cancellable (const gchar          *working_directory,
 static void
 close_and_invalidate (gint *fd)
 {
-  if (*fd < 0)
+  if (*fd == -1)
     return;
   else
     {
@@ -164,7 +111,7 @@ close_and_invalidate (gint *fd)
 }
 
 /*
- * vte_spawn_async_with_pipes_cancellable:
+ * vte_spawn_async_cancellable:
  * @working_directory: (type filename) (allow-none): child's current working directory, or %NULL to inherit parent's, in the GLib file name encoding
  * @argv: (array zero-terminated=1): child's argument vector, in the GLib file name encoding
  * @envp: (array zero-terminated=1) (allow-none): child's environment, or %NULL to inherit parent's, in the GLib file name encoding
@@ -172,14 +119,11 @@ close_and_invalidate (gint *fd)
  * @child_setup: (scope async) (allow-none): function to run in the child just before exec()
  * @user_data: (closure): user data for @child_setup
  * @child_pid: (out) (allow-none): return location for child process ID, or %NULL
- * @standard_input: (out) (allow-none): return location for file descriptor to write to child's stdin, or %NULL
- * @standard_output: (out) (allow-none): return location for file descriptor to read child's stdout, or %NULL
- * @standard_error: (out) (allow-none): return location for file descriptor to read child's stderr, or %NULL
  * @timeout: a timeout value in ms, or -1 to wait indefinitely
  * @pollfd: (allow-none): a #GPollFD, or %NULL
  * @error: return location for error
  *
- * Like vte_spawn_async_with_pipes(), but allows the spawning to be
+ * Like g_spawn_async_with_pipes(), but allows the spawning to be
  * aborted.
  *
  * If @timeout is not -1, then the spawning will be aborted if
@@ -195,21 +139,19 @@ close_and_invalidate (gint *fd)
  * Since: 2.52
  */
 gboolean
-vte_spawn_async_with_pipes_cancellable (const gchar          *working_directory,
-                                        gchar               **argv,
-                                        gchar               **envp,
-                                        GSpawnFlags           flags,
-                                        GSpawnChildSetupFunc  child_setup,
-                                        gpointer              user_data,
-                                        GPid                 *child_pid,
-                                        gint                 *standard_input,
-                                        gint                 *standard_output,
-                                        gint                 *standard_error,
-                                        gint                  timeout,
-                                        GPollFD              *pollfd,
-                                        GError              **error)
+vte_spawn_async_cancellable (const gchar          *working_directory,
+                             gchar               **argv,
+                             gchar               **envp,
+                             GSpawnFlags           flags,
+                             GSpawnChildSetupFunc  child_setup,
+                             gpointer              user_data,
+                             GPid                 *child_pid,
+                             gint                  timeout,
+                             GPollFD              *pollfd,
+                             GError              **error)
 {
   g_return_val_if_fail (argv != NULL, FALSE);
+#if 0
   g_return_val_if_fail (standard_output == NULL ||
                         !(flags & G_SPAWN_STDOUT_TO_DEV_NULL), FALSE);
   g_return_val_if_fail (standard_error == NULL ||
@@ -217,28 +159,26 @@ vte_spawn_async_with_pipes_cancellable (const gchar          *working_directory,
   /* can't inherit stdin if we have an input pipe. */
   g_return_val_if_fail (standard_input == NULL ||
                         !(flags & G_SPAWN_CHILD_INHERITS_STDIN), FALSE);
-  
-  return fork_exec_with_pipes (!(flags & G_SPAWN_DO_NOT_REAP_CHILD),
-                               working_directory,
-                               argv,
-                               envp,
-                               !(flags & G_SPAWN_LEAVE_DESCRIPTORS_OPEN),
-                               (flags & G_SPAWN_SEARCH_PATH) != 0,
-                               (flags & G_SPAWN_SEARCH_PATH_FROM_ENVP) != 0,
-                               (flags & G_SPAWN_STDOUT_TO_DEV_NULL) != 0,
-                               (flags & G_SPAWN_STDERR_TO_DEV_NULL) != 0,
-                               (flags & G_SPAWN_CHILD_INHERITS_STDIN) != 0,
-                               (flags & G_SPAWN_FILE_AND_ARGV_ZERO) != 0,
-                               (flags & G_SPAWN_CLOEXEC_PIPES) != 0,
-                               child_setup,
-                               user_data,
-                               child_pid,
-                               standard_input,
-                               standard_output,
-                               standard_error,
-                               timeout,
-                               pollfd,
-                               error);
+#endif
+
+  return fork_exec (!(flags & G_SPAWN_DO_NOT_REAP_CHILD),
+                    working_directory,
+                    argv,
+                    envp,
+                    !(flags & G_SPAWN_LEAVE_DESCRIPTORS_OPEN),
+                    (flags & G_SPAWN_SEARCH_PATH) != 0,
+                    (flags & G_SPAWN_SEARCH_PATH_FROM_ENVP) != 0,
+                    (flags & G_SPAWN_STDOUT_TO_DEV_NULL) != 0,
+                    (flags & G_SPAWN_STDERR_TO_DEV_NULL) != 0,
+                    (flags & G_SPAWN_CHILD_INHERITS_STDIN) != 0,
+                    (flags & G_SPAWN_FILE_AND_ARGV_ZERO) != 0,
+                    (flags & G_SPAWN_CLOEXEC_PIPES) != 0,
+                    child_setup,
+                    user_data,
+                    child_pid,
+                    timeout,
+                    pollfd,
+                    error);
 }
 
 static gint
@@ -591,9 +531,6 @@ enum
 
 static G_GNUC_NORETURN void
 do_exec (gint                  child_err_report_fd,
-         gint                  stdin_fd,
-         gint                  stdout_fd,
-         gint                  stderr_fd,
          const gchar          *working_directory,
          gchar               **argv,
          gchar               **envp,
@@ -613,18 +550,7 @@ do_exec (gint                  child_err_report_fd,
   
   /* Redirect pipes as required */
   
-  if (stdin_fd >= 0)
-    {
-      /* dup2 can't actually fail here I don't think */
-          
-      if (sane_dup2 (stdin_fd, 0) < 0)
-        write_err_and_exit (child_err_report_fd,
-                            CHILD_DUP2_FAILED);
-
-      /* ignore this if it doesn't work */
-      close_and_invalidate (&stdin_fd);
-    }
-  else if (!child_inherits_stdin)
+  if (!child_inherits_stdin)
     {
       /* Keep process from blocking on a read of stdin */
       gint read_null = open ("/dev/null", O_RDONLY);
@@ -633,18 +559,7 @@ do_exec (gint                  child_err_report_fd,
       close_and_invalidate (&read_null);
     }
 
-  if (stdout_fd >= 0)
-    {
-      /* dup2 can't actually fail here I don't think */
-          
-      if (sane_dup2 (stdout_fd, 1) < 0)
-        write_err_and_exit (child_err_report_fd,
-                            CHILD_DUP2_FAILED);
-
-      /* ignore this if it doesn't work */
-      close_and_invalidate (&stdout_fd);
-    }
-  else if (stdout_to_null)
+  if (stdout_to_null)
     {
       gint write_null = sane_open ("/dev/null", O_WRONLY);
       g_assert (write_null != -1);
@@ -652,18 +567,7 @@ do_exec (gint                  child_err_report_fd,
       close_and_invalidate (&write_null);
     }
 
-  if (stderr_fd >= 0)
-    {
-      /* dup2 can't actually fail here I don't think */
-          
-      if (sane_dup2 (stderr_fd, 2) < 0)
-        write_err_and_exit (child_err_report_fd,
-                            CHILD_DUP2_FAILED);
-
-      /* ignore this if it doesn't work */
-      close_and_invalidate (&stderr_fd);
-    }
-  else if (stderr_to_null)
+  if (stderr_to_null)
     {
       gint write_null = sane_open ("/dev/null", O_WRONLY);
       sane_dup2 (write_null, 2);
@@ -836,32 +740,26 @@ read_ints (int      fd,
 }
 
 static gboolean
-fork_exec_with_pipes (gboolean              intermediate_child,
-                      const gchar          *working_directory,
-                      gchar               **argv,
-                      gchar               **envp,
-                      gboolean              close_descriptors,
-                      gboolean              search_path,
-                      gboolean              search_path_from_envp,
-                      gboolean              stdout_to_null,
-                      gboolean              stderr_to_null,
-                      gboolean              child_inherits_stdin,
-                      gboolean              file_and_argv_zero,
-                      gboolean              cloexec_pipes,
-                      GSpawnChildSetupFunc  child_setup,
-                      gpointer              user_data,
-                      GPid                 *child_pid,
-                      gint                 *standard_input,
-                      gint                 *standard_output,
-                      gint                 *standard_error,
-                      gint                  timeout,
-                      GPollFD              *pollfd,
-                      GError              **error)     
+fork_exec (gboolean              intermediate_child,
+           const gchar          *working_directory,
+           gchar               **argv,
+           gchar               **envp,
+           gboolean              close_descriptors,
+           gboolean              search_path,
+           gboolean              search_path_from_envp,
+           gboolean              stdout_to_null,
+           gboolean              stderr_to_null,
+           gboolean              child_inherits_stdin,
+           gboolean              file_and_argv_zero,
+           gboolean              cloexec_pipes,
+           GSpawnChildSetupFunc  child_setup,
+           gpointer              user_data,
+           GPid                 *child_pid,
+           gint                  timeout,
+           GPollFD              *pollfd,
+           GError              **error)
 {
   GPid pid = -1;
-  gint stdin_pipe[2] = { -1, -1 };
-  gint stdout_pipe[2] = { -1, -1 };
-  gint stderr_pipe[2] = { -1, -1 };
   gint child_err_report_pipe[2] = { -1, -1 };
   gint child_pid_report_pipe[2] = { -1, -1 };
   guint pipe_flags = cloexec_pipes ? FD_CLOEXEC : 0;
@@ -870,15 +768,6 @@ fork_exec_with_pipes (gboolean              intermediate_child,
 
   if (!g_unix_open_pipe (child_err_report_pipe, pipe_flags, error))
     return FALSE;
-
-  if (standard_input && !g_unix_open_pipe (stdin_pipe, pipe_flags, error))
-    goto cleanup_and_fail;
-  
-  if (standard_output && !g_unix_open_pipe (stdout_pipe, pipe_flags, error))
-    goto cleanup_and_fail;
-
-  if (standard_error && !g_unix_open_pipe (stderr_pipe, FD_CLOEXEC, error))
-    goto cleanup_and_fail;
 
   pid = fork ();
 
@@ -917,14 +806,8 @@ fork_exec_with_pipes (gboolean              intermediate_child,
        */
       close_and_invalidate (&child_err_report_pipe[0]);
       close_and_invalidate (&child_pid_report_pipe[0]);
-      close_and_invalidate (&stdin_pipe[1]);
-      close_and_invalidate (&stdout_pipe[0]);
-      close_and_invalidate (&stderr_pipe[0]);
       
       do_exec (child_err_report_pipe[1],
-               stdin_pipe[0],
-               stdout_pipe[1],
-               stderr_pipe[1],
                working_directory,
                argv,
                envp,
@@ -948,9 +831,6 @@ fork_exec_with_pipes (gboolean              intermediate_child,
       /* Close the uncared-about ends of the pipes */
       close_and_invalidate (&child_err_report_pipe[1]);
       close_and_invalidate (&child_pid_report_pipe[1]);
-      close_and_invalidate (&stdin_pipe[0]);
-      close_and_invalidate (&stdout_pipe[1]);
-      close_and_invalidate (&stderr_pipe[1]);
 
       if (!read_ints (child_err_report_pipe[0],
                       buf, 2, &n_ints,
@@ -1020,13 +900,6 @@ fork_exec_with_pipes (gboolean              intermediate_child,
       if (child_pid)
         *child_pid = pid;
 
-      if (standard_input)
-        *standard_input = stdin_pipe[1];
-      if (standard_output)
-        *standard_output = stdout_pipe[0];
-      if (standard_error)
-        *standard_error = stderr_pipe[0];
-      
       return TRUE;
     }
 
@@ -1045,12 +918,6 @@ fork_exec_with_pipes (gboolean              intermediate_child,
   close_and_invalidate (&child_err_report_pipe[1]);
   close_and_invalidate (&child_pid_report_pipe[0]);
   close_and_invalidate (&child_pid_report_pipe[1]);
-  close_and_invalidate (&stdin_pipe[0]);
-  close_and_invalidate (&stdin_pipe[1]);
-  close_and_invalidate (&stdout_pipe[0]);
-  close_and_invalidate (&stdout_pipe[1]);
-  close_and_invalidate (&stderr_pipe[0]);
-  close_and_invalidate (&stderr_pipe[1]);
 
   return FALSE;
 }

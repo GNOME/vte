@@ -462,31 +462,29 @@ Pty::spawn(char const* directory,
 
         auto pid = pid_t{-1};
         auto err = vte::glib::Error{};
-        ret = vte_spawn_async_with_pipes_cancellable(directory,
-                                                     argv, envp2,
-                                                     (GSpawnFlags)spawn_flags,
-                                                     (GSpawnChildSetupFunc)pty_child_setup_cb,
-                                                     this,
-                                                     &pid,
-                                                     nullptr, nullptr, nullptr,
-                                                     timeout,
-                                                     cancellable ? &pollfd : nullptr,
-                                                     err);
+        ret = vte_spawn_async_cancellable(directory,
+                                          argv, envp2,
+                                          (GSpawnFlags)spawn_flags,
+                                          (GSpawnChildSetupFunc)pty_child_setup_cb,
+                                          this,
+                                          &pid,
+                                          timeout,
+                                          cancellable ? &pollfd : nullptr,
+                                          err);
         if (!ret &&
             directory != nullptr &&
             err.matches(G_SPAWN_ERROR, G_SPAWN_ERROR_CHDIR)) {
                 /* try spawning in our working directory */
                 err.reset();
-                ret = vte_spawn_async_with_pipes_cancellable(nullptr,
-                                                             argv, envp2,
-                                                             (GSpawnFlags)spawn_flags,
-                                                             (GSpawnChildSetupFunc)pty_child_setup_cb,
-                                                             this,
-                                                             &pid,
-                                                             nullptr, nullptr, nullptr,
-                                                             timeout,
-                                                             cancellable ? &pollfd : nullptr,
-                                                             err);
+                ret = vte_spawn_async_cancellable(nullptr,
+                                                  argv, envp2,
+                                                  (GSpawnFlags)spawn_flags,
+                                                  (GSpawnChildSetupFunc)pty_child_setup_cb,
+                                                  this,
+                                                  &pid,
+                                                  timeout,
+                                                  cancellable ? &pollfd : nullptr,
+                                                  err);
         }
 
         g_strfreev (envp2);

@@ -32,17 +32,3 @@ gboolean vte_spawn_async_cancellable (const gchar          *working_directory,
                                       gint                  timeout,
                                       GPollFD              *pollfd,
                                       GError              **error);
-
-gboolean vte_spawn_async_with_pipes_cancellable (const gchar          *working_directory,
-                                                 gchar               **argv,
-                                                 gchar               **envp,
-                                                 GSpawnFlags           flags,
-                                                 GSpawnChildSetupFunc  child_setup,
-                                                 gpointer              user_data,
-                                                 GPid                 *child_pid,
-                                                 gint                 *standard_input,
-                                                 gint                 *standard_output,
-                                                 gint                 *standard_error,
-                                                 gint                  timeout,
-                                                 GPollFD              *pollfd,
-                                                 GError              **error);
