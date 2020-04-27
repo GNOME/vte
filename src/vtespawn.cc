@@ -37,6 +37,7 @@
 #endif /* HAVE_SYS_RESOURCE_H */
 
 #include <glib-unix.h>
+#include <gio/gio.h>
 
 #if defined(__linux__) || defined(__DragonFly__)
 #include <sys/syscall.h>  /* for syscall and SYS_getdents64 */
@@ -45,9 +46,6 @@
 #include "vtespawn.hh"
 #include "vteutils.h"  /* for strchrnul on non-GNU systems */
 #include "reaper.hh"
-
-#define VTE_SPAWN_ERROR_TIMED_OUT (G_SPAWN_ERROR_FAILED + 1000)
-#define VTE_SPAWN_ERROR_CANCELLED (G_SPAWN_ERROR_FAILED + 1001)
 
 #define _(s) g_dgettext("glib20", s)
 
@@ -163,113 +161,6 @@ vte_spawn_async_cancellable (const gchar          *working_directory,
                     timeout,
                     pollfd,
                     error);
-}
-
-static gint
-exec_err_to_g_error (gint en)
-{
-  switch (en)
-    {
-#ifdef EACCES
-    case EACCES:
-      return G_SPAWN_ERROR_ACCES;
-      break;
-#endif
-
-#ifdef EPERM
-    case EPERM:
-      return G_SPAWN_ERROR_PERM;
-      break;
-#endif
-
-#ifdef E2BIG
-    case E2BIG:
-      return G_SPAWN_ERROR_TOO_BIG;
-      break;
-#endif
-
-#ifdef ENOEXEC
-    case ENOEXEC:
-      return G_SPAWN_ERROR_NOEXEC;
-      break;
-#endif
-
-#ifdef ENAMETOOLONG
-    case ENAMETOOLONG:
-      return G_SPAWN_ERROR_NAMETOOLONG;
-      break;
-#endif
-
-#ifdef ENOENT
-    case ENOENT:
-      return G_SPAWN_ERROR_NOENT;
-      break;
-#endif
-
-#ifdef ENOMEM
-    case ENOMEM:
-      return G_SPAWN_ERROR_NOMEM;
-      break;
-#endif
-
-#ifdef ENOTDIR
-    case ENOTDIR:
-      return G_SPAWN_ERROR_NOTDIR;
-      break;
-#endif
-
-#ifdef ELOOP
-    case ELOOP:
-      return G_SPAWN_ERROR_LOOP;
-      break;
-#endif
-
-#ifdef ETXTBUSY
-    case ETXTBUSY:
-      return G_SPAWN_ERROR_TXTBUSY;
-      break;
-#endif
-
-#ifdef EIO
-    case EIO:
-      return G_SPAWN_ERROR_IO;
-      break;
-#endif
-
-#ifdef ENFILE
-    case ENFILE:
-      return G_SPAWN_ERROR_NFILE;
-      break;
-#endif
-
-#ifdef EMFILE
-    case EMFILE:
-      return G_SPAWN_ERROR_MFILE;
-      break;
-#endif
-
-#ifdef EINVAL
-    case EINVAL:
-      return G_SPAWN_ERROR_INVAL;
-      break;
-#endif
-
-#ifdef EISDIR
-    case EISDIR:
-      return G_SPAWN_ERROR_ISDIR;
-      break;
-#endif
-
-#ifdef ELIBBAD
-    case ELIBBAD:
-      return G_SPAWN_ERROR_LIBBAD;
-      break;
-#endif
-
-    default:
-      return G_SPAWN_ERROR_FAILED;
-      break;
-    }
 }
 
 static gssize
@@ -473,7 +364,7 @@ do_exec (gint                  child_err_report_fd,
   /* Close all file descriptors before we exec. Note that this includes
    * child_err_report_fd, which keeps the parent from blocking
    * forever on the other end of that pipe.
-   * (Note that stdin, stdout and stderr will be set by the child afterwards.)
+   * (Note that stdin, stdout and stderr will be set by the child setup afterwards.)
    */
   fdwalk (set_cloexec, GINT_TO_POINTER (3));
 
@@ -508,7 +399,7 @@ read_ints (int      fd,
       if (fd_set_nonblocking(fd) < 0)
         {
           int errsv = errno;
-          g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+          g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
                        _("Failed to set pipe nonblocking: %s"), g_strerror (errsv));
           return FALSE;
         }
@@ -560,13 +451,13 @@ read_ints (int      fd,
           if (r < 0)
             {
               int errsv = errno;
-              g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_FAILED,
+              g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
                            _("poll error: %s"), g_strerror (errsv));
               return FALSE;
             }
           if (r == 0)
             {
-              g_set_error_literal (error, G_SPAWN_ERROR, VTE_SPAWN_ERROR_TIMED_OUT,
+              g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
                                    _("Operation timed out"));
               return FALSE;
             }
@@ -576,7 +467,7 @@ read_ints (int      fd,
            */
           if (n_pollfds == 2 && pollfds[1].revents)
             {
-              g_set_error_literal (error, G_SPAWN_ERROR, VTE_SPAWN_ERROR_CANCELLED,
+              g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_CANCELLED,
                                    _("Operation was cancelled"));
               return FALSE;
             }
@@ -595,9 +486,7 @@ read_ints (int      fd,
           int errsv = errno;
 
           /* Some weird shit happened, bail out */
-          g_set_error (error,
-                       G_SPAWN_ERROR,
-                       G_SPAWN_ERROR_FAILED,
+          g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
                        _("Failed to read from child pipe (%s)"),
                        g_strerror (errsv));
 
@@ -642,11 +531,8 @@ fork_exec (const gchar          *working_directory,
     {
       int errsv = errno;
 
-      g_set_error (error,
-                   G_SPAWN_ERROR,
-                   G_SPAWN_ERROR_FORK,
-                   _("Failed to fork (%s)"),
-                   g_strerror (errsv));
+      g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
+                   _("Failed to fork (%s)"), g_strerror (errsv));
 
       goto cleanup_and_fail;
     }
@@ -700,29 +586,21 @@ fork_exec (const gchar          *working_directory,
           switch (buf[0])
             {
             case CHILD_CHDIR_FAILED:
-              g_set_error (error,
-                           G_SPAWN_ERROR,
-                           G_SPAWN_ERROR_CHDIR,
-                           _("Failed to change to directory “%s” (%s)"),
-                           working_directory,
-                           g_strerror (buf[1]));
+              g_set_error (error, G_IO_ERROR, g_io_error_from_errno (buf[1]),
+                           _("Failed to change to directory “%s”: %s"),
+                           working_directory, g_strerror (buf[1]));
 
               break;
 
             case CHILD_EXEC_FAILED:
-              g_set_error (error,
-                           G_SPAWN_ERROR,
-                           exec_err_to_g_error (buf[1]),
-                           _("Failed to execute child process “%s” (%s)"),
-                           argv[0],
-                           g_strerror (buf[1]));
+              g_set_error (error, G_IO_ERROR, g_io_error_from_errno(buf[1]),
+                           _("Failed to execute child process “%s”: %s"),
+                           argv[0], g_strerror (buf[1]));
 
               break;
 
             default:
-              g_set_error (error,
-                           G_SPAWN_ERROR,
-                           G_SPAWN_ERROR_FAILED,
+              g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
                            _("Unknown error executing child process “%s”"),
                            argv[0]);
               break;
