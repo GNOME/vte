@@ -41,9 +41,9 @@ private:
         VtePtyFlags m_flags{VTE_PTY_DEFAULT};
 
 public:
-        constexpr Pty(int fd = -1,
+        constexpr Pty(vte::libc::FD&& fd,
                       VtePtyFlags flags = VTE_PTY_DEFAULT) noexcept
-                : m_pty_fd{fd},
+                : m_pty_fd{std::move(fd)},
                   m_flags{flags}
         {
         }
@@ -56,7 +56,7 @@ public:
         Pty* ref() noexcept;
         void unref() noexcept;
 
-        inline constexpr int fd() const noexcept { return m_pty_fd; }
+        inline constexpr int fd() const noexcept { return m_pty_fd.get(); }
         inline constexpr auto flags() const noexcept { return m_flags; }
 
         void child_setup() const noexcept;

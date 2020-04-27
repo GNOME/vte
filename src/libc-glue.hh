@@ -77,9 +77,9 @@ public:
                 return *this;
         }
 
-        constexpr operator int () const noexcept { return m_fd; }
-        constexpr operator int* () noexcept      { assert(m_fd == -1); return &m_fd; }
         constexpr operator bool() const noexcept { return m_fd != -1; }
+
+        constexpr int get() const noexcept { return m_fd; }
 
         constexpr int release() noexcept
         {
@@ -101,5 +101,10 @@ private:
         int m_fd{-1};
 
 }; // class FD
+
+constexpr bool operator==(FD const& lhs, FD const& rhs) { return lhs.get() == rhs.get(); }
+constexpr bool operator==(FD const& lhs, int rhs) { return lhs.get() == rhs; }
+constexpr bool operator!=(FD const& lhs, FD const& rhs) { return !(lhs == rhs); }
+constexpr bool operator!=(FD const& lhs, int rhs) { return !(lhs == rhs); }
 
 } // namespace vte::libc

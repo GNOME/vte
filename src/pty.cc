@@ -588,37 +588,37 @@ Pty::get_size(int* rows,
 }
 
 static int
-fd_set_cloexec(int fd)
+fd_set_cloexec(vte::libc::FD& fd)
 {
-        int flags = fcntl(fd, F_GETFD, 0);
+        int flags = fcntl(fd.get(), F_GETFD, 0);
         if (flags < 0)
                 return flags;
 
-        return fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+        return fcntl(fd.get(), F_SETFD, flags | FD_CLOEXEC);
 }
 
 static int
-fd_set_nonblocking(int fd)
+fd_set_nonblocking(vte::libc::FD& fd)
 {
-        int flags = fcntl(fd, F_GETFL, 0);
+        int flags = fcntl(fd.get(), F_GETFL, 0);
         if (flags < 0)
                 return -1;
         if ((flags & O_NONBLOCK) != 0)
                 return 0;
-        return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+        return fcntl(fd.get(), F_SETFL, flags | O_NONBLOCK);
 }
 
 static int
-fd_set_cpkt(int fd)
+fd_set_cpkt(vte::libc::FD& fd)
 {
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
         int one = 1;
-        return ioctl(fd, TIOCPKT, &one);
+        return ioctl(fd.get(), TIOCPKT, &one);
 }
 
 static int
-fd_setup(int fd)
+fd_setup(vte::libc::FD& fd)
 {
         if (fd_set_cloexec(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
@@ -653,7 +653,7 @@ fd_setup(int fd)
  *
  * Returns: the new PTY's master FD, or -1
  */
-static int
+static vte::libc::FD
 _vte_pty_open_posix(void)
 {
 	/* Attempt to open the master. */
@@ -661,11 +661,11 @@ _vte_pty_open_posix(void)
 #ifndef __linux__
         /* Other kernels may not support CLOEXEC or NONBLOCK above, so try to fall back */
         bool need_cloexec = false, need_nonblocking = false;
-        if (fd == -1 && errno == EINVAL) {
+        if (!fd && errno == EINVAL) {
                 /* Try without NONBLOCK and apply the flag afterward */
                 need_nonblocking = true;
                 fd = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
-                if (fd == -1 && errno == EINVAL) {
+                if (!fd && errno == EINVAL) {
                         /* Try without CLOEXEC and apply the flag afterwards */
                         need_cloexec = true;
                         fd = posix_openpt(O_RDWR | O_NOCTTY);
@@ -673,11 +673,11 @@ _vte_pty_open_posix(void)
         }
 #endif /* !linux */
 
-        if (fd == -1) {
+        if (!fd) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "posix_openpt", g_strerror(errsv));
-                return -1;
+                return {};
         }
 
 #ifndef __linux__
@@ -685,14 +685,14 @@ _vte_pty_open_posix(void)
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
-                return -1;
+                return {};
         }
 
         if (need_nonblocking && fd_set_nonblocking(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting NONBLOCK flag", g_strerror(errsv));
-                return -1;
+                return {};
         }
 #endif /* !linux */
 
@@ -700,27 +700,27 @@ _vte_pty_open_posix(void)
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
-                return -1;
+                return {};
         }
 
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", (int)fd);
 
-        return fd.release();
+        return fd;
 }
 
-static int
+static vte::libc::FD
 _vte_pty_open_foreign(int masterfd /* consumed */)
 {
         auto fd = vte::libc::FD{masterfd};
-        if (fd == -1) {
+        if (!fd) {
                 errno = EBADF;
-                return -1;
+                return {};
         }
 
         if (fd_setup(fd) < 0)
-                return -1;
+                return {};
 
-        return fd.release();
+        return fd;
 }
 
 /*
@@ -767,21 +767,21 @@ Pty*
 Pty::create(VtePtyFlags flags)
 {
         auto fd = _vte_pty_open_posix();
-        if (fd == -1)
+        if (!fd)
                 return nullptr;
 
-        return new Pty{fd, flags};
+        return new Pty{std::move(fd), flags};
 }
 
 Pty*
-Pty::create_foreign(int fd,
+Pty::create_foreign(int foreign_fd,
                     VtePtyFlags flags)
 {
-        fd = _vte_pty_open_foreign(fd);
-        if (fd == -1)
+        auto fd = _vte_pty_open_foreign(foreign_fd);
+        if (!fd)
                 return nullptr;
 
-        return new Pty{fd, flags};
+        return new Pty{std::move(fd), flags};
 }
 
 } // namespace vte::base
