@@ -162,6 +162,10 @@ vte_pty_child_setup (VtePty *pty)
  * Note that the %G_SPAWN_LEAVE_DESCRIPTORS_OPEN flag is not supported;
  * it will be cleared!
  *
+ * Note also that %G_SPAWN_STDOUT_TO_DEV_NULL, %G_SPAWN_STDERR_TO_DEV_NULL,
+ * and %G_SPAWN_CHILD_INHERITS_STDIN are not supported, since stdin, stdout
+ * and stderr of the child process will always be connected to the PTY.
+ *
  * If spawning the command in @working_directory fails because the child
  * is unable to chdir() to it, falls back trying to spawn the command
  * in the parent's working directory.
@@ -512,6 +516,10 @@ vte_pty_error_quark(void)
  *
  * Also, you MUST pass the %G_SPAWN_DO_NOT_REAP_CHILD flag.
  *
+ * Note also that %G_SPAWN_STDOUT_TO_DEV_NULL, %G_SPAWN_STDERR_TO_DEV_NULL,
+ * and %G_SPAWN_CHILD_INHERITS_STDIN are not supported, since stdin, stdout
+ * and stderr of the child process will always be connected to the PTY.
+ *
  * Note that you should set the PTY's size using vte_pty_set_size() before
  * spawning the child process, so that the child process has the correct
  * size from the start instead of starting with a default size and then
@@ -679,6 +687,11 @@ async_spawn_run_in_thread(GTask *task,
  * @pty_flags controls logging the session to the specified system log files.
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
+ *
+ * Note also that %G_SPAWN_STDOUT_TO_DEV_NULL, %G_SPAWN_STDERR_TO_DEV_NULL,
+ * and %G_SPAWN_CHILD_INHERITS_STDIN are not supported in @spawn_flags, since
+ * stdin, stdout and stderr of the child process will always be connected to
+ * the PTY.
  *
  * Note that all open file descriptors will be closed in the child. If you want
  * to keep some file descriptor open for use in the child process, you need to

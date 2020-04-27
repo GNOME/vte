@@ -82,9 +82,6 @@ static gboolean fork_exec (gboolean              intermediate_child,
                            gboolean              close_descriptors,
                            gboolean              search_path,
                            gboolean              search_path_from_envp,
-                           gboolean              stdout_to_null,
-                           gboolean              stderr_to_null,
-                           gboolean              child_inherits_stdin,
                            gboolean              file_and_argv_zero,
                            gboolean              cloexec_pipes,
                            GSpawnChildSetupFunc  child_setup,
@@ -151,15 +148,9 @@ vte_spawn_async_cancellable (const gchar          *working_directory,
                              GError              **error)
 {
   g_return_val_if_fail (argv != NULL, FALSE);
-#if 0
-  g_return_val_if_fail (standard_output == NULL ||
-                        !(flags & G_SPAWN_STDOUT_TO_DEV_NULL), FALSE);
-  g_return_val_if_fail (standard_error == NULL ||
-                        !(flags & G_SPAWN_STDERR_TO_DEV_NULL), FALSE);
-  /* can't inherit stdin if we have an input pipe. */
-  g_return_val_if_fail (standard_input == NULL ||
-                        !(flags & G_SPAWN_CHILD_INHERITS_STDIN), FALSE);
-#endif
+  g_return_val_if_fail ((flags & (G_SPAWN_STDOUT_TO_DEV_NULL |
+                                  G_SPAWN_STDERR_TO_DEV_NULL |
+                                  G_SPAWN_CHILD_INHERITS_STDIN)) == 0, FALSE);
 
   return fork_exec (!(flags & G_SPAWN_DO_NOT_REAP_CHILD),
                     working_directory,
@@ -168,9 +159,6 @@ vte_spawn_async_cancellable (const gchar          *working_directory,
                     !(flags & G_SPAWN_LEAVE_DESCRIPTORS_OPEN),
                     (flags & G_SPAWN_SEARCH_PATH) != 0,
                     (flags & G_SPAWN_SEARCH_PATH_FROM_ENVP) != 0,
-                    (flags & G_SPAWN_STDOUT_TO_DEV_NULL) != 0,
-                    (flags & G_SPAWN_STDERR_TO_DEV_NULL) != 0,
-                    (flags & G_SPAWN_CHILD_INHERITS_STDIN) != 0,
                     (flags & G_SPAWN_FILE_AND_ARGV_ZERO) != 0,
                     (flags & G_SPAWN_CLOEXEC_PIPES) != 0,
                     child_setup,
@@ -509,18 +497,6 @@ sane_dup2 (gint fd1, gint fd2)
   return ret;
 }
 
-static gint
-sane_open (const char *path, gint mode)
-{
-  gint ret;
-
-  do
-    ret = open (path, mode);
-  while (ret < 0 && errno == EINTR);
-
-  return ret;
-}
-
 enum
 {
   CHILD_CHDIR_FAILED,
@@ -537,9 +513,6 @@ do_exec (gint                  child_err_report_fd,
          gboolean              close_descriptors,
          gboolean              search_path,
          gboolean              search_path_from_envp,
-         gboolean              stdout_to_null,
-         gboolean              stderr_to_null,
-         gboolean              child_inherits_stdin,
          gboolean              file_and_argv_zero,
          GSpawnChildSetupFunc  child_setup,
          gpointer              user_data)
@@ -547,32 +520,6 @@ do_exec (gint                  child_err_report_fd,
   if (working_directory && chdir (working_directory) < 0)
     write_err_and_exit (child_err_report_fd,
                         CHILD_CHDIR_FAILED);
-
-  /* Redirect pipes as required */
-
-  if (!child_inherits_stdin)
-    {
-      /* Keep process from blocking on a read of stdin */
-      gint read_null = open ("/dev/null", O_RDONLY);
-      g_assert (read_null != -1);
-      sane_dup2 (read_null, 0);
-      close_and_invalidate (&read_null);
-    }
-
-  if (stdout_to_null)
-    {
-      gint write_null = sane_open ("/dev/null", O_WRONLY);
-      g_assert (write_null != -1);
-      sane_dup2 (write_null, 1);
-      close_and_invalidate (&write_null);
-    }
-
-  if (stderr_to_null)
-    {
-      gint write_null = sane_open ("/dev/null", O_WRONLY);
-      sane_dup2 (write_null, 2);
-      close_and_invalidate (&write_null);
-    }
 
   /* Close all file descriptors but stdin, stdout and stderr
    * before we exec. Note that this includes
@@ -747,9 +694,6 @@ fork_exec (gboolean              intermediate_child,
            gboolean              close_descriptors,
            gboolean              search_path,
            gboolean              search_path_from_envp,
-           gboolean              stdout_to_null,
-           gboolean              stderr_to_null,
-           gboolean              child_inherits_stdin,
            gboolean              file_and_argv_zero,
            gboolean              cloexec_pipes,
            GSpawnChildSetupFunc  child_setup,
@@ -814,9 +758,6 @@ fork_exec (gboolean              intermediate_child,
                close_descriptors,
                search_path,
                search_path_from_envp,
-               stdout_to_null,
-               stderr_to_null,
-               child_inherits_stdin,
                file_and_argv_zero,
                child_setup,
                user_data);

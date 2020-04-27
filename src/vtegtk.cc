@@ -2708,6 +2708,11 @@ vte_terminal_watch_child (VteTerminal *terminal,
  *
  * Note that %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
  *
+ * Note also that %G_SPAWN_STDOUT_TO_DEV_NULL, %G_SPAWN_STDERR_TO_DEV_NULL,
+ * and %G_SPAWN_CHILD_INHERITS_STDIN are not supported in @spawn_flags, since
+ * stdin, stdout and stderr of the child process will always be connected to
+ * the PTY.
+ *
  * Note that all open file descriptors will be closed in the child. If you want
  * to keep some file descriptor open for use in the child process, you need to
  * use a child setup function that unsets the FD_CLOEXEC flag on that file
@@ -2895,6 +2900,11 @@ spawn_async_cb (GObject *source,
  *
  * When the operation fails, @callback will be called with a -1 #GPid,
  * and a non-%NULL #GError containing the error information.
+ *
+ * Note that %G_SPAWN_STDOUT_TO_DEV_NULL, %G_SPAWN_STDERR_TO_DEV_NULL,
+ * and %G_SPAWN_CHILD_INHERITS_STDIN are not supported in @spawn_flags, since
+ * stdin, stdout and stderr of the child process will always be connected to
+ * the PTY.
  *
  * Beginning with 0.60, and on linux only, and unless %VTE_SPAWN_NO_SYSTEMD_SCOPE is
  * passed in @spawn_flags, the newly created child process will be moved to its own
