@@ -100,16 +100,6 @@ Pty::get_peer() const noexcept
         if (!m_pty_fd)
                 return -1;
 
-        if (grantpt(m_pty_fd.get()) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
-                return -1;
-        }
-
-        if (unlockpt(m_pty_fd.get()) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
-                return -1;
-        }
-
         /* FIXME? else if (m_flags & VTE_PTY_NO_CTTTY)
          * No session and no controlling TTY wanted, do we need to lose our controlling TTY,
          * perhaps by open("/dev/tty") + ioctl(TIOCNOTTY) ?
@@ -374,6 +364,18 @@ fd_set_cpkt(vte::libc::FD& fd)
 static int
 fd_setup(vte::libc::FD& fd)
 {
+        if (grantpt(fd.get()) != 0) {
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                return -1;
+        }
+
+        if (unlockpt(fd.get()) != 0) {
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
+                return -1;
+        }
+
         if (fd_set_cloexec(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
@@ -454,6 +456,18 @@ _vte_pty_open_posix(void)
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                return {};
+        }
+
+        if (grantpt(fd.get()) != 0) {
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                return {};
+        }
+
+        if (unlockpt(fd.get()) != 0) {
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
                 return {};
         }
 
