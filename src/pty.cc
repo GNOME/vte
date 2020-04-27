@@ -169,15 +169,19 @@ Pty::get_peer() const noexcept
         assert(bool(peer_fd));
 
 #if defined(__sun) && defined(HAVE_STROPTS_H)
+        /* See https://illumos.org/man/7i/streamio */
         if (isastream (peer_fd.get()) == 1) {
+                /* https://illumos.org/man/7m/ptem */
                 if ((ioctl(peer_fd.get(), I_FIND, "ptem") == 0) &&
                     (ioctl(peer_fd.get(), I_PUSH, "ptem") == -1)) {
                         return {};
                 }
+                /* https://illumos.org/man/7m/ldterm */
                 if ((ioctl(peer_fd.get(), I_FIND, "ldterm") == 0) &&
                     (ioctl(peer_fd.get(), I_PUSH, "ldterm") == -1)) {
                         return {};
                 }
+                /* https://illumos.org/man/7m/ttcompat */
                 if ((ioctl(peer_fd.get(), I_FIND, "ttcompat") == 0) &&
                     (ioctl(peer_fd.get(), I_PUSH, "ttcompat") == -1)) {
                         return {};
