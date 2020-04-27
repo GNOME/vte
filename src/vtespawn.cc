@@ -457,8 +457,6 @@ enum
 {
   CHILD_CHDIR_FAILED,
   CHILD_EXEC_FAILED,
-  CHILD_DUP2_FAILED,
-  CHILD_FORK_FAILED
 };
 
 static G_GNUC_NORETURN void
@@ -749,23 +747,6 @@ fork_exec (gboolean              intermediate_child,
                            argv[0],
                            g_strerror (buf[1]));
 
-              break;
-
-            case CHILD_DUP2_FAILED:
-              g_set_error (error,
-                           G_SPAWN_ERROR,
-                           G_SPAWN_ERROR_FAILED,
-                           _("Failed to redirect output or input of child process (%s)"),
-                           g_strerror (buf[1]));
-
-              break;
-
-            case CHILD_FORK_FAILED:
-              g_set_error (error,
-                           G_SPAWN_ERROR,
-                           G_SPAWN_ERROR_FORK,
-                           _("Failed to fork child process (%s)"),
-                           g_strerror (buf[1]));
               break;
 
             default:
