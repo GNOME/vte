@@ -128,16 +128,6 @@ Pty::child_setup() const noexcept
         if (masterfd == -1)
                 _exit(127);
 
-        if (grantpt(masterfd) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
-                _exit(127);
-        }
-
-	if (unlockpt(masterfd) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
-                _exit(127);
-        }
-
         if (!(m_flags & VTE_PTY_NO_SESSION)) {
                 /* This starts a new session; we become its process-group leader,
                  * and lose our controlling TTY.
@@ -622,6 +612,18 @@ fd_set_cpkt(int fd)
 static int
 fd_setup(int fd)
 {
+        if (grantpt(fd) != 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                return -1;
+        }
+
+        if (unlockpt(fd) != 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
+                return -1;
+        }
+
         if (fd_set_cloexec(fd) < 0) {
                 vte::util::restore_errno errsv;
                 _vte_debug_print(VTE_DEBUG_PTY,
@@ -704,6 +706,18 @@ _vte_pty_open_posix(void)
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 return -1;
+        }
+
+        if (grantpt(fd) != 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                return {};
+        }
+
+        if (unlockpt(fd) != 0) {
+                vte::util::restore_errno errsv;
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
+                return {};
         }
 
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", (int)fd);
