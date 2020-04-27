@@ -453,50 +453,6 @@ fdwalk (int (*cb)(void *data, int fd), void *data)
 }
 #endif /* HAVE_FDWALK */
 
-static void
-safe_closefrom (int lowfd)
-{
-#if defined(__FreeBSD__) || defined(__OpenBSD__)
-  /* Use closefrom function provided by the system if it is known to be
-   * async-signal safe.
-   *
-   * FreeBSD: closefrom is included in the list of async-signal safe functions
-   * found in https://man.freebsd.org/sigaction(2).
-   *
-   * OpenBSD: closefrom is not included in the list, but a direct system call
-   * should be safe to use.
-   */
-  (void) closefrom (lowfd);
-#elif defined(__DragonFly__)
-  /* It is unclear whether closefrom function included in DragonFlyBSD libc_r
-   * is safe to use because it calls a lot of library functions. It is also
-   * unclear whether libc_r itself is still being used. Therefore, we do a
-   * direct system call here ourselves to avoid possible issues.
-   */
-  (void) syscall (SYS_closefrom, lowfd);
-#elif defined(F_CLOSEM)
-  /* NetBSD and AIX have a special fcntl command which does the same thing as
-   * closefrom. NetBSD also includes closefrom function, which seems to be a
-   * simple wrapper of the fcntl command.
-   */
-  (void) fcntl (lowfd, F_CLOSEM);
-#else
-  (void) fdwalk (close_func, GINT_TO_POINTER (lowfd));
-#endif
-}
-
-static gint
-sane_dup2 (gint fd1, gint fd2)
-{
-  gint ret;
-
-  do
-    ret = dup2 (fd1, fd2);
-  while (ret < 0 && (errno == EINTR || errno == EBUSY));
-
-  return ret;
-}
-
 enum
 {
   CHILD_CHDIR_FAILED,
@@ -528,17 +484,7 @@ do_exec (gint                  child_err_report_fd,
    */
   if (close_descriptors)
     {
-      if (child_setup == NULL)
-        {
-          sane_dup2 (child_err_report_fd, 3);
-          set_cloexec (GINT_TO_POINTER (0), 3);
-          safe_closefrom (4);
-          child_err_report_fd = 3;
-        }
-      else
-        {
-          fdwalk (set_cloexec, GINT_TO_POINTER (3));
-        }
+      fdwalk (set_cloexec, GINT_TO_POINTER (3));
     }
   else
     {
