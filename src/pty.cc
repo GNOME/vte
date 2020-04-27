@@ -333,27 +333,6 @@ Pty::get_size(int* rows,
 }
 
 static int
-fd_set_cloexec(vte::libc::FD& fd)
-{
-        int flags = fcntl(fd.get(), F_GETFD, 0);
-        if (flags < 0)
-                return flags;
-
-        return fcntl(fd.get(), F_SETFD, flags | FD_CLOEXEC);
-}
-
-static int
-fd_set_nonblocking(vte::libc::FD& fd)
-{
-        int flags = fcntl(fd.get(), F_GETFL, 0);
-        if (flags < 0)
-                return -1;
-        if ((flags & O_NONBLOCK) != 0)
-                return 0;
-        return fcntl(fd.get(), F_SETFL, flags | O_NONBLOCK);
-}
-
-static int
 fd_set_cpkt(vte::libc::FD& fd)
 {
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
@@ -377,14 +356,14 @@ fd_setup(vte::libc::FD& fd)
                 return -1;
         }
 
-        if (fd_set_cloexec(fd) < 0) {
+        if (vte::libc::fd_set_cloexec(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                 return -1;
         }
 
-        if (fd_set_nonblocking(fd) < 0) {
+        if (vte::libc::fd_set_nonblock(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
@@ -438,14 +417,14 @@ _vte_pty_open_posix(void)
         }
 
 #ifndef __linux__
-        if (need_cloexec && fd_set_cloexec(fd) < 0) {
+        if (need_cloexec && vte::libc::fd_set_cloexec(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                 return {};
         }
 
-        if (need_nonblocking && fd_set_nonblocking(fd) < 0) {
+        if (need_nonblocking && vte::libc::fd_set_nonblock(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting NONBLOCK flag", g_strerror(errsv));
