@@ -199,40 +199,4 @@ namespace color {
 
 } /* namespace color */
 
-namespace util {
-
-        class restore_errno {
-        public:
-                restore_errno() { m_errsv = errno; }
-                ~restore_errno() { errno = m_errsv; }
-                operator int () const { return m_errsv; }
-        private:
-                int m_errsv;
-        };
-
-        class smart_fd {
-        public:
-                constexpr smart_fd() noexcept = default;
-                explicit constexpr smart_fd(int fd) noexcept : m_fd{fd} { }
-                ~smart_fd() noexcept { if (m_fd != -1) { restore_errno errsv; close(m_fd); } }
-
-                inline smart_fd& operator = (int rhs) noexcept { if (m_fd != -1) { restore_errno errsv; close(m_fd); } m_fd = rhs; return *this; }
-                inline smart_fd& operator = (smart_fd& rhs) noexcept { if (&rhs != this) { if (m_fd != -1) { restore_errno errsv; close(m_fd); } m_fd = rhs.m_fd; rhs.m_fd = -1; } return *this; }
-                inline constexpr operator int () const noexcept { return m_fd; }
-                inline constexpr operator int* () noexcept { assert(m_fd == -1); return &m_fd; }
-
-                int steal() noexcept { auto d = m_fd; m_fd = -1; return d; }
-
-                /* Prevent accidents */
-                smart_fd(smart_fd const&) = delete;
-                smart_fd(smart_fd&&) = delete;
-                smart_fd& operator = (smart_fd const&) = delete;
-                smart_fd& operator = (smart_fd&&) = delete;
-
-        private:
-                int m_fd{-1};
-        };
-
-} /* namespace util */
-
 } /* namespace vte */

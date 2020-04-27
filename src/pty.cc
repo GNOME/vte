@@ -30,9 +30,10 @@
 
 #include "pty.hh"
 
+#include "libc-glue.hh"
+
 #include <vte/vte.h>
 #include "vteptyinternal.hh"
-#include "vtetypes.hh"
 #include "vtespawn.hh"
 
 #include <assert.h>
@@ -405,7 +406,7 @@ Pty::spawn(char const* directory,
 #endif
 
         if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd)) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 g_set_error(error,
                             G_IO_ERROR,
                             g_io_error_from_errno(errsv),
@@ -538,7 +539,7 @@ Pty::set_size(int rows,
         auto ret = ioctl(master, TIOCSWINSZ, &size);
 
         if (ret != 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "Failed to set size on %d: %m\n", master);
         }
@@ -579,7 +580,7 @@ Pty::get_size(int* rows,
                 return true;
 	}
 
-        vte::util::restore_errno errsv;
+        auto errsv = vte::libc::ErrnoSaver{};
         _vte_debug_print(VTE_DEBUG_PTY,
                          "Failed to read size from fd %d: %m\n", master);
 
@@ -620,21 +621,21 @@ static int
 fd_setup(int fd)
 {
         if (fd_set_cloexec(fd) < 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                 return -1;
         }
 
         if (fd_set_nonblocking(fd) < 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
                 return -1;
         }
 
         if (fd_set_cpkt(fd) < 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 return -1;
@@ -656,8 +657,7 @@ static int
 _vte_pty_open_posix(void)
 {
 	/* Attempt to open the master. */
-        vte::util::smart_fd fd;
-        fd = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
+        auto fd = vte::libc::FD{posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK | O_CLOEXEC)};
 #ifndef __linux__
         /* Other kernels may not support CLOEXEC or NONBLOCK above, so try to fall back */
         bool need_cloexec = false, need_nonblocking = false;
@@ -674,7 +674,7 @@ _vte_pty_open_posix(void)
 #endif /* !linux */
 
         if (fd == -1) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "posix_openpt", g_strerror(errsv));
                 return -1;
@@ -682,14 +682,14 @@ _vte_pty_open_posix(void)
 
 #ifndef __linux__
         if (need_cloexec && fd_set_cloexec(fd) < 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                 return -1;
         }
 
         if (need_nonblocking && fd_set_nonblocking(fd) < 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting NONBLOCK flag", g_strerror(errsv));
                 return -1;
@@ -697,7 +697,7 @@ _vte_pty_open_posix(void)
 #endif /* !linux */
 
         if (fd_set_cpkt(fd) < 0) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
                 return -1;
@@ -705,13 +705,13 @@ _vte_pty_open_posix(void)
 
 	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", (int)fd);
 
-        return fd.steal();
+        return fd.release();
 }
 
 static int
 _vte_pty_open_foreign(int masterfd /* consumed */)
 {
-        vte::util::smart_fd fd(masterfd);
+        auto fd = vte::libc::FD{masterfd};
         if (fd == -1) {
                 errno = EBADF;
                 return -1;
@@ -720,7 +720,7 @@ _vte_pty_open_foreign(int masterfd /* consumed */)
         if (fd_setup(fd) < 0)
                 return -1;
 
-        return fd.steal();
+        return fd.release();
 }
 
 /*
@@ -739,7 +739,7 @@ Pty::set_utf8(bool utf8) const noexcept
 #ifdef IUTF8
 	struct termios tio;
         if (tcgetattr(fd(), &tio) == -1) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "tcgetattr");
                 return false;
         }
@@ -754,7 +754,7 @@ Pty::set_utf8(bool utf8) const noexcept
         /* Only set the flag if it changes */
         if (saved_cflag != tio.c_iflag &&
             tcsetattr(fd(), TCSANOW, &tio) == -1) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "tcsetattr");
                 return false;
 	}

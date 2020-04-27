@@ -41,6 +41,10 @@ icu_sources = files(
   'icu-glue.hh',
 )
 
+libc_glue_sources = files(
+  'libc-glue.hh',
+)
+
 modes_sources = files(
   'modes-ecma.hh',
   'modes-private.hh',
@@ -89,7 +93,7 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + glib_glue_sources + modes_sources + parser_sources + pty_sources + regex_sources + utf8_sources + files(
+libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + parser_sources + pty_sources + regex_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -484,7 +488,7 @@ test_utf8 = executable(
   install: false,
 )
 
-test_vtetypes_sources = files(
+test_vtetypes_sources = libc_glue_sources + files(
    'vtetypes.cc',
    'vtetypes.hh',
 )

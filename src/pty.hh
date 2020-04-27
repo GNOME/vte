@@ -19,8 +19,11 @@
 
 #include <memory>
 
+#include <gio/gio.h>
+
 #include "vte/vteenums.h"
-#include "vtetypes.hh"
+
+#include "libc-glue.hh"
 
 namespace vte::base {
 
@@ -33,7 +36,7 @@ private:
                 void* data{nullptr};
         } m_extra_child_setup;
 
-        vte::util::smart_fd m_pty_fd{};
+        vte::libc::FD m_pty_fd{};
 
         VtePtyFlags m_flags{VTE_PTY_DEFAULT};
 

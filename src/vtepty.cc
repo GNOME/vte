@@ -29,8 +29,6 @@
 #include <config.h>
 
 #include <vte/vte.h>
-#include "vtetypes.hh"
-#include "vtespawn.hh"
 
 #include <errno.h>
 #include <glib.h>
@@ -39,7 +37,10 @@
 
 #include <glib/gi18n-lib.h>
 
+#include "libc-glue.hh"
 #include "pty.hh"
+#include "vtespawn.hh"
+
 #include "vteptyinternal.hh"
 
 #if !GLIB_CHECK_VERSION(2, 42, 0)
@@ -224,7 +225,7 @@ vte_pty_set_size(VtePty *pty,
         if (impl->set_size(rows, columns))
                 return true;
 
-        vte::util::restore_errno errsv;
+        auto errsv = vte::libc::ErrnoSaver{};
         g_set_error(error, G_IO_ERROR,
                     g_io_error_from_errno(errsv),
                     "Failed to set window size: %s",
@@ -259,7 +260,7 @@ vte_pty_get_size(VtePty *pty,
         if (impl->get_size(rows, columns))
                 return true;
 
-        vte::util::restore_errno errsv;
+        auto errsv = vte::libc::ErrnoSaver{};
         g_set_error(error, G_IO_ERROR,
                     g_io_error_from_errno(errsv),
                     "Failed to get window size: %s",
@@ -291,7 +292,7 @@ vte_pty_set_utf8(VtePty *pty,
         if (impl->set_utf8(utf8))
                 return true;
 
-        vte::util::restore_errno errsv;
+        auto errsv = vte::libc::ErrnoSaver{};
         g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
                     "%s failed: %s", "tc[sg]etattr", g_strerror(errsv));
         return false;
@@ -343,7 +344,7 @@ vte_pty_initable_init (GInitable *initable,
         }
 
         if (priv->pty == nullptr) {
-                vte::util::restore_errno errsv;
+                auto errsv = vte::libc::ErrnoSaver{};
                 g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
                             "Failed to open PTY: %s", g_strerror(errsv));
                 return FALSE;
