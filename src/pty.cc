@@ -431,16 +431,8 @@ Pty::spawn(char const* directory,
                 return false;
         }
 
-        spawn_flags |= G_SPAWN_DO_NOT_REAP_CHILD;
-
-        /* We do NOT support this flag. If you want to have some FD open in the child
-         * process, simply use a child setup function that unsets the CLOEXEC flag
-         * on that FD.
-         */
-        spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
-
         inherit_envv = (spawn_flags & VTE_SPAWN_NO_PARENT_ENVV) == 0;
-        spawn_flags &= ~VTE_SPAWN_NO_PARENT_ENVV;
+        spawn_flags &= ~(VTE_SPAWN_NO_PARENT_ENVV | VTE_SPAWN_NO_SYSTEMD_SCOPE | VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE);
 
         /* add the given environment to the childs */
         envp2 = __vte_pty_merge_environ (envv, directory, inherit_envv);
