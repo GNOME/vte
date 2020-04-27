@@ -594,6 +594,12 @@ public:
                                 continue;
 
                         i++; /* skip it */
+                        if (i == argc) {
+                                g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_FAILED,
+                                            "No command specified after -- terminator");
+                                return false;
+                        }
+
                         exec_argv = g_new(char*, argc - i + 1);
                         int j;
                         for (j = 0; i < argc; i++, j++)

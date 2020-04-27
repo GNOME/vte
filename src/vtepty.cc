@@ -714,6 +714,7 @@ vte_pty_spawn_with_fds_async(VtePty *pty,
                              gpointer user_data)
 {
         g_return_if_fail(argv != nullptr);
+        g_return_if_fail(argv[0] != nullptr);
         g_return_if_fail(n_fds == 0 || fds != nullptr);
         for (auto i = int{0}; i < n_fds; ++i)
                 g_return_if_fail(vte::libc::fd_get_cloexec(fds[i]));
