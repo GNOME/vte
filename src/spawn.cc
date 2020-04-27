@@ -494,8 +494,6 @@ SpawnOperation::prepare(vte::glib::Error& error)
 
         auto child_report_error_pipe_read = vte::libc::FD{};
         auto child_report_error_pipe_write = vte::libc::FD{};
-        assert(!child_report_error_pipe_read);
-        assert(!child_report_error_pipe_write);
         if (!make_pipe(FD_CLOEXEC,
                        child_report_error_pipe_read,
                        child_report_error_pipe_write,
@@ -509,8 +507,6 @@ SpawnOperation::prepare(vte::glib::Error& error)
          */
         context().add_map_fd(child_report_error_pipe_write.get(), -1);
 
-        assert(child_report_error_pipe_read);
-        assert(child_report_error_pipe_write);
         auto const pid = fork();
         if (pid < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
@@ -537,7 +533,6 @@ SpawnOperation::prepare(vte::glib::Error& error)
         /* Parent */
         m_pid = pid;
         m_child_report_error_pipe_read = std::move(child_report_error_pipe_read);
-        assert(m_child_report_error_pipe_read);
 
         return true;
 }
@@ -547,9 +542,6 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
 {
         int buf[2] = {G_SPAWN_ERROR_FAILED, ENOSYS};
         auto n_read = int{0};
-
-        g_assert_cmpint(m_child_report_error_pipe_read.get(), !=, -1);
-        assert(m_child_report_error_pipe_read);
 
         if (!read_ints(m_child_report_error_pipe_read.get(),
                        buf, 2,
