@@ -95,7 +95,7 @@ Pty::unref() noexcept
 }
 
 int
-Pty::get_peer() const noexcept
+Pty::get_peer(bool cloexec) const noexcept
 {
         if (!m_pty_fd)
                 return -1;
@@ -106,8 +106,9 @@ Pty::get_peer() const noexcept
          */
 
         /* Now open the PTY peer. Note that this also makes the PTY our controlling TTY. */
-        /* Note: *not* O_CLOEXEC! */
-        auto const fd_flags = int{O_RDWR | ((m_flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0)};
+        auto const fd_flags = int{O_RDWR |
+                                  ((m_flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0) |
+                                  (cloexec ? O_CLOEXEC : 0)};
 
         auto peer_fd = vte::libc::FD{};
 

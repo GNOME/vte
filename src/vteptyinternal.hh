@@ -24,8 +24,8 @@ vte::base::Pty* _vte_pty_get_impl(VtePty* pty);
 
 bool _vte_pty_spawn_sync(VtePty* pty,
                          char const* working_directory,
-                         char** argv,
-                         char** envv,
+                         char const* const* argv,
+                         char const* const* envv,
                          GSpawnFlags spawn_flags,
                          GSpawnChildSetupFunc child_setup,
                          gpointer child_setup_data,

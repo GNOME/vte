@@ -138,8 +138,8 @@ SpawnContext::prepare_environ()
         m_envv = vte::glib::take_strv(merge_environ(m_envv.release(), m_cwd.get(), inherit_environ()));
 }
 
-int
-SpawnContext::exec() const noexcept
+SpawnContext::ExecError
+SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write) noexcept
 {
         /* NOTE! This function must not rely on smart pointers to
          * release their object, since the destructors are NOT run
@@ -167,7 +167,7 @@ SpawnContext::exec() const noexcept
         sigemptyset(&set);
         if (pthread_sigmask(SIG_SETMASK, &set, nullptr) == -1) {
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "pthread_sigmask");
-                return -1;
+                return ExecError::SIGMASK;
         }
 
         /* Reset the handlers for all signals to their defaults.  The parent
@@ -185,11 +185,22 @@ SpawnContext::exec() const noexcept
         /* Close all file descriptors on exec. Note that this includes
          * child_error_report_pipe_write, which keeps the parent from blocking
          * forever on the other end of that pipe.
-         * (Note that stdin, stdout and stderr will be set by the child setup afterwards.)
          */
-        // FIXMEchpe make sure child_error_report_pipe_write is != 0, 1, 2 !!! before setting up PTY below!!!
         _vte_cloexec_from(3);
 
+        /* Working directory */
+        if (m_cwd && chdir(m_cwd.get()) < 0) {
+                /* If the fallback fails too, make sure to return the errno
+                 * from the original cwd, not the fallback cwd.
+                 */
+                auto errsv = vte::libc::ErrnoSaver{};
+                if (m_fallback_cwd && chdir(m_fallback_cwd.get()) < 0)
+                        return ExecError::CHDIR;
+
+                errsv.reset();
+        }
+
+        /* Session */
         if (!(pty()->flags() & VTE_PTY_NO_SESSION)) {
                 /* This starts a new session; we become its process-group leader,
                  * and lose our controlling TTY.
@@ -197,14 +208,14 @@ SpawnContext::exec() const noexcept
                 _vte_debug_print(VTE_DEBUG_PTY, "Starting new session\n");
                 if (setsid() == -1) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setsid");
-                        return -1;
+                        return ExecError::SETSID;
                 }
         }
 
         /* Note: *not* FD_CLOEXEC! */
-        auto peer_fd = pty()->get_peer();
+        auto peer_fd = pty()->get_peer(true /* cloexec */);
         if (peer_fd == -1)
-                return -1;
+                return ExecError::GETPTPEER;
 
 #ifdef TIOCSCTTY
         /* On linux, opening the PTY peer above already made it our controlling TTY (since
@@ -214,40 +225,79 @@ SpawnContext::exec() const noexcept
         if (!(pty()->flags() & VTE_PTY_NO_CTTY)) {
                 if (ioctl(peer_fd, TIOCSCTTY, peer_fd) != 0) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
-                        return -1;
+                        return ExecError::SCTTY;
                 }
         }
 #endif
 
-        /* now setup child I/O through the tty */
-        if (peer_fd != STDIN_FILENO) {
-                if (dup2(peer_fd, STDIN_FILENO) != STDIN_FILENO)
-                        return -1;
-        }
-        if (peer_fd != STDOUT_FILENO) {
-                if (dup2(peer_fd, STDOUT_FILENO) != STDOUT_FILENO)
-                        return -1;
-        }
-        if (peer_fd != STDERR_FILENO) {
-                if (dup2(peer_fd, STDERR_FILENO) != STDERR_FILENO)
-                        return -1;
-        }
+        /* Replace the placeholders with the FD assignment for the PTY */
+        m_fd_map[0].first = peer_fd;
+        m_fd_map[1].first = peer_fd;
+        m_fd_map[2].first = peer_fd;
 
-        if (peer_fd != STDIN_FILENO  &&
-            peer_fd != STDOUT_FILENO &&
-            peer_fd != STDERR_FILENO) {
-                close(peer_fd);
-        }
+        /* Assign FDs */
+        auto const n_fd_map = m_fd_map.size();
+        for (auto i = size_t{0}; i < n_fd_map; ++i) {
+                auto [source_fd, target_fd] = m_fd_map[i];
 
-        if (m_cwd && chdir(m_cwd.get()) < 0) {
-                /* If the fallback fails too, make sure to return the errno
-                 * from the original cwd, not the fallback cwd.
+                /* -1 means the source_fd is only in the map so that it can
+                 * be checked for conflicts with other target FDs. It may be
+                 * re-assigned while relocating other FDs.
                  */
-                auto errsv = vte::libc::ErrnoSaver{};
-                if (m_fallback_cwd && chdir(m_fallback_cwd.get()) < 0)
-                        return G_SPAWN_ERROR_CHDIR;
+                if (target_fd == -1)
+                        continue;
 
-                errsv.reset();
+                /* We want to move source_fd to target_fd */
+
+                if (target_fd != source_fd) {
+
+                        /* Need to check if target_fd is an FDs in the FD list.
+                         * If so, need to re-assign the source FD(s) first.
+                         */
+                        for (auto j = size_t{0}; j < n_fd_map; ++j) {
+                                auto const [from_fd, to_fd] = m_fd_map[j];
+
+                                if (from_fd != target_fd)
+                                        continue;
+
+                                auto new_from_fd = vte::libc::fd_dup_cloexec(from_fd, target_fd + 1);
+                                if (new_from_fd == -1)
+                                        return ExecError::DUP;
+
+                                for (auto k = j; k < n_fd_map; ++k) {
+                                        if (m_fd_map[k].first == from_fd)
+                                                m_fd_map[k].first = new_from_fd;
+                                }
+
+                                /* Now that we have updated all references to the old
+                                 * source FD in the map, we can close the FD. (Not
+                                 * strictly necessary since it'll be dup2'd over
+                                 * anyway.)
+                                 */
+                                if (from_fd == child_report_error_pipe_write.get()) {
+                                        /* Need to report the new pipe write FD back to the caller. */
+                                        child_report_error_pipe_write = new_from_fd;
+                                } else {
+                                        (void)close(from_fd);
+                                }
+
+                                break;
+                        }
+                }
+
+                /* source_fd may have been changed by the loop above */
+                source_fd = m_fd_map[i].first;
+
+                if (target_fd == source_fd) {
+                        /* Already assigned correctly, but need to remove FD_CLOEXEC */
+                        if (vte::libc::fd_unset_cloexec(target_fd) == -1)
+                                return ExecError::UNSET_CLOEXEC;
+
+                } else {
+                        /* Now we know that target_fd can be safely overwritten. */
+                        if (vte::libc::fd_dup2(source_fd, target_fd) == -1)
+                                return ExecError::DUP2;
+                }
         }
 
         /* Finally call an extra child setup */
@@ -262,7 +312,7 @@ SpawnContext::exec() const noexcept
                      search_path_from_envp());
 
         /* If we get here, exec failed */
-        return G_SPAWN_ERROR_FAILED;
+        return ExecError::EXEC;
 }
 
 SpawnOperation::~SpawnOperation()
@@ -290,7 +340,7 @@ SpawnOperation::~SpawnOperation()
 }
 
 bool
-SpawnOperation::prepare(vte::glib::Error& error) noexcept
+SpawnOperation::prepare(vte::glib::Error& error)
 {
 #ifndef WITH_SYSTEMD
         if (context().systemd_scope()) {
@@ -320,6 +370,13 @@ SpawnOperation::prepare(vte::glib::Error& error) noexcept
                        error))
                 return false;
 
+        /* Need to add the write end of the pipe to the FD map, so
+         * that the FD re-arranging code knows it needs to preserve
+         * the FD and not dup2 over it.
+         * Target -1 means that no actual re-assignment will take place.
+         */
+        context().add_map_fd(child_report_error_pipe_write.get(), -1);
+
         assert(child_report_error_pipe_read);
         assert(child_report_error_pipe_write);
         auto const pid = fork();
@@ -336,13 +393,11 @@ SpawnOperation::prepare(vte::glib::Error& error) noexcept
                 /* Child */
 
                 child_report_error_pipe_read.reset();
-                assert(!child_report_error_pipe_read);
 
-                auto const err = context().exec();
+                auto const err = context().exec(child_report_error_pipe_write);
 
-                /* If we get here, exec failed. Write the error to the pipe and exit */
-                assert(!child_report_error_pipe_read);
-                _vte_write_err(child_report_error_pipe_write.get(), err);
+                /* If we get here, exec failed. Write the error to the pipe and exit. */
+                _vte_write_err(child_report_error_pipe_write.get(), int(err));
                 _exit(127);
                 return true;
         }
@@ -375,37 +430,77 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
                 /* The process will have called _exit(127) already, no need to kill it */
                 m_kill_pid = false;
 
-                switch (buf[0]) {
-                case G_SPAWN_ERROR_CHDIR: {
+                auto const err = buf[1];
+
+                switch (SpawnContext::ExecError(buf[0])) {
+                case SpawnContext::ExecError::CHDIR: {
                         auto cwd = vte::glib::take_string(context().cwd() ? g_utf8_make_valid(context().cwd(), -1) : nullptr);
-                        error.set(G_IO_ERROR,
-                                  g_io_error_from_errno(buf[1]),
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
                                   _("Failed to change to directory “%s”: %s"),
                                   cwd.get(),
-                                  g_strerror(buf[1]));
+                                  g_strerror(err));
                         break;
                 }
 
-                case G_SPAWN_ERROR_FAILED: {
-                        auto arg = vte::glib::take_string(g_utf8_make_valid(context().argv()[0], -1));
-                        error.set(G_IO_ERROR,
-                                  g_io_error_from_errno(buf[1]),
-                                  _("Failed to execute child process “%s”: %s"),
-                                  arg.get(),
-                                  g_strerror(buf[1]));
+                case SpawnContext::ExecError::DUP:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to duplicate file descriptor: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::DUP2:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to duplicate file descriptor (dup2): %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::EXEC:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to execve: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::GETPTPEER:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to open PTY peer: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::SCTTY:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to set controlling TTY: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::SETSID:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to start session: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::SIGMASK:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to set signal mask: %s",
+                                  g_strerror(err));
+                        break;
+
+                case SpawnContext::ExecError::UNSET_CLOEXEC:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Failed to make file descriptor not cloexec: %s",
+                                  g_strerror(err));
+                        break;
+
+                default:
+                        error.set(G_IO_ERROR, g_io_error_from_errno(err),
+                                  "Unknown error: %s",
+                                  g_strerror(err));
                         break;
                 }
 
-                default: {
-                        auto arg = vte::glib::take_string(g_utf8_make_valid(context().argv()[0], -1));
-                        error.set(G_IO_ERROR,
-                                  G_IO_ERROR_FAILED,
-                                  _("Unknown error executing child process “%s”"),
-                                  arg.get());
-                        break;
-                }
-                }
-
+                auto arg0 = vte::glib::take_string(g_utf8_make_valid(context().argv()[0], -1));
+                g_prefix_error(error,
+                               _("Failed to execute child process “%s”"),
+                               arg0.get());
                 return false;
         }
 

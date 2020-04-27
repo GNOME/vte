@@ -110,6 +110,23 @@ void vte_pty_spawn_async(VtePty *pty,
                          gpointer user_data) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
 
 _VTE_PUBLIC
+void vte_pty_spawn_with_fds_async(VtePty *pty,
+                                  char const* working_directory,
+                                  char const* const* argv,
+                                  char const* const* envv,
+                                  int const* fds,
+                                  int n_fds,
+                                  int const* map_fds,
+                                  int n_map_fds,
+                                  GSpawnFlags spawn_flags,
+                                  GSpawnChildSetupFunc child_setup,
+                                  gpointer child_setup_data,
+                                  GDestroyNotify child_setup_data_destroy,
+                                  int timeout,
+                                  GCancellable *cancellable,
+                                  GAsyncReadyCallback callback,
+                                  gpointer user_data) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
+
 gboolean vte_pty_spawn_finish(VtePty *pty,
                               GAsyncResult *result,
                               GPid *child_pid /* out */,

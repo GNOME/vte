@@ -2865,7 +2865,7 @@ spawn_async_cb (GObject *source,
  */
 
 /**
- * vte_terminal_spawn_async:
+ * vte_terminal_spawn_with_fds_async:
  * @terminal: a #VteTerminal
  * @pty_flags: flags from #VtePtyFlags
  * @working_directory: (allow-none): the name of a directory the command should start
@@ -2873,6 +2873,10 @@ spawn_async_cb (GObject *source,
  * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
  * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
  *   variables to be added to the environment before starting the process, or %NULL
+ * @fds: (nullable) (array length=n_fds) (transfer none) (scope call): an array of file descriptors, or %NULL
+ * @n_fds: the number of file descriptors in @fds, or 0 if @fds is %NULL
+ * @map_fds: (nullable) (array length=n_map_fds) (transfer none) (scope call): an array of integers, or %NULL
+ * @n_map_fds: the number of elements in @map_fds, or 0 if @map_fds is %NULL
  * @spawn_flags: flags from #GSpawnFlags
  * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
  * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
@@ -2883,7 +2887,7 @@ spawn_async_cb (GObject *source,
  * @user_data: (closure callback): user data for @callback, or %NULL
  *
  * A convenience function that wraps creating the #VtePty and spawning
- * the child process on it. See vte_pty_new_sync(), vte_pty_spawn_async(),
+ * the child process on it. See vte_pty_new_sync(), vte_pty_spawn_with_fds_async(),
  * and vte_pty_spawn_finish() for more information.
  *
  * When the operation is finished successfully, @callback will be called
@@ -2897,6 +2901,16 @@ spawn_async_cb (GObject *source,
  * and %G_SPAWN_CHILD_INHERITS_STDIN are not supported in @spawn_flags, since
  * stdin, stdout and stderr of the child process will always be connected to
  * the PTY.
+ *
+ * If @fds is not %NULL, the child process will map the file descriptors from
+ * @fds according to @map_fds; @n_map_fds must be less or equal to @n_fds.
+ * This function will take ownership of the file descriptors in @fds;
+ * you must not use or close them after this call.
+ *
+ * Note that all  open file descriptors apart from those mapped as above
+ * will be closed in the child. (If you want to keep some other file descriptor
+ * open for use in the child process, you need to use a child setup function
+ * that unsets the FD_CLOEXEC flag on that file descriptor manually.)
  *
  * Beginning with 0.60, and on linux only, and unless %VTE_SPAWN_NO_SYSTEMD_SCOPE is
  * passed in @spawn_flags, the newly created child process will be moved to its own
@@ -2917,6 +2931,78 @@ spawn_async_cb (GObject *source,
  * The caller should also make sure that symlinks were preserved while constructing the value of @working_directory,
  * e.g. by using vte_terminal_get_current_directory_uri(), g_get_current_dir() or get_current_dir_name().
  *
+ * Since: 0.62
+ */
+void
+vte_terminal_spawn_with_fds_async(VteTerminal *terminal,
+                                  VtePtyFlags pty_flags,
+                                  const char *working_directory,
+                                  char const* const* argv,
+                                  char const* const* envv,
+                                  int const* fds,
+                                  int n_fds,
+                                  int const* fd_map_to,
+                                  int n_fd_map_to,
+                                  GSpawnFlags spawn_flags,
+                                  GSpawnChildSetupFunc child_setup,
+                                  gpointer child_setup_data,
+                                  GDestroyNotify child_setup_data_destroy,
+                                  int timeout,
+                                  GCancellable *cancellable,
+                                  VteTerminalSpawnAsyncCallback callback,
+                                  gpointer user_data)
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
+        g_return_if_fail(callback);
+
+        auto error = vte::glib::Error{};
+        auto pty = vte::glib::take_ref(vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error));
+        if (!pty) {
+                auto task = vte::glib::take_ref(g_task_new(nullptr,
+                                                           cancellable,
+                                                           spawn_async_cb,
+                                                           spawn_async_callback_data_new(terminal, callback, user_data)));
+                g_task_return_error(task.get(), error.release());
+                return;
+        }
+
+        vte_pty_spawn_with_fds_async(pty.get(),
+                                     working_directory,
+                                     argv,
+                                     envv,
+                                     fds, n_fds, fd_map_to, n_fd_map_to,
+                                     spawn_flags,
+                                     child_setup, child_setup_data, child_setup_data_destroy,
+                                     timeout, cancellable,
+                                     spawn_async_cb,
+                                     spawn_async_callback_data_new(terminal, callback, user_data));
+}
+
+/**
+ * vte_terminal_spawn_async:
+ * @terminal: a #VteTerminal
+ * @pty_flags: flags from #VtePtyFlags
+ * @working_directory: (allow-none): the name of a directory the command should start
+ *   in, or %NULL to use the current working directory
+ * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
+ * @spawn_flags: flags from #GSpawnFlags
+ * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
+ * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
+ * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
+ * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @callback: (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
+ * @user_data: (closure callback): user data for @callback, or %NULL
+ *
+ * A convenience function that wraps creating the #VtePty and spawning
+ * the child process on it. Like vte_terminal_spawn_with_fds_async(),
+ * except that this function does not allow passing file descriptors to
+ * the child process. See vte_terminal_spawn_with_fds_async() for more
+ * information.
+ *
  * Since: 0.48
  */
 void
@@ -2934,33 +3020,12 @@ vte_terminal_spawn_async(VteTerminal *terminal,
                          VteTerminalSpawnAsyncCallback callback,
                          gpointer user_data)
 {
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(argv != nullptr);
-        g_return_if_fail(!child_setup_data || child_setup);
-        g_return_if_fail(!child_setup_data_destroy || child_setup_data);
-        g_return_if_fail(timeout >= -1);
-        g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
-
-        auto error = vte::glib::Error{};
-        auto pty = vte::glib::take_ref(vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error));
-        if (!pty) {
-                auto task = vte::glib::take_ref(g_task_new(nullptr,
-                                                           cancellable,
-                                                           spawn_async_cb,
-                                                           spawn_async_callback_data_new(terminal, callback, user_data)));
-                g_task_return_error(task.get(), error.release());
-                return;
-        }
-
-        vte_pty_spawn_async(pty.get(),
-                            working_directory,
-                            argv,
-                            envv,
-                            spawn_flags,
-                            child_setup, child_setup_data, child_setup_data_destroy,
-                            timeout, cancellable,
-                            spawn_async_cb,
-                            spawn_async_callback_data_new(terminal, callback, user_data));
+        vte_terminal_spawn_with_fds_async(terminal, pty_flags, working_directory, argv, envv,
+                                          nullptr, 0, nullptr, 0,
+                                          spawn_flags,
+                                          child_setup, child_setup_data, child_setup_data_destroy,
+                                          timeout, cancellable,
+                                          callback, user_data);
 }
 
 /**

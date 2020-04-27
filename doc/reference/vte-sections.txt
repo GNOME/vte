@@ -100,6 +100,7 @@ vte_get_encoding_supported
 <SUBSECTION>
 VteTerminalSpawnAsyncCallback
 vte_terminal_spawn_async
+vte_terminal_spawn_with_fds_async
 vte_terminal_get_pty
 vte_terminal_set_pty
 vte_terminal_pty_new_sync
@@ -201,6 +202,7 @@ VTE_SPAWN_NO_PARENT_ENVV
 VTE_SPAWN_NO_SYSTEMD_SCOPE
 VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE
 vte_pty_spawn_async
+vte_pty_spawn_with_fds_async
 vte_pty_spawn_finish
 
 <SUBSECTION Standard>

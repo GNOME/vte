@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <glib.h>
 #include <gio/gio.h>
@@ -46,6 +47,13 @@ private:
         vte::glib::StringPtr m_arg0;
         vte::glib::StrvPtr m_argv;
         vte::glib::StrvPtr m_envv;
+
+        std::vector<vte::libc::FD> m_fds{};
+
+        // these 3 are placeholder elements for the PTY peer fd being mapped to 0, 1, 2 later
+        // we preallocate this here so that the child setup function doesn't do any
+        // allocations
+        std::vector<std::pair<int,int>> m_fd_map{{-1, 0}, {-1, 1}, {-1, 2}};
 
         child_setup_type m_child_setup{(void(*)(void*))0};
         void* m_child_setup_data{nullptr};
@@ -119,6 +127,30 @@ public:
                 m_child_setup_data_destroy = destroy;
         }
 
+        void add_fds(int const* fds,
+                     int n_fds)
+        {
+                m_fds.reserve(m_fds.size() + n_fds);
+                for (auto i = int{0}; i < n_fds; ++i)
+                        m_fds.emplace_back(fds[i]);
+        }
+
+        void add_map_fds(int const* fds,
+                         int n_fds,
+                         int const* map_fds,
+                         int n_map_fds)
+        {
+                m_fd_map.reserve(m_fd_map.size() + n_fds);
+                for (auto i = int{0}; i < n_fds; ++i)
+                        m_fd_map.emplace_back(fds[i], i < n_map_fds ? map_fds[i] : -1);
+        }
+
+        void add_map_fd(int fd,
+                        int map_to)
+        {
+                add_map_fds(&fd, 1, &map_to, 1);
+        }
+
         void set_no_inherit_environ()    noexcept { m_inherit_environ = false;      }
         void set_no_systemd_scope()      noexcept { m_systemd_scope = false;        }
         void set_require_systemd_scope() noexcept { m_require_systemd_scope = true; }
@@ -142,7 +174,19 @@ public:
 
         void prepare_environ();
 
-        int exec() const noexcept;
+        enum class ExecError {
+                CHDIR,
+                DUP,
+                DUP2,
+                EXEC,
+                GETPTPEER,
+                SCTTY,
+                SETSID,
+                SIGMASK,
+                UNSET_CLOEXEC,
+        };
+
+        ExecError exec(vte::libc::FD& child_report_error_pipe_write) noexcept;
 
 }; // class SpawnContext
 
@@ -161,7 +205,7 @@ private:
         pid_t m_pid{-1};
         bool m_kill_pid{true};
 
-        auto& context() const noexcept { return m_context; }
+        auto& context() noexcept { return m_context; }
 
         bool prepare(vte::glib::Error& error);
         bool run(vte::glib::Error& error) noexcept;

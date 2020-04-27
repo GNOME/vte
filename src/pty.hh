@@ -52,7 +52,7 @@ public:
         inline constexpr int fd() const noexcept { return m_pty_fd.get(); }
         inline constexpr auto flags() const noexcept { return m_flags; }
 
-        int get_peer() const noexcept;
+        int get_peer(bool cloexec = false) const noexcept;
 
         void child_setup() const noexcept;
 

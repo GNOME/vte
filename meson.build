@@ -190,14 +190,11 @@ foreach func: check_functions_required
 endforeach
 
 check_functions = [
-  # Misc I/O routines.
   'explicit_bzero',
+  'fdwalk',
   'pread',
   'pwrite',
-  # Misc string routines.
   'strchrnul',
-  # for vtespawn
-  'fdwalk',
 ]
 
 foreach func: check_functions

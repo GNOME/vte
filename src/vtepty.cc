@@ -556,8 +556,12 @@ ignored_spawn_flags()
 static vte::base::SpawnContext
 spawn_context_from_args(VtePty* pty,
                         char const* working_directory,
-                        char** argv,
-                        char** envv,
+                        char const* const* argv,
+                        char const* const* envv,
+                        int const* fds,
+                        int n_fds,
+                        int const* fd_map_to,
+                        int n_fd_map_to,
                         GSpawnFlags spawn_flags,
                         GSpawnChildSetupFunc child_setup,
                         void* child_setup_data,
@@ -588,14 +592,17 @@ spawn_context_from_args(VtePty* pty,
         if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE)
                 context.set_require_systemd_scope();
 
+        context.add_fds(fds, n_fds);
+        context.add_map_fds(fds, n_fds, fd_map_to, n_fd_map_to);
+
         return context;
 }
 
 bool
 _vte_pty_spawn_sync(VtePty* pty,
                     char const* working_directory,
-                    char** argv,
-                    char** envv,
+                    char const* const* argv,
+                    char const* const* envv,
                     GSpawnFlags spawn_flags,
                     GSpawnChildSetupFunc child_setup,
                     gpointer child_setup_data,
@@ -616,6 +623,8 @@ _vte_pty_spawn_sync(VtePty* pty,
                                                                     working_directory,
                                                                     argv,
                                                                     envv,
+                                                                    nullptr, 0,
+                                                                    nullptr, 0,
                                                                     spawn_flags,
                                                                     child_setup,
                                                                     child_setup_data,
@@ -632,13 +641,17 @@ _vte_pty_spawn_sync(VtePty* pty,
 }
 
 /**
- * vte_pty_spawn_async:
+ * vte_pty_spawn_with_fds_async:
  * @pty: a #VtePty
  * @working_directory: (allow-none): the name of a directory the command should start
  *   in, or %NULL to use the current working directory
  * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
  * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
  *   variables to be added to the environment before starting the process, or %NULL
+ * @fds: (nullable) (array length=n_fds) (transfer none) (scope call): an array of file descriptors, or %NULL
+ * @n_fds: the number of file descriptors in @fds, or 0 if @fds is %NULL
+ * @map_fds: (nullable) (array length=n_map_fds) (transfer none) (scope call): an array of integers, or %NULL
+ * @n_map_fds: the number of elements in @map_fds, or 0 if @map_fds is %NULL
  * @spawn_flags: flags from #GSpawnFlags
  * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
  * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
@@ -658,10 +671,17 @@ _vte_pty_spawn_sync(VtePty* pty,
  * the PTY. Also %G_SPAWN_LEAVE_DESCRIPTORS_OPEN is not supported; and
  * %G_SPAWN_DO_NOT_REAP_CHILD will always be added to @spawn_flags.
  *
- * Note that all open file descriptors will be closed in the child. If you want
- * to keep some file descriptor open for use in the child process, you need to
- * use a child setup function that unsets the FD_CLOEXEC flag on that file
- * descriptor.
+ * If @fds is not %NULL, the child process will map the file descriptors from
+ * @fds according to @map_fds; @n_map_fds must be less or equal to @n_fds.
+ * This function will take ownership of the file descriptors in @fds;
+ * you must not use or close them after this call. All file descriptors in @fds
+ * must have the FD_CLOEXEC flag set on them; it will be unset in the child process
+ * before calling exec.
+ *
+ * Note that all  open file descriptors apart from those mapped as above
+ * will be closed in the child. (If you want to keep some other file descriptor
+ * open for use in the child process, you need to use a child setup function
+ * that unsets the FD_CLOEXEC flag on that file descriptor manually.)
  *
  * Beginning with 0.60, and on linux only, and unless %VTE_SPAWN_NO_SYSTEMD_SCOPE is
  * passed in @spawn_flags, the newly created child process will be moved to its own
@@ -671,25 +691,34 @@ _vte_pty_spawn_sync(VtePty* pty,
  * providing a systemd override file for 'vte-spawn-.scope' unit. See man:systemd.unit(5)
  * for further information.
  *
- * See vte_pty_new(), g_spawn_async() and vte_terminal_watch_child() for more information.
+ * See vte_pty_new(), and vte_terminal_watch_child() for more information.
  *
- * Since: 0.48
+ * Since: 0.62
  */
 void
-vte_pty_spawn_async(VtePty *pty,
-                    const char *working_directory,
-                    char **argv,
-                    char **envv,
-                    GSpawnFlags spawn_flags,
-                    GSpawnChildSetupFunc child_setup,
-                    gpointer child_setup_data,
-                    GDestroyNotify child_setup_data_destroy,
-                    int timeout,
-                    GCancellable *cancellable,
-                    GAsyncReadyCallback callback,
-                    gpointer user_data)
+vte_pty_spawn_with_fds_async(VtePty *pty,
+                             char const* working_directory,
+                             char const* const* argv,
+                             char const* const* envv,
+                             int const* fds,
+                             int n_fds,
+                             int const* fd_map_to,
+                             int n_fd_map_to,
+                             GSpawnFlags spawn_flags,
+                             GSpawnChildSetupFunc child_setup,
+                             gpointer child_setup_data,
+                             GDestroyNotify child_setup_data_destroy,
+                             int timeout,
+                             GCancellable *cancellable,
+                             GAsyncReadyCallback callback,
+                             gpointer user_data)
 {
         g_return_if_fail(argv != nullptr);
+        g_return_if_fail(n_fds == 0 || fds != nullptr);
+        for (auto i = int{0}; i < n_fds; ++i)
+                g_return_if_fail(vte::libc::fd_get_cloexec(fds[i]));
+        g_return_if_fail(n_fd_map_to == 0 || fd_map_to != nullptr);
+        g_return_if_fail(n_fds >= n_fd_map_to);
         g_return_if_fail((spawn_flags & ~all_spawn_flags()) == 0);
         g_return_if_fail(!child_setup_data || child_setup);
         g_return_if_fail(!child_setup_data_destroy || child_setup_data);
@@ -708,6 +737,8 @@ vte_pty_spawn_async(VtePty *pty,
                                                                         working_directory,
                                                                         argv,
                                                                         envv,
+                                                                        fds, n_fds,
+                                                                        fd_map_to, n_fd_map_to,
                                                                         spawn_flags,
                                                                         child_setup,
                                                                         child_setup_data,
@@ -719,6 +750,49 @@ vte_pty_spawn_async(VtePty *pty,
         op->run_async((void*)vte_pty_spawn_async, /* tag */
                       callback,
                       user_data);
+}
+
+/**
+ * vte_pty_spawn_async:
+ * @pty: a #VtePty
+ * @working_directory: (allow-none): the name of a directory the command should start
+ *   in, or %NULL to use the current working directory
+ * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
+ * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
+ *   variables to be added to the environment before starting the process, or %NULL
+ * @spawn_flags: flags from #GSpawnFlags
+ * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
+ * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
+ * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
+ * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
+ * @cancellable: (allow-none): a #GCancellable, or %NULL
+ *
+ * Like vte_pty_spawn_with_fds_async(), except that this function does not
+ * allow passing file descriptors to the child process. See vte_pty_spawn_with_fds_async()
+ * for more information.
+ *
+ * Since: 0.48
+ */
+void
+vte_pty_spawn_async(VtePty *pty,
+                    const char *working_directory,
+                    char **argv,
+                    char **envv,
+                    GSpawnFlags spawn_flags,
+                    GSpawnChildSetupFunc child_setup,
+                    gpointer child_setup_data,
+                    GDestroyNotify child_setup_data_destroy,
+                    int timeout,
+                    GCancellable *cancellable,
+                    GAsyncReadyCallback callback,
+                    gpointer user_data)
+{
+        vte_pty_spawn_with_fds_async(pty, working_directory, argv, envv,
+                                     nullptr, 0, nullptr, 0,
+                                     spawn_flags,
+                                     child_setup, child_setup_data, child_setup_data_destroy,
+                                     timeout, cancellable,
+                                     callback, user_data);
 }
 
 /**

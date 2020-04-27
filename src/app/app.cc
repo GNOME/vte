@@ -18,6 +18,7 @@
 
 #include "config.h"
 
+#include <fcntl.h>
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
@@ -34,9 +35,12 @@
 #include <cairo/cairo-gobject.h>
 #include <vte/vte.h>
 #include "vtepcre2.h"
-#include "glib-glue.hh"
 
 #include <algorithm>
+#include <vector>
+
+#include "glib-glue.hh"
+#include "libc-glue.hh"
 
 /* options */
 
@@ -121,7 +125,25 @@ public:
                 g_strfreev(environment);
         }
 
+        auto fds()
+        {
+                auto fds = std::vector<int>{};
+                fds.reserve(m_fds.size());
+                for (auto& fd : m_fds)
+                        fds.emplace_back(fd.get());
+
+                return fds;
+        }
+
+        auto map_fds()
+        {
+                return m_map_fds;
+        }
+
 private:
+
+        std::vector<vte::libc::FD> m_fds{};
+        std::vector<int> m_map_fds{};
 
         bool parse_enum(GType type,
                         char const* str,
@@ -178,6 +200,89 @@ private:
 
                 *value = color;
                 *value_set = true;
+                return true;
+        }
+
+        int parse_fd_arg(char const* arg,
+                         char** end_ptr,
+                         GError** error)
+        {
+                errno = 0;
+                char* end = nullptr;
+                auto const v = g_ascii_strtoll(arg, &end, 10);
+                if (errno || end == arg || v < G_MININT || v > G_MAXINT) {
+                        g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                                     "Failed to parse \"%s\" as file descriptor number", arg);
+                        return -1;
+                }
+                if (v == -1) {
+                        g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                                     "\"%s\" is not a valid file descriptor number", arg);
+                        return -1;
+                }
+
+                if (end_ptr) {
+                        *end_ptr = end;
+                } else if (*end) {
+                        g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                                     "Extra characters after number in \"%s\"", arg);
+                        return -1;
+                }
+
+                return int(v);
+        }
+
+        bool parse_fd_arg(char const* str,
+                          GError** error)
+        {
+                char *end = nullptr;
+                auto fd = parse_fd_arg(str, &end, error);
+                if (fd == -1)
+                        return FALSE;
+
+                auto map_to = int{};
+                if (*end == '=' || *end == ':') {
+                        map_to = parse_fd_arg(end + 1, nullptr, error);
+                        if (map_to == -1)
+                                return false;
+
+                        if (map_to == STDIN_FILENO ||
+                            map_to == STDOUT_FILENO ||
+                            map_to == STDERR_FILENO) {
+                                g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                                             "Cannot map file descriptor to %d (reserved)", map_to);
+                                return false;
+                        }
+                } else if (*end) {
+                        g_set_error (error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE,
+                                     "Failed to parse \"%s\" as file descriptor assignment", str);
+                        return false;
+                } else {
+                        map_to = fd;
+                }
+
+                /* N:M assigns, N=M assigns a dup of N. Always dup stdin/out/err since
+                 * we need to output messages ourself there, too.
+                 */
+                auto new_fd = int{};
+                if (*end == '=' || fd < 3) {
+                        new_fd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+                        if (new_fd == -1) {
+                                g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errno),
+                                             "Failed to duplicate file descriptor %d: %m", fd);
+                                return false;
+                        }
+                } else {
+                        new_fd = fd;
+                        if (vte::libc::fd_set_cloexec(fd) == -1) {
+                                g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errno),
+                                             "Failed to set cloexec on file descriptor %d: %m", fd);
+                                return false;
+                        }
+                }
+
+                m_fds.emplace_back(new_fd);
+                m_map_fds.emplace_back(map_to);
                 return true;
         }
 
@@ -244,6 +349,13 @@ private:
                 Options* that = static_cast<Options*>(data);
                 bool set;
                 return that->parse_color(value, &that->bg_color, &set, error);
+        }
+
+        static gboolean
+        parse_fd(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+                return that->parse_fd_arg(value, error);
         }
 
         static gboolean
@@ -380,6 +492,8 @@ public:
                           "Add environment variable to the child\'s environment", "VAR=VALUE" },
                         { "extra-margin", 0, 0, G_OPTION_ARG_INT, &extra_margin,
                           "Add extra margin around the terminal widget", "MARGIN" },
+                        { "fd", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_fd,
+                          "Pass file descriptor N (as M) to the child process", "N[=M]" },
                         { "feed-stdin", 'B', 0, G_OPTION_ARG_NONE, &feed_stdin,
                           "Feed input to the terminal", nullptr },
                         { "font", 'f', 0, G_OPTION_ARG_STRING, &font_string,
@@ -1251,16 +1365,20 @@ vteapp_window_launch_argv(VteappWindow* window,
         auto const spawn_flags = GSpawnFlags(G_SPAWN_SEARCH_PATH_FROM_ENVP |
                                              (options.no_systemd_scope ? VTE_SPAWN_NO_SYSTEMD_SCOPE : 0) |
                                              (options.require_systemd_scope ? VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE : 0));
-        vte_terminal_spawn_async(window->terminal,
-                                 VTE_PTY_DEFAULT,
-                                 options.working_directory,
-                                 argv,
-                                 options.environment,
-                                 spawn_flags,
-                                 nullptr, nullptr, nullptr, /* child setup, data and destroy */
-                                 -1 /* default timeout of 30s */,
-                                 nullptr /* cancellable */,
-                                 window_spawn_cb, window);
+        auto fds = options.fds();
+        auto map_fds = options.map_fds();
+        vte_terminal_spawn_with_fds_async(window->terminal,
+                                          VTE_PTY_DEFAULT,
+                                          options.working_directory,
+                                          argv,
+                                          options.environment,
+                                          fds.data(), fds.size(),
+                                          map_fds.data(), map_fds.size(),
+                                          spawn_flags,
+                                          nullptr, nullptr, nullptr, /* child setup, data and destroy */
+                                          -1 /* default timeout of 30s */,
+                                          nullptr /* cancellable */,
+                                          window_spawn_cb, window);
         return true;
 }
 
