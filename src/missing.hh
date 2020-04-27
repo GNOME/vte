@@ -28,3 +28,8 @@
 int fdwalk(int (*cb)(void* data, int fd),
            void* data);
 #endif
+
+#ifndef HAVE_STRCHRNUL
+char* strchrnul(char const* s,
+                int c);
+#endif

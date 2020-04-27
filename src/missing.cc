@@ -145,4 +145,18 @@ fdwalk(int (*cb)(void *data, int fd),
 }
 #endif /* !HAVE_FDWALK */
 
+#ifndef HAVE_STRCHRNUL
+/* Copied from glib */
+char*
+strchrnul(char const* s,
+          int c)
+{
+        char *p = (char *) s;
+        while (*p && (*p != c))
+                ++p;
+
+        return p;
+}
+#endif /* !HAVE_STRCHRNUL */
+
 /* END copied from glib */

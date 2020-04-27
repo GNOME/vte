@@ -29,17 +29,16 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
-#include <stdlib.h>   /* for fdwalk */
+#include <stdlib.h>
 #include <dirent.h>
 
 #include <glib-unix.h>
 #include <gio/gio.h>
 
 #include "vtespawn.hh"
-#include "vteutils.h"  /* for strchrnul on non-GNU systems */
 #include "reaper.hh"
 
-#define _(s) g_dgettext("glib20", s)
+#include "missing.hh"
 
 static gssize
 write_all (int fd, gconstpointer vbuf, gsize to_write)
