@@ -26,7 +26,7 @@
  * pseudo-terminals and to resize pseudo-terminals.
  */
 
-#include <config.h>
+#include "config.h"
 
 #include "pty.hh"
 
@@ -34,7 +34,6 @@
 
 #include <vte/vte.h>
 #include "vteptyinternal.hh"
-#include "vtespawn.hh"
 
 #include <assert.h>
 #include <sys/types.h>
@@ -75,18 +74,9 @@
 
 #include "glib-glue.hh"
 
-#ifdef WITH_SYSTEMD
-#include "systemd.hh"
-#endif
+#include "vtedefines.hh"
 
-/* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
-#ifndef NSIG
-#define NSIG (8 * sizeof(sigset_t))
-#endif
-
-#define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
-
-#define VTE_TERMINFO_NAME "xterm-256color"
+#include "missing.hh"
 
 namespace vte::base {
 
@@ -104,20 +94,20 @@ Pty::unref() noexcept
                 delete this;
 }
 
-vte::libc::FD
+int
 Pty::get_peer() const noexcept
 {
         if (!m_pty_fd)
-                return {};
+                return -1;
 
         if (grantpt(m_pty_fd.get()) != 0) {
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
-                return {};
+                return -1;
         }
 
         if (unlockpt(m_pty_fd.get()) != 0) {
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
-                return {};
+                return -1;
         }
 
         /* FIXME? else if (m_flags & VTE_PTY_NO_CTTTY)
@@ -142,7 +132,7 @@ Pty::get_peer() const noexcept
             errno != EINVAL &&
             errno != ENOTTY) {
                 _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTPEER)");
-                return {};
+                return -1;
         }
 
         /* Fall back to ptsname + open */
@@ -152,7 +142,7 @@ Pty::get_peer() const noexcept
                 auto const name = ptsname(m_pty_fd.get());
                 if (name == nullptr) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
-                        return {};
+                        return -1;
                 }
 
                 _vte_debug_print (VTE_DEBUG_PTY,
@@ -162,7 +152,7 @@ Pty::get_peer() const noexcept
                 peer_fd = ::open(name, fd_flags);
                 if (!peer_fd) {
                         _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
-                        return {};
+                        return -1;
                 }
         }
 
@@ -174,22 +164,22 @@ Pty::get_peer() const noexcept
                 /* https://illumos.org/man/7m/ptem */
                 if ((ioctl(peer_fd.get(), I_FIND, "ptem") == 0) &&
                     (ioctl(peer_fd.get(), I_PUSH, "ptem") == -1)) {
-                        return {};
+                        return -1;
                 }
                 /* https://illumos.org/man/7m/ldterm */
                 if ((ioctl(peer_fd.get(), I_FIND, "ldterm") == 0) &&
                     (ioctl(peer_fd.get(), I_PUSH, "ldterm") == -1)) {
-                        return {};
+                        return -1;
                 }
                 /* https://illumos.org/man/7m/ttcompat */
                 if ((ioctl(peer_fd.get(), I_FIND, "ttcompat") == 0) &&
                     (ioctl(peer_fd.get(), I_PUSH, "ttcompat") == -1)) {
-                        return {};
+                        return -1;
                 }
         }
 #endif
 
-        return peer_fd;
+        return peer_fd.release();
 }
 
 void
@@ -204,7 +194,8 @@ Pty::child_setup() const noexcept
         }
 
         /* Reset the handlers for all signals to their defaults.  The parent
-         * (or one of the libraries it links to) may have changed one to be ignored. */
+         * (or one of the libraries it links to) may have changed one to be ignored.
+         */
         for (int n = 1; n < NSIG; n++) {
                 if (n == SIGSTOP || n == SIGKILL)
                         continue;
@@ -224,7 +215,7 @@ Pty::child_setup() const noexcept
         }
 
         auto peer_fd = get_peer();
-        if (!peer_fd)
+        if (peer_fd == -1)
                 _exit(127);
 
 #ifdef TIOCSCTTY
@@ -233,7 +224,7 @@ Pty::child_setup() const noexcept
          * on *BSD, that doesn't happen, so we need this explicit ioctl here.
          */
         if (!(m_flags & VTE_PTY_NO_CTTY)) {
-                if (ioctl(peer_fd.get(), TIOCSCTTY, peer_fd.get()) != 0) {
+                if (ioctl(peer_fd, TIOCSCTTY, peer_fd) != 0) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
                         _exit(127);
                 }
@@ -242,17 +233,17 @@ Pty::child_setup() const noexcept
 
 	/* now setup child I/O through the tty */
 	if (peer_fd != STDIN_FILENO) {
-		if (dup2(peer_fd.get(), STDIN_FILENO) != STDIN_FILENO){
+		if (dup2(peer_fd, STDIN_FILENO) != STDIN_FILENO){
 			_exit (127);
 		}
 	}
 	if (peer_fd != STDOUT_FILENO) {
-		if (dup2(peer_fd.get(), STDOUT_FILENO) != STDOUT_FILENO){
+		if (dup2(peer_fd, STDOUT_FILENO) != STDOUT_FILENO){
 			_exit (127);
 		}
 	}
 	if (peer_fd != STDERR_FILENO) {
-		if (dup2(peer_fd.get(), STDERR_FILENO) != STDERR_FILENO){
+		if (dup2(peer_fd, STDERR_FILENO) != STDERR_FILENO){
 			_exit (127);
 		}
 	}
@@ -260,10 +251,10 @@ Pty::child_setup() const noexcept
 	/* If the peer FD has not been consumed above as one of the stdio descriptors,
          * need to close it now so that it doesn't leak to the child.
          */
-	if (peer_fd == STDIN_FILENO  ||
-            peer_fd == STDOUT_FILENO ||
-            peer_fd == STDERR_FILENO) {
-                (void)peer_fd.release();
+	if (peer_fd != STDIN_FILENO  &&
+            peer_fd != STDOUT_FILENO &&
+            peer_fd != STDERR_FILENO) {
+                close(peer_fd);
 	}
 
         /* Now set the TERM environment variable */
@@ -274,249 +265,6 @@ Pty::child_setup() const noexcept
         char version[7];
         g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
         g_setenv ("VTE_VERSION", version, TRUE);
-
-	/* Finally call an extra child setup */
-	if (m_extra_child_setup.func) {
-		m_extra_child_setup.func(m_extra_child_setup.data);
-	}
-}
-
-/* TODO: clean up the spawning
- * - replace current env rather than adding!
- */
-
-/*
- * __vte_pty_merge_environ:
- * @envp: environment vector
- * @inherit: whether to use the parent environment
- *
- * Merges @envp to the parent environment, and returns a new environment vector.
- *
- * Returns: a newly allocated string array. Free using g_strfreev()
- */
-static gchar **
-__vte_pty_merge_environ (char **envp,
-                         const char *directory,
-                         gboolean inherit)
-{
-	GHashTable *table;
-        GHashTableIter iter;
-        char *name, *value;
-	gchar **parent_environ;
-	GPtrArray *array;
-	gint i;
-
-	table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-
-	if (inherit) {
-		parent_environ = g_listenv ();
-		for (i = 0; parent_environ[i] != NULL; i++) {
-			g_hash_table_replace (table,
-				              g_strdup (parent_environ[i]),
-					      g_strdup (g_getenv (parent_environ[i])));
-		}
-		g_strfreev (parent_environ);
-	}
-
-        /* Make sure the one in envp overrides the default. */
-        g_hash_table_replace (table, g_strdup ("TERM"), g_strdup (VTE_TERMINFO_NAME));
-
-	if (envp != NULL) {
-		for (i = 0; envp[i] != NULL; i++) {
-			name = g_strdup (envp[i]);
-			value = strchr (name, '=');
-			if (value) {
-				*value = '\0';
-				value = g_strdup (value + 1);
-			}
-			g_hash_table_replace (table, name, value);
-		}
-	}
-
-        g_hash_table_replace (table, g_strdup ("VTE_VERSION"), g_strdup_printf ("%u", VTE_VERSION_NUMERIC));
-
-	/* Always set this ourself, not allowing replacing from envp */
-	g_hash_table_replace(table, g_strdup("COLORTERM"), g_strdup("truecolor"));
-
-        /* We need to put the working directory also in PWD, so that
-         * e.g. bash starts in the right directory if @directory is a symlink.
-         * See bug #502146 and #758452.
-         */
-        if (directory)
-                g_hash_table_replace(table, g_strdup("PWD"), g_strdup(directory));
-
-	array = g_ptr_array_sized_new (g_hash_table_size (table) + 1);
-        g_hash_table_iter_init(&iter, table);
-        while (g_hash_table_iter_next(&iter, (void**) &name, (void**) &value)) {
-                g_ptr_array_add (array, g_strconcat (name, "=", value, nullptr));
-        }
-        g_assert(g_hash_table_size(table) == array->len);
-	g_hash_table_destroy (table);
-	g_ptr_array_add (array, NULL);
-
-	return (gchar **) g_ptr_array_free (array, FALSE);
-}
-
-static void
-pty_child_setup_cb(void* data)
-{
-        auto pty = reinterpret_cast<vte::base::Pty*>(data);
-        pty->child_setup();
-}
-
-/*
- * Pty::spawn:
- * @directory: the name of a directory the command should start in, or %nullptr
- *   to use the cwd
- * @argv: child's argument vector
- * @envv: a list of environment variables to be added to the environment before
- *   starting the process, or %nullptr
- * @spawn_flags: flags from #GSpawnFlags
- * @child_setup: function to run in the child just before exec()
- * @child_setup_data: user data for @child_setup
- * @child_pid: a location to store the child PID, or %nullptr
- * @timeout: a timeout value in ms, or %nullptr
- * @cancellable: a #GCancellable, or %nullptr
- * @error: return location for a #GError, or %nullptr
- *
- * Uses g_spawn_async() to spawn the command in @argv. The child's environment will
- * be the parent environment with the variables in @envv set afterwards.
- *
- * Enforces the vte_terminal_watch_child() requirements by adding
- * %G_SPAWN_DO_NOT_REAP_CHILD to @spawn_flags.
- *
- * Note that the %G_SPAWN_LEAVE_DESCRIPTORS_OPEN flag is not supported;
- * it will be cleared!
- *
- * If spawning the command in @working_directory fails because the child
- * is unable to chdir() to it, falls back trying to spawn the command
- * in the parent's working directory.
- *
- * Returns: %TRUE on success, or %FALSE on failure with @error filled in
- */
-bool
-Pty::spawn(char const* directory,
-           char** argv,
-           char** envv,
-           GSpawnFlags spawn_flags_,
-           GSpawnChildSetupFunc child_setup_func,
-           gpointer child_setup_data,
-           GPid* child_pid /* out */,
-           int timeout,
-           GCancellable* cancellable,
-           GError** error) noexcept
-{
-        guint spawn_flags = (guint) spawn_flags_;
-        bool ret{true};
-        bool inherit_envv;
-        char** envp2;
-        int i;
-        GPollFD pollfd;
-
-#ifndef WITH_SYSTEMD
-        if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE) {
-                g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
-                            "systemd not available");
-                return false;
-        }
-#endif
-
-        if (cancellable && !g_cancellable_make_pollfd(cancellable, &pollfd)) {
-                auto errsv = vte::libc::ErrnoSaver{};
-                g_set_error(error,
-                            G_IO_ERROR,
-                            g_io_error_from_errno(errsv),
-                            "Failed to make cancellable pollfd: %s",
-                            g_strerror(errsv));
-                return false;
-        }
-
-        inherit_envv = (spawn_flags & VTE_SPAWN_NO_PARENT_ENVV) == 0;
-        spawn_flags &= ~(VTE_SPAWN_NO_PARENT_ENVV | VTE_SPAWN_NO_SYSTEMD_SCOPE | VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE);
-
-        /* add the given environment to the childs */
-        envp2 = __vte_pty_merge_environ (envv, directory, inherit_envv);
-
-        _VTE_DEBUG_IF (VTE_DEBUG_MISC) {
-                g_printerr ("Spawning command:\n");
-                for (i = 0; argv[i] != NULL; i++) {
-                        g_printerr ("    argv[%d] = %s\n", i, argv[i]);
-                }
-                for (i = 0; envp2[i] != NULL; i++) {
-                        g_printerr ("    env[%d] = %s\n", i, envp2[i]);
-                }
-                g_printerr ("    directory: %s\n",
-                            directory ? directory : "(none)");
-        }
-
-	m_extra_child_setup.func = child_setup_func;
-	m_extra_child_setup.data = child_setup_data;
-
-        auto pid = pid_t{-1};
-        auto err = vte::glib::Error{};
-        ret = vte_spawn_async_cancellable(directory,
-                                          argv, envp2,
-                                          (GSpawnFlags)spawn_flags,
-                                          (GSpawnChildSetupFunc)pty_child_setup_cb,
-                                          this,
-                                          &pid,
-                                          timeout,
-                                          cancellable ? &pollfd : nullptr,
-                                          err);
-        if (!ret &&
-            directory != nullptr &&
-            err.matches(G_SPAWN_ERROR, G_SPAWN_ERROR_CHDIR)) {
-                /* try spawning in our working directory */
-                err.reset();
-                ret = vte_spawn_async_cancellable(nullptr,
-                                                  argv, envp2,
-                                                  (GSpawnFlags)spawn_flags,
-                                                  (GSpawnChildSetupFunc)pty_child_setup_cb,
-                                                  this,
-                                                  &pid,
-                                                  timeout,
-                                                  cancellable ? &pollfd : nullptr,
-                                                  err);
-        }
-
-        g_strfreev (envp2);
-
-	m_extra_child_setup.func = nullptr;
-	m_extra_child_setup.data = nullptr;
-
-        if (cancellable)
-                g_cancellable_release_fd(cancellable);
-
-#ifdef WITH_SYSTEMD
-        if (ret &&
-            !(spawn_flags & VTE_SPAWN_NO_SYSTEMD_SCOPE) &&
-            !vte::systemd::create_scope_for_pid_sync(pid,
-                                                     timeout, // FIXME: recalc timeout
-                                                     cancellable,
-                                                     err)) {
-                if (spawn_flags & VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE) {
-                        auto pgrp = getpgid(pid);
-                        if (pgrp != -1) {
-                                kill(-pgrp, SIGHUP);
-                        }
-
-                        kill(pid, SIGHUP);
-
-                        ret = false;
-                } else {
-                        _vte_debug_print(VTE_DEBUG_PTY,
-                                         "Failed to create systemd scope: %s",
-                                         err.message());
-                        err.reset();
-                }
-        }
-#endif // WITH_SYSTEMD
-
-        if (!ret)
-                return err.propagate(error);
-
-        *child_pid = pid;
-        return true;
 }
 
 /*
@@ -709,7 +457,7 @@ _vte_pty_open_posix(void)
                 return {};
         }
 
-	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", (int)fd);
+	_vte_debug_print(VTE_DEBUG_PTY, "Allocated pty on fd %d.\n", fd.get());
 
         return fd;
 }

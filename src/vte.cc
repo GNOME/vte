@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <config.h>
+#include "config.h"
 
 #include <math.h>
 #include <search.h>
@@ -10088,7 +10088,7 @@ Terminal::terminate_child() noexcept
                 return false;
 
         auto pgrp = getpgid(m_pty_pid);
-        if (pgrp != -1) {
+        if (pgrp != -1 && pgrp != getpgid(getpid())) {
                 kill(-pgrp, SIGHUP);
         }
 

@@ -30,17 +30,8 @@ namespace vte::base {
 class Pty {
 private:
         mutable volatile int m_refcount{1};
-
-        mutable struct {
-                GSpawnChildSetupFunc func{nullptr};
-                void* data{nullptr};
-        } m_extra_child_setup;
-
         vte::libc::FD m_pty_fd{};
-
         VtePtyFlags m_flags{VTE_PTY_DEFAULT};
-
-        vte::libc::FD get_peer() const noexcept;
 
 public:
         constexpr Pty(vte::libc::FD&& fd,
@@ -61,18 +52,9 @@ public:
         inline constexpr int fd() const noexcept { return m_pty_fd.get(); }
         inline constexpr auto flags() const noexcept { return m_flags; }
 
-        void child_setup() const noexcept;
+        int get_peer() const noexcept;
 
-        bool spawn(char const* directory,
-                   char** argv,
-                   char** envv,
-                   GSpawnFlags spawn_flags_,
-                   GSpawnChildSetupFunc child_setup,
-                   void* child_setup_data,
-                   GPid* child_pid /* out */,
-                   int timeout,
-                   GCancellable* cancellable,
-                   GError** error) noexcept;
+        void child_setup() const noexcept;
 
         bool set_size(int rows,
                       int columns) const noexcept;

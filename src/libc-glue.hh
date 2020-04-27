@@ -36,6 +36,8 @@ public:
 
         inline constexpr operator int () const noexcept { return m_errsv; }
 
+        inline void reset() noexcept { m_errsv = 0; }
+
 private:
         int m_errsv;
 }; // class ErrnoSaver
@@ -58,17 +60,6 @@ public:
         }
 
         FD& operator=(FD& rhs) = delete;
-
-#if 0
-        FD& operator=(FD& rhs) noexcept
-        {
-                if (&rhs != this) {
-                        reset();
-                        m_fd = rhs.release();
-                }
-                return *this;
-        }
-#endif
 
         FD& operator=(FD&& rhs) noexcept
         {

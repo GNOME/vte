@@ -1235,7 +1235,10 @@ window_spawn_cb(VteTerminal* terminal,
         if (error != nullptr) {
                 verbose_printerr("Spawning failed: %s\n", error->message);
 
-                if (!options.keep)
+                auto msg = vte::glib::take_string(g_strdup_printf("Spawning failed: %s", error->message));
+                if (options.keep)
+                        vte_terminal_feed(window->terminal, msg.get(), -1);
+                else
                         gtk_widget_destroy(GTK_WIDGET(window));
         }
 }
@@ -1255,7 +1258,7 @@ vteapp_window_launch_argv(VteappWindow* window,
                                  options.environment,
                                  spawn_flags,
                                  nullptr, nullptr, nullptr, /* child setup, data and destroy */
-                                 30 * 1000 /* 30s timeout */,
+                                 -1 /* default timeout of 30s */,
                                  nullptr /* cancellable */,
                                  window_spawn_cb, window);
         return true;

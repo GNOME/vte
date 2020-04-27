@@ -22,13 +22,25 @@
 
 #include <glib.h>
 
-gboolean vte_spawn_async_cancellable (const gchar          *working_directory,
-                                      gchar               **argv,
-                                      gchar               **envp,
-                                      GSpawnFlags           flags,
-                                      GSpawnChildSetupFunc  child_setup,
-                                      gpointer              user_data,
-                                      GPid                 *child_pid,
-                                      gint                  timeout,
-                                      GPollFD              *pollfd,
-                                      GError              **error);
+void _vte_cloexec_from(int fd);
+
+char** _vte_merge_envv(char** envp,
+                       char const* cwd,
+                       bool inherit);
+
+int _vte_execute(char const* file,
+                 char** argv,
+                 char** envp,
+                 bool search_path,
+                 bool search_path_from_envp);
+
+bool _vte_read_ints(int     fd,
+                    int*    buf,
+                    int     n_ints_in_buf,
+                    int    *n_ints_read,
+                    int     timeout,
+                    GPollFD *cancellable_pollfd,
+                    GError **error);
+
+void _vte_write_err (int fd,
+                     int msg);

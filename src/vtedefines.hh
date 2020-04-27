@@ -139,3 +139,7 @@
 
 /* Maximum length of a paragraph, in lines, that might get proper RingView (BiDi) treatment. */
 #define VTE_RINGVIEW_PARAGRAPH_LENGTH_MAX   500
+
+#define VTE_VERSION_NUMERIC ((VTE_MAJOR_VERSION) * 10000 + (VTE_MINOR_VERSION) * 100 + (VTE_MICRO_VERSION))
+
+#define VTE_TERMINFO_NAME "xterm-256color"

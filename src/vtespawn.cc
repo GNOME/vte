@@ -49,124 +49,10 @@
 
 #define _(s) g_dgettext("glib20", s)
 
-/*
- * SECTION:spawn
- * @Short_description: process launching
- * @Title: Spawning Processes
- *
- * GLib supports spawning of processes with an API that is more
- * convenient than the bare UNIX fork() and exec().
- *
- * The vte_spawn family of functions has synchronous (vte_spawn_sync())
- * and asynchronous variants (vte_spawn_async(), vte_spawn_async_with_pipes(),
- * vte_spawn_async_cancellable(), vte_spawn_async_with_pipes_cancellable),
- * as well as convenience variants that take a complete shell-like
- * commandline (vte_spawn_command_line_sync(), vte_spawn_command_line_async()).
- *
- * See #GSubprocess in GIO for a higher-level API that provides
- * stream interfaces for communication with child processes.
- */
-
-static gint g_execute (const gchar  *file,
-                       gchar **argv,
-                       gchar **envp,
-                       gboolean search_path,
-                       gboolean search_path_from_envp);
-
-static gboolean fork_exec (const gchar          *working_directory,
-                           gchar               **argv,
-                           gchar               **envp,
-                           gboolean              search_path,
-                           gboolean              search_path_from_envp,
-                           gboolean              file_and_argv_zero,
-                           gboolean              cloexec_pipes,
-                           GSpawnChildSetupFunc  child_setup,
-                           gpointer              user_data,
-                           GPid                 *child_pid,
-                           gint                  timeout,
-                           GPollFD              *pollfd,
-                           GError              **error);
-
-/* Avoids a danger in threaded situations (calling close()
- * on a file descriptor twice, and another thread has
- * re-opened it since the first close)
- */
-static void
-close_and_invalidate (gint *fd)
-{
-  if (*fd == -1)
-    return;
-  else
-    {
-      (void)close(*fd);
-      *fd = -1;
-    }
-}
-
-/*
- * vte_spawn_async_cancellable:
- * @working_directory: (type filename) (allow-none): child's current working directory, or %NULL to inherit parent's, in the GLib file name encoding
- * @argv: (array zero-terminated=1): child's argument vector, in the GLib file name encoding
- * @envp: (array zero-terminated=1) (allow-none): child's environment, or %NULL to inherit parent's, in the GLib file name encoding
- * @flags: flags from #GSpawnFlags
- * @child_setup: (scope async) (allow-none): function to run in the child just before exec()
- * @user_data: (closure): user data for @child_setup
- * @child_pid: (out) (allow-none): return location for child process ID, or %NULL
- * @timeout: a timeout value in ms, or -1 to wait indefinitely
- * @pollfd: (allow-none): a #GPollFD, or %NULL
- * @error: return location for error
- *
- * Like g_spawn_async_with_pipes(), but allows the spawning to be
- * aborted.
- *
- * If @timeout is not -1, then the spawning will be aborted if
- * the timeout is exceeded before spawning has completed.
- *
- * If @pollfd is not %NULL, then the spawning will be aborted if
- * the @pollfd.fd becomes readable. Usually, you want to create
- * this parameter with g_cancellable_make_pollfd().
- *
- * Returns: %TRUE on success, %FALSE if an error occurred or the
- *  spawning was aborted
- *
- * Since: 2.52
- */
-gboolean
-vte_spawn_async_cancellable (const gchar          *working_directory,
-                             gchar               **argv,
-                             gchar               **envp,
-                             GSpawnFlags           flags,
-                             GSpawnChildSetupFunc  child_setup,
-                             gpointer              user_data,
-                             GPid                 *child_pid,
-                             gint                  timeout,
-                             GPollFD              *pollfd,
-                             GError              **error)
-{
-  g_return_val_if_fail (argv != NULL, FALSE);
-  g_return_val_if_fail ((flags & (G_SPAWN_STDOUT_TO_DEV_NULL |
-                                  G_SPAWN_STDERR_TO_DEV_NULL |
-                                  G_SPAWN_CHILD_INHERITS_STDIN)) == 0, FALSE);
-
-  return fork_exec (working_directory,
-                    argv,
-                    envp,
-                    (flags & G_SPAWN_SEARCH_PATH) != 0,
-                    (flags & G_SPAWN_SEARCH_PATH_FROM_ENVP) != 0,
-                    (flags & G_SPAWN_FILE_AND_ARGV_ZERO) != 0,
-                    (flags & G_SPAWN_CLOEXEC_PIPES) != 0,
-                    child_setup,
-                    user_data,
-                    child_pid,
-                    timeout,
-                    pollfd,
-                    error);
-}
-
 static gssize
-write_all (gint fd, gconstpointer vbuf, gsize to_write)
+write_all (int fd, gconstpointer vbuf, gsize to_write)
 {
-  gchar *buf = (gchar *) vbuf;
+  char *buf = (char *) vbuf;
 
   while (to_write > 0)
     {
@@ -186,16 +72,13 @@ write_all (gint fd, gconstpointer vbuf, gsize to_write)
   return TRUE;
 }
 
-G_GNUC_NORETURN
-static void
-write_err_and_exit (gint fd, gint msg)
+void
+_vte_write_err (int fd,
+                int msg)
 {
-  gint en = errno;
+        int data[2] = {msg, errno};
 
-  write_all (fd, &msg, sizeof(msg));
-  write_all (fd, &en, sizeof(en));
-
-  _exit (1);
+        write_all(fd, data, sizeof(data));
 }
 
 static int
@@ -220,7 +103,7 @@ fd_set_nonblocking(int fd)
 }
 
 static int
-set_cloexec (void *data, gint fd)
+set_cloexec (void *data, int fd)
 {
   if (fd >= GPOINTER_TO_INT (data))
     fd_set_cloexec (fd);
@@ -247,7 +130,7 @@ struct linux_dirent64
   char           d_name[]; /* Filename (null-terminated) */
 };
 
-static gint
+static int
 filename_to_fd (const char *p)
 {
   char c;
@@ -276,16 +159,19 @@ filename_to_fd (const char *p)
 #endif
 
 #ifndef HAVE_FDWALK
-static int
+int
+fdwalk (int (*cb)(void *data, int fd), void *data);
+
+int
 fdwalk (int (*cb)(void *data, int fd), void *data)
 {
   /* Fallback implementation of fdwalk. It should be async-signal safe, but it
    * may be slow on non-Linux operating systems, especially on systems allowing
    * very high number of open file descriptors.
    */
-  gint open_max;
-  gint fd;
-  gint res = 0;
+  int open_max;
+  int fd;
+  int res = 0;
 
 #ifdef HAVE_SYS_RESOURCE_H
   struct rlimit rl;
@@ -340,68 +226,34 @@ fdwalk (int (*cb)(void *data, int fd), void *data)
 }
 #endif /* HAVE_FDWALK */
 
-enum
+void
+_vte_cloexec_from(int fd)
 {
-  CHILD_CHDIR_FAILED,
-  CHILD_EXEC_FAILED,
-};
-
-static G_GNUC_NORETURN void
-do_exec (gint                  child_err_report_fd,
-         const gchar          *working_directory,
-         gchar               **argv,
-         gchar               **envp,
-         gboolean              search_path,
-         gboolean              search_path_from_envp,
-         gboolean              file_and_argv_zero,
-         GSpawnChildSetupFunc  child_setup,
-         gpointer              user_data)
-{
-  if (working_directory && chdir (working_directory) < 0)
-    write_err_and_exit (child_err_report_fd,
-                        CHILD_CHDIR_FAILED);
-
-  /* Close all file descriptors before we exec. Note that this includes
-   * child_err_report_fd, which keeps the parent from blocking
-   * forever on the other end of that pipe.
-   * (Note that stdin, stdout and stderr will be set by the child setup afterwards.)
-   */
-  fdwalk (set_cloexec, GINT_TO_POINTER (3));
-
-  /* Call user function just before we exec */
-  child_setup (user_data);
-
-  g_execute (argv[0],
-             file_and_argv_zero ? argv + 1 : argv,
-             envp, search_path, search_path_from_envp);
-
-  /* Exec failed */
-  write_err_and_exit (child_err_report_fd,
-                      CHILD_EXEC_FAILED);
+        fdwalk(set_cloexec, GINT_TO_POINTER(fd));
 }
 
-static gboolean
-read_ints (int      fd,
-           gint*    buf,
-           gint     n_ints_in_buf,
-           gint    *n_ints_read,
-           gint     timeout,
-           GPollFD *cancellable_pollfd,
-           GError **error)
+bool
+_vte_read_ints(int      fd,
+               int*    buf,
+               int     n_ints_in_buf,
+               int    *n_ints_read,
+               int     timeout,
+               GPollFD *cancellable_pollfd,
+               GError **error)
 {
   gsize bytes = 0;
   GPollFD pollfds[2];
   guint n_pollfds;
-  gint64 start_time = 0;
+  int64_t start_time = 0;
 
-  if (timeout >= 0 || cancellable_pollfd != NULL)
+  if (timeout >= 0 || cancellable_pollfd != nullptr)
     {
       if (fd_set_nonblocking(fd) < 0)
         {
           int errsv = errno;
           g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
                        _("Failed to set pipe nonblocking: %s"), g_strerror (errsv));
-          return FALSE;
+          return false;
         }
 
       pollfds[0].fd = fd;
@@ -420,11 +272,11 @@ read_ints (int      fd,
   if (timeout >= 0)
     start_time = g_get_monotonic_time ();
 
-  while (TRUE)
+  while (true)
     {
       gssize chunk;
 
-      if (bytes >= sizeof(gint)*2)
+      if (bytes >= sizeof(int)*2)
         break; /* give up, who knows what happened, should not be
                 * possible.
                 */
@@ -453,13 +305,13 @@ read_ints (int      fd,
               int errsv = errno;
               g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
                            _("poll error: %s"), g_strerror (errsv));
-              return FALSE;
+              return false;
             }
           if (r == 0)
             {
               g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_TIMED_OUT,
                                    _("Operation timed out"));
-              return FALSE;
+              return false;
             }
 
           /* If the passed-in poll FD becomes readable, that's the signal
@@ -469,15 +321,15 @@ read_ints (int      fd,
             {
               g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_CANCELLED,
                                    _("Operation was cancelled"));
-              return FALSE;
+              return false;
             }
 
           /* Now we know we can try to read from the child */
         }
 
       chunk = read (fd,
-                    ((gchar*)buf) + bytes,
-                    sizeof(gint) * n_ints_in_buf - bytes);
+                    ((char*)buf) + bytes,
+                    sizeof(int) * n_ints_in_buf - bytes);
       if (chunk < 0 && errno == EINTR)
         goto again;
 
@@ -490,7 +342,7 @@ read_ints (int      fd,
                        _("Failed to read from child pipe (%s)"),
                        g_strerror (errsv));
 
-          return FALSE;
+          return false;
         }
       else if (chunk == 0)
         break; /* EOF */
@@ -498,149 +350,17 @@ read_ints (int      fd,
 	bytes += chunk;
     }
 
-  *n_ints_read = (gint)(bytes / sizeof(gint));
+  *n_ints_read = int(bytes / sizeof(int));
 
-  return TRUE;
-}
-
-static gboolean
-fork_exec (const gchar          *working_directory,
-           gchar               **argv,
-           gchar               **envp,
-           gboolean              search_path,
-           gboolean              search_path_from_envp,
-           gboolean              file_and_argv_zero,
-           gboolean              cloexec_pipes,
-           GSpawnChildSetupFunc  child_setup,
-           gpointer              user_data,
-           GPid                 *child_pid,
-           gint                  timeout,
-           GPollFD              *pollfd,
-           GError              **error)
-{
-  GPid pid = -1;
-  gint child_err_report_pipe[2] = { -1, -1 };
-  guint pipe_flags = cloexec_pipes ? FD_CLOEXEC : 0;
-
-  if (!g_unix_open_pipe (child_err_report_pipe, pipe_flags, error))
-    return FALSE;
-
-  pid = fork ();
-
-  if (pid < 0)
-    {
-      int errsv = errno;
-
-      g_set_error (error, G_IO_ERROR, g_io_error_from_errno (errsv),
-                   _("Failed to fork (%s)"), g_strerror (errsv));
-
-      goto cleanup_and_fail;
-    }
-  else if (pid == 0)
-    {
-      /* Immediate child. This may or may not be the child that
-       * actually execs the new process.
-       */
-
-      /* Reset some signal handlers that we may use */
-      signal (SIGCHLD, SIG_DFL);
-      signal (SIGINT, SIG_DFL);
-      signal (SIGTERM, SIG_DFL);
-      signal (SIGHUP, SIG_DFL);
-
-      /* Be sure we crash if the parent exits
-       * and we write to the err_report_pipe
-       */
-      signal (SIGPIPE, SIG_DFL);
-
-      do_exec (child_err_report_pipe[1],
-               working_directory,
-               argv,
-               envp,
-               search_path,
-               search_path_from_envp,
-               file_and_argv_zero,
-               child_setup,
-               user_data);
-    }
-  else
-    {
-      /* Parent */
-
-      gint buf[2];
-      gint n_ints = 0;
-
-      /* Close the uncared-about ends of the pipes */
-      close_and_invalidate (&child_err_report_pipe[1]);
-
-      if (!read_ints (child_err_report_pipe[0],
-                      buf, 2, &n_ints,
-                      timeout, pollfd,
-                      error))
-        goto cleanup_and_fail;
-
-      if (n_ints >= 2)
-        {
-          /* Error from the child. */
-
-          switch (buf[0])
-            {
-            case CHILD_CHDIR_FAILED:
-              g_set_error (error, G_IO_ERROR, g_io_error_from_errno (buf[1]),
-                           _("Failed to change to directory “%s”: %s"),
-                           working_directory, g_strerror (buf[1]));
-
-              break;
-
-            case CHILD_EXEC_FAILED:
-              g_set_error (error, G_IO_ERROR, g_io_error_from_errno(buf[1]),
-                           _("Failed to execute child process “%s”: %s"),
-                           argv[0], g_strerror (buf[1]));
-
-              break;
-
-            default:
-              g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-                           _("Unknown error executing child process “%s”"),
-                           argv[0]);
-              break;
-            }
-
-          goto cleanup_and_fail;
-        }
-
-      /* Success against all odds! return the information */
-      close_and_invalidate (&child_err_report_pipe[0]);
-
-      if (child_pid)
-        *child_pid = pid;
-
-      return TRUE;
-    }
-
- cleanup_and_fail:
-
-  /* There was an error from the Child, reap the child to avoid it being
-     a zombie.
-   */
-
-  if (pid > 0)
-    {
-      vte_reaper_add_child(pid);
-     }
-
-  close_and_invalidate (&child_err_report_pipe[0]);
-  close_and_invalidate (&child_err_report_pipe[1]);
-
-  return FALSE;
+  return true;
 }
 
 /* Based on execvp from GNU C Library */
 
 static void
-script_execute (const gchar *file,
-                gchar      **argv,
-                gchar      **envp)
+script_execute (const char *file,
+                char      **argv,
+                char      **envp)
 {
   /* Count the arguments.  */
   int argc = 0;
@@ -649,9 +369,9 @@ script_execute (const gchar *file,
 
   /* Construct an argument list for the shell.  */
   {
-    gchar **new_argv;
+    char **new_argv;
 
-    new_argv = g_new0 (gchar*, argc + 2); /* /bin/sh and NULL */
+    new_argv = g_new0 (char*, argc + 2); /* /bin/sh and NULL */
 
     new_argv[0] = (char *) "/bin/sh";
     new_argv[1] = (char *) file;
@@ -671,12 +391,12 @@ script_execute (const gchar *file,
   }
 }
 
-static gint
-g_execute (const gchar *file,
-           gchar      **argv,
-           gchar      **envp,
-           gboolean     search_path,
-           gboolean     search_path_from_envp)
+int
+_vte_execute (const char *file,
+              char      **argv,
+              char      **envp,
+              bool        search_path,
+              bool        search_path_from_envp)
 {
   if (*file == '\0')
     {
@@ -699,8 +419,8 @@ g_execute (const gchar *file,
   else
     {
       gboolean got_eacces = 0;
-      const gchar *path, *p;
-      gchar *name, *freeme;
+      const char *path, *p;
+      char *name, *freeme;
       gsize len;
       gsize pathlen;
 

@@ -26,22 +26,52 @@
 
 namespace vte::glib {
 
-template<typename T>
-using free_ptr = std::unique_ptr<T, decltype(&g_free)>;
+template <typename T, typename D, D d>
+class FreeablePtr : public std::unique_ptr<T, D>
+{
+private:
+        using base_type = std::unique_ptr<T, D>;
+
+public:
+        FreeablePtr(T* ptr = nullptr) : base_type{ptr, d} { }
+};
 
 template<typename T>
-free_ptr<T>
+using FreePtr = FreeablePtr<T, decltype(&g_free), &g_free>;
+
+template<typename T>
+FreePtr<T>
 take_free_ptr(T* ptr)
 {
-        return {ptr, &g_free};
+        return {ptr};
 }
 
-using string_ptr = free_ptr<char>;
+using StringPtr = FreePtr<char>;
 
-inline string_ptr
+inline StringPtr
 take_string(char* str)
 {
         return take_free_ptr(str);
+}
+
+inline StringPtr
+dup_string(char const* str)
+{
+        return take_string(g_strdup(str));
+}
+
+using StrvPtr = FreeablePtr<char*, decltype(&g_strfreev), &g_strfreev>;
+
+inline StrvPtr
+take_strv(char** strv)
+{
+        return {strv};
+}
+
+inline StrvPtr
+dup_strv(char const* const* strv)
+{
+        return take_strv(g_strdupv((char**)strv));
 }
 
 class Error {
@@ -64,6 +94,25 @@ public:
 
         void assert_no_error() const noexcept { g_assert_no_error(m_error); }
 
+        G_GNUC_PRINTF(4, 5)
+        void set(GQuark domain,
+                 int code,
+                 char const* format,
+                 ...)
+        {
+                va_list args;
+                va_start(args, format);
+                g_propagate_error(&m_error, g_error_new_valist(domain, code, format, args));
+                va_end(args);
+        }
+
+        void set_literal(GQuark domain,
+                         int code,
+                         char const* msg)
+        {
+                g_propagate_error(&m_error, g_error_new_literal(domain, code, msg));
+        }
+
         bool matches(GQuark domain, int code) const noexcept
         {
                 return error() && g_error_matches(m_error, domain, code);
@@ -71,7 +120,9 @@ public:
 
         void reset() noexcept { g_clear_error(&m_error); }
 
-        bool propagate(GError** error) noexcept { g_propagate_error(error, m_error); m_error = nullptr; return false; }
+        GError* release() noexcept { auto err = m_error; m_error = nullptr; return err; }
+
+        bool propagate(GError** error) noexcept { g_propagate_error(error, release()); return false; }
 
 private:
         GError* m_error{nullptr};

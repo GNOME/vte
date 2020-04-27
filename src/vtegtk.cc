@@ -2645,8 +2645,8 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
         VtePty *pty = vte_pty_new_sync(flags, cancellable, error);
-        if (pty == NULL)
-                return NULL;
+        if (pty == nullptr)
+                return nullptr;
 
         vte_pty_set_size(pty, IMPL(terminal)->m_row_count, IMPL(terminal)->m_column_count, NULL);
 
@@ -2747,28 +2747,24 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        auto new_pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
-        if (new_pty == nullptr)
+        auto new_pty = vte::glib::take_ref(vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error));
+        if (!new_pty)
                 return false;
 
         GPid pid;
-        if (!_vte_pty_spawn(new_pty,
-                            working_directory,
-                            argv,
-                            envv,
-                            spawn_flags,
-                            child_setup, child_setup_data,
-                            &pid,
-                            -1 /* no timeout */,
-                            cancellable,
-                            error)) {
-                g_object_unref(new_pty);
+        if (!_vte_pty_spawn_sync(new_pty.get(),
+                                 working_directory,
+                                 argv,
+                                 envv,
+                                 spawn_flags,
+                                 child_setup, child_setup_data, nullptr,
+                                 &pid,
+                                 -1 /* default timeout */,
+                                 cancellable,
+                                 error))
                 return false;
-        }
 
-        vte_terminal_set_pty(terminal, new_pty);
-        g_object_unref (new_pty);
-
+        vte_terminal_set_pty(terminal, new_pty.get());
         vte_terminal_watch_child(terminal, pid);
 
         if (child_pid)
@@ -2785,8 +2781,8 @@ typedef struct {
 
 static gpointer
 spawn_async_callback_data_new(VteTerminal *terminal,
-                     VteTerminalSpawnAsyncCallback callback,
-                     gpointer user_data)
+                              VteTerminalSpawnAsyncCallback callback,
+                              gpointer user_data)
 {
         SpawnAsyncCallbackData *data = g_new0 (SpawnAsyncCallbackData, 1);
 
@@ -2812,36 +2808,36 @@ spawn_async_cb (GObject *source,
         SpawnAsyncCallbackData *data = reinterpret_cast<SpawnAsyncCallbackData*>(user_data);
         VtePty *pty = VTE_PTY(source);
 
-        GPid pid = -1;
+        auto pid = pid_t{-1};
         auto error = vte::glib::Error{};
-        vte_pty_spawn_finish(pty, result, &pid, error);
+        if (source) {
+                vte_pty_spawn_finish(pty, result, &pid, error);
+        } else {
+                (void)g_task_propagate_int(G_TASK(result), error);
+                assert(error.error());
+        }
 
         /* Now get a ref to the terminal */
-        VteTerminal* terminal = (VteTerminal*)g_weak_ref_get(&data->wref);
+        auto terminal = vte::glib::acquire_ref<VteTerminal>(&data->wref);
 
-        /* Automatically watch the child */
-        if (terminal != nullptr) {
+        if (terminal) {
                 if (pid != -1) {
-                        vte_terminal_set_pty(terminal, pty);
-                        vte_terminal_watch_child(terminal, pid);
+                        vte_terminal_set_pty(terminal.get(), pty);
+                        vte_terminal_watch_child(terminal.get(), pid);
                 } else {
-                        vte_terminal_set_pty(terminal, nullptr);
-                }
-        } else {
-                if (pid != -1) {
-                        vte_reaper_add_child(pid);
+                        vte_terminal_set_pty(terminal.get(), nullptr);
                 }
         }
 
         if (data->callback)
-                data->callback(terminal, pid, error, data->user_data);
+                data->callback(terminal.get(), pid, error, data->user_data);
 
-        if (terminal == nullptr) {
+        if (!terminal) {
                 /* If the terminal was destroyed, we need to abort the child process, if any */
                 if (pid != -1) {
                         pid_t pgrp;
                         pgrp = getpgid(pid);
-                        if (pgrp != -1) {
+                        if (pgrp != -1 && pgrp != getpgid(getpid())) {
                                 kill(-pgrp, SIGHUP);
                         }
 
@@ -2850,11 +2846,7 @@ spawn_async_cb (GObject *source,
         }
 
         spawn_async_callback_data_free(data);
-
-        if (terminal != nullptr)
-                g_object_unref(terminal);
 }
-
 
 /**
  * VteTerminalSpawnAsyncCallback:
@@ -2881,11 +2873,11 @@ spawn_async_cb (GObject *source,
  * @argv: (array zero-terminated=1) (element-type filename): child's argument vector
  * @envv: (allow-none) (array zero-terminated=1) (element-type filename): a list of environment
  *   variables to be added to the environment before starting the process, or %NULL
- * @spawn_flags_: flags from #GSpawnFlags
+ * @spawn_flags: flags from #GSpawnFlags
  * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
  * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
  * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
- * @timeout: a timeout value in ms, or -1 to wait indefinitely
+ * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
  * @user_data: (closure callback): user data for @callback, or %NULL
@@ -2933,7 +2925,7 @@ vte_terminal_spawn_async(VteTerminal *terminal,
                          const char *working_directory,
                          char **argv,
                          char **envv,
-                         GSpawnFlags spawn_flags_,
+                         GSpawnFlags spawn_flags,
                          GSpawnChildSetupFunc child_setup,
                          gpointer child_setup_data,
                          GDestroyNotify child_setup_data_destroy,
@@ -2946,37 +2938,29 @@ vte_terminal_spawn_async(VteTerminal *terminal,
         g_return_if_fail(argv != nullptr);
         g_return_if_fail(!child_setup_data || child_setup);
         g_return_if_fail(!child_setup_data_destroy || child_setup_data);
+        g_return_if_fail(timeout >= -1);
         g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
 
         auto error = vte::glib::Error{};
-        auto pty = vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error);
-        if (pty == nullptr) {
-                if (child_setup_data_destroy)
-                        child_setup_data_destroy(child_setup_data);
-
-                callback(terminal, -1, error, user_data);
+        auto pty = vte::glib::take_ref(vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error));
+        if (!pty) {
+                auto task = vte::glib::take_ref(g_task_new(nullptr,
+                                                           cancellable,
+                                                           spawn_async_cb,
+                                                           spawn_async_callback_data_new(terminal, callback, user_data)));
+                g_task_return_error(task.get(), error.release());
                 return;
         }
 
-        guint spawn_flags = (guint)spawn_flags_;
-
-        /* We do NOT support this flag. If you want to have some FD open in the child
-         * process, simply use a child setup function that unsets the CLOEXEC flag
-         * on that FD.
-         */
-        g_warn_if_fail((spawn_flags & G_SPAWN_LEAVE_DESCRIPTORS_OPEN) == 0);
-        spawn_flags &= ~G_SPAWN_LEAVE_DESCRIPTORS_OPEN;
-
-        vte_pty_spawn_async(pty,
+        vte_pty_spawn_async(pty.get(),
                             working_directory,
                             argv,
                             envv,
-                            GSpawnFlags(spawn_flags),
+                            spawn_flags,
                             child_setup, child_setup_data, child_setup_data_destroy,
                             timeout, cancellable,
                             spawn_async_cb,
                             spawn_async_callback_data_new(terminal, callback, user_data));
-        g_object_unref(pty);
 }
 
 /**

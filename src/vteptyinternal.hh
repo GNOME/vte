@@ -22,14 +22,15 @@
 
 vte::base::Pty* _vte_pty_get_impl(VtePty* pty);
 
-gboolean _vte_pty_spawn(VtePty *pty,
-                        const char *working_directory,
-                        char **argv,
-                        char **envv,
-                        GSpawnFlags spawn_flags,
-                        GSpawnChildSetupFunc child_setup,
-                        gpointer child_setup_data,
-                        GPid *child_pid /* out */,
-                        int timeout,
-                        GCancellable *cancellable,
-                        GError **error);
+bool _vte_pty_spawn_sync(VtePty* pty,
+                         char const* working_directory,
+                         char** argv,
+                         char** envv,
+                         GSpawnFlags spawn_flags,
+                         GSpawnChildSetupFunc child_setup,
+                         gpointer child_setup_data,
+                         GDestroyNotify child_setup_data_destroy,
+                         GPid* child_pid /* out */,
+                         int timeout,
+                         GCancellable* cancellable,
+                         GError** error);
