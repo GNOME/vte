@@ -104,6 +104,90 @@ Pty::unref() noexcept
                 delete this;
 }
 
+vte::libc::FD
+Pty::get_peer() const noexcept
+{
+        if (!m_pty_fd)
+                return {};
+
+        if (grantpt(m_pty_fd.get()) != 0) {
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                return {};
+        }
+
+        if (unlockpt(m_pty_fd.get()) != 0) {
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
+                return {};
+        }
+
+        /* FIXME? else if (m_flags & VTE_PTY_NO_CTTTY)
+         * No session and no controlling TTY wanted, do we need to lose our controlling TTY,
+         * perhaps by open("/dev/tty") + ioctl(TIOCNOTTY) ?
+         */
+
+        /* Now open the PTY peer. Note that this also makes the PTY our controlling TTY. */
+        /* Note: *not* O_CLOEXEC! */
+        auto const fd_flags = int{O_RDWR | ((m_flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0)};
+
+        auto peer_fd = vte::libc::FD{};
+
+#ifdef __linux__
+        peer_fd = ioctl(m_pty_fd.get(), TIOCGPTPEER, fd_flags);
+        /* Note: According to the kernel's own tests (tools/testing/selftests/filesystems/devpts_pts.c),
+         * the error returned when the running kernel does not support this ioctl should be EINVAL.
+         * However it appears that the actual error returned is ENOTTY. So we check for both of them.
+         * See issue#182.
+         */
+        if (!peer_fd &&
+            errno != EINVAL &&
+            errno != ENOTTY) {
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTPEER)");
+                return {};
+        }
+
+        /* Fall back to ptsname + open */
+#endif
+
+        if (!peer_fd) {
+                auto const name = ptsname(m_pty_fd.get());
+                if (name == nullptr) {
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
+                        return {};
+                }
+
+                _vte_debug_print (VTE_DEBUG_PTY,
+                                  "Setting up child pty: master FD = %d name = %s\n",
+                                  m_pty_fd.get(), name);
+
+                peer_fd = ::open(name, fd_flags);
+                if (!peer_fd) {
+                        _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
+                        return {};
+                }
+        }
+
+        assert(bool(peer_fd));
+
+#if defined(__sun) && defined(HAVE_STROPTS_H)
+        if (isastream (peer_fd.get()) == 1) {
+                if ((ioctl(peer_fd.get(), I_FIND, "ptem") == 0) &&
+                    (ioctl(peer_fd.get(), I_PUSH, "ptem") == -1)) {
+                        return {};
+                }
+                if ((ioctl(peer_fd.get(), I_FIND, "ldterm") == 0) &&
+                    (ioctl(peer_fd.get(), I_PUSH, "ldterm") == -1)) {
+                        return {};
+                }
+                if ((ioctl(peer_fd.get(), I_FIND, "ttcompat") == 0) &&
+                    (ioctl(peer_fd.get(), I_PUSH, "ttcompat") == -1)) {
+                        return {};
+                }
+        }
+#endif
+
+        return peer_fd;
+}
+
 void
 Pty::child_setup() const noexcept
 {
@@ -124,20 +208,6 @@ Pty::child_setup() const noexcept
                 signal(n, SIG_DFL);
         }
 
-        auto masterfd = fd();
-        if (masterfd == -1)
-                _exit(127);
-
-        if (grantpt(masterfd) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
-                _exit(127);
-        }
-
-	if (unlockpt(masterfd) != 0) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
-                _exit(127);
-        }
-
         if (!(m_flags & VTE_PTY_NO_SESSION)) {
                 /* This starts a new session; we become its process-group leader,
                  * and lose our controlling TTY.
@@ -148,52 +218,10 @@ Pty::child_setup() const noexcept
                         _exit(127);
                 }
         }
-        /* FIXME? else if (m_flags & VTE_PTY_NO_CTTTY)
-         * No session and no controlling TTY wanted, do we need to lose our controlling TTY,
-         * perhaps by open("/dev/tty") + ioctl(TIOCNOTTY) ?
-         */
 
-        /* Now open the PTY peer. Note that this also makes the PTY our controlling TTY. */
-        /* Note: *not* O_CLOEXEC! */
-        auto const fd_flags = int{O_RDWR | ((m_flags & VTE_PTY_NO_CTTY) ? O_NOCTTY : 0)};
-        auto fd = int{-1};
-
-#ifdef __linux__
-        fd = ioctl(masterfd, TIOCGPTPEER, fd_flags);
-        /* Note: According to the kernel's own tests (tools/testing/selftests/filesystems/devpts_pts.c),
-         * the error returned when the running kernel does not support this ioctl should be EINVAL.
-         * However it appears that the actual error returned is ENOTTY. So we check for both of them.
-         * See issue#182.
-         */
-        if (fd == -1 &&
-            errno != EINVAL &&
-            errno != ENOTTY) {
-		_vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTPEER)");
-		_exit(127);
-        }
-
-        /* Fall back to ptsname + open */
-#endif
-
-        if (fd == -1) {
-                auto const name = ptsname(masterfd);
-                if (name == nullptr) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
-                        _exit(127);
-                }
-
-                _vte_debug_print (VTE_DEBUG_PTY,
-                                  "Setting up child pty: master FD = %d name = %s\n",
-                                  masterfd, name);
-
-                fd = ::open(name, fd_flags);
-                if (fd == -1) {
-                        _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
-                        _exit(127);
-                }
-        }
-
-        assert(fd != -1);
+        auto peer_fd = get_peer();
+        if (!peer_fd)
+                _exit(127);
 
 #ifdef TIOCSCTTY
         /* On linux, opening the PTY peer above already made it our controlling TTY (since
@@ -201,53 +229,37 @@ Pty::child_setup() const noexcept
          * on *BSD, that doesn't happen, so we need this explicit ioctl here.
          */
         if (!(m_flags & VTE_PTY_NO_CTTY)) {
-                if (ioctl(fd, TIOCSCTTY, fd) != 0) {
+                if (ioctl(peer_fd.get(), TIOCSCTTY, peer_fd.get()) != 0) {
                         _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
                         _exit(127);
                 }
         }
 #endif
 
-#if defined(__sun) && defined(HAVE_STROPTS_H)
-	if (isastream (fd) == 1) {
-		if ((ioctl(fd, I_FIND, "ptem") == 0) &&
-				(ioctl(fd, I_PUSH, "ptem") == -1)) {
-			_exit (127);
-		}
-		if ((ioctl(fd, I_FIND, "ldterm") == 0) &&
-				(ioctl(fd, I_PUSH, "ldterm") == -1)) {
-			_exit (127);
-		}
-		if ((ioctl(fd, I_FIND, "ttcompat") == 0) &&
-				(ioctl(fd, I_PUSH, "ttcompat") == -1)) {
-			perror ("ioctl (fd, I_PUSH, \"ttcompat\")");
-			_exit (127);
-		}
-	}
-#endif
-
 	/* now setup child I/O through the tty */
-	if (fd != STDIN_FILENO) {
-		if (dup2(fd, STDIN_FILENO) != STDIN_FILENO){
+	if (peer_fd != STDIN_FILENO) {
+		if (dup2(peer_fd.get(), STDIN_FILENO) != STDIN_FILENO){
 			_exit (127);
 		}
 	}
-	if (fd != STDOUT_FILENO) {
-		if (dup2(fd, STDOUT_FILENO) != STDOUT_FILENO){
+	if (peer_fd != STDOUT_FILENO) {
+		if (dup2(peer_fd.get(), STDOUT_FILENO) != STDOUT_FILENO){
 			_exit (127);
 		}
 	}
-	if (fd != STDERR_FILENO) {
-		if (dup2(fd, STDERR_FILENO) != STDERR_FILENO){
+	if (peer_fd != STDERR_FILENO) {
+		if (dup2(peer_fd.get(), STDERR_FILENO) != STDERR_FILENO){
 			_exit (127);
 		}
 	}
 
-	/* Close the original FD, unless it's one of the stdio descriptors */
-	if (fd != STDIN_FILENO &&
-			fd != STDOUT_FILENO &&
-			fd != STDERR_FILENO) {
-		close(fd);
+	/* If the peer FD has not been consumed above as one of the stdio descriptors,
+         * need to close it now so that it doesn't leak to the child.
+         */
+	if (peer_fd == STDIN_FILENO  ||
+            peer_fd == STDOUT_FILENO ||
+            peer_fd == STDERR_FILENO) {
+                (void)peer_fd.release();
 	}
 
         /* Now set the TERM environment variable */

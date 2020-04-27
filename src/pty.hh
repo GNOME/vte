@@ -40,6 +40,8 @@ private:
 
         VtePtyFlags m_flags{VTE_PTY_DEFAULT};
 
+        vte::libc::FD get_peer() const noexcept;
+
 public:
         constexpr Pty(vte::libc::FD&& fd,
                       VtePtyFlags flags = VTE_PTY_DEFAULT) noexcept
