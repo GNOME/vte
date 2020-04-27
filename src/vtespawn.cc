@@ -75,8 +75,7 @@ static gint g_execute (const gchar  *file,
                        gboolean search_path,
                        gboolean search_path_from_envp);
 
-static gboolean fork_exec (gboolean              intermediate_child,
-                           const gchar          *working_directory,
+static gboolean fork_exec (const gchar          *working_directory,
                            gchar               **argv,
                            gchar               **envp,
                            gboolean              search_path,
@@ -151,8 +150,7 @@ vte_spawn_async_cancellable (const gchar          *working_directory,
                                   G_SPAWN_STDERR_TO_DEV_NULL |
                                   G_SPAWN_CHILD_INHERITS_STDIN)) == 0, FALSE);
 
-  return fork_exec (!(flags & G_SPAWN_DO_NOT_REAP_CHILD),
-                    working_directory,
+  return fork_exec (working_directory,
                     argv,
                     envp,
                     (flags & G_SPAWN_SEARCH_PATH) != 0,
@@ -617,8 +615,7 @@ read_ints (int      fd,
 }
 
 static gboolean
-fork_exec (gboolean              intermediate_child,
-           const gchar          *working_directory,
+fork_exec (const gchar          *working_directory,
            gchar               **argv,
            gchar               **envp,
            gboolean              search_path,
@@ -634,10 +631,7 @@ fork_exec (gboolean              intermediate_child,
 {
   GPid pid = -1;
   gint child_err_report_pipe[2] = { -1, -1 };
-  gint child_pid_report_pipe[2] = { -1, -1 };
   guint pipe_flags = cloexec_pipes ? FD_CLOEXEC : 0;
-
-  g_assert(!intermediate_child);
 
   if (!g_unix_open_pipe (child_err_report_pipe, pipe_flags, error))
     return FALSE;
@@ -678,7 +672,6 @@ fork_exec (gboolean              intermediate_child,
        * though. FIXMEchpe: remove this then since we always set all FDs CLOEXEC
        */
       close_and_invalidate (&child_err_report_pipe[0]);
-      close_and_invalidate (&child_pid_report_pipe[0]);
 
       do_exec (child_err_report_pipe[1],
                working_directory,
@@ -699,7 +692,6 @@ fork_exec (gboolean              intermediate_child,
 
       /* Close the uncared-about ends of the pipes */
       close_and_invalidate (&child_err_report_pipe[1]);
-      close_and_invalidate (&child_pid_report_pipe[1]);
 
       if (!read_ints (child_err_report_pipe[0],
                       buf, 2, &n_ints,
@@ -747,7 +739,6 @@ fork_exec (gboolean              intermediate_child,
 
       /* Success against all odds! return the information */
       close_and_invalidate (&child_err_report_pipe[0]);
-      close_and_invalidate (&child_pid_report_pipe[0]);
 
       if (child_pid)
         *child_pid = pid;
@@ -768,8 +759,6 @@ fork_exec (gboolean              intermediate_child,
 
   close_and_invalidate (&child_err_report_pipe[0]);
   close_and_invalidate (&child_err_report_pipe[1]);
-  close_and_invalidate (&child_pid_report_pipe[0]);
-  close_and_invalidate (&child_pid_report_pipe[1]);
 
   return FALSE;
 }
