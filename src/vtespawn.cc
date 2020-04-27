@@ -239,7 +239,7 @@ exec_err_to_g_error (gint en)
       return G_SPAWN_ERROR_LOOP;
       break;
 #endif
-      
+
 #ifdef ETXTBUSY
     case ETXTBUSY:
       return G_SPAWN_ERROR_TXTBUSY;
@@ -281,7 +281,7 @@ exec_err_to_g_error (gint en)
       return G_SPAWN_ERROR_LIBBAD;
       break;
 #endif
-      
+
     default:
       return G_SPAWN_ERROR_FAILED;
       break;
@@ -292,7 +292,7 @@ static gssize
 write_all (gint fd, gconstpointer vbuf, gsize to_write)
 {
   gchar *buf = (gchar *) vbuf;
-  
+
   while (to_write > 0)
     {
       gssize count = write (fd, buf, to_write);
@@ -307,7 +307,7 @@ write_all (gint fd, gconstpointer vbuf, gsize to_write)
           buf += count;
         }
     }
-  
+
   return TRUE;
 }
 
@@ -316,10 +316,10 @@ static void
 write_err_and_exit (gint fd, gint msg)
 {
   gint en = errno;
-  
+
   write_all (fd, &msg, sizeof(msg));
   write_all (fd, &en, sizeof(en));
-  
+
   _exit (1);
 }
 
@@ -547,9 +547,9 @@ do_exec (gint                  child_err_report_fd,
   if (working_directory && chdir (working_directory) < 0)
     write_err_and_exit (child_err_report_fd,
                         CHILD_CHDIR_FAILED);
-  
+
   /* Redirect pipes as required */
-  
+
   if (!child_inherits_stdin)
     {
       /* Keep process from blocking on a read of stdin */
@@ -598,7 +598,7 @@ do_exec (gint                  child_err_report_fd,
       /* We need to do child_err_report_fd anyway */
       set_cloexec (GINT_TO_POINTER (0), child_err_report_fd);
     }
-  
+
   /* Call user function just before we exec */
   if (child_setup)
     {
@@ -617,7 +617,7 @@ do_exec (gint                  child_err_report_fd,
 static gboolean
 read_ints (int      fd,
            gint*    buf,
-           gint     n_ints_in_buf,    
+           gint     n_ints_in_buf,
            gint    *n_ints_read,
            gint     timeout,
            GPollFD *cancellable_pollfd,
@@ -656,13 +656,13 @@ read_ints (int      fd,
 
   while (TRUE)
     {
-      gssize chunk;    
+      gssize chunk;
 
       if (bytes >= sizeof(gint)*2)
         break; /* give up, who knows what happened, should not be
                 * possible.
                 */
-          
+
     again:
       if (n_pollfds != 0)
         {
@@ -714,7 +714,7 @@ read_ints (int      fd,
                     sizeof(gint) * n_ints_in_buf - bytes);
       if (chunk < 0 && errno == EINTR)
         goto again;
-          
+
       if (chunk < 0)
         {
           int errsv = errno;
@@ -794,7 +794,7 @@ fork_exec (gboolean              intermediate_child,
       signal (SIGINT, SIG_DFL);
       signal (SIGTERM, SIG_DFL);
       signal (SIGHUP, SIG_DFL);
-      
+
       /* Be sure we crash if the parent exits
        * and we write to the err_report_pipe
        */
@@ -806,7 +806,7 @@ fork_exec (gboolean              intermediate_child,
        */
       close_and_invalidate (&child_err_report_pipe[0]);
       close_and_invalidate (&child_pid_report_pipe[0]);
-      
+
       do_exec (child_err_report_pipe[1],
                working_directory,
                argv,
@@ -824,9 +824,9 @@ fork_exec (gboolean              intermediate_child,
   else
     {
       /* Parent */
-      
+
       gint buf[2];
-      gint n_ints = 0;    
+      gint n_ints = 0;
 
       /* Close the uncared-about ends of the pipes */
       close_and_invalidate (&child_err_report_pipe[1]);
@@ -837,7 +837,7 @@ fork_exec (gboolean              intermediate_child,
                       timeout, pollfd,
                       error))
         goto cleanup_and_fail;
-        
+
       if (n_ints >= 2)
         {
           /* Error from the child. */
@@ -853,7 +853,7 @@ fork_exec (gboolean              intermediate_child,
                            g_strerror (buf[1]));
 
               break;
-              
+
             case CHILD_EXEC_FAILED:
               g_set_error (error,
                            G_SPAWN_ERROR,
@@ -863,7 +863,7 @@ fork_exec (gboolean              intermediate_child,
                            g_strerror (buf[1]));
 
               break;
-              
+
             case CHILD_DUP2_FAILED:
               g_set_error (error,
                            G_SPAWN_ERROR,
@@ -880,7 +880,7 @@ fork_exec (gboolean              intermediate_child,
                            _("Failed to fork child process (%s)"),
                            g_strerror (buf[1]));
               break;
-              
+
             default:
               g_set_error (error,
                            G_SPAWN_ERROR,
@@ -896,7 +896,7 @@ fork_exec (gboolean              intermediate_child,
       /* Success against all odds! return the information */
       close_and_invalidate (&child_err_report_pipe[0]);
       close_and_invalidate (&child_pid_report_pipe[0]);
- 
+
       if (child_pid)
         *child_pid = pid;
 
@@ -933,13 +933,13 @@ script_execute (const gchar *file,
   int argc = 0;
   while (argv[argc])
     ++argc;
-  
+
   /* Construct an argument list for the shell.  */
   {
     gchar **new_argv;
 
     new_argv = g_new0 (gchar*, argc + 2); /* /bin/sh and NULL */
-    
+
     new_argv[0] = (char *) "/bin/sh";
     new_argv[1] = (char *) file;
     while (argc > 0)
@@ -953,7 +953,7 @@ script_execute (const gchar *file,
       execve (new_argv[0], new_argv, envp);
     else
       execv (new_argv[0], new_argv);
-    
+
     g_free (new_argv);
   }
 }
@@ -979,7 +979,7 @@ g_execute (const gchar *file,
         execve (file, argv, envp);
       else
         execv (file, argv);
-      
+
       if (errno == ENOEXEC)
 	script_execute (file, argv, envp);
     }
@@ -1008,14 +1008,14 @@ g_execute (const gchar *file,
            * unportable confstr(); UNIX98 does not actually specify
            * what to search if PATH is unset. POSIX may, dunno.
            */
-          
+
           path = "/bin:/usr/bin:.";
 	}
 
       len = strlen (file) + 1;
       pathlen = strlen (path);
       freeme = name = (char*)g_malloc (pathlen + len + 1);
-      
+
       /* Copy the file name at the top, including '\0'  */
       memcpy (name + pathlen + 1, file, len);
       name = name + pathlen;
@@ -1043,7 +1043,7 @@ g_execute (const gchar *file,
             execve (startp, argv, envp);
           else
             execv (startp, argv);
-          
+
 	  if (errno == ENOEXEC)
 	    script_execute (startp, argv, envp);
 
@@ -1057,7 +1057,7 @@ g_execute (const gchar *file,
 	      got_eacces = TRUE;
 
               /* FALL THRU */
-              
+
 	    case ENOENT:
 #ifdef ESTALE
 	    case ESTALE:
