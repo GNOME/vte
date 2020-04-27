@@ -79,7 +79,6 @@ static gboolean fork_exec (gboolean              intermediate_child,
                            const gchar          *working_directory,
                            gchar               **argv,
                            gchar               **envp,
-                           gboolean              close_descriptors,
                            gboolean              search_path,
                            gboolean              search_path_from_envp,
                            gboolean              file_and_argv_zero,
@@ -156,7 +155,6 @@ vte_spawn_async_cancellable (const gchar          *working_directory,
                     working_directory,
                     argv,
                     envp,
-                    !(flags & G_SPAWN_LEAVE_DESCRIPTORS_OPEN),
                     (flags & G_SPAWN_SEARCH_PATH) != 0,
                     (flags & G_SPAWN_SEARCH_PATH_FROM_ENVP) != 0,
                     (flags & G_SPAWN_FILE_AND_ARGV_ZERO) != 0,
@@ -464,7 +462,6 @@ do_exec (gint                  child_err_report_fd,
          const gchar          *working_directory,
          gchar               **argv,
          gchar               **envp,
-         gboolean              close_descriptors,
          gboolean              search_path,
          gboolean              search_path_from_envp,
          gboolean              file_and_argv_zero,
@@ -475,26 +472,15 @@ do_exec (gint                  child_err_report_fd,
     write_err_and_exit (child_err_report_fd,
                         CHILD_CHDIR_FAILED);
 
-  /* Close all file descriptors but stdin, stdout and stderr
-   * before we exec. Note that this includes
+  /* Close all file descriptors before we exec. Note that this includes
    * child_err_report_fd, which keeps the parent from blocking
    * forever on the other end of that pipe.
+   * (Note that stdin, stdout and stderr will be set by the child afterwards.)
    */
-  if (close_descriptors)
-    {
-      fdwalk (set_cloexec, GINT_TO_POINTER (3));
-    }
-  else
-    {
-      /* We need to do child_err_report_fd anyway */
-      set_cloexec (GINT_TO_POINTER (0), child_err_report_fd);
-    }
+  fdwalk (set_cloexec, GINT_TO_POINTER (3));
 
   /* Call user function just before we exec */
-  if (child_setup)
-    {
-      (* child_setup) (user_data);
-    }
+  child_setup (user_data);
 
   g_execute (argv[0],
              file_and_argv_zero ? argv + 1 : argv,
@@ -635,7 +621,6 @@ fork_exec (gboolean              intermediate_child,
            const gchar          *working_directory,
            gchar               **argv,
            gchar               **envp,
-           gboolean              close_descriptors,
            gboolean              search_path,
            gboolean              search_path_from_envp,
            gboolean              file_and_argv_zero,
@@ -690,7 +675,7 @@ fork_exec (gboolean              intermediate_child,
 
       /* Close the parent's end of the pipes;
        * not needed in the close_descriptors case,
-       * though
+       * though. FIXMEchpe: remove this then since we always set all FDs CLOEXEC
        */
       close_and_invalidate (&child_err_report_pipe[0]);
       close_and_invalidate (&child_pid_report_pipe[0]);
@@ -699,7 +684,6 @@ fork_exec (gboolean              intermediate_child,
                working_directory,
                argv,
                envp,
-               close_descriptors,
                search_path,
                search_path_from_envp,
                file_and_argv_zero,
