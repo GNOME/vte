@@ -72,15 +72,6 @@ _vte_write_err (int fd,
         write_all(fd, data, sizeof(data));
 }
 
-G_GNUC_UNUSED static int
-close_func (void *data, int fd)
-{
-  if (fd >= GPOINTER_TO_INT (data))
-    (void) close (fd);
-
-  return 0;
-}
-
 /* Based on execvp from GNU C Library */
 
 static void
