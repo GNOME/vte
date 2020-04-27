@@ -18,7 +18,6 @@
 
 #include "config.h"
 
-#include <fcntl.h>
 #include <string.h>
 #include <locale.h>
 #include <unistd.h>
@@ -266,7 +265,7 @@ private:
                  */
                 auto new_fd = int{};
                 if (*end == '=' || fd < 3) {
-                        new_fd = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+                        new_fd = vte::libc::fd_dup_cloexec(fd, 3);
                         if (new_fd == -1) {
                                 g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errno),
                                              "Failed to duplicate file descriptor %d: %m", fd);
