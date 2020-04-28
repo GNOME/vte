@@ -2028,6 +2028,10 @@ Terminal::set_encoding(char const* charset,
                 m_converter.reset();
                 m_data_syntax = DataSyntax::eECMA48_UTF8;
         } else {
+                if (data_syntax() == DataSyntax::eECMA48_PCTERM &&
+                    m_converter->charset() == charset)
+                        return true;
+
                 auto converter = vte::base::ICUConverter::make(charset, error);
                 if (!converter)
                         return false;
