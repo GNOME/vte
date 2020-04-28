@@ -420,6 +420,13 @@ char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
                                      int *tag) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
 _VTE_PUBLIC
+char **vte_terminal_event_check_regex_array(VteTerminal *terminal,
+                                            GdkEvent *event,
+                                            VteRegex **regexes,
+                                            gsize n_regexes,
+                                            guint32 match_flags,
+                                            gsize *n_matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
+_VTE_PUBLIC
 gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                                GdkEvent *event,
                                                VteRegex **regexes,

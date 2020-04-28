@@ -89,6 +89,7 @@ vte_terminal_search_get_regex
 vte_terminal_search_get_wrap_around
 vte_terminal_search_set_regex
 vte_terminal_search_set_wrap_around
+vte_terminal_event_check_regex_array
 vte_terminal_event_check_regex_simple
 
 <SUBSECTION>

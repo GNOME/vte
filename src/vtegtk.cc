@@ -2264,18 +2264,61 @@ vte_terminal_hyperlink_check_event(VteTerminal *terminal,
 }
 
 /**
- * vte_terminal_event_check_regex_simple:
+ * vte_terminal_event_check_regex_array: (rename-to vte_terminal_event_check_regex_simple)
  * @terminal: a #VteTerminal
  * @event: a #GdkEvent
  * @regexes: (array length=n_regexes): an array of #VteRegex
  * @n_regexes: number of items in @regexes
  * @match_flags: PCRE2 match flags, or 0
- * @matches: (out caller-allocates) (array length=n_regexes): a location to store the matches
+ * @n_matches: (out) (nullable): number of items in @matches, which is always equal to @n_regexes
+ *
+ * Like vte_terminal_event_check_regex_simple(), but returns an array of strings,
+ * containing the matching text (or %NULL if no match) corresponding to each of the
+ * regexes in @regexes.
+ *
+ * You must free each string and the array; but note that this is *not* a %NULL-terminated
+ * string array, and so you must *not* use g_strfreev() on it.
+ *
+ * Returns: (transfer full) (array length=n_matches): a newly allocated array of strings,
+ *   or %NULL if none of the regexes matched
+ *
+ * Since: 0.62
+ */
+char**
+vte_terminal_event_check_regex_array(VteTerminal *terminal,
+                                     GdkEvent *event,
+                                     VteRegex **regexes,
+                                     gsize n_regexes,
+                                     guint32 match_flags,
+                                     gsize *n_matches)
+{
+        auto matches = vte::glib::take_free_ptr(g_new0(char*, n_regexes));
+        if (n_matches)
+                *n_matches = n_regexes;
+
+        auto const rv = vte_terminal_event_check_regex_simple(terminal,
+                                                              event,
+                                                              regexes,
+                                                              n_regexes,
+                                                              match_flags,
+                                                              matches.get());
+        return rv ? matches.release() : nullptr;
+}
+
+/**
+ * vte_terminal_event_check_regex_simple: (skip)
+ * @terminal: a #VteTerminal
+ * @event: a #GdkEvent
+ * @regexes: (array length=n_regexes): an array of #VteRegex
+ * @n_regexes: number of items in @regexes
+ * @match_flags: PCRE2 match flags, or 0
+ * @matches: (out caller-allocates) (array length=n_regexes) (transfer full): a location to store the matches
  *
  * Checks each regex in @regexes if the text in and around the position of
  * the event matches the regular expressions.  If a match exists, the matched
  * text is stored in @matches at the position of the regex in @regexes; otherwise
- * %NULL is stored there.
+ * %NULL is stored there.  Each non-%NULL element of @matches should be freed with
+ * g_free().
  *
  * Note that the regexes in @regexes should have been created using the %PCRE2_MULTILINE flag.
  *
