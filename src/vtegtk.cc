@@ -2293,16 +2293,17 @@ vte_terminal_event_check_regex_array(VteTerminal *terminal,
                                      gsize *n_matches)
 {
         auto matches = vte::glib::take_free_ptr(g_new0(char*, n_regexes));
+        if (!vte_terminal_event_check_regex_simple(terminal,
+                                                   event,
+                                                   regexes,
+                                                   n_regexes,
+                                                   match_flags,
+                                                   matches.get()))
+            return nullptr;
+
         if (n_matches)
                 *n_matches = n_regexes;
-
-        auto const rv = vte_terminal_event_check_regex_simple(terminal,
-                                                              event,
-                                                              regexes,
-                                                              n_regexes,
-                                                              match_flags,
-                                                              matches.get());
-        return rv ? matches.release() : nullptr;
+        return matches.release();
 }
 
 /**
