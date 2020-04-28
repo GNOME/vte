@@ -2270,7 +2270,7 @@ vte_terminal_hyperlink_check_event(VteTerminal *terminal,
  * @regexes: (array length=n_regexes): an array of #VteRegex
  * @n_regexes: number of items in @regexes
  * @match_flags: PCRE2 match flags, or 0
- * @n_matches: (out) (nullable): number of items in @matches, which is always equal to @n_regexes
+ * @n_matches: (out) (optional): number of items in @matches, which is always equal to @n_regexes
  *
  * Like vte_terminal_event_check_regex_simple(), but returns an array of strings,
  * containing the matching text (or %NULL if no match) corresponding to each of the
@@ -2279,7 +2279,7 @@ vte_terminal_hyperlink_check_event(VteTerminal *terminal,
  * You must free each string and the array; but note that this is *not* a %NULL-terminated
  * string array, and so you must *not* use g_strfreev() on it.
  *
- * Returns: (transfer full) (array length=n_matches): a newly allocated array of strings,
+ * Returns: (nullable) (transfer full) (array length=n_matches): a newly allocated array of strings,
  *   or %NULL if none of the regexes matched
  *
  * Since: 0.62
