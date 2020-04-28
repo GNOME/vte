@@ -198,8 +198,6 @@ private:
         SpawnContext m_context{};
         int m_timeout{default_timeout};
         vte::glib::RefPtr<GCancellable> m_cancellable{};
-        GAsyncReadyCallback m_callback{nullptr};
-        void* m_callback_user_data{nullptr};
 
         GPollFD m_cancellable_pollfd{-1, 0, 0};
         vte::libc::FD m_child_report_error_pipe_read{};
