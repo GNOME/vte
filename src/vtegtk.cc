@@ -2292,8 +2292,11 @@ vte_terminal_event_check_regex_array(VteTerminal *terminal,
                                      guint32 match_flags,
                                      gsize *n_matches)
 {
-        if (n_regexes == 0)
+        if (n_regexes == 0) {
+                if (n_matches)
+                        *n_matches = 0;
                 return nullptr;
+        }
 
         auto matches = vte::glib::take_free_ptr(g_new0(char*, n_regexes));
         if (!vte_terminal_event_check_regex_simple(terminal,
