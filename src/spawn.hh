@@ -54,8 +54,7 @@ private:
         std::vector<std::pair<int,int>> m_fd_map{{-1, 0}, {-1, 1}, {-1, 2}};
 
         child_setup_type m_child_setup{(void(*)(void*))0};
-        void* m_child_setup_data{nullptr};
-        GDestroyNotify m_child_setup_data_destroy{nullptr};
+        std::shared_ptr<void> m_child_setup_data{nullptr};
 
         bool m_inherit_environ{true};
         bool m_systemd_scope{true};
@@ -65,12 +64,7 @@ private:
 
 public:
         SpawnContext() = default;
-
-        ~SpawnContext()
-        {
-                if (m_child_setup_data && m_child_setup_data_destroy)
-                        m_child_setup_data_destroy(m_child_setup_data);
-        }
+        ~SpawnContext() = default;
 
         SpawnContext(SpawnContext const&) = delete;
         SpawnContext(SpawnContext&&) = default;
@@ -118,11 +112,13 @@ public:
 
         void set_child_setup(child_setup_type func,
                              void* data,
-                             GDestroyNotify destroy)
+                             void(*destroy)(void*))
         {
                 m_child_setup = func;
-                m_child_setup_data = data;
-                m_child_setup_data_destroy = destroy;
+                if (destroy)
+                        m_child_setup_data = std::shared_ptr<void>(data, destroy);
+                else
+                        m_child_setup_data = std::shared_ptr<void>(data, [](auto p) { });
         }
 
         void add_fds(int const* fds,

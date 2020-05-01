@@ -436,7 +436,7 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write) noexcept
 
         /* Finally call an extra child setup */
         if (m_child_setup)
-                m_child_setup(m_child_setup_data);
+                m_child_setup(m_child_setup_data.get());
 
         /* exec */
         _vte_execute(arg0(),
