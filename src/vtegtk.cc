@@ -2792,6 +2792,7 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(argv != NULL, FALSE);
         g_return_val_if_fail(argv[0] != nullptr, FALSE);
+        g_return_val_if_fail(envv == nullptr ||_vte_pty_check_envv(envv), false);
         g_return_val_if_fail((spawn_flags & (VTE_SPAWN_NO_SYSTEMD_SCOPE | VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE)) == 0, FALSE);
         g_return_val_if_fail(child_setup_data == NULL || child_setup, FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);

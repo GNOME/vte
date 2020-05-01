@@ -640,6 +640,28 @@ _vte_pty_spawn_sync(VtePty* pty,
         return rv;
 }
 
+/*
+ * _vte_pty_check_envv:
+ * @strv:
+ *
+ * Validates that each element is of the form 'KEY=VALUE'.
+ */
+bool
+_vte_pty_check_envv(char const* const* strv)
+{
+  if (!strv)
+    return true;
+
+  char const *p;
+  while ((p = *strv++))
+    {
+      if (!strchr(p, '='))
+        return false;
+    }
+
+  return true;
+}
+
 /**
  * vte_pty_spawn_with_fds_async:
  * @pty: a #VtePty
@@ -715,6 +737,7 @@ vte_pty_spawn_with_fds_async(VtePty *pty,
 {
         g_return_if_fail(argv != nullptr);
         g_return_if_fail(argv[0] != nullptr);
+        g_return_if_fail(envv == nullptr || _vte_pty_check_envv(envv));
         g_return_if_fail(n_fds == 0 || fds != nullptr);
         for (auto i = int{0}; i < n_fds; ++i)
                 g_return_if_fail(vte::libc::fd_get_cloexec(fds[i]));

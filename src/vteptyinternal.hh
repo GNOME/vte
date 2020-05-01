@@ -34,3 +34,5 @@ bool _vte_pty_spawn_sync(VtePty* pty,
                          int timeout,
                          GCancellable* cancellable,
                          GError** error);
+
+bool _vte_pty_check_envv(char const* const* envv);
