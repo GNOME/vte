@@ -40,11 +40,11 @@ private:
 
         vte::glib::RefPtr<VtePty> m_pty{};
 
-        vte::glib::StringPtr m_cwd;
-        vte::glib::StringPtr m_fallback_cwd;
-        vte::glib::StringPtr m_arg0;
-        vte::glib::StrvPtr m_argv;
-        vte::glib::StrvPtr m_envv;
+        vte::glib::StringPtr m_cwd{};
+        vte::glib::StringPtr m_fallback_cwd{};
+        vte::glib::StringPtr m_arg0{};
+        vte::glib::StrvPtr m_argv{};
+        vte::glib::StrvPtr m_envv{};
 
         std::vector<vte::libc::FD> m_fds{};
 
@@ -68,7 +68,7 @@ public:
 
         ~SpawnContext()
         {
-                if (m_child_setup_data)
+                if (m_child_setup_data && m_child_setup_data_destroy)
                         m_child_setup_data_destroy(m_child_setup_data);
         }
 
