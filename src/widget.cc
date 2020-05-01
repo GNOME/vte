@@ -178,6 +178,17 @@ Widget::set_cursor(Cursor const& cursor) noexcept
 }
 
 void
+Widget::constructed() noexcept
+{
+        /* Set the style as early as possible, before GTK+ starts
+         * invoking various callbacks. This is needed in order to
+         * compute the initial geometry correctly in presence of
+         * non-default padding, see bug 787710.
+         */
+        style_updated();
+}
+
+void
 Widget::dispose() noexcept
 {
         if (m_terminal->terminate_child()) {
@@ -553,6 +564,22 @@ Widget::should_emit_signal(int id) noexcept
                                             signals[id],
                                             0 /* detail */,
                                             false /* not interested in blocked handlers */) != FALSE;
+}
+
+void
+Widget::style_updated() noexcept
+{
+        auto padding = GtkBorder{};
+        auto context = gtk_widget_get_style_context(gtk());
+        gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
+                                      &padding);
+        m_terminal->set_border_padding(&padding);
+
+        auto aspect = float{};
+        gtk_widget_style_get(gtk(), "cursor-aspect-ratio", &aspect, nullptr);
+        m_terminal->set_cursor_aspect(aspect);
+
+        m_terminal->widget_style_updated();
 }
 
 void

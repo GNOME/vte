@@ -4405,38 +4405,41 @@ Terminal::im_update_cursor()
 }
 
 void
-Terminal::widget_style_updated()
+Terminal::set_border_padding(GtkBorder const* padding)
 {
-        set_font_desc(m_unscaled_font_desc.get());
-
-        auto context = gtk_widget_get_style_context(m_widget);
-        GtkBorder new_padding;
-        gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
-                                      &new_padding);
-        if (memcmp(&new_padding, &m_padding, sizeof(GtkBorder)) != 0) {
+        if (memcmp(padding, &m_padding, sizeof(*padding)) != 0) {
                 _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
                                  "Setting padding to (%d,%d,%d,%d)\n",
-                                 new_padding.left, new_padding.right,
-                                 new_padding.top, new_padding.bottom);
+                                 padding->left, padding->right,
+                                 padding->top, padding->bottom);
 
-                m_padding = new_padding;
+                m_padding = *padding;
                 update_view_extents();
                 gtk_widget_queue_resize(m_widget);
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
                                  "Keeping padding the same at (%d,%d,%d,%d)\n",
-                                 new_padding.left, new_padding.right,
-                                 new_padding.top, new_padding.bottom);
+                                 padding->left, padding->right,
+                                 padding->top, padding->bottom);
 
         }
+}
 
-        float aspect;
-        gtk_widget_style_get(m_widget, "cursor-aspect-ratio", &aspect, nullptr);
-        if (!_vte_double_equal(aspect, m_cursor_aspect_ratio)) {
-                m_cursor_aspect_ratio = aspect;
-                invalidate_cursor_once();
-        }
+void
+Terminal::set_cursor_aspect(float aspect)
+{
+        if (_vte_double_equal(aspect, m_cursor_aspect_ratio))
+                return;
 
+        m_cursor_aspect_ratio = aspect;
+        invalidate_cursor_once();
+}
+
+void
+Terminal::widget_style_updated()
+{
+        // FIXMEchpe: remove taking font info from the widget style
+        set_font_desc(m_unscaled_font_desc.get());
 }
 
 void
@@ -7753,16 +7756,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 
         feed(str, false);
 #endif
-}
-
-void
-Terminal::widget_constructed()
-{
-        /* Set the style as early as possible, before GTK+ starts
-         * invoking various callbacks. This is needed in order to
-         * compute the initial geometry correctly in presence of
-         * non-default padding, see bug 787710. */
-        widget_style_updated();
 }
 
 void

@@ -58,13 +58,13 @@ public:
 
         inline constexpr vte::terminal::Terminal* terminal() const noexcept { return m_terminal; }
 
-        void constructed() noexcept { m_terminal->widget_constructed(); }
+        void constructed() noexcept;
         void dispose() noexcept;
         void realize() noexcept;
         void unrealize() noexcept;
         void map() noexcept;
         void unmap() noexcept;
-        void style_updated() noexcept { m_terminal->widget_style_updated(); }
+        void style_updated() noexcept;
         void draw(cairo_t *cr) noexcept { m_terminal->widget_draw(cr); }
         void get_preferred_width(int *minimum_width,
                                  int *natural_width) const noexcept { m_terminal->widget_get_preferred_width(minimum_width, natural_width); }

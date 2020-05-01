@@ -1115,6 +1115,9 @@ public:
         void confine_coordinates(long *xp,
                                  long *yp);
 
+        void set_border_padding(GtkBorder const* padding);
+        void set_cursor_aspect(float aspect);
+
         void widget_paste(GdkAtom board);
         void widget_copy(VteSelection sel,
                          VteFormat format);
@@ -1126,7 +1129,6 @@ public:
 
         void widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment);
 
-        void widget_constructed();
         void widget_realize();
         void widget_unrealize();
         void widget_unmap();
