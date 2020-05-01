@@ -202,14 +202,18 @@ merge_environ(char** envp /* consumed */,
         auto table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 
         if (inherit) {
-                auto parent_environ = g_listenv();
+                auto parent_environ = vte::glib::take_strv(g_get_environ());
                 if (parent_environ) {
-                        for (auto i = unsigned{0}; parent_environ[i] != NULL; ++i) {
-                                g_hash_table_replace(table,
-                                                     g_strdup(parent_environ[i]),
-                                                     g_strdup(g_getenv(parent_environ[i])));
+                        auto penvv = parent_environ.get();
+                        for (auto i = unsigned{0}; penvv[i] != NULL; ++i) {
+                                auto name = g_strdup(penvv[i]);
+                                auto value = strchr(name, '=');
+                                if (value) {
+                                        *value = '\0';
+                                        value = g_strdup(value + 1);
+                                }
+                                g_hash_table_replace(table, name, value); /* takes ownership of name and value */
                         }
-                        g_strfreev(parent_environ);
                 }
         }
 
