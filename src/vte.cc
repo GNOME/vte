@@ -9332,7 +9332,7 @@ vte_cairo_get_clip_region (cairo_t *cr)
         return region;
 }
 
-void
+bool
 Terminal::widget_mouse_scroll(MouseEvent const& event)
 {
 	gdouble v;
@@ -9372,7 +9372,7 @@ Terminal::widget_mouse_scroll(MouseEvent const& event)
 	if (m_mouse_tracking_mode != MouseTrackingMode::eNONE) {
 		cnt = m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
-			return;
+			return true;
 		m_mouse_smooth_scroll_delta -= cnt;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
@@ -9388,7 +9388,7 @@ Terminal::widget_mouse_scroll(MouseEvent const& event)
                                          false /* not drag */,
                                          false /* not release */);
 		}
-		return;
+		return true;
 	}
 
         v = MAX (1., ceil (gtk_adjustment_get_page_increment (m_vadjustment.get()) / 10.));
@@ -9402,7 +9402,7 @@ Terminal::widget_mouse_scroll(MouseEvent const& event)
 
 		cnt = v * m_mouse_smooth_scroll_delta;
 		if (cnt == 0)
-			return;
+			return true;
 		m_mouse_smooth_scroll_delta -= cnt / v;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll by %d lines, smooth scroll delta set back to %f\n",
@@ -9424,12 +9424,18 @@ Terminal::widget_mouse_scroll(MouseEvent const& event)
 			send_child({normal, normal_length});
 		}
 		g_free (normal);
+
+                return true;
 	} else {
 		/* Perform a history scroll. */
 		double dcnt = m_screen->scroll_delta + v * m_mouse_smooth_scroll_delta;
 		queue_adjustment_value_changed_clamped(dcnt);
 		m_mouse_smooth_scroll_delta = 0;
+
+                return true;
 	}
+
+        return true;
 }
 
 bool

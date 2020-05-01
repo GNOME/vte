@@ -80,7 +80,7 @@ public:
         bool button_release(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_release(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         void enter(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_enter(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         void leave(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_leave(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        void scroll(GdkEventScroll *event) noexcept { m_terminal->widget_mouse_scroll(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        bool scroll(GdkEventScroll *event) noexcept { return m_terminal->widget_mouse_scroll(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         bool motion_notify(GdkEventMotion *event) noexcept { return m_terminal->widget_mouse_motion(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }

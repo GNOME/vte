@@ -1142,7 +1142,7 @@ public:
         bool widget_mouse_release(MouseEvent const& event);
         void widget_mouse_enter(MouseEvent const& event);
         void widget_mouse_leave(MouseEvent const& event);
-        void widget_mouse_scroll(MouseEvent const& event);
+        bool widget_mouse_scroll(MouseEvent const& event);
         void widget_draw(cairo_t *cr);
         void widget_get_preferred_width(int *minimum_width,
                                         int *natural_width);
