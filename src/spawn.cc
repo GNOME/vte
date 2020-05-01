@@ -346,7 +346,6 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write) noexcept
                 }
         }
 
-        /* Note: *not* FD_CLOEXEC! */
         auto peer_fd = pty()->get_peer(true /* cloexec */);
         if (peer_fd == -1)
                 return ExecError::GETPTPEER;
