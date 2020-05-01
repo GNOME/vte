@@ -4487,35 +4487,6 @@ Terminal::beep()
                 m_real_widget->beep();
 }
 
-unsigned
-Terminal::translate_ctrlkey(KeyEvent const& event) const noexcept
-{
-	if (event.keyval() < 128)
-		return event.keyval();
-
-        auto display = gdk_window_get_display(gdk_event_get_window(event.platform_event()));
-        auto keymap = gdk_keymap_get_for_display(display);
-        auto keyval = unsigned{event.keyval()};
-
-	/* Try groups in order to find one mapping the key to ASCII */
-	for (auto i = unsigned{0}; i < 4; i++) {
-		auto consumed_modifiers = GdkModifierType{};
-		gdk_keymap_translate_keyboard_state (keymap,
-                                                     event.keycode(),
-                                                     GdkModifierType(event.modifiers()),
-                                                     i,
-                                                     &keyval, NULL, NULL, &consumed_modifiers);
-		if (keyval < 128) {
-			_vte_debug_print (VTE_DEBUG_EVENTS,
-                                          "ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
-                                          event.group(), keyval);
-                        break;
-		}
-	}
-
-        return keyval;
-}
-
 bool
 Terminal::widget_key_press(KeyEvent const& event)
 {
@@ -4908,8 +4879,8 @@ Terminal::widget_key_press(KeyEvent const& event)
 		}
 
 		/* Shall we do this here or earlier?  See bug 375112 and bug 589557 */
-		if (m_modifiers & GDK_CONTROL_MASK)
-			keyval = translate_ctrlkey(event);
+		if (m_modifiers & GDK_CONTROL_MASK && widget())
+                        keyval = widget()->key_event_translate_ctrlkey(event);
 
 		/* If we didn't manage to do anything, try to salvage a
 		 * printable string. */

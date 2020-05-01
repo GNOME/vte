@@ -262,6 +262,35 @@ Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
         return unsigned(mods);
 }
 
+unsigned
+Widget::key_event_translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept
+{
+	if (event.keyval() < 128)
+		return event.keyval();
+
+        auto display = gdk_window_get_display(gdk_event_get_window(event.platform_event()));
+        auto keymap = gdk_keymap_get_for_display(display);
+        auto keyval = unsigned{event.keyval()};
+
+	/* Try groups in order to find one mapping the key to ASCII */
+	for (auto i = unsigned{0}; i < 4; i++) {
+		auto consumed_modifiers = GdkModifierType{};
+		gdk_keymap_translate_keyboard_state (keymap,
+                                                     event.keycode(),
+                                                     GdkModifierType(event.modifiers()),
+                                                     i,
+                                                     &keyval, NULL, NULL, &consumed_modifiers);
+		if (keyval < 128) {
+			_vte_debug_print (VTE_DEBUG_EVENTS,
+                                          "ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+                                          event.group(), keyval);
+                        break;
+		}
+	}
+
+        return keyval;
+}
+
 vte::terminal::KeyEvent
 Widget::key_event_from_gdk(GdkEventKey* event) const
 {

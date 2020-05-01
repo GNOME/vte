@@ -211,6 +211,8 @@ protected:
 
         void unset_pty() noexcept;
 
+        unsigned key_event_translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept;
+
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
 
