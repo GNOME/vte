@@ -2050,12 +2050,6 @@ Terminal::set_encoding(char const* charset,
 	_vte_debug_print(VTE_DEBUG_IO,
                          "Set terminal encoding to `%s'.\n",
                          encoding());
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-                         "Emitting `encoding-changed'.\n");
-
-        GObject *object = G_OBJECT(m_terminal);
-	g_signal_emit(object, signals[SIGNAL_ENCODING_CHANGED], 0);
-        g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
 
         return true;
 #else

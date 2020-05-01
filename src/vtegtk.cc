@@ -4082,8 +4082,10 @@ vte_terminal_set_encoding(VteTerminal *terminal,
         g_object_freeze_notify(object);
 
         auto const rv = IMPL(terminal)->set_encoding(codeset, error);
-        if (rv)
+        if (rv) {
+                g_signal_emit(object, signals[SIGNAL_ENCODING_CHANGED], 0);
                 g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
+        }
 
         g_object_thaw_notify(object);
         return rv;
