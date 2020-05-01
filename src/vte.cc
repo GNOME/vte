@@ -7226,19 +7226,6 @@ Terminal::widget_leave(GdkEventCrossing *event)
         apply_mouse_cursor();
 }
 
-static G_GNUC_UNUSED inline const char *
-visibility_state_str(GdkVisibilityState state)
-{
-	switch(state){
-		case GDK_VISIBILITY_FULLY_OBSCURED:
-			return "fully-obscured";
-		case GDK_VISIBILITY_UNOBSCURED:
-			return "unobscured";
-		default:
-			return "partial";
-	}
-}
-
 /* Apply the changed metrics, and queue a resize if need be.
  *
  * The cell's height consists of 4 parts, from top to bottom:
