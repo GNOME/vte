@@ -249,8 +249,6 @@ merge_environ(char** envp /* consumed */,
          */
         if (cwd)
                 g_hash_table_replace(table, g_strdup("PWD"), g_strdup(cwd));
-        else
-                g_hash_table_remove(table, "PWD");
 
         auto array = g_ptr_array_sized_new(g_hash_table_size(table) + 1);
 
