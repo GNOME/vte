@@ -7136,9 +7136,6 @@ Terminal::widget_focus_in(GdkEventFocus *event)
 
 	gtk_widget_grab_focus(m_widget);
 
-	/* Read the keyboard modifiers, though they're probably garbage. */
-	read_modifiers((GdkEvent*)event);
-
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
 	if (widget_realized()) {
@@ -7165,9 +7162,6 @@ void
 Terminal::widget_focus_out(GdkEventFocus *event)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
-
-	/* Read the keyboard modifiers, though they're probably garbage. */
-	read_modifiers((GdkEvent*)event);
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
@@ -7201,6 +7195,8 @@ Terminal::widget_enter(GdkEventCrossing *event)
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
 
+        // FIXMEchpe read event modifiers here
+
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter at %s\n", pos.to_string());
 
         m_mouse_cursor_over_widget = TRUE;
@@ -7217,6 +7213,8 @@ Terminal::widget_leave(GdkEventCrossing *event)
 {
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
+
+        // FIXMEchpe read event modifiers here
 
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave at %s\n", pos.to_string());
 
