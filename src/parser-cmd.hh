@@ -159,6 +159,7 @@ _VTE_NOP(DECELR) /* enable locator reporting */
 _VTE_NOP(DECERA) /* erase rectangular area */
 _VTE_NOP(DECES) /* enable session */
 _VTE_NOP(DECFI) /* forward index */
+_VTE_NOP(DECFNK) /* function key */
 _VTE_NOP(DECFRA) /* fill rectangular area */
 _VTE_NOP(DECIC) /* insert column */
 _VTE_NOP(DECINVM) /* invoke macro */

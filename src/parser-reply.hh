@@ -47,7 +47,7 @@ _VTE_REPLY(DECPKMFR,                                  CSI, 'y', NONE, PLUS,  ) /
 _VTE_REPLY(DECRPM_ECMA,                               CSI, 'y', NONE, CASH,  ) /* report ECMA mode */
 _VTE_REPLY(DECRPM_DEC,                                CSI, 'y', WHAT, CASH,  ) /* report private mode */
 _VTE_REPLY(DECMSR,                                    CSI, '{', NONE, MULT,  ) /* macro space report */
-_VTE_REPLY(XTERM_BRACKET,                             CSI, '~', NONE, NONE,  ) /* XTERM bracketed paste */
+_VTE_REPLY(DECFNK,                                    CSI, '~', NONE, NONE,  ) /* dec function key / XTERM bracketed paste */
 
 _VTE_REPLY(DECTABSR,    DCS, '@', NONE, CASH,  ) /* tabulation stop report */
 _VTE_REPLY(DECRPSS,     DCS, 'r', NONE, CASH,  ) /* report state or setting */

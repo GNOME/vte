@@ -2992,6 +2992,17 @@ Terminal::DECFI(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::DECFNK(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECFNK - function key (or XTERM bracketed paste)
+         *
+         * References: VT525
+         *             XTERM
+         */
+}
+
+void
 Terminal::DECFRA(vte::parser::Sequence const& seq)
 {
         /*
