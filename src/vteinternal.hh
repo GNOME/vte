@@ -1126,8 +1126,8 @@ public:
         void widget_unrealize();
         void widget_unmap();
         void widget_style_updated();
-        void widget_focus_in(GdkEventFocus *event);
-        void widget_focus_out(GdkEventFocus *event);
+        void widget_focus_in();
+        void widget_focus_out();
         bool widget_key_press(KeyEvent const& event);
         bool widget_key_release(KeyEvent const& event);
         bool widget_mouse_motion(MouseEvent const& event);

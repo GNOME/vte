@@ -7086,7 +7086,7 @@ Terminal::widget_mouse_release(MouseEvent const& event)
 }
 
 void
-Terminal::widget_focus_in(GdkEventFocus *event)
+Terminal::widget_focus_in()
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
@@ -7115,7 +7115,7 @@ Terminal::widget_focus_in(GdkEventFocus *event)
 }
 
 void
-Terminal::widget_focus_out(GdkEventFocus *event)
+Terminal::widget_focus_out()
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
 

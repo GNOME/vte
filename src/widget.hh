@@ -72,8 +72,8 @@ public:
                                   int *natural_height) const noexcept { m_terminal->widget_get_preferred_height(minimum_height, natural_height); }
         void size_allocate(GtkAllocation *allocation) noexcept;
 
-        void focus_in(GdkEventFocus *event) noexcept { m_terminal->widget_focus_in(event); }
-        void focus_out(GdkEventFocus *event) noexcept { m_terminal->widget_focus_out(event); }
+        void focus_in(GdkEventFocus *event) noexcept { m_terminal->widget_focus_in(); }
+        void focus_out(GdkEventFocus *event) noexcept { m_terminal->widget_focus_out(); }
         bool key_press(GdkEventKey *event) noexcept { return m_terminal->widget_key_press(key_event_from_gdk(event)); }
         bool key_release(GdkEventKey *event) noexcept { return m_terminal->widget_key_release(key_event_from_gdk(event)); }
         bool button_press(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_press(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
