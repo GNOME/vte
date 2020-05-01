@@ -74,8 +74,8 @@ public:
 
         void focus_in(GdkEventFocus *event) noexcept { m_terminal->widget_focus_in(event); }
         void focus_out(GdkEventFocus *event) noexcept { m_terminal->widget_focus_out(event); }
-        bool key_press(GdkEventKey *event) noexcept { return m_terminal->widget_key_press(event); }
-        bool key_release(GdkEventKey *event) noexcept { return m_terminal->widget_key_release(event); }
+        bool key_press(GdkEventKey *event) noexcept { return m_terminal->widget_key_press(key_event_from_gdk(event)); }
+        bool key_release(GdkEventKey *event) noexcept { return m_terminal->widget_key_release(key_event_from_gdk(event)); }
         bool button_press(GdkEventButton *event) noexcept { return m_terminal->widget_button_press(event); }
         bool button_release(GdkEventButton *event) noexcept { return m_terminal->widget_button_release(event); }
         void enter(GdkEventCrossing *event) noexcept { m_terminal->widget_enter(event); }
@@ -160,7 +160,7 @@ protected:
         void set_cursor(GdkCursor* cursor) noexcept;
         void set_cursor(Cursor const& cursor) noexcept;
 
-        bool im_filter_keypress(GdkEventKey* event) noexcept;
+        bool im_filter_keypress(vte::terminal::KeyEvent const& event) noexcept;
 
         void im_focus_in() noexcept;
         void im_focus_out() noexcept;
@@ -179,6 +179,9 @@ public: // FIXMEchpe
         void im_preedit_changed() noexcept;
 
 private:
+        unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
+        vte::terminal::KeyEvent key_event_from_gdk(GdkEventKey* event) const;
+
         GtkWidget* m_widget;
 
         vte::terminal::Terminal* m_terminal;

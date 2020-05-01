@@ -25,4 +25,10 @@ class Pty;
 
 } // namespace base
 
+namespace platform {
+
+class Widget;
+
+} // namespace platform
+
 } // namespace vte

@@ -267,6 +267,70 @@ class Widget;
 
 namespace terminal {
 
+class KeyEvent {
+        friend class vte::platform::Widget;
+        friend class Terminal;
+
+protected:
+
+        enum class Type {
+                ePRESS,
+                eRELEASE,
+        };
+
+        KeyEvent() noexcept = default;
+
+        constexpr KeyEvent(Type type,
+                           unsigned int modifiers,
+                           unsigned int keyval,
+                           unsigned int keycode,
+                           uint8_t group,
+                           unsigned int timestamp,
+                           bool is_modifier,
+                           GdkEventKey* gdk_event) noexcept
+                : m_type{type},
+                  m_modifiers{modifiers},
+                  m_keyval{keyval},
+                  m_keycode{keycode},
+                  m_group{group},
+                  m_timestamp{timestamp},
+                  m_is_modifier{is_modifier},
+                  m_platform_event{gdk_event}
+        {
+        }
+
+        constexpr auto platform_event() const noexcept { return m_platform_event; }
+
+public:
+        ~KeyEvent() noexcept = default;
+
+        KeyEvent(KeyEvent const&) = delete;
+        KeyEvent(KeyEvent&&) = delete;
+        KeyEvent& operator=(KeyEvent const&) = delete;
+        KeyEvent& operator=(KeyEvent&&) = delete;
+
+        constexpr auto const group()       const noexcept { return m_group;       }
+        constexpr auto const is_modifier() const noexcept { return m_is_modifier; }
+        constexpr auto const keycode()     const noexcept { return m_keycode;     }
+        constexpr auto const keyval()      const noexcept { return m_keyval;      }
+        constexpr auto const modifiers()   const noexcept { return m_modifiers;   }
+        constexpr auto const timestamp()   const noexcept { return m_timestamp;   }
+        constexpr auto const type()        const noexcept { return m_type;        }
+
+        constexpr auto const is_key_press()   const noexcept { return type() == Type::ePRESS;   }
+        constexpr auto const is_key_release() const noexcept { return type() == Type::eRELEASE; }
+
+private:
+        Type m_type;
+        unsigned m_modifiers;
+        unsigned m_keyval;
+        unsigned m_keycode;
+        uint8_t m_group;
+        unsigned m_timestamp;
+        bool m_is_modifier;
+        GdkEventKey* m_platform_event;
+}; // class KeyEvent
+
 class Terminal {
         friend class vte::platform::Widget;
 
@@ -920,8 +984,8 @@ public:
         void widget_style_updated();
         void widget_focus_in(GdkEventFocus *event);
         void widget_focus_out(GdkEventFocus *event);
-        bool widget_key_press(GdkEventKey *event);
-        bool widget_key_release(GdkEventKey *event);
+        bool widget_key_press(vte::terminal::KeyEvent const& event);
+        bool widget_key_release(vte::terminal::KeyEvent const& event);
         bool widget_button_press(GdkEventButton *event);
         bool widget_button_release(GdkEventButton *event);
         void widget_enter(GdkEventCrossing *event);
@@ -1110,7 +1174,7 @@ public:
         void vadjustment_value_changed();
 
         void read_modifiers(GdkEvent *event);
-        guint translate_ctrlkey(GdkEventKey *event);
+        unsigned translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept;
 
         void apply_mouse_cursor();
         void set_pointer_autohidden(bool autohidden);

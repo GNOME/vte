@@ -4494,36 +4494,33 @@ Terminal::beep()
                 m_real_widget->beep();
 }
 
-guint
-Terminal::translate_ctrlkey(GdkEventKey *event)
+unsigned
+Terminal::translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept
 {
-	guint keyval;
-	GdkKeymap *keymap;
-	unsigned int i;
+	if (event.keyval() < 128)
+		return event.keyval();
 
-	if (event->keyval < 128)
-		return event->keyval;
-
-        keymap = gdk_keymap_get_for_display(gdk_window_get_display (event->window));
+        auto display = gdk_window_get_display(gdk_event_get_window((GdkEvent*)event.platform_event()));
+        auto keymap = gdk_keymap_get_for_display(display);
+        auto keyval = unsigned{event.keyval()};
 
 	/* Try groups in order to find one mapping the key to ASCII */
-	for (i = 0; i < 4; i++) {
-		GdkModifierType consumed_modifiers;
-
+	for (auto i = unsigned{0}; i < 4; i++) {
+		auto consumed_modifiers = GdkModifierType{};
 		gdk_keymap_translate_keyboard_state (keymap,
-                                                     event->hardware_keycode,
-                                                     (GdkModifierType)event->state,
+                                                     event.keycode(),
+                                                     GdkModifierType(event.modifiers()),
                                                      i,
                                                      &keyval, NULL, NULL, &consumed_modifiers);
 		if (keyval < 128) {
 			_vte_debug_print (VTE_DEBUG_EVENTS,
-					"ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
-					event->group, keyval);
-			return keyval;
+                                          "ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+                                          event.group(), keyval);
+                        break;
 		}
 	}
 
-	return event->keyval;
+        return keyval;
 }
 
 void
@@ -4552,7 +4549,7 @@ Terminal::read_modifiers(GdkEvent *event)
 }
 
 bool
-Terminal::widget_key_press(GdkEventKey *event)
+Terminal::widget_key_press(vte::terminal::KeyEvent const& event)
 {
 	char *normal = NULL;
 	gsize normal_length = 0;
@@ -4565,10 +4562,11 @@ Terminal::widget_key_press(GdkEventKey *event)
 
 	/* If it's a keypress, record that we got the event, in case the
 	 * input method takes the event from us. */
-	if (event->type == GDK_KEY_PRESS) {
+        // FIXMEchpe this is ::widget_key_press; what other event type could it even be!?
+	if (event.is_key_press()) {
 		/* Store a copy of the key. */
-		keyval = event->keyval;
-		read_modifiers((GdkEvent*)event);
+                keyval = event.keyval();
+                m_modifiers = event.modifiers();
 
                 // FIXMEchpe?
 		if (m_cursor_blink_timer) {
@@ -4588,7 +4586,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				"Keypress, modifiers=0x%x, "
 				"keyval=0x%x, raw string=`%s'.\n",
 				m_modifiers,
-				keyval, event->string);
+                                 keyval, ((GdkEventKey*)event.platform_event())->string);
 
 		/* We steal many keypad keys here. */
 		if (!m_im_preedit_active) {
@@ -4687,10 +4685,10 @@ Terminal::widget_key_press(GdkEventKey *event)
 	}
 
 	/* Now figure out what to send to the child. */
-	if ((event->type == GDK_KEY_PRESS) && !modifier) {
+	if (event.is_key_press() && !modifier) {
 		handled = FALSE;
 		/* Map the key to a sequence name if we can. */
-		switch (keyval) {
+		switch (event.keyval()) {
 		case GDK_KEY_BackSpace:
 			switch (m_backspace_binding) {
 			case EraseMode::eASCII_BACKSPACE:
@@ -5014,9 +5012,9 @@ Terminal::widget_key_press(GdkEventKey *event)
 }
 
 bool
-Terminal::widget_key_release(GdkEventKey *event)
+Terminal::widget_key_release(vte::terminal::KeyEvent const& event)
 {
-	read_modifiers((GdkEvent*)event);
+        m_modifiers = event.modifiers();
 
 	if (m_input_enabled &&
             m_real_widget->im_filter_keypress(event))

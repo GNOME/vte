@@ -201,11 +201,11 @@ Widget::emit_eof() noexcept
 }
 
 bool
-Widget::im_filter_keypress(GdkEventKey* event) noexcept
+Widget::im_filter_keypress(vte::terminal::KeyEvent const& event) noexcept
 {
         // FIXMEchpe this can only be called when realized, so the m_im_context check is redundant
         return m_im_context &&
-                gtk_im_context_filter_keypress(m_im_context.get(), event);
+                gtk_im_context_filter_keypress(m_im_context.get(), event.platform_event());
 }
 
 void
@@ -243,6 +243,42 @@ void
 Widget::im_set_cursor_location(cairo_rectangle_int_t const* rect) noexcept
 {
         gtk_im_context_set_cursor_location(m_im_context.get(), rect);
+}
+
+unsigned
+Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
+{
+        /* Read the modifiers. See bug #663779 for more information on why we do this. */
+        auto mods = GdkModifierType{};
+        if (!gdk_event_get_state(event, &mods))
+                return 0;
+
+        /* Map non-virtual modifiers to virtual modifiers (Super, Hyper, Meta) */
+        auto display = gdk_window_get_display(gdk_event_get_window(event));
+        auto keymap = gdk_keymap_get_for_display(display);
+        gdk_keymap_add_virtual_modifiers(keymap, &mods);
+
+        return unsigned(mods);
+}
+
+vte::terminal::KeyEvent
+Widget::key_event_from_gdk(GdkEventKey* event) const
+{
+        auto type = vte::terminal::KeyEvent::Type{};
+        switch (gdk_event_get_event_type(reinterpret_cast<GdkEvent*>(event))) {
+        case GDK_KEY_PRESS: type = vte::terminal::KeyEvent::Type::ePRESS; break;
+        case GDK_KEY_RELEASE: type = vte::terminal::KeyEvent::Type::eRELEASE; break;
+        default: g_assert_not_reached(); return {};
+        }
+
+        return {type,
+                read_modifiers_from_gdk(reinterpret_cast<GdkEvent*>(event)),
+                event->keyval,
+                event->hardware_keycode, // gdk_event_get_scancode(event),
+                event->group,
+                event->time,
+                event->is_modifier != 0,
+                event};
 }
 
 void
