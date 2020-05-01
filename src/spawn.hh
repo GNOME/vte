@@ -40,8 +40,6 @@ private:
 
         vte::glib::RefPtr<VtePty> m_pty{};
 
-        std::unique_ptr<char*, decltype(&g_strfreev)> m_foo{nullptr, &g_strfreev};
-
         vte::glib::StringPtr m_cwd;
         vte::glib::StringPtr m_fallback_cwd;
         vte::glib::StringPtr m_arg0;
