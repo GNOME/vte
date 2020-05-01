@@ -372,6 +372,17 @@ Widget::map() noexcept
                 gdk_window_show_unraised(m_event_window);
 }
 
+bool
+Widget::primary_paste_enabled() const noexcept
+{
+        auto primary_paste = gboolean{};
+        g_object_get(gtk_widget_get_settings(gtk()),
+                     "gtk-enable-primary-paste", &primary_paste,
+                     nullptr);
+
+        return primary_paste != false;
+}
+
 void
 Widget::realize() noexcept
 {
@@ -476,10 +487,9 @@ Widget::screen_changed(GdkScreen *previous_screen) noexcept
 void
 Widget::settings_changed() noexcept
 {
-        gboolean blink;
-        int blink_time;
-        int blink_timeout;
-
+        auto blink = gboolean{};
+        auto blink_time = int{};
+        auto blink_timeout = int{};
         g_object_get(gtk_widget_get_settings(m_widget),
                      "gtk-cursor-blink", &blink,
                      "gtk-cursor-blink-time", &blink_time,

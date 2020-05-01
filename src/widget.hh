@@ -85,6 +85,7 @@ public:
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
 
+        bool primary_paste_enabled() const noexcept;
         void paste(GdkAtom board) noexcept { m_terminal->widget_paste(board); }
         void copy(VteSelection sel,
                   VteFormat format) noexcept { m_terminal->widget_copy(sel, format); }

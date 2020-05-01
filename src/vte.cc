@@ -6912,14 +6912,10 @@ Terminal::widget_mouse_press(MouseEvent const& event)
                 case MouseEvent::Button::eMIDDLE:
 			if ((m_modifiers & GDK_SHIFT_MASK) ||
 			    m_mouse_tracking_mode == MouseTrackingMode::eNONE) {
-                                gboolean do_paste;
-
-                                g_object_get (gtk_widget_get_settings(m_widget),
-                                              "gtk-enable-primary-paste",
-                                              &do_paste, nullptr);
-                                if (do_paste)
+                                if (widget()->primary_paste_enabled()) {
                                         widget_paste(GDK_SELECTION_PRIMARY);
-				handled = do_paste;
+                                        handled = true;
+                                }
 			}
 			break;
                 case MouseEvent::Button::eRIGHT:
