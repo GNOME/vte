@@ -7883,12 +7883,6 @@ Terminal::widget_unrealize()
 	}
 	m_fontdirty = true;
 
-	/* Unmap the widget if it hasn't been already. */
-        // FIXMEchpe this can't happen
-	if (gtk_widget_get_mapped(m_widget)) {
-		gtk_widget_unmap(m_widget);
-	}
-
         /* Remove the cursor blink timeout function. */
 	remove_cursor_timeout();
 
