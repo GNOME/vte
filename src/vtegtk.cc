@@ -2293,7 +2293,7 @@ vte_terminal_event_check_regex_array(VteTerminal *terminal,
                                      gsize *n_matches)
 {
         if (n_matches)
-                *n_matches = 0;
+                *n_matches = n_regexes;
 
         if (n_regexes == 0)
                 return nullptr;
@@ -2307,8 +2307,6 @@ vte_terminal_event_check_regex_array(VteTerminal *terminal,
                                                    matches.get()))
             return nullptr;
 
-        if (n_matches)
-                *n_matches = n_regexes;
         return matches.release();
 }
 
