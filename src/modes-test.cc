@@ -59,7 +59,7 @@ test_modes_private(void)
         vte::terminal::modes::Private modes{};
 
         g_assert_true(modes.DEC_AUTOWRAP());
-        g_assert_true(modes.XTERM_META_SENDS_ESCAPE());
+        g_assert_true(modes.XTERM_ALT_SENDS_ESCAPE());
 
         g_assert_false(modes.XTERM_FOCUS());
         modes.set_XTERM_FOCUS(true);

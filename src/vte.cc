@@ -4543,9 +4543,9 @@ Terminal::read_modifiers(GdkEvent *event)
 
         mask = (guint)mods;
 #if 1
-        /* HACK! Treat ALT as META; see bug #663779. */
+        /* HACK! Treat ALT as ALT; see bug #663779. */
         if (mask & GDK_MOD1_MASK)
-                mask |= VTE_META_MASK;
+                mask |= VTE_ALT_MASK;
 #endif
 
         m_modifiers = mask;
@@ -4558,7 +4558,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 	gsize normal_length = 0;
 	struct termios tio;
 	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
-		 suppress_meta_esc = FALSE, add_modifiers = FALSE;
+		 suppress_alt_esc = FALSE, add_modifiers = FALSE;
 	guint keyval = 0;
 	gunichar keychar = 0;
 	char keybuf[VTE_UTF8_BPC];
@@ -4603,7 +4603,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 			default:
 				break;
 			}
-			if (m_modifiers & VTE_META_MASK) {
+			if (m_modifiers & VTE_ALT_MASK) {
 				steal = TRUE;
 			}
 			switch (keyval) {
@@ -4696,18 +4696,18 @@ Terminal::widget_key_press(GdkEventKey *event)
 			case EraseMode::eASCII_BACKSPACE:
 				normal = g_strdup("");
 				normal_length = 1;
-				suppress_meta_esc = FALSE;
+				suppress_alt_esc = FALSE;
 				break;
 			case EraseMode::eASCII_DELETE:
 				normal = g_strdup("");
 				normal_length = 1;
-				suppress_meta_esc = FALSE;
+				suppress_alt_esc = FALSE;
 				break;
 			case EraseMode::eDELETE_SEQUENCE:
                                 normal = g_strdup("\e[3~");
                                 normal_length = 4;
                                 add_modifiers = TRUE;
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 				break;
 			case EraseMode::eTTY:
 				if (pty() &&
@@ -4716,7 +4716,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
 					normal_length = 1;
 				}
-				suppress_meta_esc = FALSE;
+				suppress_alt_esc = FALSE;
 				break;
 			case EraseMode::eAUTO:
 			default:
@@ -4734,9 +4734,9 @@ Terminal::widget_key_press(GdkEventKey *event)
 				{
 					normal = g_strdup("");
 					normal_length = 1;
-					suppress_meta_esc = FALSE;
+					suppress_alt_esc = FALSE;
 				}
-				suppress_meta_esc = FALSE;
+				suppress_alt_esc = FALSE;
 				break;
 			}
                         /* Toggle ^H vs ^? if Ctrl is pressed */
@@ -4766,7 +4766,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 					normal = g_strdup_printf("%c", tio.c_cc[VERASE]);
 					normal_length = 1;
 				}
-				suppress_meta_esc = FALSE;
+				suppress_alt_esc = FALSE;
 				break;
 			case EraseMode::eDELETE_SEQUENCE:
 			case EraseMode::eAUTO:
@@ -4778,7 +4778,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 			}
 			handled = TRUE;
                         /* FIXMEchpe: why? this overrides the FALSE set above? */
-			suppress_meta_esc = TRUE;
+			suppress_alt_esc = TRUE;
 			break;
 		case GDK_KEY_KP_Insert:
 		case GDK_KEY_Insert:
@@ -4786,16 +4786,16 @@ Terminal::widget_key_press(GdkEventKey *event)
 				if (m_modifiers & GDK_CONTROL_MASK) {
                                         emit_paste_clipboard();
 					handled = TRUE;
-					suppress_meta_esc = TRUE;
+					suppress_alt_esc = TRUE;
 				} else {
                                         widget_paste(GDK_SELECTION_PRIMARY);
 					handled = TRUE;
-					suppress_meta_esc = TRUE;
+					suppress_alt_esc = TRUE;
 				}
 			} else if (m_modifiers & GDK_CONTROL_MASK) {
                                 emit_copy_clipboard();
 				handled = TRUE;
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 			}
 			break;
 		/* Keypad/motion keys. */
@@ -4807,7 +4807,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				scroll_lines(-1);
 				scrolled = TRUE;
 				handled = TRUE;
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 			}
 			break;
 		case GDK_KEY_KP_Down:
@@ -4818,7 +4818,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				scroll_lines(1);
 				scrolled = TRUE;
 				handled = TRUE;
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 			}
 			break;
 		case GDK_KEY_KP_Page_Up:
@@ -4828,7 +4828,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				scroll_pages(-1);
 				scrolled = TRUE;
 				handled = TRUE;
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 			}
 			break;
 		case GDK_KEY_KP_Page_Down:
@@ -4838,7 +4838,7 @@ Terminal::widget_key_press(GdkEventKey *event)
 				scroll_pages(1);
 				scrolled = TRUE;
 				handled = TRUE;
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 			}
 			break;
 		case GDK_KEY_KP_Home:
@@ -4867,12 +4867,12 @@ Terminal::widget_key_press(GdkEventKey *event)
 				case GDK_KEY_KP_Add:
 					emit_increase_font_size();
 					handled = TRUE;
-					suppress_meta_esc = TRUE;
+					suppress_alt_esc = TRUE;
 					break;
 				case GDK_KEY_KP_Subtract:
 					emit_decrease_font_size();
 					handled = TRUE;
-					suppress_meta_esc = TRUE;
+					suppress_alt_esc = TRUE;
 					break;
 				}
 			}
@@ -4935,9 +4935,9 @@ Terminal::widget_key_press(GdkEventKey *event)
 					&normal,
 					&normal_length);
 			/* If we found something this way, suppress
-			 * escape-on-meta. */
+			 * escape-on-alt. */
                         if (normal != NULL && normal_length > 0) {
-				suppress_meta_esc = TRUE;
+				suppress_alt_esc = TRUE;
 			}
 		}
 
@@ -4992,10 +4992,10 @@ Terminal::widget_key_press(GdkEventKey *event)
                                                                   &normal,
                                                                   &normal_length);
                         }
-			if (m_modes_private.XTERM_META_SENDS_ESCAPE() &&
-			    !suppress_meta_esc &&
+			if (m_modes_private.XTERM_ALT_SENDS_ESCAPE() &&
+			    !suppress_alt_esc &&
 			    (normal_length > 0) &&
-			    (m_modifiers & VTE_META_MASK)) {
+			    (m_modifiers & VTE_ALT_MASK)) {
 				feed_child(_VTE_CAP_ESC, 1);
 			}
 			if (normal_length > 0) {
@@ -5610,7 +5610,7 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
                 if (m_modifiers & GDK_SHIFT_MASK) {
                         cb |= 4;
                 }
-                if (m_modifiers & VTE_META_MASK) {
+                if (m_modifiers & VTE_ALT_MASK) {
                         cb |= 8;
                 }
                 if (m_modifiers & GDK_CONTROL_MASK) {

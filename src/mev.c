@@ -133,7 +133,7 @@ parse_legacy_mouse_mode(guint8 *data,
                         gsize len)
 {
         int button = 0;
-        const char *shift = "", *control = "", *meta = "";
+        const char *shift = "", *control = "", *alt = "";
         gboolean motion = FALSE;
         int x, y;
         guint8 b;
@@ -168,8 +168,8 @@ parse_legacy_mouse_mode(guint8 *data,
         shift = b & 4 ?
                 "[shift]" :
                 "";
-        meta = b & 8 ?
-                "[meta]" :
+        alt = b & 8 ?
+                "[alt]" :
                 "";
         control = b & 16 ?
                 "[control]" :
@@ -182,7 +182,7 @@ parse_legacy_mouse_mode(guint8 *data,
                 motion ? "motion " : "",
                 (!motion && button) ? "press" : "",
                 (!motion && !button) ? "release" : "",
-                meta, control, shift,
+                alt, control, shift,
                 x, y);
 
         return 6;

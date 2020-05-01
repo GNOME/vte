@@ -37,8 +37,8 @@ _vte_keysym_print(guint keyval,
 	if (modifiers & GDK_CONTROL_MASK) {
 		g_printerr("Control+");
 	}
-	if (modifiers & VTE_META_MASK) {
-		g_printerr("Meta+");
+	if (modifiers & VTE_ALT_MASK) {
+		g_printerr("Alt+");
 	}
 	if (modifiers & VTE_NUMLOCK_MASK) {
 		g_printerr("NumLock+");
@@ -86,10 +86,10 @@ enum _vte_modifier_encoding_method {
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_space[] = {
-	/* Control+Meta+space = ESC+NUL */
-        {cursor_all, keypad_all, GDK_CONTROL_MASK | VTE_META_MASK, _VTE_CAP_ESC "\0", 2},
-	/* Meta+space = ESC+" " */
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC " ", 2},
+	/* Control+Alt+space = ESC+NUL */
+        {cursor_all, keypad_all, GDK_CONTROL_MASK | VTE_ALT_MASK, _VTE_CAP_ESC "\0", 2},
+	/* Alt+space = ESC+" " */
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_ESC " ", 2},
 	/* Control+space = NUL */
         {cursor_all, keypad_all, GDK_CONTROL_MASK, "\0", 1},
 	/* Regular space. */
@@ -101,20 +101,20 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_Tab[] = {
 	/* Shift+Tab = Back-Tab */
         {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "Z", -1},
 	/* Alt+Tab = Esc+Tab */
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\t", -1},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_ESC "\t", -1},
 	/* Regular tab. */
         {cursor_all, keypad_all, 0, "\t", 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Return[] = {
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "\r", 2},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_ESC "\r", 2},
         {cursor_all, keypad_all, 0, "\r", 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_Escape[] = {
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC _VTE_CAP_ESC, 2},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_ESC _VTE_CAP_ESC, 2},
         {cursor_all, keypad_all, 0, _VTE_CAP_ESC, 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -130,14 +130,14 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_ISO_Left_Tab[] = {
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_slash[] = {
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "/", 2},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_ESC "/", 2},
         {cursor_all, keypad_all, GDK_CONTROL_MASK, "\037", 1},
         {cursor_all, keypad_all, 0, "/", 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
 
 static const struct _vte_keymap_entry _vte_keymap_GDK_question[] = {
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_ESC "?", 2},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_ESC "?", 2},
         {cursor_all, keypad_all, GDK_CONTROL_MASK, "\177", 1},
         {cursor_all, keypad_all, 0, "?", 1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
@@ -417,7 +417,7 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_KP_Page_Up[] = {
 static const struct _vte_keymap_entry _vte_keymap_GDK_F1[] = {
         {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "P", -1},
         {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "P", -1},
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "P", -1},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_CSI "P", -1},
         {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "P", -1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -425,7 +425,7 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_F1[] = {
 static const struct _vte_keymap_entry _vte_keymap_GDK_F2[] = {
         {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "Q", -1},
         {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "Q", -1},
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "Q", -1},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_CSI "Q", -1},
         {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "Q", -1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -433,7 +433,7 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_F2[] = {
 static const struct _vte_keymap_entry _vte_keymap_GDK_F3[] = {
         {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "R", -1},
         {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "R", -1},
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "R", -1},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_CSI "R", -1},
         {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "R", -1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -441,7 +441,7 @@ static const struct _vte_keymap_entry _vte_keymap_GDK_F3[] = {
 static const struct _vte_keymap_entry _vte_keymap_GDK_F4[] = {
         {cursor_all, keypad_all, GDK_CONTROL_MASK, _VTE_CAP_CSI "S", -1},
         {cursor_all, keypad_all, GDK_SHIFT_MASK, _VTE_CAP_CSI "S", -1},
-        {cursor_all, keypad_all, VTE_META_MASK, _VTE_CAP_CSI "S", -1},
+        {cursor_all, keypad_all, VTE_ALT_MASK, _VTE_CAP_CSI "S", -1},
         {cursor_all, keypad_all, 0, _VTE_CAP_SS3 "S", -1},
         {cursor_all, keypad_all, 0, X_NULL, 0},
 };
@@ -748,7 +748,7 @@ _vte_keymap_map(guint keyval,
 	/* Build mode masks. */
 	cursor_mode = app_cursor_keys ? cursor_app : cursor_default;
 	keypad_mode = app_keypad_keys ? keypad_app : keypad_default;
-	modifiers &= GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_META_MASK | VTE_NUMLOCK_MASK;
+	modifiers &= GDK_SHIFT_MASK | GDK_CONTROL_MASK | VTE_ALT_MASK | VTE_NUMLOCK_MASK;
 
 	/* Search for the conditions. */
 	for (i = 0; entries[i].normal_length; i++)
@@ -951,7 +951,7 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 
 	significant_modifiers = GDK_SHIFT_MASK |
 				GDK_CONTROL_MASK |
-				VTE_META_MASK;
+				VTE_ALT_MASK;
 
 	modifier_encoding_method = _vte_keymap_key_get_modifier_encoding_method(keyval);
 	if (modifier_encoding_method == MODIFIER_ENCODING_NONE) {
@@ -965,10 +965,10 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 	case GDK_SHIFT_MASK:
 		modifier = 2;
 		break;
-	case VTE_META_MASK:
+	case VTE_ALT_MASK:
 		modifier = 3;
 		break;
-	case GDK_SHIFT_MASK | VTE_META_MASK:
+	case GDK_SHIFT_MASK | VTE_ALT_MASK:
 		modifier = 4;
 		break;
 	case GDK_CONTROL_MASK:
@@ -977,10 +977,10 @@ _vte_keymap_key_add_key_modifiers(guint keyval,
 	case GDK_SHIFT_MASK | GDK_CONTROL_MASK:
 		modifier = 6;
 		break;
-	case VTE_META_MASK | GDK_CONTROL_MASK:
+	case VTE_ALT_MASK | GDK_CONTROL_MASK:
 		modifier = 7;
 		break;
-	case GDK_SHIFT_MASK | VTE_META_MASK | GDK_CONTROL_MASK:
+	case GDK_SHIFT_MASK | VTE_ALT_MASK | GDK_CONTROL_MASK:
 		modifier = 8;
 		break;
 	default:
