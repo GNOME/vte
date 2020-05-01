@@ -2207,7 +2207,7 @@ vte_terminal_match_check(VteTerminal *terminal,
 			 int *tag)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
-        return IMPL(terminal)->regex_match_check(column, row, tag);
+        return WIDGET(terminal)->regex_match_check(column, row, tag);
 }
 
 
@@ -2235,7 +2235,7 @@ vte_terminal_match_check_event(VteTerminal *terminal,
                                int *tag)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        return IMPL(terminal)->regex_match_check(event, tag);
+        return WIDGET(terminal)->regex_match_check(event, tag);
 }
 
 /**
@@ -2260,7 +2260,7 @@ vte_terminal_hyperlink_check_event(VteTerminal *terminal,
                                    GdkEvent *event)
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        return IMPL(terminal)->hyperlink_check(event);
+        return WIDGET(terminal)->hyperlink_check(event);
 }
 
 /**
@@ -2348,11 +2348,11 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
         }
         g_return_val_if_fail(matches != NULL, FALSE);
 
-        return IMPL(terminal)->regex_match_check_extra(event,
-                                                       regex_array_from_wrappers(regexes),
-                                                       n_regexes,
-                                                       match_flags,
-                                                       matches);
+        return WIDGET(terminal)->regex_match_check_extra(event,
+                                                         regex_array_from_wrappers(regexes),
+                                                         n_regexes,
+                                                         match_flags,
+                                                         matches);
 }
 
 /**

@@ -1437,7 +1437,7 @@ Terminal::regex_match_check(vte::grid::column_t column,
 
 /*
  * Terminal::view_coords_from_event:
- * @event: a #GdkEvent
+ * @event: a mouse event
  *
  * Translates the event coordinates to view coordinates, by
  * subtracting the padding and window offset.
@@ -1446,15 +1446,9 @@ Terminal::regex_match_check(vte::grid::column_t column,
  * at that side; use view_coords_visible() to check for that.
  */
 vte::view::coords
-Terminal::view_coords_from_event(GdkEvent const* event) const
+Terminal::view_coords_from_event(MouseEvent const& event) const
 {
-        double x, y;
-        if (event == nullptr ||
-            ((reinterpret_cast<GdkEventAny const*>(event))->window != m_real_widget->event_window()) ||
-            !gdk_event_get_coords(event, &x, &y))
-                return vte::view::coords(-1, -1);
-
-        return vte::view::coords(x - m_padding.left, y - m_padding.top);
+        return vte::view::coords(event.x() - m_padding.left, event.y() - m_padding.top);
 }
 
 bool
@@ -1465,7 +1459,7 @@ Terminal::widget_realized() const noexcept
 
 /*
  * Terminal::grid_coords_from_event:
- * @event: a #GdkEvent
+ * @event: a mouse event
  *
  * Translates the event coordinates to view coordinates, by
  * subtracting the padding and window offset.
@@ -1474,20 +1468,20 @@ Terminal::widget_realized() const noexcept
  * at that side; use grid_coords_visible() to check for that.
  */
 vte::grid::coords
-Terminal::grid_coords_from_event(GdkEvent const* event) const
+Terminal::grid_coords_from_event(MouseEvent const& event) const
 {
         return grid_coords_from_view_coords(view_coords_from_event(event));
 }
 
 /*
  * Terminal::confined_grid_coords_from_event:
- * @event: a #GdkEvent
+ * @event: a mouse event
  *
  * Like grid_coords_from_event(), but also confines the coordinates
  * to an actual cell in the visible area.
  */
 vte::grid::coords
-Terminal::confined_grid_coords_from_event(GdkEvent const* event) const
+Terminal::confined_grid_coords_from_event(MouseEvent const& event) const
 {
         auto pos = view_coords_from_event(event);
         return confined_grid_coords_from_view_coords(pos);
@@ -1688,9 +1682,9 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
 }
 
 bool
-Terminal::rowcol_from_event(GdkEvent *event,
-                                      long *column,
-                                      long *row)
+Terminal::rowcol_from_event(MouseEvent const& event,
+                            long *column,
+                            long *row)
 {
         auto rowcol = grid_coords_from_event(event);
         if (!grid_coords_visible(rowcol))
@@ -1702,7 +1696,7 @@ Terminal::rowcol_from_event(GdkEvent *event,
 }
 
 char *
-Terminal::hyperlink_check(GdkEvent *event)
+Terminal::hyperlink_check(MouseEvent const& event)
 {
         long col, row;
         const char *hyperlink;
@@ -1734,7 +1728,7 @@ Terminal::hyperlink_check(GdkEvent *event)
 }
 
 char *
-Terminal::regex_match_check(GdkEvent* event,
+Terminal::regex_match_check(MouseEvent const& event,
                             int *tag)
 {
         long col, row;
@@ -1751,7 +1745,7 @@ Terminal::regex_match_check(GdkEvent* event,
 }
 
 bool
-Terminal::regex_match_check_extra(GdkEvent *event,
+Terminal::regex_match_check_extra(MouseEvent const& event,
                                   vte::base::Regex const** regexes,
                                   size_t n_regexes,
                                   uint32_t match_flags,
@@ -1764,7 +1758,6 @@ Terminal::regex_match_check_extra(GdkEvent *event,
         long col, row;
         guint i;
 
-        assert(event);
         assert(regexes != nullptr || n_regexes == 0);
         assert(matches != nullptr);
 
@@ -4495,12 +4488,12 @@ Terminal::beep()
 }
 
 unsigned
-Terminal::translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept
+Terminal::translate_ctrlkey(KeyEvent const& event) const noexcept
 {
 	if (event.keyval() < 128)
 		return event.keyval();
 
-        auto display = gdk_window_get_display(gdk_event_get_window((GdkEvent*)event.platform_event()));
+        auto display = gdk_window_get_display(gdk_event_get_window(event.platform_event()));
         auto keymap = gdk_keymap_get_for_display(display);
         auto keyval = unsigned{event.keyval()};
 
@@ -4523,33 +4516,8 @@ Terminal::translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept
         return keyval;
 }
 
-void
-Terminal::read_modifiers(GdkEvent *event)
-{
-        GdkKeymap *keymap;
-	GdkModifierType mods;
-        guint mask;
-
-	/* Read the modifiers. */
-	if (!gdk_event_get_state((GdkEvent*)event, &mods))
-                return;
-
-        keymap = gdk_keymap_get_for_display(gdk_window_get_display(((GdkEventAny*)event)->window));
-
-        gdk_keymap_add_virtual_modifiers (keymap, &mods);
-
-        mask = (guint)mods;
-#if 1
-        /* HACK! Treat ALT as ALT; see bug #663779. */
-        if (mask & GDK_MOD1_MASK)
-                mask |= VTE_ALT_MASK;
-#endif
-
-        m_modifiers = mask;
-}
-
 bool
-Terminal::widget_key_press(vte::terminal::KeyEvent const& event)
+Terminal::widget_key_press(KeyEvent const& event)
 {
 	char *normal = NULL;
 	gsize normal_length = 0;
@@ -5012,7 +4980,7 @@ Terminal::widget_key_press(vte::terminal::KeyEvent const& event)
 }
 
 bool
-Terminal::widget_key_release(vte::terminal::KeyEvent const& event)
+Terminal::widget_key_release(KeyEvent const& event)
 {
         m_modifiers = event.modifiers();
 
@@ -5673,31 +5641,30 @@ Terminal::maybe_feed_focus_event(bool in)
  */
 bool
 Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
-                                            GdkEventType event_type,
-                                            int event_button)
+                                  MouseEvent const& event)
 {
-	switch (event_type) {
-	case GDK_BUTTON_PRESS:
+	switch (event.type()) {
+        case EventBase::Type::eMOUSE_PRESS:
 		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK) {
 			return false;
 		}
 		break;
-	case GDK_BUTTON_RELEASE: {
+        case EventBase::Type::eMOUSE_RELEASE:
 		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON) {
 			return false;
 		}
 		break;
-	}
+        case EventBase::Type::eMOUSE_DOUBLE_PRESS:
+        case EventBase::Type::eMOUSE_TRIPLE_PRESS:
 	default:
 		return false;
-		break;
 	}
 
         auto rowcol = confine_grid_coords(unconfined_rowcol);
         return feed_mouse_event(rowcol,
-                                event_button,
+                                event.button_value(),
                                 false /* not drag */,
-                                event_type == GDK_BUTTON_RELEASE);
+                                event.is_mouse_release());
 }
 
 /*
@@ -5712,7 +5679,7 @@ Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
  */
 bool
 Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
-                                          GdkEventType event_type)
+                                MouseEvent const& event)
 {
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -5720,8 +5687,8 @@ Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
         auto rowcol = confine_grid_coords(unconfined_rowcol);
 
 	/* First determine if we even want to send notification. */
-	switch (event_type) {
-	case GDK_MOTION_NOTIFY:
+        switch (event.type()) {
+        case EventBase::Type::eMOUSE_MOTION:
 		if (m_mouse_tracking_mode < MouseTrackingMode::eCELL_MOTION_TRACKING)
 			return false;
 
@@ -5740,7 +5707,6 @@ Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
 		break;
 	default:
 		return false;
-		break;
 	}
 
         /* As per xterm, report the leftmost pressed button - if any. */
@@ -6856,58 +6822,50 @@ Terminal::start_autoscroll()
 }
 
 bool
-Terminal::widget_motion_notify(GdkEventMotion *event)
+Terminal::widget_mouse_motion(MouseEvent const& event)
 {
-	bool handled = false;
-
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
-        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
-        auto pos = view_coords_from_event(base_event);
+        auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
                          "Motion notify %s %s\n",
                          pos.to_string(), rowcol.to_string());
 
-	read_modifiers(base_event);
+        m_modifiers = event.modifiers();
 
-	switch (event->type) {
-	case GDK_MOTION_NOTIFY:
-                if (m_will_select_after_threshold) {
-			if (!gtk_drag_check_threshold (m_widget,
-						       m_mouse_last_position.x,
-						       m_mouse_last_position.y,
-						       pos.x, pos.y))
-				return true;
+        if (m_will_select_after_threshold) {
+                if (!gtk_drag_check_threshold(m_widget,
+                                              m_mouse_last_position.x,
+                                              m_mouse_last_position.y,
+                                              pos.x, pos.y))
+                        return true;
 
-                        start_selection(vte::view::coords(m_mouse_last_position.x, m_mouse_last_position.y),
-                                        SelectionType::eCHAR);
-		}
+                start_selection(vte::view::coords(m_mouse_last_position.x, m_mouse_last_position.y),
+                                SelectionType::eCHAR);
+        }
 
-		if (m_selecting &&
-                    (m_mouse_handled_buttons & 1) != 0) {
-			_vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
-                        modify_selection(pos);
+        auto handled = bool{false};
+        if (m_selecting &&
+            (m_mouse_handled_buttons & 1) != 0) {
+                _vte_debug_print(VTE_DEBUG_EVENTS, "Mousing drag 1.\n");
+                modify_selection(pos);
 
-			/* Start scrolling if we need to. */
-			if (pos.y < 0 || pos.y >= m_view_usable_extents.height()) {
-				/* Give mouse wigglers something. */
-                                stop_autoscroll();
-				mouse_autoscroll_timer_callback();
-				start_autoscroll();
-			}
+                /* Start scrolling if we need to. */
+                if (pos.y < 0 || pos.y >= m_view_usable_extents.height()) {
+                        /* Give mouse wigglers something. */
+                        stop_autoscroll();
+                        mouse_autoscroll_timer_callback();
+                        start_autoscroll();
+                }
 
-			handled = true;
-		}
+                handled = true;
+        }
 
-		if (!handled && m_input_enabled)
-			maybe_send_mouse_drag(rowcol, event->type);
-		break;
-	default:
-		break;
-	}
+        if (!handled && m_input_enabled)
+                maybe_send_mouse_drag(rowcol, event);
 
         if (pos != m_mouse_last_position) {
                 m_mouse_last_position = pos;
@@ -6921,7 +6879,7 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 }
 
 bool
-Terminal::widget_button_press(GdkEventButton *event)
+Terminal::widget_mouse_press(MouseEvent const& event)
 {
 	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
@@ -6929,21 +6887,20 @@ Terminal::widget_button_press(GdkEventButton *event)
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
-        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
-        auto pos = view_coords_from_event(base_event);
+        auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
-	read_modifiers(base_event);
+        m_modifiers = event.modifiers();
 
-	switch (event->type) {
-	case GDK_BUTTON_PRESS:
+        switch (event.type()) {
+        case EventBase::Type::eMOUSE_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d single-click at %s\n",
-                                 event->button,
+                                 event.button_value(),
                                  rowcol.to_string());
 		/* Handle this event ourselves. */
-		switch (event->button) {
-		case 1:
+                switch (event.button()) {
+                case MouseEvent::Button::eLEFT:
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Handling click ourselves.\n");
 			/* Grab focus. */
@@ -6985,7 +6942,7 @@ Terminal::widget_button_press(GdkEventButton *event)
 			break;
 		/* Paste if the user pressed shift or we're not sending events
 		 * to the app. */
-		case 2:
+                case MouseEvent::Button::eMIDDLE:
 			if ((m_modifiers & GDK_SHIFT_MASK) ||
 			    m_mouse_tracking_mode == MouseTrackingMode::eNONE) {
                                 gboolean do_paste;
@@ -6998,29 +6955,29 @@ Terminal::widget_button_press(GdkEventButton *event)
 				handled = do_paste;
 			}
 			break;
-		case 3:
+                case MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
-                if (event->button >= 1 && event->button <= 3) {
+                if (event.button_value() >= 1 && event.button_value() <= 3) {
                         if (handled)
-                                m_mouse_handled_buttons |= (1 << (event->button - 1));
+                                m_mouse_handled_buttons |= (1 << (event.button_value() - 1));
                         else
-                                m_mouse_handled_buttons &= ~(1 << (event->button - 1));
+                                m_mouse_handled_buttons &= ~(1 << (event.button_value() - 1));
                 }
 		/* If we haven't done anything yet, try sending the mouse
 		 * event to the app. */
 		if (handled == FALSE) {
-			handled = maybe_send_mouse_button(rowcol, event->type, event->button);
+                        handled = maybe_send_mouse_button(rowcol, event);
 		}
 		break;
-	case GDK_2BUTTON_PRESS:
+        case EventBase::Type::eMOUSE_DOUBLE_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d double-click at %s\n",
-                                 event->button,
+                                 event.button_value(),
                                  rowcol.to_string());
-		switch (event->button) {
-		case 1:
+                switch (event.button()) {
+                case MouseEvent::Button::eLEFT:
                         if (m_will_select_after_threshold) {
                                 start_selection(pos,
                                                 SelectionType::eCHAR);
@@ -7032,27 +6989,27 @@ Terminal::widget_button_press(GdkEventButton *event)
 				handled = true;
 			}
 			break;
-		case 2:
-		case 3:
+                case MouseEvent::Button::eMIDDLE:
+                case MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
 		break;
-	case GDK_3BUTTON_PRESS:
+        case EventBase::Type::eMOUSE_TRIPLE_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d triple-click at %s\n",
-                                 event->button,
+                                 event.button_value(),
                                  rowcol.to_string());
-		switch (event->button) {
-		case 1:
+                switch (event.button()) {
+                case MouseEvent::Button::eLEFT:
                         if ((m_mouse_handled_buttons & 1) != 0) {
                                 start_selection(pos,
                                                 SelectionType::eLINE);
 				handled = true;
 			}
 			break;
-		case 2:
-		case 3:
+                case MouseEvent::Button::eMIDDLE:
+                case MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
@@ -7061,8 +7018,8 @@ Terminal::widget_button_press(GdkEventButton *event)
 	}
 
 	/* Save the pointer state for later use. */
-        if (event->button >= 1 && event->button <= 3)
-                m_mouse_pressed_buttons |= (1 << (event->button - 1));
+        if (event.button_value() >= 1 && event.button_value() <= 3)
+                m_mouse_pressed_buttons |= (1 << (event.button_value() - 1));
 
 	m_mouse_last_position = pos;
 
@@ -7074,41 +7031,40 @@ Terminal::widget_button_press(GdkEventButton *event)
 }
 
 bool
-Terminal::widget_button_release(GdkEventButton *event)
+Terminal::widget_mouse_release(MouseEvent const& event)
 {
 	bool handled = false;
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
-        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
-        auto pos = view_coords_from_event(base_event);
+        auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
 	stop_autoscroll();
 
-	read_modifiers(base_event);
+        m_modifiers = event.modifiers();
 
-	switch (event->type) {
-	case GDK_BUTTON_RELEASE:
+        switch (event.type()) {
+        case EventBase::Type::eMOUSE_RELEASE:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d released at %s\n",
-                                 event->button, rowcol.to_string());
-		switch (event->button) {
-		case 1:
+                                 event.button_value(), rowcol.to_string());
+                switch (event.button()) {
+                case MouseEvent::Button::eLEFT:
                         if ((m_mouse_handled_buttons & 1) != 0)
                                 handled = maybe_end_selection();
 			break;
-		case 2:
+                case MouseEvent::Button::eMIDDLE:
                         handled = (m_mouse_handled_buttons & 2) != 0;
                         m_mouse_handled_buttons &= ~2;
 			break;
-		case 3:
+                case MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
 		if (!handled && m_input_enabled) {
-			handled = maybe_send_mouse_button(rowcol, event->type, event->button);
+                        handled = maybe_send_mouse_button(rowcol, event);
 		}
 		break;
 	default:
@@ -7116,8 +7072,8 @@ Terminal::widget_button_release(GdkEventButton *event)
 	}
 
 	/* Save the pointer state for later use. */
-        if (event->button >= 1 && event->button <= 3)
-                m_mouse_pressed_buttons &= ~(1 << (event->button - 1));
+        if (event.button_value() >= 1 && event.button_value() <= 3)
+                m_mouse_pressed_buttons &= ~(1 << (event.button_value() - 1));
 
 	m_mouse_last_position = pos;
         m_will_select_after_threshold = false;
@@ -7190,10 +7146,9 @@ Terminal::widget_focus_out(GdkEventFocus *event)
 }
 
 void
-Terminal::widget_enter(GdkEventCrossing *event)
+Terminal::widget_mouse_enter(MouseEvent const& event)
 {
-        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
-        auto pos = view_coords_from_event(base_event);
+        auto pos = view_coords_from_event(event);
 
         // FIXMEchpe read event modifiers here
 
@@ -7209,10 +7164,9 @@ Terminal::widget_enter(GdkEventCrossing *event)
 }
 
 void
-Terminal::widget_leave(GdkEventCrossing *event)
+Terminal::widget_mouse_leave(MouseEvent const& event)
 {
-        GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
-        auto pos = view_coords_from_event(base_event);
+        auto pos = view_coords_from_event(event);
 
         // FIXMEchpe read event modifiers here
 
@@ -9432,9 +9386,8 @@ vte_cairo_get_clip_region (cairo_t *cr)
 }
 
 void
-Terminal::widget_scroll(GdkEventScroll *event)
+Terminal::widget_mouse_scroll(MouseEvent const& event)
 {
-	gdouble delta_x, delta_y;
 	gdouble v;
 	gint cnt, i;
 	int button;
@@ -9442,27 +9395,27 @@ Terminal::widget_scroll(GdkEventScroll *event)
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
-        GdkEvent *base_event = reinterpret_cast<GdkEvent*>(event);
-        auto rowcol = confined_grid_coords_from_event(base_event);
+        auto rowcol = confined_grid_coords_from_event(event);
 
-	read_modifiers(base_event);
+        m_modifiers = event.modifiers();
 
-	switch (event->direction) {
-	case GDK_SCROLL_UP:
+        switch (event.scroll_direction()) {
+        case MouseEvent::ScrollDirection::eUP:
 		m_mouse_smooth_scroll_delta -= 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll up\n");
 		break;
-	case GDK_SCROLL_DOWN:
+        case MouseEvent::ScrollDirection::eDOWN:
 		m_mouse_smooth_scroll_delta += 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
 		break;
-	case GDK_SCROLL_SMOOTH:
-		gdk_event_get_scroll_deltas ((GdkEvent*) event, &delta_x, &delta_y);
+        case MouseEvent::ScrollDirection::eSMOOTH: {
+                auto const delta_y = event.scroll_delta_y();
 		m_mouse_smooth_scroll_delta += delta_y;
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Smooth scroll by %f, delta now at %f\n",
 				delta_y, m_mouse_smooth_scroll_delta);
 		break;
+        }
 	default:
 		break;
 	}

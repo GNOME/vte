@@ -76,12 +76,12 @@ public:
         void focus_out(GdkEventFocus *event) noexcept { m_terminal->widget_focus_out(event); }
         bool key_press(GdkEventKey *event) noexcept { return m_terminal->widget_key_press(key_event_from_gdk(event)); }
         bool key_release(GdkEventKey *event) noexcept { return m_terminal->widget_key_release(key_event_from_gdk(event)); }
-        bool button_press(GdkEventButton *event) noexcept { return m_terminal->widget_button_press(event); }
-        bool button_release(GdkEventButton *event) noexcept { return m_terminal->widget_button_release(event); }
-        void enter(GdkEventCrossing *event) noexcept { m_terminal->widget_enter(event); }
-        void leave(GdkEventCrossing *event) noexcept { m_terminal->widget_leave(event); }
-        void scroll(GdkEventScroll *event) noexcept { m_terminal->widget_scroll(event); }
-        bool motion_notify(GdkEventMotion *event) noexcept { return m_terminal->widget_motion_notify(event); }
+        bool button_press(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_press(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        bool button_release(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_release(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        void enter(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_enter(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        void leave(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_leave(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        void scroll(GdkEventScroll *event) noexcept { m_terminal->widget_mouse_scroll(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        bool motion_notify(GdkEventMotion *event) noexcept { return m_terminal->widget_mouse_motion(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
 
         void paste(GdkAtom board) noexcept { m_terminal->widget_paste(board); }
         void copy(VteSelection sel,
@@ -136,6 +136,42 @@ public:
         void feed_child(std::string_view const& str) { terminal()->feed_child(str); }
         void feed_child_binary(std::string_view const& str) { terminal()->feed_child_binary(str); }
 
+        char *regex_match_check(vte::grid::column_t column,
+                                vte::grid::row_t row,
+                                int* tag)
+        {
+                return terminal()->regex_match_check(column, row, tag);
+        }
+
+        char* regex_match_check(GdkEvent* event,
+                                int* tag)
+        {
+                if (auto mouse_event = mouse_event_from_gdk(event))
+                        return terminal()->regex_match_check(*mouse_event, tag);
+                else
+                        return nullptr;
+        }
+
+        bool regex_match_check_extra(GdkEvent* event,
+                                     vte::base::Regex const** regexes,
+                                     size_t n_regexes,
+                                     uint32_t match_flags,
+                                     char** matches)
+        {
+                if (auto mouse_event = mouse_event_from_gdk(event))
+                        return terminal()->regex_match_check_extra(*mouse_event, regexes, n_regexes, match_flags, matches);
+                else
+                        return false;
+        }
+
+        char* hyperlink_check(GdkEvent* event)
+        {
+                if (auto mouse_event = mouse_event_from_gdk(event))
+                        return terminal()->hyperlink_check(*mouse_event);
+                else
+                        return nullptr;
+        }
+
         bool should_emit_signal(int id) noexcept;
 
 protected:
@@ -181,6 +217,7 @@ public: // FIXMEchpe
 private:
         unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
         vte::terminal::KeyEvent key_event_from_gdk(GdkEventKey* event) const;
+        std::optional<vte::terminal::MouseEvent> mouse_event_from_gdk(GdkEvent* event) const;
 
         GtkWidget* m_widget;
 
