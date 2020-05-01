@@ -71,7 +71,7 @@ take_strv(char** strv)
 inline StrvPtr
 dup_strv(char const* const* strv)
 {
-        return take_strv(g_strdupv((char**)strv));
+        return take_strv(g_strdupv(const_cast<char**>(strv)));
 }
 
 class Error {
