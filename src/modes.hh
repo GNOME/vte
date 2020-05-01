@@ -228,7 +228,7 @@ public:
                                    eDEC_TEXT_CURSOR,
                                    eVTE_BIDI_SWAP_ARROW_KEYS,
                                    eXTERM_ALTBUF_SCROLL,
-                                   eXTERM_ALT_SENDS_ESCAPE} { }
+                                   eXTERM_META_SENDS_ESCAPE} { }
 
         inline void push_saved(int mode)
         {

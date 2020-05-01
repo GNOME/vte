@@ -254,6 +254,12 @@ Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
         if (!gdk_event_get_state(event, &mods))
                 return 0;
 
+        #if 1
+        /* HACK! Treat META as ALT; see bug #663779. */
+        if (mods & GDK_META_MASK)
+                mods = GdkModifierType(mods | GDK_MOD1_MASK);
+        #endif
+
         /* Map non-virtual modifiers to virtual modifiers (Super, Hyper, Meta) */
         auto display = gdk_window_get_display(gdk_event_get_window(event));
         auto keymap = gdk_keymap_get_for_display(display);

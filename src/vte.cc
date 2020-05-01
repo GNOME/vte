@@ -4929,7 +4929,7 @@ Terminal::widget_key_press(KeyEvent const& event)
                                                                   &normal,
                                                                   &normal_length);
                         }
-			if (m_modes_private.XTERM_ALT_SENDS_ESCAPE() &&
+			if (m_modes_private.XTERM_META_SENDS_ESCAPE() &&
 			    !suppress_alt_esc &&
 			    (normal_length > 0) &&
 			    (m_modifiers & VTE_ALT_MASK)) {
