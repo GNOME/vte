@@ -83,6 +83,8 @@ public:
         void scroll(GdkEventScroll *event) noexcept { m_terminal->widget_mouse_scroll(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         bool motion_notify(GdkEventMotion *event) noexcept { return m_terminal->widget_mouse_motion(*mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
 
+        void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
+
         void paste(GdkAtom board) noexcept { m_terminal->widget_paste(board); }
         void copy(VteSelection sel,
                   VteFormat format) noexcept { m_terminal->widget_copy(sel, format); }

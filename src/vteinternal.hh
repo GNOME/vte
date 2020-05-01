@@ -732,7 +732,7 @@ public:
         gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
         int m_cursor_blink_timeout{500};        /* gtk-cursor-blink-timeout */
         gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
-        gboolean m_has_focus;               /* is the terminal window focused */
+        bool m_has_focus{false};            /* is the widget focused */
 
         /* Contents blinking */
         bool text_blink_timer_callback() noexcept;

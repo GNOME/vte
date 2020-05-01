@@ -5587,7 +5587,7 @@ Terminal::feed_focus_event_initial()
         /* We immediately send the terminal a focus event, since otherwise
          * it has no way to know the current status.
          */
-        feed_focus_event(gtk_widget_has_focus(m_widget));
+        feed_focus_event(m_has_focus);
 }
 
 void
@@ -6872,9 +6872,8 @@ Terminal::widget_mouse_press(MouseEvent const& event)
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Handling click ourselves.\n");
 			/* Grab focus. */
-			if (!gtk_widget_has_focus(m_widget)) {
-				gtk_widget_grab_focus(m_widget);
-			}
+			if (!m_has_focus)
+                                widget()->grab_focus();
 
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
@@ -7058,13 +7057,13 @@ Terminal::widget_focus_in()
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
 
-	gtk_widget_grab_focus(m_widget);
+        m_has_focus = true;
+        widget()->grab_focus();
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
 	if (widget_realized()) {
 		m_cursor_blink_state = TRUE;
-		m_has_focus = TRUE;
 
                 /* If blinking gets enabled now, do a full repaint.
                  * If blinking gets disabled, only repaint if there's blinking stuff present
@@ -10774,14 +10773,14 @@ Terminal::set_input_enabled (bool enabled)
         /* FIXME: maybe hide cursor when input disabled, too? */
 
         if (enabled) {
-                if (gtk_widget_has_focus(m_widget))
-                        m_real_widget->im_focus_in();
+                if (m_has_focus)
+                        widget()->im_focus_in();
 
                 gtk_style_context_remove_class (context, GTK_STYLE_CLASS_READ_ONLY);
         } else {
                 im_reset();
-                if (gtk_widget_has_focus(m_widget))
-                        m_real_widget->im_focus_out();
+                if (m_has_focus)
+                        widget()->im_focus_out();
 
                 disconnect_pty_write();
                 _vte_byte_array_clear(m_outgoing);
