@@ -4554,7 +4554,7 @@ Terminal::widget_key_press(KeyEvent const& event)
 				"Keypress, modifiers=0x%x, "
 				"keyval=0x%x, raw string=`%s'.\n",
 				m_modifiers,
-                                 keyval, ((GdkEventKey*)event.platform_event())->string);
+                                 keyval, event.string());
 
 		/* We steal many keypad keys here. */
 		if (!m_im_preedit_active) {
