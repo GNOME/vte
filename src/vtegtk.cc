@@ -4584,7 +4584,7 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_scroll_on_keystroke(scroll != FALSE))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_OUTPUT]);
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_KEYSTROKE]);
 }
 
 /**
