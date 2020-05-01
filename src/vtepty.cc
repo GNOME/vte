@@ -652,12 +652,12 @@ _vte_pty_check_envv(char const* const* strv)
   if (!strv)
     return true;
 
-  char const *p;
-  while ((p = *strv++))
-    {
-      if (!strchr(p, '='))
-        return false;
-    }
+  for (int i = 0; strv[i]; ++i) {
+          const char *str = strv[i];
+          const char *equal = strchr(str, '=');
+          if (equal == NULL || equal == str)
+                  return false;
+  }
 
   return true;
 }
