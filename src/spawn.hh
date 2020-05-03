@@ -53,8 +53,8 @@ private:
         // allocations
         std::vector<std::pair<int,int>> m_fd_map{{-1, 0}, {-1, 1}, {-1, 2}};
 
-        child_setup_type m_child_setup{(void(*)(void*))0};
-        std::shared_ptr<void> m_child_setup_data{nullptr};
+        child_setup_type m_child_setup{nullptr};
+        std::unique_ptr<void, void(*)(void*)> m_child_setup_data{nullptr, nullptr};
 
         bool m_inherit_environ{true};
         bool m_systemd_scope{true};
@@ -116,9 +116,9 @@ public:
         {
                 m_child_setup = func;
                 if (destroy)
-                        m_child_setup_data = std::shared_ptr<void>(data, destroy);
+                        m_child_setup_data = {data, destroy};
                 else
-                        m_child_setup_data = std::shared_ptr<void>(data, [](auto p) { });
+                        m_child_setup_data = {data, [](auto ptr){}};
         }
 
         void add_fds(int const* fds,
