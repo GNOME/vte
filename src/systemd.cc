@@ -84,7 +84,7 @@ create_scope_for_pid_sync(pid_t pid,
                 free(slice);
         } else {
                 // Fallback
-                g_variant_builder_add(builder, "(sv)", "Slice", g_variant_new_string("apps-org.gnome.vte.slice"));
+                g_variant_builder_add(builder, "(sv)", "Slice", g_variant_new_string("app-org.gnome.vte.slice"));
         }
 
         g_variant_builder_close(builder); // a(sv)
