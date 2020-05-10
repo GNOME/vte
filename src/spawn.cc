@@ -54,8 +54,15 @@ static int
 set_cloexec_cb(void* data,
                int fd)
 {
-        if (fd >= *reinterpret_cast<int*>(data))
-                return vte::libc::fd_set_cloexec(fd);
+        if (fd >= *reinterpret_cast<int*>(data)) {
+                auto r = vte::libc::fd_set_cloexec(fd);
+                /* Ignore EBADF because the libc or fallback implementation
+                 * of fdwalk may call this function on invalid file descriptors.
+                 */
+                if (r < 0 && errno == EBADF)
+                        r = 0;
+                return r;
+        }
         return 0;
 }
 
