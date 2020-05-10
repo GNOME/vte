@@ -417,14 +417,14 @@ _vte_pty_open_posix(void)
         }
 
 #ifndef __linux__
-        if (need_cloexec && vte::libc::fd_set_cloexec(fd) < 0) {
+        if (need_cloexec && vte::libc::fd_set_cloexec(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
                 return {};
         }
 
-        if (need_nonblocking && vte::libc::fd_set_nonblock(fd) < 0) {
+        if (need_nonblocking && vte::libc::fd_set_nonblock(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s", "Setting NONBLOCK flag", g_strerror(errsv));
