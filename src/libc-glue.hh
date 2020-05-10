@@ -69,7 +69,7 @@ public:
                 return *this;
         }
 
-        constexpr operator bool() const noexcept { return m_fd != -1; }
+        explicit constexpr operator bool() const noexcept { return m_fd != -1; }
 
         constexpr int get() const noexcept { return m_fd; }
 
