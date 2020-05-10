@@ -476,7 +476,7 @@ bool
 SpawnOperation::prepare(vte::glib::Error& error)
 {
 #ifndef WITH_SYSTEMD
-        if (context().systemd_scope()) {
+        if (context().require_systemd_scope()) {
                 error.set_literal(G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
                                   "systemd not available");
                 return false;
