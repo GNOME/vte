@@ -2090,8 +2090,7 @@ Terminal::ensure_row()
 	VteRowData *row;
 
 	/* Figure out how many rows we need to add. */
-        //FIXMEchpe use long, not int
-	int delta = m_screen->cursor.row - _vte_ring_next(m_screen->row_data) + 1;
+	auto const delta = m_screen->cursor.row - _vte_ring_next(m_screen->row_data) + 1;
 	if (delta > 0) {
 		row = insert_rows(delta);
 		adjust_adjustments();
