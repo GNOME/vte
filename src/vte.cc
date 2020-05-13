@@ -8760,7 +8760,8 @@ Terminal::draw_rows(VteScreen *screen_,
         vte::grid::column_t i, j, lcol, vcol;
         int y;
         guint fore = VTE_DEFAULT_FG, nfore, back = VTE_DEFAULT_BG, nback, deco = VTE_DEFAULT_FG, ndeco;
-        gboolean hyperlink = FALSE, nhyperlink, hilite = FALSE, nhilite;
+        gboolean hyperlink = FALSE, nhyperlink;  /* non-hovered explicit hyperlink, needs dashed underlining */
+        gboolean hilite = FALSE, nhilite;        /* hovered explicit hyperlink or regex match, needs continuous underlining */
         gboolean selected;
         gboolean nrtl = FALSE, rtl;  /* for debugging */
         uint32_t attr = 0, nattr;
@@ -8938,12 +8939,15 @@ Terminal::draw_rows(VteScreen *screen_,
                         g_assert(cell != nullptr);
 
                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
+                        nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
+                                  (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
                         if (cell->c == 0 ||
                                 ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
                                  cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
                                                      VTE_ATTR_STRIKETHROUGH_MASK |
                                                      VTE_ATTR_OVERLINE_MASK) &&
-                                 !nhyperlink) ||
+                                 !nhyperlink &&
+                                 !nhilite) ||
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
                                 /* Skip empty or fragment cell. */
@@ -8955,9 +8959,6 @@ Terminal::draw_rows(VteScreen *screen_,
                         nattr = cell->attr.attr;
                         selected = cell_is_selected_log(lcol, row);
                         determine_colors(cell, selected, &nfore, &nback, &ndeco);
-
-                        nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
-                                  (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
 
                         /* See if it no longer fits the run. */
                         if (item_count > 0 &&
