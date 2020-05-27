@@ -5630,13 +5630,14 @@ try
                 what = "Unknown exception"sv;
         }
 
-        auto msg = vte::glib::take_string(g_strdup_printf("Caught exception in %s [%s:%d]: %s",
 #ifdef VTE_DEBUG
+        auto msg = vte::glib::take_string(g_strdup_printf("Caught exception in %s [%s:%d]: %s",
                                                           func, filename, line,
-#else
-                                                          "?", "?", "?",
-#endif
                                                           what.c_str()));
+#else
+        auto msg = vte::glib::take_string(g_strdup_printf("Caught exception: %s",
+                                                          what.c_str()));
+#endif
         auto msg_str = vte::glib::take_string(g_utf8_make_valid(msg.get(), -1));
         g_set_error_literal(error,
                             G_IO_ERROR,
