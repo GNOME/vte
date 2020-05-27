@@ -32,6 +32,7 @@
 #include "config.h"
 
 #include <new> /* placement new */
+#include <exception>
 
 #include <pwd.h>
 
@@ -49,6 +50,7 @@
 
 #include "debug.h"
 #include "glib-glue.hh"
+#include "gobject-glue.hh"
 #include "marshal.h"
 #include "reaper.hh"
 #include "vtedefines.hh"
@@ -119,7 +121,7 @@ GTimer *process_timer;
 uint64_t g_test_flags = 0;
 
 static bool
-valid_color(GdkRGBA const* color)
+valid_color(GdkRGBA const* color) noexcept
 {
         return color->red >= 0. && color->red <= 1. &&
                color->green >= 0. && color->green <= 1. &&
@@ -129,50 +131,81 @@ valid_color(GdkRGBA const* color)
 
 static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
-                             GtkAdjustment *adjustment)
+                             GtkAdjustment *adjustment) noexcept
+try
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
         WIDGET(terminal)->set_hadjustment(vte::glib::make_ref_sink(adjustment));
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 vte_terminal_set_vadjustment(VteTerminal *terminal,
-                             GtkAdjustment *adjustment)
+                             GtkAdjustment *adjustment) noexcept
+try
 {
         g_return_if_fail(adjustment == nullptr || GTK_IS_ADJUSTMENT(adjustment));
         WIDGET(terminal)->set_vadjustment(vte::glib::make_ref_sink(adjustment));
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 vte_terminal_set_hscroll_policy(VteTerminal *terminal,
-                                GtkScrollablePolicy policy)
+                                GtkScrollablePolicy policy) noexcept
+try
 {
         WIDGET(terminal)->set_hscroll_policy(policy);
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 vte_terminal_set_vscroll_policy(VteTerminal *terminal,
-                                GtkScrollablePolicy policy)
+                                GtkScrollablePolicy policy) noexcept
+try
 {
         WIDGET(terminal)->set_vscroll_policy(policy);
         gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
-vte_terminal_real_copy_clipboard(VteTerminal *terminal)
+vte_terminal_real_copy_clipboard(VteTerminal *terminal) noexcept
+try
 {
 	WIDGET(terminal)->copy(VTE_SELECTION_CLIPBOARD, VTE_FORMAT_TEXT);
 }
-
-static void
-vte_terminal_real_paste_clipboard(VteTerminal *terminal)
+catch (...)
 {
-	WIDGET(terminal)->paste(GDK_SELECTION_CLIPBOARD);
+        vte::log_exception();
 }
 
 static void
-vte_terminal_style_updated (GtkWidget *widget)
+vte_terminal_real_paste_clipboard(VteTerminal *terminal) noexcept
+try
+{
+	WIDGET(terminal)->paste(GDK_SELECTION_CLIPBOARD);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+vte_terminal_style_updated (GtkWidget *widget) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
 
@@ -180,9 +213,15 @@ vte_terminal_style_updated (GtkWidget *widget)
 
         WIDGET(terminal)->style_updated();
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static gboolean
-vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
+vte_terminal_key_press(GtkWidget *widget,
+                       GdkEventKey *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
 
@@ -204,61 +243,117 @@ vte_terminal_key_press(GtkWidget *widget, GdkEventKey *event)
 
         return WIDGET(terminal)->key_press(event);
 }
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
 
 static gboolean
-vte_terminal_key_release(GtkWidget *widget, GdkEventKey *event)
+vte_terminal_key_release(GtkWidget *widget,
+                         GdkEventKey *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         return WIDGET(terminal)->key_release(event);
 }
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
 
 static gboolean
-vte_terminal_motion_notify(GtkWidget *widget, GdkEventMotion *event)
+vte_terminal_motion_notify(GtkWidget *widget,
+                           GdkEventMotion *event) noexcept
+try
 {
         VteTerminal *terminal = VTE_TERMINAL(widget);
         return WIDGET(terminal)->motion_notify(event);
 }
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
 
 static gboolean
-vte_terminal_button_press(GtkWidget *widget, GdkEventButton *event)
+vte_terminal_button_press(GtkWidget *widget,
+                          GdkEventButton *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         return WIDGET(terminal)->button_press(event);
 }
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
 
 static gboolean
-vte_terminal_button_release(GtkWidget *widget, GdkEventButton *event)
+vte_terminal_button_release(GtkWidget *widget,
+                            GdkEventButton *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         return WIDGET(terminal)->button_release(event);
 }
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
 
 static gboolean
-vte_terminal_scroll(GtkWidget *widget, GdkEventScroll *event)
+vte_terminal_scroll(GtkWidget *widget,
+                    GdkEventScroll *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->scroll(event);
         return TRUE;
 }
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
 
 static gboolean
-vte_terminal_focus_in(GtkWidget *widget, GdkEventFocus *event)
+vte_terminal_focus_in(GtkWidget *widget,
+                      GdkEventFocus *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->focus_in(event);
         return FALSE;
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 static gboolean
-vte_terminal_focus_out(GtkWidget *widget, GdkEventFocus *event)
+vte_terminal_focus_out(GtkWidget *widget,
+                       GdkEventFocus *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->focus_out(event);
         return FALSE;
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 static gboolean
-vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
+vte_terminal_enter(GtkWidget *widget,
+                   GdkEventCrossing *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         gboolean ret = FALSE;
@@ -271,9 +366,16 @@ vte_terminal_enter(GtkWidget *widget, GdkEventCrossing *event)
 
         return ret;
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 static gboolean
-vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
+vte_terminal_leave(GtkWidget *widget,
+                   GdkEventCrossing *event) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
 	gboolean ret = FALSE;
@@ -286,43 +388,71 @@ vte_terminal_leave(GtkWidget *widget, GdkEventCrossing *event)
 
         return ret;
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 static void
 vte_terminal_get_preferred_width(GtkWidget *widget,
 				 int       *minimum_width,
-				 int       *natural_width)
+				 int       *natural_width) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->get_preferred_width(minimum_width, natural_width);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 static void
 vte_terminal_get_preferred_height(GtkWidget *widget,
 				  int       *minimum_height,
-				  int       *natural_height)
+				  int       *natural_height) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->get_preferred_height(minimum_height, natural_height);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
-vte_terminal_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
+vte_terminal_size_allocate(GtkWidget *widget,
+                           GtkAllocation *allocation) noexcept
+try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->size_allocate(allocation);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static gboolean
 vte_terminal_draw(GtkWidget *widget,
-                  cairo_t *cr)
+                  cairo_t *cr) noexcept
+try
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
         WIDGET(terminal)->draw(cr);
         return FALSE;
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 static void
-vte_terminal_realize(GtkWidget *widget)
+vte_terminal_realize(GtkWidget *widget) noexcept
+try
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_realize()\n");
 
@@ -331,20 +461,29 @@ vte_terminal_realize(GtkWidget *widget)
         VteTerminal *terminal= VTE_TERMINAL(widget);
         WIDGET(terminal)->realize();
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
-vte_terminal_unrealize(GtkWidget *widget)
+vte_terminal_unrealize(GtkWidget *widget) noexcept
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unrealize()\n");
 
-        VteTerminal *terminal = VTE_TERMINAL (widget);
-        WIDGET(terminal)->unrealize();
+        try {
+                VteTerminal *terminal = VTE_TERMINAL (widget);
+                WIDGET(terminal)->unrealize();
+        } catch (...) {
+                vte::log_exception();
+        }
 
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->unrealize(widget);
 }
 
 static void
-vte_terminal_map(GtkWidget *widget)
+vte_terminal_map(GtkWidget *widget) noexcept
+try
 {
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_map()\n");
 
@@ -353,21 +492,30 @@ vte_terminal_map(GtkWidget *widget)
 
         WIDGET(terminal)->map();
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
-vte_terminal_unmap(GtkWidget *widget)
+vte_terminal_unmap(GtkWidget *widget) noexcept
 {
         _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unmap()\n");
 
-        VteTerminal *terminal = VTE_TERMINAL(widget);
-        WIDGET(terminal)->unmap();
+        try {
+                VteTerminal *terminal = VTE_TERMINAL(widget);
+                WIDGET(terminal)->unmap();
+        } catch (...) {
+                vte::log_exception();
+        }
 
         GTK_WIDGET_CLASS(vte_terminal_parent_class)->unmap(widget);
 }
 
 static void
 vte_terminal_screen_changed (GtkWidget *widget,
-                             GdkScreen *previous_screen)
+                             GdkScreen *previous_screen) noexcept
+try
 {
         VteTerminal *terminal = VTE_TERMINAL (widget);
 
@@ -377,9 +525,14 @@ vte_terminal_screen_changed (GtkWidget *widget,
 
         WIDGET(terminal)->screen_changed(previous_screen);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
-vte_terminal_constructed (GObject *object)
+vte_terminal_constructed (GObject *object) noexcept
+try
 {
         VteTerminal *terminal = VTE_TERMINAL (object);
 
@@ -387,9 +540,14 @@ vte_terminal_constructed (GObject *object)
 
         WIDGET(terminal)->constructed();
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 vte_terminal_init(VteTerminal *terminal)
+try
 {
         void *place;
 	GtkStyleContext *context;
@@ -401,32 +559,48 @@ vte_terminal_init(VteTerminal *terminal)
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
+        gtk_widget_set_has_window(&terminal->widget, FALSE);
+
 	/* Initialize private data. NOTE: place is zeroed */
 	place = vte_terminal_get_instance_private(terminal);
         new (place) vte::platform::Widget(terminal);
+}
+catch (...)
+{
+        vte::log_exception();
 
-        gtk_widget_set_has_window(&terminal->widget, FALSE);
+        // There's not really anything we can do after the
+        // construction of Widget failed... we'll crash soon anyway.
+        g_assert_not_reached();
 }
 
 static void
-vte_terminal_dispose(GObject *object)
+vte_terminal_dispose(GObject *object) noexcept
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_dispose()\n");
 
-	VteTerminal *terminal = VTE_TERMINAL (object);
-        WIDGET(terminal)->dispose();
+        try {
+                VteTerminal *terminal = VTE_TERMINAL (object);
+                WIDGET(terminal)->dispose();
+        } catch (...) {
+                vte::log_exception();
+        }
 
 	/* Call the inherited dispose() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->dispose(object);
 }
 
 static void
-vte_terminal_finalize(GObject *object)
+vte_terminal_finalize(GObject *object) noexcept
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
 
-	VteTerminal *terminal = VTE_TERMINAL (object);
-        WIDGET(terminal)->~Widget();
+        try {
+                VteTerminal *terminal = VTE_TERMINAL (object);
+                WIDGET(terminal)->~Widget();
+        } catch (...) {
+                vte::log_exception();
+        }
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
@@ -436,7 +610,8 @@ static void
 vte_terminal_get_property (GObject *object,
                            guint prop_id,
                            GValue *value,
-                           GParamSpec *pspec)
+                           GParamSpec *pspec) noexcept
+try
 {
         VteTerminal *terminal = VTE_TERMINAL (object);
         auto widget = WIDGET(terminal);
@@ -552,12 +727,17 @@ vte_terminal_get_property (GObject *object,
 			return;
                 }
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 vte_terminal_set_property (GObject *object,
                            guint prop_id,
                            const GValue *value,
-                           GParamSpec *pspec)
+                           GParamSpec *pspec) noexcept
+try
 {
         VteTerminal *terminal = VTE_TERMINAL (object);
 
@@ -664,6 +844,10 @@ vte_terminal_set_property (GObject *object,
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
                 }
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 static void
@@ -1839,7 +2023,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
  * Since: 0.40
  */
 const char *
-vte_get_features (void)
+vte_get_features (void) noexcept
 {
         return
 #ifdef WITH_FRIBIDI
@@ -1883,7 +2067,7 @@ vte_get_features (void)
  * Since: 0.40
  */
 guint
-vte_get_major_version (void)
+vte_get_major_version (void) noexcept
 {
         return VTE_MAJOR_VERSION;
 }
@@ -1901,7 +2085,7 @@ vte_get_major_version (void)
  * Since: 0.40
  */
 guint
-vte_get_minor_version (void)
+vte_get_minor_version (void) noexcept
 {
         return VTE_MINOR_VERSION;
 }
@@ -1919,7 +2103,7 @@ vte_get_minor_version (void)
  * Since: 0.40
  */
 guint
-vte_get_micro_version (void)
+vte_get_micro_version (void) noexcept
 {
         return VTE_MICRO_VERSION;
 }
@@ -1934,7 +2118,7 @@ vte_get_micro_version (void)
  *   user's shell, or %NULL
  */
 char *
-vte_get_user_shell (void)
+vte_get_user_shell (void) noexcept
 {
 	struct passwd *pwd;
 
@@ -1955,7 +2139,7 @@ vte_get_user_shell (void)
  * Since: 0.54
  */
 void
-vte_set_test_flags(guint64 flags)
+vte_set_test_flags(guint64 flags) noexcept
 {
 #ifdef VTE_DEBUG
         g_test_flags = flags;
@@ -1979,7 +2163,8 @@ vte_set_test_flags(guint64 flags)
  * Deprecated: 0.60
  */
 char **
-vte_get_encodings(gboolean include_aliases)
+vte_get_encodings(gboolean include_aliases) noexcept
+try
 {
 #ifdef WITH_ICU
         return vte::base::get_icu_charsets(include_aliases != FALSE);
@@ -1987,6 +2172,13 @@ vte_get_encodings(gboolean include_aliases)
         char *empty[] = { nullptr };
         return g_strdupv(empty);
 #endif
+}
+catch (...)
+{
+        vte::log_exception();
+
+        char *empty[] = { nullptr };
+        return g_strdupv(empty);
 }
 
 /**
@@ -2006,7 +2198,8 @@ vte_get_encodings(gboolean include_aliases)
  * Deprecated: 0.60
  */
 gboolean
-vte_get_encoding_supported(const char *encoding)
+vte_get_encoding_supported(const char *encoding) noexcept
+try
 {
         g_return_val_if_fail(encoding != nullptr, false);
 
@@ -2015,6 +2208,11 @@ vte_get_encoding_supported(const char *encoding)
 #else
         return false;
 #endif
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /* VteTerminal public API */
@@ -2027,7 +2225,7 @@ vte_get_encoding_supported(const char *encoding)
  * Returns: (transfer none) (type Vte.Terminal): a new #VteTerminal object
  */
 GtkWidget *
-vte_terminal_new(void)
+vte_terminal_new(void) noexcept
 {
 	return (GtkWidget *)g_object_new(VTE_TYPE_TERMINAL, nullptr);
 }
@@ -2043,13 +2241,17 @@ vte_terminal_new(void)
  *   instead.
  */
 void
-vte_terminal_copy_clipboard(VteTerminal *terminal)
+vte_terminal_copy_clipboard(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         IMPL(terminal)->emit_copy_clipboard();
 }
-
+catch (...)
+{
+        vte::log_exception();
+}
 
 /**
  * vte_terminal_copy_clipboard_format:
@@ -2070,12 +2272,17 @@ vte_terminal_copy_clipboard(VteTerminal *terminal)
  */
 void
 vte_terminal_copy_clipboard_format(VteTerminal *terminal,
-                                   VteFormat format)
+                                   VteFormat format) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(format == VTE_FORMAT_TEXT || format == VTE_FORMAT_HTML);
 
         WIDGET(terminal)->copy(VTE_SELECTION_CLIPBOARD, format);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2086,11 +2293,16 @@ vte_terminal_copy_clipboard_format(VteTerminal *terminal,
  * selection.
  */
 void
-vte_terminal_copy_primary(VteTerminal *terminal)
+vte_terminal_copy_primary(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
 	WIDGET(terminal)->copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2102,11 +2314,16 @@ vte_terminal_copy_primary(VteTerminal *terminal)
  * user presses Shift+Insert.
  */
 void
-vte_terminal_paste_clipboard(VteTerminal *terminal)
+vte_terminal_paste_clipboard(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         IMPL(terminal)->emit_paste_clipboard();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2119,11 +2336,16 @@ vte_terminal_paste_clipboard(VteTerminal *terminal)
  * mouse button.
  */
 void
-vte_terminal_paste_primary(VteTerminal *terminal)
+vte_terminal_paste_primary(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Pasting PRIMARY.\n");
 	WIDGET(terminal)->paste(GDK_SELECTION_PRIMARY);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2141,7 +2363,7 @@ vte_terminal_paste_primary(VteTerminal *terminal)
 int
 vte_terminal_match_add_gregex(VteTerminal *terminal,
                               GRegex *gregex,
-                              GRegexMatchFlags gflags)
+                              GRegexMatchFlags gflags) noexcept
 {
         return -1;
 }
@@ -2165,7 +2387,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
 int
 vte_terminal_match_add_regex(VteTerminal *terminal,
                              VteRegex    *regex,
-                             guint32      flags)
+                             guint32      flags) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	g_return_val_if_fail(regex != NULL, -1);
@@ -2177,6 +2400,11 @@ vte_terminal_match_add_regex(VteTerminal *terminal,
                                      flags,
                                      VTE_DEFAULT_CURSOR,
                                      impl->regex_match_next_tag()).tag();
+}
+catch (...)
+{
+        vte::log_exception();
+        return -1;
 }
 
 /**
@@ -2204,12 +2432,17 @@ char *
 vte_terminal_match_check(VteTerminal *terminal,
                          long column,
                          long row,
-			 int *tag)
+			 int *tag) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         return WIDGET(terminal)->regex_match_check(column, row, tag);
 }
-
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
 
 /**
  * vte_terminal_match_check_event:
@@ -2232,10 +2465,16 @@ vte_terminal_match_check(VteTerminal *terminal,
 char *
 vte_terminal_match_check_event(VteTerminal *terminal,
                                GdkEvent *event,
-                               int *tag)
+                               int *tag) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         return WIDGET(terminal)->regex_match_check(event, tag);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -2257,10 +2496,16 @@ vte_terminal_match_check_event(VteTerminal *terminal,
  */
 char *
 vte_terminal_hyperlink_check_event(VteTerminal *terminal,
-                                   GdkEvent *event)
+                                   GdkEvent *event) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
         return WIDGET(terminal)->hyperlink_check(event);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -2290,7 +2535,8 @@ vte_terminal_event_check_regex_array(VteTerminal *terminal,
                                      VteRegex **regexes,
                                      gsize n_regexes,
                                      guint32 match_flags,
-                                     gsize *n_matches)
+                                     gsize *n_matches) noexcept
+try
 {
         if (n_matches)
                 *n_matches = n_regexes;
@@ -2308,6 +2554,11 @@ vte_terminal_event_check_regex_array(VteTerminal *terminal,
             return nullptr;
 
         return matches.release();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -2337,7 +2588,8 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                       VteRegex **regexes,
                                       gsize n_regexes,
                                       guint32 match_flags,
-                                      char **matches)
+                                      char **matches) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(event != NULL, FALSE);
@@ -2353,6 +2605,11 @@ vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                                          n_regexes,
                                                          match_flags,
                                                          matches);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -2377,7 +2634,7 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
                                        GRegex **regexes,
                                        gsize n_regexes,
                                        GRegexMatchFlags match_flags,
-                                       char **matches)
+                                       char **matches) noexcept
 {
         return FALSE;
 }
@@ -2397,12 +2654,17 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
 void
 vte_terminal_match_set_cursor(VteTerminal *terminal,
                               int tag,
-                              GdkCursor *cursor)
+                              GdkCursor *cursor) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(tag >= 0);
         if (auto rem = IMPL(terminal)->regex_match_get(tag))
                 rem->set_cursor(vte::glib::make_ref<GdkCursor>(cursor));
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2419,12 +2681,17 @@ vte_terminal_match_set_cursor(VteTerminal *terminal,
 void
 vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 				   int tag,
-                                   GdkCursorType cursor_type)
+                                   GdkCursorType cursor_type) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(tag >= 0);
         if (auto rem = IMPL(terminal)->regex_match_get(tag))
                 rem->set_cursor(cursor_type);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2439,12 +2706,17 @@ vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 void
 vte_terminal_match_set_cursor_name(VteTerminal *terminal,
 				   int tag,
-                                   const char *cursor_name)
+                                   const char *cursor_name) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(tag >= 0);
         if (auto rem = IMPL(terminal)->regex_match_get(tag))
                 rem->set_cursor(cursor_name);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2457,10 +2729,16 @@ vte_terminal_match_set_cursor_name(VteTerminal *terminal,
  * moves the mouse cursor over matching text.
  */
 void
-vte_terminal_match_remove(VteTerminal *terminal, int tag)
+vte_terminal_match_remove(VteTerminal *terminal,
+                          int tag) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         IMPL(terminal)->regex_match_remove(tag);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2471,10 +2749,15 @@ vte_terminal_match_remove(VteTerminal *terminal, int tag)
  * when the user moves the mouse cursor.
  */
 void
-vte_terminal_match_remove_all(VteTerminal *terminal)
+vte_terminal_match_remove_all(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         IMPL(terminal)->regex_match_remove_all();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2487,10 +2770,16 @@ vte_terminal_match_remove_all(VteTerminal *terminal)
  * Returns: %TRUE if a match was found
  */
 gboolean
-vte_terminal_search_find_previous (VteTerminal *terminal)
+vte_terminal_search_find_previous (VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->search_find(true);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -2503,10 +2792,16 @@ vte_terminal_search_find_previous (VteTerminal *terminal)
  * Returns: %TRUE if a match was found
  */
 gboolean
-vte_terminal_search_find_next (VteTerminal *terminal)
+vte_terminal_search_find_next (VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->search_find(false);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -2524,13 +2819,18 @@ vte_terminal_search_find_next (VteTerminal *terminal)
 void
 vte_terminal_search_set_regex (VteTerminal *terminal,
                                VteRegex    *regex,
-                               guint32      flags)
+                               guint32      flags) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(regex == nullptr || _vte_regex_has_purpose(regex, vte::base::Regex::Purpose::eSearch));
         g_warn_if_fail(regex == nullptr || _vte_regex_has_multiline_compile_flag(regex));
 
         IMPL(terminal)->search_set_regex(vte::base::make_ref(regex_from_wrapper(regex)), flags);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2542,11 +2842,17 @@ vte_terminal_search_set_regex (VteTerminal *terminal,
  * Since: 0.46
  */
 VteRegex *
-vte_terminal_search_get_regex(VteTerminal *terminal)
+vte_terminal_search_get_regex(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
         return wrapper_from_regex(IMPL(terminal)->search_regex());
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -2562,7 +2868,7 @@ vte_terminal_search_get_regex(VteTerminal *terminal)
 void
 vte_terminal_search_set_gregex (VteTerminal *terminal,
 				GRegex      *gregex,
-                                GRegexMatchFlags gflags)
+                                GRegexMatchFlags gflags) noexcept
 {
 }
 
@@ -2575,11 +2881,11 @@ vte_terminal_search_set_gregex (VteTerminal *terminal,
  * Deprecated: 0.46: use vte_terminal_search_get_regex() instead.
  */
 GRegex *
-vte_terminal_search_get_gregex (VteTerminal *terminal)
+vte_terminal_search_get_gregex (VteTerminal *terminal) noexcept
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        return NULL;
+        return nullptr;
 }
 
 /**
@@ -2592,11 +2898,16 @@ vte_terminal_search_get_gregex (VteTerminal *terminal)
  */
 void
 vte_terminal_search_set_wrap_around (VteTerminal *terminal,
-				     gboolean     wrap_around)
+				     gboolean     wrap_around) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         IMPL(terminal)->search_set_wrap_around(wrap_around != FALSE);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2606,13 +2917,17 @@ vte_terminal_search_set_wrap_around (VteTerminal *terminal,
  * Returns: whether searching will wrap around
  */
 gboolean
-vte_terminal_search_get_wrap_around (VteTerminal *terminal)
+vte_terminal_search_get_wrap_around (VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->m_search_wrap_around;
 }
-
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 /**
  * vte_terminal_select_all:
@@ -2621,11 +2936,16 @@ vte_terminal_search_get_wrap_around (VteTerminal *terminal)
  * Selects all text within the terminal (including the scrollback buffer).
  */
 void
-vte_terminal_select_all (VteTerminal *terminal)
+vte_terminal_select_all (VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
         IMPL(terminal)->select_all();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2635,11 +2955,16 @@ vte_terminal_select_all (VteTerminal *terminal)
  * Clears the current selection.
  */
 void
-vte_terminal_unselect_all(VteTerminal *terminal)
+vte_terminal_unselect_all(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail (VTE_IS_TERMINAL (terminal));
 
         IMPL(terminal)->deselect_all();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2656,7 +2981,8 @@ vte_terminal_unselect_all(VteTerminal *terminal)
 void
 vte_terminal_get_cursor_position(VteTerminal *terminal,
 				 long *column,
-                                 long *row)
+                                 long *row) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
@@ -2667,6 +2993,10 @@ vte_terminal_get_cursor_position(VteTerminal *terminal,
 	if (row) {
                 *row = impl->m_screen->cursor.row;
 	}
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2688,17 +3018,23 @@ VtePty *
 vte_terminal_pty_new_sync(VteTerminal *terminal,
                           VtePtyFlags flags,
                           GCancellable *cancellable,
-                          GError **error)
+                          GError **error) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
-        VtePty *pty = vte_pty_new_sync(flags, cancellable, error);
-        if (pty == nullptr)
+        auto pty = vte::glib::take_ref(vte_pty_new_sync(flags, cancellable, error));
+        if (!pty)
                 return nullptr;
 
-        vte_pty_set_size(pty, IMPL(terminal)->m_row_count, IMPL(terminal)->m_column_count, NULL);
+        vte_pty_set_size(pty.get(), IMPL(terminal)->m_row_count, IMPL(terminal)->m_column_count, NULL);
 
-        return pty;
+        return pty.release();
+}
+catch (...)
+{
+        vte::glib::set_error_from_exception(error);
+        return nullptr;
 }
 
 /**
@@ -2722,7 +3058,8 @@ vte_terminal_pty_new_sync(VteTerminal *terminal,
  */
 void
 vte_terminal_watch_child (VteTerminal *terminal,
-                          GPid child_pid)
+                          GPid child_pid) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(child_pid != -1);
@@ -2730,6 +3067,10 @@ vte_terminal_watch_child (VteTerminal *terminal,
         g_return_if_fail(WIDGET(terminal)->pty() != nullptr);
 
         IMPL(terminal)->watch_child(child_pid);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2787,7 +3128,8 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
                         gpointer child_setup_data,
                         GPid *child_pid /* out */,
                         GCancellable *cancellable,
-                        GError **error)
+                        GError **error) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(argv != NULL, FALSE);
@@ -2822,6 +3164,10 @@ vte_terminal_spawn_sync(VteTerminal *terminal,
 
         return true;
 }
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
+}
 
 typedef struct {
         GWeakRef wref;
@@ -2832,7 +3178,7 @@ typedef struct {
 static gpointer
 spawn_async_callback_data_new(VteTerminal *terminal,
                               VteTerminalSpawnAsyncCallback callback,
-                              gpointer user_data)
+                              gpointer user_data) noexcept
 {
         SpawnAsyncCallbackData *data = g_new0 (SpawnAsyncCallbackData, 1);
 
@@ -2844,16 +3190,16 @@ spawn_async_callback_data_new(VteTerminal *terminal,
 }
 
 static void
-spawn_async_callback_data_free (SpawnAsyncCallbackData *data)
+spawn_async_callback_data_free(SpawnAsyncCallbackData* data) noexcept
 {
         g_weak_ref_clear(&data->wref);
         g_free(data);
 }
 
 static void
-spawn_async_cb (GObject *source,
-                GAsyncResult *result,
-                gpointer user_data)
+spawn_async_cb(GObject *source,
+               GAsyncResult *result,
+               gpointer user_data) noexcept
 {
         SpawnAsyncCallbackData *data = reinterpret_cast<SpawnAsyncCallbackData*>(user_data);
         VtePty *pty = VTE_PTY(source);
@@ -2879,8 +3225,13 @@ spawn_async_cb (GObject *source,
                 }
         }
 
-        if (data->callback)
-                data->callback(terminal.get(), pid, error, data->user_data);
+        if (data->callback) {
+                try {
+                        data->callback(terminal.get(), pid, error, data->user_data);
+                } catch (...) {
+                        vte::log_exception();
+                }
+        }
 
         if (!terminal) {
                 /* If the terminal was destroyed, we need to abort the child process, if any */
@@ -3000,7 +3351,8 @@ vte_terminal_spawn_with_fds_async(VteTerminal *terminal,
                                   int timeout,
                                   GCancellable *cancellable,
                                   VteTerminalSpawnAsyncCallback callback,
-                                  gpointer user_data)
+                                  gpointer user_data) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
@@ -3027,6 +3379,10 @@ vte_terminal_spawn_with_fds_async(VteTerminal *terminal,
                                      timeout, cancellable,
                                      spawn_async_cb,
                                      spawn_async_callback_data_new(terminal, callback, user_data));
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3068,7 +3424,7 @@ vte_terminal_spawn_async(VteTerminal *terminal,
                          int timeout,
                          GCancellable *cancellable,
                          VteTerminalSpawnAsyncCallback callback,
-                         gpointer user_data)
+                         gpointer user_data) noexcept
 {
         vte_terminal_spawn_with_fds_async(terminal, pty_flags, working_directory, argv, envv,
                                           nullptr, 0, nullptr, 0,
@@ -3089,7 +3445,8 @@ vte_terminal_spawn_async(VteTerminal *terminal,
 void
 vte_terminal_feed(VteTerminal *terminal,
                   const char *data,
-                  gssize length)
+                  gssize length) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || data != NULL);
@@ -3099,6 +3456,10 @@ vte_terminal_feed(VteTerminal *terminal,
 
         auto const len = size_t{length == -1 ? strlen(data) : size_t(length)};
         WIDGET(terminal)->feed({data, len});
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3113,7 +3474,8 @@ vte_terminal_feed(VteTerminal *terminal,
 void
 vte_terminal_feed_child(VteTerminal *terminal,
                         const char *text,
-                        gssize length)
+                        gssize length) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || text != NULL);
@@ -3123,6 +3485,10 @@ vte_terminal_feed_child(VteTerminal *terminal,
 
         auto const len = size_t{length == -1 ? strlen(text) : size_t(length)};
         WIDGET(terminal)->feed_child({text, len});
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3139,7 +3505,8 @@ vte_terminal_feed_child(VteTerminal *terminal,
 void
 vte_terminal_feed_child_binary(VteTerminal *terminal,
                                const guint8 *data,
-                               gsize length)
+                               gsize length) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(length == 0 || data != NULL);
@@ -3148,6 +3515,10 @@ vte_terminal_feed_child_binary(VteTerminal *terminal,
                 return;
 
         WIDGET(terminal)->feed_child_binary({(char*)data, length});
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3164,7 +3535,7 @@ vte_terminal_feed_child_binary(VteTerminal *terminal,
  */
 
 static void
-warn_if_callback(VteSelectionFunc func)
+warn_if_callback(VteSelectionFunc func) noexcept
 {
         if (!func)
                 return;
@@ -3200,7 +3571,8 @@ char *
 vte_terminal_get_text(VteTerminal *terminal,
 		      VteSelectionFunc is_selected,
 		      gpointer user_data,
-		      GArray *attributes)
+		      GArray *attributes) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
@@ -3209,6 +3581,11 @@ vte_terminal_get_text(VteTerminal *terminal,
         if (text == nullptr)
                 return nullptr;
         return (char*)g_string_free(text, FALSE);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -3235,7 +3612,7 @@ char *
 vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 					      VteSelectionFunc is_selected,
 					      gpointer user_data,
-					      GArray *attributes)
+					      GArray *attributes) noexcept
 {
         return vte_terminal_get_text(terminal, is_selected, user_data, attributes);
 }
@@ -3272,7 +3649,8 @@ vte_terminal_get_text_range(VteTerminal *terminal,
                             long end_col,
 			    VteSelectionFunc is_selected,
 			    gpointer user_data,
-			    GArray *attributes)
+			    GArray *attributes) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
@@ -3284,6 +3662,11 @@ vte_terminal_get_text_range(VteTerminal *terminal,
         if (text == nullptr)
                 return nullptr;
         return (char*)g_string_free(text, FALSE);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -3301,10 +3684,15 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 void
 vte_terminal_reset(VteTerminal *terminal,
                    gboolean clear_tabstops,
-                   gboolean clear_history)
+                   gboolean clear_history) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         IMPL(terminal)->reset(clear_tabstops, clear_history, true);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3319,12 +3707,17 @@ vte_terminal_reset(VteTerminal *terminal,
 void
 vte_terminal_set_size(VteTerminal *terminal,
                       long columns,
-                      long rows)
+                      long rows) noexcept
+try
 {
         g_return_if_fail(columns >= 1);
         g_return_if_fail(rows >= 1);
 
         IMPL(terminal)->set_size(columns, rows);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3338,10 +3731,16 @@ vte_terminal_set_size(VteTerminal *terminal,
  * Since: 0.52
  */
 VteTextBlinkMode
-vte_terminal_get_text_blink_mode(VteTerminal *terminal)
+vte_terminal_get_text_blink_mode(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_TEXT_BLINK_ALWAYS);
         return WIDGET(terminal)->text_blink_mode();
+}
+catch (...)
+{
+        vte::log_exception();
+        return VTE_TEXT_BLINK_ALWAYS;
 }
 
 /**
@@ -3355,12 +3754,17 @@ vte_terminal_get_text_blink_mode(VteTerminal *terminal)
  */
 void
 vte_terminal_set_text_blink_mode(VteTerminal *terminal,
-                                     VteTextBlinkMode text_blink_mode)
+                                 VteTextBlinkMode text_blink_mode) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (WIDGET(terminal)->set_text_blink_mode(text_blink_mode))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_TEXT_BLINK_MODE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3375,10 +3779,16 @@ vte_terminal_set_text_blink_mode(VteTerminal *terminal,
  * Deprecated: 0.60: There's probably no reason for this feature to exist.
  */
 gboolean
-vte_terminal_get_allow_bold(VteTerminal *terminal)
+vte_terminal_get_allow_bold(VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->m_allow_bold;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -3393,12 +3803,17 @@ vte_terminal_get_allow_bold(VteTerminal *terminal)
  */
 void
 vte_terminal_set_allow_bold(VteTerminal *terminal,
-                            gboolean allow_bold)
+                            gboolean allow_bold) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_allow_bold(allow_bold != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ALLOW_BOLD]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3412,10 +3827,16 @@ vte_terminal_set_allow_bold(VteTerminal *terminal,
  * Since: 0.50
  */
 gboolean
-vte_terminal_get_allow_hyperlink(VteTerminal *terminal)
+vte_terminal_get_allow_hyperlink(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         return IMPL(terminal)->m_allow_hyperlink;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -3429,12 +3850,17 @@ vte_terminal_get_allow_hyperlink(VteTerminal *terminal)
  */
 void
 vte_terminal_set_allow_hyperlink(VteTerminal *terminal,
-                                 gboolean allow_hyperlink)
+                                 gboolean allow_hyperlink) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_allow_hyperlink(allow_hyperlink != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ALLOW_HYPERLINK]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3447,10 +3873,16 @@ vte_terminal_set_allow_hyperlink(VteTerminal *terminal,
  * Returns: %TRUE if audible bell is enabled, %FALSE if not
  */
 gboolean
-vte_terminal_get_audible_bell(VteTerminal *terminal)
+vte_terminal_get_audible_bell(VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->m_audible_bell;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -3463,12 +3895,17 @@ vte_terminal_get_audible_bell(VteTerminal *terminal)
  */
 void
 vte_terminal_set_audible_bell(VteTerminal *terminal,
-                              gboolean is_audible)
+                              gboolean is_audible) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_audible_bell(is_audible != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_AUDIBLE_BELL]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3482,13 +3919,18 @@ vte_terminal_set_audible_bell(VteTerminal *terminal,
  */
 void
 vte_terminal_set_backspace_binding(VteTerminal *terminal,
-                                   VteEraseBinding binding)
+                                   VteEraseBinding binding) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
 
         if (WIDGET(terminal)->set_backspace_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BACKSPACE_BINDING]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3504,11 +3946,18 @@ vte_terminal_set_backspace_binding(VteTerminal *terminal,
  * Since: 0.52
  */
 gboolean
-vte_terminal_get_bold_is_bright(VteTerminal *terminal)
+vte_terminal_get_bold_is_bright(VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->m_bold_is_bright;
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
 /**
  * vte_terminal_set_bold_is_bright:
  * @terminal: a #VteTerminal
@@ -3522,12 +3971,17 @@ vte_terminal_get_bold_is_bright(VteTerminal *terminal)
  */
 void
 vte_terminal_set_bold_is_bright(VteTerminal *terminal,
-                                gboolean bold_is_bright)
+                                gboolean bold_is_bright) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_bold_is_bright(bold_is_bright != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_BOLD_IS_BRIGHT]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3540,10 +3994,16 @@ vte_terminal_set_bold_is_bright(VteTerminal *terminal,
  * because the return value takes cell-height-scale into account.
  */
 glong
-vte_terminal_get_char_height(VteTerminal *terminal)
+vte_terminal_get_char_height(VteTerminal *terminal) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	return IMPL(terminal)->get_cell_height();
+}
+catch (...)
+{
+        vte::log_exception();
+        return -1;
 }
 
 /**
@@ -3556,10 +4016,16 @@ vte_terminal_get_char_height(VteTerminal *terminal)
  * because the return value takes cell-width-scale into account.
  */
 glong
-vte_terminal_get_char_width(VteTerminal *terminal)
+vte_terminal_get_char_width(VteTerminal *terminal) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	return IMPL(terminal)->get_cell_width();
+}
+catch (...)
+{
+        vte::log_exception();
+        return -1;
 }
 
 /**
@@ -3574,10 +4040,16 @@ vte_terminal_get_char_width(VteTerminal *terminal)
  * Returns: 1 if ambiguous-width characters are narrow, or 2 if they are wide
  */
 int
-vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
+vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1);
         return IMPL(terminal)->m_utf8_ambiguous_width;
+}
+catch (...)
+{
+        vte::log_exception();
+        return 1;
 }
 
 /**
@@ -3591,13 +4063,18 @@ vte_terminal_get_cjk_ambiguous_width(VteTerminal *terminal)
  * itself.)
  */
 void
-vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
+vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(width == 1 || width == 2);
 
         if (IMPL(terminal)->set_cjk_ambiguous_width(width))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CJK_AMBIGUOUS_WIDTH]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3611,7 +4088,8 @@ vte_terminal_set_cjk_ambiguous_width(VteTerminal *terminal, int width)
  */
 void
 vte_terminal_set_color_background(VteTerminal *terminal,
-                                  const GdkRGBA *background)
+                                  const GdkRGBA *background) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(background != NULL);
@@ -3620,6 +4098,10 @@ vte_terminal_set_color_background(VteTerminal *terminal,
         auto impl = IMPL(terminal);
         impl->set_color_background(vte::color::rgb(background));
         impl->set_background_alpha(background->alpha);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3632,7 +4114,8 @@ vte_terminal_set_color_background(VteTerminal *terminal,
  */
 void
 vte_terminal_set_color_bold(VteTerminal *terminal,
-                            const GdkRGBA *bold)
+                            const GdkRGBA *bold) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(bold == nullptr || valid_color(bold));
@@ -3642,6 +4125,10 @@ vte_terminal_set_color_bold(VteTerminal *terminal,
                 impl->set_color_bold(vte::color::rgb(bold));
         else
                 impl->reset_color_bold();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3655,7 +4142,8 @@ vte_terminal_set_color_bold(VteTerminal *terminal,
  */
 void
 vte_terminal_set_color_cursor(VteTerminal *terminal,
-                              const GdkRGBA *cursor_background)
+                              const GdkRGBA *cursor_background) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(cursor_background == nullptr || valid_color(cursor_background));
@@ -3665,6 +4153,10 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
                 impl->set_color_cursor_background(vte::color::rgb(cursor_background));
         else
                 impl->reset_color_cursor_background();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3680,7 +4172,8 @@ vte_terminal_set_color_cursor(VteTerminal *terminal,
  */
 void
 vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
-                                         const GdkRGBA *cursor_foreground)
+                                         const GdkRGBA *cursor_foreground) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(cursor_foreground == nullptr || valid_color(cursor_foreground));
@@ -3690,6 +4183,10 @@ vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
                 impl->set_color_cursor_foreground(vte::color::rgb(cursor_foreground));
         else
                 impl->reset_color_cursor_foreground();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3701,13 +4198,18 @@ vte_terminal_set_color_cursor_foreground(VteTerminal *terminal,
  */
 void
 vte_terminal_set_color_foreground(VteTerminal *terminal,
-                                  const GdkRGBA *foreground)
+                                  const GdkRGBA *foreground) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(foreground != nullptr);
         g_return_if_fail(valid_color(foreground));
 
         IMPL(terminal)->set_color_foreground(vte::color::rgb(foreground));
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3722,7 +4224,8 @@ vte_terminal_set_color_foreground(VteTerminal *terminal,
  */
 void
 vte_terminal_set_color_highlight(VteTerminal *terminal,
-                                 const GdkRGBA *highlight_background)
+                                 const GdkRGBA *highlight_background) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(highlight_background == nullptr || valid_color(highlight_background));
@@ -3732,6 +4235,10 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
                 impl->set_color_highlight_background(vte::color::rgb(highlight_background));
         else
                 impl->reset_color_highlight_background();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3746,7 +4253,8 @@ vte_terminal_set_color_highlight(VteTerminal *terminal,
  */
 void
 vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
-                                            const GdkRGBA *highlight_foreground)
+                                            const GdkRGBA *highlight_foreground) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(highlight_foreground == nullptr || valid_color(highlight_foreground));
@@ -3756,6 +4264,10 @@ vte_terminal_set_color_highlight_foreground(VteTerminal *terminal,
                 impl->set_color_highlight_foreground(vte::color::rgb(highlight_foreground));
         else
                 impl->reset_color_highlight_foreground();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3781,7 +4293,8 @@ vte_terminal_set_colors(VteTerminal *terminal,
                         const GdkRGBA *foreground,
                         const GdkRGBA *background,
                         const GdkRGBA *palette,
-                        gsize palette_size)
+                        gsize palette_size) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	g_return_if_fail((palette_size == 0) ||
@@ -3815,6 +4328,10 @@ vte_terminal_set_colors(VteTerminal *terminal,
         impl->set_background_alpha(background ? background->alpha : 1.0);
         g_free(pal);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 /**
  * vte_terminal_set_default_colors:
@@ -3823,10 +4340,15 @@ vte_terminal_set_colors(VteTerminal *terminal,
  * Reset the terminal palette to reasonable compiled-in default color.
  */
 void
-vte_terminal_set_default_colors(VteTerminal *terminal)
+vte_terminal_set_default_colors(VteTerminal *terminal) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         IMPL(terminal)->set_colors_default();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3836,10 +4358,16 @@ vte_terminal_set_default_colors(VteTerminal *terminal)
  * Returns: the number of columns
  */
 glong
-vte_terminal_get_column_count(VteTerminal *terminal)
+vte_terminal_get_column_count(VteTerminal *terminal) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	return IMPL(terminal)->m_column_count;
+}
+catch (...)
+{
+        vte::log_exception();
+        return -1;
 }
 
 /**
@@ -3850,11 +4378,17 @@ vte_terminal_get_column_count(VteTerminal *terminal)
  *   process running in the terminal, or %NULL
  */
 const char *
-vte_terminal_get_current_directory_uri(VteTerminal *terminal)
+vte_terminal_get_current_directory_uri(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         auto impl = IMPL(terminal);
         return impl->m_current_directory_uri.size() ? impl->m_current_directory_uri.data() : nullptr;
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -3866,11 +4400,17 @@ vte_terminal_get_current_directory_uri(VteTerminal *terminal)
  *   not set
  */
 const char *
-vte_terminal_get_current_file_uri(VteTerminal *terminal)
+vte_terminal_get_current_file_uri(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         auto impl = IMPL(terminal);
         return impl->m_current_file_uri.size() ? impl->m_current_file_uri.data() : nullptr;
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -3882,11 +4422,17 @@ vte_terminal_get_current_file_uri(VteTerminal *terminal)
  * Return value: cursor blink mode.
  */
 VteCursorBlinkMode
-vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
+vte_terminal_get_cursor_blink_mode(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_BLINK_SYSTEM);
 
         return WIDGET(terminal)->cursor_blink_mode();
+}
+catch (...)
+{
+        vte::log_exception();
+        return VTE_CURSOR_BLINK_SYSTEM;
 }
 
 /**
@@ -3899,13 +4445,18 @@ vte_terminal_get_cursor_blink_mode(VteTerminal *terminal)
  */
 void
 vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
-                                   VteCursorBlinkMode mode)
+                                   VteCursorBlinkMode mode) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(mode >= VTE_CURSOR_BLINK_SYSTEM && mode <= VTE_CURSOR_BLINK_OFF);
 
         if (WIDGET(terminal)->set_cursor_blink_mode(mode))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_BLINK_MODE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3917,11 +4468,17 @@ vte_terminal_set_cursor_blink_mode(VteTerminal *terminal,
  * Return value: cursor shape.
  */
 VteCursorShape
-vte_terminal_get_cursor_shape(VteTerminal *terminal)
+vte_terminal_get_cursor_shape(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_CURSOR_SHAPE_BLOCK);
 
         return WIDGET(terminal)->cursor_shape();
+}
+catch (...)
+{
+        vte::log_exception();
+        return VTE_CURSOR_SHAPE_BLOCK;
 }
 
 /**
@@ -3932,13 +4489,19 @@ vte_terminal_get_cursor_shape(VteTerminal *terminal)
  * Sets the shape of the cursor drawn.
  */
 void
-vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
+vte_terminal_set_cursor_shape(VteTerminal *terminal,
+                              VteCursorShape shape) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(shape >= VTE_CURSOR_SHAPE_BLOCK && shape <= VTE_CURSOR_SHAPE_UNDERLINE);
 
         if (WIDGET(terminal)->set_cursor_shape(shape))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CURSOR_SHAPE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3952,13 +4515,18 @@ vte_terminal_set_cursor_shape(VteTerminal *terminal, VteCursorShape shape)
  */
 void
 vte_terminal_set_delete_binding(VteTerminal *terminal,
-                                VteEraseBinding binding)
+                                VteEraseBinding binding) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(binding >= VTE_ERASE_AUTO && binding <= VTE_ERASE_TTY);
 
         if (WIDGET(terminal)->set_delete_binding(binding))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_DELETE_BINDING]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -3972,10 +4540,16 @@ vte_terminal_set_delete_binding(VteTerminal *terminal,
  * Since: 0.58
  */
 gboolean
-vte_terminal_get_enable_bidi(VteTerminal *terminal)
+vte_terminal_get_enable_bidi(VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
         return IMPL(terminal)->m_enable_bidi;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -3989,12 +4563,17 @@ vte_terminal_get_enable_bidi(VteTerminal *terminal)
  */
 void
 vte_terminal_set_enable_bidi(VteTerminal *terminal,
-                             gboolean enable_bidi)
+                             gboolean enable_bidi) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_enable_bidi(enable_bidi != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_BIDI]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4008,10 +4587,16 @@ vte_terminal_set_enable_bidi(VteTerminal *terminal,
  * Since: 0.58
  */
 gboolean
-vte_terminal_get_enable_shaping(VteTerminal *terminal)
+vte_terminal_get_enable_shaping(VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
         return IMPL(terminal)->m_enable_shaping;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4025,12 +4610,17 @@ vte_terminal_get_enable_shaping(VteTerminal *terminal)
  */
 void
 vte_terminal_set_enable_shaping(VteTerminal *terminal,
-                                gboolean enable_shaping)
+                                gboolean enable_shaping) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_enable_shaping(enable_shaping != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_SHAPING]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4045,10 +4635,16 @@ vte_terminal_set_enable_shaping(VteTerminal *terminal,
  * Deprecated: 0.54: Support for non-UTF-8 is deprecated.
  */
 const char *
-vte_terminal_get_encoding(VteTerminal *terminal)
+vte_terminal_get_encoding(VteTerminal *terminal) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	return WIDGET(terminal)->encoding();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -4073,22 +4669,25 @@ vte_terminal_get_encoding(VteTerminal *terminal)
 gboolean
 vte_terminal_set_encoding(VteTerminal *terminal,
                           const char *codeset,
-                          GError **error)
+                          GError **error) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
         g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
-        GObject *object = G_OBJECT(terminal);
-        g_object_freeze_notify(object);
+        auto const freezer = vte::glib::FreezeObjectNotify{terminal};
 
         auto const rv = IMPL(terminal)->set_encoding(codeset, error);
         if (rv) {
-                g_signal_emit(object, signals[SIGNAL_ENCODING_CHANGED], 0);
-                g_object_notify_by_pspec(object, pspecs[PROP_ENCODING]);
+                g_signal_emit(freezer.get(), signals[SIGNAL_ENCODING_CHANGED], 0);
+                g_object_notify_by_pspec(freezer.get(), pspecs[PROP_ENCODING]);
         }
 
-        g_object_thaw_notify(object);
         return rv;
+}
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
 }
 
 /**
@@ -4104,11 +4703,17 @@ vte_terminal_set_encoding(VteTerminal *terminal,
  * terminal uses to render text at the default font scale of 1.0.
  */
 const PangoFontDescription *
-vte_terminal_get_font(VteTerminal *terminal)
+vte_terminal_get_font(VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
         return IMPL(terminal)->unscaled_font_description();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -4124,12 +4729,17 @@ vte_terminal_get_font(VteTerminal *terminal)
  */
 void
 vte_terminal_set_font(VteTerminal *terminal,
-                      const PangoFontDescription *font_desc)
+                      const PangoFontDescription* font_desc) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_font_desc(font_desc))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_DESC]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4139,11 +4749,17 @@ vte_terminal_set_font(VteTerminal *terminal,
  * Returns: the terminal's font scale
  */
 gdouble
-vte_terminal_get_font_scale(VteTerminal *terminal)
+vte_terminal_get_font_scale(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
 
         return IMPL(terminal)->m_font_scale;
+}
+catch (...)
+{
+        vte::log_exception();
+        return 1.;
 }
 
 /**
@@ -4155,13 +4771,18 @@ vte_terminal_get_font_scale(VteTerminal *terminal)
  */
 void
 vte_terminal_set_font_scale(VteTerminal *terminal,
-                            double scale)
+                            double scale) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         scale = CLAMP(scale, VTE_FONT_SCALE_MIN, VTE_FONT_SCALE_MAX);
         if (IMPL(terminal)->set_font_scale(scale))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_SCALE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4173,11 +4794,17 @@ vte_terminal_set_font_scale(VteTerminal *terminal,
  * Since: 0.52
  */
 double
-vte_terminal_get_cell_height_scale(VteTerminal *terminal)
+vte_terminal_get_cell_height_scale(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
 
         return IMPL(terminal)->m_cell_height_scale;
+}
+catch (...)
+{
+        vte::log_exception();
+        return 1.;
 }
 
 /**
@@ -4194,13 +4821,18 @@ vte_terminal_get_cell_height_scale(VteTerminal *terminal)
  */
 void
 vte_terminal_set_cell_height_scale(VteTerminal *terminal,
-                                   double scale)
+                                   double scale) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         scale = CLAMP(scale, VTE_CELL_SCALE_MIN, VTE_CELL_SCALE_MAX);
         if (IMPL(terminal)->set_cell_height_scale(scale))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CELL_HEIGHT_SCALE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4212,11 +4844,17 @@ vte_terminal_set_cell_height_scale(VteTerminal *terminal,
  * Since: 0.52
  */
 double
-vte_terminal_get_cell_width_scale(VteTerminal *terminal)
+vte_terminal_get_cell_width_scale(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 1.);
 
         return IMPL(terminal)->m_cell_width_scale;
+}
+catch (...)
+{
+        vte::log_exception();
+        return 1.;
 }
 
 /**
@@ -4233,13 +4871,18 @@ vte_terminal_get_cell_width_scale(VteTerminal *terminal)
  */
 void
 vte_terminal_set_cell_width_scale(VteTerminal *terminal,
-                                  double scale)
+                                  double scale) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         scale = CLAMP(scale, VTE_CELL_SCALE_MIN, VTE_CELL_SCALE_MAX);
         if (IMPL(terminal)->set_cell_width_scale(scale))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_CELL_WIDTH_SCALE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /* Just some arbitrary minimum values */
@@ -4267,7 +4910,7 @@ void
 vte_terminal_get_geometry_hints(VteTerminal *terminal,
                                 GdkGeometry *hints,
                                 int min_rows,
-                                int min_columns)
+                                int min_columns) noexcept
 {
         GtkWidget *widget;
         GtkBorder padding;
@@ -4316,7 +4959,7 @@ vte_terminal_get_geometry_hints(VteTerminal *terminal,
  */
 void
 vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
-                                           GtkWindow *window)
+                                           GtkWindow *window) noexcept
 {
         GdkGeometry hints;
 
@@ -4343,10 +4986,16 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
  * Returns: %TRUE if part of the text in the terminal is selected.
  */
 gboolean
-vte_terminal_get_has_selection(VteTerminal *terminal)
+vte_terminal_get_has_selection(VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
         return !IMPL(terminal)->m_selection_resolved.empty();
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4358,7 +5007,7 @@ vte_terminal_get_has_selection(VteTerminal *terminal)
  * Deprecated: 0.54:
  */
 const char *
-vte_terminal_get_icon_title(VteTerminal *terminal)
+vte_terminal_get_icon_title(VteTerminal *terminal) noexcept
 {
 	return nullptr;
 }
@@ -4370,11 +5019,17 @@ vte_terminal_get_icon_title(VteTerminal *terminal)
  * Returns whether the terminal allow user input.
  */
 gboolean
-vte_terminal_get_input_enabled (VteTerminal *terminal)
+vte_terminal_get_input_enabled (VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 
         return IMPL(terminal)->m_input_enabled;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4388,12 +5043,17 @@ vte_terminal_get_input_enabled (VteTerminal *terminal)
  */
 void
 vte_terminal_set_input_enabled (VteTerminal *terminal,
-                                gboolean enabled)
+                                gboolean enabled) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_input_enabled(enabled != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_INPUT_ENABLED]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4408,10 +5068,16 @@ vte_terminal_set_input_enabled (VteTerminal *terminal,
  * Returns: %TRUE if autohiding is enabled, %FALSE if not
  */
 gboolean
-vte_terminal_get_mouse_autohide(VteTerminal *terminal)
+vte_terminal_get_mouse_autohide(VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->m_mouse_autohide;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4425,12 +5091,18 @@ vte_terminal_get_mouse_autohide(VteTerminal *terminal)
  * vte_terminal_get_mouse_autohide().
  */
 void
-vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
+vte_terminal_set_mouse_autohide(VteTerminal *terminal,
+                                gboolean setting) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_mouse_autohide(setting != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_MOUSE_POINTER_AUTOHIDE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4443,18 +5115,20 @@ vte_terminal_set_mouse_autohide(VteTerminal *terminal, gboolean setting)
  */
 void
 vte_terminal_set_pty(VteTerminal *terminal,
-                     VtePty *pty)
+                     VtePty *pty) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(pty == NULL || VTE_IS_PTY(pty));
 
-        GObject *object = G_OBJECT(terminal);
-        g_object_freeze_notify(object);
+        auto const freezer = vte::glib::FreezeObjectNotify{terminal};
 
         if (WIDGET(terminal)->set_pty(pty))
-                g_object_notify_by_pspec(object, pspecs[PROP_PTY]);
-
-        g_object_thaw_notify(object);
+                g_object_notify_by_pspec(freezer.get(), pspecs[PROP_PTY]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4466,11 +5140,16 @@ vte_terminal_set_pty(VteTerminal *terminal,
  * Returns: (transfer none): a #VtePty, or %NULL
  */
 VtePty *
-vte_terminal_get_pty(VteTerminal *terminal)
+vte_terminal_get_pty(VteTerminal *terminal) noexcept
+try
 {
-        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), NULL);
-
+        g_return_val_if_fail (VTE_IS_TERMINAL (terminal), nullptr);
         return WIDGET(terminal)->pty();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -4484,10 +5163,16 @@ vte_terminal_get_pty(VteTerminal *terminal)
  * Deprecated: 0.58
  */
 gboolean
-vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
+vte_terminal_get_rewrap_on_resize(VteTerminal *terminal) noexcept
+try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
 	return IMPL(terminal)->m_rewrap_on_resize;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4502,12 +5187,17 @@ vte_terminal_get_rewrap_on_resize(VteTerminal *terminal)
  */
 void
 vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
-                                  gboolean rewrap)
+                                  gboolean rewrap) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_rewrap_on_resize(rewrap != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_REWRAP_ON_RESIZE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4518,10 +5208,16 @@ vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
  * Returns: the number of rows
  */
 glong
-vte_terminal_get_row_count(VteTerminal *terminal)
+vte_terminal_get_row_count(VteTerminal *terminal) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), -1);
 	return IMPL(terminal)->m_row_count;
+}
+catch (...)
+{
+        vte::log_exception();
+        return -1;
 }
 
 /**
@@ -4540,18 +5236,21 @@ vte_terminal_get_row_count(VteTerminal *terminal)
  * No scrollback is allowed on the alternate screen buffer.
  */
 void
-vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
+vte_terminal_set_scrollback_lines(VteTerminal *terminal,
+                                  glong lines) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(lines >= -1);
 
-        GObject *object = G_OBJECT(terminal);
-        g_object_freeze_notify(object);
+        auto const freezer = vte::glib::FreezeObjectNotify{terminal};
 
         if (IMPL(terminal)->set_scrollback_lines(lines))
-                g_object_notify_by_pspec(object, pspecs[PROP_SCROLLBACK_LINES]);
-
-        g_object_thaw_notify(object);
+                g_object_notify_by_pspec(freezer.get(), pspecs[PROP_SCROLLBACK_LINES]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4564,10 +5263,16 @@ vte_terminal_set_scrollback_lines(VteTerminal *terminal, glong lines)
  * Since: 0.52
  */
 glong
-vte_terminal_get_scrollback_lines(VteTerminal *terminal)
+vte_terminal_get_scrollback_lines(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 0);
         return IMPL(terminal)->m_scrollback_lines;
+}
+catch (...)
+{
+        vte::log_exception();
+        return 0;
 }
 
 /**
@@ -4581,12 +5286,17 @@ vte_terminal_get_scrollback_lines(VteTerminal *terminal)
  */
 void
 vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
-                                     gboolean scroll)
+                                     gboolean scroll) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_scroll_on_keystroke(scroll != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_KEYSTROKE]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4600,10 +5310,16 @@ vte_terminal_set_scroll_on_keystroke(VteTerminal *terminal,
  * Since: 0.52
  */
 gboolean
-vte_terminal_get_scroll_on_keystroke(VteTerminal *terminal)
+vte_terminal_get_scroll_on_keystroke(VteTerminal *terminal) noexcept
+try
 {
-    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
     return IMPL(terminal)->m_scroll_on_keystroke;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4616,12 +5332,17 @@ vte_terminal_get_scroll_on_keystroke(VteTerminal *terminal)
  */
 void
 vte_terminal_set_scroll_on_output(VteTerminal *terminal,
-                                  gboolean scroll)
+                                  gboolean scroll) noexcept
+try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (IMPL(terminal)->set_scroll_on_output(scroll != FALSE))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_ON_OUTPUT]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4634,10 +5355,16 @@ vte_terminal_set_scroll_on_output(VteTerminal *terminal,
  * Since: 0.52
  */
 gboolean
-vte_terminal_get_scroll_on_output(VteTerminal *terminal)
+vte_terminal_get_scroll_on_output(VteTerminal *terminal) noexcept
+try
 {
-    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
     return IMPL(terminal)->m_scroll_on_output;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
@@ -4647,10 +5374,16 @@ vte_terminal_get_scroll_on_output(VteTerminal *terminal)
  * Returns: (nullable) (transfer none): the window title, or %NULL
  */
 const char *
-vte_terminal_get_window_title(VteTerminal *terminal)
+vte_terminal_get_window_title(VteTerminal *terminal) noexcept
+try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 	return IMPL(terminal)->m_window_title.data();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -4668,11 +5401,17 @@ vte_terminal_get_window_title(VteTerminal *terminal)
  * Since: 0.40
  */
 const char *
-vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
+vte_terminal_get_word_char_exceptions(VteTerminal *terminal) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 
         return WIDGET(terminal)->word_char_exceptions();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
 }
 
 /**
@@ -4695,13 +5434,18 @@ vte_terminal_get_word_char_exceptions(VteTerminal *terminal)
  */
 void
 vte_terminal_set_word_char_exceptions(VteTerminal *terminal,
-                                      const char *exceptions)
+                                      const char *exceptions) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         auto stropt = exceptions ? std::make_optional<std::string_view>(exceptions) : std::nullopt;
         if (WIDGET(terminal)->set_word_char_exceptions(stropt))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_WORD_CHAR_EXCEPTIONS]);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4730,12 +5474,17 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
                                   GOutputStream *stream,
                                   VteWriteFlags flags,
                                   GCancellable *cancellable,
-                                  GError **error)
+                                  GError **error) noexcept
+try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-        g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), FALSE);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+        g_return_val_if_fail(G_IS_OUTPUT_STREAM(stream), false);
 
         return IMPL(terminal)->write_contents_sync(stream, flags, cancellable, error);
+}
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
 }
 
 /**
@@ -4753,11 +5502,16 @@ vte_terminal_write_contents_sync (VteTerminal *terminal,
  */
 void
 vte_terminal_set_clear_background(VteTerminal* terminal,
-                                  gboolean setting)
+                                  gboolean setting) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         IMPL(terminal)->set_clear_background(setting != FALSE);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -4780,7 +5534,8 @@ vte_terminal_set_clear_background(VteTerminal* terminal,
  */
 void
 vte_terminal_get_color_background_for_draw(VteTerminal* terminal,
-                                           GdkRGBA* color)
+                                           GdkRGBA* color) noexcept
+try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(color != nullptr);
@@ -4792,3 +5547,102 @@ vte_terminal_get_color_background_for_draw(VteTerminal* terminal,
         color->blue = c->blue / 65535.;
         color->alpha = impl->m_background_alpha;
 }
+catch (...)
+{
+        vte::log_exception();
+        *color = {0., 0., 0., 1.};
+}
+
+namespace vte {
+
+using namespace std::literals;
+
+static void
+exception_append_to_string(std::exception const& e,
+                           std::string& what,
+                           int level = 0)
+{
+        if (level > 0)
+                what += ": "sv;
+        what += e.what();
+
+        try {
+                std::rethrow_if_nested(e);
+        } catch (std::exception const& en) {
+                exception_append_to_string(en, what, level + 1);
+        } catch (...) {
+                what += ": Unknown nested exception"sv;
+        }
+}
+
+#ifdef VTE_DEBUG
+void log_exception(char const* func,
+                   char const* filename,
+                   int const line) noexcept
+try
+{
+        auto what = std::string{};
+
+        try {
+                throw; // rethrow current exception
+        } catch (std::exception const& e) {
+                exception_append_to_string(e, what);
+        } catch (...) {
+                what = "Unknown exception"sv;
+        }
+
+        _vte_debug_print(VTE_DEBUG_EXCEPTIONS,
+                         "Caught exception in %s [%s:%d]: %s\n",
+                         func, filename, line, what.c_str());
+}
+catch (...)
+{
+        _vte_debug_print(VTE_DEBUG_EXCEPTIONS,
+                         "Caught exception while logging an exception in %s [%s:%d]\n",
+                         func, filename, line);
+}
+#endif /* VTE_DEBUG */
+
+namespace glib {
+
+bool set_error_from_exception(GError** error
+#ifdef VTE_DEBUG
+                              , char const* func
+                              , char const* filename
+                              , int const line
+#endif
+                              ) noexcept
+try
+{
+        auto what = std::string{};
+
+        try {
+                throw; // rethrow current exception
+        } catch (std::exception const& e) {
+                exception_append_to_string(e, what);
+        } catch (...) {
+                what = "Unknown exception"sv;
+        }
+
+        auto msg = vte::glib::take_string(g_strdup_printf("Caught exception in %s [%s:%d]: %s",
+                                                          func, filename, line, what.c_str()));
+        auto msg_str = vte::glib::take_string(g_utf8_make_valid(msg.get(), -1));
+        g_set_error_literal(error,
+                            G_IO_ERROR,
+                            G_IO_ERROR_FAILED,
+                            msg_str.get());
+        _vte_debug_print(VTE_DEBUG_EXCEPTIONS, "%s", msg_str.get());
+
+        return false;
+}
+catch (...)
+{
+        vte::log_exception();
+        g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                    "Caught exception while logging an exception in %s [%s:%d]\n",
+                    func, filename, line);
+        return false;
+}
+
+} // namespace glib
+} // namespace vte

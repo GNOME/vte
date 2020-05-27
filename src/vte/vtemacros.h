@@ -41,4 +41,13 @@
 
 #define _VTE_PUBLIC __attribute__((__visibility__("default"))) extern
 
+#if defined(VTE_COMPILATION) && defined(__cplusplus)
+#if __cplusplus >= 201103L
+#define _VTE_CXX_NOEXCEPT noexcept
+#endif
+#endif
+#ifndef _VTE_CXX_NOEXCEPT
+#define _VTE_CXX_NOEXCEPT
+#endif
+
 #endif /* __VTE_VTE_MACROS_H__ */

@@ -58,7 +58,7 @@ private_headers = [
 
 scan_args = [
   '--deprecated-guards="VTE_DISABLE_DEPRECATED"',
-  '--ignore-decorators=_VTE_GNUC_NONNULL\s*\([^)]*\)',
+  '--ignore-decorators=_VTE_GNUC_NONNULL\s*\([^)]*\)|_VTE_CXX_NOEXCEPT',
 ]
 
 glib_prefix = glib_dep.get_pkgconfig_variable('prefix')

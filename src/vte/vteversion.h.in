@@ -76,13 +76,13 @@ G_BEGIN_DECLS
    (VTE_MAJOR_VERSION == (major) && VTE_MINOR_VERSION == (minor) && VTE_MICRO_VERSION >= (micro)))
 
 _VTE_PUBLIC
-guint vte_get_major_version (void) G_GNUC_CONST;
+guint vte_get_major_version (void) _VTE_CXX_NOEXCEPT G_GNUC_CONST;
 
 _VTE_PUBLIC
-guint vte_get_minor_version (void) G_GNUC_CONST;
+guint vte_get_minor_version (void) _VTE_CXX_NOEXCEPT G_GNUC_CONST;
 
 _VTE_PUBLIC
-guint vte_get_micro_version (void) G_GNUC_CONST;
+guint vte_get_micro_version (void) _VTE_CXX_NOEXCEPT G_GNUC_CONST;
 
 G_END_DECLS
 

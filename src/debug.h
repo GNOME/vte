@@ -67,6 +67,7 @@ typedef enum {
         VTE_DEBUG_RINGVIEW      = 1 << 27,
         VTE_DEBUG_BIDI          = 1 << 28,
         VTE_DEBUG_CONVERSION    = 1 << 29,
+        VTE_DEBUG_EXCEPTIONS    = 1 << 30,
 } VteDebugFlags;
 
 void _vte_debug_init(void);

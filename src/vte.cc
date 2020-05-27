@@ -64,6 +64,8 @@
 #include "marshal.h"
 #include "vtepty.h"
 #include "vtegtk.hh"
+#include "cxx-utils.hh"
+#include "gobject-glue.hh"
 
 #ifdef WITH_A11Y
 #include "vteaccess.h"
@@ -96,8 +98,8 @@ static void add_process_timeout(vte::terminal::Terminal* that);
 static void add_update_timeout(vte::terminal::Terminal* that);
 static void remove_update_timeout(vte::terminal::Terminal* that);
 
-static gboolean process_timeout (gpointer data);
-static gboolean update_timeout (gpointer data);
+static gboolean process_timeout (gpointer data) noexcept;
+static gboolean update_timeout (gpointer data) noexcept;
 static cairo_region_t *vte_cairo_get_clip_region (cairo_t *cr);
 
 /* these static variables are guarded by the GDK mutex */
@@ -688,7 +690,7 @@ Terminal::invalidate_cursor_once(bool periodic)
 /* Invalidate the cursor repeatedly. */
 // FIXMEchpe this continually adds and removes the blink timeout. Find a better solution
 bool
-Terminal::cursor_blink_timer_callback() noexcept
+Terminal::cursor_blink_timer_callback()
 {
 	m_cursor_blink_state = !m_cursor_blink_state;
 	m_cursor_blink_time += m_cursor_blink_cycle;
@@ -834,7 +836,7 @@ Terminal::queue_child_exited()
 }
 
 bool
-Terminal::child_exited_eos_wait_callback() noexcept
+Terminal::child_exited_eos_wait_callback()
 {
         /* If we get this callback, there has been some time elapsed
          * after child-exited, but no EOS yet. This happens for example
@@ -1813,7 +1815,7 @@ Terminal::emit_adjustment_changed()
 
                 auto vadjustment = m_vadjustment.get();
 
-                g_object_freeze_notify(G_OBJECT(vadjustment));
+                auto const freezer = vte::glib::FreezeObjectNotify{vadjustment};
 
 		v = _vte_ring_delta (m_screen->row_data);
                 current = gtk_adjustment_get_lower(vadjustment);
@@ -1868,8 +1870,6 @@ Terminal::emit_adjustment_changed()
 							  m_row_count);
 			changed = true;
 		}
-
-                g_object_thaw_notify(G_OBJECT(vadjustment));
 
 		if (changed)
 			_vte_debug_print(VTE_DEBUG_SIGNALS,
@@ -3086,10 +3086,15 @@ static void
 reaper_child_exited_cb(VteReaper *reaper,
                        int ipid,
                        int status,
-                       vte::terminal::Terminal* that)
+                       vte::terminal::Terminal* that) noexcept
+try
 {
         that->child_watch_done(pid_t{ipid}, status);
         // @that might be destroyed at this point
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 void
@@ -3276,8 +3281,7 @@ Terminal::watch_child (pid_t child_pid)
         if (!pty())
                 return;
 
-        GObject *object = G_OBJECT(m_terminal);
-        g_object_freeze_notify(object);
+        auto const freezer = vte::glib::FreezeObjectNotify{m_terminal};
 
         /* Set this as the child's pid. */
         m_pty_pid = child_pid;
@@ -3301,8 +3305,6 @@ Terminal::watch_child (pid_t child_pid)
         }
 
         /* FIXMEchpe: call set_size() here? */
-
-        g_object_thaw_notify(object);
 }
 
 /* Reset the input method context. */
@@ -6725,7 +6727,7 @@ Terminal::select_all()
 }
 
 bool
-Terminal::mouse_autoscroll_timer_callback() noexcept
+Terminal::mouse_autoscroll_timer_callback()
 {
 	bool extend = false;
 	long x, y, xmax, ymax;
@@ -7595,9 +7597,14 @@ Terminal::set_size(long columns,
 
 /* Redraw the widget. */
 static void
-vte_terminal_vadjustment_value_changed_cb(vte::terminal::Terminal* that)
+vte_terminal_vadjustment_value_changed_cb(vte::terminal::Terminal* that) noexcept
+try
 {
         that->vadjustment_value_changed();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 void
@@ -8142,7 +8149,7 @@ Terminal::determine_cursor_colors(VteCell const* cell,
 
 // FIXMEchpe this constantly removes and reschedules the timer. improve this!
 bool
-Terminal::text_blink_timer_callback() noexcept
+Terminal::text_blink_timer_callback()
 {
         invalidate_all();
         return false; /* don't run again */
@@ -9824,8 +9831,7 @@ Terminal::reset(bool clear_tabstops,
         if (from_api && !m_input_enabled)
                 return;
 
-        GObject *object = G_OBJECT(m_terminal);
-        g_object_freeze_notify(object);
+        auto const freezer = vte::glib::FreezeObjectNotify{m_terminal};
 
         m_bell_pending = false;
 
@@ -9918,8 +9924,6 @@ Terminal::reset(bool clear_tabstops,
 
         /* Reset XTerm window controls */
         m_xterm_wm_iconified = false;
-
-        g_object_thaw_notify(object);
 }
 
 void
@@ -10134,8 +10138,7 @@ Terminal::start_processing()
 void
 Terminal::emit_pending_signals()
 {
-	GObject *object = G_OBJECT(m_terminal);
-        g_object_freeze_notify(object);
+        auto const freezer = vte::glib::FreezeObjectNotify{m_terminal};
 
 	emit_adjustment_changed();
 
@@ -10145,8 +10148,8 @@ Terminal::emit_pending_signals()
 
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `window-title-changed'.\n");
-                        g_signal_emit(object, signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
-                        g_object_notify_by_pspec(object, pspecs[PROP_WINDOW_TITLE]);
+                        g_signal_emit(freezer.get(), signals[SIGNAL_WINDOW_TITLE_CHANGED], 0);
+                        g_object_notify_by_pspec(freezer.get(), pspecs[PROP_WINDOW_TITLE]);
                 }
 
                 m_window_title_pending.clear();
@@ -10159,8 +10162,8 @@ Terminal::emit_pending_signals()
 
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `current-directory-uri-changed'.\n");
-                        g_signal_emit(object, signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
-                        g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_DIRECTORY_URI]);
+                        g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_DIRECTORY_URI_CHANGED], 0);
+                        g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_DIRECTORY_URI]);
                 }
 
                 m_current_directory_uri_pending.clear();
@@ -10173,8 +10176,8 @@ Terminal::emit_pending_signals()
 
                         _vte_debug_print(VTE_DEBUG_SIGNALS,
                                          "Emitting `current-file-uri-changed'.\n");
-                        g_signal_emit(object, signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
-                        g_object_notify_by_pspec(object, pspecs[PROP_CURRENT_FILE_URI]);
+                        g_signal_emit(freezer.get(), signals[SIGNAL_CURRENT_FILE_URI_CHANGED], 0);
+                        g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_FILE_URI]);
                 }
 
                 m_current_file_uri_pending.clear();
@@ -10186,7 +10189,7 @@ Terminal::emit_pending_signals()
         if (m_cursor_moved_pending) {
                 _vte_debug_print(VTE_DEBUG_SIGNALS,
                                  "Emitting `cursor-moved'.\n");
-                g_signal_emit(object, signals[SIGNAL_CURSOR_MOVED], 0);
+                g_signal_emit(freezer.get(), signals[SIGNAL_CURSOR_MOVED], 0);
                 m_cursor_moved_pending = false;
         }
         if (m_text_modified_flag) {
@@ -10231,8 +10234,6 @@ Terminal::emit_pending_signals()
 
                 m_bell_pending = false;
         }
-
-        g_object_thaw_notify(object);
 
         auto const eos = m_eos_pending;
         if (m_eos_pending) {
@@ -10292,7 +10293,8 @@ Terminal::process(bool emit_adj_changed)
  * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
  */
 static gboolean
-process_timeout (gpointer data)
+process_timeout (gpointer data) noexcept
+try
 {
 	GList *l, *next;
 	gboolean again;
@@ -10346,6 +10348,11 @@ process_timeout (gpointer data)
 	}
 
 	return again;
+}
+catch (...)
+{
+        vte::log_exception();
+        return true; // false?
 }
 
 bool
@@ -10445,7 +10452,8 @@ update_repeat_timeout (gpointer data)
 }
 
 static gboolean
-update_timeout (gpointer data)
+update_timeout (gpointer data) noexcept
+try
 {
 	GList *l, *next;
 
@@ -10484,6 +10492,11 @@ update_timeout (gpointer data)
 	in_update_timeout = FALSE;
 
 	return FALSE;
+}
+catch (...)
+{
+        vte::log_exception();
+        return true; // false?
 }
 
 bool

@@ -33,6 +33,6 @@ bool _vte_pty_spawn_sync(VtePty* pty,
                          GPid* child_pid /* out */,
                          int timeout,
                          GCancellable* cancellable,
-                         GError** error);
+                         GError** error) noexcept;
 
-bool _vte_pty_check_envv(char const* const* envv);
+bool _vte_pty_check_envv(char const* const* envv) noexcept;

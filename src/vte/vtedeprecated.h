@@ -25,6 +25,7 @@
 
 #include "vteterminal.h"
 #include "vtepty.h"
+#include "vtemacros.h"
 
 #ifndef VTE_DISABLE_DEPRECATION_WARNINGS
 #define _VTE_DEPRECATED G_DEPRECATED
@@ -38,25 +39,25 @@ _VTE_DEPRECATED
 _VTE_PUBLIC
 int vte_terminal_match_add_gregex(VteTerminal *terminal,
                                   GRegex *gregex,
-                                  GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                  GRegexMatchFlags gflags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_match_set_cursor(VteTerminal *terminal,
                                    int tag,
-                                   GdkCursor *cursor) _VTE_GNUC_NONNULL(1);
+                                   GdkCursor *cursor) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_match_set_cursor_type(VteTerminal *terminal,
 					int tag,
-                                        GdkCursorType cursor_type) _VTE_GNUC_NONNULL(1);
+                                        GdkCursorType cursor_type) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 char *vte_terminal_match_check(VteTerminal *terminal,
 			       glong column, glong row,
-			       int *tag) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+			       int *tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
@@ -65,17 +66,17 @@ gboolean vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
                                                 GRegex **regexes,
                                                 gsize n_regexes,
                                                 GRegexMatchFlags match_flags,
-                                                char **matches) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                                char **matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void      vte_terminal_search_set_gregex      (VteTerminal *terminal,
 					       GRegex      *gregex,
-                                               GRegexMatchFlags gflags) _VTE_GNUC_NONNULL(1);
+                                               GRegexMatchFlags gflags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+GRegex   *vte_terminal_search_get_gregex      (VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
@@ -89,78 +90,78 @@ gboolean vte_terminal_spawn_sync(VteTerminal *terminal,
                                  gpointer child_setup_data,
                                  GPid *child_pid /* out */,
                                  GCancellable *cancellable,
-                                 GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
+                                 GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-void vte_pty_close (VtePty *pty) _VTE_GNUC_NONNULL(1);
+void vte_pty_close (VtePty *pty) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-void vte_terminal_copy_clipboard(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+void vte_terminal_copy_clipboard(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_get_geometry_hints(VteTerminal *terminal,
                                      GdkGeometry *hints,
                                      int min_rows,
-                                     int min_columns) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                     int min_columns) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
-                                                GtkWindow *window) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                                GtkWindow *window) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-const char *vte_terminal_get_icon_title(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+const char *vte_terminal_get_icon_title(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 gboolean vte_terminal_set_encoding(VteTerminal *terminal,
                                    const char *codeset,
-                                   GError **error) _VTE_GNUC_NONNULL(1);
+                                   GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+const char *vte_terminal_get_encoding(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 char *vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
 						    VteSelectionFunc is_selected,
 						    gpointer user_data,
-						    GArray *attributes) _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+						    GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_set_rewrap_on_resize(VteTerminal *terminal,
-                                       gboolean rewrap) _VTE_GNUC_NONNULL(1);
+                                       gboolean rewrap) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_DEPRECATED
 _VTE_PUBLIC
-gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+gboolean vte_terminal_get_rewrap_on_resize(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_set_allow_bold(VteTerminal *terminal,
-                                 gboolean allow_bold) _VTE_GNUC_NONNULL(1);
+                                 gboolean allow_bold) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_DEPRECATED
 _VTE_PUBLIC
-gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+gboolean vte_terminal_get_allow_bold(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
 void vte_terminal_feed_child_binary(VteTerminal *terminal,
                                     const guint8 *data,
-                                    gsize length) _VTE_GNUC_NONNULL(1);
+                                    gsize length) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-char **vte_get_encodings(gboolean include_aliases);
+char **vte_get_encodings(gboolean include_aliases) _VTE_CXX_NOEXCEPT;
 
 _VTE_DEPRECATED
 _VTE_PUBLIC
-gboolean vte_get_encoding_supported(const char *encoding);
+gboolean vte_get_encoding_supported(const char *encoding) _VTE_CXX_NOEXCEPT;
 
 G_END_DECLS
 

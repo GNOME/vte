@@ -24,6 +24,8 @@
 
 #include "config.h"
 
+#include <exception>
+
 #include "vtemacros.h"
 #include "vteenums.h"
 #include "vteregex.h"
@@ -31,6 +33,8 @@
 
 #include "regex.hh"
 #include "vteregexinternal.hh"
+#include "glib-glue.hh"
+#include "cxx-utils.hh"
 
 #define IMPL(wrapper) (regex_from_wrapper(wrapper))
 
@@ -55,7 +59,7 @@ G_DEFINE_QUARK(vte-regex-error, vte_regex_error)
  * Returns: @regex
  */
 VteRegex *
-vte_regex_ref(VteRegex *regex)
+vte_regex_ref(VteRegex *regex) noexcept
 {
         g_return_val_if_fail(regex != nullptr, nullptr);
 
@@ -72,7 +76,7 @@ vte_regex_ref(VteRegex *regex)
  * Returns: %NULL
  */
 VteRegex *
-vte_regex_unref(VteRegex* regex)
+vte_regex_unref(VteRegex* regex) noexcept
 {
         g_return_val_if_fail(regex != nullptr, nullptr);
 
@@ -84,9 +88,15 @@ static VteRegex*
 vte_regex_new(vte::base::Regex::Purpose purpose,
               std::string_view const& pattern,
               uint32_t flags,
-              GError** error)
+              GError** error) noexcept
+try
 {
         return wrapper_from_regex(vte::base::Regex::compile(purpose, pattern, flags, error));
+}
+catch (...)
+{
+        vte::glib::set_error_from_exception(error);
+        return nullptr;
 }
 
 /**
@@ -113,13 +123,19 @@ VteRegex *
 vte_regex_new_for_match(const char *pattern,
                         gssize      pattern_length,
                         guint32     flags,
-                        GError    **error)
+                        GError    **error) noexcept
+try
 {
         auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
         return vte_regex_new(vte::base::Regex::Purpose::eMatch,
                              {pattern, len},
                              flags,
                              error);
+}
+catch (...)
+{
+        vte::glib::set_error_from_exception(error);
+        return nullptr;
 }
 
 /**
@@ -145,13 +161,19 @@ VteRegex *
 vte_regex_new_for_search(const char *pattern,
                          gssize      pattern_length,
                          guint32     flags,
-                         GError    **error)
+                         GError    **error) noexcept
+try
 {
         auto const len = size_t{pattern_length == -1 ? strlen(pattern) : size_t(pattern_length)};
         return vte_regex_new(vte::base::Regex::Purpose::eSearch,
                              {pattern, len},
                              flags,
                              error);
+}
+catch (...)
+{
+        vte::glib::set_error_from_exception(error);
+        return nullptr;
 }
 
 /**
@@ -166,11 +188,16 @@ vte_regex_new_for_search(const char *pattern,
 gboolean
 vte_regex_jit(VteRegex *regex,
               guint     flags,
-              GError  **error)
+              GError  **error) noexcept
+try
 {
         g_return_val_if_fail(regex != nullptr, false);
 
         return IMPL(regex)->jit(flags, error);
+}
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
 }
 
 bool
@@ -210,7 +237,8 @@ vte_regex_substitute(VteRegex *regex,
                      const char *subject,
                      const char *replacement,
                      guint32 flags,
-                     GError **error)
+                     GError **error) noexcept
+try
 {
         g_return_val_if_fail(regex != nullptr, nullptr);
         g_return_val_if_fail(subject != nullptr, nullptr);
@@ -219,4 +247,9 @@ vte_regex_substitute(VteRegex *regex,
 
         auto const r = IMPL(regex)->substitute(subject, replacement, flags, error);
         return r ? g_strndup(r->c_str(), r->size()) : nullptr;
+}
+catch (...)
+{
+        vte::glib::set_error_from_exception(error);
+        return nullptr;
 }

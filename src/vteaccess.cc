@@ -283,9 +283,12 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		priv->snapshot_linebreaks = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
-		priv->snapshot_text = impl->get_text_displayed_a11y(true /* wrap */,
-                                                                             priv->snapshot_attributes);
-
+                try {
+                        priv->snapshot_text = impl->get_text_displayed_a11y(true /* wrap */,
+                                                                            priv->snapshot_attributes);
+                } catch (...) {
+                        priv->snapshot_text = g_string_new("");
+                }
 		/* Get the offsets to the beginnings of each character. */
 		i = 0;
 		next = priv->snapshot_text->str;
@@ -712,7 +715,10 @@ vte_terminal_accessible_initialize (AtkObject *obj, gpointer data)
 	ATK_OBJECT_CLASS (_vte_terminal_accessible_parent_class)->initialize (obj, data);
 
         auto impl = IMPL(terminal);
-        impl->subscribe_accessible_events();
+        try {
+                impl->subscribe_accessible_events();
+        } catch (...) {
+        }
 
 	g_signal_connect(terminal, "text-inserted",
 			 G_CALLBACK(vte_terminal_accessible_text_modified),
@@ -1419,15 +1425,18 @@ vte_terminal_accessible_get_selection(AtkText *text, gint selection_number,
 		return NULL;
 	}
 
-        auto impl = IMPL_FROM_WIDGET(widget);
+        try {
+                auto impl = IMPL_FROM_WIDGET(widget);
+                if (impl->m_selection_resolved.empty() || impl->m_selection[VTE_SELECTION_PRIMARY] == nullptr)
+                        return nullptr;
 
-        if (impl->m_selection_resolved.empty() || impl->m_selection[VTE_SELECTION_PRIMARY] == nullptr)
-		return NULL;
+                *start_offset = offset_from_xy (priv, impl->m_selection_resolved.start_column(), impl->m_selection_resolved.start_row());
+                *end_offset = offset_from_xy (priv, impl->m_selection_resolved.end_column(), impl->m_selection_resolved.end_row());
 
-        *start_offset = offset_from_xy (priv, impl->m_selection_resolved.start_column(), impl->m_selection_resolved.start_row());
-        *end_offset = offset_from_xy (priv, impl->m_selection_resolved.end_column(), impl->m_selection_resolved.end_row());
-
-	return g_strdup(impl->m_selection[VTE_SELECTION_PRIMARY]->str);
+                return g_strdup(impl->m_selection[VTE_SELECTION_PRIMARY]->str);
+        } catch (...) {
+                return nullptr;
+        }
 }
 
 static gboolean
@@ -1472,7 +1481,10 @@ vte_terminal_accessible_remove_selection(AtkText *text,
 	terminal = VTE_TERMINAL (widget);
         auto impl = IMPL_FROM_WIDGET(widget);
 	if (selection_number == 0 && vte_terminal_get_has_selection (terminal)) {
-		impl->deselect_all();
+                try {
+                        impl->deselect_all();
+                } catch (...) {
+                }
 		return TRUE;
 	} else {
 		return FALSE;
@@ -1501,7 +1513,10 @@ vte_terminal_accessible_set_selection(AtkText *text, gint selection_number,
 		return FALSE;
 	}
 	if (vte_terminal_get_has_selection (terminal)) {
-		impl->deselect_all();
+                try {
+                        impl->deselect_all();
+                } catch (...) {
+                }
 	}
 
 	return vte_terminal_accessible_add_selection (text, start_offset, end_offset);
@@ -1576,17 +1591,21 @@ vte_terminal_accessible_set_size(AtkComponent *component,
 
         /* If the size is an exact multiple of the cell size, use that,
          * otherwise round down. */
-        width -= impl->m_padding.left + impl->m_padding.right;
-        height -= impl->m_padding.top + impl->m_padding.bottom;
+        try {
+                width -= impl->m_padding.left + impl->m_padding.right;
+                height -= impl->m_padding.top + impl->m_padding.bottom;
 
-        auto columns = width / impl->m_cell_width;
-        auto rows = height / impl->m_cell_height;
-        if (columns <= 0 || rows <= 0)
-                return FALSE;
+                auto columns = width / impl->m_cell_width;
+                auto rows = height / impl->m_cell_height;
+                if (columns <= 0 || rows <= 0)
+                        return FALSE;
 
-	vte_terminal_set_size(terminal, columns, rows);
-	return (vte_terminal_get_row_count (terminal) == rows) &&
-	       (vte_terminal_get_column_count (terminal) == columns);
+                vte_terminal_set_size(terminal, columns, rows);
+                return (vte_terminal_get_row_count (terminal) == rows) &&
+                        (vte_terminal_get_column_count (terminal) == columns);
+        } catch (...) {
+                return false;
+        }
 }
 
 static AtkObject *

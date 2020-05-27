@@ -44,7 +44,7 @@ class Widget {
 public:
         friend class vte::terminal::Terminal;
 
-        Widget(VteTerminal* t) noexcept;
+        Widget(VteTerminal* t);
         ~Widget() noexcept;
 
         Widget(Widget const&) = delete;

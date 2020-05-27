@@ -74,17 +74,6 @@ enum {
 
 namespace vte {
 
-// This is like std::clamp, except that it doesn't throw when
-// max_v<min_v, but instead returns min_v in that case.
-template<typename T>
-constexpr inline T const&
-clamp(T const& v,
-      T const& min_v,
-      T const& max_v)
-{
-        return std::max(std::min(v, max_v), min_v);
-}
-
 namespace platform {
 
 /*
@@ -594,7 +583,7 @@ public:
         int m_child_exit_status{-1};   /* pid's exit status, or -1 */
         bool m_eos_pending{false};
         bool m_child_exited_after_eos_pending{false};
-        bool child_exited_eos_wait_callback() noexcept;
+        bool child_exited_eos_wait_callback();
         vte::glib::Timer m_child_exited_eos_wait_timer{std::bind(&Terminal::child_exited_eos_wait_callback,
                                                                  this),
                                                        "child-exited-eos-wait-timer"};
@@ -718,6 +707,7 @@ public:
         double m_cursor_aspect_ratio{0.04};
 
 	/* Cursor blinking */
+        bool cursor_blink_timer_callback();
         vte::glib::Timer m_cursor_blink_timer{std::bind(&Terminal::cursor_blink_timer_callback,
                                                         this),
                                               "cursor-blink-timer"};
@@ -730,7 +720,7 @@ public:
         bool m_has_focus{false};            /* is the widget focused */
 
         /* Contents blinking */
-        bool text_blink_timer_callback() noexcept;
+        bool text_blink_timer_callback();
         vte::glib::Timer m_text_blink_timer{std::bind(&Terminal::text_blink_timer_callback,
                                                       this),
                                             "text-blink-timer"};
@@ -757,7 +747,7 @@ public:
          */
         vte::view::coords m_mouse_last_position{-1, -1};
         double m_mouse_smooth_scroll_delta{0.0};
-        bool mouse_autoscroll_timer_callback() noexcept;
+        bool mouse_autoscroll_timer_callback();
         vte::glib::Timer m_mouse_autoscroll_timer{std::bind(&Terminal::mouse_autoscroll_timer_callback,
                                                             this),
                                                   "mouse-autoscroll-timer"};
@@ -1063,7 +1053,6 @@ public:
         gssize get_preedit_length(bool left_only);
 
         void invalidate_cursor_once(bool periodic = false);
-        bool cursor_blink_timer_callback() noexcept;
         void check_cursor_blink();
         void add_cursor_timeout();
         void remove_cursor_timeout();

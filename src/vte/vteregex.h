@@ -45,34 +45,34 @@ GQuark vte_regex_error_quark (void);
 #define VTE_REGEX_FLAGS_DEFAULT (0x00080000u | 0x40000000u | 0x00100000u)
 
 _VTE_PUBLIC
-VteRegex *vte_regex_ref      (VteRegex *regex) _VTE_GNUC_NONNULL(1);
+VteRegex *vte_regex_ref      (VteRegex *regex) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-VteRegex *vte_regex_unref    (VteRegex *regex) _VTE_GNUC_NONNULL(1);
+VteRegex *vte_regex_unref    (VteRegex *regex) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 VteRegex *vte_regex_new_for_match (const char *pattern,
                                    gssize      pattern_length,
                                    guint32     flags,
-                                   GError    **error) _VTE_GNUC_NONNULL(1);
+                                   GError    **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 VteRegex *vte_regex_new_for_search (const char *pattern,
                                     gssize      pattern_length,
                                     guint32     flags,
-                                    GError    **error) _VTE_GNUC_NONNULL(1);
+                                    GError    **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 gboolean  vte_regex_jit     (VteRegex *regex,
                              guint32   flags,
-                             GError  **error) _VTE_GNUC_NONNULL(1);
+                             GError  **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 char *vte_regex_substitute(VteRegex *regex,
                            const char *subject,
                            const char *replacement,
                            guint32 flags,
-                           GError **error) _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) _VTE_GNUC_NONNULL(3) G_GNUC_MALLOC;
+                           GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) _VTE_GNUC_NONNULL(3) G_GNUC_MALLOC;
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteRegex, vte_regex_unref)
 

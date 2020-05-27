@@ -26,7 +26,9 @@
  * pseudo-terminals and to resize pseudo-terminals.
  */
 
-#include <config.h>
+#include "config.h"
+
+#include <exception>
 
 #include <vte/vte.h>
 
@@ -37,8 +39,10 @@
 
 #include <glib/gi18n-lib.h>
 
+#include "cxx-utils.hh"
 #include "libc-glue.hh"
 #include "pty.hh"
+#include "refptr.hh"
 #include "spawn.hh"
 
 #include "vteptyinternal.hh"
@@ -126,13 +130,18 @@ _vte_pty_get_impl(VtePty* pty)
  * @pty: a #VtePty
  */
 void
-vte_pty_child_setup (VtePty *pty)
+vte_pty_child_setup (VtePty *pty) noexcept
+try
 {
         g_return_if_fail(pty != nullptr);
         auto impl = IMPL(pty);
         g_return_if_fail(impl != nullptr);
 
         impl->child_setup();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -153,7 +162,8 @@ gboolean
 vte_pty_set_size(VtePty *pty,
                  int rows,
                  int columns,
-                 GError **error)
+                 GError **error) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
         auto impl = IMPL(pty);
@@ -169,6 +179,10 @@ vte_pty_set_size(VtePty *pty,
                     g_strerror(errsv));
 
         return false;
+}
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
 }
 
 /**
@@ -188,7 +202,8 @@ gboolean
 vte_pty_get_size(VtePty *pty,
                  int *rows,
                  int *columns,
-                 GError **error)
+                 GError **error) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
         auto impl = IMPL(pty);
@@ -203,6 +218,10 @@ vte_pty_get_size(VtePty *pty,
                     "Failed to get window size: %s",
                     g_strerror(errsv));
         return false;
+}
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
 }
 
 /**
@@ -220,7 +239,8 @@ vte_pty_get_size(VtePty *pty,
 gboolean
 vte_pty_set_utf8(VtePty *pty,
                  gboolean utf8,
-                 GError **error)
+                 GError **error) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
         auto impl = IMPL(pty);
@@ -234,6 +254,10 @@ vte_pty_set_utf8(VtePty *pty,
                     "%s failed: %s", "tc[sg]etattr", g_strerror(errsv));
         return false;
 }
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
+}
 
 /**
  * vte_pty_close:
@@ -244,7 +268,7 @@ vte_pty_set_utf8(VtePty *pty,
  * Deprecated: 0.42
  */
 void
-vte_pty_close (VtePty *pty)
+vte_pty_close (VtePty *pty) noexcept
 {
         /* impl->close(); */
 }
@@ -262,7 +286,8 @@ enum {
 static gboolean
 vte_pty_initable_init (GInitable *initable,
                        GCancellable *cancellable,
-                       GError **error)
+                       GError **error) noexcept
+try
 {
         VtePty *pty = VTE_PTY (initable);
         VtePtyPrivate *priv = pty->priv;
@@ -282,6 +307,10 @@ vte_pty_initable_init (GInitable *initable,
         }
 
         return !g_cancellable_set_error_if_cancelled(cancellable, error);
+}
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
 }
 
 static void
@@ -309,15 +338,19 @@ vte_pty_init (VtePty *pty)
 }
 
 static void
-vte_pty_finalize (GObject *object)
+vte_pty_finalize (GObject *object) noexcept
+try
 {
         VtePty *pty = VTE_PTY (object);
         VtePtyPrivate *priv = pty->priv;
 
-        if (priv->pty != nullptr)
-                priv->pty->unref();
+        auto implptr = vte::base::RefPtr<vte::base::Pty>{priv->pty}; // moved
 
         G_OBJECT_CLASS (vte_pty_parent_class)->finalize (object);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 static void
@@ -416,7 +449,7 @@ vte_pty_class_init (VtePtyClass *klass)
  * Returns: the error domain for VTE PTY errors
  */
 GQuark
-vte_pty_error_quark(void)
+vte_pty_error_quark(void) noexcept
 {
   static GQuark quark = 0;
 
@@ -464,7 +497,7 @@ vte_pty_error_quark(void)
 VtePty *
 vte_pty_new_sync (VtePtyFlags flags,
                   GCancellable *cancellable,
-                  GError **error)
+                  GError **error) noexcept
 {
         return (VtePty *) g_initable_new (VTE_TYPE_PTY,
                                           cancellable,
@@ -491,7 +524,7 @@ vte_pty_new_sync (VtePtyFlags flags,
 VtePty *
 vte_pty_new_foreign_sync (int fd,
                           GCancellable *cancellable,
-                          GError **error)
+                          GError **error) noexcept
 {
         g_return_val_if_fail(fd != -1, nullptr);
 
@@ -511,17 +544,20 @@ vte_pty_new_foreign_sync (int fd,
  *   its flags changed
  */
 int
-vte_pty_get_fd (VtePty *pty)
+vte_pty_get_fd (VtePty *pty) noexcept
+try
 {
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
-        auto impl = IMPL(pty);
-        g_return_val_if_fail(impl != nullptr, FALSE);
-
-        return impl->fd();
+        return IMPL(pty)->fd();
+}
+catch (...)
+{
+        vte::log_exception();
+        return -1;
 }
 
 static constexpr inline auto
-all_spawn_flags()
+all_spawn_flags() noexcept
 {
         return GSpawnFlags(G_SPAWN_LEAVE_DESCRIPTORS_OPEN |
                            G_SPAWN_DO_NOT_REAP_CHILD |
@@ -538,7 +574,7 @@ all_spawn_flags()
 }
 
 static constexpr inline auto
-forbidden_spawn_flags()
+forbidden_spawn_flags() noexcept
 {
         return GSpawnFlags(G_SPAWN_LEAVE_DESCRIPTORS_OPEN |
                            G_SPAWN_STDOUT_TO_DEV_NULL |
@@ -547,7 +583,7 @@ forbidden_spawn_flags()
 }
 
 static constexpr inline auto
-ignored_spawn_flags()
+ignored_spawn_flags() noexcept
 {
         return GSpawnFlags(G_SPAWN_CLOEXEC_PIPES |
                            G_SPAWN_DO_NOT_REAP_CHILD);
@@ -610,7 +646,8 @@ _vte_pty_spawn_sync(VtePty* pty,
                     GPid* child_pid /* out */,
                     int timeout,
                     GCancellable* cancellable,
-                    GError** error)
+                    GError** error) noexcept
+try
 {
         /* These are ignored or need not be passed since the behaviour is the default */
         g_warn_if_fail((spawn_flags & ignored_spawn_flags()) == 0);
@@ -639,6 +676,10 @@ _vte_pty_spawn_sync(VtePty* pty,
 
         return rv;
 }
+catch (...)
+{
+        return vte::glib::set_error_from_exception(error);
+}
 
 /*
  * _vte_pty_check_envv:
@@ -647,7 +688,7 @@ _vte_pty_spawn_sync(VtePty* pty,
  * Validates that each element is of the form 'KEY=VALUE'.
  */
 bool
-_vte_pty_check_envv(char const* const* strv)
+_vte_pty_check_envv(char const* const* strv) noexcept
 {
   if (!strv)
     return true;
@@ -733,7 +774,8 @@ vte_pty_spawn_with_fds_async(VtePty *pty,
                              int timeout,
                              GCancellable *cancellable,
                              GAsyncReadyCallback callback,
-                             gpointer user_data)
+                             gpointer user_data) noexcept
+try
 {
         g_return_if_fail(argv != nullptr);
         g_return_if_fail(argv[0] != nullptr);
@@ -775,6 +817,13 @@ vte_pty_spawn_with_fds_async(VtePty *pty,
                       callback,
                       user_data);
 }
+catch (...)
+{
+        // FIXME: make the function above exception safe. It needs to guarantee
+        // that the callback will be invoked regardless of when the throw occurred.
+
+        vte::log_exception();
+}
 
 /**
  * vte_pty_spawn_async:
@@ -809,7 +858,7 @@ vte_pty_spawn_async(VtePty *pty,
                     int timeout,
                     GCancellable *cancellable,
                     GAsyncReadyCallback callback,
-                    gpointer user_data)
+                    gpointer user_data) noexcept
 {
         vte_pty_spawn_with_fds_async(pty, working_directory, argv, envv,
                                      nullptr, 0, nullptr, 0,
@@ -834,7 +883,7 @@ gboolean
 vte_pty_spawn_finish(VtePty* pty,
                      GAsyncResult* result,
                      GPid* child_pid /* out */,
-                     GError** error)
+                     GError** error) noexcept
 {
         g_return_val_if_fail (VTE_IS_PTY(pty), false);
         g_return_val_if_fail (G_IS_TASK(result), false);

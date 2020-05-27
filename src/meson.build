@@ -103,6 +103,8 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'chunk.cc',
   'chunk.hh',
   'color-triple.hh',
+  'cxx-utils.hh',
+  'gobject-glue.hh',
   'keymap.cc',
   'keymap.h',
   'missing.cc',

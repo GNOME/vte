@@ -22,9 +22,11 @@
 
 #include <sys/wait.h> // for W_EXITCODE
 
+#include <exception>
 #include <new>
 #include <string>
 
+#include "cxx-utils.hh"
 #include "vtegtk.hh"
 #include "vteptyinternal.hh"
 #include "debug.h"
@@ -38,70 +40,106 @@ namespace platform {
 static void
 im_commit_cb(GtkIMContext* im_context,
              char const* text,
-             Widget* that)
+             Widget* that) noexcept
+try
 {
         if (text == nullptr)
                 return;
 
         that->terminal()->im_commit(text);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 im_preedit_start_cb(GtkIMContext* im_context,
-                    Widget* that)
+                    Widget* that) noexcept
+try
 {
         _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit started.\n");
         that->terminal()->im_preedit_set_active(true);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 im_preedit_end_cb(GtkIMContext* im_context,
-                  Widget* that)
+                  Widget* that) noexcept
+try
 {
         _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit ended.\n");
         that->terminal()->im_preedit_set_active(false);
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
 static void
 im_preedit_changed_cb(GtkIMContext* im_context,
-                      Widget* that)
+                      Widget* that) noexcept
+try
 {
         that->im_preedit_changed();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 static gboolean
 im_retrieve_surrounding_cb(GtkIMContext* im_context,
-                           Widget* that)
+                           Widget* that) noexcept
+try
 {
         _vte_debug_print(VTE_DEBUG_EVENTS, "Input method retrieve-surrounding.\n");
         return that->terminal()->im_retrieve_surrounding();
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 static gboolean
 im_delete_surrounding_cb(GtkIMContext* im_context,
                          int offset,
                          int n_chars,
-                         Widget* that)
+                         Widget* that) noexcept
+try
 {
         _vte_debug_print(VTE_DEBUG_EVENTS,
                          "Input method delete-surrounding offset %d n-chars %d.\n",
                          offset, n_chars);
         return that->terminal()->im_delete_surrounding(offset, n_chars);
 }
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
 
 static void
 settings_notify_cb(GtkSettings* settings,
                    GParamSpec* pspec,
-                   vte::platform::Widget* that)
+                   vte::platform::Widget* that) noexcept
+try
 {
         that->settings_changed();
 }
+catch (...)
+{
+        vte::log_exception();
+}
 
-Widget::Widget(VteTerminal* t) noexcept :
-        m_widget{&t->widget},
-        m_hscroll_policy{GTK_SCROLL_NATURAL},
-        m_vscroll_policy{GTK_SCROLL_NATURAL}
-
+Widget::Widget(VteTerminal* t)
+        : m_widget{&t->widget},
+          m_hscroll_policy{GTK_SCROLL_NATURAL},
+          m_vscroll_policy{GTK_SCROLL_NATURAL}
 {
         gtk_widget_set_can_focus(gtk(), true);
 
@@ -115,6 +153,7 @@ Widget::Widget(VteTerminal* t) noexcept :
 }
 
 Widget::~Widget() noexcept
+try
 {
         g_signal_handlers_disconnect_matched(gtk_widget_get_settings(m_widget),
                                              G_SIGNAL_MATCH_DATA,
@@ -125,6 +164,10 @@ Widget::~Widget() noexcept
 
         m_terminal->~Terminal();
         g_free(m_terminal);
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 void

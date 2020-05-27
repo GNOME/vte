@@ -24,6 +24,8 @@
 
 #include <glib.h>
 
+#include "cxx-utils.hh"
+
 namespace vte::glib {
 
 template <typename T, typename D, D d>
@@ -219,9 +221,16 @@ private:
         guint m_source_id{0};
         bool m_rescheduled{false};
 
-        bool dispatch() noexcept {
+        bool dispatch() noexcept
+        {
                 auto const id = m_source_id;
-                auto const rv = m_callback();
+
+                auto rv = false;
+                try {
+                        rv = m_callback();
+                } catch (...) {
+                        vte::log_exception();
+                }
 
                 /* The Timer may have been re-scheduled or removed from within
                  * the callback. In this case, the callback must return false!
@@ -263,5 +272,13 @@ private:
                 timer->invalidate_source();
         }
 };
+
+bool set_error_from_exception(GError** error
+#ifdef VTE_DEBUG
+                              , char const* func = __builtin_FUNCTION()
+                              , char const* filename = __builtin_FILE()
+                              , int const line = __builtin_LINE()
+#endif
+                              ) noexcept;
 
 } // namespace vte::glib
