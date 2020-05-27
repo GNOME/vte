@@ -76,8 +76,8 @@ dup_strv(char const* const* strv)
 
 class Error {
 public:
-        Error() = default;
-        ~Error() { reset(); }
+        Error() noexcept = default;
+        ~Error() noexcept { reset(); }
 
         Error(Error const&) = delete;
         Error(Error&&) = delete;
