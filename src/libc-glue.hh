@@ -92,6 +92,12 @@ public:
                 }
         }
 
+        /* C++20 constexpr */ void swap(FD& other)
+        {
+                using std::swap;
+                swap(m_fd, other.m_fd);
+        }
+
 private:
         int m_fd{-1};
 
@@ -101,6 +107,7 @@ constexpr bool operator==(FD const& lhs, FD const& rhs) noexcept { return lhs.ge
 constexpr bool operator==(FD const& lhs, int rhs) noexcept { return lhs.get() == rhs; }
 constexpr bool operator!=(FD const& lhs, FD const& rhs) noexcept { return !(lhs == rhs); }
 constexpr bool operator!=(FD const& lhs, int rhs) noexcept { return !(lhs == rhs); }
+/* C++20 constexpr */ inline void swap(FD& lhs, FD& rhs) noexcept { lhs.swap(rhs); }
 
 /* FD convenience functions */
 
