@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <cerrno>
+#include <memory>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -64,8 +65,10 @@ public:
 
         FD& operator=(FD&& rhs) noexcept
         {
-                reset();
-                m_fd = rhs.release();
+                if (this != std::addressof(rhs)) {
+                        reset();
+                        m_fd = rhs.release();
+                }
                 return *this;
         }
 
