@@ -57,7 +57,9 @@ public:
         void child_setup() const noexcept;
 
         bool set_size(int rows,
-                      int columns) const noexcept;
+                      int columns,
+                      int cell_height_px,
+                      int cell_width_px) const noexcept;
         bool get_size(int* rows,
                       int* columns) const noexcept;
         bool set_utf8(bool utf8) const noexcept;

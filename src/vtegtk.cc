@@ -3027,7 +3027,13 @@ try
         if (!pty)
                 return nullptr;
 
-        vte_pty_set_size(pty.get(), IMPL(terminal)->m_row_count, IMPL(terminal)->m_column_count, NULL);
+        auto impl = IMPL(terminal);
+        _vte_pty_set_size(pty.get(),
+                          impl->m_row_count,
+                          impl->m_column_count,
+                          impl->m_cell_height,
+                          impl->m_cell_width,
+                          nullptr);
 
         return pty.release();
 }

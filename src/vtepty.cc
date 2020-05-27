@@ -163,13 +163,27 @@ vte_pty_set_size(VtePty *pty,
                  int rows,
                  int columns,
                  GError **error) noexcept
+{
+        /* No way to determine the pixel size; set it to (0, 0), meaning
+         * "undefined".
+         */
+        return _vte_pty_set_size(pty, rows, columns, 0, 0, error);
+}
+
+bool
+_vte_pty_set_size(VtePty *pty,
+                  int rows,
+                  int columns,
+                  int cell_height_px,
+                  int cell_width_px,
+                  GError **error) noexcept
 try
 {
         g_return_val_if_fail(VTE_IS_PTY(pty), FALSE);
         auto impl = IMPL(pty);
         g_return_val_if_fail(impl != nullptr, FALSE);
 
-        if (impl->set_size(rows, columns))
+        if (impl->set_size(rows, columns, cell_height_px, cell_width_px))
                 return true;
 
         auto errsv = vte::libc::ErrnoSaver{};
@@ -184,6 +198,7 @@ catch (...)
 {
         return vte::glib::set_error_from_exception(error);
 }
+
 
 /**
  * vte_pty_get_size:

@@ -262,6 +262,8 @@ Pty::child_setup() const noexcept
  * Pty::set_size:
  * @rows: the desired number of rows
  * @columns: the desired number of columns
+ * @cell_height_px: the height of a cell in px, or 0 for undetermined
+ * @cell_width_px: the width of a cell in px, or 0 for undetermined
  *
  * Attempts to resize the pseudo terminal's window size.  If successful, the
  * OS kernel will send #SIGWINCH to the child process group.
@@ -270,7 +272,9 @@ Pty::child_setup() const noexcept
  */
 bool
 Pty::set_size(int rows,
-              int columns) const noexcept
+              int columns,
+              int cell_height_px,
+              int cell_width_px) const noexcept
 {
         auto master = fd();
 
@@ -278,6 +282,8 @@ Pty::set_size(int rows,
 	memset(&size, 0, sizeof(size));
 	size.ws_row = rows > 0 ? rows : 24;
 	size.ws_col = columns > 0 ? columns : 80;
+        size.ws_ypixel = size.ws_row * cell_height_px;
+        size.ws_xpixel = size.ws_col * cell_width_px;
 	_vte_debug_print(VTE_DEBUG_PTY,
 			"Setting size on fd %d to (%d,%d).\n",
 			master, columns, rows);

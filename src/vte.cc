@@ -7218,6 +7218,13 @@ Terminal::apply_font_metrics(int cell_width,
 	}
 	/* Emit a signal that the font changed. */
 	if (cresize) {
+                if (pty()) {
+                        /* Update pixel size of PTY. */
+                        pty()->set_size(m_row_count,
+                                        m_column_count,
+                                        m_cell_height,
+                                        m_cell_width);
+                }
 		emit_char_size_changed(m_cell_width, m_cell_height);
 	}
 	/* Repaint. */
@@ -7559,7 +7566,10 @@ Terminal::set_size(long columns,
 		/* Try to set the terminal size, and read it back,
 		 * in case something went awry.
                  */
-		if (!pty()->set_size(rows, columns))
+		if (!pty()->set_size(rows,
+                                     columns,
+                                     m_cell_height,
+                                     m_cell_width))
 			g_warning("Failed to set PTY size: %m\n");
 		refresh_size();
 	} else {

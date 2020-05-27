@@ -36,3 +36,10 @@ bool _vte_pty_spawn_sync(VtePty* pty,
                          GError** error) noexcept;
 
 bool _vte_pty_check_envv(char const* const* envv) noexcept;
+
+bool _vte_pty_set_size(VtePty *pty,
+                       int rows,
+                       int columns,
+                       int cell_height_px,
+                       int cell_width_px,
+                       GError **error) noexcept;
