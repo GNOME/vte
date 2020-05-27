@@ -5631,7 +5631,12 @@ try
         }
 
         auto msg = vte::glib::take_string(g_strdup_printf("Caught exception in %s [%s:%d]: %s",
-                                                          func, filename, line, what.c_str()));
+#ifdef VTE_DEBUG
+                                                          func, filename, line,
+#else
+                                                          "?", "?", "?",
+#endif
+                                                          what.c_str()));
         auto msg_str = vte::glib::take_string(g_utf8_make_valid(msg.get(), -1));
         g_set_error_literal(error,
                             G_IO_ERROR,
@@ -5644,9 +5649,14 @@ try
 catch (...)
 {
         vte::log_exception();
+#ifdef VTE_DEBUG
         g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
                     "Caught exception while logging an exception in %s [%s:%d]\n",
                     func, filename, line);
+#else
+        g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                            "Caught exception while logging an exception");
+#endif
         return false;
 }
 
