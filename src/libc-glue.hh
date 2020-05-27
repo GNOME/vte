@@ -51,7 +51,7 @@ public:
         constexpr FD(FD const&) = delete;
         constexpr FD(FD&& rhs) noexcept : m_fd{rhs.release()} { }
 
-        ~FD() { reset(); }
+        ~FD() noexcept { reset(); }
 
         // adopt the file descriptor
         FD& operator=(int rhs) noexcept
@@ -97,10 +97,10 @@ private:
 
 }; // class FD
 
-constexpr bool operator==(FD const& lhs, FD const& rhs) { return lhs.get() == rhs.get(); }
-constexpr bool operator==(FD const& lhs, int rhs) { return lhs.get() == rhs; }
-constexpr bool operator!=(FD const& lhs, FD const& rhs) { return !(lhs == rhs); }
-constexpr bool operator!=(FD const& lhs, int rhs) { return !(lhs == rhs); }
+constexpr bool operator==(FD const& lhs, FD const& rhs) noexcept { return lhs.get() == rhs.get(); }
+constexpr bool operator==(FD const& lhs, int rhs) noexcept { return lhs.get() == rhs; }
+constexpr bool operator!=(FD const& lhs, FD const& rhs) noexcept { return !(lhs == rhs); }
+constexpr bool operator!=(FD const& lhs, int rhs) noexcept { return !(lhs == rhs); }
 
 /* FD convenience functions */
 
