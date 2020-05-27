@@ -333,8 +333,6 @@ compiler_flags_cxx_only = [
 ]
 
 compiler_flags_cxx_required = [
-  '-fno-exceptions',
-  '-fno-rtti',
   '-fvisibility-inlines-hidden',
   '-fvisibility=hidden',
 ]
