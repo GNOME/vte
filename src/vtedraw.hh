@@ -28,6 +28,8 @@
 #include "vteunistr.h"
 #include "vtetypes.hh"
 
+#include "minifont.hh"
+
 #define VTE_DRAW_OPAQUE (1.0)
 
 #define VTE_DRAW_NORMAL 0
@@ -66,6 +68,7 @@ public:
         DrawingContext& operator=(DrawingContext&&) = delete;
 
         void set_cairo(cairo_t* cr) noexcept;
+        auto cairo() const noexcept { return m_cr; }
 
         void clip(cairo_rectangle_int_t const* rect);
         void unclip();
@@ -133,6 +136,9 @@ public:
                             vte::color::rgb const* color,
                             double alpha);
 
+        auto cell_width()  const noexcept { return m_cell_width; }
+        auto cell_height() const noexcept { return m_cell_height; }
+
 private:
         void set_source_color_alpha (vte::color::rgb const* color,
                                      double alpha);
@@ -158,6 +164,8 @@ private:
         GtkBorder m_char_spacing{1, 1, 1, 1};
 
 	cairo_t *m_cr{nullptr}; // unowned
+
+        Minifont m_minifont{};
 
         /* Cache the undercurl's rendered look. */
         std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> m_undercurl_surface{nullptr, nullptr};

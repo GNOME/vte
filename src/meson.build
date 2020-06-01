@@ -109,6 +109,8 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'gobject-glue.hh',
   'keymap.cc',
   'keymap.h',
+  'minifont.cc',
+  'minifont.hh',
   'missing.cc',
   'missing.hh',
   'reaper.cc',
