@@ -336,15 +336,16 @@ private:
 	int m_coverage_count[4]{0, 0, 0, 0};
 #endif
 
-public:
-        static FontInfo* find_for_context(PangoContext* context);
-        static FontInfo* create_for_context(PangoContext* context,
+        static FontInfo* find_for_context(vte::glib::RefPtr<PangoContext>& context);
+        static FontInfo* create_for_context(vte::glib::RefPtr<PangoContext> context,
                                             PangoFontDescription const* desc,
                                             PangoLanguage* language,
                                             guint fontconfig_timestamp);
         static FontInfo *create_for_screen(GdkScreen* screen,
                                            PangoFontDescription const* desc,
                                            PangoLanguage* language);
+public:
+
         static FontInfo *create_for_widget(GtkWidget* widget,
                                            PangoFontDescription const* desc);
 
@@ -622,58 +623,55 @@ context_equal (PangoContext *a,
 // FIXMEchpe return vte::base::RefPtr<FontInfo>
 /* assumes ownership/reference of context */
 FontInfo*
-FontInfo::find_for_context(PangoContext* context)
+FontInfo::find_for_context(vte::glib::RefPtr<PangoContext>& context)
 {
 	if (G_UNLIKELY (s_font_info_for_context == nullptr))
 		s_font_info_for_context = g_hash_table_new((GHashFunc) context_hash, (GEqualFunc) context_equal);
 
-	auto info = reinterpret_cast<FontInfo*>(g_hash_table_lookup(s_font_info_for_context, context));
+	auto info = reinterpret_cast<FontInfo*>(g_hash_table_lookup(s_font_info_for_context, context.get()));
 	if (G_LIKELY(info)) {
 		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 				  "vtepangocairo: %p found font_info in cache\n",
 				  info);
 		info = info->ref();
 	} else {
-                info = new FontInfo(context);
+                info = new FontInfo{context.release()};
 	}
-
-	g_object_unref (context);
 
 	return info;
 }
 
 /* assumes ownership/reference of context */
 FontInfo*
-FontInfo::create_for_context(PangoContext* context,
+FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
                              PangoFontDescription const* desc,
                              PangoLanguage* language,
                              guint fontconfig_timestamp)
 {
-	if (!PANGO_IS_CAIRO_FONT_MAP (pango_context_get_font_map (context))) {
+	if (!PANGO_IS_CAIRO_FONT_MAP(pango_context_get_font_map(context.get()))) {
 		/* Ouch, Gtk+ switched over to some drawing system?
 		 * Lets just create one from the default font map.
 		 */
-		g_object_unref (context);
-		context = pango_font_map_create_context (pango_cairo_font_map_get_default ());
+		context = vte::glib::take_ref(pango_font_map_create_context(pango_cairo_font_map_get_default()));
 	}
 
-	vte_pango_context_set_fontconfig_timestamp (context, fontconfig_timestamp);
+	vte_pango_context_set_fontconfig_timestamp(context.get(), fontconfig_timestamp);
 
-	pango_context_set_base_dir (context, PANGO_DIRECTION_LTR);
+	pango_context_set_base_dir(context.get(), PANGO_DIRECTION_LTR);
 
 	if (desc)
-		pango_context_set_font_description (context, desc);
+		pango_context_set_font_description(context.get(), desc);
 
-	pango_context_set_language (context, language);
+	pango_context_set_language(context.get(), language);
 
         /* Make sure our contexts have a font_options set.  We use
           * this invariant in our context hash and equal functions.
           */
-        if (!pango_cairo_context_get_font_options (context)) {
+        if (!pango_cairo_context_get_font_options(context.get())) {
                 cairo_font_options_t *font_options;
 
                 font_options = cairo_font_options_create ();
-                pango_cairo_context_set_font_options (context, font_options);
+                pango_cairo_context_set_font_options(context.get(), font_options);
                 cairo_font_options_destroy (font_options);
         }
 
@@ -688,7 +686,7 @@ FontInfo::create_for_screen(GdkScreen* screen,
 	auto settings = gtk_settings_get_for_screen(screen);
 	auto fontconfig_timestamp = guint{};
 	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
-	return create_for_context(gdk_pango_context_get_for_screen(screen),
+	return create_for_context(vte::glib::take_ref(gdk_pango_context_get_for_screen(screen)),
                                   desc, language, fontconfig_timestamp);
 }
 
