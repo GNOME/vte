@@ -8152,7 +8152,7 @@ Terminal::text_blink_timer_callback()
 
 /* Draw a string of characters with similar attributes. */
 void
-Terminal::draw_cells(struct _vte_draw_text_request *items,
+Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                gssize n,
                                uint32_t fore,
                                uint32_t back,
@@ -8578,7 +8578,7 @@ Terminal::translate_pango_cells(PangoAttrList *attrs,
  * attribute string is indexed by byte in the UTF-8 representation of the string
  * of characters.  Because we draw a character at a time, this is slower. */
 void
-Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
+Terminal::draw_cells_with_attributes(vte::view::DrawingContext::TextRequest* items,
                                                gssize n,
                                                PangoAttrList *attrs,
                                                bool draw_default_bg,
@@ -8644,7 +8644,6 @@ Terminal::draw_rows(VteScreen *screen_,
                     gint column_width,
                     gint row_height)
 {
-        struct _vte_draw_text_request *items;
         vte::grid::row_t row;
         vte::grid::column_t i, j, lcol, vcol;
         int y;
@@ -8665,7 +8664,7 @@ Terminal::draw_rows(VteScreen *screen_,
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
-        items = g_newa (struct _vte_draw_text_request, column_count);
+        auto items = g_newa(vte::view::DrawingContext::TextRequest, column_count);
 
         /* Paint the background.
          * Do it first for all the cells we're about to paint, before drawing the glyphs,
@@ -8929,7 +8928,7 @@ Terminal::draw_rows(VteScreen *screen_,
 void
 Terminal::paint_cursor()
 {
-	struct _vte_draw_text_request item;
+        vte::view::DrawingContext::TextRequest item;
         vte::grid::row_t drow;
         vte::grid::column_t lcol, vcol;
         int width, height, cursor_width;
@@ -9143,11 +9142,10 @@ Terminal::paint_im_preedit_string()
 
 	/* Draw the preedit string, boxed. */
 	if (len > 0) {
-		struct _vte_draw_text_request *items;
 		const char *preedit = m_im_preedit.c_str();
 		int preedit_cursor;
 
-                items = g_new0(struct _vte_draw_text_request, len);
+                auto items = g_new0(vte::view::DrawingContext::TextRequest, len);
 		for (i = columns = 0; i < len; i++) {
 			items[i].c = g_utf8_get_char(preedit);
                         items[i].columns = _vte_unichar_width(items[i].c,

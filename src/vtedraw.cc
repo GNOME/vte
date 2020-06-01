@@ -2074,7 +2074,7 @@ DrawingContext::draw_graphic(vteunistr c,
 }
 
 void
-DrawingContext::draw_text_internal(struct _vte_draw_text_request *requests,
+DrawingContext::draw_text_internal(TextRequest* requests,
                                    gsize n_requests,
                                    uint32_t attr,
                                    vte::color::rgb const* color,
@@ -2163,7 +2163,7 @@ DrawingContext::draw_text_internal(struct _vte_draw_text_request *requests,
 }
 
 void
-DrawingContext::draw_text(struct _vte_draw_text_request *requests,
+DrawingContext::draw_text(TextRequest* requests,
                           gsize n_requests,
                           uint32_t attr,
                           vte::color::rgb const* color,
@@ -2208,7 +2208,7 @@ DrawingContext::has_char(vteunistr c,
 }
 
 bool
-DrawingContext::draw_char(struct _vte_draw_text_request *request,
+DrawingContext::draw_char(TextRequest* request,
                           uint32_t attr,
                           vte::color::rgb const* color,
                           double alpha,

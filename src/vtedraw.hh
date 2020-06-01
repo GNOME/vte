@@ -34,17 +34,6 @@
 #define VTE_DRAW_BOLD   1
 #define VTE_DRAW_ITALIC 2
 
-/* A request to draw a particular character spanning a given number of columns
-   at the given location.  Unlike most APIs, (x,y) specifies the top-left
-   corner of the cell into which the character will be drawn instead of the
-   left end of the baseline. */
-struct _vte_draw_text_request {
-	vteunistr c;
-	gshort x, y, columns;
-        guint8 mirror : 1;      /* Char has RTL resolved directionality, mirror if mirrorable. */
-        guint8 box_mirror : 1;  /* Add box drawing chars to the set of mirrorable characters. */
-};
-
 namespace vte {
 namespace view {
 
@@ -52,6 +41,22 @@ class FontInfo;
 
 class DrawingContext {
 public:
+
+        /* A request to draw a particular character spanning a given number of columns
+           at the given location.  Unlike most APIs, (x,y) specifies the top-left
+           corner of the cell into which the character will be drawn instead of the
+           left end of the baseline. */
+        struct TextRequest {
+                vteunistr c;
+                int16_t x, y, columns;
+
+                /* Char has RTL resolved directionality, mirror if mirrorable. */
+                uint8_t mirror : 1;
+
+                /* Add box drawing chars to the set of mirrorable characters. */
+                uint8_t box_mirror : 1;
+        };
+
         DrawingContext() noexcept = default;
         ~DrawingContext();
 
@@ -88,13 +93,13 @@ public:
                             int& right);
         bool has_bold(guint style);
 
-        void draw_text(struct _vte_draw_text_request *requests,
+        void draw_text(TextRequest* requests,
                        gsize n_requests,
                        uint32_t attr,
                        vte::color::rgb const* color,
                        double alpha,
                        guint style);
-        bool draw_char(struct _vte_draw_text_request *request,
+        bool draw_char(TextRequest* request,
                        uint32_t attr,
                        vte::color::rgb const* color,
                        double alpha,
@@ -139,7 +144,7 @@ private:
                           int font_width,
                           int columns,
                           int font_height);
-        void draw_text_internal(struct _vte_draw_text_request *requests,
+        void draw_text_internal(TextRequest* requests,
                                 gsize n_requests,
                                 uint32_t attr,
                                 vte::color::rgb const* color,

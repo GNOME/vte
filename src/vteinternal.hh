@@ -1138,7 +1138,7 @@ public:
 
         void paint_cursor();
         void paint_im_preedit_string();
-        void draw_cells(struct _vte_draw_text_request *items,
+        void draw_cells(vte::view::DrawingContext::TextRequest* items,
                         gssize n,
                         uint32_t fore,
                         uint32_t back,
@@ -1159,7 +1159,7 @@ public:
         void translate_pango_cells(PangoAttrList *attrs,
                                    VteCell *cells,
                                    gsize n_cells);
-        void draw_cells_with_attributes(struct _vte_draw_text_request *items,
+        void draw_cells_with_attributes(vte::view::DrawingContext::TextRequest* items,
                                         gssize n,
                                         PangoAttrList *attrs,
                                         bool draw_default_bg,
