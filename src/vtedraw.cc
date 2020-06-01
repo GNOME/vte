@@ -39,6 +39,10 @@
 #include "fonts-pangocairo.hh"
 #include "refptr.hh"
 
+#define VTE_DRAW_NORMAL 0
+#define VTE_DRAW_BOLD   1
+#define VTE_DRAW_ITALIC 2
+
 /* cairo_show_glyphs accepts runs up to 102 glyphs before it allocates a
  * temporary array.
  *

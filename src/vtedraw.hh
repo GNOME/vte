@@ -30,10 +30,6 @@
 
 #include "minifont.hh"
 
-#define VTE_DRAW_NORMAL 0
-#define VTE_DRAW_BOLD   1
-#define VTE_DRAW_ITALIC 2
-
 namespace vte {
 namespace view {
 
