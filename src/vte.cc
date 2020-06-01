@@ -89,6 +89,8 @@ static inline double round(double x) {
 
 #define I_(string) (g_intern_static_string(string))
 
+#define VTE_DRAW_OPAQUE (1.0)
+
 namespace vte {
 namespace terminal {
 
