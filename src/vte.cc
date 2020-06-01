@@ -7244,12 +7244,12 @@ Terminal::ensure_font()
                         int char_ascent, char_descent;
                         GtkBorder char_spacing;
 			m_fontdirty = false;
-			_vte_draw_set_text_font (m_draw,
+			m_draw.set_text_font(
                                                  m_widget,
                                                  m_fontdesc.get(),
                                                  m_cell_width_scale,
                                                  m_cell_height_scale);
-			_vte_draw_get_text_metrics (m_draw,
+			m_draw.get_text_metrics(
                                                     &cell_width, &cell_height,
                                                     &char_ascent, &char_descent,
                                                     &char_spacing);
@@ -8214,7 +8214,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                         break;                                  /* break the run */
                                 }
                         }
-			_vte_draw_fill_rectangle(m_draw,
+			m_draw.fill_rectangle(
                                                  xl,
                                                  y,
                                                  xr - xl, row_height,
@@ -8267,7 +8267,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 			}
                         switch (vte_attr_get_value(attr, VTE_ATTR_UNDERLINE_VALUE_MASK, VTE_ATTR_UNDERLINE_SHIFT)) {
                         case 1:
-                                _vte_draw_draw_line(m_draw,
+                                m_draw.draw_line(
                                                     xl,
                                                     y + m_underline_position,
                                                     xr - 1,
@@ -8276,14 +8276,14 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                                     &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 2:
-                                _vte_draw_draw_line(m_draw,
+                                m_draw.draw_line(
                                                     xl,
                                                     y + m_double_underline_position,
                                                     xr - 1,
                                                     y + m_double_underline_position + m_double_underline_thickness - 1,
                                                     VTE_LINE_WIDTH,
                                                     &dc, VTE_DRAW_OPAQUE);
-                                _vte_draw_draw_line(m_draw,
+                                m_draw.draw_line(
                                                     xl,
                                                     y + m_double_underline_position + 2 * m_double_underline_thickness,
                                                     xr - 1,
@@ -8292,7 +8292,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                                     &dc, VTE_DRAW_OPAQUE);
                                 break;
                         case 3:
-                                _vte_draw_draw_undercurl(m_draw,
+                                m_draw.draw_undercurl(
                                                          xl,
                                                          y + m_undercurl_position,
                                                          m_undercurl_thickness,
@@ -8301,7 +8301,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                 break;
 			}
 			if (attr & VTE_ATTR_STRIKETHROUGH) {
-                                _vte_draw_draw_line(m_draw,
+                                m_draw.draw_line(
                                                     xl,
                                                     y + m_strikethrough_position,
                                                     xr - 1,
@@ -8310,7 +8310,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                                     &fg, VTE_DRAW_OPAQUE);
 			}
                         if (attr & VTE_ATTR_OVERLINE) {
-                                _vte_draw_draw_line(m_draw,
+                                m_draw.draw_line(
                                                     xl,
                                                     y + m_overline_position,
                                                     xr - 1,
@@ -8319,7 +8319,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                                     &fg, VTE_DRAW_OPAQUE);
                         }
 			if (hilite) {
-                                _vte_draw_draw_line(m_draw,
+                                m_draw.draw_line(
                                                     xl,
                                                     y + m_regex_underline_position,
                                                     xr - 1,
@@ -8328,7 +8328,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                                     &fg, VTE_DRAW_OPAQUE);
                         } else if (hyperlink) {
                                 for (double j = 1.0 / 6.0; j < columns; j += 0.5) {
-                                        _vte_draw_fill_rectangle(m_draw,
+                                        m_draw.fill_rectangle(
                                                                  xl + j * column_width,
                                                                  y + m_regex_underline_position,
                                                                  MAX(column_width / 6.0, 1.0),
@@ -8337,7 +8337,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                                 }
                         }
 			if (attr & VTE_ATTR_BOXED) {
-                                _vte_draw_draw_rectangle(m_draw,
+                                m_draw.draw_rectangle(
                                                          xl,
                                                          y,
                                                          xr - xl,
@@ -8347,7 +8347,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
                 }
 	}
 
-        _vte_draw_text(m_draw,
+        m_draw.draw_text(
                        items, n,
                        attr,
                        &fg, VTE_DRAW_OPAQUE,
@@ -8696,13 +8696,13 @@ Terminal::draw_rows(VteScreen *screen_,
                                 bg.red   = (bg.red   + 0xC000) / 2;
                                 bg.green = (bg.green + 0xC000) / 2;
                                 bg.blue  = (bg.blue  + 0xC000) / 2;
-                                _vte_draw_fill_rectangle (m_draw,
+                                m_draw.fill_rectangle(
                                                           -m_padding.left,
                                                           y,
                                                           m_padding.left,
                                                           row_height,
                                                           &bg, VTE_DRAW_OPAQUE);
-                                _vte_draw_fill_rectangle (m_draw,
+                                m_draw.fill_rectangle(
                                                           column_count * column_width,
                                                           y,
                                                           rect_width - m_padding.left - column_count * column_width,
@@ -8738,7 +8738,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         if (back != VTE_DEFAULT_BG) {
                                 vte::color::rgb bg;
                                 rgb_from_index<8, 8, 8>(back, bg);
-                                _vte_draw_fill_rectangle (m_draw,
+                                m_draw.fill_rectangle(
                                                           i * column_width,
                                                           y,
                                                           (j - i) * column_width,
@@ -8759,13 +8759,13 @@ Terminal::draw_rows(VteScreen *screen_,
                                 /* Paint the top and bottom eighth of the cell with this more gray background
                                  * if the paragraph has a resolved RTL base direction. */
                                 if (bidirow->base_is_rtl()) {
-                                        _vte_draw_fill_rectangle (m_draw,
+                                        m_draw.fill_rectangle(
                                                                   i * column_width,
                                                                   y,
                                                                   (j - i) * column_width,
                                                                   y1 - y,
                                                                   &bg, VTE_DRAW_OPAQUE);
-                                        _vte_draw_fill_rectangle (m_draw,
+                                        m_draw.fill_rectangle(
                                                                   i * column_width,
                                                                   y2,
                                                                   (j - i) * column_width,
@@ -8775,7 +8775,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 /* Paint the middle three quarters of the cell with this more gray background
                                  * if the current character has a resolved RTL direction. */
                                 if (rtl) {
-                                        _vte_draw_fill_rectangle (m_draw,
+                                        m_draw.fill_rectangle(
                                                                   i * column_width,
                                                                   y1,
                                                                   (j - i) * column_width,
@@ -9014,7 +9014,7 @@ Terminal::paint_cursor()
                         if (bidirow->vis_is_rtl(vcol))
                                 x += item.columns * m_cell_width - stem_width;
 
-                        _vte_draw_fill_rectangle(m_draw,
+                        m_draw.fill_rectangle(
                                                  x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
                                                  &bg, VTE_DRAW_OPAQUE);
 
@@ -9022,7 +9022,7 @@ Terminal::paint_cursor()
                          * of directions.
                          * FIXME Do this for the other cursor shapes, too. Need to find a good visual design. */
                         if (focus && bidirow->has_foreign())
-                                _vte_draw_fill_rectangle(m_draw,
+                                m_draw.fill_rectangle(
                                                          bidirow->vis_is_rtl(vcol) ? x - stem_width : x + stem_width,
                                                          y + m_char_padding.top,
                                                          stem_width, stem_width,
@@ -9049,12 +9049,12 @@ Terminal::paint_cursor()
 
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int l, r;
-                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns(), style, &l, &r);
+                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, &l, &r);
                                 left = MIN(left, l);
                                 right = MAX(right, r);
                         }
 
-                        _vte_draw_fill_rectangle(m_draw,
+                        m_draw.fill_rectangle(
                                                  x + left, y + m_cell_height - m_char_padding.bottom - line_height,
                                                  right - left, line_height,
                                                  &bg, VTE_DRAW_OPAQUE);
@@ -9068,7 +9068,7 @@ Terminal::paint_cursor()
                         cursor_width = item.columns * width;
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int r;
-                                _vte_draw_get_char_edges (m_draw, cell->c, cell->attr.columns(), style, NULL, &r);
+                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, NULL, &r);
                                 cursor_width = MAX(cursor_width, r);
 			}
 
@@ -9076,7 +9076,7 @@ Terminal::paint_cursor()
 
 			if (focus) {
 				/* just reverse the character under the cursor */
-                                _vte_draw_fill_rectangle(m_draw,
+                                m_draw.fill_rectangle(
 							     x, y,
                                                          cursor_width, height,
                                                          &bg, VTE_DRAW_OPAQUE);
@@ -9094,7 +9094,7 @@ Terminal::paint_cursor()
 
 			} else {
 				/* draw a box around the character */
-                                _vte_draw_draw_rectangle(m_draw,
+                                m_draw.draw_rectangle(
 							     x - VTE_LINE_WIDTH,
 							     y - VTE_LINE_WIDTH,
 							     cursor_width + 2*VTE_LINE_WIDTH,
@@ -9158,7 +9158,7 @@ Terminal::paint_im_preedit_string()
 			preedit = g_utf8_next_char(preedit);
 		}
                 if (G_LIKELY(m_clear_background)) {
-                        _vte_draw_clear(m_draw,
+                        m_draw.clear(
                                         vcol * width,
                                         row_to_pixel(m_screen->cursor.row),
                                         width * columns,
@@ -9218,10 +9218,10 @@ Terminal::widget_draw(cairo_t *cr)
         allocated_height = get_allocated_height();
 
 	/* Designate the start of the drawing operation and clear the area. */
-	_vte_draw_set_cairo(m_draw, cr);
+	m_draw.set_cairo(cr);
 
         if (G_LIKELY(m_clear_background)) {
-                _vte_draw_clear (m_draw, 0, 0,
+                m_draw.clear(0, 0,
                                  allocated_width, allocated_height,
                                  get_color(VTE_DEFAULT_BG), m_background_alpha);
         }
@@ -9276,7 +9276,7 @@ Terminal::widget_draw(cairo_t *cr)
 	cairo_restore(cr);
 
 	/* Done with various structures. */
-	_vte_draw_set_cairo(m_draw, nullptr);
+	m_draw.set_cairo(nullptr);
 
         cairo_region_destroy (region);
 
