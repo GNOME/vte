@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <math.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -34,6 +35,8 @@
 #include "debug.h"
 
 #include <pango/pangocairo.h>
+
+#include "refptr.hh"
 
 /* Have a space between letters to make sure ligatures aren't used when caching the glyphs: bug 793391. */
 #define VTE_DRAW_SINGLE_WIDE_CHARACTERS	\
@@ -230,55 +233,149 @@ unistr_info_destroy (struct unistr_info *uinfo)
 	g_slice_free (struct unistr_info, uinfo);
 }
 
-struct font_info {
-	/* lifecycle */
-	int ref_count;
-	guint destroy_timeout; /* only used when ref_count == 0 */
+guint _vte_draw_get_style(gboolean bold, gboolean italic) {
+	guint style = 0;
+	if (bold)
+		style |= VTE_DRAW_BOLD;
+	if (italic)
+		style |= VTE_DRAW_ITALIC;
+	return style;
+}
+
+static inline constexpr double
+_vte_draw_get_undercurl_rad(gint width)
+{
+        return width / 2. / sqrt(2);
+}
+
+static inline constexpr double
+_vte_draw_get_undercurl_arc_height(gint width)
+{
+        return _vte_draw_get_undercurl_rad(width) * (1. - sqrt(2) / 2.);
+}
+
+double
+_vte_draw_get_undercurl_height(gint width, double line_width)
+{
+        return 2. * _vte_draw_get_undercurl_arc_height(width) + line_width;
+}
+
+namespace vte {
+namespace view {
+
+class FontInfo {
+        friend class DrawingContext;
+
+public:
+        FontInfo(PangoContext* context);
+        ~FontInfo();
+
+        FontInfo* ref()
+        {
+                // refcount is 0 when unused but still in cache
+                assert(m_ref_count >= 0);
+
+                ++m_ref_count;
+
+                if (m_destroy_timeout != 0) {
+                        g_source_remove (m_destroy_timeout);
+                        m_destroy_timeout = 0;
+                }
+
+                return this;
+        }
+
+        void unref()
+        {
+                assert(m_ref_count > 0);
+                if (--m_ref_count > 0)
+                        return;
+
+                /* Delay destruction by a few seconds, in case we need it again */
+                m_destroy_timeout = gdk_threads_add_timeout_seconds(FONT_CACHE_TIMEOUT,
+                                                                    (GSourceFunc)destroy_delayed_cb,
+                                                                    this);
+        }
+
+        struct unistr_info *get_unistr_info(vteunistr c);
+        inline constexpr int width() const { return m_width; }
+        inline constexpr int height() const { return m_height; }
+        inline constexpr int ascent() const { return m_ascent; }
+
+private:
+
+        static gboolean destroy_delayed_cb(void* that)
+        {
+                auto info = reinterpret_cast<FontInfo*>(that);
+                info->m_destroy_timeout = 0;
+                delete info;
+                return false;
+        }
+
+        mutable int m_ref_count{1};
+
+        struct unistr_info* find_unistr_info(vteunistr c);
+        void cache_ascii();
+        void measure_font();
+        guint m_destroy_timeout{0}; /* only used when ref_count == 0 */
 
 	/* reusable layout set with font and everything set */
-	PangoLayout *layout;
+        vte::glib::RefPtr<PangoLayout> m_layout{};
 
 	/* cache of character info */
-	struct unistr_info ascii_unistr_info[128];
-	GHashTable *other_unistr_info;
+	struct unistr_info m_ascii_unistr_info[128];
+	GHashTable* m_other_unistr_info{nullptr};
 
         /* cell metrics as taken from the font, not yet scaled by cell_{width,height}_scale */
-	gint width, height, ascent;
+	int m_width{1};
+        int m_height{1};
+        int m_ascent{0};
 
 	/* reusable string for UTF-8 conversion */
-	GString *string;
+	GString* m_string{nullptr};
 
 #ifdef VTE_DEBUG
 	/* profiling info */
-	int coverage_count[4];
+	int m_coverage_count[4]{0, 0, 0, 0};
 #endif
-};
 
+public:
+        static FontInfo* find_for_context(PangoContext* context);
+        static FontInfo* create_for_context(PangoContext* context,
+                                            PangoFontDescription const* desc,
+                                            PangoLanguage* language,
+                                            guint fontconfig_timestamp);
+        static FontInfo *create_for_screen(GdkScreen* screen,
+                                           PangoFontDescription const* desc,
+                                           PangoLanguage* language);
+        static FontInfo *create_for_widget(GtkWidget* widget,
+                                           PangoFontDescription const* desc);
 
-static struct unistr_info *
-font_info_find_unistr_info (struct font_info    *info,
-			    vteunistr            c)
+private:
+        static inline GHashTable* s_font_info_for_context{nullptr};
+
+}; // class FontInfo
+
+struct unistr_info *
+FontInfo::find_unistr_info(vteunistr c)
 {
-	struct unistr_info *uinfo;
+	if (G_LIKELY (c < G_N_ELEMENTS(m_ascii_unistr_info)))
+		return &m_ascii_unistr_info[c];
 
-	if (G_LIKELY (c < G_N_ELEMENTS (info->ascii_unistr_info)))
-		return &info->ascii_unistr_info[c];
+	if (G_UNLIKELY (m_other_unistr_info == nullptr))
+		m_other_unistr_info = g_hash_table_new_full(nullptr, nullptr, nullptr, (GDestroyNotify)unistr_info_destroy);
 
-	if (G_UNLIKELY (info->other_unistr_info == NULL))
-		info->other_unistr_info = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) unistr_info_destroy);
-
-	uinfo = (struct unistr_info *)g_hash_table_lookup (info->other_unistr_info, GINT_TO_POINTER (c));
+	auto uinfo = (struct unistr_info *)g_hash_table_lookup(m_other_unistr_info, GINT_TO_POINTER (c));
 	if (G_LIKELY (uinfo))
 		return uinfo;
 
 	uinfo = unistr_info_create ();
-	g_hash_table_insert (info->other_unistr_info, GINT_TO_POINTER (c), uinfo);
+	g_hash_table_insert(m_other_unistr_info, GINT_TO_POINTER (c), uinfo);
 	return uinfo;
 }
 
-
-static void
-font_info_cache_ascii (struct font_info *info)
+void
+FontInfo::cache_ascii()
 {
 	PangoLayoutLine *line;
 	PangoGlyphItemIter iter;
@@ -290,23 +387,23 @@ font_info_cache_ascii (struct font_info *info)
 	gboolean more;
 	PangoLanguage *language;
 	gboolean latin_uses_default_language;
-	
-	/* We have info->layout holding most ASCII characters.  We want to
+
+	/* We have m_layout holding most ASCII characters.  We want to
 	 * cache as much info as we can about the ASCII letters so we don't
 	 * have to look them up again later */
 
 	/* Don't cache if unknown glyphs found in layout */
-	if (pango_layout_get_unknown_glyphs_count (info->layout) != 0)
+	if (pango_layout_get_unknown_glyphs_count(m_layout.get()) != 0)
 		return;
 
-	language = pango_context_get_language (pango_layout_get_context (info->layout));
-	if (language == NULL)
+	language = pango_context_get_language(pango_layout_get_context(m_layout.get()));
+	if (language == nullptr)
 		language = pango_language_get_default ();
 	latin_uses_default_language = pango_language_includes_script (language, PANGO_SCRIPT_LATIN);
 
-	text = pango_layout_get_text (info->layout);
+	text = pango_layout_get_text(m_layout.get());
 
-	line = pango_layout_get_line_readonly (info->layout, 0);
+	line = pango_layout_get_line_readonly(m_layout.get(), 0);
 
 	/* Don't cache if more than one font used for the line */
 	if (G_UNLIKELY (!line || !line->runs || line->runs->next))
@@ -352,14 +449,14 @@ font_info_cache_ascii (struct font_info *info)
 		if (!(glyph <= 0xFFFF) || (geometry->x_offset | geometry->y_offset) != 0)
 			continue;
 
-		uinfo = font_info_find_unistr_info (info, c);
+		uinfo = find_unistr_info(c);
 		if (G_UNLIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
 			continue;
 
 		ufi = &uinfo->ufi;
 
 		uinfo->width = PANGO_PIXELS_CEIL (geometry->width);
-		uinfo->has_unknown_chars = FALSE;
+		uinfo->has_unknown_chars = false;
 
 		uinfo->coverage = COVERAGE_USE_CAIRO_GLYPH;
 
@@ -367,20 +464,20 @@ font_info_cache_ascii (struct font_info *info)
 		ufi->using_cairo_glyph.glyph_index = glyph;
 
 #ifdef VTE_DEBUG
-		info->coverage_count[0]++;
-		info->coverage_count[uinfo->coverage]++;
+		m_coverage_count[0]++;
+		m_coverage_count[uinfo->coverage]++;
 #endif
 	}
 
 #ifdef VTE_DEBUG
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 			  "vtepangocairo: %p cached %d ASCII letters\n",
-			  info, info->coverage_count[0]);
+			  (void*)this, m_coverage_count[0]);
 #endif
 }
 
-static void
-font_info_measure_font (struct font_info *info)
+void
+FontInfo::measure_font()
 {
 	PangoRectangle logical;
 
@@ -394,156 +491,88 @@ font_info_measure_font (struct font_info *info)
         int max_width{1};
         int max_height{1};
         for (char c = 0x21; c < 0x7f; ++c) {
-                pango_layout_set_text(info->layout, &c, 1);
-                pango_layout_get_extents (info->layout, NULL, &logical);
+                pango_layout_set_text(m_layout.get(), &c, 1);
+                pango_layout_get_extents(m_layout.get(), nullptr, &logical);
                 max_width = std::max(max_width, PANGO_PIXELS_CEIL(logical.width));
                 max_height = std::max(max_height, PANGO_PIXELS_CEIL(logical.height));
         }
 
         /* Use the sample text to get the baseline */
-	pango_layout_set_text (info->layout, VTE_DRAW_SINGLE_WIDE_CHARACTERS, -1);
-	pango_layout_get_extents (info->layout, NULL, &logical);
+	pango_layout_set_text(m_layout.get(), VTE_DRAW_SINGLE_WIDE_CHARACTERS, -1);
+	pango_layout_get_extents(m_layout.get(), nullptr, &logical);
 	/* We don't do CEIL for width since we are averaging;
 	 * rounding is more accurate */
-	info->ascent = PANGO_PIXELS_CEIL (pango_layout_get_baseline (info->layout));
+	m_ascent = PANGO_PIXELS_CEIL(pango_layout_get_baseline(m_layout.get()));
 
-        info->height = max_height;
-        info->width = max_width;
+        m_height = max_height;
+        m_width = max_width;
 
 	/* Now that we shaped the entire ASCII character string, cache glyph
 	 * info for them */
-	font_info_cache_ascii (info);
+	cache_ascii();
 
-	if (info->height == 0) {
-		info->height = PANGO_PIXELS_CEIL (logical.height);
+	if (m_height == 0) {
+		m_height = PANGO_PIXELS_CEIL (logical.height);
 	}
-	if (info->ascent == 0) {
-		info->ascent = PANGO_PIXELS_CEIL (pango_layout_get_baseline (info->layout));
+	if (m_ascent == 0) {
+		m_ascent = PANGO_PIXELS_CEIL(pango_layout_get_baseline(m_layout.get()));
 	}
 
 	_vte_debug_print (VTE_DEBUG_MISC,
 			  "vtepangocairo: %p font metrics = %dx%d (%d)\n",
-			  info, info->width, info->height, info->ascent);
+			  (void*)this, m_width, m_height, m_ascent);
 }
 
-static struct font_info *
-font_info_allocate (PangoContext *context)
+FontInfo::FontInfo(PangoContext *context)
 {
-	struct font_info *info;
-	PangoTabArray *tabs;
-
-	info = g_slice_new0 (struct font_info);
-
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-			  "vtepangocairo: %p allocating font_info\n",
-			  info);
+			  "vtepangocairo: %p allocating FontInfo\n",
+			  (void*)this);
 
-	info->layout = pango_layout_new (context);
-	tabs = pango_tab_array_new_with_positions (1, FALSE, PANGO_TAB_LEFT, 1);
-	pango_layout_set_tabs (info->layout, tabs);
-	pango_tab_array_free (tabs);
+        memset(m_ascii_unistr_info, 0, sizeof(m_ascii_unistr_info));
 
-	info->string = g_string_sized_new (VTE_UTF8_BPC+1);
+	m_layout = vte::glib::take_ref(pango_layout_new(context));
 
-	font_info_measure_font (info);
+	auto tabs = pango_tab_array_new_with_positions(1, FALSE, PANGO_TAB_LEFT, 1);
+	pango_layout_set_tabs(m_layout.get(), tabs);
+	pango_tab_array_free(tabs);
 
-	return info;
+        // FIXME!!!
+	m_string = g_string_sized_new(VTE_UTF8_BPC+1);
+
+	measure_font();
+
+	g_hash_table_insert(s_font_info_for_context,
+                            pango_layout_get_context(m_layout.get()),
+                            this);
+
 }
 
-static void
-font_info_free (struct font_info *info)
+FontInfo::~FontInfo()
 {
+	g_hash_table_remove(s_font_info_for_context,
+                            pango_layout_get_context(m_layout.get()));
+
 	vteunistr i;
 
 #ifdef VTE_DEBUG
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 			  "vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d\n",
-			  info,
-			  info->coverage_count[0],
-			  info->coverage_count[1],
-			  info->coverage_count[2],
-			  info->coverage_count[3]);
+			  (void*)this,
+			  m_coverage_count[0],
+			  m_coverage_count[1],
+			  m_coverage_count[2],
+			  m_coverage_count[3]);
 #endif
 
-	g_string_free (info->string, TRUE);
-	g_object_unref (info->layout);
+	g_string_free(m_string, true);
 
-	for (i = 0; i < G_N_ELEMENTS (info->ascii_unistr_info); i++)
-		unistr_info_finish (&info->ascii_unistr_info[i]);
-		
-	if (info->other_unistr_info) {
-		g_hash_table_destroy (info->other_unistr_info);
+	for (i = 0; i < G_N_ELEMENTS(m_ascii_unistr_info); i++)
+		unistr_info_finish(&m_ascii_unistr_info[i]);
+
+	if (m_other_unistr_info) {
+		g_hash_table_destroy(m_other_unistr_info);
 	}
-
-	g_slice_free (struct font_info, info);
-}
-
-
-static GHashTable *font_info_for_context;
-
-static struct font_info *
-font_info_register (struct font_info *info)
-{
-	g_hash_table_insert (font_info_for_context,
-			     pango_layout_get_context (info->layout),
-			     info);
-
-	return info;
-}
-
-static void
-font_info_unregister (struct font_info *info)
-{
-	g_hash_table_remove (font_info_for_context,
-			     pango_layout_get_context (info->layout));
-}
-
-
-static struct font_info *
-font_info_reference (struct font_info *info)
-{
-	if (!info)
-		return info;
-
-	g_return_val_if_fail (info->ref_count >= 0, info);
-
-	if (info->destroy_timeout) {
-		g_source_remove (info->destroy_timeout);
-		info->destroy_timeout = 0;
-	}
-
-	info->ref_count++;
-
-	return info;
-}
-
-static gboolean
-font_info_destroy_delayed (struct font_info *info)
-{
-	info->destroy_timeout = 0;
-
-	font_info_unregister (info);
-	font_info_free (info);
-
-	return FALSE;
-}
-
-static void
-font_info_destroy (struct font_info *info)
-{
-	if (!info)
-		return;
-
-	g_return_if_fail (info->ref_count > 0);
-
-	info->ref_count--;
-	if (info->ref_count)
-		return;
-
-	/* Delay destruction by a few seconds, in case we need it again */
-	info->destroy_timeout = gdk_threads_add_timeout_seconds (FONT_CACHE_TIMEOUT,
-								 (GSourceFunc) font_info_destroy_delayed,
-								 info);
 }
 
 static GQuark
@@ -594,24 +623,22 @@ context_equal (PangoContext *a,
 	    && vte_pango_context_get_fontconfig_timestamp (a) == vte_pango_context_get_fontconfig_timestamp (b);
 }
 
-static struct font_info *
-font_info_find_for_context (PangoContext *context)
+// FIXMEchpe return vte::base::RefPtr<FontInfo>
+/* assumes ownership/reference of context */
+FontInfo*
+FontInfo::find_for_context(PangoContext* context)
 {
-	struct font_info *info;
+	if (G_UNLIKELY (s_font_info_for_context == nullptr))
+		s_font_info_for_context = g_hash_table_new((GHashFunc) context_hash, (GEqualFunc) context_equal);
 
-	if (G_UNLIKELY (font_info_for_context == NULL))
-		font_info_for_context = g_hash_table_new ((GHashFunc) context_hash, (GEqualFunc) context_equal);
-
-	info = (struct font_info *)g_hash_table_lookup (font_info_for_context, context);
-	if (G_LIKELY (info)) {
+	auto info = reinterpret_cast<FontInfo*>(g_hash_table_lookup(s_font_info_for_context, context));
+	if (G_LIKELY(info)) {
 		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 				  "vtepangocairo: %p found font_info in cache\n",
 				  info);
-		info = font_info_reference (info);
+		info = info->ref();
 	} else {
-		info = font_info_allocate (context);
-		info->ref_count = 1;
-		font_info_register (info);
+                info = new FontInfo(context);
 	}
 
 	g_object_unref (context);
@@ -620,11 +647,11 @@ font_info_find_for_context (PangoContext *context)
 }
 
 /* assumes ownership/reference of context */
-static struct font_info *
-font_info_create_for_context (PangoContext               *context,
-			      const PangoFontDescription *desc,
-			      PangoLanguage              *language,
-			      guint                       fontconfig_timestamp)
+FontInfo*
+FontInfo::create_for_context(PangoContext* context,
+                             PangoFontDescription const* desc,
+                             PangoLanguage* language,
+                             guint fontconfig_timestamp)
 {
 	if (!PANGO_IS_CAIRO_FONT_MAP (pango_context_get_font_map (context))) {
 		/* Ouch, Gtk+ switched over to some drawing system?
@@ -654,56 +681,54 @@ font_info_create_for_context (PangoContext               *context,
                 cairo_font_options_destroy (font_options);
         }
 
-	return font_info_find_for_context (context);
+	return find_for_context(context);
 }
 
-static struct font_info *
-font_info_create_for_screen (GdkScreen                  *screen,
-			     const PangoFontDescription *desc,
-			     PangoLanguage              *language)
+FontInfo*
+FontInfo::create_for_screen(GdkScreen* screen,
+                            PangoFontDescription const* desc,
+                            PangoLanguage* language)
 {
-	GtkSettings *settings = gtk_settings_get_for_screen (screen);
-	int fontconfig_timestamp;
+	auto settings = gtk_settings_get_for_screen(screen);
+	auto fontconfig_timestamp = guint{};
 	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
-	return font_info_create_for_context (gdk_pango_context_get_for_screen (screen),
-					     desc, language, fontconfig_timestamp);
+	return create_for_context(gdk_pango_context_get_for_screen(screen),
+                                  desc, language, fontconfig_timestamp);
 }
 
-static struct font_info *
-font_info_create_for_widget (GtkWidget                  *widget,
-			     const PangoFontDescription *desc)
+FontInfo*
+FontInfo::create_for_widget(GtkWidget* widget,
+                            PangoFontDescription const* desc)
 {
-	GdkScreen *screen = gtk_widget_get_screen (widget);
-	PangoLanguage *language = pango_context_get_language (gtk_widget_get_pango_context (widget));
+	auto screen = gtk_widget_get_screen(widget);
+	auto language = pango_context_get_language(gtk_widget_get_pango_context(widget));
 
-	return font_info_create_for_screen (screen, desc, language);
+	return create_for_screen(screen, desc, language);
 }
 
-static struct unistr_info *
-font_info_get_unistr_info (struct font_info *info,
-			   vteunistr c)
+struct unistr_info *
+FontInfo::get_unistr_info(vteunistr c)
 {
-	struct unistr_info *uinfo;
 	union unistr_font_info *ufi;
 	PangoRectangle logical;
 	PangoLayoutLine *line;
 
-	uinfo = font_info_find_unistr_info (info, c);
+	auto uinfo = find_unistr_info(c);
 	if (G_LIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
 		return uinfo;
 
 	ufi = &uinfo->ufi;
 
-	g_string_set_size (info->string, 0);
-	_vte_unistr_append_to_string (c, info->string);
-	pango_layout_set_text (info->layout, info->string->str, info->string->len);
-	pango_layout_get_extents (info->layout, NULL, &logical);
+	g_string_set_size(m_string, 0);
+	_vte_unistr_append_to_string(c, m_string);
+	pango_layout_set_text(m_layout.get(), m_string->str, m_string->len);
+	pango_layout_get_extents(m_layout.get(), NULL, &logical);
 
 	uinfo->width = PANGO_PIXELS_CEIL (logical.width);
 
-	line = pango_layout_get_line_readonly (info->layout, 0);
+	line = pango_layout_get_line_readonly(m_layout.get(), 0);
 
-	uinfo->has_unknown_chars = pango_layout_get_unknown_glyphs_count (info->layout) != 0;
+	uinfo->has_unknown_chars = pango_layout_get_unknown_glyphs_count(m_layout.get()) != 0;
 	/* we use PangoLayoutRun rendering unless there is exactly one run in the line. */
 	if (G_UNLIKELY (!line || !line->runs || line->runs->next))
 	{
@@ -712,8 +737,8 @@ font_info_get_unistr_info (struct font_info *info,
 		ufi->using_pango_layout_line.line = pango_layout_line_ref (line);
 		/* we hold a manual reference on layout.  pango currently
 		 * doesn't work if line->layout is NULL.  ugh! */
-		pango_layout_set_text (info->layout, "", -1); /* make layout disassociate from the line */
-		ufi->using_pango_layout_line.line->layout = (PangoLayout *)g_object_ref (info->layout);
+		pango_layout_set_text(m_layout.get(), "", -1); /* make layout disassociate from the line */
+		ufi->using_pango_layout_line.line->layout = (PangoLayout *)g_object_ref(m_layout.get());
 
 	} else {
 		PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
@@ -747,45 +772,15 @@ font_info_get_unistr_info (struct font_info *info,
 	}
 
 	/* release internal layout resources */
-	pango_layout_set_text (info->layout, "", -1);
+	pango_layout_set_text(m_layout.get(), "", -1);
 
 #ifdef VTE_DEBUG
-	info->coverage_count[0]++;
-	info->coverage_count[uinfo->coverage]++;
+	m_coverage_count[0]++;
+	m_coverage_count[uinfo->coverage]++;
 #endif
 
 	return uinfo;
 }
-
-guint _vte_draw_get_style(gboolean bold, gboolean italic) {
-	guint style = 0;
-	if (bold)
-		style |= VTE_DRAW_BOLD;
-	if (italic)
-		style |= VTE_DRAW_ITALIC;
-	return style;
-}
-
-static inline constexpr double
-_vte_draw_get_undercurl_rad(gint width)
-{
-        return width / 2. / sqrt(2);
-}
-
-static inline constexpr double
-_vte_draw_get_undercurl_arc_height(gint width)
-{
-        return _vte_draw_get_undercurl_rad(width) * (1. - sqrt(2) / 2.);
-}
-
-double
-_vte_draw_get_undercurl_height(gint width, double line_width)
-{
-        return 2. * _vte_draw_get_undercurl_arc_height(width) + line_width;
-}
-
-namespace vte {
-namespace view {
 
 DrawingContext::~DrawingContext()
 {
@@ -795,14 +790,13 @@ DrawingContext::~DrawingContext()
 void
 DrawingContext::clear_font_cache()
 {
-	/* Free all fonts (make sure to destroy every font only once)*/
-	for (auto style = int{3}; style >= 0; style--) {
-		if (m_fonts[style] != nullptr &&
-			(style == 0 || m_fonts[style] != m_fonts[style-1])) {
-			font_info_destroy(m_fonts[style]);
-			m_fonts[style] = nullptr;
-		}
-	}
+        // m_fonts = {};
+
+	for (auto style = int{0}; style < 4; ++style) {
+		if (m_fonts[style] != nullptr)
+                        m_fonts[style]->unref();
+                m_fonts[style] = nullptr;
+        }
 }
 
 void
@@ -854,10 +848,10 @@ DrawingContext::clear(int x,
 }
 
 void
-DrawingContext::set_text_font (GtkWidget* widget,
-                               PangoFontDescription const* fontdesc,
-                               double cell_width_scale,
-                               double cell_height_scale)
+DrawingContext::set_text_font(GtkWidget* widget,
+                              PangoFontDescription const* fontdesc,
+                              double cell_width_scale,
+                              double cell_height_scale)
 {
 	PangoFontDescription *bolddesc   = nullptr;
 	PangoFontDescription *italicdesc = nullptr;
@@ -880,11 +874,11 @@ DrawingContext::set_text_font (GtkWidget* widget,
 	bolditalicdesc = pango_font_description_copy (bolddesc);
 	pango_font_description_set_style (bolditalicdesc, PANGO_STYLE_ITALIC);
 
-	m_fonts[VTE_DRAW_NORMAL]  = font_info_create_for_widget (widget, fontdesc);
-	m_fonts[VTE_DRAW_BOLD]    = font_info_create_for_widget (widget, bolddesc);
-	m_fonts[VTE_DRAW_ITALIC]  = font_info_create_for_widget (widget, italicdesc);
+	m_fonts[VTE_DRAW_NORMAL]  = FontInfo::create_for_widget(widget, fontdesc);
+	m_fonts[VTE_DRAW_BOLD]    = FontInfo::create_for_widget(widget, bolddesc);
+	m_fonts[VTE_DRAW_ITALIC]  = FontInfo::create_for_widget(widget, italicdesc);
 	m_fonts[VTE_DRAW_ITALIC | VTE_DRAW_BOLD] =
-                font_info_create_for_widget (widget, bolditalicdesc);
+                FontInfo::create_for_widget(widget, bolditalicdesc);
 	pango_font_description_free (bolddesc);
 	pango_font_description_free (italicdesc);
 	pango_font_description_free (bolditalicdesc);
@@ -894,30 +888,30 @@ DrawingContext::set_text_font (GtkWidget* widget,
 	 */
 	normal = VTE_DRAW_NORMAL;
 	bold   = normal | VTE_DRAW_BOLD;
-	ratio = m_fonts[bold]->width * 100 / m_fonts[normal]->width;
+	ratio = m_fonts[bold]->width() * 100 / m_fonts[normal]->width();
 	if (abs(ratio - 100) > 10) {
 		_vte_debug_print (VTE_DEBUG_DRAW,
 			"Rejecting bold font (%i%%).\n", ratio);
-		font_info_destroy (m_fonts[bold]);
-		m_fonts[bold] = m_fonts[normal];
+                m_fonts[bold]->unref();
+                m_fonts[bold] = m_fonts[normal]->ref();
 	}
 	normal = VTE_DRAW_ITALIC;
 	bold   = normal | VTE_DRAW_BOLD;
-	ratio = m_fonts[bold]->width * 100 / m_fonts[normal]->width;
+	ratio = m_fonts[bold]->width() * 100 / m_fonts[normal]->width();
 	if (abs(ratio - 100) > 10) {
 		_vte_debug_print (VTE_DEBUG_DRAW,
 			"Rejecting italic bold font (%i%%).\n", ratio);
-		font_info_destroy (m_fonts[bold]);
-		m_fonts[bold] = m_fonts[normal];
+                m_fonts[bold]->unref();
+                m_fonts[bold] = m_fonts[normal]->ref();
 	}
 
         /* Apply letter spacing and line spacing. */
-        m_cell_width = m_fonts[VTE_DRAW_NORMAL]->width * cell_width_scale;
-        m_char_spacing.left = (m_cell_width - m_fonts[VTE_DRAW_NORMAL]->width) / 2;
-        m_char_spacing.right = (m_cell_width - m_fonts[VTE_DRAW_NORMAL]->width + 1) / 2;
-        m_cell_height = m_fonts[VTE_DRAW_NORMAL]->height * cell_height_scale;
-        m_char_spacing.top = (m_cell_height - m_fonts[VTE_DRAW_NORMAL]->height + 1) / 2;
-        m_char_spacing.bottom = (m_cell_height - m_fonts[VTE_DRAW_NORMAL]->height) / 2;
+        m_cell_width = m_fonts[VTE_DRAW_NORMAL]->width() * cell_width_scale;
+        m_char_spacing.left = (m_cell_width - m_fonts[VTE_DRAW_NORMAL]->width()) / 2;
+        m_char_spacing.right = (m_cell_width - m_fonts[VTE_DRAW_NORMAL]->width() + 1) / 2;
+        m_cell_height = m_fonts[VTE_DRAW_NORMAL]->height() * cell_height_scale;
+        m_char_spacing.top = (m_cell_height - m_fonts[VTE_DRAW_NORMAL]->height() + 1) / 2;
+        m_char_spacing.bottom = (m_cell_height - m_fonts[VTE_DRAW_NORMAL]->height()) / 2;
 
         m_undercurl_surface.reset();
 }
@@ -936,9 +930,9 @@ DrawingContext::get_text_metrics(int* cell_width,
         if (cell_height)
                 *cell_height = m_cell_height;
         if (char_ascent)
-                *char_ascent = m_fonts[VTE_DRAW_NORMAL]->ascent;
+                *char_ascent = m_fonts[VTE_DRAW_NORMAL]->ascent();
         if (char_descent)
-                *char_descent = m_fonts[VTE_DRAW_NORMAL]->height - m_fonts[VTE_DRAW_NORMAL]->ascent;
+                *char_descent = m_fonts[VTE_DRAW_NORMAL]->height() - m_fonts[VTE_DRAW_NORMAL]->ascent();
         if (char_spacing)
                 *char_spacing = m_char_spacing;
 }
@@ -980,8 +974,8 @@ DrawingContext::get_char_edges(vteunistr c,
                 return;
         }
 
-        w = font_info_get_unistr_info (m_fonts[style], c)->width;
-        normal_width = m_fonts[VTE_DRAW_NORMAL]->width * columns;
+        w = m_fonts[style]->get_unistr_info(c)->width;
+        normal_width = m_fonts[VTE_DRAW_NORMAL]->width() * columns;
         fits_width = m_cell_width * columns;
 
         if (G_LIKELY (w <= normal_width)) {
@@ -2097,7 +2091,7 @@ DrawingContext::draw_text_internal(struct _vte_draw_text_request *requests,
 	cairo_scaled_font_t *last_scaled_font = nullptr;
 	int n_cr_glyphs = 0;
 	cairo_glyph_t cr_glyphs[MAX_RUN_LENGTH];
-	struct font_info *font = m_fonts[style];
+	auto font = m_fonts[style];
 
 	g_return_if_fail (font != nullptr);
 
@@ -2117,11 +2111,11 @@ DrawingContext::draw_text_internal(struct _vte_draw_text_request *requests,
                                                         attr,
                                                         color,
                                                         requests[i].x, requests[i].y,
-                                                        font->width, requests[i].columns, font->height);
+                                     font->width(), requests[i].columns, font->height());
                         continue;
                 }
 
-		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
+		auto uinfo = font->get_unistr_info(c);
 		union unistr_font_info *ufi = &uinfo->ufi;
                 int x, y;
 
@@ -2129,7 +2123,7 @@ DrawingContext::draw_text_internal(struct _vte_draw_text_request *requests,
                 x += requests[i].x;
                 /* Bold/italic versions might have different ascents. In order to align their
                  * baselines, we offset by the normal font's ascent here. (Bug 137.) */
-                y = requests[i].y + m_char_spacing.top + m_fonts[VTE_DRAW_NORMAL]->ascent;
+                y = requests[i].y + m_char_spacing.top + m_fonts[VTE_DRAW_NORMAL]->ascent();
 
 		switch (uinfo->coverage) {
 		default:
@@ -2209,15 +2203,13 @@ bool
 DrawingContext::has_char(vteunistr c,
                          guint style)
 {
-	struct unistr_info *uinfo;
-
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s - %s)\n", c,
 				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
 				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
 
-	g_return_val_if_fail (m_fonts[VTE_DRAW_NORMAL] != nullptr, FALSE);
+	g_return_val_if_fail(m_fonts[style], false);
 
-	uinfo = font_info_get_unistr_info (m_fonts[style], c);
+	auto uinfo = m_fonts[style]->get_unistr_info(c);
 	return !uinfo->has_unknown_chars;
 }
 

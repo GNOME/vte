@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <array>
 #include <memory>
 
 #include <glib.h>
@@ -44,10 +45,10 @@ struct _vte_draw_text_request {
         guint8 box_mirror : 1;  /* Add box drawing chars to the set of mirrorable characters. */
 };
 
-struct font_info;
-
 namespace vte {
 namespace view {
+
+class FontInfo;
 
 class DrawingContext {
 public:
@@ -145,7 +146,8 @@ private:
                                 double alpha,
                                 guint style);
 
-	struct font_info *m_fonts[4]{nullptr, nullptr, nullptr, nullptr};
+        //        std::array<vte::base::RefPtr<FontInfo>, 4> m_fonts{};
+	FontInfo* m_fonts[4]{nullptr, nullptr, nullptr, nullptr};
         int m_cell_width{1};
         int m_cell_height{1};
         GtkBorder m_char_spacing{1, 1, 1, 1};
@@ -154,7 +156,7 @@ private:
 
         /* Cache the undercurl's rendered look. */
         std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> m_undercurl_surface{nullptr, nullptr};
-};
+}; // class DrawingContext
 
 } // namespace view
 } // namespace vte
