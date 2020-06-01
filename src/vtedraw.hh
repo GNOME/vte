@@ -84,8 +84,8 @@ public:
         void get_char_edges(vteunistr c,
                             int columns,
                             guint style,
-                            int* left,
-                            int* right);
+                            int& left,
+                            int& right);
         bool has_bold(guint style);
 
         void draw_text(struct _vte_draw_text_request *requests,

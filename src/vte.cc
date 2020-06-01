@@ -9049,7 +9049,7 @@ Terminal::paint_cursor()
 
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int l, r;
-                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, &l, &r);
+                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, l, r);
                                 left = MIN(left, l);
                                 right = MAX(right, r);
                         }
@@ -9067,8 +9067,8 @@ Terminal::paint_cursor()
 
                         cursor_width = item.columns * width;
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
-                                int r;
-                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, NULL, &r);
+                                int l, r;
+                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, l /* unused */, r);
                                 cursor_width = MAX(cursor_width, r);
 			}
 

@@ -953,24 +953,20 @@ void
 DrawingContext::get_char_edges(vteunistr c,
                                int columns,
                                guint style,
-                               int* left,
-                               int* right)
+                               int& left,
+                               int& right)
 {
         if (G_UNLIKELY(unichar_is_local_graphic (c))) {
-                if (left)
-                        *left = 0;
-                if (right)
-                        *right = m_cell_width * columns;
+                left = 0;
+                right = m_cell_width * columns;
                 return;
         }
 
         int l, w, normal_width, fits_width;
 
         if (G_UNLIKELY (m_fonts[VTE_DRAW_NORMAL] == nullptr)) {
-                if (left)
-                        *left = 0;
-                if (right)
-                        *right = 0;
+                left = 0;
+                right = 0;
                 return;
         }
 
@@ -991,10 +987,8 @@ DrawingContext::get_char_edges(vteunistr c,
                 l = 0;
         }
 
-        if (left)
-                *left = l;
-        if (right)
-                *right = l + w;
+        left = l;
+        right = l + w;
 }
 
 /* pixman data must have stride 0 mod 4 */
@@ -2117,9 +2111,9 @@ DrawingContext::draw_text_internal(struct _vte_draw_text_request *requests,
 
 		auto uinfo = font->get_unistr_info(c);
 		union unistr_font_info *ufi = &uinfo->ufi;
-                int x, y;
+                int x, y, ye;
 
-                get_char_edges(c, requests[i].columns, style, &x, nullptr);
+                get_char_edges(c, requests[i].columns, style, x, ye /* unused */);
                 x += requests[i].x;
                 /* Bold/italic versions might have different ascents. In order to align their
                  * baselines, we offset by the normal font's ascent here. (Bug 137.) */
