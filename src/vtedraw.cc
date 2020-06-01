@@ -86,7 +86,7 @@ _vte_double_equal(double a,
  * later.  It uses three different internal representations and respectively
  * three drawing paths:
  *
- *   - COVERAGE_USE_CAIRO_GLYPH:
+ *   - Coverage::USE_CAIRO_GLYPH:
  *     Keeping a single glyph index and a cairo scaled-font.  This is the
  *     fastest way to draw text as it bypasses Pango completely and allows
  *     for stuffing multiple glyphs into a single cairo_show_glyphs() request
@@ -96,7 +96,7 @@ _vte_double_equal(double a,
  *     than 99% of the cases.  Only exceptional cases fall through to the
  *     other two methods.
  *
- *   - COVERAGE_USE_PANGO_GLYPH_STRING:
+ *   - Coverage::USE_PANGO_GLYPH_STRING:
  *     Keeping a pango glyphstring and a pango font.  This is slightly slower
  *     than the previous case as drawing each glyph goes through pango
  *     separately and causes a separate cairo_show_glyphs() call.  This method
@@ -104,7 +104,7 @@ _vte_double_equal(double a,
  *     character all use a single font.  This is the method used for hexboxes
  *     and "empty" characters like U+200C ZERO WIDTH NON-JOINER for example.
  *
- *   - COVERAGE_USE_PANGO_LAYOUT_LINE:
+ *   - Coverage::USE_PANGO_LAYOUT_LINE:
  *     Keeping a pango layout line.  This method is used only in the very
  *     weird and exceptional case that a single vteunistr uses more than one
  *     font to be drawn.  This happens for example if some diacretics is not
@@ -135,7 +135,7 @@ _vte_double_equal(double a,
  * When initializing a font info struct we measure a string consisting of all
  * ASCII letters and some other ASCII characters.  Since we have a shaped pango
  * layout at hand, we walk over it and cache unistr font info for the ASCII
- * letters if we can do that easily using COVERAGE_USE_CAIRO_GLYPH.  This
+ * letters if we can do that easily using Coverage::USE_CAIRO_GLYPH.  This
  * means that we precache all ASCII letters without any extra pango shaping
  * involved.
  */
@@ -156,82 +156,6 @@ _vte_double_equal(double a,
  * xservers (notably fglrx), see bug #410534.
  */
 #define MAX_RUN_LENGTH 100
-
-
-enum unistr_coverage {
-	/* in increasing order of speed */
-	COVERAGE_UNKNOWN = 0,		/* we don't know about the character yet */
-	COVERAGE_USE_PANGO_LAYOUT_LINE,	/* use a PangoLayoutLine for the character */
-	COVERAGE_USE_PANGO_GLYPH_STRING,	/* use a PangoGlyphString for the character */
-	COVERAGE_USE_CAIRO_GLYPH	/* use a cairo_glyph_t for the character */
-};
-
-union unistr_font_info {
-	/* COVERAGE_USE_PANGO_LAYOUT_LINE */
-	struct {
-		PangoLayoutLine *line;
-	} using_pango_layout_line;
-	/* COVERAGE_USE_PANGO_GLYPH_STRING */
-	struct {
-		PangoFont *font;
-		PangoGlyphString *glyph_string;
-	} using_pango_glyph_string;
-	/* COVERAGE_USE_CAIRO_GLYPH */
-	struct {
-		cairo_scaled_font_t *scaled_font;
-		unsigned int glyph_index;
-	} using_cairo_glyph;
-};
-
-struct unistr_info {
-	guchar coverage;
-	guchar has_unknown_chars;
-	guint16 width;
-	union unistr_font_info ufi;
-};
-
-static struct unistr_info *
-unistr_info_create (void)
-{
-	return g_slice_new0 (struct unistr_info);
-}
-
-static void
-unistr_info_finish (struct unistr_info *uinfo)
-{
-	union unistr_font_info *ufi = &uinfo->ufi;
-
-	switch (uinfo->coverage) {
-	default:
-	case COVERAGE_UNKNOWN:
-		break;
-	case COVERAGE_USE_PANGO_LAYOUT_LINE:
-		/* we hold a manual reference on layout */
-		g_object_unref (ufi->using_pango_layout_line.line->layout);
-		ufi->using_pango_layout_line.line->layout = NULL;
-		pango_layout_line_unref (ufi->using_pango_layout_line.line);
-		ufi->using_pango_layout_line.line = NULL;
-		break;
-	case COVERAGE_USE_PANGO_GLYPH_STRING:
-		if (ufi->using_pango_glyph_string.font)
-			g_object_unref (ufi->using_pango_glyph_string.font);
-		ufi->using_pango_glyph_string.font = NULL;
-		pango_glyph_string_free (ufi->using_pango_glyph_string.glyph_string);
-		ufi->using_pango_glyph_string.glyph_string = NULL;
-		break;
-	case COVERAGE_USE_CAIRO_GLYPH:
-		cairo_scaled_font_destroy (ufi->using_cairo_glyph.scaled_font);
-		ufi->using_cairo_glyph.scaled_font = NULL;
-		break;
-	}
-}
-
-static void
-unistr_info_destroy (struct unistr_info *uinfo)
-{
-	unistr_info_finish (uinfo);
-	g_slice_free (struct unistr_info, uinfo);
-}
 
 guint _vte_draw_get_style(gboolean bold, gboolean italic) {
 	guint style = 0;
@@ -297,12 +221,82 @@ public:
                                                                     this);
         }
 
-        struct unistr_info *get_unistr_info(vteunistr c);
+        struct UnistrInfo {
+                enum class Coverage : uint8_t {
+                        /* in increasing order of speed */
+                        UNKNOWN = 0u,           /* we don't know about the character yet    */
+                        USE_PANGO_LAYOUT_LINE,  /* use a PangoLayoutLine for the character  */
+                        USE_PANGO_GLYPH_STRING, /* use a PangoGlyphString for the character */
+                        USE_CAIRO_GLYPH         /* use a cairo_glyph_t for the character    */
+                };
+
+                uint8_t m_coverage{uint8_t(Coverage::UNKNOWN)};
+                uint8_t has_unknown_chars;
+                uint16_t width;
+
+                inline constexpr Coverage coverage() const noexcept { return Coverage{m_coverage}; }
+                inline constexpr void set_coverage(Coverage coverage) { m_coverage = uint8_t(coverage); }
+
+                // FIXME: use std::variant<std::monostate, RefPtr<PangoLayoutLine>, ...> ?
+                union unistr_font_info {
+                        /* Coverage::USE_PANGO_LAYOUT_LINE */
+                        struct {
+                                PangoLayoutLine *line;
+                        } using_pango_layout_line;
+                        /* Coverage::USE_PANGO_GLYPH_STRING */
+                        struct {
+                                PangoFont *font;
+                                PangoGlyphString *glyph_string;
+                        } using_pango_glyph_string;
+                        /* Coverage::USE_CAIRO_GLYPH */
+                        struct {
+                                cairo_scaled_font_t *scaled_font;
+                                unsigned int glyph_index;
+                        } using_cairo_glyph;
+                } m_ufi;
+
+                UnistrInfo() noexcept = default;
+
+                ~UnistrInfo() noexcept
+                {
+                        switch (coverage()) {
+                        default:
+                        case Coverage::UNKNOWN:
+                                break;
+                        case Coverage::USE_PANGO_LAYOUT_LINE:
+                                /* we hold a manual reference on layout */
+                                g_object_unref (m_ufi.using_pango_layout_line.line->layout);
+                                m_ufi.using_pango_layout_line.line->layout = NULL;
+                                pango_layout_line_unref (m_ufi.using_pango_layout_line.line);
+                                m_ufi.using_pango_layout_line.line = NULL;
+                                break;
+                        case Coverage::USE_PANGO_GLYPH_STRING:
+                                if (m_ufi.using_pango_glyph_string.font)
+                                        g_object_unref (m_ufi.using_pango_glyph_string.font);
+                                m_ufi.using_pango_glyph_string.font = NULL;
+                                pango_glyph_string_free (m_ufi.using_pango_glyph_string.glyph_string);
+                                m_ufi.using_pango_glyph_string.glyph_string = NULL;
+                                break;
+                        case Coverage::USE_CAIRO_GLYPH:
+                                cairo_scaled_font_destroy (m_ufi.using_cairo_glyph.scaled_font);
+                                m_ufi.using_cairo_glyph.scaled_font = NULL;
+                                break;
+                        }
+                }
+
+        }; // struct UnistrInfo
+
+        UnistrInfo *get_unistr_info(vteunistr c);
         inline constexpr int width() const { return m_width; }
         inline constexpr int height() const { return m_height; }
         inline constexpr int ascent() const { return m_ascent; }
 
 private:
+
+        static void unistr_info_destroy(UnistrInfo* uinfo)
+        {
+                delete uinfo;
+        }
 
         static gboolean destroy_delayed_cb(void* that)
         {
@@ -314,7 +308,7 @@ private:
 
         mutable int m_ref_count{1};
 
-        struct unistr_info* find_unistr_info(vteunistr c);
+        UnistrInfo* find_unistr_info(vteunistr c);
         void cache_ascii();
         void measure_font();
         guint m_destroy_timeout{0}; /* only used when ref_count == 0 */
@@ -323,7 +317,9 @@ private:
         vte::glib::RefPtr<PangoLayout> m_layout{};
 
 	/* cache of character info */
-	struct unistr_info m_ascii_unistr_info[128];
+        // FIXME: use std::array<UnistrInfo, 128>
+	UnistrInfo m_ascii_unistr_info[128];
+        // FIXME: use std::unordered_map<vteunistr, UnistrInfo>
 	GHashTable* m_other_unistr_info{nullptr};
 
         /* cell metrics as taken from the font, not yet scaled by cell_{width,height}_scale */
@@ -332,6 +328,7 @@ private:
         int m_ascent{0};
 
 	/* reusable string for UTF-8 conversion */
+        // FIXME: use std::string
 	GString* m_string{nullptr};
 
 #ifdef VTE_DEBUG
@@ -356,7 +353,7 @@ private:
 
 }; // class FontInfo
 
-struct unistr_info *
+FontInfo::UnistrInfo*
 FontInfo::find_unistr_info(vteunistr c)
 {
 	if (G_LIKELY (c < G_N_ELEMENTS(m_ascii_unistr_info)))
@@ -365,11 +362,11 @@ FontInfo::find_unistr_info(vteunistr c)
 	if (G_UNLIKELY (m_other_unistr_info == nullptr))
 		m_other_unistr_info = g_hash_table_new_full(nullptr, nullptr, nullptr, (GDestroyNotify)unistr_info_destroy);
 
-	auto uinfo = (struct unistr_info *)g_hash_table_lookup(m_other_unistr_info, GINT_TO_POINTER (c));
+	auto uinfo = reinterpret_cast<UnistrInfo*>(g_hash_table_lookup(m_other_unistr_info, GINT_TO_POINTER(c)));
 	if (G_LIKELY (uinfo))
 		return uinfo;
 
-	uinfo = unistr_info_create ();
+	uinfo = new UnistrInfo{};
 	g_hash_table_insert(m_other_unistr_info, GINT_TO_POINTER (c), uinfo);
 	return uinfo;
 }
@@ -422,8 +419,6 @@ FontInfo::cache_ascii()
 	     more;
 	     more = pango_glyph_item_iter_next_cluster (&iter))
 	{
-		struct unistr_info *uinfo;
-		union unistr_font_info *ufi;
 	 	PangoGlyphGeometry *geometry;
 		PangoGlyph glyph;
 		vteunistr c;
@@ -449,23 +444,23 @@ FontInfo::cache_ascii()
 		if (!(glyph <= 0xFFFF) || (geometry->x_offset | geometry->y_offset) != 0)
 			continue;
 
-		uinfo = find_unistr_info(c);
-		if (G_UNLIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
+		auto uinfo = find_unistr_info(c);
+		if (G_UNLIKELY (uinfo->coverage() != UnistrInfo::Coverage::UNKNOWN))
 			continue;
 
-		ufi = &uinfo->ufi;
+		auto ufi = &uinfo->m_ufi;
 
 		uinfo->width = PANGO_PIXELS_CEIL (geometry->width);
 		uinfo->has_unknown_chars = false;
 
-		uinfo->coverage = COVERAGE_USE_CAIRO_GLYPH;
+		uinfo->set_coverage(UnistrInfo::Coverage::USE_CAIRO_GLYPH);
 
 		ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
 		ufi->using_cairo_glyph.glyph_index = glyph;
 
 #ifdef VTE_DEBUG
 		m_coverage_count[0]++;
-		m_coverage_count[uinfo->coverage]++;
+		m_coverage_count[(unsigned)uinfo->coverage()]++;
 #endif
 	}
 
@@ -529,6 +524,7 @@ FontInfo::FontInfo(PangoContext *context)
 			  "vtepangocairo: %p allocating FontInfo\n",
 			  (void*)this);
 
+        // FIXME: placement new
         memset(m_ascii_unistr_info, 0, sizeof(m_ascii_unistr_info));
 
 	m_layout = vte::glib::take_ref(pango_layout_new(context));
@@ -568,7 +564,7 @@ FontInfo::~FontInfo()
 	g_string_free(m_string, true);
 
 	for (i = 0; i < G_N_ELEMENTS(m_ascii_unistr_info); i++)
-		unistr_info_finish(&m_ascii_unistr_info[i]);
+		m_ascii_unistr_info[i].~UnistrInfo();
 
 	if (m_other_unistr_info) {
 		g_hash_table_destroy(m_other_unistr_info);
@@ -706,18 +702,17 @@ FontInfo::create_for_widget(GtkWidget* widget,
 	return create_for_screen(screen, desc, language);
 }
 
-struct unistr_info *
+FontInfo::UnistrInfo*
 FontInfo::get_unistr_info(vteunistr c)
 {
-	union unistr_font_info *ufi;
 	PangoRectangle logical;
 	PangoLayoutLine *line;
 
 	auto uinfo = find_unistr_info(c);
-	if (G_LIKELY (uinfo->coverage != COVERAGE_UNKNOWN))
+	if (G_LIKELY (uinfo->coverage() != UnistrInfo::Coverage::UNKNOWN))
 		return uinfo;
 
-	ufi = &uinfo->ufi;
+	auto ufi = &uinfo->m_ufi;
 
 	g_string_set_size(m_string, 0);
 	_vte_unistr_append_to_string(c, m_string);
@@ -732,7 +727,7 @@ FontInfo::get_unistr_info(vteunistr c)
 	/* we use PangoLayoutRun rendering unless there is exactly one run in the line. */
 	if (G_UNLIKELY (!line || !line->runs || line->runs->next))
 	{
-		uinfo->coverage = COVERAGE_USE_PANGO_LAYOUT_LINE;
+		uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_LAYOUT_LINE);
 
 		ufi->using_pango_layout_line.line = pango_layout_line_ref (line);
 		/* we hold a manual reference on layout.  pango currently
@@ -755,7 +750,7 @@ FontInfo::get_unistr_info(vteunistr c)
 			cairo_scaled_font_t *scaled_font = pango_cairo_font_get_scaled_font ((PangoCairoFont *) pango_font);
 
 			if (scaled_font) {
-				uinfo->coverage = COVERAGE_USE_CAIRO_GLYPH;
+				uinfo->set_coverage(UnistrInfo::Coverage::USE_CAIRO_GLYPH);
 
 				ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
 				ufi->using_cairo_glyph.glyph_index = glyph_string->glyphs[0].glyph;
@@ -763,8 +758,8 @@ FontInfo::get_unistr_info(vteunistr c)
 		}
 
 		/* use pango fast path otherwise */
-		if (G_UNLIKELY (uinfo->coverage == COVERAGE_UNKNOWN)) {
-			uinfo->coverage = COVERAGE_USE_PANGO_GLYPH_STRING;
+		if (G_UNLIKELY (uinfo->coverage() == UnistrInfo::Coverage::UNKNOWN)) {
+			uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING);
 
 			ufi->using_pango_glyph_string.font = pango_font ? (PangoFont *)g_object_ref (pango_font) : NULL;
 			ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
@@ -776,7 +771,7 @@ FontInfo::get_unistr_info(vteunistr c)
 
 #ifdef VTE_DEBUG
 	m_coverage_count[0]++;
-	m_coverage_count[uinfo->coverage]++;
+	m_coverage_count[uinfo->m_coverage]++;
 #endif
 
 	return uinfo;
@@ -2110,7 +2105,7 @@ DrawingContext::draw_text_internal(TextRequest* requests,
                 }
 
 		auto uinfo = font->get_unistr_info(c);
-		union unistr_font_info *ufi = &uinfo->ufi;
+		auto ufi = &uinfo->m_ufi;
                 int x, y, ye;
 
                 get_char_edges(c, requests[i].columns, style, x, ye /* unused */);
@@ -2119,23 +2114,23 @@ DrawingContext::draw_text_internal(TextRequest* requests,
                  * baselines, we offset by the normal font's ascent here. (Bug 137.) */
                 y = requests[i].y + m_char_spacing.top + m_fonts[VTE_DRAW_NORMAL]->ascent();
 
-		switch (uinfo->coverage) {
+		switch (uinfo->coverage()) {
 		default:
-		case COVERAGE_UNKNOWN:
+		case FontInfo::UnistrInfo::Coverage::UNKNOWN:
 			g_assert_not_reached ();
 			break;
-		case COVERAGE_USE_PANGO_LAYOUT_LINE:
+		case FontInfo::UnistrInfo::Coverage::USE_PANGO_LAYOUT_LINE:
 			cairo_move_to(m_cr, x, y);
 			pango_cairo_show_layout_line(m_cr,
 						      ufi->using_pango_layout_line.line);
 			break;
-		case COVERAGE_USE_PANGO_GLYPH_STRING:
+		case FontInfo::UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING:
 			cairo_move_to(m_cr, x, y);
 			pango_cairo_show_glyph_string(m_cr,
 						       ufi->using_pango_glyph_string.font,
 						       ufi->using_pango_glyph_string.glyph_string);
 			break;
-		case COVERAGE_USE_CAIRO_GLYPH:
+		case FontInfo::UnistrInfo::Coverage::USE_CAIRO_GLYPH:
 			if (last_scaled_font != ufi->using_cairo_glyph.scaled_font || n_cr_glyphs == MAX_RUN_LENGTH) {
 				if (n_cr_glyphs) {
 					cairo_set_scaled_font(m_cr, last_scaled_font);
