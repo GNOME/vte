@@ -889,10 +889,8 @@ public:
                 return int(m_overline_position + m_overline_thickness);
         }
 
-	/* Data used when rendering the text which reflects server resources
-	 * and data, which should be dropped when unrealizing and (re)created
-	 * when realizing. */
-        struct _vte_draw *m_draw;
+	/* Data used when rendering */
+        vte::view::DrawingContext m_draw{};
         bool m_clear_background{true};
 
         VtePaletteColor m_palette[VTE_PALETTE_SIZE];

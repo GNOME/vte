@@ -1,10 +1,11 @@
 /*
  * Copyright (C) 2003 Red Hat, Inc.
+ * Copyright © 2020 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 3 of the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,10 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* The interfaces in this file are subject to change at any time. */
+#pragma once
 
-#ifndef vte_vtedraw_h_included
-#define vte_vtedraw_h_included
+#include <memory>
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -27,15 +27,11 @@
 #include "vteunistr.h"
 #include "vtetypes.hh"
 
-G_BEGIN_DECLS
-
 #define VTE_DRAW_OPAQUE (1.0)
 
 #define VTE_DRAW_NORMAL 0
 #define VTE_DRAW_BOLD   1
 #define VTE_DRAW_ITALIC 2
-
-struct _vte_draw;
 
 /* A request to draw a particular character spanning a given number of columns
    at the given location.  Unlike most APIs, (x,y) specifies the top-left
@@ -48,84 +44,284 @@ struct _vte_draw_text_request {
         guint8 box_mirror : 1;  /* Add box drawing chars to the set of mirrorable characters. */
 };
 
-guint _vte_draw_get_style(gboolean bold, gboolean italic);
+struct font_info;
+
+namespace vte {
+namespace view {
+
+class DrawingContext {
+public:
+        DrawingContext() noexcept = default;
+        ~DrawingContext();
+
+        DrawingContext(DrawingContext const&) = delete;
+        DrawingContext(DrawingContext&&) = delete;
+        DrawingContext& operator=(DrawingContext const&) = delete;
+        DrawingContext& operator=(DrawingContext&&) = delete;
+
+        void set_cairo(cairo_t* cr) noexcept;
+
+        void clip(cairo_rectangle_int_t const* rect);
+        void unclip();
+
+        void clear(int x,
+                   int y,
+                   int width,
+                   int height,
+                   vte::color::rgb const* color,
+                   double alpha);
+        void clear_font_cache();
+        void set_text_font(GtkWidget* widget,
+                           PangoFontDescription const* fontdesc,
+                           double cell_width_scale,
+                           double cell_height_scale);
+        void get_text_metrics(int* cell_width,
+                              int* cell_height,
+                              int* char_ascent,
+                              int* char_descent,
+                              GtkBorder* char_spacing);
+        void get_char_edges(vteunistr c,
+                            int columns,
+                            guint style,
+                            int* left,
+                            int* right);
+        bool has_bold(guint style);
+
+        void draw_text(struct _vte_draw_text_request *requests,
+                       gsize n_requests,
+                       uint32_t attr,
+                       vte::color::rgb const* color,
+                       double alpha,
+                       guint style);
+        bool draw_char(struct _vte_draw_text_request *request,
+                       uint32_t attr,
+                       vte::color::rgb const* color,
+                       double alpha,
+                       guint style);
+        bool has_char(vteunistr c,
+                      guint style);
+        void fill_rectangle(int x,
+                            int y,
+                            int width,
+                            int height,
+                            vte::color::rgb const* color,
+                            double alpha);
+        void draw_rectangle(int x,
+                            int y,
+                            int width,
+                            int height,
+                            vte::color::rgb const* color,
+                            double alpha);
+        void draw_line(int x,
+                       int y,
+                       int xp,
+                       int yp,
+                       int line_width,
+                       vte::color::rgb const *color,
+                       double alpha);
+
+        void draw_undercurl(int x,
+                            double y,
+                            double line_width,
+                            int count,
+                            vte::color::rgb const* color,
+                            double alpha);
+
+private:
+        void set_source_color_alpha (vte::color::rgb const* color,
+                                     double alpha);
+        void draw_graphic(vteunistr c,
+                          uint32_t attr,
+                          vte::color::rgb const* fg,
+                          int x,
+                          int y,
+                          int font_width,
+                          int columns,
+                          int font_height);
+        void draw_text_internal(struct _vte_draw_text_request *requests,
+                                gsize n_requests,
+                                uint32_t attr,
+                                vte::color::rgb const* color,
+                                double alpha,
+                                guint style);
+
+	struct font_info *m_fonts[4]{nullptr, nullptr, nullptr, nullptr};
+        int m_cell_width{1};
+        int m_cell_height{1};
+        GtkBorder m_char_spacing{1, 1, 1, 1};
+
+	cairo_t *m_cr{nullptr}; // unowned
+
+        /* Cache the undercurl's rendered look. */
+        std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> m_undercurl_surface{nullptr, nullptr};
+};
+
+} // namespace view
+} // namespace vte
 
 /* Create and destroy a draw structure. */
-struct _vte_draw *_vte_draw_new(void);
-void _vte_draw_free(struct _vte_draw *draw);
 
-void _vte_draw_set_cairo(struct _vte_draw *draw,
-                         cairo_t *cr);
+static inline void _vte_draw_set_cairo(vte::view::DrawingContext& ctx,
+                                       cairo_t *cr)
+{
+        ctx.set_cairo(cr);
+}
 
-void _vte_draw_clip(struct _vte_draw *draw,
-                    cairo_rectangle_int_t const* rect);
+static inline void _vte_draw_clip(vte::view::DrawingContext& ctx,
+                                  cairo_rectangle_int_t const* rect)
+{
+        ctx.clip(rect);
+}
 
-void _vte_draw_unclip(struct _vte_draw *draw);
+static inline void _vte_draw_unclip(vte::view::DrawingContext& ctx)
+{
+        ctx.unclip();
+}
 
-void _vte_draw_clear(struct _vte_draw *draw,
-		     gint x, gint y, gint width, gint height,
-                     vte::color::rgb const* color, double alpha);
+static inline void _vte_draw_clear(vte::view::DrawingContext& ctx,
+                                   int x,
+                                   int y,
+                                   int width,
+                                   int height,
+                                   vte::color::rgb const* color,
+                                   double alpha)
+{
+        ctx.clear(x, y, width, height, color, alpha);
+}
 
-void _vte_draw_set_text_font(struct _vte_draw *draw,
-                             GtkWidget *widget,
-                             const PangoFontDescription *fontdesc,
-                             double cell_width_scale, double cell_height_scale);
-void _vte_draw_get_text_metrics(struct _vte_draw *draw,
-                                int *cell_width, int *cell_height,
-                                int *char_ascent, int *char_descent,
-                                GtkBorder *char_spacing);
-void _vte_draw_get_char_edges (struct _vte_draw *draw, vteunistr c, int columns, guint style,
-                               int *left, int *right);
+static inline void _vte_draw_clear_font_cache(vte::view::DrawingContext& ctx)
+{
+        ctx.clear_font_cache();
+}
 
-void _vte_draw_text(struct _vte_draw *draw,
-		    struct _vte_draw_text_request *requests, gsize n_requests,
-                    uint32_t attr,
-		    vte::color::rgb const* color, double alpha, guint style);
-gboolean _vte_draw_char(struct _vte_draw *draw,
-			struct _vte_draw_text_request *request,
-                        uint32_t attr,
-			vte::color::rgb const* color, double alpha, guint style);
-gboolean _vte_draw_has_char(struct _vte_draw *draw, vteunistr c, guint style);
+static inline void _vte_draw_set_text_font(vte::view::DrawingContext& ctx,
+                                           GtkWidget* widget,
+                                           PangoFontDescription const* fontdesc,
+                                           double cell_width_scale,
+                                           double cell_height_scale)
+{
+        ctx.set_text_font(widget, fontdesc, cell_width_scale, cell_height_scale);
+}
 
-void _vte_draw_fill_rectangle(struct _vte_draw *draw,
-			      gint x, gint y, gint width, gint height,
-			      vte::color::rgb const* color, double alpha);
-void _vte_draw_draw_rectangle(struct _vte_draw *draw,
-			      gint x, gint y, gint width, gint height,
-			      vte::color::rgb const* color, double alpha);
+static inline void _vte_draw_get_text_metrics(vte::view::DrawingContext& ctx,
+                                              int* cell_width,
+                                              int* cell_height,
+                                              int* char_ascent,
+                                              int* char_descent,
+                                              GtkBorder* char_spacing)
+{
+        ctx.get_text_metrics(cell_width, cell_height,
+                             char_ascent, char_descent,
+                             char_spacing);
+}
 
-void _vte_draw_draw_line(struct _vte_draw *draw,
-                         gint x, gint y, gint xp, gint yp,
-                         int line_width,
-                         vte::color::rgb const *color, double alpha);
+static inline void _vte_draw_get_char_edges(vte::view::DrawingContext& ctx,
+                                            vteunistr c,
+                                            int columns,
+                                            guint style,
+                                            int* left,
+                                            int* right)
+{
+        ctx.get_char_edges(c, columns, style, left, right);
+}
+
+static inline gboolean _vte_draw_has_bold(vte::view::DrawingContext& ctx,
+                                          guint style)
+{
+        return ctx.has_bold(style);
+}
+
+static inline void _vte_draw_text(vte::view::DrawingContext& ctx,
+                                  struct _vte_draw_text_request *requests,
+                                  gsize n_requests,
+                                  uint32_t attr,
+                                  vte::color::rgb const* color,
+                                  double alpha,
+                                  guint style)
+{
+        ctx.draw_text(requests, n_requests, attr, color, alpha, style);
+}
+
+static inline gboolean _vte_draw_char(vte::view::DrawingContext& ctx,
+                                      struct _vte_draw_text_request *request,
+                                      uint32_t attr,
+                                      vte::color::rgb const* color,
+                                      double alpha,
+                                      guint style)
+{
+        return ctx.draw_char(request, attr, color, alpha, style);
+}
+
+static inline gboolean _vte_draw_has_char(vte::view::DrawingContext& ctx,
+                                          vteunistr c,
+                                          guint style)
+{
+        return ctx.has_char(c, style);
+}
+
+static inline void _vte_draw_fill_rectangle(vte::view::DrawingContext& ctx,
+                                            int x,
+                                            int y,
+                                            int width,
+                                            int height,
+                                            vte::color::rgb const* color,
+                                            double alpha)
+{
+        ctx.fill_rectangle(x, y, width, height, color, alpha);
+}
+
+static inline void _vte_draw_draw_rectangle(vte::view::DrawingContext& ctx,
+                                            int x,
+                                            int y,
+                                            int width,
+                                            int height,
+                                            vte::color::rgb const* color,
+                                            double alpha)
+{
+        ctx.draw_rectangle(x, y, width, height, color, alpha);
+}
+
+static inline void _vte_draw_draw_line(vte::view::DrawingContext& ctx,
+                                       int x,
+                                       int y,
+                                       int xp,
+                                       int yp,
+                                       int line_width,
+                                       vte::color::rgb const *color,
+                                       double alpha)
+{
+        ctx.draw_line(x, y, xp, yp, line_width, color, alpha);
+}
+
+static inline void _vte_draw_draw_undercurl(vte::view::DrawingContext& ctx,
+                                            int x,
+                                            double y,
+                                            double line_width,
+                                            int count,
+                                            vte::color::rgb const* color,
+                                            double alpha)
+{
+        ctx.draw_undercurl(x, y, line_width, count, color, alpha);
+}
+
+guint _vte_draw_get_style(gboolean bold, gboolean italic);
 
 double
 _vte_draw_get_undercurl_height(gint width, double line_width);
 
-void
-_vte_draw_draw_undercurl(struct _vte_draw *draw,
-                         gint x, double y,
-                         double line_width,
-                         gint count,
-                         vte::color::rgb const *color, double alpha);
-
-G_END_DECLS
-
 class _vte_draw_autoclip_t {
 private:
-        struct _vte_draw* m_draw;
+        vte::view::DrawingContext& m_draw;
 public:
-        _vte_draw_autoclip_t(struct _vte_draw* draw,
+        _vte_draw_autoclip_t(vte::view::DrawingContext& draw,
                              cairo_rectangle_int_t const* rect)
                 : m_draw{draw}
         {
-                _vte_draw_clip(m_draw, rect);
+                m_draw.clip(rect);
         }
 
         ~_vte_draw_autoclip_t()
         {
-                _vte_draw_unclip(m_draw);
+                m_draw.unclip();
         }
 };
-
-#endif

@@ -7234,7 +7234,7 @@ Terminal::apply_font_metrics(int cell_width,
 void
 Terminal::ensure_font()
 {
-	if (m_draw != NULL) {
+	{
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!m_has_fonts) {
 			set_font_desc(m_unscaled_font_desc.get());
@@ -7744,9 +7744,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_match_span.clear(); // FIXMEchpe unnecessary
 	match_hilite_clear(); // FIXMEchpe unnecessary
 
-	/* Rendering data */
-	m_draw = _vte_draw_new();
-
         /* Word chars */
         set_word_char_exceptions(WORD_CHAR_EXCEPTIONS_DEFAULT);
 
@@ -7892,11 +7889,8 @@ Terminal::widget_unrealize()
 
 	m_im_preedit_active = FALSE;
 
-	/* Clean up our draw structure. */
-	if (m_draw != NULL) {
-		_vte_draw_free(m_draw);
-		m_draw = NULL;
-	}
+	/* Drop font cache */
+        m_draw.clear_font_cache();
 	m_fontdirty = true;
 
         /* Remove the cursor blink timeout function. */
@@ -7953,11 +7947,6 @@ Terminal::~Terminal()
 
         /* Stop processing input. */
         stop_processing(this);
-
-	/* Free the draw structure. */
-	if (m_draw != NULL) {
-		_vte_draw_free(m_draw);
-	}
 
 	/* Free matching data. */
 	if (m_match_attributes != NULL) {
@@ -8020,16 +8009,12 @@ Terminal::widget_realize()
 {
         m_mouse_cursor_over_widget = FALSE;  /* We'll receive an enter_notify_event if the window appears under the cursor. */
 
-	/* Create rendering data if this is a re-realise */
-        if (m_draw == NULL) {
-                m_draw = _vte_draw_new();
-        }
-
 	m_im_preedit_active = FALSE;
 
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
+        // Create the font cache
 	ensure_font();
 }
 
@@ -9291,7 +9276,7 @@ Terminal::widget_draw(cairo_t *cr)
 	cairo_restore(cr);
 
 	/* Done with various structures. */
-	_vte_draw_set_cairo(m_draw, NULL);
+	_vte_draw_set_cairo(m_draw, nullptr);
 
         cairo_region_destroy (region);
 
