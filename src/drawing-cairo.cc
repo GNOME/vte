@@ -1,43 +1,29 @@
 /*
  * Copyright (C) 2003,2008 Red Hat, Inc.
- * Copyright © 2019 Christian Persch
+ * Copyright © 2019, 2020 Christian Persch
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 3 of the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
 
-#include <algorithm>
-#include <math.h>
+#include <cmath>
 
-#include <stdlib.h>
-#include <string.h>
-
-#include <glib.h>
-#include <gtk/gtk.h>
-
-#include "attr.hh"
 #include "bidi.hh"
-#include "vtedraw.hh"
-#include "vtedefines.hh"
 #include "debug.h"
-
-#include <pango/pangocairo.h>
-
+#include "drawing-cairo.hh"
 #include "fonts-pangocairo.hh"
-#include "refptr.hh"
 
 #define VTE_DRAW_NORMAL 0
 #define VTE_DRAW_BOLD   1
@@ -63,13 +49,13 @@ guint _vte_draw_get_style(gboolean bold, gboolean italic) {
 static inline constexpr double
 _vte_draw_get_undercurl_rad(gint width)
 {
-        return width / 2. / sqrt(2);
+        return width / 2. / M_SQRT2;
 }
 
 static inline constexpr double
 _vte_draw_get_undercurl_arc_height(gint width)
 {
-        return _vte_draw_get_undercurl_rad(width) * (1. - sqrt(2) / 2.);
+        return _vte_draw_get_undercurl_rad(width) * (1. - M_SQRT2 / 2.);
 }
 
 double

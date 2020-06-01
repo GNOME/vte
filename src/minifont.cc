@@ -22,8 +22,8 @@
 
 #include <cairo.h>
 
+#include "drawing-cairo.hh"
 #include "minifont.hh"
-#include "vtedraw.hh"
 
 /* pixman data must have stride 0 mod 4 */
 static unsigned char const hatching_pattern_lr_data[16] = {

@@ -39,7 +39,6 @@
 #include "bidi.hh"
 #include "buffer.h"
 #include "debug.h"
-#include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
 #include "ringview.hh"

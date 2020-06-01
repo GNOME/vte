@@ -33,9 +33,9 @@
 #include <glib.h>
 #include "glib-glue.hh"
 
+#include "drawing-cairo.hh"
 #include "vtedefines.hh"
 #include "vtetypes.hh"
-#include "vtedraw.hh"
 #include "reaper.hh"
 #include "ring.hh"
 #include "ringview.hh"
@@ -853,7 +853,7 @@ public:
         /* First, the dimensions of ASCII characters are measured. The result
          * could probably be called char_{width,height} or font_{width,height}
          * but these aren't stored directly here, not to accidentally be confused
-         * with m_cell_{width_height}. The values are stored in vtedraw's font_info.
+         * with m_cell_{width_height}. The values are stored in FontInfo.
          *
          * Then in case of nondefault m_cell_{width,height}_scale an additional
          * m_char_padding is added, resulting in m_cell_{width,height} which are
