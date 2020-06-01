@@ -31,4 +31,11 @@ class Widget;
 
 } // namespace platform
 
+namespace view {
+
+class FontInfo;
+class DrawingContext;
+
+} // namespace view
+
 } // namespace vte

@@ -104,6 +104,8 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'chunk.hh',
   'color-triple.hh',
   'cxx-utils.hh',
+  'fonts-pangocairo.cc',
+  'fonts-pangocairo.hh',
   'gobject-glue.hh',
   'keymap.cc',
   'keymap.h',
