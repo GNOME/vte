@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <exception>
 #include <type_traits>
+#include <memory>
 
 namespace vte {
 
@@ -41,5 +42,18 @@ void log_exception(char const* func = __builtin_FUNCTION(),
 #else
 inline void log_exception() noexcept { }
 #endif
+
+template <typename T, typename D, D func>
+class FreeableDeleter {
+public:
+        void operator()(T* obj) const
+        {
+                if (obj)
+                        func(obj);
+        }
+};
+
+template <typename T, typename D, D func>
+using FreeablePtr = std::unique_ptr<T, FreeableDeleter<T, D, func>>;
 
 } // namespace vte

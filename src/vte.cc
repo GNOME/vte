@@ -7277,7 +7277,7 @@ Terminal::update_font()
                 pango_font_description_set_size(desc, m_font_scale * size);
         }
 
-        m_fontdesc = {desc, &pango_font_description_free};
+        m_fontdesc.reset(desc); /* adopts */
         m_fontdirty = true;
         m_has_fonts = true;
 
@@ -7334,7 +7334,7 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 	 * detected at font creation time and respected.
 	 */
 
-        m_unscaled_font_desc = {desc, &pango_font_description_free};
+        m_unscaled_font_desc.reset(desc); /* adopts */
         update_font();
 
         return !same_desc;

@@ -843,9 +843,9 @@ public:
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
-        using pango_font_description_unique_type = std::unique_ptr<PangoFontDescription, decltype(&pango_font_description_free)>;
-        pango_font_description_unique_type m_unscaled_font_desc{nullptr, &pango_font_description_free};
-        pango_font_description_unique_type  m_fontdesc{nullptr, &pango_font_description_free};
+        using pango_font_description_type = vte::FreeablePtr<PangoFontDescription, decltype(&pango_font_description_free), &pango_font_description_free>;
+        pango_font_description_type m_unscaled_font_desc{};
+        pango_font_description_type  m_fontdesc{};
         double m_font_scale{1.};
 
         auto unscaled_font_description() const noexcept { return m_unscaled_font_desc.get(); }

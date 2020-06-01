@@ -25,6 +25,8 @@
 
 #include "vtepcre2.h"
 
+#include "cxx-utils.hh"
+
 namespace vte {
 
 namespace base {
@@ -45,13 +47,16 @@ public:
 
 private:
         mutable volatile int m_refcount{1};
-        std::unique_ptr<pcre2_code_8, decltype(&pcre2_code_free_8)> m_code;
+
+        using code_type = vte::FreeablePtr<pcre2_code_8, decltype(&pcre2_code_free_8), &pcre2_code_free_8>;
+        code_type m_code{};
+
         Purpose m_purpose;
 
 public:
         Regex(pcre2_code_8* code,
               Purpose purpose) noexcept :
-                m_code{code, &pcre2_code_free_8},
+                m_code{code},
                 m_purpose{purpose}
         { }
 

@@ -521,11 +521,10 @@ DrawingContext::draw_undercurl(int x,
                                   "caching undercurl shape\n");
 
                 /* Add a line_width of margin horizontally on both sides, for nice antialias overflowing. */
-                m_undercurl_surface = {cairo_surface_create_similar (cairo_get_target (m_cr),
-                                                                     CAIRO_CONTENT_ALPHA,
-                                                                     m_cell_width + 2 * x_padding,
-                                                                     surface_bottom - surface_top),
-                                       &cairo_surface_destroy};
+                m_undercurl_surface.reset(cairo_surface_create_similar (cairo_get_target (m_cr),
+                                                                        CAIRO_CONTENT_ALPHA,
+                                                                        m_cell_width + 2 * x_padding,
+                                                                        surface_bottom - surface_top));
                 undercurl_cr = cairo_create (m_undercurl_surface.get());
                 cairo_set_operator (undercurl_cr, CAIRO_OPERATOR_OVER);
                 /* First quarter circle, similar to the left half of the tilde symbol. */

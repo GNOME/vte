@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#include "cairo-glue.hh"
 #include "fwd.hh"
 #include "minifont.hh"
 #include "vtetypes.hh"
@@ -157,7 +158,8 @@ private:
         Minifont m_minifont{};
 
         /* Cache the undercurl's rendered look. */
-        std::unique_ptr<cairo_surface_t, decltype(&cairo_surface_destroy)> m_undercurl_surface{nullptr, nullptr};
+        vte::cairo::Surface m_undercurl_surface{};
+
 }; // class DrawingContext
 
 } // namespace view

@@ -477,7 +477,7 @@ Widget::realize() noexcept
         gtk_widget_register_window(m_widget, m_event_window);
 
         assert(!m_im_context);
-	m_im_context = gtk_im_multicontext_new();
+	m_im_context.reset(gtk_im_multicontext_new());
 #if GTK_CHECK_VERSION (3, 24, 14)
         g_object_set(m_im_context.get(),
                      "input-purpose", GTK_INPUT_PURPOSE_TERMINAL,

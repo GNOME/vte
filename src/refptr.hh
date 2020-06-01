@@ -20,19 +20,14 @@
 #include <memory>
 #include <glib-object.h>
 
+#include "cxx-utils.hh"
+
 namespace vte {
 
 namespace glib {
 
-template <typename T>
-class RefPtr : public std::unique_ptr<T, decltype(&g_object_unref)>
-{
-private:
-        using base_type = std::unique_ptr<T, decltype(&g_object_unref)>;
-
-public:
-        RefPtr(T* obj = nullptr) : base_type{obj, &g_object_unref} { }
-};
+template<typename T>
+using RefPtr = vte::FreeablePtr<T, decltype(&g_object_unref), &g_object_unref>;
 
 template<typename T>
 RefPtr<T>
@@ -40,7 +35,7 @@ make_ref(T* obj)
 {
         if (obj)
                 g_object_ref(obj);
-        return {obj};
+        return RefPtr<T>{obj};
 }
 
 template<typename T>
@@ -49,14 +44,14 @@ make_ref_sink(T* obj)
 {
         if (obj)
                 g_object_ref_sink(obj);
-        return {obj};
+        return RefPtr<T>{obj};
 }
 
 template<typename T>
 RefPtr<T>
 take_ref(T* obj)
 {
-        return {obj};
+        return RefPtr<T>{obj};
 }
 
 template<typename T>

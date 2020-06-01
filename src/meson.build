@@ -98,6 +98,7 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'bidi.cc',
   'bidi.hh',
   'buffer.h',
+  'cairo-glue.hh',
   'caps.hh',
   'cell.hh',
   'chunk.cc',

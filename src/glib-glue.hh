@@ -28,24 +28,14 @@
 
 namespace vte::glib {
 
-template <typename T, typename D, D d>
-class FreeablePtr : public std::unique_ptr<T, D>
-{
-private:
-        using base_type = std::unique_ptr<T, D>;
-
-public:
-        FreeablePtr(T* ptr = nullptr) : base_type{ptr, d} { }
-};
-
 template<typename T>
-using FreePtr = FreeablePtr<T, decltype(&g_free), &g_free>;
+using FreePtr = vte::FreeablePtr<T, decltype(&g_free), &g_free>;
 
 template<typename T>
 FreePtr<T>
 take_free_ptr(T* ptr)
 {
-        return {ptr};
+        return FreePtr<T>{ptr};
 }
 
 using StringPtr = FreePtr<char>;
@@ -62,12 +52,12 @@ dup_string(char const* str)
         return take_string(g_strdup(str));
 }
 
-using StrvPtr = FreeablePtr<char*, decltype(&g_strfreev), &g_strfreev>;
+using StrvPtr = vte::FreeablePtr<char*, decltype(&g_strfreev), &g_strfreev>;
 
 inline StrvPtr
 take_strv(char** strv)
 {
-        return {strv};
+        return StrvPtr{strv};
 }
 
 inline StrvPtr
