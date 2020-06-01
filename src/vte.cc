@@ -8351,9 +8351,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         m_draw.draw_text(
                        items, n,
                        attr,
-                       &fg, VTE_DRAW_OPAQUE,
-                       _vte_draw_get_style(attr & VTE_ATTR_BOLD,
-                                           attr & VTE_ATTR_ITALIC));
+                       &fg, VTE_DRAW_OPAQUE);
 }
 
 /* FIXME: we don't have a way to tell GTK+ what the default text attributes
@@ -8933,7 +8931,6 @@ Terminal::paint_cursor()
         vte::grid::row_t drow;
         vte::grid::column_t lcol, vcol;
         int width, height, cursor_width;
-        guint style = 0;
         guint fore, back, deco;
 	vte::color::rgb bg;
 	int x, y;
@@ -8984,9 +8981,7 @@ Terminal::paint_cursor()
 	item.y = row_to_pixel(drow);
         item.mirror = bidirow->vis_is_rtl(vcol);
         item.box_mirror = (row_data && (row_data->attr.bidi_flags & VTE_BIDI_FLAG_BOX_MIRROR));
-	if (cell && cell->c != 0) {
-		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
-	}
+        auto const attr = cell && cell->c ? cell->attr.attr : 0;
 
         selected = cell_is_selected_log(lcol, drow);
         determine_cursor_colors(cell, selected, &fore, &back, &deco);
@@ -9049,7 +9044,7 @@ Terminal::paint_cursor()
 
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int l, r;
-                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, l, r);
+                                m_draw.get_char_edges(cell->c, cell->attr.columns(), attr, l, r);
                                 left = MIN(left, l);
                                 right = MAX(right, r);
                         }
@@ -9068,7 +9063,7 @@ Terminal::paint_cursor()
                         cursor_width = item.columns * width;
                         if (cell && cell->c != 0 && cell->c != ' ' && cell->c != '\t') {
                                 int l, r;
-                                m_draw.get_char_edges(cell->c, cell->attr.columns(), style, l /* unused */, r);
+                                m_draw.get_char_edges(cell->c, cell->attr.columns(), attr, l /* unused */, r);
                                 cursor_width = MAX(cursor_width, r);
 			}
 

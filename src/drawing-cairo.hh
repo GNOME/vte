@@ -85,24 +85,20 @@ public:
                               GtkBorder* char_spacing);
         void get_char_edges(vteunistr c,
                             int columns,
-                            guint style,
+                            uint32_t attr,
                             int& left,
                             int& right);
-        bool has_bold(guint style);
-
         void draw_text(TextRequest* requests,
                        gsize n_requests,
                        uint32_t attr,
                        vte::color::rgb const* color,
-                       double alpha,
-                       guint style);
+                       double alpha);
         bool draw_char(TextRequest* request,
                        uint32_t attr,
                        vte::color::rgb const* color,
-                       double alpha,
-                       guint style);
+                       double alpha);
         bool has_char(vteunistr c,
-                      guint style);
+                      uint32_t attr);
         void fill_rectangle(int x,
                             int y,
                             int width,
@@ -148,8 +144,7 @@ private:
                                 gsize n_requests,
                                 uint32_t attr,
                                 vte::color::rgb const* color,
-                                double alpha,
-                                guint style);
+                                double alpha);
 
         //        std::array<vte::base::RefPtr<FontInfo>, 4> m_fonts{};
 	FontInfo* m_fonts[4]{nullptr, nullptr, nullptr, nullptr};
@@ -167,8 +162,6 @@ private:
 
 } // namespace view
 } // namespace vte
-
-guint _vte_draw_get_style(gboolean bold, gboolean italic);
 
 double
 _vte_draw_get_undercurl_height(gint width, double line_width);

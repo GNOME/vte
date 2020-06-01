@@ -25,10 +25,6 @@
 #include "drawing-cairo.hh"
 #include "fonts-pangocairo.hh"
 
-#define VTE_DRAW_NORMAL 0
-#define VTE_DRAW_BOLD   1
-#define VTE_DRAW_ITALIC 2
-
 /* cairo_show_glyphs accepts runs up to 102 glyphs before it allocates a
  * temporary array.
  *
@@ -37,11 +33,18 @@
  */
 #define MAX_RUN_LENGTH 100
 
-guint _vte_draw_get_style(gboolean bold, gboolean italic) {
-	guint style = 0;
-	if (bold)
+#define VTE_DRAW_NORMAL      0
+#define VTE_DRAW_BOLD        1
+#define VTE_DRAW_ITALIC      2
+#define VTE_DRAW_BOLD_ITALIC 3
+
+static unsigned
+attr_to_style(uint32_t attr)
+{
+	auto style = unsigned{0};
+	if (attr & VTE_ATTR_BOLD)
 		style |= VTE_DRAW_BOLD;
-	if (italic)
+	if (attr & VTE_ATTR_ITALIC)
 		style |= VTE_DRAW_ITALIC;
 	return style;
 }
@@ -226,7 +229,7 @@ DrawingContext::get_text_metrics(int* cell_width,
 void
 DrawingContext::get_char_edges(vteunistr c,
                                int columns,
-                               guint style,
+                               uint32_t attr,
                                int& left,
                                int& right)
 {
@@ -244,7 +247,7 @@ DrawingContext::get_char_edges(vteunistr c,
                 return;
         }
 
-        w = m_fonts[style]->get_unistr_info(c)->width;
+        w = m_fonts[attr_to_style(attr)]->get_unistr_info(c)->width;
         normal_width = m_fonts[VTE_DRAW_NORMAL]->width() * columns;
         fits_width = m_cell_width * columns;
 
@@ -270,14 +273,13 @@ DrawingContext::draw_text_internal(TextRequest* requests,
                                    gsize n_requests,
                                    uint32_t attr,
                                    vte::color::rgb const* color,
-                                   double alpha,
-                                   guint style)
+                                   double alpha)
 {
 	gsize i;
 	cairo_scaled_font_t *last_scaled_font = nullptr;
 	int n_cr_glyphs = 0;
 	cairo_glyph_t cr_glyphs[MAX_RUN_LENGTH];
-	auto font = m_fonts[style];
+	auto font = m_fonts[attr_to_style(attr)];
 
 	g_return_if_fail (font != nullptr);
 
@@ -306,7 +308,7 @@ DrawingContext::draw_text_internal(TextRequest* requests,
 		auto ufi = &uinfo->m_ufi;
                 int x, y, ye;
 
-                get_char_edges(c, requests[i].columns, style, x, ye /* unused */);
+                get_char_edges(c, requests[i].columns, attr, x, ye /* unused */);
                 x += requests[i].x;
                 /* Bold/italic versions might have different ascents. In order to align their
                  * baselines, we offset by the normal font's ascent here. (Bug 137.) */
@@ -360,8 +362,7 @@ DrawingContext::draw_text(TextRequest* requests,
                           gsize n_requests,
                           uint32_t attr,
                           vte::color::rgb const* color,
-                          double alpha,
-                          guint style)
+                          double alpha)
 {
         g_assert(m_cr);
 
@@ -375,12 +376,12 @@ DrawingContext::draw_text(TextRequest* requests,
 		str = g_string_free (string, FALSE);
 		g_printerr ("draw_text (\"%s\", len=%" G_GSIZE_FORMAT ", color=(%d,%d,%d,%.3f), %s - %s)\n",
 				str, n_requests, color->red, color->green, color->blue, alpha,
-				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
-				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
+				(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
+				(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
 		g_free (str);
 	}
 
-	draw_text_internal(requests, n_requests, attr, color, alpha, style);
+	draw_text_internal(requests, n_requests, attr, color, alpha);
 }
 
 /* The following two functions are unused since commit 154abade902850afb44115cccf8fcac51fc082f0,
@@ -388,12 +389,13 @@ DrawingContext::draw_text(TextRequest* requests,
  */
 bool
 DrawingContext::has_char(vteunistr c,
-                         guint style)
+                         uint32_t attr)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW, "draw_has_char ('0x%04X', %s - %s)\n", c,
-				(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
-				(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
+				(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
+				(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
 
+        auto const style = attr_to_style(attr);
 	g_return_val_if_fail(m_fonts[style], false);
 
 	auto uinfo = m_fonts[style]->get_unistr_info(c);
@@ -404,20 +406,19 @@ bool
 DrawingContext::draw_char(TextRequest* request,
                           uint32_t attr,
                           vte::color::rgb const* color,
-                          double alpha,
-                          guint style)
+                          double alpha)
 {
 	_vte_debug_print (VTE_DEBUG_DRAW,
 			"draw_char ('%c', color=(%d,%d,%d,%.3f), %s, %s)\n",
 			request->c,
 			color->red, color->green, color->blue,
 			alpha,
-			(style & VTE_DRAW_BOLD)   ? "bold"   : "normal",
-			(style & VTE_DRAW_ITALIC) ? "italic" : "regular");
+			(attr & VTE_ATTR_BOLD)   ? "bold"   : "normal",
+			(attr & VTE_ATTR_ITALIC) ? "italic" : "regular");
 
-	auto const have_char = has_char(request->c, style);
+	auto const have_char = has_char(request->c, attr);
 	if (have_char)
-		draw_text(request, 1, attr, color, alpha, style);
+		draw_text(request, 1, attr, color, alpha);
 
 	return have_char;
 }
