@@ -760,7 +760,7 @@ Terminal::clear_to_eol()
 	/* ensure_cursor_is_onscreen(); */
 
 	/* Get the data for the row which the cursor points to. */
-        auto rowdata = ensure_row();
+        auto rowdata = ensure_cursor();
 	g_assert(rowdata != NULL);
         if ((glong) _vte_row_data_length(rowdata) > m_screen->cursor.col) {
                 /* Clean up Tab/CJK fragments. */
