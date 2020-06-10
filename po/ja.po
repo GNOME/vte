@@ -1,17 +1,17 @@
 # vte ja.po.
-# Copyright (C) 2003-2019 Free Software Foundation, Inc.
+# Copyright (C) 2003, 2007, 2010, 2019-2020 Free Software Foundation, Inc.
 # This file is distributed under the same license as the vte package.
 # Takeshi AIHANA <takeshi.aihana@gmail.com>, 2003, 2007.
 # KAMAGASAKO Masatoshi <emerald@gnome.gr.jp>, 2003.
 # Takayuki KUSANO <AE5T-KNS@asahi-net.or.jp>< 2010.
-# sicklylife <translation@sicklylife.jp>, 2019.
+# sicklylife <translation@sicklylife.jp>, 2019-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
 "POT-Creation-Date: 2020-06-08 23:16+0000\n"
-"PO-Revision-Date: 2019-10-08 21:15+0900\n"
+"PO-Revision-Date: 2020-06-10 18:45+0900\n"
 "Last-Translator: sicklylife <translation@sicklylife.jp>\n"
 "Language-Team: Japanese <gnome-translation@gnome.gr.jp>\n"
 "Language: ja\n"
@@ -31,36 +31,35 @@ msgstr ""
 #: src/spawn.cc:111
 #, c-format
 msgid "Failed to set pipe nonblocking: %s"
-msgstr ""
+msgstr "パイプをノンブロッキングに設定できませんでした: %s"
 
 #: src/spawn.cc:155
 #, c-format
 msgid "poll error: %s"
-msgstr ""
+msgstr "poll エラー: %s"
 
 #: src/spawn.cc:161
 msgid "Operation timed out"
-msgstr ""
+msgstr "操作がタイムアウトしました"
 
 #: src/spawn.cc:171
 msgid "Operation was cancelled"
-msgstr ""
+msgstr "操作がキャンセルされました"
 
 #: src/spawn.cc:189
-#, fuzzy, c-format
-#| msgid "Error reading from child: %s."
+#, c-format
 msgid "Failed to read from child pipe (%s)"
-msgstr "子プロセスの読み込み中にエラー: %s。"
+msgstr "子プロセスのパイプからの読み取りに失敗しました (%s)"
 
 #: src/spawn.cc:576
 #, c-format
 msgid "Failed to change to directory “%s”: %s"
-msgstr ""
+msgstr "ディレクトリ“%s”への変更に失敗しました: %s"
 
 #: src/spawn.cc:645
 #, c-format
 msgid "Failed to execute child process “%s”: "
-msgstr ""
+msgstr "子プロセス“%s”の起動に失敗しました: "
 
 #~ msgid "Error (%s) converting data for child, dropping."
 #~ msgstr ""
