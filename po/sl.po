@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2020-05-30 20:53+0000\n"
-"PO-Revision-Date: 2020-06-01 21:29+0200\n"
+"POT-Creation-Date: 2020-06-20 22:27+0000\n"
+"PO-Revision-Date: 2020-06-22 21:55+0200\n"
 "Last-Translator: Matej Urbančič <mateju@svn.gnome.org>\n"
 "Language-Team: Slovenian GNOME Translation Team <gnome-si@googlegroups.com>\n"
 "Language: sl_SI\n"
@@ -22,24 +22,24 @@ msgstr ""
 "X-Poedit-SourceCharset: utf-8\n"
 "X-Generator: Poedit 2.3\n"
 
-#: src/vte.cc:7763
+#: src/vte.cc:7761
 msgid "WARNING"
 msgstr "OPOZORILO"
 
-#: src/vte.cc:7765
+#: src/vte.cc:7763
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
-"Paket GNUTLS ni omogočen; podatki bodo na disk zapisani na nešifriran način!"
+"Paket GnuTLS ni omogočen; podatki bodo na disk zapisani na nešifriran način!"
 
 #: src/spawn.cc:111
 #, c-format
 msgid "Failed to set pipe nonblocking: %s"
-msgstr ""
+msgstr "Ni mogoče nastaviti cevi: %s"
 
 #: src/spawn.cc:155
 #, c-format
 msgid "poll error: %s"
-msgstr ""
+msgstr "napaka preverjanja: %s"
 
 #: src/spawn.cc:161
 msgid "Operation timed out"
@@ -62,7 +62,7 @@ msgstr "Spreminjanje mape je spodletelo »%s«: %s"
 #: src/spawn.cc:645
 #, c-format
 msgid "Failed to execute child process “%s”: "
-msgstr "Izvajanje podrejenega opravila je spodletelo »%s«:"
+msgstr "Izvajanje podrejenega opravila je spodletelo »%s«: "
 
 #~ msgid "Unable to convert characters from %s to %s."
 #~ msgstr "Ni mogoče pretvoriti znakov iz %s v %s."
