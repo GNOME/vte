@@ -40,6 +40,7 @@
 
 #include "glib-glue.hh"
 #include "libc-glue.hh"
+#include "refptr.hh"
 
 /* options */
 
@@ -110,6 +111,7 @@ public:
         VteCursorBlinkMode cursor_blink_mode{VTE_CURSOR_BLINK_SYSTEM};
         VteCursorShape cursor_shape{VTE_CURSOR_SHAPE_BLOCK};
         VteTextBlinkMode text_blink_mode{VTE_TEXT_BLINK_ALWAYS};
+        vte::glib::RefPtr<GtkCssProvider> css{};
 
         ~Options() {
                 g_clear_object(&background_pixbuf);
@@ -356,6 +358,19 @@ private:
         }
 
         static gboolean
+        parse_css_file(char const* option, char const* value, void* data, GError** error)
+        {
+                Options* that = static_cast<Options*>(data);
+
+                auto css = vte::glib::take_ref(gtk_css_provider_new());
+                if (!gtk_css_provider_load_from_path(css.get(), value, error))
+                    return false;
+
+                that->css = std::move(css);
+                return true;
+        }
+
+        static gboolean
         parse_fd(char const* option, char const* value, void* data, GError** error)
         {
                 Options* that = static_cast<Options*>(data);
@@ -486,6 +501,8 @@ public:
                           "Enable a colored cursor foreground", "COLOR" },
                         { "cursor-shape", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_cursor_shape,
                           "Set cursor shape (block|underline|ibeam)", nullptr },
+                        { "css-file", 0, G_OPTION_FLAG_FILENAME, G_OPTION_ARG_CALLBACK, (void*)parse_css_file,
+                          "Load CSS from FILE", "FILE" },
                         { "dingu", 'D', 0, G_OPTION_ARG_STRING_ARRAY, &dingus,
                           "Add regex highlight", nullptr },
                         { "debug", 'd', 0,G_OPTION_ARG_NONE, &debug,
@@ -921,6 +938,8 @@ vteapp_search_popover_class_init(VteappSearchPopoverClass* klass)
         gtk_widget_class_bind_template_child(widget_class, VteappSearchPopover, entire_word_checkbutton);
         gtk_widget_class_bind_template_child(widget_class, VteappSearchPopover, regex_checkbutton);
         gtk_widget_class_bind_template_child(widget_class, VteappSearchPopover, wrap_around_checkbutton);
+
+        gtk_widget_class_set_css_name(widget_class, "vteapp-search-popover");
 }
 
 static GtkWidget*
@@ -1073,6 +1092,8 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
         widget_class->unrealize = vteapp_terminal_unrealize;
         widget_class->draw = vteapp_terminal_draw;
         widget_class->style_updated = vteapp_terminal_style_updated;
+
+        gtk_widget_class_set_css_name(widget_class, "vteapp-terminal");
 }
 
 static void
@@ -2224,6 +2245,7 @@ vteapp_window_class_init(VteappWindowClass* klass)
         widget_class->window_state_event = vteapp_window_state_event;
 
         gtk_widget_class_set_template_from_resource(widget_class, "/org/gnome/vte/app/ui/window.ui");
+        gtk_widget_class_set_css_name(widget_class, "vteapp-window");
 
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, window_box);
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, scrollbar);
@@ -2332,6 +2354,12 @@ vteapp_application_init(VteappApplication* application)
                      /* Make gtk+ CSD not steal F10 from the terminal */
                      "gtk-menu-bar-accel", nullptr,
                      nullptr);
+
+        if (options.css) {
+                gtk_style_context_add_provider_for_screen(gdk_screen_get_default (),
+                                                          GTK_STYLE_PROVIDER(options.css.get()),
+                                                          GTK_STYLE_PROVIDER_PRIORITY_USER);
+        }
 
         if (options.feed_stdin) {
                 g_unix_set_fd_nonblocking(STDIN_FILENO, true, nullptr);

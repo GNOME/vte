@@ -78,6 +78,10 @@ pty_sources = files(
   'vteptyinternal.hh',
 )
 
+refptr_sources = files(
+  'refptr.hh',
+)
+
 regex_sources = files(
   'regex.cc',
   'regex.hh'
@@ -93,7 +97,7 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + parser_sources + pty_sources + regex_sources + utf8_sources + files(
+libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + parser_sources + pty_sources + refptr_sources + regex_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -118,7 +122,6 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'missing.hh',
   'reaper.cc',
   'reaper.hh',
-  'refptr.hh',
   'ring.cc',
   'ring.hh',
   'ringview.cc',
