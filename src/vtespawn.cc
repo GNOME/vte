@@ -40,14 +40,19 @@
 
 #include "missing.hh"
 
-static gssize
-write_all (int fd, gconstpointer vbuf, gsize to_write)
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
+static ssize_t
+write_all (int fd,
+           void const* vbuf,
+           size_t to_write) noexcept
 {
   char *buf = (char *) vbuf;
 
   while (to_write > 0)
     {
-      gssize count = write (fd, buf, to_write);
+      auto count = write(fd, buf, to_write);
       if (count < 0)
         {
           if (errno != EINTR)
@@ -63,9 +68,12 @@ write_all (int fd, gconstpointer vbuf, gsize to_write)
   return TRUE;
 }
 
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
 void
 _vte_write_err (int fd,
-                int msg)
+                int msg) noexcept
 {
         int data[2] = {msg, errno};
 
@@ -74,46 +82,57 @@ _vte_write_err (int fd,
 
 /* Based on execvp from GNU C Library */
 
-static void
-script_execute (const char *file,
-                char      **argv,
-                char      **envp)
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
+/* Returns false if failing before execv(e), or true if failing after it. */
+static bool
+script_execute (char const* file,
+                char** argv,
+                char** envp,
+                void* workbuf,
+                size_t workbufsize) noexcept
 {
   /* Count the arguments.  */
   int argc = 0;
   while (argv[argc])
     ++argc;
 
-  /* Construct an argument list for the shell.  */
-  {
-    char **new_argv;
-
-    new_argv = g_new0 (char*, argc + 2); /* /bin/sh and NULL */
-
-    new_argv[0] = (char *) "/bin/sh";
-    new_argv[1] = (char *) file;
-    while (argc > 0)
-      {
-	new_argv[argc + 1] = argv[argc];
-	--argc;
-      }
-
-    /* Execute the shell. */
-    if (envp)
-      execve (new_argv[0], new_argv, envp);
-    else
-      execv (new_argv[0], new_argv);
-
-    g_free (new_argv);
+  auto argv_buffer = reinterpret_cast<char**>(workbuf);
+  auto argv_buffer_len = workbufsize / sizeof(char*);
+  /* Construct an argument list for the shell. */
+  if (size_t(argc + 2) > argv_buffer_len) {
+    errno = ENOMEM;
+    return false;
   }
+
+  argv_buffer[0] = (char *) "/bin/sh";
+  argv_buffer[1] = (char *) file;
+  while (argc > 0)
+    {
+      argv_buffer[argc + 1] = argv[argc];
+      --argc;
+    }
+
+  /* Execute the shell. */
+  if (envp)
+    execve (argv_buffer[0], argv_buffer, envp);
+  else
+    execv (argv_buffer[0], argv_buffer);
+
+  return true;
 }
 
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
 int
 _vte_execute (const char *file,
               char      **argv,
               char      **envp,
-              bool        search_path,
-              bool        search_path_from_envp)
+              char const* search_path,
+              void* workbuf,
+              size_t workbufsize) noexcept
 {
   if (*file == '\0')
     {
@@ -122,7 +141,7 @@ _vte_execute (const char *file,
       return -1;
     }
 
-  if (!(search_path || search_path_from_envp) || strchr (file, '/') != NULL)
+  if (!search_path || strchr (file, '/') != nullptr)
     {
       /* Don't search when it contains a slash. */
       if (envp)
@@ -131,40 +150,23 @@ _vte_execute (const char *file,
         execv (file, argv);
 
       if (errno == ENOEXEC)
-	script_execute (file, argv, envp);
+         script_execute(file, argv, envp, workbuf, workbufsize);
     }
   else
     {
-      gboolean got_eacces = 0;
-      const char *path, *p;
-      char *name, *freeme;
-      gsize len;
-      gsize pathlen;
+      auto got_eacces = false;
+      char const* path = search_path;
+      char const* p;
+      char* name = reinterpret_cast<char*>(workbuf);
 
-      path = NULL;
-      if (search_path_from_envp)
-        path = g_environ_getenv (envp, "PATH");
-      if (search_path && path == NULL)
-        path = g_getenv ("PATH");
+      auto const len = strlen(file) + 1;
+      auto const pathlen = strlen(path);
 
-      if (path == NULL)
-	{
-	  /* There is no 'PATH' in the environment.  The default
-	   * search path in libc is the current directory followed by
-	   * the path 'confstr' returns for '_CS_PATH'.
-           */
-
-          /* In GLib we put . last, for security, and don't use the
-           * unportable confstr(); UNIX98 does not actually specify
-           * what to search if PATH is unset. POSIX may, dunno.
-           */
-
-          path = "/bin:/usr/bin:.";
-	}
-
-      len = strlen (file) + 1;
-      pathlen = strlen (path);
-      freeme = name = (char*)g_malloc (pathlen + len + 1);
+      if (workbufsize < pathlen + len + 1)
+        {
+          errno = ENOMEM;
+          return -1;
+        }
 
       /* Copy the file name at the top, including '\0'  */
       memcpy (name + pathlen + 1, file, len);
@@ -186,7 +188,7 @@ _vte_execute (const char *file,
              */
 	    startp = name + 1;
 	  else
-            startp = (char*)memcpy (name - (p - path), path, p - path);
+            startp = reinterpret_cast<char*>(memcpy (name - (p - path), path, p - path));
 
 	  /* Try to execute this name.  If it works, execv will not return.  */
           if (envp)
@@ -194,8 +196,9 @@ _vte_execute (const char *file,
           else
             execv (startp, argv);
 
-	  if (errno == ENOEXEC)
-	    script_execute (startp, argv, envp);
+          if (errno == ENOEXEC &&
+              !script_execute(startp, argv, envp, workbuf, workbufsize))
+            return -1;
 
 	  switch (errno)
 	    {
@@ -206,8 +209,7 @@ _vte_execute (const char *file,
                */
 	      got_eacces = TRUE;
 
-              /* FALL THRU */
-
+              [[fallthrough]];
 	    case ENOENT:
 #ifdef ESTALE
 	    case ESTALE:
@@ -234,7 +236,6 @@ _vte_execute (const char *file,
                * something went wrong executing it; return the error to our
                * caller.
                */
-              g_free (freeme);
 	      return -1;
 	    }
 	}
@@ -246,8 +247,6 @@ _vte_execute (const char *file,
          * error.
          */
         errno = EACCES;
-
-      g_free (freeme);
     }
 
   /* Return the error from the last attempt (probably ENOENT).  */

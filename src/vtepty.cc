@@ -624,9 +624,8 @@ spawn_context_from_args(VtePty* pty,
         context.set_fallback_cwd(g_get_home_dir());
         context.set_child_setup(child_setup, child_setup_data, child_setup_data_destroy);
 
-        if (spawn_flags & G_SPAWN_SEARCH_PATH_FROM_ENVP)
-                context.set_search_path_from_envp();
-        if (spawn_flags & G_SPAWN_SEARCH_PATH)
+        if ((spawn_flags & G_SPAWN_SEARCH_PATH_FROM_ENVP) ||
+            (spawn_flags & G_SPAWN_SEARCH_PATH))
                 context.set_search_path();
 
         if (spawn_flags & G_SPAWN_FILE_AND_ARGV_ZERO)

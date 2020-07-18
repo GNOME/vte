@@ -51,6 +51,9 @@ struct linux_dirent64
   char           d_name[]; /* Filename (null-terminated) */
 };
 
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
 static int
 filename_to_fd (const char *p)
 {
@@ -64,7 +67,7 @@ filename_to_fd (const char *p)
 
   while ((c = *p++) != '\0')
     {
-      if (!g_ascii_isdigit (c))
+      if (c < '0' || c > '9')
         return -1;
       c -= '0';
 
@@ -80,6 +83,56 @@ filename_to_fd (const char *p)
 
 #endif /* __linux__ */
 
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
+static int
+getrlimit_NOFILE_max(void)
+{
+#ifdef HAVE_SYS_RESOURCE_H
+        struct rlimit rlim;
+
+#ifdef __linux__
+        if (prlimit(0 /* this PID */, RLIMIT_NOFILE, nullptr, &rlim) == 0 &&
+            rlim.rlim_max != RLIM_INFINITY)
+                return rlim.rlim_max;
+
+        /* fallback */
+#endif /* __linux__ */
+
+#ifdef __GLIBC__
+        /* Use getrlimit() function provided by the system if it is known to be
+         * async-signal safe.
+         *
+         * According to the glibc manual, getrlimit is AS-safe.
+         */
+        if (getrlimit(RLIMIT_NOFILE, &rlim) == 0 &&
+            rlim.rlim_max != RLIM_INFINITY)
+                return rlim.rlim_max;
+
+        /* fallback */
+#endif
+
+#endif /* HAVE_SYS_RESOURCE_H */
+
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
+        /* Use sysconf() function provided by the system if it is known to be
+         * async-signal safe.
+         */
+        auto const r = sysconf(_SC_OPEN_MAX);
+        if (r != -1)
+                return r;
+
+        /* fallback */
+#endif
+
+        /* Hardcoded fallback: the default process hard limit in Linux as of 2020 */
+        return 4096;
+}
+
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
 int
 fdwalk(int (*cb)(void *data, int fd),
        void *data)
@@ -88,13 +141,8 @@ fdwalk(int (*cb)(void *data, int fd),
    * may be slow on non-Linux operating systems, especially on systems allowing
    * very high number of open file descriptors.
    */
-  int open_max;
   int fd;
   int res = 0;
-
-#ifdef HAVE_SYS_RESOURCE_H
-  struct rlimit rl;
-#endif
 
 #ifdef __linux__
   /* Avoid use of opendir/closedir since these are not async-signal-safe. */
@@ -129,14 +177,7 @@ fdwalk(int (*cb)(void *data, int fd),
 
 #endif
 
-#ifdef HAVE_SYS_RESOURCE_H
-
-  if (getrlimit(RLIMIT_NOFILE, &rl) == 0 && rl.rlim_max != RLIM_INFINITY)
-      open_max = rl.rlim_max;
-  else
-#endif
-      open_max = sysconf (_SC_OPEN_MAX);
-
+  auto const open_max = getrlimit_NOFILE_max();
   for (fd = 0; fd < open_max; fd++)
       if ((res = cb (data, fd)) != 0)
           break;

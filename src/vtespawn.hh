@@ -25,8 +25,9 @@
 int _vte_execute(char const* file,
                  char** argv,
                  char** envp,
-                 bool search_path,
-                 bool search_path_from_envp);
+                 char const* path_env,
+                 void* workbuf,
+                 size_t workbufsize) noexcept;
 
 void _vte_write_err (int fd,
-                     int msg);
+                     int msg) noexcept;

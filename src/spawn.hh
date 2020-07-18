@@ -59,7 +59,6 @@ private:
         bool m_inherit_environ{true};
         bool m_systemd_scope{true};
         bool m_require_systemd_scope{false};
-        bool m_search_path_from_envp{false};
         bool m_search_path{false};
 
 public:
@@ -149,7 +148,6 @@ public:
         void set_no_systemd_scope()      noexcept { m_systemd_scope = false;        }
         void set_require_systemd_scope() noexcept { m_require_systemd_scope = true; }
         void set_search_path()           noexcept { m_search_path = true;           }
-        void set_search_path_from_envp() noexcept { m_search_path_from_envp = true; }
 
         auto arg0()         const noexcept { return m_arg0.get(); }
         auto argv()         const noexcept { return m_argv.get(); }
@@ -163,8 +161,9 @@ public:
         constexpr auto inherit_environ()       const noexcept { return m_inherit_environ;       }
         constexpr auto systemd_scope()         const noexcept { return m_systemd_scope;         }
         constexpr auto require_systemd_scope() const noexcept { return m_require_systemd_scope; }
-        constexpr auto search_path()           const noexcept { return m_search_path;           }
-        constexpr auto search_path_from_envp() const noexcept { return m_search_path_from_envp; }
+
+        char const* search_path() const noexcept;
+        size_t workbuf_size() const noexcept;
 
         void prepare_environ();
 
@@ -181,7 +180,9 @@ public:
                 UNSET_CLOEXEC,
         };
 
-        ExecError exec(vte::libc::FD& child_report_error_pipe_write) noexcept;
+        ExecError exec(vte::libc::FD& child_report_error_pipe_write,
+                       void* workbuf,
+                       size_t workbufsize) noexcept;
 
 }; // class SpawnContext
 

@@ -278,8 +278,28 @@ SpawnContext::prepare_environ()
         m_envv = vte::glib::take_strv(merge_environ(m_envv.release(), m_cwd.get(), inherit_environ()));
 }
 
+char const*
+SpawnContext::search_path() const noexcept
+{
+        auto const path = m_search_path ? g_environ_getenv(environ(), "PATH") : nullptr;
+        return path ? : "/bin:/usr/bin:.";
+}
+
+size_t
+SpawnContext::workbuf_size() const noexcept
+{
+        auto const path = search_path();
+        return std::max(path ? strlen(path) + strlen(arg0()) + 2 /* leading '/' plus NUL terminator */ : 0,
+                        (g_strv_length(argv()) + 2) * sizeof(char*));
+}
+
+/* This function is called between fork and execve/_exit and so must be
+ * async-signal-safe; see man:signal-safety(7).
+ */
 SpawnContext::ExecError
-SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write) noexcept
+SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
+                   void* workbuf,
+                   size_t workbufsize) noexcept
 {
         /* NOTE! This function must not rely on smart pointers to
          * release their object, since the destructors are NOT run
@@ -449,7 +469,8 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write) noexcept
                      argv(),
                      environ(),
                      search_path(),
-                     search_path_from_envp());
+                     workbuf,
+                     workbufsize);
 
         /* If we get here, exec failed */
         return ExecError::EXEC;
@@ -508,6 +529,18 @@ SpawnOperation::prepare(vte::glib::Error& error)
                        error))
                 return false;
 
+        /* allocate workbuf for SpawnContext::Exec() */
+        auto const workbufsize = context().workbuf_size();
+        auto workbuf = vte::glib::take_free_ptr(g_try_malloc(workbufsize));
+        if (!workbuf) {
+                auto errsv = vte::libc::ErrnoSaver{};
+                error.set(G_IO_ERROR,
+                          g_io_error_from_errno(errsv),
+                          "Failed to allocate workbuf: %s",
+                          g_strerror(errsv));
+                return false;
+        }
+
         /* Need to add the write end of the pipe to the FD map, so
          * that the FD re-arranging code knows it needs to preserve
          * the FD and not dup2 over it.
@@ -530,7 +563,11 @@ SpawnOperation::prepare(vte::glib::Error& error)
 
                 child_report_error_pipe_read.reset();
 
-                auto const err = context().exec(child_report_error_pipe_write);
+                auto const err = context().exec(child_report_error_pipe_write,
+                                                workbuf.get(), workbufsize);
+
+                /* Manually free the workbuf */
+                g_free(workbuf.release());
 
                 /* If we get here, exec failed. Write the error to the pipe and exit. */
                 _vte_write_err(child_report_error_pipe_write.get(), int(err));
