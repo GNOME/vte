@@ -59,6 +59,7 @@ public:
         gboolean no_bold{false};
         gboolean no_builtin_dingus{false};
         gboolean no_context_menu{false};
+        gboolean no_decorations{false};
         gboolean no_double_buffer{false};
         gboolean no_geometry_hints{false};
         gboolean no_hyperlink{false};
@@ -523,6 +524,8 @@ public:
                           "Highlight URLs inside the terminal", nullptr },
                         { "no-context-menu", 0, 0, G_OPTION_ARG_NONE, &no_context_menu,
                           "Disable context menu", nullptr },
+                        { "no-decorations", 0, 0, G_OPTION_ARG_NONE, &no_decorations,
+                          "Disable window decorations", nullptr },
                         { "no-double-buffer", '2', 0, G_OPTION_ARG_NONE, &no_double_buffer,
                           "Disable double-buffering", nullptr },
                         { "no-geometry-hints", 'G', 0, G_OPTION_ARG_NONE, &no_geometry_hints,
@@ -1974,6 +1977,9 @@ vteapp_window_constructed(GObject *object)
         G_OBJECT_CLASS(vteapp_window_parent_class)->constructed(object);
 
         gtk_window_set_title(GTK_WINDOW(window), "Terminal");
+
+        if (options.no_decorations)
+                gtk_window_set_decorated(GTK_WINDOW(window), false);
 
         /* Create terminal and connect scrollbar */
         window->terminal = reinterpret_cast<VteTerminal*>(vteapp_terminal_new());
