@@ -378,7 +378,8 @@ add_project_arguments(global_cxxflags, language: 'cpp')
 # Linker flags
 
 linker_flags = [
-  [ '-Wl,-Bsymbolic-functions', get_option('_b_symbolic_functions'),],
+  ['-Wl,-Bsymbolic', false,],
+  ['-Wl,-Bsymbolic-functions', get_option('_b_symbolic_functions'),],
 ]
 
 foreach flag: linker_flags
