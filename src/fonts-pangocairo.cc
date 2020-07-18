@@ -220,9 +220,6 @@ FontInfo::FontInfo(PangoContext *context)
 			  "vtepangocairo: %p allocating FontInfo\n",
 			  (void*)this);
 
-        // FIXME: placement new
-        memset(m_ascii_unistr_info, 0, sizeof(m_ascii_unistr_info));
-
 	m_layout = vte::glib::take_ref(pango_layout_new(context));
 
 	auto tabs = pango_tab_array_new_with_positions(1, FALSE, PANGO_TAB_LEFT, 1);
@@ -245,8 +242,6 @@ FontInfo::~FontInfo()
 	g_hash_table_remove(s_font_info_for_context,
                             pango_layout_get_context(m_layout.get()));
 
-	vteunistr i;
-
 #ifdef VTE_DEBUG
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 			  "vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d\n",
@@ -258,9 +253,6 @@ FontInfo::~FontInfo()
 #endif
 
 	g_string_free(m_string, true);
-
-	for (i = 0; i < G_N_ELEMENTS(m_ascii_unistr_info); i++)
-		m_ascii_unistr_info[i].~UnistrInfo();
 
 	if (m_other_unistr_info) {
 		g_hash_table_destroy(m_other_unistr_info);
