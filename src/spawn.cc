@@ -108,7 +108,8 @@ read_ints(int fd,
                 if (vte::libc::fd_set_nonblock(fd) < 0) {
                         auto errsv = vte::libc::ErrnoSaver{};
                         error.set(G_IO_ERROR, g_io_error_from_errno(errsv),
-                                  _("Failed to set pipe nonblocking: %s"), g_strerror(errsv));
+                                  _("Failed to set pipe nonblocking: %s"),
+                                  g_strerror(errsv));
                         return false;
                 }
 
@@ -152,7 +153,8 @@ read_ints(int fd,
                         if (r < 0) {
                                 auto errsv = vte::libc::ErrnoSaver{};
                                 error.set(G_IO_ERROR, g_io_error_from_errno(errsv),
-                                          _("poll error: %s"), g_strerror(errsv));
+                                          _("poll error: %s"),
+                                          g_strerror(errsv));
                                 return false;
                         }
                         if (r == 0) {
@@ -326,7 +328,9 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
         sigset_t set;
         sigemptyset(&set);
         if (pthread_sigmask(SIG_SETMASK, &set, nullptr) == -1) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "pthread_sigmask");
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "pthread_sigmask", g_strerror(errsv));
                 return ExecError::SIGMASK;
         }
 
@@ -368,7 +372,9 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
                  */
                 _vte_debug_print(VTE_DEBUG_PTY, "Starting new session\n");
                 if (setsid() == -1) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setsid");
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                         "setsid", g_strerror(errsv));
                         return ExecError::SETSID;
                 }
         }
@@ -384,7 +390,9 @@ SpawnContext::exec(vte::libc::FD& child_report_error_pipe_write,
          */
         if (!(pty()->flags() & VTE_PTY_NO_CTTY)) {
                 if (ioctl(peer_fd, TIOCSCTTY, peer_fd) != 0) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                         "ioctl(TIOCSCTTY)", g_strerror(errsv));
                         return ExecError::SCTTY;
                 }
         }

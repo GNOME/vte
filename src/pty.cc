@@ -122,7 +122,9 @@ Pty::get_peer(bool cloexec) const noexcept
         if (!peer_fd &&
             errno != EINVAL &&
             errno != ENOTTY) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCGPTPEER)");
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "ioctl(TIOCGPTPEER)", g_strerror(errsv));
                 return -1;
         }
 
@@ -132,7 +134,9 @@ Pty::get_peer(bool cloexec) const noexcept
         if (!peer_fd) {
                 auto const name = ptsname(m_pty_fd.get());
                 if (name == nullptr) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ptsname");
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                         "ptsname", g_strerror(errsv));
                         return -1;
                 }
 
@@ -142,7 +146,9 @@ Pty::get_peer(bool cloexec) const noexcept
 
                 peer_fd = ::open(name, fd_flags);
                 if (!peer_fd) {
-                        _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %m\n");
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        _vte_debug_print (VTE_DEBUG_PTY, "Failed to open PTY: %s\n",
+                                          g_strerror(errsv));
                         return -1;
                 }
         }
@@ -180,7 +186,9 @@ Pty::child_setup() const noexcept
         sigset_t set;
         sigemptyset(&set);
         if (pthread_sigmask(SIG_SETMASK, &set, nullptr) == -1) {
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "pthread_sigmask");
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "pthread_sigmask", g_strerror(errsv));
                 _exit(127);
         }
 
@@ -200,7 +208,9 @@ Pty::child_setup() const noexcept
                  */
                 _vte_debug_print (VTE_DEBUG_PTY, "Starting new session\n");
                 if (setsid() == -1) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "setsid");
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                         "setsid", g_strerror(errsv));
                         _exit(127);
                 }
         }
@@ -216,7 +226,9 @@ Pty::child_setup() const noexcept
          */
         if (!(m_flags & VTE_PTY_NO_CTTY)) {
                 if (ioctl(peer_fd, TIOCSCTTY, peer_fd) != 0) {
-                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "ioctl(TIOCSCTTY)");
+                        auto errsv = vte::libc::ErrnoSaver{};
+                        _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                         "ioctl(TIOCSCTTY)", g_strerror(errsv));
                         _exit(127);
                 }
         }
@@ -292,7 +304,8 @@ Pty::set_size(int rows,
         if (ret != 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "Failed to set size on %d: %m\n", master);
+                                 "Failed to set size on %d: %s\n",
+                                 master, g_strerror(errsv));
         }
 
         return ret == 0;
@@ -333,7 +346,8 @@ Pty::get_size(int* rows,
 
         auto errsv = vte::libc::ErrnoSaver{};
         _vte_debug_print(VTE_DEBUG_PTY,
-                         "Failed to read size from fd %d: %m\n", master);
+                         "Failed to read size from fd %d: %s\n",
+                         master, g_strerror(errsv));
 
         return false;
 }
@@ -352,34 +366,39 @@ fd_setup(vte::libc::FD& fd)
 {
         if (grantpt(fd.get()) != 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "grantpt", g_strerror(errsv));
                 return -1;
         }
 
         if (unlockpt(fd.get()) != 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "unlockpt", g_strerror(errsv));
                 return -1;
         }
 
         if (vte::libc::fd_set_cloexec(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "Setting CLOEXEC flag", g_strerror(errsv));
                 return -1;
         }
 
         if (vte::libc::fd_set_nonblock(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting O_NONBLOCK flag", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "Setting O_NONBLOCK flag", g_strerror(errsv));
                 return -1;
         }
 
         if (fd_set_cpkt(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "ioctl(TIOCPKT)", g_strerror(errsv));
                 return -1;
         }
 
@@ -418,7 +437,8 @@ _vte_pty_open_posix(void)
         if (!fd) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "posix_openpt", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "posix_openpt", g_strerror(errsv));
                 return {};
         }
 
@@ -426,14 +446,16 @@ _vte_pty_open_posix(void)
         if (need_cloexec && vte::libc::fd_set_cloexec(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting CLOEXEC flag", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "Setting CLOEXEC flag", g_strerror(errsv));
                 return {};
         }
 
         if (need_nonblocking && vte::libc::fd_set_nonblock(fd.get()) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "Setting NONBLOCK flag", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "Setting NONBLOCK flag", g_strerror(errsv));
                 return {};
         }
 #endif /* !linux */
@@ -441,19 +463,22 @@ _vte_pty_open_posix(void)
         if (fd_set_cpkt(fd) < 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
-                                 "%s failed: %s", "ioctl(TIOCPKT)", g_strerror(errsv));
+                                 "%s failed: %s",
+                                 "ioctl(TIOCPKT)", g_strerror(errsv));
                 return {};
         }
 
         if (grantpt(fd.get()) != 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "grantpt");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "grantpt", g_strerror(errsv));
                 return {};
         }
 
         if (unlockpt(fd.get()) != 0) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m\n", "unlockpt");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s\n",
+                                 "unlockpt", g_strerror(errsv));
                 return {};
         }
 
@@ -494,7 +519,8 @@ Pty::set_utf8(bool utf8) const noexcept
 	struct termios tio;
         if (tcgetattr(fd(), &tio) == -1) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "tcgetattr");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s",
+                                 "tcgetattr", g_strerror(errsv));
                 return false;
         }
 
@@ -509,7 +535,8 @@ Pty::set_utf8(bool utf8) const noexcept
         if (saved_cflag != tio.c_iflag &&
             tcsetattr(fd(), TCSANOW, &tio) == -1) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %m", "tcsetattr");
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %d",
+                                 "tcsetattr", g_strerror(errsv));
                 return false;
 	}
 #endif

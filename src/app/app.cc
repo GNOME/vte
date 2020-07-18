@@ -267,15 +267,19 @@ private:
                 if (*end == '=' || fd < 3) {
                         new_fd = vte::libc::fd_dup_cloexec(fd, 3);
                         if (new_fd == -1) {
-                                g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errno),
-                                             "Failed to duplicate file descriptor %d: %m", fd);
+                                auto errsv = vte::libc::ErrnoSaver{};
+                                g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                                             "Failed to duplicate file descriptor %d: %s",
+                                             fd, g_strerror(errsv));
                                 return false;
                         }
                 } else {
                         new_fd = fd;
                         if (vte::libc::fd_set_cloexec(fd) == -1) {
-                                g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errno),
-                                             "Failed to set cloexec on file descriptor %d: %m", fd);
+                                auto errsv = vte::libc::ErrnoSaver{};
+                                g_set_error (error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                                             "Failed to set cloexec on file descriptor %d: %s",
+                                             fd, g_strerror(errsv));
                                 return false;
                         }
                 }
@@ -1435,9 +1439,12 @@ vteapp_window_fork(VteappWindow* window,
 
         auto pid = fork();
         switch (pid) {
-        case -1: /* error */
-                g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "Error forking: %m");
+        case -1: { /* error */
+                auto errsv = vte::libc::ErrnoSaver{};
+                g_set_error(error, G_IO_ERROR, g_io_error_from_errno(errsv),
+                            "Error forking: %s", g_strerror(errsv));
                 return false;
+        }
 
         case 0: /* child */ {
                 vte_pty_child_setup(pty);

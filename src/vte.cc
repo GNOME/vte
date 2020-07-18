@@ -4045,7 +4045,9 @@ out:
         case EBUSY: /* do nothing */
                 break;
         default:
-                _vte_debug_print (VTE_DEBUG_IO, "Error reading from child: %m");
+                auto errsv = vte::libc::ErrnoSaver{};
+                _vte_debug_print (VTE_DEBUG_IO, "Error reading from child: %s",
+                                  g_strerror(errsv));
                 break;
 	}
 
@@ -7570,8 +7572,9 @@ Terminal::set_size(long columns,
 		if (!pty()->set_size(rows,
                                      columns,
                                      m_cell_height,
-                                     m_cell_width))
-			g_warning("Failed to set PTY size: %m\n");
+                                     m_cell_width)) {
+                        // nothing we can do here
+                }
 		refresh_size();
 	} else {
 		m_row_count = rows;
@@ -9958,8 +9961,9 @@ Terminal::set_pty(vte::base::Pty *new_pty)
 
         set_size(m_column_count, m_row_count);
 
-        if (!pty()->set_utf8(data_syntax() == DataSyntax::eECMA48_UTF8))
-                g_warning ("Failed to set UTF8 mode: %m\n");
+        if (!pty()->set_utf8(data_syntax() == DataSyntax::eECMA48_UTF8)) {
+                // nothing we can do here
+        }
 
         /* Open channels to listen for input on. */
         connect_pty_read();

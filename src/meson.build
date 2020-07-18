@@ -269,7 +269,7 @@ endif
 
 # decoder cat
 
-decoder_cat_sources = glib_glue_sources + utf8_sources + debug_sources + files(
+decoder_cat_sources = glib_glue_sources + libc_glue_sources + utf8_sources + debug_sources + files(
   'decoder-cat.cc',
 )
 
@@ -288,7 +288,7 @@ decoder_cat = executable(
 
 # parser cat
 
-parser_cat_sources = glib_glue_sources + parser_sources + utf8_sources + debug_sources + files(
+parser_cat_sources = glib_glue_sources + libc_glue_sources + parser_sources + utf8_sources + debug_sources + files(
   'parser-cat.cc',
 )
 

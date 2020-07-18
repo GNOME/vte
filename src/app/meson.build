@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <https://www.gnu.org/licenses/>.
 
-app_sources = glib_glue_sources + files(
+app_sources = glib_glue_sources + libc_glue_sources + files(
   'app.cc',
 )
 

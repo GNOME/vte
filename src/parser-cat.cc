@@ -32,6 +32,7 @@
 
 #include "debug.h"
 #include "glib-glue.hh"
+#include "libc-glue.hh"
 #include "parser.hh"
 #include "parser-glue.hh"
 #include "utf8.hh"
@@ -706,7 +707,8 @@ private:
 
                 for (auto i = 0; i < repeat; ++i) {
                         if (i > 0 && lseek(fd, 0, SEEK_SET) != 0) {
-                                g_printerr("Failed to seek: %m\n");
+                                auto errsv = vte::libc::ErrnoSaver{};
+                                g_printerr("Failed to seek: %s\n", g_strerror(errsv));
                                 return false;
                         }
 
@@ -747,7 +749,9 @@ public:
                                 } else {
                                         fd = open(filename, O_RDONLY);
                                         if (fd == -1) {
-                                                g_printerr("Error opening file %s: %m\n", filename);
+                                                auto errsv = vte::libc::ErrnoSaver{};
+                                                g_printerr("Error opening file %s: %s\n",
+                                                           filename, g_strerror(errsv));
                                         }
                                 }
                                 if (fd != -1) {
