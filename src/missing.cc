@@ -86,18 +86,17 @@ filename_to_fd (const char *p)
 /* This function is called between fork and execve/_exit and so must be
  * async-signal-safe; see man:signal-safety(7).
  */
-static int
+static rlim_t
 getrlimit_NOFILE_max(void)
 {
 #ifdef HAVE_SYS_RESOURCE_H
         struct rlimit rlim;
 
 #ifdef __linux__
-        if (prlimit(0 /* this PID */, RLIMIT_NOFILE, nullptr, &rlim) == 0 &&
-            rlim.rlim_max != RLIM_INFINITY)
+        if (prlimit(0 /* this PID */, RLIMIT_NOFILE, nullptr, &rlim) == 0)
                 return rlim.rlim_max;
 
-        /* fallback */
+        return RLIM_INFINITY;
 #endif /* __linux__ */
 
 #ifdef __GLIBC__
@@ -106,8 +105,7 @@ getrlimit_NOFILE_max(void)
          *
          * According to the glibc manual, getrlimit is AS-safe.
          */
-        if (getrlimit(RLIMIT_NOFILE, &rlim) == 0 &&
-            rlim.rlim_max != RLIM_INFINITY)
+        if (getrlimit(RLIMIT_NOFILE, &rlim) == 0)
                 return rlim.rlim_max;
 
         /* fallback */
@@ -126,8 +124,8 @@ getrlimit_NOFILE_max(void)
         /* fallback */
 #endif
 
-        /* Hardcoded fallback: the default process hard limit in Linux as of 2020 */
-        return 4096;
+        /* couldn't determine, so potentially infinite */
+        return RLIM_INFINITY;
 }
 
 /* This function is called between fork and execve/_exit and so must be
@@ -178,7 +176,15 @@ fdwalk(int (*cb)(void *data, int fd),
 #endif
 
   auto const open_max = getrlimit_NOFILE_max();
-  for (fd = 0; fd < open_max; fd++)
+  if (open_max == RLIM_INFINITY || open_max > G_MAXINT) {
+    /* We cannot close infinitely many FDs, but we also must not
+     * leak any FDs. Return an error.
+     */
+    errno = ENFILE;
+    return -1;
+  }
+
+  for (fd = 0; fd < int(open_max); fd++)
       if ((res = cb (data, fd)) != 0)
           break;
 
