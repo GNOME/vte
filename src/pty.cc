@@ -535,7 +535,7 @@ Pty::set_utf8(bool utf8) const noexcept
         if (saved_cflag != tio.c_iflag &&
             tcsetattr(fd(), TCSANOW, &tio) == -1) {
                 auto errsv = vte::libc::ErrnoSaver{};
-                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %d",
+                _vte_debug_print(VTE_DEBUG_PTY, "%s failed: %s",
                                  "tcsetattr", g_strerror(errsv));
                 return false;
 	}
