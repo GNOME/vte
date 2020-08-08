@@ -762,6 +762,8 @@ public:
         {
                 auto const changed = m_sixel_enabled != enabled;
                 m_sixel_enabled = m_images_enabled = enabled;
+                if (changed)
+                        invalidate_all();
                 return changed;
         }
 
