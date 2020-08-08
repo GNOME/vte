@@ -167,7 +167,7 @@ typedef enum {
  * @VTE_FORMAT_TEXT: Export as plain text
  * @VTE_FORMAT_HTML: Export as HTML formatted text
  *
- * An enumeratio type that can be used to specify the format the selection
+ * An enumeration type that can be used to specify the format the selection
  * should be copied to the clipboard in.
  *
  * Since: 0.50
@@ -176,6 +176,25 @@ typedef enum {
         VTE_FORMAT_TEXT = 1,
         VTE_FORMAT_HTML = 2
 } VteFormat;
+
+/**
+ * VteFeatureFlags:
+ * @VTE_FEATURE_FLAG_BIDI: whether VTE was built with bidirectional text support
+ * @VTE_FEATURE_FLAG_ICU: whether VTE was built with ICU support
+ * @VTE_FEATURE_FLAG_SYSTEMD: whether VTE was built with systemd support
+ * @VTE_FEATURE_FLAG_SIXEL: whether VTE was built with SIXEL support
+ *
+ * An enumeration type for features.
+ *
+ * Since: 0.62
+ */
+typedef enum /*< skip >*/ {
+        VTE_FEATURE_FLAG_BIDI    = 1ULL << 0,
+        VTE_FEATURE_FLAG_ICU     = 1ULL << 1,
+        VTE_FEATURE_FLAG_SYSTEMD = 1ULL << 2,
+        VTE_FEATURE_FLAG_SIXEL   = 1ULL << 3,
+        VTE_FEATURE_FLAGS_MASK   = 0xFFFFFFFFFFFFFFFFULL, /* force enum to 64 bit */
+} VteFeatureFlags;
 
 G_END_DECLS
 

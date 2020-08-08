@@ -95,8 +95,10 @@ vte_terminal_event_check_regex_array
 vte_terminal_event_check_regex_simple
 
 <SUBSECTION>
+VteFeatureFlags
 vte_get_user_shell
 vte_get_features
+vte_get_feature_flags
 vte_get_encodings
 vte_get_encoding_supported
 

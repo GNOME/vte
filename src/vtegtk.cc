@@ -2084,6 +2084,36 @@ vte_get_features (void) noexcept
 }
 
 /**
+ * vte_get_feature_flags:
+ *
+ * Gets features VTE was compiled with.
+ *
+ * Returns: (transfer none): flags from #VteFeatureFlags
+ *
+ * Since: 0.62
+ */
+VteFeatureFlags
+vte_get_feature_flags(void) noexcept
+{
+        return VteFeatureFlags(0ULL |
+#ifdef WITH_FRIBIDI
+                               VTE_FEATURE_FLAG_BIDI |
+#endif
+#ifdef WITH_ICU
+                               VTE_FEATURE_FLAG_ICU |
+#endif
+#ifdef WITH_SIXEL
+                               VTE_FEATURE_FLAG_SIXEL |
+#endif
+#ifdef __linux__
+#ifdef WITH_SYSTEMD
+                               VTE_FEATURE_FLAG_SYSTEMD |
+#endif
+#endif // __linux__
+                               0ULL);
+}
+
+/**
  * vte_get_major_version:
  *
  * Returns the major version of the VTE library at runtime.

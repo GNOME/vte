@@ -22,6 +22,7 @@
 #include <glib.h>
 
 #include "vtemacros.h"
+#include "vteenums.h"
 
 G_BEGIN_DECLS
 
@@ -30,6 +31,9 @@ char *vte_get_user_shell(void) _VTE_CXX_NOEXCEPT;
 
 _VTE_PUBLIC
 const char *vte_get_features (void) _VTE_CXX_NOEXCEPT;
+
+_VTE_PUBLIC
+VteFeatureFlags vte_get_feature_flags(void) _VTE_CXX_NOEXCEPT;
 
 #define VTE_TEST_FLAGS_NONE (G_GUINT64_CONSTANT(0))
 #define VTE_TEST_FLAGS_ALL (~G_GUINT64_CONSTANT(0))
