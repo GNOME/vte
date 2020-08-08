@@ -62,6 +62,7 @@ _VTE_CMD(DECSCUSR) /* set cursor style */
 _VTE_CMD(DECSED) /* selective erase in display */
 _VTE_CMD(DECSEL) /* selective erase in line */
 _VTE_CMD(DECSGR) /* DEC select graphics rendition */
+_VTE_CMD(DECSIXEL) /* SIXEL graphics */
 _VTE_CMD(DECSLPP) /* set lines per page */
 _VTE_CMD(DECSLRM_OR_SCOSC) /* set left and right margins or SCO save cursor */
 _VTE_CMD(DECSR) /* secure reset */
@@ -201,7 +202,6 @@ _VTE_NOP(DECSDPT) /* select digital printed data type */
 _VTE_NOP(DECSERA) /* selective erase rectangular area */
 _VTE_NOP(DECSEST) /* energy saver time */
 _VTE_NOP(DECSFC) /* select flow control */
-_VTE_NOP(DECSIXEL) /* SIXEL graphics */
 _VTE_NOP(DECSKCV) /* set key click volume */
 _VTE_NOP(DECSLCK) /* set lock key style */
 _VTE_NOP(DECSLE) /* select locator events */

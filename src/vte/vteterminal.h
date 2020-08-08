@@ -503,6 +503,16 @@ gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,
                                            GCancellable *cancellable,
                                            GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
+/* Images */
+
+/* Set or get whether SIXEL image support is enabled */
+_VTE_PUBLIC
+void vte_terminal_set_enable_sixel(VteTerminal *terminal,
+                                    gboolean enabled) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_enable_sixel(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
 G_END_DECLS

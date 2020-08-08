@@ -676,6 +676,9 @@ try
                 case PROP_ENABLE_SHAPING:
                         g_value_set_boolean (value, vte_terminal_get_enable_shaping (terminal));
                         break;
+                case PROP_ENABLE_SIXEL:
+                        g_value_set_boolean (value, vte_terminal_get_enable_sixel (terminal));
+                        break;
                 case PROP_ENCODING:
                         g_value_set_string (value, vte_terminal_get_encoding (terminal));
                         break;
@@ -793,6 +796,9 @@ try
                         break;
                 case PROP_ENABLE_SHAPING:
                         vte_terminal_set_enable_shaping (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_ENABLE_SIXEL:
+                        vte_terminal_set_enable_sixel (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_ENCODING:
                         vte_terminal_set_encoding (terminal, g_value_get_string (value), NULL);
@@ -1773,6 +1779,23 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
+         * VteTerminal:enable-sixel:
+         *
+         * Controls whether SIXEL image support is enabled.
+         *
+         * Since: 0.62
+         */
+        pspecs[PROP_ENABLE_SIXEL] =
+                g_param_spec_boolean ("enable-sixel", nullptr, nullptr,
+#ifdef WITH_SIXEL
+                                      VTE_SIXEL_ENABLED_DEFAULT,
+#else
+                                      false,
+#endif
+                                      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+
+        /**
          * VteTerminal:font-scale:
          *
          * The terminal's font scale.
@@ -2042,6 +2065,12 @@ vte_get_features (void) noexcept
                 "+ICU"
 #else
                 "-ICU"
+#endif
+                " "
+#ifdef WITH_SIXEL
+                "+SIXEL"
+#else
+                "-SIXEL"
 #endif
 #ifdef __linux__
                 " "
@@ -5557,6 +5586,58 @@ catch (...)
 {
         vte::log_exception();
         *color = {0., 0., 0., 1.};
+}
+
+/**
+ * vte_terminal_set_enable_sixel:
+ * @terminal: a #VteTerminal
+ * @enabled: whether to enable SIXEL images
+ *
+ * Set whether to enable SIXEL images.
+ *
+ * Since: 0.62
+ */
+void
+vte_terminal_set_enable_sixel(VteTerminal *terminal,
+                              gboolean enabled) noexcept
+try
+{
+#ifdef WITH_SIXEL
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_sixel_enabled(enabled != FALSE))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_SIXEL]);
+#endif
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_enable_sixel:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: %TRUE if SIXEL image support is enabled, %FALSE otherwise
+ *
+ * Since: 0.62
+ */
+gboolean
+vte_terminal_get_enable_sixel(VteTerminal *terminal) noexcept
+try
+{
+#ifdef WITH_SIXEL
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        return WIDGET(terminal)->sixel_enabled();
+#else
+        return false;
+#endif
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 namespace vte {

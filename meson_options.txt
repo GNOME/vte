@@ -86,6 +86,13 @@ option(
 )
 
 option(
+  'sixel',
+  type: 'boolean',
+  value: false,
+  description: 'Enable SIXEL support',
+)
+
+option(
   '_systemd',
   type: 'boolean',
   value: true,

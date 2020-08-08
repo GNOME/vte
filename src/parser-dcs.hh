@@ -24,7 +24,7 @@ _VTE_NOQ(RLOGIN_MML,             DCS,    'm',  NONE,  1, HASH     ) /* RLogin mu
 _VTE_NOQ(DECREGIS,               DCS,    'p',  NONE,  0, NONE     ) /* ReGIS-graphics */
 _VTE_NOQ(DECRSTS,                DCS,    'p',  NONE,  1, CASH     ) /* restore-terminal-state */
 _VTE_NOQ(XTERM_STCAP,            DCS,    'p',  NONE,  1, PLUS     ) /* xterm set termcap/terminfo */
-_VTE_NOQ(DECSIXEL,               DCS,    'q',  NONE,  0, NONE     ) /* SIXEL-graphics */
+_VTE_SEQ(DECSIXEL,               DCS,    'q',  NONE,  0, NONE     ) /* SIXEL-graphics */
 _VTE_SEQ(DECRQSS,                DCS,    'q',  NONE,  1, CASH     ) /* request-selection-or-setting */
 _VTE_NOQ(XTERM_RQTCAP,           DCS,    'q',  NONE,  1, PLUS     ) /* xterm request termcap/terminfo */
 _VTE_NOQ(DECLBAN,                DCS,    'r',  NONE,  0, NONE     ) /* load-banner-message */

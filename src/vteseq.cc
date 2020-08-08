@@ -945,7 +945,8 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
 }
 
 void
-Terminal::erase_characters(long count)
+Terminal::erase_characters(long count,
+                           bool use_basic)
 {
 	VteCell *cell;
 	long col, i;
@@ -968,10 +969,10 @@ Terminal::erase_characters(long count)
 					/* Replace this cell with the current
 					 * defaults. */
 					cell = _vte_row_data_get_writable (rowdata, col);
-                                        *cell = m_color_defaults;
+                                        *cell = use_basic ? basic_cell : m_color_defaults;
 				} else {
 					/* Add new cells until we have one here. */
-                                        _vte_row_data_fill (rowdata, &m_color_defaults, col + 1);
+                                        _vte_row_data_fill (rowdata, use_basic ? &basic_cell : &m_color_defaults, col + 1);
 				}
 			}
 		}
@@ -2376,7 +2377,11 @@ Terminal::DA1(vte::parser::Sequence const& seq)
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        reply(seq, VTE_REPLY_DECDA1R, {65, 1, 9});
+        reply(seq, VTE_REPLY_DECDA1R, {65, 1,
+#ifdef WITH_SIXEL
+                                       4,
+#endif
+                                       9});
 }
 
 void
@@ -4333,6 +4338,105 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          *
          * References: VT330
          */
+
+#ifdef WITH_SIXEL
+        if (!m_sixel_enabled)
+                return;
+
+	unsigned char *pixels = NULL;
+	auto fg = get_color(VTE_DEFAULT_FG);
+	auto bg = get_color(VTE_DEFAULT_BG);
+	int nfg = (fg->red >> 8) | ((fg->green >> 8) << 8) | ((fg->blue >> 8) << 16);
+	int nbg = (bg->red >> 8) | ((bg->green >> 8) << 8) | ((bg->blue >> 8) << 16);
+	glong left, top, width, height;
+	glong pixelwidth, pixelheight;
+	glong i;
+	cairo_surface_t *image_surface, *surface;
+	cairo_t *cr;
+
+        /* This is unfortunate, but it avoids copying or measuring potentially
+         * megabytes of data */
+        const vte_seq_string_t *arg_str = &((*((vte::parser::Sequence &) seq).seq_ptr())->arg_str);
+
+	/* Parse image */
+
+	if (sixel_parser_init(&m_sixel_state, nfg, nbg,
+                              m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS()) < 0) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	if (sixel_parser_feed(&m_sixel_state, arg_str->buf, arg_str->len) < 0) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	pixels = (unsigned char *)g_try_malloc(m_sixel_state.image.width * m_sixel_state.image.height * 4);
+	if (!pixels) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	if (sixel_parser_finalize(&m_sixel_state, pixels) < 0) {
+                g_free(pixels);
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	sixel_parser_deinit(&m_sixel_state);
+
+	/* Calculate geometry */
+
+	left = m_screen->cursor.col;
+	top = m_screen->cursor.row;
+	width = (m_sixel_state.image.width + m_cell_width - 1) / m_cell_width;
+	height = (m_sixel_state.image.height + m_cell_height - 1) / m_cell_height;
+	pixelwidth = m_sixel_state.image.width;
+	pixelheight = m_sixel_state.image.height;
+
+	/* Convert to device-compatible surface for m_widget */
+
+	image_surface = cairo_image_surface_create_for_data(pixels, CAIRO_FORMAT_ARGB32, pixelwidth, pixelheight, pixelwidth * 4);
+        if (!image_surface) {
+                g_free(pixels);
+                return;
+        }
+
+	surface = gdk_window_create_similar_surface(gtk_widget_get_window (m_widget), CAIRO_CONTENT_COLOR_ALPHA, pixelwidth, pixelheight);
+        if (!surface) {
+                cairo_surface_destroy(image_surface);
+                g_free(pixels);
+                return;
+        }
+
+	cr = cairo_create(surface);
+	cairo_set_source_surface(cr, image_surface, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	cairo_surface_destroy(image_surface);
+	g_free(pixels);
+
+	/* Append image to Ring */
+
+	m_screen->row_data->append_image(surface, pixelwidth, pixelheight, left, top, m_cell_width, m_cell_height);
+
+	/* Erase characters under the image */
+
+	for (i = 0; i < height; ++i) {
+                vte::grid::row_t row = top + i;
+
+		erase_characters(width, true);
+
+                if (row > m_screen->insert_delta - 1
+                    && row < m_screen->insert_delta + m_row_count)
+                        set_hard_wrapped(row);
+
+		if (i == height - 1) {
+			if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
+				move_cursor_forward(width);
+			else
+				cursor_down(true);
+		} else {
+			cursor_down(true);
+		}
+	}
+#endif /* WITH_SIXEL */
 }
 
 void
@@ -5386,7 +5490,7 @@ Terminal::ECH(vte::parser::Sequence const& seq)
 
         // FIXMEchpe limit to column_count - cursor.x ?
         auto const count = seq.collect1(0, 1, 1, int(65535));
-        erase_characters(count);
+        erase_characters(count, false);
 }
 
 void

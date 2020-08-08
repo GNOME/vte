@@ -78,6 +78,7 @@ enum {
         PROP_DELETE_BINDING,
         PROP_ENABLE_BIDI,
         PROP_ENABLE_SHAPING,
+        PROP_ENABLE_SIXEL,
         PROP_ENCODING,
         PROP_FONT_DESC,
         PROP_FONT_SCALE,

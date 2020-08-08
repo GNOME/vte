@@ -48,6 +48,7 @@
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
+#include "sixelparser.hh"
 
 #include "chunk.hh"
 #include "pty.hh"
@@ -751,6 +752,20 @@ public:
         vte::glib::Timer m_mouse_autoscroll_timer{std::bind(&Terminal::mouse_autoscroll_timer_callback,
                                                             this),
                                                   "mouse-autoscroll-timer"};
+
+        /* Inline images */
+        bool m_sixel_enabled{VTE_SIXEL_ENABLED_DEFAULT};
+        bool m_images_enabled{VTE_SIXEL_ENABLED_DEFAULT};
+        sixel_state_t m_sixel_state;
+
+        bool set_sixel_enabled(bool enabled) noexcept
+        {
+                auto const changed = m_sixel_enabled != enabled;
+                m_sixel_enabled = m_images_enabled = enabled;
+                return changed;
+        }
+
+        constexpr bool sixel_enabled() const noexcept { return m_sixel_enabled; }
 
 	/* State variables for handling match checks. */
         int m_match_regex_next_tag{0};
@@ -1509,6 +1524,7 @@ public:
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
+        bool set_images_enabled(bool enabled);
         bool set_word_char_exceptions(std::optional<std::string_view> stropt);
         void set_clear_background(bool setting);
 
@@ -1562,7 +1578,8 @@ public:
         inline vte::grid::column_t get_cursor_column_unclamped() const;
         inline void move_cursor_up(vte::grid::row_t rows);
         inline void move_cursor_down(vte::grid::row_t rows);
-        inline void erase_characters(long count);
+        inline void erase_characters(long count,
+                                     bool use_basic = false);
         inline void insert_blank_character();
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>

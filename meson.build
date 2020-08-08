@@ -124,6 +124,7 @@ config_h.set('WITH_A11Y', get_option('a11y'))
 config_h.set('WITH_FRIBIDI', get_option('fribidi'))
 config_h.set('WITH_GNUTLS', get_option('gnutls'))
 config_h.set('WITH_ICU', get_option('icu'))
+config_h.set('WITH_SIXEL', get_option('sixel'))
 
 ver = glib_min_req_version.split('.')
 config_h.set('GLIB_VERSION_MIN_REQUIRED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
@@ -505,6 +506,7 @@ output += '  GTK+ 4.0:     ' + get_option('gtk4').to_string() + '\n'
 output += '  ICU:          ' + get_option('icu').to_string() + '\n'
 output += '  GIR:          ' + get_option('gir').to_string() + '\n'
 output += '  systemd:      ' + systemd_dep.found().to_string() + '\n'
+output += '  SIXEL:        ' + get_option('sixel').to_string() + '\n'
 output += '  Vala:         ' + get_option('vapi').to_string() + '\n'
 output += '\n'
 output += '  Prefix:       ' + get_option('prefix') + '\n'

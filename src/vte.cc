@@ -7637,6 +7637,7 @@ Terminal::vadjustment_value_changed()
 	if (!_vte_double_equal(dy, 0)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
+
                 invalidate_all();
                 match_contents_clear();
 		emit_text_scrolled(dy);
@@ -7743,6 +7744,11 @@ Terminal::Terminal(vte::platform::Widget* w,
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
+
+#ifdef WITH_SIXEL
+	/* Initialize SIXEL color register */
+	sixel_parser_set_default_color(&m_sixel_state);
+#endif
 
 	/* Matching data. */
         m_match_span.clear(); // FIXMEchpe unnecessary
@@ -8200,7 +8206,11 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         else
                 rgb_from_index<4, 5, 4>(deco, dc);
 
+#ifndef WITH_SIXEL
         if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
+#else
+        {
+#endif
                 /* Paint the background. */
                 i = 0;
                 while (i < n) {
@@ -8218,11 +8228,26 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                         break;                                  /* break the run */
                                 }
                         }
-			m_draw.fill_rectangle(
-                                                 xl,
-                                                 y,
-                                                 xr - xl, row_height,
-                                                 &bg, VTE_DRAW_OPAQUE);
+
+#ifdef WITH_SIXEL
+                        if (back == VTE_DEFAULT_BG) {
+                                /* Clear cells in order to properly overdraw images */
+                                m_draw.clear(xl,
+                                             y,
+                                             xr - xl, row_height,
+                                             get_color(VTE_DEFAULT_BG), m_background_alpha);
+                        }
+
+                        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
+#else
+                        {
+#endif
+                                m_draw.fill_rectangle(
+                                                      xl,
+                                                      y,
+                                                      xr - xl, row_height,
+                                                      &bg, VTE_DRAW_OPAQUE);
+                        }
                 }
         }
 
@@ -8832,15 +8857,18 @@ Terminal::draw_rows(VteScreen *screen_,
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
                                   (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
                         if (cell->c == 0 ||
-                                ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
-                                 cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
-                                                     VTE_ATTR_STRIKETHROUGH_MASK |
-                                                     VTE_ATTR_OVERLINE_MASK) &&
-                                 !nhyperlink &&
-                                 !nhilite) ||
+#ifndef WITH_SIXEL
+                            ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
+                             cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
+                                                 VTE_ATTR_STRIKETHROUGH_MASK |
+                                                 VTE_ATTR_OVERLINE_MASK) &&
+                             !nhyperlink &&
+                             !nhilite) ||
+#endif
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
-                                /* Skip empty or fragment cell. */
+                                /* Skip empty or fragment cell, but erase on ' ' and '\t', since
+                                 * it may be overwriting an image. */
                                 lcol++;
                                 continue;
                         }
@@ -9196,6 +9224,9 @@ Terminal::widget_draw(cairo_t *cr)
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
+#ifdef WITH_SIXEL
+        VteRing *ring = m_screen->row_data;
+#endif
         gint64 now = 0;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
@@ -9222,6 +9253,33 @@ Terminal::widget_draw(cairo_t *cr)
                                  allocated_width, allocated_height,
                                  get_color(VTE_DEFAULT_BG), m_background_alpha);
         }
+
+#ifdef WITH_SIXEL
+	/* Draw images */
+	if (m_images_enabled) {
+		vte::grid::row_t top_row = first_displayed_row();
+		vte::grid::row_t bottom_row = last_displayed_row();
+		auto image_map = ring->m_image_priority_map;
+		auto it = image_map->begin ();
+		for (; it != image_map->end (); ++it) {
+			vte::image::Image *image = it->second;
+
+                        if (image->get_bottom() < top_row
+                            || image->get_top() > bottom_row)
+				continue;
+
+			int x = m_padding.left + image->get_left () * m_cell_width;
+			int y = m_padding.top + (image->get_top () - m_screen->scroll_delta) * m_cell_height;
+
+                        /* Clear cell extent; image may be slightly smaller */
+                        m_draw.clear(x, y, image->get_width() * m_cell_width,
+                                     image->get_height() * m_cell_height,
+                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
+
+			image->paint (cr, x, y, m_cell_width, m_cell_height);
+		}
+	}
+#endif /* WITH_SIXEL */
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
@@ -9906,6 +9964,12 @@ Terminal::reset(bool clear_tabstops,
 	m_mouse_smooth_scroll_delta = 0.;
 	/* Clear modifiers. */
 	m_modifiers = 0;
+
+#ifdef WITH_SIXEL
+	/* Reset SIXEL color register */
+	sixel_parser_set_default_color(&m_sixel_state);
+#endif
+
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
