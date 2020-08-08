@@ -2023,7 +2023,11 @@ vte_terminal_class_init(VteTerminalClass *klass)
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
                                          "padding: 1px 1px 1px 1px;\n"
+#if GTK_CHECK_VERSION (3, 24, 22)
+                                         "background-color: @text_view_bg;\n"
+#else
                                          "background-color: @theme_base_color;\n"
+#endif
                                          "color: @theme_text_color;\n"
                                          "}\n",
                                          -1, NULL);
