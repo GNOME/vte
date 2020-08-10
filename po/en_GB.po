@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the vte package.
 # Gareth Owen <gowen72@yahoo.com>, 2004.
 # Philip Withnall <philip@tecnocode.co.uk>, 2010.
-# Zander Brown <zbrown@gnome.org>, 2019.
+# Zander Brown <zbrown@gnome.org>, 2019-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2019-04-14 20:50+0000\n"
-"PO-Revision-Date: 2019-08-25 01:15+0100\n"
+"POT-Creation-Date: 2020-04-27 18:50+0000\n"
+"PO-Revision-Date: 2020-05-18 13:01+0100\n"
 "Last-Translator: Zander Brown <zbrown@gnome.org>\n"
 "Language-Team: English - United Kingdom <en_GB@li.org>\n"
 "Language: en_GB\n"
@@ -18,32 +18,55 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 3.32.1\n"
+"X-Generator: Gtranslator 3.36.0\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: src/vte.cc:3928
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Error reading from child: %s."
-
-#: src/vte.cc:4078
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Error (%s) converting data for child, dropping."
-
-#: src/vte.cc:7889
+#: src/vte.cc:7843
 msgid "WARNING"
 msgstr "WARNING"
 
-#: src/vte.cc:7890
-#| msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+#: src/vte.cc:7845
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GnuTLS not enabled; data will be written to disk unencrypted!"
 
-#: src/vtegtk.cc:3653
+#: src/spawn.cc:104
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Unable to convert characters from %s to %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Failed to set pipe non-blocking: %s"
+
+#: src/spawn.cc:148
+#, c-format
+msgid "poll error: %s"
+msgstr "poll error: %s"
+
+#: src/spawn.cc:154
+msgid "Operation timed out"
+msgstr "Operation timed out"
+
+#: src/spawn.cc:164
+msgid "Operation was cancelled"
+msgstr "Operation was cancelled"
+
+#: src/spawn.cc:182
+#, c-format
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "Failed to read from child pipe (%s)"
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Failed to change to directory “%s”: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Failed to execute child process “%s”: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Error (%s) converting data for child, dropping."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Unable to convert characters from %s to %s."
 
 #~ msgid "Attempt to set invalid NRC map '%c'."
 #~ msgstr "Attempt to set invalid NRC map '%c'."
