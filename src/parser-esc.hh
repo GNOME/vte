@@ -41,7 +41,7 @@ _VTE_SEQ(NEL,                    ESCAPE, 'E',  NONE,  0, NONE     ) /* next-line
 _VTE_NOQ(SSA,                    ESCAPE, 'F',  NONE,  0, NONE     ) /* start of selected area */
 _VTE_NOQ(ESA,                    ESCAPE, 'G',  NONE,  0, NONE     ) /* end of selected area */
 _VTE_SEQ(HTS,                    ESCAPE, 'H',  NONE,  0, NONE     ) /* horizontal-tab-set */
-_VTE_NOQ(HTJ,                    ESCAPE, 'I',  NONE,  0, NONE     ) /* character tabulation with justification */
+_VTE_SEQ(HTJ,                    ESCAPE, 'I',  NONE,  0, NONE     ) /* character tabulation with justification */
 _VTE_NOQ(VTS,                    ESCAPE, 'J',  NONE,  0, NONE     ) /* line tabulation set */
 _VTE_NOQ(PLD,                    ESCAPE, 'K',  NONE,  0, NONE     ) /* partial line forward */
 _VTE_NOQ(PLU,                    ESCAPE, 'L',  NONE,  0, NONE     ) /* partial line backward */
