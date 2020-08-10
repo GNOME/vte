@@ -5,49 +5,74 @@
 # Leonardo Ferreira Fontenelle <leo.fontenelle@gmail.com>, 2007.
 # Lucas Mazzardo Veloso <lmveloso@gmail.com>, 2007.
 # Enrico Nicoletto <liverig@gmail.com>, 2014.
-# Rafael Fontenelle <rafaelff@gnome.org>, 2016.
 # Ricardo Silva Veloso <ricvelozo@gmail.com>, 2018.
+# Rafael Fontenelle <rafaelff@gnome.org>, 2016-2020.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: 2.0\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-06-20 20:20+0000\n"
-"PO-Revision-Date: 2018-08-11 23:58-0300\n"
-"Last-Translator: Ricardo Silva Veloso <ricvelozo@gmail.com>\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2020-08-10 08:58-0300\n"
+"Last-Translator: Rafael Fontenelle <rafaelff@gnome.org>\n"
 "Language-Team: Brazilian Portuguese <gnome-pt_br-list@gnome.org>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 2.1\n"
+"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"X-Generator: Gtranslator 3.36.0\n"
 "X-Project-Style: gnome\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3966
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Erro ao ler do filho: %s."
-
-#: ../src/vte.cc:4122
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Erro (%s) ao converter dados para filho, descartando."
-
-#: ../src/vte.cc:8179
+#: src/vte.cc:7763
 msgid "WARNING"
 msgstr "AVISO"
 
-#: ../src/vte.cc:8180
+#: src/vte.cc:7765
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
-"O GnuTLS não está habilitado; os dados serão escritos "
-"descriptografados em um disco!"
+"O GnuTLS não está habilitado; os dados serão escritos descriptografados em "
+"um disco!"
 
-#: ../src/vtegtk.cc:3618
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Não foi possível converter caracteres de %s para %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Falha ao definir um encadeamento não bloqueante: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "erro de poll: %s"
+
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "A operação esgotou tempo limite"
+
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "A operação foi cancelada"
+
+#: src/spawn.cc:189
+#, c-format
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "Falha ao ler de um pipe filho (%s)"
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Falha ao mudar para o diretório “%s”: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Falha ao executar o processo filho “%s”: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Erro (%s) ao converter dados para filho, descartando."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Não foi possível converter caracteres de %s para %s."
 
 #~ msgid "Copy"
 #~ msgstr "Copiar"
