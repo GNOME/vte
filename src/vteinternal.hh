@@ -1564,13 +1564,13 @@ public:
         inline void clear_below_current();
         inline void clear_to_eol();
         inline void delete_character();
-        inline void set_cursor_column(vte::grid::column_t col);
+        void set_cursor_column(vte::grid::column_t col);
         inline void set_cursor_column1(vte::grid::column_t col); /* 1-based */
-        inline int get_cursor_column() const noexcept { return CLAMP(m_screen->cursor.col, 0, m_column_count - 1); }
+        int get_cursor_column() const noexcept { return CLAMP(m_screen->cursor.col, 0, m_column_count - 1); }
         inline int get_cursor_column1() const noexcept { return get_cursor_column() + 1; }
-        inline void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
+        void set_cursor_row(vte::grid::row_t row /* relative to scrolling region */);
         inline void set_cursor_row1(vte::grid::row_t row /* relative to scrolling region */); /* 1-based */
-        inline int get_cursor_row() const noexcept { return CLAMP(m_screen->cursor.row, 0, m_row_count - 1); }
+        int get_cursor_row() const noexcept { return CLAMP(m_screen->cursor.row, 0, m_row_count - 1); }
         inline int get_cursor_row1() const noexcept { return get_cursor_row() + 1; }
         inline void set_cursor_coords(vte::grid::row_t row /* relative to scrolling region */,
                                       vte::grid::column_t column);
