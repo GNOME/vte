@@ -28,11 +28,6 @@
 #include "vterowdata.hh"
 #include "vtestream.h"
 
-#ifdef WITH_SIXEL
-#include "image.hh"
-#include <map>
-#endif
-
 #include <type_traits>
 
 typedef struct _VteVisualPosition {
@@ -102,15 +97,6 @@ public:
                             VteWriteFlags flags,
                             GCancellable* cancellable,
                             GError** error);
-
-#ifdef WITH_SIXEL
-        void append_image (cairo_surface_t *surface,
-                           gint pixelwidth, gint pixelheight,
-                           glong left, glong top,
-                           glong cell_width, glong cell_height);
-        std::map<gint, vte::image::Image *> *m_image_by_top_map;
-        std::map<int, vte::image::Image *> *m_image_priority_map;
-#endif
 
 private:
 
@@ -240,20 +226,6 @@ private:
         hyperlink_idx_t m_hyperlink_hover_idx{0};  /* The hyperlink idx of the hovered cell.
                                                  An idx is allocated on hover even if the cell is scrolled out to the streams. */
         row_t m_hyperlink_maybe_gc_counter{0};  /* Do a GC when it reaches 65536. */
-
-#ifdef WITH_SIXEL
-        /* Image bookkeeping */
-
-        void image_gc();
-        void image_gc_region();
-        void unlink_image_from_top_map(vte::image::Image *image);
-        void rebuild_image_top_map();
-        bool rewrap_images_in_range(std::map<int,vte::image::Image*>::iterator &it,
-                                    size_t text_start_ofs, size_t text_end_ofs, row_t new_row_index);
-
-        int m_next_image_priority;
-        unsigned int m_image_fast_memory_used;
-#endif /* WITH_SIXEL */
 };
 
 }; /* namespace base */

@@ -177,9 +177,6 @@ public:
 
         bool should_emit_signal(int id) noexcept;
 
-        bool set_sixel_enabled(bool enabled) noexcept { return m_terminal->set_sixel_enabled(enabled); }
-        bool sixel_enabled() const noexcept { return m_terminal->sixel_enabled(); }
-
 protected:
 
         enum class CursorType {
