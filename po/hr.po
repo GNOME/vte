@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte 0\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-06-20 20:20+0000\n"
-"PO-Revision-Date: 2018-09-02 19:00+0200\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2020-08-23 14:41+0200\n"
 "Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <lokalizacija@linux.hr>\n"
 "Language: hr\n"
@@ -14,31 +14,54 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Launchpad-Export-Date: 2016-09-15 11:47+0000\n"
-"X-Generator: Poedit 2.1.1\n"
+"X-Generator: Poedit 2.4.1\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3966
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Greška prilikom čitanja nadređenog: %s."
-
-#: ../src/vte.cc:4122
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Greška (%s) pri pretvorbi podataka za nadređenog, odbacujem."
-
-#: ../src/vte.cc:8179
+#: src/vte.cc:7763
 msgid "WARNING"
 msgstr "UPOZORENJE"
 
-#: ../src/vte.cc:8180
+#: src/vte.cc:7765
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GNUTLS nije omogućen; podaci će biti zapisivani nešifrirano na disk!"
 
-#: ../src/vtegtk.cc:3618
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Nemoguća pretvorba znakova iz %s u %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Neuspjelo postavljanje pipe neblokiranja: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "poll greška: %s"
+
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "Istek vremena radnje"
+
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "Radnja je prekinuta"
+
+#: src/spawn.cc:189
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Greška prilikom čitanja nadređenog slivnika (%s)"
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Neuspjela promjena u direktorij “%s”: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Neuspjelo pokretanje podređenog procesa “%s”: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Greška (%s) pri pretvorbi podataka za nadređenog, odbacujem."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Nemoguća pretvorba znakova iz %s u %s."
 
 #~ msgid "Attempt to set invalid NRC map '%c'."
 #~ msgstr "Pokušaj postavljanja neispravne NRC mape '%c'."
