@@ -15,7 +15,7 @@ the context in which they appear.
 
 Width information is crucial for terminal-based applications which need
 to address the screen:  if the application draws five characters and
-expects the cursor to be in moved six columns to the right, and the
+expects the cursor to be moved six columns to the right, and the
 terminal moves the cursor seven (or five, or any number other than six),
 display bugs manifest.
 
@@ -28,9 +28,9 @@ locale information.
 There are basically four approaches to solving this problem:
 A) Force characters with ambiguous width to be single-width.
 B) Force characters with ambiguous width to be double-width.
-C) Force characters with ambiguous width to be have a width value based
+C) Force characters with ambiguous width to have a width value based
    on the locale's region.
-D) Force characters with ambiguous width to be have a width value based
+D) Force characters with ambiguous width to have a width value based
    on the locale's encoding.
 
 Methods A and B will produce display bugs, because they don't take into
