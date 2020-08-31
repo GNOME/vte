@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-10-15 14:29+0000\n"
-"PO-Revision-Date: 2019-02-28 21:30+0100\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2020-08-31 16:37+0200\n"
 "Last-Translator: Марко М. Костић <marko.m.kostic@gmail.com>\n"
 "Language-Team: српски <gnome-sr@googlegroups.org>\n"
 "Language: sr\n"
@@ -19,31 +19,54 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=n==1? 3 : n%10==1 && n%100!=11 ? 0 : n"
 "%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Project-Style: gnome\n"
-"X-Generator: Poedit 2.2\n"
+"X-Generator: Poedit 2.4.1\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3826
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Грешка при читању потпроцеса: %s."
-
-#: ../src/vte.cc:3976
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Грешка (%s) при промени података за потпроцес — обустављам."
-
-#: ../src/vte.cc:7822
+#: src/vte.cc:7763
 msgid "WARNING"
 msgstr "УПОЗОРЕЊЕ"
 
-#: ../src/vte.cc:7823
+#: src/vte.cc:7765
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "Гну-ТЛС није омогућен, подаци ће бити записани на диск нешифровани!"
 
-#: ../src/vtegtk.cc:3655
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Не могу да пребацим знакове из „%s“ у „%s“."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Нисам успео да подесим цевку (пајп) у режим неблокирања: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "грешка праћења промене: %s"
+
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "Радња је истекла"
+
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "Радња је отказана"
+
+#: src/spawn.cc:189
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Грешка при читању дете-цевке (%s)"
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Нисам успео да се пребацим у директоријум „%s“: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Нисам успео да извршим дете процес „%s“: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Грешка (%s) при промени података за потпроцес — обустављам."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Не могу да пребацим знакове из „%s“ у „%s“."
 
 #~ msgid "Copy"
 #~ msgstr "Умножи"
