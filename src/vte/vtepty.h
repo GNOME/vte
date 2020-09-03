@@ -127,6 +127,7 @@ void vte_pty_spawn_with_fds_async(VtePty *pty,
                                   GAsyncReadyCallback callback,
                                   gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
 
+_VTE_PUBLIC
 gboolean vte_pty_spawn_finish(VtePty *pty,
                               GAsyncResult *result,
                               GPid *child_pid /* out */,
