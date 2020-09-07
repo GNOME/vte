@@ -5,47 +5,74 @@
 # Hendrik Richter <hendrikr@gnome.org>, 2007.
 # Andre Klapper <a9016009@gmx.de>, 2007.
 # Mario Blättermann <mariobl@gnome.org>, 2010, 2014, 2016.
-# Tim Sabsch <tim@sabsch.com>, 2018.
+# Tim Sabsch <tim@sabsch.com>, 2018, 2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-06-20 20:20+0000\n"
-"PO-Revision-Date: 2018-07-27 14:47+0200\n"
+"POT-Creation-Date: 2020-09-04 08:17+0000\n"
+"PO-Revision-Date: 2020-09-07 20:27+0200\n"
 "Last-Translator: Tim Sabsch <tim@sabsch.com>\n"
 "Language-Team: German <gnome-de@gnome.org>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.0.9\n"
+"X-Generator: Poedit 2.4.1\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3966
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Fehler beim Lesen von Kind: %s."
-
-#: ../src/vte.cc:4122
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, abgebrochen."
-
-#: ../src/vte.cc:8179
+#: src/vte.cc:7770
 msgid "WARNING"
 msgstr "WARNUNG"
 
-#: ../src/vte.cc:8180
+#: src/vte.cc:7772
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
 "GnuTLS ist nicht aktiviert, die Daten werden unverschlüsselt auf die "
 "Festplatte geschrieben!"
 
-#: ../src/vtegtk.cc:3618
+# So ähnlich habe ich es im Internet gelesen.
+# Es handelt sich hierbei um eine Pipeline,
+# Es gibt eine Einstellung "nicht blockierend"
+# und eine die den Lese- oder Schreibzugriff auf die Pipe verweigert soweit ich mich erinnere.
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Fehler beim Setzen der nicht-blockierenden Pipe: %s"
+
+#: src/spawn.cc:156
+#, c-format
+msgid "poll error: %s"
+msgstr "Poll-Fehler: %s"
+
+#: src/spawn.cc:163
+msgid "Operation timed out"
+msgstr "Zeitüberschreitung bei Vorgang"
+
+#: src/spawn.cc:173
+msgid "Operation was cancelled"
+msgstr "Vorgang wurde abgebrochen"
+
+#: src/spawn.cc:191
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Fehler beim Lesen von der Kind-Pipe (%s)"
+
+#: src/spawn.cc:621
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Wechsel zu Verzeichnis »%s« fehlgeschlagen: %s"
+
+#: src/spawn.cc:690
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Ausführung des Kind-Prozesses »%s« fehlgeschlagen: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Fehler (%s) beim Konvertieren der Daten für Kind, abgebrochen."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Zeichen konnten nicht von %s nach %s konvertiert werden."
 
 #~ msgid "Copy"
 #~ msgstr "Kopieren"
