@@ -3,49 +3,73 @@
 # This file is distributed under the same license as the vte package.
 # Duarte Loreto <happyguy_pt@hotmail.com>, 2003, 2004, 2007, 2008, 2010.
 # Pedro Albuquerque <palbuquerque73@openmailbox.com>, 2015.
+# Juliano de Souza Camargo <julianosc@protonmail.com>, 2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: 2.32\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-05-16 08:25+0000\n"
-"PO-Revision-Date: 2016-05-22 13:19+0100\n"
-"Last-Translator: Tiago Santos <tiagofsantos81@sapo.pt>\n"
-"Language-Team: Português <palbuquerque73@openmailbox.com>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2020-09-11 20:58-0300\n"
+"Last-Translator: Juliano de Souza Camargo <julianosc@protonmail.com>\n"
+"Language-Team: Portuguese <>\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.5.4\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"X-Generator: Gtranslator 3.36.0\n"
 "X-Project-Style: gnome\n"
 
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3090
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Impossível converter caracteres de %s em %s."
-
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4248
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Erro ao ler do filho: %s."
-
-#: ../src/vte.cc:4387
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Erro (%s) ao converter dados do filho, a ignorá-los."
-
-#: ../src/vte.cc:8156
+#: src/vte.cc:7763
 msgid "WARNING"
 msgstr "AVISO"
 
-#: ../src/vte.cc:8157
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+#: src/vte.cc:7765
+#| msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
 "GNUTLS não está ativo; os dados serão escritos no disco desencriptados!"
+
+#: src/spawn.cc:111
+#, c-format
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Falhou em definir um encaminhamento inbloqueável: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "erro de sondagem: %s"
+
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "A operação expirou"
+
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "A operação foi cancelada"
+
+#: src/spawn.cc:189
+#, c-format
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "Falhou ao ler do encaminhamento filho: %s."
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Falhou ao alterar o diretório “%s”: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Falhou ao correr o processo filho “%s”: "
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Impossível converter caracteres de %s em %s."
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Erro (%s) ao converter dados do filho, a ignorá-los."
 
 #~ msgid "Copy"
 #~ msgstr "Copiar"
