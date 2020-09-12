@@ -5,6 +5,7 @@
                domain="vte-@VTE_API_VERSION@"
                depends="gtk+"
                book="vte"
+               icon-prefix="vte"
                supports="gtkbuilder">
   <glade-widget-classes>
     <glade-widget-class title="VTE Terminal" name="VteTerminal" generic-name="terminal" />
