@@ -58,6 +58,13 @@ option(
 )
 
 option(
+  'glade',
+  type: 'boolean',
+  value : true,
+  description: 'Install a glade catalogue file'
+)
+
+option(
   'gnutls',
   type: 'boolean',
   value: true,

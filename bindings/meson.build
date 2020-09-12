@@ -14,6 +14,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <https://www.gnu.org/licenses/>.
 
+if get_option('glade') and get_option('gtk3')
+  subdir('glade')
+endif
+
 if get_option('gir') and (get_option('gtk3') or get_option('gtk4'))
   subdir('gir')
 endif
