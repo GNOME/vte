@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2020-06-08 23:16+0000\n"
-"PO-Revision-Date: 2020-09-04 10:16+0200\n"
+"POT-Creation-Date: 2020-09-12 19:27+0000\n"
+"PO-Revision-Date: 2020-09-17 09:37+0200\n"
 "Last-Translator: Dušan Kazik <prescott66@gmail.com>\n"
 "Language-Team: Slovak <gnome-sk-list@gnome.org>\n"
 "Language: sk\n"
@@ -19,11 +19,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 2.4.1\n"
 
-#: src/vte.cc:7761
+#: src/vte.cc:7764
 msgid "WARNING"
 msgstr "UPOZORNENIE"
 
-#: src/vte.cc:7763
+#: src/vte.cc:7766
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "Šifrovanie GnuTLS nie je povolené. Údaje budú zapísané na disk nešifrované!"
 
@@ -32,30 +32,30 @@ msgstr "Šifrovanie GnuTLS nie je povolené. Údaje budú zapísané na disk ne�
 msgid "Failed to set pipe nonblocking: %s"
 msgstr "Zlyhalo nastavenie neblokovaného zreťazenia: %s"
 
-#: src/spawn.cc:155
+#: src/spawn.cc:156
 #, c-format
 msgid "poll error: %s"
-msgstr ""
+msgstr "chyba dopytovania. %s"
 
-#: src/spawn.cc:161
+#: src/spawn.cc:163
 msgid "Operation timed out"
 msgstr "Čas operácie vypršal"
 
-#: src/spawn.cc:171
+#: src/spawn.cc:173
 msgid "Operation was cancelled"
 msgstr "Operácia bola zrušená"
 
-#: src/spawn.cc:189
+#: src/spawn.cc:191
 #, c-format
 msgid "Failed to read from child pipe (%s)"
 msgstr "Chyba pri čítaní z dcérskeho zreťazenia (%s)"
 
-#: src/spawn.cc:576
+#: src/spawn.cc:621
 #, c-format
 msgid "Failed to change to directory “%s”: %s"
 msgstr "Zlyhala zmena adresára na „%s“: %s"
 
-#: src/spawn.cc:645
+#: src/spawn.cc:690
 #, c-format
 msgid "Failed to execute child process “%s”: "
 msgstr "Zlyhalo spustenie dcérskeho procesu „%s“: "
