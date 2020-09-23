@@ -75,6 +75,7 @@
 #define VTE_TERMINAL_CSS_NAME "vte-terminal"
 
 struct _VteTerminalClassPrivate {
+        GtkStyleProvider *fallback_style_provider;
         GtkStyleProvider *style_provider;
 };
 
@@ -555,6 +556,9 @@ try
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_init()\n");
 
         context = gtk_widget_get_style_context(&terminal->widget);
+        gtk_style_context_add_provider (context,
+                                        VTE_TERMINAL_GET_CLASS (terminal)->priv->fallback_style_provider,
+                                        GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -2015,15 +2019,16 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         klass->priv = G_TYPE_CLASS_GET_PRIVATE (klass, VTE_TYPE_TERMINAL, VteTerminalClassPrivate);
 
+        klass->priv->fallback_style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
+        /* Some themes don't define text_view_bg */
+        gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->fallback_style_provider),
+                                         "@define-color text_view_bg @theme_base_color;",
+                                         -1, NULL);
         klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
                                          "padding: 1px 1px 1px 1px;\n"
-#if GTK_CHECK_VERSION (3, 24, 22)
                                          "background-color: @text_view_bg;\n"
-#else
-                                         "background-color: @theme_base_color;\n"
-#endif
                                          "color: @theme_text_color;\n"
                                          "}\n",
                                          -1, NULL);
