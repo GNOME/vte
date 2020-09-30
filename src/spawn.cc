@@ -284,7 +284,7 @@ char const*
 SpawnContext::search_path() const noexcept
 {
         auto const path = m_search_path ? g_environ_getenv(environ(), "PATH") : nullptr;
-        return path ? : "/bin:/usr/bin:.";
+        return path ? : "/bin:/usr/bin";
 }
 
 size_t
