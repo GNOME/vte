@@ -3346,7 +3346,7 @@ spawn_async_cb(GObject *source,
  * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
- * @callback: (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
+ * @callback: (nullable) (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
  * @user_data: (closure callback): user data for @callback, or %NULL
  *
  * A convenience function that wraps creating the #VtePty and spawning
@@ -3418,7 +3418,6 @@ try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
-        g_return_if_fail(callback);
 
         auto error = vte::glib::Error{};
         auto pty = vte::glib::take_ref(vte_terminal_pty_new_sync(terminal, pty_flags, cancellable, error));
@@ -3462,7 +3461,7 @@ catch (...)
  * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
- * @callback: (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
+ * @callback: (nullable) (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
  * @user_data: (closure callback): user data for @callback, or %NULL
  *
  * A convenience function that wraps creating the #VtePty and spawning
