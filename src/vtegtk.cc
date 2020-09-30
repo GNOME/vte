@@ -5687,6 +5687,8 @@ try
 
         try {
                 throw; // rethrow current exception
+        } catch (std::bad_alloc const& e) {
+                g_error("Allocation failure: %s\n", e.what());
         } catch (std::exception const& e) {
                 exception_append_to_string(e, what);
         } catch (...) {
@@ -5720,6 +5722,8 @@ try
 
         try {
                 throw; // rethrow current exception
+        } catch (std::bad_alloc const& e) {
+                g_error("Allocation failure: %s\n", e.what());
         } catch (std::exception const& e) {
                 exception_append_to_string(e, what);
         } catch (...) {
