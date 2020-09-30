@@ -735,6 +735,8 @@ _vte_pty_check_envv(char const* const* strv) noexcept
  * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @callback: (nullable) (scope async): a #GAsyncReadyCallback, or %NULL
+ * @user_data: (closure callback): user data for @callback
  *
  * Starts the specified command under the pseudo-terminal @pty.
  * The @argv and @envv lists should be %NULL-terminated.
@@ -804,7 +806,6 @@ try
         g_return_if_fail(!child_setup_data_destroy || child_setup_data);
         g_return_if_fail(timeout >= -1);
         g_return_if_fail(cancellable == nullptr || G_IS_CANCELLABLE (cancellable));
-        g_return_if_fail(callback);
 
         /* These are ignored or need not be passed since the behaviour is the default */
         g_warn_if_fail((spawn_flags & ignored_spawn_flags()) == 0);
@@ -853,6 +854,8 @@ catch (...)
  * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
+ * @callback: (nullable) (scope async): a #GAsyncReadyCallback, or %NULL
+ * @user_data: (closure callback): user data for @callback
  *
  * Like vte_pty_spawn_with_fds_async(), except that this function does not
  * allow passing file descriptors to the child process. See vte_pty_spawn_with_fds_async()
