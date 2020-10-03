@@ -139,13 +139,6 @@ public:
 #define HTML_SELECTION
 #endif
 
-/* For unified handling of PRIMARY and CLIPBOARD selection */
-typedef enum {
-	VTE_SELECTION_PRIMARY,
-	VTE_SELECTION_CLIPBOARD,
-	LAST_VTE_SELECTION
-} VteSelection;
-
 /* Used in the GtkClipboard API, to distinguish requests for HTML and TEXT
  * contents of a clipboard */
 typedef enum {
@@ -248,6 +241,7 @@ namespace vte {
 
 namespace platform {
 class Widget;
+enum class ClipboardType;
 }
 
 namespace terminal {
@@ -675,11 +669,13 @@ public:
         vte::grid::span m_selection_resolved;
 
 	/* Clipboard data information. */
-        bool m_selection_owned[LAST_VTE_SELECTION];
-        VteFormat m_selection_format[LAST_VTE_SELECTION];
-        bool m_changing_selection;
-        GString *m_selection[LAST_VTE_SELECTION];  // FIXMEegmont rename this so that m_selection_resolved can become m_selection?
-        GtkClipboard *m_clipboard[LAST_VTE_SELECTION];
+        bool m_selection_owned[2]{false, false};
+        bool m_changing_selection{false};
+        VteFormat m_selection_format[2];
+        GString *m_selection[2];  // FIXMEegmont rename this so that m_selection_resolved can become m_selection?
+        GtkClipboard *m_clipboard[2];
+
+        auto get_clipboard(vte::platform::ClipboardType type) const noexcept { return m_clipboard[vte::to_integral(type)]; }
 
         ClipboardTextRequestGtk<Terminal> m_paste_request;
 
@@ -1118,8 +1114,8 @@ public:
         void set_border_padding(GtkBorder const* padding);
         void set_cursor_aspect(float aspect);
 
-        void widget_paste(GdkAtom board);
-        void widget_copy(VteSelection sel,
+        void widget_paste(vte::platform::ClipboardType selection);
+        void widget_copy(vte::platform::ClipboardType selection,
                          VteFormat format);
         void widget_paste_received(char const* text);
         void widget_clipboard_cleared(GtkClipboard *clipboard);

@@ -3560,8 +3560,8 @@ Terminal::process_incoming_utf8()
                         //FIXMEchpe: this is atrocious
 			auto selection = get_selected_text();
 			if ((selection == nullptr) ||
-			    (m_selection[VTE_SELECTION_PRIMARY] == nullptr) ||
-			    (strcmp(selection->str, m_selection[VTE_SELECTION_PRIMARY]->str) != 0)) {
+			    (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
+			    (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
 				deselect_all();
 			}
                         if (selection)
@@ -3845,8 +3845,8 @@ Terminal::process_incoming_pcterm()
                         //FIXMEchpe: this is atrocious
 			auto selection = get_selected_text();
 			if ((selection == nullptr) ||
-			    (m_selection[VTE_SELECTION_PRIMARY] == nullptr) ||
-			    (strcmp(selection->str, m_selection[VTE_SELECTION_PRIMARY]->str) != 0)) {
+			    (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
+			    (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
 				deselect_all();
 			}
                         if (selection)
@@ -4726,7 +4726,7 @@ Terminal::widget_key_press(KeyEvent const& event)
 					handled = TRUE;
 					suppress_alt_esc = TRUE;
 				} else {
-                                        widget_paste(GDK_SELECTION_PRIMARY);
+                                        widget_paste(vte::platform::ClipboardType::PRIMARY);
 					handled = TRUE;
 					suppress_alt_esc = TRUE;
 				}
@@ -5965,15 +5965,15 @@ Terminal::widget_clipboard_cleared(GtkClipboard *clipboard_)
         if (m_changing_selection)
                 return;
 
-	if (clipboard_ == m_clipboard[VTE_SELECTION_PRIMARY]) {
-		if (m_selection_owned[VTE_SELECTION_PRIMARY] &&
+	if (clipboard_ == get_clipboard(vte::platform::ClipboardType::PRIMARY)) {
+		if (m_selection_owned[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] &&
                     !m_selection_resolved.empty()) {
 			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
 			deselect_all();
 		}
-                m_selection_owned[VTE_SELECTION_PRIMARY] = false;
-	} else if (clipboard_ == m_clipboard[VTE_SELECTION_CLIPBOARD]) {
-                m_selection_owned[VTE_SELECTION_CLIPBOARD] = false;
+                m_selection_owned[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] = false;
+	} else if (clipboard_ == get_clipboard(vte::platform::ClipboardType::CLIPBOARD)) {
+                m_selection_owned[vte::to_integral(vte::platform::ClipboardType::CLIPBOARD)] = false;
         }
 }
 
@@ -6008,8 +6008,10 @@ Terminal::widget_clipboard_requested(GtkClipboard *target_clipboard,
                                                GtkSelectionData *data,
                                                guint info)
 {
-	for (auto sel = 0; sel < LAST_VTE_SELECTION; sel++) {
-		if (target_clipboard == m_clipboard[sel] &&
+        for (auto sel_type : {vte::platform::ClipboardType::CLIPBOARD,
+                              vte::platform::ClipboardType::PRIMARY}) {
+                auto const sel = vte::to_integral(sel_type);
+		if (target_clipboard == get_clipboard(sel_type) &&
                     m_selection[sel] != nullptr) {
 			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
 				int i;
@@ -6549,16 +6551,17 @@ targets_for_format(VteFormat format,
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
 void
-Terminal::widget_copy(VteSelection sel,
-                                VteFormat format)
+Terminal::widget_copy(vte::platform::ClipboardType type,
+                      VteFormat format)
 {
         /* Only put HTML on the CLIPBOARD, not PRIMARY */
-        g_assert(sel == VTE_SELECTION_CLIPBOARD || format == VTE_FORMAT_TEXT);
+        assert(type == vte::platform::ClipboardType::CLIPBOARD || format == VTE_FORMAT_TEXT);
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
         GArray *attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
         auto selection = get_selected_text(attributes);
 
+        auto const sel = vte::to_integral(type);
         if (m_selection[sel]) {
                 g_string_free(m_selection[sel], TRUE);
                 m_selection[sel] = nullptr;
@@ -6587,7 +6590,7 @@ Terminal::widget_copy(VteSelection sel,
         auto targets = targets_for_format(format, &n_targets);
 
         m_changing_selection = true;
-        gtk_clipboard_set_with_data(m_clipboard[sel],
+        gtk_clipboard_set_with_data(get_clipboard(type),
                                     targets,
                                     n_targets,
                                     clipboard_copy_cb,
@@ -6595,25 +6598,21 @@ Terminal::widget_copy(VteSelection sel,
                                     this);
         m_changing_selection = false;
 
-        gtk_clipboard_set_can_store(m_clipboard[sel], nullptr, 0);
+        gtk_clipboard_set_can_store(get_clipboard(type), nullptr, 0);
         m_selection_owned[sel] = true;
         m_selection_format[sel] = format;
 }
 
 /* Paste from the given clipboard. */
 void
-Terminal::widget_paste(GdkAtom board)
+Terminal::widget_paste(vte::platform::ClipboardType selection)
 {
         if (!m_input_enabled)
                 return;
 
-	auto clip = gtk_clipboard_get_for_display(gtk_widget_get_display(m_widget), board);
-	if (!clip)
-                return;
-
         _vte_debug_print(VTE_DEBUG_SELECTION, "Requesting clipboard contents.\n");
 
-        m_paste_request.request_text(clip, &Terminal::widget_paste_received, this);
+        m_paste_request.request_text(get_clipboard(selection), &Terminal::widget_paste_received, this);
 }
 
 /* Confine coordinates into the visible area. Padding is already subtracted. */
@@ -6688,7 +6687,7 @@ Terminal::maybe_end_selection()
 		/* Copy only if something was selected. */
                 if (!m_selection_resolved.empty() &&
 		    m_selecting_had_delta) {
-                        widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
+                        widget_copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
 			emit_selection_changed();
 		}
                 stop_autoscroll();  /* Required before setting m_selecting to false, see #105. */
@@ -6723,7 +6722,7 @@ Terminal::select_all()
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-        widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
+        widget_copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
 	emit_selection_changed();
 
 	invalidate_all();
@@ -6917,7 +6916,7 @@ Terminal::widget_mouse_press(MouseEvent const& event)
 			if ((m_modifiers & GDK_SHIFT_MASK) ||
 			    m_mouse_tracking_mode == MouseTrackingMode::eNONE) {
                                 if (widget()->primary_paste_enabled()) {
-                                        widget_paste(GDK_SELECTION_PRIMARY);
+                                        widget_paste(vte::platform::ClipboardType::PRIMARY);
                                         handled = true;
                                 }
 			}
@@ -7736,10 +7735,8 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* Selection info. */
 	display = gtk_widget_get_display(m_widget);
-	m_clipboard[VTE_SELECTION_PRIMARY] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
-	m_clipboard[VTE_SELECTION_CLIPBOARD] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
-        m_selection_owned[VTE_SELECTION_PRIMARY] = false;
-        m_selection_owned[VTE_SELECTION_CLIPBOARD] = false;
+	m_clipboard[vte::to_integral(vte::platform::ClipboardType::CLIPBOARD)] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
+	m_clipboard[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
 
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
@@ -7949,8 +7946,6 @@ Terminal::~Terminal()
         /* Make sure not to change selection while in destruction. See issue vte#89. */
         m_changing_selection = true;
 
-	int sel;
-
         terminate_child();
         unset_pty(false /* don't notify widget */);
         remove_update_timeout(this);
@@ -7976,12 +7971,14 @@ Terminal::~Terminal()
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
 	 * doesn't just disappear. */
-	for (sel = VTE_SELECTION_PRIMARY; sel < LAST_VTE_SELECTION; sel++) {
+        for (auto sel_type : {vte::platform::ClipboardType::CLIPBOARD,
+                              vte::platform::ClipboardType::PRIMARY}) {
+                auto const sel = vte::to_integral(sel_type);
 		if (m_selection[sel] != nullptr) {
 			if (m_selection_owned[sel]) {
                                 // FIXMEchpe we should check m_selection_format[sel]
                                 // and also put text/html on if it's VTE_FORMAT_HTML
-				gtk_clipboard_set_text(m_clipboard[sel],
+				gtk_clipboard_set_text(get_clipboard(sel_type),
 						       m_selection[sel]->str,
 						       m_selection[sel]->len);
 			}
@@ -10074,7 +10071,7 @@ Terminal::select_text(vte::grid::column_t start_col,
 	m_selecting_had_delta = true;
         m_selection_resolved.set ({ start_row, start_col },
                                   { end_row, end_col });
-        widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
+        widget_copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
 	emit_selection_changed();
 
         invalidate_rows(start_row, end_row);

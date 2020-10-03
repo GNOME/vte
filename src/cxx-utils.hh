@@ -35,6 +35,17 @@ clamp(T const& v,
         return std::max(std::min(v, max_v), min_v);
 }
 
+// Converts from E to the underlying integral type, where E is an enum
+// with integral underlying type.
+template<typename E>
+inline constexpr auto to_integral(E e) noexcept
+        -> std::enable_if_t<std::is_enum_v<E> &&
+                            std::is_integral_v<std::underlying_type_t<E>>,
+                            std::underlying_type_t<E>>
+{
+        return static_cast<std::underlying_type_t<E>>(e);
+}
+
 #ifdef VTE_DEBUG
 void log_exception(char const* func = __builtin_FUNCTION(),
                    char const* filename = __builtin_FILE(),

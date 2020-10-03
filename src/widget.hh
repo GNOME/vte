@@ -40,6 +40,11 @@ class Terminal;
 
 namespace platform {
 
+enum class ClipboardType {
+        CLIPBOARD = 0,
+        PRIMARY   = 1
+};
+
 class Widget {
 public:
         friend class vte::terminal::Terminal;
@@ -86,8 +91,8 @@ public:
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
 
         bool primary_paste_enabled() const noexcept;
-        void paste(GdkAtom board) noexcept { m_terminal->widget_paste(board); }
-        void copy(VteSelection sel,
+        void paste(vte::platform::ClipboardType sel) noexcept { m_terminal->widget_paste(sel); }
+        void copy(vte::platform::ClipboardType sel,
                   VteFormat format) noexcept { m_terminal->widget_copy(sel, format); }
         void paste_received(char const* text) noexcept { m_terminal->widget_paste_received(text); }
         void clipboard_cleared(GtkClipboard *clipboard) noexcept { m_terminal->widget_clipboard_cleared(clipboard); }
