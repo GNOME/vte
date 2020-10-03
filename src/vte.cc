@@ -10346,6 +10346,33 @@ Terminal::process(bool emit_adj_changed)
         return is_active;
 }
 
+
+/* We need to keep a reference to the terminals in the
+ * g_active_terminals list while iterating over it, since
+ * in some language bindings the callbacks we emit
+ * during processing may cause their GC to run, causing
+ * later elements in this list to be removed from the list.
+ * See issue vte#270.
+ */
+
+static void
+unref_active_terminals(GList* list)
+{
+        g_list_free_full(list, GDestroyNotify(g_object_unref));
+}
+
+static auto
+ref_active_terminals() noexcept
+{
+        GList* list = nullptr;
+        for (auto l = g_active_terminals; l != nullptr; l = l->next) {
+                auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
+                list = g_list_prepend(list, g_object_ref(that->vte_terminal()));
+        }
+
+        return std::unique_ptr<GList, decltype(&unref_active_terminals)>{list, &unref_active_terminals};
+}
+
 /* This function is called after DISPLAY_TIMEOUT ms.
  * It makes sure initial output is never delayed by more than DISPLAY_TIMEOUT
  */
@@ -10362,6 +10389,8 @@ try
 	_vte_debug_print (VTE_DEBUG_TIMEOUT,
                           "Process timeout:  %d active\n",
                           g_list_length(g_active_terminals));
+
+        auto death_grip = ref_active_terminals();
 
 	for (l = g_active_terminals; l != NULL; l = next) {
 		auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
@@ -10454,6 +10483,8 @@ update_repeat_timeout (gpointer data)
 	_vte_debug_print (VTE_DEBUG_TIMEOUT,
                           "Repeat timeout:  %d active\n",
                           g_list_length(g_active_terminals));
+
+        auto death_grip = ref_active_terminals();
 
 	for (l = g_active_terminals; l != NULL; l = next) {
 		auto that = reinterpret_cast<vte::terminal::Terminal*>(l->data);
