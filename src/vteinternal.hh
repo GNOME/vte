@@ -958,6 +958,7 @@ public:
 
         /* Style stuff */
         GtkBorder m_padding{1, 1, 1, 1};
+        auto padding() const noexcept { return &m_padding; }
 
         vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
         auto vadjustment() noexcept { return m_vadjustment.get(); }
