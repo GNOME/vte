@@ -178,9 +178,9 @@ Widget::beep() noexcept
 }
 
 vte::glib::RefPtr<GdkCursor>
-Widget::create_cursor(GdkCursorType cursor_type) const noexcept
+Widget::create_cursor(std::string const& name) const noexcept
 {
-	return vte::glib::take_ref(gdk_cursor_new_for_display(gtk_widget_get_display(m_widget), cursor_type));
+	return vte::glib::take_ref(gdk_cursor_new_from_name(gtk_widget_get_display(m_widget), name.c_str()));
 }
 
 void
@@ -433,7 +433,7 @@ Widget::realize() noexcept
 
 	/* Create stock cursors */
 	m_default_cursor = create_cursor(VTE_DEFAULT_CURSOR);
-	m_invisible_cursor = create_cursor(GDK_BLANK_CURSOR);
+	m_invisible_cursor = create_cursor("none"s);
 	m_mousing_cursor = create_cursor(VTE_MOUSING_CURSOR);
         if (_vte_debug_on(VTE_DEBUG_HYPERLINK))
                 /* Differ from the standard regex match cursor in debug mode. */

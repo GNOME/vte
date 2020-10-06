@@ -407,7 +407,7 @@ protected:
                 return gtk_widget_get_realized(m_widget);
         }
 
-        vte::glib::RefPtr<GdkCursor> create_cursor(GdkCursorType cursor_type) const noexcept;
+        vte::glib::RefPtr<GdkCursor> create_cursor(std::string const& name) const noexcept;
 
         void set_cursor(CursorType type) noexcept;
         void set_cursor(GdkCursor* cursor) noexcept;
