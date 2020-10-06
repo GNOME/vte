@@ -246,219 +246,6 @@ enum class ClipboardType;
 
 namespace terminal {
 
-class EventBase {
-        friend class vte::platform::Widget;
-        friend class Terminal;
-
-public:
-        enum class Type {
-                eKEY_PRESS,
-                eKEY_RELEASE,
-                eMOUSE_DOUBLE_PRESS,
-                eMOUSE_ENTER,
-                eMOUSE_LEAVE,
-                eMOUSE_MOTION,
-                eMOUSE_PRESS,
-                eMOUSE_RELEASE,
-                eMOUSE_SCROLL,
-                eMOUSE_TRIPLE_PRESS,
-        };
-
-protected:
-
-        EventBase() noexcept = default;
-
-        constexpr EventBase(GdkEvent* gdk_event,
-                            Type type,
-                            unsigned timestamp) noexcept
-                : m_platform_event{gdk_event},
-                  m_type{type},
-                  m_timestamp{timestamp}
-        {
-        }
-
-        constexpr auto platform_event() const noexcept { return m_platform_event; }
-
-public:
-        ~EventBase() noexcept = default;
-
-        EventBase(EventBase const&) = default;
-        EventBase(EventBase&&) = default;
-        EventBase& operator=(EventBase const&) = delete;
-        EventBase& operator=(EventBase&&) = delete;
-
-        constexpr auto const timestamp()   const noexcept { return m_timestamp;   }
-        constexpr auto const type()        const noexcept { return m_type;        }
-
-private:
-        GdkEvent* m_platform_event;
-        Type m_type;
-        unsigned m_timestamp;
-}; // class EventBase
-
-class KeyEvent : public EventBase {
-        friend class vte::platform::Widget;
-        friend class Terminal;
-
-protected:
-
-        KeyEvent() noexcept = default;
-
-        constexpr KeyEvent(GdkEvent* gdk_event,
-                           Type type,
-                           unsigned timestamp,
-                           unsigned modifiers,
-                           unsigned keyval,
-                           unsigned keycode,
-                           uint8_t group,
-                           bool is_modifier) noexcept
-                : EventBase{gdk_event,
-                            type,
-                            timestamp},
-                  m_modifiers{modifiers},
-                  m_keyval{keyval},
-                  m_keycode{keycode},
-                  m_group{group},
-                  m_is_modifier{is_modifier}
-        {
-        }
-
-public:
-        ~KeyEvent() noexcept = default;
-
-        KeyEvent(KeyEvent const&) = delete;
-        KeyEvent(KeyEvent&&) = delete;
-        KeyEvent& operator=(KeyEvent const&) = delete;
-        KeyEvent& operator=(KeyEvent&&) = delete;
-
-        constexpr auto const group()       const noexcept { return m_group;       }
-        constexpr auto const is_modifier() const noexcept { return m_is_modifier; }
-        constexpr auto const keycode()     const noexcept { return m_keycode;     }
-        constexpr auto const keyval()      const noexcept { return m_keyval;      }
-        constexpr auto const modifiers()   const noexcept { return m_modifiers;   }
-
-        constexpr auto const is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
-        constexpr auto const is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
-
-        auto const string() const noexcept
-        {
-                return reinterpret_cast<GdkEventKey*>(platform_event())->string;
-        }
-
-private:
-        unsigned m_modifiers;
-        unsigned m_keyval;
-        unsigned m_keycode;
-        uint8_t m_group;
-        bool m_is_modifier;
-}; // class KeyEvent
-
-class MouseEvent : public EventBase {
-        friend class vte::platform::Widget;
-        friend class Terminal;
-
-public:
-        enum class Button {
-                eNONE   = 0,
-                eLEFT   = 1,
-                eMIDDLE = 2,
-                eRIGHT  = 3,
-                eFOURTH = 4,
-                eFIFTH  = 5,
-        };
-
-        enum class ScrollDirection {
-                eUP,
-                eDOWN,
-                eLEFT,
-                eRIGHT,
-                eSMOOTH,
-                eNONE,
-        };
-
-protected:
-
-        MouseEvent() noexcept = default;
-
-        constexpr MouseEvent(GdkEvent* gdk_event,
-                             Type type,
-                             unsigned timestamp,
-                             unsigned modifiers,
-                             Button button,
-                             double x,
-                             double y) noexcept
-                : EventBase{gdk_event,
-                            type,
-                            timestamp},
-                  m_modifiers{modifiers},
-                  m_button{button},
-                  m_x{x},
-                  m_y{y}
-        {
-        }
-
-public:
-        ~MouseEvent() noexcept = default;
-
-        MouseEvent(MouseEvent const&) = default;
-        MouseEvent(MouseEvent&&) = default;
-        MouseEvent& operator=(MouseEvent const&) = delete;
-        MouseEvent& operator=(MouseEvent&&) = delete;
-
-        constexpr auto const button()       const noexcept { return m_button;           }
-        constexpr auto const button_value() const noexcept { return unsigned(m_button); }
-        constexpr auto const modifiers()    const noexcept { return m_modifiers;        }
-        constexpr auto const x()            const noexcept { return m_x;                }
-        constexpr auto const y()            const noexcept { return m_y;                }
-
-        constexpr auto const is_mouse_double_press() const noexcept { return type() == Type::eMOUSE_DOUBLE_PRESS; }
-        constexpr auto const is_mouse_enter()        const noexcept { return type() == Type::eMOUSE_ENTER;        }
-        constexpr auto const is_mouse_leave()        const noexcept { return type() == Type::eMOUSE_LEAVE;        }
-        constexpr auto const is_mouse_motion()       const noexcept { return type() == Type::eMOUSE_MOTION;       }
-        constexpr auto const is_mouse_press()        const noexcept { return type() == Type::eMOUSE_PRESS;      }
-        constexpr auto const is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
-        constexpr auto const is_mouse_scroll()       const noexcept { return type() == Type::eMOUSE_SCROLL;       }
-        constexpr auto const is_mouse_single_press() const noexcept { return type() == Type::eMOUSE_PRESS;        }
-        constexpr auto const is_mouse_triple_press() const noexcept { return type() == Type::eMOUSE_TRIPLE_PRESS; }
-
-        ScrollDirection scroll_direction() const noexcept
-        {
-                /* Note that we cannot use gdk_event_get_scroll_direction() here since it
-                 * returns false for smooth scroll events.
-                 */
-                if (!is_mouse_scroll())
-                        return ScrollDirection::eNONE;
-                switch (reinterpret_cast<GdkEventScroll*>(platform_event())->direction) {
-                case GDK_SCROLL_UP:     return ScrollDirection::eUP;
-                case GDK_SCROLL_DOWN:   return ScrollDirection::eDOWN;
-                case GDK_SCROLL_LEFT:   return ScrollDirection::eLEFT;
-                case GDK_SCROLL_RIGHT:  return ScrollDirection::eRIGHT;
-                case GDK_SCROLL_SMOOTH: return ScrollDirection::eSMOOTH;
-                default: return ScrollDirection::eNONE;
-                }
-        }
-
-        auto scroll_delta_x() const noexcept
-        {
-                auto delta = double{0.};
-                gdk_event_get_scroll_deltas(platform_event(), &delta, nullptr);
-                return delta;
-        }
-
-        auto scroll_delta_y() const noexcept
-        {
-                auto delta = double{0.};
-                gdk_event_get_scroll_deltas(platform_event(), nullptr, &delta);
-                return delta;
-        }
-
-private:
-        unsigned m_modifiers;
-        Button m_button;
-        double m_x;
-        double m_y;
-}; // class MouseEvent
-
 class Terminal {
         friend class vte::platform::Widget;
 
@@ -1091,8 +878,8 @@ public:
         inline vte::view::coord_t get_allocated_width() const { return m_allocated_rect.width; }
         inline vte::view::coord_t get_allocated_height() const { return m_allocated_rect.height; }
 
-        vte::view::coords view_coords_from_event(MouseEvent const& event) const;
-        vte::grid::coords grid_coords_from_event(MouseEvent const& event) const;
+        vte::view::coords view_coords_from_event(vte::platform::MouseEvent const& event) const;
+        vte::grid::coords grid_coords_from_event(vte::platform::MouseEvent const& event) const;
 
         vte::view::coords view_coords_from_grid_coords(vte::grid::coords const& rowcol) const;
         vte::grid::coords grid_coords_from_view_coords(vte::view::coords const& pos) const;
@@ -1105,7 +892,7 @@ public:
 
         vte::grid::row_t confine_grid_row(vte::grid::row_t const& row) const;
         vte::grid::coords confine_grid_coords(vte::grid::coords const& rowcol) const;
-        vte::grid::coords confined_grid_coords_from_event(MouseEvent const&) const;
+        vte::grid::coords confined_grid_coords_from_event(vte::platform::MouseEvent const&) const;
         vte::grid::coords confined_grid_coords_from_view_coords(vte::view::coords const& pos) const;
 
         void confine_coordinates(long *xp,
@@ -1131,14 +918,14 @@ public:
         void widget_style_updated();
         void widget_focus_in();
         void widget_focus_out();
-        bool widget_key_press(KeyEvent const& event);
-        bool widget_key_release(KeyEvent const& event);
-        bool widget_mouse_motion(MouseEvent const& event);
-        bool widget_mouse_press(MouseEvent const& event);
-        bool widget_mouse_release(MouseEvent const& event);
-        void widget_mouse_enter(MouseEvent const& event);
-        void widget_mouse_leave(MouseEvent const& event);
-        bool widget_mouse_scroll(MouseEvent const& event);
+        bool widget_key_press(vte::platform::KeyEvent const& event);
+        bool widget_key_release(vte::platform::KeyEvent const& event);
+        bool widget_mouse_motion(vte::platform::MouseEvent const& event);
+        bool widget_mouse_press(vte::platform::MouseEvent const& event);
+        bool widget_mouse_release(vte::platform::MouseEvent const& event);
+        void widget_mouse_enter(vte::platform::MouseEvent const& event);
+        void widget_mouse_leave(vte::platform::MouseEvent const& event);
+        bool widget_mouse_scroll(vte::platform::MouseEvent const& event);
         void widget_draw(cairo_t *cr);
         void widget_get_preferred_width(int *minimum_width,
                                         int *natural_width);
@@ -1320,7 +1107,7 @@ public:
 
         void vadjustment_value_changed();
 
-        unsigned translate_ctrlkey(KeyEvent const& event) const noexcept;
+        unsigned translate_ctrlkey(vte::platform::KeyEvent const& event) const noexcept;
 
         void apply_mouse_cursor();
         void set_pointer_autohidden(bool autohidden);
@@ -1374,13 +1161,13 @@ public:
         void match_hilite_clear();
         void match_hilite_update();
 
-        bool rowcol_from_event(MouseEvent const& event,
+        bool rowcol_from_event(vte::platform::MouseEvent const& event,
                                long *column,
                                long *row);
 
-        char *hyperlink_check(MouseEvent const& event);
+        char *hyperlink_check(vte::platform::MouseEvent const& event);
 
-        bool regex_match_check_extra(MouseEvent const& event,
+        bool regex_match_check_extra(vte::platform::MouseEvent const& event,
                                      vte::base::Regex const** regexes,
                                      size_t n_regexes,
                                      uint32_t match_flags,
@@ -1389,7 +1176,7 @@ public:
         char *regex_match_check(vte::grid::column_t column,
                                 vte::grid::row_t row,
                                 int *tag);
-        char *regex_match_check(MouseEvent const& event,
+        char *regex_match_check(vte::platform::MouseEvent const& event,
                                 int *tag);
         void regex_match_remove(int tag) noexcept;
         void regex_match_remove_all() noexcept;
@@ -1435,9 +1222,9 @@ public:
                               bool is_drag,
                               bool is_release);
         bool maybe_send_mouse_button(vte::grid::coords const& rowcol,
-                                     MouseEvent const& event);
+                                     vte::platform::MouseEvent const& event);
         bool maybe_send_mouse_drag(vte::grid::coords const& rowcol,
-                                   MouseEvent const& event);
+                                   vte::platform::MouseEvent const& event);
 
         void feed_focus_event(bool in);
         void feed_focus_event_initial();

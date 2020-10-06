@@ -255,7 +255,7 @@ Widget::emit_eof() noexcept
 }
 
 bool
-Widget::im_filter_keypress(vte::terminal::KeyEvent const& event) noexcept
+Widget::im_filter_keypress(KeyEvent const& event) noexcept
 {
         // FIXMEchpe this can only be called when realized, so the m_im_context check is redundant
         return m_im_context &&
@@ -323,7 +323,7 @@ Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
 }
 
 unsigned
-Widget::key_event_translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept
+Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
 {
 	if (event.keyval() < 128)
 		return event.keyval();
@@ -351,13 +351,13 @@ Widget::key_event_translate_ctrlkey(vte::terminal::KeyEvent const& event) const 
         return keyval;
 }
 
-vte::terminal::KeyEvent
+KeyEvent
 Widget::key_event_from_gdk(GdkEventKey* event) const
 {
-        auto type = vte::terminal::EventBase::Type{};
+        auto type = EventBase::Type{};
         switch (gdk_event_get_event_type(reinterpret_cast<GdkEvent*>(event))) {
-        case GDK_KEY_PRESS: type = vte::terminal::KeyEvent::Type::eKEY_PRESS;     break;
-        case GDK_KEY_RELEASE: type = vte::terminal::KeyEvent::Type::eKEY_RELEASE; break;
+        case GDK_KEY_PRESS: type = KeyEvent::Type::eKEY_PRESS;     break;
+        case GDK_KEY_RELEASE: type = KeyEvent::Type::eKEY_RELEASE; break;
         default: g_assert_not_reached(); return {};
         }
 
@@ -372,19 +372,19 @@ Widget::key_event_from_gdk(GdkEventKey* event) const
                 event->is_modifier != 0};
 }
 
-std::optional<vte::terminal::MouseEvent>
+std::optional<MouseEvent>
 Widget::mouse_event_from_gdk(GdkEvent* event) const
 {
-        auto type = vte::terminal::EventBase::Type{};
+        auto type = EventBase::Type{};
         switch (gdk_event_get_event_type(event)) {
-        case GDK_2BUTTON_PRESS:  type = vte::terminal::MouseEvent::Type::eMOUSE_DOUBLE_PRESS; break;
-        case GDK_3BUTTON_PRESS:  type = vte::terminal::MouseEvent::Type::eMOUSE_TRIPLE_PRESS; break;
-        case GDK_BUTTON_PRESS:   type = vte::terminal::MouseEvent::Type::eMOUSE_PRESS;        break;
-        case GDK_BUTTON_RELEASE: type = vte::terminal::MouseEvent::Type::eMOUSE_RELEASE;      break;
-        case GDK_ENTER_NOTIFY:   type = vte::terminal::MouseEvent::Type::eMOUSE_ENTER;        break;
-        case GDK_LEAVE_NOTIFY:   type = vte::terminal::MouseEvent::Type::eMOUSE_LEAVE;        break;
-        case GDK_MOTION_NOTIFY:  type = vte::terminal::MouseEvent::Type::eMOUSE_MOTION;       break;
-        case GDK_SCROLL:         type = vte::terminal::MouseEvent::Type::eMOUSE_SCROLL;       break;
+        case GDK_2BUTTON_PRESS:  type = MouseEvent::Type::eMOUSE_DOUBLE_PRESS; break;
+        case GDK_3BUTTON_PRESS:  type = MouseEvent::Type::eMOUSE_TRIPLE_PRESS; break;
+        case GDK_BUTTON_PRESS:   type = MouseEvent::Type::eMOUSE_PRESS;        break;
+        case GDK_BUTTON_RELEASE: type = MouseEvent::Type::eMOUSE_RELEASE;      break;
+        case GDK_ENTER_NOTIFY:   type = MouseEvent::Type::eMOUSE_ENTER;        break;
+        case GDK_LEAVE_NOTIFY:   type = MouseEvent::Type::eMOUSE_LEAVE;        break;
+        case GDK_MOTION_NOTIFY:  type = MouseEvent::Type::eMOUSE_MOTION;       break;
+        case GDK_SCROLL:         type = MouseEvent::Type::eMOUSE_SCROLL;       break;
         default:
                 return std::nullopt;
         }
@@ -398,13 +398,13 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const
         auto button = unsigned{0};
         (void)gdk_event_get_button(event, &button);
 
-        auto mouse_event = vte::terminal::MouseEvent{event,
-                                                     type,
-                                                     gdk_event_get_time(event),
-                                                     read_modifiers_from_gdk(event),
-                                                     vte::terminal::MouseEvent::Button(button),
-                                                     x,
-                                                     y};
+        auto mouse_event = MouseEvent{event,
+                                      type,
+                                      gdk_event_get_time(event),
+                                      read_modifiers_from_gdk(event),
+                                      MouseEvent::Button(button),
+                                      x,
+                                      y};
         return mouse_event;
 }
 

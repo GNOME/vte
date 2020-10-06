@@ -45,6 +45,219 @@ enum class ClipboardType {
         PRIMARY   = 1
 };
 
+class EventBase {
+        friend class vte::platform::Widget;
+        friend class Terminal;
+
+public:
+        enum class Type {
+                eKEY_PRESS,
+                eKEY_RELEASE,
+                eMOUSE_DOUBLE_PRESS,
+                eMOUSE_ENTER,
+                eMOUSE_LEAVE,
+                eMOUSE_MOTION,
+                eMOUSE_PRESS,
+                eMOUSE_RELEASE,
+                eMOUSE_SCROLL,
+                eMOUSE_TRIPLE_PRESS,
+        };
+
+protected:
+
+        EventBase() noexcept = default;
+
+        constexpr EventBase(GdkEvent* gdk_event,
+                            Type type,
+                            unsigned timestamp) noexcept
+                : m_platform_event{gdk_event},
+                  m_type{type},
+                  m_timestamp{timestamp}
+        {
+        }
+
+        constexpr auto platform_event() const noexcept { return m_platform_event; }
+
+public:
+        ~EventBase() noexcept = default;
+
+        EventBase(EventBase const&) = default;
+        EventBase(EventBase&&) = default;
+        EventBase& operator=(EventBase const&) = delete;
+        EventBase& operator=(EventBase&&) = delete;
+
+        constexpr auto const timestamp()   const noexcept { return m_timestamp;   }
+        constexpr auto const type()        const noexcept { return m_type;        }
+
+private:
+        GdkEvent* m_platform_event;
+        Type m_type;
+        unsigned m_timestamp;
+}; // class EventBase
+
+class KeyEvent : public EventBase {
+        friend class vte::platform::Widget;
+        friend class Terminal;
+
+protected:
+
+        KeyEvent() noexcept = default;
+
+        constexpr KeyEvent(GdkEvent* gdk_event,
+                           Type type,
+                           unsigned timestamp,
+                           unsigned modifiers,
+                           unsigned keyval,
+                           unsigned keycode,
+                           uint8_t group,
+                           bool is_modifier) noexcept
+                : EventBase{gdk_event,
+                            type,
+                            timestamp},
+                  m_modifiers{modifiers},
+                  m_keyval{keyval},
+                  m_keycode{keycode},
+                  m_group{group},
+                  m_is_modifier{is_modifier}
+        {
+        }
+
+public:
+        ~KeyEvent() noexcept = default;
+
+        KeyEvent(KeyEvent const&) = delete;
+        KeyEvent(KeyEvent&&) = delete;
+        KeyEvent& operator=(KeyEvent const&) = delete;
+        KeyEvent& operator=(KeyEvent&&) = delete;
+
+        constexpr auto const group()       const noexcept { return m_group;       }
+        constexpr auto const is_modifier() const noexcept { return m_is_modifier; }
+        constexpr auto const keycode()     const noexcept { return m_keycode;     }
+        constexpr auto const keyval()      const noexcept { return m_keyval;      }
+        constexpr auto const modifiers()   const noexcept { return m_modifiers;   }
+
+        constexpr auto const is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
+        constexpr auto const is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
+
+        auto const string() const noexcept
+        {
+                return reinterpret_cast<GdkEventKey*>(platform_event())->string;
+        }
+
+private:
+        unsigned m_modifiers;
+        unsigned m_keyval;
+        unsigned m_keycode;
+        uint8_t m_group;
+        bool m_is_modifier;
+}; // class KeyEvent
+
+class MouseEvent : public EventBase {
+        friend class vte::platform::Widget;
+        friend class Terminal;
+
+public:
+        enum class Button {
+                eNONE   = 0,
+                eLEFT   = 1,
+                eMIDDLE = 2,
+                eRIGHT  = 3,
+                eFOURTH = 4,
+                eFIFTH  = 5,
+        };
+
+        enum class ScrollDirection {
+                eUP,
+                eDOWN,
+                eLEFT,
+                eRIGHT,
+                eSMOOTH,
+                eNONE,
+        };
+
+protected:
+
+        MouseEvent() noexcept = default;
+
+        constexpr MouseEvent(GdkEvent* gdk_event,
+                             Type type,
+                             unsigned timestamp,
+                             unsigned modifiers,
+                             Button button,
+                             double x,
+                             double y) noexcept
+                : EventBase{gdk_event,
+                            type,
+                            timestamp},
+                  m_modifiers{modifiers},
+                  m_button{button},
+                  m_x{x},
+                  m_y{y}
+        {
+        }
+
+public:
+        ~MouseEvent() noexcept = default;
+
+        MouseEvent(MouseEvent const&) = default;
+        MouseEvent(MouseEvent&&) = default;
+        MouseEvent& operator=(MouseEvent const&) = delete;
+        MouseEvent& operator=(MouseEvent&&) = delete;
+
+        constexpr auto const button()       const noexcept { return m_button;           }
+        constexpr auto const button_value() const noexcept { return unsigned(m_button); }
+        constexpr auto const modifiers()    const noexcept { return m_modifiers;        }
+        constexpr auto const x()            const noexcept { return m_x;                }
+        constexpr auto const y()            const noexcept { return m_y;                }
+
+        constexpr auto const is_mouse_double_press() const noexcept { return type() == Type::eMOUSE_DOUBLE_PRESS; }
+        constexpr auto const is_mouse_enter()        const noexcept { return type() == Type::eMOUSE_ENTER;        }
+        constexpr auto const is_mouse_leave()        const noexcept { return type() == Type::eMOUSE_LEAVE;        }
+        constexpr auto const is_mouse_motion()       const noexcept { return type() == Type::eMOUSE_MOTION;       }
+        constexpr auto const is_mouse_press()        const noexcept { return type() == Type::eMOUSE_PRESS;      }
+        constexpr auto const is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
+        constexpr auto const is_mouse_scroll()       const noexcept { return type() == Type::eMOUSE_SCROLL;       }
+        constexpr auto const is_mouse_single_press() const noexcept { return type() == Type::eMOUSE_PRESS;        }
+        constexpr auto const is_mouse_triple_press() const noexcept { return type() == Type::eMOUSE_TRIPLE_PRESS; }
+
+        ScrollDirection scroll_direction() const noexcept
+        {
+                /* Note that we cannot use gdk_event_get_scroll_direction() here since it
+                 * returns false for smooth scroll events.
+                 */
+                if (!is_mouse_scroll())
+                        return ScrollDirection::eNONE;
+                switch (reinterpret_cast<GdkEventScroll*>(platform_event())->direction) {
+                case GDK_SCROLL_UP:     return ScrollDirection::eUP;
+                case GDK_SCROLL_DOWN:   return ScrollDirection::eDOWN;
+                case GDK_SCROLL_LEFT:   return ScrollDirection::eLEFT;
+                case GDK_SCROLL_RIGHT:  return ScrollDirection::eRIGHT;
+                case GDK_SCROLL_SMOOTH: return ScrollDirection::eSMOOTH;
+                default: return ScrollDirection::eNONE;
+                }
+        }
+
+        auto scroll_delta_x() const noexcept
+        {
+                auto delta = double{0.};
+                gdk_event_get_scroll_deltas(platform_event(), &delta, nullptr);
+                return delta;
+        }
+
+        auto scroll_delta_y() const noexcept
+        {
+                auto delta = double{0.};
+                gdk_event_get_scroll_deltas(platform_event(), nullptr, &delta);
+                return delta;
+        }
+
+private:
+        unsigned m_modifiers;
+        Button m_button;
+        double m_x;
+        double m_y;
+}; // class MouseEvent
+
 class Widget {
 public:
         friend class vte::terminal::Terminal;
@@ -208,7 +421,7 @@ protected:
         void set_cursor(GdkCursor* cursor) noexcept;
         void set_cursor(Cursor const& cursor) noexcept;
 
-        bool im_filter_keypress(vte::terminal::KeyEvent const& event) noexcept;
+        bool im_filter_keypress(KeyEvent const& event) noexcept;
 
         void im_focus_in() noexcept;
         void im_focus_out() noexcept;
@@ -223,15 +436,15 @@ protected:
 
         void unset_pty() noexcept;
 
-        unsigned key_event_translate_ctrlkey(vte::terminal::KeyEvent const& event) const noexcept;
+        unsigned key_event_translate_ctrlkey(KeyEvent const& event) const noexcept;
 
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
 
 private:
         unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
-        vte::terminal::KeyEvent key_event_from_gdk(GdkEventKey* event) const;
-        std::optional<vte::terminal::MouseEvent> mouse_event_from_gdk(GdkEvent* event) const;
+        KeyEvent key_event_from_gdk(GdkEventKey* event) const;
+        std::optional<MouseEvent> mouse_event_from_gdk(GdkEvent* event) const;
 
         GtkWidget* m_widget;
 

@@ -1449,7 +1449,7 @@ Terminal::regex_match_check(vte::grid::column_t column,
  * at that side; use view_coords_visible() to check for that.
  */
 vte::view::coords
-Terminal::view_coords_from_event(MouseEvent const& event) const
+Terminal::view_coords_from_event(vte::platform::MouseEvent const& event) const
 {
         return vte::view::coords(event.x() - m_padding.left, event.y() - m_padding.top);
 }
@@ -1471,7 +1471,7 @@ Terminal::widget_realized() const noexcept
  * at that side; use grid_coords_visible() to check for that.
  */
 vte::grid::coords
-Terminal::grid_coords_from_event(MouseEvent const& event) const
+Terminal::grid_coords_from_event(vte::platform::MouseEvent const& event) const
 {
         return grid_coords_from_view_coords(view_coords_from_event(event));
 }
@@ -1484,7 +1484,7 @@ Terminal::grid_coords_from_event(MouseEvent const& event) const
  * to an actual cell in the visible area.
  */
 vte::grid::coords
-Terminal::confined_grid_coords_from_event(MouseEvent const& event) const
+Terminal::confined_grid_coords_from_event(vte::platform::MouseEvent const& event) const
 {
         auto pos = view_coords_from_event(event);
         return confined_grid_coords_from_view_coords(pos);
@@ -1685,7 +1685,7 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
 }
 
 bool
-Terminal::rowcol_from_event(MouseEvent const& event,
+Terminal::rowcol_from_event(vte::platform::MouseEvent const& event,
                             long *column,
                             long *row)
 {
@@ -1699,7 +1699,7 @@ Terminal::rowcol_from_event(MouseEvent const& event,
 }
 
 char *
-Terminal::hyperlink_check(MouseEvent const& event)
+Terminal::hyperlink_check(vte::platform::MouseEvent const& event)
 {
         long col, row;
         const char *hyperlink;
@@ -1731,7 +1731,7 @@ Terminal::hyperlink_check(MouseEvent const& event)
 }
 
 char *
-Terminal::regex_match_check(MouseEvent const& event,
+Terminal::regex_match_check(vte::platform::MouseEvent const& event,
                             int *tag)
 {
         long col, row;
@@ -1748,7 +1748,7 @@ Terminal::regex_match_check(MouseEvent const& event,
 }
 
 bool
-Terminal::regex_match_check_extra(MouseEvent const& event,
+Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                   vte::base::Regex const** regexes,
                                   size_t n_regexes,
                                   uint32_t match_flags,
@@ -4489,7 +4489,7 @@ Terminal::beep()
 }
 
 bool
-Terminal::widget_key_press(KeyEvent const& event)
+Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 {
 	char *normal = NULL;
 	gsize normal_length = 0;
@@ -4952,7 +4952,7 @@ Terminal::widget_key_press(KeyEvent const& event)
 }
 
 bool
-Terminal::widget_key_release(KeyEvent const& event)
+Terminal::widget_key_release(vte::platform::KeyEvent const& event)
 {
         m_modifiers = event.modifiers();
 
@@ -5613,21 +5613,21 @@ Terminal::maybe_feed_focus_event(bool in)
  */
 bool
 Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
-                                  MouseEvent const& event)
+                                  vte::platform::MouseEvent const& event)
 {
 	switch (event.type()) {
-        case EventBase::Type::eMOUSE_PRESS:
+        case vte::platform::EventBase::Type::eMOUSE_PRESS:
 		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK) {
 			return false;
 		}
 		break;
-        case EventBase::Type::eMOUSE_RELEASE:
+        case vte::platform::EventBase::Type::eMOUSE_RELEASE:
 		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON) {
 			return false;
 		}
 		break;
-        case EventBase::Type::eMOUSE_DOUBLE_PRESS:
-        case EventBase::Type::eMOUSE_TRIPLE_PRESS:
+        case vte::platform::EventBase::Type::eMOUSE_DOUBLE_PRESS:
+        case vte::platform::EventBase::Type::eMOUSE_TRIPLE_PRESS:
 	default:
 		return false;
 	}
@@ -5651,7 +5651,7 @@ Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
  */
 bool
 Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
-                                MouseEvent const& event)
+                                vte::platform::MouseEvent const& event)
 {
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -5660,7 +5660,7 @@ Terminal::maybe_send_mouse_drag(vte::grid::coords const& unconfined_rowcol,
 
 	/* First determine if we even want to send notification. */
         switch (event.type()) {
-        case EventBase::Type::eMOUSE_MOTION:
+        case vte::platform::EventBase::Type::eMOUSE_MOTION:
 		if (m_mouse_tracking_mode < MouseTrackingMode::eCELL_MOTION_TRACKING)
 			return false;
 
@@ -6793,7 +6793,7 @@ Terminal::start_autoscroll()
 }
 
 bool
-Terminal::widget_mouse_motion(MouseEvent const& event)
+Terminal::widget_mouse_motion(vte::platform::MouseEvent const& event)
 {
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -6850,7 +6850,7 @@ Terminal::widget_mouse_motion(MouseEvent const& event)
 }
 
 bool
-Terminal::widget_mouse_press(MouseEvent const& event)
+Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 {
 	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
@@ -6864,14 +6864,14 @@ Terminal::widget_mouse_press(MouseEvent const& event)
         m_modifiers = event.modifiers();
 
         switch (event.type()) {
-        case EventBase::Type::eMOUSE_PRESS:
+        case vte::platform::EventBase::Type::eMOUSE_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d single-click at %s\n",
                                  event.button_value(),
                                  rowcol.to_string());
 		/* Handle this event ourselves. */
                 switch (event.button()) {
-                case MouseEvent::Button::eLEFT:
+                case vte::platform::MouseEvent::Button::eLEFT:
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Handling click ourselves.\n");
 			/* Grab focus. */
@@ -6912,7 +6912,7 @@ Terminal::widget_mouse_press(MouseEvent const& event)
 			break;
 		/* Paste if the user pressed shift or we're not sending events
 		 * to the app. */
-                case MouseEvent::Button::eMIDDLE:
+                case vte::platform::MouseEvent::Button::eMIDDLE:
 			if ((m_modifiers & GDK_SHIFT_MASK) ||
 			    m_mouse_tracking_mode == MouseTrackingMode::eNONE) {
                                 if (widget()->primary_paste_enabled()) {
@@ -6921,7 +6921,7 @@ Terminal::widget_mouse_press(MouseEvent const& event)
                                 }
 			}
 			break;
-                case MouseEvent::Button::eRIGHT:
+                case vte::platform::MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
@@ -6937,13 +6937,13 @@ Terminal::widget_mouse_press(MouseEvent const& event)
                         handled = maybe_send_mouse_button(rowcol, event);
 		}
 		break;
-        case EventBase::Type::eMOUSE_DOUBLE_PRESS:
+        case vte::platform::EventBase::Type::eMOUSE_DOUBLE_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d double-click at %s\n",
                                  event.button_value(),
                                  rowcol.to_string());
                 switch (event.button()) {
-                case MouseEvent::Button::eLEFT:
+                case vte::platform::MouseEvent::Button::eLEFT:
                         if (m_will_select_after_threshold) {
                                 start_selection(pos,
                                                 SelectionType::eCHAR);
@@ -6955,27 +6955,27 @@ Terminal::widget_mouse_press(MouseEvent const& event)
 				handled = true;
 			}
 			break;
-                case MouseEvent::Button::eMIDDLE:
-                case MouseEvent::Button::eRIGHT:
+                case vte::platform::MouseEvent::Button::eMIDDLE:
+                case vte::platform::MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
 		break;
-        case EventBase::Type::eMOUSE_TRIPLE_PRESS:
+        case vte::platform::EventBase::Type::eMOUSE_TRIPLE_PRESS:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d triple-click at %s\n",
                                  event.button_value(),
                                  rowcol.to_string());
                 switch (event.button()) {
-                case MouseEvent::Button::eLEFT:
+                case vte::platform::MouseEvent::Button::eLEFT:
                         if ((m_mouse_handled_buttons & 1) != 0) {
                                 start_selection(pos,
                                                 SelectionType::eLINE);
 				handled = true;
 			}
 			break;
-                case MouseEvent::Button::eMIDDLE:
-                case MouseEvent::Button::eRIGHT:
+                case vte::platform::MouseEvent::Button::eMIDDLE:
+                case vte::platform::MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
@@ -6997,7 +6997,7 @@ Terminal::widget_mouse_press(MouseEvent const& event)
 }
 
 bool
-Terminal::widget_mouse_release(MouseEvent const& event)
+Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
 {
 	bool handled = false;
 
@@ -7012,20 +7012,20 @@ Terminal::widget_mouse_release(MouseEvent const& event)
         m_modifiers = event.modifiers();
 
         switch (event.type()) {
-        case EventBase::Type::eMOUSE_RELEASE:
+        case vte::platform::EventBase::Type::eMOUSE_RELEASE:
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d released at %s\n",
                                  event.button_value(), rowcol.to_string());
                 switch (event.button()) {
-                case MouseEvent::Button::eLEFT:
+                case vte::platform::MouseEvent::Button::eLEFT:
                         if ((m_mouse_handled_buttons & 1) != 0)
                                 handled = maybe_end_selection();
 			break;
-                case MouseEvent::Button::eMIDDLE:
+                case vte::platform::MouseEvent::Button::eMIDDLE:
                         handled = (m_mouse_handled_buttons & 2) != 0;
                         m_mouse_handled_buttons &= ~2;
 			break;
-                case MouseEvent::Button::eRIGHT:
+                case vte::platform::MouseEvent::Button::eRIGHT:
 		default:
 			break;
 		}
@@ -7112,7 +7112,7 @@ Terminal::widget_focus_out()
 }
 
 void
-Terminal::widget_mouse_enter(MouseEvent const& event)
+Terminal::widget_mouse_enter(vte::platform::MouseEvent const& event)
 {
         auto pos = view_coords_from_event(event);
 
@@ -7130,7 +7130,7 @@ Terminal::widget_mouse_enter(MouseEvent const& event)
 }
 
 void
-Terminal::widget_mouse_leave(MouseEvent const& event)
+Terminal::widget_mouse_leave(vte::platform::MouseEvent const& event)
 {
         auto pos = view_coords_from_event(event);
 
@@ -9387,7 +9387,7 @@ vte_cairo_get_clip_region (cairo_t *cr)
 }
 
 bool
-Terminal::widget_mouse_scroll(MouseEvent const& event)
+Terminal::widget_mouse_scroll(vte::platform::MouseEvent const& event)
 {
 	gdouble v;
 	gint cnt, i;
@@ -9401,15 +9401,15 @@ Terminal::widget_mouse_scroll(MouseEvent const& event)
         m_modifiers = event.modifiers();
 
         switch (event.scroll_direction()) {
-        case MouseEvent::ScrollDirection::eUP:
+        case vte::platform::MouseEvent::ScrollDirection::eUP:
 		m_mouse_smooth_scroll_delta -= 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll up\n");
 		break;
-        case MouseEvent::ScrollDirection::eDOWN:
+        case vte::platform::MouseEvent::ScrollDirection::eDOWN:
 		m_mouse_smooth_scroll_delta += 1.;
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
 		break;
-        case MouseEvent::ScrollDirection::eSMOOTH: {
+        case vte::platform::MouseEvent::ScrollDirection::eSMOOTH: {
                 auto const delta_y = event.scroll_delta_y();
 		m_mouse_smooth_scroll_delta += delta_y;
 		_vte_debug_print(VTE_DEBUG_EVENTS,

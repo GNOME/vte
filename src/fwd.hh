@@ -27,6 +27,9 @@ class Pty;
 
 namespace platform {
 
+class EventBase;
+class KeyEvent;
+class MouseEvent;
 class Widget;
 
 } // namespace platform
