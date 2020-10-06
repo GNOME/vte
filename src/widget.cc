@@ -372,8 +372,8 @@ Widget::key_event_from_gdk(GdkEventKey* event) const
                 event->is_modifier != 0};
 }
 
-std::optional<MouseEvent>
-Widget::mouse_event_from_gdk(GdkEvent* event) const
+MouseEvent
+Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
 {
         auto type = EventBase::Type{};
         switch (gdk_event_get_event_type(event)) {
@@ -386,14 +386,14 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const
         case GDK_MOTION_NOTIFY:  type = MouseEvent::Type::eMOUSE_MOTION;       break;
         case GDK_SCROLL:         type = MouseEvent::Type::eMOUSE_SCROLL;       break;
         default:
-                return std::nullopt;
+                throw std::runtime_error{"Unexpected event type"};
         }
 
         auto x = double{};
         auto y = double{};
         if (gdk_event_get_window(event) != m_event_window ||
             !gdk_event_get_coords(event, &x, &y))
-                x = y = -1.; // FIXMEchpe or return std::nullopt?
+                x = y = -1.; // FIXMEchpe or throw?
 
         auto button = unsigned{0};
         (void)gdk_event_get_button(event, &button);
