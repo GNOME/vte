@@ -24,6 +24,7 @@
 
 #include <exception>
 #include <new>
+#include <stdexcept>
 #include <string>
 
 #include "cxx-utils.hh"
