@@ -4522,6 +4522,20 @@ Terminal::DECSLPP(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::DECSLPP_OR_XTERM_WM(vte::parser::Sequence const& seq)
+{
+        /*
+         * DECSLPP and XTERM_WM use the same sequence, but we can
+         * distinguish between them by the parameter value.
+         */
+        auto const param = seq.collect1(0);
+        if (param > 0 && param < 24)
+                XTERM_WM(seq);
+        else
+                DECSLPP(seq);
+}
+
+void
 Terminal::DECSLRM(vte::parser::Sequence const& seq)
 {
         /*
@@ -8865,7 +8879,7 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         default:
-                DECSLPP(seq);
+                /* DECSLPP, handled elsewhere */
                 break;
         }
 }

@@ -53,22 +53,34 @@ modes_sources = files(
 
 parser_sources = files(
   'parser-arg.hh',
-  'parser-c01.hh',
   'parser-charset-tables.hh',
   'parser-charset.hh',
-  'parser-cmd.hh',
-  'parser-csi.hh',
-  'parser-dcs.hh',
   'parser-decsgr.hh',
-  'parser-esc.hh',
   'parser-glue.hh',
   'parser-osc.hh',
   'parser-reply.hh',
-  'parser-sci.hh',
   'parser-sgr.hh',
   'parser-string.hh',
   'parser.cc',
   'parser.hh',
+)
+
+parser_sources += custom_target(
+  'parser-seq',
+  command: [
+    files('parser-seq.py'),
+    '--destdir', '@OUTDIR@',
+  ],
+  input: [],
+  install: false,
+  output: [
+    'parser-c01.hh',
+    'parser-cmd.hh',
+    'parser-csi.hh',
+    'parser-dcs.hh',
+    'parser-esc.hh',
+    'parser-sci.hh',
+  ],
 )
 
 pty_sources = files(
