@@ -3559,103 +3559,103 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
 {
         auto seq = vte::parser::Sequence{m_parser};
 
-                auto const* ip = chunk.data;
-                auto const* iend = chunk.data + chunk.len;
+        auto const* ip = chunk.data;
+        auto const* iend = chunk.data + chunk.len;
 
-                for ( ; ip < iend; ++ip) {
+        for ( ; ip < iend; ++ip) {
 
-                        switch (m_utf8_decoder.decode(*ip)) {
-                        case vte::base::UTF8Decoder::REJECT_REWIND:
-                                /* Rewind the stream.
-                                 * Note that this will never lead to a loop, since in the
-                                 * next round this byte *will* be consumed.
-                                 */
-                                --ip;
-                                [[fallthrough]];
-                        case vte::base::UTF8Decoder::REJECT:
-                                m_utf8_decoder.reset();
-                                /* Fall through to insert the U+FFFD replacement character. */
-                                [[fallthrough]];
-                        case vte::base::UTF8Decoder::ACCEPT: {
-                                auto rv = m_parser.feed(m_utf8_decoder.codepoint());
-                                if (G_UNLIKELY(rv < 0)) {
+                switch (m_utf8_decoder.decode(*ip)) {
+                case vte::base::UTF8Decoder::REJECT_REWIND:
+                        /* Rewind the stream.
+                         * Note that this will never lead to a loop, since in the
+                         * next round this byte *will* be consumed.
+                         */
+                        --ip;
+                        [[fallthrough]];
+                case vte::base::UTF8Decoder::REJECT:
+                        m_utf8_decoder.reset();
+                        /* Fall through to insert the U+FFFD replacement character. */
+                        [[fallthrough]];
+                case vte::base::UTF8Decoder::ACCEPT: {
+                        auto rv = m_parser.feed(m_utf8_decoder.codepoint());
+                        if (G_UNLIKELY(rv < 0)) {
 #ifdef DEBUG
-                                        uint32_t c = m_utf8_decoder.codepoint();
-                                        char c_buf[7];
-                                        g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
-                                        char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
-                                        _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
-                                                         c, wp_str);
+                                uint32_t c = m_utf8_decoder.codepoint();
+                                char c_buf[7];
+                                g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
+                                char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
+                                _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                                 c, wp_str);
 #endif
-                                        break;
-                                }
+                                break;
+                        }
 
 #ifdef VTE_DEBUG
-                                if (rv != VTE_SEQ_NONE)
-                                        g_assert((bool)seq);
+                        if (rv != VTE_SEQ_NONE)
+                                g_assert((bool)seq);
 #endif
 
-                                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
-                                        if (rv != VTE_SEQ_NONE) {
-                                                seq.print();
-                                        }
+                        _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                                if (rv != VTE_SEQ_NONE) {
+                                        seq.print();
                                 }
+                        }
 
-                                // FIXMEchpe this assumes that the only handler inserting
-                                // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
-                                // also do, and invalidate directly for now)...
+                        // FIXMEchpe this assumes that the only handler inserting
+                        // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
+                        // also do, and invalidate directly for now)...
 
-                                switch (rv) {
-                                case VTE_SEQ_GRAPHIC: {
+                        switch (rv) {
+                        case VTE_SEQ_GRAPHIC: {
 
-                                        context.pre_GRAPHIC(*this);
+                                context.pre_GRAPHIC(*this);
 
-                                        // does insert_char(c, false, false)
-                                        GRAPHIC(seq);
-                                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                                         "Last graphic is now U+%04X %lc\n",
-                                                         m_last_graphic_character,
-                                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+                                // does insert_char(c, false, false)
+                                GRAPHIC(seq);
+                                _vte_debug_print(VTE_DEBUG_PARSER,
+                                                 "Last graphic is now U+%04X %lc\n",
+                                                 m_last_graphic_character,
+                                                 g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                                        context.post_GRAPHIC(*this);
-                                        break;
-                                }
+                                context.post_GRAPHIC(*this);
+                                break;
+                        }
 
-                                case VTE_SEQ_NONE:
-                                case VTE_SEQ_IGNORE:
-                                        break;
+                        case VTE_SEQ_NONE:
+                        case VTE_SEQ_IGNORE:
+                                break;
 
-                                default: {
-                                        switch (seq.command()) {
-#define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
+                        default: {
+                                switch (seq.command()) {
+#define _VTE_CMD(cmd)           case VTE_CMD_##cmd: cmd(seq); break;
 #define _VTE_NOP(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
 #undef _VTE_NOP
-                                        default:
-                                                _vte_debug_print(VTE_DEBUG_PARSER,
-                                                                 "Unknown parser command %d\n", seq.command());
-                                                break;
-                                        }
-
-                                        m_last_graphic_character = 0;
-
-                                        context.post_CMD(*this);
+                                default:
+                                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                                         "Unknown parser command %d\n", seq.command());
                                         break;
                                 }
-                                }
+
+                                m_last_graphic_character = 0;
+
+                                context.post_CMD(*this);
                                 break;
                         }
                         }
+                        break;
                 }
+                }
+        }
 
-                if (chunk.eos()) {
-                        m_eos_pending = true;
-                        /* If there's an unfinished character in the queue, insert a replacement character */
-                        if (m_utf8_decoder.flush()) {
-                                insert_char(m_utf8_decoder.codepoint(), false, true);
-                        }
+        if (chunk.eos()) {
+                m_eos_pending = true;
+                /* If there's an unfinished character in the queue, insert a replacement character */
+                if (m_utf8_decoder.flush()) {
+                        insert_char(m_utf8_decoder.codepoint(), false, true);
                 }
+        }
 }
 
 #ifdef WITH_ICU
@@ -3672,108 +3672,108 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 
         auto& decoder = m_converter->decoder();
 
-                auto const* ip = chunk.data;
-                auto const* iend = chunk.data + chunk.len;
+        auto const* ip = chunk.data;
+        auto const* iend = chunk.data + chunk.len;
 
-                auto eos = bool{false};
-                auto flush = bool{false};
+        auto eos = bool{false};
+        auto flush = bool{false};
 
-        start:
-                while (ip < iend || flush) {
-                        switch (decoder.decode(&ip, flush)) {
-                        case vte::base::ICUDecoder::Result::eSomething: {
-                                auto rv = m_parser.feed(decoder.codepoint());
-                                if (G_UNLIKELY(rv < 0)) {
+ start:
+        while (ip < iend || flush) {
+                switch (decoder.decode(&ip, flush)) {
+                case vte::base::ICUDecoder::Result::eSomething: {
+                        auto rv = m_parser.feed(decoder.codepoint());
+                        if (G_UNLIKELY(rv < 0)) {
 #ifdef VTE_DEBUG
-                                        uint32_t c = decoder.codepoint();
-                                        char c_buf[7];
-                                        g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
-                                        char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
-                                        _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
-                                                         c, wp_str);
+                                uint32_t c = decoder.codepoint();
+                                char c_buf[7];
+                                g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
+                                char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
+                                _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
+                                                 c, wp_str);
 #endif
-                                        break;
-                                }
+                                break;
+                        }
 
 #ifdef VTE_DEBUG
-                                if (rv != VTE_SEQ_NONE)
-                                        g_assert((bool)seq);
+                        if (rv != VTE_SEQ_NONE)
+                                g_assert((bool)seq);
 #endif
 
-                                _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
-                                        if (rv != VTE_SEQ_NONE) {
-                                                seq.print();
-                                        }
+                        _VTE_DEBUG_IF(VTE_DEBUG_PARSER) {
+                                if (rv != VTE_SEQ_NONE) {
+                                        seq.print();
                                 }
+                        }
 
-                                // FIXMEchpe this assumes that the only handler inserting
-                                // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
-                                // also do, and invalidate directly for now)...
+                        // FIXMEchpe this assumes that the only handler inserting
+                        // a character is GRAPHIC, which isn't true (at least ICH, REP, SUB
+                        // also do, and invalidate directly for now)...
 
-                                switch (rv) {
-                                case VTE_SEQ_GRAPHIC: {
+                        switch (rv) {
+                        case VTE_SEQ_GRAPHIC: {
 
-                                        context.pre_GRAPHIC(*this);
+                                context.pre_GRAPHIC(*this);
 
-                                        // does insert_char(c, false, false)
-                                        GRAPHIC(seq);
-                                        _vte_debug_print(VTE_DEBUG_PARSER,
-                                                         "Last graphic is now U+%04X %lc\n",
-                                                         m_last_graphic_character,
-                                                         g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+                                // does insert_char(c, false, false)
+                                GRAPHIC(seq);
+                                _vte_debug_print(VTE_DEBUG_PARSER,
+                                                 "Last graphic is now U+%04X %lc\n",
+                                                 m_last_graphic_character,
+                                                 g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                                        context.post_GRAPHIC(*this);
-                                        break;
-                                }
+                                context.post_GRAPHIC(*this);
+                                break;
+                        }
 
-                                case VTE_SEQ_NONE:
-                                case VTE_SEQ_IGNORE:
-                                        break;
+                        case VTE_SEQ_NONE:
+                        case VTE_SEQ_IGNORE:
+                                break;
 
-                                default: {
-                                        switch (seq.command()) {
-#define _VTE_CMD(cmd)   case VTE_CMD_##cmd: cmd(seq); break;
+                        default: {
+                                switch (seq.command()) {
+#define _VTE_CMD(cmd)           case VTE_CMD_##cmd: cmd(seq); break;
 #define _VTE_NOP(cmd)
 #include "parser-cmd.hh"
 #undef _VTE_CMD
 #undef _VTE_NOP
-                                        default:
-                                                _vte_debug_print(VTE_DEBUG_PARSER,
-                                                                 "Unknown parser command %d\n", seq.command());
-                                                break;
-                                        }
-
-                                        m_last_graphic_character = 0;
-
-                                        context.post_CMD(*this);
+                                default:
+                                        _vte_debug_print(VTE_DEBUG_PARSER,
+                                                         "Unknown parser command %d\n", seq.command());
                                         break;
                                 }
-                                }
+
+                                m_last_graphic_character = 0;
+
+                                context.post_CMD(*this);
                                 break;
                         }
-                        case vte::base::ICUDecoder::Result::eNothing:
-                                flush = false;
-                                break;
-
-                        case vte::base::ICUDecoder::Result::eError:
-                                // FIXMEchpe do we need ++ip here?
-                                decoder.reset();
-                                break;
-
                         }
+                        break;
                 }
+                case vte::base::ICUDecoder::Result::eNothing:
+                        flush = false;
+                        break;
 
-                if (eos) {
-                        /* Done processing the last chunk */
-                        m_eos_pending = true;
-                        return;
-                }
+                case vte::base::ICUDecoder::Result::eError:
+                        // FIXMEchpe do we need ++ip here?
+                        decoder.reset();
+                        break;
 
-                if (chunk.eos()) {
-                        /* On EOS, we still need to flush the decoder before we can finish */
-                        eos = flush = true;
-                        goto start;
                 }
+        }
+
+        if (eos) {
+                /* Done processing the last chunk */
+                m_eos_pending = true;
+                return;
+        }
+
+        if (chunk.eos()) {
+                /* On EOS, we still need to flush the decoder before we can finish */
+                eos = flush = true;
+                goto start;
+        }
 }
 
 #endif /* WITH_ICU */
