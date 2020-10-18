@@ -3116,8 +3116,8 @@ try
         _vte_pty_set_size(pty.get(),
                           impl->m_row_count,
                           impl->m_column_count,
-                          impl->m_cell_height,
-                          impl->m_cell_width,
+                          impl->m_cell_height_unscaled,
+                          impl->m_cell_width_unscaled,
                           nullptr);
 
         return pty.release();

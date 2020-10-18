@@ -3051,16 +3051,16 @@ Terminal::insert_image(vte::cairo::Surface image_surface) /* throws */
 
         auto const left = m_screen->cursor.col;
         auto const top = m_screen->cursor.row;
-        auto const width = (image_width_px + m_cell_width - 1) / m_cell_width;
-        auto const height = (image_height_px + m_cell_height - 1) / m_cell_height;
+        auto const width = (image_width_px + m_cell_width_unscaled - 1) / m_cell_width_unscaled;
+        auto const height = (image_height_px + m_cell_height_unscaled - 1) / m_cell_height_unscaled;
 
         m_screen->row_data->append_image(std::move(device_surface),
                                          image_width_px,
                                          image_height_px,
                                          left,
                                          top,
-                                         m_cell_width,
-                                         m_cell_height);
+                                         m_cell_width_unscaled,
+                                         m_cell_height_unscaled);
 
         /* Erase characters under the image */
         erase_image_rect(height, width);
@@ -7196,7 +7196,9 @@ Terminal::widget_mouse_leave(vte::platform::MouseEvent const& event)
  * here. Similarly, increase cell_width_scale to get nonzero char_spacing.{left,right}.
  */
 void
-Terminal::apply_font_metrics(int cell_width,
+Terminal::apply_font_metrics(int cell_width_unscaled,
+                                       int cell_height_unscaled,
+                                       int cell_width,
                                        int cell_height,
                                        int char_ascent,
                                        int char_descent,
@@ -7206,6 +7208,8 @@ Terminal::apply_font_metrics(int cell_width,
 	bool resize = false, cresize = false;
 
 	/* Sanity check for broken font changes. */
+        cell_width_unscaled = MAX(cell_width_unscaled, 1);
+        cell_height_unscaled = MAX(cell_height_unscaled, 2);
         cell_width = MAX(cell_width, 1);
         cell_height = MAX(cell_height, 2);
         char_ascent = MAX(char_ascent, 1);
@@ -7215,6 +7219,14 @@ Terminal::apply_font_metrics(int cell_width,
         char_height = char_ascent + char_descent;
 
 	/* Change settings, and keep track of when we've changed anything. */
+        if (cell_width_unscaled != m_cell_width_unscaled) {
+                cresize = true;
+                m_cell_width_unscaled = cell_width_unscaled;
+	}
+        if (cell_height_unscaled != m_cell_height_unscaled) {
+                cresize = true;
+                m_cell_height_unscaled = cell_height_unscaled;
+	}
         if (cell_width != m_cell_width) {
 		resize = cresize = true;
                 m_cell_width = cell_width;
@@ -7263,8 +7275,8 @@ Terminal::apply_font_metrics(int cell_width,
                         /* Update pixel size of PTY. */
                         pty()->set_size(m_row_count,
                                         m_column_count,
-                                        m_cell_height,
-                                        m_cell_width);
+                                        m_cell_height_unscaled,
+                                        m_cell_width_unscaled);
                 }
 		emit_char_size_changed(m_cell_width, m_cell_height);
 	}
@@ -7281,10 +7293,23 @@ Terminal::ensure_font()
 			set_font_desc(m_unscaled_font_desc.get());
 		}
 		if (m_fontdirty) {
+                        int cell_width_unscaled, cell_height_unscaled;
                         int cell_width, cell_height;
                         int char_ascent, char_descent;
                         GtkBorder char_spacing;
 			m_fontdirty = false;
+
+                        if (!_vte_double_equal(m_font_scale, 1.)) {
+                                m_draw.set_text_font(
+                                                     m_widget,
+                                                     m_unscaled_font_desc.get(),
+                                                     m_cell_width_scale,
+                                                     m_cell_height_scale);
+                                m_draw.get_text_metrics(
+                                                        &cell_width_unscaled, &cell_height_unscaled,
+                                                        nullptr, nullptr, nullptr);
+                        }
+
 			m_draw.set_text_font(
                                                  m_widget,
                                                  m_fontdesc.get(),
@@ -7294,7 +7319,14 @@ Terminal::ensure_font()
                                                     &cell_width, &cell_height,
                                                     &char_ascent, &char_descent,
                                                     &char_spacing);
-                        apply_font_metrics(cell_width, cell_height,
+
+                        if (_vte_double_equal(m_font_scale, 1.)) {
+                                cell_width_unscaled = cell_width;
+                                cell_height_unscaled = cell_height;
+                        }
+
+                        apply_font_metrics(cell_width_unscaled, cell_height_unscaled,
+                                           cell_width, cell_height,
                                            char_ascent, char_descent,
                                            char_spacing);
 		}
@@ -7609,8 +7641,8 @@ Terminal::set_size(long columns,
                  */
 		if (!pty()->set_size(rows,
                                      columns,
-                                     m_cell_height,
-                                     m_cell_width)) {
+                                     m_cell_height_unscaled,
+                                     m_cell_width_unscaled)) {
                         // nothing we can do here
                 }
 		refresh_size();

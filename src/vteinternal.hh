@@ -703,6 +703,8 @@ public:
         GtkBorder m_char_padding{0, 0, 0, 0};
         long m_cell_width{0};
         long m_cell_height{0};
+        long m_cell_width_unscaled{0};
+        long m_cell_height_unscaled{0};
 
         /* We allow the cell's text to draw a bit outside the cell at the top
          * and bottom. The following two functions return how much is the
@@ -1134,7 +1136,9 @@ public:
 
         void ensure_font();
         void update_font();
-        void apply_font_metrics(int cell_width,
+        void apply_font_metrics(int cell_width_unscaled,
+                                int cell_height_unscaled,
+                                int cell_width,
                                 int cell_height,
                                 int char_ascent,
                                 int char_descent,
