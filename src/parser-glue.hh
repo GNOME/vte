@@ -58,6 +58,16 @@ public:
                 vte_parser_reset(&m_parser);
         }
 
+        inline void set_dispatch_unripe(bool enable) noexcept
+        {
+                vte_parser_set_dispatch_unripe(&m_parser, enable);
+        }
+
+        inline void ignore_until_st() noexcept
+        {
+                vte_parser_ignore_until_st(&m_parser);
+        }
+
 protected:
         vte_parser_t m_parser;
 }; // class Parser
@@ -165,11 +175,42 @@ public:
          *
          * Whether the sequence was introduced with a C0 or C1 control.
          *
-         * Returns: the introducing character
+         * Returns: true iff the introducer was a C1 control
          */
         inline constexpr bool is_c1() const noexcept
         {
                 return (introducer() & 0x80) != 0;
+        }
+
+        /* is_st_c1:
+         *
+         * Whether the control string was terminated with a C0 or C1 control.
+         *
+         * Returns: true iff the terminator was the C1 ST
+         */
+        inline constexpr bool is_st_c1() const noexcept
+        {
+                return (st() & 0x80) != 0;
+        }
+
+        /* is_ripe:
+         *
+         * Whether the control string is complete.
+         * This returns true when the final character has been received,
+         * and false when the string terminator has been received.
+         * This is only meaningful for DCS sequences, which are dispatched
+         * twice.
+         *
+         * Returns: true iff the DCS sequence is complete
+         */
+        inline constexpr bool is_ripe() const noexcept
+        {
+                return st() != 0;
+        }
+
+        inline constexpr bool is_unripe() const noexcept
+        {
+                return !is_ripe();
         }
 
         /* intermediates:

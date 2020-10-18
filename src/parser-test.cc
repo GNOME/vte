@@ -291,7 +291,7 @@ test_seq_control(void)
                 uint32_t c;
                 unsigned int cmd;
         } const controls [] = {
-#define _VTE_SEQ(cmd,type,f,pi,ni,i0) { f, VTE_CMD_##cmd },
+#define _VTE_SEQ(cmd,type,f,pi,ni,i0,flags) { f, VTE_CMD_##cmd },
 #include "parser-c01.hh"
 #undef _VTE_SEQ
         };
@@ -644,7 +644,7 @@ test_seq_esc_known(void)
 {
         parser.reset();
 
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
         test_seq_esc_known(f, VTE_SEQ_INTERMEDIATE_CHAR_##i, VTE_CMD_##cmd);
 #include "parser-esc.hh"
 #undef _VTE_SEQ
@@ -782,7 +782,7 @@ test_seq_sci_known(void)
 {
         parser.reset();
 
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
         test_seq_sci_known(f, VTE_CMD_##cmd);
 #include "parser-sci.hh"
 #undef _VTE_SEQ
@@ -810,7 +810,7 @@ test_seq_csi_known(void)
 {
         parser.reset();
 
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
         test_seq_csi_known(f, VTE_SEQ_PARAMETER_CHAR_##p, VTE_SEQ_INTERMEDIATE_CHAR_##i, VTE_CMD_##cmd);
 #include "parser-csi.hh"
 #undef _VTE_SEQ
@@ -951,7 +951,7 @@ test_seq_dcs_known(void)
 {
         parser.reset();
 
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
         test_seq_dcs_known(f, VTE_SEQ_PARAMETER_CHAR_##p, VTE_SEQ_INTERMEDIATE_CHAR_##i, VTE_CMD_##cmd);
 #include "parser-dcs.hh"
 #undef _VTE_SEQ

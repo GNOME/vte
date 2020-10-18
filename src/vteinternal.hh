@@ -33,6 +33,7 @@
 #include <glib.h>
 #include "glib-glue.hh"
 
+#include "debug.h"
 #include "drawing-cairo.hh"
 #include "vtedefines.hh"
 #include "vtetypes.hh"
@@ -381,16 +382,35 @@ public:
         vte::base::UTF8Decoder m_utf8_decoder;
 
         enum class DataSyntax {
+                /* The primary data syntax is always one of the following: */
                 eECMA48_UTF8,
                 #ifdef WITH_ICU
                 eECMA48_PCTERM,
                 #endif
-                /* eECMA48_ECMA35, not supported */
+                /* ECMA48_ECMA35, not supported */
         };
 
-        DataSyntax m_data_syntax{DataSyntax::eECMA48_UTF8};
+        DataSyntax m_primary_data_syntax{DataSyntax::eECMA48_UTF8};
+        DataSyntax m_current_data_syntax{DataSyntax::eECMA48_UTF8};
 
-        auto data_syntax() const noexcept { return m_data_syntax; }
+        auto primary_data_syntax() const noexcept { return m_primary_data_syntax; }
+        auto current_data_syntax() const noexcept { return m_current_data_syntax; }
+
+        void push_data_syntax(DataSyntax syntax) noexcept
+        {
+                _vte_debug_print(VTE_DEBUG_IO, "Pushing data syntax %d -> %d\n",
+                                 int(m_current_data_syntax), int(syntax));
+                m_current_data_syntax = syntax;
+        }
+
+        void pop_data_syntax() noexcept
+        {
+                _vte_debug_print(VTE_DEBUG_IO, "Popping data syntax %d -> %d\n",
+                                 int(m_current_data_syntax), int(m_primary_data_syntax));
+                m_current_data_syntax = m_primary_data_syntax;
+        }
+
+        void reset_data_syntax();
 
         int m_utf8_ambiguous_width{VTE_DEFAULT_UTF8_AMBIGUOUS_WIDTH};
         gunichar m_last_graphic_character{0}; /* for REP */
@@ -417,7 +437,7 @@ public:
 
         char const* encoding() const noexcept
         {
-                switch (m_data_syntax) {
+                switch (primary_data_syntax()) {
                 case DataSyntax::eECMA48_UTF8:   return "UTF-8";
                 #ifdef WITH_ICU
                 case DataSyntax::eECMA48_PCTERM: return m_converter->charset().c_str();
@@ -1469,12 +1489,16 @@ public:
         /* Sequence handlers */
         bool m_line_wrapped; // signals line wrapped from character insertion
         // Note: inlining the handlers seems to worsen the performance, so we don't do that
-#define _VTE_CMD(cmd) \
+#define _VTE_CMD_HANDLER(cmd) \
 	/* inline */ void cmd (vte::parser::Sequence const& seq);
-#define _VTE_NOP(cmd) G_GNUC_UNUSED _VTE_CMD(cmd)
-#include "parser-cmd.hh"
-#undef _VTE_CMD
-#undef _VTE_NOP
+#define _VTE_CMD_HANDLER_NOP(cmd) \
+	/* inline */ void cmd (vte::parser::Sequence const& seq);
+#define _VTE_CMD_HANDLER_R(cmd) \
+	/* inline */ bool cmd (vte::parser::Sequence const& seq);
+#include "parser-cmd-handlers.hh"
+#undef _VTE_CMD_HANDLER
+#undef _VTE_CMD_HANDLER_NOP
+#undef _VTE_CMD_HANDLER_R
 };
 
 } // namespace terminal

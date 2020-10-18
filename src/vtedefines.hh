@@ -145,3 +145,5 @@
 #define VTE_TERMINFO_NAME "xterm-256color"
 
 #define VTE_SIXEL_ENABLED_DEFAULT false
+
+#define VTE_SIXEL_NUM_COLOR_REGISTERS (1024)

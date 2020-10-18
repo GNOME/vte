@@ -316,6 +316,7 @@ decoder_cat = executable(
 
 parser_cat_sources = glib_glue_sources + libc_glue_sources + parser_sources + utf8_sources + debug_sources + files(
   'parser-cat.cc',
+  'vtedefines.hh',
 )
 
 parser_cat = executable(

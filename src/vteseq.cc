@@ -2379,7 +2379,7 @@ Terminal::DA1(vte::parser::Sequence const& seq)
 
         reply(seq, VTE_REPLY_DECDA1R, {65, 1,
 #ifdef WITH_SIXEL
-                                       m_sixel_enabled ? 4 : -2 /* skip */,
+                                       4,
 #endif
                                        9});
 }

@@ -2012,26 +2012,35 @@ bool
 Terminal::set_encoding(char const* charset,
                        GError** error)
 {
-#ifdef WITH_ICU
         auto const to_utf8 = bool{charset == nullptr || g_ascii_strcasecmp(charset, "UTF-8") == 0};
 
+#ifdef WITH_ICU
+        /* Note that if the current data syntax is not a primary one, the change
+         * will only be applied when returning to the primrary data syntax.
+         */
+
         if (to_utf8) {
-                if (data_syntax() == DataSyntax::eECMA48_UTF8)
+                if (primary_data_syntax() == DataSyntax::eECMA48_UTF8)
                         return true;
 
                 m_converter.reset();
-                m_data_syntax = DataSyntax::eECMA48_UTF8;
+                m_primary_data_syntax = DataSyntax::eECMA48_UTF8;
         } else {
-                if (data_syntax() == DataSyntax::eECMA48_PCTERM &&
+                if (primary_data_syntax() == DataSyntax::eECMA48_PCTERM &&
                     m_converter->charset() == charset)
                         return true;
 
-                auto converter = vte::base::ICUConverter::make(charset, error);
-                if (!converter)
-                        return false;
+                try {
+                        auto converter = vte::base::ICUConverter::make(charset, error);
+                        if (!converter)
+                               return false;
 
-                m_converter = std::move(converter);
-                m_data_syntax = DataSyntax::eECMA48_PCTERM;
+                        m_converter = std::move(converter);
+                        m_primary_data_syntax = DataSyntax::eECMA48_PCTERM;
+
+                } catch (...) {
+                        return vte::glib::set_error_from_exception(error);
+                }
         }
 
         /* Note: we DON'T convert any pending output from the previous charset to
@@ -2046,14 +2055,19 @@ Terminal::set_encoding(char const* charset,
         reset_decoder();
 
         if (pty())
-                pty()->set_utf8(data_syntax() == DataSyntax::eECMA48_UTF8);
+                pty()->set_utf8(primary_data_syntax() == DataSyntax::eECMA48_UTF8);
 
 	_vte_debug_print(VTE_DEBUG_IO,
                          "Set terminal encoding to `%s'.\n",
                          encoding());
 
         return true;
+
 #else
+
+        if (to_utf8)
+                return true;
+
         g_set_error_literal(error, G_CONVERT_ERROR, G_CONVERT_ERROR_NO_CONVERSION,
                             "ICU support not available");
         return false;
@@ -3441,7 +3455,7 @@ Terminal::process_incoming()
         // FIXMEchpe move to context
         m_line_wrapped = false;
 
-        auto bytes_processed = size_t{0};
+        auto bytes_processed = ssize_t{0};
 
         auto context = ProcessingContext{*this};
 
@@ -3454,7 +3468,8 @@ Terminal::process_incoming()
 
                 _VTE_DEBUG_IF(VTE_DEBUG_IO) {
                         _vte_debug_print(VTE_DEBUG_IO,
-                                         "Processing chunk %p starting at offset %u\n",
+                                         "Processing data syntax %d chunk %p starting at offset %u\n",
+                                         (int)current_data_syntax(),
                                          (void*)chunk.get(),
                                          unsigned(chunk->begin_reading() - chunk->data()));
 
@@ -3463,15 +3478,17 @@ Terminal::process_incoming()
                                            chunk->size_reading());
                 }
 
-                switch (data_syntax()) {
+                switch (current_data_syntax()) {
                 case DataSyntax::eECMA48_UTF8:
                         process_incoming_utf8(context, *chunk);
                         break;
+
 #ifdef WITH_ICU
                 case DataSyntax::eECMA48_PCTERM:
                         process_incoming_pcterm(context, *chunk);
                         break;
 #endif
+
                 default:
                         g_assert_not_reached();
                         break;
@@ -3479,6 +3496,10 @@ Terminal::process_incoming()
 
                 bytes_processed += size_t(chunk->begin_reading() - start);
 
+                _vte_debug_print(VTE_DEBUG_IO, "read %d bytes, chunk %s, data syntax now %d\n",
+                                 int(chunk->begin_reading() - start),
+                                 chunk->has_reading()?"has more":"finished",
+                                 (int)current_data_syntax());
                 // If all data from this chunk has been processed, go to the next one
                 if (!chunk->has_reading())
                         m_incoming_queue.pop();
@@ -3558,7 +3579,6 @@ Terminal::process_incoming()
 
 /* Note that this code is mostly copied to process_incoming_pcterm() below; any non-charset-decoding
  * related changes made here need to be made there, too.
- * FIXMEchpe: refactor this to share more code with process_incoming_pcterm().
  */
 void
 Terminal::process_incoming_utf8(ProcessingContext& context,
@@ -3569,9 +3589,9 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
         auto const iend = chunk.end_reading();
         auto ip = chunk.begin_reading();
 
-        for ( ; ip < iend; ++ip) {
+        while (ip < iend) {
 
-                switch (m_utf8_decoder.decode(*ip)) {
+                switch (m_utf8_decoder.decode(*(ip++))) {
                 case vte::base::UTF8Decoder::REJECT_REWIND:
                         /* Rewind the stream.
                          * Note that this will never lead to a loop, since in the
@@ -3634,11 +3654,19 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
 
                         default: {
                                 switch (seq.command()) {
-#define _VTE_CMD(cmd)           case VTE_CMD_##cmd: cmd(seq); break;
-#define _VTE_NOP(cmd)
-#include "parser-cmd.hh"
-#undef _VTE_CMD
-#undef _VTE_NOP
+#define _VTE_CMD_HANDLER(cmd)   \
+                                case VTE_CMD_##cmd: cmd(seq); break;
+#define _VTE_CMD_HANDLER_R(cmd) \
+                                case VTE_CMD_##cmd: if (cmd(seq)) { \
+                                        context.post_CMD(*this); \
+                                        goto switched_data_syntax; \
+                                        } \
+                                        break;
+#define _VTE_CMD_HANDLER_NOP(cmd)
+#include "parser-cmd-handlers.hh"
+#undef _VTE_CMD_HANDLER
+#undef _VTE_CMD_HANDLER_NOP
+#undef _VTE_CMD_HANDLER_R
                                 default:
                                         _vte_debug_print(VTE_DEBUG_PARSER,
                                                          "Unknown parser command %d\n", seq.command());
@@ -3656,23 +3684,24 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 }
         }
 
-        // Update start for data consumed
-        chunk.set_begin_reading(ip);
-
-        if (chunk.eos()) {
+        if (chunk.eos() && ip == iend) {
                 m_eos_pending = true;
                 /* If there's an unfinished character in the queue, insert a replacement character */
                 if (m_utf8_decoder.flush()) {
                         insert_char(m_utf8_decoder.codepoint(), false, true);
                 }
         }
+
+ switched_data_syntax:
+
+        // Update start for data consumed
+        chunk.set_begin_reading(ip);
 }
 
 #ifdef WITH_ICU
 
 /* Note that this is mostly a copy of process_incoming_utf8() above; any non-charset-decoding
  * related changes made here need to be made there, too.
- * FIXMEchpe: refactor this to share more code with process_incoming_utf8().
  */
 void
 Terminal::process_incoming_pcterm(ProcessingContext& context,
@@ -3742,11 +3771,20 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 
                         default: {
                                 switch (seq.command()) {
-#define _VTE_CMD(cmd)           case VTE_CMD_##cmd: cmd(seq); break;
-#define _VTE_NOP(cmd)
-#include "parser-cmd.hh"
-#undef _VTE_CMD
-#undef _VTE_NOP
+#define _VTE_CMD_HANDLER(cmd)   \
+                                case VTE_CMD_##cmd: cmd(seq); break;
+#define _VTE_CMD_HANDLER_R(cmd) \
+                                case VTE_CMD_##cmd: \
+                                        if (cmd(seq)) { \
+                                                context.post_CMD(*this); \
+                                                goto switched_data_syntax; \
+                                        } \
+                                        break;
+#define _VTE_CMD_HANDLER_NOP(cmd)
+#include "parser-cmd-handlers.hh"
+#undef _VTE_CMD_HANDLER
+#undef _VTE_CMD_HANDLER_NOP
+#undef _VTE_CMD_HANDLER_R
                                 default:
                                         _vte_debug_print(VTE_DEBUG_PARSER,
                                                          "Unknown parser command %d\n", seq.command());
@@ -3779,10 +3817,12 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                 return;
         }
 
+ switched_data_syntax:
+
         // Update start for data consumed
         chunk.set_begin_reading(ip);
 
-        if (chunk.eos()) {
+        if (chunk.eos() && ip == chunk.end_reading()) {
                 /* On EOS, we still need to flush the decoder before we can finish */
                 eos = flush = true;
                 goto start;
@@ -4058,7 +4098,7 @@ Terminal::send_child(std::string_view const& data)
          * ::commit signal even if there is no PTY. See issue vte#222.
          */
 
-        switch (data_syntax()) {
+        switch (primary_data_syntax()) {
         case DataSyntax::eECMA48_UTF8:
                 emit_commit(data);
                 if (pty())
@@ -9745,7 +9785,7 @@ Terminal::set_mouse_autohide(bool autohide)
 void
 Terminal::reset_decoder()
 {
-        switch (data_syntax()) {
+        switch (primary_data_syntax()) {
         case DataSyntax::eECMA48_UTF8:
                 m_utf8_decoder.reset();
                 break;
@@ -9759,6 +9799,20 @@ Terminal::reset_decoder()
         default:
                 g_assert_not_reached();
         }
+}
+
+void
+Terminal::reset_data_syntax()
+{
+        if (current_data_syntax() == primary_data_syntax())
+                return;
+
+        switch (current_data_syntax()) {
+        default:
+                break;
+        }
+
+        pop_data_syntax();
 }
 
 /*
@@ -9793,6 +9847,7 @@ Terminal::reset(bool clear_tabstops,
         reset_decoder();
 
         /* Reset parser */
+        reset_data_syntax();
         m_parser.reset();
         m_last_graphic_character = 0;
 
@@ -9924,7 +9979,7 @@ Terminal::set_pty(vte::base::Pty *new_pty)
 
         set_size(m_column_count, m_row_count);
 
-        if (!pty()->set_utf8(data_syntax() == DataSyntax::eECMA48_UTF8)) {
+        if (!pty()->set_utf8(primary_data_syntax() == DataSyntax::eECMA48_UTF8)) {
                 // nothing we can do here
         }
 

@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
@@ -163,7 +163,7 @@ static unsigned int
 vte_parse_host_control(vte_seq_t const* seq)
 {
         switch (seq->terminator) {
-#define _VTE_SEQ(cmd,type,f,pi,ni,i0) case f: return VTE_CMD_##cmd;
+#define _VTE_SEQ(cmd,type,f,pi,ni,i0,flags) case f: return VTE_CMD_##cmd;
 #include "parser-c01.hh"
 #undef _VTE_SEQ
         default: return VTE_CMD_NONE;
@@ -346,7 +346,7 @@ vte_parse_host_escape(vte_seq_t const* seq,
         case VTE_SEQ_INTERMEDIATE_NONE:
         case VTE_SEQ_INTERMEDIATE_HASH: {  /* Single control functions */
                 switch (_VTE_SEQ_CODE_ESC(seq->terminator, intermediates)) {
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
                         case _VTE_SEQ_CODE_ESC(f, VTE_SEQ_INTERMEDIATE_##i): return VTE_CMD_##cmd;
 #include "parser-esc.hh"
 #undef _VTE_SEQ
@@ -453,7 +453,7 @@ static unsigned int
 vte_parse_host_csi(vte_seq_t const* seq)
 {
         switch (_VTE_SEQ_CODE(seq->terminator, seq->intermediates)) {
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
                 case _VTE_SEQ_CODE(f, _VTE_SEQ_CODE_COMBINE(VTE_SEQ_PARAMETER_##p, VTE_SEQ_INTERMEDIATE_##i)): return VTE_CMD_##cmd;
 #include "parser-csi.hh"
 #undef _VTE_SEQ
@@ -462,11 +462,12 @@ vte_parse_host_csi(vte_seq_t const* seq)
 }
 
 static unsigned int
-vte_parse_host_dcs(vte_seq_t const* seq)
+vte_parse_host_dcs(vte_seq_t const* seq,
+                   unsigned int* flagsptr)
 {
         switch (_VTE_SEQ_CODE(seq->terminator, seq->intermediates)) {
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
-                case _VTE_SEQ_CODE(f, _VTE_SEQ_CODE_COMBINE(VTE_SEQ_PARAMETER_##p, VTE_SEQ_INTERMEDIATE_##i)): return VTE_CMD_##cmd;
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
+                case _VTE_SEQ_CODE(f, _VTE_SEQ_CODE_COMBINE(VTE_SEQ_PARAMETER_##p, VTE_SEQ_INTERMEDIATE_##i)): *flagsptr = flags; return VTE_CMD_##cmd;
 #include "parser-dcs.hh"
 #undef _VTE_SEQ
         default: return VTE_CMD_NONE;
@@ -477,7 +478,7 @@ static unsigned int
 vte_parse_host_sci(vte_seq_t const* seq)
 {
         switch (_VTE_SEQ_CODE(seq->terminator, 0)) {
-#define _VTE_SEQ(cmd,type,f,p,ni,i) \
+#define _VTE_SEQ(cmd,type,f,p,ni,i,flags) \
                 case _VTE_SEQ_CODE(f, 0): return VTE_CMD_##cmd;
 #include "parser-sci.hh"
 #undef _VTE_SEQ
@@ -882,9 +883,11 @@ parser_dcs_consume(vte_parser_t* parser,
         parser->seq.type = VTE_SEQ_DCS;
         parser->seq.terminator = raw;
         parser->seq.st = 0;
-        parser->seq.command = vte_parse_host_dcs(&parser->seq);
 
-        return VTE_SEQ_NONE;
+        auto flags = unsigned{};
+        parser->seq.command = vte_parse_host_dcs(&parser->seq, &flags);
+
+        return (flags & VTE_DISPATCH_UNRIPE) && parser->dispatch_unripe ? VTE_SEQ_DCS : VTE_SEQ_NONE;
 }
 
 static int
@@ -1445,4 +1448,67 @@ void
 vte_parser_reset(vte_parser_t* parser)
 {
         parser_transition(parser, 0, STATE_GROUND, ACTION_IGNORE);
+}
+
+/*
+ * vte_parser_set_dispatch_unripe:
+ * @parser: a #vte_parser_t
+ * @enable:
+ *
+ * Enables or disables dispatch of unripe DCS sequences.
+ * If enabled, known DCS sequences with the %VTE_DISPATCH_UNRIPE
+ * flag will be dispatched when the Final character is received,
+ * instead of when the control string terminator (ST) is received.
+ * The application handling the unripe DCS sequence may then
+ * either
+ * * do nothing; in this case the DCS sequence will be dispatched
+ *   again when the control string was fully received. Ripe and
+ *   unripe sequences can be distinguished by the value of
+ *   parser.seq.st which will be 0 for an unripe sequence and
+ *   either 0x5c (C0 ST) or 0x9c (C1 ST) for a ripe sequence. Or
+ * * call vte_parser_ignore_until_st(); in this case the DCS
+ *   sequence will be ignored until after the ST (or an other
+ *   character that aborts the control string) has been
+ *   received; or
+ * * switch to a different parser (e.g. DECSIXEL) to parse the
+ *   control string directly on-the-fly. Note that in this case,
+ *   the subparser should take care to handle C0 and C1 controls
+ *   the same way as this parser would.
+ */
+void
+vte_parser_set_dispatch_unripe(vte_parser_t* parser,
+                               bool enable)
+{
+        parser->dispatch_unripe = enable;
+}
+
+/*
+ * vte_parser_ignore_until_st:
+ * @parser: a #vte_parser_t
+ *
+ * When used on an unrip %VTE_SEQ_DCS sequence, makes the
+ * parser ignore everything until the ST is received (or
+ * the DCS is aborted by the usual other means).
+ *
+ * Note that there is some inconsistencies here:
+ *
+ * * SUB aborts the DCS in our parser, but e.g. a DECSIXEL
+ *   parser will handle it as if 3/15 was received.
+ *
+ * * the ST terminating the DCS will be dispatched as an ST
+ *   sequence, instead of producing an IGNORE sequence
+ *   (this is easily fixable but would slightly complicate
+ *   the parser for no actual gain).
+ */
+void
+vte_parser_ignore_until_st(vte_parser_t* parser)
+{
+        switch (parser->state) {
+        case STATE_DCS_PASS:
+                parser_transition_no_action(parser, 0, STATE_DCS_IGNORE);
+                break;
+        default:
+                g_assert_not_reached();
+                break;
+        }
 }

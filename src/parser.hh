@@ -186,6 +186,10 @@ enum {
 #define VTE_CHARSET_GET_CHARSET(c) ((c) & VTE_CHARSET_CHARSET_MASK)
 #define VTE_CHARSET_GET_SLOT(c)    ((c) >> VTE_CHARSET_SLOT_OFFSET)
 
+enum {
+      VTE_DISPATCH_UNRIPE = 1u << 0,
+};
+
 struct vte_seq_t {
         unsigned int type;
         unsigned int command;
@@ -204,6 +208,7 @@ struct vte_seq_t {
 struct vte_parser_t {
         vte_seq_t seq;
         unsigned int state;
+        bool dispatch_unripe;
 };
 
 void vte_parser_init(vte_parser_t* parser);
@@ -211,3 +216,6 @@ void vte_parser_deinit(vte_parser_t* parser);
 int vte_parser_feed(vte_parser_t* parser,
                     uint32_t raw);
 void vte_parser_reset(vte_parser_t* parser);
+void vte_parser_set_dispatch_unripe(vte_parser_t* parser,
+                                    bool enable);
+void vte_parser_ignore_until_st(vte_parser_t* parser);

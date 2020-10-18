@@ -73,15 +73,18 @@ class Direction(enum.Flag):
     BIDI = HTT | TTH
 
 class Flags(enum.Flag):
-    NOP_TTH = enum.auto()
-    NOP_HTT = enum.auto()
-    NOP = NOP_TTH | NOP_HTT
+    NOP_TTH = enum.auto()    # NOP terminal to host
+    NOP_HTT = enum.auto()    # NOP host to terminal
+    NOP = NOP_TTH | NOP_HTT  # NOP both directions
+    UNRIPE = enum.auto()     # dispatch when unripe
+    HANDLER_RV = enum.auto() # handler has return value
 
 class Source(enum.Enum):
     DEC    = enum.auto(),
     ECMA16 = enum.auto() # eq ISO 1745
     ECMA35 = enum.auto() # eq ISO 2022
     ECMA48 = enum.auto() # eq ISO 6429
+    ITERM2 = enum.auto()
     RLOGIN = enum.auto()
     SCO    = enum.auto()
     VTE    = enum.auto()
@@ -95,6 +98,8 @@ class Source(enum.Enum):
             return cls.DEC
         elif name.endswith('_ECMA'):
             return cls.ECMA48
+        elif name.startswith('ITERM'):
+            return cls.ITERM2
         elif name.startswith('RLOGIN'):
             return cls.RLOGIN
         elif name.startswith('SCO'):
@@ -240,13 +245,13 @@ sequences = [
     # Commands that are handled specially by the parser than the other sequences
     seq_COMMAND('ACS', source=Source.ECMA35,
                 comment='announce code structure'),
-    seq_COMMAND('CnD', source=Source.ECMA35,
+    seq_COMMAND('CnD', flags=Flags.NOP, source=Source.ECMA35,
                 comment='Cn designate'),
-    seq_COMMAND('DOCS', source=Source.ECMA35,
+    seq_COMMAND('DOCS', flags=Flags.NOP, source=Source.ECMA35,
                 comment='designate other coding system'),
     seq_COMMAND('GnDm', source=Source.ECMA35,
                 comment='Gn designate 9m charset'),
-    seq_COMMAND('GnDMm', source=Source.ECMA35,
+    seq_COMMAND('GnDMm', flags=Flags.NOP, source=Source.ECMA35,
                 comment='Gn designate multibyte 9m charset'),
     seq_COMMAND('IRR', flags=Flags.NOP, source=Source.ECMA35,
                 comment='identify revised registration'),
@@ -860,7 +865,7 @@ sequences = [
             comment='restore terminal state'),
     seq_DCS('XTERM_STCAP', 'p', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
             comment='xterm set termcap/terminfo'),
-    seq_DCS('DECSIXEL', 'q', flags=Flags.NOP,
+    seq_DCS('DECSIXEL', 'q',
             comment='SIXEL graphics'),
     seq_DCS('DECRQSS', 'q', intermediates=(Intermediate.CASH,),
             comment='request selection or setting'),
@@ -999,7 +1004,6 @@ def get_seqs(predicate):
 
     return seqs
 
-
 ''' Write copyright header '''
 def write_header(outfile):
     outfile.write('''
@@ -1050,6 +1054,11 @@ def write_seqs(output, stype):
         else:
             return f'0x{c:02x}'
 
+    def flags_to_dispatch_flags(flags):
+        if flags is not None and flags & Flags.UNRIPE:
+            return "VTE_DISPATCH_UNRIPE"
+        return "0"
+
     seqs = get_seqs(lambda seq: seq.stype == stype)
     for seq in seqs:
         stype, name, final, pintro, intermediates, flags, comment = seqs[seq]
@@ -1071,9 +1080,15 @@ def write_seqs(output, stype):
         else:
             macro = '_VTE_SEQ'
 
-        outfile.write(f'{macro}({name}, {stype.name}, {final_char(final)}, '
+        outfile.write(f'{macro}('
+                      f'{name}, '
+                      f'{stype.name}, '
+                      f'{final_char(final)}, '
                       f'{name_or_none(pintro0)}, '
-                      f'{len(intermediates)}, {name_or_none(intermediate0)}) '
+                      f'{len(intermediates)}, '
+                      f'{name_or_none(intermediate0)}, '
+                      f'{flags_to_dispatch_flags(flags)} '
+                      f') '
                       f'/* {comment} */\n')
 
 
@@ -1112,6 +1127,41 @@ _VTE_CMD(GRAPHIC) /* graphics character */
                 outfile.write(f'_VTE_NOP({name})\n')
 
 
+''' Write command handlers '''
+def write_hdlr(output):
+
+    def cmd_handler_macro(flags):
+        if flags is None:
+            return '_VTE_CMD_HANDLER'
+        elif flags & Flags.NOP:
+            return '_VTE_CMD_HANDLER_NOP'
+        elif flags & Flags.HANDLER_RV:
+            return '_VTE_CMD_HANDLER_R'
+        else:
+            return '_VTE_CMD_HANDLER'
+
+    outfile = open(output.as_posix(), 'w')
+    write_header(outfile)
+    outfile.write('''
+#if !defined(_VTE_CMD_HANDLER) || !defined(_VTE_CMD_HANDLER_R) || !defined(_VTE_CMD_HANDLER_NOP)
+#error "Must define _VTE_CMD_HANDLER, _VTE_CMD_HANDLER_R and _VTE_CMD_HANDLER_NOP before including this file"
+#endif
+''')
+
+    outfile.write('''
+_VTE_CMD_HANDLER_NOP(NONE) /* placeholder */
+_VTE_CMD_HANDLER(GRAPHIC) /* graphics character */
+''')
+
+    cmds = get_commands(lambda seq: True)
+    for name in sorted(cmds):
+        flags, comment = cmds[name]
+        if comment is not None:
+            outfile.write(f'{cmd_handler_macro(flags)}({name}) /* {comment} */\n')
+        else:
+            outfile.write(f'{cmd_handler_macro(flags)}({name})\n')
+
+
 # main
 
 ''' main '''
@@ -1136,3 +1186,4 @@ if __name__ == '__main__':
     write_seqs(args.destdir / "parser-sci.hh", Type.SCI)
 
     write_cmds(args.destdir / "parser-cmd.hh")
+    write_hdlr(args.destdir / "parser-cmd-handlers.hh")
