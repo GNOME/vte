@@ -625,6 +625,8 @@ private:
         gsize m_cmd_stats[VTE_CMD_N];
         GArray* m_bench_times;
 
+        static constexpr const size_t k_buf_overlap = 1u;
+
         template<class Functor>
         void
         process_file_utf8(int fd,
@@ -633,14 +635,15 @@ private:
                 vte::parser::Parser parser{};
                 vte::parser::Sequence seq{parser};
 
-                gsize const buf_size = 16384;
-                guchar* buf = g_new0(guchar, buf_size);
+                auto const buf_size = size_t{16384};
+                auto buf = g_new0(uint8_t, buf_size);
 
                 auto start_time = g_get_monotonic_time();
 
                 vte::base::UTF8Decoder decoder;
 
-                gsize buf_start = 0;
+                std::memset(buf, 0, k_buf_overlap);
+                auto buf_start = k_buf_overlap;
                 for (;;) {
                         auto len = read(fd, buf + buf_start, buf_size - buf_start);
                         if (!len)
@@ -651,8 +654,10 @@ private:
                                 break;
                         }
 
-                        auto const bufend = buf + len;
-                        for (auto sptr = buf; sptr < bufend; ++sptr) {
+                        auto const bufstart = buf + buf_start;
+                        auto const bufend = bufstart + len;
+
+                        for (auto sptr = bufstart; sptr < bufend; ++sptr) {
                                 switch (decoder.decode(*sptr)) {
                                 case vte::base::UTF8Decoder::REJECT_REWIND:
                                         /* Rewind the stream.
@@ -679,11 +684,13 @@ private:
                                         }
                                         break;
                                 }
-
                                 default:
                                         break;
                                 }
                         }
+
+                        /* Chain buffers by copying data from end of buf to the start */
+                        std::memmove(buf, buf + buf_start + len - k_buf_overlap, k_buf_overlap);
                 }
 
         out:

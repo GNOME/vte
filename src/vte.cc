@@ -3446,17 +3446,22 @@ Terminal::process_incoming()
         auto context = ProcessingContext{*this};
 
         while (!m_incoming_queue.empty()) {
-                auto chunk = std::move(m_incoming_queue.front());
-                m_incoming_queue.pop();
+                auto& chunk = m_incoming_queue.front();
 
                 assert((bool)chunk);
-                g_assert_nonnull(chunk.get());
+
+                auto const start = chunk->begin_reading();
 
                 _VTE_DEBUG_IF(VTE_DEBUG_IO) {
-                        _vte_debug_hexdump("Incoming buffer", chunk->data, chunk->len);
-                }
+                        _vte_debug_print(VTE_DEBUG_IO,
+                                         "Processing chunk %p starting at offset %u\n",
+                                         (void*)chunk.get(),
+                                         unsigned(chunk->begin_reading() - chunk->data()));
 
-                bytes_processed += chunk->len;
+                        _vte_debug_hexdump("Incoming buffer",
+                                           chunk->begin_reading(),
+                                           chunk->size_reading());
+                }
 
                 switch (data_syntax()) {
                 case DataSyntax::eECMA48_UTF8:
@@ -3471,6 +3476,12 @@ Terminal::process_incoming()
                         g_assert_not_reached();
                         break;
                 }
+
+                bytes_processed += size_t(chunk->begin_reading() - start);
+
+                // If all data from this chunk has been processed, go to the next one
+                if (!chunk->has_reading())
+                        m_incoming_queue.pop();
         }
 
 #ifdef VTE_DEBUG
@@ -3551,12 +3562,12 @@ Terminal::process_incoming()
  */
 void
 Terminal::process_incoming_utf8(ProcessingContext& context,
-                                vte::base::Chunk const& chunk)
+                                vte::base::Chunk& chunk)
 {
         auto seq = vte::parser::Sequence{m_parser};
 
-        auto const* ip = chunk.data;
-        auto const* iend = chunk.data + chunk.len;
+        auto const iend = chunk.end_reading();
+        auto ip = chunk.begin_reading();
 
         for ( ; ip < iend; ++ip) {
 
@@ -3645,6 +3656,9 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 }
         }
 
+        // Update start for data consumed
+        chunk.set_begin_reading(ip);
+
         if (chunk.eos()) {
                 m_eos_pending = true;
                 /* If there's an unfinished character in the queue, insert a replacement character */
@@ -3662,17 +3676,17 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
  */
 void
 Terminal::process_incoming_pcterm(ProcessingContext& context,
-                                  vte::base::Chunk const& chunk)
+                                  vte::base::Chunk& chunk)
 {
         auto seq = vte::parser::Sequence{m_parser};
 
         auto& decoder = m_converter->decoder();
 
-        auto const* ip = chunk.data;
-        auto const* iend = chunk.data + chunk.len;
-
         auto eos = bool{false};
         auto flush = bool{false};
+
+        auto const iend = chunk.end_reading();
+        auto ip = chunk.begin_reading();
 
  start:
         while (ip < iend || flush) {
@@ -3765,6 +3779,9 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                 return;
         }
 
+        // Update start for data consumed
+        chunk.set_begin_reading(ip);
+
         if (chunk.eos()) {
                 /* On EOS, we still need to flush the decoder before we can finish */
                 eos = flush = true;
@@ -3827,14 +3844,13 @@ Terminal::pty_io_read(int const fd,
                         /* No chunk, chunk sealed or at least ¾ full? Get a new chunk */
 			if (!chunk ||
                             chunk->sealed() ||
-                            chunk->len >= 3 * chunk->capacity() / 4) {
-                                m_incoming_queue.push(vte::base::Chunk::get());
-
+                            chunk->capacity_writing() < chunk->capacity() / 4) {
+                                m_incoming_queue.push(vte::base::Chunk::get(chunk));
                                 chunk = m_incoming_queue.back().get();
 			}
 
-			rem = chunk->remaining_capacity();
-			bp = chunk->data + chunk->len;
+			rem = chunk->capacity_writing();
+			bp = chunk->begin_writing();
 			len = 0;
 			do {
                                 /* We'd like to read (fd, bp, rem); but due to TIOCPKT mode
@@ -3842,12 +3858,12 @@ Terminal::pty_io_read(int const fd,
                                  * We need to see what that byte is, but otherwise drop it
                                  * and write continuously to chunk->data.
                                  */
-                                char pkt_header;
-                                char save = bp[-1];
+                                auto const save = bp[-1];
                                 errno = 0;
-                                int ret = read (fd, bp - 1, rem + 1);
-                                pkt_header = bp[-1];
+                                auto ret = read(fd, bp - 1, rem + 1);
+                                auto const pkt_header = bp[-1];
                                 bp[-1] = save;
+
 				switch (ret){
 					case -1:
 						err = errno;
@@ -3887,10 +3903,18 @@ Terminal::pty_io_read(int const fd,
 				}
 			} while (rem);
 out:
-			chunk->len += len;
+			chunk->add_size(len);
 			bytes += len;
 		} while (bytes < max_bytes &&
-		         chunk->len == chunk->capacity());
+                         // This means that a read into a not-yet-¾-full
+                         // chunk used up all the available capacity, so
+                         // let's assume that we can read more and thus
+                         // we'll get a new chunk in the loop above and
+                         // continue on. (See commit 49a0cdf11.)
+                         // Note also that on EOS or error, this condition
+                         // is false (since there was capacity, but it wasn't
+                         // used up).
+		         chunk->capacity_writing() == 0);
 
                 /* We may have an empty chunk at the back of the queue, but
                  * that doesn't matter, we'll fill it next time.
@@ -3933,10 +3957,10 @@ out:
 		_vte_debug_print(VTE_DEBUG_IO, "got PTY EOF\n");
 
                 /* Make a note of the EOS; but do not process it since there may be data
-                 * to be processed first in the incomding queue.
+                 * to be processed first in the incoming queue.
                  */
                 if (!chunk || chunk->sealed()) {
-                        m_incoming_queue.push(vte::base::Chunk::get());
+                        m_incoming_queue.push(vte::base::Chunk::get(chunk));
                         chunk = m_incoming_queue.back().get();
                 }
 
@@ -3973,20 +3997,20 @@ Terminal::feed(std::string_view const& data,
         vte::base::Chunk* chunk = nullptr;
         if (!m_incoming_queue.empty()) {
                 auto& achunk = m_incoming_queue.back();
-                if (length < achunk->remaining_capacity() && !achunk->sealed())
+                if (length < achunk->capacity_writing() && !achunk->sealed())
                         chunk = achunk.get();
         }
         if (chunk == nullptr) {
-                m_incoming_queue.push(vte::base::Chunk::get());
+                m_incoming_queue.push(vte::base::Chunk::get(nullptr));
                 chunk = m_incoming_queue.back().get();
         }
 
         /* Break the incoming data into chunks. */
         do {
-                auto rem = chunk->remaining_capacity();
+                auto rem = chunk->capacity_writing();
                 auto len = std::min(length, rem);
-                memcpy (chunk->data + chunk->len, ptr, len);
-                chunk->len += len;
+                memcpy (chunk->begin_writing(), ptr, len);
+                chunk->add_size(len);
                 length -= len;
                 if (length == 0)
                         break;
@@ -3994,7 +4018,7 @@ Terminal::feed(std::string_view const& data,
                 ptr += len;
 
                 /* Get another chunk for the remaining data */
-                m_incoming_queue.push(vte::base::Chunk::get());
+                m_incoming_queue.push(vte::base::Chunk::get(chunk));
                 chunk = m_incoming_queue.back().get();
         } while (true);
 

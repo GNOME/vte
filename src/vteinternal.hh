@@ -843,10 +843,10 @@ public:
         void time_process_incoming();
         void process_incoming();
         void process_incoming_utf8(ProcessingContext& context,
-                                   vte::base::Chunk const& chunk);
+                                   vte::base::Chunk& chunk);
         #ifdef WITH_ICU
         void process_incoming_pcterm(ProcessingContext& context,
-                                     vte::base::Chunk const& chunk);
+                                     vte::base::Chunk& chunk);
         #endif
         bool process(bool emit_adj_changed);
         inline bool is_processing() const { return m_active_terminals_link != nullptr; }

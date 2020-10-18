@@ -26,9 +26,6 @@ namespace vte {
 
 namespace base {
 
-static_assert(sizeof(Chunk) <= Chunk::k_chunk_size - 2 *sizeof(void*), "Chunk too large");
-static_assert(offsetof(Chunk, data) == offsetof(Chunk, dataminusone) + 1, "Chunk layout wrong");
-
 void
 Chunk::recycle() noexcept
 {
@@ -39,7 +36,7 @@ Chunk::recycle() noexcept
 std::stack<std::unique_ptr<Chunk>, std::list<std::unique_ptr<Chunk>>> Chunk::g_free_chunks;
 
 Chunk::unique_type
-Chunk::get(void) noexcept
+Chunk::get(Chunk const* chain_to) noexcept
 {
         Chunk* chunk;
         if (!g_free_chunks.empty()) {
@@ -50,6 +47,9 @@ Chunk::get(void) noexcept
         } else {
                 chunk = new Chunk();
         }
+
+        if (chain_to)
+                chunk->chain(chain_to);
 
         return Chunk::unique_type(chunk);
 }
