@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <bitset>
 #include <cassert>
 #include <cstring>
 #include <cerrno>
@@ -36,6 +37,11 @@
 #include "parser.hh"
 #include "parser-glue.hh"
 #include "utf8.hh"
+#include "vtedefines.hh"
+
+#ifdef WITH_SIXEL
+#include "sixel-parser.hh"
+#endif
 
 enum {
 #define _VTE_SGR(...)
@@ -46,6 +52,15 @@ enum {
 };
 
 using namespace std::literals;
+
+enum class DataSyntax {
+        ECMA48_UTF8,
+        /* ECMA48_PCTERM, */
+        /* ECMA48_ECMA35, */
+        #ifdef WITH_SIXEL
+        DECSIXEL,
+        #endif
+};
 
 char*
 vte::parser::Sequence::ucs4_to_utf8(gunichar const* str,
@@ -138,6 +153,9 @@ private:
         std::string m_str;
         bool m_plain;
         bool m_codepoints;
+#ifdef WITH_SIXEL
+        char32_t m_sixel_st;
+#endif
 
         inline constexpr bool plain() const noexcept { return m_plain; }
 
@@ -174,6 +192,13 @@ private:
         public:
                 RedAttr(PrettyPrinter* printer)
                         : Attribute(printer, "\e[7;31m"s, "\e[27;39m"s)
+                { }
+        };
+
+        class GreenAttr : private Attribute {
+        public:
+                GreenAttr(PrettyPrinter* printer)
+                        : Attribute(printer, "\e[7;32m"s, "\e[27;39m"s)
                 { }
         };
 
@@ -237,6 +262,12 @@ private:
                 char buf[7];
                 auto len = g_unichar_to_utf8(c, buf);
                 m_str.append(buf, len);
+        }
+
+        void
+        print_literal(char const* str) noexcept
+        {
+                m_str.append(str);
         }
 
         G_GNUC_PRINTF(2, 3)
@@ -357,6 +388,48 @@ private:
                 }
         }
 
+#ifdef WITH_SIXEL
+
+        void
+        print_params(vte::sixel::Sequence const& seq) noexcept
+        {
+                auto const size = seq.size();
+                if (size > 0)
+                        m_str.push_back(' ');
+
+                for (unsigned int i = 0; i < size; i++) {
+                        if (!seq.param_default(i))
+                                print_format("%d", seq.param(i));
+                        if (i + 1 < size)
+                                m_str.push_back(';');
+                }
+        }
+
+        void
+        print_seq(vte::sixel::Sequence const& seq) noexcept
+        {
+                ReverseAttr attr(this);
+                GreenAttr green(this);
+
+                m_str.push_back('{');
+                switch (seq.command()) {
+                case vte::sixel::Command::DECGRI: m_str.append("DECGRI"); break;
+                case vte::sixel::Command::DECGRA: m_str.append("DECGRA"); break;
+                case vte::sixel::Command::DECGCI: m_str.append("DECGCI"); break;
+                case vte::sixel::Command::DECGCR: m_str.append("DECGCR"); break;
+                case vte::sixel::Command::DECGNL: m_str.append("DECGNL"); break;
+                default:
+                        print_format("%d/%d",
+                                     int(seq.command()) / 16,
+                                     int(seq.command()) % 16);
+                        break;
+                }
+                print_params(seq);
+                m_str.push_back('}');
+        }
+
+#endif /* WITH_SIXEL */
+
         void
         printout() noexcept
         {
@@ -382,11 +455,79 @@ public:
                 printout();
         }
 
-        void operator()(vte::parser::Sequence const& seq) noexcept
+        void VT(vte::parser::Sequence const& seq) noexcept
         {
                 print_seq(seq);
                 if (seq.command() == VTE_CMD_LF)
                         printout();
+        }
+
+#ifdef WITH_SIXEL
+
+        void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept
+        {
+                print_seq(seq);
+
+                switch (seq.command()) {
+                case vte::sixel::Command::DECGCR:
+                case vte::sixel::Command::DECGNL:
+                        printout();
+                        break;
+                default:
+                        break;
+                }
+        }
+
+        void SIXEL(uint8_t sixel) noexcept
+        {
+                print_format("%c", sixel + 0x3f);
+        }
+
+        void SIXEL_ST(char32_t st) noexcept
+        {
+                m_sixel_st = st;
+        }
+
+#endif /* WITH_SIXEL */
+
+        void enter_data_syntax(DataSyntax syntax) noexcept
+        {
+                switch (syntax) {
+#ifdef WITH_SIXEL
+                case DataSyntax::DECSIXEL: {
+                        GreenAttr green(this);
+                        print_literal("<SIXEL[");
+                        m_sixel_st = 0;
+                        break;
+                }
+#endif
+                default:
+                        break;
+                }
+        }
+
+        void leave_data_syntax(DataSyntax syntax,
+                               bool success) noexcept
+        {
+                switch (syntax) {
+#ifdef WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        if (success) {
+                                GreenAttr green(this);
+                                print_literal("]ST>");
+                        } else {
+                                RedAttr green(this);
+                                print_literal("]>");
+                        }
+                        break;
+#endif
+                default:
+                        break;
+                }
+        }
+
+        void reset() noexcept
+        {
         }
 
 }; // class PrettyPrinter
@@ -402,7 +543,7 @@ private:
                 va_start(args, format);
                 char* str = g_strdup_vprintf(format, args);
                 va_end(args);
-                g_printerr("WARNING: %s\n", str);
+                g_print("WARNING: %s\n", str);
                 g_free(str);
         }
 
@@ -576,11 +717,18 @@ private:
                 }
         }
 
+#ifdef WITH_SIXEL
+        char32_t m_sixel_st{0};
+        bool m_seen_sixel_commands{false};
+        bool m_seen_sixel_data{false};
+        std::bitset<VTE_SIXEL_NUM_COLOR_REGISTERS> m_sixel_color_set;
+#endif
+
 public:
-        constexpr Linter() noexcept = default;
+        Linter() noexcept = default;
         ~Linter() noexcept = default;
 
-        void operator()(vte::parser::Sequence const& seq) noexcept
+        void VT(vte::parser::Sequence const& seq) noexcept
         {
                 auto cmd = seq.command();
                 switch (cmd) {
@@ -611,16 +759,171 @@ public:
                 }
         }
 
+#ifdef WITH_SIXEL
+
+        void SIXEL(uint8_t raw) noexcept
+        {
+                m_seen_sixel_data = true;
+        }
+
+        void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept
+        {
+                switch (seq.command()) {
+                case vte::sixel::Command::DECGRI: {
+                        auto const count = seq.param(0, 1);
+                        if (count < 3)
+                                warn("DECGRI %d wastes space", seq.param(0));
+                        else if (count == 3)
+                                warn("DECGRI %d saves no space", count);
+                        else if (count > 255)
+                                warn("DECGRI %d exceeds DEC limit of 255", count);
+                        break;
+                }
+
+                case vte::sixel::Command::DECGRA:
+                        if (m_seen_sixel_commands || m_seen_sixel_data)
+                                warn("DECGRA ignored after any SIXEL commands or data");
+                        break;
+
+                case vte::sixel::Command::DECGCI: {
+
+                        auto reg = seq.param(0);
+                        if (reg == -1) {
+                                warn("DECGCI does not admit a default value for parameter 1");
+                                break;
+                        } else if (reg >= VTE_SIXEL_NUM_COLOR_REGISTERS) {
+                                warn("DECGCI %d exceeds number of available colour registers, wrapped to register %d", reg, reg & (VTE_SIXEL_NUM_COLOR_REGISTERS - 1));
+                                reg &= (VTE_SIXEL_NUM_COLOR_REGISTERS - 1);
+                        }
+
+                        if (seq.size() > 1) {
+                                switch (seq.param(1)) {
+                                case -1: /* default */
+                                        warn("DECGCI does not admit a default value for parameter 2");
+                                        break;
+                                case 1: /* HLS */ {
+                                        auto const h = seq.param(2, 0);
+                                        auto const l = seq.param(3, 0);
+                                        auto const s = seq.param(4, 0);
+                                        if (h > 360)
+                                                warn("DECGCI HSL colour hue %d exceeds range 0..360", h);
+                                        if (l > 100)
+                                                warn("DECGCI HSL colour luminosity %d exceeds range 0..100", l);
+                                        if (s > 100)
+                                                warn("DECGCI HSL colour saturation %d exceeds range 0..100", s);
+                                        break;
+                                }
+
+                                case 2: /* RGB */ {
+                                        auto const r = seq.param(2, 0);
+                                        auto const g = seq.param(3, 0);
+                                        auto const b = seq.param(4, 0);
+                                        if (r > 100)
+                                                warn("DECGCI RGB colour red %d exceeds range 0..100", r);
+                                        if (g > 100)
+                                                warn("DECGCI RGB colour red %d exceeds range 0..100", g);
+                                        if (b > 100)
+                                                warn("DECGCI RGB colour red %d exceeds range 0..100", b);
+                                        break;
+                                }
+
+                                case 0:
+                                default:
+                                        warn("DECGCI unknown colour coordinate system %d", seq.param(1));
+                                        break;
+                                }
+
+                                m_sixel_color_set.set(reg);
+                        } else {
+                                /* Select colour register param[0] */
+
+                                if (!m_sixel_color_set.test(reg))
+                                        warn("DECGCI %d selects colour which has not been defined", reg);
+                        }
+
+                        break;
+                }
+
+                case vte::sixel::Command::DECGCR:
+                        break;
+
+                case vte::sixel::Command::DECGNL:
+                        break;
+
+                default:
+                        warn("Ignoring unknown SIXEL command %d/%d '%c'",
+                             int(seq.command()) / 16,
+                             int(seq.command()) % 16,
+                             char(seq.command()));
+                       break;
+                }
+
+                m_seen_sixel_commands = true;
+        }
+
+        void SIXEL_ST(char32_t st) noexcept
+        {
+                m_sixel_st = st;
+        }
+
+#endif /* WITH_SIXEL */
+
+        void enter_data_syntax(DataSyntax syntax) noexcept
+        {
+                switch (syntax) {
+#ifdef WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        m_sixel_st = 0;
+                        m_seen_sixel_commands = m_seen_sixel_data = false;
+                        m_sixel_color_set.reset();
+                        break;
+#endif
+
+                default:
+                        break;
+                }
+        }
+
+        void leave_data_syntax(DataSyntax syntax,
+                               bool success) noexcept
+        {
+        }
+
+        void reset() noexcept
+        {
+        }
+
 }; // class Linter
 
 class Sink {
 public:
-        void operator()(vte::parser::Sequence const& seq) noexcept { }
+        void VT(vte::parser::Sequence const& seq) noexcept { }
+
+#ifdef WITH_SIXEL
+        void SIXEL(uint8_t raw) noexcept { }
+        void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept { }
+        void SIXEL_ST(char32_t st) noexcept { }
+#endif
+
+        void enter_data_syntax(DataSyntax syntax) noexcept { }
+        void leave_data_syntax(DataSyntax syntax,
+                               bool success) noexcept { }
+
+        void reset() noexcept { }
 
 }; // class Sink
 
+template<class D>
 class Processor {
 private:
+        using Delegate = D;
+
+        D& m_delegate;
+        size_t m_buffer_size{0};
+        bool m_no_sixel{false};
+        bool m_statistics{false};
+        bool m_benchmark{false};
+
         gsize m_seq_stats[VTE_SEQ_N];
         gsize m_cmd_stats[VTE_CMD_N];
         GArray* m_bench_times;
@@ -630,31 +933,70 @@ private:
         vte::base::UTF8Decoder m_utf8_decoder{};
         vte::parser::Parser m_parser{};
 
-        enum class DataSyntax {
-                ECMA48_UTF8,
-                /* ECMA48_PCTERM, */
-                /* ECMA48_ECMA35, */
-        };
+#ifdef WITH_SIXEL
+        vte::sixel::Parser m_sixel_parser{};
+#endif
 
-        DataSyntax m_data_syntax{DataSyntax::ECMA48_UTF8};
+        DataSyntax m_primary_data_syntax{DataSyntax::ECMA48_UTF8};
+        DataSyntax m_current_data_syntax{DataSyntax::ECMA48_UTF8};
 
         void reset() noexcept
         {
-                m_parser.reset();
-                m_utf8_decoder.reset();
-                m_data_syntax = DataSyntax::ECMA48_UTF8;
+                switch (m_current_data_syntax) {
+                case DataSyntax::ECMA48_UTF8:
+                        m_parser.reset();
+                        m_utf8_decoder.reset();
+                        break;
+
+#ifdef WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        m_sixel_parser.reset();
+                        break;
+#endif
+
+                default:
+                        break;
+                }
+
+                if (m_current_data_syntax != m_primary_data_syntax) {
+                        m_current_data_syntax = m_primary_data_syntax;
+                        reset();
+                }
+
+                m_delegate.reset();
         }
 
-        template<class Functor>
+        [[gnu::always_inline]]
         bool
+        process_seq(vte::parser::Sequence const& seq) noexcept
+        {
+                m_delegate.VT(seq);
+
+#ifdef WITH_SIXEL
+                if (G_UNLIKELY(!m_no_sixel &&
+                               seq.command() == VTE_CMD_DECSIXEL &&
+                               seq.is_unripe())) {
+                            m_parser.reset(); // sixel parser takes over until ST
+                            m_sixel_parser.reset();
+                            m_current_data_syntax = DataSyntax::DECSIXEL;
+
+                            m_delegate.enter_data_syntax(m_current_data_syntax);
+                            return false;
+                }
+#endif /* WITH_SIXEL */
+
+                return true;
+        }
+
+        uint8_t const*
         process_data_utf8(uint8_t const* const bufstart,
                           uint8_t const* const bufend,
-                          Functor& func)
+                          bool eos) noexcept
         {
                 auto seq = vte::parser::Sequence{m_parser};
 
-                for (auto sptr = bufstart; sptr < bufend; ++sptr) {
-                        switch (m_utf8_decoder.decode(*sptr)) {
+                for (auto sptr = bufstart; sptr < bufend; ) {
+                        switch (m_utf8_decoder.decode(*(sptr++))) {
                         case vte::base::UTF8Decoder::REJECT_REWIND:
                                 /* Rewind the stream.
                                  * Note that this will never lead to a loop, since in the
@@ -670,13 +1012,14 @@ private:
                                 auto ret = m_parser.feed(m_utf8_decoder.codepoint());
                                 if (G_UNLIKELY(ret < 0)) {
                                         g_printerr("Parser error!\n");
-                                        return false;
+                                        return bufend;
                                 }
 
                                 m_seq_stats[ret]++;
                                 if (ret != VTE_SEQ_NONE) {
                                         m_cmd_stats[seq.command()]++;
-                                        func(seq);
+                                        if (!process_seq(seq))
+                                                return sptr;
                                 }
                                 break;
                         }
@@ -685,47 +1028,100 @@ private:
                         }
                 }
 
-                return true;
+                if (eos &&
+                    m_utf8_decoder.flush()) {
+                        auto ret = m_parser.feed(m_utf8_decoder.codepoint());
+                        if (G_UNLIKELY(ret < 0)) {
+                                g_printerr("Parser error!\n");
+                                return bufend;
+                        }
+
+                        m_seq_stats[ret]++;
+                        if (ret != VTE_SEQ_NONE) {
+                                m_cmd_stats[seq.command()]++;
+                                if (!process_seq(seq))
+                                        return bufend;
+                        }
+                }
+
+                return bufend;
         }
 
-        template<class Functor>
-        void
-        process_fd(int fd,
-                   Functor& func)
+#ifdef WITH_SIXEL
+
+        uint8_t const*
+        process_data_decsixel(uint8_t const* const bufstart,
+                              uint8_t const* const bufend,
+                              bool eos) noexcept
         {
-                auto const buf_size = size_t{16384};
-                auto buf = g_new0(uint8_t, buf_size);
+                auto [status, ip] = m_sixel_parser.parse(bufstart, bufend, eos, m_delegate);
+
+                switch (status) {
+                case vte::sixel::Parser::ParseStatus::CONTINUE:
+                        break;
+
+                case vte::sixel::Parser::ParseStatus::COMPLETE:
+                case vte::sixel::Parser::ParseStatus::ABORT: {
+                        auto const success = (status == vte::sixel::Parser::ParseStatus::COMPLETE);
+                        m_delegate.leave_data_syntax(m_current_data_syntax, success);
+                        m_current_data_syntax = m_primary_data_syntax;
+                        break;
+                }
+                }
+
+                return ip;
+        }
+
+#endif /* WITH_SIXEL */
+
+        void
+        process_fd(int fd)
+        {
+                auto buf = g_new0(uint8_t, m_buffer_size);
 
                 auto start_time = g_get_monotonic_time();
 
                 std::memset(buf, 0, k_buf_overlap);
                 auto buf_start = k_buf_overlap;
                 for (;;) {
-                        auto len = read(fd, buf + buf_start, buf_size - buf_start);
-                        if (!len)
-                                break;
+                        auto len = read(fd, buf + buf_start, m_buffer_size - buf_start);
                         if (len == -1) {
                                 if (errno == EAGAIN)
                                         continue;
                                 break;
                         }
 
-                        auto const bufstart = buf + buf_start;
+                        auto const eos = (len == 0);
+                        uint8_t const* bufstart = buf + buf_start;
                         auto const bufend = bufstart + len;
 
-                        switch (m_data_syntax) {
-                        case DataSyntax::ECMA48_UTF8:
-                                if (!process_data_utf8(bufstart, bufend, func))
-                                        goto out;
+                        for (auto sptr = bufstart; ; ) {
+                                switch (m_current_data_syntax) {
+                                case DataSyntax::ECMA48_UTF8:
+                                        sptr = process_data_utf8(sptr, bufend, eos);
+                                        break;
 
-                                break;
+#ifdef WITH_SIXEL
+                                case DataSyntax::DECSIXEL:
+                                        sptr = process_data_decsixel(sptr, bufend, eos);
+                                        break;
+#endif
+
+                                default:
+                                        g_assert_not_reached();
+                                        break;
+                                }
+
+                                if (sptr == bufend)
+                                        break;
                         }
+
+                        if (eos)
+                                break;
 
                         /* Chain buffers by copying data from end of buf to the start */
                         std::memmove(buf, buf + buf_start + len - k_buf_overlap, k_buf_overlap);
                 }
-
-        out:
 
                 int64_t time_spent = g_get_monotonic_time() - start_time;
                 g_array_append_val(m_bench_times, time_spent);
@@ -733,11 +1129,9 @@ private:
                 g_free(buf);
         }
 
-        template<class Functor>
         bool
         process_file(int fd,
-                     int repeat,
-                     Functor& func)
+                     int repeat)
         {
                 if (fd == STDIN_FILENO && repeat != 1) {
                         g_printerr("Cannot consume STDIN more than once\n");
@@ -752,7 +1146,7 @@ private:
                         }
 
                         reset();
-                        process_fd(fd, func);
+                        process_fd(fd);
                 }
 
                 return true;
@@ -760,23 +1154,39 @@ private:
 
 public:
 
-        Processor() noexcept
+        Processor(Delegate& delegate,
+                  size_t buffer_size,
+                  bool no_sixel,
+                  bool statistics,
+                  bool benchmark) noexcept
+                : m_delegate{delegate},
+                  m_buffer_size{std::max(buffer_size, k_buf_overlap + 1)},
+                  m_no_sixel{no_sixel},
+                  m_statistics{statistics},
+                  m_benchmark{benchmark}
         {
                 memset(&m_seq_stats, 0, sizeof(m_seq_stats));
                 memset(&m_cmd_stats, 0, sizeof(m_cmd_stats));
                 m_bench_times = g_array_new(false, true, sizeof(int64_t));
+
+#ifdef WITH_SIXEL
+                m_parser.set_dispatch_unripe(!m_no_sixel);
+#endif
         }
 
         ~Processor() noexcept
         {
+                if (m_statistics)
+                        print_statistics();
+                if (m_benchmark)
+                        print_benchmark();
+
                 g_array_free(m_bench_times, true);
         }
 
-        template<class Functor>
         bool
         process_files(char const* const* filenames,
-                      int repeat,
-                      Functor& func)
+                      int repeat)
         {
                 bool r = true;
                 if (filenames != nullptr) {
@@ -795,7 +1205,7 @@ public:
                                         }
                                 }
                                 if (fd != -1) {
-                                        r = process_file(fd, repeat, func);
+                                        r = process_file(fd, repeat);
                                         if (fd != STDIN_FILENO)
                                                 close(fd);
                                         if (!r)
@@ -803,7 +1213,7 @@ public:
                                 }
                         }
                 } else {
-                        r = process_file(STDIN_FILENO, repeat, func);
+                        r = process_file(STDIN_FILENO, repeat);
                 }
 
                 return r;
@@ -857,9 +1267,11 @@ private:
         bool m_benchmark{false};
         bool m_codepoints{false};
         bool m_lint{false};
+        bool m_no_sixel{false};
         bool m_plain{false};
         bool m_quiet{false};
         bool m_statistics{false};
+        int m_buffer_size{16384};
         int m_repeat{1};
         char** m_filenames{nullptr};
 
@@ -890,13 +1302,15 @@ public:
                         g_strfreev(m_filenames);
         }
 
-        inline constexpr bool benchmark()  const noexcept { return m_benchmark;  }
-        inline constexpr bool codepoints() const noexcept { return m_codepoints; }
-        inline constexpr bool lint()       const noexcept { return m_lint;       }
-        inline constexpr bool plain()      const noexcept { return m_plain;      }
-        inline constexpr bool quiet()      const noexcept { return m_quiet;      }
-        inline constexpr bool statistics() const noexcept { return m_statistics; }
-        inline constexpr int  repeat()     const noexcept { return m_repeat;     }
+        inline constexpr bool   benchmark()   const noexcept { return m_benchmark;  }
+        inline constexpr size_t buffer_size() const noexcept { return m_buffer_size; }
+        inline constexpr bool   codepoints()  const noexcept { return m_codepoints; }
+        inline constexpr bool   lint()        const noexcept { return m_lint;       }
+        inline constexpr bool   no_sixel()    const noexcept { return m_no_sixel;   }
+        inline constexpr bool   plain()       const noexcept { return m_plain;      }
+        inline constexpr bool   quiet()       const noexcept { return m_quiet;      }
+        inline constexpr bool   statistics()  const noexcept { return m_statistics; }
+        inline constexpr int    repeat()      const noexcept { return m_repeat;     }
         inline constexpr char const* const* filenames() const noexcept { return m_filenames; }
 
         bool parse(int argc,
@@ -906,18 +1320,26 @@ public:
                 BoolArg benchmark{&m_benchmark, false};
                 BoolArg codepoints{&m_codepoints, false};
                 BoolArg lint{&m_lint, false};
+                BoolArg no_sixel{&m_no_sixel, false};
                 BoolArg plain{&m_plain, false};
                 BoolArg quiet{&m_quiet, false};
                 BoolArg statistics{&m_statistics, false};
+                IntArg buffer_size{&m_buffer_size, 16384};
                 IntArg repeat{&m_repeat, 1};
                 StrvArg filenames{&m_filenames, nullptr};
                 GOptionEntry const entries[] = {
                         { "benchmark", 'b', 0, G_OPTION_ARG_NONE, benchmark.ptr(),
                           "Measure time spent parsing each file", nullptr },
+                        { "buffer-size", 'B', 0, G_OPTION_ARG_INT, buffer_size.ptr(),
+                          "Buffer size", "SIZE" },
                         { "codepoints", 'u', 0, G_OPTION_ARG_NONE, codepoints.ptr(),
                           "Output unicode code points by number", nullptr },
                         { "lint", 'l', 0, G_OPTION_ARG_NONE, lint.ptr(),
                           "Check input", nullptr },
+#ifdef WITH_SIXEL
+                        { "no-sixel", 0, 0, G_OPTION_ARG_NONE, no_sixel.ptr(),
+                          "Disable DECSIXEL processing", nullptr },
+#endif
                         { "plain", 'p', 0, G_OPTION_ARG_NONE, plain.ptr(),
                           "Output plain text without attributes", nullptr },
                         { "quiet", 'q', 0, G_OPTION_ARG_NONE, quiet.ptr(),
@@ -941,6 +1363,20 @@ public:
         }
 }; // class Options
 
+template<class D>
+static bool
+process(Options const& options,
+        D delegate)
+{
+        auto proc = Processor{delegate,
+                              options.buffer_size(),
+                              options.no_sixel(),
+                              options.statistics(),
+                              options.benchmark()};
+
+        return proc.process_files(options.filenames(), options.repeat());
+}
+
 int
 main(int argc,
      char *argv[])
@@ -955,23 +1391,18 @@ main(int argc,
                 return EXIT_FAILURE;
         }
 
-        bool rv;
-        Processor proc{};
+        auto rv = false;
         if (options.lint()) {
-                Linter linter{};
-                rv = proc.process_files(options.filenames(), 1, linter);
+                if (options.repeat() != 1) {
+                        g_printerr("Cannot use repeat option for linter\n");
+                } else {
+                        rv = process(options, Linter{});
+                }
         } else if (options.quiet()) {
-                Sink sink{};
-                rv = proc.process_files(options.filenames(), options.repeat(), sink);
+                rv = process(options, Sink{});
         } else {
-                PrettyPrinter pp{options.plain(), options.codepoints()};
-                rv = proc.process_files(options.filenames(), options.repeat(), pp);
+                rv = process(options, PrettyPrinter{options.plain(), options.codepoints()});
         }
-
-        if (options.statistics())
-                proc.print_statistics();
-        if (options.benchmark())
-                proc.print_benchmark();
 
         return rv ? EXIT_SUCCESS : EXIT_FAILURE;
 }

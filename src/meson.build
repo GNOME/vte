@@ -323,6 +323,10 @@ parser_cat_sources = glib_glue_sources + libc_glue_sources + parser_sources + ut
   'vtedefines.hh',
 )
 
+if get_option('sixel')
+  parser_cat_sources += sixel_parser_sources
+endif
+
 parser_cat = executable(
   'parser-cat',
   parser_cat_sources,
