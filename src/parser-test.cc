@@ -1248,19 +1248,19 @@ feed_parser_st(vte_seq_builder& b,
 
         switch (st) {
         case u32SequenceBuilder::ST::NONE:
-                g_assert_cmpuint(seq.terminator(), ==, 0);
+                g_assert_cmpuint(seq.st(), ==, 0);
                 break;
         case u32SequenceBuilder::ST::DEFAULT:
-                g_assert_cmpuint(seq.terminator(), ==, c1 ? 0x9c /* ST */ : 0x5c /* BACKSLASH */);
+                g_assert_cmpuint(seq.st(), ==, c1 ? 0x9c /* ST */ : 0x5c /* BACKSLASH */);
                 break;
         case u32SequenceBuilder::ST::C0:
-                g_assert_cmpuint(seq.terminator(), ==, 0x5c /* BACKSLASH */);
+                g_assert_cmpuint(seq.st(), ==, 0x5c /* BACKSLASH */);
                 break;
         case u32SequenceBuilder::ST::C1:
-                g_assert_cmpuint(seq.terminator(), ==, 0x9c /* ST */);
+                g_assert_cmpuint(seq.st(), ==, 0x9c /* ST */);
                 break;
         case u32SequenceBuilder::ST::BEL:
-                g_assert_cmpuint(seq.terminator(), ==, 0x7 /* BEL */);
+                g_assert_cmpuint(seq.st(), ==, 0x7 /* BEL */);
                 break;
         }
 

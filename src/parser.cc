@@ -881,6 +881,7 @@ parser_dcs_consume(vte_parser_t* parser,
 
         parser->seq.type = VTE_SEQ_DCS;
         parser->seq.terminator = raw;
+        parser->seq.st = 0;
         parser->seq.command = vte_parse_host_dcs(&parser->seq);
 
         return VTE_SEQ_NONE;
@@ -950,7 +951,7 @@ parser_osc(vte_parser_t* parser,
 
         parser->seq.type = VTE_SEQ_OSC;
         parser->seq.command = VTE_CMD_OSC;
-        parser->seq.terminator = raw;
+        parser->seq.st = raw;
 
         return parser->seq.type;
 }
@@ -959,7 +960,8 @@ static int
 parser_dcs(vte_parser_t* parser,
            uint32_t raw)
 {
-        /* parser->seq was already filled in parser_dcs_consume() */
+        /* Most of parser->seq was already filled in parser_dcs_consume() */
+        parser->seq.st = raw;
 
         vte_seq_string_finish(&parser->seq.arg_str);
 

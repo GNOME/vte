@@ -4155,7 +4155,7 @@ Terminal::send(vte::parser::Sequence const& seq,
                  */
                 send(builder, false,
                      vte::parser::u8SequenceBuilder::Introducer::DEFAULT,
-                     seq.terminator() == 0x7 ? vte::parser::u8SequenceBuilder::ST::BEL
+                     seq.st() == 0x7 ? vte::parser::u8SequenceBuilder::ST::BEL
                      : vte::parser::u8SequenceBuilder::ST::DEFAULT);
         } else {
                 send(builder, false);

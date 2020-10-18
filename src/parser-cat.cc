@@ -585,7 +585,7 @@ public:
                 auto cmd = seq.command();
                 switch (cmd) {
                 case VTE_CMD_OSC:
-                        if (seq.terminator() == 7 /* BEL */)
+                        if (seq.st() == 7 /* BEL */)
                                 warn("OSC terminated by BEL may be ignored; use ST (ESC \\) instead.");
                         break;
 

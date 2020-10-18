@@ -88,7 +88,7 @@ vte::parser::Sequence::print() const noexcept
                 }
                 g_printerr(" ]");
         }
-        if (m_seq->type == VTE_SEQ_OSC) {
+        if (m_seq->type == VTE_SEQ_OSC || m_seq->type == VTE_SEQ_DCS) {
                 char* str = string_param();
                 g_printerr(" \"%s\"", str);
                 g_free(str);

@@ -195,6 +195,7 @@ struct vte_seq_t {
         vte_seq_arg_t args[VTE_PARSER_ARG_MAX];
         vte_seq_string_t arg_str;
         uint32_t introducer;
+        uint32_t st;
 };
 
 struct vte_parser_t {

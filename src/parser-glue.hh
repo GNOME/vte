@@ -150,6 +150,16 @@ public:
                 return m_seq->terminator;
         }
 
+        /* st:
+         *
+         * This is the string terminator ending a OSC, DCS, APC, PM, or SOS sequence
+         *
+         * Returns: the string terminator character
+         */
+        inline constexpr uint32_t st() const noexcept
+        {
+                return m_seq->st;
+        }
 
         /* is_c1:
          *
