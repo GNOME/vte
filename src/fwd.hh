@@ -34,6 +34,13 @@ class Widget;
 
 } // namespace platform
 
+namespace sixel {
+
+class Parser;
+class Sequence;
+
+} // namespace sixel
+
 namespace view {
 
 class FontInfo;

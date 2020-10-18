@@ -99,7 +99,11 @@ regex_sources = files(
   'regex.hh'
 )
 
-sixel_sources = files(
+sixel_parser_sources = files(
+  'sixel-parser.hh',
+)
+
+sixel_sources = sixel_parser_sources + files(
   'image.cc',
   'image.hh',
   'sixelparser.cc',
@@ -495,6 +499,20 @@ if get_option('sixel')
     include_directories: top_inc,
     install: false,
   )
+
+  test_sixel_sources = glib_glue_sources + sixel_parser_sources + files(
+    'cairo-glue.hh',
+    'sixel-test.cc',
+    'vtedefines.hh',
+  )
+
+  test_sixel = executable(
+    'test-sixel',
+    sources: test_sixel_sources,
+    dependencies: [glib_dep,],
+    include_directories: top_inc,
+    install: false,
+  )
 endif
 
 test_tabstops_sources = files(
@@ -569,6 +587,12 @@ test_units = [
   ['utf8', test_utf8],
   ['vtetypes', test_vtetypes],
 ]
+
+if get_option('sixel')
+  test_units += [
+    ['sixel', test_sixel],
+  ]
+endif
 
 foreach test: test_units
   test(
