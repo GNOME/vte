@@ -170,6 +170,8 @@ enum {
 #undef _VTE_NGR
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-declarations"
 enum {
 #define _VTE_SGR(name, value) VTE_DECSGR_##name = value,
 #define _VTE_NGR(...)
@@ -177,6 +179,7 @@ enum {
 #undef _VTE_SGR
 #undef _VTE_NGR
 };
+#pragma GCC diagnostic pop
 
 #define VTE_CHARSET_CHARSET_MASK   ((1U << 16) - 1U)
 #define VTE_CHARSET_SLOT_OFFSET    (16)
