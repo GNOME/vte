@@ -540,17 +540,40 @@ public:
                 m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
         }
 
+        /*
+         * append_parms:
+         * @params:
+         *
+         * Appends the parameters from @params to @this. Parameter values must be
+         * in the range -1..MAXUSHORT; use -2 to skip a parameter
+         *
+         */
         inline void append_params(std::initializer_list<int> params) noexcept
         {
                 assert(m_seq.n_args + params.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
-                for (int p : params)
+                for (auto p : params) {
+                        if (p == -2)
+                                continue;
+
                         m_seq.args[m_seq.n_args++] = vte_seq_arg_init(std::min(p, 0xffff));
+                }
         }
 
+        /*
+         * append_subparms:
+         * @subparams:
+         *
+         * Appends the subparameters from @params to @this. Subparameter values must be
+         * in the range -1..MAXUSHORT; use -2 to skip a subparameter
+         *
+         */
         inline void append_subparams(std::initializer_list<int> subparams) noexcept
         {
                 assert(m_seq.n_args + subparams.size() <= (sizeof(m_seq.args) / sizeof(m_seq.args[0])));
-                for (int p : subparams) {
+                for (auto p : subparams) {
+                        if (p == -2)
+                                continue;
+
                         int* arg = &m_seq.args[m_seq.n_args++];
                         *arg = vte_seq_arg_init(std::min(p, 0xffff));
                         vte_seq_arg_finish(arg, false);
