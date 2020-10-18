@@ -56,8 +56,8 @@ _VTE_CMD(DECRQM_DEC) /* request mode dec */
 _VTE_CMD(DECRQM_ECMA) /* request mode ecma */
 _VTE_CMD(DECRQSS) /* request selection or setting */
 _VTE_CMD(DECRQTSR) /* request terminal state report */
-_VTE_CMD(DECSCL) /* select conformance level */
 _VTE_CMD(DECSC) /* save cursor */
+_VTE_CMD(DECSCL) /* select conformance level */
 _VTE_CMD(DECSCUSR) /* set cursor style */
 _VTE_CMD(DECSED) /* selective erase in display */
 _VTE_CMD(DECSEL) /* selective erase in line */
@@ -77,8 +77,8 @@ _VTE_CMD(ECH) /* erase character */
 _VTE_CMD(ED) /* erase in display */
 _VTE_CMD(EL) /* erase in line */
 _VTE_CMD(FF) /* form feed */
-_VTE_CMD(GnDm) /* Gn-designate-9m-charset */
 _VTE_CMD(GnDMm) /* Gn-designate-multibyte-9m-charset */
+_VTE_CMD(GnDm) /* Gn-designate-9m-charset */
 _VTE_CMD(HPA) /* horizontal position absolute */
 _VTE_CMD(HPR) /* horizontal position relative */
 _VTE_CMD(HT) /* horizontal tab */
@@ -114,8 +114,8 @@ _VTE_CMD(SM_ECMA) /* set mode ecma */
 _VTE_CMD(SPD) /* select presentation directions */
 _VTE_CMD(SS2) /* single shift 2 */
 _VTE_CMD(SS3) /* single shift 3 */
-_VTE_CMD(SUB) /* substitute */
 _VTE_CMD(SU) /* scroll up */
+_VTE_CMD(SUB) /* substitute */
 _VTE_CMD(TBC) /* tab clear */
 _VTE_CMD(TCC) /* tabulation centred on character */
 _VTE_CMD(TSR) /* tabulation stop remove */
@@ -150,8 +150,8 @@ _VTE_NOP(DECCRTST) /* CRT saver time */
 _VTE_NOP(DECDC) /* delete column */
 _VTE_NOP(DECDHL_BH) /* double width double height line: bottom half */
 _VTE_NOP(DECDHL_TH) /* double width double height line: top half */
-_VTE_NOP(DECDLDA) /* down line load allocation */
 _VTE_NOP(DECDLD) /* dynamically redefinable character sets extension */
+_VTE_NOP(DECDLDA) /* down line load allocation */
 _VTE_NOP(DECDMAC) /* define macro */
 _VTE_NOP(DECDWL) /* double width single height line */
 _VTE_NOP(DECEFR) /* enable filter rectangle */
@@ -194,8 +194,8 @@ _VTE_NOP(DECRSTS) /* restore terminal state */
 _VTE_NOP(DECSACE) /* select attribute change extent */
 _VTE_NOP(DECSASD) /* select active status display */
 _VTE_NOP(DECSCA) /* select character protection attribute */
-_VTE_NOP(DECSCPP) /* select columns per page */
 _VTE_NOP(DECSCP) /* select communication port */
+_VTE_NOP(DECSCPP) /* select columns per page */
 _VTE_NOP(DECSCS) /* select communication speed */
 _VTE_NOP(DECSDDT) /* select disconnect delay time */
 _VTE_NOP(DECSDPT) /* select digital printed data type */
@@ -210,8 +210,8 @@ _VTE_NOP(DECSMBV) /* set margin bell volume */
 _VTE_NOP(DECSMKR) /* select modifier key reporting */
 _VTE_NOP(DECSNLS) /* set lines per screen */
 _VTE_NOP(DECSPMA) /* session page memory allocation */
-_VTE_NOP(DECSPPCS) /* select pro printer character set */
 _VTE_NOP(DECSPP) /* set port parameter */
+_VTE_NOP(DECSPPCS) /* select pro printer character set */
 _VTE_NOP(DECSPRTT) /* select printer type */
 _VTE_NOP(DECSRFR) /* select refresh rate */
 _VTE_NOP(DECSSCLS) /* set scroll speed */
@@ -267,9 +267,9 @@ _VTE_NOP(PEC) /* presentation expand or contract */
 _VTE_NOP(PFS) /* page format selection */
 _VTE_NOP(PLD) /* partial line forward */
 _VTE_NOP(PLU) /* partial line backward */
+_VTE_NOP(PP) /* preceding page */
 _VTE_NOP(PPA) /* page position absolute */
 _VTE_NOP(PPB) /* page position backward */
-_VTE_NOP(PP) /* preceding page */
 _VTE_NOP(PPR) /* page position relative */
 _VTE_NOP(PTX) /* parallel texts */
 _VTE_NOP(PU1) /* private use 1 */
@@ -285,9 +285,9 @@ _VTE_NOP(SEE) /* select editing extent */
 _VTE_NOP(SEF) /* sheet eject and feed */
 _VTE_NOP(SHS) /* select character spacing */
 _VTE_NOP(SIMD) /* select implicit movement direction */
+_VTE_NOP(SL) /* scroll left */
 _VTE_NOP(SLH) /* set line home */
 _VTE_NOP(SLL) /* set line limit */
-_VTE_NOP(SL) /* scroll left */
 _VTE_NOP(SLS) /* set line spacing */
 _VTE_NOP(SOH) /* start of heading */
 _VTE_NOP(SPA) /* start of protected area */
@@ -295,8 +295,8 @@ _VTE_NOP(SPH) /* set page home */
 _VTE_NOP(SPI) /* spacing increment */
 _VTE_NOP(SPL) /* set page limit */
 _VTE_NOP(SPQR) /* select print quality and rapidity */
-_VTE_NOP(SRCS) /* set reduced character separation */
 _VTE_NOP(SR) /* scroll right */
+_VTE_NOP(SRCS) /* set reduced character separation */
 _VTE_NOP(SRS) /* start reversed string */
 _VTE_NOP(SSA) /* start of selected area */
 _VTE_NOP(SSU) /* set size unit */
@@ -311,8 +311,8 @@ _VTE_NOP(TAC) /* tabulation aligned centre */
 _VTE_NOP(TALE) /* tabulation aligned leading edge */
 _VTE_NOP(TATE) /* tabulation aligned trailing edge */
 _VTE_NOP(TSS) /* thine space specification */
-_VTE_NOP(VTS) /* line tabulation set */
 _VTE_NOP(VPB) /* line position backward */
+_VTE_NOP(VTS) /* line tabulation set */
 _VTE_NOP(WYCAA) /* redefine character display attribute association */
 _VTE_NOP(WYDHL_BH) /* single width double height line: bottom half */
 _VTE_NOP(WYDHL_TH) /* single width double height line: top half */
@@ -328,9 +328,9 @@ _VTE_NOP(XTERM_RQTCAP) /* xterm request termcap/terminfo */
 _VTE_NOP(XTERM_RRV) /* xterm reset resource value */
 _VTE_NOP(XTERM_RTM) /* xterm reset title mode */
 _VTE_NOP(XTERM_SGFX) /* xterm sixel graphics */
+_VTE_NOP(XTERM_SGR_REPORT) /* xterm SGR report */
 _VTE_NOP(XTERM_SGR_STACK_POP) /* xterm pop SGR stack */
 _VTE_NOP(XTERM_SGR_STACK_PUSH) /* xterm push SGR stack */
-_VTE_NOP(XTERM_SGR_REPORT) /* xterm SGR report */
 _VTE_NOP(XTERM_SRV) /* xterm set resource value */
 _VTE_NOP(XTERM_STCAP) /* xterm set termcap/terminfo */
 _VTE_NOP(XTERM_STM) /* xterm set title mode */
