@@ -627,20 +627,76 @@ private:
 
         static constexpr const size_t k_buf_overlap = 1u;
 
+        vte::base::UTF8Decoder m_utf8_decoder{};
+        vte::parser::Parser m_parser{};
+
+        enum class DataSyntax {
+                ECMA48_UTF8,
+                /* ECMA48_PCTERM, */
+                /* ECMA48_ECMA35, */
+        };
+
+        DataSyntax m_data_syntax{DataSyntax::ECMA48_UTF8};
+
+        void reset() noexcept
+        {
+                m_parser.reset();
+                m_utf8_decoder.reset();
+                m_data_syntax = DataSyntax::ECMA48_UTF8;
+        }
+
         template<class Functor>
-        void
-        process_file_utf8(int fd,
+        bool
+        process_data_utf8(uint8_t const* const bufstart,
+                          uint8_t const* const bufend,
                           Functor& func)
         {
-                vte::parser::Parser parser{};
-                vte::parser::Sequence seq{parser};
+                auto seq = vte::parser::Sequence{m_parser};
 
+                for (auto sptr = bufstart; sptr < bufend; ++sptr) {
+                        switch (m_utf8_decoder.decode(*sptr)) {
+                        case vte::base::UTF8Decoder::REJECT_REWIND:
+                                /* Rewind the stream.
+                                 * Note that this will never lead to a loop, since in the
+                                 * next round this byte *will* be consumed.
+                                 */
+                                --sptr;
+                                [[fallthrough]];
+                        case vte::base::UTF8Decoder::REJECT:
+                                m_utf8_decoder.reset();
+                                /* Fall through to insert the U+FFFD replacement character. */
+                                [[fallthrough]];
+                        case vte::base::UTF8Decoder::ACCEPT: {
+                                auto ret = m_parser.feed(m_utf8_decoder.codepoint());
+                                if (G_UNLIKELY(ret < 0)) {
+                                        g_printerr("Parser error!\n");
+                                        return false;
+                                }
+
+                                m_seq_stats[ret]++;
+                                if (ret != VTE_SEQ_NONE) {
+                                        m_cmd_stats[seq.command()]++;
+                                        func(seq);
+                                }
+                                break;
+                        }
+                        default:
+                                break;
+                        }
+                }
+
+                return true;
+        }
+
+        template<class Functor>
+        void
+        process_fd(int fd,
+                   Functor& func)
+        {
                 auto const buf_size = size_t{16384};
                 auto buf = g_new0(uint8_t, buf_size);
 
                 auto start_time = g_get_monotonic_time();
-
-                vte::base::UTF8Decoder decoder;
 
                 std::memset(buf, 0, k_buf_overlap);
                 auto buf_start = k_buf_overlap;
@@ -657,36 +713,12 @@ private:
                         auto const bufstart = buf + buf_start;
                         auto const bufend = bufstart + len;
 
-                        for (auto sptr = bufstart; sptr < bufend; ++sptr) {
-                                switch (decoder.decode(*sptr)) {
-                                case vte::base::UTF8Decoder::REJECT_REWIND:
-                                        /* Rewind the stream.
-                                         * Note that this will never lead to a loop, since in the
-                                         * next round this byte *will* be consumed.
-                                         */
-                                        --sptr;
-                                        [[fallthrough]];
-                                case vte::base::UTF8Decoder::REJECT:
-                                        decoder.reset();
-                                        /* Fall through to insert the U+FFFD replacement character. */
-                                        [[fallthrough]];
-                                case vte::base::UTF8Decoder::ACCEPT: {
-                                        auto ret = parser.feed(decoder.codepoint());
-                                        if (G_UNLIKELY(ret < 0)) {
-                                                g_printerr("Parser error!\n");
-                                                goto out;
-                                        }
+                        switch (m_data_syntax) {
+                        case DataSyntax::ECMA48_UTF8:
+                                if (!process_data_utf8(bufstart, bufend, func))
+                                        goto out;
 
-                                        m_seq_stats[ret]++;
-                                        if (ret != VTE_SEQ_NONE) {
-                                                m_cmd_stats[seq.command()]++;
-                                                func(seq);
-                                        }
-                                        break;
-                                }
-                                default:
-                                        break;
-                                }
+                                break;
                         }
 
                         /* Chain buffers by copying data from end of buf to the start */
@@ -719,7 +751,8 @@ private:
                                 return false;
                         }
 
-                        process_file_utf8(fd, func);
+                        reset();
+                        process_fd(fd, func);
                 }
 
                 return true;
