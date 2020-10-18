@@ -142,8 +142,12 @@ Context::make_color_hls(int h,
 void
 Context::reset() noexcept
 {
-        m_scanlines_data.reset();
-        m_scanlines_data_capacity = 0;
+        /* Keep buffer of default size */
+        if (m_scanlines_data_capacity > minimum_capacity()) {
+                m_scanlines_data.reset();
+                m_scanlines_data_capacity = 0;
+        }
+
         m_scanline_begin = m_scanline_pos = m_scanline_end = nullptr;
 }
 
@@ -420,8 +424,10 @@ Context::image_data(size_t* size,
         /* We drop the scanlines buffer here if it's bigger than the default buffer size,
          * so that parsing a big image doesn't retain the large buffer forever.
          */
-        if (m_scanlines_data_capacity > minimum_capacity())
+        if (m_scanlines_data_capacity > minimum_capacity()) {
                 m_scanlines_data.reset();
+                m_scanlines_data_capacity = 0;
+        }
 
         return wdata.release();
 }
