@@ -29,6 +29,7 @@
 #include "vtestream.h"
 
 #ifdef WITH_SIXEL
+#include "cairo-glue.hh"
 #include "image.hh"
 #include <map>
 #endif
@@ -104,10 +105,10 @@ public:
                             GError** error);
 
 #ifdef WITH_SIXEL
-        void append_image (cairo_surface_t *surface,
+        void append_image (vte::cairo::Surface surface,
                            gint pixelwidth, gint pixelheight,
                            glong left, glong top,
-                           glong cell_width, glong cell_height);
+                           glong cell_width, glong cell_height) /* throws */;
         std::map<gint, vte::image::Image *> *m_image_by_top_map;
         std::map<int, vte::image::Image *> *m_image_priority_map;
 #endif

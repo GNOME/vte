@@ -68,6 +68,21 @@ public:
 
         void reset() noexcept;
 
+        /*
+         * pending():
+         *
+         * Returns whether the converter has output pending (i.e. will produce more
+         * output without consuming more input.
+         */
+        constexpr auto pending() const noexcept
+        {
+                /* Due to the way we drive the ICU converter and the way ICU converters work
+                 * by first writing out any internally buffered output before consuming more
+                 * input, this should be a safe guess about whether there is pending output.
+                 */
+                return m_index + 1 < m_available;
+        }
+
 private:
         enum class State {
                 eInput  = 0,

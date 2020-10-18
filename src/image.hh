@@ -46,7 +46,7 @@ private:
         int m_cell_height;
 
 public:
-        Image(vte::cairo::Surface&& surface,
+        Image(vte::cairo::Surface surface,
               int priority,
               int width_pixels,
               int height_pixels,

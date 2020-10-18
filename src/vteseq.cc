@@ -984,6 +984,33 @@ Terminal::erase_characters(long count,
         m_text_deleted_flag = TRUE;
 }
 
+void
+Terminal::erase_image_rect(vte::grid::row_t rows,
+                           vte::grid::column_t columns)
+{
+        auto const top = m_screen->cursor.row;
+
+        /* FIXMEchpe: simplify! */
+        for (auto i = 0; i < rows; ++i) {
+                auto const row = top + i;
+
+                erase_characters(columns, true);
+
+                if (row > m_screen->insert_delta - 1 &&
+                    row < m_screen->insert_delta + m_row_count)
+                        set_hard_wrapped(row);
+
+                if (i == rows - 1) {
+                        if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
+                                move_cursor_forward(columns);
+                        else
+                                cursor_down(true);
+                } else {
+                        cursor_down(true);
+                }
+        }
+}
+
 /* Insert a blank character. */
 void
 Terminal::insert_blank_character()
@@ -2379,7 +2406,7 @@ Terminal::DA1(vte::parser::Sequence const& seq)
 
         reply(seq, VTE_REPLY_DECDA1R, {65, 1,
 #ifdef WITH_SIXEL
-                                       4,
+                                       m_sixel_enabled ? 4 : -2 /* skip */,
 #endif
                                        9});
 }
@@ -4059,6 +4086,10 @@ Terminal::DECSCL(vte::parser::Sequence const& seq)
          *   args[0]: 64
          *   args[1]: 0
          *
+         * When not using private colour registers, this
+         * must also clear (assign to black) all SIXEL
+         * colour registers. (DEC PPLV2 § 5.8)
+         *
          * References: VT525
          */
 #if 0
@@ -4330,113 +4361,107 @@ Terminal::DECSGR(vte::parser::Sequence const& seq)
         /* TODO: consider implementing sub/superscript? */
 }
 
-void
+bool
 Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 {
         /*
          * DECSIXEL - SIXEL graphics
+         * Image data in DECSIXEL format.
+         *
+         * Arguments:
+         *  args[0]: macro parameter (should always use 0 and use DECGRA instead)
+         *    See DEC PPLV Table 5–2 in § 5.4.1.1 for more information.
+         *  args[1]: background
+         *    0: device default (same as 2)
+         *    1: pixels with colour 0 retain the colour
+         *    2: pixels with colour 0 are set to the current background
+         *  args[2]: horizontal grid size in the unit set by SSU
+         *
+         * Defaults:
+         *   args[0]: 0
+         *   args[0]: 2 (1 for printers)
+         *   args[0]: no default
          *
          * References: VT330
+         *             DEC PPLV2 § 5.4
          */
 
 #ifdef WITH_SIXEL
-        if (!m_sixel_enabled)
-                return;
+        auto process_sixel = false;
+        auto mode = vte::sixel::Parser::Mode{};
+        if (m_sixel_enabled) {
+                switch (primary_data_syntax()) {
+                case DataSyntax::ECMA48_UTF8:
+                        process_sixel = true;
+                        mode = vte::sixel::Parser::Mode::UTF8;
+                        break;
 
-	unsigned char *pixels = NULL;
-	auto fg = get_color(VTE_DEFAULT_FG);
-	auto bg = get_color(VTE_DEFAULT_BG);
-	int nfg = (fg->red >> 8) | ((fg->green >> 8) << 8) | ((fg->blue >> 8) << 16);
-	int nbg = (bg->red >> 8) | ((bg->green >> 8) << 8) | ((bg->blue >> 8) << 16);
-	glong left, top, width, height;
-	glong pixelwidth, pixelheight;
-	glong i;
-	cairo_surface_t *image_surface, *surface;
-	cairo_t *cr;
+#ifdef WITH_ICU
+                case DataSyntax::ECMA48_PCTERM:
+                        /* It's not really clear how DECSIXEL should be processed in PCTERM mode.
+                         * The DEC documentation available isn't very detailed on PCTERM mode,
+                         * and doesn't appear to mention its interaction with DECSIXEL at all.
+                         *
+                         * Since (afaik) a "real" DEC PCTERM mode only (?) translates the graphic
+                         * characters, not the whole data stream, as we do, let's assume that
+                         * DECSIXEL content should be processed as raw bytes, i.e. without any
+                         * translation.
+                         * Also, since C1 controls don't exist in PCTERM mode, let's process
+                         * DECSIXEL in 7-bit mode.
+                         *
+                         * As an added complication, we can only switch data syntaxes if
+                         * the data stream is exact, that is the charset converted has
+                         * not consumed more data than we have currently read output bytes
+                         * from it. So we need to check that the converter has no pending
+                         * characters.
+                         *
+                         * Alternatively, we could just refuse to process DECSIXEL in
+                         * PCTERM mode.
+                         */
+                        process_sixel = !m_converter->decoder().pending();
+                        mode = vte::sixel::Parser::Mode::SEVENBIT;
+                        break;
+#endif /* WITH_ICU */
 
-        /* This is unfortunate, but it avoids copying or measuring potentially
-         * megabytes of data */
-        const vte_seq_string_t *arg_str = &((*((vte::parser::Sequence &) seq).seq_ptr())->arg_str);
-
-	/* Parse image */
-
-	if (sixel_parser_init(&m_sixel_state, nfg, nbg,
-                              m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS()) < 0) {
-		sixel_parser_deinit(&m_sixel_state);
-		return;
-	}
-	if (sixel_parser_feed(&m_sixel_state, arg_str->buf, arg_str->len) < 0) {
-		sixel_parser_deinit(&m_sixel_state);
-		return;
-	}
-	pixels = (unsigned char *)g_try_malloc(m_sixel_state.image.width * m_sixel_state.image.height * 4);
-	if (!pixels) {
-		sixel_parser_deinit(&m_sixel_state);
-		return;
-	}
-	if (sixel_parser_finalize(&m_sixel_state, pixels) < 0) {
-                g_free(pixels);
-		sixel_parser_deinit(&m_sixel_state);
-		return;
-	}
-	sixel_parser_deinit(&m_sixel_state);
-
-	/* Calculate geometry */
-
-	left = m_screen->cursor.col;
-	top = m_screen->cursor.row;
-	width = (m_sixel_state.image.width + m_cell_width - 1) / m_cell_width;
-	height = (m_sixel_state.image.height + m_cell_height - 1) / m_cell_height;
-	pixelwidth = m_sixel_state.image.width;
-	pixelheight = m_sixel_state.image.height;
-
-	/* Convert to device-compatible surface for m_widget */
-
-	image_surface = cairo_image_surface_create_for_data(pixels, CAIRO_FORMAT_ARGB32, pixelwidth, pixelheight, pixelwidth * 4);
-        if (!image_surface) {
-                g_free(pixels);
-                return;
+                default:
+                        __builtin_unreachable();
+                        process_sixel = false;
+                }
         }
 
-	surface = gdk_window_create_similar_surface(gtk_widget_get_window (m_widget), CAIRO_CONTENT_COLOR_ALPHA, pixelwidth, pixelheight);
-        if (!surface) {
-                cairo_surface_destroy(image_surface);
-                g_free(pixels);
-                return;
+        if (!process_sixel || seq.is_ripe() /* that shouldn't happen */) {
+                m_parser.ignore_until_st();
+                return false;
         }
 
-	cr = cairo_create(surface);
-	cairo_set_source_surface(cr, image_surface, 0, 0);
-	cairo_paint(cr);
-	cairo_destroy(cr);
-	cairo_surface_destroy(image_surface);
-	g_free(pixels);
+        try {
+                if (!m_sixel_context)
+                        m_sixel_context = std::make_unique<vte::sixel::Context>();
 
-	/* Append image to Ring */
+                auto const fg = get_color(VTE_DEFAULT_FG);
+                auto const bg = get_color(VTE_DEFAULT_BG);
+                auto nfg = uint32_t(fg->red >> 8) | ((fg->green >> 8) << 8) | ((fg->blue >> 8) << 16) | 0xff << 24;
+                auto nbg = uint32_t(bg->red >> 8) | ((bg->green >> 8) << 8) | ((bg->blue >> 8) << 16) | 0xff << 24;
 
-	m_screen->row_data->append_image(surface, pixelwidth, pixelheight, left, top, m_cell_width, m_cell_height);
+                m_sixel_context->prepare(seq.st(),
+                                         nfg, nbg,
+                                         m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS());
 
-	/* Erase characters under the image */
+                m_sixel_context->set_mode(mode);
 
-	for (i = 0; i < height; ++i) {
-                vte::grid::row_t row = top + i;
+                /* We need to reset the main parser, so that when it is in the ground state
+                 * when processing returns to the primary data syntax from DECSIXEL
+                 */
+                m_parser.reset();
+                push_data_syntax(DataSyntax::DECSIXEL);
 
-		erase_characters(width, true);
-
-                if (row > m_screen->insert_delta - 1
-                    && row < m_screen->insert_delta + m_row_count)
-                        set_hard_wrapped(row);
-
-		if (i == height - 1) {
-			if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
-				move_cursor_forward(width);
-			else
-				cursor_down(true);
-		} else {
-			cursor_down(true);
-		}
-	}
+                return true; /* switching data syntax */
+        } catch (...) {
+        }
 #endif /* WITH_SIXEL */
+
+        m_parser.ignore_until_st();
+        return false;
 }
 
 void
@@ -4938,6 +4963,10 @@ Terminal::DECSTR(vte::parser::Sequence const& seq)
          * DECSTR - soft-terminal-reset
          * Perform a soft reset to the default values.
          * [list of default values]
+         *
+         * When not using private colour registers, this
+         * must also clear (assign to black) all SIXEL
+         * colour registers. (DEC PPLV2 § 5.8)
          *
          * References: VT525
          */
@@ -6917,6 +6946,10 @@ Terminal::RIS(vte::parser::Sequence const& seq)
          * RIS - reset-to-initial-state
          * Reset to initial state.
          * [list of things reset]
+         *
+         * When not using private colour registers, this
+         * must also clear (assign to black) all SIXEL
+         * colour registers. (DEC PPLV2 § 5.8)
          *
          * References: ECMA-48 § 8.3.105
          */

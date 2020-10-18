@@ -111,8 +111,6 @@ sixel_context_sources = files(
 sixel_sources = sixel_parser_sources + sixel_context_sources + files(
   'image.cc',
   'image.hh',
-  'sixelparser.cc',
-  'sixelparser.hh',
 )
 
 systemd_sources = files(

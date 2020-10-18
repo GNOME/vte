@@ -2020,13 +2020,13 @@ Terminal::set_encoding(char const* charset,
          */
 
         if (to_utf8) {
-                if (primary_data_syntax() == DataSyntax::eECMA48_UTF8)
+                if (primary_data_syntax() == DataSyntax::ECMA48_UTF8)
                         return true;
 
                 m_converter.reset();
-                m_primary_data_syntax = DataSyntax::eECMA48_UTF8;
+                m_primary_data_syntax = DataSyntax::ECMA48_UTF8;
         } else {
-                if (primary_data_syntax() == DataSyntax::eECMA48_PCTERM &&
+                if (primary_data_syntax() == DataSyntax::ECMA48_PCTERM &&
                     m_converter->charset() == charset)
                         return true;
 
@@ -2036,7 +2036,7 @@ Terminal::set_encoding(char const* charset,
                                return false;
 
                         m_converter = std::move(converter);
-                        m_primary_data_syntax = DataSyntax::eECMA48_PCTERM;
+                        m_primary_data_syntax = DataSyntax::ECMA48_PCTERM;
 
                 } catch (...) {
                         return vte::glib::set_error_from_exception(error);
@@ -2055,7 +2055,7 @@ Terminal::set_encoding(char const* charset,
         reset_decoder();
 
         if (pty())
-                pty()->set_utf8(primary_data_syntax() == DataSyntax::eECMA48_UTF8);
+                pty()->set_utf8(primary_data_syntax() == DataSyntax::ECMA48_UTF8);
 
 	_vte_debug_print(VTE_DEBUG_IO,
                          "Set terminal encoding to `%s'.\n",
@@ -3018,6 +3018,56 @@ not_inserted:
         m_line_wrapped = line_wrapped;
 }
 
+#ifdef WITH_SIXEL
+
+void
+Terminal::insert_image(vte::cairo::Surface image_surface) /* throws */
+{
+        if (!image_surface)
+                return;
+
+        auto const image_width_px = cairo_image_surface_get_width(image_surface.get());
+        auto const image_height_px = cairo_image_surface_get_height(image_surface.get());
+
+        /* Convert to device-compatible surface for m_widget */
+        auto device_surface = vte::cairo::Surface{gdk_window_create_similar_surface(gtk_widget_get_window(widget()->gtk()),
+                                                                                    CAIRO_CONTENT_COLOR_ALPHA,
+                                                                                    image_width_px,
+                                                                                    image_height_px)};
+
+        auto cr = cairo_create(device_surface.get());
+        cairo_set_source_surface(cr, image_surface.get(), 0, 0);
+        cairo_paint(cr);
+        cairo_destroy(cr);
+
+        /* Reduce memory fragmentation by dropping the ref as soon as we no longer need it */
+        image_surface.reset();
+
+        /* FIXMEchpe: should insert a 'missing image' pattern instead! */
+        if (cairo_surface_status(device_surface.get()) != CAIRO_STATUS_SUCCESS)
+                return;
+
+        /* Calculate geometry */
+
+        auto const left = m_screen->cursor.col;
+        auto const top = m_screen->cursor.row;
+        auto const width = (image_width_px + m_cell_width - 1) / m_cell_width;
+        auto const height = (image_height_px + m_cell_height - 1) / m_cell_height;
+
+        m_screen->row_data->append_image(std::move(device_surface),
+                                         image_width_px,
+                                         image_height_px,
+                                         left,
+                                         top,
+                                         m_cell_width,
+                                         m_cell_height);
+
+        /* Erase characters under the image */
+        erase_image_rect(height, width);
+}
+
+#endif /* WITH_SIXEL */
+
 guint8
 Terminal::get_bidi_flags() const noexcept
 {
@@ -3479,13 +3529,19 @@ Terminal::process_incoming()
                 }
 
                 switch (current_data_syntax()) {
-                case DataSyntax::eECMA48_UTF8:
+                case DataSyntax::ECMA48_UTF8:
                         process_incoming_utf8(context, *chunk);
                         break;
 
 #ifdef WITH_ICU
-                case DataSyntax::eECMA48_PCTERM:
+                case DataSyntax::ECMA48_PCTERM:
                         process_incoming_pcterm(context, *chunk);
+                        break;
+#endif
+
+#ifdef WITH_SIXEL
+                case DataSyntax::DECSIXEL:
+                        process_incoming_decsixel(context, *chunk);
                         break;
 #endif
 
@@ -3692,7 +3748,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 }
         }
 
- switched_data_syntax:
+switched_data_syntax:
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -3830,6 +3886,45 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 }
 
 #endif /* WITH_ICU */
+
+#ifdef WITH_SIXEL
+
+void
+Terminal::process_incoming_decsixel(ProcessingContext& context,
+                                    vte::base::Chunk& chunk)
+{
+        auto const [status, ip] = m_sixel_context->parse(chunk.begin_reading(),
+                                                         chunk.end_reading(),
+                                                         chunk.eos());
+
+        // Update start for data consumed
+        chunk.set_begin_reading(ip);
+
+        switch (status) {
+        case vte::sixel::Parser::ParseStatus::CONTINUE:
+                break;
+
+        case vte::sixel::Parser::ParseStatus::COMPLETE:
+                /* Like the main parser, the sequence only takes effect
+                 * if introducer and terminator match (both C0 or both C1).
+                 */
+                if (!m_sixel_context->is_matching_controls())
+                        break;
+
+                try {
+                        insert_image(m_sixel_context->image_cairo());
+                } catch (...) {
+                }
+
+                [[fallthrough]];
+        case vte::sixel::Parser::ParseStatus::ABORT:
+                m_sixel_context->reset();
+                pop_data_syntax();
+                break;
+        }
+}
+
+#endif /* WITH_SIXEL */
 
 bool
 Terminal::pty_io_read(int const fd,
@@ -4096,17 +4191,19 @@ Terminal::send_child(std::string_view const& data)
 
         /* Note that for backward compatibility, we need to emit the
          * ::commit signal even if there is no PTY. See issue vte#222.
+         *
+         * We use the primary data syntax to decide on the format.
          */
 
         switch (primary_data_syntax()) {
-        case DataSyntax::eECMA48_UTF8:
+        case DataSyntax::ECMA48_UTF8:
                 emit_commit(data);
                 if (pty())
                         _vte_byte_array_append(m_outgoing, data.data(), data.size());
                 break;
 
 #ifdef WITH_ICU
-        case DataSyntax::eECMA48_PCTERM: {
+        case DataSyntax::ECMA48_PCTERM: {
                 auto converted = m_converter->convert(data);
 
                 emit_commit(converted);
@@ -7665,6 +7762,12 @@ Terminal::Terminal(vte::platform::Widget* w,
 	for (i = 0; i < VTE_PALETTE_SIZE; i++)
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
+        /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
+         * so we can switch data syntax and parse the contents with
+         * the SIXEL subparser.
+         */
+        m_parser.set_dispatch_unripe(true);
+
 	/* Set up I/O encodings. */
 	m_outgoing = _vte_byte_array_new();
 
@@ -7683,11 +7786,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
-
-#ifdef WITH_SIXEL
-	/* Initialize SIXEL color register */
-	sixel_parser_set_default_color(&m_sixel_state);
-#endif
 
 	/* Matching data. */
         m_match_span.clear(); // FIXMEchpe unnecessary
@@ -9786,12 +9884,12 @@ void
 Terminal::reset_decoder()
 {
         switch (primary_data_syntax()) {
-        case DataSyntax::eECMA48_UTF8:
+        case DataSyntax::ECMA48_UTF8:
                 m_utf8_decoder.reset();
                 break;
 
 #ifdef WITH_ICU
-        case DataSyntax::eECMA48_PCTERM:
+        case DataSyntax::ECMA48_PCTERM:
                 m_converter->decoder().reset();
                 break;
 #endif
@@ -9808,6 +9906,12 @@ Terminal::reset_data_syntax()
                 return;
 
         switch (current_data_syntax()) {
+#ifdef WITH_SIXEL
+        case DataSyntax::DECSIXEL:
+                m_sixel_context->reset();
+                break;
+#endif
+
         default:
                 break;
         }
@@ -9920,8 +10024,8 @@ Terminal::reset(bool clear_tabstops,
 	m_modifiers = 0;
 
 #ifdef WITH_SIXEL
-	/* Reset SIXEL color register */
-	sixel_parser_set_default_color(&m_sixel_state);
+        if (m_sixel_context)
+                m_sixel_context->reset_colors();
 #endif
 
         /* Reset the saved cursor. */
@@ -9934,6 +10038,11 @@ Terminal::reset(bool clear_tabstops,
 
         /* Reset XTerm window controls */
         m_xterm_wm_iconified = false;
+
+        /* When not using private colour registers, we should
+         * clear (assign to black) all SIXEL colour registers.
+         * (DEC PPLV2 § 5.8)
+         */
 }
 
 void
@@ -9979,7 +10088,7 @@ Terminal::set_pty(vte::base::Pty *new_pty)
 
         set_size(m_column_count, m_row_count);
 
-        if (!pty()->set_utf8(primary_data_syntax() == DataSyntax::eECMA48_UTF8)) {
+        if (!pty()->set_utf8(primary_data_syntax() == DataSyntax::ECMA48_UTF8)) {
                 // nothing we can do here
         }
 

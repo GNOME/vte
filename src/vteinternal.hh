@@ -49,7 +49,6 @@
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
-#include "sixelparser.hh"
 
 #include "chunk.hh"
 #include "pty.hh"
@@ -64,6 +63,10 @@
 
 #ifdef WITH_ICU
 #include "icu-converter.hh"
+#endif
+
+#ifdef WITH_SIXEL
+#include "sixel-context.hh"
 #endif
 
 enum {
@@ -383,15 +386,18 @@ public:
 
         enum class DataSyntax {
                 /* The primary data syntax is always one of the following: */
-                eECMA48_UTF8,
+                ECMA48_UTF8,
                 #ifdef WITH_ICU
-                eECMA48_PCTERM,
+                ECMA48_PCTERM,
                 #endif
                 /* ECMA48_ECMA35, not supported */
+
+                /* The following can never be primary data syntax: */
+                DECSIXEL,
         };
 
-        DataSyntax m_primary_data_syntax{DataSyntax::eECMA48_UTF8};
-        DataSyntax m_current_data_syntax{DataSyntax::eECMA48_UTF8};
+        DataSyntax m_primary_data_syntax{DataSyntax::ECMA48_UTF8};
+        DataSyntax m_current_data_syntax{DataSyntax::ECMA48_UTF8};
 
         auto primary_data_syntax() const noexcept { return m_primary_data_syntax; }
         auto current_data_syntax() const noexcept { return m_current_data_syntax; }
@@ -438,13 +444,17 @@ public:
         char const* encoding() const noexcept
         {
                 switch (primary_data_syntax()) {
-                case DataSyntax::eECMA48_UTF8:   return "UTF-8";
+                case DataSyntax::ECMA48_UTF8:   return "UTF-8";
                 #ifdef WITH_ICU
-                case DataSyntax::eECMA48_PCTERM: return m_converter->charset().c_str();
+                case DataSyntax::ECMA48_PCTERM: return m_converter->charset().c_str();
                 #endif
                 default: g_assert_not_reached(); return nullptr;
                 }
         }
+
+#ifdef WITH_SIXEL
+        std::unique_ptr<vte::sixel::Context> m_sixel_context{};
+#endif
 
 	/* Screen data.  We support the normal screen, and an alternate
 	 * screen, which seems to be a DEC-specific feature. */
@@ -561,7 +571,6 @@ public:
         /* Inline images */
         bool m_sixel_enabled{VTE_SIXEL_ENABLED_DEFAULT};
         bool m_images_enabled{VTE_SIXEL_ENABLED_DEFAULT};
-        sixel_state_t m_sixel_state;
 
         bool set_sixel_enabled(bool enabled) noexcept
         {
@@ -843,6 +852,10 @@ public:
                          bool insert,
                          bool invalidate_now);
 
+        #ifdef WITH_SIXEL
+        void insert_image(vte::cairo::Surface image_surface) /* throws */;
+        #endif
+
         void invalidate_row(vte::grid::row_t row);
         void invalidate_rows(vte::grid::row_t row_start,
                              vte::grid::row_t row_end /* inclusive */);
@@ -867,6 +880,10 @@ public:
         #ifdef WITH_ICU
         void process_incoming_pcterm(ProcessingContext& context,
                                      vte::base::Chunk& chunk);
+        #endif
+        #ifdef WITH_SIXEL
+        void process_incoming_decsixel(ProcessingContext& context,
+                                       vte::base::Chunk& chunk);
         #endif
         bool process(bool emit_adj_changed);
         inline bool is_processing() const { return m_active_terminals_link != nullptr; }
@@ -1390,6 +1407,8 @@ public:
         inline void move_cursor_down(vte::grid::row_t rows);
         inline void erase_characters(long count,
                                      bool use_basic = false);
+        void erase_image_rect(vte::grid::row_t rows,
+                              vte::grid::column_t columns);
         inline void insert_blank_character();
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
