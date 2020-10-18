@@ -3429,44 +3429,27 @@ public:
 void
 Terminal::process_incoming()
 {
-        switch (data_syntax()) {
-        case DataSyntax::eECMA48_UTF8:   process_incoming_utf8();    break;
-#ifdef WITH_ICU
-        case DataSyntax::eECMA48_PCTERM: process_incoming_pcterm(); break;
-#endif
-        default: g_assert_not_reached(); break;
-        }
-}
-
-/* Note that this code is mostly copied to process_incoming_pcterm() below; any non-charset-decoding
- * related changes made here need to be made there, too.
- * FIXMEchpe: refactor this to share more code with process_incoming_pcterm().
- */
-void
-Terminal::process_incoming_utf8()
-{
-        auto context = ProcessingContext{*this};
-
-	_vte_debug_print(VTE_DEBUG_IO,
+        _vte_debug_print(VTE_DEBUG_IO,
                          "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
                          m_input_bytes,
                          m_incoming_queue.size());
-	_vte_debug_print (VTE_DEBUG_WORK, "(");
+        _vte_debug_print (VTE_DEBUG_WORK, "(");
 
-	/* We should only be called when there's data to process. */
-	g_assert(!m_incoming_queue.empty());
-
-        auto seq = vte::parser::Sequence{m_parser};
+        /* We should only be called when there's data to process. */
+        g_assert(!m_incoming_queue.empty());
 
         // FIXMEchpe move to context
         m_line_wrapped = false;
 
         auto bytes_processed = size_t{0};
 
+        auto context = ProcessingContext{*this};
+
         while (!m_incoming_queue.empty()) {
                 auto chunk = std::move(m_incoming_queue.front());
                 m_incoming_queue.pop();
 
+                assert((bool)chunk);
                 g_assert_nonnull(chunk.get());
 
                 _VTE_DEBUG_IF(VTE_DEBUG_IO) {
@@ -3475,8 +3458,109 @@ Terminal::process_incoming_utf8()
 
                 bytes_processed += chunk->len;
 
-                auto const* ip = chunk->data;
-                auto const* iend = chunk->data + chunk->len;
+                switch (data_syntax()) {
+                case DataSyntax::eECMA48_UTF8:
+                        process_incoming_utf8(context, *chunk);
+                        break;
+#ifdef WITH_ICU
+                case DataSyntax::eECMA48_PCTERM:
+                        process_incoming_pcterm(context, *chunk);
+                        break;
+#endif
+                default:
+                        g_assert_not_reached();
+                        break;
+                }
+
+                // FIXMEchpe why?
+                if (chunk->eos())
+                        break;
+        }
+
+#ifdef VTE_DEBUG
+        /* Some safety checks: ensure the visible parts of the buffer
+         * are all in the buffer. */
+        g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
+
+        /* The cursor shouldn't be above or below the addressable
+         * part of the display buffer. */
+        g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
+#endif
+
+        if (context.m_modified) {
+                /* Keep the cursor on-screen if we scroll on output, or if
+                 * we're currently at the bottom of the buffer. */
+                update_insert_delta();
+                if (m_scroll_on_output || context.m_bottom) {
+                        maybe_scroll_to_bottom();
+                }
+                /* Deselect the current selection if its contents are changed
+                 * by this insertion. */
+                if (!m_selection_resolved.empty()) {
+                        //FIXMEchpe: this is atrocious
+                        auto selection = get_selected_text();
+                        if ((selection == nullptr) ||
+                            (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
+                            (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
+                                deselect_all();
+                        }
+                        if (selection)
+                                g_string_free(selection, TRUE);
+                }
+        }
+
+        if (context.m_modified || (m_screen != context.m_saved_screen)) {
+                m_ringview.invalidate();
+                /* Signal that the visible contents changed. */
+                queue_contents_changed();
+        }
+
+        emit_pending_signals();
+
+        if (context.m_invalidated_text) {
+                invalidate_rows_and_context(context.m_bbox_top, context.m_bbox_bottom);
+        }
+
+        if ((context.m_saved_cursor.col != m_screen->cursor.col) ||
+            (context.m_saved_cursor.row != m_screen->cursor.row)) {
+                /* invalidate the old and new cursor positions */
+                if (context.m_saved_cursor_visible)
+                        invalidate_row(context.m_saved_cursor.row);
+                invalidate_cursor_once();
+                check_cursor_blink();
+                /* Signal that the cursor moved. */
+                queue_cursor_moved();
+        } else if ((context.m_saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
+                   (context.m_saved_cursor_style != m_cursor_style)) {
+                invalidate_row(context.m_saved_cursor.row);
+                check_cursor_blink();
+        }
+
+        /* Tell the input method where the cursor is. */
+        im_update_cursor();
+
+        /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
+        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
+
+        _vte_debug_print (VTE_DEBUG_WORK, ")");
+        _vte_debug_print (VTE_DEBUG_IO,
+                          "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
+                          m_input_bytes,
+                          m_incoming_queue.size());
+}
+
+/* Note that this code is mostly copied to process_incoming_pcterm() below; any non-charset-decoding
+ * related changes made here need to be made there, too.
+ * FIXMEchpe: refactor this to share more code with process_incoming_pcterm().
+ */
+void
+Terminal::process_incoming_utf8(ProcessingContext& context,
+                                vte::base::Chunk const& chunk)
+{
+        auto seq = vte::parser::Sequence{m_parser};
+
+                auto const* ip = chunk.data;
+                auto const* iend = chunk.data + chunk.len;
 
                 for ( ; ip < iend; ++ip) {
 
@@ -3565,87 +3649,13 @@ Terminal::process_incoming_utf8()
                         }
                 }
 
-                if (chunk->eos()) {
+                if (chunk.eos()) {
                         m_eos_pending = true;
                         /* If there's an unfinished character in the queue, insert a replacement character */
                         if (m_utf8_decoder.flush()) {
                                 insert_char(m_utf8_decoder.codepoint(), false, true);
                         }
-
-                        break;
                 }
-        }
-
-#ifdef VTE_DEBUG
-		/* Some safety checks: ensure the visible parts of the buffer
-		 * are all in the buffer. */
-		g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
-
-		/* The cursor shouldn't be above or below the addressable
-		 * part of the display buffer. */
-                g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
-#endif
-
-	if (context.m_modified) {
-		/* Keep the cursor on-screen if we scroll on output, or if
-		 * we're currently at the bottom of the buffer. */
-		update_insert_delta();
-		if (m_scroll_on_output || context.m_bottom) {
-			maybe_scroll_to_bottom();
-		}
-		/* Deselect the current selection if its contents are changed
-		 * by this insertion. */
-                if (!m_selection_resolved.empty()) {
-                        //FIXMEchpe: this is atrocious
-			auto selection = get_selected_text();
-			if ((selection == nullptr) ||
-			    (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
-			    (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
-				deselect_all();
-			}
-                        if (selection)
-                                g_string_free(selection, TRUE);
-		}
-	}
-
-	if (context.m_modified || (m_screen != context.m_saved_screen)) {
-                m_ringview.invalidate();
-		/* Signal that the visible contents changed. */
-		queue_contents_changed();
-	}
-
-	emit_pending_signals();
-
-	if (context.m_invalidated_text) {
-                invalidate_rows_and_context(context.m_bbox_top, context.m_bbox_bottom);
-	}
-
-        if ((context.m_saved_cursor.col != m_screen->cursor.col) ||
-            (context.m_saved_cursor.row != m_screen->cursor.row)) {
-		/* invalidate the old and new cursor positions */
-		if (context.m_saved_cursor_visible)
-                        invalidate_row(context.m_saved_cursor.row);
-		invalidate_cursor_once();
-		check_cursor_blink();
-		/* Signal that the cursor moved. */
-		queue_cursor_moved();
-        } else if ((context.m_saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
-                   (context.m_saved_cursor_style != m_cursor_style)) {
-                invalidate_row(context.m_saved_cursor.row);
-		check_cursor_blink();
-	}
-
-	/* Tell the input method where the cursor is. */
-        im_update_cursor();
-
-        /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
-        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
-
-	_vte_debug_print (VTE_DEBUG_WORK, ")");
-	_vte_debug_print (VTE_DEBUG_IO,
-                          "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
-                          m_input_bytes,
-                          m_incoming_queue.size());
 }
 
 #ifdef WITH_ICU
@@ -3655,38 +3665,15 @@ Terminal::process_incoming_utf8()
  * FIXMEchpe: refactor this to share more code with process_incoming_utf8().
  */
 void
-Terminal::process_incoming_pcterm()
+Terminal::process_incoming_pcterm(ProcessingContext& context,
+                                  vte::base::Chunk const& chunk)
 {
-        auto context = ProcessingContext{*this};
-
-	_vte_debug_print(VTE_DEBUG_IO,
-                         "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
-                         m_input_bytes,
-                         m_incoming_queue.size());
-	_vte_debug_print (VTE_DEBUG_WORK, "(");
-
         auto seq = vte::parser::Sequence{m_parser};
-
-        m_line_wrapped = false;
-
-        auto bytes_processed = size_t{0};
 
         auto& decoder = m_converter->decoder();
 
-        while (!m_incoming_queue.empty()) {
-                auto chunk = std::move(m_incoming_queue.front());
-                m_incoming_queue.pop();
-
-                g_assert_nonnull(chunk.get());
-
-                _VTE_DEBUG_IF(VTE_DEBUG_IO) {
-                        _vte_debug_hexdump("Incoming buffer", chunk->data, chunk->len);
-                }
-
-                bytes_processed += chunk->len;
-
-                auto const* ip = chunk->data;
-                auto const* iend = chunk->data + chunk->len;
+                auto const* ip = chunk.data;
+                auto const* iend = chunk.data + chunk.len;
 
                 auto eos = bool{false};
                 auto flush = bool{false};
@@ -3779,86 +3766,14 @@ Terminal::process_incoming_pcterm()
                 if (eos) {
                         /* Done processing the last chunk */
                         m_eos_pending = true;
-                        break;
+                        return;
                 }
 
-                if (chunk->eos()) {
+                if (chunk.eos()) {
                         /* On EOS, we still need to flush the decoder before we can finish */
                         eos = flush = true;
                         goto start;
                 }
-        }
-
-#ifdef VTE_DEBUG
-		/* Some safety checks: ensure the visible parts of the buffer
-		 * are all in the buffer. */
-		g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
-
-		/* The cursor shouldn't be above or below the addressable
-		 * part of the display buffer. */
-                g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
-#endif
-
-	if (context.m_modified) {
-		/* Keep the cursor on-screen if we scroll on output, or if
-		 * we're currently at the bottom of the buffer. */
-		update_insert_delta();
-		if (m_scroll_on_output || context.m_bottom) {
-			maybe_scroll_to_bottom();
-		}
-		/* Deselect the current selection if its contents are changed
-		 * by this insertion. */
-                if (!m_selection_resolved.empty()) {
-                        //FIXMEchpe: this is atrocious
-			auto selection = get_selected_text();
-			if ((selection == nullptr) ||
-			    (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
-			    (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
-				deselect_all();
-			}
-                        if (selection)
-                                g_string_free(selection, TRUE);
-		}
-	}
-
-	if (context.m_modified || (m_screen != context.m_saved_screen)) {
-                m_ringview.invalidate();
-		/* Signal that the visible contents changed. */
-		queue_contents_changed();
-	}
-
-	emit_pending_signals();
-
-	if (context.m_invalidated_text) {
-                invalidate_rows_and_context(context.m_bbox_top, context.m_bbox_bottom);
-	}
-
-        if ((context.m_saved_cursor.col != m_screen->cursor.col) ||
-            (context.m_saved_cursor.row != m_screen->cursor.row)) {
-		/* invalidate the old and new cursor positions */
-		if (context.m_saved_cursor_visible)
-                        invalidate_row(context.m_saved_cursor.row);
-		invalidate_cursor_once();
-		check_cursor_blink();
-		/* Signal that the cursor moved. */
-		queue_cursor_moved();
-        } else if ((context.m_saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
-                   (context.m_saved_cursor_style != m_cursor_style)) {
-                invalidate_row(context.m_saved_cursor.row);
-		check_cursor_blink();
-	}
-
-	/* Tell the input method where the cursor is. */
-        im_update_cursor();
-
-        /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
-        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
-
-	_vte_debug_print (VTE_DEBUG_WORK, ")");
-	_vte_debug_print (VTE_DEBUG_IO,
-                          "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
-                          m_input_bytes,
-                          m_incoming_queue.size());
 }
 
 #endif /* WITH_ICU */
