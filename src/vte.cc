@@ -3471,10 +3471,6 @@ Terminal::process_incoming()
                         g_assert_not_reached();
                         break;
                 }
-
-                // FIXMEchpe why?
-                if (chunk->eos())
-                        break;
         }
 
 #ifdef VTE_DEBUG
