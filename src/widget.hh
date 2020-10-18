@@ -86,8 +86,8 @@ public:
         EventBase& operator=(EventBase const&) = delete;
         EventBase& operator=(EventBase&&) = delete;
 
-        constexpr auto const timestamp()   const noexcept { return m_timestamp;   }
-        constexpr auto const type()        const noexcept { return m_type;        }
+        constexpr auto timestamp()   const noexcept { return m_timestamp;   }
+        constexpr auto type()        const noexcept { return m_type;        }
 
 private:
         GdkEvent* m_platform_event;
@@ -130,16 +130,16 @@ public:
         KeyEvent& operator=(KeyEvent const&) = delete;
         KeyEvent& operator=(KeyEvent&&) = delete;
 
-        constexpr auto const group()       const noexcept { return m_group;       }
-        constexpr auto const is_modifier() const noexcept { return m_is_modifier; }
-        constexpr auto const keycode()     const noexcept { return m_keycode;     }
-        constexpr auto const keyval()      const noexcept { return m_keyval;      }
-        constexpr auto const modifiers()   const noexcept { return m_modifiers;   }
+        constexpr auto group()       const noexcept { return m_group;       }
+        constexpr auto is_modifier() const noexcept { return m_is_modifier; }
+        constexpr auto keycode()     const noexcept { return m_keycode;     }
+        constexpr auto keyval()      const noexcept { return m_keyval;      }
+        constexpr auto modifiers()   const noexcept { return m_modifiers;   }
 
-        constexpr auto const is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
-        constexpr auto const is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
+        constexpr auto is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
+        constexpr auto is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
 
-        auto const string() const noexcept
+        auto string() const noexcept
         {
                 return reinterpret_cast<GdkEventKey*>(platform_event())->string;
         }
@@ -204,21 +204,21 @@ public:
         MouseEvent& operator=(MouseEvent const&) = delete;
         MouseEvent& operator=(MouseEvent&&) = delete;
 
-        constexpr auto const button()       const noexcept { return m_button;           }
-        constexpr auto const button_value() const noexcept { return unsigned(m_button); }
-        constexpr auto const modifiers()    const noexcept { return m_modifiers;        }
-        constexpr auto const x()            const noexcept { return m_x;                }
-        constexpr auto const y()            const noexcept { return m_y;                }
+        constexpr auto button()       const noexcept { return m_button;           }
+        constexpr auto button_value() const noexcept { return unsigned(m_button); }
+        constexpr auto modifiers()    const noexcept { return m_modifiers;        }
+        constexpr auto x()            const noexcept { return m_x;                }
+        constexpr auto y()            const noexcept { return m_y;                }
 
-        constexpr auto const is_mouse_double_press() const noexcept { return type() == Type::eMOUSE_DOUBLE_PRESS; }
-        constexpr auto const is_mouse_enter()        const noexcept { return type() == Type::eMOUSE_ENTER;        }
-        constexpr auto const is_mouse_leave()        const noexcept { return type() == Type::eMOUSE_LEAVE;        }
-        constexpr auto const is_mouse_motion()       const noexcept { return type() == Type::eMOUSE_MOTION;       }
-        constexpr auto const is_mouse_press()        const noexcept { return type() == Type::eMOUSE_PRESS;      }
-        constexpr auto const is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
-        constexpr auto const is_mouse_scroll()       const noexcept { return type() == Type::eMOUSE_SCROLL;       }
-        constexpr auto const is_mouse_single_press() const noexcept { return type() == Type::eMOUSE_PRESS;        }
-        constexpr auto const is_mouse_triple_press() const noexcept { return type() == Type::eMOUSE_TRIPLE_PRESS; }
+        constexpr auto is_mouse_double_press() const noexcept { return type() == Type::eMOUSE_DOUBLE_PRESS; }
+        constexpr auto is_mouse_enter()        const noexcept { return type() == Type::eMOUSE_ENTER;        }
+        constexpr auto is_mouse_leave()        const noexcept { return type() == Type::eMOUSE_LEAVE;        }
+        constexpr auto is_mouse_motion()       const noexcept { return type() == Type::eMOUSE_MOTION;       }
+        constexpr auto is_mouse_press()        const noexcept { return type() == Type::eMOUSE_PRESS;      }
+        constexpr auto is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
+        constexpr auto is_mouse_scroll()       const noexcept { return type() == Type::eMOUSE_SCROLL;       }
+        constexpr auto is_mouse_single_press() const noexcept { return type() == Type::eMOUSE_PRESS;        }
+        constexpr auto is_mouse_triple_press() const noexcept { return type() == Type::eMOUSE_TRIPLE_PRESS; }
 
         ScrollDirection scroll_direction() const noexcept
         {
