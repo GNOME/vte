@@ -483,13 +483,13 @@ test_refptr = executable(
 )
 
 if get_option('sixel')
-  test_sixel_sources = files(
-    'sixel-test.cc',
+  fuzz_sixel_sources = files(
+    'sixel-fuzzer.cc',
   )
 
-  test_sixel = executable(
-    'test-sixel',
-    sources: test_sixel_sources,
+  fuzz_sixel = executable(
+    'fuzz-sixel',
+    sources: fuzz_sixel_sources,
     dependencies: [glib_dep,],
     include_directories: top_inc,
     install: false,
