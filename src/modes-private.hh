@@ -415,15 +415,13 @@ MODE_FIXED(DECLRMM, 69, ALWAYS_RESET) /* aka DECVSSM */
 MODE_FIXED(DECXRLM,    73, ALWAYS_RESET)
 
 /*
- * DECSDM - sixel display mode
+ * DECSDM - sixel display mode (scrolling)
  *
- * Default: reset
+ * Default: set
  *
- * References: VT525
- *
- * Probably not worth implementing.
+ * References: ?
  */
-/* MODE_FIXED(DECSDM,    80, ALWAYS_RESET) ! Conflicts with WY161 */
+MODE(DECSDM, 80) /* Note: Conflicts with WY161 */
 
 /*
  * DECKPM - key position mode
@@ -799,7 +797,7 @@ MODE_FIXED(WYTEK,  38, ALWAYS_RESET)
  *
  * References: WY370
  */
-MODE_FIXED(WY161,  80, ALWAYS_RESET)
+/* MODE_FIXED(WY161,  80, ALWAYS_RESET) ! Conflicts with DECSDM */
 
 /*
  * WY52 - 52 lines mode
