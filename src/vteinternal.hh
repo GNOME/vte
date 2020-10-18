@@ -250,6 +250,8 @@ class Terminal {
         friend class vte::platform::Widget;
 
 private:
+        class ProcessingContext;
+
         /* These correspond to the parameters for DECSCUSR (Set cursor style). */
         enum class CursorStyle {
                 /* We treat 0 and 1 differently, assuming that the VT510 does so too.

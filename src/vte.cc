@@ -3318,6 +3318,114 @@ Terminal::im_reset()
         im_preedit_reset();
 }
 
+class Terminal::ProcessingContext {
+public:
+        vte::grid::row_t m_bbox_top{-G_MAXINT};
+        vte::grid::row_t m_bbox_bottom{G_MAXINT};
+        bool m_modified{false};
+        bool m_bottom{false};
+        bool m_invalidated_text{false};
+        bool m_in_scroll_region{false};
+        bool m_saved_cursor_visible{false};
+        CursorStyle m_saved_cursor_style;
+        VteVisualPosition m_saved_cursor;
+        VteScreen const* m_saved_screen{nullptr};
+
+        ProcessingContext(Terminal const& terminal) noexcept
+        {
+                auto screen = m_saved_screen = terminal.m_screen;
+
+                // FIXMEchpe make this a method on VteScreen
+                m_bottom = screen->insert_delta == (long)screen->scroll_delta;
+
+                /* Save the current cursor position. */
+                m_saved_cursor = screen->cursor;
+                m_saved_cursor_visible = terminal.m_modes_private.DEC_TEXT_CURSOR();
+                m_saved_cursor_style = terminal.m_cursor_style;
+
+                m_in_scroll_region = terminal.m_scrolling_restricted
+                        && (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.start))
+                        && (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.end));
+
+                //context.modified = false;
+                //context.invalidated_text = false;
+
+                //context.bbox_bottom = -G_MAXINT;
+                //context.bbox_top = G_MAXINT;
+        }
+
+        ~ProcessingContext() = default;
+
+        ProcessingContext(ProcessingContext const&) = delete;
+        ProcessingContext(ProcessingContext&&) = delete;
+
+        ProcessingContext& operator=(ProcessingContext const&) = delete;
+        ProcessingContext& operator=(ProcessingContext&&) = delete;
+
+        [[gnu::always_inline]]
+        inline void pre_GRAPHIC(Terminal const& terminal) noexcept
+        {
+                m_bbox_top = std::min(m_bbox_top,
+                                      terminal.m_screen->cursor.row);
+        }
+
+        [[gnu::always_inline]]
+        inline void post_GRAPHIC(Terminal& terminal) noexcept
+        {
+                auto const* screen = terminal.m_screen;
+
+                if (terminal.m_line_wrapped) {
+                        terminal.m_line_wrapped = false;
+                        /* line wrapped, correct bbox */
+                        if (m_invalidated_text &&
+                            (screen->cursor.row > m_bbox_bottom + VTE_CELL_BBOX_SLACK ||
+                             screen->cursor.row < m_bbox_top - VTE_CELL_BBOX_SLACK)) {
+                                terminal.invalidate_rows_and_context(m_bbox_top, m_bbox_bottom);
+                                m_bbox_bottom = -G_MAXINT;
+                                m_bbox_top = G_MAXINT;
+                        }
+                        m_bbox_top = std::min(m_bbox_top,
+                                              screen->cursor.row);
+                }
+                /* Add the cells over which we have moved to the region
+                 * which we need to refresh for the user. */
+                m_bbox_bottom = std::max(m_bbox_bottom,
+                                         screen->cursor.row);
+
+                m_invalidated_text = true;
+                m_modified = true;
+        }
+
+        [[gnu::always_inline]]
+        inline void post_CMD(Terminal& terminal) noexcept
+        {
+                m_modified = true;
+
+                // FIXME terminal.m_screen may be != m_saved_screen, check for that!
+
+                auto const* screen = terminal.m_screen;
+                auto const new_in_scroll_region = terminal.m_scrolling_restricted &&
+                        (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.start)) &&
+                        (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.end));
+
+                /* if we have moved greatly during the sequence handler, or moved
+                 * into a scroll_region from outside it, restart the bbox.
+                 */
+                if (m_invalidated_text &&
+                    ((new_in_scroll_region && !m_in_scroll_region) ||
+                     (screen->cursor.row > m_bbox_bottom + VTE_CELL_BBOX_SLACK ||
+                      screen->cursor.row < m_bbox_top - VTE_CELL_BBOX_SLACK))) {
+                        terminal.invalidate_rows_and_context(m_bbox_top, m_bbox_bottom);
+                        m_invalidated_text = false;
+                        m_bbox_bottom = -G_MAXINT;
+                        m_bbox_top = G_MAXINT;
+                }
+
+                m_in_scroll_region = new_in_scroll_region;
+        }
+
+}; // class ProcessingContext
+
 void
 Terminal::process_incoming()
 {
@@ -3330,7 +3438,6 @@ Terminal::process_incoming()
         }
 }
 
-
 /* Note that this code is mostly copied to process_incoming_pcterm() below; any non-charset-decoding
  * related changes made here need to be made there, too.
  * FIXMEchpe: refactor this to share more code with process_incoming_pcterm().
@@ -3338,13 +3445,7 @@ Terminal::process_incoming()
 void
 Terminal::process_incoming_utf8()
 {
-	VteVisualPosition saved_cursor;
-	gboolean saved_cursor_visible;
-        CursorStyle saved_cursor_style;
-        vte::grid::row_t bbox_top, bbox_bottom;
-	gboolean modified, bottom;
-	gboolean invalidated_text;
-	gboolean in_scroll_region;
+        auto context = ProcessingContext{*this};
 
 	_vte_debug_print(VTE_DEBUG_IO,
                          "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
@@ -3352,33 +3453,15 @@ Terminal::process_incoming_utf8()
                          m_incoming_queue.size());
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
-        auto previous_screen = m_screen;
-
-        bottom = m_screen->insert_delta == (long)m_screen->scroll_delta;
-
-	/* Save the current cursor position. */
-        saved_cursor = m_screen->cursor;
-	saved_cursor_visible = m_modes_private.DEC_TEXT_CURSOR();
-        saved_cursor_style = m_cursor_style;
-
-        in_scroll_region = m_scrolling_restricted
-            && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
-            && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
-
 	/* We should only be called when there's data to process. */
 	g_assert(!m_incoming_queue.empty());
 
-	modified = FALSE;
-	invalidated_text = FALSE;
+        auto seq = vte::parser::Sequence{m_parser};
 
-        bbox_bottom = -G_MAXINT;
-        bbox_top = G_MAXINT;
-
-        vte::parser::Sequence seq{m_parser};
-
+        // FIXMEchpe move to context
         m_line_wrapped = false;
 
-        size_t bytes_processed = 0;
+        auto bytes_processed = size_t{0};
 
         while (!m_incoming_queue.empty()) {
                 auto chunk = std::move(m_incoming_queue.front());
@@ -3441,8 +3524,7 @@ Terminal::process_incoming_utf8()
                                 switch (rv) {
                                 case VTE_SEQ_GRAPHIC: {
 
-                                        bbox_top = std::min(bbox_top,
-                                                            m_screen->cursor.row);
+                                        context.pre_GRAPHIC(*this);
 
                                         // does insert_char(c, false, false)
                                         GRAPHIC(seq);
@@ -3451,28 +3533,7 @@ Terminal::process_incoming_utf8()
                                                          m_last_graphic_character,
                                                          g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                                        if (m_line_wrapped) {
-                                                m_line_wrapped = false;
-                                                /* line wrapped, correct bbox */
-                                                if (invalidated_text &&
-                                                    (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
-                                                     m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK)) {
-                                                        invalidate_rows_and_context(bbox_top, bbox_bottom);
-                                                        bbox_bottom = -G_MAXINT;
-                                                        bbox_top = G_MAXINT;
-                                                }
-                                                bbox_top = std::min(bbox_top,
-                                                                    m_screen->cursor.row);
-                                        }
-                                        /* Add the cells over which we have moved to the region
-                                         * which we need to refresh for the user. */
-                                        bbox_bottom = std::max(bbox_bottom,
-                                                               m_screen->cursor.row);
-                                        invalidated_text = TRUE;
-
-                                        /* We *don't* emit flush pending signals here. */
-                                        modified = TRUE;
-
+                                        context.post_GRAPHIC(*this);
                                         break;
                                 }
 
@@ -3495,29 +3556,7 @@ Terminal::process_incoming_utf8()
 
                                         m_last_graphic_character = 0;
 
-                                        modified = TRUE;
-
-                                        // FIXME m_screen may be != previous_screen, check for that!
-
-                                        gboolean new_in_scroll_region = m_scrolling_restricted
-                                                && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
-                                                && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
-
-                                        /* if we have moved greatly during the sequence handler, or moved
-                                         * into a scroll_region from outside it, restart the bbox.
-                                         */
-                                        if (invalidated_text &&
-                                            ((new_in_scroll_region && !in_scroll_region) ||
-                                             (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
-                                              m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK))) {
-                                                invalidate_rows_and_context(bbox_top, bbox_bottom);
-                                                invalidated_text = FALSE;
-                                                bbox_bottom = -G_MAXINT;
-                                                bbox_top = G_MAXINT;
-                                        }
-
-                                        in_scroll_region = new_in_scroll_region;
-
+                                        context.post_CMD(*this);
                                         break;
                                 }
                                 }
@@ -3547,11 +3586,11 @@ Terminal::process_incoming_utf8()
                 g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
 #endif
 
-	if (modified) {
+	if (context.m_modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
 		update_insert_delta();
-		if (m_scroll_on_output || bottom) {
+		if (m_scroll_on_output || context.m_bottom) {
 			maybe_scroll_to_bottom();
 		}
 		/* Deselect the current selection if its contents are changed
@@ -3569,7 +3608,7 @@ Terminal::process_incoming_utf8()
 		}
 	}
 
-	if (modified || (m_screen != previous_screen)) {
+	if (context.m_modified || (m_screen != context.m_saved_screen)) {
                 m_ringview.invalidate();
 		/* Signal that the visible contents changed. */
 		queue_contents_changed();
@@ -3577,22 +3616,22 @@ Terminal::process_incoming_utf8()
 
 	emit_pending_signals();
 
-	if (invalidated_text) {
-                invalidate_rows_and_context(bbox_top, bbox_bottom);
+	if (context.m_invalidated_text) {
+                invalidate_rows_and_context(context.m_bbox_top, context.m_bbox_bottom);
 	}
 
-        if ((saved_cursor.col != m_screen->cursor.col) ||
-            (saved_cursor.row != m_screen->cursor.row)) {
+        if ((context.m_saved_cursor.col != m_screen->cursor.col) ||
+            (context.m_saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
-		if (saved_cursor_visible)
-                        invalidate_row(saved_cursor.row);
+		if (context.m_saved_cursor_visible)
+                        invalidate_row(context.m_saved_cursor.row);
 		invalidate_cursor_once();
 		check_cursor_blink();
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
-        } else if ((saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
-                   (saved_cursor_style != m_cursor_style)) {
-                invalidate_row(saved_cursor.row);
+        } else if ((context.m_saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
+                   (context.m_saved_cursor_style != m_cursor_style)) {
+                invalidate_row(context.m_saved_cursor.row);
 		check_cursor_blink();
 	}
 
@@ -3618,13 +3657,7 @@ Terminal::process_incoming_utf8()
 void
 Terminal::process_incoming_pcterm()
 {
-	VteVisualPosition saved_cursor;
-	gboolean saved_cursor_visible;
-        CursorStyle saved_cursor_style;
-        vte::grid::row_t bbox_top, bbox_bottom;
-	gboolean modified, bottom;
-	gboolean invalidated_text;
-	gboolean in_scroll_region;
+        auto context = ProcessingContext{*this};
 
 	_vte_debug_print(VTE_DEBUG_IO,
                          "Handler processing %" G_GSIZE_FORMAT " bytes over %" G_GSIZE_FORMAT " chunks.\n",
@@ -3632,33 +3665,11 @@ Terminal::process_incoming_pcterm()
                          m_incoming_queue.size());
 	_vte_debug_print (VTE_DEBUG_WORK, "(");
 
-        auto previous_screen = m_screen;
-
-        bottom = m_screen->insert_delta == (long)m_screen->scroll_delta;
-
-	/* Save the current cursor position. */
-        saved_cursor = m_screen->cursor;
-	saved_cursor_visible = m_modes_private.DEC_TEXT_CURSOR();
-        saved_cursor_style = m_cursor_style;
-
-        in_scroll_region = m_scrolling_restricted
-            && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
-            && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
-
-	/* We should only be called when there's data to process. */
-	g_assert(!m_incoming_queue.empty());
-
-	modified = FALSE;
-	invalidated_text = FALSE;
-
-        bbox_bottom = -G_MAXINT;
-        bbox_top = G_MAXINT;
-
-        vte::parser::Sequence seq{m_parser};
+        auto seq = vte::parser::Sequence{m_parser};
 
         m_line_wrapped = false;
 
-        size_t bytes_processed = 0;
+        auto bytes_processed = size_t{0};
 
         auto& decoder = m_converter->decoder();
 
@@ -3715,8 +3726,7 @@ Terminal::process_incoming_pcterm()
                                 switch (rv) {
                                 case VTE_SEQ_GRAPHIC: {
 
-                                        bbox_top = std::min(bbox_top,
-                                                            m_screen->cursor.row);
+                                        context.pre_GRAPHIC(*this);
 
                                         // does insert_char(c, false, false)
                                         GRAPHIC(seq);
@@ -3725,28 +3735,7 @@ Terminal::process_incoming_pcterm()
                                                          m_last_graphic_character,
                                                          g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
 
-                                        if (m_line_wrapped) {
-                                                m_line_wrapped = false;
-                                                /* line wrapped, correct bbox */
-                                                if (invalidated_text &&
-                                                    (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
-                                                     m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK)) {
-                                                        invalidate_rows_and_context(bbox_top, bbox_bottom);
-                                                        bbox_bottom = -G_MAXINT;
-                                                        bbox_top = G_MAXINT;
-                                                }
-                                                bbox_top = std::min(bbox_top,
-                                                                    m_screen->cursor.row);
-                                        }
-                                        /* Add the cells over which we have moved to the region
-                                         * which we need to refresh for the user. */
-                                        bbox_bottom = std::max(bbox_bottom,
-                                                               m_screen->cursor.row);
-                                        invalidated_text = TRUE;
-
-                                        /* We *don't* emit flush pending signals here. */
-                                        modified = TRUE;
-
+                                        context.post_GRAPHIC(*this);
                                         break;
                                 }
 
@@ -3769,29 +3758,7 @@ Terminal::process_incoming_pcterm()
 
                                         m_last_graphic_character = 0;
 
-                                        modified = TRUE;
-
-                                        // FIXME m_screen may be != previous_screen, check for that!
-
-                                        gboolean new_in_scroll_region = m_scrolling_restricted
-                                                && (m_screen->cursor.row >= (m_screen->insert_delta + m_scrolling_region.start))
-                                                && (m_screen->cursor.row <= (m_screen->insert_delta + m_scrolling_region.end));
-
-                                        /* if we have moved greatly during the sequence handler, or moved
-                                         * into a scroll_region from outside it, restart the bbox.
-                                         */
-                                        if (invalidated_text &&
-                                            ((new_in_scroll_region && !in_scroll_region) ||
-                                             (m_screen->cursor.row > bbox_bottom + VTE_CELL_BBOX_SLACK ||
-                                              m_screen->cursor.row < bbox_top - VTE_CELL_BBOX_SLACK))) {
-                                                invalidate_rows_and_context(bbox_top, bbox_bottom);
-                                                invalidated_text = FALSE;
-                                                bbox_bottom = -G_MAXINT;
-                                                bbox_top = G_MAXINT;
-                                        }
-
-                                        in_scroll_region = new_in_scroll_region;
-
+                                        context.post_CMD(*this);
                                         break;
                                 }
                                 }
@@ -3832,11 +3799,11 @@ Terminal::process_incoming_pcterm()
                 g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
 #endif
 
-	if (modified) {
+	if (context.m_modified) {
 		/* Keep the cursor on-screen if we scroll on output, or if
 		 * we're currently at the bottom of the buffer. */
 		update_insert_delta();
-		if (m_scroll_on_output || bottom) {
+		if (m_scroll_on_output || context.m_bottom) {
 			maybe_scroll_to_bottom();
 		}
 		/* Deselect the current selection if its contents are changed
@@ -3854,7 +3821,7 @@ Terminal::process_incoming_pcterm()
 		}
 	}
 
-	if (modified || (m_screen != previous_screen)) {
+	if (context.m_modified || (m_screen != context.m_saved_screen)) {
                 m_ringview.invalidate();
 		/* Signal that the visible contents changed. */
 		queue_contents_changed();
@@ -3862,22 +3829,22 @@ Terminal::process_incoming_pcterm()
 
 	emit_pending_signals();
 
-	if (invalidated_text) {
-                invalidate_rows_and_context(bbox_top, bbox_bottom);
+	if (context.m_invalidated_text) {
+                invalidate_rows_and_context(context.m_bbox_top, context.m_bbox_bottom);
 	}
 
-        if ((saved_cursor.col != m_screen->cursor.col) ||
-            (saved_cursor.row != m_screen->cursor.row)) {
+        if ((context.m_saved_cursor.col != m_screen->cursor.col) ||
+            (context.m_saved_cursor.row != m_screen->cursor.row)) {
 		/* invalidate the old and new cursor positions */
-		if (saved_cursor_visible)
-                        invalidate_row(saved_cursor.row);
+		if (context.m_saved_cursor_visible)
+                        invalidate_row(context.m_saved_cursor.row);
 		invalidate_cursor_once();
 		check_cursor_blink();
 		/* Signal that the cursor moved. */
 		queue_cursor_moved();
-        } else if ((saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
-                   (saved_cursor_style != m_cursor_style)) {
-                invalidate_row(saved_cursor.row);
+        } else if ((context.m_saved_cursor_visible != m_modes_private.DEC_TEXT_CURSOR()) ||
+                   (context.m_saved_cursor_style != m_cursor_style)) {
+                invalidate_row(context.m_saved_cursor.row);
 		check_cursor_blink();
 	}
 
