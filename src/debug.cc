@@ -61,11 +61,12 @@ _vte_debug_init(void)
     { "bidi",         VTE_DEBUG_BIDI         },
     { "conversion",   VTE_DEBUG_CONVERSION   },
     { "exceptions",   VTE_DEBUG_EXCEPTIONS   },
+    { "image",        VTE_DEBUG_IMAGE        },
   };
 
   _vte_debug_flags = g_parse_debug_string (g_getenv("VTE_DEBUG"),
                                            keys, G_N_ELEMENTS (keys));
-  _vte_debug_print(0xFFFFFFFF, "VTE debug flags = %x\n", _vte_debug_flags);
+  _vte_debug_print(0xFFFFFFFFu, "VTE debug flags = %x\n", _vte_debug_flags);
 #endif /* VTE_DEBUG */
 }
 
