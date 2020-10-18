@@ -103,7 +103,12 @@ sixel_parser_sources = files(
   'sixel-parser.hh',
 )
 
-sixel_sources = sixel_parser_sources + files(
+sixel_context_sources = files(
+  'sixel-context.cc',
+  'sixel-context.hh',
+)
+
+sixel_sources = sixel_parser_sources + sixel_context_sources + files(
   'image.cc',
   'image.hh',
   'sixelparser.cc',
@@ -504,7 +509,7 @@ if get_option('sixel')
     install: false,
   )
 
-  test_sixel_sources = glib_glue_sources + sixel_parser_sources + files(
+  test_sixel_sources = glib_glue_sources + sixel_parser_sources + sixel_context_sources + files(
     'cairo-glue.hh',
     'sixel-test.cc',
     'vtedefines.hh',

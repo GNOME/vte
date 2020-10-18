@@ -29,10 +29,12 @@
 #include <glib.h>
 
 #include "sixel-parser.hh"
+#include "sixel-context.hh"
 
 using namespace std::literals;
 
 using Command = vte::sixel::Command;
+using Context = vte::sixel::Context;
 using Mode = vte::sixel::Parser::Mode;
 using ParseStatus = vte::sixel::Parser::ParseStatus;
 
@@ -991,6 +993,545 @@ test_parser_controls_c1(void)
         }
 }
 
+// Context tests
+
+class TestContext: public Context {
+public:
+        using base_type = Context;
+        using base_type::base_type;
+
+        auto parse(std::string_view const& str)
+        {
+                auto const beginptr = reinterpret_cast<uint8_t const*>(str.data());
+                auto const endptr = reinterpret_cast<uint8_t const*>(beginptr + str.size());
+                return Context::parse(beginptr, endptr, true);
+        }
+
+}; // class TestContext
+
+template<class C>
+static void
+parse_image(C& context,
+            std::string_view const& str,
+            Context::color_t fg,
+            Context::color_t bg,
+            bool private_color_registers = true,
+            int line = __builtin_LINE())
+{
+        context.reset();
+        context.prepare(0x50 /* C0 DCS */, fg, bg, private_color_registers);
+
+        auto str_st = std::string{str};
+        str_st.append(ST(StType::C0));
+        auto [status, ip] = context.parse(str_st);
+        g_assert_cmpint(int(status), ==, int(ParseStatus::COMPLETE));
+}
+
+template<class C>
+static void
+parse_image(C& context,
+            ItemList const& items,
+            Context::color_t fg,
+            Context::color_t bg,
+            bool private_color_registers = true,
+            int line = __builtin_LINE())
+{
+        parse_image(context, ItemStringifier(items).string(), fg, bg, private_color_registers, line);
+}
+
+template<class C>
+static void
+parse_image(C& context,
+            std::string_view const& str,
+            int line = __builtin_LINE())
+{
+        parse_image(context, str, 0xffffffffu, 0xff000000u, true, line);
+}
+
+template<class C>
+static void
+parse_image(C& context,
+            ItemList const& items,
+            int line = __builtin_LINE())
+{
+        parse_image(context, ItemStringifier{items, Mode::UTF8}.string_view(), line);
+}
+
+template<class C>
+static auto
+parse_pixels(C& context,
+             std::string_view const& str,
+             unsigned extra_width_stride = 0,
+             int line = __builtin_LINE())
+{
+        parse_image(context, str, line);
+        auto size = size_t{};
+        auto ptr = vte::glib::take_free_ptr(context.image_data_indexed(&size, extra_width_stride));
+        return std::pair{std::move(ptr), size};
+}
+
+/* BEGIN */
+
+/* The following code is copied from xterm/graphics.c where it is under the
+ * licence below; and modified and used here under the GNU Lesser General Public
+ * Licence, version 3 (or, at your option), any later version.
+ */
+
+/*
+ * Copyright 2013-2019,2020 by Ross Combs
+ * Copyright 2013-2019,2020 by Thomas E. Dickey
+ *
+ *                         All Rights Reserved
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT HOLDER(S) BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * Except as contained in this notice, the name(s) of the above copyright
+ * holders shall not be used in advertising or otherwise to promote the
+ * sale, use or other dealings in this Software without prior written
+ * authorization.
+ */
+
+static void
+hls2rgb_double(int
+               h,
+               int l,
+               int s,
+               int* r,
+               int* g,
+               int* b) noexcept
+{
+    const int hs = ((h + 240) / 60) % 6;
+    const double lv = l / 100.0;
+    const double sv = s / 100.0;
+    double c, x, m, c2;
+    double r1, g1, b1;
+
+    if (s == 0) {
+            *r = *g = *b = (short) (lv * 255. + 0.5);
+        return;
+    }
+
+    c2 = (2.0 * lv) - 1.0;
+    if (c2 < 0.0)
+        c2 = -c2;
+    c = (1.0 - c2) * sv;
+    x = (hs & 1) ? c : 0.0;
+    m = lv - 0.5 * c;
+
+    switch (hs) {
+    case 0:
+        r1 = c;
+        g1 = x;
+        b1 = 0.0;
+        break;
+    case 1:
+        r1 = x;
+        g1 = c;
+        b1 = 0.0;
+        break;
+    case 2:
+        r1 = 0.0;
+        g1 = c;
+        b1 = x;
+        break;
+    case 3:
+        r1 = 0.0;
+        g1 = x;
+        b1 = c;
+        break;
+    case 4:
+        r1 = x;
+        g1 = 0.0;
+        b1 = c;
+        break;
+    case 5:
+        r1 = c;
+        g1 = 0.0;
+        b1 = x;
+        break;
+    default:
+        *r = (short) 255;
+        *g = (short) 255;
+        *b = (short) 255;
+        return;
+    }
+
+    *r = (short) ((r1 + m) * 255.0 + 0.5);
+    *g = (short) ((g1 + m) * 255.0 + 0.5);
+    *b = (short) ((b1 + m) * 255.0 + 0.5);
+
+    if (*r < 0)
+        *r = 0;
+    else if (*r > 255)
+        *r = 255;
+    if (*g < 0)
+        *g = 0;
+    else if (*g > 255)
+        *g = 255;
+    if (*b < 0)
+        *b = 0;
+    else if (*b > 255)
+        *b = 255;
+}
+
+/* This is essentially Context::make_color_hls from sixel-context.cc,
+ * only changed to return the colour components separately.
+ */
+static void
+hls2rgb_int(int h,
+            int l,
+            int s,
+            int* r,
+            int* g,
+            int* b) noexcept
+{
+        auto const c2p = std::abs(2 * l - 100);
+        auto const cp = ((100 - c2p) * s) << 1;
+        auto const hs = ((h + 240) / 60) % 6;
+        auto const xp = (hs & 1) ? cp : 0;
+        auto const mp = 200 * l - (cp >> 1);
+
+        int r1p, g1p, b1p;
+        switch (hs) {
+        case 0:
+                r1p = cp;
+                g1p = xp;
+                b1p = 0;
+                break;
+        case 1:
+                r1p = xp;
+                g1p = cp;
+                b1p = 0;
+                break;
+        case 2:
+                r1p = 0;
+                g1p = cp;
+                b1p = xp;
+                break;
+        case 3:
+                r1p = 0;
+                g1p = xp;
+                b1p = cp;
+                break;
+        case 4:
+                r1p = xp;
+                g1p = 0;
+                b1p = cp;
+                break;
+        case 5:
+                r1p = cp;
+                g1p = 0;
+                b1p = xp;
+                break;
+        default:
+                __builtin_unreachable();
+        }
+
+        *r = ((r1p + mp) * 255 + 10000) / 20000;
+        *g = ((g1p + mp) * 255 + 10000) / 20000;
+        *b = ((b1p + mp) * 255 + 10000) / 20000;
+}
+
+/* END */
+
+static void
+test_context_color_hls(void)
+{
+        /* Test that our HLS colour conversion gives the right results
+         * by comparing it against the xterm/libsixel implementation.
+         *
+         * The values may differ by 1, which happen only for (L, S) in
+         * {(5, 100), (40, 75), (50, 80), (60, 75), (75, 60), (95, 100)}.
+         * There, one or more of the R, G, B components' unscaled values,
+         * times 255, produces an exact fraction of .5 in hsl2rgb_double,
+         * which, plus 0.5,, and due to inexactness, result in the truncated
+         * value "(short)v" being one less than the result of the integer
+         * computation.
+         */
+
+        for (auto h = 0; h <= 360; ++h) {
+                for (auto l = 0; l <= 100; ++l) {
+                        for (auto s = 0; s <= 100; ++s) {
+                                int rd, gd, bd, ri, gi, bi;
+
+                                hls2rgb_double(h, l, s, &rd, &gd, &bd);
+                                hls2rgb_int(h, l, s, &ri, &gi, &bi);
+
+                                g_assert_true((rd == ri || (rd + 1) == ri) &&
+                                              (gd == gi || (gd + 1) == gi) &&
+                                              (bd == bi || (bd + 1) == bi));
+                        }
+                }
+        }
+}
+
+template<class C>
+static void
+assert_image_dimensions(C& context,
+                        unsigned width,
+                        unsigned height,
+                        int line = __builtin_LINE())
+{
+        g_assert_cmpuint(context.image_width(), ==, width);
+        g_assert_cmpuint(context.image_height(), ==, height);
+}
+
+static void
+test_context_raster_attributes(void)
+{
+        /* Test that DECGRA sets the image dimensions */
+
+        auto context = TestContext{};
+        parse_image(context, "\"0;0;64;128"sv);
+        assert_image_dimensions(context, 64, 128);
+}
+
+static void
+test_context_repeat(void)
+{
+        /* Test that DECGRI repetition works */
+
+        auto context = TestContext{};
+        auto [pixels, size] = parse_pixels(context, "#1!5@"sv);
+        assert_image_dimensions(context, 5, 1);
+
+        auto data = pixels.get();
+        auto const v = *data++;
+        for (auto x = 1u; x < context.image_width(); ++x)
+                g_assert_cmpuint(*data++, ==, v);
+
+        g_assert_cmpuint(size_t(data - pixels.get()), <=, size);
+}
+
+static void
+test_context_scanlines_grow(void)
+{
+        /* Test that scanlines grow on demand */
+
+        auto context = TestContext{};
+        parse_image(context, "@$AA$?$??~-~"sv);
+        assert_image_dimensions(context, 3, 12);
+}
+
+static void
+test_context_scanlines_underfull(void)
+{
+        /* Test that the image height is determined by the last set sixel, not
+         * necessarily the number of scanlines.
+         */
+
+        auto context = TestContext{};
+
+        parse_image(context, "?"sv);
+        assert_image_dimensions(context, 1, 0);
+
+        for (auto n = 0; n < 6; ++n) {
+                parse_image(context, {Sixel(1u << n)});
+                assert_image_dimensions(context, 1, n + 1);
+
+                parse_image(context, {Sixel(0), Sixel(0), DECGNL(), Sixel(1u << n)});
+                assert_image_dimensions(context, 2, 6 + n + 1);
+        }
+}
+
+static void
+test_context_scanlines_max_width(void)
+{
+        /* Test that scanlines up to max_width() work, and scanlines longer than that
+         * are accepted but do not write outside the maximum width.
+         */
+
+        auto context = TestContext{};
+
+        parse_image(context, {Sixel(1u << 0), DECGNL(), DECGRI(context.max_width() - 1), Sixel(0x3f)});
+        assert_image_dimensions(context, context.max_width() - 1, 12);
+
+        parse_image(context, {Sixel(1u << 0), DECGNL(), DECGRI(context.max_width()), Sixel(0x3f)});
+        assert_image_dimensions(context, context.max_width(), 12);
+
+        parse_image(context, {Sixel(1u << 0), DECGNL(), DECGRI(context.max_width() + 1), Sixel(0x3f)});
+        assert_image_dimensions(context, context.max_width(), 12);
+}
+
+static void
+test_context_scanlines_max_height(void)
+{
+        /* Test that scanlines up to max_height() work, and scanlines beyond that
+         * are accepted but do nothing.
+         */
+
+        auto context = TestContext{};
+
+        auto items = ItemList{};
+        for (auto n = 0u; n < (context.max_height() / 6 - 1); ++n) {
+                if (n > 0)
+                        items.emplace_back(DECGNL());
+                items.emplace_back(Sixel(1u << 5));
+        }
+
+        parse_image(context, items);
+        assert_image_dimensions(context, 1, context.max_height() - 6);
+
+        items.emplace_back(DECGNL());
+        items.emplace_back(Sixel(1u << 4));
+
+        parse_image(context, items);
+        assert_image_dimensions(context, 1, context.max_height() - 1);
+
+        items.emplace_back(DECGCR());
+        items.emplace_back(Sixel(1u << 5));
+
+        parse_image(context, items);
+        assert_image_dimensions(context, 1, context.max_height());
+
+        /* Image cannot grow further */
+
+        items.emplace_back(DECGNL());
+        items.emplace_back(Sixel(1u << 0));
+
+        parse_image(context, items);
+        assert_image_dimensions(context, 1, context.max_height());
+
+        items.emplace_back(DECGNL());
+        items.emplace_back(Sixel(1u << 5));
+
+        parse_image(context, items);
+        assert_image_dimensions(context, 1, context.max_height());
+}
+
+static void
+test_context_image_stride(void)
+{
+        /* Test that data in the stride padding is set to background */
+
+        auto context = TestContext{};
+
+        auto const extra_stride = 3u;
+        auto [pixels, size] = parse_pixels(context, "#1~~-~~"sv, extra_stride);
+        assert_image_dimensions(context, 2, 12);
+
+        auto data = pixels.get();
+        auto const reg = 1 + 1; /* Colour registers start at 1 */
+
+        for (auto y = 0u; y < context.image_height(); ++y) {
+                for (auto x = 0u; x < context.image_width(); ++x)
+                        g_assert_cmpuint(*data++, ==, unsigned(reg));
+                for (auto e = 0u; e < extra_stride; ++e)
+                        g_assert_cmpuint(*data++, ==, 0);
+        }
+
+        g_assert_cmpuint(size_t(data - pixels.get()), <=, size);
+}
+
+class RGB {
+public:
+        uint8_t r{0};
+        uint8_t g{0};
+        uint8_t b{0};
+
+        RGB() = default;
+        ~RGB() = default;
+
+        RGB(int rv, int gv, int bv)
+                : r(rv), g(gv), b(bv)
+        {
+        }
+};
+
+static void
+test_context_image_palette(void)
+{
+        /* Test that the colour palette is recognised, and that colour registers
+         * wrap around.
+         */
+
+        auto make_color_rgb = [](unsigned rp,
+                                 unsigned gp,
+                                 unsigned bp) constexpr noexcept -> auto
+        {
+                auto scale = [](unsigned value) constexpr noexcept -> auto
+                {
+                        return (value * 255u + 50u) / 100u;
+                };
+
+                auto make_color = [](unsigned r,
+                                     unsigned g,
+                                     unsigned b) constexpr noexcept -> Context::color_t
+                {
+                        if constexpr (std::endian::native == std::endian::little) {
+                                        return b | g << 8 | r << 16 | 0xffu << 24 /* opaque */;
+                                } else if constexpr (std::endian::native == std::endian::big) {
+                                        return 0xffu /* opaque */ | r << 8 | g << 16 | b << 24;
+                                } else {
+                                __builtin_unreachable();
+                        }
+                };
+
+                return make_color(scale(rp), scale(gp), scale(bp));
+        };
+
+        auto context = TestContext{};
+
+        std::array<RGB, context.num_colors()> palette;
+        for (auto& p : palette) {
+                p = RGB(g_test_rand_int_range(0, 100),
+                        g_test_rand_int_range(0, 100),
+                        g_test_rand_int_range(0, 100));
+        }
+
+        auto items = ItemList{};
+        auto reg = context.num_colors();
+        for (auto const& p : palette) {
+                items.emplace_back(DECGCI_RGB(reg++, p.r, p.g, p.b));
+        }
+
+        parse_image(context, items);
+
+        for (auto n = 0; n < context.num_colors(); ++n) {
+                g_assert_cmpuint(make_color_rgb(palette[n].r, palette[n].g, palette[n].b),
+                                 ==,
+                                 context.color(n + 1));
+        }
+}
+
+static void
+test_context_image_compositing(void)
+{
+        /* Test that multiple sixels in different colours are composited. */
+
+        auto context = TestContext{};
+
+        auto [pixels, size] = parse_pixels(context,
+                                           "#256!24F$#257!24w-#258!24F$#259!24w-#260!24F$#261!24w"sv);
+
+        auto data = pixels.get();
+        for (auto y = 0u; y < context.image_height(); ++y) {
+                auto const reg = (256 + y / 3) + 1; /* registers start at 1 */
+                for (auto x = 0u; x < context.image_width(); ++x)
+                        g_assert_cmpuint(*data++, ==, reg);
+        }
+
+
+        g_assert_cmpuint(size_t(data - pixels.get()), <=, size);
+}
+
 // Main
 
 int
@@ -1011,6 +1552,16 @@ main(int argc,
         g_test_add_func("/vte/sixel/parser/controls/c0/ignored", test_parser_controls_c0_ignored);
         g_test_add_func("/vte/sixel/parser/controls/del", test_parser_controls_del);
         g_test_add_func("/vte/sixel/parser/controls/c1", test_parser_controls_c1);
+        g_test_add_func("/vte/sixel/context/color/hls", test_context_color_hls);
+        g_test_add_func("/vte/sixel/context/raster-attributes", test_context_raster_attributes);
+        g_test_add_func("/vte/sixel/context/repeat", test_context_repeat);
+        g_test_add_func("/vte/sixel/context/scanlines/grow", test_context_scanlines_grow);
+        g_test_add_func("/vte/sixel/context/scanlines/underfull", test_context_scanlines_underfull);
+        g_test_add_func("/vte/sixel/context/scanlines/max-width", test_context_scanlines_max_width);
+        g_test_add_func("/vte/sixel/context/scanlines/max-height", test_context_scanlines_max_height);
+        g_test_add_func("/vte/sixel/context/image/stride", test_context_image_stride);
+        g_test_add_func("/vte/sixel/context/image/palette", test_context_image_palette);
+        g_test_add_func("/vte/sixel/context/image/compositing", test_context_image_compositing);
 
         return g_test_run();
 }

@@ -36,6 +36,7 @@ class Widget;
 
 namespace sixel {
 
+class Context;
 class Parser;
 class Sequence;
 
