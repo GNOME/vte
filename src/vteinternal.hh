@@ -34,6 +34,7 @@
 #include "glib-glue.hh"
 
 #include "debug.h"
+#include "clipboard-gtk.hh"
 #include "drawing-cairo.hh"
 #include "vtedefines.hh"
 #include "vtetypes.hh"
@@ -46,6 +47,7 @@
 #include "modes.hh"
 #include "tabstops.hh"
 #include "refptr.hh"
+#include "fwd.hh"
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
@@ -135,110 +137,8 @@ public:
         } saved;
 };
 
-/* Until the selection can be generated on demand, let's not enable this on stable */
-#include "vte/vteversion.h"
-#if (VTE_MINOR_VERSION % 2) == 0
-#undef HTML_SELECTION
-#else
-#define HTML_SELECTION
-#endif
-
-/* Used in the GtkClipboard API, to distinguish requests for HTML and TEXT
- * contents of a clipboard */
-typedef enum {
-        VTE_TARGET_TEXT,
-        VTE_TARGET_HTML,
-        LAST_VTE_TARGET
-} VteSelectionTarget;
-
 struct vte_scrolling_region {
         int start, end;
-};
-
-template <class T>
-class ClipboardTextRequestGtk {
-public:
-        typedef void (T::* Callback)(char const*);
-
-        ClipboardTextRequestGtk() : m_request(nullptr) { }
-        ~ClipboardTextRequestGtk() { cancel(); }
-
-        void request_text(GtkClipboard *clipboard,
-                          Callback callback,
-                          T* that)
-        {
-                cancel();
-                new Request(clipboard, callback, that, &m_request);
-        }
-
-private:
-
-        class Request {
-        public:
-                Request(GtkClipboard *clipboard,
-                        Callback callback,
-                        T* that,
-                        Request** location) :
-                        m_callback(callback),
-                        m_that(that),
-                        m_location(location)
-                {
-                        /* We need to store this here instead of doing it after the |new| above,
-                         * since gtk_clipboard_request_text may dispatch the callback
-                         * immediately or only later, with no way to know this beforehand.
-                         */
-                        *m_location = this;
-                        gtk_clipboard_request_text(clipboard, text_received, this);
-                }
-
-                ~Request()
-                {
-                        invalidate();
-                }
-
-                void cancel()
-                {
-                        invalidate();
-                        m_that = nullptr;
-                        m_location = nullptr;
-                }
-
-        private:
-                Callback m_callback;
-                T *m_that;
-                Request** m_location;
-
-                void invalidate()
-                {
-                        if (m_that && m_location)
-                                *m_location = nullptr;
-                }
-
-                void dispatch(char const *text)
-                {
-                        if (m_that) {
-                                g_assert(m_location == nullptr || *m_location == this);
-
-                                (m_that->*m_callback)(text);
-                        }
-                }
-
-                static void text_received(GtkClipboard *clipboard, char const* text, gpointer data) {
-                        Request* request = reinterpret_cast<Request*>(data);
-                        request->dispatch(text);
-                        delete request;
-                }
-        };
-
-private:
-        void cancel()
-        {
-                if (m_request)
-                        m_request->cancel();
-                g_assert(m_request == nullptr);
-        }
-
-        Request *m_request;
 };
 
 namespace vte {
@@ -490,13 +390,8 @@ public:
 	/* Clipboard data information. */
         bool m_selection_owned[2]{false, false};
         bool m_changing_selection{false};
-        VteFormat m_selection_format[2];
+        vte::platform::ClipboardFormat m_selection_format[2];
         GString *m_selection[2];  // FIXMEegmont rename this so that m_selection_resolved can become m_selection?
-        GtkClipboard *m_clipboard[2];
-
-        auto get_clipboard(vte::platform::ClipboardType type) const noexcept { return m_clipboard[vte::to_integral(type)]; }
-
-        ClipboardTextRequestGtk<Terminal> m_paste_request;
 
 	/* Miscellaneous options. */
         EraseMode m_backspace_binding{EraseMode::eAUTO};
@@ -944,14 +839,15 @@ public:
         void set_border_padding(GtkBorder const* padding);
         void set_cursor_aspect(float aspect);
 
-        void widget_paste(vte::platform::ClipboardType selection);
         void widget_copy(vte::platform::ClipboardType selection,
-                         VteFormat format);
-        void widget_paste_received(char const* text);
-        void widget_clipboard_cleared(GtkClipboard *clipboard);
-        void widget_clipboard_requested(GtkClipboard *target_clipboard,
-                                        GtkSelectionData *data,
-                                        guint info);
+                         vte::platform::ClipboardFormat format);
+
+        void widget_clipboard_text_received(vte::platform::Clipboard const& clipboard,
+                                            std::string_view const& text);
+
+        std::optional<std::string_view> widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
+                                                                  vte::platform::ClipboardFormat format);
+        void widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard);
 
         void widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment);
 

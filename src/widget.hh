@@ -28,6 +28,9 @@
 #include "vteinternal.hh"
 
 #include "fwd.hh"
+
+#include "clipboard-gtk.hh"
+#include "regex.hh"
 #include "refptr.hh"
 
 namespace vte {
@@ -39,11 +42,6 @@ class Terminal;
 } // namespace terminal
 
 namespace platform {
-
-enum class ClipboardType {
-        CLIPBOARD = 0,
-        PRIMARY   = 1
-};
 
 class EventBase {
         friend class vte::platform::Widget;
@@ -304,14 +302,17 @@ public:
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
 
         bool primary_paste_enabled() const noexcept;
-        void paste(vte::platform::ClipboardType sel) noexcept { m_terminal->widget_paste(sel); }
-        void copy(vte::platform::ClipboardType sel,
-                  VteFormat format) noexcept { m_terminal->widget_copy(sel, format); }
-        void paste_received(char const* text) noexcept { m_terminal->widget_paste_received(text); }
-        void clipboard_cleared(GtkClipboard *clipboard) noexcept { m_terminal->widget_clipboard_cleared(clipboard); }
-        void clipboard_requested(GtkClipboard *target_clipboard,
-                                 GtkSelectionData *data,
-                                 guint info) noexcept { m_terminal->widget_clipboard_requested(target_clipboard, data, info); }
+
+        Clipboard& clipboard_get(ClipboardType type) const;
+        void clipboard_offer_data(ClipboardType type,
+                                  ClipboardFormat format) noexcept;
+        void clipboard_request_text(ClipboardType type) noexcept;
+        void clipboard_set_text(ClipboardType type,
+                                std::string_view const& str) noexcept;
+
+        void paste(vte::platform::ClipboardType type) { clipboard_request_text(type); }
+        void copy(vte::platform::ClipboardType type,
+                  vte::platform::ClipboardFormat format) noexcept { m_terminal->widget_copy(type, format); }
 
         void screen_changed (GdkScreen *previous_screen) noexcept;
         void settings_changed() noexcept;
@@ -438,6 +439,14 @@ private:
         KeyEvent key_event_from_gdk(GdkEventKey* event) const;
         MouseEvent mouse_event_from_gdk(GdkEvent* event) const /* throws */;
 
+        void clipboard_request_received_cb(Clipboard const& clipboard,
+                                           std::string_view const& text);
+        void clipboard_request_failed_cb(Clipboard const& clipboard);
+
+        std::optional<std::string_view> clipboard_data_get_cb(Clipboard const& clipboard,
+                                                              ClipboardFormat format);
+        void clipboard_data_clear_cb(Clipboard const& clipboard);
+
         GtkWidget* m_widget;
 
         vte::terminal::Terminal* m_terminal;
@@ -456,6 +465,10 @@ private:
 
         /* PTY */
         vte::glib::RefPtr<VtePty> m_pty;
+
+        /* Clipboard */
+        std::shared_ptr<Clipboard> m_clipboard;
+        std::shared_ptr<Clipboard> m_primary_clipboard;
 
         /* Misc */
         std::optional<std::string> m_word_char_exceptions{};

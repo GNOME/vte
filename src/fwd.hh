@@ -27,6 +27,7 @@ class Pty;
 
 namespace platform {
 
+class Clipboard;
 class EventBase;
 class KeyEvent;
 class MouseEvent;

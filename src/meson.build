@@ -133,6 +133,8 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'cell.hh',
   'chunk.cc',
   'chunk.hh',
+  'clipboard-gtk.cc',
+  'clipboard-gtk.hh',
   'color-triple.hh',
   'cxx-utils.hh',
   'drawing-cairo.cc',

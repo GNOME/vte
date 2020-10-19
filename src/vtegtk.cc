@@ -175,6 +175,16 @@ valid_color(GdkRGBA const* color) noexcept
                color->alpha >= 0. && color->alpha <= 1.;
 }
 
+static vte::platform::ClipboardFormat
+clipboard_format_from_vte(VteFormat format)
+{
+        switch (format) {
+        case VTE_FORMAT_TEXT: return vte::platform::ClipboardFormat::TEXT;
+        case VTE_FORMAT_HTML: return vte::platform::ClipboardFormat::HTML;
+        default: throw std::runtime_error{"Unknown VteFormat enum value"};
+        }
+}
+
 static void
 vte_terminal_set_hadjustment(VteTerminal *terminal,
                              GtkAdjustment *adjustment) noexcept
@@ -231,7 +241,8 @@ static void
 vte_terminal_real_copy_clipboard(VteTerminal *terminal) noexcept
 try
 {
-	WIDGET(terminal)->copy(vte::platform::ClipboardType::CLIPBOARD, VTE_FORMAT_TEXT);
+	WIDGET(terminal)->copy(vte::platform::ClipboardType::CLIPBOARD,
+                               vte::platform::ClipboardFormat::TEXT);
 }
 catch (...)
 {
@@ -2402,7 +2413,8 @@ try
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
         g_return_if_fail(format == VTE_FORMAT_TEXT || format == VTE_FORMAT_HTML);
 
-        WIDGET(terminal)->copy(vte::platform::ClipboardType::CLIPBOARD, format);
+        WIDGET(terminal)->copy(vte::platform::ClipboardType::CLIPBOARD,
+                               clipboard_format_from_vte(format));
 }
 catch (...)
 {
@@ -2422,7 +2434,8 @@ try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Copying to PRIMARY.\n");
-	WIDGET(terminal)->copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
+	WIDGET(terminal)->copy(vte::platform::ClipboardType::PRIMARY,
+                               vte::platform::ClipboardFormat::TEXT);
 }
 catch (...)
 {

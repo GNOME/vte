@@ -4765,7 +4765,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 					handled = TRUE;
 					suppress_alt_esc = TRUE;
 				} else {
-                                        widget_paste(vte::platform::ClipboardType::PRIMARY);
+                                        widget()->clipboard_request_text(vte::platform::ClipboardType::PRIMARY);
 					handled = TRUE;
 					suppress_alt_esc = TRUE;
 				}
@@ -5468,23 +5468,15 @@ Terminal::cell_is_selected_vis(vte::grid::column_t vcol,
 }
 
 void
-Terminal::widget_paste_received(char const* text)
+Terminal::widget_clipboard_text_received(vte::platform::Clipboard const& clipboard,
+                                         std::string_view const& data)
 {
 	gchar *paste, *p;
         gsize run;
         unsigned char c;
 
-	if (text == nullptr)
-                return;
-
-        gsize len = strlen(text);
-        _vte_debug_print(VTE_DEBUG_SELECTION,
-                         "Pasting %" G_GSIZE_FORMAT " UTF-8 bytes.\n", len);
-        // FIXMEchpe this cannot happen ever
-        if (!g_utf8_validate(text, len, NULL)) {
-                g_warning("Paste not valid UTF-8, dropping.");
-                return;
-        }
+        auto const len = data.size();
+        auto text = data.data();
 
         /* Convert newlines to carriage returns, which more software
          * is able to cope with (cough, pico, cough).
@@ -5989,103 +5981,45 @@ Terminal::match_hilite_update()
         apply_mouse_cursor();
 }
 
-/* Note that the clipboard has cleared. */
-static void
-clipboard_clear_cb(GtkClipboard *clipboard,
-                   gpointer user_data)
-{
-	auto that = reinterpret_cast<vte::terminal::Terminal*>(user_data);
-        that->widget_clipboard_cleared(clipboard);
-}
-
 void
-Terminal::widget_clipboard_cleared(GtkClipboard *clipboard_)
+Terminal::widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard)
 {
         if (m_changing_selection)
                 return;
 
-	if (clipboard_ == get_clipboard(vte::platform::ClipboardType::PRIMARY)) {
+        switch (clipboard.type()) {
+        case vte::platform::ClipboardType::PRIMARY:
 		if (m_selection_owned[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] &&
                     !m_selection_resolved.empty()) {
 			_vte_debug_print(VTE_DEBUG_SELECTION, "Lost selection.\n");
 			deselect_all();
 		}
-                m_selection_owned[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] = false;
-	} else if (clipboard_ == get_clipboard(vte::platform::ClipboardType::CLIPBOARD)) {
-                m_selection_owned[vte::to_integral(vte::platform::ClipboardType::CLIPBOARD)] = false;
+
+                [[fallthrough]];
+        case vte::platform::ClipboardType::CLIPBOARD:
+                m_selection_owned[vte::to_integral(clipboard.type())] = false;
+                break;
         }
 }
 
-/* Supply the selected text to the clipboard. */
-static void
-clipboard_copy_cb(GtkClipboard *clipboard,
-                  GtkSelectionData *data,
-                  guint info,
-                  gpointer user_data)
+std::optional<std::string_view>
+Terminal::widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
+                                    vte::platform::ClipboardFormat format)
 {
-	auto that = reinterpret_cast<vte::terminal::Terminal*>(user_data);
-        that->widget_clipboard_requested(clipboard, data, info);
-}
+        auto const sel = vte::to_integral(clipboard.type());
 
-static char*
-text_to_utf16_mozilla(GString* text,
-                      gsize* len_ptr)
-{
-        /* Use g_convert() instead of g_utf8_to_utf16() since the former
-         * adds a BOM which Mozilla requires for text/html format.
-         */
-        return g_convert(text->str, text->len,
-                         "UTF-16", /* conver to UTF-16 */
-                         "UTF-8", /* convert from UTF-8 */
-                         nullptr /* out bytes_read */,
-                         len_ptr,
-                         nullptr);
-}
+        if (m_selection[sel] == nullptr)
+                return std::nullopt;
 
-void
-Terminal::widget_clipboard_requested(GtkClipboard *target_clipboard,
-                                               GtkSelectionData *data,
-                                               guint info)
-{
-        for (auto sel_type : {vte::platform::ClipboardType::CLIPBOARD,
-                              vte::platform::ClipboardType::PRIMARY}) {
-                auto const sel = vte::to_integral(sel_type);
-		if (target_clipboard == get_clipboard(sel_type) &&
-                    m_selection[sel] != nullptr) {
-			_VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
-				int i;
-				g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.) for target %s\n",
-                                           sel,
-                                           m_selection[sel]->len,
-                                           gdk_atom_name(gtk_selection_data_get_target(data)));
-                                char const* selection_text = m_selection[sel]->str;
-                                for (i = 0; selection_text[i] != '\0'; i++) {
-                                        g_printerr("0x%04x ", selection_text[i]);
-                                        if ((i & 0x7) == 0x7)
-                                                g_printerr("\n");
-				}
-                                g_printerr("\n");
-			}
-			if (info == VTE_TARGET_TEXT) {
-				gtk_selection_data_set_text(data,
-                                                            m_selection[sel]->str,
-                                                            m_selection[sel]->len);
-			} else if (info == VTE_TARGET_HTML) {
-				gsize len;
-                                auto selection = text_to_utf16_mozilla(m_selection[sel], &len);
-                                // FIXMEchpe this makes yet another copy of the data... :(
-                                if (selection)
-                                        gtk_selection_data_set(data,
-                                                               gdk_atom_intern_static_string("text/html"),
-                                                               16,
-                                                               (const guchar *)selection,
-                                                               len);
-				g_free(selection);
-			} else {
-                                /* Not reached */
-                        }
-		}
-	}
+        _VTE_DEBUG_IF(VTE_DEBUG_SELECTION) {
+                g_printerr("Setting selection %d (%" G_GSIZE_FORMAT " UTF-8 bytes.) for target %s\n",
+                           sel,
+                           m_selection[sel]->len,
+                           format == vte::platform::ClipboardFormat::HTML ? "HTML" : "TEXT");
+                _vte_debug_hexdump("Selection data", (uint8_t const*)m_selection[sel]->str, m_selection[sel]->len);
+        }
+
+        return std::string_view{m_selection[sel]->str, m_selection[sel]->len};
 }
 
 /* Convert the internal color code (either index or RGB) into RGB. */
@@ -6542,59 +6476,15 @@ Terminal::attributes_to_html(GString* text_string,
 	return string;
 }
 
-static GtkTargetEntry*
-targets_for_format(VteFormat format,
-                   int *n_targets)
-{
-        switch (format) {
-        case VTE_FORMAT_TEXT: {
-                static GtkTargetEntry *text_targets = nullptr;
-                static int n_text_targets;
-
-                if (text_targets == nullptr) {
-			auto list = gtk_target_list_new (nullptr, 0);
-			gtk_target_list_add_text_targets (list, VTE_TARGET_TEXT);
-
-                        text_targets = gtk_target_table_new_from_list (list, &n_text_targets);
-			gtk_target_list_unref (list);
-                }
-
-                *n_targets = n_text_targets;
-                return text_targets;
-        }
-
-        case VTE_FORMAT_HTML: {
-                static GtkTargetEntry *html_targets = nullptr;
-                static int n_html_targets;
-
-                if (html_targets == nullptr) {
-			auto list = gtk_target_list_new (nullptr, 0);
-			gtk_target_list_add_text_targets (list, VTE_TARGET_TEXT);
-                        gtk_target_list_add (list,
-                                             gdk_atom_intern_static_string("text/html"),
-                                             0,
-                                             VTE_TARGET_HTML);
-
-                        html_targets = gtk_target_table_new_from_list (list, &n_html_targets);
-			gtk_target_list_unref (list);
-                }
-
-                *n_targets = n_html_targets;
-                return html_targets;
-        }
-        default:
-                g_assert_not_reached();
-        }
-}
-
 /* Place the selected text onto the clipboard.  Do this asynchronously so that
  * we get notified when the selection we placed on the clipboard is replaced. */
 void
 Terminal::widget_copy(vte::platform::ClipboardType type,
-                      VteFormat format)
+                      vte::platform::ClipboardFormat format)
 {
         /* Only put HTML on the CLIPBOARD, not PRIMARY */
-        assert(type == vte::platform::ClipboardType::CLIPBOARD || format == VTE_FORMAT_TEXT);
+        assert(type == vte::platform::ClipboardType::CLIPBOARD ||
+               format == vte::platform::ClipboardFormat::TEXT);
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
         GArray *attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
@@ -6612,7 +6502,7 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
                 return;
         }
 
-        if (format == VTE_FORMAT_HTML) {
+        if (format == vte::platform::ClipboardFormat::HTML) {
                 m_selection[sel] = attributes_to_html(selection, attributes);
                 g_string_free(selection, TRUE);
         } else {
@@ -6625,33 +6515,12 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
         _vte_debug_print(VTE_DEBUG_SELECTION,
                          "Assuming ownership of selection.\n");
 
-        int n_targets;
-        auto targets = targets_for_format(format, &n_targets);
-
-        m_changing_selection = true;
-        gtk_clipboard_set_with_data(get_clipboard(type),
-                                    targets,
-                                    n_targets,
-                                    clipboard_copy_cb,
-                                    clipboard_clear_cb,
-                                    this);
-        m_changing_selection = false;
-
-        gtk_clipboard_set_can_store(get_clipboard(type), nullptr, 0);
         m_selection_owned[sel] = true;
         m_selection_format[sel] = format;
-}
 
-/* Paste from the given clipboard. */
-void
-Terminal::widget_paste(vte::platform::ClipboardType selection)
-{
-        if (!m_input_enabled)
-                return;
-
-        _vte_debug_print(VTE_DEBUG_SELECTION, "Requesting clipboard contents.\n");
-
-        m_paste_request.request_text(get_clipboard(selection), &Terminal::widget_paste_received, this);
+        m_changing_selection = true;
+        widget()->clipboard_offer_data(type, format);
+        m_changing_selection = false;
 }
 
 /* Confine coordinates into the visible area. Padding is already subtracted. */
@@ -6726,7 +6595,8 @@ Terminal::maybe_end_selection()
 		/* Copy only if something was selected. */
                 if (!m_selection_resolved.empty() &&
 		    m_selecting_had_delta) {
-                        widget_copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
+                        widget_copy(vte::platform::ClipboardType::PRIMARY,
+                                    vte::platform::ClipboardFormat::TEXT);
 			emit_selection_changed();
 		}
                 stop_autoscroll();  /* Required before setting m_selecting to false, see #105. */
@@ -6761,7 +6631,8 @@ Terminal::select_all()
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
-        widget_copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
+        widget_copy(vte::platform::ClipboardType::PRIMARY,
+                    vte::platform::ClipboardFormat::TEXT);
 	emit_selection_changed();
 
 	invalidate_all();
@@ -6955,7 +6826,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 			if ((m_modifiers & GDK_SHIFT_MASK) ||
 			    m_mouse_tracking_mode == MouseTrackingMode::eNONE) {
                                 if (widget()->primary_paste_enabled()) {
-                                        widget_paste(vte::platform::ClipboardType::PRIMARY);
+                                        widget()->clipboard_request_text(vte::platform::ClipboardType::PRIMARY);
                                         handled = true;
                                 }
 			}
@@ -7760,9 +7631,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         gtk_widget_get_allocation(m_widget, &allocation);
         set_allocated_rect(allocation);
 
-	int i;
-	GdkDisplay *display;
-
 	/* NOTE! We allocated zeroed memory, just fill in non-zero stuff. */
 
         // FIXMEegmont make this store row indices only, maybe convert to a bitmap
@@ -7791,7 +7659,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* Set up the desired palette. */
 	set_colors_default();
-	for (i = 0; i < VTE_PALETTE_SIZE; i++)
+	for (auto i = 0; i < VTE_PALETTE_SIZE; i++)
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
         /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
@@ -7809,11 +7677,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 
         /* Default is 0, forces update in vte_terminal_set_scrollback_lines */
 	set_scrollback_lines(VTE_SCROLLBACK_INIT);
-
-	/* Selection info. */
-	display = gtk_widget_get_display(m_widget);
-	m_clipboard[vte::to_integral(vte::platform::ClipboardType::CLIPBOARD)] = gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD);
-	m_clipboard[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] = gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY);
 
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
@@ -8049,10 +7912,10 @@ Terminal::~Terminal()
 		if (m_selection[sel] != nullptr) {
 			if (m_selection_owned[sel]) {
                                 // FIXMEchpe we should check m_selection_format[sel]
-                                // and also put text/html on if it's VTE_FORMAT_HTML
-				gtk_clipboard_set_text(get_clipboard(sel_type),
-						       m_selection[sel]->str,
-						       m_selection[sel]->len);
+                                // and also put text/html on if it's HTML format
+                                widget()->clipboard_set_text(sel_type,
+                                                             {m_selection[sel]->str,
+                                                              m_selection[sel]->len});
 			}
 			g_string_free(m_selection[sel], TRUE);
                         m_selection[sel] = nullptr;
@@ -10169,7 +10032,8 @@ Terminal::select_text(vte::grid::column_t start_col,
 	m_selecting_had_delta = true;
         m_selection_resolved.set ({ start_row, start_col },
                                   { end_row, end_col });
-        widget_copy(vte::platform::ClipboardType::PRIMARY, VTE_FORMAT_TEXT);
+        widget_copy(vte::platform::ClipboardType::PRIMARY,
+                    vte::platform::ClipboardFormat::TEXT);
 	emit_selection_changed();
 
         invalidate_rows(start_row, end_row);

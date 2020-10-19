@@ -221,6 +221,75 @@ Widget::set_cursor(Cursor const& cursor) noexcept
                 g_object_unref(gdk_cursor);
 }
 
+Clipboard&
+Widget::clipboard_get(ClipboardType type) const
+{
+        switch (type) {
+        case ClipboardType::PRIMARY: return *m_clipboard;
+        case ClipboardType::CLIPBOARD: return *m_primary_clipboard;
+        default: g_assert_not_reached(); throw std::runtime_error{""}; break;
+        }
+}
+
+std::optional<std::string_view>
+Widget::clipboard_data_get_cb(Clipboard const& clipboard,
+                              ClipboardFormat format)
+{
+        return terminal()->widget_clipboard_data_get(clipboard, format);
+}
+
+void
+Widget::clipboard_data_clear_cb(Clipboard const& clipboard)
+{
+        terminal()->widget_clipboard_data_clear(clipboard);
+}
+
+void
+Widget::clipboard_request_received_cb(Clipboard const& clipboard,
+                                      std::string_view const& text)
+{
+        terminal()->widget_clipboard_text_received(clipboard, text);
+}
+
+void
+Widget::clipboard_request_failed_cb(Clipboard const& clipboard)
+{
+        gtk_widget_error_bell(gtk());
+}
+
+void
+Widget::clipboard_offer_data(ClipboardType type,
+                             ClipboardFormat format) noexcept
+{
+        try {
+                clipboard_get(type).offer_data(format,
+                                               &Widget::clipboard_data_get_cb,
+                                               &Widget::clipboard_data_clear_cb);
+        } catch (...) {
+                /* Let the caller know the request failed */
+                terminal()->widget_clipboard_data_clear(clipboard_get(type));
+        }
+}
+
+void
+Widget::clipboard_request_text(ClipboardType type) noexcept
+{
+        try {
+                clipboard_get(type).request_text(&Widget::clipboard_request_received_cb,
+                                                 &Widget::clipboard_request_failed_cb);
+        } catch (...) {
+                /* Let the caller know the request failed */
+                clipboard_request_failed_cb(clipboard_get(type));
+        }
+}
+
+void
+Widget::clipboard_set_text(ClipboardType type,
+                           std::string_view const& str) noexcept
+{
+        clipboard_get(type).set_text(str);
+}
+
 void
 Widget::constructed() noexcept
 {
@@ -499,6 +568,9 @@ Widget::realize() noexcept
 			 G_CALLBACK(im_delete_surrounding_cb), this);
 	gtk_im_context_set_use_preedit(m_im_context.get(), true);
 
+        m_clipboard = std::make_shared<Clipboard>(*this, ClipboardType::CLIPBOARD);
+        m_primary_clipboard = std::make_shared<Clipboard>(*this, ClipboardType::PRIMARY);
+
         m_terminal->widget_realize();
 }
 
@@ -649,6 +721,17 @@ void
 Widget::unrealize() noexcept
 {
         m_terminal->widget_unrealize();
+
+        if (m_clipboard) {
+                terminal()->widget_clipboard_data_clear(*m_clipboard);
+                m_clipboard->disown();
+        }
+        if (m_primary_clipboard) {
+                terminal()->widget_clipboard_data_clear(*m_primary_clipboard);
+                m_primary_clipboard->disown();
+        }
+        m_clipboard.reset();
+        m_primary_clipboard.reset();
 
         m_default_cursor.reset();
         m_invisible_cursor.reset();
