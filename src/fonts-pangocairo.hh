@@ -144,9 +144,9 @@ public:
                         return;
 
                 /* Delay destruction by a few seconds, in case we need it again */
-                m_destroy_timeout = gdk_threads_add_timeout_seconds(font_cache_timeout,
-                                                                    (GSourceFunc)destroy_delayed_cb,
-                                                                    this);
+                m_destroy_timeout = g_timeout_add_seconds(font_cache_timeout,
+                                                          (GSourceFunc)destroy_delayed_cb,
+                                                          this);
         }
 
         struct UnistrInfo {
