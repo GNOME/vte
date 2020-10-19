@@ -215,12 +215,15 @@ public:
 
         ScrollDirection scroll_direction() const noexcept
         {
-                /* Note that we cannot use gdk_event_get_scroll_direction() here since it
-                 * returns false for smooth scroll events.
-                 */
                 if (!is_mouse_scroll())
                         return ScrollDirection::eNONE;
-                switch (reinterpret_cast<GdkEventScroll*>(platform_event())->direction) {
+                auto dir = GdkScrollDirection{};
+                if (gdk_event_get_scroll_deltas(platform_event(), nullptr, nullptr))
+                        dir = GDK_SCROLL_SMOOTH;
+                else if (!gdk_event_get_scroll_direction(platform_event(), &dir))
+                        return ScrollDirection::eNONE;
+
+                switch (dir) {
                 case GDK_SCROLL_UP:     return ScrollDirection::eUP;
                 case GDK_SCROLL_DOWN:   return ScrollDirection::eDOWN;
                 case GDK_SCROLL_LEFT:   return ScrollDirection::eLEFT;
