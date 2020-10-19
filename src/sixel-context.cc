@@ -298,8 +298,12 @@ Context::reset_colors() noexcept
 
 void
 Context::prepare(uint32_t introducer,
-                 color_t fg,
-                 color_t bg,
+                 unsigned fg_red,
+                 unsigned fg_green,
+                 unsigned fg_blue,
+                 unsigned bg_red,
+                 unsigned bg_green,
+                 unsigned bg_blue,
                  bool private_color_registers,
                  double pixel_aspect) noexcept
 {
@@ -312,9 +316,10 @@ Context::prepare(uint32_t introducer,
                 reset_colors();
 
         /* FIXMEchpe: this all seems bogus. */
-        set_color(0, bg);
+        set_color(0, make_color(bg_red, bg_green, bg_blue));
         if (private_color_registers)
-                set_color(param_to_color_register(0), fg);
+                set_color(param_to_color_register(0),
+                          make_color(fg_red, fg_green, fg_blue));
 
         /*
          * DEC PPLV2 says that on entering DECSIXEL mode, the active colour

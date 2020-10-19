@@ -4440,11 +4440,10 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
                 auto const fg = get_color(VTE_DEFAULT_FG);
                 auto const bg = get_color(VTE_DEFAULT_BG);
-                auto nfg = uint32_t(fg->red >> 8) | ((fg->green >> 8) << 8) | ((fg->blue >> 8) << 16) | 0xff << 24;
-                auto nbg = uint32_t(bg->red >> 8) | ((bg->green >> 8) << 8) | ((bg->blue >> 8) << 16) | 0xff << 24;
 
                 m_sixel_context->prepare(seq.st(),
-                                         nfg, nbg,
+                                         fg->red >> 8, fg->green >> 8, fg->blue >> 8,
+                                         bg->red >> 8, bg->green >> 8, bg->blue >> 8,
                                          m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS());
 
                 m_sixel_context->set_mode(mode);

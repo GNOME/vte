@@ -620,8 +620,12 @@ private:
 public:
 
         void prepare(uint32_t introducer,
-                     color_t fg,
-                     color_t bg,
+                     unsigned fg_red,
+                     unsigned fg_green,
+                     unsigned fg_blue,
+                     unsigned bg_red,
+                     unsigned bg_green,
+                     unsigned bg_blue,
                      bool private_color_registers,
                      double pixel_aspect = 1.0) noexcept;
 
