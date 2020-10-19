@@ -4410,7 +4410,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                          * DECSIXEL in 7-bit mode.
                          *
                          * As an added complication, we can only switch data syntaxes if
-                         * the data stream is exact, that is the charset converted has
+                         * the data stream is exact, that is the charset converter has
                          * not consumed more data than we have currently read output bytes
                          * from it. So we need to check that the converter has no pending
                          * characters.
