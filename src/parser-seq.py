@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright © 2015 David Herrmann <dh.herrmann@gmail.com>
 # Copyright © 2018, 2019, 2020 Christian Persch
