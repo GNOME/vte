@@ -258,7 +258,7 @@ private:
         double m_y;
 }; // class MouseEvent
 
-class Widget {
+class Widget : public std::enable_shared_from_this<Widget> {
 public:
         friend class vte::terminal::Terminal;
 

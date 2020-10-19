@@ -33,6 +33,7 @@
 
 #include <new> /* placement new */
 #include <exception>
+#include <stdexcept>
 
 #include <pwd.h>
 
@@ -78,13 +79,48 @@ struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
 
+class VteTerminalPrivate {
+public:
+        VteTerminalPrivate(VteTerminal* terminal)
+                : m_widget{std::make_shared<vte::platform::Widget>(terminal)}
+        {
+        }
+
+        ~VteTerminalPrivate() = default;
+
+        VteTerminalPrivate(VteTerminalPrivate const&) = delete;
+        VteTerminalPrivate(VteTerminalPrivate&&) = delete;
+
+        VteTerminalPrivate& operator=(VteTerminalPrivate const&) = delete;
+        VteTerminalPrivate& operator=(VteTerminalPrivate&&) = delete;
+
+        auto get() const /* throws */
+        {
+                if (!m_widget)
+                        throw std::runtime_error{"Widget is nullptr"};
+
+                return m_widget.get();
+        }
+
+        void reset()
+        {
+                if (m_widget)
+                        m_widget->dispose();
+
+                m_widget.reset();
+        }
+
+private:
+        std::shared_ptr<vte::platform::Widget> m_widget;
+};
+
 static void vte_terminal_scrollable_iface_init(GtkScrollableInterface* iface) noexcept;
 
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
                                 VteTerminal_private_offset =
-                                        g_type_add_instance_private(g_define_type_id, sizeof(vte::platform::Widget));
+                                        g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, vte_terminal_scrollable_iface_init)
@@ -95,22 +131,30 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
                                 VteTerminal_private_offset =
-                                        g_type_add_instance_private(g_define_type_id, sizeof(vte::platform::Widget));
+                                        g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
                         G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, vte_terminal_scrollable_iface_init))
 #endif
 
-static inline
-vte::platform::Widget* get_widget(VteTerminal* terminal)
+static inline auto
+get_private(VteTerminal* terminal)
 {
-        return reinterpret_cast<vte::platform::Widget*>(vte_terminal_get_instance_private(terminal));
+        return reinterpret_cast<VteTerminalPrivate*>(vte_terminal_get_instance_private(terminal));
+}
+
+#define PRIVATE(t) (get_private(t))
+
+static inline auto
+get_widget(VteTerminal* terminal) /* throws */
+{
+        return get_private(terminal)->get();
 }
 
 #define WIDGET(t) (get_widget(t))
 
 vte::terminal::Terminal*
-_vte_terminal_get_impl(VteTerminal *terminal)
+_vte_terminal_get_impl(VteTerminal* terminal) /* throws */
 {
         return WIDGET(terminal)->terminal();
 }
@@ -563,9 +607,8 @@ try
 
         gtk_widget_set_has_window(&terminal->widget, FALSE);
 
-	/* Initialize private data. NOTE: place is zeroed */
 	place = vte_terminal_get_instance_private(terminal);
-        new (place) vte::platform::Widget(terminal);
+        new (place) VteTerminalPrivate{terminal};
 }
 catch (...)
 {
@@ -573,7 +616,7 @@ catch (...)
 
         // There's not really anything we can do after the
         // construction of Widget failed... we'll crash soon anyway.
-        g_assert_not_reached();
+        g_error("Widget::Widget threw\n");
 }
 
 static void
@@ -583,7 +626,7 @@ vte_terminal_dispose(GObject *object) noexcept
 
         try {
                 VteTerminal *terminal = VTE_TERMINAL (object);
-                WIDGET(terminal)->dispose();
+                PRIVATE(terminal)->reset();
         } catch (...) {
                 vte::log_exception();
         }
@@ -597,12 +640,8 @@ vte_terminal_finalize(GObject *object) noexcept
 {
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_finalize()\n");
 
-        try {
-                VteTerminal *terminal = VTE_TERMINAL (object);
-                WIDGET(terminal)->~Widget();
-        } catch (...) {
-                vte::log_exception();
-        }
+        auto terminal = VTE_TERMINAL(object);
+        PRIVATE(terminal)->~VteTerminalPrivate();
 
 	/* Call the inherited finalize() method. */
 	G_OBJECT_CLASS(vte_terminal_parent_class)->finalize(object);
