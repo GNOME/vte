@@ -9186,33 +9186,6 @@ Terminal::widget_draw(cairo_t *cr)
                                  get_color(VTE_DEFAULT_BG), m_background_alpha);
         }
 
-#ifdef WITH_SIXEL
-	/* Draw images */
-	if (m_images_enabled) {
-		vte::grid::row_t top_row = first_displayed_row();
-		vte::grid::row_t bottom_row = last_displayed_row();
-		auto image_map = ring->m_image_priority_map;
-		auto it = image_map->begin ();
-		for (; it != image_map->end (); ++it) {
-			vte::image::Image *image = it->second;
-
-                        if (image->get_bottom() < top_row
-                            || image->get_top() > bottom_row)
-				continue;
-
-			int x = m_padding.left + image->get_left () * m_cell_width;
-			int y = m_padding.top + (image->get_top () - m_screen->scroll_delta) * m_cell_height;
-
-                        /* Clear cell extent; image may be slightly smaller */
-                        m_draw.clear(x, y, image->get_width() * m_cell_width,
-                                     image->get_height() * m_cell_height,
-                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
-
-			image->paint (cr, x, y, m_cell_width, m_cell_height);
-		}
-	}
-#endif /* WITH_SIXEL */
-
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
         cairo_save(cr);
@@ -9223,6 +9196,33 @@ Terminal::widget_draw(cairo_t *cr)
 
         /* Transform to view coordinates */
         cairo_region_translate(region, -m_padding.left, -m_padding.top);
+
+#ifdef WITH_SIXEL
+	/* Draw images */
+	if (m_images_enabled) {
+		vte::grid::row_t top_row = first_displayed_row();
+		vte::grid::row_t bottom_row = last_displayed_row();
+		auto image_map = ring->m_image_priority_map;
+		auto it = image_map->begin ();
+		for (; it != image_map->end (); ++it) {
+			vte::image::Image *image = it->second;
+
+                        if (image->get_bottom() < top_row ||
+                            image->get_top() > bottom_row)
+				continue;
+
+			auto const x = image->get_left () * m_cell_width;
+			auto const y = (image->get_top () - m_screen->scroll_delta) * m_cell_height;
+
+                        /* Clear cell extent; image may be slightly smaller */
+                        m_draw.clear(x, y, image->get_width() * m_cell_width,
+                                     image->get_height() * m_cell_height,
+                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
+
+			image->paint(cr, x, y, m_cell_width, m_cell_height);
+		}
+	}
+#endif /* WITH_SIXEL */
 
         /* Whether blinking text should be visible now */
         m_text_blink_state = true;
