@@ -137,11 +137,6 @@ public:
         constexpr auto is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
         constexpr auto is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
 
-        auto string() const noexcept
-        {
-                return reinterpret_cast<GdkEventKey*>(platform_event())->string;
-        }
-
 private:
         unsigned m_modifiers;
         unsigned m_keyval;

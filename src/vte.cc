@@ -4563,9 +4563,9 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Keypress, modifiers=0x%x, "
-				"keyval=0x%x, raw string=`%s'.\n",
-				m_modifiers,
-                                 keyval, event.string());
+				"keyval=0x%x\n",
+                                 m_modifiers,
+                                 keyval);
 
 		/* We steal many keypad keys here. */
 		if (!m_im_preedit_active) {
