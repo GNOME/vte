@@ -129,6 +129,11 @@ public:
                 eALWAYS_RESET = -1,
 
 #define MODE(name,param) e##name,
+#define MODE_FIXED(name,param,value)
+#include "modes-ecma.hh"
+#undef MODE
+#undef MODE_FIXED
+#define MODE(name,param)
 #define MODE_FIXED(name,param,value) e##name,
 #include "modes-ecma.hh"
 #undef MODE
@@ -183,6 +188,11 @@ public:
                 eALWAYS_RESET = -1,
 
 #define MODE(name,param) e##name,
+#define MODE_FIXED(name,param,value)
+#include "modes-private.hh"
+#undef MODE
+#undef MODE_FIXED
+#define MODE(name,param)
 #define MODE_FIXED(name,param,value) e##name,
 #include "modes-private.hh"
 #undef MODE
