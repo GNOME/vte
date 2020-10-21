@@ -3364,8 +3364,8 @@ spawn_async_cb(GObject *source,
  * @n_map_fds: the number of elements in @map_fds, or 0 if @map_fds is %NULL
  * @spawn_flags: flags from #GSpawnFlags
  * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
- * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
- * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
+ * @child_setup_data: (nullable) (closure child_setup): user data for @child_setup, or %NULL
+ * @child_setup_data_destroy: (nullable) (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
@@ -3479,8 +3479,8 @@ catch (...)
  *   variables to be added to the environment before starting the process, or %NULL
  * @spawn_flags: flags from #GSpawnFlags
  * @child_setup: (allow-none) (scope async): an extra child setup function to run in the child just before exec(), or %NULL
- * @child_setup_data: (closure child_setup): user data for @child_setup, or %NULL
- * @child_setup_data_destroy: (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
+ * @child_setup_data: (nullable) (closure child_setup): user data for @child_setup, or %NULL
+ * @child_setup_data_destroy: (nullable) (destroy child_setup_data): a #GDestroyNotify for @child_setup_data, or %NULL
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
