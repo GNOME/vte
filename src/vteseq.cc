@@ -3074,6 +3074,7 @@ Terminal::DECFRA(vte::parser::Sequence const& seq)
          * either each UTF-8 byte in a subparam of its own, or just split
          * the unicode plane off into the leading subparam (plane:remaining 16 bits).
          * Or by using the last graphic character for it, like REP.
+         * See also the changes wrt. UTF-8 handling here in XTERM 357.
          */
 }
 
@@ -8483,9 +8484,21 @@ Terminal::XTERM_CHECKSUM_MODE(vte::parser::Sequence const& seq)
          * Defaults:
          *   args[0]: 0, matching the output from VTxxx terminals
          *
-         * References: XTERM (since 335)
+         * References: XTERM 335
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+Terminal::XTERM_GETXRES(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_GETXRES - xterm get X resource
+         *
+         * References: XTERM 350
+         *
+         * Won't implement.
          */
 }
 
@@ -8516,6 +8529,153 @@ Terminal::XTERM_MUHP(vte::parser::Sequence const& seq)
          * XTERM_MUHP - xterm-memory-unlock-hp-bugfix
          *
          * Probably not worth implementing.
+         */
+}
+
+void
+Terminal::XTERM_MODKEYS(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_MODKEYS - xterm set key modifier options
+         *
+         * Probably not worth implementing.
+         */
+}
+
+void
+Terminal::XTERM_POPCOLORS(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_POPCOLORS: pop color palette stack
+         * Restore color palette attributes previously pushed to the stack
+         * with XTERM_PUSHCOLORS. If there is nothing on the
+         * stack, does nothing.
+         *
+         * Arguments: none
+         *
+         * References: XTERM 357
+         *
+         * See issue vte#23.
+         */
+}
+
+void
+Terminal::XTERM_POPSGR(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_POPSGR: pop SGR stack
+         * Restore SGR attributes previously pushed to the stack
+         * with XTERM_PUSHSGR. If there is nothing on the
+         * stack, does nothing.
+         *
+         * Arguments: none
+         *
+         * References: XTERM 334
+         *
+         * Note: The {PUSH,POP,REPORT}SGR protocol is poorly thought-out, and has
+         * no real use case. See the discussion at issue vte#23.
+         * Probably won't implement.
+         */
+}
+
+void
+Terminal::XTERM_PUSHCOLORS(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_PUSHSGR: push color palette stack
+         * Push current color palette to the stack.
+         * If the stack is full, drops the bottommost item before
+         * pushing on the stack.
+         *
+         * If there are any arguments, they are interpreted as in SGR
+         * to denote which attributes to save; if there are no arguments,
+         * all attributes are saved.
+         *
+         * Arguments:
+         *   args[0:]: the attributes
+         *     0 = save all attributes
+         *
+         * Defaults:
+         *   args[0]: 0 (save all attributes)
+         *
+         * References: XTERM 357
+         *
+         * See issue vte#23.
+         */
+}
+
+void
+Terminal::XTERM_PUSHSGR(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_PUSHSGR: push SGR stack
+         * Push current SGR attributes to the stack.
+         * If the stack is full, drops the bottommost item before
+         * pushing on the stack.
+         *
+         * If there are any arguments, they are interpreted as in SGR
+         * to denote which attributes to save; if there are no arguments,
+         * all attributes are saved.
+         *
+         * Arguments:
+         *   args[0:]: the attributes
+         *     0 = save all attributes
+         *
+         * Defaults:
+         *   args[0]: 0 (save all attributes)
+         *
+         * References: XTERM 334
+         *
+         * Note: The {PUSH,POP,REPORT}SGR protocol is poorly thought-out, and has
+         * no real use case. See the discussion at issue vte#23.
+         * Probably won't implement.
+         */
+}
+
+void
+Terminal::XTERM_REPORTCOLORS(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_REPORTCOLORS: report color palette on stack
+         *
+         * References: XTERM 357
+         *
+         * See issue vte#23.
+         */
+}
+
+void
+Terminal::XTERM_REPORTSGR(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_REPORTSGR: report SGR attributes in rectangular area
+         * Report common character attributes in the specified rectangle.
+         *
+         * Arguments;
+         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
+         *
+         * Defaults:
+         *   args[0]: 1
+         *   args[1]: 1
+         *   args[2]: height of current page
+         *   args[3]: width of current page
+         *
+         * Reply: SGR
+         *
+         * If the top > bottom or left > right, the command is ignored.
+         *
+         * These coordinates are interpreted according to origin mode (DECOM),
+         * but unaffected by the page margins (DECSLRM?).
+         *
+         * Note: DECSACE selects whether this function operates on the
+         * rectangular area or the data stream between the star and end
+         * positions.
+         *
+         * References: XTERM 334
+         *
+         * Note: The {PUSH,POP,REPORT}SGR protocol is poorly thought-out, and has
+         * no real use case. See the discussion at issue vte#23.
+         * Probably won't implement.
          */
 }
 
@@ -8574,79 +8734,6 @@ Terminal::XTERM_SGFX(vte::parser::Sequence const& seq)
 }
 
 void
-Terminal::XTERM_SGR_REPORT(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SGR_REPORT: report SGR attributes in rectangular area
-         * Report common character attributes in the specified rectangle.
-         *
-         * Arguments;
-         *   args[0..3]: top, left, bottom, right of the rectangle (1-based)
-         *
-         * Defaults:
-         *   args[0]: 1
-         *   args[1]: 1
-         *   args[2]: height of current page
-         *   args[3]: width of current page
-         *
-         * Reply: SGR
-         *
-         * If the top > bottom or left > right, the command is ignored.
-         *
-         * These coordinates are interpreted according to origin mode (DECOM),
-         * but unaffected by the page margins (DECSLRM?).
-         *
-         * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
-         * positions.
-         *
-         * References: XTERM 334
-         */
-        /* TODO: Implement this */
-}
-
-void
-Terminal::XTERM_SGR_STACK_POP(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SGR_STACK_POP: pop SGR stack
-         * Restore SGR attributes previously pushed to the stack
-         * with XTERM_SGR_STACK_PUSH. If there is nothing on the
-         * stack, does nothing.
-         *
-         * Arguments: none
-         *
-         * References: XTERM 334
-         */
-        /* TODO: Implement this: https://gitlab.gnome.org/GNOME/vte/issues/23 */
-}
-
-void
-Terminal::XTERM_SGR_STACK_PUSH(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SGR_STACK_PUSH: push SGR stack
-         * Push current SGR attributes to the stack.
-         * If the stack is full, drops the bottommost item before
-         * pushing on the stack.
-         *
-         * If there are any arguments, they are interpreted as in SGR
-         * to denote which attributes to save; if there are no arguments,
-         * all attributes are saved.
-         *
-         * Arguments:
-         *   args[0:]: the attributes
-         *     0 = save all attributes
-         *
-         * Defaults:
-         *   args[0]: 0 (save all attributes)
-         *
-         * References: XTERM 334
-         */
-        /* TODO: Implement this: https://gitlab.gnome.org/GNOME/vte/issues/23 */
-}
-
-void
 Terminal::XTERM_SPM(vte::parser::Sequence const& seq)
 {
         /*
@@ -8669,16 +8756,6 @@ Terminal::XTERM_PTRMODE(vte::parser::Sequence const& seq)
          * Defaults: none
          *
          * References: XTERM
-         *
-         * Probably not worth implementing.
-         */
-}
-
-void
-Terminal::XTERM_SRV(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_SRV - xterm-set-resource-value
          *
          * Probably not worth implementing.
          */
