@@ -210,7 +210,9 @@ private:
 
         static void delete_cb(void* that)
         {
-                delete reinterpret_cast<SpawnOperation*>(that);
+                /* Take ownership */
+                auto op = std::unique_ptr<SpawnOperation>
+                        (reinterpret_cast<SpawnOperation*>(that));
         }
 
         static void run_in_thread_cb(GTask* task,
@@ -239,12 +241,14 @@ public:
         SpawnOperation operator=(SpawnOperation const&) = delete;
         SpawnOperation operator=(SpawnOperation&&) = delete;
 
-        void run_async(void *source_tag,
-                       GAsyncReadyCallback callback,
-                       void* user_data); /* takes ownership of @this ! */
+        static void run_async(std::unique_ptr<SpawnOperation> op,
+                              void *source_tag,
+                              GAsyncReadyCallback callback,
+                              void* user_data);
 
-        bool run_sync(GPid* pid,
-                      vte::glib::Error& error);
+        static bool run_sync(SpawnOperation& op,
+                             GPid* pid,
+                             vte::glib::Error& error);
 
 }; // class SpawnOperation
 

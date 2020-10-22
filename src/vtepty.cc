@@ -684,7 +684,7 @@ try
                                             cancellable};
 
         auto err = vte::glib::Error{};
-        auto rv = op.run_sync(child_pid, err);
+        auto rv = vte::base::SpawnOperation::run_sync(op, child_pid, err);
         if (!rv)
                 err.propagate(error);
 
@@ -814,23 +814,24 @@ try
         g_warn_if_fail((spawn_flags & forbidden_spawn_flags()) == 0);
         spawn_flags = GSpawnFlags(spawn_flags & ~forbidden_spawn_flags());
 
-        auto op = new vte::base::SpawnOperation{spawn_context_from_args(pty,
-                                                                        working_directory,
-                                                                        argv,
-                                                                        envv,
-                                                                        fds, n_fds,
-                                                                        fd_map_to, n_fd_map_to,
-                                                                        spawn_flags,
-                                                                        child_setup,
-                                                                        child_setup_data,
-                                                                        child_setup_data_destroy),
-                                                timeout,
-                                                cancellable};
+        auto op = std::make_unique<vte::base::SpawnOperation>
+                (spawn_context_from_args(pty,
+                                         working_directory,
+                                         argv,
+                                         envv,
+                                         fds, n_fds,
+                                         fd_map_to, n_fd_map_to,
+                                         spawn_flags,
+                                         child_setup,
+                                         child_setup_data,
+                                         child_setup_data_destroy),
+                 timeout,
+                 cancellable);
 
-        /* takes ownership of @op */
-        op->run_async((void*)vte_pty_spawn_async, /* tag */
-                      callback,
-                      user_data);
+        vte::base::SpawnOperation::run_async(std::move(op),
+                                             (void*)vte_pty_spawn_async, /* tag */
+                                             callback,
+                                             user_data);
 }
 catch (...)
 {

@@ -724,30 +724,31 @@ SpawnOperation::run_in_thread(GTask* task) noexcept
                 g_task_return_error(task, error.release());
 }
 
-/* Note: this function takes ownership of @this */
 void
-SpawnOperation::run_async(void* source_tag,
+SpawnOperation::run_async(std::unique_ptr<SpawnOperation> op,
+                          void* source_tag,
                           GAsyncReadyCallback callback,
                           void* user_data)
 {
-        /* Create a GTask to run the user-provided callback, and transfers
-         * ownership of @this to the task, meaning that @this will be deleted after
-         * the task is completed.
-         */
-        auto task = vte::glib::take_ref(g_task_new(context().pty_wrapper(),
-                                                   m_cancellable.get(),
-                                                   callback,
-                                                   user_data));
-        g_task_set_source_tag(task.get(), source_tag);
-        g_task_set_task_data(task.get(), this, delete_cb);
-        // g_task_set_name(task.get(), "vte-spawn-async");
-
         /* Spawning is split into the fork() phase, and waiting for the child to
          * exec or report an error. This is done so that the fork is happening on
          * the main thread; see issue vte#118.
          */
         auto error = vte::glib::Error{};
-        if (!prepare(error))
+        auto rv = op->prepare(error);
+
+        /* Create a GTask to run the user-provided callback, and transfers
+         * ownership of @op to the task.
+         */
+        auto task = vte::glib::take_ref(g_task_new(op->context().pty_wrapper(),
+                                                   op->m_cancellable.get(),
+                                                   callback,
+                                                   user_data));
+        g_task_set_source_tag(task.get(), source_tag);
+        g_task_set_task_data(task.get(), op.release(), delete_cb);
+        // g_task_set_name(task.get(), "vte-spawn-async");
+
+        if (!rv)
                 return g_task_return_error(task.get(), error.release());
 
         /* Async read from the child */
@@ -755,12 +756,13 @@ SpawnOperation::run_async(void* source_tag,
 }
 
 bool
-SpawnOperation::run_sync(GPid* pid,
+SpawnOperation::run_sync(SpawnOperation& op,
+                         GPid* pid,
                          vte::glib::Error& error)
 {
-        auto rv = prepare(error) && run(error);
+        auto rv = op.prepare(error) && op.run(error);
         if (rv)
-                *pid = release_pid();
+                *pid = op.release_pid();
         else
                 *pid = -1;
 
