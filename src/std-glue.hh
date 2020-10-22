@@ -17,13 +17,23 @@
 
 #pragma once
 
-#include <cairo.h>
-
-#include "std-glue.hh"
+#include <memory>
 
 namespace vte {
 
-VTE_DECLARE_FREEABLE(cairo_t, cairo_destroy);
-VTE_DECLARE_FREEABLE(cairo_surface_t, cairo_surface_destroy);
+template<typename T>
+class FreeableDeleter;
 
-} // namespace vte::cairo
+template<typename T>
+using Freeable = std::unique_ptr<T, FreeableDeleter<T>>;
+
+template<typename T>
+inline auto take_freeable(T* t) { return Freeable<T>{t}; }
+
+#define VTE_DECLARE_FREEABLE(T, func) \
+template<> \
+class FreeableDeleter<T> { \
+public: inline void operator()(T* t) { func(t); } \
+}
+
+} // namespace vte

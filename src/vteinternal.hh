@@ -32,6 +32,7 @@
 
 #include <glib.h>
 #include "glib-glue.hh"
+#include "pango-glue.hh"
 
 #include "debug.h"
 #include "clipboard-gtk.hh"
@@ -49,7 +50,7 @@
 #include "refptr.hh"
 #include "fwd.hh"
 
-#include "vtepcre2.h"
+#include "pcre2-glue.hh"
 #include "vteregexinternal.hh"
 
 #include "chunk.hh"
@@ -569,9 +570,8 @@ public:
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
-        using pango_font_description_type = vte::FreeablePtr<PangoFontDescription, decltype(&pango_font_description_free), &pango_font_description_free>;
-        pango_font_description_type m_unscaled_font_desc{};
-        pango_font_description_type  m_fontdesc{};
+        vte::Freeable<PangoFontDescription> m_unscaled_font_desc{};
+        vte::Freeable<PangoFontDescription> m_fontdesc{};
         double m_font_scale{1.};
 
         auto unscaled_font_description() const noexcept { return m_unscaled_font_desc.get(); }
@@ -631,8 +631,7 @@ public:
 	/* Input method support. */
         bool m_im_preedit_active;
         std::string m_im_preedit;
-        using pango_attr_list_unique_type = std::unique_ptr<PangoAttrList, decltype(&pango_attr_list_unref)>;
-        pango_attr_list_unique_type m_im_preedit_attrs{nullptr, &pango_attr_list_unref};
+        vte::Freeable<PangoAttrList> m_im_preedit_attrs{};
         int m_im_preedit_cursor;
 
         #ifdef WITH_A11Y
@@ -750,7 +749,7 @@ public:
                          bool invalidate_now);
 
         #ifdef WITH_SIXEL
-        void insert_image(vte::cairo::Surface image_surface) /* throws */;
+        void insert_image(vte::Freeable<cairo_surface_t> image_surface) /* throws */;
         #endif
 
         void invalidate_row(vte::grid::row_t row);
@@ -944,7 +943,7 @@ public:
         void im_preedit_reset() noexcept;
         void im_preedit_changed(std::string_view const& str,
                                 int cursorpos,
-                                pango_attr_list_unique_type&& attrs) noexcept;
+                                vte::Freeable<PangoAttrList> attrs) noexcept;
         bool im_retrieve_surrounding();
         bool im_delete_surrounding(int offset,
                                    int n_chars);
@@ -1133,7 +1132,7 @@ public:
                                     gsize *sattr_ptr,
                                     gsize *eattr_ptr);
 
-        pcre2_match_context_8 *create_match_context();
+        vte::Freeable<pcre2_match_context_8> create_match_context();
         bool match_check_pcre(pcre2_match_data_8 *match_data,
                               pcre2_match_context_8 *match_context,
                               vte::base::Regex const* regex,

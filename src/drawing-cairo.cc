@@ -509,9 +509,8 @@ DrawingContext::draw_undercurl(int x,
                 /* Cache the undercurl's look. The design assumes that until the cached look is
                  * invalidated (the font is changed), this method is always called with the "y"
                  * parameter having the same fractional part, and the same "line_width" parameter.
-                 * For caching, only the fractional part of "y" is used. */
-                cairo_t *undercurl_cr;
-
+                 * For caching, only the fractional part of "y" is used.
+                 */
                 double rad = _vte_draw_get_undercurl_rad(m_cell_width);
                 double y_bottom = y + _vte_draw_get_undercurl_height(m_cell_width, line_width);
                 double y_center = (y + y_bottom) / 2.;
@@ -521,19 +520,19 @@ DrawingContext::draw_undercurl(int x,
                                   "caching undercurl shape\n");
 
                 /* Add a line_width of margin horizontally on both sides, for nice antialias overflowing. */
-                m_undercurl_surface.reset(cairo_surface_create_similar (cairo_get_target (m_cr),
-                                                                        CAIRO_CONTENT_ALPHA,
-                                                                        m_cell_width + 2 * x_padding,
-                                                                        surface_bottom - surface_top));
-                undercurl_cr = cairo_create (m_undercurl_surface.get());
-                cairo_set_operator (undercurl_cr, CAIRO_OPERATOR_OVER);
+                m_undercurl_surface = vte::take_freeable
+                        (cairo_surface_create_similar(cairo_get_target(m_cr),
+                                                      CAIRO_CONTENT_ALPHA,
+                                                      m_cell_width + 2 * x_padding,
+                                                      surface_bottom - surface_top));
+                auto undercurl_cr = vte::take_freeable(cairo_create(m_undercurl_surface.get()));
+                cairo_set_operator(undercurl_cr.get(), CAIRO_OPERATOR_OVER);
                 /* First quarter circle, similar to the left half of the tilde symbol. */
-                cairo_arc (undercurl_cr, x_padding + m_cell_width / 4., y_center - surface_top + m_cell_width / 4., rad, M_PI * 5 / 4, M_PI * 7 / 4);
+                cairo_arc(undercurl_cr.get(), x_padding + m_cell_width / 4., y_center - surface_top + m_cell_width / 4., rad, M_PI * 5 / 4, M_PI * 7 / 4);
                 /* Second quarter circle, similar to the right half of the tilde symbol. */
-                cairo_arc_negative (undercurl_cr, x_padding + m_cell_width * 3 / 4., y_center - surface_top - m_cell_width / 4., rad, M_PI * 3 / 4, M_PI / 4);
-                cairo_set_line_width (undercurl_cr, line_width);
-                cairo_stroke (undercurl_cr);
-                cairo_destroy (undercurl_cr);
+                cairo_arc_negative(undercurl_cr.get(), x_padding + m_cell_width * 3 / 4., y_center - surface_top - m_cell_width / 4., rad, M_PI * 3 / 4, M_PI / 4);
+                cairo_set_line_width (undercurl_cr.get(), line_width);
+                cairo_stroke(undercurl_cr.get());
         }
 
         /* Paint the cached look of the undercurl using the desired look.

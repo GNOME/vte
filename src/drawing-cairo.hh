@@ -158,7 +158,7 @@ private:
         Minifont m_minifont{};
 
         /* Cache the undercurl's rendered look. */
-        vte::cairo::Surface m_undercurl_surface{};
+        vte::Freeable<cairo_surface_t> m_undercurl_surface{};
 
 }; // class DrawingContext
 

@@ -55,7 +55,7 @@ inline void log_exception() noexcept { }
 #endif
 
 template <typename T, typename D, D func>
-class FreeableDeleter {
+class FreeablePtrDeleter {
 public:
         void operator()(T* obj) const
         {
@@ -65,6 +65,6 @@ public:
 };
 
 template <typename T, typename D, D func>
-using FreeablePtr = std::unique_ptr<T, FreeableDeleter<T, D, func>>;
+using FreeablePtr = std::unique_ptr<T, FreeablePtrDeleter<T, D, func>>;
 
 } // namespace vte

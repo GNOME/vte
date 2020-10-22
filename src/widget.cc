@@ -357,7 +357,7 @@ Widget::im_preedit_changed() noexcept
                          str, cursorpos);
 
         if (str != nullptr)
-                m_terminal->im_preedit_changed(str, cursorpos, {attrs, &pango_attr_list_unref});
+                m_terminal->im_preedit_changed(str, cursorpos, vte::take_freeable(attrs));
         else
                 pango_attr_list_unref(attrs);
 

@@ -28,7 +28,7 @@ namespace image {
 class Image {
 private:
         // Device-friendly Cairo surface
-        vte::cairo::Surface m_surface{};
+        vte::Freeable<cairo_surface_t> m_surface{};
 
         // Draw/prune priority, must be unique
         int m_priority;
@@ -46,7 +46,7 @@ private:
         int m_cell_height;
 
 public:
-        Image(vte::cairo::Surface surface,
+        Image(vte::Freeable<cairo_surface_t> surface,
               int priority,
               int width_pixels,
               int height_pixels,

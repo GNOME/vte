@@ -23,7 +23,7 @@
 
 #include <glib.h>
 
-#include "vtepcre2.h"
+#include "pcre2-glue.hh"
 
 #include "cxx-utils.hh"
 
@@ -48,15 +48,14 @@ public:
 private:
         mutable volatile int m_refcount{1};
 
-        using code_type = vte::FreeablePtr<pcre2_code_8, decltype(&pcre2_code_free_8), &pcre2_code_free_8>;
-        code_type m_code{};
+        vte::Freeable<pcre2_code_8> m_code{};
 
         Purpose m_purpose;
 
 public:
-        Regex(pcre2_code_8* code,
+        Regex(vte::Freeable<pcre2_code_8> code,
               Purpose purpose) noexcept :
-                m_code{code},
+                m_code{std::move(code)},
                 m_purpose{purpose}
         { }
 

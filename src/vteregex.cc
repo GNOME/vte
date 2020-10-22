@@ -29,12 +29,11 @@
 #include "vtemacros.h"
 #include "vteenums.h"
 #include "vteregex.h"
-#include "vtepcre2.h"
 
+#include "glib-glue.hh"
+#include "pcre2-glue.hh"
 #include "regex.hh"
 #include "vteregexinternal.hh"
-#include "glib-glue.hh"
-#include "cxx-utils.hh"
 
 #define IMPL(wrapper) (regex_from_wrapper(wrapper))
 

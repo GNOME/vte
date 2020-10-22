@@ -457,7 +457,7 @@ Context::image_data() noexcept
                                                               [&](color_index_t pen) noexcept -> color_t { return m_colors[pen]; }));
 }
 
-vte::cairo::Surface
+vte::Freeable<cairo_surface_t>
 Context::image_cairo() noexcept
 {
         static cairo_user_data_key_t s_data_key;
@@ -467,11 +467,11 @@ Context::image_cairo() noexcept
                 return nullptr;
 
         auto const stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, image_width());
-        auto surface = vte::cairo::Surface{cairo_image_surface_create_for_data(data,
-                                                                               CAIRO_FORMAT_ARGB32,
-                                                                               image_width(),
-                                                                               image_height(),
-                                                                               stride)};
+        auto surface = vte::take_freeable(cairo_image_surface_create_for_data(data,
+                                                                              CAIRO_FORMAT_ARGB32,
+                                                                              image_width(),
+                                                                              image_height(),
+                                                                              stride));
 
 #ifdef VTE_DEBUG
         _VTE_DEBUG_IF(VTE_DEBUG_IMAGE) {

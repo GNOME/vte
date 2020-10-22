@@ -36,6 +36,7 @@
 #include "libc-glue.hh"
 #include "parser.hh"
 #include "parser-glue.hh"
+#include "std-glue.hh"
 #include "utf8.hh"
 #include "vtedefines.hh"
 

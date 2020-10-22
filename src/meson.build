@@ -51,6 +51,10 @@ modes_sources = files(
   'modes.hh',
 )
 
+pango_glue_sources = files(
+  'pango-glue.hh',
+)
+
 parser_sources = files(
   'parser-arg.hh',
   'parser-charset-tables.hh',
@@ -83,6 +87,10 @@ parser_sources += custom_target(
   ],
 )
 
+pcre2_glue_sources = files(
+  'pcre2-glue.hh',
+)
+
 pty_sources = files(
   'pty.cc',
   'pty.hh',
@@ -113,6 +121,10 @@ sixel_sources = sixel_parser_sources + sixel_context_sources + files(
   'image.hh',
 )
 
+std_glue_sources = files(
+  'std-glue.hh',
+)
+
 systemd_sources = files(
   'systemd.cc',
   'systemd.hh',
@@ -123,7 +135,7 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + parser_sources + pty_sources + refptr_sources + regex_sources + utf8_sources + files(
+libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -163,7 +175,6 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'vtegtk.cc',
   'vtegtk.hh',
   'vteinternal.hh',
-  'vtepcre2.h',
   'vteregex.cc',
   'vteregexinternal.hh',
   'vterowdata.cc',
@@ -323,7 +334,7 @@ decoder_cat = executable(
 
 # parser cat
 
-parser_cat_sources = glib_glue_sources + libc_glue_sources + parser_sources + utf8_sources + debug_sources + files(
+parser_cat_sources = glib_glue_sources + libc_glue_sources + parser_sources + std_glue_sources + utf8_sources + debug_sources + files(
   'parser-cat.cc',
   'vtedefines.hh',
 )

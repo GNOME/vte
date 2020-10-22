@@ -105,7 +105,7 @@ public:
                             GError** error);
 
 #ifdef WITH_SIXEL
-        void append_image (vte::cairo::Surface surface,
+        void append_image (vte::Freeable<cairo_surface_t> surface,
                            gint pixelwidth, gint pixelheight,
                            glong left, glong top,
                            glong cell_width, glong cell_height) /* throws */;

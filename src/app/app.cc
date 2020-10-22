@@ -33,13 +33,14 @@
 #include <gtk/gtk.h>
 #include <cairo/cairo-gobject.h>
 #include <vte/vte.h>
-#include "vtepcre2.h"
 
 #include <algorithm>
 #include <vector>
 
 #include "glib-glue.hh"
 #include "libc-glue.hh"
+#include "pango-glue.hh"
+#include "pcre2-glue.hh"
 #include "refptr.hh"
 
 /* options */
@@ -2128,9 +2129,8 @@ vteapp_window_constructed(GObject *object)
 
         /* Style */
         if (options.font_string != nullptr) {
-                auto desc = pango_font_description_from_string(options.font_string);
-                vte_terminal_set_font(window->terminal, desc);
-                pango_font_description_free(desc);
+                auto desc = vte::take_freeable(pango_font_description_from_string(options.font_string));
+                vte_terminal_set_font(window->terminal, desc.get());
         }
 
         auto fg = options.get_color_fg();

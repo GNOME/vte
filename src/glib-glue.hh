@@ -25,6 +25,7 @@
 #include <glib.h>
 
 #include "cxx-utils.hh"
+#include "std-glue.hh"
 
 namespace vte::glib {
 
@@ -272,3 +273,9 @@ bool set_error_from_exception(GError** error
                               ) noexcept;
 
 } // namespace vte::glib
+
+namespace vte {
+
+VTE_DECLARE_FREEABLE(GVariant, g_variant_unref);
+
+} // namespace vte

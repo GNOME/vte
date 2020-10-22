@@ -641,7 +641,7 @@ public:
         auto color(unsigned idx) const noexcept { return m_colors[idx]; }
 
 #ifdef VTE_COMPILATION
-        vte::cairo::Surface image_cairo() noexcept;
+        vte::Freeable<cairo_surface_t> image_cairo() noexcept;
 #endif
 
         void

@@ -1677,7 +1677,7 @@ Ring::write_contents(GOutputStream* stream,
  * Append an image to the internal image list.
  */
 void
-Ring::append_image(vte::cairo::Surface surface,
+Ring::append_image(vte::Freeable<cairo_surface_t> surface,
                    int pixelwidth,
                    int pixelheight,
                    long left,

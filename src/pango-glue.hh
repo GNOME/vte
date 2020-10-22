@@ -17,13 +17,13 @@
 
 #pragma once
 
-#include <cairo.h>
+#include <pango/pango.h>
 
 #include "std-glue.hh"
 
 namespace vte {
 
-VTE_DECLARE_FREEABLE(cairo_t, cairo_destroy);
-VTE_DECLARE_FREEABLE(cairo_surface_t, cairo_surface_destroy);
+VTE_DECLARE_FREEABLE(PangoAttrList, pango_attr_list_unref);
+VTE_DECLARE_FREEABLE(PangoFontDescription, pango_font_description_free);
 
-} // namespace vte::cairo
+} // namespace vte

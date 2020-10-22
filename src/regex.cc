@@ -95,24 +95,24 @@ Regex::compile(Regex::Purpose purpose,
 
         int errcode;
         PCRE2_SIZE erroffset;
-        auto code = pcre2_compile_8((PCRE2_SPTR8)pattern.data(),
-                                    pattern.size(),
-                                    (uint32_t)flags |
-                                    PCRE2_UTF |
-                                    (flags & PCRE2_UTF ? PCRE2_NO_UTF_CHECK : 0) |
-                                    PCRE2_NEVER_BACKSLASH_C |
-                                    PCRE2_USE_OFFSET_LIMIT,
-                                    &errcode, &erroffset,
-                                    nullptr);
+        auto code = vte::take_freeable(pcre2_compile_8((PCRE2_SPTR8)pattern.data(),
+                                                       pattern.size(),
+                                                       (uint32_t)flags |
+                                                       PCRE2_UTF |
+                                                       (flags & PCRE2_UTF ? PCRE2_NO_UTF_CHECK : 0) |
+                                                       PCRE2_NEVER_BACKSLASH_C |
+                                                       PCRE2_USE_OFFSET_LIMIT,
+                                                       &errcode, &erroffset,
+                                                       nullptr));
 
-        if (code == nullptr) {
+        if (!code) {
                 set_gerror_from_pcre_error(errcode, error);
                 g_prefix_error(error, "Failed to compile pattern to regex at offset %" G_GSIZE_FORMAT ":",
                                erroffset);
                 return nullptr;
         }
 
-        return new Regex{code, purpose};
+        return new Regex{std::move(code), purpose};
 }
 
 /*

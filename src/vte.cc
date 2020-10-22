@@ -1160,16 +1160,14 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 }
 
 /* creates a pcre match context with appropriate limits */
-pcre2_match_context_8 *
+vte::Freeable<pcre2_match_context_8>
 Terminal::create_match_context()
 {
-        pcre2_match_context_8 *match_context;
+        auto context = vte::take_freeable(pcre2_match_context_create_8(nullptr /* general context */));
+        pcre2_set_match_limit_8(context.get(), 65536); /* should be plenty */
+        pcre2_set_recursion_limit_8(context.get(), 64); /* should be plenty */
 
-        match_context = pcre2_match_context_create_8(nullptr /* general context */);
-        pcre2_set_match_limit_8(match_context, 65536); /* should be plenty */
-        pcre2_set_recursion_limit_8(match_context, 64); /* should be plenty */
-
-        return match_context;
+        return context;
 }
 
 bool
@@ -1298,8 +1296,6 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
                                     size_t* end)
 {
 	gsize offset, sattr, eattr, start_blank, end_blank;
-        pcre2_match_data_8 *match_data;
-        pcre2_match_context_8 *match_context;
 
 	_vte_debug_print(VTE_DEBUG_REGEX,
                          "Checking for pcre match at (%ld,%ld).\n", row, column);
@@ -1311,15 +1307,16 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
 	start_blank = sattr;
 	end_blank = eattr;
 
-        match_context = create_match_context();
-        match_data = pcre2_match_data_create_8(256 /* should be plenty */, NULL /* general context */);
+        auto match_context = create_match_context();
+        auto match_data = vte::take_freeable(pcre2_match_data_create_8(256 /* should be plenty */,
+                                                                       nullptr /* general context */));
 
 	/* Now iterate over each regex we need to match against. */
         char* dingu_match{nullptr};
         for (auto const& rem : m_match_regexes) {
                 gsize sblank, eblank;
 
-                if (match_check_pcre(match_data, match_context,
+                if (match_check_pcre(match_data.get(), match_context.get(),
                                      rem.regex(),
                                      rem.match_flags(),
                                      sattr, eattr, offset,
@@ -1360,9 +1357,6 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
                                    end_blank - 1, _eattr->column, _eattr->row);
                 }
         }
-
-        pcre2_match_data_free_8(match_data);
-        pcre2_match_context_free_8(match_context);
 
 	return dingu_match;
 }
@@ -1755,8 +1749,6 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                   char** matches)
 {
 	gsize offset, sattr, eattr;
-        pcre2_match_data_8 *match_data;
-        pcre2_match_context_8 *match_context;
         bool any_matches = false;
         long col, row;
         guint i;
@@ -1778,8 +1770,9 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                     &offset, &sattr, &eattr))
                 return false;
 
-        match_context = create_match_context();
-        match_data = pcre2_match_data_create_8(256 /* should be plenty */, nullptr /* general context */);
+        auto match_context = create_match_context();
+        auto match_data = vte::take_freeable(pcre2_match_data_create_8(256 /* should be plenty */,
+                                                                       nullptr /* general context */));
 
         for (i = 0; i < n_regexes; i++) {
                 gsize start, end, sblank, eblank;
@@ -1787,7 +1780,7 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
 
                 g_return_val_if_fail(regexes[i] != nullptr, false);
 
-                if (match_check_pcre(match_data, match_context,
+                if (match_check_pcre(match_data.get(), match_context.get(),
                                      regexes[i], match_flags,
                                      sattr, eattr, offset,
                                      &match_string,
@@ -1799,9 +1792,6 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                 } else
                         matches[i] = nullptr;
         }
-
-        pcre2_match_data_free_8(match_data);
-        pcre2_match_context_free_8(match_context);
 
         return any_matches;
 }
@@ -3021,7 +3011,7 @@ not_inserted:
 #ifdef WITH_SIXEL
 
 void
-Terminal::insert_image(vte::cairo::Surface image_surface) /* throws */
+Terminal::insert_image(vte::Freeable<cairo_surface_t> image_surface) /* throws */
 {
         if (!image_surface)
                 return;
@@ -3030,15 +3020,17 @@ Terminal::insert_image(vte::cairo::Surface image_surface) /* throws */
         auto const image_height_px = cairo_image_surface_get_height(image_surface.get());
 
         /* Convert to device-compatible surface for m_widget */
-        auto device_surface = vte::cairo::Surface{gdk_window_create_similar_surface(gtk_widget_get_window(widget()->gtk()),
-                                                                                    CAIRO_CONTENT_COLOR_ALPHA,
-                                                                                    image_width_px,
-                                                                                    image_height_px)};
+        auto device_surface = vte::take_freeable
+                (gdk_window_create_similar_surface(gtk_widget_get_window(widget()->gtk()),
+                                                   CAIRO_CONTENT_COLOR_ALPHA,
+                                                   image_width_px,
+                                                   image_height_px));
 
-        auto cr = cairo_create(device_surface.get());
-        cairo_set_source_surface(cr, image_surface.get(), 0, 0);
-        cairo_paint(cr);
-        cairo_destroy(cr);
+        {
+                auto cr = vte::take_freeable(cairo_create(device_surface.get()));
+                cairo_set_source_surface(cr.get(), image_surface.get(), 0, 0);
+                cairo_paint(cr.get());
+        }
 
         /* Reduce memory fragmentation by dropping the ref as soon as we no longer need it */
         image_surface.reset();
@@ -4399,7 +4391,7 @@ Terminal::im_preedit_reset() noexcept
 void
 Terminal::im_preedit_changed(std::string_view const& str,
                              int cursorpos,
-                             pango_attr_list_unique_type&& attrs) noexcept
+                             vte::Freeable<PangoAttrList> attrs) noexcept
 {
 	/* Queue the area where the current preedit string is being displayed
 	 * for repainting. */
@@ -7211,16 +7203,16 @@ Terminal::update_font()
         if (!m_unscaled_font_desc)
                 return;
 
-        auto desc = pango_font_description_copy(m_unscaled_font_desc.get());
+        auto desc = vte::take_freeable(pango_font_description_copy(m_unscaled_font_desc.get()));
 
-        double size = pango_font_description_get_size(desc);
-        if (pango_font_description_get_size_is_absolute(desc)) {
-                pango_font_description_set_absolute_size(desc, m_font_scale * size);
+        double size = pango_font_description_get_size(desc.get());
+        if (pango_font_description_get_size_is_absolute(desc.get())) {
+                pango_font_description_set_absolute_size(desc.get(), m_font_scale * size);
         } else {
-                pango_font_description_set_size(desc, m_font_scale * size);
+                pango_font_description_set_size(desc.get(), m_font_scale * size);
         }
 
-        m_fontdesc.reset(desc); /* adopts */
+        m_fontdesc = std::move(desc);
         m_fontdirty = true;
         m_has_fonts = true;
 
@@ -10749,7 +10741,8 @@ Terminal::search_find (bool backward)
 	 */
 
         auto match_context = create_match_context();
-        auto match_data = pcre2_match_data_create_8(256 /* should be plenty */, nullptr /* general context */);
+        auto match_data = vte::take_freeable(pcre2_match_data_create_8(256 /* should be plenty */,
+                                                                       nullptr /* general context */));
 
 	buffer_start_row = _vte_ring_delta (m_screen->row_data);
 	buffer_end_row = _vte_ring_next (m_screen->row_data);
@@ -10767,11 +10760,11 @@ Terminal::search_find (bool backward)
 	/* If search fails, we make an empty selection at the last searched
 	 * position... */
 	if (backward) {
-		if (search_rows_iter (match_context, match_data,
+		if (search_rows_iter(match_context.get(), match_data.get(),
                                       buffer_start_row, last_start_row, backward))
 			goto found;
 		if (m_search_wrap_around &&
-		    search_rows_iter (match_context, match_data,
+		    search_rows_iter(match_context.get(), match_data.get(),
                                       last_end_row, buffer_end_row, backward))
 			goto found;
                 if (!m_selection_resolved.empty()) {
@@ -10782,11 +10775,11 @@ Terminal::search_find (bool backward)
 		}
                 match_found = false;
 	} else {
-		if (search_rows_iter (match_context, match_data,
+		if (search_rows_iter(match_context.get(), match_data.get(),
                                       last_end_row, buffer_end_row, backward))
 			goto found;
 		if (m_search_wrap_around &&
-		    search_rows_iter (match_context, match_data,
+		    search_rows_iter(match_context.get(), match_data.get(),
                                       buffer_start_row, last_start_row, backward))
 			goto found;
                 if (!m_selection_resolved.empty()) {
@@ -10799,9 +10792,6 @@ Terminal::search_find (bool backward)
 	}
 
  found:
-
-        pcre2_match_data_free_8(match_data);
-        pcre2_match_context_free_8(match_context);
 
 	return match_found;
 }

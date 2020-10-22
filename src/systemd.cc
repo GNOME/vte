@@ -94,8 +94,8 @@ create_scope_for_pid_sync(pid_t pid,
         g_variant_builder_close(builder);
 
         // Create transient scope
-        auto reply = std::unique_ptr<GVariant, decltype(&g_variant_unref)>
-                {g_dbus_connection_call_sync(bus.get(),
+        auto reply = vte::take_freeable
+                (g_dbus_connection_call_sync(bus.get(),
                                              "org.freedesktop.systemd1",
                                              "/org/freedesktop/systemd1",
                                              "org.freedesktop.systemd1.Manager",
@@ -105,8 +105,7 @@ create_scope_for_pid_sync(pid_t pid,
                                              GDBusCallFlags{G_DBUS_CALL_FLAGS_NO_AUTO_START},
                                              timeout, // in ms
                                              cancellable,
-                                             error),
-                 &g_variant_unref};
+                                             error));
 
         return bool(reply);
 }

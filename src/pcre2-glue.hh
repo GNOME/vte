@@ -26,3 +26,13 @@ static_assert(sizeof(PCRE2_UCHAR8) == sizeof (uint8_t), "PCRE2_UCHAR2 has wrong 
 static_assert(sizeof(PCRE2_SIZE) == sizeof (size_t), "PCRE2_SIZE has wrong size");
 static_assert(PCRE2_UNSET == (size_t)-1, "PCRE2_UNSET has wrong value");
 static_assert(PCRE2_ZERO_TERMINATED == (size_t)-1, "PCRE2_ZERO_TERMINATED has wrong value");
+
+#include "std-glue.hh"
+
+namespace vte {
+
+VTE_DECLARE_FREEABLE(pcre2_code_8, pcre2_code_free_8);
+VTE_DECLARE_FREEABLE(pcre2_match_context_8, pcre2_match_context_free_8);
+VTE_DECLARE_FREEABLE(pcre2_match_data_8, pcre2_match_data_free_8);
+
+} // namespace vte
