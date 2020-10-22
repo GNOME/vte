@@ -51,98 +51,80 @@ private:
         bool m_quiet{false};
         bool m_statistics{false};
         bool m_utf8{false};
+        int m_buffer_size{16384};
         int m_repeat{1};
-        char* m_charset{nullptr};
-        char** m_filenames{nullptr};
-
-        template<typename T1, typename T2 = T1>
-        class OptionArg {
-        private:
-                T1* m_return_ptr;
-                T2 m_value;
-        public:
-                OptionArg(T1* ptr, T2 v) : m_return_ptr{ptr}, m_value{v} { }
-                ~OptionArg() { *m_return_ptr = m_value; }
-
-                inline constexpr T2* ptr() noexcept { return &m_value; }
-        };
-
-        using BoolArg = OptionArg<bool, gboolean>;
-        using IntArg = OptionArg<int>;
-        using StrArg = OptionArg<char*>;
-        using StrvArg = OptionArg<char**>;
+        vte::glib::StringPtr m_charset{};
+        vte::glib::StrvPtr m_filenames{};
 
 public:
 
         Options() noexcept = default;
         Options(Options const&) = delete;
         Options(Options&&) = delete;
-
-        ~Options() {
-                if (m_filenames != nullptr)
-                        g_strfreev(m_filenames);
-        }
-
         Options& operator=(Options const&) = delete;
         Options& operator=(Options&&) = delete;
+        ~Options() = default;
 
-        inline constexpr bool benchmark()  const noexcept { return m_benchmark;  }
-        inline constexpr bool codepoints() const noexcept { return m_codepoints; }
-        inline constexpr bool list()       const noexcept { return m_list;       }
-        inline constexpr bool statistics() const noexcept { return m_statistics; }
-        inline constexpr int  quiet()      const noexcept { return m_quiet;      }
-        inline constexpr bool utf8()       const noexcept { return m_utf8;       }
-        inline constexpr int  repeat()     const noexcept { return m_repeat;     }
-        inline constexpr char const* charset()          const noexcept { return m_charset;   }
-        inline constexpr char const* const* filenames() const noexcept { return m_filenames; }
+        inline constexpr bool   benchmark()   const noexcept { return m_benchmark;   }
+        inline constexpr size_t buffer_size() const noexcept { return std::max(m_buffer_size, 1); }
+        inline constexpr bool   codepoints()  const noexcept { return m_codepoints;  }
+        inline constexpr bool   list()        const noexcept { return m_list;        }
+        inline constexpr bool   statistics()  const noexcept { return m_statistics;  }
+        inline constexpr int    quiet()       const noexcept { return m_quiet;       }
+        inline constexpr bool   utf8()        const noexcept { return m_utf8;        }
+        inline constexpr int    repeat()      const noexcept { return m_repeat;      }
+        inline char const* charset()          const noexcept { return m_charset.get();   }
+        inline char const* const* filenames() const noexcept { return m_filenames.get(); }
 
         bool parse(int argc,
                    char* argv[],
                    GError** error) noexcept
         {
-                {
-                        auto benchmark = BoolArg{&m_benchmark, false};
-                        auto codepoints = BoolArg{&m_codepoints, false};
-                        auto list = BoolArg{&m_list, false};
-                        auto quiet = BoolArg{&m_quiet, false};
-                        auto statistics = BoolArg{&m_statistics, false};
-                        auto utf8 = BoolArg{&m_utf8, false};
-                        auto repeat = IntArg{&m_repeat, 1};
-                        auto charset = StrArg{&m_charset, nullptr};
-                        auto filenames = StrvArg{&m_filenames, nullptr};
-                        GOptionEntry const entries[] = {
-                                { "benchmark", 'b', 0, G_OPTION_ARG_NONE, benchmark.ptr(),
-                                  "Measure time spent parsing each file", nullptr },
-                                { "codepoints", 'u', 0, G_OPTION_ARG_NONE, codepoints.ptr(),
-                                  "Output unicode code points by number", nullptr },
-                                { "charset", 'f', 0, G_OPTION_ARG_STRING, charset.ptr(),
-                                  "Input charset", "CHARSET" },
-                                { "list-charsets", 'l', 0, G_OPTION_ARG_NONE, list.ptr(),
-                                  "List available charsets", nullptr },
-                                { "quiet", 'q', 0, G_OPTION_ARG_NONE, quiet.ptr(),
-                                  "Suppress output except for statistics and benchmark", nullptr },
-                                { "repeat", 'r', 0, G_OPTION_ARG_INT, repeat.ptr(),
-                                  "Repeat each file COUNT times", "COUNT" },
-                                { "statistics", 's', 0, G_OPTION_ARG_NONE, statistics.ptr(),
-                                  "Output statistics", nullptr },
-                                { "utf-8", '8', 0, G_OPTION_ARG_NONE, utf8.ptr(),
-                                  "UTF-8 input (default)", nullptr },
-                                { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, filenames.ptr(),
-                                  nullptr, nullptr },
-                                { nullptr },
-                        };
+                using BoolOption = vte::ValueGetter<bool, gboolean>;
+                using IntOption = vte::ValueGetter<int, int>;
+                using StringOption = vte::ValueGetter<vte::glib::StringPtr, char*, nullptr>;
+                using StrvOption = vte::ValueGetter<vte::glib::StrvPtr, char**, nullptr>;
 
-                        auto context = g_option_context_new("[FILE…] — decoder cat");
-                        g_option_context_set_help_enabled(context, true);
-                        g_option_context_add_main_entries(context, entries, nullptr);
+                auto benchmark = BoolOption{m_benchmark, false};
+                auto codepoints = BoolOption{m_codepoints, false};
+                auto list = BoolOption{m_list, false};
+                auto quiet = BoolOption{m_quiet, false};
+                auto statistics = BoolOption{m_statistics, false};
+                auto utf8 = BoolOption{m_utf8, false};
+                auto buffer_size = IntOption{m_buffer_size, 16384};
+                auto repeat = IntOption{m_repeat, 1};
+                auto charset = StringOption{m_charset, nullptr};
+                auto filenames = StrvOption{m_filenames, nullptr};
 
-                        auto rv = bool{g_option_context_parse(context, &argc, &argv, error) != false};
-                        g_option_context_free(context);
-                        if (!rv)
-                                return rv;
-                }
+                GOptionEntry const entries[] = {
+                        { "benchmark", 'b', 0, G_OPTION_ARG_NONE, &benchmark,
+                          "Measure time spent parsing each file", nullptr },
+                        { "buffer-size", 'B', 0, G_OPTION_ARG_INT, &buffer_size,
+                          "Buffer size", "SIZE" },
+                        { "codepoints", 'u', 0, G_OPTION_ARG_NONE, &codepoints,
+                          "Output unicode code points by number", nullptr },
+                        { "charset", 'f', 0, G_OPTION_ARG_STRING, &charset,
+                          "Input charset", "CHARSET" },
+                        { "list-charsets", 'l', 0, G_OPTION_ARG_NONE, &list,
+                          "List available charsets", nullptr },
+                        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
+                          "Suppress output except for statistics and benchmark", nullptr },
+                        { "repeat", 'r', 0, G_OPTION_ARG_INT, &repeat,
+                          "Repeat each file COUNT times", "COUNT" },
+                        { "statistics", 's', 0, G_OPTION_ARG_NONE, &statistics,
+                          "Output statistics", nullptr },
+                        { "utf-8", '8', 0, G_OPTION_ARG_NONE, &utf8,
+                          "UTF-8 input (default)", nullptr },
+                        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames,
+                          nullptr, nullptr },
+                        { nullptr },
+                };
 
-                return true;
+                auto context = vte::take_freeable(g_option_context_new("[FILE…] — decoder cat"));
+                g_option_context_set_help_enabled(context.get(), true);
+                g_option_context_add_main_entries(context.get(), entries, nullptr);
+
+                return g_option_context_parse(context.get(), &argc, &argv, error);
         }
 }; // class Options
 
@@ -279,18 +261,19 @@ private:
         template<class Functor>
         void
         process_file_utf8(int fd,
+                          Options const& options,
                           Functor& func)
         {
                 auto decoder = vte::base::UTF8Decoder{};
 
-                auto const buf_size = size_t{16384};
-                auto buf = g_new0(uint8_t, buf_size);
+                auto const buffer_size = options.buffer_size();
+                auto buf = g_new0(uint8_t, buffer_size);
 
                 auto start_time = g_get_monotonic_time();
 
                 auto buf_start = size_t{0};
                 for (;;) {
-                        auto len = read(fd, buf + buf_start, buf_size - buf_start);
+                        auto len = read(fd, buf + buf_start, buffer_size - buf_start);
                         if (!len)
                                 break;
                         if (len == -1) {
@@ -341,19 +324,20 @@ private:
         template<class Functor>
         void
         process_file_icu(int fd,
+                         Options const& options,
                          vte::base::ICUDecoder* decoder,
                          Functor& func)
         {
                 decoder->reset();
 
-                auto const buf_size = size_t{16384};
-                auto buf = g_new0(uint8_t, buf_size);
+                auto const buffer_size = options.buffer_size();
+                auto buf = g_new0(uint8_t, buffer_size);
 
                 auto start_time = g_get_monotonic_time();
 
                 auto buf_start = size_t{0};
                 while (true) {
-                        auto len = read(fd, buf + buf_start, buf_size - buf_start);
+                        auto len = read(fd, buf + buf_start, buffer_size - buf_start);
                         if (!len) /* EOF */
                                 break;
                         if (len == -1) {
@@ -390,7 +374,7 @@ private:
                 }
 
                 /* Flush remaining output */
-                auto sptr = reinterpret_cast<uint8_t const*>(buf + buf_size);
+                auto sptr = reinterpret_cast<uint8_t const*>(buf + buffer_size);
                 auto result = vte::base::ICUDecoder::Result{};
                 while ((result = decoder->decode(&sptr, true)) == vte::base::ICUDecoder::Result::eSomething) {
                         func(decoder->codepoint());
@@ -430,11 +414,11 @@ private:
 
 #ifdef WITH_ICU
                         if (decoder) {
-                                process_file_icu(fd, decoder.get(), func);
+                                process_file_icu(fd, options, decoder.get(), func);
                         } else
 #endif
                         {
-                                process_file_utf8(fd, func);
+                                process_file_utf8(fd, options, func);
                         }
                 }
 
