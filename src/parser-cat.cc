@@ -1274,23 +1274,7 @@ private:
         bool m_statistics{false};
         int m_buffer_size{16384};
         int m_repeat{1};
-        char** m_filenames{nullptr};
-
-        template<typename T1, typename T2 = T1>
-        class OptionArg {
-        private:
-                T1* m_return_ptr;
-                T2 m_value;
-        public:
-                OptionArg(T1* ptr, T2 v) : m_return_ptr{ptr}, m_value{v} { }
-                ~OptionArg() { *m_return_ptr = m_value; }
-
-                inline constexpr T2* ptr() noexcept { return &m_value; }
-        };
-
-        using BoolArg = OptionArg<bool, gboolean>;
-        using IntArg = OptionArg<int>;
-        using StrvArg = OptionArg<char**>;
+        vte::glib::StrvPtr m_filenames{};
 
 public:
 
@@ -1298,10 +1282,7 @@ public:
         Options(Options const&) = delete;
         Options(Options&&) = delete;
 
-        ~Options() {
-                if (m_filenames != nullptr)
-                        g_strfreev(m_filenames);
-        }
+        ~Options() = default;
 
         inline constexpr bool   benchmark()   const noexcept { return m_benchmark;  }
         inline constexpr size_t buffer_size() const noexcept { return m_buffer_size; }
@@ -1312,55 +1293,58 @@ public:
         inline constexpr bool   quiet()       const noexcept { return m_quiet;      }
         inline constexpr bool   statistics()  const noexcept { return m_statistics; }
         inline constexpr int    repeat()      const noexcept { return m_repeat;     }
-        inline constexpr char const* const* filenames() const noexcept { return m_filenames; }
+        inline char const* const* filenames() const noexcept { return m_filenames.get(); }
 
         bool parse(int argc,
                    char* argv[],
                    GError** error) noexcept
         {
-                BoolArg benchmark{&m_benchmark, false};
-                BoolArg codepoints{&m_codepoints, false};
-                BoolArg lint{&m_lint, false};
-                BoolArg no_sixel{&m_no_sixel, false};
-                BoolArg plain{&m_plain, false};
-                BoolArg quiet{&m_quiet, false};
-                BoolArg statistics{&m_statistics, false};
-                IntArg buffer_size{&m_buffer_size, 16384};
-                IntArg repeat{&m_repeat, 1};
-                StrvArg filenames{&m_filenames, nullptr};
+                using BoolOption = vte::ValueGetter<bool, gboolean>;
+                using IntOption = vte::ValueGetter<int, int>;
+                using StrvOption = vte::ValueGetter<vte::glib::StrvPtr, char**, nullptr>;
+
+                auto benchmark = BoolOption{m_benchmark, false};
+                auto codepoints = BoolOption{m_codepoints, false};
+                auto lint = BoolOption{m_lint, false};
+                auto no_sixel = BoolOption{m_no_sixel, false};
+                auto plain = BoolOption{m_plain, false};
+                auto quiet = BoolOption{m_quiet, false};
+                auto statistics = BoolOption{m_statistics, false};
+                auto buffer_size = IntOption{m_buffer_size, 16384};
+                auto repeat = IntOption{m_repeat, 1};
+                auto filenames = StrvOption{m_filenames, nullptr};
+
                 GOptionEntry const entries[] = {
-                        { "benchmark", 'b', 0, G_OPTION_ARG_NONE, benchmark.ptr(),
+                        { "benchmark", 'b', 0, G_OPTION_ARG_NONE, &benchmark,
                           "Measure time spent parsing each file", nullptr },
-                        { "buffer-size", 'B', 0, G_OPTION_ARG_INT, buffer_size.ptr(),
+                        { "buffer-size", 'B', 0, G_OPTION_ARG_INT, &buffer_size,
                           "Buffer size", "SIZE" },
-                        { "codepoints", 'u', 0, G_OPTION_ARG_NONE, codepoints.ptr(),
+                        { "codepoints", 'u', 0, G_OPTION_ARG_NONE, &codepoints,
                           "Output unicode code points by number", nullptr },
-                        { "lint", 'l', 0, G_OPTION_ARG_NONE, lint.ptr(),
+                        { "lint", 'l', 0, G_OPTION_ARG_NONE, &lint,
                           "Check input", nullptr },
 #ifdef WITH_SIXEL
-                        { "no-sixel", 0, 0, G_OPTION_ARG_NONE, no_sixel.ptr(),
+                        { "no-sixel", 0, 0, G_OPTION_ARG_NONE, &no_sixel,
                           "Disable DECSIXEL processing", nullptr },
 #endif
-                        { "plain", 'p', 0, G_OPTION_ARG_NONE, plain.ptr(),
+                        { "plain", 'p', 0, G_OPTION_ARG_NONE, &plain,
                           "Output plain text without attributes", nullptr },
-                        { "quiet", 'q', 0, G_OPTION_ARG_NONE, quiet.ptr(),
+                        { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
                           "Suppress output except for statistics and benchmark", nullptr },
-                        { "repeat", 'r', 0, G_OPTION_ARG_INT, repeat.ptr(),
+                        { "repeat", 'r', 0, G_OPTION_ARG_INT, &repeat,
                           "Repeat each file COUNT times", "COUNT" },
-                        { "statistics", 's', 0, G_OPTION_ARG_NONE, statistics.ptr(),
+                        { "statistics", 's', 0, G_OPTION_ARG_NONE, &statistics,
                           "Output statistics", nullptr },
-                        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, filenames.ptr(),
+                        { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &filenames,
                           nullptr, nullptr },
                         { nullptr },
                 };
 
-                auto context = g_option_context_new("[FILE…] — parser cat");
-                g_option_context_set_help_enabled(context, true);
-                g_option_context_add_main_entries(context, entries, nullptr);
+                auto context = vte::take_freeable(g_option_context_new("[FILE…] — parser cat"));
+                g_option_context_set_help_enabled(context.get(), true);
+                g_option_context_add_main_entries(context.get(), entries, nullptr);
 
-                bool rv = g_option_context_parse(context, &argc, &argv, error);
-                g_option_context_free(context);
-                return rv;
+                return g_option_context_parse(context.get(), &argc, &argv, error);
         }
 }; // class Options
 
