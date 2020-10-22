@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <type_traits>
 
 namespace vte {
 
@@ -35,5 +36,47 @@ template<> \
 class FreeableDeleter<T> { \
 public: inline void operator()(T* t) { func(t); } \
 }
+
+template<typename S, typename V, V default_v = 0>
+class ValueGetter {
+public:
+        explicit ValueGetter(S& storage,
+                             V default_vv = default_v) noexcept
+                : m_storage{storage},
+                  m_value{default_vv}
+        {
+        }
+
+        ~ValueGetter()
+        {
+                if constexpr (std::is_nothrow_assignable_v<S&, V>) {
+                        m_storage = m_value;
+                } else {
+                        m_storage.reset(m_value);
+                }
+        }
+
+        ValueGetter(ValueGetter const&) = delete;
+        ValueGetter(ValueGetter&&) = delete;
+
+        ValueGetter& operator=(ValueGetter const&) = delete;
+        ValueGetter& operator=(ValueGetter&&) = delete;
+
+        operator V*() noexcept { return &m_value; }
+        V* operator&() noexcept { return &m_value; }
+
+private:
+        S& m_storage;
+        V m_value;
+};
+
+template<typename S, typename V, V default_v = 0>
+auto get_value(S& s) { return vte::ValueGetter<S, V, default_v>{s}; }
+
+template<typename T>
+using FreeableGetter = ValueGetter<Freeable<T>, T*, nullptr>;
+
+template<typename T>
+auto get_freeable(vte::Freeable<T>& freeable) { return vte::FreeableGetter<T>{freeable}; }
 
 } // namespace vte

@@ -7235,22 +7235,23 @@ Terminal::update_font()
 bool
 Terminal::set_font_desc(PangoFontDescription const* font_desc)
 {
-	/* Create an owned font description. */
-        PangoFontDescription *desc;
+        auto desc = vte::Freeable<PangoFontDescription>{};
 
         auto context = gtk_widget_get_style_context(m_widget);
         gtk_style_context_save(context);
         gtk_style_context_set_state (context, GTK_STATE_FLAG_NORMAL);
-        gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font", &desc, nullptr);
+        gtk_style_context_get(context, GTK_STATE_FLAG_NORMAL, "font",
+                              &vte::get_freeable(desc),
+                              nullptr);
         gtk_style_context_restore(context);
 
-	pango_font_description_set_family_static (desc, "monospace");
+	pango_font_description_set_family_static(desc.get(), "monospace");
 	if (font_desc != nullptr) {
-		pango_font_description_merge (desc, font_desc, TRUE);
+		pango_font_description_merge(desc.get(), font_desc, TRUE);
 		_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 			if (desc) {
 				char *tmp;
-				tmp = pango_font_description_to_string(desc);
+				tmp = pango_font_description_to_string(desc.get());
 				g_printerr("Using pango font \"%s\".\n", tmp);
 				g_free (tmp);
 			}
@@ -7261,7 +7262,7 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 	}
 
         bool const same_desc = m_unscaled_font_desc &&
-                pango_font_description_equal(m_unscaled_font_desc.get(), desc);
+                pango_font_description_equal(m_unscaled_font_desc.get(), desc.get());
 
 	/* Note that we proceed to recreating the font even if the description
 	 * are the same.  This is because maybe screen
@@ -7269,7 +7270,7 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 	 * detected at font creation time and respected.
 	 */
 
-        m_unscaled_font_desc.reset(desc); /* adopts */
+        m_unscaled_font_desc = std::move(desc);
         update_font();
 
         return !same_desc;

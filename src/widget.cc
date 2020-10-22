@@ -349,17 +349,17 @@ void
 Widget::im_preedit_changed() noexcept
 {
         char* str = nullptr;
-	PangoAttrList* attrs = nullptr;
 	int cursorpos = 0;
 
-        gtk_im_context_get_preedit_string(m_im_context.get(), &str, &attrs, &cursorpos);
+        auto attrs = vte::Freeable<PangoAttrList>{};
+        gtk_im_context_get_preedit_string(m_im_context.get(), &str,
+                                          vte::get_freeable(attrs),
+                                          &cursorpos);
         _vte_debug_print(VTE_DEBUG_EVENTS, "Input method pre-edit changed (%s,%d).\n",
                          str, cursorpos);
 
         if (str != nullptr)
-                m_terminal->im_preedit_changed(str, cursorpos, vte::take_freeable(attrs));
-        else
-                pango_attr_list_unref(attrs);
+                m_terminal->im_preedit_changed(str, cursorpos, std::move(attrs));
 
         g_free(str);
 }
