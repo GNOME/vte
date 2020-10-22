@@ -276,6 +276,7 @@ bool set_error_from_exception(GError** error
 
 namespace vte {
 
+VTE_DECLARE_FREEABLE(GOptionContext, g_option_context_free);
 VTE_DECLARE_FREEABLE(GVariant, g_variant_unref);
 
 } // namespace vte

@@ -637,20 +637,20 @@ public:
                         break;
                 }
 
-                auto context = g_option_context_new("[-- COMMAND …] — VTE test application");
-                g_option_context_set_help_enabled(context, true);
-                g_option_context_set_translation_domain(context, GETTEXT_PACKAGE);
+                auto context = vte::take_freeable
+                        (g_option_context_new("[-- COMMAND …] — VTE test application"));
+                g_option_context_set_help_enabled(context.get(), true);
+                g_option_context_set_translation_domain(context.get(), GETTEXT_PACKAGE);
 
                 auto group = g_option_group_new(nullptr, nullptr, nullptr, this, nullptr);
                 g_option_group_set_translation_domain(group, GETTEXT_PACKAGE);
                 g_option_group_add_entries(group, entries);
-                g_option_context_set_main_group(context, group);
+                g_option_context_set_main_group(context.get(), group);
 
-                g_option_context_add_group(context, gtk_get_option_group(true));
+                g_option_context_add_group(context.get(), gtk_get_option_group(true));
 
-                bool rv = g_option_context_parse(context, &argc, &argv, error);
+                bool rv = g_option_context_parse(context.get(), &argc, &argv, error);
 
-                g_option_context_free(context);
                 g_free(dummy_string);
 
                 if (reverse)
@@ -1463,8 +1463,8 @@ static bool
 vteapp_window_fork(VteappWindow* window,
                    GError** error)
 {
-        auto pty = vte_pty_new_sync(VTE_PTY_DEFAULT, nullptr, error);
-        if (pty == nullptr)
+        auto pty = vte::glib::take_ref(vte_pty_new_sync(VTE_PTY_DEFAULT, nullptr, error));
+        if (!pty)
                 return false;
 
         auto pid = fork();
@@ -1477,7 +1477,7 @@ vteapp_window_fork(VteappWindow* window,
         }
 
         case 0: /* child */ {
-                vte_pty_child_setup(pty);
+                vte_pty_child_setup(pty.get());
 
                 for (auto i = 0; ; i++) {
                         switch (i % 3) {
@@ -1493,13 +1493,12 @@ vteapp_window_fork(VteappWindow* window,
                 }
         }
         default: /* parent */
-                vte_terminal_set_pty(window->terminal, pty);
+                vte_terminal_set_pty(window->terminal, pty.get());
                 vte_terminal_watch_child(window->terminal, pid);
                 verbose_print("Child PID is %d (mine is %d).\n", (int)pid, (int)getpid());
                 break;
         }
 
-        g_object_unref(pty);
         return true;
 }
 
@@ -1665,21 +1664,19 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 auto hyperlink = vte_terminal_hyperlink_check_event(window->terminal, event);
                 if (hyperlink != nullptr) {
                         verbose_print("Hyperlink: %s\n", hyperlink);
-                        GVariant* target = g_variant_new_string(hyperlink);
-                        auto item = g_menu_item_new("Copy _Hyperlink", nullptr);
-                        g_menu_item_set_action_and_target_value(item, "win.copy-match", target);
-                        g_menu_append_item(menu, item);
-                        g_object_unref(item);
+                        auto target = g_variant_new_string(hyperlink); /* floating */
+                        auto item = vte::glib::take_ref(g_menu_item_new("Copy _Hyperlink", nullptr));
+                        g_menu_item_set_action_and_target_value(item.get(), "win.copy-match", target);
+                        g_menu_append_item(menu, item.get());
                 }
 
                 auto match = vte_terminal_match_check_event(window->terminal, event, nullptr);
                 if (match != nullptr) {
                         verbose_print("Match: %s\n", match);
-                        GVariant* target = g_variant_new_string(match);
-                        auto item = g_menu_item_new("Copy _Match", nullptr);
-                        g_menu_item_set_action_and_target_value(item, "win.copy-match", target);
-                        g_menu_append_item(menu, item);
-                        g_object_unref(item);
+                        auto target = g_variant_new_string(match); /* floating */
+                        auto item = vte::glib::take_ref(g_menu_item_new("Copy _Match", nullptr));
+                        g_menu_item_set_action_and_target_value(item.get(), "win.copy-match", target);
+                        g_menu_append_item(menu, item.get());
                 }
 
                 /* Test extra match API */
@@ -1770,16 +1767,22 @@ window_child_exited_cb(VteTerminal* term,
                 verbose_printerr("Child terminated\n");
 
         if (options.output_filename != nullptr) {
-                auto file = g_file_new_for_commandline_arg(options.output_filename);
+                auto file = vte::glib::take_ref
+                        (g_file_new_for_commandline_arg(options.output_filename));
                 auto error = vte::glib::Error{};
-                auto stream = g_file_replace(file, nullptr, false, G_FILE_CREATE_NONE, nullptr, error);
-                g_object_unref(file);
-                if (stream != nullptr) {
+                auto stream = vte::glib::take_ref(g_file_replace(file.get(),
+                                                                 nullptr,
+                                                                 false,
+                                                                 G_FILE_CREATE_NONE,
+                                                                 nullptr,
+                                                                 error));
+
+                if (stream) {
                         vte_terminal_write_contents_sync(window->terminal,
-                                                         G_OUTPUT_STREAM(stream),
+                                                         G_OUTPUT_STREAM(stream.get()),
                                                          VTE_WRITE_DEFAULT,
-                                                         nullptr, error);
-                        g_object_unref(stream);
+                                                         nullptr,
+                                                         error);
                 }
 
                 if (error.error()) {
@@ -2040,10 +2043,10 @@ vteapp_window_constructed(GObject *object)
         g_action_map_add_action_entries(map, entries, G_N_ELEMENTS(entries), window);
 
         /* Property actions */
-        auto action = g_property_action_new("input-enabled", window->terminal, "input-enabled");
-        g_action_map_add_action(map, G_ACTION(action));
-        g_object_unref(action);
-        g_signal_connect(action, "notify::state", G_CALLBACK(window_input_enabled_state_cb), window);
+        auto action = vte::glib::take_ref
+                (g_property_action_new("input-enabled", window->terminal, "input-enabled"));
+        g_action_map_add_action(map, G_ACTION(action.get()));
+        g_signal_connect(action.get(), "notify::state", G_CALLBACK(window_input_enabled_state_cb), window);
 
         /* Find */
         window->search_popover = vteapp_search_popover_new(window->terminal,
@@ -2488,9 +2491,8 @@ main(int argc,
                }
        }
 
-       auto app = vteapp_application_new();
-       auto rv = g_application_run(app, 0, nullptr);
-       g_object_unref(app);
+       auto app = vte::glib::take_ref(vteapp_application_new());
+       auto rv = g_application_run(app.get(), 0, nullptr);
 
        if (reset_termios)
                tcsetattr(STDIN_FILENO, TCSANOW, &saved_tcattr);
