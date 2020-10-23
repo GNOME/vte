@@ -239,7 +239,10 @@ public:
                                    eDECSDM,
                                    eVTE_BIDI_SWAP_ARROW_KEYS,
                                    eXTERM_ALTBUF_SCROLL,
-                                   eXTERM_META_SENDS_ESCAPE} { }
+                                   eXTERM_META_SENDS_ESCAPE,
+                                   eXTERM_SIXEL_PRIVATE_COLOR_REGISTERS}
+        {
+        }
 
         inline void push_saved(int mode)
         {

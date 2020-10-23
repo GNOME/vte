@@ -951,6 +951,7 @@ public:
         void im_reset();
         void im_update_cursor();
 
+        void reset_graphics_color_registers();
         void reset(bool clear_tabstops,
                    bool clear_history,
                    bool from_api = false);

@@ -478,7 +478,7 @@ Terminal::update_mouse_protocol() noexcept
 
 void
 Terminal::set_mode_private(int mode,
-                                     bool set) noexcept
+                           bool set) noexcept
 {
         /* Pre actions */
         switch (mode) {
@@ -4118,6 +4118,8 @@ Terminal::DECSCL(vte::parser::Sequence const& seq)
                 break;
         }
 #endif
+
+        reset_graphics_color_registers();
 }
 
 void

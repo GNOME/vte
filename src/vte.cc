@@ -9812,6 +9812,15 @@ Terminal::reset_data_syntax()
         pop_data_syntax();
 }
 
+void
+Terminal::reset_graphics_color_registers()
+{
+#ifdef WITH_SIXEL
+        if (m_sixel_context)
+                m_sixel_context->reset_colors();
+#endif
+}
+
 /*
  * Terminal::reset:
  * @clear_tabstops: whether to reset tabstops
@@ -9936,6 +9945,7 @@ Terminal::reset(bool clear_tabstops,
          * clear (assign to black) all SIXEL colour registers.
          * (DEC PPLV2 § 5.8)
          */
+        reset_graphics_color_registers();
 }
 
 void
