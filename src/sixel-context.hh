@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <bit>
 #include <cstdint>
 #include <iterator>
 #include <utility>
@@ -42,6 +41,8 @@ enum class endian
     native = __BYTE_ORDER__
 };
 } // namespace std
+#else
+#include <bit>
 #endif
 
 namespace vte::sixel {
