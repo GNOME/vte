@@ -8724,13 +8724,124 @@ Terminal::XTERM_RTM(vte::parser::Sequence const& seq)
 }
 
 void
-Terminal::XTERM_SGFX(vte::parser::Sequence const& seq)
+Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
 {
         /*
-         * XTERM_SGFX - xterm-sixel-graphics
+         * XTERM_SMGRAPHICS - xterm set or request graphics attributes
+         * Set or request graphics attributes for SIXEL and REGIS.
          *
-         * Probably not worth implementing.
+         * Reply: XTERM_SMGRAPHICS_REPORT
+         *
+         * Arguments:
+         *   args[0]: select function
+         *     0: number of colour registers
+         *     1: SIXEL geometry
+         *     2: REGIS geometry
+         *   args[1]: select subfunction
+         *     1: read attribute
+         *     2: reset attribute
+         *     3: set attribute
+         *     4: read maximum value of attribute
+         *   args[2:]: values, used only for subfuncion 3
+         *
+         * Defaults:
+         *   args[0]: no default
+         *   args[1]: no default
+         *   args[2:]: no default
+         *
+         * The reply is XTERM_SMGRAPHICS_REPORT, with arguments:
+         *   args[0]: function
+         *   args[1]: status
+         *     0: success
+         *     1: error in function parameter
+         *     2: error in subfunction parameter
+         *     3: failure
+         *
+         * References: XTERM
          */
+
+        auto const attr = seq.collect1(0);
+        auto const what = seq.collect1(1);
+        auto status = 3, rv0 = -2, rv1 = -2;
+
+        switch (attr) {
+#ifdef WITH_SIXEL
+        case 0: /* Colour registers.
+                 *
+                 * VTE doesn't support changing the number of colour registers, so always
+                 * return the fixed number, and set() returns success iff the passed number
+                 * was less or equal that number.
+                 */
+                switch (what) {
+                case 1: /* read */
+                case 2: /* reset */
+                case 4: /* read maximum */
+                        status = 0;
+                        rv0 = VTE_SIXEL_NUM_COLOR_REGISTERS;
+                        break;
+                case 3: /* set */
+                        status = (seq.collect1(2) <= VTE_SIXEL_NUM_COLOR_REGISTERS) ? 0 : 2;
+                        rv0 = VTE_SIXEL_NUM_COLOR_REGISTERS;
+                        break;
+                case -1: /* no default */
+                default:
+                        status = 2;
+                        break;
+                }
+                break;
+
+        case 1: /* SIXEL graphics geometry.
+                 *
+                 * VTE doesn't support variable geometries; always report
+                 * the maximum size of a SIXEL graphic, and set() returns success iff the
+                 * passed numbers are less or equal to that number.
+                 */
+                switch (what) {
+                case 1: /* read */
+                case 2: /* reset */
+                case 4: /* read maximum */
+                        status = 0;
+                        rv0 = VTE_SIXEL_MAX_WIDTH;
+                        rv1 = VTE_SIXEL_MAX_HEIGHT;
+                        break;
+
+                case 3: /* set */ {
+                        auto w = int{}, h = int{};
+                        if (seq.collect(2, {&w, &h}) &&
+                            w > 0 &&  w <= VTE_SIXEL_MAX_WIDTH &&
+                            h > 0 && h <= VTE_SIXEL_MAX_HEIGHT) {
+                                rv0 = VTE_SIXEL_MAX_WIDTH;
+                                rv1 = VTE_SIXEL_MAX_HEIGHT;
+                                status = 0;
+                        } else {
+                                status = 3;
+                        }
+
+                        break;
+                }
+
+                case -1: /* no default */
+                default:
+                        status = 2;
+                        break;
+                }
+                break;
+
+#endif /* WITH_SIXEL */
+
+#if 0 /* ifdef WITH_REGIS */
+        case 2:
+                status = 1;
+                break;
+#endif
+
+        case -1: /* no default value */
+        default:
+                status = 1;
+                break;
+        }
+
+        reply(seq, VTE_REPLY_XTERM_SMGRAPHICS_REPORT, {attr, status, rv0, rv1});
 }
 
 void

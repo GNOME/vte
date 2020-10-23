@@ -72,9 +72,9 @@ private:
         uint32_t m_introducer{0};
         uint32_t m_st{0};
 
-        static inline constexpr unsigned const k_max_width = 2048u;
+        static inline constexpr unsigned const k_max_width = VTE_SIXEL_MAX_WIDTH;
 
-        static inline constexpr unsigned const k_max_height = 2052u;
+        static inline constexpr unsigned const k_max_height = VTE_SIXEL_MAX_HEIGHT;
         static_assert((k_max_height % 6) == 0, "k_max_height not divisible by 6");
 
         static inline constexpr int const k_num_colors = VTE_SIXEL_NUM_COLOR_REGISTERS;

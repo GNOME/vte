@@ -30,6 +30,7 @@ _VTE_REPLY(XTERM_MOUSE_EXT_SGR_REPORT_BUTTON_PRESS,   CSI, 'M', LT,   NONE,  ) /
 _VTE_REPLY(XTERM_FOCUS_OUT,                           CSI, 'O', NONE, NONE,  ) /* XTERM focus out report */
 _VTE_REPLY(DECXCPR,                                   CSI, 'R', WHAT, NONE,  ) /* extended cursor position report */
 _VTE_REPLY(CPR,                                       CSI, 'R', NONE, NONE,  ) /* cursor position report */
+_VTE_REPLY(XTERM_SMGRAPHICS_REPORT,                   CSI, 'S', WHAT, NONE,  ) /* xterm graphics attribute report */
 _VTE_REPLY(DECDA1R,                                   CSI, 'c', WHAT, NONE,  ) /* DA1 report */
 _VTE_REPLY(DECDA2R,                                   CSI, 'c', GT,   NONE,  ) /* DA2 report */
 _VTE_REPLY(SGR,                                       CSI, 'm', NONE, NONE,  ) /* SGR */
