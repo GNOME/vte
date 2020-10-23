@@ -749,7 +749,8 @@ public:
                          bool invalidate_now);
 
         #ifdef WITH_SIXEL
-        void insert_image(vte::Freeable<cairo_surface_t> image_surface) /* throws */;
+        void insert_image(ProcessingContext& context,
+                          vte::Freeable<cairo_surface_t> image_surface) /* throws */;
         #endif
 
         void invalidate_row(vte::grid::row_t row);

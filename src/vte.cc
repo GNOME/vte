@@ -3119,7 +3119,8 @@ not_inserted:
 #ifdef WITH_SIXEL
 
 void
-Terminal::insert_image(vte::Freeable<cairo_surface_t> image_surface) /* throws */
+Terminal::insert_image(ProcessingContext& context,
+                       vte::Freeable<cairo_surface_t> image_surface) /* throws */
 {
         if (!image_surface)
                 return;
@@ -3162,8 +3163,12 @@ Terminal::insert_image(vte::Freeable<cairo_surface_t> image_surface) /* throws *
                                          m_cell_width_unscaled,
                                          m_cell_height_unscaled);
 
-        /* Erase characters under the image */
+        /* Erase characters under the image. Since this inserts content, we need
+         * to update the processing context's bbox.
+         */
+        context.pre_GRAPHIC(*this);
         erase_image_rect(height, width);
+        context.post_GRAPHIC(*this);
 }
 
 #endif /* WITH_SIXEL */
@@ -3904,7 +3909,7 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
                         break;
 
                 try {
-                        insert_image(m_sixel_context->image_cairo());
+                        insert_image(context, m_sixel_context->image_cairo());
                 } catch (...) {
                 }
 
