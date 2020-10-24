@@ -135,7 +135,7 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + files(
+libvte_common_sources = config_sources + debug_sources + glib_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -315,7 +315,7 @@ endif
 
 # decoder cat
 
-decoder_cat_sources = glib_glue_sources + libc_glue_sources + utf8_sources + debug_sources + files(
+decoder_cat_sources = config_sources + glib_glue_sources + libc_glue_sources + utf8_sources + debug_sources + files(
   'decoder-cat.cc',
 )
 
@@ -334,7 +334,7 @@ decoder_cat = executable(
 
 # parser cat
 
-parser_cat_sources = glib_glue_sources + libc_glue_sources + parser_sources + std_glue_sources + utf8_sources + debug_sources + files(
+parser_cat_sources = config_sources + glib_glue_sources + libc_glue_sources + parser_sources + std_glue_sources + utf8_sources + debug_sources + files(
   'parser-cat.cc',
   'vtedefines.hh',
 )
@@ -354,7 +354,7 @@ parser_cat = executable(
 
 # dumpkeys
 
-dumpkeys_sources = files(
+dumpkeys_sources = config_sources + files(
   'dumpkeys.c'
 )
 
@@ -368,7 +368,7 @@ dumpkeys = executable(
 
 # mev
 
-mev_sources = files(
+mev_sources = config_sources + files(
   'mev.c'
 )
 
@@ -382,7 +382,7 @@ mev = executable(
 
 # slowcat
 
-slowcat_sources = files(
+slowcat_sources = config_sources + files(
   'slowcat.c'
 )
 
@@ -396,7 +396,7 @@ slowcat = executable(
 
 # reflect
 
-reflect_sources = files(
+reflect_sources = config_sources + files(
   'reflect.c'
 )
 
@@ -423,7 +423,7 @@ reflect_vte = executable(
 
 # vte-urlencode-cwd
 
-vte_urlencode_cwd_sources = files(
+vte_urlencode_cwd_sources = config_sources + files(
   'urlencode.cc',
 )
 
@@ -440,7 +440,7 @@ vte_urlencode_cwd = executable(
 
 # xticker
 
-xticker_sources = files(
+xticker_sources = config_sources + files(
   'xticker.c'
 )
 
@@ -455,7 +455,7 @@ xticker = executable(
 
 # Unit tests
 
-test_modes_sources = modes_sources + files(
+test_modes_sources = config_sources + modes_sources + files(
   'modes-test.cc',
 )
 
@@ -467,7 +467,7 @@ test_modes = executable(
   install: false,
 )
 
-test_parser_sources = parser_sources + files(
+test_parser_sources = config_sources + parser_sources + files(
   'parser-test.cc',
 )
 
@@ -480,7 +480,7 @@ test_parser = executable(
   install: false,
 )
 
-test_reaper_sources = debug_sources + files(
+test_reaper_sources = config_sources + debug_sources + files(
   'reaper.cc',
   'reaper.hh'
 )
@@ -494,7 +494,7 @@ test_reaper = executable(
   install: false,
 )
 
-test_refptr_sources = files(
+test_refptr_sources = config_sources + files(
   'refptr-test.cc',
   'refptr.hh'
 )
@@ -508,7 +508,7 @@ test_refptr = executable(
 )
 
 if get_option('sixel')
-  fuzz_sixel_sources = files(
+  fuzz_sixel_sources = config_sources + files(
     'sixel-fuzzer.cc',
   )
 
@@ -520,7 +520,7 @@ if get_option('sixel')
     install: false,
   )
 
-  test_sixel_sources = glib_glue_sources + sixel_parser_sources + sixel_context_sources + files(
+  test_sixel_sources = config_sources + glib_glue_sources + sixel_parser_sources + sixel_context_sources + files(
     'cairo-glue.hh',
     'sixel-test.cc',
     'vtedefines.hh',
@@ -535,12 +535,7 @@ if get_option('sixel')
   )
 endif
 
-test_tabstops_sources = files(
-  'tabstops-test.cc',
-  'tabstops.hh'
-)
-
-test_stream_sources = files(
+test_stream_sources = config_sources + files(
   'vtestream-base.h',
   'vtestream-file.h',
   'vtestream.cc',
@@ -558,6 +553,11 @@ test_stream = executable(
   install: false,
 )
 
+test_tabstops_sources = config_sources + files(
+  'tabstops-test.cc',
+  'tabstops.hh'
+)
+
 test_tabstops = executable(
   'test-tabstops',
   sources: test_tabstops_sources,
@@ -566,7 +566,7 @@ test_tabstops = executable(
   install: false,
 )
 
-test_utf8_sources = utf8_sources + files(
+test_utf8_sources = config_sources + utf8_sources + files(
   'utf8-test.cc',
 )
 
@@ -578,7 +578,7 @@ test_utf8 = executable(
   install: false,
 )
 
-test_vtetypes_sources = libc_glue_sources + files(
+test_vtetypes_sources = config_sources + libc_glue_sources + files(
    'vtetypes.cc',
    'vtetypes.hh',
 )

@@ -447,10 +447,12 @@ config_h.set('WITH_SYSTEMD', systemd_dep.found())
 
 # Write config.h
 
-configure_file(
-  output: 'config.h',
-  configuration: config_h,
-)
+config_sources = [
+  configure_file(
+    output: 'config.h',
+    configuration: config_h,
+  ),
+]
 
 # Subdirs
 
