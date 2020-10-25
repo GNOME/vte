@@ -1135,9 +1135,9 @@ struct _VteappWindow {
         GtkApplicationWindow parent;
 
         /* from GtkWidget template */
-        GtkWidget* window_box;
+        GtkWidget* window_grid;
         GtkScrollbar* scrollbar;
-        /* GtkBox* notifications_box; */
+        /* GtkGrid* notifications_grid; */
         GtkWidget* readonly_emblem;
         /* GtkButton* copy_button; */
         /* GtkButton* paste_button; */
@@ -1216,7 +1216,7 @@ vteapp_window_update_geometry(VteappWindow* window)
          * This includes the terminal's padding in the chrome.
          */
         GtkRequisition contents_req;
-        gtk_widget_get_preferred_size(window->window_box, nullptr, &contents_req);
+        gtk_widget_get_preferred_size(window->window_grid, nullptr, &contents_req);
         int chrome_width = contents_req.width - cell_width * columns;
         int chrome_height = contents_req.height - cell_height * rows;
         g_assert_cmpint(chrome_width, >=, 0);
@@ -1230,7 +1230,7 @@ vteapp_window_update_geometry(VteappWindow* window)
                  */
                 GtkAllocation toplevel, contents;
                 gtk_widget_get_allocation(window_widget, &toplevel);
-                gtk_widget_get_allocation(window->window_box, &contents);
+                gtk_widget_get_allocation(window->window_grid, &contents);
 
                 csd_width = toplevel.width - contents.width;
                 csd_height = toplevel.height - contents.height;
@@ -2014,6 +2014,9 @@ vteapp_window_constructed(GObject *object)
         /* Create terminal and connect scrollbar */
         window->terminal = reinterpret_cast<VteTerminal*>(vteapp_terminal_new());
 
+        gtk_widget_set_hexpand(GTK_WIDGET(window->terminal), true);
+        gtk_widget_set_vexpand(GTK_WIDGET(window->terminal), true);
+
         auto margin = options.extra_margin;
         if (margin >= 0) {
                 gtk_widget_set_margin_start(GTK_WIDGET(window->terminal), margin);
@@ -2158,8 +2161,8 @@ vteapp_window_constructed(GObject *object)
                 vteapp_window_add_dingus(window, options.dingus);
 
         /* Done! */
-        gtk_box_pack_start(GTK_BOX(window->window_box), GTK_WIDGET(window->terminal),
-                           true, true, 0);
+        gtk_grid_attach(GTK_GRID(window->window_grid), GTK_WIDGET(window->terminal),
+                        0, 0, 1, 1);
         gtk_widget_show(GTK_WIDGET(window->terminal));
 
         window_update_paste_sensitivity(window);
@@ -2256,9 +2259,9 @@ vteapp_window_class_init(VteappWindowClass* klass)
         gtk_widget_class_set_template_from_resource(widget_class, "/org/gnome/vte/app/ui/window.ui");
         gtk_widget_class_set_css_name(widget_class, "vteapp-window");
 
-        gtk_widget_class_bind_template_child(widget_class, VteappWindow, window_box);
+        gtk_widget_class_bind_template_child(widget_class, VteappWindow, window_grid);
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, scrollbar);
-        /* gtk_widget_class_bind_template_child(widget_class, VteappWindow, notification_box); */
+        /* gtk_widget_class_bind_template_child(widget_class, VteappWindow, notification_grid); */
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, readonly_emblem);
         /* gtk_widget_class_bind_template_child(widget_class, VteappWindow, copy_button); */
         /* gtk_widget_class_bind_template_child(widget_class, VteappWindow, paste_button); */
