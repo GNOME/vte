@@ -18,12 +18,6 @@ app_sources = config_sources + glib_glue_sources + libc_glue_sources + pango_glu
   'app.cc',
 )
 
-app_resource_data = files(
-  'appmenu.ui',
-  'search-popover.ui',
-  'window.ui',
-)
-
 app_common_cppflags = [
   '-DG_LOG_DOMAIN="VTE"',
   '-DLOCALEDIR="@0@"'.format(vte_prefix / vte_localedir),
@@ -36,11 +30,17 @@ app_common_deps = [
 
 if get_option('gtk3')
 
+  app_gtk3_resource_data = files(
+    'appmenu-gtk3.ui',
+    'search-popover-gtk3.ui',
+    'window-gtk3.ui',
+  )
+
   app_gtk3_resource_sources = gnome.compile_resources(
-    'resources.cc',
-    'app.gresource.xml',
+    'resources-gtk3.cc',
+    'app-gtk3.gresource.xml',
     c_name: 'app',
-    dependencies: app_resource_data,
+    dependencies: app_gtk3_resource_data,
   )
 
   app_gtk3_sources = app_sources + app_gtk3_resource_sources
