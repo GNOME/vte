@@ -8763,7 +8763,6 @@ Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
          */
 
         auto const attr = seq.collect1(0);
-        auto const what = seq.collect1(1);
         auto status = 3, rv0 = -2, rv1 = -2;
 
         switch (attr) {
@@ -8774,7 +8773,7 @@ Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
                  * return the fixed number, and set() returns success iff the passed number
                  * was less or equal that number.
                  */
-                switch (what) {
+                switch (seq.collect1(1)) {
                 case 1: /* read */
                 case 2: /* reset */
                 case 4: /* read maximum */
@@ -8798,7 +8797,7 @@ Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
                  * the maximum size of a SIXEL graphic, and set() returns success iff the
                  * passed numbers are less or equal to that number.
                  */
-                switch (what) {
+                switch (seq.collect1(1)) {
                 case 1: /* read */
                 case 2: /* reset */
                 case 4: /* read maximum */
