@@ -5645,17 +5645,17 @@ Terminal::maybe_send_mouse_button(vte::grid::coords const& unconfined_rowcol,
 {
 	switch (event.type()) {
         case vte::platform::EventBase::Type::eMOUSE_PRESS:
-		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK) {
+                if (event.press_count() != 1 ||
+                    (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_CLICK)) {
 			return false;
 		}
 		break;
         case vte::platform::EventBase::Type::eMOUSE_RELEASE:
-		if (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON) {
+                if (event.press_count() != 1 ||
+                    (m_mouse_tracking_mode < MouseTrackingMode::eSEND_XY_ON_BUTTON)) {
 			return false;
 		}
 		break;
-        case vte::platform::EventBase::Type::eMOUSE_DOUBLE_PRESS:
-        case vte::platform::EventBase::Type::eMOUSE_TRIPLE_PRESS:
 	default:
 		return false;
 	}
@@ -6770,8 +6770,8 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 
         m_modifiers = event.modifiers();
 
-        switch (event.type()) {
-        case vte::platform::EventBase::Type::eMOUSE_PRESS:
+        switch (event.press_count()) {
+        case 1: /* single click */
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d single-click at %s\n",
                                  event.button_value(),
@@ -6844,7 +6844,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
                         handled = maybe_send_mouse_button(rowcol, event);
 		}
 		break;
-        case vte::platform::EventBase::Type::eMOUSE_DOUBLE_PRESS:
+        case 2: /* double click */
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d double-click at %s\n",
                                  event.button_value(),
@@ -6868,7 +6868,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 			break;
 		}
 		break;
-        case vte::platform::EventBase::Type::eMOUSE_TRIPLE_PRESS:
+        case 3: /* triple click */
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Button %d triple-click at %s\n",
                                  event.button_value(),

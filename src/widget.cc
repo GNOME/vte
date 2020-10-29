@@ -444,15 +444,31 @@ MouseEvent
 Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
 {
         auto type = EventBase::Type{};
+        auto press_count = 0u;
         switch (gdk_event_get_event_type(event)) {
-        case GDK_2BUTTON_PRESS:  type = MouseEvent::Type::eMOUSE_DOUBLE_PRESS; break;
-        case GDK_3BUTTON_PRESS:  type = MouseEvent::Type::eMOUSE_TRIPLE_PRESS; break;
-        case GDK_BUTTON_PRESS:   type = MouseEvent::Type::eMOUSE_PRESS;        break;
-        case GDK_BUTTON_RELEASE: type = MouseEvent::Type::eMOUSE_RELEASE;      break;
+        case GDK_2BUTTON_PRESS:
+                type = MouseEvent::Type::eMOUSE_PRESS;
+                press_count = 2;
+                break;
+        case GDK_3BUTTON_PRESS:
+                type = MouseEvent::Type::eMOUSE_PRESS;
+                press_count = 3;
+                break;
+        case GDK_BUTTON_PRESS:
+                type = MouseEvent::Type::eMOUSE_PRESS;
+                press_count = 1;
+                break;
+        case GDK_BUTTON_RELEASE:
+                type = MouseEvent::Type::eMOUSE_RELEASE;
+                press_count = 1;
+                break;
         case GDK_ENTER_NOTIFY:   type = MouseEvent::Type::eMOUSE_ENTER;        break;
         case GDK_LEAVE_NOTIFY:   type = MouseEvent::Type::eMOUSE_LEAVE;        break;
         case GDK_MOTION_NOTIFY:  type = MouseEvent::Type::eMOUSE_MOTION;       break;
-        case GDK_SCROLL:         type = MouseEvent::Type::eMOUSE_SCROLL;       break;
+        case GDK_SCROLL:
+                type = MouseEvent::Type::eMOUSE_SCROLL;
+                press_count = 1;
+                break;
         default:
                 throw std::runtime_error{"Unexpected event type"};
         }
@@ -466,14 +482,14 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
         auto button = unsigned{0};
         (void)gdk_event_get_button(event, &button);
 
-        auto mouse_event = MouseEvent{event,
-                                      type,
-                                      gdk_event_get_time(event),
-                                      read_modifiers_from_gdk(event),
-                                      MouseEvent::Button(button),
-                                      x,
-                                      y};
-        return mouse_event;
+        return {event,
+                type,
+                gdk_event_get_time(event),
+                press_count,
+                read_modifiers_from_gdk(event),
+                MouseEvent::Button(button),
+                x,
+                y};
 }
 
 void

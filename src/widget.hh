@@ -51,14 +51,12 @@ public:
         enum class Type {
                 eKEY_PRESS,
                 eKEY_RELEASE,
-                eMOUSE_DOUBLE_PRESS,
                 eMOUSE_ENTER,
                 eMOUSE_LEAVE,
                 eMOUSE_MOTION,
                 eMOUSE_PRESS,
                 eMOUSE_RELEASE,
                 eMOUSE_SCROLL,
-                eMOUSE_TRIPLE_PRESS,
         };
 
 protected:
@@ -175,6 +173,7 @@ protected:
         constexpr MouseEvent(GdkEvent* gdk_event,
                              Type type,
                              unsigned timestamp,
+                             unsigned press_count,
                              unsigned modifiers,
                              Button button,
                              double x,
@@ -182,6 +181,7 @@ protected:
                 : EventBase{gdk_event,
                             type,
                             timestamp},
+                  m_press_count{press_count},
                   m_modifiers{modifiers},
                   m_button{button},
                   m_x{x},
@@ -199,19 +199,17 @@ public:
 
         constexpr auto button()       const noexcept { return m_button;           }
         constexpr auto button_value() const noexcept { return unsigned(m_button); }
+        constexpr auto press_count()  const noexcept { return m_press_count;      }
         constexpr auto modifiers()    const noexcept { return m_modifiers;        }
         constexpr auto x()            const noexcept { return m_x;                }
         constexpr auto y()            const noexcept { return m_y;                }
 
-        constexpr auto is_mouse_double_press() const noexcept { return type() == Type::eMOUSE_DOUBLE_PRESS; }
         constexpr auto is_mouse_enter()        const noexcept { return type() == Type::eMOUSE_ENTER;        }
         constexpr auto is_mouse_leave()        const noexcept { return type() == Type::eMOUSE_LEAVE;        }
         constexpr auto is_mouse_motion()       const noexcept { return type() == Type::eMOUSE_MOTION;       }
         constexpr auto is_mouse_press()        const noexcept { return type() == Type::eMOUSE_PRESS;      }
         constexpr auto is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
         constexpr auto is_mouse_scroll()       const noexcept { return type() == Type::eMOUSE_SCROLL;       }
-        constexpr auto is_mouse_single_press() const noexcept { return type() == Type::eMOUSE_PRESS;        }
-        constexpr auto is_mouse_triple_press() const noexcept { return type() == Type::eMOUSE_TRIPLE_PRESS; }
 
         ScrollDirection scroll_direction() const noexcept
         {
@@ -248,6 +246,7 @@ public:
         }
 
 private:
+        unsigned m_press_count;
         unsigned m_modifiers;
         Button m_button;
         double m_x;
