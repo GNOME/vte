@@ -4,7 +4,7 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 3 of the License, or (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __VTE_VTE_TERMINAL_H__
-#define __VTE_VTE_TERMINAL_H__
+#pragma once
 
 #if !defined (__VTE_VTE_H_INSIDE__) && !defined (VTE_COMPILATION)
 #error "Only <vte/vte.h> can be included directly."
@@ -516,5 +515,3 @@ gboolean vte_terminal_get_enable_sixel(VteTerminal *terminal) _VTE_CXX_NOEXCEPT 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
 G_END_DECLS
-
-#endif /* __VTE_VTE_TERMINAL_H__ */
