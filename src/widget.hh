@@ -64,11 +64,9 @@ protected:
         EventBase() noexcept = default;
 
         constexpr EventBase(GdkEvent* gdk_event,
-                            Type type,
-                            unsigned timestamp) noexcept
+                            Type type) noexcept
                 : m_platform_event{gdk_event},
-                  m_type{type},
-                  m_timestamp{timestamp}
+                  m_type{type}
         {
         }
 
@@ -82,13 +80,11 @@ public:
         EventBase& operator=(EventBase const&) = delete;
         EventBase& operator=(EventBase&&) = delete;
 
-        constexpr auto timestamp()   const noexcept { return m_timestamp;   }
         constexpr auto type()        const noexcept { return m_type;        }
 
 private:
         GdkEvent* m_platform_event;
         Type m_type;
-        unsigned m_timestamp;
 }; // class EventBase
 
 class KeyEvent : public EventBase {
@@ -101,15 +97,13 @@ protected:
 
         constexpr KeyEvent(GdkEvent* gdk_event,
                            Type type,
-                           unsigned timestamp,
                            unsigned modifiers,
                            unsigned keyval,
                            unsigned keycode,
                            uint8_t group,
                            bool is_modifier) noexcept
                 : EventBase{gdk_event,
-                            type,
-                            timestamp},
+                            type},
                   m_modifiers{modifiers},
                   m_keyval{keyval},
                   m_keycode{keycode},
@@ -172,15 +166,13 @@ protected:
 
         constexpr MouseEvent(GdkEvent* gdk_event,
                              Type type,
-                             unsigned timestamp,
                              unsigned press_count,
                              unsigned modifiers,
                              Button button,
                              double x,
                              double y) noexcept
                 : EventBase{gdk_event,
-                            type,
-                            timestamp},
+                            type},
                   m_press_count{press_count},
                   m_modifiers{modifiers},
                   m_button{button},

@@ -432,7 +432,6 @@ Widget::key_event_from_gdk(GdkEventKey* event) const
         auto base_event = reinterpret_cast<GdkEvent*>(event);
         return {base_event,
                 type,
-                event->time,
                 read_modifiers_from_gdk(base_event),
                 event->keyval,
                 event->hardware_keycode, // gdk_event_get_scancode(event),
@@ -484,7 +483,6 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
 
         return {event,
                 type,
-                gdk_event_get_time(event),
                 press_count,
                 read_modifiers_from_gdk(event),
                 MouseEvent::Button(button),
