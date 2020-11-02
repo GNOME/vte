@@ -490,6 +490,40 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
                 y};
 }
 
+ScrollEvent
+Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
+{
+        auto button = unsigned{0};
+        (void)gdk_event_get_button(event, &button);
+
+        auto x = double{}, y = double{};
+        if (gdk_event_get_window(event) != m_event_window ||
+            !gdk_event_get_coords(event, &x, &y))
+                x = y = -1.; // FIXMEchpe or throw?
+
+        auto dx = double{}, dy = double{};
+        if (!gdk_event_get_scroll_deltas(event, &dx, &dy)) {
+                auto dir = GdkScrollDirection{};
+                if (!gdk_event_get_scroll_direction(event, &dir))
+                        __builtin_unreachable();
+
+                switch (dir) {
+                case GDK_SCROLL_UP:     dx =  0.; dy = -1.; break;
+                case GDK_SCROLL_DOWN:   dx =  0.; dy =  1.; break;
+                case GDK_SCROLL_LEFT:   dx = -1.; dy =  0.; break;
+                case GDK_SCROLL_RIGHT:  dx =  1.; dy =  0.; break;
+                case GDK_SCROLL_SMOOTH: break;
+                default: __builtin_unreachable();
+                }
+        }
+
+        return {event,
+                read_modifiers_from_gdk(event),
+                ScrollEvent::Button(button),
+                x, y,
+                dx, dy};
+}
+
 void
 Widget::map() noexcept
 {

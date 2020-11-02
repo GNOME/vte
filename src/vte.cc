@@ -9320,7 +9320,7 @@ vte_cairo_get_clip_region (cairo_t *cr)
 }
 
 bool
-Terminal::widget_mouse_scroll(vte::platform::MouseEvent const& event)
+Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 {
 	gdouble v;
 	gint cnt, i;
@@ -9332,27 +9332,7 @@ Terminal::widget_mouse_scroll(vte::platform::MouseEvent const& event)
         auto rowcol = confined_grid_coords_from_event(event);
 
         m_modifiers = event.modifiers();
-
-        switch (event.scroll_direction()) {
-        case vte::platform::MouseEvent::ScrollDirection::eUP:
-		m_mouse_smooth_scroll_delta -= 1.;
-		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll up\n");
-		break;
-        case vte::platform::MouseEvent::ScrollDirection::eDOWN:
-		m_mouse_smooth_scroll_delta += 1.;
-		_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll down\n");
-		break;
-        case vte::platform::MouseEvent::ScrollDirection::eSMOOTH: {
-                auto const delta_y = event.scroll_delta_y();
-		m_mouse_smooth_scroll_delta += delta_y;
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Smooth scroll by %f, delta now at %f\n",
-				delta_y, m_mouse_smooth_scroll_delta);
-		break;
-        }
-	default:
-		break;
-	}
+        m_mouse_smooth_scroll_delta += event.dy();
 
 	/* If we're running a mouse-aware application, map the scroll event
 	 * to a button press on buttons four and five. */

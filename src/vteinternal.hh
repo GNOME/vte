@@ -864,7 +864,7 @@ public:
         bool widget_mouse_release(vte::platform::MouseEvent const& event);
         void widget_mouse_enter(vte::platform::MouseEvent const& event);
         void widget_mouse_leave(vte::platform::MouseEvent const& event);
-        bool widget_mouse_scroll(vte::platform::MouseEvent const& event);
+        bool widget_mouse_scroll(vte::platform::ScrollEvent const& event);
         void widget_draw(cairo_t *cr);
         void widget_get_preferred_width(int *minimum_width,
                                         int *natural_width);

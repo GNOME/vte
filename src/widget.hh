@@ -151,15 +151,6 @@ public:
                 eFIFTH  = 5,
         };
 
-        enum class ScrollDirection {
-                eUP,
-                eDOWN,
-                eLEFT,
-                eRIGHT,
-                eSMOOTH,
-                eNONE,
-        };
-
 protected:
 
         MouseEvent() noexcept = default;
@@ -201,41 +192,6 @@ public:
         constexpr auto is_mouse_motion()       const noexcept { return type() == Type::eMOUSE_MOTION;       }
         constexpr auto is_mouse_press()        const noexcept { return type() == Type::eMOUSE_PRESS;      }
         constexpr auto is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
-        constexpr auto is_mouse_scroll()       const noexcept { return type() == Type::eMOUSE_SCROLL;       }
-
-        ScrollDirection scroll_direction() const noexcept
-        {
-                if (!is_mouse_scroll())
-                        return ScrollDirection::eNONE;
-                auto dir = GdkScrollDirection{};
-                if (gdk_event_get_scroll_deltas(platform_event(), nullptr, nullptr))
-                        dir = GDK_SCROLL_SMOOTH;
-                else if (!gdk_event_get_scroll_direction(platform_event(), &dir))
-                        return ScrollDirection::eNONE;
-
-                switch (dir) {
-                case GDK_SCROLL_UP:     return ScrollDirection::eUP;
-                case GDK_SCROLL_DOWN:   return ScrollDirection::eDOWN;
-                case GDK_SCROLL_LEFT:   return ScrollDirection::eLEFT;
-                case GDK_SCROLL_RIGHT:  return ScrollDirection::eRIGHT;
-                case GDK_SCROLL_SMOOTH: return ScrollDirection::eSMOOTH;
-                default: return ScrollDirection::eNONE;
-                }
-        }
-
-        auto scroll_delta_x() const noexcept
-        {
-                auto delta = double{0.};
-                gdk_event_get_scroll_deltas(platform_event(), &delta, nullptr);
-                return delta;
-        }
-
-        auto scroll_delta_y() const noexcept
-        {
-                auto delta = double{0.};
-                gdk_event_get_scroll_deltas(platform_event(), nullptr, &delta);
-                return delta;
-        }
 
 private:
         unsigned m_press_count;
@@ -244,6 +200,49 @@ private:
         double m_x;
         double m_y;
 }; // class MouseEvent
+
+class ScrollEvent : public MouseEvent {
+        friend class vte::platform::Widget;
+        friend class Terminal;
+
+protected:
+
+        ScrollEvent() noexcept = default;
+
+        constexpr ScrollEvent(GdkEvent* gdk_event,
+                              unsigned modifiers,
+                              Button button,
+                              double x,
+                              double y,
+                              double dx,
+                              double dy) noexcept
+                : MouseEvent{gdk_event,
+                             EventBase::Type::eMOUSE_SCROLL,
+                             1, // press count
+                             modifiers,
+                             button,
+                             x,
+                             y},
+                  m_dx{dx},
+                  m_dy{dy}
+        {
+        }
+
+public:
+        ~ScrollEvent() noexcept = default;
+
+        ScrollEvent(ScrollEvent const&) = default;
+        ScrollEvent(ScrollEvent&&) = default;
+        ScrollEvent& operator=(ScrollEvent const&) = delete;
+        ScrollEvent& operator=(ScrollEvent&&) = delete;
+
+        constexpr auto dx()           const noexcept { return m_dx;               }
+        constexpr auto dy()           const noexcept { return m_dy;               }
+
+private:
+        double m_dx;
+        double m_dy;
+}; // class ScrollEvent
 
 class Widget : public std::enable_shared_from_this<Widget> {
 public:
@@ -285,7 +284,7 @@ public:
         bool button_release(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_release(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         void enter(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_enter(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         void leave(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_leave(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        bool scroll(GdkEventScroll *event) noexcept { return m_terminal->widget_mouse_scroll(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        bool scroll(GdkEventScroll *event) noexcept { return m_terminal->widget_mouse_scroll(scroll_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
         bool motion_notify(GdkEventMotion *event) noexcept { return m_terminal->widget_mouse_motion(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
@@ -427,6 +426,7 @@ private:
         unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
         KeyEvent key_event_from_gdk(GdkEventKey* event) const;
         MouseEvent mouse_event_from_gdk(GdkEvent* event) const /* throws */;
+        ScrollEvent scroll_event_from_gdk(GdkEvent* event) const /* throws */;
 
         void clipboard_request_received_cb(Clipboard const& clipboard,
                                            std::string_view const& text);

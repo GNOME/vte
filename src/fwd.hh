@@ -31,6 +31,7 @@ class Clipboard;
 class EventBase;
 class KeyEvent;
 class MouseEvent;
+class ScrollEvent;
 class Widget;
 
 } // namespace platform
