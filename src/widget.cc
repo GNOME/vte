@@ -492,9 +492,6 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
 ScrollEvent
 Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
 {
-        auto button = unsigned{0};
-        (void)gdk_event_get_button(event, &button);
-
         auto x = double{}, y = double{};
         if (gdk_event_get_window(event) != m_event_window ||
             !gdk_event_get_coords(event, &x, &y))
@@ -517,7 +514,6 @@ Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
         }
 
         return {read_modifiers_from_gdk(event),
-                ScrollEvent::Button(button),
                 x, y,
                 dx, dy};
 }

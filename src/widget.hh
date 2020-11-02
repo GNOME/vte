@@ -206,7 +206,6 @@ protected:
         ScrollEvent() noexcept = default;
 
         constexpr ScrollEvent(unsigned modifiers,
-                              Button button,
                               double x,
                               double y,
                               double dx,
@@ -214,7 +213,7 @@ protected:
                 : MouseEvent{EventBase::Type::eMOUSE_SCROLL,
                              1, // press count
                              modifiers,
-                             button,
+                             MouseEvent::Button::eNONE,
                              x,
                              y},
                   m_dx{dx},
