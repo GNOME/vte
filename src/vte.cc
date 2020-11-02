@@ -3128,26 +3128,6 @@ Terminal::insert_image(ProcessingContext& context,
         auto const image_width_px = cairo_image_surface_get_width(image_surface.get());
         auto const image_height_px = cairo_image_surface_get_height(image_surface.get());
 
-        /* Convert to device-compatible surface for m_widget */
-        auto device_surface = vte::take_freeable
-                (gdk_window_create_similar_surface(gtk_widget_get_window(widget()->gtk()),
-                                                   CAIRO_CONTENT_COLOR_ALPHA,
-                                                   image_width_px,
-                                                   image_height_px));
-
-        {
-                auto cr = vte::take_freeable(cairo_create(device_surface.get()));
-                cairo_set_source_surface(cr.get(), image_surface.get(), 0, 0);
-                cairo_paint(cr.get());
-        }
-
-        /* Reduce memory fragmentation by dropping the ref as soon as we no longer need it */
-        image_surface.reset();
-
-        /* FIXMEchpe: should insert a 'missing image' pattern instead! */
-        if (cairo_surface_status(device_surface.get()) != CAIRO_STATUS_SUCCESS)
-                return;
-
         /* Calculate geometry */
 
         auto const left = m_screen->cursor.col;
@@ -3155,7 +3135,7 @@ Terminal::insert_image(ProcessingContext& context,
         auto const width = (image_width_px + m_cell_width_unscaled - 1) / m_cell_width_unscaled;
         auto const height = (image_height_px + m_cell_height_unscaled - 1) / m_cell_height_unscaled;
 
-        m_screen->row_data->append_image(std::move(device_surface),
+        m_screen->row_data->append_image(std::move(image_surface),
                                          image_width_px,
                                          image_height_px,
                                          left,

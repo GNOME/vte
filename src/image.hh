@@ -27,7 +27,7 @@ namespace image {
 
 class Image {
 private:
-        // Device-friendly Cairo surface
+        // Image data, device-independent
         vte::Freeable<cairo_surface_t> m_surface{};
 
         // Draw/prune priority, must be unique
