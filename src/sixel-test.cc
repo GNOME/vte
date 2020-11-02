@@ -1020,13 +1020,15 @@ parse_image(C& context,
             unsigned bg_green,
             unsigned bg_blue,
             bool private_color_registers = true,
+            bool opaque_bg = true,
             int line = __builtin_LINE())
 {
         context.reset();
         context.prepare(0x50 /* C0 DCS */,
                         fg_red, fg_green, fg_blue,
                         bg_red, bg_green, bg_blue,
-                        private_color_registers);
+                        private_color_registers,
+                        opaque_bg);
 
         auto str_st = std::string{str};
         str_st.append(ST(StType::C0));
@@ -1045,12 +1047,15 @@ parse_image(C& context,
             unsigned bg_green,
             unsigned bg_blue,
             bool private_color_registers = true,
+            bool opaque_bg = true,
             int line = __builtin_LINE())
 {
         parse_image(context, ItemStringifier(items).string(),
                     fg_red, fg_green, fg_blue,
                     bg_red, bg_green, bg_blue,
-                    private_color_registers, line);
+                    private_color_registers,
+                    opaque_bg,
+                    line);
 }
 
 template<class C>
@@ -1059,7 +1064,7 @@ parse_image(C& context,
             std::string_view const& str,
             int line = __builtin_LINE())
 {
-        parse_image(context, str, 0xffu, 0xffu, 0xffu, 0xff8, 0xffu, 0xffu, true, line);
+        parse_image(context, str, 0xffu, 0xffu, 0xffu, 0xff8, 0xffu, 0xffu, true, true, line);
 }
 
 template<class C>

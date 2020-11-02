@@ -305,6 +305,7 @@ Context::prepare(uint32_t introducer,
                  unsigned bg_green,
                  unsigned bg_blue,
                  bool private_color_registers,
+                 bool opaque_bg,
                  double pixel_aspect) noexcept
 {
         m_introducer = introducer;
@@ -315,8 +316,10 @@ Context::prepare(uint32_t introducer,
         if (private_color_registers)
                 reset_colors();
 
+        if (opaque_bg)
+                set_color(0, make_color(bg_red, bg_green, bg_blue));
+
         /* FIXMEchpe: this all seems bogus. */
-        set_color(0, make_color(bg_red, bg_green, bg_blue));
         if (private_color_registers)
                 set_color(param_to_color_register(0),
                           make_color(fg_red, fg_green, fg_blue));
@@ -328,7 +331,7 @@ Context::prepare(uint32_t introducer,
          */
         set_current_color(param_to_color_register(0));
 
-        /* Clear bufer, and scanline offsets */
+        /* Clear buffer and scanline offsets */
         std::memset(m_scanlines_offsets, 0, sizeof(m_scanlines_offsets));
 
         if (m_scanlines_data)

@@ -628,6 +628,7 @@ public:
                      unsigned bg_green,
                      unsigned bg_blue,
                      bool private_color_registers,
+                     bool opaque_bg,
                      double pixel_aspect = 1.0) noexcept;
 
         void reset_colors() noexcept;
