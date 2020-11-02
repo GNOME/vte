@@ -63,14 +63,10 @@ protected:
 
         EventBase() noexcept = default;
 
-        constexpr EventBase(GdkEvent* gdk_event,
-                            Type type) noexcept
-                : m_platform_event{gdk_event},
-                  m_type{type}
+        constexpr EventBase(Type type) noexcept
+                : m_type{type}
         {
         }
-
-        constexpr auto platform_event() const noexcept { return m_platform_event; }
 
 public:
         ~EventBase() noexcept = default;
@@ -83,7 +79,6 @@ public:
         constexpr auto type()        const noexcept { return m_type;        }
 
 private:
-        GdkEvent* m_platform_event;
         Type m_type;
 }; // class EventBase
 
@@ -102,8 +97,8 @@ protected:
                            unsigned keycode,
                            uint8_t group,
                            bool is_modifier) noexcept
-                : EventBase{gdk_event,
-                            type},
+                : EventBase{type},
+                  m_platform_event{gdk_event},
                   m_modifiers{modifiers},
                   m_keyval{keyval},
                   m_keycode{keycode},
@@ -111,6 +106,8 @@ protected:
                   m_is_modifier{is_modifier}
         {
         }
+
+        constexpr auto platform_event() const noexcept { return m_platform_event; }
 
 public:
         ~KeyEvent() noexcept = default;
@@ -130,6 +127,7 @@ public:
         constexpr auto is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
 
 private:
+        GdkEvent* m_platform_event;
         unsigned m_modifiers;
         unsigned m_keyval;
         unsigned m_keycode;
@@ -155,15 +153,13 @@ protected:
 
         MouseEvent() noexcept = default;
 
-        constexpr MouseEvent(GdkEvent* gdk_event,
-                             Type type,
+        constexpr MouseEvent(Type type,
                              unsigned press_count,
                              unsigned modifiers,
                              Button button,
                              double x,
                              double y) noexcept
-                : EventBase{gdk_event,
-                            type},
+                : EventBase{type},
                   m_press_count{press_count},
                   m_modifiers{modifiers},
                   m_button{button},
@@ -209,15 +205,13 @@ protected:
 
         ScrollEvent() noexcept = default;
 
-        constexpr ScrollEvent(GdkEvent* gdk_event,
-                              unsigned modifiers,
+        constexpr ScrollEvent(unsigned modifiers,
                               Button button,
                               double x,
                               double y,
                               double dx,
                               double dy) noexcept
-                : MouseEvent{gdk_event,
-                             EventBase::Type::eMOUSE_SCROLL,
+                : MouseEvent{EventBase::Type::eMOUSE_SCROLL,
                              1, // press count
                              modifiers,
                              button,
