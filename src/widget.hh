@@ -197,7 +197,7 @@ private:
         double m_y;
 }; // class MouseEvent
 
-class ScrollEvent : public MouseEvent {
+class ScrollEvent : public EventBase {
         friend class vte::platform::Widget;
         friend class Terminal;
 
@@ -206,16 +206,10 @@ protected:
         ScrollEvent() noexcept = default;
 
         constexpr ScrollEvent(unsigned modifiers,
-                              double x,
-                              double y,
                               double dx,
                               double dy) noexcept
-                : MouseEvent{EventBase::Type::eMOUSE_SCROLL,
-                             1, // press count
-                             modifiers,
-                             MouseEvent::Button::eNONE,
-                             x,
-                             y},
+                : EventBase{EventBase::Type::eMOUSE_SCROLL},
+                  m_modifiers{modifiers},
                   m_dx{dx},
                   m_dy{dy}
         {
@@ -229,10 +223,12 @@ public:
         ScrollEvent& operator=(ScrollEvent const&) = delete;
         ScrollEvent& operator=(ScrollEvent&&) = delete;
 
-        constexpr auto dx()           const noexcept { return m_dx;               }
-        constexpr auto dy()           const noexcept { return m_dy;               }
+        constexpr auto modifiers() const noexcept { return m_modifiers; }
+        constexpr auto dx()        const noexcept { return m_dx;        }
+        constexpr auto dy()        const noexcept { return m_dy;        }
 
 private:
+        unsigned m_modifiers;
         double m_dx;
         double m_dy;
 }; // class ScrollEvent

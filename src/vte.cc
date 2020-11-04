@@ -9309,8 +9309,6 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
-        auto rowcol = confined_grid_coords_from_event(event);
-
         m_modifiers = event.modifiers();
         m_mouse_smooth_scroll_delta += event.dy();
 
@@ -9330,7 +9328,7 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
 			/* Encode the parameters and send them to the app. */
-                        feed_mouse_event(rowcol,
+                        feed_mouse_event(grid_coords_from_view_coords(m_mouse_last_position),
                                          button,
                                          false /* not drag */,
                                          false /* not release */);

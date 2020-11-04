@@ -492,11 +492,6 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
 ScrollEvent
 Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
 {
-        auto x = double{}, y = double{};
-        if (gdk_event_get_window(event) != m_event_window ||
-            !gdk_event_get_coords(event, &x, &y))
-                x = y = -1.; // FIXMEchpe or throw?
-
         auto dx = double{}, dy = double{};
         if (!gdk_event_get_scroll_deltas(event, &dx, &dy)) {
                 auto dir = GdkScrollDirection{};
@@ -514,7 +509,6 @@ Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
         }
 
         return {read_modifiers_from_gdk(event),
-                x, y,
                 dx, dy};
 }
 
