@@ -1561,7 +1561,7 @@ window_update_paste_sensitivity(VteappWindow* window)
                 g_free(targets);
         }
 
-        auto action = g_action_map_lookup_action(G_ACTION_MAP(window), "copy");
+        auto action = g_action_map_lookup_action(G_ACTION_MAP(window), "paste");
         g_simple_action_set_enabled(G_SIMPLE_ACTION(action), can_paste);
 }
 
