@@ -4438,18 +4438,25 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
         }
 
         try {
+                bool force_transparent_bg = seq.collect1(1) == 1 ? true : false;
+                guint fore, back, deco;
+                vte::color::rgb fg, bg;
+
+                determine_colors(&m_defaults, false, &fore, &back, &deco);
+                rgb_from_index<8, 8, 8>(fore, fg);
+                rgb_from_index<8, 8, 8>(back, bg);
+
                 if (!m_sixel_context)
                         m_sixel_context = std::make_unique<vte::sixel::Context>();
 
-                auto const fg = get_color(VTE_DEFAULT_FG);
-                auto const bg = get_color(VTE_DEFAULT_BG);
-                auto const opaque_bg = seq.collect1(1) == 1 ? false : true;
-
+                /* If colors were swapped, foreground can be set to the default background
+                 * color, resulting in transparency in inked pixels. This is expected. */
                 m_sixel_context->prepare(seq.st(),
-                                         fg->red >> 8, fg->green >> 8, fg->blue >> 8,
-                                         bg->red >> 8, bg->green >> 8, bg->blue >> 8,
-                                         m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS(),
-                                         opaque_bg);
+                                         fg.red >> 8, fg.green >> 8, fg.blue >> 8,
+                                         fore == VTE_DEFAULT_BG ? 0 : 255,
+                                         bg.red >> 8, bg.green >> 8, bg.blue >> 8,
+                                         (back == VTE_DEFAULT_BG || force_transparent_bg) ? 0 : 255,
+                                         m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS());
 
                 m_sixel_context->set_mode(mode);
 

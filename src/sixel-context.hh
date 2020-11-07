@@ -106,7 +106,7 @@ public:
 
 private:
 
-        color_t m_colors[1 + k_num_colors];
+        color_t m_colors[2 + k_num_colors];
         bool m_palette_modified{false};
 
         color_index_t m_current_color{0};
@@ -272,26 +272,35 @@ private:
         {
                 /* Colour registers are wrapped, as per DEC documentation.
                  *
-                 * We internally reserve a register for fully transparent
-                 * colour, and use register 0 for it since that makes it easier
-                 * to initialise the buffer. Therefore the user-provided
-                 * registers are stored at + 1 their public number.
+                 * We internally reserve registers 0 and 1 for the background
+                 * and foreground colors, the buffer being initialized to 0.
+                 * Therefore the user-provided registers are stored at + 2 their
+                 * public number.
                  */
-                return (param & (k_num_colors - 1)) + 1;
+                return (param & (k_num_colors - 1)) + 2;
         }
 
         inline constexpr color_t
         make_color(unsigned r,
                    unsigned g,
-                   unsigned b) noexcept
+                   unsigned b,
+                   unsigned a) noexcept
         {
                 if constexpr (std::endian::native == std::endian::little) {
-                        return b | g << 8 | r << 16 | 0xffu << 24 /* opaque */;
+                        return b | g << 8 | r << 16 | a << 24;
                 } else if constexpr (std::endian::native == std::endian::big) {
-                        return 0xffu /* opaque */ | r << 8 | g << 16 | b << 24;
+                        return a | r << 8 | g << 16 | b << 24;
                 } else {
                         __builtin_unreachable();
                 }
+        }
+
+        inline constexpr color_t
+        make_color_opaque(unsigned r,
+                          unsigned g,
+                          unsigned b) noexcept
+        {
+                return make_color(r, g, b, 0xff);
         }
 
         color_t
@@ -309,7 +318,7 @@ private:
                         return (value * 255u + 50u) / 100u;
                 };
 
-                return make_color(scale(r), scale(g), scale(b));
+                return make_color_opaque(scale(r), scale(g), scale(b));
         }
 
         void
@@ -624,11 +633,12 @@ public:
                      unsigned fg_red,
                      unsigned fg_green,
                      unsigned fg_blue,
+                     unsigned fg_alpha,
                      unsigned bg_red,
                      unsigned bg_green,
                      unsigned bg_blue,
+                     unsigned bg_alpha,
                      bool private_color_registers,
-                     bool opaque_bg,
                      double pixel_aspect = 1.0) noexcept;
 
         void reset_colors() noexcept;

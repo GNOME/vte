@@ -987,24 +987,24 @@ public:
         GString* get_selected_text(GArray* attributes = nullptr);
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
-        inline void rgb_from_index(guint index,
-                                   vte::color::rgb& color) const;
-        inline void determine_colors(VteCellAttr const* attr,
+        void rgb_from_index(guint index,
+                            vte::color::rgb& color) const;
+        void determine_colors(VteCellAttr const* attr,
+                              bool selected,
+                              bool cursor,
+                              guint *pfore,
+                              guint *pback,
+                              guint *pdeco) const;
+        void determine_colors(VteCell const* cell,
+                              bool selected,
+                              guint *pfore,
+                              guint *pback,
+                              guint *pdeco) const;
+        void determine_cursor_colors(VteCell const* cell,
                                      bool selected,
-                                     bool cursor,
                                      guint *pfore,
                                      guint *pback,
                                      guint *pdeco) const;
-        inline void determine_colors(VteCell const* cell,
-                                     bool selected,
-                                     guint *pfore,
-                                     guint *pback,
-                                     guint *pdeco) const;
-        inline void determine_cursor_colors(VteCell const* cell,
-                                            bool selected,
-                                            guint *pfore,
-                                            guint *pback,
-                                            guint *pdeco) const;
 
         char *cellattr_to_html(VteCellAttr const* attr,
                                char const* text) const;

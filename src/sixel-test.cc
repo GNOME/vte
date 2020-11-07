@@ -1025,10 +1025,9 @@ parse_image(C& context,
 {
         context.reset();
         context.prepare(0x50 /* C0 DCS */,
-                        fg_red, fg_green, fg_blue,
-                        bg_red, bg_green, bg_blue,
-                        private_color_registers,
-                        opaque_bg);
+                        fg_red, fg_green, fg_blue, 0xff,
+                        bg_red, bg_green, bg_blue, 0x00,
+                        private_color_registers);
 
         auto str_st = std::string{str};
         str_st.append(ST(StType::C0));
