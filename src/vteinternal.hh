@@ -1307,7 +1307,8 @@ public:
         inline void move_cursor_up(vte::grid::row_t rows);
         inline void move_cursor_down(vte::grid::row_t rows);
         inline void erase_characters(long count,
-                                     bool use_basic = false);
+                                     bool use_basic = false,
+                                     bool add_new_cells = true);
         void erase_image_rect(vte::grid::row_t rows,
                               vte::grid::column_t columns);
         inline void insert_blank_character();
