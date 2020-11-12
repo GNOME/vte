@@ -1570,7 +1570,7 @@ Terminal::set_current_directory_uri(vte::parser::Sequence const& seq,
         }
 
         m_current_directory_uri_pending.swap(uri);
-        m_current_directory_uri_changed = true;
+        m_pending_changes |= vte::to_integral(PendingChanges::CWD);
 }
 
 void
@@ -1593,7 +1593,7 @@ Terminal::set_current_file_uri(vte::parser::Sequence const& seq,
         }
 
         m_current_file_uri_pending.swap(uri);
-        m_current_file_uri_changed = true;
+        m_pending_changes |= vte::to_integral(PendingChanges::CWF);
 }
 
 void
@@ -6570,7 +6570,7 @@ Terminal::OSC(vte::parser::Sequence const& seq)
                     it.size_remaining() < VTE_WINDOW_TITLE_MAX_LENGTH)
                         title = it.string_remaining();
                 m_window_title_pending.swap(title);
-                m_window_title_changed = true;
+                m_pending_changes |= vte::to_integral(PendingChanges::TITLE);
                 break;
         }
 
@@ -9064,7 +9064,7 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                                 m_window_title_stack.erase(m_window_title_stack.cbegin());
                         }
 
-                        if (m_window_title_changed)
+                        if (m_pending_changes & vte::to_integral(PendingChanges::TITLE))
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
                                                              m_window_title_pending);
                         else
@@ -9088,7 +9088,7 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                         if (m_window_title_stack.empty())
                                 break;
 
-                        m_window_title_changed = true;
+                        m_pending_changes |= vte::to_integral(PendingChanges::TITLE);
                         m_window_title_pending.swap(m_window_title_stack.back());
                         m_window_title_stack.pop_back();
                         break;

@@ -650,11 +650,15 @@ public:
         std::string m_window_title_pending{};
         std::string m_current_directory_uri_pending{};
         std::string m_current_file_uri_pending{};
-        bool m_window_title_changed{false};
-        bool m_current_directory_uri_changed{false};
-        bool m_current_file_uri_changed{false};
 
         std::vector<std::string> m_window_title_stack{};
+
+        enum class PendingChanges {
+                TITLE = 1u << 0,
+                CWD   = 1u << 1,
+                CWF   = 1u << 2,
+        };
+        unsigned m_pending_changes{0};
 
 	/* Background */
         double m_background_alpha{1.};

@@ -10124,7 +10124,7 @@ Terminal::emit_pending_signals()
 
 	emit_adjustment_changed();
 
-	if (m_window_title_changed) {
+	if (m_pending_changes & vte::to_integral(PendingChanges::TITLE)) {
                 if (m_window_title != m_window_title_pending) {
                         m_window_title.swap(m_window_title_pending);
 
@@ -10135,10 +10135,9 @@ Terminal::emit_pending_signals()
                 }
 
                 m_window_title_pending.clear();
-                m_window_title_changed = false;
 	}
 
-	if (m_current_directory_uri_changed) {
+	if (m_pending_changes & vte::to_integral(PendingChanges::CWD)) {
                 if (m_current_directory_uri != m_current_directory_uri_pending) {
                         m_current_directory_uri.swap(m_current_directory_uri_pending);
 
@@ -10149,10 +10148,9 @@ Terminal::emit_pending_signals()
                 }
 
                 m_current_directory_uri_pending.clear();
-                m_current_directory_uri_changed = false;
         }
 
-        if (m_current_file_uri_changed) {
+        if (m_pending_changes & vte::to_integral(PendingChanges::CWF)) {
                 if (m_current_file_uri != m_current_file_uri_pending) {
                         m_current_file_uri.swap(m_current_file_uri_pending);
 
@@ -10163,8 +10161,9 @@ Terminal::emit_pending_signals()
                 }
 
                 m_current_file_uri_pending.clear();
-                m_current_file_uri_changed = false;
         }
+
+        m_pending_changes = 0;
 
 	/* Flush any pending "inserted" signals. */
 
