@@ -237,6 +237,12 @@ vte_parse_charset_94_n(uint32_t raw,
 
         case VTE_SEQ_INTERMEDIATE_SPACE:
                 return VTE_CHARSET_DRCS;
+
+        case VTE_SEQ_INTERMEDIATE_BANG:
+                if (remaining_intermediates == 0 &&
+                    raw < (0x30 + G_N_ELEMENTS(charset_graphic_94_n_with_2_1)))
+                        return charset_graphic_94_n_with_2_1[raw - 0x30];
+                break;
         }
 
         return VTE_CHARSET_NONE;

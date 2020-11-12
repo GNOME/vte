@@ -167,6 +167,23 @@ static uint8_t const charset_graphic_94_n[] = {
         NA, NA, NA, NA, NA, NA, EMPTY,
 };
 
+/* Multibyte graphic character sets, with third intermediate byte 2/1:
+ * G0: ESC 2/4 2/8 2/1 F
+ * G1: ESC 2/4 2/9 2/1 F
+ * G2: ESC 2/4 2/10 2/1 F
+ * G3: ESC 2/4 2/11 2/1 F
+ * C0: -
+ * C1: -
+ *
+ * Note that these are not registed in ISO-IR.
+ *
+ * [Source: ecma35lib/ecma35/data/graphdata.py]
+ */
+static uint8_t const charset_graphic_94_n_with_2_1[] = {
+        /* 3/0..3/15 */
+        NA, VTE_CHARSET_EUCTW_G2, VTE_CHARSET_HKCS_EXT, VTE_CHARSET_MS_950_UTC_EXT
+};
+
 /* C0 control character sets:
  * G0: -
  * G1: -

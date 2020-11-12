@@ -507,8 +507,14 @@ test_seq_esc_charset_94_n(void)
                 test_seq_esc_charset(i, 3, nullptr, 0, 0,
                                      VTE_CMD_GnDMm, VTE_CHARSET_DRCS, slot);
 
+                i[2] = 0x21;
+                test_seq_esc_charset(i, 3,
+                                     charset_graphic_94_n_with_2_1,
+                                     G_N_ELEMENTS(charset_graphic_94_n_with_2_1),
+                                     0x30, VTE_CMD_GnDMm, VTE_CHARSET_NONE, slot);
+
                 /* There could be one more intermediate byte. */
-                for (i[2] = 0x21; i[2] < 0x28; i[2]++) {
+                for (i[2] = 0x22; i[2] < 0x28; i[2]++) {
                         if (i[2] == 0x24) /* TODO */
                                 continue;
 
