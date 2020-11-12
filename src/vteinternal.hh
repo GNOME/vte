@@ -1010,6 +1010,12 @@ public:
                                             guint *pback,
                                             guint *pdeco) const;
 
+        void resolve_normal_colors(VteCell const* cell,
+                                   unsigned* pfore,
+                                   unsigned* pback,
+                                   vte::color::rgb& fg,
+                                   vte::color::rgb& bg);
+
         char *cellattr_to_html(VteCellAttr const* attr,
                                char const* text) const;
         VteCellAttr const* char_to_cell_attr(VteCharAttributes const* attr) const;

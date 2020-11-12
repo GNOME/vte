@@ -4382,8 +4382,8 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          *
          * Defaults:
          *   args[0]: 0
-         *   args[0]: 2 (1 for printers)
-         *   args[0]: no default
+         *   args[1]: 2 (1 for printers)
+         *   args[2]: no default
          *
          * References: VT330
          *             DEC PPLV2 § 5.4
@@ -4437,16 +4437,30 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                 return false;
         }
 
+        /* How to interpret args[1] is not entirely clear from the DEC
+         * documentation and other terminal emulators.
+         * We choose to make args[1]==1 mean to use transparent background.
+         * and treat all other values (default, 0, 2) as using the current
+         * SGR background colour. See the discussion in issue #253.
+         *
+         * Also use the current SGR foreground colour to initialise
+         * the special colour register so that SIXEL images which set
+         * no colours get a sensible default.
+         */
+        auto const transparent_bg = seq.collect1(1, 2) == 1;
+
+        auto fore = unsigned{}, back = unsigned{};
+        auto fg = vte::color::rgb{}, bg = vte::color::rgb{};
+        resolve_normal_colors(&m_color_defaults, &fore, &back, fg, bg);
+
         try {
                 if (!m_sixel_context)
                         m_sixel_context = std::make_unique<vte::sixel::Context>();
 
-                auto const fg = get_color(VTE_DEFAULT_FG);
-                auto const bg = get_color(VTE_DEFAULT_BG);
-
                 m_sixel_context->prepare(seq.st(),
-                                         fg->red >> 8, fg->green >> 8, fg->blue >> 8,
-                                         bg->red >> 8, bg->green >> 8, bg->blue >> 8,
+                                         fg.red >> 8, fg.green >> 8, fg.blue >> 8,
+                                         bg.red >> 8, bg.green >> 8, bg.blue >> 8,
+                                         back == VTE_DEFAULT_BG || transparent_bg,
                                          m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS());
 
                 m_sixel_context->set_mode(mode);
