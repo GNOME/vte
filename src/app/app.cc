@@ -454,6 +454,17 @@ public:
                 return alpha;
         }
 
+        double get_alpha_bg_for_draw() const
+        {
+                double alpha;
+                if (whole_window_transparent)
+                        alpha = 1.0;
+                else
+                        alpha = get_alpha();
+
+                return alpha;
+        }
+
         GdkRGBA get_color_bg() const
         {
                 GdkRGBA color{bg_color};
@@ -1041,7 +1052,7 @@ vteapp_terminal_draw(GtkWidget* widget,
                 cairo_paint(cr);
 
                 cairo_pop_group_to_source(cr);
-                cairo_paint_with_alpha(cr, bg.alpha);
+                cairo_paint_with_alpha(cr, options.get_alpha_bg_for_draw());
 
         }
 
