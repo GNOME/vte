@@ -84,6 +84,7 @@ class Source(enum.Enum):
     ECMA16 = enum.auto() # eq ISO 1745
     ECMA35 = enum.auto() # eq ISO 2022
     ECMA48 = enum.auto() # eq ISO 6429
+    HP     = enum.auto()
     ITERM2 = enum.auto()
     RLOGIN = enum.auto()
     SCO    = enum.auto()
@@ -98,6 +99,8 @@ class Source(enum.Enum):
             return cls.DEC
         elif name.endswith('_ECMA'):
             return cls.ECMA48
+        elif name.startswith('HP') or name.endswith('_HP'):
+             return cls.HP
         elif name.startswith('ITERM'):
             return cls.ITERM2
         elif name.startswith('RLOGIN'):
@@ -643,6 +646,8 @@ sequences = [
             comment='set mode ecma'),
     seq_CSI('SLS', 'h', intermediates=(Intermediate.SPACE,), flags=Flags.NOP,
             comment='set line spacing'),
+    seq_CSI('SM_HP', 'h', pintro=(ParameterIntro.GT,), flags=Flags.NOP,
+            comment='set mode hp'),
     seq_CSI('SM_DEC', 'h', pintro=(ParameterIntro.WHAT,),
             comment='set mode dec'),
     seq_CSI('MC_ECMA', 'i', flags=Flags.NOP,
@@ -661,6 +666,8 @@ sequences = [
             comment='select character path'),
     seq_CSI('RM_ECMA', 'l',
             comment='reset mode ecma'),
+    seq_CSI('RM_HP', 'l', pintro=(ParameterIntro.GT,), flags=Flags.NOP,
+            comment='reset mode hp'),
     seq_CSI('RM_DEC', 'l', pintro=(ParameterIntro.WHAT,),
             comment='reset mode dec'),
     seq_CSI('SGR', 'm',

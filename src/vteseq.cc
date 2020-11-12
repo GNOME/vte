@@ -7000,6 +7000,23 @@ Terminal::RM_DEC(vte::parser::Sequence const& seq)
         set_mode_private(seq, false);
 }
 
+
+void
+Terminal::RM_HP(vte::parser::Sequence const& seq)
+{
+        /*
+         * RM_HP - set mode hp
+         * This is the same as RM_ECMA but for HP private modes.
+         *
+         * See SM_HP for information about known modes.
+         *
+         * Defaults: none
+         *
+         * References: HP 2397A
+         */
+
+        /* Not worth implementing */
+}
 void
 Terminal::SCORC(vte::parser::Sequence const& seq)
 {
@@ -7552,6 +7569,28 @@ Terminal::SM_DEC(vte::parser::Sequence const& seq)
          */
 
         set_mode_private(seq, true);
+}
+
+void
+Terminal::SM_HP(vte::parser::Sequence const& seq)
+{
+        /*
+         * SM_HP - set mode hp
+         * This is the same as SM_ECMA but for HP private modes.
+         *
+         * Known modes:
+         *   1: multipage mode
+         *      If reset, the terminal only has one page of 24 lines of display memory
+         *      Default: reset
+         *   2: memory lock
+         *      Default: reset
+         *
+         * Defaults: none
+         *
+         * References: HP 2397A
+         */
+
+        /* Not worth implementing */
 }
 
 void
@@ -8520,7 +8559,12 @@ Terminal::XTERM_MLHP(vte::parser::Sequence const& seq)
         /*
          * XTERM_MLHP - xterm-memory-lock-hp-bugfix
          *
-         * Probably not worth implementing.
+         * This seems bogus; SM_HP 2 is the way to set the memory lock on
+         * HP terminal.
+         *
+         * References: XTERM
+         *
+         * Not worth implementing.
          */
 }
 
@@ -8530,7 +8574,12 @@ Terminal::XTERM_MUHP(vte::parser::Sequence const& seq)
         /*
          * XTERM_MUHP - xterm-memory-unlock-hp-bugfix
          *
-         * Probably not worth implementing.
+         * This seems bogus; RM_HP 2 is the way to unset the memory lock on
+         * HP terminal.
+         *
+         * References: XTERM
+         *
+         * Not worth implementing.
          */
 }
 
