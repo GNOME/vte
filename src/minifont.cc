@@ -22,10 +22,10 @@
 
 #include <cairo.h>
 
+#include "attr.hh"
 #include "drawing-cairo.hh"
 #include "minifont.hh"
 
-#ifdef WITH_SEPARATED_MOSAICS
 static bool
 _vte_draw_is_separable_mosaic(vteunistr c)
 {
@@ -116,7 +116,6 @@ create_mosaic_separation_pattern(int width,
 
         return pattern;
 }
-#endif /* WITH_SEPARATED_MOSAICS */
 
 /* pixman data must have stride 0 mod 4 */
 static unsigned char const hatching_pattern_lr_data[16] = {
@@ -277,11 +276,9 @@ Minifont::draw_graphic(DrawingContext const& context,
         xright = x + width;
         ybottom = y + height;
 
-#ifdef WITH_SEPARATED_MOSAICS
         auto const separated = vte_attr_get_bool(attr, VTE_ATTR_SEPARATED_MOSAIC_SHIFT) &&_vte_draw_is_separable_mosaic(c);
         if (separated)
                 cairo_push_group(cr);
-#endif
 
         switch (c) {
 
@@ -1206,14 +1203,12 @@ Minifont::draw_graphic(DrawingContext const& context,
                 g_assert_not_reached();
         }
 
-#ifdef WITH_SEPARATED_MOSAICS
         if (separated) {
                 cairo_pop_group_to_source(cr);
                 auto pattern = create_mosaic_separation_pattern(width, height, light_line_width);
                 cairo_mask(cr, pattern);
                 cairo_pattern_destroy(pattern);
         }
-#endif
 
         cairo_restore(cr);
 }

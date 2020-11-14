@@ -18,6 +18,7 @@
 #pragma once
 
 #include <cstdint>
+#include <glib.h>
 
 #define VTE_ATTR_VALUE_MASK(bits)      ((1U << (bits)) - 1U)
 #define VTE_ATTR_MASK(shift,bits)      (VTE_ATTR_VALUE_MASK(bits) << (shift))
