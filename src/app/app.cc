@@ -664,8 +664,10 @@ public:
 
                 g_free(dummy_string);
 
-                if (reverse)
-                        std::swap(fg_color, bg_color);
+                if (reverse) {
+                        using std::swap;
+                        swap(fg_color, bg_color);
+                }
 
                 return rv;
         }

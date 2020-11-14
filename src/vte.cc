@@ -1761,7 +1761,7 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
         if (m_selection_block_mode) {
                 if ((current.row() <= m_selection_origin.row() && m_selection_origin.row() < m_selection_last.row()) ||
                     (current.row() >= m_selection_origin.row() && m_selection_origin.row() > m_selection_last.row())) {
-                        // FIXME see if we can use std::swap()
+<                        // FIXME see if we can use std::swap()
                         auto tmp = m_selection_origin.row();
                         m_selection_origin.set_row(m_selection_last.row());
                         m_selection_last.set_row(tmp);
@@ -1776,7 +1776,8 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
         } else {
                 if ((current <= m_selection_origin && m_selection_origin < m_selection_last) ||
                     (current >= m_selection_origin && m_selection_origin > m_selection_last)) {
-                        std::swap (m_selection_origin, m_selection_last);
+                        using std::swap;
+                        swap(m_selection_origin, m_selection_last);
                 }
         }
 
@@ -7946,13 +7947,6 @@ Terminal::widget_realize()
 	ensure_font();
 }
 
-static inline void
-swap (guint *a, guint *b)
-{
-	guint tmp;
-	tmp = *a, *a = *b, *b = tmp;
-}
-
 // FIXMEchpe probably @attr should be passed by ref
 void
 Terminal::determine_colors(VteCellAttr const* attr,
@@ -7997,7 +7991,8 @@ Terminal::determine_colors(VteCellAttr const* attr,
 
 	/* Reverse cell? */
 	if (attr->reverse()) {
-		swap (&fore, &back);
+                using std::swap;
+                swap(fore, back);
 	}
 
 	/* Selection: use hightlight back/fore, or inverse */
@@ -8012,8 +8007,10 @@ Terminal::determine_colors(VteCellAttr const* attr,
 			fore = VTE_HIGHLIGHT_FG;
 			do_swap = false;
 		}
-		if (do_swap)
-			swap (&fore, &back);
+		if (do_swap) {
+                        using std::swap;
+                        swap(fore, back);
+                }
 	}
 
 	/* Cursor: use cursor back, or inverse */
@@ -8028,8 +8025,10 @@ Terminal::determine_colors(VteCellAttr const* attr,
                         fore = VTE_CURSOR_FG;
                         do_swap = false;
                 }
-                if (do_swap)
-                        swap (&fore, &back);
+                if (do_swap) {
+                        using std::swap;
+                        swap(fore, back);
+                }
 	}
 
 	/* Invisible? */
