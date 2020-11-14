@@ -245,22 +245,22 @@ Context::reset_colors() noexcept
          * Colours 9..14 (name marked with '*') are less saturated
          * versions of colours 1..6.
          */
-        m_colors[0 + 2]  = make_color_rgb( 0,  0,  0); /* HLS(  0,  0,  0) */ /* Black    */
-        m_colors[1 + 2]  = make_color_rgb(20, 20, 80); /* HLS(  0, 50, 60) */ /* Blue     */
-        m_colors[2 + 2]  = make_color_rgb(80, 13, 13); /* HLS(120, 46, 72) */ /* Red      */
-        m_colors[3 + 2]  = make_color_rgb(20, 80, 20); /* HLS(240, 50, 60) */ /* Green    */
-        m_colors[4 + 2]  = make_color_rgb(80, 20, 80); /* HLS( 60, 50, 60) */ /* Magenta  */
-        m_colors[5 + 2]  = make_color_rgb(20, 80, 80); /* HLS(300, 50, 60) */ /* Cyan     */
-        m_colors[6 + 2]  = make_color_rgb(80, 80, 20); /* HLS(180, 50, 60) */ /* Yellow   */
-        m_colors[7 + 2]  = make_color_rgb(53, 53, 53); /* HLS(  0, 53,  0) */ /* Grey 50% */
-        m_colors[8 + 2]  = make_color_rgb(26, 26, 26); /* HLS(  0, 26,  0) */ /* Grey 25% */
-        m_colors[9 + 2]  = make_color_rgb(33, 33, 60); /* HLS(  0, 46, 29) */ /* Blue*    */
-        m_colors[10 + 2] = make_color_rgb(60, 26, 26); /* HLS(120, 43, 39) */ /* Red*     */
-        m_colors[11 + 2] = make_color_rgb(33, 60, 33); /* HLS(240, 46, 29) */ /* Green*   */
-        m_colors[12 + 2] = make_color_rgb(60, 33, 60); /* HLS( 60, 46, 29) */ /* Magenta* */
-        m_colors[13 + 2] = make_color_rgb(33, 60, 60); /* HLS(300, 46, 29) */ /* Cyan*    */
-        m_colors[14 + 2] = make_color_rgb(60, 60, 33); /* HLS(180, 46, 29) */ /* Yellow*  */
-        m_colors[15 + 2] = make_color_rgb(80, 80, 80); /* HLS(  0, 80,  0) */ /* Grey 75% */
+        m_colors[0 + 1]  = make_color_rgb( 0,  0,  0); /* HLS(  0,  0,  0) */ /* Black    */
+        m_colors[1 + 1]  = make_color_rgb(20, 20, 80); /* HLS(  0, 50, 60) */ /* Blue     */
+        m_colors[2 + 1]  = make_color_rgb(80, 13, 13); /* HLS(120, 46, 72) */ /* Red      */
+        m_colors[3 + 1]  = make_color_rgb(20, 80, 20); /* HLS(240, 50, 60) */ /* Green    */
+        m_colors[4 + 1]  = make_color_rgb(80, 20, 80); /* HLS( 60, 50, 60) */ /* Magenta  */
+        m_colors[5 + 1]  = make_color_rgb(20, 80, 80); /* HLS(300, 50, 60) */ /* Cyan     */
+        m_colors[6 + 1]  = make_color_rgb(80, 80, 20); /* HLS(180, 50, 60) */ /* Yellow   */
+        m_colors[7 + 1]  = make_color_rgb(53, 53, 53); /* HLS(  0, 53,  0) */ /* Grey 50% */
+        m_colors[8 + 1]  = make_color_rgb(26, 26, 26); /* HLS(  0, 26,  0) */ /* Grey 25% */
+        m_colors[9 + 1]  = make_color_rgb(33, 33, 60); /* HLS(  0, 46, 29) */ /* Blue*    */
+        m_colors[10 + 1] = make_color_rgb(60, 26, 26); /* HLS(120, 43, 39) */ /* Red*     */
+        m_colors[11 + 1] = make_color_rgb(33, 60, 33); /* HLS(240, 46, 29) */ /* Green*   */
+        m_colors[12 + 1] = make_color_rgb(60, 33, 60); /* HLS( 60, 46, 29) */ /* Magenta* */
+        m_colors[13 + 1] = make_color_rgb(33, 60, 60); /* HLS(300, 46, 29) */ /* Cyan*    */
+        m_colors[14 + 1] = make_color_rgb(60, 60, 33); /* HLS(180, 46, 29) */ /* Yellow*  */
+        m_colors[15 + 1] = make_color_rgb(80, 80, 80); /* HLS(  0, 80,  0) */ /* Grey 75% */
 
         /* Devices may use the same colour palette for DECSIXEL as for
          * text mode, so initialise colours 16..255 to the standard 256-colour
@@ -285,14 +285,14 @@ Context::reset_colors() noexcept
         };
 
         for (auto n = 0; n < 216; ++n)
-                m_colors[n + 16 + 2] = make_cube_color(n / 36, (n / 6) % 6, n % 6);
+                m_colors[n + 16 + 1] = make_cube_color(n / 36, (n / 6) % 6, n % 6);
 
         /* 24-colour greyscale ramp */
         for (auto n = 0; n < 24; ++n)
-                m_colors[n + 16 + 216 + 2] = make_color(8 + n * 10, 8 + n * 10, 8 + n * 10);
+                m_colors[n + 16 + 216 + 1] = make_color(8 + n * 10, 8 + n * 10, 8 + n * 10);
 
         /* Set all other colours to black */
-        for (auto n = 256 + 2; n < k_num_colors + 2; ++n)
+        for (auto n = 256 + 1; n < k_num_colors + 1; ++n)
                 m_colors[n] = make_color(0, 0, 0);
 }
 
@@ -304,7 +304,6 @@ Context::prepare(uint32_t introducer,
                  unsigned bg_red,
                  unsigned bg_green,
                  unsigned bg_blue,
-                 bool bg_transparent,
                  bool private_color_registers,
                  double pixel_aspect) noexcept
 {
@@ -316,21 +315,20 @@ Context::prepare(uint32_t introducer,
         if (private_color_registers)
                 reset_colors();
 
-        if (bg_transparent)
-                m_colors[0] = 0u; /* fully transparent */
-        else
-                m_colors[0] = make_color(bg_red, bg_green, bg_blue);
-
-        m_colors[1] = make_color(fg_red, fg_green, fg_blue);
+        /* FIXMEchpe: this all seems bogus. */
+        set_color(0, make_color(bg_red, bg_green, bg_blue));
+        if (private_color_registers)
+                set_color(param_to_color_register(0),
+                          make_color(fg_red, fg_green, fg_blue));
 
         /*
          * DEC PPLV2 says that on entering DECSIXEL mode, the active colour
-         * is set to colour register 0. Xterm defaults to register 3.
-         * We use the current foreground color in our special register 1.
+         * is set to colour to colour register 0.
+         * Xterm defaults to register 3.
          */
-        set_current_color(1);
+        set_current_color(param_to_color_register(0));
 
-        /* Clear buffer and scanline offsets */
+        /* Clear bufer, and scanline offsets */
         std::memset(m_scanlines_offsets, 0, sizeof(m_scanlines_offsets));
 
         if (m_scanlines_data)

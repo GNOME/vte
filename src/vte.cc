@@ -8070,19 +8070,6 @@ Terminal::determine_cursor_colors(VteCell const* cell,
                          fore, back, deco);
 }
 
-void
-Terminal::resolve_normal_colors(VteCell const* cell,
-                                unsigned* pfore,
-                                unsigned* pback,
-                                vte::color::rgb& fg,
-                                vte::color::rgb& bg)
-{
-        auto deco = unsigned{};
-        determine_colors(cell, false, pfore, pback, &deco);
-        rgb_from_index<8, 8, 8>(*pfore, fg);
-        rgb_from_index<8, 8, 8>(*pback, bg);
-}
-
 // FIXMEchpe this constantly removes and reschedules the timer. improve this!
 bool
 Terminal::text_blink_timer_callback()

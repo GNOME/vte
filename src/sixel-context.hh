@@ -106,7 +106,7 @@ public:
 
 private:
 
-        color_t m_colors[2 + k_num_colors];
+        color_t m_colors[1 + k_num_colors];
         bool m_palette_modified{false};
 
         color_index_t m_current_color{0};
@@ -272,12 +272,12 @@ private:
         {
                 /* Colour registers are wrapped, as per DEC documentation.
                  *
-                 * We internally reserve registers 0 and 1 for the background
-                 * and foreground colors, the buffer being initialized to 0.
-                 * Therefore the user-provided registers are stored at + 2 their
-                 * public number.
+                 * We internally reserve a register for fully transparent
+                 * colour, and use register 0 for it since that makes it easier
+                 * to initialise the buffer. Therefore the user-provided
+                 * registers are stored at + 1 their public number.
                  */
-                return (param & (k_num_colors - 1)) + 2;
+                return (param & (k_num_colors - 1)) + 1;
         }
 
         inline constexpr color_t
@@ -627,7 +627,6 @@ public:
                      unsigned bg_red,
                      unsigned bg_green,
                      unsigned bg_blue,
-                     bool bg_transparent,
                      bool private_color_registers,
                      double pixel_aspect = 1.0) noexcept;
 
