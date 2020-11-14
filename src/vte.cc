@@ -8817,7 +8817,8 @@ Terminal::draw_rows(VteScreen *screen_,
                                                        VTE_ATTR_STRIKETHROUGH_MASK |
                                                        VTE_ATTR_OVERLINE_MASK |
                                                        VTE_ATTR_BLINK_MASK |
-                                                       VTE_ATTR_INVISIBLE_MASK)) ||  // FIXME or just simply "attr != nattr"?
+                                                       VTE_ATTR_INVISIBLE_MASK |
+                                                       VTE_ATTR_SEPARATED_MOSAIC_MASK)) ||  // FIXME or just simply "attr != nattr"?
                                     fore != nfore ||
                                     back != nback ||
                                     deco != ndeco ||

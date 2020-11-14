@@ -146,6 +146,7 @@ typedef struct _VTE_GNUC_PACKED VteCellAttr {
         CELL_ATTR_BOOL(blink, BLINK)
         CELL_ATTR_BOOL(dim, DIM)
         CELL_ATTR_BOOL(invisible, INVISIBLE)
+        CELL_ATTR_BOOL(separated_mosaic, SEPARATED_MOSAIC)
         /* ATTR_BOOL(boxed, BOXED) */
 } VteCellAttr;
 static_assert(sizeof (VteCellAttr) == 16, "VteCellAttr has wrong size");
