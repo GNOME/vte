@@ -40,6 +40,12 @@ using ParseStatus = vte::sixel::Parser::ParseStatus;
 
 // Parser tests
 
+static inline constexpr auto
+param_to_color_register(unsigned reg)
+{
+        return reg + 2; /* Public colour registers start at 2 */
+}
+
 static char const*
 cmd_to_str(Command command)
 {
@@ -1026,6 +1032,7 @@ parse_image(C& context,
         context.prepare(0x50 /* C0 DCS */,
                         fg_red, fg_green, fg_blue,
                         bg_red, bg_green, bg_blue,
+                        false /* bg transparent */,
                         private_color_registers);
 
         auto str_st = std::string{str};
@@ -1050,7 +1057,8 @@ parse_image(C& context,
         parse_image(context, ItemStringifier(items).string(),
                     fg_red, fg_green, fg_blue,
                     bg_red, bg_green, bg_blue,
-                    private_color_registers, line);
+                    private_color_registers,
+                    line);
 }
 
 template<class C>
@@ -1442,7 +1450,7 @@ test_context_image_stride(void)
         assert_image_dimensions(context, 2, 12);
 
         auto data = pixels.get();
-        auto const reg = 1 + 1; /* Colour registers start at 1 */
+        auto const reg = param_to_color_register(1);
 
         for (auto y = 0u; y < context.image_height(); ++y) {
                 for (auto x = 0u; x < context.image_width(); ++x)
@@ -1490,10 +1498,10 @@ test_context_image_palette(void)
                                      unsigned b) constexpr noexcept -> Context::color_t
                 {
                         if constexpr (std::endian::native == std::endian::little) {
-                                        return b | g << 8 | r << 16 | 0xffu << 24 /* opaque */;
-                                } else if constexpr (std::endian::native == std::endian::big) {
-                                        return 0xffu /* opaque */ | r << 8 | g << 16 | b << 24;
-                                } else {
+                                return b | g << 8 | r << 16 | 0xffu << 24 /* opaque */;
+                        } else if constexpr (std::endian::native == std::endian::big) {
+                                return 0xffu /* opaque */ | r << 8 | g << 16 | b << 24;
+                        } else {
                                 __builtin_unreachable();
                         }
                 };
@@ -1521,7 +1529,7 @@ test_context_image_palette(void)
         for (auto n = 0; n < context.num_colors(); ++n) {
                 g_assert_cmpuint(make_color_rgb(palette[n].r, palette[n].g, palette[n].b),
                                  ==,
-                                 context.color(n + 1));
+                                 context.color(param_to_color_register(n)));
         }
 }
 
@@ -1537,7 +1545,7 @@ test_context_image_compositing(void)
 
         auto data = pixels.get();
         for (auto y = 0u; y < context.image_height(); ++y) {
-                auto const reg = (256 + y / 3) + 1; /* registers start at 1 */
+                auto const reg = param_to_color_register((256 + y / 3));
                 for (auto x = 0u; x < context.image_width(); ++x)
                         g_assert_cmpuint(*data++, ==, reg);
         }
