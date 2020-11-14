@@ -4451,7 +4451,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
         auto fore = unsigned{}, back = unsigned{};
         auto fg = vte::color::rgb{}, bg = vte::color::rgb{};
-        resolve_normal_colors(&m_color_defaults, &fore, &back, fg, bg);
+        resolve_normal_colors(&m_defaults, &fore, &back, fg, bg);
 
         try {
                 if (!m_sixel_context)
