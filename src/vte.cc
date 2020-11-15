@@ -1761,7 +1761,7 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
         if (m_selection_block_mode) {
                 if ((current.row() <= m_selection_origin.row() && m_selection_origin.row() < m_selection_last.row()) ||
                     (current.row() >= m_selection_origin.row() && m_selection_origin.row() > m_selection_last.row())) {
-<                        // FIXME see if we can use std::swap()
+                        // FIXME see if we can use std::swap()
                         auto tmp = m_selection_origin.row();
                         m_selection_origin.set_row(m_selection_last.row());
                         m_selection_last.set_row(tmp);
