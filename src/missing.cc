@@ -90,16 +90,21 @@ static rlim_t
 getrlimit_NOFILE_max(void)
 {
 #ifdef HAVE_SYS_RESOURCE_H
+#ifdef __linux__
+{
         struct rlimit rlim;
 
-#ifdef __linux__
         if (prlimit(0 /* this PID */, RLIMIT_NOFILE, nullptr, &rlim) == 0)
                 return rlim.rlim_max;
 
         return RLIM_INFINITY;
+}
 #endif /* __linux__ */
 
 #ifdef __GLIBC__
+{
+        struct rlimit rlim;
+
         /* Use getrlimit() function provided by the system if it is known to be
          * async-signal safe.
          *
@@ -107,9 +112,10 @@ getrlimit_NOFILE_max(void)
          */
         if (getrlimit(RLIMIT_NOFILE, &rlim) == 0)
                 return rlim.rlim_max;
+}
 
         /* fallback */
-#endif
+#endif /* __GLIBC__ */
 
 #endif /* HAVE_SYS_RESOURCE_H */
 
