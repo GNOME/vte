@@ -63,6 +63,7 @@ public:
         gboolean no_context_menu{false};
         gboolean no_decorations{false};
         gboolean no_double_buffer{false};
+        gboolean no_fallback_scrolling{false};
         gboolean no_geometry_hints{false};
         gboolean no_hyperlink{false};
         gboolean no_pty{false};
@@ -558,6 +559,8 @@ public:
                           "Disable window decorations", nullptr },
                         { "no-double-buffer", '2', 0, G_OPTION_ARG_NONE, &no_double_buffer,
                           "Disable double-buffering", nullptr },
+                        { "no-fallback-scrolling", 0, 0, G_OPTION_ARG_NONE, &no_fallback_scrolling,
+                          "Disable fallback scrolling", nullptr },
                         { "no-geometry-hints", 'G', 0, G_OPTION_ARG_NONE, &no_geometry_hints,
                           "Allow the terminal to be resized to any dimension, not constrained to fit to an integer multiple of characters", nullptr },
                         { "no-hyperlink", 'H', 0, G_OPTION_ARG_NONE, &no_hyperlink,
@@ -2139,6 +2142,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_enable_bidi(window->terminal, !options.no_bidi);
         vte_terminal_set_enable_shaping(window->terminal, !options.no_shaping);
         vte_terminal_set_enable_sixel(window->terminal, !options.no_sixel);
+        vte_terminal_set_enable_fallback_scrolling(window->terminal, !options.no_fallback_scrolling);
         vte_terminal_set_mouse_autohide(window->terminal, true);
         vte_terminal_set_rewrap_on_resize(window->terminal, !options.no_rewrap);
         vte_terminal_set_scroll_on_output(window->terminal, false);

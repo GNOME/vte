@@ -367,9 +367,8 @@ vte_terminal_scroll(GtkWidget *widget,
                     GdkEventScroll *event) noexcept
 try
 {
-	VteTerminal *terminal = VTE_TERMINAL(widget);
-        WIDGET(terminal)->scroll(event);
-        return TRUE;
+        auto terminal = VTE_TERMINAL(widget);
+        return WIDGET(terminal)->scroll(event);
 }
 catch (...)
 {
@@ -725,6 +724,9 @@ try
                 case PROP_ENABLE_BIDI:
                         g_value_set_boolean (value, vte_terminal_get_enable_bidi (terminal));
                         break;
+                case PROP_ENABLE_FALLBACK_SCROLLING:
+                        g_value_set_boolean (value, vte_terminal_get_enable_fallback_scrolling(terminal));
+                        break;
                 case PROP_ENABLE_SHAPING:
                         g_value_set_boolean (value, vte_terminal_get_enable_shaping (terminal));
                         break;
@@ -845,6 +847,9 @@ try
                         break;
                 case PROP_ENABLE_BIDI:
                         vte_terminal_set_enable_bidi (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_ENABLE_FALLBACK_SCROLLING:
+                        vte_terminal_set_enable_fallback_scrolling (terminal, g_value_get_boolean (value));
                         break;
                 case PROP_ENABLE_SHAPING:
                         vte_terminal_set_enable_shaping (terminal, g_value_get_boolean (value));
@@ -1984,6 +1989,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 g_param_spec_boolean ("scroll-on-output", NULL, NULL,
                                       TRUE,
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:handle-scroll:
+         *
+         * Controls whether or not the terminal manages its own scrolling. This can be
+         * disabled when the terminal is the child of a GtkScrolledWindow to take
+         * advantage of kinetic scrolling.
+         *
+         * Since: 0.64
+         */
+        pspecs[PROP_ENABLE_FALLBACK_SCROLLING] =
+                g_param_spec_boolean ("enable-fallback-scrolling", nullptr, nullptr,
+                                      true,
+                                      GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:text-blink-mode:
@@ -5507,6 +5526,56 @@ catch (...)
 {
         vte::log_exception();
         return false;
+}
+
+/**
+ * vte_terminal_set_enable_fallback_scrolling:
+ * @terminal: a #VteTerminal
+ * @enable: whether to enable fallback scrolling
+ *
+ * Controls whether the terminal uses scroll events to scroll the history
+ * if the event was not otherwise consumed by it.
+ *
+ * This function is rarely useful, except when the terminal is added to a
+ * #GtkScrolledWindow, to perform kinetic scrolling (while vte itself does
+ * not, yet, implement kinetic scrolling by itself).
+ *
+ * Since: 0.64
+ */
+void
+vte_terminal_set_enable_fallback_scrolling(VteTerminal *terminal,
+                                           gboolean enable) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_fallback_scrolling(enable != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_ENABLE_FALLBACK_SCROLLING]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_enable_fallback_scrolling:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: %TRUE if fallback scrolling is enabled
+ *
+ * Since: 0.64
+ */
+gboolean
+vte_terminal_get_enable_fallback_scrolling(VteTerminal *terminal) noexcept
+try
+{
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+    return WIDGET(terminal)->fallback_scrolling();
+}
+catch (...)
+{
+        vte::log_exception();
+        return true;
 }
 
 /**

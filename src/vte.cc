@@ -9389,18 +9389,15 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 			send_child({normal, normal_length});
 		}
 		g_free (normal);
-
                 return true;
-	} else {
+	} else if (m_fallback_scrolling) {
 		/* Perform a history scroll. */
 		double dcnt = m_screen->scroll_delta + v * m_mouse_smooth_scroll_delta;
 		queue_adjustment_value_changed_clamped(dcnt);
 		m_mouse_smooth_scroll_delta = 0;
-
                 return true;
 	}
-
-        return true;
+        return false;
 }
 
 bool
@@ -9503,6 +9500,16 @@ Terminal::set_allow_hyperlink(bool setting)
         m_allow_hyperlink = setting;
         invalidate_all();
 
+        return true;
+}
+
+bool
+Terminal::set_fallback_scrolling(bool set)
+{
+        if (set == m_fallback_scrolling)
+                return false;
+
+        m_fallback_scrolling = set;
         return true;
 }
 

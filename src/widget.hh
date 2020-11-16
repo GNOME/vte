@@ -324,6 +324,9 @@ public:
         bool set_word_char_exceptions(std::optional<std::string_view> stropt);
         auto word_char_exceptions() const noexcept { return m_word_char_exceptions ? m_word_char_exceptions.value().c_str() : nullptr; }
 
+        bool set_fallback_scrolling(bool set) { return terminal()->set_fallback_scrolling(set); }
+        bool fallback_scrolling() const noexcept { return terminal()->fallback_scrolling(); }
+
         char const* encoding() const noexcept { return m_terminal->encoding(); }
 
         void emit_child_exited(int status) noexcept;

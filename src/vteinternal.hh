@@ -406,6 +406,7 @@ public:
         gboolean m_text_deleted_flag;
 
 	/* Scrolling options. */
+        bool m_fallback_scrolling{true};
         bool m_scroll_on_output{false};
         bool m_scroll_on_keystroke{true};
         vte::grid::row_t m_scrollback_lines{0};
@@ -1260,6 +1261,8 @@ public:
         bool set_mouse_autohide(bool autohide);
         bool set_rewrap_on_resize(bool rewrap);
         bool set_scrollback_lines(long lines);
+        bool set_fallback_scrolling(bool set);
+        auto fallback_scrolling() const noexcept { return m_fallback_scrolling; }
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
         bool set_images_enabled(bool enabled);
