@@ -7330,7 +7330,7 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
         /* Sanitise the  font description. Style and weight need to be default here,
          * since those are set via SGR attributes; and gravity makes no sense in vte.
          */
-        pango_font_description_unset_fields(desc.get(),
+        pango_font_description_unset_fields(desc,
                                             PangoFontMask(PANGO_FONT_MASK_GRAVITY |
                                                           PANGO_FONT_MASK_STYLE |
                                                           PANGO_FONT_MASK_WEIGHT));

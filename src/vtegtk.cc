@@ -2095,7 +2095,6 @@ vte_get_features (void) noexcept
 #endif
                 " "
 #ifdef __linux__
-                " "
 #ifdef WITH_SYSTEMD
                 "+SYSTEMD"
 #else
