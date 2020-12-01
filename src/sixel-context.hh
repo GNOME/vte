@@ -601,9 +601,11 @@ private:
                         m_scanline_mask |= sixel;
 
                 } else {
-                        /* If there are no bits to set, just advance the position */
-                        m_scanline_pos = std::min(m_scanline_end,
-                                                  m_scanline_pos + m_repeat_count * 6);
+                        /* If there are no bits to set, just advance the position,
+                         * making sure to guard against overflow.
+                         */
+                        m_scanline_pos = std::clamp(m_scanline_pos + m_repeat_count * 6,
+                                                    m_scanline_begin, m_scanline_end);
                 }
 
                 m_repeat_count = 1;
