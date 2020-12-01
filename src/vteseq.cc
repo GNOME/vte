@@ -4457,7 +4457,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                 if (!m_sixel_context)
                         m_sixel_context = std::make_unique<vte::sixel::Context>();
 
-                m_sixel_context->prepare(seq.st(),
+                m_sixel_context->prepare(seq.introducer(),
                                          fg.red >> 8, fg.green >> 8, fg.blue >> 8,
                                          bg.red >> 8, bg.green >> 8, bg.blue >> 8,
                                          back == VTE_DEFAULT_BG || transparent_bg,
