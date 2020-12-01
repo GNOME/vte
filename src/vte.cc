@@ -9200,10 +9200,10 @@ Terminal::widget_draw(cairo_t *cr)
 	if (m_images_enabled) {
 		vte::grid::row_t top_row = first_displayed_row();
 		vte::grid::row_t bottom_row = last_displayed_row();
-		auto image_map = ring->m_image_priority_map;
-		auto it = image_map->begin ();
-		for (; it != image_map->end (); ++it) {
-			vte::image::Image *image = it->second;
+                auto const& image_map = ring->image_map();
+                auto const image_map_end = image_map.end();
+                for (auto it = image_map.begin(); it != image_map_end; ++it) {
+                        auto const& image = it->second;
 
                         if (image->get_bottom() < top_row ||
                             image->get_top() > bottom_row)

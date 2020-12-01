@@ -28,7 +28,7 @@
 
 #ifdef WITH_SIXEL
 
-#include <new>
+#include "cxx-utils.hh"
 
 /* We should be able to hold a single fullscreen 4K image at most.
  * 35MiB equals 3840 * 2160 * 4 plus a little extra. */
@@ -50,10 +50,6 @@ _attrcpy (void *dst, void *src)
 }
 
 using namespace vte::base;
-
-#ifdef WITH_SIXEL
-using namespace vte::image;
-#endif
 
 /*
  * VteRing: A buffer ring
@@ -104,13 +100,6 @@ Ring::Ring(row_t max_rows,
         auto empty_str = g_string_new_len("", 0);
         g_ptr_array_add(m_hyperlinks, empty_str);
 
-#ifdef WITH_SIXEL
-        m_image_by_top_map = new (std::nothrow) std::map<int, Image *>();
-        m_image_priority_map = new (std::nothrow) std::map<int, Image *>();
-        m_next_image_priority = 0;
-        m_image_fast_memory_used = 0;
-#endif
-
 	validate();
 }
 
@@ -120,17 +109,6 @@ Ring::~Ring()
 		_vte_row_data_fini (&m_array[i]);
 
 	g_free (m_array);
-
-#ifdef WITH_SIXEL
-        /* Clear images */
-	auto image_map = m_image_by_top_map;
-
-        for (auto it = image_map->begin (); it != image_map->end (); ++it)
-                delete it->second;
-        image_map->clear();
-        delete m_image_by_top_map;
-        delete m_image_priority_map;
-#endif /* WITH_SIXEL */
 
 	if (m_has_streams) {
 		g_object_unref (m_attr_stream);
@@ -230,87 +208,95 @@ Ring::hyperlink_maybe_gc(row_t increment)
 #ifdef WITH_SIXEL
 
 void
-Ring::image_gc_region()
+Ring::image_gc_region() noexcept
 {
         cairo_region_t *region = cairo_region_create();
 
-        for (auto it = m_image_priority_map->rbegin(); it != m_image_priority_map->rend(); ) {
-                Image *image = it->second;
-                cairo_rectangle_int_t r;
+        for (auto rit = m_image_map.rbegin();
+             rit != m_image_map.rend();
+             ) {
+                auto const& image = rit->second;
+                auto const rect = cairo_rectangle_int_t{image->get_left(),
+                                                        image->get_top(),
+                                                        image->get_width(),
+                                                        image->get_height()};
 
-                r.x = image->get_left();
-                r.y = image->get_top();
-                r.width = image->get_width();
-                r.height = image->get_height();
-
-                if (cairo_region_contains_rectangle(region, &r) == CAIRO_REGION_OVERLAP_IN) {
-                        /* Image has been completely overdrawn; delete it */
+                if (cairo_region_contains_rectangle(region, &rect) == CAIRO_REGION_OVERLAP_IN) {
+                        /* vte::image::Image has been completely overdrawn; delete it */
 
                         m_image_fast_memory_used -= image->resource_size();
 
                         /* Apparently this is the cleanest way to erase() with a reverse iterator... */
-                        it = decltype(it){m_image_priority_map->erase(std::next(it).base())};
-                        unlink_image_from_top_map(image);
-                        delete image;
+                        /* Unlink the image from m_image_by_top_map, then erase it from m_image_map */
+                        unlink_image_from_top_map(image.get());
+                        rit = image_map_type::reverse_iterator{m_image_map.erase(std::next(rit).base())};
                         continue;
                 }
 
-                cairo_region_union_rectangle(region, &r);
-                it++;
+                cairo_region_union_rectangle(region, &rect);
+                ++rit;
         }
 
         cairo_region_destroy(region);
 }
 
 void
-Ring::image_gc()
+Ring::image_gc() noexcept
 {
-        while (m_image_fast_memory_used > IMAGE_FAST_MEMORY_USED_MAX
-               || m_image_priority_map->size() > IMAGE_FAST_COUNT_MAX) {
-                if (m_image_priority_map->empty()) {
+        while (m_image_fast_memory_used > IMAGE_FAST_MEMORY_USED_MAX ||
+               m_image_map.size() > IMAGE_FAST_COUNT_MAX) {
+                if (m_image_map.empty()) {
                         /* If this happens, we've miscounted somehow. */
                         break;
                 }
 
-                Image *image = m_image_priority_map->begin()->second;
+                auto& image = m_image_map.begin()->second;
                 m_image_fast_memory_used -= image->resource_size();
-                m_image_priority_map->erase(m_image_priority_map->begin());
-                unlink_image_from_top_map(image);
-                delete image;
+                unlink_image_from_top_map(image.get());
+                m_image_map.erase(m_image_map.begin());
         }
 }
 
 void
-Ring::unlink_image_from_top_map(Image *image)
+Ring::unlink_image_from_top_map(vte::image::Image const* image) noexcept
 {
-        for (auto it = m_image_by_top_map->find(image->get_top()); it != m_image_by_top_map->end(); it++) {
-                Image *cur_image = it->second;
+        auto [begin, end] = m_image_by_top_map.equal_range(image->get_top());
 
-                if (cur_image->get_priority() == image->get_priority()) {
-                        m_image_by_top_map->erase(it);
-                        break;
-                }
+        for (auto it = begin; it != end; ++it) {
+                if (it->second != image)
+                        continue;
+
+                m_image_by_top_map.erase(it);
+                break;
         }
 }
 
 void
-Ring::rebuild_image_top_map()
+Ring::rebuild_image_top_map() /* throws */
 {
-        m_image_by_top_map->clear();
+        m_image_by_top_map.clear();
 
-        for (auto it = m_image_priority_map->begin(); it != m_image_priority_map->end(); it++) {
-                Image *image = it->second;
-                m_image_by_top_map->insert(std::make_pair(image->get_top(), image));
+        for (auto it = m_image_map.begin(), end = m_image_map.end();
+             it != end;
+             ++it) {
+                auto const& image = it->second;
+                m_image_by_top_map.emplace(std::piecewise_construct,
+                                           std::forward_as_tuple(image->get_top()),
+                                           std::forward_as_tuple(image.get()));
         }
 }
 
 bool
-Ring::rewrap_images_in_range(std::map<int,Image*>::iterator &it,
-                             size_t text_start_ofs, size_t text_end_ofs, row_t new_row_index)
+Ring::rewrap_images_in_range(Ring::image_by_top_map_type::iterator& it,
+                             size_t text_start_ofs,
+                             size_t text_end_ofs,
+                             row_t new_row_index) noexcept
 {
-        for ( ; it != m_image_by_top_map->end(); it++) {
-                Image *image = it->second;
-                CellTextOffset ofs;
+        for (auto const end = m_image_by_top_map.end();
+             it != end;
+             ++it) {
+                auto const& image = it->second;
+                auto ofs = CellTextOffset{};
 
                 if (!frozen_row_column_to_text_offset(image->get_top(), 0, &ofs))
                         return false;
@@ -722,10 +708,6 @@ Ring::reset_streams(row_t position)
 Ring::row_t
 Ring::reset()
 {
-#ifdef WITH_SIXEL
-        auto image_map = m_image_by_top_map;
-#endif
-
         _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", m_end);
 
         reset_streams(m_end);
@@ -733,11 +715,8 @@ Ring::reset()
         m_cached_row_num = (row_t)-1;
 
 #ifdef WITH_SIXEL
-        /* Clear images */
-        for (auto it = image_map->begin (); it != image_map->end (); ++it)
-                delete it->second;
-        image_map->clear();
-        m_image_priority_map->clear();
+        m_image_by_top_map.clear();
+        m_image_map.clear();
         m_next_image_priority = 0;
         m_image_fast_memory_used = 0;
 #endif
@@ -1326,7 +1305,7 @@ Ring::rewrap(column_t columns,
 	gsize attr_offset;
 	gsize old_ring_end;
 #ifdef WITH_SIXEL
-	auto image_it = m_image_by_top_map->begin();
+	auto image_it = m_image_by_top_map.begin();
 #endif
 
 	if (G_UNLIKELY(length() == 0))
@@ -1464,7 +1443,10 @@ Ring::rewrap(column_t columns,
 						}
 
 #ifdef WITH_SIXEL
-						if (!rewrap_images_in_range(image_it, new_record.text_start_offset, text_offset, new_row_index))
+						if (!rewrap_images_in_range(image_it,
+                                                                            new_record.text_start_offset,
+                                                                            text_offset,
+                                                                            new_row_index))
 							goto err;
 #endif
 
@@ -1518,7 +1500,10 @@ Ring::rewrap(column_t columns,
 		}
 
 #ifdef WITH_SIXEL
-		if (!rewrap_images_in_range(image_it, new_record.text_start_offset, paragraph_end_text_offset, new_row_index))
+		if (!rewrap_images_in_range(image_it,
+                                            new_record.text_start_offset,
+                                            paragraph_end_text_offset,
+                                            new_row_index))
 			goto err;
 #endif
 
@@ -1555,7 +1540,11 @@ Ring::rewrap(column_t columns,
 	g_free(new_markers);
 
 #ifdef WITH_SIXEL
-	rebuild_image_top_map();
+        try {
+                rebuild_image_top_map();
+        } catch (...) {
+                vte::log_exception();
+        }
 #endif
 
 	_vte_debug_print(VTE_DEBUG_RING, "Ring after rewrapping:\n");
@@ -1667,8 +1656,8 @@ Ring::write_contents(GOutputStream* stream,
 /**
  * Ring::append_image:
  * @surface: A Cairo surface object
- * @pixelwidth: Image width in pixels
- * @pixelheight: Image height in pixels
+ * @pixelwidth: vte::image::Image width in pixels
+ * @pixelheight: vte::image::Image height in pixels
  * @left: Left position of image in cell units
  * @top: Top position of image in cell units
  * @cell_width: Width of image in cell units
@@ -1685,18 +1674,28 @@ Ring::append_image(vte::Freeable<cairo_surface_t> surface,
                    long cell_width,
                    long cell_height) /* throws */
 {
-        Image *image;
-
-        image = new (std::nothrow) Image(std::move(surface),
-                                         m_next_image_priority++,
-                                          pixelwidth, pixelheight,
-                                         left, top,
-                                         cell_width, cell_height);
-        if (!image)
+        auto const priority = m_next_image_priority;
+        auto [it, success] = m_image_map.try_emplace
+                (priority, // key
+                 std::make_unique<vte::image::Image>(std::move(surface),
+                                                     priority,
+                                                     pixelwidth,
+                                                     pixelheight,
+                                                     left,
+                                                     top,
+                                                     cell_width,
+                                                     cell_height));
+        if (!success)
                 return;
 
-        m_image_by_top_map->insert (std::make_pair (image->get_top (), image));
-        m_image_priority_map->insert (std::make_pair (image->get_priority (), image));
+        ++m_next_image_priority;
+
+        auto const& image = it->second;
+
+        m_image_by_top_map.emplace(std::piecewise_construct,
+                                   std::forward_as_tuple(image->get_top()),
+                                   std::forward_as_tuple(image.get()));
+
         m_image_fast_memory_used += image->resource_size ();
 
         image_gc_region();

@@ -32,6 +32,7 @@
 #include "cairo-glue.hh"
 #include "image.hh"
 #include <map>
+#include <memory>
 #endif
 
 #include <type_traits>
@@ -103,15 +104,6 @@ public:
                             VteWriteFlags flags,
                             GCancellable* cancellable,
                             GError** error);
-
-#ifdef WITH_SIXEL
-        void append_image (vte::Freeable<cairo_surface_t> surface,
-                           gint pixelwidth, gint pixelheight,
-                           glong left, glong top,
-                           glong cell_width, glong cell_height) /* throws */;
-        std::map<gint, vte::image::Image *> *m_image_by_top_map;
-        std::map<int, vte::image::Image *> *m_image_priority_map;
-#endif
 
 private:
 
@@ -243,17 +235,41 @@ private:
         row_t m_hyperlink_maybe_gc_counter{0};  /* Do a GC when it reaches 65536. */
 
 #ifdef WITH_SIXEL
-        /* Image bookkeeping */
 
-        void image_gc();
-        void image_gc_region();
-        void unlink_image_from_top_map(vte::image::Image *image);
-        void rebuild_image_top_map();
-        bool rewrap_images_in_range(std::map<int,vte::image::Image*>::iterator &it,
-                                    size_t text_start_ofs, size_t text_end_ofs, row_t new_row_index);
+private:
+        size_t m_next_image_priority{0};
+        size_t m_image_fast_memory_used{0};
 
-        int m_next_image_priority;
-        unsigned int m_image_fast_memory_used;
+        /* m_image_priority_map stores the Image. key is the priority of the image. */
+        using image_map_type = std::map<size_t, std::unique_ptr<vte::image::Image>>;
+        image_map_type m_image_map{};
+
+        /* m_image_by_top_map stores only an iterator to the Image in m_image_priority_map;
+         * key is the top row of the image.
+         */
+        using image_by_top_map_type = std::multimap<row_t, vte::image::Image*>;
+        image_by_top_map_type m_image_by_top_map{};
+
+        void image_gc() noexcept;
+        void image_gc_region() noexcept;
+        void unlink_image_from_top_map(vte::image::Image const* image) noexcept;
+        void rebuild_image_top_map() /* throws */;
+        bool rewrap_images_in_range(image_by_top_map_type::iterator& it,
+                                    size_t text_start_ofs,
+                                    size_t text_end_ofs,
+                                    row_t new_row_index) noexcept;
+
+public:
+        auto const& image_map() const noexcept { return m_image_map; }
+
+        void append_image(vte::Freeable<cairo_surface_t> surface,
+                          int pixelwidth,
+                          int pixelheight,
+                          long left,
+                          long top,
+                          long cell_width,
+                          long cell_height) /* throws */;
+
 #endif /* WITH_SIXEL */
 };
 

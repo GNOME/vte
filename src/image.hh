@@ -31,7 +31,7 @@ private:
         vte::Freeable<cairo_surface_t> m_surface{};
 
         // Draw/prune priority, must be unique
-        int m_priority;
+        size_t m_priority;
 
         // Image dimensions in pixels
         int m_width_pixels;
@@ -47,7 +47,7 @@ private:
 
 public:
         Image(vte::Freeable<cairo_surface_t> surface,
-              int priority,
+              size_t priority,
               int width_pixels,
               int height_pixels,
               int col,
