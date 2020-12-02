@@ -357,10 +357,18 @@ Pty::get_size(int* rows,
 static int
 fd_set_cpkt(vte::libc::FD& fd)
 {
+        auto ret = 0;
+#if defined(TIOCPKT)
         /* tty_ioctl(4) -> every read() gives an extra byte at the beginning
          * notifying us of stop/start (^S/^Q) events. */
         int one = 1;
-        return ioctl(fd.get(), TIOCPKT, &one);
+        ret = ioctl(fd.get(), TIOCPKT, &one);
+#elif defined(__sun) && defined(HAVE_STROPTS_H)
+        if (isastream(fd.get()) == 1 &&
+            ioctl(fd.get(), I_FIND, "pckt") == 0)
+                ret = ioctl(fd.get(), I_PUSH, "pckt");
+#endif
+        return ret;
 }
 
 static int
@@ -400,7 +408,7 @@ fd_setup(vte::libc::FD& fd)
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s",
-                                 "ioctl(TIOCPKT)", g_strerror(errsv));
+                                 "Setting packet mode", g_strerror(errsv));
                 return -1;
         }
 
@@ -466,7 +474,7 @@ _vte_pty_open_posix(void)
                 auto errsv = vte::libc::ErrnoSaver{};
                 _vte_debug_print(VTE_DEBUG_PTY,
                                  "%s failed: %s",
-                                 "ioctl(TIOCPKT)", g_strerror(errsv));
+                                 "Setting packet mode", g_strerror(errsv));
                 return {};
         }
 

@@ -152,6 +152,7 @@ check_headers = [
   'stropts.h',
   'sys/resource.h',
   'sys/select.h',
+  'sys/stream.h',
   'sys/syslimits.h',
   'sys/termios.h',
   'sys/types.h',

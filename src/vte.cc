@@ -29,6 +29,12 @@
 #ifdef HAVE_SYS_TERMIOS_H
 #include <sys/termios.h>
 #endif
+#ifdef HAVE_STROPTS_H
+#include <stropts.h>
+#endif
+#ifdef HAVE_SYS_STREAM_H
+#include <sys/stream.h>
+#endif
 
 #include <glib.h>
 #include <glib-unix.h>
@@ -3966,6 +3972,7 @@ Terminal::pty_io_read(int const fd,
 			bp = chunk->begin_writing();
 			len = 0;
 			do {
+#if defined(TIOCPKT)
                                 /* We'd like to read (fd, bp, rem); but due to TIOCPKT mode
                                  * there's an extra input byte returned at the beginning.
                                  * We need to see what that byte is, but otherwise drop it
@@ -4014,6 +4021,66 @@ Terminal::pty_io_read(int const fd,
                                                 }
 						break;
 				}
+#elif defined(__sun) && defined(HAVE_STROPTS_H)
+				static unsigned char ctl_s[128];
+				struct strbuf ctlbuf, databuf;
+				int ret, flags = 0;
+				bool have_data = false;
+
+				ctlbuf.buf = (caddr_t)ctl_s;
+				ctlbuf.maxlen = sizeof(ctl_s);
+				databuf.buf = (caddr_t)bp;
+				databuf.maxlen = rem;
+
+				ret = getmsg(fd, &ctlbuf, &databuf, &flags);
+				if (ret == -1) {
+					err = errno;
+					goto out;
+				} else if (ctlbuf.len == 1) {
+					switch (ctl_s[0]) {
+					case M_IOCTL:
+						pty_termios_changed();
+						break;
+					case M_STOP:
+						pty_scroll_lock_changed(true);
+						break;
+					case M_START:
+						pty_scroll_lock_changed(false);
+						break;
+					case M_DATA:
+						have_data = true;
+						break;
+					}
+				} else if (ctlbuf.len == -1 && databuf.len != -1) {
+					// MOREDATA
+					have_data = true;
+				}
+
+				if (have_data) {
+					if (databuf.len == 0) {
+						eos = true;
+						goto out;
+					}
+					bp += databuf.len;
+					rem -= databuf.len;
+					len += databuf.len;
+				}
+#else /* neither TIOCPKT nor STREAMS pty */
+				int ret = read(fd, bp, rem);
+				switch (ret) {
+					case -1:
+						err = errno;
+						goto out;
+					case 0:
+						eos = true;
+						goto out;
+					default:
+						bp += ret;
+						rem -= ret;
+						len += ret;
+						break;
+				}
+#endif /* */
 			} while (rem);
 out:
 			chunk->add_size(len);
