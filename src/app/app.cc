@@ -37,11 +37,16 @@
 #include <algorithm>
 #include <vector>
 
+#include "std-glue.hh"
 #include "glib-glue.hh"
 #include "libc-glue.hh"
 #include "pango-glue.hh"
 #include "pcre2-glue.hh"
 #include "refptr.hh"
+
+namespace vte {
+VTE_DECLARE_FREEABLE(VteRegex, vte_regex_unref);
+} // namespace vte
 
 /* options */
 
@@ -711,7 +716,7 @@ jit_regex(VteRegex* regex,
         }
 }
 
-static VteRegex*
+static vte::Freeable<VteRegex>
 compile_regex_for_search(char const* pattern,
                          bool caseless,
                          GError** error)
@@ -724,10 +729,10 @@ compile_regex_for_search(char const* pattern,
         if (regex != nullptr)
                 jit_regex(regex, pattern);
 
-        return regex;
+        return vte::take_freeable(regex);
 }
 
-static VteRegex*
+static vte::Freeable<VteRegex>
 compile_regex_for_match(char const* pattern,
                         bool caseless,
                         GError** error)
@@ -740,7 +745,7 @@ compile_regex_for_match(char const* pattern,
         if (regex != nullptr)
                 jit_regex(regex, pattern);
 
-        return regex;
+        return vte::take_freeable(regex);
 }
 
 /* search popover */
@@ -829,9 +834,7 @@ vteapp_search_popover_update_regex(VteappSearchPopover* popover)
         if (search_text[0] != '\0') {
                 auto error = vte::glib::Error{};
                 auto regex = compile_regex_for_search(pattern, caseless, error);
-                vte_terminal_search_set_regex(popover->terminal, regex, 0);
-                if (regex != nullptr)
-                        vte_regex_unref(regex);
+                vte_terminal_search_set_regex(popover->terminal, regex.get(), 0);
 
                 if (error.error()) {
                         popover->has_regex = true;
@@ -1198,12 +1201,11 @@ vteapp_window_add_dingus(VteappWindow* window,
                          char const* const* dingus)
 {
         for (auto i = 0; dingus[i] != nullptr; i++) {
-                auto tag = int{-1};
+                auto tag = -1;
                 auto error = vte::glib::Error{};
                 auto regex = compile_regex_for_match(dingus[i], true, error);
                 if (regex) {
-                        tag = vte_terminal_match_add_regex(window->terminal, regex, 0);
-                        vte_regex_unref(regex);
+                        tag = vte_terminal_match_add_regex(window->terminal, regex.get(), 0);
                 }
 
                 if (error.error()) {
@@ -1702,19 +1704,20 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 auto error = vte::glib::Error{};
                 auto regex = compile_regex_for_match(extra_pattern, false, error);
                 error.assert_no_error();
+
+                VteRegex* regexes[1] = {regex.get()};
                 vte_terminal_event_check_regex_simple(window->terminal, event,
-                                                      &regex, 1, 0,
+                                                      regexes, G_N_ELEMENTS(regexes),
+                                                      0,
                                                       &extra_match);
 
                 if (extra_match != nullptr &&
-                    (extra_subst = vte_regex_substitute(regex, extra_match, "$2 $1",
+                    (extra_subst = vte_regex_substitute(regex.get(), extra_match, "$2 $1",
                                                         PCRE2_SUBSTITUTE_EXTENDED |
                                                         PCRE2_SUBSTITUTE_GLOBAL,
                                                         error)) == nullptr) {
                         verbose_printerr("Substitution failed: %s\n", error.message());
                 }
-
-                vte_regex_unref(regex);
 
                 if (extra_match != nullptr) {
                         if (extra_subst != nullptr)
