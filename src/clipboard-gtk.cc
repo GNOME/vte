@@ -18,6 +18,7 @@
 #include "config.h"
 
 #include "clipboard-gtk.hh"
+#include "gtk-glue.hh"
 #include "widget.hh"
 #include "vteinternal.hh"
 
@@ -175,12 +176,11 @@ private:
                         static int n_text_targets;
 
                         if (text_targets == nullptr) {
-                                auto list = gtk_target_list_new (nullptr, 0);
-                                gtk_target_list_add_text_targets (list,
-                                                                  vte::to_integral(ClipboardFormat::TEXT));
+                                auto list = vte::take_freeable(gtk_target_list_new(nullptr, 0));
+                                gtk_target_list_add_text_targets(list.get(),
+                                                                 vte::to_integral(ClipboardFormat::TEXT));
 
-                                text_targets = gtk_target_table_new_from_list (list, &n_text_targets);
-                                gtk_target_list_unref (list);
+                                text_targets = gtk_target_table_new_from_list(list.get(), &n_text_targets);
                         }
 
                         return {text_targets, n_text_targets};
@@ -191,16 +191,15 @@ private:
                         static int n_html_targets;
 
                         if (html_targets == nullptr) {
-                                auto list = gtk_target_list_new (nullptr, 0);
-                                gtk_target_list_add_text_targets (list,
-                                                                  vte::to_integral(ClipboardFormat::TEXT));
-                                gtk_target_list_add (list,
-                                                     gdk_atom_intern_static_string("text/html"),
-                                                     0,
-                                                     vte::to_integral(ClipboardFormat::HTML));
+                                auto list = vte::take_freeable(gtk_target_list_new(nullptr, 0));
+                                gtk_target_list_add_text_targets(list.get(),
+                                                                 vte::to_integral(ClipboardFormat::TEXT));
+                                gtk_target_list_add(list.get(),
+                                                    gdk_atom_intern_static_string("text/html"),
+                                                    0,
+                                                    vte::to_integral(ClipboardFormat::HTML));
 
-                                html_targets = gtk_target_table_new_from_list (list, &n_html_targets);
-                                gtk_target_list_unref (list);
+                                html_targets = gtk_target_table_new_from_list(list.get(), &n_html_targets);
                         }
 
                         return {html_targets,  n_html_targets};
