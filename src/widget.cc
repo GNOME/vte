@@ -225,8 +225,8 @@ Clipboard&
 Widget::clipboard_get(ClipboardType type) const
 {
         switch (type) {
-        case ClipboardType::PRIMARY: return *m_clipboard;
-        case ClipboardType::CLIPBOARD: return *m_primary_clipboard;
+        case ClipboardType::CLIPBOARD: return *m_clipboard;
+        case ClipboardType::PRIMARY: return *m_primary_clipboard;
         default: g_assert_not_reached(); throw std::runtime_error{""}; break;
         }
 }
