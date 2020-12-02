@@ -823,12 +823,12 @@ vteapp_search_popover_update_regex(VteappSearchPopover* popover)
                         vte_regex_unref(regex);
 
                 if (error.error()) {
-                        popover->has_regex = true;
+                        popover->has_regex = false;
                         popover->regex_pattern = pattern; /* adopt */
                         pattern = nullptr; /* adopted */
                         gtk_widget_set_tooltip_text(popover->search_entry, nullptr);
                 } else {
-                        popover->has_regex = false;
+                        popover->has_regex = true;
                         gtk_widget_set_tooltip_text(popover->search_entry, error.message());
                 }
         }
