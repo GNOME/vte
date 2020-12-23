@@ -784,10 +784,15 @@ Terminal::emit_eof()
 
 static gboolean
 emit_eof_idle_cb(VteTerminal *terminal)
+try
 {
         _vte_terminal_get_impl(terminal)->emit_eof();
-        // @terminal might be destroyed at this point
 
+        return G_SOURCE_REMOVE;
+}
+catch (...)
+{
+        vte::log_exception();
         return G_SOURCE_REMOVE;
 }
 
@@ -814,10 +819,15 @@ Terminal::emit_child_exited()
 
 static gboolean
 emit_child_exited_idle_cb(VteTerminal *terminal)
+try
 {
         _vte_terminal_get_impl(terminal)->emit_child_exited();
-        // @terminal might be destroyed at this point
 
+        return G_SOURCE_REMOVE;
+}
+catch (...)
+{
+        vte::log_exception();
         return G_SOURCE_REMOVE;
 }
 
