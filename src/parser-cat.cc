@@ -753,6 +753,14 @@ public:
                         check_sgr(seq);
                         break;
 
+                case VTE_CMD_DECSIXEL:
+                        /* OR mode is a nonstandard NetBSD/x68k extension that is
+                         * not supported in VTE.
+                         */
+                        if (seq.collect1(1) == 5)
+                                warn("DECSIXEL OR-mode not supported");
+                        break;
+
                 default:
                         if (cmd >= VTE_CMD_NOP_FIRST)
                                 warn("%s is unimplemented", cmd_to_str(cmd));
