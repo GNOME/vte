@@ -4378,6 +4378,8 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          *    0: device default (same as 2)
          *    1: pixels with colour 0 retain the colour
          *    2: pixels with colour 0 are set to the current background
+         *    5: OR mode (nonstandard NetBSD/x68k extension, see
+         *       [https://qiita.com/arakiken/items/26f6c67da5a9f9f907ac])
          *  args[2]: horizontal grid size in the unit set by SSU
          *
          * Defaults:
@@ -4432,11 +4434,6 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                 }
         }
 
-        if (!process_sixel || seq.is_ripe() /* that shouldn't happen */) {
-                m_parser.ignore_until_st();
-                return false;
-        }
-
         /* How to interpret args[1] is not entirely clear from the DEC
          * documentation and other terminal emulators.
          * We choose to make args[1]==1 mean to use transparent background.
@@ -4447,7 +4444,32 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          * the special colour register so that SIXEL images which set
          * no colours get a sensible default.
          */
-        auto const transparent_bg = seq.collect1(1, 2) == 1;
+        auto transparent_bg = bool{};
+        switch (seq.collect1(1, 2)) {
+        case -1: /* default */
+        case 0:
+        case 2:
+                transparent_bg = false;
+                break;
+
+        case 1:
+                transparent_bg = true;
+                break;
+
+        case 5: /* OR mode (a nonstandard NetBSD/x68k extension; not supported */
+                process_sixel = false;
+                break;
+
+        default:
+                transparent_bg = false;
+                break;
+        }
+
+        /* Ignore the whole sequence */
+        if (!process_sixel || seq.is_ripe() /* that shouldn't happen */) {
+                m_parser.ignore_until_st();
+                return false;
+        }
 
         auto fore = unsigned{}, back = unsigned{};
         auto fg = vte::color::rgb{}, bg = vte::color::rgb{};
