@@ -6719,7 +6719,10 @@ Terminal::maybe_end_selection()
 /*
  * Terminal::select_all:
  *
- * Selects all text within the terminal (including the scrollback buffer).
+ * Selects all text within the terminal. Note that we only select the writable
+ * region, *not* the scrollback buffer, due to this potentially selecting so
+ * much data that putting it on the clipboard either hangs the process for a long
+ * time or even crash it directly. (FIXME!)
  */
 void
 Terminal::select_all()
@@ -6728,8 +6731,8 @@ Terminal::select_all()
 
 	m_selecting_had_delta = TRUE;
 
-        m_selection_resolved.set ({ _vte_ring_delta (m_screen->row_data), 0 },
-                                  { _vte_ring_next  (m_screen->row_data), 0 });
+        m_selection_resolved.set({m_screen->insert_delta, 0},
+                                 {_vte_ring_next(m_screen->row_data), 0});
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
