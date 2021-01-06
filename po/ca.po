@@ -45,13 +45,13 @@ msgstr "L'operació ha excedit el temps"
 
 #: src/spawn.cc:171
 msgid "Operation was cancelled"
-msgstr "S'ha cancel·lat l'operació"
+msgstr "S'ha cancel·lat l'operació"
 
 #: src/spawn.cc:189
 #, c-format
 #| msgid "Error reading from child: %s."
 msgid "Failed to read from child pipe (%s)"
-msgstr "S'ha produït un error en llegir del conducte fill )%s)"
+msgstr "S'ha produït un error en llegir del conducte fill (%s)"
 
 #: src/spawn.cc:576
 #, c-format
@@ -63,54 +63,3 @@ msgstr "No s'ha pogut canviar al directori «%s»:%s"
 msgid "Failed to execute child process “%s”: "
 msgstr "No s'ha pogut executar el procés fill «%s»: "
 
-#~ msgid "Unable to convert characters from %s to %s."
-#~ msgstr "No es pot convertir el caràcter %s a %s."
-
-#~ msgid "Error (%s) converting data for child, dropping."
-#~ msgstr ""
-#~ "S'ha produït un error (%s) en convertir dades per al fill; s'ometrà la "
-#~ "conversió."
-
-#~ msgid "Copy"
-#~ msgstr "Copia"
-
-#~ msgid "Paste"
-#~ msgstr "Enganxa"
-
-#~ msgid "Reset (use Ctrl to reset and clear)"
-#~ msgstr "Reinicia (utilitzeu Ctrl per reiniciar i netejar)"
-
-#~ msgid "Reset"
-#~ msgstr "Reinicia"
-
-#~ msgid "Toggle input enabled setting"
-#~ msgstr "Commuta el paràmetre del mètode d'entrada actiu"
-
-#~ msgid "Input"
-#~ msgstr "Entrada"
-
-#~ msgid "Attempt to set invalid NRC map '%c'."
-#~ msgstr "S'ha intentat fixar el mapa NRC invàlid «%c»."
-
-#~ msgid "Unrecognized identified coding system."
-#~ msgstr "No s'ha reconegut el sistema de codificació identificat."
-
-#~ msgid "Attempt to set invalid wide NRC map '%c'."
-#~ msgstr "S'ha intentat fixar el mapa global NRC «%c»."
-
-#~ msgid "Could not open console.\n"
-#~ msgstr "No s'ha pogut obrir la consola.\n"
-
-#~ msgid "Could not parse the geometry spec passed to --geometry"
-#~ msgstr ""
-#~ "No s'ha pogut analitzar l'especificació geomètrica indicada a --geometry"
-
-#~ msgid "Unable to send data to child, invalid charset convertor"
-#~ msgstr ""
-#~ "No s'ha pogut enviar les dades al fill, el convertidor de codificació no "
-#~ "és vàlid"
-
-#~ msgid "Error reading PTY size, using defaults: %s\n"
-#~ msgstr ""
-#~ "S'ha produït un error en llegir la mida de PTY; s'utilitzarà el valor per "
-#~ "defecte: %s\n"
