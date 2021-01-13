@@ -4895,7 +4895,7 @@ try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (IMPL(terminal)->set_font_desc(font_desc))
+        if (IMPL(terminal)->set_font_desc(vte::take_freeable(pango_font_description_copy(font_desc))))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_DESC]);
 }
 catch (...)

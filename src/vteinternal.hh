@@ -571,6 +571,7 @@ public:
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
+        vte::Freeable<PangoFontDescription> m_api_font_desc{};
         vte::Freeable<PangoFontDescription> m_unscaled_font_desc{};
         vte::Freeable<PangoFontDescription> m_fontdesc{};
         double m_font_scale{1.};
@@ -1255,7 +1256,8 @@ public:
         bool set_enable_shaping(bool setting);
         bool set_encoding(char const* codeset,
                           GError** error);
-        bool set_font_desc(PangoFontDescription const* desc);
+        bool set_font_desc(vte::Freeable<PangoFontDescription> desc);
+        bool update_font_desc();
         bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);

@@ -4537,7 +4537,7 @@ void
 Terminal::widget_style_updated()
 {
         // FIXMEchpe: remove taking font info from the widget style
-        set_font_desc(m_unscaled_font_desc.get());
+        update_font_desc();
 }
 
 void
@@ -7219,7 +7219,7 @@ Terminal::ensure_font()
 	{
 		/* Load default fonts, if no fonts have been loaded. */
 		if (!m_has_fonts) {
-			set_font_desc(m_unscaled_font_desc.get());
+                        update_font_desc();
 		}
 		if (m_fontdirty) {
                         int cell_width_unscaled, cell_height_unscaled;
@@ -7299,7 +7299,14 @@ Terminal::update_font()
  * and columns.  The font scale is applied to the specified font.
  */
 bool
-Terminal::set_font_desc(PangoFontDescription const* font_desc)
+Terminal::set_font_desc(vte::Freeable<PangoFontDescription> font_desc)
+{
+        m_api_font_desc = std::move(font_desc);
+        return update_font_desc();
+}
+
+bool
+Terminal::update_font_desc()
 {
         auto desc = vte::Freeable<PangoFontDescription>{};
 
@@ -7312,8 +7319,9 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
         gtk_style_context_restore(context);
 
 	pango_font_description_set_family_static(desc.get(), "monospace");
-	if (font_desc != nullptr) {
-		pango_font_description_merge(desc.get(), font_desc, TRUE);
+
+	if (m_api_font_desc) {
+		pango_font_description_merge(desc.get(), m_api_font_desc.get(), true);
 		_VTE_DEBUG_IF(VTE_DEBUG_MISC) {
 			if (desc) {
 				char *tmp;
@@ -7327,13 +7335,28 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 				"Using default monospace font.\n");
 	}
 
-        /* Sanitise the  font description. Style and weight need to be default here,
-         * since those are set via SGR attributes; and gravity makes no sense in vte.
+        /* Sanitise the font description.
+         *
+         * Gravity makes no sense in vte.
+         * Style needs to be default, and weight needs to allow bolding,
+         * since those are set via SGR attributes.
+         *
+         * Allowing weight <= medium does not absolutely guarantee that bold
+         * actually is bolder than the specified weight, but should be good enough
+         * until we can check that the actually loaded bold font is weightier than
+         * the normal font (FIXME!).
+         *
+         * As a special exception, allow any weight if bold-is-bright is enabled.
          */
         pango_font_description_unset_fields(desc.get(),
                                             PangoFontMask(PANGO_FONT_MASK_GRAVITY |
-                                                          PANGO_FONT_MASK_STYLE |
-                                                          PANGO_FONT_MASK_WEIGHT));
+                                                          PANGO_FONT_MASK_STYLE));
+        if ((pango_font_description_get_set_fields(desc.get()) & PANGO_FONT_MASK_WEIGHT) &&
+            (pango_font_description_get_weight(desc.get()) > PANGO_WEIGHT_MEDIUM) &&
+            !m_bold_is_bright) {
+                pango_font_description_unset_fields(desc.get(),
+                                                    PangoFontMask(PANGO_FONT_MASK_WEIGHT));
+        }
 
         bool const same_desc = m_unscaled_font_desc &&
                 pango_font_description_equal(m_unscaled_font_desc.get(), desc.get());
@@ -9557,6 +9580,10 @@ Terminal::set_bold_is_bright(bool setting)
                 return false;
 
 	m_bold_is_bright = setting;
+
+        /* Need to re-sanitise the font description to ensure bold is distinct. */
+        update_font_desc();
+
 	invalidate_all();
 
         return true;
