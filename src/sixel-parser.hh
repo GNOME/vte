@@ -209,17 +209,10 @@ public:
 
 private:
         Parser(Parser const&) = delete;
-        Parser(Parser&&) = delete ;
+        Parser(Parser&&) = delete;
 
         Parser& operator=(Parser const&) = delete;
         Parser& operator=(Parser&) = delete;
-
-        enum class Action {
-                IGNORE,
-                CONSUME,
-                PARAM,
-                FINISH_PARAM,
-        };
 
         enum class State {
                 GROUND,  /* initial state and ground */
