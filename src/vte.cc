@@ -7340,14 +7340,6 @@ Terminal::set_font_desc(PangoFontDescription const* font_desc)
 				"Using default monospace font.\n");
 	}
 
-        /* Sanitise the  font description. Style and weight need to be default here,
-         * since those are set via SGR attributes; and gravity makes no sense in vte.
-         */
-        pango_font_description_unset_fields(desc,
-                                            PangoFontMask(PANGO_FONT_MASK_GRAVITY |
-                                                          PANGO_FONT_MASK_STYLE |
-                                                          PANGO_FONT_MASK_WEIGHT));
-
         bool const same_desc = m_unscaled_font_desc &&
                 pango_font_description_equal(m_unscaled_font_desc.get(), desc);
 
