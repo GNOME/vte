@@ -7354,8 +7354,9 @@ Terminal::update_font_desc()
         if ((pango_font_description_get_set_fields(desc.get()) & PANGO_FONT_MASK_WEIGHT) &&
             (pango_font_description_get_weight(desc.get()) > PANGO_WEIGHT_MEDIUM) &&
             !m_bold_is_bright) {
-                pango_font_description_unset_fields(desc.get(),
-                                                    PangoFontMask(PANGO_FONT_MASK_WEIGHT));
+                pango_font_description_set_weight(desc.get(),
+                                                  std::min(pango_font_description_get_weight(desc.get()),
+                                                           PANGO_WEIGHT_MEDIUM));
         }
 
         bool const same_desc = m_unscaled_font_desc &&
