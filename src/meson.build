@@ -50,9 +50,21 @@ libc_glue_sources = files(
 )
 
 modes_sources = files(
-  'modes-ecma.hh',
-  'modes-private.hh',
   'modes.hh',
+)
+
+modes_sources += custom_target(
+  'modes',
+  command: [
+    files('modes.py'),
+    '--destdir', '@OUTDIR@',
+  ],
+  input: [],
+  install: false,
+  output: [
+    'modes-dec.hh',
+    'modes-ecma.hh',
+  ],
 )
 
 pango_glue_sources = files(

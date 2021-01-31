@@ -189,12 +189,12 @@ public:
 
 #define MODE(name,param) e##name,
 #define MODE_FIXED(name,param,value)
-#include "modes-private.hh"
+#include "modes-dec.hh"
 #undef MODE
 #undef MODE_FIXED
 #define MODE(name,param)
 #define MODE_FIXED(name,param,value) e##name,
-#include "modes-private.hh"
+#include "modes-dec.hh"
 #undef MODE
 #undef MODE_FIXED
         };
@@ -204,7 +204,7 @@ public:
                 switch (param) {
 #define MODE(name,param) case param: return e##name;
 #define MODE_FIXED(name,param,value) case param: return e##value;
-#include "modes-private.hh"
+#include "modes-dec.hh"
 #undef MODE
 #undef MODE_FIXED
                 default:
@@ -220,7 +220,7 @@ public:
                 case eALWAYS_RESET: return "ALWAYS_RESET";
 #define MODE(name,param) case e##name: return #name;
 #define MODE_FIXED(name,param,value)
-#include "modes-private.hh"
+#include "modes-dec.hh"
 #undef MODE
 #undef MODE_FIXED
                 default:
@@ -230,7 +230,7 @@ public:
 
 #define MODE(name,param) MODE_ACCESSOR(name)
 #define MODE_FIXED(name,param,value) MODE_FIXED_ACCESSOR(name, e##value == eALWAYS_SET)
-#include "modes-private.hh"
+#include "modes-dec.hh"
 #undef MODE
 #undef MODE_FIXED
 
