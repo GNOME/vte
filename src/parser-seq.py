@@ -755,6 +755,8 @@ sequences = [
             comment='select printer type'),
     seq_CSI('DECSFC', 's', intermediates=(Intermediate.MULT,), flags=Flags.NOP,
             comment='select flow control'),
+    seq_CSI('XTERM_SHIFTESCAPE', 's', pintro=(ParameterIntro.GT,),
+            comment='xterm set shift-escape'),
     seq_CSI('XTERM_SPM', 's', pintro=(ParameterIntro.WHAT,),
             comment='xterm save private mode'),
     seq_CSI('DECSLPP', 't',

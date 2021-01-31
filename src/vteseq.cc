@@ -8820,6 +8820,34 @@ Terminal::XTERM_RTM(vte::parser::Sequence const& seq)
 }
 
 void
+Terminal::XTERM_SHIFTESCAPE(vte::parser::Sequence const& seq)
+{
+        /*
+         * XTERM_SHIFTESCAPE - xterm set/reset shift escape
+         * Selects whether the SHIFT key acts as a modifier in the mouse
+         * protocol, or overrides the mouse protocol.
+         *
+         * Arguments:
+         *   args[0]:
+         *     0: overrides mouse protocol
+         *     1: conditionally acts as modifier
+         *     2: always acts as modifier
+         *     3: never acts as modifier
+         *
+         * Defaults:
+         *   args[0]: 0
+         *
+         * Note that args[0] values 2 and 3 are not actually executed
+         * from an escape sequence, they correspond to the value of the
+         * xterm resource controlling this setting.
+         *
+         * References: XTERM 362
+         */
+        /* Not worth implementing this */
+}
+
+
+void
 Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
 {
         /*
