@@ -3659,9 +3659,9 @@ Terminal::DECRQM_DEC(vte::parser::Sequence const& seq)
 
         int value;
         switch (mode) {
-        case vte::terminal::modes::ECMA::eUNKNOWN:      value = 0; break;
-        case vte::terminal::modes::ECMA::eALWAYS_SET:   value = 3; break;
-        case vte::terminal::modes::ECMA::eALWAYS_RESET: value = 4; break;
+        case vte::terminal::modes::Private::eUNKNOWN:      value = 0; break;
+        case vte::terminal::modes::Private::eALWAYS_SET:   value = 3; break;
+        case vte::terminal::modes::Private::eALWAYS_RESET: value = 4; break;
         default: assert(mode >= 0); value = m_modes_private.get(mode) ? 1 : 2; break;
         }
 
