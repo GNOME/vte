@@ -7000,6 +7000,16 @@ Terminal::RLOGIN_MML(vte::parser::Sequence const& seq)
 {
         /*
          * RLOGIN_MML - RLogin music markup language
+         * Music macro language and Midi file support.
+         *
+         * The music macro language appears to be (a variant of,
+         * or based on) the Microsoft and/or Tandy BASIC MML, see
+         * [http://www.vgmpf.com/Wiki/index.php?title=Microsoft_BASIC_MML]
+         * and
+         * [http://www.vgmpf.com/Wiki/index.php?title=Tandy_BASIC_MML].
+         * for more information on them, and the RLogin source code; as
+         * well as [http://nanno.dip.jp/softlib/man/rlogin/ctrlcode.html#DCS]
+         * for this escape sequence's parameters.
          *
          * Probably not worth implementing.
          *
