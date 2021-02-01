@@ -24,6 +24,7 @@
 #include <pango/pangocairo.h>
 #include <gtk/gtk.h>
 
+#include "pango-glue.hh"
 #include "refptr.hh"
 #include "vteunistr.h"
 
@@ -264,7 +265,6 @@ private:
 	int m_coverage_count[4]{0, 0, 0, 0};
 #endif
 
-        static FontInfo* find_for_context(vte::glib::RefPtr<PangoContext>& context);
         static FontInfo* create_for_context(vte::glib::RefPtr<PangoContext> context,
                                             PangoFontDescription const* desc,
                                             PangoLanguage* language,

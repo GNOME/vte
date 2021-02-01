@@ -179,8 +179,8 @@ FontInfo::measure_font()
          * leading to unreadable, overlapping characters.
          * https://gitlab.gnome.org/GNOME/vte/issues/138
          */
-        int max_width{1};
-        int max_height{1};
+        auto max_width = 1;
+        auto max_height = 1;
         for (char c = 0x21; c < 0x7f; ++c) {
                 pango_layout_set_text(m_layout.get(), &c, 1);
                 pango_layout_get_extents(m_layout.get(), nullptr, &logical);
@@ -208,10 +208,6 @@ FontInfo::measure_font()
 	if (m_ascent == 0) {
 		m_ascent = PANGO_PIXELS_CEIL(pango_layout_get_baseline(m_layout.get()));
 	}
-
-	_vte_debug_print (VTE_DEBUG_MISC,
-			  "vtepangocairo: %p font metrics = %dx%d (%d)\n",
-			  (void*)this, m_width, m_height, m_ascent);
 }
 
 FontInfo::FontInfo(PangoContext *context)
@@ -229,7 +225,33 @@ FontInfo::FontInfo(PangoContext *context)
         // FIXME!!!
 	m_string = g_string_sized_new(VTE_UTF8_BPC+1);
 
+#if PANGO_VERSION_CHECK(1, 44, 0)
+        auto need_measure = true;
+        if (auto metrics = vte::take_freeable
+            (pango_context_get_metrics(context,
+                                       nullptr /* use font from context */,
+                                       nullptr /* use language from context */))) {
+                _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Using pango metrics\n");
+
+		/* Use provided metrics if possible */
+		m_ascent = PANGO_PIXELS_CEIL(pango_font_metrics_get_ascent(metrics.get()));
+		m_height = PANGO_PIXELS_CEIL(pango_font_metrics_get_height(metrics.get()));
+		/* XXX can we trust this one, since we are monospace-only ?*/
+		m_width = PANGO_PIXELS_CEIL(pango_font_metrics_get_approximate_char_width(metrics.get()));
+
+		if (m_ascent && m_height && m_width)
+                        need_measure = false;
+	}
+
+        if (need_measure)
+                measure_font();
+#else
 	measure_font();
+#endif /* pango >= 1.44 */
+
+	_vte_debug_print (VTE_DEBUG_PANGOCAIRO | VTE_DEBUG_MISC,
+			  "vtepangocairo: %p font metrics = %dx%d (%d)\n",
+			  (void*)this, m_width, m_height, m_ascent);
 
 	g_hash_table_insert(s_font_info_for_context,
                             pango_layout_get_context(m_layout.get()),
@@ -307,27 +329,6 @@ context_equal (PangoContext *a,
 	    && vte_pango_context_get_fontconfig_timestamp (a) == vte_pango_context_get_fontconfig_timestamp (b);
 }
 
-// FIXMEchpe return vte::base::RefPtr<FontInfo>
-/* assumes ownership/reference of context */
-FontInfo*
-FontInfo::find_for_context(vte::glib::RefPtr<PangoContext>& context)
-{
-	if (G_UNLIKELY (s_font_info_for_context == nullptr))
-		s_font_info_for_context = g_hash_table_new((GHashFunc) context_hash, (GEqualFunc) context_equal);
-
-	auto info = reinterpret_cast<FontInfo*>(g_hash_table_lookup(s_font_info_for_context, context.get()));
-	if (G_LIKELY(info)) {
-		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-				  "vtepangocairo: %p found font_info in cache\n",
-				  info);
-		info = info->ref();
-	} else {
-                info = new FontInfo{context.release()};
-	}
-
-	return info;
-}
-
 /* assumes ownership/reference of context */
 FontInfo*
 FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
@@ -362,7 +363,22 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
                 cairo_font_options_destroy (font_options);
         }
 
-	return find_for_context(context);
+	if (G_UNLIKELY(s_font_info_for_context == nullptr))
+		s_font_info_for_context = g_hash_table_new((GHashFunc) context_hash, (GEqualFunc) context_equal);
+
+	auto info = reinterpret_cast<FontInfo*>(g_hash_table_lookup(s_font_info_for_context, context.get()));
+	if (G_LIKELY(info)) {
+		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
+				  "vtepangocairo: %p found FontInfo in cache\n",
+				  info);
+		info = info->ref();
+	} else {
+		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
+				  "vtepangocairo: FontInfo not in cache\n");
+                info = new FontInfo{context.get()};
+        }
+
+	return info;
 }
 
 FontInfo*

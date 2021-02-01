@@ -26,4 +26,8 @@ namespace vte {
 VTE_DECLARE_FREEABLE(PangoAttrList, pango_attr_list_unref);
 VTE_DECLARE_FREEABLE(PangoFontDescription, pango_font_description_free);
 
+#if PANGO_VERSION_CHECK(1, 44, 0)
+VTE_DECLARE_FREEABLE(PangoFontMetrics, pango_font_metrics_unref);
+#endif
+
 } // namespace vte
