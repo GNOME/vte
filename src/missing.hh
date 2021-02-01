@@ -33,3 +33,62 @@ int fdwalk(int (*cb)(void* data, int fd),
 char* strchrnul(char const* s,
                 int c);
 #endif
+
+#ifdef __linux__
+
+/* BEGIN
+ * The following is copied from systemd/src/basic/missing_syscall_def.h (LGPL2.1+)
+ */
+#ifndef __NR_close_range
+#  if defined(__aarch64__)
+#    define __NR_close_range 436
+#  elif defined(__alpha__)
+#    define __NR_close_range 546
+#  elif defined(__arc__) || defined(__tilegx__)
+#    define __NR_close_range 436
+#  elif defined(__arm__)
+#    define __NR_close_range 436
+#  elif defined(__i386__)
+#    define __NR_close_range 436
+#  elif defined(__ia64__)
+#    define __NR_close_range 1460
+#  elif defined(__m68k__)
+#    define __NR_close_range 436
+#  elif defined(_MIPS_SIM)
+#    if _MIPS_SIM == _MIPS_SIM_ABI32
+#      define __NR_close_range 4436
+#    elif _MIPS_SIM == _MIPS_SIM_NABI32
+#      define __NR_close_range 6436
+#    elif _MIPS_SIM == _MIPS_SIM_ABI64
+#      define __NR_close_range 5436
+#    else
+#      error "Unknown MIPS ABI"
+#    endif
+#  elif defined(__powerpc__)
+#    define __NR_close_range 436
+#  elif defined(__s390__)
+#    define __NR_close_range 436
+#  elif defined(__sparc__)
+#    define __NR_close_range 436
+#  elif defined(__x86_64__)
+#    if defined(__ILP32__)
+#      define __NR_close_range (436 | /* __X32_SYSCALL_BIT */ 0x40000000)
+#    else
+#      define __NR_close_range 436
+#    endif
+#  else
+#    warning "close_range() syscall number is unknown for your architecture"
+#  endif
+#endif /* !__NR_close_range */
+
+/* END copied from systemd */
+
+#if !defined(SYS_close_range) && defined(__NR_close_range)
+#define SYS_close_range __NR_close_range
+#endif
+
+#ifndef CLOSE_RANGE_CLOEXEC
+#define CLOSE_RANGE_CLOEXEC (1u << 2)
+#endif
+
+#endif /* __linux__ */
