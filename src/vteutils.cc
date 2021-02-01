@@ -31,14 +31,9 @@
 #include <sys/ioctl.h>
 #include <linux/fs.h>
 
-#ifndef O_TMPFILE
-#ifndef __O_TMPFILE
-#define __O_TMPFILE     020000000
-#endif
-#define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
-#endif
-
 #endif /* __linux__ */
+
+#include "missing.hh"
 
 int
 _vte_mkstemp (void)
