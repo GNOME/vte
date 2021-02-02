@@ -225,7 +225,8 @@ FontInfo::FontInfo(PangoContext *context)
         // FIXME!!!
 	m_string = g_string_sized_new(VTE_UTF8_BPC+1);
 
-#if PANGO_VERSION_CHECK(1, 44, 0)
+        /* See https://gitlab.gnome.org/GNOME/vte/-/issues/163 */
+#if 0 // PANGO_VERSION_CHECK(1, 44, 0)
         auto need_measure = true;
         if (auto metrics = vte::take_freeable
             (pango_context_get_metrics(context,
