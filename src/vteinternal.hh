@@ -294,6 +294,7 @@ public:
 
                 /* The following can never be primary data syntax: */
                 DECSIXEL,
+                TEK,
         };
 
         DataSyntax m_primary_data_syntax{DataSyntax::ECMA48_UTF8};
@@ -1289,9 +1290,9 @@ public:
 
         inline void set_mode_ecma(vte::parser::Sequence const& seq,
                                   bool set) noexcept;
-        inline void set_mode_private(vte::parser::Sequence const& seq,
+        inline bool set_mode_private(vte::parser::Sequence const& seq,
                                      bool set) noexcept;
-        inline void set_mode_private(int mode,
+        inline bool set_mode_private(int mode,
                                      bool set) noexcept;
         inline void save_mode_private(vte::parser::Sequence const& seq,
                                       bool save) noexcept;

@@ -29,7 +29,6 @@
 #include <sys/termios.h>
 #endif
 #ifdef HAVE_STROPTS_H
-#include <stropts.h>
 #endif
 #ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
@@ -3537,6 +3536,10 @@ Terminal::process_incoming()
                         process_incoming_decsixel(context, *chunk);
                         break;
 #endif
+
+                case DataSyntax::TEK:
+                        /* process_incoming_tek(context, *chunk); */
+                        break;
 
                 default:
                         g_assert_not_reached();
@@ -9895,6 +9898,10 @@ Terminal::reset_data_syntax()
                 m_sixel_context->reset();
                 break;
 #endif
+
+        case DataSyntax::TEK:
+                /* do something maybe */
+                break;
 
         default:
                 break;

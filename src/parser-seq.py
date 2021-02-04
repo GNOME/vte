@@ -648,7 +648,7 @@ sequences = [
             comment='set line spacing'),
     seq_CSI('SM_HP', 'h', pintro=(ParameterIntro.GT,), flags=Flags.NOP,
             comment='set mode hp'),
-    seq_CSI('SM_DEC', 'h', pintro=(ParameterIntro.WHAT,),
+    seq_CSI('SM_DEC', 'h', pintro=(ParameterIntro.WHAT,), flags=Flags.HANDLER_RV,
             comment='set mode dec'),
     seq_CSI('MC_ECMA', 'i', flags=Flags.NOP,
             comment='media copy ecma'),

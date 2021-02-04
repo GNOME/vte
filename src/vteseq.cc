@@ -475,12 +475,23 @@ Terminal::update_mouse_protocol() noexcept
                          "Mouse protocol is now %d\n", (int)m_mouse_tracking_mode);
 }
 
-void
+bool
 Terminal::set_mode_private(int mode,
                            bool set) noexcept
 {
+	auto rv = false; /* no data syntax switch */
+
         /* Pre actions */
         switch (mode) {
+	case vte::terminal::modes::Private::eDECTEK:
+                if (!set) {
+                        /* Exiting TEK mode. Since this is only called in ECMA48 mode,
+                         * there is nothing to do here. The data syntax backswitch will
+                         * have happened from process_incoming_tek(); this function
+                         * only need to reset the mode flag, below.
+                         */
+                }
+                break;
         default:
                 break;
         }
@@ -588,14 +599,23 @@ Terminal::set_mode_private(int mode,
                 maybe_apply_bidi_attributes(VTE_BIDI_FLAG_AUTO);
                 break;
 
+	case vte::terminal::modes::Private::eDECTEK:
+                if (set) {
+                        /* Entering TEK mode */
+                        push_data_syntax(DataSyntax::TEK);
+                        rv = true;
+                }
+                break;
         default:
                 break;
         }
+
+	return rv;
 }
 
-void
+bool
 Terminal::set_mode_private(vte::parser::Sequence const& seq,
-                                     bool set) noexcept
+                           bool set) noexcept
 {
         auto const n_params = seq.size();
         for (unsigned int i = 0; i < n_params; i = seq.next(i)) {
@@ -610,8 +630,14 @@ Terminal::set_mode_private(vte::parser::Sequence const& seq,
                 if (mode < 0)
                         continue;
 
-                set_mode_private(mode, set);
+                /* If a data syntax change occured, we need to ignore any
+                 * remaining parameters, and return immediately.
+                 */
+                if (set_mode_private(mode, set))
+                        return true;
         }
+
+        return false;
 }
 
 void
@@ -7601,7 +7627,7 @@ Terminal::SM_ECMA(vte::parser::Sequence const& seq)
         set_mode_ecma(seq, true);
 }
 
-void
+bool
 Terminal::SM_DEC(vte::parser::Sequence const& seq)
 {
         /*
@@ -7613,7 +7639,7 @@ Terminal::SM_DEC(vte::parser::Sequence const& seq)
          * References: VT525
          */
 
-        set_mode_private(seq, true);
+        return set_mode_private(seq, true);
 }
 
 void

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright © 2018, 2020 Christian Persch
+# Copyright © 2018, 2020, 2021 Christian Persch
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published
@@ -510,6 +510,16 @@ modes = [
     # Probably not worth implementing.
     #
     mode_WHAT('DECHEM', 36, default=False),
+
+    # DECTEK - TEK 4010/4014 personality
+    # If set, switches to TEK 4010/4014 personality.
+    #
+    # Default: reset
+    #
+    # References: VT330/340
+    #             WY370
+    #
+    mode_WHAT('DECTEK', 38, default=False, flags=Flags.WRITABLE, alias=['WYTEK']),
 
     mode_WHAT('XTERM_DECCOLM', 40, default=False, flags=Flags.WRITABLE),
 
@@ -1083,15 +1093,6 @@ modes = [
     mode_WHAT('RXVT_INTENSITY_STYLES', 1021, default=True),
 
     # WYSE:
-
-    # WYTEK - TEK 4010/4014 personality
-    # If set, switches to TEK 4010/4014 personality.
-    #
-    # Default: reset
-    #
-    # References: WY370
-    #
-    mode_WHAT('WYTEK', 38, default=False, alias=['DECTEK']),
 
     # WY161 - 161 column mode
     # If set, switches the terminal to 161 columns; if reset,
