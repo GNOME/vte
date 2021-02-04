@@ -3901,12 +3901,11 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
                 /* Like the main parser, the sequence only takes effect
                  * if introducer and terminator match (both C0 or both C1).
                  */
-                if (!m_sixel_context->is_matching_controls())
-                        break;
-
-                try {
-                        insert_image(context, m_sixel_context->image_cairo());
-                } catch (...) {
+                if (m_sixel_context->is_matching_controls()) {
+                        try {
+                                insert_image(context, m_sixel_context->image_cairo());
+                        } catch (...) {
+                        }
                 }
 
                 [[fallthrough]];
