@@ -28,10 +28,10 @@ static_assert(sizeof(vte::grid::coords) == 2 * sizeof(long), "vte::grid::coords 
 
 static_assert(sizeof(vte::grid::span) == 4 * sizeof(long), "vte::grid::span size wrong");
 
-static_assert(std::is_pod<vte::view::coords>::value, "vte::view::coords not POD");
+static_assert(std::is_standard_layout_v<vte::view::coords> && std::is_trivial_v<vte::view::coords>, "vte::view::coords not POD");
 static_assert(sizeof(vte::view::coords) == 2 * sizeof(vte::view::coord_t), "vte::view::coords size wrong");
 
-static_assert(std::is_pod<vte::color::rgb>::value, "vte::color::rgb not POD");
+static_assert(std::is_standard_layout_v<vte::color::rgb> && std::is_trivial_v<vte::color::rgb>, "vte::color::rgb not POD");
 static_assert(sizeof(vte::color::rgb) == sizeof(PangoColor), "vte::color::rgb size wrong");
 
 static_assert(sizeof(vte::libc::FD) == sizeof(int), "vte::libc::FD size wrong");

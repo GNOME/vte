@@ -130,7 +130,7 @@ private:
                 guint8 bidi_flags: 4;
         } RowRecord;
 
-        static_assert(std::is_pod<RowRecord>::value, "Ring::RowRecord is not POD");
+        static_assert(std::is_standard_layout_v<RowRecord> && std::is_trivial_v<RowRecord>, "Ring::RowRecord is not POD");
 
         /* Represents a cell position, see ../doc/rewrap.txt */
         typedef struct _CellTextOffset {
@@ -139,7 +139,7 @@ private:
                 int eol_cells;       /* -1 if over a character, >=0 if at EOL or beyond */
         } CellTextOffset;
 
-        static_assert(std::is_pod<CellTextOffset>::value, "Ring::CellTextOffset is not POD");
+        static_assert(std::is_standard_layout_v<CellTextOffset> && std::is_trivial_v<CellTextOffset>, "Ring::CellTextOffset is not POD");
 
         inline bool read_row_record(RowRecord* record /* out */,
                                     row_t position)
