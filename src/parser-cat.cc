@@ -836,6 +836,12 @@ public:
                                         break;
                                 }
 
+                                case 3: /* RGB truecolour.
+                                         * This is an RLogin extension and not supported by VTE.
+                                         */
+                                        warn("DECGCI RGB truecolour extension is not supported");
+                                        break;
+
                                 case 0:
                                 default:
                                         warn("DECGCI unknown colour coordinate system %d", seq.param(1));
