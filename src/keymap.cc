@@ -19,6 +19,8 @@
 
 #include "config.h"
 
+#include <cassert>
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -74,7 +76,7 @@ struct _vte_keymap_entry {
 	guint keypad_mode;
 	guint mod_mask;
 	const char normal[8];
-	gssize normal_length;
+        int8_t normal_length;
 };
 
 #define X_NULL ""
@@ -757,6 +759,7 @@ _vte_keymap_map(guint keyval,
 	if ((modifiers & entries[i].mod_mask) == entries[i].mod_mask) {
                 if (entries[i].normal_length != -1) {
                         *normal_length = entries[i].normal_length;
+                        assert(entries[i].normal_length < G_MAXINT);
                         *normal = (char*)g_memdup(entries[i].normal,
                                                   entries[i].normal_length);
                 } else {
