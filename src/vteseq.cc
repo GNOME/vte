@@ -4380,11 +4380,13 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          *    5: OR mode (nonstandard NetBSD/x68k extension, see
          *       [https://qiita.com/arakiken/items/26f6c67da5a9f9f907ac])
          *  args[2]: horizontal grid size in the unit set by SSU
+         *  args[3]: image ID (range 0..1024) (nonstandard RLogin extension)
          *
          * Defaults:
          *   args[0]: 0
          *   args[1]: 2 (1 for printers)
          *   args[2]: no default
+         *   args[3]: no default
          *
          * References: VT330
          *             DEC PPLV2 § 5.4

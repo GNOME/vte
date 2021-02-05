@@ -759,6 +759,12 @@ public:
                          */
                         if (seq.collect1(1) == 5)
                                 warn("DECSIXEL OR-mode not supported");
+
+                        /* Image ID (args[3]) is a nonstandard RLogin extension that is
+                         * not supported in VTE.
+                         */
+                        if (seq.collect1(3) != -1)
+                                warn("DECSIXEL ID extension not supported");
                         break;
 
                 default:
