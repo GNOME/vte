@@ -18,7 +18,6 @@
 #define IR(num)    VTE_CHARSET_ISO_2375_IR_##num
 #define DEC(name)  VTE_CHARSET_DEC_##name
 #define NRCS(name) VTE_CHARSET_##name##_NRCS
-#define EMPTY      VTE_CHARSET_EMPTY
 #define NA         VTE_CHARSET_NONE
 #define RET        VTE_CHARSET_RETURN
 
@@ -52,7 +51,7 @@ static uint8_t const charset_graphic_94[] = {
         IR(85), IR(86), IR(88), IR(89), IR(90), IR(91), IR(92), IR(93),
         /* 7/0..7/13 */
         IR(94), IR(95), IR(96), IR(98), IR(99), IR(102), IR(103), IR(121),
-        IR(122), IR(137), IR(141), IR(146), IR(128), IR(147), EMPTY
+        IR(122), IR(137), IR(141), IR(146), IR(128), IR(147),
 };
 
 /* 94-character graphic character sets, with second intermediate byte 2/1:
@@ -131,9 +130,9 @@ static uint8_t const charset_graphic_96[] = {
         /* 6/0..6/15 */
         IR(200), IR(201), IR(203), IR(204), IR(205), IR(206), IR(226), IR(208),
         IR(209), IR(227), IR(234), NA, NA, NA, NA, NA,
-        /* 7/0..7/14 */
+        /* 7/0..7/13 */
         NA, NA, NA, NA, NA, NA, NA, NA,
-        NA, NA, NA, NA, NA, IR(129), EMPTY
+        NA, NA, NA, NA, NA, IR(129),
 };
 
 /* Multibyte graphic character sets:
@@ -156,15 +155,8 @@ static uint8_t const charset_graphic_94_n[] = {
         /* 4/0..4/15 */
         IR(42), IR(58), IR(87_OR_168), IR(149), IR(159), IR(165), IR(169), IR(171),
         IR(172), IR(183), IR(184), IR(185), IR(186), IR(187), IR(202), IR(228),
-        /* 5/0..5/15 */
-        IR(229), IR(233), NA, NA, NA, NA, NA, NA,
-        NA, NA, NA, NA, NA, NA, NA, NA,
-        /* 6/0..6/15 */
-        NA, NA, NA, NA, NA, NA, NA, NA,
-        NA, NA, NA, NA, NA, NA, NA, NA,
-        /* 7/0..7/14 */
-        NA, NA, NA, NA, NA, NA, NA, NA,
-        NA, NA, NA, NA, NA, NA, EMPTY,
+        /* 5/0..5/1 */
+        IR(229), IR(233),
 };
 
 /* Multibyte graphic character sets, with third intermediate byte 2/1:
@@ -195,7 +187,7 @@ static uint8_t const charset_graphic_94_n_with_2_1[] = {
 static uint8_t const charset_control_c0[] = {
         /* 4/0..4/12 */
         IR(1), IR(7), IR(48), IR(26), IR(36), IR(106), IR(74), IR(104),
-        IR(130), IR(132), IR(134), IR(135), IR(140)
+        IR(130), IR(132), IR(134), IR(135), IR(140),
 };
 
 /* C1 control character sets:
@@ -258,6 +250,5 @@ static uint8_t const charset_ocs_with_2_15[] = {
 #undef IR
 #undef DEC
 #undef NRCS
-#undef EMPTY
 #undef NA
 #undef RET

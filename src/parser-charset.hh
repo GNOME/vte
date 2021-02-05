@@ -30,6 +30,7 @@ _VTE_CHARSET(NONE)
 /* See ECMA-35 § 14.4 for the meaning of this */
 _VTE_CHARSET(DRCS)
 
+/* See ECMA-35 § 14.1 (and ECMA-6 § 9.2) for the meaning of this */
 _VTE_CHARSET(EMPTY)
 
 /* Return to ISO-2022 */

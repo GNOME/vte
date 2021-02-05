@@ -396,6 +396,10 @@ test_seq_esc_charset(uint32_t i[], /* intermediates */
 
                 if (f >= ts && f < (ts + ntable))
                         cs = table[f - ts];
+                else if (f == 0x7e &&
+                         cmd != VTE_CMD_DOCS &&
+                         defaultcs != VTE_CHARSET_DRCS)
+                        cs = VTE_CHARSET_EMPTY;
                 else
                         cs = defaultcs;
 

@@ -170,6 +170,16 @@ vte_parse_host_control(vte_seq_t const* seq)
         }
 }
 
+/* ECMA-35 § 14.1 specifies that the final character 7/14 always identifies
+ * an empty set. Note that that this does not apply for DRCS sets (§ 14.4),
+ * since § 13.3.3 says that all the Ft (4/0..7/14) bytes are private-use.
+ */
+static inline constexpr unsigned int
+charset_empty_or_none(uint32_t raw)
+{
+        return raw == 0x7e ? VTE_CHARSET_EMPTY : VTE_CHARSET_NONE;
+}
+
 static unsigned int
 vte_parse_charset_94(uint32_t raw,
                      unsigned int intermediates)
@@ -217,7 +227,7 @@ vte_parse_charset_94(uint32_t raw,
                 break;
         }
 
-        return VTE_CHARSET_NONE;
+        return charset_empty_or_none(raw);
 }
 
 static unsigned int
@@ -245,7 +255,7 @@ vte_parse_charset_94_n(uint32_t raw,
                 break;
         }
 
-        return VTE_CHARSET_NONE;
+        return charset_empty_or_none(raw);
 }
 
 static unsigned int
@@ -267,7 +277,7 @@ vte_parse_charset_96(uint32_t raw,
                 return VTE_CHARSET_DRCS;
         }
 
-        return VTE_CHARSET_NONE;
+        return charset_empty_or_none(raw);
 }
 
 static unsigned int
@@ -277,7 +287,7 @@ vte_parse_charset_96_n(uint32_t raw,
         if (VTE_SEQ_INTERMEDIATE(intermediates) == VTE_SEQ_INTERMEDIATE_SPACE)
                 return VTE_CHARSET_DRCS;
 
-        return VTE_CHARSET_NONE;
+        return charset_empty_or_none(raw);
 }
 
 static unsigned int
@@ -299,7 +309,6 @@ vte_parse_charset_ocs(uint32_t raw,
                 if (remaining_intermediates == 0 &&
                     raw >= 0x30 && raw < (0x30 + G_N_ELEMENTS(charset_ocs_with_2_0)))
                         return charset_ocs_with_2_0[raw - 0x30];
-                /* Or should this return VTE_CHARSET_DRCS; ? */
                 break;
 
         case VTE_SEQ_INTERMEDIATE_BANG ... VTE_SEQ_INTERMEDIATE_DOT: /* OCS with standard return */
@@ -337,7 +346,7 @@ vte_parse_charset_control(uint32_t raw,
                 break;
         }
 
-        return VTE_CHARSET_NONE;
+        return charset_empty_or_none(raw);
 }
 
 static unsigned int
