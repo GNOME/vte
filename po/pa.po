@@ -2,96 +2,109 @@
 # This file is distributed under the same license as the PACKAGE package.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER.
 #
-# A S Alam <aalam@users.sf.net>, 2004, 2005, 2006, 2007, 2009, 2010, 2014.
+# A S Alam <aalam@users.sf.net>, 2004, 2005, 2006, 2007, 2009, 2010, 2014, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2014-09-21 11:44+0000\n"
-"PO-Revision-Date: 2014-09-21 08:40-0500\n"
-"Last-Translator: A S Alam <aalam@users.sf.net>\n"
-"Language-Team: Punjabi/Panjabi <punjabi-users@lists.sf.net>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2021-02-06 10:13-0800\n"
+"Last-Translator: A S Alam <aalam@satluj.org>\n"
+"Language-Team: Punjabi <punjabi-users@lists.sf.net>\n"
 "Language: pa\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.5\n"
+"X-Generator: Lokalize 20.08.1\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../src/app.ui.h:1
-msgid "Copy"
-msgstr "ਕਾਪੀ ਕਰੋ"
+#: src/vte.cc:7763
+msgid "WARNING"
+msgstr "ਸਾਵਾਧਾਨ"
 
-#: ../src/app.ui.h:2
-msgid "Paste"
-msgstr "ਚੇਪੋ"
+#: src/vte.cc:7765
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr ""
+"GnuTLS ਸਮਰੱਥ ਨਹੀਂ ਹੈ; ਡਿਸਕ ਉੱਤੇ ਲਿਖਿਆ ਡਾਟਾ ਬਿਨਾਂ-ਇੰਕ੍ਰਿਪਸ਼ਨ ਦੇ ਲਿਖਿਆ ਜਾਵੇਗਾ!"
 
-#: ../src/app.ui.h:3
-msgid "Reset (use Ctrl to reset and clear)"
-msgstr "ਮੁੜ-ਸੈੱਟ (ਮੁੜ-ਸੈੱਟ ਤੇ ਸਾਫ਼ ਕਰਨ ਲਈ Ctrl ਵਰਤੋਂ)"
-
-#: ../src/app.ui.h:4
-msgid "Reset"
-msgstr "ਮੁੜ-ਸੈੱਟ"
-
-#: ../src/app.ui.h:5
-msgid "Toggle input enabled setting"
-msgstr "ਇੰਪੁੱਟ ਯੋਗ ਕੀਤੀ ਸੈਟਿੰਗ ਬਦਲੋ"
-
-#: ../src/app.ui.h:6
-msgid "Input"
-msgstr "ਇੰਪੁੱਟ"
-
-#: ../src/iso2022.c:791 ../src/iso2022.c:799 ../src/iso2022.c:830
-#: ../src/vte.c:1998
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋਂ %s ਤਬਦੀਲ ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ ਹੈ।"
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "ਪਾਈਪ ਬਿਨ-ਬਲਾਕਿੰਗ ਸੈੱਟ ਕਰਨ ਲਈ ਫੇਲ੍ਹ ਹੈ: %s"
 
-#: ../src/iso2022.c:1496
+#: src/spawn.cc:155
 #, c-format
-msgid "Attempt to set invalid NRC map '%c'."
-msgstr "ਗਲਤ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
+msgid "poll error: %s"
+msgstr "ਪੋਲ ਗਲਤੀ: %s"
 
-#. Application signalled an "identified coding system" we haven't heard of.  See ECMA-35 for gory details.
-#: ../src/iso2022.c:1526
-msgid "Unrecognized identified coding system."
-msgstr "ਅਣਜਾਣ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ ਹੈ।"
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "ਕਾਰਵਾਈ ਲਈ ਸਮਾਂ ਸਮਾਪਤ"
 
-#: ../src/iso2022.c:1585 ../src/iso2022.c:1612
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "ਕਾਰਵਾਈ ਰੱਦ ਕੀਤੀ ਗਈ ਸੀ"
+
+#: src/spawn.cc:189
 #, c-format
-msgid "Attempt to set invalid wide NRC map '%c'."
-msgstr "ਗਲਤ ਚੌਡ਼ਾ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "ਚਲਾਈਡ ਪਾਈਪ (%s) ਤੋਂ ਪੜ੍ਹਨ ਦੌਰਾਨ ਫੇਲ੍ਹ ਹੈ"
 
-#. Bail back to normal mode.
-#: ../src/vteapp.c:1027
-msgid "Could not open console.\n"
-msgstr "ਕੰਨਸੋਲ ਖੋਲ੍ਹਿਆ ਨਹੀ ਜਾ ਸਕਿਆ।\n"
-
-#: ../src/vteapp.c:1137
-msgid "Could not parse the geometry spec passed to --geometry"
-msgstr "--geometry ਨੂੰ ਦਿੱਤੀ ਜੁਮੈਟਰੀ ਗਿਣਤੀ ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
-
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.c:4164
+#: src/spawn.cc:576
 #, c-format
-msgid "Error reading from child: %s."
-msgstr "ਚਲਾਈਡ ਤੋਂ ਪੜ੍ਹਨ ਦੌਰਾਨ ਗਲਤੀ: %s।"
+msgid "Failed to change to directory “%s”: %s"
+msgstr "ਡਾਇਰੈਕਟਰੀ “%s” ਬਦਲਣ ਲਈ ਅਸਫ਼ਲ ਹੈ: %s"
 
-#: ../src/vte.c:4300
-msgid "Unable to send data to child, invalid charset convertor"
-msgstr "ਚਾਈਲਡ ਨੂੰ ਡਾਟਾ ਭੇਜਣ ਲਈ ਅਸਮਰੱਥ, ਅਢੁੱਕਵਾਂ ਅੱਖਰ-ਸੈੱਟ ਕੰਨਵਰਟਰ"
-
-#: ../src/vte.c:4311 ../src/vte.c:5315
+#: src/spawn.cc:645
 #, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "ਗਲਤੀ (%s) ਚਲਾਈਡ ਲਈ ਡਾਟਾ ਬਦਲਣ ਦੌਰਾਨ, ਛੱਡਿਆ ਗਿਆ।"
+msgid "Failed to execute child process “%s”: "
+msgstr "“%s” ਚਲਾਈਡ ਪਰੋਸੈਸ ਚਲਾਉਣ ਲਈ ਅਸਫ਼ਲ ਹੈ: "
 
-#: ../src/vte.c:7628
-#, c-format
-msgid "Error reading PTY size, using defaults: %s\n"
-msgstr "PTY ਅਕਾਰ ਪਡ਼੍ਹਨ ਵਿੱਚ ਗਲਤੀ, ਡਿਫਾਲਟ ਦੀ ਵਰਤੋਂ: %s\n"
+#~ msgid "Copy"
+#~ msgstr "ਕਾਪੀ ਕਰੋ"
+
+#~ msgid "Paste"
+#~ msgstr "ਚੇਪੋ"
+
+#~ msgid "Reset (use Ctrl to reset and clear)"
+#~ msgstr "ਮੁੜ-ਸੈੱਟ (ਮੁੜ-ਸੈੱਟ ਤੇ ਸਾਫ਼ ਕਰਨ ਲਈ Ctrl ਵਰਤੋਂ)"
+
+#~ msgid "Reset"
+#~ msgstr "ਮੁੜ-ਸੈੱਟ"
+
+#~ msgid "Toggle input enabled setting"
+#~ msgstr "ਇੰਪੁੱਟ ਯੋਗ ਕੀਤੀ ਸੈਟਿੰਗ ਬਦਲੋ"
+
+#~ msgid "Input"
+#~ msgstr "ਇੰਪੁੱਟ"
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "ਇਸ ਸੰਕੇਤ %s ਤੋਂ %s ਤਬਦੀਲ ਕਰਨ ਤੋਂ ਅਸਮਰੱਥ ਹੈ।"
+
+#~ msgid "Attempt to set invalid NRC map '%c'."
+#~ msgstr "ਗਲਤ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
+
+#~ msgid "Unrecognized identified coding system."
+#~ msgstr "ਅਣਜਾਣ ਸ਼ਨਾਖਤੀ ਕੋਡਿੰਗ ਸਿਸਟਮ ਹੈ।"
+
+#~ msgid "Attempt to set invalid wide NRC map '%c'."
+#~ msgstr "ਗਲਤ ਚੌਡ਼ਾ NRC ਮੈਪ'%c' ਸੈੱਟ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਹੈ।"
+
+#~ msgid "Could not open console.\n"
+#~ msgstr "ਕੰਨਸੋਲ ਖੋਲ੍ਹਿਆ ਨਹੀ ਜਾ ਸਕਿਆ।\n"
+
+#~ msgid "Could not parse the geometry spec passed to --geometry"
+#~ msgstr "--geometry ਨੂੰ ਦਿੱਤੀ ਜੁਮੈਟਰੀ ਗਿਣਤੀ ਨੂੰ ਪਾਰਸ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ"
+
+#~ msgid "Unable to send data to child, invalid charset convertor"
+#~ msgstr "ਚਾਈਲਡ ਨੂੰ ਡਾਟਾ ਭੇਜਣ ਲਈ ਅਸਮਰੱਥ, ਅਢੁੱਕਵਾਂ ਅੱਖਰ-ਸੈੱਟ ਕੰਨਵਰਟਰ"
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "ਗਲਤੀ (%s) ਚਲਾਈਡ ਲਈ ਡਾਟਾ ਬਦਲਣ ਦੌਰਾਨ, ਛੱਡਿਆ ਗਿਆ।"
+
+#~ msgid "Error reading PTY size, using defaults: %s\n"
+#~ msgstr "PTY ਅਕਾਰ ਪਡ਼੍ਹਨ ਵਿੱਚ ਗਲਤੀ, ਡਿਫਾਲਟ ਦੀ ਵਰਤੋਂ: %s\n"
 
 #~ msgid "can not run %s"
 #~ msgstr "%s ਚਲਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ"
