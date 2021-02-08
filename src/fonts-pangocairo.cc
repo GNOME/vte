@@ -225,29 +225,36 @@ FontInfo::FontInfo(PangoContext *context)
         // FIXME!!!
 	m_string = g_string_sized_new(VTE_UTF8_BPC+1);
 
-        /* See https://gitlab.gnome.org/GNOME/vte/-/issues/163 */
-#if 0 // PANGO_VERSION_CHECK(1, 44, 0)
-        auto need_measure = true;
+        measure_font();
+
+#if PANGO_VERSION_CHECK(1, 44, 0)
+        /* Try using the font's metrics; see issue#163. */
         if (auto metrics = vte::take_freeable
             (pango_context_get_metrics(context,
                                        nullptr /* use font from context */,
                                        nullptr /* use language from context */))) {
-                _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Using pango metrics\n");
-
 		/* Use provided metrics if possible */
-		m_ascent = PANGO_PIXELS_CEIL(pango_font_metrics_get_ascent(metrics.get()));
-		m_height = PANGO_PIXELS_CEIL(pango_font_metrics_get_height(metrics.get()));
-		/* XXX can we trust this one, since we are monospace-only ?*/
-		m_width = PANGO_PIXELS_CEIL(pango_font_metrics_get_approximate_char_width(metrics.get()));
+		auto const ascent = PANGO_PIXELS_CEIL(pango_font_metrics_get_ascent(metrics.get()));
+		auto const height = PANGO_PIXELS_CEIL(pango_font_metrics_get_height(metrics.get()));
+#if 0
+                /* Note that we cannot use the font's width, since doing so
+                 * regresses issue#138 (non-monospaced font).
+                 * FIXME: Make sure the font is monospace before we get
+                 * here, and then use the font's width too.
+                 */
+		auto const width = PANGO_PIXELS_CEIL(pango_font_metrics_get_approximate_char_width(metrics.get()));
+#endif /* 0 */
 
-		if (m_ascent && m_height && m_width)
-                        need_measure = false;
+                if (ascent > 0 && height > 0) {
+                        _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Using pango metrics\n");
+
+                        m_ascent = ascent;
+                        m_height = height;
+#if 0
+                        m_width = width;
+#endif
+                }
 	}
-
-        if (need_measure)
-                measure_font();
-#else
-	measure_font();
 #endif /* pango >= 1.44 */
 
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO | VTE_DEBUG_MISC,
