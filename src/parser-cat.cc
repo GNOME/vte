@@ -753,6 +753,7 @@ public:
                         check_sgr(seq);
                         break;
 
+#ifdef WITH_SIXEL
                 case VTE_CMD_DECSIXEL:
                         /* OR mode is a nonstandard NetBSD/x68k extension that is
                          * not supported in VTE.
@@ -766,6 +767,7 @@ public:
                         if (seq.collect1(3) != -1)
                                 warn("DECSIXEL ID extension not supported");
                         break;
+#endif /* WITH_SIXEL */
 
                 default:
                         if (cmd >= VTE_CMD_NOP_FIRST)
