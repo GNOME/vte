@@ -293,7 +293,9 @@ public:
                 /* ECMA48_ECMA35, not supported */
 
                 /* The following can never be primary data syntax: */
+#ifdef WITH_SIXEL
                 DECSIXEL,
+#endif
         };
 
         DataSyntax m_primary_data_syntax{DataSyntax::ECMA48_UTF8};
