@@ -123,20 +123,6 @@ regex_sources = files(
   'regex.hh'
 )
 
-sixel_parser_sources = files(
-  'sixel-parser.hh',
-)
-
-sixel_context_sources = files(
-  'sixel-context.cc',
-  'sixel-context.hh',
-)
-
-sixel_sources = sixel_parser_sources + sixel_context_sources + files(
-  'image.cc',
-  'image.hh',
-)
-
 std_glue_sources = files(
   'std-glue.hh',
 )
@@ -218,10 +204,6 @@ endif
 
 if get_option('icu')
   libvte_common_sources += icu_sources
-endif
-
-if get_option('sixel')
-  libvte_common_sources += sixel_sources
 endif
 
 if systemd_dep.found()
@@ -354,10 +336,6 @@ parser_cat_sources = config_sources + glib_glue_sources + libc_glue_sources + pa
   'parser-cat.cc',
   'vtedefines.hh',
 )
-
-if get_option('sixel')
-  parser_cat_sources += sixel_parser_sources
-endif
 
 parser_cat = executable(
   'parser-cat',
@@ -523,34 +501,6 @@ test_refptr = executable(
   install: false,
 )
 
-if get_option('sixel')
-  fuzz_sixel_sources = config_sources + files(
-    'sixel-fuzzer.cc',
-  )
-
-  fuzz_sixel = executable(
-    'fuzz-sixel',
-    sources: fuzz_sixel_sources,
-    dependencies: [glib_dep,],
-    include_directories: top_inc,
-    install: false,
-  )
-
-  test_sixel_sources = config_sources + glib_glue_sources + sixel_parser_sources + sixel_context_sources + files(
-    'cairo-glue.hh',
-    'sixel-test.cc',
-    'vtedefines.hh',
-  )
-
-  test_sixel = executable(
-    'test-sixel',
-    sources: test_sixel_sources,
-    dependencies: [glib_dep,],
-    include_directories: top_inc,
-    install: false,
-  )
-endif
-
 test_stream_sources = config_sources + files(
   'vtestream-base.h',
   'vtestream-file.h',
@@ -623,12 +573,6 @@ test_units = [
   ['utf8', test_utf8],
   ['vtetypes', test_vtetypes],
 ]
-
-if get_option('sixel')
-  test_units += [
-    ['sixel', test_sixel],
-  ]
-endif
 
 foreach test: test_units
   test(
