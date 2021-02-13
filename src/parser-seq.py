@@ -372,7 +372,7 @@ sequences = [
                comment='double width double height line: bottom half'),
     seq_ESCAPE('DECSWL', '5', intermediates=(Intermediate.HASH,), flags=Flags.NOP,
                comment='single width single height line'),
-    seq_ESCAPE('DECBI', '6',
+    seq_ESCAPE('DECBI', '6', flags=Flags.NOP,
                comment='back index'),
     seq_ESCAPE('DECDWL', '6', intermediates=(Intermediate.HASH,), flags=Flags.NOP,
                comment='double width single height line'),
