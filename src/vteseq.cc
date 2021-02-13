@@ -3061,7 +3061,7 @@ Terminal::DECFRA(vte::parser::Sequence const& seq)
          * and cursor position are unchanged.
          *
          * Note: DECSACE selects whether this function operates on the
-         * rectangular area or the data stream between the star and end
+         * rectangular area or the data stream between the start and end
          * positions.
          *
          * References: VT525
