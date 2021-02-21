@@ -82,6 +82,7 @@ public:
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
         gboolean test_mode{false};
+        gboolean track_clipboard_targets{false};
         gboolean use_theme_colors{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
@@ -598,6 +599,8 @@ public:
                           "Enable SIXEL images", nullptr },
                         { "transparent", 'T', 0, G_OPTION_ARG_INT, &transparency_percent,
                           "Enable the use of a transparent background", "0..100" },
+                        { "track-clipboard-targets", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &track_clipboard_targets,
+                          "Track clipboard targets", nullptr },
                         { "verbose", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
                           (void*)parse_verbosity,
                           "Enable verbose debug output", nullptr },
@@ -2375,6 +2378,36 @@ app_stdin_readable_cb(int fd,
         return G_SOURCE_CONTINUE;
 }
 
+static void
+app_clipboard_targets_received_cb(GtkClipboard* clipboard,
+                                  GdkAtom* targets,
+                                  int n_targets,
+                                  VteappApplication* application)
+{
+        verbose_print("Clipboard has %d targets:", n_targets);
+
+        for (auto i = 0; i < n_targets; ++i) {
+                auto atom_name = vte::glib::take_string(gdk_atom_name(targets[i]));
+                verbose_print(" %s", atom_name.get());
+        }
+        verbose_print("\n");
+}
+
+static void
+app_clipboard_owner_change_cb(GtkClipboard* clipboard,
+                              GdkEvent* event G_GNUC_UNUSED,
+                              VteappApplication* application)
+{
+        verbose_print("Clipboard owner-change, requesting targets\n");
+
+        /* We can do this without holding a reference to @application since
+         * the application lives as long as the process.
+         */
+        gtk_clipboard_request_targets(clipboard,
+                                      (GtkClipboardTargetsReceivedFunc)app_clipboard_targets_received_cb,
+                                      application);
+}
+
 G_DEFINE_TYPE(VteappApplication, vteapp_application, GTK_TYPE_APPLICATION)
 
 static void
@@ -2399,6 +2432,14 @@ vteapp_application_init(VteappApplication* application)
                                                           GIOCondition(G_IO_IN | G_IO_HUP | G_IO_ERR),
                                                           (GUnixFDSourceFunc)app_stdin_readable_cb,
                                                           application);
+        }
+
+        if (options.track_clipboard_targets) {
+                auto clipboard = gtk_clipboard_get_for_display(gdk_display_get_default(),
+                                                               GDK_SELECTION_CLIPBOARD);
+                app_clipboard_owner_change_cb(clipboard, nullptr, application);
+                g_signal_connect(clipboard, "owner-change",
+                                 G_CALLBACK(app_clipboard_owner_change_cb), application);
         }
 }
 
