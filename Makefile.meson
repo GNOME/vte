@@ -15,8 +15,7 @@
 
 srcdir=@srcdir@
 builddir=@builddir@
-vte_gtk3_api_version = @vte_gtk3_api_version@
-vte_gtk4_api_version = @vte_gtk4_api_version@
+vte_api_version = @vte_api_version@
 
 #
 
@@ -29,6 +28,18 @@ NINJA = ninja $(NJOBS)
 all:
 	$(NINJA)
 
+gtk3:
+	$(NINJA) src/app/vte-$(vte_api_version)
+
+gtk4:
+	$(NINJA) src/app/vte-$(vte_api_version)-gtk4
+
+doc-gtk3:
+	$(NINJA) doc/reference/gtk3/meson.stamp
+
+doc-gtk4:
+	$(NINJA) doc/reference/gtk4/meson.stamp
+
 check:
 	MESON_TESTTHREADS=$(NTHREADS) $(NINJA) test
 
@@ -38,8 +49,7 @@ clean:
 coverage:
 	$(NINJA) coverage
 
-doc:
-	$(NINJA) vte-$(vte_gtk3_api_version)-doc
+doc: doc-gtk3 doc-gtk4
 
 install:
 	$(NINJA) install

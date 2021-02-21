@@ -25,8 +25,13 @@
 
 G_BEGIN_DECLS
 
+#if VTE_GTK == 3
 #define VTE_ALT_MASK		GDK_MOD1_MASK
 #define VTE_NUMLOCK_MASK	GDK_MOD2_MASK
+#elif VTE_GTK == 4
+#define VTE_ALT_MASK		GDK_ALT_MASK
+#define VTE_NUMLOCK_MASK	0 /* FIXME */
+#endif
 
 /* Map the specified keyval/modifier setup, dependent on the mode, to either
  * a literal string or a capability name. */

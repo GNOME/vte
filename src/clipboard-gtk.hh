@@ -75,7 +75,11 @@ public:
                           RequestFailedCallback failed_callback) /* throws */;
 
 private:
+#if VTE_GTK == 3
         vte::glib::RefPtr<GtkClipboard> m_clipboard;
+#elif VTE_GTK == 4
+        vte::glib::RefPtr<GdkClipboard> m_clipboard;
+#endif
         std::weak_ptr<Widget> m_delegate;
         ClipboardType m_type;
 

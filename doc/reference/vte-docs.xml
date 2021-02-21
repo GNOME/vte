@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
-               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
-<!ENTITY version SYSTEM "version.xml">
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd"
+[
+  <!ENTITY % gtkdocentities SYSTEM "xml/gtkdocentities.ent">
+  %gtkdocentities;
 ]>
 <book id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
   <!--
@@ -24,9 +26,9 @@
   <bookinfo>
     <title>VTE Reference Manual</title>
     <releaseinfo>
-      Documentation for VTE version &version;.
+      Documentation for VTE version &package_version;.
       The latest version of this documentation can be found on-line at the
-      <ulink role="online-location" url="http://library.gnome.org/devel/vte/">GNOME Library</ulink>.
+      <ulink role="online-location" url="https://library.gnome.org/devel/vte/">GNOME Library</ulink>.
     </releaseinfo>
 
     <copyright>
@@ -133,8 +135,12 @@
     <title>Index of new symbols in 0.64</title>
     <xi:include href="xml/api-index-0.64.xml"><xi:fallback /></xi:include>
   </index>
+  <index id="api-index-0-66" role="0.66">
+    <title>Index of new symbols in 0.66</title>
+    <xi:include href="xml/api-index-0.66.xml"><xi:fallback /></xi:include>
+  </index>
 
-  <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>
+  <xi:include href="xml/annotation-glossary.xml"></xi:include>
 
   <appendix id="licence">
     <title>Licence</title>

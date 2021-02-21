@@ -113,6 +113,12 @@ static void _vte_debug_print(guint flags, const char *fmt, ...)
 #define _vte_debug_print(args...) do { } while(0)
 #endif /* VTE_DEBUG */
 
+static inline char const*
+_vte_debug_tf(bool v) noexcept
+{
+        return v ? "true" : "false";
+}
+
 G_END_DECLS
 
 #endif

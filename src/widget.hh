@@ -20,6 +20,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <variant>
 
 #include "vteterminal.h"
@@ -95,7 +97,7 @@ protected:
                            unsigned modifiers,
                            unsigned keyval,
                            unsigned keycode,
-                           uint8_t group,
+                           unsigned group,
                            bool is_modifier) noexcept
                 : EventBase{type},
                   m_platform_event{gdk_event},
@@ -126,12 +128,23 @@ public:
         constexpr auto is_key_press()   const noexcept { return type() == Type::eKEY_PRESS;   }
         constexpr auto is_key_release() const noexcept { return type() == Type::eKEY_RELEASE; }
 
+        bool matches(unsigned keyval,
+                     unsigned modifiers) const noexcept
+        {
+#if VTE_GTK == 3
+                return false; // FIXMEgtk3
+#elif VTE_GTK == 4
+                return gdk_key_event_matches(platform_event(),
+                                             keyval, GdkModifierType(modifiers)) == GDK_KEY_MATCH_EXACT;
+#endif
+        }
+
 private:
         GdkEvent* m_platform_event;
         unsigned m_modifiers;
         unsigned m_keyval;
         unsigned m_keycode;
-        uint8_t m_group;
+        unsigned m_group;
         bool m_is_modifier;
 }; // class KeyEvent
 
@@ -154,7 +167,7 @@ protected:
         MouseEvent() noexcept = default;
 
         constexpr MouseEvent(Type type,
-                             unsigned press_count,
+                             int press_count,
                              unsigned modifiers,
                              Button button,
                              double x,
@@ -190,7 +203,7 @@ public:
         constexpr auto is_mouse_release()      const noexcept { return type() == Type::eMOUSE_RELEASE;      }
 
 private:
-        unsigned m_press_count;
+        int m_press_count;
         unsigned m_modifiers;
         Button m_button;
         double m_x;
@@ -257,24 +270,60 @@ public:
         void unrealize() noexcept;
         void map() noexcept;
         void unmap() noexcept;
+        void state_flags_changed(GtkStateFlags old_flags);
+        void direction_changed(GtkTextDirection old_direction) noexcept;
+        bool query_tooltip(int x,
+                           int y,
+                           bool keyboard,
+                           GtkTooltip* tooltip) noexcept;
+
+        void connect_settings();
+        void padding_changed();
+        void settings_changed();
+
+#if VTE_GTK == 3
         void style_updated() noexcept;
         void draw(cairo_t *cr) noexcept { m_terminal->widget_draw(cr); }
         void get_preferred_width(int *minimum_width,
-                                 int *natural_width) const noexcept { m_terminal->widget_get_preferred_width(minimum_width, natural_width); }
+                                 int *natural_width) const noexcept { m_terminal->widget_measure_width(minimum_width, natural_width); }
         void get_preferred_height(int *minimum_height,
-                                  int *natural_height) const noexcept { m_terminal->widget_get_preferred_height(minimum_height, natural_height); }
-        void size_allocate(GtkAllocation *allocation) noexcept;
+                                  int *natural_height) const noexcept { m_terminal->widget_measure_height(minimum_height, natural_height); }
+        void size_allocate(GtkAllocation *allocation);
 
-        void focus_in(GdkEventFocus *event) noexcept { m_terminal->widget_focus_in(); }
-        void focus_out(GdkEventFocus *event) noexcept { m_terminal->widget_focus_out(); }
-        bool key_press(GdkEventKey *event) noexcept { return m_terminal->widget_key_press(key_event_from_gdk(event)); }
-        bool key_release(GdkEventKey *event) noexcept { return m_terminal->widget_key_release(key_event_from_gdk(event)); }
-        bool button_press(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_press(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        bool button_release(GdkEventButton *event) noexcept { return m_terminal->widget_mouse_release(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        void enter(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_enter(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        void leave(GdkEventCrossing *event) noexcept { m_terminal->widget_mouse_leave(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        bool scroll(GdkEventScroll *event) noexcept { return m_terminal->widget_mouse_scroll(scroll_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
-        bool motion_notify(GdkEventMotion *event) noexcept { return m_terminal->widget_mouse_motion(mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event))); }
+        void event_focus_in(GdkEventFocus *event);
+        void event_focus_out(GdkEventFocus *event);
+        bool event_key_press(GdkEventKey *event);
+        bool event_key_release(GdkEventKey *event);
+        bool event_button_press(GdkEventButton *event);
+        bool event_button_release(GdkEventButton *event);
+        void event_enter(GdkEventCrossing *event);
+        void event_leave(GdkEventCrossing *event);
+        bool event_scroll(GdkEventScroll *event);
+        bool event_motion_notify(GdkEventMotion *event);
+
+        void screen_changed (GdkScreen *previous_screen) noexcept;
+#endif /* VTE_GTK == 3 */
+
+#if VTE_GTK == 4
+        void size_allocate(int width,
+                           int height,
+                           int baseline);
+        void root();
+        void unroot();
+        void measure(GtkOrientation orientation,
+                     int for_size,
+                     int* minimum,
+                     int* natural,
+                     int* minimum_baseline,
+                     int* natural_baseline);
+        std::pair<bool, bool> compute_expand();
+        void css_changed(GtkCssStyleChange* change);
+        void system_setting_changed(GtkSystemSetting setting);
+        void snapshot(GtkSnapshot* snapshot_object);
+        bool contains(double x,
+                      double y);
+        void display_changed() noexcept;
+#endif /* VTE_GTK == 4 */
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
 
@@ -291,17 +340,14 @@ public:
         void copy(vte::platform::ClipboardType type,
                   vte::platform::ClipboardFormat format) noexcept { m_terminal->widget_copy(type, format); }
 
-        void screen_changed (GdkScreen *previous_screen) noexcept;
-        void settings_changed() noexcept;
-
         void beep() noexcept;
 
-        void set_hadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment) noexcept { m_hadjustment = std::move(adjustment); }
-        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment) { terminal()->widget_set_vadjustment(std::move(adjustment)); }
+        void set_hadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment) noexcept { m_hadjustment = std::move(adjustment); }
+        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment) { terminal()->widget_set_vadjustment(std::move(adjustment)); }
         auto hadjustment() noexcept { return m_hadjustment.get(); }
         auto vadjustment() noexcept { return terminal()->vadjustment(); }
-        void set_hscroll_policy(GtkScrollablePolicy policy) noexcept { m_hscroll_policy = policy; }
-        void set_vscroll_policy(GtkScrollablePolicy policy) noexcept { m_vscroll_policy = policy; }
+        void set_hscroll_policy(GtkScrollablePolicy policy);
+        void set_vscroll_policy(GtkScrollablePolicy policy);
         auto hscroll_policy() const noexcept { return m_hscroll_policy; }
         auto vscroll_policy() const noexcept { return m_vscroll_policy; }
         auto padding() const noexcept { return terminal()->padding(); }
@@ -346,11 +392,14 @@ public:
                 return terminal()->regex_match_check(column, row, tag);
         }
 
+#if VTE_GTK == 3
+
         char* regex_match_check(GdkEvent* event,
                                 int* tag)
         {
                 return terminal()->regex_match_check(mouse_event_from_gdk(event), tag);
         }
+
 
         bool regex_match_check_extra(GdkEvent* event,
                                      vte::base::Regex const** regexes,
@@ -367,6 +416,8 @@ public:
                 return terminal()->hyperlink_check(mouse_event_from_gdk(event));
         }
 
+#endif /* VTE_GTK */
+
         bool should_emit_signal(int id) noexcept;
 
         bool set_sixel_enabled(bool enabled) noexcept { return m_terminal->set_sixel_enabled(enabled); }
@@ -381,7 +432,9 @@ protected:
                 eHyperlink
         };
 
+#if VTE_GTK == 3
         GdkWindow* event_window() const noexcept { return m_event_window; }
+#endif
 
         bool realized() const noexcept
         {
@@ -415,10 +468,12 @@ public: // FIXMEchpe
         void im_preedit_changed() noexcept;
 
 private:
+        KeyEvent key_event_from_gdk(GdkEvent* event) const;
+#if VTE_GTK == 3
         unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
-        KeyEvent key_event_from_gdk(GdkEventKey* event) const;
         MouseEvent mouse_event_from_gdk(GdkEvent* event) const /* throws */;
         ScrollEvent scroll_event_from_gdk(GdkEvent* event) const /* throws */;
+#endif
 
         void clipboard_request_received_cb(Clipboard const& clipboard,
                                            std::string_view const& text);
@@ -432,8 +487,12 @@ private:
 
         vte::terminal::Terminal* m_terminal;
 
+#if VTE_GTK == 3
         /* Event window */
         GdkWindow *m_event_window;
+#endif
+
+        vte::glib::RefPtr<GtkSettings> m_settings{nullptr};
 
         /* Cursors */
         vte::glib::RefPtr<GdkCursor> m_default_cursor;

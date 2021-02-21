@@ -50,8 +50,10 @@ typedef struct _VteCharAttributes       VteCharAttributes;
  */
 struct _VteTerminal {
 	GtkWidget widget;
+#if _VTE_GTK == 3
         /*< private >*/
 	gpointer *_unused_padding[1]; /* FIXMEchpe: remove this field on the next ABI break */
+#endif
 };
 
 /**
@@ -105,6 +107,7 @@ struct _VteTerminalClass {
         /* Padding for future expansion. */
         gpointer padding[16];
 
+// FIXMEgtk4 use class private data instead
         VteTerminalClassPrivate *priv;
 };
 
@@ -156,7 +159,7 @@ void vte_terminal_spawn_async(VteTerminal *terminal,
                               int timeout,
                               GCancellable *cancellable,
                               VteTerminalSpawnAsyncCallback callback,
-                              gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
+                              gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 4);
 
 _VTE_PUBLIC
 void vte_terminal_spawn_with_fds_async(VteTerminal* terminal,
@@ -175,7 +178,7 @@ void vte_terminal_spawn_with_fds_async(VteTerminal* terminal,
                                        int timeout,
                                        GCancellable* cancellable,
                                        VteTerminalSpawnAsyncCallback callback,
-                                       gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(4);
+                                       gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 4);
 
 /* Send data to the terminal to display, or to the terminal's forked command
  * to handle in some way.  If it's 'cat', they should be the same. */
@@ -268,10 +271,10 @@ void vte_terminal_set_color_bold(VteTerminal *terminal,
                                  const GdkRGBA *bold) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_set_color_foreground(VteTerminal *terminal,
-                                       const GdkRGBA *foreground) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                       const GdkRGBA *foreground) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 _VTE_PUBLIC
 void vte_terminal_set_color_background(VteTerminal *terminal,
-                                       const GdkRGBA *background) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                       const GdkRGBA *background) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 _VTE_PUBLIC
 void vte_terminal_set_color_cursor(VteTerminal *terminal,
                                    const GdkRGBA *cursor_background) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
@@ -395,21 +398,25 @@ void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column,
                                       glong *row) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+#if _VTE_GTK == 3
+
 _VTE_PUBLIC
 char *vte_terminal_hyperlink_check_event(VteTerminal *terminal,
-                                         GdkEvent *event) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
+                                         GdkEvent *event) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2) G_GNUC_MALLOC;
+
+#endif /* _VTE_GTK */
 
 /* Add a matching expression, returning the tag the widget assigns to that
  * expression. */
 _VTE_PUBLIC
 int vte_terminal_match_add_regex(VteTerminal *terminal,
                                  VteRegex *regex,
-                                 guint32 flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                 guint32 flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 /* Set the cursor to be used when the pointer is over a given match. */
 _VTE_PUBLIC
 void vte_terminal_match_set_cursor_name(VteTerminal *terminal,
 					int tag,
-                                        const char *cursor_name) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
+                                        const char *cursor_name) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 3);
 _VTE_PUBLIC
 void vte_terminal_match_remove(VteTerminal *terminal,
                                int tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
@@ -419,24 +426,29 @@ void vte_terminal_match_remove_all(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE
 /* Check if a given cell on the screen contains part of a matched string.  If
  * it does, return the string, and store the match tag in the optional tag
  * argument. */
+#if _VTE_GTK == 3
+
 _VTE_PUBLIC
 char *vte_terminal_match_check_event(VteTerminal *terminal,
                                      GdkEvent *event,
-                                     int *tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
+                                     int *tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2) G_GNUC_MALLOC;
+
 _VTE_PUBLIC
 char **vte_terminal_event_check_regex_array(VteTerminal *terminal,
                                             GdkEvent *event,
                                             VteRegex **regexes,
                                             gsize n_regexes,
                                             guint32 match_flags,
-                                            gsize *n_matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) G_GNUC_MALLOC;
+                                            gsize *n_matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2) G_GNUC_MALLOC;
 _VTE_PUBLIC
 gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                                GdkEvent *event,
                                                VteRegex **regexes,
                                                gsize n_regexes,
                                                guint32 match_flags,
-                                               char **matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                               char **matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+#endif /* _VTE_GTK */
 
 _VTE_PUBLIC
 void      vte_terminal_search_set_regex      (VteTerminal *terminal,
@@ -492,12 +504,17 @@ _VTE_PUBLIC
 gboolean vte_terminal_get_input_enabled (VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 /* rarely useful functions */
+
+#if _VTE_GTK == 3
+
 _VTE_PUBLIC
 void vte_terminal_set_clear_background(VteTerminal* terminal,
                                        gboolean setting) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_get_color_background_for_draw(VteTerminal* terminal,
-                                                GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                                GdkRGBA* color) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+#endif /* _VTE_GTK == 3 */
 
 /* Writing contents out */
 _VTE_PUBLIC
@@ -505,7 +522,7 @@ gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,
                                            GOutputStream *stream,
                                            VteWriteFlags flags,
                                            GCancellable *cancellable,
-                                           GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                                           GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
 
 /* Images */
 

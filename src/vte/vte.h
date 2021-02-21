@@ -18,8 +18,12 @@
 #pragma once
 
 #include <glib.h>
+#include <gtk/gtk.h>
 
 #define __VTE_VTE_H_INSIDE__ 1
+
+/* This must always be included first */
+#include "vtemacros.h"
 
 #include "vteenums.h"
 #include "vteglobals.h"

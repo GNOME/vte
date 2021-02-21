@@ -32,6 +32,16 @@
 #include "vteptyinternal.hh"
 #include "debug.h"
 
+#if VTE_GTK == 4
+#include "graphene-glue.hh"
+#endif
+
+#if VTE_GTK == 3
+#define VTE_STYLE_CLASS_MONOSPACE GTK_STYLE_CLASS_MONOSPACE
+#elif VTE_GTK == 4
+#define VTE_STYLE_CLASS_MONOSPACE "monospace"
+#endif
+
 using namespace std::literals;
 
 namespace vte {
@@ -142,11 +152,19 @@ Widget::Widget(VteTerminal* t)
           m_hscroll_policy{GTK_SCROLL_NATURAL},
           m_vscroll_policy{GTK_SCROLL_NATURAL}
 {
+#if VTE_GTK == 3
         gtk_widget_set_can_focus(gtk(), true);
+#endif
 
+#if VTE_GTK == 4
+        gtk_widget_set_focusable(gtk(), true);
+#endif
+
+#if VTE_GTK == 3
         /* We do our own redrawing. */
         // FIXMEchpe is this still necessary?
         gtk_widget_set_redraw_on_allocate(gtk(), false);
+#endif
 
         /* Until Terminal init is completely fixed, use zero'd memory */
         auto place = g_malloc0(sizeof(vte::terminal::Terminal));
@@ -156,7 +174,7 @@ Widget::Widget(VteTerminal* t)
 Widget::~Widget() noexcept
 try
 {
-        g_signal_handlers_disconnect_matched(gtk_widget_get_settings(m_widget),
+        g_signal_handlers_disconnect_matched(m_settings.get(),
                                              G_SIGNAL_MATCH_DATA,
                                              0, 0, NULL, NULL,
                                              this);
@@ -175,19 +193,38 @@ void
 Widget::beep() noexcept
 {
         if (realized())
-                gdk_window_beep(gtk_widget_get_window(m_widget));
+                gtk_widget_error_bell(gtk());
 }
+
+#if VTE_GTK == 4
+
+bool
+Widget::contains(double x,
+                 double y)
+{
+        return false;
+}
+
+#endif /* VTE_GTK == 4 */
 
 vte::glib::RefPtr<GdkCursor>
 Widget::create_cursor(std::string const& name) const noexcept
 {
+#if VTE_GTK == 3
 	return vte::glib::take_ref(gdk_cursor_new_from_name(gtk_widget_get_display(m_widget), name.c_str()));
+#elif VTE_GTK == 4
+        return vte::glib::take_ref(gdk_cursor_new_from_name(name.c_str(), nullptr /* fallback */));
+#endif
 }
 
 void
 Widget::set_cursor(GdkCursor* cursor) noexcept
 {
+#if VTE_GTK == 3
         gdk_window_set_cursor(m_event_window, cursor);
+#elif VTE_GTK == 4
+        gtk_widget_set_cursor(gtk(), cursor);
+#endif
 }
 
 void
@@ -196,24 +233,36 @@ Widget::set_cursor(Cursor const& cursor) noexcept
         if (!realized())
                 return;
 
-        auto display = gtk_widget_get_display(m_widget);
         GdkCursor* gdk_cursor{nullptr};
         switch (cursor.index()) {
         case 0:
-                gdk_cursor = gdk_cursor_new_from_name(display, std::get<0>(cursor).c_str());
+#if VTE_GTK == 3
+                gdk_cursor = gdk_cursor_new_from_name(gtk_widget_get_display(gtk()),
+                                                      std::get<0>(cursor).c_str());
+#elif VTE_GTK == 4
+                gdk_cursor = gdk_cursor_new_from_name(std::get<0>(cursor).c_str(),
+                                                      nullptr /* fallback */);
+#endif /* VTE_GTK */
                 break;
+
         case 1:
                 gdk_cursor = std::get<1>(cursor).get();
-                if (gdk_cursor != nullptr &&
-                    gdk_cursor_get_display(gdk_cursor) == display) {
+                if (gdk_cursor != nullptr
+#if VTE_GTK == 3
+                    && gdk_cursor_get_display(gdk_cursor) == gtk_widget_get_display(gtk())
+#endif
+                ) {
                         g_object_ref(gdk_cursor);
                 } else {
                         gdk_cursor = nullptr;
                 }
                 break;
+
+#if VTE_GTK == 3
         case 2:
-                gdk_cursor = gdk_cursor_new_for_display(display, std::get<2>(cursor));
+                gdk_cursor = gdk_cursor_new_for_display(gtk_widget_get_display(gtk()), std::get<2>(cursor));
                 break;
+#endif
         }
 
         set_cursor(gdk_cursor);
@@ -290,15 +339,60 @@ Widget::clipboard_set_text(ClipboardType type,
         clipboard_get(type).set_text(str);
 }
 
+#if VTE_GTK == 4
+
+std::pair<bool, bool>
+Widget::compute_expand()
+{
+        return {true, true};
+}
+
+#endif /* VTE_GTK == 4 */
+
 void
 Widget::constructed() noexcept
 {
+#if VTE_GTK == 3
+        auto context = gtk_widget_get_style_context(m_widget);
+        gtk_style_context_add_class (context, VTE_STYLE_CLASS_MONOSPACE);
+#elif VTE_GTK == 4
+        gtk_widget_add_css_class(gtk(), VTE_STYLE_CLASS_MONOSPACE);
+#endif /* VTE_GTK */
+
+#if VTE_GTK == 4
+
+        connect_settings();
+
+#endif /* VTE_GTK == 4 */
+
+#if VTE_GTK == 3
         /* Set the style as early as possible, before GTK+ starts
          * invoking various callbacks. This is needed in order to
          * compute the initial geometry correctly in presence of
          * non-default padding, see bug 787710.
          */
         style_updated();
+#elif VTE_GTK == 4
+        padding_changed();
+#endif /* VTE_GTK  */
+}
+
+#if VTE_GTK == 4
+
+void
+Widget::css_changed(GtkCssStyleChange* change)
+{
+        /* This function is mostly useless, since there's no public API for GtkCssStyleChange */
+
+        padding_changed();
+}
+
+#endif /* VTE_GTK == 4 */
+
+void
+Widget::direction_changed(GtkTextDirection old_direction) noexcept
+{
+        // FIXME: does this need to feed to BiDi somehow?
 }
 
 void
@@ -330,8 +424,121 @@ Widget::im_filter_keypress(KeyEvent const& event) noexcept
         // FIXMEchpe this can only be called when realized, so the m_im_context check is redundant
         return m_im_context &&
                 gtk_im_context_filter_keypress(m_im_context.get(),
-                                               reinterpret_cast<GdkEventKey*>(event.platform_event()));
+#if VTE_GTK == 3
+                                               reinterpret_cast<GdkEventKey*>(event.platform_event())
+#elif VTE_GTK == 4
+                                               event.platform_event()
+#endif
+                                               );
 }
+
+#if VTE_GTK == 3
+
+void
+Widget::event_focus_in(GdkEventFocus *event)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus In");
+
+        m_terminal->widget_focus_in();
+}
+
+void
+Widget::event_focus_out(GdkEventFocus *event)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus Out");
+
+        m_terminal->widget_focus_out();
+}
+
+bool
+Widget::event_key_press(GdkEventKey *event)
+{
+        auto key_event = key_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Key press key=%x keycode=%x modifiers=%x\n",
+                         key_event.keyval(), key_event.keycode(), key_event.modifiers());
+
+        return m_terminal->widget_key_press(key_event);
+}
+
+bool
+Widget::event_key_release(GdkEventKey *event)
+{
+        auto key_event = key_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Key release key=%x keycode=%x modifiers=%x\n",
+                         key_event.keyval(), key_event.keycode(), key_event.modifiers());
+
+        return m_terminal->widget_key_release(key_event);
+}
+
+bool
+Widget::event_button_press(GdkEventButton *event)
+{
+        auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Click press button=%d press_count=%d x=%.3f y=%.3f\n",
+                         mouse_event.button_value(), mouse_event.press_count(),
+                         mouse_event.x(), mouse_event.y());
+
+        return m_terminal->widget_mouse_press(mouse_event);
+}
+
+bool
+Widget::event_button_release(GdkEventButton *event)
+{
+        auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Click release button=%d x=%.3f y=%.3f\n",
+                         mouse_event.button_value(), mouse_event.x(), mouse_event.y());
+
+        return m_terminal->widget_mouse_release(mouse_event);
+}
+
+void
+Widget::event_enter(GdkEventCrossing *event)
+{
+        auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion enter x=%.3f y=%.3f\n",
+                         mouse_event.x(), mouse_event.y());
+
+        m_terminal->widget_mouse_enter(mouse_event);
+}
+
+void
+Widget::event_leave(GdkEventCrossing *event)
+{
+        auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion leave x=%.3f y=%.3f\n",
+                         mouse_event.x(), mouse_event.y());
+
+        m_terminal->widget_mouse_leave(mouse_event);
+}
+bool
+Widget::event_scroll(GdkEventScroll *event)
+{
+        auto scroll_event = scroll_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll delta_x=%.3f delta_y=%.3f\n",
+                         scroll_event.dx(), scroll_event.dy());
+
+        return m_terminal->widget_mouse_scroll(scroll_event);
+}
+
+bool
+Widget::event_motion_notify(GdkEventMotion *event)
+{
+        auto mouse_event = mouse_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion x=%.3f y=%.3f\n",
+                         mouse_event.x(), mouse_event.y());
+
+        return m_terminal->widget_mouse_motion(mouse_event);
+}
+
+#endif /* VTE_GTK == 3 */
 
 void
 Widget::im_focus_in() noexcept
@@ -368,6 +575,8 @@ Widget::im_set_cursor_location(cairo_rectangle_int_t const* rect) noexcept
         gtk_im_context_set_cursor_location(m_im_context.get(), rect);
 }
 
+#if VTE_GTK == 3
+
 unsigned
 Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
 {
@@ -376,11 +585,9 @@ Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
         if (!gdk_event_get_state(event, &mods))
                 return 0;
 
-        #if 1
         /* HACK! Treat META as ALT; see bug #663779. */
         if (mods & GDK_META_MASK)
                 mods = GdkModifierType(mods | GDK_MOD1_MASK);
-        #endif
 
         /* Map non-virtual modifiers to virtual modifiers (Super, Hyper, Meta) */
         auto display = gdk_window_get_display(gdk_event_get_window(event));
@@ -390,9 +597,12 @@ Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
         return unsigned(mods);
 }
 
+#endif /* VTE_GTK == 3 */
+
 unsigned
 Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
 {
+#if VTE_GTK == 3
 	if (event.keyval() < 128)
 		return event.keyval();
 
@@ -417,33 +627,55 @@ Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
 	}
 
         return keyval;
+#elif VTE_GTK == 4
+        // FIXMEgtk4: find a way to do this on gtk4
+        return event.keyval();
+#endif
 }
 
 KeyEvent
-Widget::key_event_from_gdk(GdkEventKey* event) const
+Widget::key_event_from_gdk(GdkEvent* event) const
 {
         auto type = EventBase::Type{};
-        switch (gdk_event_get_event_type(reinterpret_cast<GdkEvent*>(event))) {
+        switch (gdk_event_get_event_type(event)) {
         case GDK_KEY_PRESS: type = KeyEvent::Type::eKEY_PRESS;     break;
         case GDK_KEY_RELEASE: type = KeyEvent::Type::eKEY_RELEASE; break;
         default: g_assert_not_reached(); return {};
         }
 
-        auto base_event = reinterpret_cast<GdkEvent*>(event);
-        return {base_event,
+#if VTE_GTK == 3
+        auto keyval = unsigned{};
+        gdk_event_get_keyval(event, &keyval);
+        auto const scancode = unsigned(reinterpret_cast<GdkEventKey*>(event)->hardware_keycode);
+        auto const group = reinterpret_cast<GdkEventKey*>(event)->group;
+        auto const is_modifier = reinterpret_cast<GdkEventKey*>(event)->is_modifier != 0;
+#elif VTE_GTK == 4
+        auto keyval = gdk_key_event_get_keyval(event);
+        auto scancode = gdk_key_event_get_keycode(event);
+        auto const group = gdk_key_event_get_level(event);
+        auto const is_modifier = gdk_key_event_is_modifier(event) != false;
+#endif /* VTE_GTK */
+
+        return {event,
                 type,
-                read_modifiers_from_gdk(base_event),
-                event->keyval,
-                event->hardware_keycode, // gdk_event_get_scancode(event),
-                event->group,
-                event->is_modifier != 0};
+#if VTE_GTK == 3
+                read_modifiers_from_gdk(event),
+#elif VTE_GTK == 4
+                gdk_event_get_modifier_state(event),
+#endif
+                keyval,
+                scancode,
+                group,
+                is_modifier};
 }
+
+#if VTE_GTK == 3
 
 MouseEvent
 Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
 {
         auto type = EventBase::Type{};
-        auto press_count = 0u;
+        auto press_count = 0;
         switch (gdk_event_get_event_type(event)) {
         case GDK_2BUTTON_PRESS:
                 type = MouseEvent::Type::eMOUSE_PRESS;
@@ -478,7 +710,7 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
             !gdk_event_get_coords(event, &x, &y))
                 x = y = -1.; // FIXMEchpe or throw?
 
-        auto button = unsigned{0};
+        auto button = 0u;
         (void)gdk_event_get_button(event, &button);
 
         return {type,
@@ -512,22 +744,77 @@ Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
                 dx, dy};
 }
 
+#endif /* VTE_GTK == 3 */
+
 void
 Widget::map() noexcept
 {
+#if VTE_GTK == 3
         if (m_event_window)
                 gdk_window_show_unraised(m_event_window);
+#endif
+}
+
+#if VTE_GTK == 4
+
+void
+Widget::measure(GtkOrientation orientation,
+                int for_size,
+                int* minimum,
+                int* natural,
+                int* minimum_baseline,
+                int* natural_baseline)
+{
+        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget measure for_size=%d orientation=%s\n",
+                         for_size,
+                         orientation == GTK_ORIENTATION_HORIZONTAL ? "horizontal" : "vertical");
+
+        switch (orientation) {
+        case GTK_ORIENTATION_HORIZONTAL:
+                terminal()->widget_measure_width(minimum, natural);
+                break;
+        case GTK_ORIENTATION_VERTICAL:
+                *minimum_baseline = *natural_baseline = 0;
+                terminal()->widget_measure_height(minimum, natural);
+                break;
+        }
+}
+
+#endif /* VTE_GTK == 4 */
+
+void
+Widget::padding_changed()
+{
+#if VTE_GTK == 3
+        auto padding = GtkBorder{};
+        auto context = gtk_widget_get_style_context(gtk());
+        gtk_style_context_get_padding(context,
+#if VTE_GTK == 3
+                                      gtk_style_context_get_state(context),
+#endif
+                                      &padding);
+        terminal()->set_border_padding(&padding);
+#endif /* VTE_GTK FIXMEgtk4 how to handle margin/padding? */
 }
 
 bool
 Widget::primary_paste_enabled() const noexcept
 {
         auto primary_paste = gboolean{};
-        g_object_get(gtk_widget_get_settings(gtk()),
+        g_object_get(m_settings.get(),
                      "gtk-enable-primary-paste", &primary_paste,
                      nullptr);
 
         return primary_paste != false;
+}
+
+bool
+Widget::query_tooltip(int x,
+                      int y,
+                      bool keyboard,
+                      GtkTooltip* tooltip) noexcept
+{
+        return false;
 }
 
 void
@@ -545,6 +832,7 @@ Widget::realize() noexcept
         else
                 m_hyperlink_cursor = create_cursor(VTE_HYPERLINK_CURSOR);
 
+#if VTE_GTK == 3
 	/* Create an input window for the widget. */
         auto allocation = m_terminal->get_allocated_rect();
 	GdkWindowAttr attributes;
@@ -579,15 +867,21 @@ Widget::realize() noexcept
 	m_event_window = gdk_window_new(gtk_widget_get_parent_window (m_widget),
                                         &attributes, attributes_mask);
         gtk_widget_register_window(m_widget, m_event_window);
+#endif /* VTE_GTK == 3 */
 
         assert(!m_im_context);
-	m_im_context.reset(gtk_im_multicontext_new());
-#if GTK_CHECK_VERSION (3, 24, 14)
+        m_im_context = vte::glib::take_ref(gtk_im_multicontext_new());
+#if (VTE_GTK == 3 && GTK_CHECK_VERSION (3, 24, 14)) || VTE_GTK == 4
         g_object_set(m_im_context.get(),
                      "input-purpose", GTK_INPUT_PURPOSE_TERMINAL,
                      nullptr);
 #endif
+
+#if VTE_GTK == 3
 	gtk_im_context_set_client_window(m_im_context.get(), m_event_window);
+#elif VTE_GTK == 4
+        gtk_im_context_set_client_widget(m_im_context.get(), gtk());
+#endif
 	g_signal_connect(m_im_context.get(), "commit",
 			 G_CALLBACK(im_commit_cb), this);
 	g_signal_connect(m_im_context.get(), "preedit-start",
@@ -608,42 +902,82 @@ Widget::realize() noexcept
         m_terminal->widget_realize();
 }
 
+#if VTE_GTK == 4
+
+void
+Widget::root()
+{
+}
+
+#endif /* VTE_GTK == 4 */
+
+#if VTE_GTK == 3
+
 void
 Widget::screen_changed(GdkScreen *previous_screen) noexcept
 {
         auto gdk_screen = gtk_widget_get_screen(m_widget);
-        if (previous_screen != nullptr &&
-            (gdk_screen != previous_screen || gdk_screen == nullptr)) {
-                auto settings = gtk_settings_get_for_screen(previous_screen);
-                g_signal_handlers_disconnect_matched(settings, G_SIGNAL_MATCH_DATA,
-                                                     0, 0, nullptr, nullptr,
-                                                     this);
-        }
-
         if (gdk_screen == previous_screen || gdk_screen == nullptr)
                 return;
 
+        connect_settings();
+}
+
+#elif VTE_GTK == 4
+
+void
+Widget::display_changed() noexcept
+{
+        /* There appears to be no way to retrieve the previous display */
+        connect_settings();
+}
+
+#endif /* VTE_GTK */
+
+void
+Widget::connect_settings()
+{
+        auto settings = vte::glib::make_ref(gtk_widget_get_settings(m_widget));
+        if (settings == m_settings)
+                return;
+
+        if (m_settings)
+                g_signal_handlers_disconnect_matched(m_settings.get(), G_SIGNAL_MATCH_DATA,
+                                                     0, 0, nullptr, nullptr,
+                                                     this);
+
+        m_settings = std::move(settings);
+
         settings_changed();
 
-        auto settings = gtk_widget_get_settings(m_widget);
-        g_signal_connect (settings, "notify::gtk-cursor-blink",
-                          G_CALLBACK(settings_notify_cb), this);
-        g_signal_connect (settings, "notify::gtk-cursor-blink-time",
-                          G_CALLBACK(settings_notify_cb), this);
-        g_signal_connect (settings, "notify::gtk-cursor-blink-timeout",
-                          G_CALLBACK(settings_notify_cb), this);
+        g_signal_connect(m_settings.get(), "notify::gtk-cursor-blink",
+                         G_CALLBACK(settings_notify_cb), this);
+        g_signal_connect(m_settings.get(), "notify::gtk-cursor-blink-time",
+                         G_CALLBACK(settings_notify_cb), this);
+        g_signal_connect(m_settings.get(), "notify::gtk-cursor-blink-timeout",
+                         G_CALLBACK(settings_notify_cb), this);
+#if VTE_GTK == 4
+        g_signal_connect(m_settings.get(), "notify::gtk-cursor-aspect-ratio",
+                         G_CALLBACK(settings_notify_cb), this);
+#endif
 }
 
 void
-Widget::settings_changed() noexcept
+Widget::settings_changed()
 {
         auto blink = gboolean{};
         auto blink_time = int{};
         auto blink_timeout = int{};
-        g_object_get(gtk_widget_get_settings(m_widget),
+#if VTE_GTK == 4
+        auto aspect = double{};
+#endif
+        g_object_get(m_settings.get(),
                      "gtk-cursor-blink", &blink,
                      "gtk-cursor-blink-time", &blink_time,
                      "gtk-cursor-blink-timeout", &blink_timeout,
+#if VTE_GTK == 4
+                     "gtk-cursor-aspect-ratio", &aspect,
+#endif
                      nullptr);
 
         _vte_debug_print(VTE_DEBUG_MISC,
@@ -651,6 +985,10 @@ Widget::settings_changed() noexcept
                          blink, blink_time, blink_timeout);
 
         m_terminal->set_blink_settings(blink, blink_time, blink_timeout);
+
+#if VTE_GTK == 4
+        m_terminal->set_cursor_aspect(aspect);
+#endif
 }
 
 void
@@ -662,6 +1000,30 @@ Widget::set_cursor(CursorType type) noexcept
         case CursorType::eMousing:   return set_cursor(m_mousing_cursor.get());
         case CursorType::eHyperlink: return set_cursor(m_hyperlink_cursor.get());
         }
+}
+
+void
+Widget::set_hscroll_policy(GtkScrollablePolicy policy)
+{
+        m_hscroll_policy = policy;
+
+#if VTE_GTK == 3
+        gtk_widget_queue_resize_no_redraw(gtk());
+#elif VTE_GTK == 4
+        gtk_widget_queue_resize(gtk());
+#endif
+}
+
+void
+Widget::set_vscroll_policy(GtkScrollablePolicy policy)
+{
+        m_vscroll_policy = policy;
+
+#if VTE_GTK == 3
+        gtk_widget_queue_resize_no_redraw(gtk());
+#elif VTE_GTK == 4
+        gtk_widget_queue_resize(gtk());
+#endif
 }
 
 bool
@@ -704,10 +1066,19 @@ Widget::unset_pty() noexcept
         g_object_notify_by_pspec(object(), pspecs[PROP_PTY]);
 }
 
+#if VTE_GTK == 3
+
 void
-Widget::size_allocate(GtkAllocation* allocation) noexcept
+Widget::size_allocate(GtkAllocation* allocation)
 {
-        m_terminal->widget_size_allocate(allocation);
+        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget size allocate width=%d height=%d x=%d y=%d\n",
+                         allocation->width, allocation->height, allocation->x, allocation->y);
+
+        m_terminal->widget_size_allocate(allocation->x, allocation->y,
+                                         allocation->width, allocation->height,
+                                         -1);
+
+        gtk_widget_set_allocation(gtk(), allocation);
 
         if (realized())
 		gdk_window_move_resize(m_event_window,
@@ -716,6 +1087,23 @@ Widget::size_allocate(GtkAllocation* allocation) noexcept
                                        allocation->width,
                                        allocation->height);
 }
+
+#elif VTE_GTK == 4
+
+void
+Widget::size_allocate(int width,
+                      int height,
+                      int baseline)
+{
+        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget size allocate width=%d height=%d baseline=%d\n",
+                         width, height, baseline);
+
+        terminal()->widget_size_allocate(width, height, baseline);
+
+        gtk_widget_allocate(gtk(), width, height, baseline, nullptr);
+}
+
+#endif /* VTE_GTK */
 
 bool
 Widget::should_emit_signal(int id) noexcept
@@ -727,13 +1115,35 @@ Widget::should_emit_signal(int id) noexcept
 }
 
 void
+Widget::state_flags_changed(GtkStateFlags old_flags)
+{
+        _vte_debug_print(VTE_DEBUG_STYLE, "Widget state flags changed\n");
+}
+
+#if VTE_GTK == 4
+
+void
+Widget::snapshot(GtkSnapshot* snapshot_object)
+{
+        _vte_debug_print(VTE_DEBUG_DRAW, "Widget snapshot\n");
+
+        auto rect = terminal()->allocated_rect();
+        auto region = vte::take_freeable(cairo_region_create_rectangle(rect));
+        auto grect = vte::graphene::make_rect(rect);
+        auto cr = vte::take_freeable(gtk_snapshot_append_cairo(snapshot_object, &grect));
+        terminal()->draw(cr.get(), region.get());
+}
+
+#endif /* VTE_GTK == 4 */
+
+#if VTE_GTK == 3
+
+void
 Widget::style_updated() noexcept
 {
-        auto padding = GtkBorder{};
-        auto context = gtk_widget_get_style_context(gtk());
-        gtk_style_context_get_padding(context, gtk_style_context_get_state(context),
-                                      &padding);
-        m_terminal->set_border_padding(&padding);
+        _vte_debug_print(VTE_DEBUG_STYLE, "Widget style changed\n");
+
+        padding_changed();
 
         auto aspect = float{};
         gtk_widget_style_get(gtk(), "cursor-aspect-ratio", &aspect, nullptr);
@@ -742,13 +1152,48 @@ Widget::style_updated() noexcept
         m_terminal->widget_style_updated();
 }
 
+#endif /* VTE_GTK == 3 */
+
+#if VTE_GTK == 4
+
+void
+Widget::system_setting_changed(GtkSystemSetting setting)
+{
+        _vte_debug_print(VTE_DEBUG_STYLE, "Widget system settings %d changed\n", int(setting));
+
+        switch (setting) {
+        case GTK_SYSTEM_SETTING_DISPLAY:
+                display_changed();
+                break;
+
+        case GTK_SYSTEM_SETTING_DPI:
+                break;
+
+        case GTK_SYSTEM_SETTING_FONT_CONFIG:
+                break;
+
+        case GTK_SYSTEM_SETTING_FONT_NAME:
+                break;
+
+        case GTK_SYSTEM_SETTING_ICON_THEME:
+                break;
+
+        default:
+                break;
+        }
+}
+
+#endif /* VTE_GTK == 4 */
+
 void
 Widget::unmap() noexcept
 {
         m_terminal->widget_unmap();
 
+#if VTE_GTK == 3
         if (m_event_window)
                 gdk_window_hide(m_event_window);
+#endif
 }
 
 void
@@ -756,16 +1201,17 @@ Widget::unrealize() noexcept
 {
         m_terminal->widget_unrealize();
 
+        // FIXMEgtk4 only withdraw content from clipboard, not unselect?
         if (m_clipboard) {
                 terminal()->widget_clipboard_data_clear(*m_clipboard);
                 m_clipboard->disown();
+                m_clipboard.reset();
         }
         if (m_primary_clipboard) {
                 terminal()->widget_clipboard_data_clear(*m_primary_clipboard);
                 m_primary_clipboard->disown();
+                m_primary_clipboard.reset();
         }
-        m_clipboard.reset();
-        m_primary_clipboard.reset();
 
         m_default_cursor.reset();
         m_invisible_cursor.reset();
@@ -779,14 +1225,29 @@ Widget::unrealize() noexcept
                                              0, 0, NULL, NULL,
                                              this);
         m_terminal->im_preedit_reset();
+#if VTE_GTK == 3
         gtk_im_context_set_client_window(m_im_context.get(), nullptr);
+#elif VTE_GTK == 4
+        gtk_im_context_set_client_widget(m_im_context.get(), nullptr);
+#endif
         m_im_context.reset();
 
+#if VTE_GTK == 3
         /* Destroy input window */
         gtk_widget_unregister_window(m_widget, m_event_window);
         gdk_window_destroy(m_event_window);
         m_event_window = nullptr;
+#endif /* VTE_GTK == 3 */
 }
+
+#if VTE_GTK == 4
+
+void
+Widget::unroot()
+{
+}
+
+#endif /* VTE_GTK == 4 */
 
 } // namespace platform
 

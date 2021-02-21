@@ -32,6 +32,10 @@ glib_glue_sources = files(
   'glib-glue.hh',
 )
 
+graphene_glue_sources = files(
+  'graphene-glue.hh',
+)
+
 gtk_glue_sources = files(
   'gtk-glue.hh',
 )
@@ -212,10 +216,6 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'widget.hh',
 )
 
-if get_option('a11y')
-  libvte_common_sources += a11y_sources
-endif
-
 if get_option('icu')
   libvte_common_sources += icu_sources
 endif
@@ -294,9 +294,13 @@ libvte_common_cppflags = [
 
 if get_option('gtk3')
   libvte_gtk3_sources = libvte_common_sources + libvte_gtk3_public_headers + libvte_gtk3_enum_sources
-  libvte_gtk3_cppflags = libvte_common_cppflags + gtk3_version_cppflags
-  libvte_gtk3_deps = libvte_common_deps + [gtk3_dep]
-  libvte_gtk3_public_deps = libvte_common_public_deps + [gtk3_dep]
+  libvte_gtk3_cppflags = libvte_common_cppflags + gtk3_version_cppflags + ['-DVTE_GTK=3',]
+  libvte_gtk3_deps = libvte_common_deps + [gtk3_dep,]
+  libvte_gtk3_public_deps = libvte_common_public_deps + [gtk3_dep,]
+
+  if get_option('a11y')
+    libvte_gtk3_sources += a11y_sources
+  endif
 
   libvte_gtk3 = shared_library(
     vte_gtk3_api_name,
@@ -310,7 +314,7 @@ if get_option('gtk3')
 
   libvte_gtk3_dep = declare_dependency(
     sources: libvte_gtk3_public_headers,
-    include_directories: [src_inc, vte_inc],
+    include_directories: [src_inc, vte_inc,],
     dependencies: libvte_gtk3_deps,
     link_with: libvte_gtk3
   )
@@ -323,6 +327,41 @@ if get_option('gtk3')
     filebase: vte_gtk3_api_name,
     subdirs: vte_gtk3_api_name,
     requires: libvte_gtk3_public_deps,
+    variables: 'exec_prefix=${prefix}',
+  )
+endif
+
+if get_option('gtk4')
+  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + graphene_glue_sources
+  libvte_gtk4_cppflags = libvte_common_cppflags + gtk4_version_cppflags + ['-DVTE_GTK=4',]
+  libvte_gtk4_deps = libvte_common_deps + [gtk4_dep,]
+  libvte_gtk4_public_deps = libvte_common_public_deps + [gtk4_dep,]
+
+  libvte_gtk4 = shared_library(
+    vte_gtk4_api_name,
+    sources: libvte_gtk4_sources,
+    version: libvte_gtk4_soversion,
+    include_directories: incs,
+    dependencies: libvte_gtk4_deps,
+    cpp_args: libvte_gtk4_cppflags,
+    install: true,
+  )
+
+  libvte_gtk4_dep = declare_dependency(
+    sources: libvte_gtk4_public_headers,
+    include_directories: [src_inc, vte_inc,],
+    dependencies: libvte_gtk4_deps,
+    link_with: libvte_gtk4
+  )
+
+  pkg.generate(
+    libvte_gtk4,
+    version: vte_version,
+    name: 'vte',
+    description: 'VTE widget for GTK+ 4.0',
+    filebase: vte_gtk4_api_name,
+    subdirs: vte_gtk4_api_name,
+    requires: libvte_gtk4_public_deps,
     variables: 'exec_prefix=${prefix}',
   )
 endif
@@ -425,17 +464,19 @@ reflect_textview = executable(
   install: false,
 )
 
-reflect_vte = executable(
-  'reflect-vte',
-  sources: reflect_sources,
-  dependencies: [gtk3_dep, libvte_gtk3_dep],
-  c_args: [
-    '-DUSE_VTE',
-    '-DVTE_DISABLE_DEPRECATION_WARNINGS',
-  ],
-  include_directories: top_inc,
-  install: false,
-)
+if get_option('gtk3')
+  reflect_vte = executable(
+    'reflect-vte',
+    sources: reflect_sources,
+    dependencies: [gtk3_dep, libvte_gtk3_dep,],
+    c_args: [
+      '-DUSE_VTE',
+      '-DVTE_DISABLE_DEPRECATION_WARNINGS',
+    ],
+    include_directories: [top_inc,],
+    install: false,
+  )
+endif
 
 # vte-urlencode-cwd
 
@@ -599,14 +640,16 @@ test_vtetypes_sources = config_sources + libc_glue_sources + files(
    'vtetypes.hh',
 )
 
-test_vtetypes = executable(
-  'test-vtetypes',
-  sources: test_vtetypes_sources,
-  dependencies: [glib_dep, pango_dep, gtk3_dep],
-  cpp_args: ['-DMAIN'],
-  include_directories: top_inc,
-  install: false,
-)
+if get_option('gtk3')
+  test_vtetypes = executable(
+    'test-vtetypes',
+    sources: test_vtetypes_sources,
+    dependencies: [glib_dep, pango_dep, gtk3_dep,],
+    cpp_args: ['-DMAIN'],
+    include_directories: top_inc,
+    install: false,
+  )
+endif
 
 test_env = [
   'VTE_DEBUG=0'
@@ -621,8 +664,13 @@ test_units = [
   ['stream', test_stream],
   ['tabstops', test_tabstops],
   ['utf8', test_utf8],
-  ['vtetypes', test_vtetypes],
 ]
+
+if get_option('gtk3')
+  test_units += [
+    ['vtetypes', test_vtetypes],
+  ]
+endif
 
 if get_option('sixel')
   test_units += [

@@ -120,7 +120,7 @@ class FontInfo {
         int const font_cache_timeout = 30; // seconds
 
 public:
-        FontInfo(PangoContext* context);
+        FontInfo(vte::glib::RefPtr<PangoContext> context);
         ~FontInfo();
 
         FontInfo* ref()
@@ -269,9 +269,12 @@ private:
                                             PangoFontDescription const* desc,
                                             PangoLanguage* language,
                                             guint fontconfig_timestamp);
+#if VTE_GTK == 3
         static FontInfo *create_for_screen(GdkScreen* screen,
                                            PangoFontDescription const* desc,
                                            PangoLanguage* language);
+#endif
+
 public:
 
         static FontInfo *create_for_widget(GtkWidget* widget,

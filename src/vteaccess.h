@@ -15,9 +15,7 @@
  * along with this library.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef vte_vteaccess_h_included
-#define vte_vteaccess_h_included
-
+#pragma once
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -51,5 +49,3 @@ struct _VteTerminalAccessibleClass {
 GType _vte_terminal_accessible_get_type(void);
 
 G_END_DECLS
-
-#endif

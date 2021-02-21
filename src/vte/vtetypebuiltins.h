@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 Christian Persch
+ * Copyright © 2021 Christian Persch
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -17,20 +17,12 @@
 
 #pragma once
 
-#include "std-glue.hh"
+#if !defined (__VTE_VTE_H_INSIDE__) && !defined (VTE_COMPILATION)
+#error "Only <vte/vte.h> can be included directly."
+#endif
 
-namespace vte::gtk {
-
-} // namespace vte::gtk
-
-namespace vte {
-
-#if VTE_GTK == 3
-VTE_DECLARE_FREEABLE(GtkTargetList, gtk_target_list_unref);
-#endif /* VTE_GTK == 3 */
-
-#if VTE_GTK == 4
-VTE_DECLARE_FREEABLE(GdkContentFormats, gdk_content_formats_unref);
-#endif /* VTE_GTK == 4 */
-
-} // namespace vte
+#if _VTE_GTK == 3
+#include "vtetypebuiltins-gtk3.h"
+#elif _VTE_GTK == 4
+#include "vtetypebuiltins-gtk4.h"
+#endif

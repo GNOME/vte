@@ -210,13 +210,13 @@ FontInfo::measure_font()
 	}
 }
 
-FontInfo::FontInfo(PangoContext *context)
+FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
 {
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 			  "vtepangocairo: %p allocating FontInfo\n",
 			  (void*)this);
 
-	m_layout = vte::glib::take_ref(pango_layout_new(context));
+	m_layout = vte::glib::take_ref(pango_layout_new(context.get()));
 
 	auto tabs = pango_tab_array_new_with_positions(1, FALSE, PANGO_TAB_LEFT, 1);
 	pango_layout_set_tabs(m_layout.get(), tabs);
@@ -230,7 +230,7 @@ FontInfo::FontInfo(PangoContext *context)
 #if PANGO_VERSION_CHECK(1, 44, 0)
         /* Try using the font's metrics; see issue#163. */
         if (auto metrics = vte::take_freeable
-            (pango_context_get_metrics(context,
+            (pango_context_get_metrics(context.get(),
                                        nullptr /* use font from context */,
                                        nullptr /* use language from context */))) {
 		/* Use provided metrics if possible */
@@ -337,7 +337,7 @@ context_equal (PangoContext *a,
 	    && vte_pango_context_get_fontconfig_timestamp (a) == vte_pango_context_get_fontconfig_timestamp (b);
 }
 
-/* assumes ownership/reference of context */
+// FIXMEchpe return vte::base::RefPtr<FontInfo>
 FontInfo*
 FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
                              PangoFontDescription const* desc,
@@ -381,14 +381,13 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
 				  info);
 		info = info->ref();
 	} else {
-		_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
-				  "vtepangocairo: FontInfo not in cache\n");
-                info = new FontInfo{context.get()};
-        }
+                info = new FontInfo{std::move(context)};
+	}
 
 	return info;
 }
 
+#if VTE_GTK == 3
 FontInfo*
 FontInfo::create_for_screen(GdkScreen* screen,
                             PangoFontDescription const* desc,
@@ -400,15 +399,28 @@ FontInfo::create_for_screen(GdkScreen* screen,
 	return create_for_context(vte::glib::take_ref(gdk_pango_context_get_for_screen(screen)),
                                   desc, language, fontconfig_timestamp);
 }
+#endif /* VTE_GTK */
 
 FontInfo*
 FontInfo::create_for_widget(GtkWidget* widget,
                             PangoFontDescription const* desc)
 {
-	auto screen = gtk_widget_get_screen(widget);
-	auto language = pango_context_get_language(gtk_widget_get_pango_context(widget));
+        auto context = gtk_widget_get_pango_context(widget);
+        auto language = pango_context_get_language(context);
 
+#if VTE_GTK == 3
+	auto screen = gtk_widget_get_screen(widget);
 	return create_for_screen(screen, desc, language);
+#elif VTE_GTK == 4
+        auto display = gtk_widget_get_display(widget);
+        auto settings = gtk_settings_get_for_display(display);
+        auto fontconfig_timestamp = guint{};
+        g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
+        return create_for_context(vte::glib::make_ref(context),
+                                  desc, language, fontconfig_timestamp);
+        // FIXMEgtk4: this uses a per-widget context, while the gtk3 code uses a per-screen
+        // one. That means there may be a lot less sharing and a lot more FontInfo's around?
+#endif
 }
 
 FontInfo::UnistrInfo*

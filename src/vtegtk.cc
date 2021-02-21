@@ -63,8 +63,12 @@
 #include "vteregexinternal.hh"
 
 #ifdef WITH_A11Y
+#if VTE_GTK == 3
 #include "vteaccess.h"
-#endif
+#else
+#undef WITH_A11Y
+#endif /* VTE_GTK == 3 */
+#endif /* WITH_A11Y */
 
 #ifdef WITH_ICU
 #include "icu-glue.hh"
@@ -78,6 +82,19 @@
 struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
+
+#if VTE_GTK == 4
+
+static void
+style_provider_parsing_error_cb(GtkCssProvider* provider,
+                                void* section,
+                                GError* error)
+{
+        g_assert_no_error(error);
+}
+
+#endif
+
 
 class VteTerminalPrivate {
 public:
@@ -217,7 +234,6 @@ vte_terminal_set_hscroll_policy(VteTerminal *terminal,
 try
 {
         WIDGET(terminal)->set_hscroll_policy(policy);
-        gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
 catch (...)
 {
@@ -230,7 +246,6 @@ vte_terminal_set_vscroll_policy(VteTerminal *terminal,
 try
 {
         WIDGET(terminal)->set_vscroll_policy(policy);
-        gtk_widget_queue_resize_no_redraw (GTK_WIDGET (terminal));
 }
 catch (...)
 {
@@ -259,6 +274,8 @@ catch (...)
 {
         vte::log_exception();
 }
+
+#if VTE_GTK == 3
 
 static void
 vte_terminal_style_updated (GtkWidget *widget) noexcept
@@ -298,7 +315,7 @@ try
 		}
 	}
 
-        return WIDGET(terminal)->key_press(event);
+        return WIDGET(terminal)->event_key_press(event);
 }
 catch (...)
 {
@@ -312,7 +329,7 @@ vte_terminal_key_release(GtkWidget *widget,
 try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return WIDGET(terminal)->key_release(event);
+        return WIDGET(terminal)->event_key_release(event);
 }
 catch (...)
 {
@@ -326,7 +343,7 @@ vte_terminal_motion_notify(GtkWidget *widget,
 try
 {
         VteTerminal *terminal = VTE_TERMINAL(widget);
-        return WIDGET(terminal)->motion_notify(event);
+        return WIDGET(terminal)->event_motion_notify(event);
 }
 catch (...)
 {
@@ -340,7 +357,7 @@ vte_terminal_button_press(GtkWidget *widget,
 try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return WIDGET(terminal)->button_press(event);
+        return WIDGET(terminal)->event_button_press(event);
 }
 catch (...)
 {
@@ -354,7 +371,7 @@ vte_terminal_button_release(GtkWidget *widget,
 try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        return WIDGET(terminal)->button_release(event);
+        return WIDGET(terminal)->event_button_release(event);
 }
 catch (...)
 {
@@ -368,7 +385,7 @@ vte_terminal_scroll(GtkWidget *widget,
 try
 {
         auto terminal = VTE_TERMINAL(widget);
-        return WIDGET(terminal)->scroll(event);
+        return WIDGET(terminal)->event_scroll(event);
 }
 catch (...)
 {
@@ -382,7 +399,7 @@ vte_terminal_focus_in(GtkWidget *widget,
 try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        WIDGET(terminal)->focus_in(event);
+        WIDGET(terminal)->event_focus_in(event);
         return FALSE;
 }
 catch (...)
@@ -397,7 +414,7 @@ vte_terminal_focus_out(GtkWidget *widget,
 try
 {
 	VteTerminal *terminal = VTE_TERMINAL(widget);
-        WIDGET(terminal)->focus_out(event);
+        WIDGET(terminal)->event_focus_out(event);
         return FALSE;
 }
 catch (...)
@@ -418,7 +435,7 @@ try
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->enter_notify_event (widget, event);
 	}
 
-        WIDGET(terminal)->enter(event);
+        WIDGET(terminal)->event_enter(event);
 
         return ret;
 }
@@ -440,7 +457,7 @@ try
 		ret = GTK_WIDGET_CLASS (vte_terminal_parent_class)->leave_notify_event (widget, event);
 	}
 
-        WIDGET(terminal)->leave(event);
+        WIDGET(terminal)->event_leave(event);
 
         return ret;
 }
@@ -478,33 +495,7 @@ catch (...)
         vte::log_exception();
 }
 
-static void
-vte_terminal_size_allocate(GtkWidget *widget,
-                           GtkAllocation *allocation) noexcept
-try
-{
-	VteTerminal *terminal = VTE_TERMINAL(widget);
-        WIDGET(terminal)->size_allocate(allocation);
-}
-catch (...)
-{
-        vte::log_exception();
-}
-
-static gboolean
-vte_terminal_draw(GtkWidget *widget,
-                  cairo_t *cr) noexcept
-try
-{
-        VteTerminal *terminal = VTE_TERMINAL (widget);
-        WIDGET(terminal)->draw(cr);
-        return FALSE;
-}
-catch (...)
-{
-        vte::log_exception();
-        return false;
-}
+#endif /* VTE_GTK == 3 */
 
 static void
 vte_terminal_realize(GtkWidget *widget) noexcept
@@ -569,22 +560,261 @@ vte_terminal_unmap(GtkWidget *widget) noexcept
 }
 
 static void
-vte_terminal_screen_changed (GtkWidget *widget,
-                             GdkScreen *previous_screen) noexcept
+vte_terminal_state_flags_changed(GtkWidget* widget,
+                                 GtkStateFlags old_flags) noexcept
 try
 {
-        VteTerminal *terminal = VTE_TERMINAL (widget);
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->state_flags_changed(widget, old_flags);
 
-        if (GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed) {
-                GTK_WIDGET_CLASS (vte_terminal_parent_class)->screen_changed (widget, previous_screen);
-        }
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->state_flags_changed(old_flags);
+}
+catch (...)
+{
+        vte::log_exception();
+}
 
+static void
+vte_terminal_direction_changed(GtkWidget* widget,
+                               GtkTextDirection old_direction) noexcept
+try
+{
+        auto const parent_class = GTK_WIDGET_CLASS(vte_terminal_parent_class);
+        if (parent_class->direction_changed)
+                parent_class->direction_changed(widget, old_direction);
+
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->direction_changed(old_direction);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static GtkSizeRequestMode
+vte_terminal_get_request_mode(GtkWidget* widget) noexcept
+{
+        return GTK_SIZE_REQUEST_CONSTANT_SIZE;
+}
+
+static gboolean
+vte_terminal_query_tooltip(GtkWidget* widget,
+                           int x,
+                           int y,
+                           gboolean keyboard,
+                           GtkTooltip* tooltip) noexcept
+try
+{
+        auto const parent_class = GTK_WIDGET_CLASS(vte_terminal_parent_class);
+        if (parent_class->query_tooltip(widget, x, y, keyboard, tooltip))
+                return true;
+
+        auto terminal = VTE_TERMINAL(widget);
+        return WIDGET(terminal)->query_tooltip(x, y, keyboard, tooltip);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+
+#if VTE_GTK == 3
+
+static void
+vte_terminal_size_allocate(GtkWidget* widget,
+                           GtkAllocation* allocation) noexcept
+try
+{
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->size_allocate(allocation);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static gboolean
+vte_terminal_draw(GtkWidget* widget,
+                  cairo_t* cr) noexcept
+try
+{
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->draw(cr);
+        return FALSE;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+static void
+vte_terminal_screen_changed(GtkWidget* widget,
+                            GdkScreen* previous_screen) noexcept
+try
+{
+        auto const parent_class = GTK_WIDGET_CLASS(vte_terminal_parent_class);
+        if (parent_class->screen_changed)
+                parent_class->screen_changed(widget, previous_screen);
+
+	auto terminal = VTE_TERMINAL(widget);
         WIDGET(terminal)->screen_changed(previous_screen);
 }
 catch (...)
 {
         vte::log_exception();
 }
+
+#endif /* VTE_GTK == 3 */
+
+#if VTE_GTK == 4
+
+static void
+vte_terminal_size_allocate(GtkWidget *widget,
+                           int width,
+                           int height,
+                           int baseline) noexcept
+try
+{
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->size_allocate(widget, width, height, baseline);
+
+	auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->size_allocate(width, height, baseline);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+vte_terminal_root(GtkWidget *widget) noexcept
+try
+{
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->root(widget);
+
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->root();
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+vte_terminal_unroot(GtkWidget *widget) noexcept
+{
+        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_unroot()\n");
+
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->unroot();
+
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->unroot(widget);
+}
+
+static void
+vte_terminal_measure(GtkWidget* widget,
+                     GtkOrientation orientation,
+                     int for_size,
+                     int* minimum,
+                     int* natural,
+                     int* minimum_baseline,
+                     int* natural_baseline) noexcept
+try
+{
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->measure(orientation, for_size,
+                                  minimum, natural,
+                                  minimum_baseline, natural_baseline);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+vte_terminal_compute_expand(GtkWidget* widget,
+                            gboolean* hexpand,
+                            gboolean* vexpand) noexcept
+try
+{
+        auto terminal = VTE_TERMINAL(widget);
+        auto [h, v] = WIDGET(terminal)->compute_expand();
+        *hexpand = h;
+        *vexpand = v;
+}
+catch (...)
+{
+        vte::log_exception();
+        *hexpand = *vexpand = false;
+}
+
+static void
+vte_terminal_css_changed(GtkWidget* widget,
+                         GtkCssStyleChange* change) noexcept
+try
+{
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->css_changed(widget, change);
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->css_changed(change);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+vte_terminal_system_setting_changed(GtkWidget* widget,
+                                    GtkSystemSetting setting) noexcept
+try
+{
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->system_setting_changed(widget, setting);
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->system_setting_changed(setting);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+vte_terminal_snapshot(GtkWidget* widget,
+                      GtkSnapshot* snapshot_object) noexcept
+try
+{
+        GTK_WIDGET_CLASS(vte_terminal_parent_class)->snapshot(widget, snapshot_object);
+        auto terminal = VTE_TERMINAL(widget);
+        WIDGET(terminal)->snapshot(snapshot_object);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static gboolean
+vte_terminal_contains(GtkWidget* widget,
+                      double x,
+                      double y) noexcept
+try
+{
+        auto terminal = VTE_TERMINAL(widget);
+        if (WIDGET(terminal)->contains(x, y))
+                return true;
+
+        auto const parent_class = GTK_WIDGET_CLASS(vte_terminal_parent_class);
+        if (parent_class->contains &&
+            parent_class->contains(widget, x, y))
+                return true;
+
+        return false;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+#endif /* VTE_GTK == 4 */
 
 static void
 vte_terminal_constructed (GObject *object) noexcept
@@ -615,7 +845,9 @@ try
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
                                         GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
+#if VTE_GTK == 3
         gtk_widget_set_has_window(&terminal->widget, FALSE);
+#endif
 
 	place = vte_terminal_get_instance_private(terminal);
         new (place) VteTerminalPrivate{terminal};
@@ -916,10 +1148,6 @@ catch (...)
 static void
 vte_terminal_class_init(VteTerminalClass *klass)
 {
-	GObjectClass *gobject_class;
-	GtkWidgetClass *widget_class;
-	GtkBindingSet  *binding_set;
-
 #ifdef VTE_DEBUG
 	{
                 _vte_debug_init();
@@ -943,13 +1171,15 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	}
 #endif
 
+#if VTE_GTK == 3
 	_VTE_DEBUG_IF (VTE_DEBUG_UPDATES) gdk_window_set_debug_updates(TRUE);
+#endif
 
 	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 
-	gobject_class = G_OBJECT_CLASS(klass);
-	widget_class = GTK_WIDGET_CLASS(klass);
+	auto gobject_class = G_OBJECT_CLASS(klass);
+	auto widget_class = GTK_WIDGET_CLASS(klass);
 
 	/* Override some of the default handlers. */
         gobject_class->constructed = vte_terminal_constructed;
@@ -957,12 +1187,21 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	gobject_class->finalize = vte_terminal_finalize;
         gobject_class->get_property = vte_terminal_get_property;
         gobject_class->set_property = vte_terminal_set_property;
+
 	widget_class->realize = vte_terminal_realize;
 	widget_class->unrealize = vte_terminal_unrealize;
         widget_class->map = vte_terminal_map;
         widget_class->unmap = vte_terminal_unmap;
-	widget_class->scroll_event = vte_terminal_scroll;
+
+	widget_class->size_allocate = vte_terminal_size_allocate;
+        widget_class->state_flags_changed = vte_terminal_state_flags_changed;
+        widget_class->direction_changed = vte_terminal_direction_changed;
+        widget_class->get_request_mode = vte_terminal_get_request_mode;
+        widget_class->query_tooltip = vte_terminal_query_tooltip;
+
+#if VTE_GTK == 3
         widget_class->draw = vte_terminal_draw;
+	widget_class->scroll_event = vte_terminal_scroll;
 	widget_class->key_press_event = vte_terminal_key_press;
 	widget_class->key_release_event = vte_terminal_key_release;
 	widget_class->button_press_event = vte_terminal_button_press;
@@ -975,8 +1214,19 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	widget_class->style_updated = vte_terminal_style_updated;
 	widget_class->get_preferred_width = vte_terminal_get_preferred_width;
 	widget_class->get_preferred_height = vte_terminal_get_preferred_height;
-	widget_class->size_allocate = vte_terminal_size_allocate;
         widget_class->screen_changed = vte_terminal_screen_changed;
+#endif
+
+#if VTE_GTK == 4
+        widget_class->root = vte_terminal_root;
+        widget_class->unroot = vte_terminal_unroot;
+        widget_class->measure = vte_terminal_measure;
+        widget_class->compute_expand = vte_terminal_compute_expand;
+        widget_class->css_changed = vte_terminal_css_changed;
+        widget_class->system_setting_changed = vte_terminal_system_setting_changed;
+        widget_class->snapshot = vte_terminal_snapshot;
+        widget_class->contains = vte_terminal_contains;
+#endif
 
         gtk_widget_class_set_css_name(widget_class, VTE_TERMINAL_CSS_NAME);
 
@@ -2077,23 +2327,33 @@ vte_terminal_class_init(VteTerminalClass *klass)
 
         g_object_class_install_properties(gobject_class, LAST_PROP, pspecs);
 
+#if VTE_GTK == 3
 	/* Disable GtkWidget's keybindings except for Shift-F10 and MenuKey
          * which pop up the context menu.
          */
-	binding_set = gtk_binding_set_by_class(vte_terminal_parent_class);
+	auto const binding_set = gtk_binding_set_by_class(vte_terminal_parent_class);
 	gtk_binding_entry_skip(binding_set, GDK_KEY_F1, GDK_CONTROL_MASK);
 	gtk_binding_entry_skip(binding_set, GDK_KEY_F1, GDK_SHIFT_MASK);
 	gtk_binding_entry_skip(binding_set, GDK_KEY_KP_F1, GDK_CONTROL_MASK);
 	gtk_binding_entry_skip(binding_set, GDK_KEY_KP_F1, GDK_SHIFT_MASK);
+#endif /* VTE_GTK == 3 */
 
         process_timer = g_timer_new();
 
         klass->priv = G_TYPE_CLASS_GET_PRIVATE (klass, VTE_TYPE_TERMINAL, VteTerminalClassPrivate);
 
         klass->priv->style_provider = GTK_STYLE_PROVIDER (gtk_css_provider_new ());
+#if VTE_GTK == 3
+        auto err = vte::glib::Error{};
+#elif VTE_GTK == 4
+        g_signal_connect(klass->priv->style_provider, "parsing-error",
+                         G_CALLBACK(style_provider_parsing_error_cb), nullptr);
+#endif
         gtk_css_provider_load_from_data (GTK_CSS_PROVIDER (klass->priv->style_provider),
                                          "VteTerminal, " VTE_TERMINAL_CSS_NAME " {\n"
+#if VTE_GTK == 3
                                          "padding: 1px 1px 1px 1px;\n"
+#endif
 #if GTK_CHECK_VERSION (3, 24, 22)
                                          "background-color: @text_view_bg;\n"
 #else
@@ -2101,11 +2361,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
 #endif
                                          "color: @theme_text_color;\n"
                                          "}\n",
-                                         -1, NULL);
+                                         -1
+#if VTE_GTK == 3
+                                         , NULL
+#endif
+                                         );
+#if VTE_GTK == 3
+        err.assert_no_error();
+#endif
 
+#if VTE_GTK == 3
 #ifdef WITH_A11Y
         /* a11y */
         gtk_widget_class_set_accessible_type(widget_class, VTE_TYPE_TERMINAL_ACCESSIBLE);
+#endif
 #endif
 }
 
@@ -2504,6 +2773,8 @@ catch (...)
         vte::log_exception();
 }
 
+#if VTE_GTK == 3
+
 /**
  * vte_terminal_match_add_gregex:
  * @terminal: a #VteTerminal
@@ -2523,6 +2794,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
 {
         return -1;
 }
+
+#endif /* VTE_GTK == 3 */
 
 /**
  * vte_terminal_match_add_regex:
@@ -2599,6 +2872,8 @@ catch (...)
         vte::log_exception();
         return nullptr;
 }
+
+#if VTE_GTK == 3
 
 /**
  * vte_terminal_match_check_event:
@@ -2795,6 +3070,8 @@ vte_terminal_event_check_gregex_simple(VteTerminal *terminal,
         return FALSE;
 }
 
+#endif /* VTE_GTK == 3 */
+
 /**
  * vte_terminal_match_set_cursor:
  * @terminal: a #VteTerminal
@@ -2823,6 +3100,8 @@ catch (...)
         vte::log_exception();
 }
 
+#if VTE_GTK == 3
+
 /**
  * vte_terminal_match_set_cursor_type:
  * @terminal: a #VteTerminal
@@ -2849,6 +3128,7 @@ catch (...)
 {
         vte::log_exception();
 }
+#endif /* VTE_GTK == 3 */
 
 /**
  * vte_terminal_match_set_cursor_name:
@@ -3011,6 +3291,8 @@ catch (...)
         return nullptr;
 }
 
+#if VTE_GTK == 3
+
 /**
  * vte_terminal_search_set_gregex:
  * @terminal: a #VteTerminal
@@ -3043,6 +3325,8 @@ vte_terminal_search_get_gregex (VteTerminal *terminal) noexcept
 
         return nullptr;
 }
+
+#endif /* VTE_GTK == 3 */
 
 /**
  * vte_terminal_search_set_wrap_around:
@@ -5046,6 +5330,8 @@ catch (...)
         vte::log_exception();
 }
 
+#if VTE_GTK == 3
+
 /* Just some arbitrary minimum values */
 #define MIN_COLUMNS (16)
 #define MIN_ROWS    (2)
@@ -5135,6 +5421,8 @@ vte_terminal_set_geometry_hints_for_window(VteTerminal *terminal,
                                                        GDK_HINT_MIN_SIZE |
                                                        GDK_HINT_BASE_SIZE));
 }
+
+#endif /* VTE_GTK == 3 */
 
 /**
  * vte_terminal_get_has_selection:
@@ -5698,6 +5986,8 @@ catch (...)
         return vte::glib::set_error_from_exception(error);
 }
 
+#if VTE_GTK == 3
+
 /**
  * vte_terminal_set_clear_background:
  * @terminal: a #VteTerminal
@@ -5763,6 +6053,8 @@ catch (...)
         vte::log_exception();
         *color = {0., 0., 0., 1.};
 }
+
+#endif /* VTE_GTK == 3 */
 
 /**
  * vte_terminal_set_enable_sixel:

@@ -9140,12 +9140,17 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 /* FIMXE: this should really report the monitor's workarea,
                  * or even just a fixed value.
                  */
+#if VTE_GTK == 3
                 auto gdkscreen = gtk_widget_get_screen(m_widget);
                 int height = gdk_screen_get_height(gdkscreen);
                 int width = gdk_screen_get_width(gdkscreen);
                 _vte_debug_print(VTE_DEBUG_EMULATION,
                                  "Reporting screen size as %dx%d cells.\n",
                                  height / int(m_cell_height), width / int(m_cell_width));
+#elif VTE_GTK == 4
+                auto height = int(m_row_count * m_cell_height);
+                auto width = int(m_column_count * m_cell_width);
+#endif
 
                 reply(seq, VTE_REPLY_XTERM_WM,
                       {9, height / int(m_cell_height), width / int(m_cell_width)});

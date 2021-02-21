@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2001-2004,2009,2010 Red Hat, Inc.
- * Copyright © 2008, 2009, 2010 Christian Persch
+ * Copyright © 2008, 2009, 2010, 2020 Christian Persch
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -49,6 +49,7 @@
 #include "ringview.hh"
 #include "caps.hh"
 #include "widget.hh"
+#include "cairo-glue.hh"
 
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
@@ -72,8 +73,12 @@
 #include "gobject-glue.hh"
 
 #ifdef WITH_A11Y
+#if VTE_GTK == 3
 #include "vteaccess.h"
-#endif
+#else
+#undef WITH_A11Y
+#endif /* VTE_GTK == 3 */
+#endif /* WITH_A11Y */
 
 #include <new> /* placement new */
 
@@ -95,6 +100,12 @@ static inline double round(double x) {
 
 #define VTE_DRAW_OPAQUE (1.0)
 
+#if VTE_GTK == 3
+#define VTE_STYLE_CLASS_READ_ONLY GTK_STYLE_CLASS_READ_ONLY
+#elif VTE_GTK == 4
+#define VTE_STYLE_CLASS_READ_ONLY "read-only"
+#endif
+
 namespace vte {
 namespace terminal {
 
@@ -106,7 +117,10 @@ static void remove_update_timeout(vte::terminal::Terminal* that);
 
 static gboolean process_timeout (gpointer data) noexcept;
 static gboolean update_timeout (gpointer data) noexcept;
-static cairo_region_t *vte_cairo_get_clip_region (cairo_t *cr);
+
+#if VTE_GTK == 3
+static vte::Freeable<cairo_region_t> vte_cairo_get_clip_region(cairo_t* cr);
+#endif
 
 /* these static variables are guarded by the GDK mutex */
 static guint process_timeout_tag = 0;
@@ -438,7 +452,11 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
                 rect.x += allocation.x + m_padding.left;
                 rect.y += allocation.y + m_padding.top;
                 cairo_region_t *region = cairo_region_create_rectangle(&rect);
+#if VTE_GTK == 3
 		gtk_widget_queue_draw_region(m_widget, region);
+#elif VTE_GTK == 4
+                gtk_widget_queue_draw(m_widget); // FIXMEgtk4
+#endif
                 cairo_region_destroy(region);
 	}
 
@@ -1528,6 +1546,9 @@ Terminal::regex_match_check(vte::grid::column_t column,
                             vte::grid::row_t row,
                             int* tag)
 {
+        /* Need to ensure the ringview is updated. */
+        ringview_update();
+
 	long delta = m_screen->scroll_delta;
 	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
 			"Checking for match at (%ld,%ld).\n",
@@ -1568,7 +1589,11 @@ Terminal::regex_match_check(vte::grid::column_t column,
 vte::view::coords
 Terminal::view_coords_from_event(vte::platform::MouseEvent const& event) const
 {
+#if VTE_GTK == 3
         return vte::view::coords(event.x() - m_padding.left, event.y() - m_padding.top);
+#elif VTE_GTK == 4
+        return vte::view::coords(event.x(), event.y());
+#endif
 }
 
 bool
@@ -1816,10 +1841,50 @@ Terminal::rowcol_from_event(vte::platform::MouseEvent const& event,
         return true;
 }
 
-char *
+#if VTE_GTK == 4
+
+bool
+Terminal::rowcol_at(double x,
+                    double y,
+                    long* column,
+                    long* row)
+{
+        auto rowcol = grid_coords_from_view_coords(vte::view::coords(x, y));
+        if (!grid_coords_visible(rowcol))
+                return false;
+
+        *column = rowcol.column();
+        *row = rowcol.row();
+        return true;
+}
+
+char*
+Terminal::hyperlink_check_at(double x,
+                             double y)
+{
+        long col, row;
+        if (!rowcol_at(x, y, &col, &row))
+                return nullptr;
+
+        return hyperlink_check(col, row);
+}
+
+#endif /* VTE_GTK == 4 */
+
+char*
 Terminal::hyperlink_check(vte::platform::MouseEvent const& event)
 {
         long col, row;
+        if (!rowcol_from_event(event, &col, &row))
+                return nullptr;
+
+        return hyperlink_check(col, row);
+}
+
+char*
+Terminal::hyperlink_check(vte::grid::column_t col,
+                          vte::grid::row_t row)
+{
         const char *hyperlink;
         const char *separator;
 
@@ -1828,9 +1893,6 @@ Terminal::hyperlink_check(vte::platform::MouseEvent const& event)
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
-
-        if (!rowcol_from_event(event, &col, &row))
-                return NULL;
 
         _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, false, &hyperlink);
 
@@ -1848,14 +1910,11 @@ Terminal::hyperlink_check(vte::platform::MouseEvent const& event)
         return g_strdup(hyperlink);
 }
 
-char *
+char*
 Terminal::regex_match_check(vte::platform::MouseEvent const& event,
                             int *tag)
 {
         long col, row;
-
-        /* Need to ensure the ringview is updated. */
-        ringview_update();
 
         if (!rowcol_from_event(event, &col, &row))
                 return FALSE;
@@ -1872,9 +1931,23 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                   uint32_t match_flags,
                                   char** matches)
 {
+        long col, row;
+        if (!rowcol_from_event(event, &col, &row))
+                return false;
+
+        return regex_match_check_extra(col, row, regexes, n_regexes, match_flags, matches);
+}
+
+bool
+Terminal::regex_match_check_extra(vte::grid::column_t col,
+                                  vte::grid::row_t row,
+                                  vte::base::Regex const** regexes,
+                                  size_t n_regexes,
+                                  uint32_t match_flags,
+                                  char** matches)
+{
 	gsize offset, sattr, eattr;
         bool any_matches = false;
-        long col, row;
         guint i;
 
         assert(regexes != nullptr || n_regexes == 0);
@@ -1882,9 +1955,6 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
 
         /* Need to ensure the ringview is updated. */
         ringview_update();
-
-        if (!rowcol_from_event(event, &col, &row))
-                return false;
 
 	if (m_match_contents == nullptr) {
 		match_contents_refresh();
@@ -4583,10 +4653,11 @@ Terminal::beep()
 bool
 Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 {
+        auto handled = false;
 	char *normal = NULL;
 	gsize normal_length = 0;
 	struct termios tio;
-	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE, handled,
+	gboolean scrolled = FALSE, steal = FALSE, modifier = FALSE,
 		 suppress_alt_esc = FALSE, add_modifiers = FALSE;
 	guint keyval = 0;
 	gunichar keychar = 0;
@@ -4613,12 +4684,6 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		if (!modifier) {
                         set_pointer_autohidden(true);
 		}
-
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-				"Keypress, modifiers=0x%x, "
-				"keyval=0x%x\n",
-                                 m_modifiers,
-                                 keyval);
 
 		/* We steal many keypad keys here. */
 		if (!m_im_preedit_active) {
@@ -4709,6 +4774,7 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 
 	/* Let the input method at this one first. */
 	if (!steal && m_input_enabled) {
+                // FIXMEchpe FIXMEgtk4: update IM position? im_set_cursor_location()
                 if (m_real_widget->im_filter_keypress(event)) {
 			_vte_debug_print(VTE_DEBUG_EVENTS,
 					"Keypress taken by IM.\n");
@@ -5040,6 +5106,16 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		}
 		return true;
 	}
+
+#if VTE_GTK == 4
+        if (!handled &&
+            event.matches(GDK_KEY_Menu, 0)) {
+                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                // FIXMEgtk4 do context menu
+                handled = true;
+        }
+#endif
+
 	return false;
 }
 
@@ -5960,6 +6036,8 @@ Terminal::invalidate_match_span()
 void
 Terminal::match_hilite_update()
 {
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Match hilite update\n");
+
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
@@ -5972,10 +6050,6 @@ Terminal::match_hilite_update()
         /* BiDi: convert to logical column. */
         vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(confine_grid_row(row));
         col = bidirow->vis2log(col);
-
-	_vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Match hilite update (%ld, %ld) -> %ld, %ld\n",
-                         pos.x, pos.y, col, row);
 
         /* Whether there's any chance we'd highlight something */
         bool do_check_hilite = view_coords_visible(pos) &&
@@ -6768,8 +6842,7 @@ Terminal::widget_mouse_motion(vte::platform::MouseEvent const& event)
         auto rowcol = grid_coords_from_view_coords(pos);
 
 	_vte_debug_print(VTE_DEBUG_EVENTS,
-                         "Motion notify %s %s\n",
-                         pos.to_string(), rowcol.to_string());
+                         "Motion grid %s\n", rowcol.to_string());
 
         m_modifiers = event.modifiers();
 
@@ -6824,17 +6897,22 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
         /* Need to ensure the ringview is updated. */
         ringview_update();
 
+        /* Reset IM (like GtkTextView does) here */
+        if (event.press_count() == 1)
+                widget()->im_reset();
+
         auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
+
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Click gesture pressed button=%d at grid %s\n",
+                         event.button_value(),
+                         rowcol.to_string());
 
         m_modifiers = event.modifiers();
 
         switch (event.press_count()) {
         case 1: /* single click */
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Button %d single-click at %s\n",
-                                 event.button_value(),
-                                 rowcol.to_string());
 		/* Handle this event ourselves. */
                 switch (event.button()) {
                 case vte::platform::MouseEvent::Button::eLEFT:
@@ -6843,6 +6921,8 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 			/* Grab focus. */
 			if (!m_has_focus)
                                 widget()->grab_focus();
+
+                        // FIXMEchpe FIXMEgtk do im_reset() here
 
 			/* If we're in event mode, and the user held down the
 			 * shift key, we start selecting. */
@@ -6904,10 +6984,6 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		}
 		break;
         case 2: /* double click */
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Button %d double-click at %s\n",
-                                 event.button_value(),
-                                 rowcol.to_string());
                 switch (event.button()) {
                 case vte::platform::MouseEvent::Button::eLEFT:
                         if (m_will_select_after_threshold) {
@@ -6928,10 +7004,6 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		}
 		break;
         case 3: /* triple click */
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Button %d triple-click at %s\n",
-                                 event.button_value(),
-                                 rowcol.to_string());
                 switch (event.button()) {
                 case vte::platform::MouseEvent::Button::eLEFT:
                         if ((m_mouse_handled_buttons & 1) != 0) {
@@ -6948,6 +7020,16 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 	default:
 		break;
 	}
+
+#if VTE_GTK == 4
+        if (!handled &&
+            ((event.button() == vte::platform::MouseEvent::Button::eRIGHT) ||
+             !(event.modifiers() & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK)))) {
+                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
+                // FIXMEgtk4 context menu
+                handled = true;
+        }
+#endif /* VTE_GTK == 4 */
 
 	/* Save the pointer state for later use. */
         if (event.button_value() >= 1 && event.button_value() <= 3)
@@ -6973,15 +7055,16 @@ Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
         auto pos = view_coords_from_event(event);
         auto rowcol = grid_coords_from_view_coords(pos);
 
+        _vte_debug_print(VTE_DEBUG_EVENTS,
+                         "Click gesture released button=%d at grid %s\n",
+                         event.button_value(), rowcol.to_string());
+
 	stop_autoscroll();
 
         m_modifiers = event.modifiers();
 
         switch (event.type()) {
         case vte::platform::EventBase::Type::eMOUSE_RELEASE:
-		_vte_debug_print(VTE_DEBUG_EVENTS,
-                                 "Button %d released at %s\n",
-                                 event.button_value(), rowcol.to_string());
                 switch (event.button()) {
                 case vte::platform::MouseEvent::Button::eLEFT:
                         if ((m_mouse_handled_buttons & 1) != 0)
@@ -7020,8 +7103,6 @@ Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
 void
 Terminal::widget_focus_in()
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus in.\n");
-
         m_has_focus = true;
         widget()->grab_focus();
 
@@ -7049,8 +7130,6 @@ Terminal::widget_focus_in()
 void
 Terminal::widget_focus_out()
 {
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus out.\n");
-
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting ourselves if we don't have a window. */
 	if (widget_realized()) {
@@ -7083,8 +7162,9 @@ Terminal::widget_mouse_enter(vte::platform::MouseEvent const& event)
         auto pos = view_coords_from_event(event);
 
         // FIXMEchpe read event modifiers here
+        // FIXMEgtk4 or maybe not since there is no event to read them from on gtk4
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Enter at %s\n", pos.to_string());
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion enter at grid %s\n", pos.to_string());
 
         m_mouse_cursor_over_widget = TRUE;
         m_mouse_last_position = pos;
@@ -7098,14 +7178,23 @@ Terminal::widget_mouse_enter(vte::platform::MouseEvent const& event)
 void
 Terminal::widget_mouse_leave(vte::platform::MouseEvent const& event)
 {
+#if VTE_GTK == 3
         auto pos = view_coords_from_event(event);
 
         // FIXMEchpe read event modifiers here
+        // FIXMEgtk4 or maybe not since there is no event to read them from on gtk4
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Leave at %s\n", pos.to_string());
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Motion leave at grid %s\n", pos.to_string());
 
         m_mouse_cursor_over_widget = FALSE;
         m_mouse_last_position = pos;
+#elif VTE_GTK == 4
+        // FIXMEgtk4 !!!
+        m_mouse_cursor_over_widget = false;
+        // keep m_mouse_last_position since the event here has no position
+#endif
+
+        // FIXMEchpe: also set m_mouse_scroll_delta to 0 here?
 
         hyperlink_hilite_update();
         match_hilite_update();
@@ -7193,7 +7282,11 @@ Terminal::apply_font_metrics(int cell_width_unscaled,
 	/* Queue a resize if anything's changed. */
 	if (resize) {
 		if (widget_realized()) {
+#if VTE_GTK == 3
 			gtk_widget_queue_resize_no_redraw(m_widget);
+#elif VTE_GTK == 4
+                        gtk_widget_queue_resize(m_widget); // FIXMEgtk4?
+#endif
 		}
 	}
 	/* Emit a signal that the font changed. */
@@ -7306,6 +7399,7 @@ Terminal::set_font_desc(vte::Freeable<PangoFontDescription> font_desc)
 bool
 Terminal::update_font_desc()
 {
+#if VTE_GTK == 3
         auto desc = vte::Freeable<PangoFontDescription>{};
 
         auto context = gtk_widget_get_style_context(m_widget);
@@ -7315,6 +7409,16 @@ Terminal::update_font_desc()
                               &vte::get_freeable(desc),
                               nullptr);
         gtk_style_context_restore(context);
+#elif VTE_GTK == 4
+        // FIXMEgtk4
+        // This is how gtktextview does it, but the APIs are private... thanks, gtk4!
+        // desc = vte::take_freeable
+        //          (gtk_css_style_get_pango_font(gtk_style_context_lookup_style(context));
+
+        auto context = gtk_widget_get_pango_context(m_widget);
+        auto context_desc = pango_context_get_font_description(context);
+        auto desc = vte::take_freeable(pango_font_description_copy(context_desc));
+#endif /* VTE_GTK */
 
 	pango_font_description_set_family_static(desc.get(), "monospace");
 
@@ -7633,7 +7737,11 @@ Terminal::set_size(long columns,
                                                    _vte_ring_next (m_screen->row_data) - 1));
 
 		adjust_adjustments_full();
+#if VTE_GTK == 3
 		gtk_widget_queue_resize_no_redraw(m_widget);
+#elif VTE_GTK == 4
+                gtk_widget_queue_resize(m_widget); // FIXMEgtk4?
+#endif
 		/* Our visible text changed. */
 		emit_text_modified();
 	}
@@ -7798,11 +7906,9 @@ Terminal::Terminal(vte::platform::Widget* w,
 }
 
 void
-Terminal::widget_get_preferred_width(int *minimum_width,
-                                               int *natural_width)
+Terminal::widget_measure_width(int *minimum_width,
+                               int *natural_width)
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_width()\n");
-
 	ensure_font();
 
         refresh_size();
@@ -7825,11 +7931,9 @@ Terminal::widget_get_preferred_width(int *minimum_width,
 }
 
 void
-Terminal::widget_get_preferred_height(int *minimum_height,
-                                                int *natural_height)
+Terminal::widget_measure_height(int *minimum_height,
+                                int *natural_height)
 {
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_get_preferred_height()\n");
-
 	ensure_font();
 
         refresh_size();
@@ -7852,7 +7956,17 @@ Terminal::widget_get_preferred_height(int *minimum_height,
 }
 
 void
-Terminal::widget_size_allocate(GtkAllocation *allocation)
+#if VTE_GTK == 3
+Terminal::widget_size_allocate(int allocation_x,
+                               int allocation_y,
+                               int allocation_width,
+                               int allocation_height,
+                               int allocation_baseline)
+#elif VTE_GTK == 4
+Terminal::widget_size_allocate(int allocation_width,
+                               int allocation_height,
+                               int allocation_baseline)
+#endif /* VTE_GTK */
 {
 	glong width, height;
 	gboolean repaint, update_scrollback;
@@ -7860,9 +7974,9 @@ Terminal::widget_size_allocate(GtkAllocation *allocation)
 	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
 			"vte_terminal_size_allocate()\n");
 
-	width = (allocation->width - (m_padding.left + m_padding.right)) /
+	width = (allocation_width - (m_padding.left + m_padding.right)) /
 		m_cell_width;
-	height = (allocation->height - (m_padding.top + m_padding.bottom)) /
+	height = (allocation_height - (m_padding.top + m_padding.bottom)) /
 		 m_cell_height;
 	width = MAX(width, 1);
 	height = MAX(height, 1);
@@ -7870,19 +7984,21 @@ Terminal::widget_size_allocate(GtkAllocation *allocation)
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] Sizing window to %dx%d (%ldx%ld, padding %d,%d;%d,%d).\n",
                         m_terminal,
-			allocation->width, allocation->height,
+			allocation_width, allocation_height,
                          width, height,
                          m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
 
         auto current_allocation = get_allocated_rect();
 
-	repaint = current_allocation.width != allocation->width
-			|| current_allocation.height != allocation->height;
-	update_scrollback = current_allocation.height != allocation->height;
+	repaint = current_allocation.width != allocation_width ||
+                current_allocation.height != allocation_height;
+	update_scrollback = current_allocation.height != allocation_height;
 
-	/* Set our allocation to match the structure. */
-	gtk_widget_set_allocation(m_widget, allocation);
-        set_allocated_rect(*allocation);
+#if VTE_GTK == 3
+        set_allocated_rect({allocation_x, allocation_y, allocation_width, allocation_height});
+#elif VTE_GTK == 4
+        set_allocated_rect({0, 0, allocation_width, allocation_height});
+#endif
 
 	if (width != m_column_count
 			|| height != m_row_count
@@ -7949,8 +8065,9 @@ Terminal::set_blink_settings(bool blink,
                              int blink_time,
                              int blink_timeout) noexcept
 {
-        m_cursor_blink_cycle = blink_time / 2;
-        m_cursor_blink_timeout = blink_timeout;
+        m_cursor_blinks = m_cursor_blinks_system = blink;
+        m_cursor_blink_cycle = std::max(blink_time / 2, VTE_MIN_CURSOR_BLINK_CYCLE);
+        m_cursor_blink_timeout = std::max(blink_timeout, VTE_MIN_CURSOR_BLINK_TIMEOUT);
 
         update_cursor_blinks();
 
@@ -9222,6 +9339,7 @@ Terminal::paint_im_preedit_string()
                                         height,
                                         get_color(VTE_DEFAULT_BG), m_background_alpha);
                 }
+
 		draw_cells_with_attributes(
 							items, len,
 							m_im_preedit_attrs.get(),
@@ -9248,11 +9366,41 @@ Terminal::paint_im_preedit_string()
 	}
 }
 
+#if VTE_GTK == 3
+
 void
-Terminal::widget_draw(cairo_t *cr)
+Terminal::widget_draw(cairo_t* cr)
 {
-        cairo_rectangle_int_t clip_rect;
-        cairo_region_t *region;
+#ifdef VTE_DEBUG
+        _VTE_DEBUG_IF(VTE_DEBUG_LIFECYCLE | VTE_DEBUG_WORK | VTE_DEBUG_UPDATES) do {
+                auto clip_rect = cairo_rectangle_int_t{};
+                if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
+                        break;
+
+                _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
+                _vte_debug_print (VTE_DEBUG_WORK, "+");
+                _vte_debug_print (VTE_DEBUG_UPDATES, "Draw (%d,%d)x(%d,%d)\n",
+                                  clip_rect.x, clip_rect.y,
+                                  clip_rect.width, clip_rect.height);
+        } while (0);
+#endif /* VTE_DEBUG */
+
+        auto region = vte_cairo_get_clip_region(cr);
+        if (!region)
+                return;
+
+        /* Transform to view coordinates */
+        cairo_region_translate(region.get(), -m_padding.left, -m_padding.top);
+
+        draw(cr, region.get());
+}
+
+#endif /* VTE_GTK == 3 */
+
+void
+Terminal::draw(cairo_t* cr,
+               cairo_region_t const* region)
+{
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
@@ -9260,19 +9408,6 @@ Terminal::widget_draw(cairo_t *cr)
         VteRing *ring = m_screen->row_data;
 #endif
         gint64 now = 0;
-
-        if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
-                return;
-
-        _vte_debug_print(VTE_DEBUG_LIFECYCLE, "vte_terminal_draw()\n");
-        _vte_debug_print (VTE_DEBUG_WORK, "+");
-        _vte_debug_print (VTE_DEBUG_UPDATES, "Draw (%d,%d)x(%d,%d)\n",
-                          clip_rect.x, clip_rect.y,
-                          clip_rect.width, clip_rect.height);
-
-        region = vte_cairo_get_clip_region (cr);
-        if (region == NULL)
-                return;
 
         allocated_width = get_allocated_width();
         allocated_height = get_allocated_height();
@@ -9293,9 +9428,6 @@ Terminal::widget_draw(cairo_t *cr)
         cairo_clip(cr);
 
         cairo_translate(cr, m_padding.left, m_padding.top);
-
-        /* Transform to view coordinates */
-        cairo_region_translate(region, -m_padding.left, -m_padding.top);
 
 #ifdef WITH_SIXEL
 	/* Draw images */
@@ -9365,8 +9497,6 @@ Terminal::widget_draw(cairo_t *cr)
 	/* Done with various structures. */
 	m_draw.set_cairo(nullptr);
 
-        cairo_region_destroy (region);
-
         /* If painting encountered any cell with blink attribute, we might need to set up a timer.
          * Blinking is implemented using a one-shot (not repeating) timer that keeps getting reinstalled
          * here as long as blinking cells are encountered during (re)painting. This way there's no need
@@ -9380,46 +9510,42 @@ Terminal::widget_draw(cairo_t *cr)
         m_invalidated_all = FALSE;
 }
 
+#if VTE_GTK == 3
+
 /* Handle an expose event by painting the exposed area. */
-static cairo_region_t *
-vte_cairo_get_clip_region (cairo_t *cr)
+static vte::Freeable<cairo_region_t>
+vte_cairo_get_clip_region(cairo_t *cr)
 {
-        cairo_rectangle_list_t *list;
-        cairo_region_t *region;
-        int i;
-
-        list = cairo_copy_clip_rectangle_list (cr);
+        auto list = vte::take_freeable(cairo_copy_clip_rectangle_list(cr));
         if (list->status == CAIRO_STATUS_CLIP_NOT_REPRESENTABLE) {
-                cairo_rectangle_int_t clip_rect;
 
-                cairo_rectangle_list_destroy (list);
+                auto clip_rect = cairo_rectangle_int_t{};
+                if (!gdk_cairo_get_clip_rectangle(cr, &clip_rect))
+                        return nullptr;
 
-                if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
-                        return NULL;
-                return cairo_region_create_rectangle (&clip_rect);
+                return vte::take_freeable(cairo_region_create_rectangle(&clip_rect));
         }
 
+        auto region = vte::take_freeable(cairo_region_create());
+        for (auto i = list->num_rectangles - 1; i >= 0; --i) {
+                auto rect = &list->rectangles[i];
 
-        region = cairo_region_create ();
-        for (i = list->num_rectangles - 1; i >= 0; --i) {
-                cairo_rectangle_t *rect = &list->rectangles[i];
                 cairo_rectangle_int_t clip_rect;
-
                 clip_rect.x = floor (rect->x);
                 clip_rect.y = floor (rect->y);
                 clip_rect.width = ceil (rect->x + rect->width) - clip_rect.x;
                 clip_rect.height = ceil (rect->y + rect->height) - clip_rect.y;
 
-                if (cairo_region_union_rectangle (region, &clip_rect) != CAIRO_STATUS_SUCCESS) {
-                        cairo_region_destroy (region);
-                        region = NULL;
+                if (cairo_region_union_rectangle(region.get(), &clip_rect) != CAIRO_STATUS_SUCCESS) {
+                        region.reset();
                         break;
                 }
         }
 
-        cairo_rectangle_list_destroy (list);
         return region;
 }
+
+#endif /* VTE_GTK == 3 */
 
 bool
 Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
@@ -9652,15 +9778,11 @@ Terminal::set_rewrap_on_resize(bool rewrap)
 void
 Terminal::update_cursor_blinks()
 {
-        bool blink = false;
+        auto blink = false;
 
         switch (decscusr_cursor_blink()) {
         case CursorBlinkMode::eSYSTEM:
-                gboolean v;
-                g_object_get(gtk_widget_get_settings(m_widget),
-                                                     "gtk-cursor-blink",
-                                                     &v, nullptr);
-                blink = v != FALSE;
+                blink = m_cursor_blinks_system;
                 break;
         case CursorBlinkMode::eON:
                 blink = true;
@@ -10507,6 +10629,7 @@ Terminal::invalidate_dirty_rects_and_process_updates()
 	if (G_UNLIKELY (!m_update_rects->len))
 		return false;
 
+#if VTE_GTK == 3
         auto region = cairo_region_create();
         auto n_rects = m_update_rects->len;
         for (guint i = 0; i < n_rects; i++) {
@@ -10524,6 +10647,9 @@ Terminal::invalidate_dirty_rects_and_process_updates()
 	/* and perform the merge with the window visible area */
         gtk_widget_queue_draw_region(m_widget, region);
 	cairo_region_destroy (region);
+#elif VTE_GTK == 4
+        gtk_widget_queue_draw(m_widget); // FIXMEgtk4
+#endif
 
 	return true;
 }
@@ -10928,7 +11054,7 @@ Terminal::set_input_enabled (bool enabled)
                 if (m_has_focus)
                         widget()->im_focus_in();
 
-                gtk_style_context_remove_class (context, GTK_STYLE_CLASS_READ_ONLY);
+                gtk_style_context_remove_class (context, VTE_STYLE_CLASS_READ_ONLY);
         } else {
                 im_reset();
                 if (m_has_focus)
@@ -10937,7 +11063,7 @@ Terminal::set_input_enabled (bool enabled)
                 disconnect_pty_write();
                 _vte_byte_array_clear(m_outgoing);
 
-                gtk_style_context_add_class (context, GTK_STYLE_CLASS_READ_ONLY);
+                gtk_style_context_add_class (context, VTE_STYLE_CLASS_READ_ONLY);
         }
 
         return true;

@@ -22,6 +22,7 @@
 #include "widget.hh"
 #include "vteinternal.hh"
 
+#include <new>
 #include <stdexcept>
 #include <utility>
 
@@ -42,18 +43,28 @@ Clipboard::Clipboard(Widget& delegate,
 
         switch (type) {
         case ClipboardType::PRIMARY:
-                m_clipboard = vte::glib::make_ref(gtk_clipboard_get_for_display(display,
-                                                                                GDK_SELECTION_PRIMARY));
+                m_clipboard = vte::glib::make_ref
+#if VTE_GTK == 3
+                        (gtk_clipboard_get_for_display(display, GDK_SELECTION_PRIMARY));
+#elif VTE_GTK == 4
+                        (gdk_display_get_primary_clipboard(display));
+#endif
                 break;
         case ClipboardType::CLIPBOARD:
-                m_clipboard = vte::glib::make_ref(gtk_clipboard_get_for_display(display,
-                                                                                GDK_SELECTION_CLIPBOARD));
+                m_clipboard = vte::glib::make_ref
+#if VTE_GTK == 3
+                        (gtk_clipboard_get_for_display(display, GDK_SELECTION_CLIPBOARD));
+#elif VTE_GTK == 4
+                        (gdk_display_get_clipboard(display));
+#endif
                 break;
         }
 
         if (!m_clipboard)
                 throw std::runtime_error{"Failed to create clipboard"};
 }
+
+#if VTE_GTK == 3
 
 class Clipboard::Offer {
 public:
@@ -75,7 +86,7 @@ public:
         {
                 auto [targets, n_targets] = targets_for_format(format);
 
-                // Transfers clipboardship of *offer to the clipboard. If setting succeeds,
+                // Transfers ownership of *offer to the clipboard. If setting succeeds,
                 // the clipboard will own *offer until the clipboard_data_clear_cb
                 // callback is called.
                 // If setting the clipboard fails, the clear callback will never be
@@ -150,8 +161,8 @@ private:
                          guint info,
                          void* user_data) noexcept
         {
-                if (info != vte::to_integral(ClipboardFormat::TEXT) &&
-                    info != vte::to_integral(ClipboardFormat::HTML))
+                if (int(info) != vte::to_integral(ClipboardFormat::TEXT) &&
+                    int(info) != vte::to_integral(ClipboardFormat::HTML))
                         return;
 
                 reinterpret_cast<Offer*>(user_data)->dispatch_get(ClipboardFormat(info), data);
@@ -161,11 +172,10 @@ private:
         clipboard_clear_cb(GtkClipboard* clipboard,
                            void* user_data) noexcept
         {
-                // Assume ownership of the Request, and delete it after dispatching the callback
+                // Assume ownership of the Offer, and delete it after dispatching the callback
                 auto offer = std::unique_ptr<Offer>{reinterpret_cast<Offer*>(user_data)};
                 offer->dispatch_clear();
         }
-
 
         static std::pair<GtkTargetEntry*, int>
         targets_for_format(ClipboardFormat format)
@@ -227,6 +237,8 @@ private:
 
 }; // class Clipboard::Offer
 
+#endif /* VTE_GTK == 3 */
+
 class Clipboard::Request {
 public:
         Request(Clipboard& clipboard,
@@ -244,10 +256,12 @@ public:
 
         static void run(std::unique_ptr<Request> request) noexcept
         {
+#if VTE_GTK == 3
                 auto platform = request->clipboard().platform();
                 gtk_clipboard_request_text(platform,
                                            text_received_cb,
                                            request.release());
+#endif /* VTE_GTK */
         }
 
 private:
@@ -255,6 +269,7 @@ private:
         RequestDoneCallback m_done_callback;
         RequestFailedCallback m_failed_callback;
 
+#if VTE_GTK == 3
         void dispatch(char const *text) noexcept
         try
         {
@@ -278,6 +293,8 @@ private:
                 request->dispatch(text);
         }
 
+#endif /* VTE_GTK */
+
 }; // class Clipboard::Request
 
 void
@@ -285,13 +302,17 @@ Clipboard::offer_data(ClipboardFormat format,
                       OfferGetCallback get_callback,
                       OfferClearCallback clear_callback) /* throws */
 {
+#if VTE_GTK == 3
         Offer::run(std::make_unique<Offer>(*this, get_callback, clear_callback), format);
+#endif
 }
 
 void
 Clipboard::set_text(std::string_view const& text) noexcept
 {
+#if VTE_GTK == 3
         gtk_clipboard_set_text(platform(), text.data(), text.size());
+#endif
 }
 
 void

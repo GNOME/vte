@@ -91,8 +91,6 @@ gboolean vte_pty_set_utf8 (VtePty *pty,
                            gboolean utf8,
                            GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(VtePty, g_object_unref)
-
 _VTE_PUBLIC
 void vte_pty_spawn_async(VtePty *pty,
                          const char *working_directory,
@@ -105,7 +103,7 @@ void vte_pty_spawn_async(VtePty *pty,
                          int timeout,
                          GCancellable *cancellable,
                          GAsyncReadyCallback callback,
-                         gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
+                         gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 3);
 
 _VTE_PUBLIC
 void vte_pty_spawn_with_fds_async(VtePty *pty,
@@ -123,12 +121,14 @@ void vte_pty_spawn_with_fds_async(VtePty *pty,
                                   int timeout,
                                   GCancellable *cancellable,
                                   GAsyncReadyCallback callback,
-                                  gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(3);
+                                  gpointer user_data) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 3);
 
 _VTE_PUBLIC
 gboolean vte_pty_spawn_finish(VtePty *pty,
                               GAsyncResult *result,
                               GPid *child_pid /* out */,
-                              GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
+                              GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(VtePty, g_object_unref)
 
 G_END_DECLS

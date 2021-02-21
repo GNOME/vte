@@ -44,14 +44,43 @@ if get_option('gtk3')
   )
 
   app_gtk3_sources = app_sources + app_gtk3_resource_sources
-  app_gtk3_cppflags = app_common_cppflags + gtk3_version_cppflags
+  app_gtk3_cppflags = app_common_cppflags + gtk3_version_cppflags + ['-DVTE_GTK=3',]
   app_gtk3_deps = app_common_deps + [libvte_gtk3_dep]
 
   app_gtk3 = executable(
-    'vte-' + vte_gtk3_api_version,
+    'vte-' + vte_api_version,
     app_gtk3_sources,
     dependencies: app_gtk3_deps,
     cpp_args: app_gtk3_cppflags,
+    include_directories: top_inc,
+    install: true,
+  )
+endif
+
+if get_option('gtk4')
+
+  app_gtk4_resource_data = files(
+    'appmenu-gtk4.ui',
+    'search-popover-gtk4.ui',
+    'window-gtk4.ui',
+  )
+
+  app_gtk4_resource_sources = gnome.compile_resources(
+    'resources-gtk4.cc',
+    'app-gtk4.gresource.xml',
+    c_name: 'app',
+    dependencies: app_gtk4_resource_data,
+  )
+
+  app_gtk4_sources = app_sources + [app_gtk4_resource_sources,]
+  app_gtk4_cppflags = app_common_cppflags + gtk4_version_cppflags + ['-DVTE_GTK=4',]
+  app_gtk4_deps = app_common_deps + [libvte_gtk4_dep]
+
+  app_gtk4 = executable(
+    'vte-' + vte_api_version + '-gtk4',
+    app_gtk4_sources,
+    dependencies: app_gtk4_deps,
+    cpp_args: app_gtk4_cppflags,
     include_directories: top_inc,
     install: true,
   )

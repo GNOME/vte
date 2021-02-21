@@ -71,7 +71,7 @@ char *vte_regex_substitute(VteRegex *regex,
                            const char *subject,
                            const char *replacement,
                            guint32 flags,
-                           GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2) _VTE_GNUC_NONNULL(3) G_GNUC_MALLOC;
+                           GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2, 3) G_GNUC_MALLOC;
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteRegex, vte_regex_unref)
 

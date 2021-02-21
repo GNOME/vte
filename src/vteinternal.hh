@@ -89,9 +89,14 @@ namespace platform {
  * Holds a platform cursor. This is either a named cursor (string),
  * a reference to a GdkCursor*, or a cursor type.
  */
+#if VTE_GTK == 3
 using Cursor = std::variant<std::string,
                             vte::glib::RefPtr<GdkCursor>,
                             GdkCursorType>;
+#elif VTE_GTK == 4
+using Cursor = std::variant<std::string,
+                            vte::glib::RefPtr<GdkCursor>>;
+#endif
 
 } // namespace platform
 } // namespace vte
@@ -427,9 +432,10 @@ public:
                                               "cursor-blink-timer"};
         CursorBlinkMode m_cursor_blink_mode{CursorBlinkMode::eSYSTEM};
         bool m_cursor_blink_state{false};
-        bool m_cursor_blinks{false};           /* whether the cursor is actually blinking */
-        gint m_cursor_blink_cycle;          /* gtk-cursor-blink-time / 2 */
-        int m_cursor_blink_timeout{500};        /* gtk-cursor-blink-timeout */
+        bool m_cursor_blinks{false};        /* whether the cursor is actually blinking */
+        bool m_cursor_blinks_system{true};  /* gtk-cursor-blink */
+        gint m_cursor_blink_cycle{1000};    /* gtk-cursor-blink-time / 2 */
+        int m_cursor_blink_timeout{500};    /* gtk-cursor-blink-timeout */
         gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
         bool m_has_focus{false};            /* is the widget focused */
 
@@ -691,7 +697,11 @@ public:
         double m_undercurl_thickness{VTE_LINE_WIDTH};
 
         /* Style stuff */
+#if VTE_GTK == 3
         GtkBorder m_padding{1, 1, 1, 1};
+#elif VTE_GTK == 4
+        GtkBorder m_padding{0, 0, 0, 0};
+#endif
         auto padding() const noexcept { return &m_padding; }
 
         vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
@@ -806,6 +816,9 @@ public:
 
         /* The allocation of the widget */
         cairo_rectangle_int_t m_allocated_rect;
+
+        constexpr auto const* allocated_rect() const noexcept { return &m_allocated_rect; }
+
         /* The usable view area. This is the allocation, minus the padding, but
          * including additional right/bottom area if the allocation is not grid aligned.
          */
@@ -872,17 +885,32 @@ public:
         void widget_mouse_enter(vte::platform::MouseEvent const& event);
         void widget_mouse_leave(vte::platform::MouseEvent const& event);
         bool widget_mouse_scroll(vte::platform::ScrollEvent const& event);
+#if VTE_GTK == 3
         void widget_draw(cairo_t *cr);
-        void widget_get_preferred_width(int *minimum_width,
-                                        int *natural_width);
-        void widget_get_preferred_height(int *minimum_height,
-                                         int *natural_height);
-        void widget_size_allocate(GtkAllocation *allocation);
+#endif /* VTE_GTK == 3 */
+        void widget_measure_width(int *minimum_width,
+                                  int *natural_width);
+        void widget_measure_height(int *minimum_height,
+                                   int *natural_height);
+
+#if VTE_GTK == 3
+        void widget_size_allocate(int x,
+                                  int y,
+                                  int width,
+                                  int height,
+                                  int baseline);
+#elif VTE_GTK == 4
+        void widget_size_allocate(int width,
+                                  int height,
+                                  int baseline);
+#endif /* VTE_GTK */
 
         void set_blink_settings(bool blink,
                                 int blink_time,
                                 int blink_timeout) noexcept;
 
+        void draw(cairo_t *cr,
+                  cairo_region_t const* region);
         void paint_cursor();
         void paint_im_preedit_string();
         void draw_cells(vte::view::DrawingContext::TextRequest* items,
@@ -1119,10 +1147,32 @@ public:
         bool rowcol_from_event(vte::platform::MouseEvent const& event,
                                long *column,
                                long *row);
+#if VTE_GTK == 4
+        bool rowcol_at(double x,
+                       double y,
+                       long* column,
+                       long* row);
+#endif
 
         char *hyperlink_check(vte::platform::MouseEvent const& event);
+        char *hyperlink_check_at(double x,
+                                 double y);
+        char *hyperlink_check(vte::grid::column_t column,
+                              vte::grid::row_t row);
 
         bool regex_match_check_extra(vte::platform::MouseEvent const& event,
+                                     vte::base::Regex const** regexes,
+                                     size_t n_regexes,
+                                     uint32_t match_flags,
+                                     char** matches);
+        bool regex_match_check_extra_at(double x,
+                                        double y,
+                                        vte::base::Regex const** regexes,
+                                        size_t n_regexes,
+                                        uint32_t match_flags,
+                                        char** matches);
+        bool regex_match_check_extra(vte::grid::column_t column,
+                                     vte::grid::row_t row,
                                      vte::base::Regex const** regexes,
                                      size_t n_regexes,
                                      uint32_t match_flags,
@@ -1133,12 +1183,17 @@ public:
                                 int *tag);
         char *regex_match_check(vte::platform::MouseEvent const& event,
                                 int *tag);
+        char *regex_match_check_at(double x,
+                                   double y,
+                                   int *tag);
         void regex_match_remove(int tag) noexcept;
         void regex_match_remove_all() noexcept;
         void regex_match_set_cursor(int tag,
                                     GdkCursor *gdk_cursor);
+        #if VTE_GTK == 3
         void regex_match_set_cursor(int tag,
                                     GdkCursorType cursor_type);
+        #endif
         void regex_match_set_cursor(int tag,
                                     char const* cursor_name);
         bool match_rowcol_to_offset(vte::grid::column_t column,

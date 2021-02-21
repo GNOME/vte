@@ -19,7 +19,7 @@ cataloguedir =  gladedir / 'catalogs'
 pixmapdir = gladedir / 'pixmaps'
 
 catalog_conf = configuration_data()
-catalog_conf.set('VTE_API_VERSION', vte_gtk3_api_version)
+catalog_conf.set('VTE_API_VERSION', vte_api_version)
 catalog_conf.set('VERSION', vte_version)
 
 configure_file(

@@ -34,7 +34,10 @@ project(
 gtk3_req_version          = '3.20.0'
 gtk3_min_req_version      = '3.18'
 gtk3_max_allowed_version  = '3.20'
-gtk4_req_version          = '4.0.0'
+
+gtk4_req_version          = '4.0.1'
+gtk4_min_req_version      = '4.0'
+gtk4_max_allowed_version  = '4.0'
 
 fribidi_req_version       = '1.0.0'
 gio_req_version           = '2.52.0'
@@ -54,11 +57,8 @@ vte_api_minor_version = 91
 vte_api_version = '@0@.@1@'.format(vte_api_major_version, vte_api_minor_version)
 vte_api_name = 'vte-@0@.@1@'.format(vte_api_major_version, vte_api_minor_version)
 
-vte_gtk3_api_version = '@0@.@1@'.format(vte_api_major_version, vte_api_minor_version)
-vte_gtk4_api_version = '@0@.@1@'.format(vte_api_major_version + 1, vte_api_minor_version)
-
-vte_gtk3_api_name = 'vte-' + vte_gtk3_api_version
-vte_gtk4_api_name = 'vte-' + vte_gtk4_api_version
+vte_gtk3_api_name = 'vte-' + vte_api_version
+vte_gtk4_api_name = 'vte-' + vte_api_version + '-gtk4'
 
 vte_gtk3_api_path = vte_gtk3_api_name / 'vte'
 vte_gtk4_api_path = vte_gtk4_api_name / 'vte'
@@ -140,6 +140,17 @@ if get_option('gtk3')
   ver = gtk3_max_allowed_version.split('.')
   gtk3_version_cppflags += '-DGDK_VERSION_MAX_ALLOWED=(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))'
 endif
+
+if get_option('gtk4')
+  gtk4_version_cppflags = []
+
+  ver = gtk4_min_req_version.split('.')
+  gtk4_version_cppflags += '-DGDK_VERSION_MIN_REQUIRED=(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))'
+
+  ver = gtk4_max_allowed_version.split('.')
+  gtk4_version_cppflags += '-DGDK_VERSION_MAX_ALLOWED=(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))'
+endif
+
 
 # FIXME AC_USE_SYSTEM_EXTENSIONS also supported non-gnu systems
 config_h.set10('_GNU_SOURCE', true)
@@ -427,7 +438,7 @@ else
 endif
 
 if get_option('gtk4')
-  gtk4_dep = dependency('gtk+-4.0', version: '>=' + gtk4_req_version)
+  gtk4_dep = dependency('gtk4', version: '>=' + gtk4_req_version)
 else
   gtk4_dep = dependency('', required: false)
 endif
@@ -462,6 +473,10 @@ subdir('bindings')
 subdir('po')
 
 if get_option('docs')
+  assert(meson.version().version_compare('>= 0.55.0'),
+    'meson >= 0.55 is required to build docs'
+  )
+
   subdir('doc/reference')
 endif
 
@@ -470,8 +485,7 @@ endif
 makefile_conf = configuration_data()
 makefile_conf.set('srcdir', meson.current_source_dir())
 makefile_conf.set('builddir', meson.current_build_dir())
-makefile_conf.set('vte_gtk3_api_version', vte_gtk3_api_version)
-makefile_conf.set('vte_gtk4_api_version', vte_gtk4_api_version)
+makefile_conf.set('vte_api_version', vte_api_version)
 
 configure_file(
   input: 'Makefile.meson',
@@ -515,5 +529,9 @@ output += '  Vala:         ' + get_option('vapi').to_string() + '\n'
 output += '\n'
 output += '  Prefix:       ' + get_option('prefix') + '\n'
 message(output)
+
+if get_option('gtk4')
+  warning('GTK+ 4.0 support is experimental; API and ABI are subject to change without notice\n')
+endif
 
 # Done
