@@ -30,9 +30,9 @@ project(
 # Compiler requirements
 
 c_req_std                 = 'gnu11'
-cxx_req_std               = 'gnu++17'
-gxx_req_version           = '7.0'
-clangxx_req_version       = '8.0'
+cxx_req_std               = 'gnu++20'
+gxx_req_version           = '10.0'
+clangxx_req_version       = '11.0'
 
 # Version requirements
 
