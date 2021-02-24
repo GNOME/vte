@@ -21,15 +21,20 @@ project(
   license: ['LGPL-3.0-or-later', 'GPL-3.0-or-later'],
   default_options: [
     'buildtype=release',
-    'c_std=gnu11',
-    'cpp_std=gnu++17',
     'warning_level=0',
     'b_ndebug=false',
   ],
   meson_version: '>= 0.50.0',
 )
 
-# Requirements
+# Compiler requirements
+
+c_req_std                 = 'gnu11'
+cxx_req_std               = 'gnu++17'
+gxx_req_version           = '7.0'
+clangxx_req_version       = '8.0'
+
+# Version requirements
 
 gtk3_req_version          = '3.20.0'
 gtk3_min_req_version      = '3.18'
@@ -108,8 +113,53 @@ pkg = import('pkgconfig')
 
 # Compilers
 
+# When using 'c_std' / 'cpp_std' in the default_options of project(),
+# then later changing that requirement there, meson will *not* update
+# the actual std used. E.g.
+# '''
+# project(..., default_options: ['cpp_std=gnu++17'])
+# assert(get_option('cpp_std') == 'gnu++17')
+# '''
+# Now change both of the '17' to '20' and build; meson will update the
+# build files and trip on the assert since it still uses cpp_std=gnu++17.
+# And it allows the user to override the c/cpp_std option from the command
+# line.
+#
+# Therefore, instead of using default_options, add the required -std=...
+# options to the compiler options directly.
+
+# C compiler
+
 cc = meson.get_compiler('c')
+
+c_std_opt = '-std=' + c_req_std
+assert(cc.has_argument(c_std_opt), 'option ' + c_std_opt + ' not supported by ' + cc.get_id())
+add_project_arguments(c_std_opt, language: 'c')
+
+# C++ compiler
+
 cxx = meson.get_compiler('cpp')
+
+cxx_std_opt = '-std=' + cxx_req_std
+assert(cxx.has_argument(cxx_std_opt), 'option ' + cxx_std_opt + ' not supported by ' + cxx.get_id())
+add_project_arguments(cxx_std_opt, language: 'cpp')
+
+# The above only checks that the compiler supports the given -std option,
+# but not that the compiler really supports that C++ standard version.
+# Do a simple version check based on
+# https://gcc.gnu.org/projects/cxx-status.html and
+# https://clang.llvm.org/cxx_status.html
+# for the C++ features that vte actually uses.
+
+if cxx.get_id() == 'gcc'
+  assert(cxx.version().version_compare('>=' + gxx_req_version), 'needs g++ >= ' + gxx_req_version + ' for ' + cxx_req_std + ' support')
+endif
+
+if cxx.get_id() == 'clang'
+  assert(cxx.version().version_compare('>=' + clangxx_req_version), 'needs clang++ >= ' + clangxx_req_version + ' for ' + cxx_req_std + ' support')
+endif
+
+# Include directories
 
 top_inc = include_directories('.')
 
@@ -236,20 +286,6 @@ foreach func: check_math_functions
 endforeach
 
 # Compiler
-
-# Meson has a misfeature where it allows the user to override the -std option
-# for the C/C++ compiler. Disallow that.
-
-assert(get_option('c_std') == 'gnu11', 'cannot override C std version')
-assert(get_option('cpp_std') == 'gnu++17', 'cannot override C++ std version')
-
-# Meson only checks that -std supports the given string, but *not* that
-# the compiler really supports that C++ standard version. Do a simple version
-# check based on https://gcc.gnu.org/projects/cxx-status.html#cxx17
-
-if cxx.get_id() == 'gcc'
-  assert(cxx.version().version_compare('>= 7.0'), 'needs G++ >= 7 for C++17 support')
-endif
 
 # Asserts must not be disabled
 
