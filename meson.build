@@ -319,6 +319,7 @@ compiler_flags_common = [
   '-Wmissing-include-dirs',
   '-Wmissing-noreturn',
   '-Wno-address-of-packed-member',
+  '-Wno-c99-designator',
   '-Wno-missing-field-initializers',
   '-Wno-packed',
   '-Wno-switch-enum',
