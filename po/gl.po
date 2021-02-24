@@ -5,16 +5,16 @@
 # Ignacio Casal Quinteiro <icq@cvs.gnome.org>, 2007, 2008.
 # Mancomún - Centro de Referencia e Servizos de Software Libre <g11n@mancomun.org>, 2009.
 # Fran Diéguez <frandieguez@ubuntu.com>, 2010, 2011.
-# Fran Dieguez <frandieguez@gnome.gl>, 2014-2020.
+# Fran Dieguez <frandieguez@gnome.org>, 2014-2020.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: gl\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"POT-Creation-Date: 2021-02-22 17:16+0000\n"
 "PO-Revision-Date: 2020-08-04 09:31+0200\n"
-"Last-Translator: Fran Dieguez <frandieguez@gnome.gl>\n"
-"Language-Team: Galician <Proxecto Trasno <proxecto@trasno.gal>>\n"
+"Last-Translator: Fran Dieguez <frandieguez@gnome.org>\n"
+"Language-Team: Proxecto Trasno <proxecto@trasno.gal>\n"
 "Language: gl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,15 +22,15 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "X-Generator: Gtranslator 3.36.0\n"
 
-#: src/vte.cc:7763
+#: src/vte.cc:7710
 msgid "WARNING"
 msgstr "AVISO"
 
-#: src/vte.cc:7765
+#: src/vte.cc:7712
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GnuTLS non está activado; os datos escribiranse no disco sen cifrar!"
 
-#: src/spawn.cc:111
+#: src/spawn.cc:110
 #, c-format
 msgid "Failed to set pipe nonblocking: %s"
 msgstr "Produciuse un fallo ao estabelecer a tubería non bloqueante: %s"
@@ -40,26 +40,25 @@ msgstr "Produciuse un fallo ao estabelecer a tubería non bloqueante: %s"
 msgid "poll error: %s"
 msgstr "erro de consulta: %s"
 
-#: src/spawn.cc:161
+#: src/spawn.cc:162
 msgid "Operation timed out"
 msgstr "Expirou o tempo da operación"
 
-#: src/spawn.cc:171
+#: src/spawn.cc:172
 msgid "Operation was cancelled"
 msgstr "Cancelouse a operación"
 
-#: src/spawn.cc:189
+#: src/spawn.cc:190
 #, c-format
-#| msgid "Error reading from child: %s."
 msgid "Failed to read from child pipe (%s)"
 msgstr "Produciuse un erro ao ler desde a tubería filla (%s)"
 
-#: src/spawn.cc:576
+#: src/spawn.cc:620
 #, c-format
 msgid "Failed to change to directory “%s”: %s"
 msgstr "Produciuse un fallo ao cambiar ao directorio «%s»: %s"
 
-#: src/spawn.cc:645
+#: src/spawn.cc:689
 #, c-format
 msgid "Failed to execute child process “%s”: "
 msgstr "Produciuse un fallo ao executar o proceso fillo «%s»: "
