@@ -615,9 +615,9 @@ parser_transition(vte_parser_t* parser,
 
 #endif // (inline) functions or macros
 
-/**
- * vte_parser_init() - Initialise parser object
- * @parser: the struct vte_parser
+/*
+ * vte_parser_init:
+ * @parser:
  */
 void
 vte_parser_init(vte_parser_t* parser)
@@ -627,8 +627,8 @@ vte_parser_init(vte_parser_t* parser)
 }
 
 /**
- * vte_parser_deinit() - Deinitialises parser object
- * @parser: parser object to deinitialise
+ * vte_parser_deinit:
+ * @parser:
  */
 void
 vte_parser_deinit(vte_parser_t* parser)

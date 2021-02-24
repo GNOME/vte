@@ -116,6 +116,7 @@ CFILE_GLOB = \
 EXTRA_HFILES =
 
 IGNORE_HFILES = \
+	box_drawing.h \
 	buffer.h \
 	caps.hh \
 	cell.hh \
@@ -141,6 +142,7 @@ IGNORE_HFILES = \
 	parser-string.hh \
 	ring.hh \
 	tabstops.hh \
+	vteaccess.h \
 	vteconv.h \
 	vtedraw.h \
 	vteinternal.hh \

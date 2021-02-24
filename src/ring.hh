@@ -44,8 +44,10 @@ namespace vte {
 
 namespace base {
 
-/**
- * ring: A scrollback buffer ring
+/*
+ * Ring:
+ *
+ * A scrollback buffer ring.
  */
 class Ring {
 public:

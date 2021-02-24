@@ -1322,7 +1322,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal::window-title-changed:
          * @vteterminal: the object which received the signal
          *
-         * Emitted when the terminal's %window_title field is modified.
+         * Emitted when the #VteTerminal:window-title property is modified.
          */
         signals[SIGNAL_WINDOW_TITLE_CHANGED] =
                 g_signal_new(I_("window-title-changed"),
@@ -2015,7 +2015,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          * VteTerminal:cursor-blink-mode:
          *
          * Sets whether or not the cursor will blink. Using %VTE_CURSOR_BLINK_SYSTEM
-         * will use the #GtkSettings::gtk-cursor-blink setting.
+         * will use the #GtkSettings:gtk-cursor-blink setting.
          */
         pspecs[PROP_CURSOR_BLINK_MODE] =
                 g_param_spec_enum ("cursor-blink-mode", NULL, NULL,
@@ -2538,7 +2538,7 @@ vte_get_user_shell (void) noexcept
 }
 
 /**
- * vte_set_test_flags: (skip):
+ * vte_set_test_flags: (skip)
  * @flags: flags
  *
  * Sets test flags. This function is only useful for implementing
@@ -2770,7 +2770,7 @@ catch (...)
  *
  * Returns: -1
  *
- * Deprecated: 0.46: Use vte_terminal_match_add_regex() or vte_terminal_match_add_regex_full() instead.
+ * Deprecated: 0.46: Use vte_terminal_match_add_regex() instead.
  */
 int
 vte_terminal_match_add_gregex(VteTerminal *terminal,
@@ -2792,7 +2792,8 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
  * user moves the mouse cursor over a section of displayed text which matches
  * this expression, the text will be highlighted.
  *
- * Note that @regex should have been created using the %PCRE2_MULTILINE flag.
+ * Note that @regex should have been created using the <literal>PCRE2_MULTILINE</literal>
+ * flag.
  *
  * Returns: an integer associated with this expression
  *
@@ -2992,7 +2993,8 @@ catch (...)
  * %NULL is stored there.  Each non-%NULL element of @matches should be freed with
  * g_free().
  *
- * Note that the regexes in @regexes should have been created using the %PCRE2_MULTILINE flag.
+ * Note that the regexes in @regexes should have been created using the
+ * <literal>PCRE2_MULTILINE</literal> flag.
  *
  * Returns: %TRUE iff any of the regexes produced a match
  *
@@ -3233,7 +3235,8 @@ catch (...)
  *
  * Sets the regex to search for. Unsets the search regex when passed %NULL.
  *
- * Note that @regex should have been created using the %PCRE2_MULTILINE flag.
+ * Note that @regex should have been created using the
+ * <literal>PCRE2_MULTILINE</literal> flag.
  *
  * Since: 0.46
  */
@@ -3716,7 +3719,7 @@ spawn_async_cb(GObject *source,
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
- * @user_data: (closure callback): user data for @callback, or %NULL
+ * @user_data: (nullable) (closure callback): user data for @callback, or %NULL
  *
  * A convenience function that wraps creating the #VtePty and spawning
  * the child process on it. See vte_pty_new_sync(), vte_pty_spawn_with_fds_async(),
@@ -3831,7 +3834,7 @@ catch (...)
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #VteTerminalSpawnAsyncCallback, or %NULL
- * @user_data: (closure callback): user data for @callback, or %NULL
+ * @user_data: (nullable) (closure callback): user data for @callback, or %NULL
  *
  * A convenience function that wraps creating the #VtePty and spawning
  * the child process on it. Like vte_terminal_spawn_with_fds_async(),
@@ -3984,7 +3987,7 @@ warn_if_callback(VteSelectionFunc func) noexcept
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -3995,7 +3998,7 @@ warn_if_callback(VteSelectionFunc func) noexcept
  * This method is unaware of BiDi. The columns returned in @attributes are
  * logical columns.
  *
- * Returns: (transfer full): a newly allocated text string, or %NULL.
+ * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
 char *
 vte_terminal_get_text(VteTerminal *terminal,
@@ -4056,7 +4059,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * @end_col: last column to search for data
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -4069,7 +4072,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * This method is unaware of BiDi. The columns passed in @start_col and @end_row,
  * and returned in @attributes are logical columns.
  *
- * Returns: (transfer full): a newly allocated text string, or %NULL.
+ * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
 char *
 vte_terminal_get_text_range(VteTerminal *terminal,
@@ -5976,7 +5979,7 @@ catch (...)
 /**
  * vte_terminal_set_clear_background:
  * @terminal: a #VteTerminal
- * @setting:
+ * @setting: whether to clear the background
  *
  * Sets whether to paint the background with the background colour.
  * The default is %TRUE.
@@ -6003,7 +6006,7 @@ catch (...)
 /**
  * vte_terminal_get_color_background_for_draw:
  * @terminal: a #VteTerminal
- * @color: (out): a location to store a #GdbRGBA color
+ * @color: (out): a location to store a #GdkRGBA color
  *
  * Returns the background colour, as used by @terminal when
  * drawing the background, which may be different from

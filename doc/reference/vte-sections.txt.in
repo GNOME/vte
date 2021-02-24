@@ -88,8 +88,8 @@ vte_terminal_set_word_char_exceptions
 vte_terminal_get_word_char_exceptions
 vte_terminal_set_input_enabled
 vte_terminal_get_input_enabled
-vte_terminal_get_sixel_enabled
-vte_terminal_set_sixel_enabled
+vte_terminal_get_enable_sixel
+vte_terminal_set_enable_sixel
 vte_terminal_write_contents_sync
 vte_terminal_search_find_next
 vte_terminal_search_find_previous
@@ -181,6 +181,9 @@ vte_terminal_feed_child_binary
 <SUBSECTION Private>
 VteCharAttributes
 VteTerminalClassPrivate
+vte_set_test_flags
+VTE_TEST_FLAGS_ALL
+VTE_TEST_FLAGS_NONE
 </SECTION>
 
 <SECTION>
@@ -193,12 +196,16 @@ vte_regex_new_for_match
 vte_regex_new_for_search
 vte_regex_jit
 vte_regex_substitute
+VteRegexError
 
 <SUBSECTION Standard>
 VTE_TYPE_REGEX
 vte_regex_get_type
+VTE_TYPE_REGEX_ERROR
+vte_regex_error_get_type
 VTE_REGEX_ERROR
 vte_regex_error_quark
+VTE_REGEX_FLAGS_DEFAULT
 </SECTION>
 
 <SECTION>
@@ -213,7 +220,6 @@ vte_pty_child_setup
 vte_pty_get_fd
 vte_pty_set_size
 vte_pty_get_size
-vte_pty_set_term
 vte_pty_set_utf8
 
 <SUBSECTION>

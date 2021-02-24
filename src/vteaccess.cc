@@ -15,14 +15,6 @@
  * along with this library.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*
- * SECTION: vte-access
- * @short_description: Accessibility peer of #VteTerminal
- *
- * The accessibility peer of a #VteTerminal, implementing GNOME's accessibility
- * framework.
- */
-
 #include "config.h"
 
 #include <atk/atk.h>

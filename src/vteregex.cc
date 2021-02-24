@@ -113,8 +113,8 @@ catch (...)
  * See man:pcre2pattern(3) for information
  * about the supported regex language.
  *
- * The regex will be compiled using %PCRE2_UTF and possibly other flags, in
- * addition to the flags supplied in @flags.
+ * The regex will be compiled using <literal>PCRE2_UTF</literal> and
+ * possibly other flags, in addition to the flags supplied in @flags.
  *
  * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
  */
@@ -151,8 +151,8 @@ catch (...)
  * See man:pcre2pattern(3) for information
  * about the supported regex language.
  *
- * The regex will be compiled using %PCRE2_UTF and possibly other flags, in
- * addition to the flags supplied in @flags.
+ * The regex will be compiled using <literal>PCRE2_UTF</literal> and
+ * possibly other flags, in addition to the flags supplied in @flags.
  *
  * Returns: (transfer full): a newly created #VteRegex, or %NULL with @error filled in
  */
@@ -178,6 +178,8 @@ catch (...)
 /**
  * vte_regex_jit:
  * @regex: a #VteRegex
+ * @flags: PCRE2 JIT flags, or 0
+ * @error: (nullable): return location for a #GError, or %NULL
  *
  * If the platform supports JITing, JIT compiles @regex.
  *
@@ -224,7 +226,7 @@ _vte_regex_has_multiline_compile_flag(VteRegex *regex)
  * @flags: PCRE2 match flags
  * @error: (nullable): return location for a #GError, or %NULL
  *
- * See man:pcre2api(3) on pcre2_substitute() for more information.
+ * See man:pcre2api(3) and man:pcre2_substitute(3) for more information.
  *
  * Returns: (transfer full): the substituted string, or %NULL
  *   if an error occurred

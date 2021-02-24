@@ -151,7 +151,7 @@ catch (...)
  * @error: (allow-none): return location to store a #GError, or %NULL
  *
  * Attempts to resize the pseudo terminal's window size.  If successful, the
- * OS kernel will send #SIGWINCH to the child process group.
+ * OS kernel will send <literal>SIGWINCH</literal> to the child process group.
  *
  * If setting the window size failed, @error will be set to a #GIOError.
  *
@@ -503,8 +503,9 @@ vte_pty_error_quark(void) noexcept
  * Note that you should set the PTY's size using vte_pty_set_size() before
  * spawning the child process, so that the child process has the correct
  * size from the start instead of starting with a default size and then
- * shortly afterwards receiving a SIGWINCH signal. You should prefer
- * using vte_terminal_pty_new_sync() which does this automatically.
+ * shortly afterwards receiving a <literal>SIGWINCH</literal> signal. You
+ * should prefer using vte_terminal_pty_new_sync() which does this
+ * automatically.
  *
  * Returns: (transfer full): a new #VtePty, or %NULL on error with @error filled in
  */
@@ -735,7 +736,7 @@ _vte_pty_check_envv(char const* const* strv) noexcept
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #GAsyncReadyCallback, or %NULL
- * @user_data: (closure callback): user data for @callback
+ * @user_data: (nullable) closure callback): user data for @callback
  *
  * Starts the specified command under the pseudo-terminal @pty.
  * The @argv and @envv lists should be %NULL-terminated.
@@ -855,7 +856,7 @@ catch (...)
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #GAsyncReadyCallback, or %NULL
- * @user_data: (closure callback): user data for @callback
+ * @user_data: (nullable) (closure callback): user data for @callback
  *
  * Like vte_pty_spawn_with_fds_async(), except that this function does not
  * allow passing file descriptors to the child process. See vte_pty_spawn_with_fds_async()
