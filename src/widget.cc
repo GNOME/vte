@@ -27,7 +27,6 @@
 #include <stdexcept>
 #include <string>
 
-#include "cxx-utils.hh"
 #include "vtegtk.hh"
 #include "vteptyinternal.hh"
 #include "debug.h"
@@ -398,6 +397,10 @@ Widget::direction_changed(GtkTextDirection old_direction) noexcept
 void
 Widget::dispose() noexcept
 {
+#ifdef WITH_A11Y
+        m_terminal->set_accessible(nullptr);
+#endif
+
         if (m_terminal->terminate_child()) {
                 int status = W_EXITCODE(0, SIGKILL);
                 emit_child_exited(status);

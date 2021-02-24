@@ -95,10 +95,15 @@ struct _VteTerminalClass {
 	void (*increase_font_size)(VteTerminal* terminal);
 	void (*decrease_font_size)(VteTerminal* terminal);
 
+#if _VTE_GTK == 3
+	/*< private >*/
 	void (*text_modified)(VteTerminal* terminal);
 	void (*text_inserted)(VteTerminal* terminal);
 	void (*text_deleted)(VteTerminal* terminal);
 	void (*text_scrolled)(VteTerminal* terminal, gint delta);
+#endif /* _VTE_GTK == 3 */
+
+	/*< protected >*/
 	void (*copy_clipboard)(VteTerminal* terminal);
 	void (*paste_clipboard)(VteTerminal* terminal);
 

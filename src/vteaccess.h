@@ -48,4 +48,13 @@ struct _VteTerminalAccessibleClass {
 
 GType _vte_terminal_accessible_get_type(void);
 
+void _vte_terminal_accessible_text_modified(VteTerminalAccessible* accessible);
+
+void _vte_terminal_accessible_text_inserted(VteTerminalAccessible* accessible);
+
+void _vte_terminal_accessible_text_deleted (VteTerminalAccessible* accessible);
+
+void _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
+                                            long delta);
+
 G_END_DECLS

@@ -1255,10 +1255,12 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->increase_font_size = NULL;
 	klass->decrease_font_size = NULL;
 
+#if VTE_GTK == 3
 	klass->text_modified = NULL;
 	klass->text_inserted = NULL;
 	klass->text_deleted = NULL;
 	klass->text_scrolled = NULL;
+#endif /* VTE_GTK == 3 */
 
 	klass->copy_clipboard = vte_terminal_real_copy_clipboard;
 	klass->paste_clipboard = vte_terminal_real_paste_clipboard;
@@ -1777,90 +1779,73 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                    G_OBJECT_CLASS_TYPE(klass),
                                    g_cclosure_marshal_VOID__VOIDv);
 
+#if VTE_GTK == 3
+        /* These signals are deprecated and never emitted,
+         * but need to be kept for ABI compatibility on gtk3.
+         */
+
         /**
          * VteTerminal::text-modified:
-         * @vteterminal: the object which received the signal
+         * @vteterminal:
          *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
+         * Deprecated: 0.66: This signal is never emitted.
          */
-        signals[SIGNAL_TEXT_MODIFIED] =
-                g_signal_new(I_("text-modified"),
-                             G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
-                             G_STRUCT_OFFSET(VteTerminalClass, text_modified),
-                             NULL,
-                             NULL,
-                             g_cclosure_marshal_VOID__VOID,
-                             G_TYPE_NONE, 0);
-        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_MODIFIED],
-                                   G_OBJECT_CLASS_TYPE(klass),
-                                   g_cclosure_marshal_VOID__VOIDv);
+        g_signal_new(I_("text-modified"),
+                     G_OBJECT_CLASS_TYPE(klass),
+                     GSignalFlags(G_SIGNAL_RUN_LAST | G_SIGNAL_DEPRECATED),
+                     G_STRUCT_OFFSET(VteTerminalClass, text_modified),
+                     NULL,
+                     NULL,
+                     g_cclosure_marshal_VOID__VOID,
+                     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-inserted:
-         * @vteterminal: the object which received the signal
+         * @vteterminal:
          *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
+         * Deprecated: 0.66: This signal is never emitted.
          */
-        signals[SIGNAL_TEXT_INSERTED] =
-                g_signal_new(I_("text-inserted"),
-                             G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
-                             G_STRUCT_OFFSET(VteTerminalClass, text_inserted),
-                             NULL,
-                             NULL,
-                             g_cclosure_marshal_VOID__VOID,
-                             G_TYPE_NONE, 0);
-        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_INSERTED],
-                                   G_OBJECT_CLASS_TYPE(klass),
-                                   g_cclosure_marshal_VOID__VOIDv);
+        g_signal_new(I_("text-inserted"),
+                     G_OBJECT_CLASS_TYPE(klass),
+                     GSignalFlags(G_SIGNAL_RUN_LAST | G_SIGNAL_DEPRECATED),
+                     G_STRUCT_OFFSET(VteTerminalClass, text_inserted),
+                     NULL,
+                     NULL,
+                     g_cclosure_marshal_VOID__VOID,
+                     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-deleted:
-         * @vteterminal: the object which received the signal
+         * @vteterminal:
          *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
+         * Deprecated: 0.66: This signal is never emitted.
          */
-        signals[SIGNAL_TEXT_DELETED] =
-                g_signal_new(I_("text-deleted"),
-                             G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
-                             G_STRUCT_OFFSET(VteTerminalClass, text_deleted),
-                             NULL,
-                             NULL,
-                             g_cclosure_marshal_VOID__VOID,
-                             G_TYPE_NONE, 0);
-        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_DELETED],
-                                   G_OBJECT_CLASS_TYPE(klass),
-                                   g_cclosure_marshal_VOID__VOIDv);
+        g_signal_new(I_("text-deleted"),
+                     G_OBJECT_CLASS_TYPE(klass),
+                     GSignalFlags(G_SIGNAL_RUN_LAST | G_SIGNAL_DEPRECATED),
+                     G_STRUCT_OFFSET(VteTerminalClass, text_deleted),
+                     NULL,
+                     NULL,
+                     g_cclosure_marshal_VOID__VOID,
+                     G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::text-scrolled:
-         * @vteterminal: the object which received the signal
-         * @delta: the number of lines scrolled
+         * @vteterminal:
+         * @delta:
          *
-         * An internal signal used for communication between the terminal and
-         * its accessibility peer. May not be emitted under certain
-         * circumstances.
+         * Deprecated: 0.66: This signal is never emitted.
          */
-        signals[SIGNAL_TEXT_SCROLLED] =
-                g_signal_new(I_("text-scrolled"),
-                             G_OBJECT_CLASS_TYPE(klass),
-                             G_SIGNAL_RUN_LAST,
-                             G_STRUCT_OFFSET(VteTerminalClass, text_scrolled),
-                             NULL,
-                             NULL,
-                             g_cclosure_marshal_VOID__INT,
-                             G_TYPE_NONE, 1, G_TYPE_INT);
-        g_signal_set_va_marshaller(signals[SIGNAL_TEXT_SCROLLED],
-                                   G_OBJECT_CLASS_TYPE(klass),
-                                   g_cclosure_marshal_VOID__INTv);
+        g_signal_new(I_("text-scrolled"),
+                     G_OBJECT_CLASS_TYPE(klass),
+                     GSignalFlags(G_SIGNAL_RUN_LAST | G_SIGNAL_DEPRECATED),
+                     G_STRUCT_OFFSET(VteTerminalClass, text_scrolled),
+                     NULL,
+                     NULL,
+                     g_cclosure_marshal_VOID__INT,
+                     G_TYPE_NONE, 1, G_TYPE_INT);
+
+#endif /* VTE_GTK == 3 */
 
         /**
          * VteTerminal::copy-clipboard:

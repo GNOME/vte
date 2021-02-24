@@ -378,11 +378,21 @@ vte_terminal_accessible_maybe_emit_text_caret_moved(VteTerminalAccessible *acces
         }
 }
 
-/* A signal handler to catch "text-inserted/deleted/modified" signals. */
-static void
-vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
+void
+_vte_terminal_accessible_text_inserted(VteTerminalAccessible* accessible)
 {
-        VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
+        _vte_terminal_accessible_text_modified(accessible);
+}
+
+void
+_vte_terminal_accessible_text_deleted (VteTerminalAccessible* accessible)
+{
+        _vte_terminal_accessible_text_modified(accessible);
+}
+
+void
+_vte_terminal_accessible_text_modified(VteTerminalAccessible* accessible)
+{
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
         GString *old_text;
         GArray *old_characters;
@@ -491,13 +501,10 @@ vte_terminal_accessible_text_modified(VteTerminal *terminal, gpointer data)
         g_array_free(old_characters, TRUE);
 }
 
-/* A signal handler to catch "text-scrolled" signals. */
-static void
-vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
-				      gint howmuch,
-				      gpointer data)
+void
+_vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
+                                       long howmuch)
 {
-        VteTerminalAccessible *accessible = (VteTerminalAccessible *)data;
 	VteTerminalAccessiblePrivate *priv = (VteTerminalAccessiblePrivate *)_vte_terminal_accessible_get_instance_private(accessible);
 	struct _VteCharAttributes attr;
 	long delta, row_count;
@@ -506,6 +513,9 @@ vte_terminal_accessible_text_scrolled(VteTerminal *terminal,
         /* TODOegmont: Fix this for smooth scrolling */
         /* g_assert(howmuch != 0); */
         if (howmuch == 0) return;
+
+        auto widget = gtk_accessible_get_widget(GTK_ACCESSIBLE(accessible));
+        auto terminal = VTE_TERMINAL(widget);
 
         row_count = vte_terminal_get_row_count(terminal);
 	if (((howmuch < 0) && (howmuch <= -row_count)) ||
@@ -707,31 +717,21 @@ vte_terminal_accessible_selection_changed (VteTerminal *terminal,
 }
 
 static void
-vte_terminal_accessible_initialize (AtkObject *obj, gpointer data)
+vte_terminal_accessible_initialize(AtkObject *obj,
+                                   gpointer data)
 {
-	VteTerminal *terminal = VTE_TERMINAL (data);
+        auto accessible = VTE_TERMINAL_ACCESSIBLE(obj);
+        VteTerminal *terminal = VTE_TERMINAL(data);
         const char *window_title;
 
 	ATK_OBJECT_CLASS (_vte_terminal_accessible_parent_class)->initialize (obj, data);
 
         auto impl = IMPL(terminal);
         try {
-                impl->subscribe_accessible_events();
+                impl->set_accessible(accessible);
         } catch (...) {
         }
 
-	g_signal_connect(terminal, "text-inserted",
-			 G_CALLBACK(vte_terminal_accessible_text_modified),
-			 obj);
-	g_signal_connect(terminal, "text-deleted",
-			 G_CALLBACK(vte_terminal_accessible_text_modified),
-			 obj);
-	g_signal_connect(terminal, "text-modified",
-			 G_CALLBACK(vte_terminal_accessible_text_modified),
-			 obj);
-	g_signal_connect(terminal, "text-scrolled",
-			 G_CALLBACK(vte_terminal_accessible_text_scrolled),
-			 obj);
 	g_signal_connect(terminal, "cursor-moved",
 			 G_CALLBACK(vte_terminal_accessible_invalidate_cursor),
 			 obj);
@@ -790,16 +790,6 @@ vte_terminal_accessible_finalize(GObject *object)
 		g_signal_handlers_disconnect_matched(widget,
 						     (GSignalMatchType)(G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA),
 						     0, 0, NULL,
-						     (void *)vte_terminal_accessible_text_modified,
-						     object);
-		g_signal_handlers_disconnect_matched(widget,
-						     (GSignalMatchType)(G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA),
-						     0, 0, NULL,
-						     (void *)vte_terminal_accessible_text_scrolled,
-						     object);
-		g_signal_handlers_disconnect_matched(widget,
-						     (GSignalMatchType)(G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA),
-						     0, 0, NULL,
 						     (void *)vte_terminal_accessible_invalidate_cursor,
 						     object);
 		g_signal_handlers_disconnect_matched(widget,
@@ -812,6 +802,13 @@ vte_terminal_accessible_finalize(GObject *object)
 						     0, 0, NULL,
 						     (void *)vte_terminal_accessible_visibility_notify,
 						     object);
+
+                auto terminal = VTE_TERMINAL(widget);
+                auto impl = IMPL(terminal);
+                try {
+                        impl->set_accessible(nullptr);
+                } catch (...) {
+                }
 	}
 
 	if (priv->snapshot_text != NULL) {

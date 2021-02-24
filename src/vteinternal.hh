@@ -63,6 +63,14 @@
 #include <variant>
 #include <vector>
 
+#ifdef WITH_A11Y
+#if VTE_GTK == 3
+#include "vteaccess.h"
+#else
+#undef WITH_A11Y
+#endif
+#endif
+
 #ifdef WITH_ICU
 #include "icu-converter.hh"
 #endif
@@ -250,6 +258,11 @@ public:
         inline constexpr auto gtk_widget() const noexcept { return m_widget; }
 
         void unset_widget() noexcept;
+
+#ifdef WITH_A11Y
+        /* Accessible */
+        vte::glib::RefPtr<VteTerminalAccessible> m_accessible{};
+#endif
 
         /* Metric and sizing data: dimensions of the window */
         vte::grid::row_t m_row_count{VTE_ROWS};
@@ -642,10 +655,6 @@ public:
         std::string m_im_preedit;
         vte::Freeable<PangoAttrList> m_im_preedit_attrs{};
         int m_im_preedit_cursor;
-
-        #ifdef WITH_A11Y
-        gboolean m_accessible_emit;
-        #endif
 
         /* Adjustment updates pending. */
         gboolean m_adjustment_changed_pending;
@@ -1117,10 +1126,51 @@ public:
         void queue_child_exited();
         void queue_eof();
 
-        void emit_text_deleted();
-        void emit_text_inserted();
-        void emit_text_modified();
-        void emit_text_scrolled(long delta);
+#ifdef WITH_A11Y
+
+        void set_accessible(VteTerminalAccessible* accessible) noexcept
+        {
+                /* Note: The accessible only keeps a weak ref on the widget,
+                 * while GtkWidget holds a ref to the accessible already;
+                 * so this does not lead to a ref cycle.
+                 */
+                m_accessible = vte::glib::make_ref(accessible);
+        }
+
+        void emit_text_deleted() noexcept
+        {
+                if (m_accessible)
+                        _vte_terminal_accessible_text_deleted(m_accessible.get());
+        }
+
+        void emit_text_inserted()
+        {
+                if (m_accessible)
+                        _vte_terminal_accessible_text_inserted(m_accessible.get());
+        }
+
+        void emit_text_modified()
+
+        {
+                if (m_accessible)
+                        _vte_terminal_accessible_text_modified(m_accessible.get());
+        }
+
+        void emit_text_scrolled(long delta)
+        {
+                if (m_accessible)
+                        _vte_terminal_accessible_text_scrolled(m_accessible.get(), delta);
+        }
+
+#else
+
+        inline constexpr void emit_text_deleted() const noexcept { }
+        inline constexpr void emit_text_inserted() const noexcept { }
+        inline constexpr void emit_text_modified() const noexcept { }
+        inline constexpr void emit_text_scrolled(long delta) const noexcept { }
+
+#endif /* WITH_A11Y */
+
         void emit_pending_signals();
         void emit_char_size_changed(int width,
                                     int height);
@@ -1403,7 +1453,6 @@ public:
                                    vte::grid::row_t end_row,
                                    vte::grid::column_t end_col);
 
-        void subscribe_accessible_events();
         void select_text(vte::grid::column_t start_col,
                          vte::grid::row_t start_row,
                          vte::grid::column_t end_col,

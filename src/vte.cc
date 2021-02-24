@@ -268,6 +268,10 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 void
 Terminal::unset_widget() noexcept
 {
+#ifdef WITH_A11Y
+        set_accessible(nullptr);
+#endif
+
         m_real_widget = nullptr;
         m_terminal = nullptr;
         m_widget = nullptr;
@@ -1022,63 +1026,6 @@ Terminal::emit_decrease_font_size()
 	_vte_debug_print(VTE_DEBUG_SIGNALS,
 			"Emitting `decrease-font-size'.\n");
 	g_signal_emit(m_terminal, signals[SIGNAL_DECREASE_FONT_SIZE], 0);
-}
-
-/* Emit a "text-inserted" signal. */
-void
-Terminal::emit_text_inserted()
-{
-#ifdef WITH_A11Y
-	if (!m_accessible_emit) {
-		return;
-	}
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `text-inserted'.\n");
-	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_INSERTED], 0);
-#endif
-}
-
-/* Emit a "text-deleted" signal. */
-void
-Terminal::emit_text_deleted()
-{
-#ifdef WITH_A11Y
-	if (!m_accessible_emit) {
-		return;
-	}
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `text-deleted'.\n");
-	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_DELETED], 0);
-#endif
-}
-
-/* Emit a "text-modified" signal. */
-void
-Terminal::emit_text_modified()
-{
-#ifdef WITH_A11Y
-	if (!m_accessible_emit) {
-		return;
-	}
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-                         "Emitting `text-modified'.\n");
-	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_MODIFIED], 0);
-#endif
-}
-
-/* Emit a "text-scrolled" signal. */
-void
-Terminal::emit_text_scrolled(long delta)
-{
-#ifdef WITH_A11Y
-	if (!m_accessible_emit) {
-		return;
-	}
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `text-scrolled'(%ld).\n", delta);
-        // FIXMEchpe fix signal signature?
-	g_signal_emit(m_terminal, signals[SIGNAL_TEXT_SCROLLED], 0, (int)delta);
-#endif
 }
 
 void
@@ -10229,16 +10176,6 @@ Terminal::terminate_child() noexcept
         m_pty_pid = -1;
 
         return true;
-}
-
-/* We need this bit of glue to ensure that accessible objects will always
- * get signals. */
-void
-Terminal::subscribe_accessible_events()
-{
-#ifdef WITH_A11Y
-	m_accessible_emit = true;
-#endif
 }
 
 void
