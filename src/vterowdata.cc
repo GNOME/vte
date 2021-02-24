@@ -51,7 +51,7 @@ _vte_cells_for_cell_array (VteCell *cells)
 	if (G_UNLIKELY (!cells))
 		return NULL;
 
-	return (VteCells *) (((guchar *) cells) - G_STRUCT_OFFSET (VteCells, cells));
+	return reinterpret_cast<VteCells*>(((guchar *) cells) - G_STRUCT_OFFSET (VteCells, cells));
 }
 
 static VteCells *

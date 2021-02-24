@@ -258,7 +258,7 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
 
                 /* Convenience stuff, we no longer need the auto-growing GArray wrapper. */
                 count = fribidi_chars_array->len;
-                fribidi_chars = (FriBidiChar *) fribidi_chars_array->data;
+                fribidi_chars = reinterpret_cast<FriBidiChar*>(fribidi_chars_array->data);
 
                 /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
                 fribidi_chartypes = g_newa (FriBidiCharType, count);
@@ -558,9 +558,9 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
 
         /* Convenience stuff, we no longer need the auto-growing GArray wrapper. */
         count = fribidi_chars_array->len;
-        fribidi_chars = (FriBidiChar *) fribidi_chars_array->data;
-        fribidi_map = (FriBidiStrIndex *) fribidi_map_array->data;
-        fribidi_to_term = (FriBidiStrIndex *) fribidi_to_term_array->data;
+        fribidi_chars = reinterpret_cast<FriBidiChar*>(fribidi_chars_array->data);
+        fribidi_map = reinterpret_cast<FriBidiStrIndex*>(fribidi_map_array->data);
+        fribidi_to_term = reinterpret_cast<FriBidiStrIndex*>(fribidi_to_term_array->data);
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
         fribidi_chartypes = g_newa (FriBidiCharType, count);

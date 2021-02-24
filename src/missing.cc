@@ -195,7 +195,7 @@ fdwalk(int (*cb)(void *data, int fd),
         {
           for (pos = 0; pos < nread; pos += de->d_reclen)
             {
-              de = (struct linux_dirent64 *)(buf + pos);
+              de = reinterpret_cast<struct linux_dirent64*>(buf + pos);
 
               fd = filename_to_fd (de->d_name);
               if (fd < 0 || fd == dir_fd)
