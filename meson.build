@@ -324,6 +324,7 @@ compiler_flags_common = [
   '-Wno-packed',
   '-Wno-switch-enum',
   '-Wno-unused-parameter',
+  '-Wno-volatile',
   '-Wshadow',
   '-Wshift-negative-value',
   '-Wsign-compare',
