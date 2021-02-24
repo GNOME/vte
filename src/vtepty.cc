@@ -736,7 +736,7 @@ _vte_pty_check_envv(char const* const* strv) noexcept
  * @timeout: a timeout value in ms, -1 for the default timeout, or G_MAXINT to wait indefinitely
  * @cancellable: (allow-none): a #GCancellable, or %NULL
  * @callback: (nullable) (scope async): a #GAsyncReadyCallback, or %NULL
- * @user_data: (nullable) closure callback): user data for @callback
+ * @user_data: (nullable) (closure callback): user data for @callback
  *
  * Starts the specified command under the pseudo-terminal @pty.
  * The @argv and @envv lists should be %NULL-terminated.
