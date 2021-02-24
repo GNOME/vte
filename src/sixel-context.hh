@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <bit>
 #include <cstdint>
 #include <iterator>
 #include <utility>
@@ -30,20 +31,6 @@
 //#include "parser-glue.hh"
 #include "sixel-parser.hh"
 #include "vtedefines.hh"
-
-#if __cplusplus <= 201703L
-// FIXMEchpe remove this and just upgrade to C++20
-namespace std {
-enum class endian
-{
-    little = __ORDER_LITTLE_ENDIAN__,
-    big    = __ORDER_BIG_ENDIAN__,
-    native = __BYTE_ORDER__
-};
-} // namespace std
-#else
-#include <bit>
-#endif
 
 namespace vte::sixel {
 
