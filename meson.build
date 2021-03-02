@@ -400,7 +400,6 @@ foreach flag: compiler_flags_cxx_required
   assert(cxx.has_argument(flag), flag + ' is required but not supported')
 endforeach
 
-
 # These flags have to be tested together
 
 compiler_flags_common_multi = [
