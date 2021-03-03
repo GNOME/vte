@@ -114,8 +114,6 @@ private:
         std::shared_ptr<vte::platform::Widget> m_widget;
 };
 
-static void vte_terminal_scrollable_iface_init(GtkScrollableInterface* iface) noexcept;
-
 #ifdef VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
@@ -123,7 +121,7 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                                         g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, vte_terminal_scrollable_iface_init)
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr)
                         if (_vte_debug_on(VTE_DEBUG_LIFECYCLE)) {
                                 g_printerr("vte_terminal_get_type()\n");
                         })
@@ -134,7 +132,7 @@ G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                                         g_type_add_instance_private(g_define_type_id, sizeof(VteTerminalPrivate));
                         }
                         g_type_add_class_private (g_define_type_id, sizeof (VteTerminalClassPrivate));
-                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, vte_terminal_scrollable_iface_init))
+                        G_IMPLEMENT_INTERFACE(GTK_TYPE_SCROLLABLE, nullptr))
 #endif
 
 static inline auto
@@ -2103,26 +2101,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
         /* a11y */
         gtk_widget_class_set_accessible_type(widget_class, VTE_TYPE_TERMINAL_ACCESSIBLE);
 #endif
-}
-
-static gboolean
-vte_terminal_scrollable_get_border(GtkScrollable* scrollable,
-                                   GtkBorder* border) noexcept
-try
-{
-        *border = *WIDGET(VTE_TERMINAL(scrollable))->padding();
-        return true;
-}
-catch (...)
-{
-        vte::log_exception();
-        return false;
-}
-
-static void
-vte_terminal_scrollable_iface_init(GtkScrollableInterface* iface) noexcept
-{
-        iface->get_border = vte_terminal_scrollable_get_border;
 }
 
 /* public API */
