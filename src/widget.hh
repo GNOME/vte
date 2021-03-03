@@ -108,7 +108,6 @@ public:
         void set_vscroll_policy(GtkScrollablePolicy policy) noexcept { m_vscroll_policy = policy; }
         auto hscroll_policy() const noexcept { return m_hscroll_policy; }
         auto vscroll_policy() const noexcept { return m_vscroll_policy; }
-        auto padding() const noexcept { return terminal()->padding(); }
 
         bool set_cursor_blink_mode(VteCursorBlinkMode mode) { return terminal()->set_cursor_blink_mode(vte::terminal::Terminal::CursorBlinkMode(mode)); }
         auto cursor_blink_mode() const noexcept { return VteCursorBlinkMode(terminal()->cursor_blink_mode()); }
