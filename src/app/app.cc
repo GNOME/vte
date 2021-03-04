@@ -81,6 +81,7 @@ public:
         gboolean object_notifications{false};
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
+        gboolean scroll_unit_pixels{false};
         gboolean test_mode{false};
         gboolean track_clipboard_targets{false};
         gboolean use_theme_colors{false};
@@ -622,6 +623,8 @@ public:
                           "Reverse foreground/background colors", nullptr },
                         { "require-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &require_systemd_scope,
                           "Require use of a systemd user scope", nullptr },
+                        { "scroll-unit-pixels", 0, 0, G_OPTION_ARG_NONE, &scroll_unit_pixels,
+                          "Use pixels as scroll unit", nullptr },
                         { "scrollback-lines", 'n', 0, G_OPTION_ARG_INT, &scrollback_lines,
                           "Specify the number of scrollback-lines (-1 for infinite)", nullptr },
                         { "sixel", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &no_sixel,
@@ -2528,6 +2531,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_rewrap_on_resize(window->terminal, !options.no_rewrap);
         vte_terminal_set_scroll_on_output(window->terminal, false);
         vte_terminal_set_scroll_on_keystroke(window->terminal, true);
+        vte_terminal_set_scroll_unit_pixels(window->terminal, options.scroll_unit_pixels);
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
         vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
 

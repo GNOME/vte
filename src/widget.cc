@@ -151,6 +151,7 @@ catch (...)
 
 Widget::Widget(VteTerminal* t)
         : m_widget{&t->widget},
+          m_scroll_unit_pixels{false},
           m_hscroll_policy{GTK_SCROLL_NATURAL},
           m_vscroll_policy{GTK_SCROLL_NATURAL}
 {
@@ -745,8 +746,16 @@ Widget::notify_scroll_bounds_changed(long lower,
         auto const freezer = vte::glib::FreezeObjectNotify{m_vadjustment.get()};
         auto changed = false;
 
-        auto const dlower = double(lower);
-        auto const dupper = double(upper);
+        auto dlower = double(lower);
+        auto dupper = double(upper);
+        auto dline = 1.;
+        if (scroll_unit_pixels()) [[unlikely]] {
+                auto const factor = m_terminal->get_cell_height();
+                dlower *= factor;
+                dupper *= factor;
+                dline *= factor;
+                row_count *= factor;
+        }
 
         auto current = gtk_adjustment_get_lower(m_vadjustment.get());
         if (!_vte_double_equal(current, dlower)) {
@@ -768,10 +777,10 @@ Widget::notify_scroll_bounds_changed(long lower,
 
         /* The step increment should always be one. */
         auto v = gtk_adjustment_get_step_increment(m_vadjustment.get());
-        if (!_vte_double_equal(v, 1.)) {
+        if (!_vte_double_equal(v, dline)) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Changing step increment from %.0lf to 1.0\n", v);
-                gtk_adjustment_set_step_increment(m_vadjustment.get(), 1.);
+                gtk_adjustment_set_step_increment(m_vadjustment.get(), dline);
                 changed = true;
         }
 
@@ -805,6 +814,11 @@ Widget::notify_scroll_bounds_changed(long lower,
 void
 Widget::notify_scroll_value_changed(double value)
 {
+        if (scroll_unit_pixels()) [[unlikely]] {
+                auto const factor = m_terminal->get_cell_height();
+                value *= factor;
+        }
+
         auto const v = gtk_adjustment_get_value(m_vadjustment.get());
         if (!_vte_double_equal(v, value)) {
                 /* Note that this will generate a 'value-changed' signal */
@@ -1384,7 +1398,12 @@ Widget::vadjustment_value_changed()
         if (!m_terminal)
                 return;
 
-        auto const adj = gtk_adjustment_get_value(m_vadjustment.get());
+        auto adj = gtk_adjustment_get_value(m_vadjustment.get());
+        if (scroll_unit_pixels()) [[unlikely]] {
+                auto const factor = m_terminal->get_cell_height();
+                adj /= factor;
+        }
+
         m_terminal->set_scroll_value(adj);
 }
 

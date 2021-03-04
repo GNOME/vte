@@ -350,6 +350,16 @@ public:
         void set_vscroll_policy(GtkScrollablePolicy policy);
         auto hscroll_policy() const noexcept { return m_hscroll_policy; }
         auto vscroll_policy() const noexcept { return m_vscroll_policy; }
+
+        constexpr bool set_scroll_unit_pixels(bool enable) noexcept
+        {
+                auto const rv = m_scroll_unit_pixels != enable;
+                m_scroll_unit_pixels = enable;
+                return rv;
+        }
+
+        constexpr auto scroll_unit_pixels() const noexcept { return m_scroll_unit_pixels; }
+
         auto padding() const noexcept { return terminal()->padding(); }
 
         bool set_cursor_blink_mode(VteCursorBlinkMode mode) { return terminal()->set_cursor_blink_mode(vte::terminal::Terminal::CursorBlinkMode(mode)); }
@@ -522,6 +532,7 @@ private:
         vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
         vte::glib::RefPtr<GtkAdjustment> m_hadjustment{};
 
+        uint32_t m_scroll_unit_pixels : 1;
         uint32_t m_hscroll_policy : 1;
         uint32_t m_vscroll_policy : 1;
 };

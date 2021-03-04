@@ -270,6 +270,12 @@ void vte_terminal_set_enable_fallback_scrolling(VteTerminal *terminal,
 _VTE_PUBLIC
 gboolean vte_terminal_get_enable_fallback_scrolling(VteTerminal *terminal)  _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
+void vte_terminal_set_scroll_unit_pixels(VteTerminal *terminal,
+                                         gboolean enable) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+gboolean vte_terminal_get_scroll_unit_pixels(VteTerminal *terminal)  _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
 /* Set the color scheme. */
 _VTE_PUBLIC
 void vte_terminal_set_color_bold(VteTerminal *terminal,
