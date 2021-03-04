@@ -1949,13 +1949,15 @@ Terminal::emit_adjustment_changed()
 
                 auto const lower = _vte_ring_delta (m_screen->row_data);
                 auto const upper = m_screen->insert_delta + m_row_count;
-                widget()->notify_scroll_bounds_changed({lower}, {upper}, {m_row_count});
+                widget()->notify_scroll_bounds_changed(0, {upper - lower}, m_row_count);
         }
 
         if (m_adjustment_value_changed_pending) {
                 m_adjustment_value_changed_pending = false;
 
-                widget()->notify_scroll_value_changed(m_screen->scroll_delta);
+                /* Subtract offset */
+                auto const lower = _vte_ring_delta (m_screen->row_data);
+                widget()->notify_scroll_value_changed(m_screen->scroll_delta - lower);
         }
 }
 
@@ -7624,6 +7626,10 @@ Terminal::set_size(long columns,
 void
 Terminal::set_scroll_value(double value)
 {
+        /* Add offset */
+        auto const lower = _vte_ring_delta (m_screen->row_data);
+        value += lower;
+
 	/* Save the difference. */
 	auto const dy = value - m_screen->scroll_delta;
 

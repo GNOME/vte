@@ -746,23 +746,21 @@ Widget::notify_scroll_bounds_changed(long lower,
         auto const freezer = vte::glib::FreezeObjectNotify{m_vadjustment.get()};
         auto changed = false;
 
-        auto dlower = double(lower);
-        auto dupper = double(upper);
+        auto dupper = double(upper - lower);
         auto dline = 1.;
         if (scroll_unit_pixels()) [[unlikely]] {
                 auto const factor = m_terminal->get_cell_height();
-                dlower *= factor;
                 dupper *= factor;
                 dline *= factor;
                 row_count *= factor;
         }
 
         auto current = gtk_adjustment_get_lower(m_vadjustment.get());
-        if (!_vte_double_equal(current, dlower)) {
+        if (!_vte_double_equal(current, 0.)) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Changing lower bound from %.0f to %f\n",
-                                 current, dlower);
-                gtk_adjustment_set_lower(m_vadjustment.get(), dlower);
+                                 current, 0.);
+                gtk_adjustment_set_lower(m_vadjustment.get(), 0.);
                 changed = true;
         }
 
@@ -776,19 +774,20 @@ Widget::notify_scroll_bounds_changed(long lower,
         }
 
         /* The step increment should always be one. */
-        auto v = gtk_adjustment_get_step_increment(m_vadjustment.get());
-        if (!_vte_double_equal(v, dline)) {
+        current = gtk_adjustment_get_step_increment(m_vadjustment.get());
+        if (!_vte_double_equal(current, dline)) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Changing step increment from %.0lf to 1.0\n", v);
+                                 "Changing step increment from %.0f to %.0f\n",
+                                 current, dline);
                 gtk_adjustment_set_step_increment(m_vadjustment.get(), dline);
                 changed = true;
         }
 
-        v = gtk_adjustment_get_page_size(m_vadjustment.get());
-        if (!_vte_double_equal(v, row_count)) {
+        current = gtk_adjustment_get_page_size(m_vadjustment.get());
+        if (!_vte_double_equal(current, row_count)) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Changing page size from %.0f to %ld\n",
-                                 v, row_count);
+                                 current, row_count);
                 gtk_adjustment_set_page_size(m_vadjustment.get(), row_count);
                 changed = true;
         }
@@ -796,12 +795,12 @@ Widget::notify_scroll_bounds_changed(long lower,
         /* Clicking in the empty area should scroll exactly one screen,
          * so set the page size to the number of visible rows.
          */
-        v = gtk_adjustment_get_page_increment(m_vadjustment.get());
-        if (!_vte_double_equal(v, row_count)) {
+        current = gtk_adjustment_get_page_increment(m_vadjustment.get());
+        if (!_vte_double_equal(current, row_count)) {
                 _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Changing page increment from "
                                  "%.0f to %ld\n",
-                                 v, row_count);
+                                 current, row_count);
                 gtk_adjustment_set_page_increment(m_vadjustment.get(), row_count);
                 changed = true;
         }
