@@ -657,8 +657,8 @@ public:
         int m_im_preedit_cursor;
 
         /* Adjustment updates pending. */
-        gboolean m_adjustment_changed_pending;
-        gboolean m_adjustment_value_changed_pending;
+        bool m_adjustment_changed_pending;
+        bool m_adjustment_value_changed_pending;
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
@@ -712,9 +712,6 @@ public:
         GtkBorder m_padding{0, 0, 0, 0};
 #endif
         auto padding() const noexcept { return &m_padding; }
-
-        vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
-        auto vadjustment() noexcept { return m_vadjustment.get(); }
 
         /* Hyperlinks */
         bool m_allow_hyperlink{false};
@@ -877,8 +874,6 @@ public:
         std::optional<std::string_view> widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
                                                                   vte::platform::ClipboardFormat format);
         void widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard);
-
-        void widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment);
 
         void widget_realize();
         void widget_unrealize();
@@ -1097,8 +1092,6 @@ public:
                              long old_rows,
                              bool do_rewrap);
 
-        void vadjustment_value_changed();
-
         unsigned translate_ctrlkey(vte::platform::KeyEvent const& event) const noexcept;
 
         void apply_mouse_cursor();
@@ -1106,6 +1099,7 @@ public:
 
         void beep();
 
+        void set_scroll_value(double value);
         void emit_adjustment_changed();
         void emit_commit(std::string_view const& str);
         void emit_eof();

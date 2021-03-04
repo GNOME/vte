@@ -343,9 +343,9 @@ public:
         void beep() noexcept;
 
         void set_hadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment) noexcept { m_hadjustment = std::move(adjustment); }
-        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment) { terminal()->widget_set_vadjustment(std::move(adjustment)); }
+        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment);
         auto hadjustment() noexcept { return m_hadjustment.get(); }
-        auto vadjustment() noexcept { return terminal()->vadjustment(); }
+        auto vadjustment() noexcept { return m_vadjustment.get(); }
         void set_hscroll_policy(GtkScrollablePolicy policy);
         void set_vscroll_policy(GtkScrollablePolicy policy);
         auto hscroll_policy() const noexcept { return m_hscroll_policy; }
@@ -464,8 +464,14 @@ protected:
 
         unsigned key_event_translate_ctrlkey(KeyEvent const& event) const noexcept;
 
+        void notify_scroll_bounds_changed(long lower,
+                                          long upper,
+                                          long row_count);
+        void notify_scroll_value_changed(double value);
+
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
+        void vadjustment_value_changed();
 
 private:
         KeyEvent key_event_from_gdk(GdkEvent* event) const;
@@ -513,7 +519,9 @@ private:
         /* Misc */
         std::optional<std::string> m_word_char_exceptions{};
 
+        vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
         vte::glib::RefPtr<GtkAdjustment> m_hadjustment{};
+
         uint32_t m_hscroll_policy : 1;
         uint32_t m_vscroll_policy : 1;
 };

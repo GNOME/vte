@@ -545,8 +545,7 @@ Terminal::set_mode_private(int mode,
                 }
 
                 /* Reset scrollbars and repaint everything. */
-                gtk_adjustment_set_value(m_vadjustment.get(),
-                                         m_screen->scroll_delta);
+                queue_adjustment_value_changed(m_screen->scroll_delta);
                 set_scrollback_lines(m_scrollback_lines);
                 queue_contents_changed();
                 invalidate_all();

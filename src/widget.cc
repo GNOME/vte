@@ -30,6 +30,7 @@
 #include "vtegtk.hh"
 #include "vteptyinternal.hh"
 #include "debug.h"
+#include "gobject-glue.hh"
 
 #if VTE_GTK == 4
 #include "graphene-glue.hh"
@@ -46,6 +47,8 @@ using namespace std::literals;
 namespace vte {
 
 namespace platform {
+
+static void vadjustment_value_changed_cb(vte::platform::Widget* that) noexcept;
 
 static void
 im_commit_cb(GtkIMContext* im_context,
@@ -151,6 +154,9 @@ Widget::Widget(VteTerminal* t)
           m_hscroll_policy{GTK_SCROLL_NATURAL},
           m_vscroll_policy{GTK_SCROLL_NATURAL}
 {
+        // Create a default adjustment
+        set_vadjustment({});
+
 #if VTE_GTK == 3
         gtk_widget_set_can_focus(gtk(), true);
 #endif
@@ -177,6 +183,12 @@ try
                                              G_SIGNAL_MATCH_DATA,
                                              0, 0, NULL, NULL,
                                              this);
+
+        if (m_vadjustment) {
+                g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
+                                                     (void*)vadjustment_value_changed_cb,
+                                                     this);
+        }
 
         m_widget = nullptr;
 
@@ -724,6 +736,82 @@ Widget::mouse_event_from_gdk(GdkEvent* event) const /* throws */
                 y};
 }
 
+/* Emit an adjustment changed signal on our adjustment object. */
+void
+Widget::notify_scroll_bounds_changed(long lower,
+                                     long upper,
+                                     long row_count)
+{
+        auto const freezer = vte::glib::FreezeObjectNotify{m_vadjustment.get()};
+        auto changed = false;
+
+        auto const dlower = double(lower);
+        auto const dupper = double(upper);
+
+        auto current = gtk_adjustment_get_lower(m_vadjustment.get());
+        if (!_vte_double_equal(current, dlower)) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
+                                 "Changing lower bound from %.0f to %f\n",
+                                 current, dlower);
+                gtk_adjustment_set_lower(m_vadjustment.get(), dlower);
+                changed = true;
+        }
+
+        current = gtk_adjustment_get_upper(m_vadjustment.get());
+        if (!_vte_double_equal(current, dupper)) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
+                                 "Changing upper bound from %.0f to %f\n",
+                                 current, dupper);
+                gtk_adjustment_set_upper(m_vadjustment.get(), dupper);
+                changed = true;
+        }
+
+        /* The step increment should always be one. */
+        auto v = gtk_adjustment_get_step_increment(m_vadjustment.get());
+        if (!_vte_double_equal(v, 1.)) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
+                                 "Changing step increment from %.0lf to 1.0\n", v);
+                gtk_adjustment_set_step_increment(m_vadjustment.get(), 1.);
+                changed = true;
+        }
+
+        v = gtk_adjustment_get_page_size(m_vadjustment.get());
+        if (!_vte_double_equal(v, row_count)) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
+                                 "Changing page size from %.0f to %ld\n",
+                                 v, row_count);
+                gtk_adjustment_set_page_size(m_vadjustment.get(), row_count);
+                changed = true;
+        }
+
+        /* Clicking in the empty area should scroll exactly one screen,
+         * so set the page size to the number of visible rows.
+         */
+        v = gtk_adjustment_get_page_increment(m_vadjustment.get());
+        if (!_vte_double_equal(v, row_count)) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
+                                 "Changing page increment from "
+                                 "%.0f to %ld\n",
+                                 v, row_count);
+                gtk_adjustment_set_page_increment(m_vadjustment.get(), row_count);
+                changed = true;
+        }
+
+        if (changed)
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Adjustment changed.\n");
+}
+
+void
+Widget::notify_scroll_value_changed(double value)
+{
+        auto const v = gtk_adjustment_get_value(m_vadjustment.get());
+        if (!_vte_double_equal(v, value)) {
+                /* Note that this will generate a 'value-changed' signal */
+                gtk_adjustment_set_value(m_vadjustment.get(), value);
+        }
+}
+
 ScrollEvent
 Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
 {
@@ -1041,6 +1129,44 @@ Widget::set_pty(VtePty* pty_obj) noexcept
         return true;
 }
 
+
+static void
+vadjustment_value_changed_cb(vte::platform::Widget* that) noexcept
+try
+{
+        that->vadjustment_value_changed();
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+void
+Widget::set_vadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment)
+{
+        if (adjustment && adjustment == m_vadjustment)
+                return;
+        if (!adjustment && m_vadjustment)
+                return;
+
+        if (m_vadjustment) {
+                g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
+                                                     (void*)vadjustment_value_changed_cb,
+                                                     this);
+        }
+
+        if (adjustment)
+                m_vadjustment = std::move(adjustment);
+        else
+                m_vadjustment = vte::glib::make_ref_sink(GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0)));
+
+        /* We care about the offset only, not the top or bottom. */
+        g_signal_connect_swapped(m_vadjustment.get(),
+                                 "value-changed",
+                                 G_CALLBACK(vadjustment_value_changed_cb),
+                                 this);
+}
+
 bool
 Widget::set_word_char_exceptions(std::optional<std::string_view> stropt)
 {
@@ -1251,6 +1377,16 @@ Widget::unroot()
 }
 
 #endif /* VTE_GTK == 4 */
+
+void
+Widget::vadjustment_value_changed()
+{
+        if (!m_terminal)
+                return;
+
+        auto const adj = gtk_adjustment_get_value(m_vadjustment.get());
+        m_terminal->set_scroll_value(adj);
+}
 
 } // namespace platform
 
