@@ -521,7 +521,7 @@ public:
                         char* argv[],
                         GError** error)
         {
-                bool dummy_bool;
+                gboolean dummy_bool;
                 char* dummy_string = nullptr;
                 GOptionEntry const entries[] = {
                         { "allow-window-ops", 0, 0, G_OPTION_ARG_NONE, &allow_window_ops,
