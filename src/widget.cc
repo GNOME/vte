@@ -195,6 +195,30 @@ catch (...)
         return false;
 }
 
+static void
+focus_enter_cb(GtkEventControllerFocus* controller,
+               Widget* that) noexcept
+try
+{
+        that->event_focus_enter(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+focus_leave_cb(GtkEventControllerFocus* controller,
+               Widget* that) noexcept
+try
+{
+        that->event_focus_leave(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
 #endif /* VTE_GTK == 4 */
 
 Widget::Widget(VteTerminal* t)
@@ -423,6 +447,13 @@ Widget::constructed() noexcept
                          G_CALLBACK(key_modifiers_cb), this);
         gtk_widget_add_controller(m_widget, controller.release());
 
+        controller = vte::glib::take_ref(gtk_event_controller_focus_new());
+        g_signal_connect(controller.get(), "enter",
+                         G_CALLBACK(focus_enter_cb), this);
+        g_signal_connect(controller.get(), "leave",
+                         G_CALLBACK(focus_leave_cb), this);
+        gtk_widget_add_controller(m_widget, controller.release());
+
 #endif /* VTE_GTK == 4 */
 
 #if VTE_GTK == 3
@@ -645,6 +676,22 @@ Widget::event_key_modifiers(GtkEventControllerKey* controller,
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Key modifiers=%x\n", modifiers);
 
         return terminal()->widget_key_modifiers(modifiers);
+}
+
+void
+Widget::event_focus_enter(GtkEventControllerFocus* controller)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus In");
+
+        terminal()->widget_focus_in();
+}
+
+void
+Widget::event_focus_leave(GtkEventControllerFocus* controller)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus Out");
+
+        terminal()->widget_focus_out();
 }
 
 #endif /* VTE_GTK == 4 */

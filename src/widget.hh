@@ -334,6 +334,8 @@ public:
                                 unsigned modifiers);
         bool event_key_modifiers(GtkEventControllerKey* controller,
                                  unsigned modifiers);
+        void event_focus_enter(GtkEventControllerFocus* controller);
+        void event_focus_leave(GtkEventControllerFocus* controller);
 #endif /* VTE_GTK == 4 */
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
