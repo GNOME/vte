@@ -70,11 +70,9 @@
     </section>
   </menu>
   <template class="VteappWindow" parent="GtkApplicationWindow">
-    <property name="can_focus">0</property>
     <property name="icon_name">utilities-terminal</property>
     <child>
       <object class="GtkGrid" id="window_grid">
-        <property name="can_focus">0</property>
         <property name="halign">fill</property>
         <property name="valign">fill</property>
         <property name="hexpand">1</property>
@@ -84,7 +82,6 @@
         </child>
         <child>
           <object class="GtkScrollbar" id="scrollbar">
-            <property name="can_focus">0</property>
             <property name="orientation">vertical</property>
             <property name="hexpand">0</property>
             <property name="vexpand">1</property>
@@ -98,7 +95,6 @@
     </child>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="headerbar">
-        <property name="can_focus">0</property>
         <property name="decoration_layout">:close</property>
         <child type="start">
           <object class="GtkButton" id="copy_button">
@@ -109,7 +105,6 @@
             <property name="focus_on_click">0</property>
             <child>
               <object class="GtkImage" id="image2">
-                <property name="can_focus">0</property>
                 <property name="icon_name">edit-copy-symbolic</property>
                 <property name="use_fallback">1</property>
               </object>
@@ -124,7 +119,6 @@
             <property name="focus_on_click">0</property>
             <child>
               <object class="GtkImage" id="image3">
-                <property name="can_focus">0</property>
                 <property name="icon_name">edit-paste-symbolic</property>
                 <property name="use_fallback">1</property>
               </object>
@@ -137,7 +131,6 @@
             <property name="focus_on_click">0</property>
             <child>
               <object class="GtkImage" id="image5">
-                <property name="can_focus">0</property>
                 <property name="icon_name">edit-find-symbolic</property>
                 <property name="use_fallback">1</property>
               </object>
@@ -157,7 +150,6 @@
         </child>
         <child type="end">
           <object class="GtkGrid" id="notifications_grid">
-            <property name="can_focus">0</property>
             <property name="column_spacing">6</property>
             <property name="row_spacing">6</property>
             <property name="hexpand">0</property>
@@ -165,7 +157,6 @@
             <child>
               <object class="GtkImage" id="readonly_emblem">
                 <property name="visible">0</property>
-                <property name="can_focus">0</property>
                 <property name="tooltip_text" translatable="yes">Read-only</property>
                 <property name="icon_name">emblem-readonly</property>
                 <property name="use_fallback">1</property>

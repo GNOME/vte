@@ -5078,6 +5078,17 @@ Terminal::widget_key_release(vte::platform::KeyEvent const& event)
         return false;
 }
 
+#if VTE_GTK == 4
+
+bool
+Terminal::widget_key_modifiers(unsigned modifiers)
+{
+        m_modifiers = modifiers;
+        return true;
+}
+
+#endif /* VTE_GTK == 4 */
+
 static const guint8 word_char_by_category[] = {
         [G_UNICODE_CONTROL]             = 2,
         [G_UNICODE_FORMAT]              = 2,

@@ -323,6 +323,17 @@ public:
         bool contains(double x,
                       double y);
         void display_changed() noexcept;
+
+        bool event_key_pressed(GtkEventControllerKey* controller,
+                               unsigned key,
+                               unsigned keycode,
+                               unsigned modifiers);
+        void event_key_released(GtkEventControllerKey* controller,
+                                unsigned key,
+                                unsigned keycode,
+                                unsigned modifiers);
+        bool event_key_modifiers(GtkEventControllerKey* controller,
+                                 unsigned modifiers);
 #endif /* VTE_GTK == 4 */
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }

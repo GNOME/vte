@@ -146,6 +146,57 @@ catch (...)
         vte::log_exception();
 }
 
+#if VTE_GTK == 4
+
+/* Callbacks for event controllers */
+
+static gboolean
+key_pressed_cb(GtkEventControllerKey* controller,
+               unsigned key,
+               unsigned keycode,
+               unsigned modifiers,
+               Widget* that) noexcept
+try
+{
+        return that->event_key_pressed(controller, key, keycode, modifiers);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+static void
+key_released_cb(GtkEventControllerKey* controller,
+                unsigned key,
+                unsigned keycode,
+                unsigned modifiers,
+                Widget* that) noexcept
+try
+{
+        that->event_key_released(controller, key, keycode, modifiers);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static gboolean
+key_modifiers_cb(GtkEventControllerKey* controller,
+                 unsigned modifiers,
+                 Widget* that) noexcept
+try
+{
+        return that->event_key_modifiers(controller, modifiers);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+#endif /* VTE_GTK == 4 */
+
 Widget::Widget(VteTerminal* t)
         : m_widget{&t->widget},
           m_hscroll_policy{GTK_SCROLL_NATURAL},
@@ -362,6 +413,16 @@ Widget::constructed() noexcept
 
         connect_settings();
 
+        /* Add event controllers */
+        auto controller = vte::glib::take_ref(gtk_event_controller_key_new());
+        g_signal_connect(controller.get(), "key-pressed",
+                         G_CALLBACK(key_pressed_cb), this);
+        g_signal_connect(controller.get(), "key-released",
+                         G_CALLBACK(key_released_cb), this);
+        g_signal_connect(controller.get(), "modifiers",
+                         G_CALLBACK(key_modifiers_cb), this);
+        gtk_widget_add_controller(m_widget, controller.release());
+
 #endif /* VTE_GTK == 4 */
 
 #if VTE_GTK == 3
@@ -542,6 +603,51 @@ Widget::event_motion_notify(GdkEventMotion *event)
 }
 
 #endif /* VTE_GTK == 3 */
+
+#if VTE_GTK == 4
+
+bool
+Widget::event_key_pressed(GtkEventControllerKey* controller,
+                          unsigned key,
+                          unsigned keycode,
+                          unsigned modifiers)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Key press key=%x keycode=%x modifiers=%x\n",
+                         key, keycode, modifiers);
+
+        auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
+        if (!event)
+                return false;
+
+        return terminal()->widget_key_press(key_event_from_gdk(event));
+}
+
+void
+Widget::event_key_released(GtkEventControllerKey* controller,
+                           unsigned key,
+                           unsigned keycode,
+                           unsigned modifiers)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Key release key=%x keycode=%x modifiers=%x\n",
+                         key, keycode, modifiers);
+
+        auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
+        if (!event)
+                return;
+
+        terminal()->widget_key_release(key_event_from_gdk(event));
+}
+
+bool
+Widget::event_key_modifiers(GtkEventControllerKey* controller,
+                            unsigned modifiers)
+{
+	_vte_debug_print(VTE_DEBUG_EVENTS, "Key modifiers=%x\n", modifiers);
+
+        return terminal()->widget_key_modifiers(modifiers);
+}
+
+#endif /* VTE_GTK == 4 */
 
 void
 Widget::im_focus_in() noexcept

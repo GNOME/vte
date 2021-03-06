@@ -894,6 +894,9 @@ public:
         void widget_mouse_enter(vte::platform::MouseEvent const& event);
         void widget_mouse_leave(vte::platform::MouseEvent const& event);
         bool widget_mouse_scroll(vte::platform::ScrollEvent const& event);
+#if VTE_GTK == 4
+        bool widget_key_modifiers(unsigned modifiers);
+#endif /* VTE_GTK == 4 */
 #if VTE_GTK == 3
         void widget_draw(cairo_t *cr);
 #endif /* VTE_GTK == 3 */
