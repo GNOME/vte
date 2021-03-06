@@ -28,4 +28,4 @@ VTE_DECLARE_FREEABLE(cairo_region_t, cairo_region_destroy);
 VTE_DECLARE_FREEABLE(cairo_surface_t, cairo_surface_destroy);
 VTE_DECLARE_FREEABLE(cairo_t, cairo_destroy);
 
-} // namespace vte::cairo
+} // namespace vte
