@@ -84,6 +84,7 @@ public:
         gboolean scroll_unit_is_pixels{false};
         gboolean test_mode{false};
         gboolean track_clipboard_targets{false};
+        gboolean use_scrolled_window{false};
         gboolean use_theme_colors{false};
         gboolean version{false};
         gboolean whole_window_transparent{false};
@@ -522,7 +523,6 @@ public:
                         char* argv[],
                         GError** error)
         {
-                gboolean dummy_bool;
                 char* dummy_string = nullptr;
                 GOptionEntry const entries[] = {
                         { "allow-window-ops", 0, 0, G_OPTION_ARG_NONE, &allow_window_ops,
@@ -656,8 +656,9 @@ public:
                           nullptr, nullptr },
                         { "scrollbar-policy", 'P', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_STRING,
                           &dummy_string, nullptr, nullptr },
-                        { "scrolled-window", 'W', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE,
-                          &dummy_bool, nullptr, nullptr },
+                        { "scrolled-window", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE,
+                          &use_scrolled_window,
+                          "Use a GtkScrolledWindow", nullptr },
                         { "shell", 'S', G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN,
                           G_OPTION_ARG_NONE, &no_shell, nullptr, nullptr },
 #ifdef VTE_DEBUG
@@ -719,6 +720,11 @@ public:
                 if (reverse) {
                         using std::swap;
                         swap(fg_color, bg_color);
+                }
+
+                if (use_scrolled_window) {
+                        no_geometry_hints = true;
+                        no_scrollbar = true;
                 }
 
 #if VTE_GTK == 4
@@ -1445,6 +1451,9 @@ vteapp_window_add_dingus(VteappWindow* window,
 static void
 vteapp_window_update_geometry(VteappWindow* window)
 {
+        if (options.no_geometry_hints)
+                return;
+
 #if VTE_GTK == 3
         GtkWidget* window_widget = GTK_WIDGET(window);
         GtkWidget* terminal_widget = GTK_WIDGET(window->terminal);
@@ -1537,6 +1546,10 @@ vteapp_window_update_geometry(VteappWindow* window)
 static void
 vteapp_window_resize(VteappWindow* window)
 {
+        /* Can't do this when not using geometry hints */
+        if (options.no_geometry_hints)
+                return;
+
         /* Don't do this for fullscreened, maximised, or tiled windows. */
 #if VTE_GTK == 3
         if (window->window_state & (GDK_WINDOW_STATE_MAXIMIZED |
@@ -2395,18 +2408,20 @@ vteapp_window_constructed(GObject *object)
                 gtk_widget_set_margin_bottom(GTK_WIDGET(window->terminal), margin);
         }
 
-        auto vadj = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(window->terminal));
+        if (!options.no_scrollbar) {
+                auto vadj = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(window->terminal));
 #if VTE_GTK == 3
-        gtk_range_set_adjustment(GTK_RANGE(window->scrollbar), vadj);
+                gtk_range_set_adjustment(GTK_RANGE(window->scrollbar), vadj);
 #elif VTE_GTK == 4
-        gtk_scrollbar_set_adjustment(GTK_SCROLLBAR(window->scrollbar), vadj);
+                gtk_scrollbar_set_adjustment(GTK_SCROLLBAR(window->scrollbar), vadj);
 #endif
+        }
 
         if (options.no_scrollbar) {
 #if VTE_GTK == 3
                 gtk_widget_destroy(GTK_WIDGET(window->scrollbar));
 #elif VTE_GTK == 4
-                // FIXMEgtk4
+                gtk_grid_remove(GTK_GRID(window->window_grid), GTK_WIDGET(window->scrollbar));
 #endif
                 window->scrollbar = nullptr;
         }
@@ -2563,8 +2578,24 @@ vteapp_window_constructed(GObject *object)
                 vteapp_window_add_dingus(window, options.dingus);
 
         /* Done! */
-        gtk_grid_attach(GTK_GRID(window->window_grid), GTK_WIDGET(window->terminal),
-                        0, 0, 1, 1);
+        if (options.use_scrolled_window) {
+#if VTE_GTK == 3
+                auto sw = gtk_scrolled_window_new(nullptr, nullptr);
+                gtk_container_add(GTK_CONTAINER(sw), GTK_WIDGET(window->terminal));
+#elif VTE_GTK == 4
+                auto sw = gtk_scrolled_window_new();
+                gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), GTK_WIDGET(window->terminal));
+#endif /* VTE_GTK */
+                gtk_grid_attach(GTK_GRID(window->window_grid), sw,
+                                0, 0, 1, 1);
+                gtk_widget_set_halign(GTK_WIDGET(sw), GTK_ALIGN_FILL);
+                gtk_widget_set_valign(GTK_WIDGET(sw), GTK_ALIGN_FILL);
+                gtk_widget_show(sw);
+        } else {
+                gtk_grid_attach(GTK_GRID(window->window_grid), GTK_WIDGET(window->terminal),
+                                0, 0, 1, 1);
+        }
+
         gtk_widget_set_halign(GTK_WIDGET(window->terminal), GTK_ALIGN_FILL);
         gtk_widget_set_valign(GTK_WIDGET(window->terminal), GTK_ALIGN_FILL);
         gtk_widget_show(GTK_WIDGET(window->terminal));
