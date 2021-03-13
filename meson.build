@@ -388,6 +388,12 @@ compiler_flags_cxx_required = [
   '-fvisibility=hidden',
 ]
 
+if cxx.get_id() == 'clang'
+  compiler_flags_cxx_only += [
+    '-Wno-unknown-attributes', # get rid of warnings about unimplemented [[(un)likely]]
+  ]
+endif
+
 global_cflags = cc.get_supported_arguments(compiler_flags_common +
                                            compiler_flags_common_undesirable +
                                            compiler_flags_c_only)
