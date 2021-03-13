@@ -209,6 +209,14 @@ private:
                eLINE,
         };
 
+        enum class Alignment : uint8_t {
+                FILL,
+                START,
+                END,
+                CENTRE,
+                BASELINE
+        };
+
 protected:
 
         /* NOTE: This needs to be kept in sync with the public VteCursorBlinkMode enum */
@@ -725,11 +733,11 @@ public:
 
         /* Style stuff */
 #if VTE_GTK == 3
-        GtkBorder m_padding{1, 1, 1, 1};
+        GtkBorder m_style_padding{1, 1, 1, 1};
 #elif VTE_GTK == 4
-        GtkBorder m_padding{0, 0, 0, 0};
+        GtkBorder m_style_padding{0, 0, 0, 0};
 #endif
-        auto padding() const noexcept { return &m_padding; }
+        GtkBorder m_padding{m_style_padding};
 
         /* Hyperlinks */
         bool m_allow_hyperlink{false};
@@ -923,11 +931,15 @@ public:
                                   int y,
                                   int width,
                                   int height,
-                                  int baseline);
+                                  int baseline,
+                                  Alignment xalign,
+                                  Alignment yalign);
 #elif VTE_GTK == 4
         void widget_size_allocate(int width,
                                   int height,
-                                  int baseline);
+                                  int baseline,
+                                  Alignment xalign,
+                                  Alignment yalign);
 #endif /* VTE_GTK */
 
         void set_blink_settings(bool blink,

@@ -4447,16 +4447,15 @@ Terminal::set_border_padding(GtkBorder const* padding)
 {
         if (memcmp(padding, &m_padding, sizeof(*padding)) != 0) {
                 _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
-                                 "Setting padding to (%d,%d,%d,%d)\n",
+                                 "Setting style padding to (%d,%d,%d,%d)\n",
                                  padding->left, padding->right,
                                  padding->top, padding->bottom);
 
-                m_padding = *padding;
-                update_view_extents();
+                m_style_padding = *padding;
                 gtk_widget_queue_resize(m_widget);
         } else {
                 _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
-                                 "Keeping padding the same at (%d,%d,%d,%d)\n",
+                                 "Keeping style padding the same at (%d,%d,%d,%d)\n",
                                  padding->left, padding->right,
                                  padding->top, padding->bottom);
 
@@ -7762,13 +7761,11 @@ Terminal::widget_measure_width(int *minimum_width,
 
         refresh_size();
 
-	*minimum_width = m_cell_width * 2;  /* have room for a CJK or emoji */
+	*minimum_width = m_cell_width * VTE_MIN_GRID_WIDTH;
         *natural_width = m_cell_width * m_column_count;
 
-	*minimum_width += m_padding.left +
-                          m_padding.right;
-	*natural_width += m_padding.left +
-                          m_padding.right;
+        *minimum_width += m_style_padding.left + m_style_padding.right;
+        *natural_width += m_style_padding.left + m_style_padding.right;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
@@ -7776,7 +7773,8 @@ Terminal::widget_measure_width(int *minimum_width,
 			*minimum_width, *natural_width,
 			m_column_count,
                          m_row_count,
-                         m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
+                         m_style_padding.left, m_style_padding.right,
+                         m_style_padding.top, m_style_padding.bottom);
 }
 
 void
@@ -7787,13 +7785,11 @@ Terminal::widget_measure_height(int *minimum_height,
 
         refresh_size();
 
-	*minimum_height = m_cell_height * 1;
+	*minimum_height = m_cell_height * VTE_MIN_GRID_HEIGHT;
         *natural_height = m_cell_height * m_row_count;
 
-	*minimum_height += m_padding.top +
-			   m_padding.bottom;
-	*natural_height += m_padding.top +
-			   m_padding.bottom;
+        *minimum_height += m_style_padding.top + m_style_padding.bottom;
+        *natural_height += m_style_padding.top + m_style_padding.bottom;
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
@@ -7801,7 +7797,8 @@ Terminal::widget_measure_height(int *minimum_height,
 			*minimum_height, *natural_height,
 			m_column_count,
                          m_row_count,
-                         m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
+                         m_style_padding.left, m_style_padding.right,
+                         m_style_padding.top, m_style_padding.bottom);
 }
 
 void
@@ -7810,38 +7807,71 @@ Terminal::widget_size_allocate(int allocation_x,
                                int allocation_y,
                                int allocation_width,
                                int allocation_height,
-                               int allocation_baseline)
+                               int allocation_baseline,
+                               Alignment xalign,
+                               Alignment yalign)
 #elif VTE_GTK == 4
 Terminal::widget_size_allocate(int allocation_width,
                                int allocation_height,
-                               int allocation_baseline)
+                               int allocation_baseline,
+                               Alignment xalign,
+                               Alignment yalign)
 #endif /* VTE_GTK */
 {
-	glong width, height;
-	gboolean repaint, update_scrollback;
+        auto width = allocation_width - (m_style_padding.left + m_style_padding.right);
+        auto height = allocation_height - (m_style_padding.top + m_style_padding.bottom);
 
-	_vte_debug_print(VTE_DEBUG_LIFECYCLE,
-			"vte_terminal_size_allocate()\n");
+        auto grid_width = int(width / m_cell_width);
+        auto grid_height = int(height / m_cell_height);
 
-	width = (allocation_width - (m_padding.left + m_padding.right)) /
-		m_cell_width;
-	height = (allocation_height - (m_padding.top + m_padding.bottom)) /
-		 m_cell_height;
-	width = MAX(width, 1);
-	height = MAX(height, 1);
+        width -= grid_width * m_cell_width;
+        height -= grid_height * m_cell_height;
+        /* assert(width >= 0); assert(height >= 0); */
 
-	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-			"[Terminal %p] Sizing window to %dx%d (%ldx%ld, padding %d,%d;%d,%d).\n",
-                        m_terminal,
-			allocation_width, allocation_height,
-                         width, height,
+        /* Distribute extra space according to alignment */
+        auto lpad = 0, rpad = 0;
+        switch (xalign) {
+        default:
+        case Alignment::FILL:
+        case Alignment::BASELINE:
+        case Alignment::START:  lpad = 0; rpad = width; break;
+        case Alignment::END:    lpad = width; rpad = 0; break;
+        case Alignment::CENTRE: lpad = width / 2; rpad = width - lpad; break;
+        }
+
+        auto tpad = 0, bpad = 0;
+        switch (yalign) {
+        default:
+        case Alignment::FILL:   tpad = bpad = 0; break;
+        case Alignment::BASELINE:
+        case Alignment::START:  tpad = 0; bpad = height; break;
+        case Alignment::END:    tpad = height; bpad = 0; break;
+        case Alignment::CENTRE: tpad = height / 2; bpad = height - tpad; break;
+        }
+
+        m_padding.left   = m_style_padding.left   + lpad;
+        m_padding.right  = m_style_padding.right  + rpad;
+        m_padding.top    = m_style_padding.top    + tpad;
+        m_padding.bottom = m_style_padding.bottom + bpad;
+
+        /* The minimum size returned from  ::widget_measure_width/height()
+         * is VTE_MIN_GRID_WIDTH/HEIGHT, but let's be extra safe.
+         */
+        grid_width = std::max(grid_width, VTE_MIN_GRID_WIDTH);
+        grid_height = std::max(grid_height, VTE_MIN_GRID_HEIGHT);
+
+        _vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
+                         "[Terminal %p] Sizing window to %dx%d (%dx%d, effective padding %d,%d;%d,%d).\n",
+                         m_terminal,
+                         allocation_width, allocation_height,
+                         grid_width, grid_height,
                          m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
 
-        auto current_allocation = get_allocated_rect();
-
-	repaint = current_allocation.width != allocation_width ||
+        auto const current_allocation = get_allocated_rect();
+        auto const repaint = current_allocation.width != allocation_width ||
                 current_allocation.height != allocation_height;
-	update_scrollback = current_allocation.height != allocation_height;
+        /* FIXME: remove this */
+        auto const update_scrollback = current_allocation.height != allocation_height;
 
 #if VTE_GTK == 3
         set_allocated_rect({allocation_x, allocation_y, allocation_width, allocation_height});
@@ -7849,24 +7879,21 @@ Terminal::widget_size_allocate(int allocation_width,
         set_allocated_rect({0, 0, allocation_width, allocation_height});
 #endif
 
-	if (width != m_column_count
-			|| height != m_row_count
-			|| update_scrollback)
-	{
-		/* Set the size of the pseudo-terminal. */
-		set_size(width, height);
+        if (grid_width != m_column_count ||
+            grid_height != m_row_count ||
+            update_scrollback) {
+                /* Set the size of the pseudo-terminal. */
+                set_size(grid_width, grid_height);
 
 		/* Notify viewers that the contents have changed. */
 		queue_contents_changed();
 	}
 
-	if (widget_realized()) {
-		/* Force a repaint if we were resized. */
-		if (repaint) {
-			reset_update_rects();
-			invalidate_all();
-		}
-	}
+        /* Force a repaint if we were resized. */
+        if (widget_realized() && repaint) {
+                reset_update_rects();
+                invalidate_all();
+        }
 }
 
 void

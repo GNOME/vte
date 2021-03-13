@@ -1405,7 +1405,9 @@ Widget::size_allocate(GtkAllocation* allocation)
 
         m_terminal->widget_size_allocate(allocation->x, allocation->y,
                                          allocation->width, allocation->height,
-                                         -1);
+                                         -1,
+                                         vte::terminal::Terminal::Alignment(m_xalign),
+                                         vte::terminal::Terminal::Alignment(m_yalign));
 
         gtk_widget_set_allocation(gtk(), allocation);
 
@@ -1427,7 +1429,9 @@ Widget::size_allocate(int width,
         _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget size allocate width=%d height=%d baseline=%d\n",
                          width, height, baseline);
 
-        terminal()->widget_size_allocate(width, height, baseline);
+        terminal()->widget_size_allocate(width, height, baseline,
+                                         vte::terminal::Terminal::Alignment(m_xalign),
+                                         vte::terminal::Terminal::Alignment(m_yalign));
 
         gtk_widget_allocate(gtk(), width, height, baseline, nullptr);
 }

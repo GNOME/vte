@@ -373,8 +373,6 @@ public:
 
         constexpr auto scroll_unit_is_pixels() const noexcept { return m_scroll_unit_is_pixels; }
 
-        auto padding() const noexcept { return terminal()->padding(); }
-
         bool set_cursor_blink_mode(VteCursorBlinkMode mode) { return terminal()->set_cursor_blink_mode(vte::terminal::Terminal::CursorBlinkMode(mode)); }
         auto cursor_blink_mode() const noexcept { return VteCursorBlinkMode(terminal()->cursor_blink_mode()); }
 
@@ -445,6 +443,29 @@ public:
 
         bool set_sixel_enabled(bool enabled) noexcept { return m_terminal->set_sixel_enabled(enabled); }
         bool sixel_enabled() const noexcept { return m_terminal->sixel_enabled(); }
+
+        constexpr auto xalign() const noexcept { return m_xalign; }
+        constexpr auto yalign() const noexcept { return m_yalign; }
+
+        bool set_xalign(GtkAlign align) noexcept
+        {
+                if (align == m_xalign)
+                        return false;
+
+                m_xalign = align;
+                gtk_widget_queue_allocate(gtk());
+                return true;
+        }
+
+        bool set_yalign(GtkAlign align) noexcept
+        {
+                if (align == m_yalign)
+                        return false;
+
+                m_yalign = align;
+                gtk_widget_queue_allocate(gtk());
+                return true;
+        }
 
 protected:
 
@@ -549,6 +570,9 @@ private:
         unsigned m_vscroll_policy:1{GTK_SCROLL_NATURAL};
         unsigned m_scroll_unit_is_pixels:1{false};
         unsigned m_changing_scroll_position:1{false};
+
+        GtkAlign m_xalign{GTK_ALIGN_START};
+        GtkAlign m_yalign{GTK_ALIGN_FILL};
 };
 
 } // namespace platform
