@@ -7633,27 +7633,34 @@ Terminal::set_size(long columns,
 void
 Terminal::set_scroll_value(double value)
 {
-	/* Save the difference. */
-	auto const dy = value - m_screen->scroll_delta;
+        auto const lower = _vte_ring_delta(m_screen->row_data);
+        auto const upper_minus_row_count = m_screen->insert_delta;
 
-	m_screen->scroll_delta = value;
+        value = std::clamp(value,
+                           double(lower),
+                           double(std::max(lower, upper_minus_row_count)));
 
-	/* Sanity checks. */
+        /* Save the difference. */
+        auto const dy = value - m_screen->scroll_delta;
+
+        m_screen->scroll_delta = value;
+
+        /* Sanity checks. */
         if (G_UNLIKELY(!widget_realized()))
                 return;
 
         /* FIXME: do this check in pixel space */
-	if (!_vte_double_equal(dy, 0)) {
-		_vte_debug_print(VTE_DEBUG_ADJ,
+        if (!_vte_double_equal(dy, 0)) {
+                _vte_debug_print(VTE_DEBUG_ADJ,
                                  "Scrolling by %f\n", dy);
 
                 invalidate_all();
                 match_contents_clear();
-		emit_text_scrolled(dy);
-		queue_contents_changed();
-	} else {
-		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
-	}
+                emit_text_scrolled(dy);
+                queue_contents_changed();
+        } else {
+                _vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
+        }
 }
 
 Terminal::Terminal(vte::platform::Widget* w,

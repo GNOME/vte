@@ -438,7 +438,7 @@ public:
                 return _vte_ring_delta (m_screen->row_data);
         }
 
-        inline auto scroll_limit_upper() const noexcept
+        inline constexpr auto scroll_limit_upper() const noexcept
         {
                 return m_screen->insert_delta + m_row_count;
         }

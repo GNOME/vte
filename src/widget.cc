@@ -918,13 +918,14 @@ Widget::notify_scroll_bounds_changed(bool value_changed)
         auto const freezer = vte::glib::FreezeObjectNotify{m_vadjustment.get()};
         auto changed = false;
 
-        auto dlower = double(terminal()->scroll_limit_lower());
-        auto dupper = double(terminal()->scroll_limit_upper());
+        auto const lower = terminal()->scroll_limit_lower();
+        auto const upper = terminal()->scroll_limit_upper();
+        auto dlower = 0.;
+        auto dupper = double(upper - lower);
         auto dline = 1.;
         auto row_count = terminal()->row_count();
         if (scroll_unit_is_pixels()) [[unlikely]] {
                 auto const factor = m_terminal->get_cell_height();
-                dlower *= factor;
                 dupper *= factor;
                 dline *= factor;
                 row_count *= factor;
@@ -994,9 +995,8 @@ Widget::notify_scroll_value_changed()
         _vte_debug_print(VTE_DEBUG_ADJ,
                          "Updating scroll adjustment value\n");
 
-        m_changing_scroll_position = true;
-
-        auto value = terminal()->scroll_position();
+        auto const lower = terminal()->scroll_limit_lower();
+        auto value = terminal()->scroll_position() - lower;
         if (scroll_unit_is_pixels()) [[unlikely]] {
                 auto const factor = m_terminal->get_cell_height();
                 value *= factor;
@@ -1004,11 +1004,10 @@ Widget::notify_scroll_value_changed()
 
         auto const v = gtk_adjustment_get_value(m_vadjustment.get());
         if (!_vte_double_equal(v, value)) {
-                /* Note that this will generate a 'value-changed' signal */
+                m_changing_scroll_position = true;
                 gtk_adjustment_set_value(m_vadjustment.get(), value);
+                m_changing_scroll_position = false;
         }
-
-        m_changing_scroll_position = false;
 }
 
 #if VTE_GTK == 3
@@ -1593,6 +1592,10 @@ Widget::vadjustment_value_changed()
                 auto const factor = m_terminal->get_cell_height();
                 adj /= factor;
         }
+
+        /* Add offset */
+        auto const lower = terminal()->scroll_limit_lower();
+        adj += lower;
 
         m_terminal->set_scroll_value(adj);
 }
