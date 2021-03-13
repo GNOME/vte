@@ -268,6 +268,9 @@ public:
         vte::grid::row_t m_row_count{VTE_ROWS};
         vte::grid::column_t m_column_count{VTE_COLUMNS};
 
+        inline constexpr auto row_count() const noexcept -> long { return m_row_count; }
+        inline constexpr auto column_count() const noexcept -> long { return m_column_count; }
+
         vte::terminal::Tabstops m_tabstops{};
 
         vte::parser::Parser m_parser; /* control sequence state machine */
@@ -429,6 +432,21 @@ public:
         bool m_scroll_on_output{false};
         bool m_scroll_on_keystroke{true};
         vte::grid::row_t m_scrollback_lines{0};
+
+        inline auto scroll_limit_lower() const noexcept
+        {
+                return _vte_ring_delta (m_screen->row_data);
+        }
+
+        inline auto scroll_limit_upper() const noexcept
+        {
+                return m_screen->insert_delta + m_row_count;
+        }
+
+        inline constexpr auto scroll_position() const noexcept
+        {
+                return m_screen->scroll_delta;
+        }
 
         /* Restricted scrolling */
         struct vte_scrolling_region m_scrolling_region;     /* the region we scroll in */
@@ -657,8 +675,8 @@ public:
         int m_im_preedit_cursor;
 
         /* Adjustment updates pending. */
-        gboolean m_adjustment_changed_pending;
-        gboolean m_adjustment_value_changed_pending;
+        bool m_adjustment_changed_pending;
+        bool m_adjustment_value_changed_pending;
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
@@ -712,9 +730,6 @@ public:
         GtkBorder m_padding{0, 0, 0, 0};
 #endif
         auto padding() const noexcept { return &m_padding; }
-
-        vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
-        auto vadjustment() noexcept { return m_vadjustment.get(); }
 
         /* Hyperlinks */
         bool m_allow_hyperlink{false};
@@ -877,8 +892,6 @@ public:
         std::optional<std::string_view> widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
                                                                   vte::platform::ClipboardFormat format);
         void widget_clipboard_data_clear(vte::platform::Clipboard const& clipboard);
-
-        void widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment);
 
         void widget_realize();
         void widget_unrealize();
@@ -1100,8 +1113,6 @@ public:
                              long old_rows,
                              bool do_rewrap);
 
-        void vadjustment_value_changed();
-
         unsigned translate_ctrlkey(vte::platform::KeyEvent const& event) const noexcept;
 
         void apply_mouse_cursor();
@@ -1109,6 +1120,7 @@ public:
 
         void beep();
 
+        void set_scroll_value(double value);
         void emit_adjustment_changed();
         void emit_commit(std::string_view const& str);
         void emit_eof();
@@ -1175,8 +1187,6 @@ public:
 #endif /* WITH_A11Y */
 
         void emit_pending_signals();
-        void emit_char_size_changed(int width,
-                                    int height);
         void emit_increase_font_size();
         void emit_decrease_font_size();
         void emit_bell();

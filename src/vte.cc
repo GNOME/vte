@@ -998,18 +998,6 @@ Terminal::child_exited_eos_wait_callback()
         return false; // don't run again
 }
 
-/* Emit a "char-size-changed" signal. */
-void
-Terminal::emit_char_size_changed(int width,
-                                           int height)
-{
-	_vte_debug_print(VTE_DEBUG_SIGNALS,
-			"Emitting `char-size-changed'.\n");
-        /* FIXME on next API break, change the signature */
-	g_signal_emit(m_terminal, signals[SIGNAL_CHAR_SIZE_CHANGED], 0,
-			      (guint)width, (guint)height);
-}
-
 /* Emit an "increase-font-size" signal. */
 void
 Terminal::emit_increase_font_size()
@@ -1941,92 +1929,19 @@ Terminal::regex_match_check_extra(vte::grid::column_t col,
 void
 Terminal::emit_adjustment_changed()
 {
-	if (m_adjustment_changed_pending) {
-		bool changed = false;
-		gdouble current, v;
+        if (!widget())
+                return;
 
-                auto vadjustment = m_vadjustment.get();
+        if (m_adjustment_changed_pending) {
+                widget()->notify_scroll_bounds_changed(m_adjustment_value_changed_pending);
 
-                auto const freezer = vte::glib::FreezeObjectNotify{vadjustment};
+                m_adjustment_changed_pending = m_adjustment_value_changed_pending = false;
+        }
+        else if (m_adjustment_value_changed_pending) {
+                widget()->notify_scroll_value_changed();
 
-		v = _vte_ring_delta (m_screen->row_data);
-                current = gtk_adjustment_get_lower(vadjustment);
-		if (!_vte_double_equal(current, v)) {
-			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing lower bound from %.0f to %f\n",
-					 current, v);
-                        gtk_adjustment_set_lower(vadjustment, v);
-			changed = true;
-		}
-
-		v = m_screen->insert_delta + m_row_count;
-                current = gtk_adjustment_get_upper(vadjustment);
-		if (!_vte_double_equal(current, v)) {
-			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing upper bound from %.0f to %f\n",
-					 current, v);
-                        gtk_adjustment_set_upper(vadjustment, v);
-			changed = true;
-		}
-
-		/* The step increment should always be one. */
-                v = gtk_adjustment_get_step_increment(vadjustment);
-		if (!_vte_double_equal(v, 1)) {
-			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing step increment from %.0lf to 1\n", v);
-                        gtk_adjustment_set_step_increment(vadjustment, 1);
-			changed = true;
-		}
-
-		/* Set the number of rows the user sees to the number of rows the
-		 * user sees. */
-                v = gtk_adjustment_get_page_size(vadjustment);
-		if (!_vte_double_equal(v, m_row_count)) {
-			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing page size from %.0f to %ld\n",
-					 v, m_row_count);
-                        gtk_adjustment_set_page_size(vadjustment,
-						     m_row_count);
-			changed = true;
-		}
-
-		/* Clicking in the empty area should scroll one screen, so set the
-		 * page size to the number of visible rows. */
-                v = gtk_adjustment_get_page_increment(vadjustment);
-		if (!_vte_double_equal(v, m_row_count)) {
-			_vte_debug_print(VTE_DEBUG_ADJ,
-					"Changing page increment from "
-					"%.0f to %ld\n",
-					v, m_row_count);
-                        gtk_adjustment_set_page_increment(vadjustment,
-							  m_row_count);
-			changed = true;
-		}
-
-		if (changed)
-			_vte_debug_print(VTE_DEBUG_SIGNALS,
-					"Emitting adjustment_changed.\n");
-		m_adjustment_changed_pending = FALSE;
-	}
-	if (m_adjustment_value_changed_pending) {
-		double v, delta;
-		_vte_debug_print(VTE_DEBUG_SIGNALS,
-				"Emitting adjustment_value_changed.\n");
-		m_adjustment_value_changed_pending = FALSE;
-
-                auto vadjustment = m_vadjustment.get();
-                v = gtk_adjustment_get_value(vadjustment);
-		if (!_vte_double_equal(v, m_screen->scroll_delta)) {
-			/* this little dance is so that the scroll_delta is
-			 * updated immediately, but we still handled scrolling
-			 * via the adjustment - e.g. user interaction with the
-			 * scrollbar
-			 */
-			delta = m_screen->scroll_delta;
-			m_screen->scroll_delta = v;
-                        gtk_adjustment_set_value(vadjustment, delta);
-		}
-	}
+                m_adjustment_value_changed_pending = false;
+        }
 }
 
 /* Queue an adjustment-changed signal to be delivered when convenient. */
@@ -2041,34 +1956,47 @@ Terminal::queue_adjustment_changed()
 void
 Terminal::queue_adjustment_value_changed(double v)
 {
-	if (!_vte_double_equal(v, m_screen->scroll_delta)) {
-                _vte_debug_print(VTE_DEBUG_ADJ,
-                                 "Adjustment value changed to %f\n",
-                                 v);
-		m_screen->scroll_delta = v;
-		m_adjustment_value_changed_pending = true;
-		add_update_timeout(this);
-	}
+        /* FIXME: do this check in pixel space? */
+	if (_vte_double_equal(v, m_screen->scroll_delta))
+                return;
+
+        _vte_debug_print(VTE_DEBUG_ADJ,
+                         "Scroll value changed to %f\n", v);
+
+	/* Save the difference. */
+	auto const dy = v - m_screen->scroll_delta;
+
+        m_screen->scroll_delta = v;
+        m_adjustment_value_changed_pending = true;
+        add_update_timeout(this);
+
+        if (!widget_realized()) [[unlikely]]
+                return;
+
+        _vte_debug_print(VTE_DEBUG_ADJ,
+                         "Scrolling by %f\n", dy);
+
+        invalidate_all();
+        match_contents_clear();
+        emit_text_scrolled(dy);
+        queue_contents_changed();
 }
 
 void
 Terminal::queue_adjustment_value_changed_clamped(double v)
 {
-        auto vadjustment = m_vadjustment.get();
-        auto const lower = gtk_adjustment_get_lower(vadjustment);
-        auto const upper = gtk_adjustment_get_upper(vadjustment);
+        auto const lower = _vte_ring_delta (m_screen->row_data);
+        auto const upper_minus_row_count = m_screen->insert_delta;
 
-	v = CLAMP(v, lower, MAX (lower, upper - m_row_count));
-
+        v = std::clamp(v,
+                       double(lower),
+                       double(std::max(lower, upper_minus_row_count)));
 	queue_adjustment_value_changed(v);
 }
 
 void
 Terminal::adjust_adjustments()
 {
-	g_assert(m_screen != nullptr);
-	g_assert(m_screen->row_data != nullptr);
-
 	queue_adjustment_changed();
 
 	/* The lower value should be the first row in the buffer. */
@@ -2090,9 +2018,6 @@ Terminal::adjust_adjustments()
 void
 Terminal::adjust_adjustments_full()
 {
-	g_assert(m_screen != NULL);
-	g_assert(m_screen->row_data != NULL);
-
 	adjust_adjustments();
 	queue_adjustment_changed();
 }
@@ -6737,21 +6662,19 @@ Terminal::mouse_autoscroll_timer_callback()
 
 	/* Provide an immediate effect for mouse wigglers. */
 	if (m_mouse_last_position.y < 0) {
-		if (m_vadjustment) {
-			/* Try to scroll up by one line. */
-			adj = m_screen->scroll_delta - 1;
-			queue_adjustment_value_changed_clamped(adj);
-			extend = true;
-		}
+                /* Try to scroll up by one line. */
+                adj = m_screen->scroll_delta - 1;
+                queue_adjustment_value_changed_clamped(adj);
+                extend = true;
+
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling down.\n");
 	}
 	if (m_mouse_last_position.y >= m_view_usable_extents.height()) {
-		if (m_vadjustment) {
-			/* Try to scroll up by one line. */
-			adj = m_screen->scroll_delta + 1;
-			queue_adjustment_value_changed_clamped(adj);
-			extend = true;
-		}
+                /* Try to scroll up by one line. */
+                adj = m_screen->scroll_delta + 1;
+                queue_adjustment_value_changed_clamped(adj);
+                extend = true;
+
 		_vte_debug_print(VTE_DEBUG_EVENTS, "Autoscrolling up.\n");
 	}
 	if (extend) {
@@ -7256,7 +7179,9 @@ Terminal::apply_font_metrics(int cell_width_unscaled,
                                         m_cell_height_unscaled,
                                         m_cell_width_unscaled);
                 }
-		emit_char_size_changed(m_cell_width, m_cell_height);
+
+                if (widget())
+                        widget()->notify_char_size_changed(m_cell_width, m_cell_height);
 	}
 	/* Repaint. */
 	invalidate_all();
@@ -7705,25 +7630,13 @@ Terminal::set_size(long columns,
 	}
 }
 
-/* Redraw the widget. */
-static void
-vte_terminal_vadjustment_value_changed_cb(vte::terminal::Terminal* that) noexcept
-try
-{
-        that->vadjustment_value_changed();
-}
-catch (...)
-{
-        vte::log_exception();
-}
-
 void
-Terminal::vadjustment_value_changed()
+Terminal::set_scroll_value(double value)
 {
-	/* Read the new adjustment value and save the difference. */
-        auto const adj = gtk_adjustment_get_value(m_vadjustment.get());
-	double dy = adj - m_screen->scroll_delta;
-	m_screen->scroll_delta = adj;
+	/* Save the difference. */
+	auto const dy = value - m_screen->scroll_delta;
+
+	m_screen->scroll_delta = value;
 
 	/* Sanity checks. */
         if (G_UNLIKELY(!widget_realized()))
@@ -7732,7 +7645,7 @@ Terminal::vadjustment_value_changed()
         /* FIXME: do this check in pixel space */
 	if (!_vte_double_equal(dy, 0)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
-			    "Scrolling by %f\n", dy);
+                                 "Scrolling by %f\n", dy);
 
                 invalidate_all();
                 match_contents_clear();
@@ -7741,33 +7654,6 @@ Terminal::vadjustment_value_changed()
 	} else {
 		_vte_debug_print(VTE_DEBUG_ADJ, "Not scrolling\n");
 	}
-}
-
-void
-Terminal::widget_set_vadjustment(vte::glib::RefPtr<GtkAdjustment>&& adjustment)
-{
-        if (adjustment && adjustment == m_vadjustment)
-                return;
-        if (!adjustment && m_vadjustment)
-                return;
-
-        if (m_vadjustment) {
-		/* Disconnect our signal handlers from this object. */
-                g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
-						     (void*)vte_terminal_vadjustment_value_changed_cb,
-						     this);
-	}
-
-        if (adjustment)
-                m_vadjustment = std::move(adjustment);
-        else
-                m_vadjustment = vte::glib::make_ref_sink(GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 0, 0, 0, 0)));
-
-	/* We care about the offset, not the top or bottom. */
-        g_signal_connect_swapped(m_vadjustment.get(),
-				 "value-changed",
-				 G_CALLBACK(vte_terminal_vadjustment_value_changed_cb),
-				 this);
 }
 
 Terminal::Terminal(vte::platform::Widget* w,
@@ -7779,8 +7665,6 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_alternate_screen(VTE_ROWS, false),
         m_screen(&m_normal_screen)
 {
-	widget_set_vadjustment({});
-
         /* Inits allocation to 1x1 @ -1,-1 */
         cairo_rectangle_int_t allocation;
         gtk_widget_get_allocation(m_widget, &allocation);
@@ -8065,7 +7949,7 @@ Terminal::~Terminal()
 	stop_autoscroll();
 
 	/* Cancel pending adjustment change notifications. */
-	m_adjustment_changed_pending = FALSE;
+	m_adjustment_changed_pending = false;
 
 	/* Free any selected text, but if we currently own the selection,
 	 * throw the text onto the clipboard without an owner so that it
@@ -8097,14 +7981,6 @@ Terminal::~Terminal()
 	/* Discard any pending data. */
 	_vte_byte_array_free(m_outgoing);
         m_outgoing = nullptr;
-
-	/* Free public-facing data. */
-        if (m_vadjustment) {
-		/* Disconnect our signal handlers from this object. */
-                g_signal_handlers_disconnect_by_func(m_vadjustment.get(),
-						     (void*)vte_terminal_vadjustment_value_changed_cb,
-						     this);
-	}
 
         /* Update rects */
         g_array_free(m_update_rects, TRUE /* free segment */);
@@ -9542,7 +9418,7 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 		return true;
 	}
 
-        v = MAX (1., ceil (gtk_adjustment_get_page_increment (m_vadjustment.get()) / 10.));
+        v = MAX (1., ceil (m_row_count /* page increment */ / 10.));
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Scroll speed is %d lines per non-smooth scroll unit\n",
 			(int) v);
@@ -10779,7 +10655,6 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	long start_col, end_col;
 	VteCharAttributes *ca;
 	GArray *attrs;
-	gdouble value, page_size;
 
 	auto row_text = get_text(start_row, 0,
                                  end_row, 0,
@@ -10848,9 +10723,9 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	g_string_free (row_text, TRUE);
 
 	select_text(start_col, start_row, end_col, end_row);
-	/* Quite possibly the math here should not access adjustment directly... */
-        value = gtk_adjustment_get_value(m_vadjustment.get());
-        page_size = gtk_adjustment_get_page_size(m_vadjustment.get());
+	/* Quite possibly the math here should not access the scroll values directly... */
+        auto const value = m_screen->scroll_delta;
+        auto const page_size = m_row_count;
 	if (backward) {
 		if (end_row < value || end_row > value + page_size - 1)
 			queue_adjustment_value_changed_clamped(end_row - page_size + 1);

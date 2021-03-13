@@ -356,13 +356,23 @@ public:
         void beep() noexcept;
 
         void set_hadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment) noexcept { m_hadjustment = std::move(adjustment); }
-        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment) { terminal()->widget_set_vadjustment(std::move(adjustment)); }
+        void set_vadjustment(vte::glib::RefPtr<GtkAdjustment> adjustment);
         auto hadjustment() noexcept { return m_hadjustment.get(); }
-        auto vadjustment() noexcept { return terminal()->vadjustment(); }
+        auto vadjustment() noexcept { return m_vadjustment.get(); }
         void set_hscroll_policy(GtkScrollablePolicy policy);
         void set_vscroll_policy(GtkScrollablePolicy policy);
         auto hscroll_policy() const noexcept { return m_hscroll_policy; }
         auto vscroll_policy() const noexcept { return m_vscroll_policy; }
+
+        constexpr bool set_scroll_unit_is_pixels(bool enable) noexcept
+        {
+                auto const rv = m_scroll_unit_is_pixels != enable;
+                m_scroll_unit_is_pixels = enable;
+                return rv;
+        }
+
+        constexpr auto scroll_unit_is_pixels() const noexcept { return m_scroll_unit_is_pixels; }
+
         auto padding() const noexcept { return terminal()->padding(); }
 
         bool set_cursor_blink_mode(VteCursorBlinkMode mode) { return terminal()->set_cursor_blink_mode(vte::terminal::Terminal::CursorBlinkMode(mode)); }
@@ -477,8 +487,14 @@ protected:
 
         unsigned key_event_translate_ctrlkey(KeyEvent const& event) const noexcept;
 
+        void notify_scroll_bounds_changed(bool value_changed = false);
+        void notify_scroll_value_changed();
+        void notify_char_size_changed(int width,
+                                      int height);
+
 public: // FIXMEchpe
         void im_preedit_changed() noexcept;
+        void vadjustment_value_changed();
 
 private:
         KeyEvent key_event_from_gdk(GdkEvent* event) const;
@@ -526,9 +542,13 @@ private:
         /* Misc */
         std::optional<std::string> m_word_char_exceptions{};
 
+        vte::glib::RefPtr<GtkAdjustment> m_vadjustment{};
         vte::glib::RefPtr<GtkAdjustment> m_hadjustment{};
-        uint32_t m_hscroll_policy : 1;
-        uint32_t m_vscroll_policy : 1;
+
+        unsigned m_hscroll_policy:1{GTK_SCROLL_NATURAL};
+        unsigned m_vscroll_policy:1{GTK_SCROLL_NATURAL};
+        unsigned m_scroll_unit_is_pixels:1{false};
+        unsigned m_changing_scroll_position:1{false};
 };
 
 } // namespace platform

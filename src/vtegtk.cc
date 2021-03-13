@@ -999,6 +999,9 @@ try
                 case PROP_SCROLL_ON_OUTPUT:
                         g_value_set_boolean (value, vte_terminal_get_scroll_on_output(terminal));
                         break;
+                case PROP_SCROLL_UNIT_IS_PIXELS:
+                        g_value_set_boolean (value, vte_terminal_get_scroll_unit_is_pixels(terminal));
+                        break;
                 case PROP_TEXT_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_text_blink_mode (terminal));
                         break;
@@ -1116,6 +1119,9 @@ try
                         break;
                 case PROP_SCROLL_ON_OUTPUT:
                         vte_terminal_set_scroll_on_output (terminal, g_value_get_boolean (value));
+                        break;
+                case PROP_SCROLL_UNIT_IS_PIXELS:
+                        vte_terminal_set_scroll_unit_is_pixels(terminal, g_value_get_boolean(value));
                         break;
                 case PROP_TEXT_BLINK_MODE:
                         vte_terminal_set_text_blink_mode (terminal, (VteTextBlinkMode)g_value_get_enum (value));
@@ -2235,6 +2241,20 @@ vte_terminal_class_init(VteTerminalClass *klass)
         pspecs[PROP_ENABLE_FALLBACK_SCROLLING] =
                 g_param_spec_boolean ("enable-fallback-scrolling", nullptr, nullptr,
                                       true,
+                                      GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:scroll-unit-is-pixels:
+         *
+         * Controls whether the terminal's GtkAdjustment values unit is lines
+         * or pixels. This can be enabled when the terminal is the child of a
+         * GtkScrolledWindow to fix some bugs with its kinetic scrolling.
+         *
+         * Since: 0.66
+         */
+        pspecs[PROP_SCROLL_UNIT_IS_PIXELS] =
+                g_param_spec_boolean ("scroll-unit-is-pixels", nullptr, nullptr,
+                                      false,
                                       GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
@@ -5830,6 +5850,54 @@ catch (...)
 {
         vte::log_exception();
         return true;
+}
+
+/**
+ * vte_terminal_set_scroll_unit_is_pixels:
+ * @terminal: a #VteTerminal
+ * @enable: whether to use pixels as scroll unit
+ *
+ * Controls whether the terminal's scroll unit is lines or pixels.
+ *
+ * This function is rarely useful, except when the terminal is added to a
+ * #GtkScrolledWindow.
+ *
+ * Since: 0.66
+ */
+void
+vte_terminal_set_scroll_unit_is_pixels(VteTerminal *terminal,
+                                       gboolean enable) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_scroll_unit_is_pixels(enable != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SCROLL_UNIT_IS_PIXELS]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_scroll_unit_is_pixels:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: %TRUE if the scroll unit is pixels; or %FALSE if the unit is lines
+ *
+ * Since: 0.66
+ */
+gboolean
+vte_terminal_get_scroll_unit_is_pixels(VteTerminal *terminal) noexcept
+try
+{
+    g_return_val_if_fail(VTE_IS_TERMINAL(terminal), false);
+    return WIDGET(terminal)->scroll_unit_is_pixels();
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
 }
 
 /**
