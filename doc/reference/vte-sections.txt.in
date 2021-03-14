@@ -2,6 +2,7 @@
 <FILE>vte-terminal</FILE>
 <TITLE>VteTerminal</TITLE>
 VteTerminal
+VteAlign
 VteCursorBlinkMode
 VteCursorShape
 VteEraseBinding
@@ -132,6 +133,8 @@ vte_terminal_get_color_background_for_draw
 #endif /* VTE_GTK == 3 */
 
 <SUBSECTION Standard>
+VTE_TYPE_ALIGN
+vte_align_get_type
 VTE_TYPE_CURSOR_BLINK_MODE
 vte_cursor_blink_mode_get_type
 VTE_TYPE_CURSOR_SHAPE

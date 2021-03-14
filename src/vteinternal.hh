@@ -210,11 +210,12 @@ private:
         };
 
         enum class Alignment : uint8_t {
-                FILL,
-                START,
-                END,
-                CENTRE,
-                BASELINE
+                START  = 0u,
+                CENTRE = 1u,
+                /* BASELINE = 2u, */
+                END    = 3u,
+                FILL   = 0x4u,
+                START_FILL = START | FILL,
         };
 
 protected:

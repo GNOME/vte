@@ -547,17 +547,17 @@ gboolean vte_terminal_get_enable_sixel(VteTerminal *terminal) _VTE_CXX_NOEXCEPT 
 
 _VTE_PUBLIC
 void vte_terminal_set_xalign(VteTerminal* terminal,
-                             GtkAlign align) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                             VteAlign align) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-GtkAlign vte_terminal_get_xalign(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+VteAlign vte_terminal_get_xalign(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 void vte_terminal_set_yalign(VteTerminal* terminal,
-                             GtkAlign align) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                             VteAlign align) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-GtkAlign vte_terminal_get_yalign(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+VteAlign vte_terminal_get_yalign(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 

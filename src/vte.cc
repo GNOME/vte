@@ -7832,21 +7832,19 @@ Terminal::widget_size_allocate(int allocation_width,
         auto lpad = 0, rpad = 0;
         switch (xalign) {
         default:
-        case Alignment::FILL:
-        case Alignment::BASELINE:
+        case Alignment::START_FILL:
         case Alignment::START:  lpad = 0; rpad = width; break;
-        case Alignment::END:    lpad = width; rpad = 0; break;
         case Alignment::CENTRE: lpad = width / 2; rpad = width - lpad; break;
+        case Alignment::END:    lpad = width; rpad = 0; break;
         }
 
         auto tpad = 0, bpad = 0;
         switch (yalign) {
         default:
-        case Alignment::FILL:   tpad = bpad = 0; break;
-        case Alignment::BASELINE:
-        case Alignment::START:  tpad = 0; bpad = height; break;
-        case Alignment::END:    tpad = height; bpad = 0; break;
-        case Alignment::CENTRE: tpad = height / 2; bpad = height - tpad; break;
+        case Alignment::START:       tpad = 0; bpad = height; break;
+        case Alignment::CENTRE:      tpad = height / 2; bpad = height - tpad; break;
+        case Alignment::END:         tpad = height; bpad = 0; break;
+        case Alignment::START_FILL:  tpad = bpad = 0; break;
         }
 
         m_padding.left   = m_style_padding.left   + lpad;

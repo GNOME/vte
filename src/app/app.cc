@@ -122,8 +122,8 @@ public:
         VteCursorBlinkMode cursor_blink_mode{VTE_CURSOR_BLINK_SYSTEM};
         VteCursorShape cursor_shape{VTE_CURSOR_SHAPE_BLOCK};
         VteTextBlinkMode text_blink_mode{VTE_TEXT_BLINK_ALWAYS};
-        GtkAlign xalign{GtkAlign(-1)};
-        GtkAlign yalign{GtkAlign(-1)};
+        VteAlign xalign{VteAlign(-1)};
+        VteAlign yalign{VteAlign(-1)};
         vte::glib::RefPtr<GtkCssProvider> css{};
 
 #if VTE_GTK == 3
@@ -483,9 +483,9 @@ private:
         {
                 auto const that = static_cast<Options*>(data);
                 auto v = int{};
-                auto const rv = that->parse_enum(GTK_TYPE_ALIGN, value, v, error);
+                auto const rv = that->parse_enum(VTE_TYPE_ALIGN, value, v, error);
                 if (rv)
-                        that->xalign = GtkAlign(v);
+                        that->xalign = VteAlign(v);
                 return rv;
         }
 
@@ -494,9 +494,9 @@ private:
         {
                 auto const that = static_cast<Options*>(data);
                 auto v = int{};
-                auto const rv = that->parse_enum(GTK_TYPE_ALIGN, value, v, error);
+                auto const rv = that->parse_enum(VTE_TYPE_ALIGN, value, v, error);
                 if (rv)
-                        that->yalign = GtkAlign(v);
+                        that->yalign = VteAlign(v);
                 return rv;
         }
 
@@ -2578,9 +2578,9 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_scroll_unit_is_pixels(window->terminal, options.scroll_unit_is_pixels);
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
         vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
-        if (options.xalign != GtkAlign(-1))
+        if (options.xalign != VteAlign(-1))
             vte_terminal_set_xalign(window->terminal, options.xalign);
-        if (options.yalign != GtkAlign(-1))
+        if (options.yalign != VteAlign(-1))
             vte_terminal_set_yalign(window->terminal, options.yalign);
 
         /* Style */
