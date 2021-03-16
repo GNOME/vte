@@ -627,7 +627,8 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 			if (len > i) {
 				/* snapshot_text always contains a trailing '\n',
 				 * insertion happens in front of it: bug 657960 */
-				g_assert(i >= 1);
+				// g_assert(i >= 1);
+                            if (i > 0)
 				emit_text_changed_insert(G_OBJECT(accessible),
 							 priv->snapshot_text->str,
 							 i - 1,
