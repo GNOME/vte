@@ -23,6 +23,8 @@ NTHREADS = 1
 NJOBS = -j$(NTHREADS)
 NINJA = ninja $(NJOBS)
 
+MESON = meson
+
 #
 
 all:
@@ -56,3 +58,9 @@ install:
 
 uninstall:
 	$(NINJA) uninstall
+
+dist:
+	$(MESON) dist --no-tests
+
+distcheck:
+	$(MESON) dist
