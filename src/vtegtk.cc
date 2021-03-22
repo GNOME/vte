@@ -990,6 +990,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->encoding_changed = NULL;
 	klass->char_size_changed = NULL;
 	klass->notification_received = NULL;
+	klass->shell_preexec = NULL;
 	klass->window_title_changed = NULL;
 	klass->icon_title_changed = NULL;
 	klass->selection_changed = NULL;
@@ -1090,6 +1091,23 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              _vte_marshal_VOID__STRING_STRING,
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, G_TYPE_STRING);
+
+        /**
+         * VteTerminal::shell-preexec:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted when the interactive shell has read in a complete
+         * command and is about to execute it.
+         */
+        signals[SIGNAL_SHELL_PREEXEC] =
+                g_signal_new(I_("shell-preexec"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, shell_preexec),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::window-title-changed:

@@ -1402,6 +1402,10 @@ Terminal::handle_urxvt_extension(vte::parser::Sequence const& seq,
                 m_notification_body = *token;
                 return;
         }
+
+        if (*token == "preexec") {
+                m_pending_changes |= vte::to_integral(PendingChanges::SHELL_PREEXEC);
+        }
 }
 
 bool

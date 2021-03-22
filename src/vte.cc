@@ -10164,6 +10164,12 @@ Terminal::emit_pending_signals()
                               m_notification_body.c_str());
         }
 
+	if (m_pending_changes & vte::to_integral(PendingChanges::SHELL_PREEXEC)) {
+                _vte_debug_print (VTE_DEBUG_SIGNALS,
+                                  "Emitting `shell-preexec'.\n");
+                g_signal_emit(freezer.get(), signals[SIGNAL_SHELL_PREEXEC], 0);
+        }
+
         m_pending_changes = 0;
 
 	/* Flush any pending "inserted" signals. */
