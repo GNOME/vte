@@ -990,6 +990,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 	klass->encoding_changed = NULL;
 	klass->char_size_changed = NULL;
 	klass->notification_received = NULL;
+	klass->shell_precmd = NULL;
 	klass->shell_preexec = NULL;
 	klass->window_title_changed = NULL;
 	klass->icon_title_changed = NULL;
@@ -1091,6 +1092,23 @@ vte_terminal_class_init(VteTerminalClass *klass)
                              _vte_marshal_VOID__STRING_STRING,
                              G_TYPE_NONE,
                              2, G_TYPE_STRING, G_TYPE_STRING);
+
+        /**
+         * VteTerminal::shell-precmd:
+         * @vteterminal: the object which received the signal
+         *
+         * Emitted right before an interactive shell shows a
+         * first-level prompt.
+         */
+        signals[SIGNAL_SHELL_PRECMD] =
+                g_signal_new(I_("shell-precmd"),
+                             G_OBJECT_CLASS_TYPE(klass),
+                             G_SIGNAL_RUN_LAST,
+                             G_STRUCT_OFFSET(VteTerminalClass, shell_precmd),
+                             NULL,
+                             NULL,
+                             g_cclosure_marshal_VOID__VOID,
+                             G_TYPE_NONE, 0);
 
         /**
          * VteTerminal::shell-preexec:

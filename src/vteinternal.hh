@@ -641,6 +641,7 @@ public:
                 CWF   = 1u << 2,
                 NOTIFICATION = 1u << 3,
                 SHELL_PREEXEC = 1u << 4,
+                SHELL_PRECMD = 1u << 5,
         };
         unsigned m_pending_changes{0};
 

@@ -103,10 +103,11 @@ struct _VteTerminalClass {
 	void (*bell)(VteTerminal* terminal);
 
 	void (*notification_received)(VteTerminal* terminal, const gchar *summary, const gchar *body);
+	void (*shell_precmd)(VteTerminal* terminal);
 	void (*shell_preexec)(VteTerminal* terminal);
 
         /* Padding for future expansion. */
-        gpointer padding[14];
+        gpointer padding[13];
 
         VteTerminalClassPrivate *priv;
 };

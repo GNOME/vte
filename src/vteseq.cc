@@ -1403,7 +1403,9 @@ Terminal::handle_urxvt_extension(vte::parser::Sequence const& seq,
                 return;
         }
 
-        if (*token == "preexec") {
+        if (*token == "precmd") {
+                m_pending_changes |= vte::to_integral(PendingChanges::SHELL_PRECMD);
+        } else if (*token == "preexec") {
                 m_pending_changes |= vte::to_integral(PendingChanges::SHELL_PREEXEC);
         }
 }
