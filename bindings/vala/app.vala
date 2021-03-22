@@ -335,6 +335,7 @@ class Window : Gtk.ApplicationWindow
     terminal.set_rewrap_on_resize(!Options.no_rewrap);
     terminal.set_scroll_on_output(false);
     terminal.set_scroll_on_keystroke(true);
+    terminal.set_scroll_speed(Options.scroll_speed);
     terminal.set_scrollback_lines(Options.scrollback_lines);
 
     /* Style */
@@ -857,6 +858,7 @@ class App : Gtk.Application
     public static bool object_notifications = false;
     public static string? output_filename = null;
     public static bool reverse = false;
+    public static uint scroll_speed = 0;
     public static int scrollback_lines = 512;
     public static int transparency_percent = 0;
     public static bool version = false;
@@ -1050,6 +1052,8 @@ class App : Gtk.Application
         "Save terminal contents to file at exit", null },
       { "reverse", 0, 0, OptionArg.NONE, ref reverse,
         "Reverse foreground/background colors", null },
+      { "scroll-speed", 0, 0, OptionArg.INT, ref scroll_speed,
+        "Specify the scroll speed", null },
       { "scrollback-lines", 'n', 0, OptionArg.INT, ref scrollback_lines,
         "Specify the number of scrollback-lines", null },
       { "transparent", 'T', 0, OptionArg.INT, ref transparency_percent,
