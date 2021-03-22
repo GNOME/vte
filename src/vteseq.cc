@@ -19,10 +19,14 @@
 
 #include "config.h"
 
+#include <string>
+
 #include <search.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
+#include <sys/types.h>
 #ifdef HAVE_SYS_SYSLIMITS_H
 #include <sys/syslimits.h>
 #endif
@@ -1384,6 +1388,88 @@ Terminal::handle_urxvt_extension(vte::parser::Sequence const& seq,
 {
         if (token == endtoken)
                 return;
+
+        if (*token == "container") {
+                ++token;
+
+                if (token == endtoken)
+                        return;
+
+                const std::string sub_command = *token;
+                ++token;
+
+                if (sub_command == "pop") {
+                        if (token == endtoken)
+                                return;
+
+                        ++token;
+
+                        if (token == endtoken)
+                                return;
+
+                        ++token;
+
+                        if (token == endtoken) {
+                                if (!m_containers.empty()) {
+                                        m_containers.pop();
+                                        m_pending_changes |= vte::to_integral(PendingChanges::CONTAINERS);
+                                }
+
+                                return;
+                        }
+
+                        const std::string uid_token = *token;
+                        ++token;
+
+                        const uid_t uid = getuid();
+                        const std::string uid_str = std::to_string(uid);
+
+                        if (uid_token == uid_str) {
+                                if (!m_containers.empty()) {
+                                        m_containers.pop();
+                                        m_pending_changes |= vte::to_integral(PendingChanges::CONTAINERS);
+                                }
+
+                                return;
+                        }
+
+                        return;
+                } else if (sub_command == "push") {
+                        if (token == endtoken)
+                                return;
+
+                        const std::string name = *token;
+                        ++token;
+
+                        if (token == endtoken)
+                                return;
+
+                        const std::string runtime = *token;
+                        ++token;
+
+                        if (token == endtoken) {
+                                m_containers.emplace(name, runtime);
+                                m_pending_changes |= vte::to_integral(PendingChanges::CONTAINERS);
+                                return;
+                        }
+
+                        const std::string uid_token = *token;
+                        ++token;
+
+                        const uid_t uid = getuid();
+                        const std::string uid_str = std::to_string(uid);
+
+                        if (uid_token == uid_str) {
+                                m_containers.emplace(name, runtime);
+                                m_pending_changes |= vte::to_integral(PendingChanges::CONTAINERS);
+                                return;
+                        }
+
+                        return;
+                }
+
+                return;
+        }
 
         if (*token == "notify") {
                 ++token;

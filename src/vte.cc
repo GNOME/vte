@@ -10176,6 +10176,14 @@ Terminal::emit_pending_signals()
                 g_signal_emit(freezer.get(), signals[SIGNAL_SHELL_PRECMD], 0);
         }
 
+	if (m_pending_changes & vte::to_integral(PendingChanges::CONTAINERS)) {
+                _vte_debug_print(VTE_DEBUG_SIGNALS,
+                                 "Notifying `current-container-name' and `current-container-runtime'.\n");
+
+                g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_CONTAINER_NAME]);
+                g_object_notify_by_pspec(freezer.get(), pspecs[PROP_CURRENT_CONTAINER_RUNTIME]);
+        }
+
         m_pending_changes = 0;
 
 	/* Flush any pending "inserted" signals. */

@@ -59,6 +59,7 @@
 #include <list>
 #include <queue>
 #include <optional>
+#include <stack>
 #include <string>
 #include <variant>
 #include <vector>
@@ -96,6 +97,18 @@ typedef enum _VteCharacterReplacement {
         VTE_CHARACTER_REPLACEMENT_NONE,
         VTE_CHARACTER_REPLACEMENT_LINE_DRAWING
 } VteCharacterReplacement;
+
+struct VteContainer {
+public:
+        VteContainer(const std::string &name, const std::string &runtime) :
+                m_name{name},
+                m_runtime{runtime}
+        {
+        }
+
+        std::string m_name;
+        std::string m_runtime;
+};
 
 typedef struct _VtePaletteColor {
 	struct {
@@ -622,6 +635,8 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
+        std::stack<VteContainer> m_containers;
+
         /* desktop notification */
         std::string m_notification_summary;
         std::string m_notification_body;
@@ -642,6 +657,7 @@ public:
                 NOTIFICATION = 1u << 3,
                 SHELL_PREEXEC = 1u << 4,
                 SHELL_PRECMD = 1u << 5,
+                CONTAINERS = 1u << 6,
         };
         unsigned m_pending_changes{0};
 

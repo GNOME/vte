@@ -707,6 +707,12 @@ try
                 case PROP_CURSOR_BLINK_MODE:
                         g_value_set_enum (value, vte_terminal_get_cursor_blink_mode (terminal));
                         break;
+                case PROP_CURRENT_CONTAINER_NAME:
+                        g_value_set_string (value, vte_terminal_get_current_container_name (terminal));
+                        break;
+                case PROP_CURRENT_CONTAINER_RUNTIME:
+                        g_value_set_string (value, vte_terminal_get_current_container_runtime (terminal));
+                        break;
                 case PROP_CURRENT_DIRECTORY_URI:
                         g_value_set_string (value, vte_terminal_get_current_directory_uri (terminal));
                         break;
@@ -2096,6 +2102,27 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_WINDOW_TITLE] =
                 g_param_spec_string ("window-title", NULL, NULL,
+                                     NULL,
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:current-container-name:
+         *
+         * The name of the current container, or %NULL if unset.
+         */
+        pspecs[PROP_CURRENT_CONTAINER_NAME] =
+                g_param_spec_string ("current-container-name", NULL, NULL,
+                                     NULL,
+                                     (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:current-container-runtime:
+         *
+         * The name of the runtime toolset used to set up the current
+         * container, or %NULL if unset.
+         */
+        pspecs[PROP_CURRENT_CONTAINER_RUNTIME] =
+                g_param_spec_string ("current-container-runtime", NULL, NULL,
                                      NULL,
                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
@@ -4572,6 +4599,56 @@ catch (...)
 {
         vte::log_exception();
         return -1;
+}
+
+/**
+ * vte_terminal_get_current_container_name:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable) (transfer none): the name of the current
+ *   container, or %NULL
+ */
+const char *
+vte_terminal_get_current_container_name(VteTerminal *terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        auto impl = IMPL(terminal);
+        if (impl->m_containers.empty())
+                return NULL;
+
+        const VteContainer &container = impl->m_containers.top();
+        return container.m_name.c_str();
+}
+catch (...)
+{
+        vte::log_exception();
+        return NULL;
+}
+
+/**
+ * vte_terminal_get_current_container_runtime:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable) (transfer none): the name of the runtime
+ *   toolset used to set up the current container, or %NULL
+ */
+const char *
+vte_terminal_get_current_container_runtime(VteTerminal *terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+        auto impl = IMPL(terminal);
+        if (impl->m_containers.empty())
+                return NULL;
+
+        const VteContainer &container = impl->m_containers.top();
+        return container.m_runtime.c_str();
+}
+catch (...)
+{
+        vte::log_exception();
+        return NULL;
 }
 
 /**
