@@ -310,6 +310,7 @@ class Window : Gtk.ApplicationWindow
       terminal.notify.connect(notify_cb);
 
     terminal.notification_received.connect(notification_received_cb);
+    terminal.shell_preexec.connect(shell_preexec_cb);
 
     /* Settings */
     if (Options.no_double_buffer)
@@ -786,6 +787,11 @@ class Window : Gtk.ApplicationWindow
   private void notification_received_cb(Vte.Terminal terminal, string summary, string? body)
   {
     print ("[%s]: %s\n", summary, body);
+  }
+
+  private void shell_preexec_cb(Vte.Terminal terminal)
+  {
+    print("[shell] executing command\n");
   }
 
 } /* class Window */
