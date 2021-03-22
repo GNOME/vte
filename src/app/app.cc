@@ -1889,6 +1889,12 @@ notification_received_cb(VteTerminal *terminal,
 }
 
 static void
+shell_precmd_cb(VteTerminal *terminal)
+{
+        g_print("[shell] showing command prompt\n");
+}
+
+static void
 shell_preexec_cb(VteTerminal *terminal)
 {
         g_print("[shell] executing command\n");
@@ -2133,6 +2139,7 @@ vteapp_window_constructed(GObject *object)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
 
         g_signal_connect(window->terminal, "notification-received", G_CALLBACK(notification_received_cb), NULL);
+        g_signal_connect(window->terminal, "shell-precmd", G_CALLBACK(shell_precmd_cb), NULL);
         g_signal_connect(window->terminal, "shell-preexec", G_CALLBACK(shell_preexec_cb), NULL);
 
         /* Settings */

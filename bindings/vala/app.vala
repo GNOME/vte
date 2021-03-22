@@ -310,6 +310,7 @@ class Window : Gtk.ApplicationWindow
       terminal.notify.connect(notify_cb);
 
     terminal.notification_received.connect(notification_received_cb);
+    terminal.shell_precmd.connect(shell_precmd_cb);
     terminal.shell_preexec.connect(shell_preexec_cb);
 
     /* Settings */
@@ -787,6 +788,11 @@ class Window : Gtk.ApplicationWindow
   private void notification_received_cb(Vte.Terminal terminal, string summary, string? body)
   {
     print ("[%s]: %s\n", summary, body);
+  }
+
+  private void shell_precmd_cb(Vte.Terminal terminal)
+  {
+    print("[shell] showing command prompt\n");
   }
 
   private void shell_preexec_cb(Vte.Terminal terminal)
