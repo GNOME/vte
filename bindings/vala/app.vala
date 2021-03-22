@@ -309,6 +309,8 @@ class Window : Gtk.ApplicationWindow
     if (Options.object_notifications)
       terminal.notify.connect(notify_cb);
 
+    terminal.notification_received.connect(notification_received_cb);
+
     /* Settings */
     if (Options.no_double_buffer)
       terminal.set_double_buffered(false);
@@ -778,6 +780,11 @@ class Window : Gtk.ApplicationWindow
   private void window_title_changed_cb(Vte.Terminal terminal)
   {
     set_title(terminal.get_window_title());
+  }
+
+  private void notification_received_cb(Vte.Terminal terminal, string summary, string? body)
+  {
+    print ("[%s]: %s\n", summary, body);
   }
 
 } /* class Window */

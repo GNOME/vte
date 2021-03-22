@@ -1878,6 +1878,14 @@ window_window_title_changed_cb(VteTerminal* terminal,
 }
 
 static void
+notification_received_cb(VteTerminal *terminal,
+                         const gchar *summary,
+                         const gchar *body)
+{
+        g_print("[%s]: %s\n", summary, body);
+}
+
+static void
 window_lower_window_cb(VteTerminal* terminal,
                        VteappWindow* window)
 {
@@ -2114,6 +2122,8 @@ vteapp_window_constructed(GObject *object)
         g_signal_connect(window->terminal, "window-title-changed", G_CALLBACK(window_window_title_changed_cb), window);
         if (options.object_notifications)
                 g_signal_connect(window->terminal, "notify", G_CALLBACK(window_notify_cb), window);
+
+        g_signal_connect(window->terminal, "notification-received", G_CALLBACK(notification_received_cb), NULL);
 
         /* Settings */
         if (options.no_double_buffer) {
