@@ -9293,6 +9293,7 @@ vte_cairo_get_clip_region (cairo_t *cr)
 bool
 Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 {
+	gdouble scroll_speed;
 	gdouble v;
 	gint cnt, i;
 	int button;
@@ -9327,7 +9328,13 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 		return true;
 	}
 
-        v = MAX (1., ceil (gtk_adjustment_get_page_increment (m_vadjustment.get()) / 10.));
+	if (m_scroll_speed == 0) {
+		scroll_speed = ceil (gtk_adjustment_get_page_increment (m_vadjustment.get()) / 10.);
+	} else {
+		scroll_speed = m_scroll_speed;
+	}
+
+	v = MAX (1., scroll_speed);
 	_vte_debug_print(VTE_DEBUG_EVENTS,
 			"Scroll speed is %d lines per non-smooth scroll unit\n",
 			(int) v);
@@ -9639,6 +9646,16 @@ Terminal::decscusr_cursor_shape() const noexcept
         case CursorStyle::eSTEADY_IBEAM:
                 return CursorShape::eIBEAM;
         }
+}
+
+bool
+Terminal::set_scroll_speed(unsigned int scroll_speed)
+{
+        if (scroll_speed == m_scroll_speed)
+                return false;
+
+        m_scroll_speed = scroll_speed;
+        return true;
 }
 
 bool

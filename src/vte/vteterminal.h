@@ -310,6 +310,10 @@ void vte_terminal_set_cursor_shape(VteTerminal *terminal,
 _VTE_PUBLIC
 VteCursorShape vte_terminal_get_cursor_shape(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
+_VTE_PUBLIC
+void vte_terminal_set_scroll_speed(VteTerminal *terminal,
+                                   guint scroll_speed) _VTE_GNUC_NONNULL(1);
+
 /* Set the number of scrollback lines, above or at an internal minimum. */
 _VTE_PUBLIC
 void vte_terminal_set_scrollback_lines(VteTerminal *terminal,
