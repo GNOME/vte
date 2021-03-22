@@ -621,6 +621,10 @@ public:
         gboolean m_cursor_moved_pending;
         gboolean m_contents_changed_pending;
 
+        /* desktop notification */
+        std::string m_notification_summary;
+        std::string m_notification_body;
+
         std::string m_window_title{};
         std::string m_current_directory_uri{};
         std::string m_current_file_uri{};
@@ -634,6 +638,7 @@ public:
                 TITLE = 1u << 0,
                 CWD   = 1u << 1,
                 CWF   = 1u << 2,
+                NOTIFICATION = 1u << 3,
         };
         unsigned m_pending_changes{0};
 
@@ -1358,6 +1363,9 @@ public:
                              int osc) noexcept;
 
         /* OSC handlers */
+        void handle_urxvt_extension(vte::parser::Sequence const& seq,
+                                    vte::parser::StringTokeniser::const_iterator& token,
+                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
         void set_color(vte::parser::Sequence const& seq,
                        vte::parser::StringTokeniser::const_iterator& token,
                        vte::parser::StringTokeniser::const_iterator const& endtoken,

@@ -10139,6 +10139,14 @@ Terminal::emit_pending_signals()
                 m_current_file_uri_pending.clear();
         }
 
+	if (m_pending_changes & vte::to_integral(PendingChanges::NOTIFICATION)) {
+                _vte_debug_print (VTE_DEBUG_SIGNALS,
+                                  "Emitting `notification-received'.\n");
+                g_signal_emit(freezer.get(), signals[SIGNAL_NOTIFICATION_RECEIVED], 0,
+                              m_notification_summary.c_str(),
+                              m_notification_body.c_str());
+        }
+
         m_pending_changes = 0;
 
 	/* Flush any pending "inserted" signals. */
