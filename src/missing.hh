@@ -19,6 +19,14 @@
 
 /* NOTE: This file must be included *after all other includes*. */
 
+#include <csignal>
+#include <fcntl.h>
+#include <sys/syscall.h>
+
+#if defined(__mips__) || defined(__mips64__)
+#include <asm/sgidefs.h>
+#endif
+
 /* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
 #ifndef NSIG
 #define NSIG (8 * sizeof(sigset_t))
