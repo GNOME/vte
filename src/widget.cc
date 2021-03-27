@@ -341,6 +341,64 @@ catch (...)
         vte::log_exception();
 }
 
+static void
+click_pressed_cb(GtkGestureClick* gesture,
+                 int press_count,
+                 double x,
+                 double y,
+                 Widget* that) noexcept
+try
+{
+        that->gesture_click_pressed(gesture, press_count, x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+click_released_cb(GtkGestureClick* gesture,
+                  int press_count,
+                  double x,
+                  double y,
+                  Widget* that) noexcept
+try
+{
+        that->gesture_click_released(gesture, press_count, x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+click_stopped_cb(GtkGestureClick* gesture,
+                 Widget* that) noexcept
+try
+{
+        that->gesture_click_stopped(gesture);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+click_unpaired_release_cb(GtkGestureClick* gesture,
+                          double x,
+                          double y,
+                          unsigned button,
+                          GdkEventSequence* sequence,
+                          Widget* that) noexcept
+try
+{
+        that->gesture_click_unpaired_release(gesture, x, y, button, sequence);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
 #endif /* VTE_GTK == 4 */
 
 Widget::Widget(VteTerminal* t)
@@ -607,6 +665,19 @@ Widget::constructed() noexcept
         g_signal_connect(controller.get(), "decelerate",
                          G_CALLBACK(scroll_decelerate_cb), this);
         gtk_widget_add_controller(m_widget, controller.release());
+
+        auto gesture = vte::glib::take_ref(gtk_gesture_click_new());
+        gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture.get()), 0 /* any button */);
+        gtk_gesture_single_set_exclusive(GTK_GESTURE_SINGLE(gesture.get()), true);
+        g_signal_connect(gesture.get(), "pressed",
+                         G_CALLBACK(click_pressed_cb), this);
+        g_signal_connect(gesture.get(), "released",
+                         G_CALLBACK(click_released_cb), this);
+        g_signal_connect(gesture.get(), "stopped",
+                         G_CALLBACK(click_stopped_cb), this);
+        g_signal_connect(gesture.get(), "unpaired-release",
+                         G_CALLBACK(click_unpaired_release_cb), this);
+        gtk_widget_add_controller(m_widget, GTK_EVENT_CONTROLLER(gesture.release()));
 
 #endif /* VTE_GTK == 4 */
 
@@ -967,6 +1038,92 @@ Widget::event_scroll_decelerate(GtkEventControllerScroll* controller,
         // FIXMEgtk4
 }
 
+void
+Widget::gesture_click_pressed(GtkGestureClick* gesture,
+                              int press_count,
+                              double x,
+                              double y)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture pressed press_count=%d x=%.3f y=%.3f\n",
+                         press_count, x, y);
+
+        // FIXMEgtk4 why does gtk4 not do that automatically?
+        gtk_widget_grab_focus(gtk());
+
+        auto const event = mouse_event_from_gesture_click(EventBase::Type::eMOUSE_PRESS,
+                                                          gesture,
+                                                          press_count,
+                                                          x, y);
+        if (terminal()->widget_mouse_press(event))
+                gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+        else
+                gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_DENIED);
+
+        // FIXMEgtk4 GtkLabel does
+        //        if (press_count >= 3)
+        //                gtk_event_controller_reset(GTK_EVENT_CONTROLLER(gesture));
+        // but this makes triple-click 'sticky'
+}
+
+void
+Widget::gesture_click_released(GtkGestureClick* gesture,
+                               int press_count,
+                               double x,
+                               double y)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture released press_count=%d x=%.3f y=%.3f\n",
+                         press_count, x, y);
+
+        // FIXMEgtk4 why does gtk4 not do that automatically?
+        gtk_widget_grab_focus(gtk());
+
+        auto const sequence = gtk_gesture_single_get_current_sequence(GTK_GESTURE_SINGLE(gesture));
+        if (!gtk_gesture_handles_sequence(GTK_GESTURE(gesture), sequence)) // FIXMEgtk4 why!?
+                return;
+
+        auto const event = mouse_event_from_gesture_click(EventBase::Type::eMOUSE_RELEASE,
+                                                          gesture,
+                                                          press_count,
+                                                          x, y);
+        if (terminal()->widget_mouse_release(event))
+                gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+}
+
+void
+Widget::gesture_click_stopped(GtkGestureClick* gesture)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture stopped\n");
+
+        // FIXMEgtk4 what's the right thing to do here???
+        // Should probably stop selection expansion mode, reset stored buttons, ...?
+}
+
+void
+Widget::gesture_click_unpaired_release(GtkGestureClick* gesture,
+                                       double x,
+                                       double y,
+                                       unsigned button,
+                                       GdkEventSequence* sequence)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Click gesture unpaired release button=%d x=%.3f y=%.3f\n",
+                         button, x, y);
+
+        // FIXMEgtk4 what's the right thing to do here???
+
+        // FIXMEgtk4 why does gtk4 not do that automatically?
+        gtk_widget_grab_focus(gtk());
+
+        if (!gtk_gesture_handles_sequence(GTK_GESTURE(gesture), sequence)) // why!?
+                return;
+
+        auto const event = mouse_event_from_gesture_click(EventBase::Type::eMOUSE_RELEASE,
+                                                          gesture,
+                                                          1, // press_count
+                                                          x, y);
+        if (terminal()->widget_mouse_release(event))
+                gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+}
+
 #endif /* VTE_GTK == 4 */
 
 void
@@ -1299,6 +1456,33 @@ Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
 }
 
 #endif /* VTE_GTK == 3 */
+
+#if VTE_GTK == 4
+
+MouseEvent
+Widget::mouse_event_from_gesture_click(EventBase::Type type,
+                                       GtkGestureClick* gesture,
+                                       int press_count,
+                                       double x,
+                                       double y) const /* throws */
+{
+        auto const gesture_single = GTK_GESTURE_SINGLE(gesture);
+
+        auto const button = gtk_gesture_single_get_current_button(gesture_single);
+        auto const sequence = gtk_gesture_single_get_current_sequence(gesture_single);
+        auto const event = gtk_gesture_get_last_event(GTK_GESTURE(gesture), sequence);
+        if (!event)
+                throw std::runtime_error{"No last event!?"};
+
+        return {type,
+                press_count,
+                gdk_event_get_modifier_state(event),
+                MouseEvent::Button(button),
+                x,
+                y};
+}
+
+#endif /* VTE_GTK == 4 */
 
 void
 Widget::map() noexcept

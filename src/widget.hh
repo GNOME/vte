@@ -353,6 +353,20 @@ public:
         void event_scroll_decelerate(GtkEventControllerScroll* controller,
                                      double vx,
                                      double vy);
+        void gesture_click_pressed(GtkGestureClick* gesture,
+                                   int press_count,
+                                   double x,
+                                   double y);
+        void gesture_click_released(GtkGestureClick* gesture,
+                                    int press_count,
+                                    double x,
+                                    double y);
+        void gesture_click_stopped(GtkGestureClick* gesture);
+        void gesture_click_unpaired_release(GtkGestureClick* gesture,
+                                            double x,
+                                            double y,
+                                            unsigned button,
+                                            GdkEventSequence* sequence);
 #endif /* VTE_GTK == 4 */
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }
@@ -540,6 +554,12 @@ private:
         unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
         MouseEvent mouse_event_from_gdk(GdkEvent* event) const /* throws */;
         ScrollEvent scroll_event_from_gdk(GdkEvent* event) const /* throws */;
+#elif VTE_GTK == 4
+        MouseEvent mouse_event_from_gesture_click(EventBase::Type type,
+                                                  GtkGestureClick* gesture,
+                                                  int press_count,
+                                                  double x,
+                                                  double y) const /* throws */;
 #endif
 
         void clipboard_request_received_cb(Clipboard const& clipboard,
