@@ -288,6 +288,59 @@ catch (...)
         vte::log_exception();
 }
 
+static void
+scroll_begin_cb(GtkEventControllerScroll* controller,
+                Widget* that) noexcept
+try
+{
+        that->event_scroll_begin(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static gboolean
+scroll_scroll_cb(GtkEventControllerScroll* controller,
+                 double dx,
+                 double dy,
+                 Widget* that) noexcept
+try
+{
+        return that->event_scroll(controller, dx, dy);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+static void
+scroll_end_cb(GtkEventControllerScroll* controller,
+              Widget* that) noexcept
+try
+{
+        that->event_scroll_end(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+scroll_decelerate_cb(GtkEventControllerScroll* controller,
+                     double vx,
+                     double vy,
+                     Widget* that) noexcept
+try
+{
+        that->event_scroll_decelerate(controller, vx, vy);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
 #endif /* VTE_GTK == 4 */
 
 Widget::Widget(VteTerminal* t)
@@ -541,6 +594,18 @@ Widget::constructed() noexcept
                          G_CALLBACK(motion_notify_is_pointer_cb), this);
         g_signal_connect(controller.get(), "notify::contains-pointer",
                          G_CALLBACK(motion_notify_contains_pointer_cb), this);
+        gtk_widget_add_controller(m_widget, controller.release());
+
+        auto const scroll_flags = GtkEventControllerScrollFlags(GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);
+        controller = vte::glib::take_ref(gtk_event_controller_scroll_new(scroll_flags));
+        g_signal_connect(controller.get(), "scroll-begin",
+                         G_CALLBACK(scroll_begin_cb), this);
+        g_signal_connect(controller.get(), "scroll-end",
+                         G_CALLBACK(scroll_end_cb), this);
+        g_signal_connect(controller.get(), "scroll",
+                         G_CALLBACK(scroll_scroll_cb), this);
+        g_signal_connect(controller.get(), "decelerate",
+                         G_CALLBACK(scroll_decelerate_cb), this);
         gtk_widget_add_controller(m_widget, controller.release());
 
 #endif /* VTE_GTK == 4 */
@@ -858,6 +923,47 @@ Widget::event_motion_notify_contains_pointer(GtkEventControllerMotion* controlle
 {
         _vte_debug_print(VTE_DEBUG_EVENTS, "Motion contains-pointer now %s\n",
                          _vte_debug_tf(gtk_event_controller_motion_contains_pointer(controller)));
+        // FIXMEgtk4
+}
+
+void
+Widget::event_scroll_begin(GtkEventControllerScroll* controller)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll begin\n");
+
+        // FIXMEgtk4
+}
+
+bool
+Widget::event_scroll(GtkEventControllerScroll* controller,
+                     double dx,
+                     double dy)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll delta_x=%.3f delta_y=%.3f\n", dx, dy);
+
+        auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
+        if (!event)
+                return false;
+
+        return terminal()->widget_mouse_scroll({gdk_event_get_modifier_state(event),
+                                                dx, dy});
+}
+
+void
+Widget::event_scroll_end(GtkEventControllerScroll* controller)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll end\n");
+
+        // FIXMEgtk4
+}
+
+void
+Widget::event_scroll_decelerate(GtkEventControllerScroll* controller,
+                                double vx,
+                                double vy)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll decelerate v_x=%.3f v_y=%.3f\n", vx, vy);
+
         // FIXMEgtk4
 }
 
