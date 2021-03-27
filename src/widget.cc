@@ -1,5 +1,5 @@
 /*
- * Copyright © 2008, 2009, 2010, 2018 Christian Persch
+ * Copyright © 2008, 2009, 2010, 2018, 2019, 2020, 2021 Christian Persch
  * Copyright © 2001-2004,2009,2010 Red Hat, Inc.
  *
  * This library is free software: you can redistribute it and/or modify
@@ -632,6 +632,7 @@ Widget::constructed() noexcept
                          G_CALLBACK(key_released_cb), this);
         g_signal_connect(controller.get(), "modifiers",
                          G_CALLBACK(key_modifiers_cb), this);
+        gtk_event_controller_set_name(controller.get(), "vte-key-controller");
         gtk_widget_add_controller(m_widget, controller.release());
 
         controller = vte::glib::take_ref(gtk_event_controller_focus_new());
@@ -639,6 +640,7 @@ Widget::constructed() noexcept
                          G_CALLBACK(focus_enter_cb), this);
         g_signal_connect(controller.get(), "leave",
                          G_CALLBACK(focus_leave_cb), this);
+        gtk_event_controller_set_name(controller.get(), "vte-focus-controller");
         gtk_widget_add_controller(m_widget, controller.release());
 
         controller = vte::glib::take_ref(gtk_event_controller_motion_new());
@@ -652,6 +654,7 @@ Widget::constructed() noexcept
                          G_CALLBACK(motion_notify_is_pointer_cb), this);
         g_signal_connect(controller.get(), "notify::contains-pointer",
                          G_CALLBACK(motion_notify_contains_pointer_cb), this);
+        gtk_event_controller_set_name(controller.get(), "vte-motion-controller");
         gtk_widget_add_controller(m_widget, controller.release());
 
         auto const scroll_flags = GtkEventControllerScrollFlags(GTK_EVENT_CONTROLLER_SCROLL_VERTICAL);
@@ -664,6 +667,7 @@ Widget::constructed() noexcept
                          G_CALLBACK(scroll_scroll_cb), this);
         g_signal_connect(controller.get(), "decelerate",
                          G_CALLBACK(scroll_decelerate_cb), this);
+        gtk_event_controller_set_name(controller.get(), "vte-scroll-controller");
         gtk_widget_add_controller(m_widget, controller.release());
 
         auto gesture = vte::glib::take_ref(gtk_gesture_click_new());
