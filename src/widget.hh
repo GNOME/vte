@@ -336,6 +336,15 @@ public:
                                  unsigned modifiers);
         void event_focus_enter(GtkEventControllerFocus* controller);
         void event_focus_leave(GtkEventControllerFocus* controller);
+        void event_motion_enter(GtkEventControllerMotion* controller,
+                                double x,
+                                double y);
+        void event_motion_leave(GtkEventControllerMotion* controller);
+        void event_motion(GtkEventControllerMotion* controller,
+                          double x,
+                          double y);
+        void event_motion_notify_is_pointer(GtkEventControllerMotion* controller);
+        void event_motion_notify_contains_pointer(GtkEventControllerMotion* controller);
 #endif /* VTE_GTK == 4 */
 
         void grab_focus() noexcept { gtk_widget_grab_focus(gtk()); }

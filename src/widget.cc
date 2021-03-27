@@ -222,6 +222,72 @@ catch (...)
         vte::log_exception();
 }
 
+static void
+motion_enter_cb(GtkEventControllerMotion* controller,
+                double x,
+                double y,
+                Widget* that) noexcept
+try
+{
+        that->event_motion_enter(controller, x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+motion_leave_cb(GtkEventControllerMotion* controller,
+                Widget* that) noexcept
+try
+{
+        that->event_motion_leave(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+motion_motion_cb(GtkEventControllerMotion* controller,
+                 double x,
+                 double y,
+                 Widget* that) noexcept
+try
+{
+        that->event_motion(controller, x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+motion_notify_is_pointer_cb(GtkEventControllerMotion* controller,
+                            GParamSpec* pspec,
+                            Widget* that) noexcept
+try
+{
+        that->event_motion_notify_is_pointer(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+motion_notify_contains_pointer_cb(GtkEventControllerMotion* controller,
+                                  GParamSpec* pspec,
+                                  Widget* that) noexcept
+try
+{
+        that->event_motion_notify_contains_pointer(controller);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
 #endif /* VTE_GTK == 4 */
 
 Widget::Widget(VteTerminal* t)
@@ -464,6 +530,19 @@ Widget::constructed() noexcept
                          G_CALLBACK(focus_leave_cb), this);
         gtk_widget_add_controller(m_widget, controller.release());
 
+        controller = vte::glib::take_ref(gtk_event_controller_motion_new());
+        g_signal_connect(controller.get(), "enter",
+                         G_CALLBACK(motion_enter_cb), this);
+        g_signal_connect(controller.get(), "leave",
+                         G_CALLBACK(motion_leave_cb), this);
+        g_signal_connect(controller.get(), "motion",
+                         G_CALLBACK(motion_motion_cb), this);
+        g_signal_connect(controller.get(), "notify::is-pointer",
+                         G_CALLBACK(motion_notify_is_pointer_cb), this);
+        g_signal_connect(controller.get(), "notify::contains-pointer",
+                         G_CALLBACK(motion_notify_contains_pointer_cb), this);
+        gtk_widget_add_controller(m_widget, controller.release());
+
 #endif /* VTE_GTK == 4 */
 
 #if VTE_GTK == 3
@@ -702,6 +781,84 @@ Widget::event_focus_leave(GtkEventControllerFocus* controller)
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus Out");
 
         terminal()->widget_focus_out();
+}
+
+void
+Widget::event_motion_enter(GtkEventControllerMotion* controller,
+                           double x,
+                           double y)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion enter x=%.3f y=%.3f\n", x, y);
+
+#if 0
+        // FIXMEgtk4 this always returns nullptr, so how do we get the modifiers?
+        auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
+        if (!event)
+                return;
+#endif
+
+        terminal()->widget_mouse_enter({EventBase::Type::eMOUSE_MOTION,
+                                        1, // press count,
+                                        0, // gdk_event_get_modifier_state(event),
+                                        MouseEvent::Button::eNONE,
+                                        x, y});
+}
+
+void
+Widget::event_motion_leave(GtkEventControllerMotion* controller)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion leave\n");
+
+#if 0
+        // FIXMEgtk4 this always returns nullptr, so how do we get the modifiers?
+        auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
+        if (!event)
+                return;
+#endif
+
+        // FIXMEgtk4 how to get the coordinates here? GtkEventControllerMotion::update_pointer_focus
+        // has them, but the signal doesn't carry them. File a gtk bug?
+        terminal()->widget_mouse_leave({EventBase::Type::eMOUSE_MOTION,
+                                        1, // press count,
+                                        0, // gdk_event_get_modifier_state(event),
+                                        MouseEvent::Button::eNONE,
+                                        -1, -1 /* FIXMEgtk4 bogus!!! */});
+}
+
+void
+Widget::event_motion(GtkEventControllerMotion* controller,
+                     double x,
+                     double y)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion x=%.3f y=%.3f\n", x, y);
+
+        auto event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
+        if (!event)
+                return;
+
+        // FIXMEgtk4 could this also be a touch event??
+        terminal()->widget_mouse_motion({EventBase::Type::eMOUSE_MOTION,
+                                         1, // press count
+                                         gdk_event_get_modifier_state(event),
+                                         MouseEvent::Button::eNONE,
+                                         x, y});
+}
+
+void
+Widget::event_motion_notify_is_pointer(GtkEventControllerMotion* controller)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion is-pointer now %s\n",
+                         _vte_debug_tf(gtk_event_controller_motion_is_pointer(controller)));
+
+        // FIXMEgtk4
+}
+
+void
+Widget::event_motion_notify_contains_pointer(GtkEventControllerMotion* controller)
+{
+        _vte_debug_print(VTE_DEBUG_EVENTS, "Motion contains-pointer now %s\n",
+                         _vte_debug_tf(gtk_event_controller_motion_contains_pointer(controller)));
+        // FIXMEgtk4
 }
 
 #endif /* VTE_GTK == 4 */
