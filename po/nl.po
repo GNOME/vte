@@ -4,47 +4,70 @@
 # Reinout van Schouwen <reinout@cs.vu.nl>, 2002
 # Tino Meinen <a.t.meinen@chello.nl> 2003
 # Wouter Bolsterlee <wbolster@gnome.org>, 2007, 2010
-# Nathan Follens <nthn@unseen.is>, 2015, 2017
+# Nathan Follens <nthn@unseen.is>, 2015, 2017, 2020
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-06-20 20:20+0000\n"
-"PO-Revision-Date: 2019-02-24 11:27+0100\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2020-08-25 15:23+0200\n"
 "Last-Translator: Nathan Follens <nthn@unseen.is>\n"
-"Language-Team: Dutch <vertaling@nl.linux.org>\n"
+"Language-Team: Dutch <gnome-nl-list@gnome.org>\n"
 "Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.2.1\n"
+"X-Generator: Poedit 2.4.1\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3966
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Er is een fout opgetreden bij lezen van kind: %s."
-
-#: ../src/vte.cc:4122
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Fout (%s) bij converteren gegevens voor dochter, laat het vallen."
-
-#: ../src/vte.cc:8179
+#: src/vte.cc:7763
 msgid "WARNING"
 msgstr "WAARSCHUWING"
 
-#: ../src/vte.cc:8180
+#: src/vte.cc:7765
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
 "GnuTLS niet ingeschakeld, gegevens zullen onversleuteld naar de schijf "
 "worden geschreven!"
 
-#: ../src/vtegtk.cc:3618
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Kan tekens niet converteren van %s naar %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Niet-blokkerend instellen van pijp is mislukt: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "pollfout: %s"
+
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "Time-out bij bewerking"
+
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "Bewerking geannuleerd"
+
+#: src/spawn.cc:189
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Lezen van dochterpijplijn (%s) is mislukt"
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Wijzigen naar map ‘%s’ is mislukt: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Uitvoeren van dochterproces ‘%s’ is mislukt: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Fout (%s) bij converteren gegevens voor dochter, laat het vallen."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Kan tekens niet converteren van %s naar %s."
 
 #~ msgid "Copy"
 #~ msgstr "Kopiëren"
