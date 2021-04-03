@@ -94,7 +94,6 @@ public:
 private:
 
         color_t m_colors[2 + k_num_colors];
-        bool m_palette_modified{false};
 
         color_index_t m_current_color{0};
 
@@ -304,7 +303,6 @@ private:
                   color_t color) noexcept
         {
                 m_colors[m_current_color = reg] = color;
-                m_palette_modified = true;
         }
 
         void
