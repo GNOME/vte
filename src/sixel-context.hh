@@ -507,7 +507,7 @@ private:
                 /* VTE doesn't currently use the pixel aspect ratio */
                 auto const aspect_num = seq.param(0, 1, 1, 1 << 15 /* 32Ki */);
                 auto const aspect_den = seq.param(1, 1, 1, 1 << 15 /* 32Ki */);
-                auto const pixel_aspect = std::clamp(aspect_num / aspect_den, 0.1, 10.0);
+                auto const pixel_aspect = std::clamp(double(aspect_num) / double(aspect_den), 0.1, 10.0);
                 #endif
 
                 m_raster_width = seq.param(2, 0, 0, k_max_width);
