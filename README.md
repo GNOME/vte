@@ -3,6 +3,19 @@ Virtual TErminal
 
 VTE provides a virtual terminal widget for GTK applications.
 
+Source & Releases
+-----------------
+
+To get the source code, use
+```
+$ git clone https://gitlab.gnome.org/GNOME/vte
+```
+
+To get the source for a release version, use the corresponding git tag, or
+download a tarball at
+https://gitlab.gnome.org/GNOME/vte/-/archive/TAG/vte-TAG.tar.bz2
+replacing `TAG` with the desired tag's name (e.g. `0.64.0`).
+
 Installation
 ------------
 
