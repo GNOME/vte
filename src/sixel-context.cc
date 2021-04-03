@@ -444,7 +444,7 @@ Context::image_data_indexed(size_t* size,
 {
         return image_data<color_index_t>(size,
                                          (image_width() + extra_width_stride) * sizeof(color_index_t),
-                                         [](color_index_t pen) noexcept -> color_index_t { return pen; });
+                                         [](color_index_t pen) constexpr noexcept -> color_index_t { return pen; });
 }
 
 #ifdef VTE_COMPILATION
@@ -454,7 +454,7 @@ Context::image_data() noexcept
 {
         return reinterpret_cast<uint8_t*>(image_data<color_t>(nullptr,
                                                               cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, image_width()),
-                                                              [&](color_index_t pen) noexcept -> color_t { return m_colors[pen]; }));
+                                                              [&](color_index_t pen) constexpr noexcept -> color_t { return m_colors[pen]; }));
 }
 
 vte::Freeable<cairo_surface_t>
