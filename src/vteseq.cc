@@ -6667,6 +6667,7 @@ Terminal::OSC(vte::parser::Sequence const& seq)
         case VTE_OSC_XTERM_SET_COLOR_TEK_FG:
         case VTE_OSC_XTERM_SET_COLOR_TEK_BG:
         case VTE_OSC_XTERM_SET_COLOR_TEK_CURSOR:
+        case VTE_OSC_XTERM_SET_CURSOR_NAME:
         case VTE_OSC_XTERM_LOGFILE:
         case VTE_OSC_XTERM_SET_FONT:
         case VTE_OSC_XTERM_SET_XSELECTION:
