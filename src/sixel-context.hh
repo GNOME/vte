@@ -543,13 +543,6 @@ private:
                 m_repeat_count = seq.param(0, 1);
         }
 
-        /* FIXMEchpe: should also set
-         *
-         *      m_repeat_count = 1;
-         *
-         * for all the unused RESERVED_* sixel commands.
-         */
-
         void
         SIXEL(uint8_t sixel) noexcept
         {
@@ -593,6 +586,12 @@ private:
                                                     m_scanline_begin, m_scanline_end);
                 }
 
+                m_repeat_count = 1;
+        }
+
+        void
+        SIXEL_NOP(vte::sixel::Sequence const& seq) noexcept
+        {
                 m_repeat_count = 1;
         }
 

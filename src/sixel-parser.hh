@@ -61,7 +61,7 @@ protected:
 
         unsigned m_command{(unsigned)Command::NONE};
         unsigned m_n_args{0};
-        vte_seq_arg_t m_args[VTE_SIXEL_PARSER_ARG_MAX]{0, 0, 0, 0, 0, 0 ,0 ,0};
+        vte_seq_arg_t m_args[VTE_SIXEL_PARSER_ARG_MAX]{0, 0, 0, 0, 0, 0 ,0, 0};
 
         constexpr auto capacity() const noexcept
         {
@@ -330,7 +330,7 @@ private:
                 case Command::DECGCI: return delegate.DECGCI(m_seq);
                 case Command::DECGCR: return delegate.DECGCR(m_seq);
                 case Command::DECGNL: return delegate.DECGNL(m_seq);
-                case Command::NONE:
+                case Command::NONE:   return;
                 case Command::RESERVED_2_05:
                 case Command::RESERVED_2_06:
                 case Command::RESERVED_2_07:
@@ -343,9 +343,8 @@ private:
                 case Command::RESERVED_2_15:
                 case Command::RESERVED_3_12:
                 case Command::RESERVED_3_13:
-                case Command::RESERVED_3_14:
-                default:
-                        return;
+                case Command::RESERVED_3_14: return delegate.SIXEL_NOP(m_seq);
+                default: __builtin_unreachable(); return;
                 }
         }
 
