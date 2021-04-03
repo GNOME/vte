@@ -543,6 +543,7 @@ modes = [
     #mode_WHAT('DECGPCM', 44, default=False),
 
     # DECGCPS - Graphics Print Colour Syntax
+    # If set, uses RGB colour format; if reset, uses HLS colour format.
     #
     # Default: reset
     #
