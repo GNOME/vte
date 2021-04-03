@@ -374,8 +374,6 @@ Context::image_data(size_t* size,
         /* There may be one scanline at the bottom that extends below the image's height,
          * and needs to be handled specially. First convert all the full scanlines, then
          * the last partial one.
-         *
-         * FIXMEchpe: colour data needs byteswapping for big endian?
          */
         auto scanlines_offsets_pos = scanlines_offsets_begin();
         auto wdata_pos = wdata.get();
