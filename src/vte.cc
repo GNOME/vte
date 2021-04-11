@@ -7861,6 +7861,25 @@ Terminal::widget_unrealize()
 
 	/* Clear modifiers. */
 	m_modifiers = 0;
+
+	/* Free any selected text, but if we currently own the selection,
+	 * throw the text onto the clipboard without an owner so that it
+	 * doesn't just disappear. */
+        for (auto sel_type : {vte::platform::ClipboardType::CLIPBOARD,
+                              vte::platform::ClipboardType::PRIMARY}) {
+                auto const sel = vte::to_integral(sel_type);
+		if (m_selection[sel] != nullptr) {
+			if (m_selection_owned[sel]) {
+                                // FIXMEchpe we should check m_selection_format[sel]
+                                // and also put text/html on if it's HTML format
+                                widget()->clipboard_set_text(sel_type,
+                                                             {m_selection[sel]->str,
+                                                              m_selection[sel]->len});
+			}
+			g_string_free(m_selection[sel], TRUE);
+                        m_selection[sel] = nullptr;
+		}
+	}
 }
 
 void
@@ -7910,25 +7929,6 @@ Terminal::~Terminal()
 
 	/* Cancel pending adjustment change notifications. */
 	m_adjustment_changed_pending = FALSE;
-
-	/* Free any selected text, but if we currently own the selection,
-	 * throw the text onto the clipboard without an owner so that it
-	 * doesn't just disappear. */
-        for (auto sel_type : {vte::platform::ClipboardType::CLIPBOARD,
-                              vte::platform::ClipboardType::PRIMARY}) {
-                auto const sel = vte::to_integral(sel_type);
-		if (m_selection[sel] != nullptr) {
-			if (m_selection_owned[sel]) {
-                                // FIXMEchpe we should check m_selection_format[sel]
-                                // and also put text/html on if it's HTML format
-                                widget()->clipboard_set_text(sel_type,
-                                                             {m_selection[sel]->str,
-                                                              m_selection[sel]->len});
-			}
-			g_string_free(m_selection[sel], TRUE);
-                        m_selection[sel] = nullptr;
-		}
-	}
 
         /* Stop listening for child-exited signals. */
         if (m_reaper) {
