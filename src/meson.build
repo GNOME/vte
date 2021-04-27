@@ -451,20 +451,21 @@ slowcat = executable(
 
 # reflect
 
-reflect_sources = config_sources + files(
-  'reflect.c'
-)
-
-reflect_textview = executable(
-  'reflect-textview',
-  sources: reflect_sources,
-  dependencies: [gtk3_dep],
-  c_args: ['-DUSE_TEXT_VIEW'],
-  include_directories: top_inc,
-  install: false,
-)
-
 if get_option('gtk3')
+
+  reflect_sources = config_sources + files(
+    'reflect.c'
+  )
+
+  reflect_textview = executable(
+    'reflect-textview',
+    sources: reflect_sources,
+    dependencies: [gtk3_dep],
+    c_args: ['-DUSE_TEXT_VIEW'],
+    include_directories: top_inc,
+    install: false,
+  )
+
   reflect_vte = executable(
     'reflect-vte',
     sources: reflect_sources,
@@ -476,6 +477,7 @@ if get_option('gtk3')
     include_directories: [top_inc,],
     install: false,
   )
+
 endif
 
 # vte-urlencode-cwd
