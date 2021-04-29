@@ -45,10 +45,7 @@
 #include "pango-glue.hh"
 #include "pcre2-glue.hh"
 #include "refptr.hh"
-
-namespace vte {
-VTE_DECLARE_FREEABLE(VteRegex, vte_regex_unref);
-} // namespace vte
+#include "vte-glue.hh"
 
 /* options */
 

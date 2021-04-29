@@ -155,7 +155,11 @@ utf8_sources = files(
   'utf8.hh',
 )
 
-libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + files(
+vte_glue_sources = files(
+  'vte-glue.hh',
+)
+
+libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
