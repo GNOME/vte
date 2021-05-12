@@ -201,13 +201,6 @@ FontInfo::measure_font()
 	/* Now that we shaped the entire ASCII character string, cache glyph
 	 * info for them */
 	cache_ascii();
-
-	if (m_height == 0) {
-		m_height = PANGO_PIXELS_CEIL (logical.height);
-	}
-	if (m_ascent == 0) {
-		m_ascent = PANGO_PIXELS_CEIL(pango_layout_get_baseline(m_layout.get()));
-	}
 }
 
 FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
