@@ -3404,7 +3404,7 @@ catch (...)
  * vte_terminal_select_all:
  * @terminal: a #VteTerminal
  *
- * Selects all text within the terminal (including the scrollback buffer).
+ * Selects all text within the terminal (not including the scrollback buffer).
  */
 void
 vte_terminal_select_all (VteTerminal *terminal) noexcept
