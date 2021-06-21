@@ -2127,6 +2127,7 @@ Terminal::set_encoding(char const* charset,
                        GError** error)
 {
         auto const to_utf8 = bool{charset == nullptr || g_ascii_strcasecmp(charset, "UTF-8") == 0};
+        auto const primary_is_current = (current_data_syntax() == primary_data_syntax());
 
 #ifdef WITH_ICU
         /* Note that if the current data syntax is not a primary one, the change
@@ -2171,9 +2172,12 @@ Terminal::set_encoding(char const* charset,
         if (pty())
                 pty()->set_utf8(primary_data_syntax() == DataSyntax::ECMA48_UTF8);
 
+        if (primary_is_current)
+                m_current_data_syntax = m_primary_data_syntax;
+
 	_vte_debug_print(VTE_DEBUG_IO,
-                         "Set terminal encoding to `%s'.\n",
-                         encoding());
+                         "Set terminal encoding to \"%s\" data syntax %d\n",
+                         encoding(), int(primary_data_syntax()));
 
         return true;
 
