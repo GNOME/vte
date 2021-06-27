@@ -21,10 +21,13 @@
 
 #include <csignal>
 #include <fcntl.h>
+
+#ifdef __linux__
 #include <sys/syscall.h>
 
 #if defined(__mips__) || defined(__mips64__)
 #include <asm/sgidefs.h>
+#endif
 #endif
 
 /* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
