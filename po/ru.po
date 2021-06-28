@@ -11,43 +11,67 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ru\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-09-02 17:55+0000\n"
-"PO-Revision-Date: 2018-09-10 23:12+0300\n"
-"Last-Translator: Stas Solovey <whats_up@tut.by>\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2021-06-28 15:08+0300\n"
+"Last-Translator: Alexey Rubtsov <rushills@gmail.com>\n"
 "Language-Team: Русский <gnome-cyr@gnome.org>\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.1.1\n"
+"X-Generator: Poedit 3.0\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3989
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Произошла ошибка при чтении из потомка: %s."
-
-#: ../src/vte.cc:4139
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr ""
-"Произошла ошибка (%s) при преобразовании данных для потомка, отбрасывается."
-
-#: ../src/vte.cc:8131
+#: src/vte.cc:7763
 msgid "WARNING"
 msgstr "ПРЕДУПРЕЖДЕНИЕ"
 
-#: ../src/vte.cc:8132
+#: src/vte.cc:7765
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
 "GnuTLS не включён; данные будут записаны на диск в незашифрованном виде!"
 
-#: ../src/vtegtk.cc:3664
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Не удалось преобразовать символы из набора %s в набор %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Не удалось установить неблокирующий канал: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "ошибка опроса: %s"
+
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "Превышено время ожидания операции"
+
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "Операция отменена"
+
+#: src/spawn.cc:189
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Не удалось считать из дочернего канала (%s)"
+
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Не удалось перейти в каталог «%s»: %s"
+
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Не удалось выполнить дочерний процесс «%s»: "
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr ""
+#~ "Произошла ошибка (%s) при преобразовании данных для потомка, "
+#~ "отбрасывается."
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Не удалось преобразовать символы из набора %s в набор %s."
 
 #~ msgid "Copy"
 #~ msgstr "Копировать"
