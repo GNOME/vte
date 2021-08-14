@@ -475,29 +475,6 @@ public:
         bool set_sixel_enabled(bool enabled) noexcept { return m_terminal->set_sixel_enabled(enabled); }
         bool sixel_enabled() const noexcept { return m_terminal->sixel_enabled(); }
 
-        constexpr auto xalign() const noexcept { return m_xalign; }
-        constexpr auto yalign() const noexcept { return m_yalign; }
-
-        bool set_xalign(VteAlign align) noexcept
-        {
-                if (align == m_xalign)
-                        return false;
-
-                m_xalign = VteAlign(align & ~VTE_ALIGN_FILL);
-                gtk_widget_queue_allocate(gtk());
-                return true;
-        }
-
-        bool set_yalign(VteAlign align) noexcept
-        {
-                if (align == m_yalign)
-                        return false;
-
-                m_yalign = align;
-                gtk_widget_queue_allocate(gtk());
-                return true;
-        }
-
 protected:
 
         enum class CursorType {
@@ -607,9 +584,6 @@ private:
         unsigned m_vscroll_policy:1{GTK_SCROLL_NATURAL};
         unsigned m_scroll_unit_is_pixels:1{false};
         unsigned m_changing_scroll_position:1{false};
-
-        VteAlign m_xalign{VTE_ALIGN_START};
-        VteAlign m_yalign{VTE_ALIGN_START_FILL};
 };
 
 } // namespace platform

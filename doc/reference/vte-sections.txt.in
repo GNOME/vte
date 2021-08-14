@@ -2,7 +2,6 @@
 <FILE>vte-terminal</FILE>
 <TITLE>VteTerminal</TITLE>
 VteTerminal
-VteAlign
 VteCursorBlinkMode
 VteCursorShape
 VteEraseBinding
@@ -104,10 +103,6 @@ vte_terminal_search_set_wrap_around
 vte_terminal_event_check_regex_array
 vte_terminal_event_check_regex_simple
 #endif /* VTE_GTK */
-vte_terminal_get_xalign
-vte_terminal_set_xalign
-vte_terminal_get_yalign
-vte_terminal_set_yalign
 
 <SUBSECTION>
 VteFeatureFlags

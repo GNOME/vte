@@ -1857,8 +1857,8 @@ Widget::size_allocate(GtkAllocation* allocation)
         m_terminal->widget_size_allocate(allocation->x, allocation->y,
                                          allocation->width, allocation->height,
                                          -1,
-                                         vte::terminal::Terminal::Alignment(m_xalign),
-                                         vte::terminal::Terminal::Alignment(m_yalign));
+                                         vte::terminal::Terminal::Alignment::START,
+                                         vte::terminal::Terminal::Alignment::START_FILL);
 
         gtk_widget_set_allocation(gtk(), allocation);
 

@@ -1015,14 +1015,6 @@ try
                         g_value_set_string (value, vte_terminal_get_word_char_exceptions (terminal));
                         break;
 
-                case PROP_XALIGN:
-                        g_value_set_enum(value, vte_terminal_get_xalign(terminal));
-                        break;
-
-                case PROP_YALIGN:
-                        g_value_set_enum(value, vte_terminal_get_yalign(terminal));
-                        break;
-
                 default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
@@ -1139,14 +1131,6 @@ try
                         break;
                 case PROP_WORD_CHAR_EXCEPTIONS:
                         vte_terminal_set_word_char_exceptions (terminal, g_value_get_string (value));
-                        break;
-
-                case PROP_XALIGN:
-                        vte_terminal_set_xalign(terminal, VteAlign(g_value_get_enum(value)));
-                        break;
-
-                case PROP_YALIGN:
-                        vte_terminal_set_yalign(terminal, VteAlign(g_value_get_enum(value)));
                         break;
 
                         /* Not writable */
@@ -2346,32 +2330,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                 g_param_spec_string ("word-char-exceptions", NULL, NULL,
                                      NULL,
                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
-
-        /**
-         * VteTerminal:xalign:
-         *
-         * The horizontal alignment of @terminal within its allocation.
-         *
-         * Since: 0.66
-         */
-        pspecs[PROP_XALIGN] =
-                g_param_spec_enum("xalign", nullptr, nullptr,
-                                  VTE_TYPE_ALIGN,
-                                  VTE_ALIGN_START,
-                                  GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
-
-        /**
-         * VteTerminal:yalign:
-         *
-         * The vertical alignment of @terminal within its allocation
-         *
-         * Since: 0.66
-         */
-        pspecs[PROP_YALIGN] =
-                g_param_spec_enum("yalign", nullptr, nullptr,
-                                  VTE_TYPE_ALIGN,
-                                  VTE_ALIGN_START_FILL,
-                                  GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         g_object_class_install_properties(gobject_class, LAST_PROP, pspecs);
 
@@ -6185,117 +6143,6 @@ catch (...)
 {
         vte::log_exception();
         return false;
-}
-
-template<>
-constexpr bool check_enum_value<VteAlign>(VteAlign value) noexcept
-{
-        switch (value) {
-        case VTE_ALIGN_START:
-        case VTE_ALIGN_CENTER:
-        case VTE_ALIGN_END:
-        case VTE_ALIGN_START_FILL:
-                return true;
-        default:
-                return false;
-        }
-}
-
-/**
- * vte_terminal_set_xalign:
- * @terminal: a #VteTerminal
- * @align: alignment value from #VteAlign
- *
- * Sets the horizontal alignment of @terminal within its allocation.
- *
- * Note: %VTE_ALIGN_START_FILL is not supported, and will be treated
- *   like %VTE_ALIGN_START.
- *
- * Since: 0.66
- */
-void
-vte_terminal_set_xalign(VteTerminal* terminal,
-                        VteAlign align) noexcept
-try
-{
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(check_enum_value(align));
-
-        if (WIDGET(terminal)->set_xalign(align))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_XALIGN]);
-}
-catch (...)
-{
-        vte::log_exception();
-}
-
-/**
- * vte_terminal_get_xalign:
- * @terminal: a #VteTerminal
- *
- * Returns: the horizontal alignment of @terminal within its allocation
- *
- * Since: 0.66
- */
-VteAlign
-vte_terminal_get_xalign(VteTerminal* terminal) noexcept
-try
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_ALIGN_START);
-
-        return WIDGET(terminal)->xalign();
-}
-catch (...)
-{
-        vte::log_exception();
-        return VTE_ALIGN_START;
-}
-
-/**
- * vte_terminal_set_yalign:
- * @terminal: a #VteTerminal
- * @align: alignment value from #VteAlign
- *
- * Sets the vertical alignment of @terminal within its allocation.
- *
- * Since: 0.66
- */
-void
-vte_terminal_set_yalign(VteTerminal* terminal,
-                        VteAlign align) noexcept
-try
-{
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(check_enum_value(align));
-
-        if (WIDGET(terminal)->set_yalign(align))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_YALIGN]);
-}
-catch (...)
-{
-        vte::log_exception();
-}
-
-/**
- * vte_terminal_get_yalign:
- * @terminal: a #VteTerminal
- *
- * Returns: the vertical alignment of @terminal within its allocation
- *
- * Since: 0.66
- */
-VteAlign
-vte_terminal_get_yalign(VteTerminal* terminal) noexcept
-try
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_ALIGN_START_FILL);
-
-        return WIDGET(terminal)->yalign();
-}
-catch (...)
-{
-        vte::log_exception();
-        return VTE_ALIGN_START_FILL;
 }
 
 namespace vte {
