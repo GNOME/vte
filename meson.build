@@ -192,6 +192,8 @@ if get_option('gtk3')
 endif
 
 if get_option('gtk4')
+  assert(false, 'not supported on this branch; use git master')
+
   gtk4_version_cppflags = []
 
   ver = gtk4_min_req_version.split('.')
