@@ -805,6 +805,8 @@ sequences = [
             comment='set port parameter'),
     seq_CSI('DECREQTPARM', 'x',
             comment='request terminal parameters'),
+    seq_CSI('WYCDIR', 'x', flags=Flags.NOP,
+            comment='set current character attributes'),
     seq_CSI('DECFRA', 'x', intermediates=(Intermediate.CASH,), flags=Flags.NOP,
             comment='fill rectangular area'),
     seq_CSI('DECES', 'x', intermediates=(Intermediate.AND,), flags=Flags.NOP,

@@ -3451,12 +3451,6 @@ Terminal::DECREQTPARM(vte::parser::Sequence const& seq)
          *   args[0]: 0
          *
          * References: VT100
-         *
-         * Alternatively:
-         *
-         * WYCDIR - set current character color and attributes
-         *
-         * References: WY370
          */
 
         switch (seq.collect1(0)) {
@@ -3481,6 +3475,25 @@ Terminal::DECREQTPARM(vte::parser::Sequence const& seq)
         default:
                 break;
         }
+}
+
+void
+Terminal::DECREQTPARM_OR_WYCDIR(vte::parser::Sequence const& seq)
+{
+        /*
+         * There's a conflict between DECREQTPERM and WYCDIR.
+         * A DECTPARM request (_not_ response!) only has at most one
+         * parameter, while WYCDIR takes three. Although both
+         * commands admit default values to all parameters, using
+         * the number of parameters to disambiguate should be good
+         * enough here.
+         */
+        if (seq.size_final() <= 1)
+                DECREQTPARM(seq);
+#ifdef PARSER_INCLUDE_NOP
+        else
+                WYCDIR(seq);
+#endif
 }
 
 void
@@ -8476,6 +8489,29 @@ Terminal::WYCAA(vte::parser::Sequence const& seq)
                  */
                 break;
         }
+}
+
+void
+Terminal::WYCDIR(vte::parser::Sequence const& seq)
+{
+        /*
+         * WYCDIR - set current character color and attributes
+         * Sets the foreground and background colours used for SGR attributes.
+         *
+         * Arguments:
+         *   args[0]: foreground colour (0…64)
+         *   args[1]: background colour (0…64)
+         *   args[2]: SGR attribute (0…15)
+         *
+         * Defaults:
+         *   args[0]: default foreground colour
+         *   args[1]: default background colour
+         *   args[2]: default attribute (0)
+         *
+         * Probably not worth implementing.
+         *
+         * References: WY370
+         */
 }
 
 void
