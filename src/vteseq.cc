@@ -6264,6 +6264,10 @@ Terminal::IRR(vte::parser::Sequence const& seq)
         /*
          * IRR - identify-revised-registration
          *
+         * Note that the IRR comes _before_ the GnDm/GnDMm/CnD, see e.g.
+         * IR#124 whose C1 designation sequence is ESC 2/6 4/0 ESC 2/2 4/2,
+         * i.e. IRR '@', C1D 'B'.
+         *
          * References: ECMA-35 § 14.5
          *
          * Probably not worth implementing.
