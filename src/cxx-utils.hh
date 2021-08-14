@@ -51,7 +51,7 @@ void log_exception(char const* func = __builtin_FUNCTION(),
                    char const* filename = __builtin_FILE(),
                    int const line = __builtin_LINE()) noexcept;
 #else
-inline void log_exception() noexcept { }
+inline void log_exception() noexcept;
 #endif
 
 template <typename T, typename D, D func>

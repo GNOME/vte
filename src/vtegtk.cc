@@ -6313,6 +6313,8 @@ exception_append_to_string(std::exception const& e,
 
         try {
                 std::rethrow_if_nested(e);
+        } catch (std::bad_alloc const& en) {
+                g_error("Allocation failure: %s\n", what.c_str());
         } catch (std::exception const& en) {
                 exception_append_to_string(en, what, level + 1);
         } catch (...) {
@@ -6321,6 +6323,7 @@ exception_append_to_string(std::exception const& e,
 }
 
 #ifdef VTE_DEBUG
+
 void log_exception(char const* func,
                    char const* filename,
                    int const line) noexcept
@@ -6348,6 +6351,39 @@ catch (...)
                          "Caught exception while logging an exception in %s [%s:%d]\n",
                          func, filename, line);
 }
+
+#else
+
+static void
+log_exception(std::exception const& e)
+{
+        try {
+                std::rethrow_if_nested(e);
+        } catch (std::bad_alloc const& en) {
+                g_error("Allocation failure: %s\n", e.what());
+        } catch (std::exception const& en) {
+                log_exception(en);
+        } catch (...) {
+        }
+}
+
+void
+log_exception() noexcept
+try
+{
+        try {
+                throw; // rethrow current exception
+        } catch (std::bad_alloc const& e) {
+                g_error("Allocation failure: %s\n", e.what());
+        } catch (std::exception const& e) {
+                log_exception(e);
+        } catch (...) {
+        }
+}
+catch (...)
+{
+}
+
 #endif /* VTE_DEBUG */
 
 namespace glib {
