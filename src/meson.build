@@ -628,12 +628,6 @@ if get_option('gtk3')
   ]
 endif
 
-if get_option('sixel')
-  test_units += [
-    ['sixel', test_sixel],
-  ]
-endif
-
 foreach test: test_units
   test(
     test[0],
