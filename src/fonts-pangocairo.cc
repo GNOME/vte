@@ -238,7 +238,12 @@ FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
 		auto const width = PANGO_PIXELS_CEIL(pango_font_metrics_get_approximate_char_width(metrics.get()));
 #endif /* 0 */
 
-                if (ascent > 0 && height > 0) {
+                /* Sometimes, the metrics return a lower height than the one we measured
+                 * in measure_font(), causing cut-off at the bottom of the last line, see
+                 * https://gitlab.gnome.org/GNOME/gnome-terminal/-/issues/340 . Therefore
+                 * we only use the metrics when its height is at least that which we measured.
+                 */
+                if (ascent > 0 && height > m_height) {
                         _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Using pango metrics\n");
 
                         m_ascent = ascent;
@@ -246,6 +251,11 @@ FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
 #if 0
                         m_width = width;
 #endif
+                } else if (ascent >= 0 && height > 0) {
+                        _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Disregarding pango metrics due to incorrect height (%d < %d)\n",
+                                         height, m_height);
+                } else {
+                        _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Not using pango metrics due to not providing height or ascent\n");
                 }
 	}
 #endif /* pango >= 1.44 */
