@@ -4439,7 +4439,7 @@ Terminal::im_update_cursor()
 
         cairo_rectangle_int_t rect;
         rect.x = m_screen->cursor.col * m_cell_width + m_padding.left +
-                 get_preedit_width(false) * m_cell_width;
+                 get_preedit_width(true) * m_cell_width;
         rect.width = m_cell_width; // FIXMEchpe: if columns > 1 ?
         rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
         rect.height = m_cell_height;
