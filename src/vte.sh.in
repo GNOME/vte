@@ -22,6 +22,12 @@
 # Not running under vte?
 [ "${VTE_VERSION:-0}" -ge 3405 ] || return 0
 
+# TERM not supported?
+case "$TERM" in
+    xterm*|vte*|gnome*) :;;
+    *) return 0 ;;
+esac
+
 __vte_osc7 () {
   printf "\033]7;file://%s%s\033\\" "${HOSTNAME}" "$(@libexecdir@/vte-urlencode-cwd)"
 }
@@ -34,11 +40,22 @@ __vte_prompt_command() {
   __vte_osc7
 }
 
-case "$TERM" in
-  xterm*|vte*)
-    [ -n "${BASH_VERSION:-}" ] && PROMPT_COMMAND="__vte_prompt_command"
-    [ -n "${ZSH_VERSION:-}"  ] && precmd_functions+=(__vte_osc7)
-    ;;
-esac
+if [[ -n "${BASH_VERSION:-}" ]]; then
 
-true
+    # Newer bash versions support PROMPT_COMMAND as an array. In this case
+    # only add the __vte_osc7 function to it, and leave setting the terminal
+    # title to the outside setup.
+    # On older bash, we can only overwrite the whole PROMPT_COMMAND, so must
+    # use the __vte_prompt_command function which also sets the title.
+
+    if [[ "$(declare -p PROMPT_COMMAND)" =~ "declare -a" ]]; then
+	PROMPT_COMMAND+=(__vte_osc7)
+    else
+	PROMPT_COMMAND="__vte_prompt_command"
+    fi
+
+elif [[ -n "${ZSH_VERSION:-}" ]]; then
+    precmd_functions+=(__vte_osc7)
+fi
+
+return 0
