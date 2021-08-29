@@ -9165,8 +9165,8 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_XTERM_WM_GET_WINDOW_SIZE_PIXELS: {
-                int width = m_row_count * m_cell_height_unscaled;
-                int height = m_column_count * m_cell_width_unscaled;
+                auto const height = int(m_row_count * m_cell_height_unscaled);
+                auto const width = int(m_column_count * m_cell_width_unscaled);
                 reply(seq, VTE_REPLY_XTERM_WM, {4, height, width});
                 break;
         }
