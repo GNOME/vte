@@ -236,7 +236,6 @@ public:
 
         constexpr Private() : Self{eDEC_AUTOWRAP,
                                    eDEC_TEXT_CURSOR,
-                                   eDECSDM,
                                    eVTE_BIDI_SWAP_ARROW_KEYS,
                                    eXTERM_ALTBUF_SCROLL,
                                    eXTERM_META_SENDS_ESCAPE,
