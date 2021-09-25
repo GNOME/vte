@@ -708,14 +708,16 @@ modes = [
     mode_WHAT('DECXRLM', 73, default=False),
 
     # DECSDM - sixel display mode (scrolling)
+    # If set, SIXEL scrolling is disabled; when reset, SIXEL scrolling
+    # is enabled.
     #
-    # Default: set
+    # Default: reset
     #
     # References: ?
     #
     # Note: Conflicts with WY161
     #
-    mode_WHAT('DECSDM', 80, default=True, flags=Flags.WRITABLE),
+    mode_WHAT('DECSDM', 80, default=False, flags=Flags.WRITABLE),
 
     # DECKPM - key position mode
     # If set, the keyboard sends extended reports (DECEKBD) that include
