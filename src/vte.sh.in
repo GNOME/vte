@@ -48,7 +48,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     # On older bash, we can only overwrite the whole PROMPT_COMMAND, so must
     # use the __vte_prompt_command function which also sets the title.
 
-    if [[ "$(declare -p PROMPT_COMMAND)" =~ "declare -a" ]]; then
+    if [[ "$(declare -p PROMPT_COMMAND 2>&1)" =~ "declare -a" ]]; then
 	PROMPT_COMMAND+=(__vte_osc7)
     else
 	PROMPT_COMMAND="__vte_prompt_command"
