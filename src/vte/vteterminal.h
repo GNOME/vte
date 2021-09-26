@@ -109,8 +109,20 @@ struct _VteTerminalClass {
 
 	void (*bell)(VteTerminal* terminal);
 
+#if _VTE_GTK == 3
+        /* Compatibility padding due to fedora patches intruding on our ABI */
+        /*< private >*/
+        gpointer _extra_padding[3];
+#endif /* _VTE_GTK == 3 */
+
+        /* Add new vfuncs here, and subtract from the padding below. */
+
         /* Padding for future expansion. */
-        gpointer padding[16];
+#if _VTE_GTK == 3
+        gpointer _padding[13];
+#elif _VTE_GTK == 4
+        gpointer _padding[16];
+#endif /* _VTE_GTK */
 
 // FIXMEgtk4 use class private data instead
         VteTerminalClassPrivate *priv;
