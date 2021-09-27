@@ -23,11 +23,14 @@
 #include <fcntl.h>
 
 #ifdef __linux__
+
+#include <sys/ioctl.h>
 #include <sys/syscall.h>
 
 #if defined(__mips__) || defined(__mips64__)
 #include <asm/sgidefs.h>
 #endif
+
 #endif
 
 /* NSIG isn't in POSIX, so if it doesn't exist use this here. See bug #759196 */
@@ -127,5 +130,14 @@ char* strchrnul(char const* s,
 #ifndef CLOSE_RANGE_CLOEXEC
 #define CLOSE_RANGE_CLOEXEC (1u << 2)
 #endif
+
+#if !defined(TIOCGPTPEER)
+/* See linux commit 54ebbfb1603415d9953c150535850d30609ef077 */
+#if defined(__sparc__)
+#define TIOCGPTPEER _IOR('t', 137, int)
+#else
+#define TIOCGPTPEER _IOR('T', 0x41, int)
+#endif
+#endif /* !TIOCGPTPEER */
 
 #endif /* __linux__ */
