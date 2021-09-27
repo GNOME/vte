@@ -8,42 +8,64 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: vte.HEAD.he\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-08-09 20:35+0300\n"
-"PO-Revision-Date: 2016-08-09 20:35+0300\n"
-"Last-Translator: Yosef Or Boczko <yoseforb@gmail.com>\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2021-08-26 18:15+0000\n"
+"PO-Revision-Date: 2021-09-27 11:49+0300\n"
+"Last-Translator: Yaron Shahrabani <sh.yaron@gmail.com>\n"
 "Language-Team: עברית <>\n"
 "Language: he\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Gtranslator 2.91.6\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.0\n"
+"Plural-Forms: nplurals=4; plural=(n==1 ? 0 : n==2 ? 1 : n>10 && n%10==0 ? 2 : 3);\n"
 
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3069
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "לא ניתן להמיר תווים מ־%s ל־%s."
-
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4003
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "שגיאה בקריאה מהילד: %s."
-
-#: ../src/vte.cc:4142
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "שגיאה (%s) בהמרת מידע לילד, זורק."
-
-#: ../src/vte.cc:7911
+#: src/vte.cc:7670
 msgid "WARNING"
-msgstr "WARNING"
+msgstr "אזהרה"
 
-#: ../src/vte.cc:7912
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
-msgstr "GNUTLS not enabled; data will be written to disk unencrypted!"
+#: src/vte.cc:7672
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "‫GnuTLS אינו זמין, הנתונים ייכתבו לכונן ללא הצפנה!"
+
+#: src/spawn.cc:110
+#, c-format
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "הגדרת הצינורית כך שלא תחסום נכשלה: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "שגיאת תשאול: %s"
+
+#: src/spawn.cc:162
+msgid "Operation timed out"
+msgstr "הזמן שהוקצב לפעולה הסתיים"
+
+#: src/spawn.cc:172
+msgid "Operation was cancelled"
+msgstr "הפעולה בוטלה"
+
+#: src/spawn.cc:190
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "הקריאה מצינורית הצאצא (%s) נכשלה"
+
+#: src/spawn.cc:620
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "מעבר לתיקייה אחרת „%s” נכשל: %s"
+
+#: src/spawn.cc:689
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "הפעלת התהליך הצאצא „%s” נכשלה: "
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "לא ניתן להמיר תווים מ־%s ל־%s."
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "שגיאה (%s) בהמרת מידע לילד, זורק."
 
 #~ msgid "Copy"
 #~ msgstr "העתקה"
@@ -120,8 +142,7 @@ msgstr "GNUTLS not enabled; data will be written to disk unencrypted!"
 #~ msgid "Using fontset \"%s\", which is missing these character sets: %s."
 #~ msgstr "משתמש בערכת הגופן \"%s\", אשר חסר בה ערכות התוים: %s."
 
-#~ msgid ""
-#~ "Failed to load Xft font pattern \"%s\", falling back to default font."
+#~ msgid "Failed to load Xft font pattern \"%s\", falling back to default font."
 #~ msgstr "נכשל בטעינת דפוס הגופנים של Xft \"%s\", חוזר לגופן ברירת המחדל."
 
 #~ msgid "Failed to load default Xft font."
