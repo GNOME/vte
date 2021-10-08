@@ -96,6 +96,7 @@ public:
         char* font_string{nullptr};
         char* geometry{nullptr};
         char* output_filename{nullptr};
+        char* title{nullptr};
         char* word_char_exceptions{nullptr};
         char* working_directory{nullptr};
         char** dingus{nullptr};
@@ -621,6 +622,7 @@ public:
                           "Use pixels as scroll unit", nullptr },
                         { "scrollback-lines", 'n', 0, G_OPTION_ARG_INT, &scrollback_lines,
                           "Specify the number of scrollback-lines (-1 for infinite)", nullptr },
+                        { "title", 0, 0, G_OPTION_ARG_STRING, &title, "Set the initial title of the window", "TITLE" },
                         { "transparent", 'T', 0, G_OPTION_ARG_INT, &transparency_percent,
                           "Enable the use of a transparent background", "0..100" },
                         { "track-clipboard-targets", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &track_clipboard_targets,
@@ -2200,12 +2202,7 @@ window_window_title_changed_cb(VteTerminal* terminal,
                                VteappWindow* window)
 {
         auto const title = vte_terminal_get_window_title(window->terminal);
-#if VTE_GTK == 3
-        gtk_window_set_title(GTK_WINDOW(window), title);
-#elif VTE_GTK == 4
-        auto toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(window)));
-        gdk_toplevel_set_title(toplevel, title);
-#endif
+        gtk_window_set_title(GTK_WINDOW(window), title && title[0] ? title : "Terminal");
 }
 
 static void
@@ -2381,7 +2378,8 @@ vteapp_window_constructed(GObject *object)
 
         G_OBJECT_CLASS(vteapp_window_parent_class)->constructed(object);
 
-        gtk_window_set_title(GTK_WINDOW(window), "Terminal");
+        gtk_window_set_title(GTK_WINDOW(window),
+                             options.title && options.title[0] ? options.title : "Terminal");
 
         if (options.no_decorations)
                 gtk_window_set_decorated(GTK_WINDOW(window), false);
