@@ -154,3 +154,5 @@
 
 #define VTE_MIN_GRID_WIDTH (2) /* space for one wide character */
 #define VTE_MIN_GRID_HEIGHT (1)
+
+#define VTE_FONT_WEIGHT_BOLDENING (PANGO_WEIGHT_BOLD - PANGO_WEIGHT_NORMAL)

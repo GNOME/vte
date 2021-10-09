@@ -152,7 +152,13 @@ DrawingContext::set_text_font(GtkWidget* widget,
 
 	/* calculate bold font desc */
 	bolddesc = pango_font_description_copy (fontdesc);
-	pango_font_description_set_weight (bolddesc, PANGO_WEIGHT_BOLD);
+        if (pango_font_description_get_set_fields(bolddesc) & PANGO_FONT_MASK_WEIGHT) {
+                auto const weight = pango_font_description_get_weight(bolddesc);
+                auto const bold_weight = std::min(1000, weight + VTE_FONT_WEIGHT_BOLDENING);
+                pango_font_description_set_weight(bolddesc, PangoWeight(bold_weight));
+        } else {
+                pango_font_description_set_weight (bolddesc, PANGO_WEIGHT_BOLD);
+        }
 
 	/* calculate italic font desc */
 	italicdesc = pango_font_description_copy (fontdesc);
