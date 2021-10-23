@@ -86,6 +86,7 @@ class Source(enum.Enum):
     ECMA48 = enum.auto() # eq ISO 6429
     HP     = enum.auto()
     ITERM2 = enum.auto()
+    MINTTY = enum.auto()
     RLOGIN = enum.auto()
     SCO    = enum.auto()
     VTE    = enum.auto()
@@ -103,6 +104,8 @@ class Source(enum.Enum):
              return cls.HP
         elif name.startswith('ITERM'):
             return cls.ITERM2
+        elif name.startswith('MINTTY'):
+            return cls.MINTTY
         elif name.startswith('RLOGIN'):
             return cls.RLOGIN
         elif name.startswith('SCO'):
@@ -723,6 +726,8 @@ sequences = [
             comment='xterm pop SGR stack'),
     seq_CSI('DECSDDT', 'q', intermediates=(Intermediate.CASH,), flags=Flags.NOP,
             comment='select disconnect delay time'),
+    seq_CSI('MINTTY_PROGRESS', 'q', intermediates=(Intermediate.PERCENT,), flags=Flags.NOP,
+            comment='set progress report'),
     seq_CSI('DECSR', 'q', intermediates=(Intermediate.MULT,),
             comment='secure reset'),
     seq_CSI('DECELF', 'q', intermediates=(Intermediate.PLUS,), flags=Flags.NOP,
