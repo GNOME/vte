@@ -755,12 +755,10 @@ _vte_pty_check_envv(char const* const* strv) noexcept
  * This function will take ownership of the file descriptors in @fds;
  * you must not use or close them after this call. All file descriptors in @fds
  * must have the FD_CLOEXEC flag set on them; it will be unset in the child process
- * before calling exec.
- *
- * Note that all  open file descriptors apart from those mapped as above
- * will be closed in the child. (If you want to keep some other file descriptor
- * open for use in the child process, you need to use a child setup function
- * that unsets the FD_CLOEXEC flag on that file descriptor manually.)
+ * before calling man:execve(2). Note also that no file descriptor may be mapped
+ * to stdin, stdout, or stderr (file descriptors 0, 1, or 2), since these will be
+ * assigned to the PTY. All open file descriptors apart from those mapped as above
+ * will be closed when execve() is called.
  *
  * Beginning with 0.60, and on linux only, and unless %VTE_SPAWN_NO_SYSTEMD_SCOPE is
  * passed in @spawn_flags, the newly created child process will be moved to its own
@@ -797,10 +795,11 @@ try
         g_return_if_fail(argv[0] != nullptr);
         g_return_if_fail(envv == nullptr || _vte_pty_check_envv(envv));
         g_return_if_fail(n_fds == 0 || fds != nullptr);
-        for (auto i = int{0}; i < n_fds; ++i)
+        for (auto i = 0; i < n_fds; ++i)
                 g_return_if_fail(vte::libc::fd_get_cloexec(fds[i]));
         g_return_if_fail(n_fd_map_to == 0 || fd_map_to != nullptr);
-        g_return_if_fail(n_fds >= n_fd_map_to);
+        for (auto i = 0; i < n_fd_map_to; ++i) /* Invalid and stdin/out/err not allowed */
+                g_return_if_fail(fd_map_to[i] < -1 || fd_map_to[i] > 2);
         g_return_if_fail((spawn_flags & ~all_spawn_flags()) == 0);
         g_return_if_fail(!child_setup_data || child_setup);
         g_return_if_fail(!child_setup_data_destroy || child_setup_data);
