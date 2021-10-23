@@ -3327,14 +3327,20 @@ Terminal::DECPS(vte::parser::Sequence const& seq)
          * Plays a note. Arguments:
          *   @args[0]: the volume. 0 = off, 1…3 = low, 4…7 = high
          *   @args[1]: the duration, in multiples of 1s/32
-         *   @args[2]: the note; from 1 = C5, 2 = C♯5 … to 25 = C7
+         *   @args[2..]: the note(s); from 1 = C5, 2 = C♯5 … to 25 = C7
          *
          * Defaults:
          *   @args[0]: no default
          *   @args[1]: no default
-         *   @args[2]: no default
+         *   @args[2..]: no default
          *
          * Note that a VT525 is specified to store only 16 notes at a time.
+         *
+         * Note that while the VT520/525 programming manual documents the
+         * DECPS sequence on page 5-89 with only one note, in the Setup
+         * section on page 2-60 it shows the sequence taking multiple notes
+         * (likely up to the maximum number or parameters the VT525
+         * supports in CSI sequences, which is at least 16 as per DEC STD 070).
          *
          * References: VT525
          *
