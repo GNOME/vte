@@ -2836,8 +2836,6 @@ Terminal::restore_cursor(VteScreen *screen__)
         screen__->cursor.row = screen__->insert_delta + CLAMP(screen__->saved.cursor.row,
                                                               0, m_row_count - 1);
 
-        m_modes_ecma.set_modes(screen__->saved.modes_ecma);
-
         m_modes_private.set_DEC_REVERSE_IMAGE(screen__->saved.reverse_mode);
         m_modes_private.set_DEC_ORIGIN(screen__->saved.origin_mode);
 
@@ -2854,8 +2852,6 @@ Terminal::save_cursor(VteScreen *screen__)
 {
         screen__->saved.cursor.col = screen__->cursor.col;
         screen__->saved.cursor.row = screen__->cursor.row - screen__->insert_delta;
-
-        screen__->saved.modes_ecma = m_modes_ecma.get_modes();
 
         screen__->saved.reverse_mode = m_modes_private.DEC_REVERSE_IMAGE();
         screen__->saved.origin_mode = m_modes_private.DEC_ORIGIN();
