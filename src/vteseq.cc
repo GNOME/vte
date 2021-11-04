@@ -3544,7 +3544,7 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
                 checksum = checksum_area(top -1 + m_screen->insert_delta,
                                          left - 1,
                                          bottom - 1 + m_screen->insert_delta,
-                                         right - 1);
+                                         right);
 
         reply(seq, VTE_REPLY_DECCKSR, {id}, "%04X", checksum);
 #endif /* VTE_DEBUG */
