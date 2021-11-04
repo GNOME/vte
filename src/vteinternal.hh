@@ -136,7 +136,6 @@ public:
         /* Stuff saved along with the cursor */
         struct {
                 VteVisualPosition cursor;  /* onscreen coordinate, that is, relative to insert_delta */
-                uint8_t modes_ecma;
                 bool reverse_mode;
                 bool origin_mode;
                 VteCell defaults;
