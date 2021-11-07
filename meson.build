@@ -325,6 +325,13 @@ check_functions = [
      [],
      false,
   ],
+  [
+    'close_range',
+    'int (*func)(unsigned int, unsigned int, int)',
+     ['unistd.h'],
+     [],
+     false,
+   ],
 
   # Math functions
 

@@ -134,17 +134,17 @@ getrlimit_NOFILE_max(void)
         return RLIM_INFINITY;
 }
 
-#ifdef __linux__
+#ifndef HAVE_CLOSE_RANGE
 
-static inline int
-_vte_close_range(int first_fd,
-                 int last_fd,
-                 unsigned flags)
+int
+close_range(unsigned int first_fd,
+            unsigned int last_fd,
+            unsigned int flags)
 {
-#ifdef SYS_close_range
+#if defined(__linux__) && defined(SYS_close_range)
         return syscall(SYS_close_range,
-                       unsigned(first_fd),
-                       last_fd == -1 ? ~0u : unsigned(last_fd),
+                       first_fd,
+                       last_fd == unsigned(-1) ? ~0u : last_fd,
                        flags);
 #else
         errno = ENOSYS;
@@ -152,7 +152,7 @@ _vte_close_range(int first_fd,
 #endif
 }
 
-#endif /* __linux__ */
+#endif /* !HAVE_CLOSE_RANGE */
 
 /* This function is called between fork and execve/_exit and so must be
  * async-signal-safe; see man:signal-safety(7).
@@ -169,17 +169,6 @@ fdwalk(int (*cb)(void *data, int fd),
   int res = 0;
 
 #ifdef __linux__
-
-  /* First, try close_range(CLOEXEC) which is faster than the methods
-   * below, and works even if /proc is not available.
-   */
-  res = _vte_close_range(0, -1, CLOSE_RANGE_CLOEXEC);
-  if (res == 0)
-          return 0;
-  if (res == -1 &&
-      errno != ENOSYS /* old kernel */ &&
-      errno != EINVAL /* flags not supported */)
-          return res;
 
   /* Fall back to iterating over /proc/self/fd.
    * Avoid use of opendir/closedir since these are not async-signal-safe.

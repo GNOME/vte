@@ -21,11 +21,16 @@
 
 #include <csignal>
 #include <fcntl.h>
+#include <unistd.h>
 
 #ifdef __linux__
 
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
+
+#if __has_include(<linux/close_range.h>)
+#include <linux/close_range.h>
+#endif
 
 #if defined(__mips__) || defined(__mips64__)
 #include <asm/sgidefs.h>
@@ -46,6 +51,12 @@ int fdwalk(int (*cb)(void* data, int fd),
 #ifndef HAVE_STRCHRNUL
 char* strchrnul(char const* s,
                 int c);
+#endif
+
+#ifndef HAVE_CLOSE_RANGE
+int close_range(unsigned int first,
+                unsigned int last,
+                unsigned int flags);
 #endif
 
 #ifdef __linux__
