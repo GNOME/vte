@@ -239,50 +239,157 @@ endforeach
 
 # Check for functions
 
-check_functions_required = [
-  'fork',
-  'grantpt',
-  'posix_openpt',
-  'ptsname',
-  'tcgetattr',
-  'unlockpt',
-]
+libm_dep = cxx.find_library('m')
 
-foreach func: check_functions_required
-  assert(cxx.has_function(func), func + ' not found')
-endforeach
+# Note that we cannot use compiler.has_function() due to
+# https://github.com/mesonbuild/meson/issues/8075 . So
+# Hand-roll our own check functions, also checking for
+# the correct function prototype.
 
+# [func name, func type, includes, deps, required]
 check_functions = [
-  'explicit_bzero',
-  'fdwalk',
-  'pread',
-  'pwrite',
-  'strchrnul',
+  [
+    'fork',
+    'pid_t (*func)(void)',
+    ['sys/types.h', 'unistd.h'],
+    [],
+    true,
+  ],
+  [
+    'grantpt',
+    'int (*func)(int)',
+    ['stdlib.h'],
+    [],
+    true,
+  ],
+  [
+    'posix_openpt',
+    'int (*func)(int)',
+    ['stdlib.h', 'fcntl.h'],
+    [],
+    true,
+  ],
+  [
+    'ptsname',
+    'char* (*func)(int)',
+    ['stdlib.h'],
+    [],
+    true,
+  ],
+  [
+    'tcgetattr',
+    'int (*func)(int, struct termios*)',
+    ['termios.h', 'unistd.h'],
+    [],
+    true,
+  ],
+  [
+    'unlockpt',
+    'int (*func)(int)',
+    ['stdlib.h'],
+    [],
+    true,
+  ],
+  [
+    'explicit_bzero',
+    'void (*func)(void*, size_t)',
+    ['string.h'],
+    [],
+    false,
+  ],
+  [
+    'fdwalk',
+    'int (*func)(int (*)(void*, int), void*)',
+    ['stdlib.h'],
+    [],
+    false,
+  ],
+  [
+    'pread',
+    'ssize_t (*func)(int, void*, size_t off_t)',
+     ['unistd.h'],
+     [],
+     false,
+  ],
+  [
+    'pwrite',
+    'ssize_t (*func)(int, const void*, size_t, off_t)',
+     ['unistd.h'],
+     [],
+     false,
+  ],
+  [
+    'strchrnul',
+    'const char* (*func)(const char*, int)',
+     ['string.h'],
+     [],
+     false,
+  ],
+
+  # Math functions
+
+  [
+    'ceil',
+    'double (*func)(double)',
+    ['math.h'],
+    [libm_dep],
+    true,
+  ],
+  [
+    'floor',
+    'double (*func)(double)',
+    ['math.h'],
+    [libm_dep],
+    true,
+  ],
+  [
+    'round',
+    'double (*func)(double)',
+    ['math.h'],
+    [libm_dep],
+    false,
+  ],
 ]
 
 foreach func: check_functions
-  config_h.set('HAVE_' + func.underscorify().to_upper(), cxx.has_function(func))
-endforeach
+  __name=func[0]
+  __prot=func[1]
+  __incs=func[2]
+  __deps=func[3]
+  __reqd=func[4]
 
-# Math functions
+  __code = ''
+  foreach __inc: __incs
+    __code += '''
+    #if __has_include(<@0@>)
+    #include <@0@>
+    #endif
+    '''.format(__inc)
+  endforeach
 
-libm_dep = cxx.find_library('m')
+  __code += '''
+    int main(void) {
+      @0@ = &@1@;
+      long long b = (long long)func;
+      return (int)b;
+    }
+  '''.format(__prot, __name)
 
-check_math_functions_required = [
-  'ceil',
-  'floor',
-]
+  __have = cxx.compiles(
+    __code,
+    args: [
+      '-D_GNU_SOURCE',
+      '-D_XOPEN_SOURCE',
+    ],
+    dependencies: __deps,
+    name: __name,
+  )
 
-foreach func: check_math_functions_required
-  assert(cxx.has_function(func, dependencies: libm_dep), func + ' not found')
-endforeach
-
-check_math_functions = [
-  'round',
-]
-
-foreach func: check_math_functions
-  config_h.set('HAVE_' + func.underscorify().to_upper(), cxx.has_function(func, dependencies: libm_dep))
+  if __reqd
+    assert(__have, __name + ' not found')
+  else
+    config_h.set('HAVE_' + __name.underscorify().to_upper(), __have)
+  endif
 endforeach
 
 # Compiler
