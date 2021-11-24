@@ -216,6 +216,8 @@ void vte_terminal_copy_clipboard_format(VteTerminal *terminal,
 _VTE_PUBLIC
 void vte_terminal_paste_clipboard(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
+void vte_terminal_paste_text(VteTerminal *terminal, const char *text) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
 void vte_terminal_copy_primary(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_paste_primary(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);

@@ -558,7 +558,7 @@ void
 Widget::clipboard_request_received_cb(Clipboard const& clipboard,
                                       std::string_view const& text)
 {
-        terminal()->widget_clipboard_text_received(clipboard, text);
+        terminal()->widget_clipboard_text_received(text);
 }
 
 void

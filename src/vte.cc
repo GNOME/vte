@@ -5479,8 +5479,7 @@ Terminal::cell_is_selected_vis(vte::grid::column_t vcol,
 }
 
 void
-Terminal::widget_clipboard_text_received(vte::platform::Clipboard const& clipboard,
-                                         std::string_view const& data)
+Terminal::widget_clipboard_text_received(std::string_view const& data)
 {
 	gchar *paste, *p;
         gsize run;

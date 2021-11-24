@@ -17,6 +17,7 @@ vte_terminal_select_all
 vte_terminal_unselect_all
 vte_terminal_copy_clipboard_format
 vte_terminal_paste_clipboard
+vte_terminal_paste_text
 vte_terminal_copy_primary
 vte_terminal_paste_primary
 vte_terminal_set_size

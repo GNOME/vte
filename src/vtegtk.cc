@@ -2780,6 +2780,31 @@ catch (...)
 }
 
 /**
+ * vte_terminal_paste_text:
+ * @terminal: a #VteTerminal
+ * @text: a string to paste
+ *
+ * Sends @text to the terminal's child as if retrived from the clipboard,
+ * this differs from vte_terminal_feed_child() in that it may process
+ * @text before passing it to the child (e.g. apply bracketed mode)
+ * 
+ * Since: 0.70
+ */
+void
+vte_terminal_paste_text(VteTerminal *terminal, const char *text) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        g_return_if_fail(text != nullptr);
+
+        WIDGET(terminal)->paste_text(text);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
  * vte_terminal_paste_primary:
  * @terminal: a #VteTerminal
  *
