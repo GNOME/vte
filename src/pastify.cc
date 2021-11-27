@@ -55,7 +55,7 @@ pastify_string(std::string_view str,
         }
 
         /* C0 \ { NUL, HT, CR, LF } + { DEL } + { C1 control start byte } */
-        auto const controls = "\x01\x02\x03\x04\x05\x06\x07\x08\x0a\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f\xc2"sv;
+        auto const controls = "\x01\x02\x03\x04\x05\x06\x07\x08\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f\xc2"sv;
 
         auto next_char = [&str](size_t pos) constexpr noexcept -> unsigned char
         {
@@ -69,7 +69,7 @@ pastify_string(std::string_view str,
                 if (run == str.npos)
                         break;
 
-                switch (str[run]) {
+                switch (char8_t(str[run])) {
                 case 0x01 ... 0x09:
                 case 0x0b ... 0x0c:
                 case 0x0e ... 0x1f:
@@ -78,25 +78,37 @@ pastify_string(std::string_view str,
                         ++run;
                         break;
 
-                case '\x0a':
-                        rv.push_back('\x0d');
+                case 0x0a: // LF
+                        // We only get here for a lone LF; replace it with a CR too.
+                        rv.push_back(0x0d);
                         ++run;
                         break;
-                case '\xc2': {
+
+                case 0x0d: // CR
+                        // Keep a CR, but replace a CRLF with just a CR
+                        rv.push_back(0x0d);
+                        if (next_char(run) == 0x0a)
+                                ++run; // skip
+
+                        ++run;
+                        break;
+
+                case 0xc2: { // First byte of a 2-byte UTF-8 sequence
                         auto const c = next_char(run);
                         if (c >= 0x80 && c <= 0x9f) {
                                 append_control_picture(rv, c);
 
-                                /* Skip both bytes of a C1 */
+                                // Skip both bytes of a C1 control
                                 run += 2;
                         } else {
-                                /* Move along, nothing to see here */
-                                rv.push_back('\xc2');
+                                // Not a C1 control, keep this byte and continue
+                                rv.push_back(0xc2);
                                 ++run;
                         }
                         break;
                 }
-                default:
+
+                default: // Can't happen
                         ++run;
                         break;
                 }

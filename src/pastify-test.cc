@@ -145,7 +145,10 @@ static constinit TestString const test_strings[] = {
 
         /* CR/LF conversion */
         TestString("\x0a", "\x0d"),
-        TestString("\x0d\x0a", "\x0d\x0d"),
+        TestString("\x0a\x0d", "\x0d\x0d"),
+        TestString("\x0d\x0a", "\x0d"),
+        TestString("\x0d\x0a\x0d", "\x0d\x0d"),
+        TestString("\x0d\x0a\x0d\x0a", "\x0d\x0d"),
 };
 
 int
