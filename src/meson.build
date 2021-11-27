@@ -107,6 +107,11 @@ parser_sources += custom_target(
   ],
 )
 
+pastify_sources = files(
+  'pastify.cc',
+  'pastify.hh',
+)
+
 pcre2_glue_sources = files(
   'pcre2-glue.hh',
 )
@@ -159,7 +164,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + vte_glue_sources + files(
+libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -543,6 +548,18 @@ test_parser = executable(
   install: false,
 )
 
+test_pastify_sources = config_sources + pastify_sources + files(
+  'pastify-test.cc',
+)
+
+test_pastify = executable(
+  'test-pastify',
+  sources: test_pastify_sources,
+  dependencies: [glib_dep],
+  include_directories: top_inc,
+  install: false,
+)
+
 test_reaper_sources = config_sources + debug_sources + files(
   'reaper.cc',
   'reaper.hh'
@@ -665,6 +682,7 @@ test_env = [
 test_units = [
   ['modes', test_modes],
   ['parser', test_parser],
+  ['pastify', test_pastify],
   ['reaper', test_reaper],
   ['refptr', test_refptr],
   ['stream', test_stream],

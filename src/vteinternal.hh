@@ -894,7 +894,7 @@ public:
         void widget_copy(vte::platform::ClipboardType selection,
                          vte::platform::ClipboardFormat format);
 
-        void widget_clipboard_text_received(std::string_view const& text);
+        void widget_paste(std::string_view const& text);
 
         std::optional<std::string_view> widget_clipboard_data_get(vte::platform::Clipboard const& clipboard,
                                                                   vte::platform::ClipboardFormat format);

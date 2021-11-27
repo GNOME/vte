@@ -380,7 +380,7 @@ public:
         void clipboard_set_text(ClipboardType type,
                                 std::string_view const& str) noexcept;
 
-        void paste_text(std::string_view const& text) { m_terminal->widget_clipboard_text_received(text); }
+        void paste_text(std::string_view const& text) { m_terminal->widget_paste(text); }
         void paste(vte::platform::ClipboardType type) { clipboard_request_text(type); }
         void copy(vte::platform::ClipboardType type,
                   vte::platform::ClipboardFormat format) noexcept { m_terminal->widget_copy(type, format); }

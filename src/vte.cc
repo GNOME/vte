@@ -67,6 +67,7 @@
 #include <pango/pango.h>
 #include "keymap.h"
 #include "marshal.h"
+#include "pastify.hh"
 #include "vtepty.h"
 #include "vtegtk.hh"
 #include "cxx-utils.hh"
@@ -5479,65 +5480,11 @@ Terminal::cell_is_selected_vis(vte::grid::column_t vcol,
 }
 
 void
-Terminal::widget_clipboard_text_received(std::string_view const& data)
+Terminal::widget_paste(std::string_view const& data)
 {
-	gchar *paste, *p;
-        gsize run;
-        unsigned char c;
-
-        auto const len = data.size();
-        auto text = data.data();
-
-        /* Convert newlines to carriage returns, which more software
-         * is able to cope with (cough, pico, cough).
-         * Filter out control chars except HT, CR (even stricter than xterm).
-         * Also filter out C1 controls: U+0080 (0xC2 0x80) - U+009F (0xC2 0x9F). */
-        p = paste = (gchar *) g_malloc(len + 1);
-        while (p != nullptr && text[0] != '\0') {
-                run = strcspn(text, "\x01\x02\x03\x04\x05\x06\x07"
-                              "\x08\x0A\x0B\x0C\x0E\x0F"
-                              "\x10\x11\x12\x13\x14\x15\x16\x17"
-                              "\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F"
-                              "\x7F\xC2");
-                memcpy(p, text, run);
-                p += run;
-                text += run;
-                switch (text[0]) {
-                case '\x00':
-                        break;
-                case '\x0A':
-                        *p = '\x0D';
-                        p++;
-                        text++;
-                        break;
-                case '\xC2':
-                        c = text[1];
-                        if (c >= 0x80 && c <= 0x9F) {
-                                /* Skip both bytes of a C1 */
-                                text += 2;
-                        } else {
-                                /* Move along, nothing to see here */
-                                *p = '\xC2';
-                                p++;
-                                text++;
-                        }
-                        break;
-                default:
-                        /* Swallow this byte */
-                        text++;
-                        break;
-                }
-        }
-
-        bool const bracketed_paste = m_modes_private.XTERM_READLINE_BRACKETED_PASTE();
-        // FIXMEchpe can we not hardcode C0 controls here?
-        if (bracketed_paste)
-                feed_child("\e[200~"sv);
-        // FIXMEchpe add a way to avoid the extra string copy done here
-        feed_child(paste, p - paste);
-        if (bracketed_paste)
-                feed_child("\e[201~"sv);
-        g_free(paste);
+        feed_child(vte::terminal::pastify_string(data,
+                                                 m_modes_private.XTERM_READLINE_BRACKETED_PASTE(),
+                                                 false /* C1 */));
 }
 
 bool
