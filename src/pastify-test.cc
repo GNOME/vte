@@ -63,16 +63,17 @@ test_pastify_brackets_c1(void)
 }
 
 static void
-test_pastify_control(std::string const& ctrl)
+test_pastify_control(std::string const& ctrl,
+                     std::string const& pict)
 {
-        test_pastify(ctrl, ""sv);
-        test_pastify(ctrl + ctrl, ""sv);
-        test_pastify("abc"s + ctrl, "abc"sv);
-        test_pastify("abc"s + ctrl + ctrl, "abc"sv);
-        test_pastify(ctrl + "abc"s, "abc"sv);
-        test_pastify(ctrl + ctrl + "abc"s, "abc"sv);
-        test_pastify("abc"s + ctrl + "abc"s, "abcabc"sv);
-        test_pastify("abc"s + ctrl + ctrl + "abc"s, "abcabc"sv);
+        test_pastify(ctrl, pict);
+        test_pastify(ctrl + ctrl, pict + pict);
+        test_pastify("abc"s + ctrl, "abc"s + pict);
+        test_pastify("abc"s + ctrl + ctrl, "abc"s + pict + pict);
+        test_pastify(ctrl + "abc"s, pict + "abc"s);
+        test_pastify(ctrl + ctrl + "abc"s, pict + pict + "abc"s);
+        test_pastify("abc"s + ctrl + "abc"s, "abc"s + pict + "abc"s);
+        test_pastify("abc"s + ctrl + ctrl + "abc"s, "abc"s + pict + pict + "abc"s);
 }
 
 static void
@@ -82,7 +83,10 @@ test_pastify_control_c0(void const* ptr)
         auto ctrl = ""s;
         ctrl.push_back(c);
 
-        test_pastify_control(ctrl);
+        auto pict = std::string{};
+        vte::terminal::append_control_picture(pict, c);
+
+        test_pastify_control(ctrl, pict);
 }
 
 static void
@@ -94,7 +98,10 @@ test_pastify_control_c1(void const* ptr)
         ctrl.push_back(0xc2);
         ctrl.push_back(c);
 
-        test_pastify_control(ctrl);
+        auto pict = std::string{};
+        vte::terminal::append_control_picture(pict, c);
+
+        test_pastify_control(ctrl, pict);
 }
 
 struct TestString {

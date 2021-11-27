@@ -27,4 +27,7 @@ std::string pastify_string(std::string_view str,
                            bool insert_brackets,
                            bool c1 = false);
 
+void append_control_picture(std::string& str,
+                            char32_t ctrl);
+
 } // namespace vte::terminal

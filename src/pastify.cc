@@ -70,6 +70,14 @@ pastify_string(std::string_view str,
                         break;
 
                 switch (str[run]) {
+                case 0x01 ... 0x09:
+                case 0x0b ... 0x0c:
+                case 0x0e ... 0x1f:
+                case 0x7f:
+                        append_control_picture(rv, str[run]);
+                        ++run;
+                        break;
+
                 case '\x0a':
                         rv.push_back('\x0d');
                         ++run;
@@ -77,6 +85,8 @@ pastify_string(std::string_view str,
                 case '\xc2': {
                         auto const c = next_char(run);
                         if (c >= 0x80 && c <= 0x9f) {
+                                append_control_picture(rv, c);
+
                                 /* Skip both bytes of a C1 */
                                 run += 2;
                         } else {
@@ -87,11 +97,11 @@ pastify_string(std::string_view str,
                         break;
                 }
                 default:
-                        /* Swallow this byte */
                         ++run;
                         break;
                 }
 
+                /* run is <= str.size() */
                 str = str.substr(run);
         }
 
@@ -103,6 +113,75 @@ pastify_string(std::string_view str,
         }
 
         return rv;
+}
+
+/*
+ * append_control_picture:
+ * @str:
+ * @c:
+ *
+ * Appends the control picture for @ctrl (or if @ctrl has no control
+ * picture in unicode, appends U+FFFD).
+ */
+void
+append_control_picture(std::string& str,
+                       char32_t ctrl)
+{
+        switch (ctrl) {
+        case 0x00 ... 0x1f: /* C0 */
+                // U+2400 SYMBOL FOR NULL
+                // U+2401 SYMBOL FOR START OF HEADING
+                // U+2402 SYMBOL FOR START OF TEXT
+                // U+2403 SYMBOL FOR END OF TEXT
+                // U+2404 SYMBOL FOR END OF TRANSMISSION
+                // U+2405 SYMBOL FOR ENQUIRY
+                // U+2406 SYMBOL FOR ACKNOWLEDGE
+                // U+2407 SYMBOL FOR BELL
+                // U+2408 SYMBOL FOR BACKSPACE
+                // U+2409 SYMBOL FOR HORIZONTAL TABULATION
+                // U+240A SYMBOL FOR LINE FEED
+                // U+240B SYMBOL FOR VERTICAL TABULATION
+                // U+240C SYMBOL FOR FORM FEED
+                // U+240D SYMBOL FOR CARRIAGE RETURN
+                // U+240E SYMBOL FOR SHIFT OUT
+                // U+240F SYMBOL FOR SHIFT IN
+                // U+2410 SYMBOL FOR DATA LINK ESCAPE
+                // U+2411 SYMBOL FOR DEVICE CONTROL ONE
+                // U+2412 SYMBOL FOR DEVICE CONTROL TWO
+                // U+2413 SYMBOL FOR DEVICE CONTROL THREE
+                // U+2414 SYMBOL FOR DEVICE CONTROL FOUR
+                // U+2415 SYMBOL FOR NEGATIVE ACKNOWLEDGE
+                // U+2416 SYMBOL FOR SYNCHRONOUS IDLE
+                // U+2417 SYMBOL FOR END OF TRANSMISSION BLOCK
+                // U+2418 SYMBOL FOR CANCEL
+                // U+2419 SYMBOL FOR END OF MEDIUM
+                // U+241A SYMBOL FOR SUBSTITUTE
+                // U+241B SYMBOL FOR ESCAPE
+                // U+241C SYMBOL FOR FILE SEPARATOR
+                // U+241D SYMBOL FOR GROUP SEPARATOR
+                // U+241E SYMBOL FOR RECORD SEPARATOR
+                // U+241F SYMBOL FOR UNIT SEPARATOR
+                str.push_back('\xe2');
+                str.push_back('\x90');
+                str.push_back(ctrl + 0x80);
+                break;
+
+        case 0x7f: /* DEL */
+                str.append("\xe2\x90\xa1"); // U+2421 SYMBOL FOR DELETE
+                break;
+
+        case 0x80 ... 0x9f: /* C1 */
+                // Unfortunately, over 20 years after being first proposed, unicode
+                // **still** does not have control pictures for the C1 controls.
+                //
+                // Use U+FFFD instead.
+                str.append("\xef\xbf\xbd");
+                break;
+
+        default:
+                // This function may only be called for controls
+                __builtin_unreachable();
+        }
 }
 
 } // namespace vte::terminal
