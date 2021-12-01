@@ -24,16 +24,16 @@ class SearchPopover : Gtk.Popover
 {
   public Vte.Terminal terminal { get; construct set; }
 
-  [GtkChild] private Gtk.SearchEntry search_entry;
-  [GtkChild] private Gtk.Button search_prev_button;
-  [GtkChild] private Gtk.Button search_next_button;
-  [GtkChild] private Gtk.Button close_button;
-  [GtkChild] private Gtk.ToggleButton  match_case_checkbutton;
-  [GtkChild] private Gtk.ToggleButton entire_word_checkbutton;
-  [GtkChild] private Gtk.ToggleButton regex_checkbutton;
-  [GtkChild] private Gtk.ToggleButton wrap_around_checkbutton;
-  [GtkChild] private Gtk.Button reveal_button;
-  [GtkChild] private Gtk.Revealer revealer;
+  [GtkChild] private unowned Gtk.SearchEntry search_entry;
+  [GtkChild] private unowned Gtk.Button search_prev_button;
+  [GtkChild] private unowned Gtk.Button search_next_button;
+  [GtkChild] private unowned Gtk.Button close_button;
+  [GtkChild] private unowned Gtk.ToggleButton  match_case_checkbutton;
+  [GtkChild] private unowned Gtk.ToggleButton entire_word_checkbutton;
+  [GtkChild] private unowned Gtk.ToggleButton regex_checkbutton;
+  [GtkChild] private unowned Gtk.ToggleButton wrap_around_checkbutton;
+  [GtkChild] private unowned Gtk.Button reveal_button;
+  [GtkChild] private unowned Gtk.Revealer revealer;
 
   private bool regex_caseless = false;
   private string? regex_pattern = null;
@@ -175,14 +175,14 @@ class SearchPopover : Gtk.Popover
 [GtkTemplate (ui = "/org/gnome/vte/test/app/ui/window.ui")]
 class Window : Gtk.ApplicationWindow
 {
-  [GtkChild] private Gtk.Scrollbar scrollbar;
-  [GtkChild] private Gtk.Box terminal_box;
-  /* [GtkChild] private Gtk.Box notifications_box; */
-  [GtkChild] private Gtk.Widget readonly_emblem;
-  /* [GtkChild] private Gtk.Button copy_button; */
-  /* [GtkChild] private Gtk.Button paste_button; */
-  [GtkChild] private Gtk.ToggleButton find_button;
-  [GtkChild] private Gtk.MenuButton gear_button;
+  [GtkChild] private unowned Gtk.Scrollbar scrollbar;
+  [GtkChild] private unowned Gtk.Box terminal_box;
+  /* [GtkChild] private unowned Gtk.Box notifications_box; */
+  [GtkChild] private unowned Gtk.Widget readonly_emblem;
+  /* [GtkChild] private unowned Gtk.Button copy_button; */
+  /* [GtkChild] private unowned Gtk.Button paste_button; */
+  [GtkChild] private unowned Gtk.ToggleButton find_button;
+  [GtkChild] private unowned Gtk.MenuButton gear_button;
 
   private Vte.Terminal terminal;
   private Gtk.Clipboard clipboard;
