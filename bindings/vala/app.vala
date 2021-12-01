@@ -822,11 +822,11 @@ class App : Gtk.Application
   {
     public static bool audible = false;
     public static string? command = null;
-    private static string? cjk_ambiguous_width_string = null;
-    private static string? cursor_blink_mode_string = null;
-    private static string? cursor_background_color_string = null;
-    private static string? cursor_foreground_color_string = null;
-    private static string? cursor_shape_string = null;
+    public static string? cjk_ambiguous_width_string = null;
+    public static string? cursor_blink_mode_string = null;
+    public static string? cursor_background_color_string = null;
+    public static string? cursor_foreground_color_string = null;
+    public static string? cursor_shape_string = null;
     public static string[]? dingus = null;
     public static bool debug = false;
     public static string? encoding = null;
@@ -834,8 +834,8 @@ class App : Gtk.Application
     public static int extra_margin = 0;
     public static string? font_string = null;
     public static string? geometry = null;
-    private static string? hl_bg_color_string = null;
-    private static string? hl_fg_color_string = null;
+    public static string? hl_bg_color_string = null;
+    public static string? hl_fg_color_string = null;
     public static string? icon_title = null;
     public static bool keep = false;
     public static bool no_argb_visual = false;
