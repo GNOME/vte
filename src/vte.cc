@@ -7755,13 +7755,17 @@ Terminal::widget_size_allocate(int allocation_x,
                                int allocation_height,
                                int allocation_baseline,
                                Alignment xalign,
-                               Alignment yalign)
+                               Alignment yalign,
+                               bool xfill,
+                               bool yfill)
 #elif VTE_GTK == 4
 Terminal::widget_size_allocate(int allocation_width,
                                int allocation_height,
                                int allocation_baseline,
                                Alignment xalign,
-                               Alignment yalign)
+                               Alignment yalign,
+                               bool xfill,
+                               bool yfill)
 #endif /* VTE_GTK */
 {
         auto width = allocation_width - (m_style_padding.left + m_style_padding.right);
@@ -7775,22 +7779,26 @@ Terminal::widget_size_allocate(int allocation_width,
         /* assert(width >= 0); assert(height >= 0); */
 
         /* Distribute extra space according to alignment */
+        /* xfill doesn't have any effect */
         auto lpad = 0, rpad = 0;
         switch (xalign) {
         default:
-        case Alignment::START_FILL:
         case Alignment::START:  lpad = 0; rpad = width; break;
         case Alignment::CENTRE: lpad = width / 2; rpad = width - lpad; break;
         case Alignment::END:    lpad = width; rpad = 0; break;
         }
 
+        /* yfill is only applied to START */
         auto tpad = 0, bpad = 0;
         switch (yalign) {
         default:
-        case Alignment::START:       tpad = 0; bpad = height; break;
+        case Alignment::START:
+                tpad = 0;
+                bpad = yfill ? 0 : height;
+                break;
+
         case Alignment::CENTRE:      tpad = height / 2; bpad = height - tpad; break;
         case Alignment::END:         tpad = height; bpad = 0; break;
-        case Alignment::START_FILL:  tpad = bpad = 0; break;
         }
 
         m_padding.left   = m_style_padding.left   + lpad;

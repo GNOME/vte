@@ -1023,6 +1023,14 @@ try
                         g_value_set_enum(value, vte_terminal_get_yalign(terminal));
                         break;
 
+                case PROP_XFILL:
+                        g_value_set_boolean(value, vte_terminal_get_xfill(terminal));
+                        break;
+
+                case PROP_YFILL:
+                        g_value_set_boolean(value, vte_terminal_get_yfill(terminal));
+                        break;
+
                 default:
 			G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 			return;
@@ -1147,6 +1155,14 @@ try
 
                 case PROP_YALIGN:
                         vte_terminal_set_yalign(terminal, VteAlign(g_value_get_enum(value)));
+                        break;
+
+                case PROP_XFILL:
+                        vte_terminal_set_xfill(terminal, g_value_get_boolean(value));
+                        break;
+
+                case PROP_YFILL:
+                        vte_terminal_set_yfill(terminal, g_value_get_boolean(value));
                         break;
 
                         /* Not writable */
@@ -2370,8 +2386,32 @@ vte_terminal_class_init(VteTerminalClass *klass)
         pspecs[PROP_YALIGN] =
                 g_param_spec_enum("yalign", nullptr, nullptr,
                                   VTE_TYPE_ALIGN,
-                                  VTE_ALIGN_START_FILL,
+                                  VTE_ALIGN_START,
                                   GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:xfill:
+         *
+         * The horizontal fillment of @terminal within its allocation.
+         *
+         * Since: 0.68
+         */
+        pspecs[PROP_XFILL] =
+                g_param_spec_boolean("xfill", nullptr, nullptr,
+                                     TRUE,
+                                     GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
+
+        /**
+         * VteTerminal:yfill:
+         *
+         * The vertical fillment of @terminal within its allocation
+         *
+         * Since: 0.68
+         */
+        pspecs[PROP_YFILL] =
+                g_param_spec_boolean("yfill", nullptr, nullptr,
+                                     TRUE,
+                                     GParamFlags(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         g_object_class_install_properties(gobject_class, LAST_PROP, pspecs);
 
@@ -6220,7 +6260,6 @@ constexpr bool check_enum_value<VteAlign>(VteAlign value) noexcept
         case VTE_ALIGN_START:
         case VTE_ALIGN_CENTER:
         case VTE_ALIGN_END:
-        case VTE_ALIGN_START_FILL:
                 return true;
         default:
                 return false;
@@ -6314,14 +6353,109 @@ VteAlign
 vte_terminal_get_yalign(VteTerminal* terminal) noexcept
 try
 {
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_ALIGN_START_FILL);
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), VTE_ALIGN_START);
 
         return WIDGET(terminal)->yalign();
 }
 catch (...)
 {
         vte::log_exception();
-        return VTE_ALIGN_START_FILL;
+        return VTE_ALIGN_START;
+}
+
+/**
+ * vte_terminal_set_xfill:
+ * @terminal: a #VteTerminal
+ * @fill: fillment value from #VteFill
+ *
+ * Sets the horizontal fillment of @terminal within its allocation.
+ *
+ * Note: %VTE_FILL_START_FILL is not supported, and will be treated
+ *   like %VTE_FILL_START.
+ *
+ * Since: 0.68
+ */
+void
+vte_terminal_set_xfill(VteTerminal* terminal,
+                        gboolean fill) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_xfill(fill != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_XFILL]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_xfill:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the horizontal fillment of @terminal within its allocation
+ *
+ * Since: 0.68
+ */
+gboolean
+vte_terminal_get_xfill(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), true);
+
+        return WIDGET(terminal)->xfill();
+}
+catch (...)
+{
+        vte::log_exception();
+        return true;
+}
+
+/**
+ * vte_terminal_set_yfill:
+ * @terminal: a #VteTerminal
+ * @fill: fillment value from #VteFill
+ *
+ * Sets the vertical fillment of @terminal within its allocation.
+ *
+ * Since: 0.68
+ */
+void
+vte_terminal_set_yfill(VteTerminal* terminal,
+                        gboolean fill) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (WIDGET(terminal)->set_yfill(fill != false))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_YFILL]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_yfill:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: the vertical fillment of @terminal within its allocation
+ *
+ * Since: 0.68
+ */
+gboolean
+vte_terminal_get_yfill(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), true);
+
+        return WIDGET(terminal)->yfill();
+}
+catch (...)
+{
+        vte::log_exception();
+        return true;
 }
 
 namespace vte {

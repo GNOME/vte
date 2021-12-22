@@ -478,13 +478,15 @@ public:
 
         constexpr auto xalign() const noexcept { return m_xalign; }
         constexpr auto yalign() const noexcept { return m_yalign; }
+        constexpr auto xfill() const noexcept { return m_xfill; }
+        constexpr auto yfill() const noexcept { return m_yfill; }
 
         bool set_xalign(VteAlign align) noexcept
         {
                 if (align == m_xalign)
                         return false;
 
-                m_xalign = VteAlign(align & ~VTE_ALIGN_FILL);
+                m_xalign = VteAlign(align);
                 gtk_widget_queue_allocate(gtk());
                 return true;
         }
@@ -495,6 +497,26 @@ public:
                         return false;
 
                 m_yalign = align;
+                gtk_widget_queue_allocate(gtk());
+                return true;
+        }
+
+        bool set_xfill(bool fill) noexcept
+        {
+                if (fill == m_xfill)
+                        return false;
+
+                m_xfill = fill;
+                gtk_widget_queue_allocate(gtk());
+                return true;
+        }
+
+        bool set_yfill(bool fill) noexcept
+        {
+                if (fill == m_yfill)
+                        return false;
+
+                m_yfill = fill;
                 gtk_widget_queue_allocate(gtk());
                 return true;
         }
@@ -610,7 +632,9 @@ private:
         unsigned m_changing_scroll_position:1{false};
 
         VteAlign m_xalign{VTE_ALIGN_START};
-        VteAlign m_yalign{VTE_ALIGN_START_FILL};
+        VteAlign m_yalign{VTE_ALIGN_START};
+        bool m_xfill{true};
+        bool m_yfill{true};
 };
 
 } // namespace platform

@@ -109,6 +109,10 @@ vte_terminal_get_xalign
 vte_terminal_set_xalign
 vte_terminal_get_yalign
 vte_terminal_set_yalign
+vte_terminal_get_xfill
+vte_terminal_set_xfill
+vte_terminal_get_yfill
+vte_terminal_set_yfill
 
 <SUBSECTION>
 VteFeatureFlags

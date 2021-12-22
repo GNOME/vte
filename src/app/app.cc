@@ -75,6 +75,8 @@ public:
         gboolean no_shell{false};
         gboolean no_sixel{false};
         gboolean no_systemd_scope{false};
+        gboolean no_xfill{false};
+        gboolean no_yfill{false};
         gboolean object_notifications{false};
         gboolean require_systemd_scope{false};
         gboolean reverse{false};
@@ -692,9 +694,14 @@ public:
                           "Use foreground and background colors from the gtk+ theme", nullptr },
 
                         { "xalign", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_xalign,
-                          "Horizontal alignment (fill|start|end|center)", "ALIGN" },
+                          "Horizontal alignment (start|end|center)", "ALIGN" },
                         { "yalign", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_yalign,
                           "Vertical alignment (fill|start|end|center)", "ALIGN" },
+                        { "no-xfill", 0, G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &no_xfill,
+                          "No horizontal fillment", nullptr },
+                        { "no-yfill", 0, 0, G_OPTION_ARG_NONE, &no_yfill,
+                          "No vertical fillment", nullptr },
+
 
 #if VTE_GTK == 3
                         { "no-argb-visual", 0, 0, G_OPTION_ARG_NONE, &no_argb_visual,
@@ -2574,9 +2581,13 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
         vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
         if (options.xalign != VteAlign(-1))
-            vte_terminal_set_xalign(window->terminal, options.xalign);
+                vte_terminal_set_xalign(window->terminal, options.xalign);
         if (options.yalign != VteAlign(-1))
-            vte_terminal_set_yalign(window->terminal, options.yalign);
+                vte_terminal_set_yalign(window->terminal, options.yalign);
+        if (options.no_xfill)
+                vte_terminal_set_xfill(window->terminal, false);
+        if (options.no_yfill)
+                vte_terminal_set_yfill(window->terminal, false);
 
         /* Style */
         if (options.font_string != nullptr) {

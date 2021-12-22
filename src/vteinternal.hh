@@ -213,8 +213,6 @@ private:
                 CENTRE = 1u,
                 /* BASELINE = 2u, */
                 END    = 3u,
-                FILL   = 0x4u,
-                START_FILL = START | FILL,
         };
 
 protected:
@@ -932,13 +930,17 @@ public:
                                   int height,
                                   int baseline,
                                   Alignment xalign,
-                                  Alignment yalign);
+                                  Alignment yalign,
+                                  bool xfill,
+                                  bool yfill);
 #elif VTE_GTK == 4
         void widget_size_allocate(int width,
                                   int height,
                                   int baseline,
                                   Alignment xalign,
-                                  Alignment yalign);
+                                  Alignment yalign,
+                                  bool xfill,
+                                  bool yfill);
 #endif /* VTE_GTK */
 
         void set_blink_settings(bool blink,
