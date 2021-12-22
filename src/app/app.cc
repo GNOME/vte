@@ -2034,6 +2034,9 @@ vteapp_window_show_context_menu(VteappWindow* window,
                 g_menu_append(menu, "_Fullscreen", "win.fullscreen");
 
         auto popup = gtk_menu_new_from_model(G_MENU_MODEL(menu));
+        gtk_style_context_add_class(gtk_widget_get_style_context (popup),
+                                    GTK_STYLE_CLASS_CONTEXT_MENU);
+
         gtk_menu_attach_to_widget(GTK_MENU(popup), GTK_WIDGET(window->terminal), nullptr);
         gtk_menu_popup(GTK_MENU(popup), nullptr, nullptr, nullptr, nullptr, button, timestamp);
         if (button == 0)
