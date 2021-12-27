@@ -348,8 +348,6 @@ compiler_flags_common = [
   '-fdiagnostics-show-option',
   '-fno-common',
   '-fno-semantic-interposition',
-  '-fstack-protector',
-  '-fstack-protector-strong',
 ]
 
 if enable_debug
@@ -437,6 +435,10 @@ add_project_arguments(global_cxxflags, language: 'cpp')
 linker_flags = [
   ['-Wl,-Bsymbolic', false,],
   ['-Wl,-Bsymbolic-functions', get_option('_b_symbolic_functions'),],
+
+  # See issue vte#2535.
+  ['-fstack-protector', false],
+  ['-fstack-protector-strong', false],
 ]
 
 foreach flag: linker_flags
