@@ -1516,7 +1516,7 @@ Widget::measure(GtkOrientation orientation,
                 terminal()->widget_measure_width(minimum, natural);
                 break;
         case GTK_ORIENTATION_VERTICAL:
-                *minimum_baseline = *natural_baseline = 0;
+                *minimum_baseline = *natural_baseline = -1;
                 terminal()->widget_measure_height(minimum, natural);
                 break;
         }
