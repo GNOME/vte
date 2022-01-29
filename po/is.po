@@ -1,47 +1,70 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # Samúel Jón Gunnarsson  <sammi@techattack.nu>, 2003.
-# Sveinn í Felli <sv1@fellsnet.is>, 2015, 2017.
+# Sveinn í Felli <sv1@fellsnet.is>, 2015, 2017, 2022.
 msgid ""
 msgstr ""
 "Project-Id-Version: vte\n"
-"Report-Msgid-Bugs-To: http://bugzilla.gnome.org/enter_bug.cgi?"
-"product=vte&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2016-09-17 18:49+0000\n"
-"PO-Revision-Date: 2017-03-01 11:45+0000\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
+"POT-Creation-Date: 2021-08-26 18:15+0000\n"
+"PO-Revision-Date: 2022-01-29 11:42+0000\n"
 "Last-Translator: Sveinn í Felli <sv1@fellsnet.is>\n"
-"Language-Team: Icelandic <translation-team-is@lists.sourceforge.net>\n"
+"Language-Team: Icelandic <translation-team-is@lists.sourceforge.org>\n"
 "Language: is\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Lokalize 1.5\n"
+"X-Generator: Lokalize 19.12.3\n"
 
-#: ../src/iso2022.cc:73 ../src/iso2022.cc:81 ../src/iso2022.cc:111
-#: ../src/vtegtk.cc:3072
-#, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Ekki tókst að umbreyta stöfum frá %s yfir í %s."
-
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:4002
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Villa. Ekki tókst að lesa frá afleiðu: %s"
-
-#: ../src/vte.cc:4141
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Villa (%s) við umbreytingu á gögnum frá afleiðu, hætti við."
-
-#: ../src/vte.cc:7910
+#: src/vte.cc:7670
 msgid "WARNING"
 msgstr "AÐVÖRUN"
 
-#: ../src/vte.cc:7911
-msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
-msgstr "GNUTLS er ekki virkt; gögn verða skrifuð ódulrituð á disk!"
+#: src/vte.cc:7672
+#| msgid "GNUTLS not enabled; data will be written to disk unencrypted!"
+msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
+msgstr "GnuTLS er ekki virkt; gögn verða skrifuð ódulrituð á disk!"
+
+#: src/spawn.cc:110
+#, c-format
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Gat ekki sett pípu sem ólokandi: %s"
+
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "villa í athugun: %s"
+
+#: src/spawn.cc:162
+msgid "Operation timed out"
+msgstr "Aðgerð rann út á tíma"
+
+#: src/spawn.cc:172
+msgid "Operation was cancelled"
+msgstr "Hætt var við aðgerð"
+
+#: src/spawn.cc:190
+#, c-format
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "Gat ekki lesið úr undirferlispípu (%s)"
+
+#: src/spawn.cc:620
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Gat ekki farið í möppuna '%s': %s"
+
+#: src/spawn.cc:689
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Gat ekki keyrt undirferlið “%s”: "
+
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Ekki tókst að umbreyta stöfum frá %s yfir í %s."
+
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr "Villa (%s) við umbreytingu á gögnum frá afleiðu, hætti við."
 
 #~ msgid "Copy"
 #~ msgstr "Afrita"
