@@ -68,10 +68,10 @@ static uint8_t const charset_graphic_94_with_2_1[] = {
 };
 
 /* 94-character graphic character sets, with second intermediate byte 2/2:
- * G0: ESC 2/8 2/1 F
- * G1: ESC 2/9 2/1 F
- * G2: ESC 2/10 2/1 F
- * G3: ESC 2/11 2/1 F
+ * G0: ESC 2/8 2/2 F
+ * G1: ESC 2/9 2/2 F
+ * G2: ESC 2/10 2/2 F
+ * G3: ESC 2/11 2/2 F
  * C0: -
  * C1: -
  */
@@ -82,10 +82,10 @@ static uint8_t const charset_graphic_94_with_2_2[] = {
 };
 
 /* 94-character graphic character sets, with second intermediate byte 2/5:
- * G0: ESC 2/8 2/1 F
- * G1: ESC 2/9 2/1 F
- * G2: ESC 2/10 2/1 F
- * G3: ESC 2/11 2/1 F
+ * G0: ESC 2/8 2/5 F
+ * G1: ESC 2/9 2/5 F
+ * G2: ESC 2/10 2/5 F
+ * G3: ESC 2/11 2/5 F
  * C0: -
  * C1: -
  */
@@ -96,10 +96,10 @@ static uint8_t const charset_graphic_94_with_2_5[] = {
 };
 
 /* 94-character graphic character sets, with second intermediate byte 2/6:
- * G0: ESC 2/8 2/1 F
- * G1: ESC 2/9 2/1 F
- * G2: ESC 2/10 2/1 F
- * G3: ESC 2/11 2/1 F
+ * G0: ESC 2/8 2/6 F
+ * G1: ESC 2/9 2/6 F
+ * G2: ESC 2/10 2/6 F
+ * G3: ESC 2/11 2/6 F
  * C0: -
  * C1: -
  */
