@@ -243,7 +243,7 @@ FontInfo::FontInfo(vte::glib::RefPtr<PangoContext> context)
                  * https://gitlab.gnome.org/GNOME/gnome-terminal/-/issues/340 . Therefore
                  * we only use the metrics when its height is at least that which we measured.
                  */
-                if (ascent > 0 && height > m_height) {
+                if (ascent > 0 && height >= m_height) {
                         _vte_debug_print(VTE_DEBUG_PANGOCAIRO, "Using pango metrics\n");
 
                         m_ascent = ascent;
