@@ -4077,7 +4077,8 @@ catch (...)
  */
 
 static void
-warn_if_callback(VteSelectionFunc func) noexcept
+warn_if_callback(VteSelectionFunc func,
+                 char const* caller = __builtin_FUNCTION()) noexcept
 {
         if (!func)
                 return;
@@ -4088,7 +4089,23 @@ warn_if_callback(VteSelectionFunc func) noexcept
                 return;
         warned = TRUE;
 #endif
-        g_warning ("VteSelectionFunc callback ignored.\n");
+        g_warning ("%s: VteSelectionFunc callback ignored.\n", caller);
+}
+
+static void
+warn_if_attributes(void* array,
+                   char const* caller = __builtin_FUNCTION()) noexcept
+{
+        if (!array)
+                return;
+
+#ifndef VTE_DEBUG
+        static gboolean warned = FALSE;
+        if (warned)
+                return;
+        warned = TRUE;
+#endif
+        g_warning ("%s: Passing a GArray to retrieve attributes is deprecated. In a future version, passing non-NULL as attributes array will make the function return NULL.\n", caller);
 }
 
 /**
@@ -4096,7 +4113,7 @@ warn_if_callback(VteSelectionFunc func) noexcept
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -4106,6 +4123,9 @@ warn_if_callback(VteSelectionFunc func) noexcept
  *
  * This method is unaware of BiDi. The columns returned in @attributes are
  * logical columns.
+ *
+ * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
+ * 0.70, passing a non-%NULL @array parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
@@ -4118,6 +4138,7 @@ try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
+        warn_if_attributes(attributes);
         auto text = IMPL(terminal)->get_text_displayed(true /* wrap */,
                                                        attributes);
         if (text == nullptr)
@@ -4135,7 +4156,7 @@ catch (...)
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -4145,6 +4166,9 @@ catch (...)
  *
  * This method is unaware of BiDi. The columns returned in @attributes are
  * logical columns.
+ *
+ * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
+ * 0.70, passing a non-%NULL @array parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  *
@@ -4168,7 +4192,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * @end_col: last column to search for data
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
  * @user_data: (closure): user data to be passed to the callback
- * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes
+ * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
  * Extracts a view of the visible part of the terminal.  If @is_selected is not
  * %NULL, characters will only be read if @is_selected returns %TRUE after being
@@ -4180,6 +4204,9 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  *
  * This method is unaware of BiDi. The columns passed in @start_col and @end_row,
  * and returned in @attributes are logical columns.
+ *
+ * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
+ * 0.70, passing a non-%NULL @array parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
@@ -4196,6 +4223,7 @@ try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
+        warn_if_attributes(attributes);
         auto text = IMPL(terminal)->get_text(start_row, start_col,
                                              end_row, end_col,
                                              false /* block */,
