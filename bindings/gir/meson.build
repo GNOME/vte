@@ -51,7 +51,7 @@ if get_option('gtk4')
   # Ideally, the gir would be named something like "VteGtk4" instead,
   # but it seems that's not possible. So work around it using "Vte"
   # as namespace with this nsversion hack:
-  gir_nsversion_gtk4 = '4:' + vte_api_version
+  gir_nsversion_gtk4 = '4-' + vte_api_version
 
   libvte_gtk4_gir = gnome.generate_gir(
     libvte_gtk4,
