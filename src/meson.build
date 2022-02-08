@@ -296,7 +296,6 @@ incs = [
 libvte_common_cppflags = [
   '-DG_LOG_DOMAIN="VTE"',
   '-DLOCALEDIR="@0@"'.format(vte_prefix / vte_localedir),
-  '-DVTE_DISABLE_DEPRECATION_WARNINGS',
   '-DVTE_COMPILATION',
   '-UPARSER_INCLUDE_NOP',
 ]

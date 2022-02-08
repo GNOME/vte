@@ -25,7 +25,7 @@
 #include "vtepty.h"
 #include "vtemacros.h"
 
-#ifndef VTE_DISABLE_DEPRECATION_WARNINGS
+#if !defined(VTE_DISABLE_DEPRECATION_WARNINGS) && !defined(VTE_COMPILATION)
 #define _VTE_DEPRECATED G_DEPRECATED
 #else
 #define _VTE_DEPRECATED
@@ -174,6 +174,16 @@ char **vte_get_encodings(gboolean include_aliases) _VTE_CXX_NOEXCEPT;
 _VTE_DEPRECATED
 _VTE_PUBLIC
 gboolean vte_get_encoding_supported(const char *encoding) _VTE_CXX_NOEXCEPT;
+
+typedef struct _VteCharAttributes VteCharAttributes _VTE_DEPRECATED;
+
+/* The structure we return as the supplemental attributes for strings. */
+struct _VteCharAttributes {
+        /*< private >*/
+        long row, column;  /* logical column */
+	PangoColor fore, back;
+	guint underline:1, strikethrough:1, columns:4;
+} _VTE_DEPRECATED;
 
 G_END_DECLS
 

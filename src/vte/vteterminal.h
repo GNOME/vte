@@ -43,7 +43,6 @@ G_BEGIN_DECLS
 typedef struct _VteTerminal             VteTerminal;
 typedef struct _VteTerminalClass        VteTerminalClass;
 typedef struct _VteTerminalClassPrivate VteTerminalClassPrivate;
-typedef struct _VteCharAttributes       VteCharAttributes;
 
 /**
  * VteTerminal:
@@ -126,14 +125,6 @@ struct _VteTerminalClass {
 
 // FIXMEgtk4 use class private data instead
         VteTerminalClassPrivate *priv;
-};
-
-/* The structure we return as the supplemental attributes for strings. */
-struct _VteCharAttributes {
-        /*< private >*/
-        long row, column;  /* logical column */
-	PangoColor fore, back;
-	guint underline:1, strikethrough:1, columns:4;
 };
 
 typedef gboolean (*VteSelectionFunc)(VteTerminal *terminal,

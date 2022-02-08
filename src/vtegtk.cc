@@ -4092,6 +4092,12 @@ warn_if_callback(VteSelectionFunc func,
         g_warning ("%s: VteSelectionFunc callback ignored.\n", caller);
 }
 
+/**
+ * VteCharAttributes:
+ *
+ * Deprecated: 0.68
+ */
+
 static void
 warn_if_attributes(void* array,
                    char const* caller = __builtin_FUNCTION()) noexcept
