@@ -1340,6 +1340,14 @@ test_context_repeat(void)
                 g_assert_cmpuint(*data++, ==, v);
 
         g_assert_cmpuint(size_t(data - pixels.get()), <=, size);
+
+	/* Check that repeat param 0 is trated as 1 */
+	parse_image(context, {DECGRI(0), Sixel(1u << 0)});;
+	assert_image_dimensions(context, 1, 1);
+
+	/* Check that omitted param is treated as default */
+	parse_image(context, {DECGRI(-1), Sixel(1u << 0)});
+	assert_image_dimensions(context, 1, 1);
 }
 
 static void

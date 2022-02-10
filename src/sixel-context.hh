@@ -533,14 +533,17 @@ private:
                  *   args[0]: 1
                  *
                  * References: DEC PPLV2 § 5.8
+                 *             DEC STD 070
                  */
 
                 /* DEC terminals limited the repetition count to 255, but the SIXEL
                  * test data includes repeat counts much greater. Since we limit to
                  * k_max_width anyway when executing the repeat on the next sixel,
                  * don't limit here.
+                 *
+                 * A repeat count of 0 is treated like 1.
                  */
-                m_repeat_count = seq.param(0, 1);
+                m_repeat_count = seq.param(0, 1) ? : 1;
         }
 
         void
