@@ -2368,7 +2368,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The horizontal alignment of @terminal within its allocation.
          *
-         * Since: 0.68
+         * Since: 0.70
          */
         pspecs[PROP_XALIGN] =
                 g_param_spec_enum("xalign", nullptr, nullptr,
@@ -2381,7 +2381,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The vertical alignment of @terminal within its allocation
          *
-         * Since: 0.68
+         * Since: 0.70
          */
         pspecs[PROP_YALIGN] =
                 g_param_spec_enum("yalign", nullptr, nullptr,
@@ -2394,7 +2394,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The horizontal fillment of @terminal within its allocation.
          *
-         * Since: 0.68
+         * Since: 0.70
          */
         pspecs[PROP_XFILL] =
                 g_param_spec_boolean("xfill", nullptr, nullptr,
@@ -2406,7 +2406,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The vertical fillment of @terminal within its allocation
          *
-         * Since: 0.68
+         * Since: 0.70
          */
         pspecs[PROP_YFILL] =
                 g_param_spec_boolean("yfill", nullptr, nullptr,
@@ -6310,7 +6310,7 @@ constexpr bool check_enum_value<VteAlign>(VteAlign value) noexcept
  * Note: %VTE_ALIGN_START_FILL is not supported, and will be treated
  *   like %VTE_ALIGN_START.
  *
- * Since: 0.68
+ * Since: 0.70
  */
 void
 vte_terminal_set_xalign(VteTerminal* terminal,
@@ -6334,7 +6334,7 @@ catch (...)
  *
  * Returns: the horizontal alignment of @terminal within its allocation
  *
- * Since: 0.68
+ * Since: 0.70
  */
 VteAlign
 vte_terminal_get_xalign(VteTerminal* terminal) noexcept
@@ -6357,7 +6357,7 @@ catch (...)
  *
  * Sets the vertical alignment of @terminal within its allocation.
  *
- * Since: 0.68
+ * Since: 0.70
  */
 void
 vte_terminal_set_yalign(VteTerminal* terminal,
@@ -6381,7 +6381,7 @@ catch (...)
  *
  * Returns: the vertical alignment of @terminal within its allocation
  *
- * Since: 0.68
+ * Since: 0.70
  */
 VteAlign
 vte_terminal_get_yalign(VteTerminal* terminal) noexcept
@@ -6407,7 +6407,7 @@ catch (...)
  * Note: %VTE_FILL_START_FILL is not supported, and will be treated
  *   like %VTE_FILL_START.
  *
- * Since: 0.68
+ * Since: 0.70
  */
 void
 vte_terminal_set_xfill(VteTerminal* terminal,
@@ -6430,7 +6430,7 @@ catch (...)
  *
  * Returns: the horizontal fillment of @terminal within its allocation
  *
- * Since: 0.68
+ * Since: 0.70
  */
 gboolean
 vte_terminal_get_xfill(VteTerminal* terminal) noexcept
@@ -6453,7 +6453,7 @@ catch (...)
  *
  * Sets the vertical fillment of @terminal within its allocation.
  *
- * Since: 0.68
+ * Since: 0.70
  */
 void
 vte_terminal_set_yfill(VteTerminal* terminal,
@@ -6476,7 +6476,7 @@ catch (...)
  *
  * Returns: the vertical fillment of @terminal within its allocation
  *
- * Since: 0.68
+ * Since: 0.70
  */
 gboolean
 vte_terminal_get_yfill(VteTerminal* terminal) noexcept
