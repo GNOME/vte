@@ -551,34 +551,6 @@ void vte_terminal_set_enable_sixel(VteTerminal *terminal,
 _VTE_PUBLIC
 gboolean vte_terminal_get_enable_sixel(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
-_VTE_PUBLIC
-void vte_terminal_set_xalign(VteTerminal* terminal,
-                             VteAlign align) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-VteAlign vte_terminal_get_xalign(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-void vte_terminal_set_yalign(VteTerminal* terminal,
-                             VteAlign align) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-VteAlign vte_terminal_get_yalign(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-void vte_terminal_set_xfill(VteTerminal* terminal,
-                            gboolean fill) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-gboolean vte_terminal_get_xfill(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-void vte_terminal_set_yfill(VteTerminal* terminal,
-                            gboolean fill) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
-_VTE_PUBLIC
-gboolean vte_terminal_get_yfill(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
-
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
 G_END_DECLS
