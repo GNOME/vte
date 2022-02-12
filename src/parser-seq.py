@@ -756,8 +756,6 @@ sequences = [
             comment='select terminal id'),
     seq_CSI('DECCRTST', 'q', intermediates=(Intermediate.MINUS,), flags=Flags.NOP,
             comment='CRT saver time'),
-    seq_CSI('XTERM_VERSION', 'q', pintro=(ParameterIntro.GT,),
-            comment='request xterm version report'),
     seq_CSI('DECSTBM', 'r',
             comment='set top and bottom margins'),
     seq_CSI('DECSKCV', 'r', intermediates=(Intermediate.SPACE,), flags=Flags.NOP,
