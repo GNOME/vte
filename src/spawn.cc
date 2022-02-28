@@ -68,6 +68,7 @@ set_cloexec_cb(void* data,
 static int
 cloexec_from(int fd)
 {
+#ifdef CLOSE_RANGE_CLOEXEC
         /* First, try close_range(CLOEXEC) which is faster than the methods
          * below, and works even if /proc is not available.
          */
@@ -78,6 +79,7 @@ cloexec_from(int fd)
             errno != ENOSYS /* old kernel, or not supported on this platform */ &&
             errno != EINVAL /* flags not supported */)
                 return res;
+#endif /* CLOSE_RANGE_CLOEXEC */
 
         /* Fall back to fdwalk */
         return fdwalk(set_cloexec_cb, &fd);
