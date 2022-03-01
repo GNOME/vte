@@ -29,6 +29,7 @@ debug_sources = files(
 )
 
 glib_glue_sources = files(
+  'glib-glue.cc',
   'glib-glue.hh',
 )
 
