@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <https://www.gnu.org/licenses/>.
 
-app_sources = config_sources + glib_glue_sources + libc_glue_sources + pango_glue_sources + pcre2_glue_sources + refptr_sources + std_glue_sources + vte_glue_sources + files(
+app_sources = config_sources + debug_sources + glib_glue_sources + libc_glue_sources + pango_glue_sources + pcre2_glue_sources + refptr_sources + std_glue_sources + vte_glue_sources + files(
   'app.cc',
 )
 
