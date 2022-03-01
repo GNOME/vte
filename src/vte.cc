@@ -73,6 +73,8 @@
 #include "cxx-utils.hh"
 #include "gobject-glue.hh"
 
+#include "regex-builtins.hh"
+
 #ifdef WITH_A11Y
 #if VTE_GTK == 3
 #include "vteaccess.h"
@@ -81,6 +83,7 @@
 #endif /* VTE_GTK == 3 */
 #endif /* WITH_A11Y */
 
+#include <algorithm>
 #include <new> /* placement new */
 
 using namespace std::literals;
@@ -1107,6 +1110,28 @@ Terminal::regex_match_remove(int tag) noexcept
         match_regexes_writable().erase(i);
 }
 
+void
+Terminal::regex_match_add_builtins() noexcept
+{
+        auto& match_regexes = match_regexes_writable();
+        if (!m_match_regex_builtins)
+                m_match_regex_builtins = vte::base::RegexBuiltins::get();
+        for (auto const& [regex, tag] : m_match_regex_builtins->builtins()) {
+                match_regexes.emplace_back(make_ref(regex.get()),
+                                           0 /* match flags */,
+                                           VTE_MATCH_BUILTINS_CURSOR,
+                                           tag);
+        }
+}
+
+void
+Terminal::regex_match_remove_builtins() noexcept
+{
+        auto& match_regexes = match_regexes_writable();
+        std::remove_if(std::begin(match_regexes), std::end(match_regexes),
+                       [](MatchRegex const& rem) { return rem.tag() < 0; });
+}
+
 /*
  * match_rowcol_to_offset:
  * @terminal:
@@ -1480,7 +1505,7 @@ Terminal::match_check_internal(vte::grid::column_t column,
 char*
 Terminal::regex_match_check(vte::grid::column_t column,
                             vte::grid::row_t row,
-                            int* tag)
+                            int* tag_ptr)
 {
         /* Need to ensure the ringview is updated. */
         ringview_update();
@@ -1506,8 +1531,16 @@ Terminal::regex_match_check(vte::grid::column_t column,
 	_VTE_DEBUG_IF(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX) {
 		if (ret != NULL) g_printerr("Matched `%s'.\n", ret);
 	}
-        if (tag != nullptr)
-                *tag = (match != nullptr) ? match->tag() : -1;
+
+        int tag = -1;
+        if (match != nullptr) {
+                tag = match->tag();
+                if (tag < -1 && m_match_regex_builtins)
+                        tag = m_match_regex_builtins->transform_match(ret, tag);
+        }
+
+        if (tag_ptr != nullptr)
+                *tag_ptr = tag;
 
 	return ret;
 }

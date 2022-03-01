@@ -38,6 +38,7 @@ public:
                eSearch,
         };
 
+        static std::string get_pcre_version();
         static bool check_pcre_config_unicode(GError** error);
         static bool check_pcre_config_jit(void);
         static Regex* compile(Purpose purpose,

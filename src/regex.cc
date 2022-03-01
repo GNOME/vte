@@ -52,6 +52,17 @@ Regex::unref() noexcept
                 delete this;
 }
 
+std::string
+Regex::get_pcre_version()
+{
+        auto v = std::string{};
+        auto r = pcre2_config_8(PCRE2_CONFIG_VERSION, nullptr);
+        v.resize(r);
+        r = pcre2_config_8(PCRE2_CONFIG_VERSION, v.data());
+
+        return v;
+}
+
 bool
 Regex::check_pcre_config_unicode(GError** error)
 {

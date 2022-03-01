@@ -130,7 +130,12 @@ refptr_sources = files(
 
 regex_sources = files(
   'regex.cc',
-  'regex.hh'
+  'regex.hh',
+  'regex-builtins.cc',
+  'regex-builtins.hh',
+  'regex-builtins-patterns.hh',
+  'vteregex.cc',
+  'vteregexinternal.hh',
 )
 
 sixel_parser_sources = files(
@@ -183,6 +188,7 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'drawing-cairo.hh',
   'fonts-pangocairo.cc',
   'fonts-pangocairo.hh',
+  'fwd.hh',
   'gobject-glue.hh',
   'keymap.cc',
   'keymap.h',
@@ -205,8 +211,6 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'vtegtk.cc',
   'vtegtk.hh',
   'vteinternal.hh',
-  'vteregex.cc',
-  'vteregexinternal.hh',
   'vterowdata.cc',
   'vterowdata.hh',
   'vteseq.cc',
@@ -587,6 +591,24 @@ test_refptr = executable(
   install: false,
 )
 
+test_regex_sources = regex_sources + glib_glue_sources + files(
+  'regex-test.cc',
+)
+
+test_regex = executable(
+  'test-regex',
+  sources: test_regex_sources,
+  dependencies: [glib_dep, gobject_dep, pcre2_dep,],
+  cpp_args: ['-DVTE_COMPILATION',],
+  include_directories: top_inc,
+  install: false,
+)
+
+test_tabstops_sources = files(
+  'tabstops-test.cc',
+  'tabstops.hh'
+)
+
 if get_option('sixel')
   fuzz_sixel_sources = config_sources + files(
     'sixel-fuzzer.cc',
@@ -685,6 +707,7 @@ test_units = [
   ['pastify', test_pastify],
   ['reaper', test_reaper],
   ['refptr', test_refptr],
+  ['regex', test_regex],
   ['stream', test_stream],
   ['tabstops', test_tabstops],
   ['utf8', test_utf8],

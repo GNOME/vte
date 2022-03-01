@@ -55,8 +55,10 @@
 #include "chunk.hh"
 #include "pty.hh"
 #include "utf8.hh"
+#include "fwd.hh"
 
 #include <list>
+#include <memory>
 #include <queue>
 #include <optional>
 #include <string>
@@ -596,6 +598,10 @@ public:
         {
                 return match_regexes_writable().emplace_back(std::forward<Args>(args)...);
         }
+
+        std::shared_ptr<vte::base::RegexBuiltins> m_match_regex_builtins{};
+        void regex_match_add_builtins() noexcept;
+        void regex_match_remove_builtins() noexcept;
 
         char* m_match_contents;
         GArray* m_match_attributes;

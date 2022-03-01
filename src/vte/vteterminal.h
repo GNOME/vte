@@ -429,6 +429,9 @@ _VTE_PUBLIC
 int vte_terminal_match_add_regex(VteTerminal *terminal,
                                  VteRegex *regex,
                                  guint32 flags) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+_VTE_PUBLIC
+void vte_terminal_match_add_builtins(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
 /* Set the cursor to be used when the pointer is over a given match. */
 _VTE_PUBLIC
 void vte_terminal_match_set_cursor_name(VteTerminal *terminal,
@@ -437,6 +440,8 @@ void vte_terminal_match_set_cursor_name(VteTerminal *terminal,
 _VTE_PUBLIC
 void vte_terminal_match_remove(VteTerminal *terminal,
                                int tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+void vte_terminal_match_remove_builtins(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_match_remove_all(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 

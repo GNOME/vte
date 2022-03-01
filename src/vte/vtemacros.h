@@ -21,6 +21,10 @@
 #error "Only <vte/vte.h> can be included directly."
 #endif
 
+#ifdef VTE_COMPILATION
+#define _VTE_GTK VTE_GTK
+#else
+
 #include <gtk/gtk.h>
 
 #if GTK_CHECK_VERSION(4,0,0)
@@ -32,6 +36,8 @@
 #else
 #error gtk+ version unknown
 #endif
+
+#endif /* VTE_COMPILATION */
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 6)
 #define _VTE_GNUC_PACKED __attribute__((__packed__))

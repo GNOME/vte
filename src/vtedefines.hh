@@ -74,10 +74,13 @@
 #define VTE_PALETTE_SIZE		263
 
 #define VTE_SCROLLBACK_INIT		512
+
 #define VTE_DEFAULT_CURSOR		std::string{"text"}
 #define VTE_MOUSING_CURSOR		std::string{"default"}
 #define VTE_HYPERLINK_CURSOR		std::string{"pointer"}
 #define VTE_HYPERLINK_CURSOR_DEBUG	std::string{"crosshair"}
+#define VTE_MATCH_BUILTINS_CURSOR       std::string{"pointer"}
+
 #define VTE_CHILD_INPUT_PRIORITY	G_PRIORITY_DEFAULT_IDLE
 #define VTE_CHILD_OUTPUT_PRIORITY	G_PRIORITY_HIGH
 #define VTE_MAX_INPUT_READ		0x1000

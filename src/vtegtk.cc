@@ -2895,7 +2895,7 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
  * vte_terminal_match_add_regex:
  * @terminal: a #VteTerminal
  * @regex: (transfer none): a #VteRegex
- * @flags: PCRE2 match flags, or 0
+ * @flags: PCRE2 match flags, or 0 to use the default flags
  *
  * Adds the regular expression @regex to the list of matching expressions.  When the
  * user moves the mouse cursor over a section of displayed text which matches
@@ -2904,7 +2904,12 @@ vte_terminal_match_add_gregex(VteTerminal *terminal,
  * Note that @regex should have been created using the <literal>PCRE2_MULTILINE</literal>
  * flag.
  *
- * Returns: an integer associated with this expression
+ * Note that the default flags only contain PCRE2_UTF (and some flags for internal use);
+ * if you want to match unicode properties, you need to pass PCRE2_UCP in @flags; and you
+ * must always use the %PCRE2_MULTILINE flag.
+ * See man:pcre2_compile(3) for more information on available flags.
+ *
+ * Returns: a nonnegative integer associated with this expression
  *
  * Since: 0.46
  */
@@ -2929,6 +2934,35 @@ catch (...)
 {
         vte::log_exception();
         return -1;
+}
+
+/**
+ * vte_terminal_match_add_builtins:
+ * @terminal: a #VteTerminal
+ *
+ * Adds regular expressions to recognise URIs to the list of matching expressions.
+ * When the user moves the mouse cursor over a section of displayed text which matches
+ * this expression, the text will be highlighted.
+ *
+ * When vte_terminal_match_check_event() returns a match for this regex, the
+ * returned tag will a value from #VteBuiltinMatchTag.
+ *
+ * Use vte_terminal_match_remove_builtins() or vte_terminal_match_remove_all() to remove
+ * the matching expressions added by this function.
+ *
+ * Since: 0.60
+ */
+void
+vte_terminal_match_add_builtins(VteTerminal *terminal) noexcept
+try
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        IMPL(terminal)->regex_match_add_builtins();
+}
+catch (...)
+{
+        vte::log_exception();
 }
 
 /**
@@ -2978,12 +3012,16 @@ catch (...)
  *
  * Checks if the text in and around the position of the event matches any of the
  * regular expressions previously set using vte_terminal_match_add().  If a
- * match exists, the text string is returned and if @tag is not %NULL, the number
- * associated with the matched regular expression will be stored in @tag.
+ * match exists, the text string is returned.
  *
- * If more than one regular expression has been set with
- * vte_terminal_match_add(), then expressions are checked in the order in
- * which they were added.
+ * If @tag is not %NULL, it will store the nonnegative integer associated with the
+ * matched regular expression, if it was added with vte_terminal_match_add_regex(),
+ * or a negative number from #VteBuiltinMatchTag if the matching regular expression
+ * is one added with vte_terminal_match_add_builtins() matched, or -1 if there is
+ * no match.
+ *
+ * Expressions are checked in the order in which they were added, returning the
+ * first match.
  *
  * Returns: (transfer full) (nullable): a newly allocated string which matches one of the previously
  *   set regular expressions, or %NULL if there is no match
@@ -3254,7 +3292,7 @@ catch (...)
 /**
  * vte_terminal_match_remove:
  * @terminal: a #VteTerminal
- * @tag: the tag of the regex to remove
+ * @tag: the nonnegative tag of the regex to remove
  *
  * Removes the regular expression which is associated with the given @tag from
  * the list of expressions which the terminal will highlight when the user
@@ -3267,6 +3305,26 @@ try
 {
 	g_return_if_fail(VTE_IS_TERMINAL(terminal));
         IMPL(terminal)->regex_match_remove(tag);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_match_remove_builtins:
+ * @terminal: a #VteTerminal
+ *
+ * Removes the regular expression added with vte_terminal_match_add_builtins().
+ *
+ * Since: 0.60
+ */
+void
+vte_terminal_match_remove_builtins(VteTerminal *terminal) noexcept
+try
+{
+	g_return_if_fail(VTE_IS_TERMINAL(terminal));
+        IMPL(terminal)->regex_match_remove_builtins();
 }
 catch (...)
 {

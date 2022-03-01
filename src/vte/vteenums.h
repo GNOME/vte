@@ -215,4 +215,18 @@ typedef enum {
         VTE_ALIGN_END         = 3U,
 } VteAlign;
 
+/*
+ * VteBuiltinMatchTag:
+ * @VTE_BUILTIN_MATCH_TAG_URI: the match is an URI as recognised by
+ *   the expressions added with vte_terminal_match_add_uris()
+ *
+ * An enumeration that will be returned from vte_terminal_match_check_event()
+ * if a builtin expression matched.
+ *
+ * Since: 0.70
+ */
+typedef enum {
+        VTE_BUILTIN_MATCH_TAG_URI = -2
+} VteBuiltinMatchTag;
+
 G_END_DECLS

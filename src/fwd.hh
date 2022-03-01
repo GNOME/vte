@@ -22,6 +22,7 @@ namespace vte {
 namespace base {
 
 class Pty;
+class RegexBuiltins;
 
 } // namespace base
 

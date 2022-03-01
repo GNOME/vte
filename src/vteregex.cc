@@ -26,9 +26,9 @@
 
 #include <exception>
 
-#include "vtemacros.h"
-#include "vteenums.h"
-#include "vteregex.h"
+#include "vte/vtemacros.h"
+#include "vte/vteenums.h"
+#include "vte/vteregex.h"
 
 #include "glib-glue.hh"
 #include "pcre2-glue.hh"
