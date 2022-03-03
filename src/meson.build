@@ -600,7 +600,7 @@ if get_option('sixel')
     install: false,
   )
 
-  test_sixel_sources = config_sources + glib_glue_sources + sixel_parser_sources + sixel_context_sources + files(
+  test_sixel_sources = config_sources + debug_sources + glib_glue_sources + sixel_parser_sources + sixel_context_sources + files(
     'cairo-glue.hh',
     'sixel-test.cc',
     'vtedefines.hh',
