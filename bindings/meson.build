@@ -22,6 +22,6 @@ if get_option('gir') and (get_option('gtk3') or get_option('gtk4'))
   subdir('gir')
 endif
 
-if get_option('vapi') and get_option('gtk3')
+if get_option('vapi') and (get_option('gtk3') or get_option('gtk4'))
   subdir('vala')
 endif

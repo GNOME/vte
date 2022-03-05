@@ -15,7 +15,6 @@
 # along with this library.  If not, see <https://www.gnu.org/licenses/>.
 
 assert(get_option('gir'), 'gir is required for vala support')
-assert(get_option('gtk3'), 'vala support only available for gtk3')
 
 add_languages('vala', required: true)
 
@@ -23,20 +22,6 @@ valac = meson.get_compiler('vala')
 assert(valac.version().version_compare('>= 0.24.0'), 'vala >= 0.24 required')
 
 posix_dep = valac.find_library('posix')
-
-libvte_gtk3_vapi_deps = [
-  'gio-2.0',
-  'glib-2.0',
-  'pango',
-  'gtk+-3.0',
-]
-
-libvte_gtk3_vapi_dep = gnome.generate_vapi(
-  vte_gtk3_api_name,
-  sources: libvte_gtk3_gir[0],
-  packages: libvte_gtk3_vapi_deps,
-  install: true,
-)
 
 # Vala test application
 
@@ -71,30 +56,63 @@ if valac.version().version_compare('>= 0.31.1')
   vapp_valaflags += '--disable-since-check'
 endif
 
-if gtk3_dep.version().version_compare('>= 3.16')
-  vapp_valaflags += '--define=GTK_3_16'
-endif
-
 vapp_incs = [
   top_inc,
   src_inc,
   vte_inc,
 ]
 
-vapp_deps = [
-  gio_dep,
-  glib_dep,
-  gtk3_dep,
-  libvte_gtk3_vapi_dep,
-  posix_dep,
-]
+if get_option('gtk3')
+  libvte_gtk3_vapi_deps = [
+    'gio-2.0',
+    'glib-2.0',
+    'pango',
+    'gtk+-3.0',
+  ]
 
-vapp = executable(
-  'vala-test',
-  sources: vapp_sources,
-  include_directories: vapp_incs,
-  dependencies: vapp_deps,
-  c_args: vapp_cflags,
-  vala_args: vapp_valaflags,
-  install: false,
-)
+  libvte_gtk3_vapi_dep = gnome.generate_vapi(
+    vte_gtk3_api_name,
+    sources: libvte_gtk3_gir[0],
+    packages: libvte_gtk3_vapi_deps,
+    install: true,
+  )
+
+  if gtk3_dep.version().version_compare('>= 3.16')
+    vapp_valaflags += '--define=GTK_3_16'
+  endif
+
+  vapp_deps = [
+    gio_dep,
+    glib_dep,
+    gtk3_dep,
+    libvte_gtk3_vapi_dep,
+    posix_dep,
+  ]
+
+  vapp = executable(
+    'vala-test',
+    sources: vapp_sources,
+    include_directories: vapp_incs,
+    dependencies: vapp_deps,
+    c_args: vapp_cflags,
+    vala_args: vapp_valaflags,
+    install: false,
+  )
+endif
+
+if get_option('gtk4')
+  libvte_gtk4_vapi_deps = [
+    'gio-2.0',
+    'glib-2.0',
+    'graphene-1.0',
+    'pango',
+    'gtk4',
+  ]
+
+  libvte_gtk4_vapi_dep = gnome.generate_vapi(
+    vte_gtk4_api_name,
+    sources: libvte_gtk4_gir[0],
+    packages: libvte_gtk4_vapi_deps,
+    install: true,
+  )
+endif
