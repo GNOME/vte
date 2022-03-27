@@ -17,7 +17,7 @@
 project(
   'vte',
   ['c', 'cpp'],
-  version: '0.67.91',
+  version: '0.68.0',
   license: ['LGPL-3.0-or-later', 'GPL-3.0-or-later'],
   default_options: [
     'buildtype=release',
