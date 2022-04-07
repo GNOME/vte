@@ -1104,7 +1104,11 @@ Minifont::draw_graphic(DrawingContext const& context,
         }
 
         default:
-                g_assert_not_reached();
+                cairo_set_source_rgba (cr, 1., 0., 1., 1.);
+                cairo_rectangle(cr, x, y, width, height);
+                cairo_fill(cr);
+                break;
+                // g_assert_not_reached();
         }
 
         cairo_restore(cr);
