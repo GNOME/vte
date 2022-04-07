@@ -272,6 +272,41 @@ scanline(cairo_t* cr,
         cairo_fill(cr);
 }
 
+inline void
+circle_segment(cairo_t* cr,
+               int x,
+               int y,
+               int width,
+               int height,
+               int line_width,
+               int dx,
+               int dy,
+               int r) noexcept
+{
+        // The naive way to draw the ellipse would lead to non-uniform stroke
+        // width.  To make the stroke width uniform, restore the transformation
+        // before stroking.  See https://www.cairographics.org/cookbook/ellipses/
+
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_clip(cr);
+
+        auto matrix = cairo_matrix_t{};
+        cairo_get_matrix(cr, &matrix);
+
+        cairo_translate(cr, x + dx * width, y + dy * height);
+        cairo_scale(cr, 1., double(height) / double(width));
+        cairo_new_path(cr);
+        cairo_arc(cr,
+                  0., 0., // centre
+                  r * width - line_width, // radius
+                  0., // start angle
+                  2. * M_PI); // end angle
+
+        cairo_set_matrix(cr, &matrix);
+        cairo_set_line_width(cr, line_width);
+        cairo_stroke(cr);
+}
+
 static void
 polygon(cairo_t* cr,
         double x,
@@ -1791,6 +1826,45 @@ Minifont::draw_graphic(DrawingContext const& context,
                                         light_line_width);
                 cairo_fill(cr);
 
+                break;
+        }
+
+        case 0x1cc30 ... 0x1cc34: // UPPER LEFT TWELFTH CIRCLE … UPPER MIDDLE LEFT TWELFTH CIRCLE
+        case 0x1cc37: // UPPER MIDDLE RIGHT TWELFTH CIRCLE
+        case 0x1cc38: // LOWER MIDDLE LEFT TWELFTH CIRCLE
+        case 0x1cc3b ... 0x1cc3f: { // LOWER MIDDLE RIGHT TWELFTH CIRCLE … LOWER RIGHT TWELFTH CIRCLE
+                // These characters are the 12 segments of a circle inscribed into
+                // a 4x4 cell square, in this order: 0x1cc30 +
+                //   0 1 2 3
+                //   4     7
+                //   8     b
+                //   c d e f
+                //
+                // The problem here is that in our usual 1:2 cell aspect,
+                // this is a very excentric ellipse, not a circle.
+
+                auto const v = int(c - 0x1cc30);
+                circle_segment(cr, x, y, width, height, light_line_width,
+                               2 - (v & 0x3), 2 - (v >> 2), 2);
+                break;
+        }
+
+
+        case 0x1cc35: // UPPER LEFT QUARTER CIRCLE
+        case 0x1cc36: // UPPER RIGHT QUARTER CIRCLE
+        case 0x1cc39: // LOWER LEFT QUARTER CIRCLE
+        case 0x1cc3a: { // LOWER RIGHT QUARTER CIRCLE
+                // These characters are the 4 segments of a circle inscribed into
+                // a 2x23 cell square, in this order: 0x1cc30 +
+                //   5 6
+                //   9 a
+                //
+                // The problem here is that in our usual 1:2 cell aspect,
+                // this is a very excentric ellipse, not a circle.
+
+                auto const v = int(c - 0x1cc30);
+                circle_segment(cr, x, y, width, height, light_line_width,
+                               2 - (v & 0x3), 2 - (v >> 2), 1);
                 break;
         }
 
