@@ -557,6 +557,11 @@ private:
                  * References: DEC PPLV2 § 5.5.1
                  */
 
+                if (!m_scanline_pos) [[unlikely]] {
+                        m_repeat_count = 1;
+                        return;
+                }
+
                 if (sixel) {
                         auto const color = m_current_color;
                         auto const scanline_end = m_scanline_end;
