@@ -125,6 +125,43 @@ quadrant(cairo_t* cr,
         cairo_fill(cr);
 }
 
+inline void
+sextant(cairo_t* cr,
+        uint8_t value,
+        int x,
+        int y,
+        int width,
+        int height) noexcept
+{
+        if (width < 2 || height < 3)
+                [[unlikely]] return; // nothing to draw
+
+        auto const width_half = width / 2;
+        auto const height_third = height / 3;
+        auto const extra_height = height % 3 ? 1 : 0;
+
+        auto row = [&](uint8_t v,
+                       int y0,
+                       int h) noexcept
+        {
+                if (v & 0b01u)
+                        cairo_rectangle(cr, x, y0, width_half, h);
+                if (v & 0b10u)
+                        cairo_rectangle(cr, x + width_half, y0, width - width_half, h);
+        };
+
+        cairo_set_line_width(cr, 0);
+
+        // If height isn't divisibly by 3, distribute the extra pixels to
+        // the middle first, then the bottom.
+
+        int const yd[4] = {0, height_third, height_third * 2 + extra_height, height};
+        row(value, y, yd[1] - yd[0]);
+        row(value >> 2, y + yd[1], yd[2] - yd[1]);
+        row(value >> 4, y + yd[2], yd[3] - yd[2]);
+        cairo_fill(cr);
+}
+
 static void
 polygon(cairo_t* cr,
         double x,
@@ -217,6 +254,92 @@ create_quadrant_separation_pattern(int width,
                                                 y[yi],
                                                 x[xi+1] - x[xi] - pel,
                                                 y[yi+1] - y[yi] - pel);
+                        }
+                }
+        }
+
+        cairo_fill(cr.get());
+
+        auto pattern = vte::take_freeable(cairo_pattern_create_for_surface(surface.get()));
+
+        cairo_pattern_set_extend(pattern.get(), CAIRO_EXTEND_REPEAT);
+        cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_NEAREST);
+
+        return pattern;
+}
+
+inline vte::Freeable<cairo_pattern_t>
+create_sextant_separation_pattern(int width,
+                                  int height,
+                                  int line_thickness)
+{
+        auto surface = vte::take_freeable(cairo_image_surface_create(CAIRO_FORMAT_A1, width, height));
+        // or CAIRO_FORMAT_A8, whichever is better/faster?
+
+        auto cr = vte::take_freeable(cairo_create(surface.get()));
+
+        /* It's not quite clear how the separated mosaics should be drawn.
+         *
+         * ITU-T T.101 Annex C, C.2.1.2, and Annex D, D.5.4, show the separation
+         * being done by blanking a line on the left and bottom parts only of each
+         * of the 3x2 blocks.
+         * The minitel specification STUM 1B, Schéma 2.7 also shows them drawn that
+         * way.
+         *
+         * On the other hand, ETS 300 706 §15.7.1, Table 47, shows the separation
+         * being done by blanking a line around all four sides of each of the
+         * 3x2 blocks.
+         * That is also how ITU-T T.100 §5.4.2.1, Figure 6, shows the separation.
+         *
+         * Each of these has its own drawbacks. The T.101 way makes the 3x2 blocks
+         * asymmetric, leaving differing amount of lit pixels for the smooth mosaics
+         * comparing a mosaic with its corresponding vertically mirrored mosaic. It
+         * keeps more lit pixels overall, which make it more suitable for low-resolution
+         * display, which is probably why minitel uses that.
+         * The ETS 300 706 way keeps symmetry, but removes even more lit pixels.
+         *
+         * Here we implement the T.101 way.
+         */
+
+        /* FIXMEchpe: Check that this fulfills [T.101 Appendix IV]:
+         * "All separated and contiguous mosaics shall be uniquely presented for character
+         * field sizes greater than or equal to dx = 6/256, dy = 8/256 [see D.8.3.3, item 7)]."
+         */
+
+        /* First, fill completely with transparent pixels */
+        cairo_set_source_rgba(cr.get(), 0., 0., 0., 0.);
+        cairo_rectangle(cr.get(), 0, 0, width, height);
+        cairo_fill(cr.get());
+
+        /* Now, fill the reduced blocks with opaque pixels */
+
+        auto const pel = line_thickness; /* see T.101 D.5.3.2.2.6 for definition of 'logical pel' */
+
+        cairo_set_line_width(cr.get(), 0);
+
+        // If height isn't divisibly by 3, distribute the extra pixels to
+        // the middle first, then the bottom.
+
+        if (width > 2 * pel && height > 3 * pel) [[likely]] {
+
+                auto const width_half = width / 2;
+                auto const height_third = height / 3;
+                auto const extra_height = height % 3 ? 1 : 0;
+
+                // Just like in sextant() above,
+                // if height isn't divisibly by 3, distribute the extra pixels to
+                // the middle first, then the bottom.
+
+                int const y[] = {0, height_third, height_third * 2 + extra_height, height};
+                int const x[] = { 0, width_half, width };
+                // FIXMEchpe: or use 2 * width_half instead of width, so that for width odd,
+                // the extra row of pixels is unlit, and the lit blocks have equal width?
+
+                cairo_set_source_rgba(cr.get(), 0., 0., 0., 1.);
+
+                for (auto yi = 0; yi < 3; ++yi) {
+                        for (auto xi = 0; xi < 2; xi++) {
+                                cairo_rectangle(cr.get(), x[xi] + pel, y[yi], x[xi+1] - x[xi] - pel, y[yi+1] - y[yi] - pel);
                         }
                 }
         }
@@ -751,16 +874,7 @@ Minifont::draw_graphic(DrawingContext const& context,
                 guint32 bitmap = c - 0x1fb00 + 1;
                 if (bitmap >= 0x15) bitmap++;
                 if (bitmap >= 0x2a) bitmap++;
-                int xi, yi;
-                cairo_set_line_width(cr, 0);
-                for (yi = 0; yi <= 2; yi++) {
-                        for (xi = 0; xi <= 1; xi++) {
-                                if (bitmap & 1) {
-                                        rectangle(cr, x, y, width, height, 2, 3,  xi, yi, xi + 1,  yi + 1);
-                                }
-                                bitmap >>= 1;
-                        }
-                }
+                sextant(cr, bitmap, x, y, width, height);
                 break;
         }
 
@@ -1200,6 +1314,14 @@ Minifont::draw_graphic(DrawingContext const& context,
                 quadrant(cr, c - 0x1cc10, x, y, width, height);
                 cairo_pop_group_to_source(cr);
                 cairo_mask(cr, create_quadrant_separation_pattern(width, height, light_line_width).get());
+                break;
+        }
+
+        case 0x1ce51 ... 0x1ce8f: { /* separated block sextant-* */
+                cairo_push_group(cr);
+                sextant(cr, c - 0x1ce50, x, y, width, height);
+                cairo_pop_group_to_source(cr);
+                cairo_mask(cr, create_sextant_separation_pattern(width, height, light_line_width).get());
                 break;
         }
 
