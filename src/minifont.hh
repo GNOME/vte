@@ -39,7 +39,7 @@ public:
                 /* Box Drawing & Block Elements */
                 return ((c >=  0x2500 && c <=  0x259f) ||
                         (c >=  0x25e2 && c <=  0x25e5) ||
-                        (c >= 0x1fb00 && c <= 0x1fbef) ||
+                        (c >= 0x1fb00 && c <= 0x1fbebf) ||
                         (c >= 0x1cc00 && c <= 0x1ceaf));
         }
 

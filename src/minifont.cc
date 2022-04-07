@@ -162,6 +162,53 @@ sextant(cairo_t* cr,
         cairo_fill(cr);
 }
 
+inline void
+octant(cairo_t* cr,
+       uint8_t value,
+       int x,
+       int y,
+       int width,
+       int height) noexcept
+{
+        if (width < 2 || height < 4)
+                [[unlikely]] return; // nothing to draw
+
+        auto const width_half = width / 2;
+        auto const height_quarter = height / 4;
+        auto const extra_height = height % 4;
+
+        auto row = [&](uint8_t v,
+                       int y0,
+                       int h) noexcept
+        {
+                if (v & 0b01u)
+                        cairo_rectangle(cr, x, y0, width_half, h);
+                if (v & 0b10u)
+                        cairo_rectangle(cr, x + width_half, y0, width - width_half, h);
+        };
+
+        cairo_set_line_width(cr, 0);
+
+        // If height isn't divisibly by 4, distribute the extra pixels to
+        // the 3rd row first, then the 2nd, then the 4th.
+        // FIXME: make sure this connects correctly with the one-eights
+        // as well as the quarter blocks.
+
+        int const heights[4] = {
+                height_quarter,
+                height_quarter + (extra_height > 2 ? 1 : 0),
+                height_quarter + (extra_height ? 1 : 0),
+                height_quarter + (extra_height > 1 ? 1 : 0)
+        };
+        for (auto i = 0; i < 4; ++i) {
+                row(value, y, heights[i]);
+                value >>= 2;
+                y += heights[i];
+        }
+
+        cairo_fill(cr);
+}
+
 static void
 polygon(cairo_t* cr,
         double x,
@@ -1324,6 +1371,269 @@ Minifont::draw_graphic(DrawingContext const& context,
                 cairo_mask(cr, create_sextant_separation_pattern(width, height, light_line_width).get());
                 break;
         }
+
+        case 0x1cd00 ... 0x1cde5: { /* block octant-* */
+                static constinit uint8_t const octant_value [] = {
+                        0b0000'0100, /* U+1CD00 BLOCK OCTANT-3       */
+                        0b0000'0110, /* U+1CD01 BLOCK OCTANT-23      */
+                        0b0000'0111, /* U+1CD02 BLOCK OCTANT-123     */
+                        0b0000'1000, /* U+1CD03 BLOCK OCTANT-4       */
+                        0b0000'1001, /* U+1CD04 BLOCK OCTANT-14      */
+                        0b0000'1011, /* U+1CD05 BLOCK OCTANT-124     */
+                        0b0000'1100, /* U+1CD06 BLOCK OCTANT-34      */
+                        0b0000'1101, /* U+1CD07 BLOCK OCTANT-134     */
+                        0b0000'1110, /* U+1CD08 BLOCK OCTANT-234     */
+                        0b0001'0000, /* U+1CD09 BLOCK OCTANT-5       */
+                        0b0001'0001, /* U+1CD0A BLOCK OCTANT-15      */
+                        0b0001'0010, /* U+1CD0B BLOCK OCTANT-25      */
+                        0b0001'0011, /* U+1CD0C BLOCK OCTANT-125     */
+                        0b0001'0101, /* U+1CD0D BLOCK OCTANT-135     */
+                        0b0001'0110, /* U+1CD0E BLOCK OCTANT-235     */
+                        0b0001'0111, /* U+1CD0F BLOCK OCTANT-1235    */
+                        0b0001'1000, /* U+1CD10 BLOCK OCTANT-45      */
+                        0b0001'1001, /* U+1CD11 BLOCK OCTANT-145     */
+                        0b0001'1010, /* U+1CD12 BLOCK OCTANT-245     */
+                        0b0001'1011, /* U+1CD13 BLOCK OCTANT-1245    */
+                        0b0001'1100, /* U+1CD14 BLOCK OCTANT-345     */
+                        0b0001'1101, /* U+1CD15 BLOCK OCTANT-1345    */
+                        0b0001'1110, /* U+1CD16 BLOCK OCTANT-2345    */
+                        0b0001'1111, /* U+1CD17 BLOCK OCTANT-12345   */
+                        0b0010'0000, /* U+1CD18 BLOCK OCTANT-6       */
+                        0b0010'0001, /* U+1CD19 BLOCK OCTANT-16      */
+                        0b0010'0010, /* U+1CD1A BLOCK OCTANT-26      */
+                        0b0010'0011, /* U+1CD1B BLOCK OCTANT-126     */
+                        0b0010'0100, /* U+1CD1C BLOCK OCTANT-36      */
+                        0b0010'0101, /* U+1CD1D BLOCK OCTANT-136     */
+                        0b0010'0110, /* U+1CD1E BLOCK OCTANT-236     */
+                        0b0010'0111, /* U+1CD1F BLOCK OCTANT-1236    */
+                        0b0010'1001, /* U+1CD20 BLOCK OCTANT-146     */
+                        0b0010'1010, /* U+1CD21 BLOCK OCTANT-246     */
+                        0b0010'1011, /* U+1CD22 BLOCK OCTANT-1246    */
+                        0b0010'1100, /* U+1CD23 BLOCK OCTANT-346     */
+                        0b0010'1101, /* U+1CD24 BLOCK OCTANT-1346    */
+                        0b0010'1110, /* U+1CD25 BLOCK OCTANT-2346    */
+                        0b0010'1111, /* U+1CD26 BLOCK OCTANT-12346   */
+                        0b0011'0000, /* U+1CD27 BLOCK OCTANT-56      */
+                        0b0011'0001, /* U+1CD28 BLOCK OCTANT-156     */
+                        0b0011'0010, /* U+1CD29 BLOCK OCTANT-256     */
+                        0b0011'0011, /* U+1CD2A BLOCK OCTANT-1256    */
+                        0b0011'0100, /* U+1CD2B BLOCK OCTANT-356     */
+                        0b0011'0101, /* U+1CD2C BLOCK OCTANT-1356    */
+                        0b0011'0110, /* U+1CD2D BLOCK OCTANT-2356    */
+                        0b0011'0111, /* U+1CD2E BLOCK OCTANT-12356   */
+                        0b0011'1000, /* U+1CD2F BLOCK OCTANT-456     */
+                        0b0011'1001, /* U+1CD30 BLOCK OCTANT-1456    */
+                        0b0011'1010, /* U+1CD31 BLOCK OCTANT-2456    */
+                        0b0011'1011, /* U+1CD32 BLOCK OCTANT-12456   */
+                        0b0011'1100, /* U+1CD33 BLOCK OCTANT-3456    */
+                        0b0011'1101, /* U+1CD34 BLOCK OCTANT-13456   */
+                        0b0011'1110, /* U+1CD35 BLOCK OCTANT-23456   */
+                        0b0100'0001, /* U+1CD36 BLOCK OCTANT-17      */
+                        0b0100'0010, /* U+1CD37 BLOCK OCTANT-27      */
+                        0b0100'0011, /* U+1CD38 BLOCK OCTANT-127     */
+                        0b0100'0100, /* U+1CD39 BLOCK OCTANT-37      */
+                        0b0100'0101, /* U+1CD3A BLOCK OCTANT-137     */
+                        0b0100'0110, /* U+1CD3B BLOCK OCTANT-237     */
+                        0b0100'0111, /* U+1CD3C BLOCK OCTANT-1237    */
+                        0b0100'1000, /* U+1CD3D BLOCK OCTANT-47      */
+                        0b0100'1001, /* U+1CD3E BLOCK OCTANT-147     */
+                        0b0100'1010, /* U+1CD3F BLOCK OCTANT-247     */
+                        0b0100'1011, /* U+1CD40 BLOCK OCTANT-1247    */
+                        0b0100'1100, /* U+1CD41 BLOCK OCTANT-347     */
+                        0b0100'1101, /* U+1CD42 BLOCK OCTANT-1347    */
+                        0b0100'1110, /* U+1CD43 BLOCK OCTANT-2347    */
+                        0b0100'1111, /* U+1CD44 BLOCK OCTANT-12347   */
+                        0b0101'0001, /* U+1CD45 BLOCK OCTANT-157     */
+                        0b0101'0010, /* U+1CD46 BLOCK OCTANT-257     */
+                        0b0101'0011, /* U+1CD47 BLOCK OCTANT-1257    */
+                        0b0101'0100, /* U+1CD48 BLOCK OCTANT-357     */
+                        0b0101'0110, /* U+1CD49 BLOCK OCTANT-2357    */
+                        0b0101'0111, /* U+1CD4A BLOCK OCTANT-12357   */
+                        0b0101'1000, /* U+1CD4B BLOCK OCTANT-457     */
+                        0b0101'1001, /* U+1CD4C BLOCK OCTANT-1457    */
+                        0b0101'1011, /* U+1CD4D BLOCK OCTANT-12457   */
+                        0b0101'1100, /* U+1CD4E BLOCK OCTANT-3457    */
+                        0b0101'1101, /* U+1CD4F BLOCK OCTANT-13457   */
+                        0b0101'1110, /* U+1CD50 BLOCK OCTANT-23457   */
+                        0b0110'0000, /* U+1CD51 BLOCK OCTANT-67      */
+                        0b0110'0001, /* U+1CD52 BLOCK OCTANT-167     */
+                        0b0110'0010, /* U+1CD53 BLOCK OCTANT-267     */
+                        0b0110'0011, /* U+1CD54 BLOCK OCTANT-1267    */
+                        0b0110'0100, /* U+1CD55 BLOCK OCTANT-367     */
+                        0b0110'0101, /* U+1CD56 BLOCK OCTANT-1367    */
+                        0b0110'0110, /* U+1CD57 BLOCK OCTANT-2367    */
+                        0b0110'0111, /* U+1CD58 BLOCK OCTANT-12367   */
+                        0b0110'1000, /* U+1CD59 BLOCK OCTANT-467     */
+                        0b0110'1001, /* U+1CD5A BLOCK OCTANT-1467    */
+                        0b0110'1010, /* U+1CD5B BLOCK OCTANT-2467    */
+                        0b0110'1011, /* U+1CD5C BLOCK OCTANT-12467   */
+                        0b0110'1100, /* U+1CD5D BLOCK OCTANT-3467    */
+                        0b0110'1101, /* U+1CD5E BLOCK OCTANT-13467   */
+                        0b0110'1110, /* U+1CD5F BLOCK OCTANT-23467   */
+                        0b0110'1111, /* U+1CD60 BLOCK OCTANT-123467  */
+                        0b0111'0000, /* U+1CD61 BLOCK OCTANT-567     */
+                        0b0111'0001, /* U+1CD62 BLOCK OCTANT-1567    */
+                        0b0111'0010, /* U+1CD63 BLOCK OCTANT-2567    */
+                        0b0111'0011, /* U+1CD64 BLOCK OCTANT-12567   */
+                        0b0111'0100, /* U+1CD65 BLOCK OCTANT-3567    */
+                        0b0111'0101, /* U+1CD66 BLOCK OCTANT-13567   */
+                        0b0111'0110, /* U+1CD67 BLOCK OCTANT-23567   */
+                        0b0111'0111, /* U+1CD68 BLOCK OCTANT-123567  */
+                        0b0111'1000, /* U+1CD69 BLOCK OCTANT-4567    */
+                        0b0111'1001, /* U+1CD6A BLOCK OCTANT-14567   */
+                        0b0111'1010, /* U+1CD6B BLOCK OCTANT-24567   */
+                        0b0111'1011, /* U+1CD6C BLOCK OCTANT-124567  */
+                        0b0111'1100, /* U+1CD6D BLOCK OCTANT-34567   */
+                        0b0111'1101, /* U+1CD6E BLOCK OCTANT-134567  */
+                        0b0111'1110, /* U+1CD6F BLOCK OCTANT-234567  */
+                        0b0111'1111, /* U+1CD70 BLOCK OCTANT-1234567 */
+                        0b1000'0001, /* U+1CD71 BLOCK OCTANT-18      */
+                        0b1000'0010, /* U+1CD72 BLOCK OCTANT-28      */
+                        0b1000'0011, /* U+1CD73 BLOCK OCTANT-128     */
+                        0b1000'0100, /* U+1CD74 BLOCK OCTANT-38      */
+                        0b1000'0101, /* U+1CD75 BLOCK OCTANT-138     */
+                        0b1000'0110, /* U+1CD76 BLOCK OCTANT-238     */
+                        0b1000'0111, /* U+1CD77 BLOCK OCTANT-1238    */
+                        0b1000'1000, /* U+1CD78 BLOCK OCTANT-48      */
+                        0b1000'1001, /* U+1CD79 BLOCK OCTANT-148     */
+                        0b1000'1010, /* U+1CD7A BLOCK OCTANT-248     */
+                        0b1000'1011, /* U+1CD7B BLOCK OCTANT-1248    */
+                        0b1000'1100, /* U+1CD7C BLOCK OCTANT-348     */
+                        0b1000'1101, /* U+1CD7D BLOCK OCTANT-1348    */
+                        0b1000'1110, /* U+1CD7E BLOCK OCTANT-2348    */
+                        0b1000'1111, /* U+1CD7F BLOCK OCTANT-12348   */
+                        0b1001'0000, /* U+1CD80 BLOCK OCTANT-58      */
+                        0b1001'0001, /* U+1CD81 BLOCK OCTANT-158     */
+                        0b1001'0010, /* U+1CD82 BLOCK OCTANT-258     */
+                        0b1001'0011, /* U+1CD83 BLOCK OCTANT-1258    */
+                        0b1001'0100, /* U+1CD84 BLOCK OCTANT-358     */
+                        0b1001'0101, /* U+1CD85 BLOCK OCTANT-1358    */
+                        0b1001'0110, /* U+1CD86 BLOCK OCTANT-2358    */
+                        0b1001'0111, /* U+1CD87 BLOCK OCTANT-12358   */
+                        0b1001'1000, /* U+1CD88 BLOCK OCTANT-458     */
+                        0b1001'1001, /* U+1CD89 BLOCK OCTANT-1458    */
+                        0b1001'1010, /* U+1CD8A BLOCK OCTANT-2458    */
+                        0b1001'1011, /* U+1CD8B BLOCK OCTANT-12458   */
+                        0b1001'1100, /* U+1CD8C BLOCK OCTANT-3458    */
+                        0b1001'1101, /* U+1CD8D BLOCK OCTANT-13458   */
+                        0b1001'1110, /* U+1CD8E BLOCK OCTANT-23458   */
+                        0b1001'1111, /* U+1CD8F BLOCK OCTANT-123458  */
+                        0b1010'0001, /* U+1CD90 BLOCK OCTANT-168     */
+                        0b1010'0010, /* U+1CD91 BLOCK OCTANT-268     */
+                        0b1010'0011, /* U+1CD92 BLOCK OCTANT-1268    */
+                        0b1010'0100, /* U+1CD93 BLOCK OCTANT-368     */
+                        0b1010'0110, /* U+1CD94 BLOCK OCTANT-2368    */
+                        0b1010'0111, /* U+1CD95 BLOCK OCTANT-12368   */
+                        0b1010'1000, /* U+1CD96 BLOCK OCTANT-468     */
+                        0b1010'1001, /* U+1CD97 BLOCK OCTANT-1468    */
+                        0b1010'1011, /* U+1CD98 BLOCK OCTANT-12468   */
+                        0b1010'1100, /* U+1CD99 BLOCK OCTANT-3468    */
+                        0b1010'1101, /* U+1CD9A BLOCK OCTANT-13468   */
+                        0b1010'1110, /* U+1CD9B BLOCK OCTANT-23468   */
+                        0b1011'0000, /* U+1CD9C BLOCK OCTANT-568     */
+                        0b1011'0001, /* U+1CD9D BLOCK OCTANT-1568    */
+                        0b1011'0010, /* U+1CD9E BLOCK OCTANT-2568    */
+                        0b1011'0011, /* U+1CD9F BLOCK OCTANT-12568   */
+                        0b1011'0100, /* U+1CDA0 BLOCK OCTANT-3568    */
+                        0b1011'0101, /* U+1CDA1 BLOCK OCTANT-13568   */
+                        0b1011'0110, /* U+1CDA2 BLOCK OCTANT-23568   */
+                        0b1011'0111, /* U+1CDA3 BLOCK OCTANT-123568  */
+                        0b1011'1000, /* U+1CDA4 BLOCK OCTANT-4568    */
+                        0b1011'1001, /* U+1CDA5 BLOCK OCTANT-14568   */
+                        0b1011'1010, /* U+1CDA6 BLOCK OCTANT-24568   */
+                        0b1011'1011, /* U+1CDA7 BLOCK OCTANT-124568  */
+                        0b1011'1100, /* U+1CDA8 BLOCK OCTANT-34568   */
+                        0b1011'1101, /* U+1CDA9 BLOCK OCTANT-134568  */
+                        0b1011'1110, /* U+1CDAA BLOCK OCTANT-234568  */
+                        0b1011'1111, /* U+1CDAB BLOCK OCTANT-1234568 */
+                        0b1100'0001, /* U+1CDAC BLOCK OCTANT-178     */
+                        0b1100'0010, /* U+1CDAD BLOCK OCTANT-278     */
+                        0b1100'0011, /* U+1CDAE BLOCK OCTANT-1278    */
+                        0b1100'0100, /* U+1CDAF BLOCK OCTANT-378     */
+                        0b1100'0101, /* U+1CDB0 BLOCK OCTANT-1378    */
+                        0b1100'0110, /* U+1CDB1 BLOCK OCTANT-2378    */
+                        0b1100'0111, /* U+1CDB2 BLOCK OCTANT-12378   */
+                        0b1100'1000, /* U+1CDB3 BLOCK OCTANT-478     */
+                        0b1100'1001, /* U+1CDB4 BLOCK OCTANT-1478    */
+                        0b1100'1010, /* U+1CDB5 BLOCK OCTANT-2478    */
+                        0b1100'1011, /* U+1CDB6 BLOCK OCTANT-12478   */
+                        0b1100'1100, /* U+1CDB7 BLOCK OCTANT-3478    */
+                        0b1100'1101, /* U+1CDB8 BLOCK OCTANT-13478   */
+                        0b1100'1110, /* U+1CDB9 BLOCK OCTANT-23478   */
+                        0b1100'1111, /* U+1CDBA BLOCK OCTANT-123478  */
+                        0b1101'0000, /* U+1CDBB BLOCK OCTANT-578     */
+                        0b1101'0001, /* U+1CDBC BLOCK OCTANT-1578    */
+                        0b1101'0010, /* U+1CDBD BLOCK OCTANT-2578    */
+                        0b1101'0011, /* U+1CDBE BLOCK OCTANT-12578   */
+                        0b1101'0100, /* U+1CDBF BLOCK OCTANT-3578    */
+                        0b1101'0101, /* U+1CDC0 BLOCK OCTANT-13578   */
+                        0b1101'0110, /* U+1CDC1 BLOCK OCTANT-23578   */
+                        0b1101'0111, /* U+1CDC2 BLOCK OCTANT-123578  */
+                        0b1101'1000, /* U+1CDC3 BLOCK OCTANT-4578    */
+                        0b1101'1001, /* U+1CDC4 BLOCK OCTANT-14578   */
+                        0b1101'1010, /* U+1CDC5 BLOCK OCTANT-24578   */
+                        0b1101'1011, /* U+1CDC6 BLOCK OCTANT-124578  */
+                        0b1101'1100, /* U+1CDC7 BLOCK OCTANT-34578   */
+                        0b1101'1101, /* U+1CDC8 BLOCK OCTANT-134578  */
+                        0b1101'1110, /* U+1CDC9 BLOCK OCTANT-234578  */
+                        0b1101'1111, /* U+1CDCA BLOCK OCTANT-1234578 */
+                        0b1110'0000, /* U+1CDCB BLOCK OCTANT-678     */
+                        0b1110'0001, /* U+1CDCC BLOCK OCTANT-1678    */
+                        0b1110'0010, /* U+1CDCD BLOCK OCTANT-2678    */
+                        0b1110'0011, /* U+1CDCE BLOCK OCTANT-12678   */
+                        0b1110'0100, /* U+1CDCF BLOCK OCTANT-3678    */
+                        0b1110'0101, /* U+1CDD0 BLOCK OCTANT-13678   */
+                        0b1110'0110, /* U+1CDD1 BLOCK OCTANT-23678   */
+                        0b1110'0111, /* U+1CDD2 BLOCK OCTANT-123678  */
+                        0b1110'1000, /* U+1CDD3 BLOCK OCTANT-4678    */
+                        0b1110'1001, /* U+1CDD4 BLOCK OCTANT-14678   */
+                        0b1110'1010, /* U+1CDD5 BLOCK OCTANT-24678   */
+                        0b1110'1011, /* U+1CDD6 BLOCK OCTANT-124678  */
+                        0b1110'1100, /* U+1CDD7 BLOCK OCTANT-34678   */
+                        0b1110'1101, /* U+1CDD8 BLOCK OCTANT-134678  */
+                        0b1110'1110, /* U+1CDD9 BLOCK OCTANT-234678  */
+                        0b1110'1111, /* U+1CDDA BLOCK OCTANT-1234678 */
+                        0b1111'0001, /* U+1CDDB BLOCK OCTANT-15678   */
+                        0b1111'0010, /* U+1CDDC BLOCK OCTANT-25678   */
+                        0b1111'0011, /* U+1CDDD BLOCK OCTANT-125678  */
+                        0b1111'0100, /* U+1CDDE BLOCK OCTANT-35678   */
+                        0b1111'0110, /* U+1CDDF BLOCK OCTANT-235678  */
+                        0b1111'0111, /* U+1CDE0 BLOCK OCTANT-1235678 */
+                        0b1111'1000, /* U+1CDE1 BLOCK OCTANT-45678   */
+                        0b1111'1001, /* U+1CDE2 BLOCK OCTANT-145678  */
+                        0b1111'1011, /* U+1CDE3 BLOCK OCTANT-1245678 */
+                        0b1111'1101, /* U+1CDE4 BLOCK OCTANT-1345678 */
+                        0b1111'1110, /* U+1CDE5 BLOCK OCTANT-2345678 */
+                };
+                octant(cr, octant_value[c - 0x1cd00], x, y, width, height);
+                break;
+        }
+
+        case 0x1cea0: /* U+1CEA0 RIGHT HALF LOWER ONE QUARTER BLOCK */
+                octant(cr, 0b1000'0000, x, y, width, height);
+                break;
+
+        case 0x1cea3: /* U+1CEA3 LEFT HALF LOWER ONE QUARTER BLOCK */
+                octant(cr, 0b0100'0000, x, y, width, height);
+                break;
+
+        case 0x1cea8: /* U+1CEA8 LEFT HALF UPPER ONE QUARTER BLOCK */
+                octant(cr, 0b0000'0001, x, y, width, height);
+                break;
+
+        case 0x1ceab: /* U+1CEAB RIGHT HALF UPPER ONE QUARTER BLOCK */
+                octant(cr, 0b0000'0010, x, y, width, height);
+                break;
+
+        case 0x1fbe6 ... 0x1fbe7: {
+                static constinit uint8_t const octant_value[] = {
+                        0b0001'0100, /* U+1FBE6 MIDDLE LEFT ONE QUARTER BLOCK */
+                        0b0010'1000, /* U+1FBE7 MIDDLE RIGHT ONE QUARTER BLOCK */
+                };
+                octant(cr, octant_value[c - 0x1fbe6], x, y, width, height);
+                break;
+        }
+
 
         default:
                 cairo_set_source_rgba (cr, 1., 0., 1., 1.);
