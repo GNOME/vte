@@ -702,9 +702,14 @@ Widget::constructed() noexcept
 void
 Widget::css_changed(GtkCssStyleChange* change)
 {
-        /* This function is mostly useless, since there's no public API for GtkCssStyleChange */
-
         padding_changed();
+
+        /* This function is inefficient, since there's no public API
+         * for GtkCssStyleChange to see what exactly changed, and if
+         * we do need to queue the resize for it or not; so we must
+         * always do so.
+         */
+        gtk_widget_queue_resize(gtk());
 }
 
 #endif /* VTE_GTK == 4 */
