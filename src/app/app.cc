@@ -1060,8 +1060,6 @@ vteapp_search_popover_class_init(VteappSearchPopoverClass* klass)
         gtk_widget_class_bind_template_child(widget_class, VteappSearchPopover, entire_word_checkbutton);
         gtk_widget_class_bind_template_child(widget_class, VteappSearchPopover, regex_checkbutton);
         gtk_widget_class_bind_template_child(widget_class, VteappSearchPopover, wrap_around_checkbutton);
-
-        gtk_widget_class_set_css_name(widget_class, "vteapp-search-popover");
 }
 
 static GtkWidget*
@@ -1374,8 +1372,6 @@ vteapp_terminal_class_init(VteappTerminalClass *klass)
         widget_class->state_flags_changed = vteapp_terminal_state_flags_changed;
         widget_class->system_setting_changed = vteapp_terminal_system_setting_changed;
 #endif
-
-        gtk_widget_class_set_css_name(widget_class, "vteapp-terminal");
 }
 
 static void
@@ -2776,7 +2772,6 @@ vteapp_window_class_init(VteappWindowClass* klass)
 #endif
 
         gtk_widget_class_set_template_from_resource(widget_class, "/org/gnome/vte/app/ui/window.ui");
-        gtk_widget_class_set_css_name(widget_class, "vteapp-window");
 
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, window_grid);
         gtk_widget_class_bind_template_child(widget_class, VteappWindow, scrollbar);
