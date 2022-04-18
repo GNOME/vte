@@ -204,6 +204,7 @@ endif
 
 # FIXME AC_USE_SYSTEM_EXTENSIONS also supported non-gnu systems
 config_h.set10('_GNU_SOURCE', true)
+config_h.set('_POSIX_C_SOURCE', '200809L')
 
 # Check headers
 
@@ -386,7 +387,7 @@ foreach func: check_functions
     __code,
     args: [
       '-D_GNU_SOURCE',
-      '-D_XOPEN_SOURCE',
+      '-D_POSIX_C_SOURCE=200809L',
     ],
     dependencies: __deps,
     name: __name,
