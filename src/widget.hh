@@ -278,7 +278,7 @@ public:
                            GtkTooltip* tooltip) noexcept;
 
         void connect_settings();
-        void padding_changed();
+        bool padding_changed() noexcept;
         void settings_changed();
 
 #if VTE_GTK == 3
@@ -315,11 +315,11 @@ public:
                      int* minimum,
                      int* natural,
                      int* minimum_baseline,
-                     int* natural_baseline);
+                     int* natural_baseline) noexcept;
         std::pair<bool, bool> compute_expand();
         void css_changed(GtkCssStyleChange* change);
         void system_setting_changed(GtkSystemSetting setting);
-        void snapshot(GtkSnapshot* snapshot_object);
+        void snapshot(GtkSnapshot* snapshot) noexcept { terminal()->widget_snapshot(snapshot); }
         bool contains(double x,
                       double y);
         void display_changed() noexcept;

@@ -1582,8 +1582,8 @@ vte_terminal_accessible_set_size(AtkComponent *component,
         /* If the size is an exact multiple of the cell size, use that,
          * otherwise round down. */
         try {
-                width -= impl->m_padding.left + impl->m_padding.right;
-                height -= impl->m_padding.top + impl->m_padding.bottom;
+                width -= impl->m_border.left + impl->m_border.right;
+                height -= impl->m_border.top + impl->m_border.bottom;
 
                 auto columns = width / impl->m_cell_width;
                 auto rows = height / impl->m_cell_height;

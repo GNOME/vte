@@ -32,10 +32,6 @@
 #include "debug.h"
 #include "gobject-glue.hh"
 
-#if VTE_GTK == 4
-#include "graphene-glue.hh"
-#endif
-
 #if VTE_GTK == 3
 #define VTE_STYLE_CLASS_MONOSPACE GTK_STYLE_CLASS_MONOSPACE
 #elif VTE_GTK == 4
@@ -702,14 +698,15 @@ Widget::constructed() noexcept
 void
 Widget::css_changed(GtkCssStyleChange* change)
 {
-        padding_changed();
-
         /* This function is inefficient, since there's no public API
          * for GtkCssStyleChange to see what exactly changed, and if
-         * we do need to queue the resize for it or not; so we must
-         * always do so.
+         * we do need to queue the resize for it or not.
          */
-        gtk_widget_queue_resize(gtk());
+
+        auto need_resize = padding_changed();
+
+        if (need_resize)
+                gtk_widget_queue_resize(gtk());
 }
 
 #endif /* VTE_GTK == 4 */
@@ -1510,7 +1507,7 @@ Widget::measure(GtkOrientation orientation,
                 int* minimum,
                 int* natural,
                 int* minimum_baseline,
-                int* natural_baseline)
+                int* natural_baseline) noexcept
 {
         _vte_debug_print(VTE_DEBUG_WIDGET_SIZE, "Widget measure for_size=%d orientation=%s\n",
                          for_size,
@@ -1529,19 +1526,22 @@ Widget::measure(GtkOrientation orientation,
 
 #endif /* VTE_GTK == 4 */
 
-void
-Widget::padding_changed()
+bool
+Widget::padding_changed() noexcept
 {
-#if VTE_GTK == 3
         auto padding = GtkBorder{};
-        auto context = gtk_widget_get_style_context(gtk());
+        auto const context = gtk_widget_get_style_context(gtk());
         gtk_style_context_get_padding(context,
 #if VTE_GTK == 3
                                       gtk_style_context_get_state(context),
 #endif
                                       &padding);
-        terminal()->set_border_padding(&padding);
-#endif /* VTE_GTK FIXMEgtk4 how to handle margin/padding? */
+
+        /* FIXMEchpe: do we need to add the border from
+         * gtk_style_context_get_border() to the padding?
+         */
+
+        return terminal()->set_style_border(padding);
 }
 
 bool
@@ -1909,22 +1909,6 @@ Widget::state_flags_changed(GtkStateFlags old_flags)
         _vte_debug_print(VTE_DEBUG_STYLE, "Widget state flags changed\n");
 }
 
-#if VTE_GTK == 4
-
-void
-Widget::snapshot(GtkSnapshot* snapshot_object)
-{
-        _vte_debug_print(VTE_DEBUG_DRAW, "Widget snapshot\n");
-
-        auto rect = terminal()->allocated_rect();
-        auto region = vte::take_freeable(cairo_region_create_rectangle(rect));
-        auto grect = vte::graphene::make_rect(rect);
-        auto cr = vte::take_freeable(gtk_snapshot_append_cairo(snapshot_object, &grect));
-        terminal()->draw(cr.get(), region.get());
-}
-
-#endif /* VTE_GTK == 4 */
-
 #if VTE_GTK == 3
 
 void
@@ -1932,13 +1916,17 @@ Widget::style_updated() noexcept
 {
         _vte_debug_print(VTE_DEBUG_STYLE, "Widget style changed\n");
 
-        padding_changed();
+        auto need_resize = padding_changed();
 
         auto aspect = float{};
         gtk_widget_style_get(gtk(), "cursor-aspect-ratio", &aspect, nullptr);
         m_terminal->set_cursor_aspect(aspect);
 
         m_terminal->widget_style_updated();
+
+        if (need_resize)
+                gtk_widget_queue_resize(m_widget);
+
 }
 
 #endif /* VTE_GTK == 3 */

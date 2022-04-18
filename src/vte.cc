@@ -51,6 +51,10 @@
 #include "widget.hh"
 #include "cairo-glue.hh"
 
+#if VTE_GTK == 4
+#include "graphene-glue.hh"
+#endif
+
 #ifdef HAVE_WCHAR_H
 #include <wchar.h>
 #endif
@@ -388,7 +392,7 @@ Terminal::cursor_is_onscreen() const noexcept
 {
         /* Note: the cursor can only be offscreen below the visible area, not above. */
         auto cursor_top = row_to_pixel (m_screen->cursor.row) - VTE_LINE_WIDTH;
-        auto display_bottom = m_view_usable_extents.height() + MIN(m_padding.bottom, VTE_LINE_WIDTH);
+        auto display_bottom = m_view_usable_extents.height() + MIN(m_border.bottom, VTE_LINE_WIDTH);
         return cursor_top < display_bottom;
 }
 
@@ -454,8 +458,8 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 		add_update_timeout(this);
 	} else {
                 auto allocation = get_allocated_rect();
-                rect.x += allocation.x + m_padding.left;
-                rect.y += allocation.y + m_padding.top;
+                rect.x += allocation.x + m_border.left;
+                rect.y += allocation.y + m_border.top;
                 cairo_region_t *region = cairo_region_create_rectangle(&rect);
 #if VTE_GTK == 3
 		gtk_widget_queue_draw_region(m_widget, region);
@@ -598,8 +602,8 @@ Terminal::invalidate_all()
         if (m_active_terminals_link != nullptr) {
                 auto allocation = get_allocated_rect();
                 cairo_rectangle_int_t rect;
-                rect.x = -m_padding.left;
-                rect.y = -m_padding.top;
+                rect.x = -m_border.left;
+                rect.y = -m_border.top;
                 rect.width = allocation.width;
                 rect.height = allocation.height;
 
@@ -1525,11 +1529,7 @@ Terminal::regex_match_check(vte::grid::column_t column,
 vte::view::coords
 Terminal::view_coords_from_event(vte::platform::MouseEvent const& event) const
 {
-#if VTE_GTK == 3
-        return vte::view::coords(event.x() - m_padding.left, event.y() - m_padding.top);
-#elif VTE_GTK == 4
-        return vte::view::coords(event.x(), event.y());
-#endif
+        return vte::view::coords(event.x() - m_border.left, event.y() - m_border.top);
 }
 
 bool
@@ -4435,32 +4435,20 @@ Terminal::im_update_cursor()
                 return;
 
         cairo_rectangle_int_t rect;
-        rect.x = m_screen->cursor.col * m_cell_width + m_padding.left +
+        rect.x = m_screen->cursor.col * m_cell_width + m_border.left +
                  get_preedit_width(true) * m_cell_width;
         rect.width = m_cell_width; // FIXMEchpe: if columns > 1 ?
-        rect.y = row_to_pixel(m_screen->cursor.row) + m_padding.top;
+        rect.y = row_to_pixel(m_screen->cursor.row) + m_border.top;
         rect.height = m_cell_height;
         m_real_widget->im_set_cursor_location(&rect);
 }
 
-void
-Terminal::set_border_padding(GtkBorder const* padding)
+bool
+Terminal::set_style_border(GtkBorder const& border) noexcept
 {
-        if (memcmp(padding, &m_padding, sizeof(*padding)) != 0) {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
-                                 "Setting style padding to (%d,%d,%d,%d)\n",
-                                 padding->left, padding->right,
-                                 padding->top, padding->bottom);
-
-                m_style_padding = *padding;
-                gtk_widget_queue_resize(m_widget);
-        } else {
-                _vte_debug_print(VTE_DEBUG_MISC | VTE_DEBUG_WIDGET_SIZE,
-                                 "Keeping style padding the same at (%d,%d,%d,%d)\n",
-                                 padding->left, padding->right,
-                                 padding->top, padding->bottom);
-
-        }
+        auto const changing = memcmp(&border, &m_style_border, sizeof(border)) != 0;
+        m_style_border = border;
+        return changing;
 }
 
 void
@@ -5731,8 +5719,8 @@ Terminal::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx
         g_assert (top != LONG_MAX && bottom != -1 && left != LONG_MAX && right != -1);
 
         auto allocation = get_allocated_rect();
-        bbox->x = allocation.x + m_padding.left + left * m_cell_width;
-        bbox->y = allocation.y + m_padding.top + row_to_pixel(top);
+        bbox->x = allocation.x + m_border.left + left * m_cell_width;
+        bbox->y = allocation.y + m_border.top + row_to_pixel(top);
         bbox->width = (right - left + 1) * m_cell_width;
         bbox->height = (bottom - top + 1) * m_cell_height;
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
@@ -7637,7 +7625,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	m_cell_height = 1;
 	m_char_ascent = 1;
 	m_char_descent = 1;
-	m_char_padding = {0, 0, 0, 0};
 	m_line_thickness = 1;
 	m_underline_position = 1;
         m_double_underline_position = 1;
@@ -7701,7 +7688,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 void
 Terminal::widget_measure_width(int *minimum_width,
-                               int *natural_width)
+                               int *natural_width) noexcept
 {
 	ensure_font();
 
@@ -7710,8 +7697,10 @@ Terminal::widget_measure_width(int *minimum_width,
 	*minimum_width = m_cell_width * VTE_MIN_GRID_WIDTH;
         *natural_width = m_cell_width * m_column_count;
 
-        *minimum_width += m_style_padding.left + m_style_padding.right;
-        *natural_width += m_style_padding.left + m_style_padding.right;
+#if VTE_GTK == 3
+        *minimum_width += m_style_border.left + m_style_border.right;
+        *natural_width += m_style_border.left + m_style_border.right;
+#endif
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_width=%d, natural_width=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
@@ -7719,13 +7708,13 @@ Terminal::widget_measure_width(int *minimum_width,
 			*minimum_width, *natural_width,
 			m_column_count,
                          m_row_count,
-                         m_style_padding.left, m_style_padding.right,
-                         m_style_padding.top, m_style_padding.bottom);
+                         m_style_border.left, m_style_border.right,
+                         m_style_border.top, m_style_border.bottom);
 }
 
 void
 Terminal::widget_measure_height(int *minimum_height,
-                                int *natural_height)
+                                int *natural_height) noexcept
 {
 	ensure_font();
 
@@ -7734,8 +7723,10 @@ Terminal::widget_measure_height(int *minimum_height,
 	*minimum_height = m_cell_height * VTE_MIN_GRID_HEIGHT;
         *natural_height = m_cell_height * m_row_count;
 
-        *minimum_height += m_style_padding.top + m_style_padding.bottom;
-        *natural_height += m_style_padding.top + m_style_padding.bottom;
+#if VTE_GTK == 3
+        *minimum_height += m_style_border.top + m_style_border.bottom;
+        *natural_height += m_style_border.top + m_style_border.bottom;
+#endif
 
 	_vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
 			"[Terminal %p] minimum_height=%d, natural_height=%d for %ldx%ld cells (padding %d,%d;%d,%d).\n",
@@ -7743,33 +7734,34 @@ Terminal::widget_measure_height(int *minimum_height,
 			*minimum_height, *natural_height,
 			m_column_count,
                          m_row_count,
-                         m_style_padding.left, m_style_padding.right,
-                         m_style_padding.top, m_style_padding.bottom);
+                         m_style_border.left, m_style_border.right,
+                         m_style_border.top, m_style_border.bottom);
 }
 
 void
+Terminal::widget_size_allocate(
 #if VTE_GTK == 3
-Terminal::widget_size_allocate(int allocation_x,
+                               int allocation_x,
                                int allocation_y,
+#endif /* VTE_GTK == 3 */
                                int allocation_width,
                                int allocation_height,
                                int allocation_baseline,
                                Alignment xalign,
                                Alignment yalign,
                                bool xfill,
-                               bool yfill)
-#elif VTE_GTK == 4
-Terminal::widget_size_allocate(int allocation_width,
-                               int allocation_height,
-                               int allocation_baseline,
-                               Alignment xalign,
-                               Alignment yalign,
-                               bool xfill,
-                               bool yfill)
-#endif /* VTE_GTK */
+                               bool yfill) noexcept
 {
-        auto width = allocation_width - (m_style_padding.left + m_style_padding.right);
-        auto height = allocation_height - (m_style_padding.top + m_style_padding.bottom);
+        /* On gtk3, the style border is part of the widget's allocation;
+         * on gtk4, is is not.
+         */
+#if VTE_GTK == 3
+        auto width = allocation_width - (m_style_border.left + m_style_border.right);
+        auto height = allocation_height - (m_style_border.top + m_style_border.bottom);
+#elif VTE_GTK == 4
+        auto width = allocation_width;
+        auto height = allocation_height;
+#endif
 
         auto grid_width = int(width / m_cell_width);
         auto grid_height = int(height / m_cell_height);
@@ -7801,10 +7793,16 @@ Terminal::widget_size_allocate(int allocation_width,
         case Alignment::END:         tpad = height; bpad = 0; break;
         }
 
-        m_padding.left   = m_style_padding.left   + lpad;
-        m_padding.right  = m_style_padding.right  + rpad;
-        m_padding.top    = m_style_padding.top    + tpad;
-        m_padding.bottom = m_style_padding.bottom + bpad;
+#if VTE_GTK == 3
+        m_border = m_style_border;
+#elif VTE_GTK == 4
+        m_border = {};
+#endif
+
+        m_border.left   += lpad;
+        m_border.right  += rpad;
+        m_border.top    += tpad;
+        m_border.bottom += bpad;
 
         /* The minimum size returned from  ::widget_measure_width/height()
          * is VTE_MIN_GRID_WIDTH/HEIGHT, but let's be extra safe.
@@ -7813,11 +7811,11 @@ Terminal::widget_size_allocate(int allocation_width,
         grid_height = std::max(grid_height, VTE_MIN_GRID_HEIGHT);
 
         _vte_debug_print(VTE_DEBUG_WIDGET_SIZE,
-                         "[Terminal %p] Sizing window to %dx%d (%dx%d, effective padding %d,%d;%d,%d).\n",
+                         "[Terminal %p] Sizing window to %dx%d (%dx%d, effective border %d,%d;%d,%d).\n",
                          m_terminal,
                          allocation_width, allocation_height,
                          grid_width, grid_height,
-                         m_padding.left, m_padding.right, m_padding.top, m_padding.bottom);
+                         m_border.left, m_border.right, m_border.top, m_border.bottom);
 
         auto const current_allocation = get_allocated_rect();
         auto const repaint = current_allocation.width != allocation_width ||
@@ -8668,10 +8666,14 @@ Terminal::draw_rows(VteScreen *screen_,
          * chopped off by another cell's background, not even across changes of the
          * background or any other attribute.
          * Process each row independently. */
+#if VTE_GTK == 3
         int const rect_width = get_allocated_width();
+#elif VTE_GTK == 4
+        int const rect_width = get_allocated_width() + m_style_border.left + m_style_border.right;
+#endif
 
         /* The rect contains the area of the row, and is moved row-wise in the loop. */
-        auto rect = cairo_rectangle_int_t{-m_padding.left, start_y, rect_width, row_height};
+        auto rect = cairo_rectangle_int_t{-m_border.left, start_y, rect_width, row_height};
         for (row = start_row, y = start_y;
              row < end_row;
              row++, y += row_height, rect.y = y /* same as rect.y += row_height */) {
@@ -8692,15 +8694,15 @@ Terminal::draw_rows(VteScreen *screen_,
                                 bg.green = (bg.green + 0xC000) / 2;
                                 bg.blue  = (bg.blue  + 0xC000) / 2;
                                 m_draw.fill_rectangle(
-                                                          -m_padding.left,
+                                                          -m_border.left,
                                                           y,
-                                                          m_padding.left,
+                                                          m_border.left,
                                                           row_height,
                                                           &bg, VTE_DRAW_OPAQUE);
                                 m_draw.fill_rectangle(
                                                           column_count * column_width,
                                                           y,
-                                                          rect_width - m_padding.left - column_count * column_width,
+                                                          rect_width - m_border.left - column_count * column_width,
                                                           row_height,
                                                           &bg, VTE_DRAW_OPAQUE);
                         }
@@ -8790,7 +8792,7 @@ Terminal::draw_rows(VteScreen *screen_,
          * The rect contains the area of the row (enlarged a bit at the top and bottom
          * to allow the text to overdraw a bit), and is moved row-wise in the loop.
          */
-        rect = cairo_rectangle_int_t{-m_padding.left,
+        rect = cairo_rectangle_int_t{-m_border.left,
                                      start_y - cell_overflow_top(),
                                      rect_width,
                                      row_height + cell_overflow_top() + cell_overflow_bottom()};
@@ -9189,7 +9191,7 @@ Terminal::paint_im_preedit_string()
 #if VTE_GTK == 3
 
 void
-Terminal::widget_draw(cairo_t* cr)
+Terminal::widget_draw(cairo_t* cr) noexcept
 {
 #ifdef VTE_DEBUG
         _VTE_DEBUG_IF(VTE_DEBUG_LIFECYCLE | VTE_DEBUG_WORK | VTE_DEBUG_UPDATES) do {
@@ -9205,21 +9207,66 @@ Terminal::widget_draw(cairo_t* cr)
         } while (0);
 #endif /* VTE_DEBUG */
 
+        /* Transform to view coordinates */
+        cairo_translate(cr, m_border.left, m_border.top);
+
         auto region = vte_cairo_get_clip_region(cr);
         if (!region)
                 return;
 
-        /* Transform to view coordinates */
-        cairo_region_translate(region.get(), -m_padding.left, -m_padding.top);
+        /* Both cr and region should be in view coordinates now.
+         * No need to further translation.
+         */
 
-        draw(cr, region.get());
+        //        cairo_region_translate(region.get(), -m_border.left, -m_border.top);
+
+        return draw(cr, region.get());
 }
 
 #endif /* VTE_GTK == 3 */
 
+#if VTE_GTK == 4
+
+void
+Terminal::widget_snapshot(GtkSnapshot* snapshot_object) noexcept
+{
+        _vte_debug_print(VTE_DEBUG_DRAW, "Widget snapshot\n");
+
+        auto const rect = allocated_rect();
+
+        /* We need to draw the border too, so make the rect wider than the widget's
+         * allocated area.
+         */
+        auto grect = vte::graphene::make_rect(-m_style_border.left,
+                                              -m_style_border.top,
+                                              rect->width + m_style_border.left + m_style_border.right,
+                                              rect->height + m_style_border.top + m_style_border.bottom);
+        auto cr = vte::take_freeable(gtk_snapshot_append_cairo(snapshot_object, &grect));
+
+        cairo_translate(cr.get(),
+                        m_border.left,
+                        m_border.top);
+
+        auto const clip_rect = cairo_rectangle_int_t{
+                -m_style_border.left - m_border.left,
+                -m_style_border.top - m_border.top,
+                rect->width + m_style_border.left + m_style_border.right,
+                rect->height + m_style_border.top + m_style_border.bottom};
+
+        auto const region = vte::take_freeable(cairo_region_create_rectangle(&clip_rect));
+
+        /* Both cr and region should be in view coordinates, relative to
+         * (rect.x, rect.y) here. No need to further translation.
+         */
+
+        return draw(cr.get(), region.get());
+}
+
+#endif /* VTE_GTK == 4 */
+
 void
 Terminal::draw(cairo_t* cr,
-               cairo_region_t const* region)
+               cairo_region_t const* region) noexcept
 {
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
@@ -9232,22 +9279,42 @@ Terminal::draw(cairo_t* cr,
         allocated_width = get_allocated_width();
         allocated_height = get_allocated_height();
 
+        /* Note: @cr's origin is at the top left of the view area; the left/top border
+         * is entirely to the left/top of this point.
+         */
+
 	/* Designate the start of the drawing operation and clear the area. */
 	m_draw.set_cairo(cr);
 
         if (G_LIKELY(m_clear_background)) {
-                m_draw.clear(0, 0,
-                                 allocated_width, allocated_height,
-                                 get_color(VTE_DEFAULT_BG), m_background_alpha);
+                m_draw.clear(
+#if VTE_GTK == 3
+                             -m_border.left,
+                             -m_border.top,
+                             allocated_width,
+                             allocated_height,
+#elif VTE_GTK == 4
+                             -m_border.left - m_style_border.left,
+                             -m_border.top - m_style_border.top,
+                             allocated_width + m_style_border.left + m_style_border.right,
+                             allocated_height + m_style_border.top + m_style_border.bottom,
+#endif
+                             get_color(VTE_DEFAULT_BG), m_background_alpha);
         }
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
         cairo_save(cr);
-        cairo_rectangle(cr, 0, m_padding.top, allocated_width, allocated_height - m_padding.top - m_padding.bottom);
+        cairo_rectangle(cr,
+                        -m_border.left,
+                        0,
+#if VTE_GTK == 3
+                        allocated_width,
+#elif VTE_GTK == 4
+                        allocated_width + m_style_border.left + m_style_border.right,
+#endif
+                        allocated_height - m_border.top - m_border.bottom);
         cairo_clip(cr);
-
-        cairo_translate(cr, m_padding.left, m_padding.top);
 
 #ifdef WITH_SIXEL
 	/* Draw images */
@@ -9305,10 +9372,18 @@ Terminal::draw(cairo_t* cr,
         /* TODOegmont: It's really ugly to do it here. */
         cairo_save(cr);
         extra_area_for_cursor = (decscusr_cursor_shape() == CursorShape::eBLOCK && !m_has_focus) ? VTE_LINE_WIDTH : 0;
-        cairo_rectangle(cr, 0, m_padding.top - extra_area_for_cursor, allocated_width, allocated_height - m_padding.top - m_padding.bottom + 2 * extra_area_for_cursor);
-        cairo_clip(cr);
 
-        cairo_translate(cr, m_padding.left, m_padding.top);
+        cairo_rectangle(cr,
+                        -m_border.left,
+                        -extra_area_for_cursor,
+#if VTE_GTK == 3
+                        allocated_width,
+#elif VTE_GTK == 4
+                        allocated_width + m_style_border.left + m_style_border.right,
+#endif
+                        allocated_height - m_border.top - m_border.bottom + 2 * extra_area_for_cursor);
+
+        cairo_clip(cr);
 
 	paint_cursor();
 
@@ -10451,8 +10526,8 @@ Terminal::invalidate_dirty_rects_and_process_updates()
 
         auto allocation = get_allocated_rect();
         cairo_region_translate(region,
-                               allocation.x + m_padding.left,
-                               allocation.y + m_padding.top);
+                               allocation.x + m_border.left,
+                               allocation.y + m_border.top);
 
 	/* and perform the merge with the window visible area */
         gtk_widget_queue_draw_region(m_widget, region);

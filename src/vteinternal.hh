@@ -730,12 +730,21 @@ public:
         double m_undercurl_thickness{VTE_LINE_WIDTH};
 
         /* Style stuff */
+        /* On gtk3, the style border (comprising padding, margins and border)
+         * is part of the widget's allocation; on gtk4, it's outside of it.
+         */
+        GtkBorder m_style_border{
 #if VTE_GTK == 3
-        GtkBorder m_style_padding{1, 1, 1, 1};
+                1, 1, 1, 1
 #elif VTE_GTK == 4
-        GtkBorder m_style_padding{0, 0, 0, 0};
+                0, 0, 0, 0
 #endif
-        GtkBorder m_padding{m_style_padding};
+        };
+        /* The total padding. On gtk3, this comprises the style border as above,
+         * plus the inner border due to [xy]align and [xy]fill properties; on gtk4,
+         * it comprises only the latter.
+         */
+        GtkBorder m_border{m_style_border};
 
         /* Hyperlinks */
         bool m_allow_hyperlink{false};
@@ -857,8 +866,8 @@ public:
         void set_allocated_rect(cairo_rectangle_int_t const& r) { m_allocated_rect = r; update_view_extents(); }
         void update_view_extents() {
                 m_view_usable_extents =
-                        vte::view::extents(m_allocated_rect.width - m_padding.left - m_padding.right,
-                                           m_allocated_rect.height - m_padding.top - m_padding.bottom);
+                        vte::view::extents(m_allocated_rect.width - m_border.left - m_border.right,
+                                           m_allocated_rect.height - m_border.top - m_border.bottom);
         }
 
         bool widget_realized() const noexcept;
@@ -886,7 +895,7 @@ public:
         void confine_coordinates(long *xp,
                                  long *yp);
 
-        void set_border_padding(GtkBorder const* padding);
+        bool set_style_border(GtkBorder const& border) noexcept;
         void set_cursor_aspect(float aspect);
 
         void widget_copy(vte::platform::ClipboardType selection,
@@ -916,12 +925,14 @@ public:
         bool widget_key_modifiers(unsigned modifiers);
 #endif /* VTE_GTK == 4 */
 #if VTE_GTK == 3
-        void widget_draw(cairo_t *cr);
+        void widget_draw(cairo_t *cr) noexcept;
+#elif VTE_GTK == 4
+        void widget_snapshot(GtkSnapshot* snapshot_object) noexcept;
 #endif /* VTE_GTK == 3 */
         void widget_measure_width(int *minimum_width,
-                                  int *natural_width);
+                                  int *natural_width) noexcept;
         void widget_measure_height(int *minimum_height,
-                                   int *natural_height);
+                                   int *natural_height) noexcept;
 
 #if VTE_GTK == 3
         void widget_size_allocate(int x,
@@ -932,7 +943,7 @@ public:
                                   Alignment xalign,
                                   Alignment yalign,
                                   bool xfill,
-                                  bool yfill);
+                                  bool yfill) noexcept;
 #elif VTE_GTK == 4
         void widget_size_allocate(int width,
                                   int height,
@@ -940,7 +951,7 @@ public:
                                   Alignment xalign,
                                   Alignment yalign,
                                   bool xfill,
-                                  bool yfill);
+                                  bool yfill) noexcept;
 #endif /* VTE_GTK */
 
         void set_blink_settings(bool blink,
@@ -948,7 +959,7 @@ public:
                                 int blink_timeout) noexcept;
 
         void draw(cairo_t *cr,
-                  cairo_region_t const* region);
+                  cairo_region_t const* region) noexcept;
         void paint_cursor();
         void paint_im_preedit_string();
         void draw_cells(vte::view::DrawingContext::TextRequest* items,
