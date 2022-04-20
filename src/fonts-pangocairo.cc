@@ -414,13 +414,11 @@ FontInfo::create_for_widget(GtkWidget* widget,
 	auto screen = gtk_widget_get_screen(widget);
 	return create_for_screen(screen, desc, nullptr);
 #elif VTE_GTK == 4
-        auto context = gtk_widget_get_pango_context(widget);
-
         auto display = gtk_widget_get_display(widget);
         auto settings = gtk_settings_get_for_display(display);
         auto fontconfig_timestamp = guint{};
         g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
-        return create_for_context(vte::glib::make_ref(context),
+        return create_for_context(vte::glib::take_ref(gtk_widget_create_pango_context(widget)),
                                   desc, nullptr, fontconfig_timestamp);
         // FIXMEgtk4: this uses a per-widget context, while the gtk3 code uses a per-screen
         // one. That means there may be a lot less sharing and a lot more FontInfo's around?
