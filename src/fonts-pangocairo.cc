@@ -361,7 +361,9 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
 	if (desc)
 		pango_context_set_font_description(context.get(), desc);
 
-	pango_context_set_language(context.get(), language);
+        if (language != nullptr &&
+            language != pango_context_get_language(context.get()))
+                pango_context_set_language(context.get(), language);
 
         /* Make sure our contexts have a font_options set.  We use
           * this invariant in our context hash and equal functions.
