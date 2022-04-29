@@ -842,15 +842,18 @@ Widget::event_leave(GdkEventCrossing *event)
 
         m_terminal->widget_mouse_leave(mouse_event);
 }
+
 bool
 Widget::event_scroll(GdkEventScroll *event)
 {
-        auto scroll_event = scroll_event_from_gdk(reinterpret_cast<GdkEvent*>(event));
+        if (auto const scroll_event = scroll_event_from_gdk(reinterpret_cast<GdkEvent*>(event))) {
+                _vte_debug_print(VTE_DEBUG_EVENTS, "Scroll delta_x=%.3f delta_y=%.3f\n",
+                                 scroll_event->dx(), scroll_event->dy());
 
-	_vte_debug_print(VTE_DEBUG_EVENTS, "Scroll delta_x=%.3f delta_y=%.3f\n",
-                         scroll_event.dx(), scroll_event.dy());
+                return m_terminal->widget_mouse_scroll(*scroll_event);
+        }
 
-        return m_terminal->widget_mouse_scroll(scroll_event);
+        return false;
 }
 
 bool
@@ -1438,9 +1441,15 @@ Widget::notify_scroll_value_changed()
 
 #if VTE_GTK == 3
 
-ScrollEvent
-Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
+std::optional<ScrollEvent>
+Widget::scroll_event_from_gdk(GdkEvent* event) const
 {
+        /* Ignore emulated scroll events, see
+         * https://gitlab.gnome.org/GNOME/vte/-/issues/2561
+         */
+        if (gdk_event_get_pointer_emulated(event))
+                return std::nullopt;
+
         auto dx = double{}, dy = double{};
         if (!gdk_event_get_scroll_deltas(event, &dx, &dy)) {
                 auto dir = GdkScrollDirection{};
@@ -1452,13 +1461,13 @@ Widget::scroll_event_from_gdk(GdkEvent* event) const /* throws */
                 case GDK_SCROLL_DOWN:   dx =  0.; dy =  1.; break;
                 case GDK_SCROLL_LEFT:   dx = -1.; dy =  0.; break;
                 case GDK_SCROLL_RIGHT:  dx =  1.; dy =  0.; break;
-                case GDK_SCROLL_SMOOTH: break;
+                case GDK_SCROLL_SMOOTH:
                 default: __builtin_unreachable();
                 }
         }
 
-        return {read_modifiers_from_gdk(event),
-                dx, dy};
+
+        return ScrollEvent{read_modifiers_from_gdk(event), dx, dy};
 }
 
 #endif /* VTE_GTK == 3 */
