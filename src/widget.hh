@@ -576,7 +576,7 @@ private:
 #if VTE_GTK == 3
         unsigned read_modifiers_from_gdk(GdkEvent* event) const noexcept;
         MouseEvent mouse_event_from_gdk(GdkEvent* event) const /* throws */;
-        ScrollEvent scroll_event_from_gdk(GdkEvent* event) const /* throws */;
+        std::optional<ScrollEvent> scroll_event_from_gdk(GdkEvent* event) const;
 #elif VTE_GTK == 4
         MouseEvent mouse_event_from_gesture_click(EventBase::Type type,
                                                   GtkGestureClick* gesture,
