@@ -1,4 +1,4 @@
-# Copyright © 2021 Christian Persch
+# Copyright © 2021, 2022 Christian Persch
 #
 # This library is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published
@@ -13,18 +13,85 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this library.  If not, see <https://www.gnu.org/licenses/>.
 
-# It turned out to be impossible to build gtk3 and gtk4 versions of the
-# docs from the same source using meson's gnome.gtkdoc(). Instead, build
-# using make with a gtk-doc.make-derived Makefile.
+assert(get_option('gir'), 'Introspection must be enabled to build docs')
 
-make = find_program('gmake', 'make')
+gidocgen = find_program('gi-docgen', required: true)
 
-cairo_dep = dependency('cairo')
+doc_conf = configuration_data()
+doc_conf.set('version', meson.project_version())
+
+doc_sources = [
+  'licence.md',
+]
+
+docdir = vte_datadir / 'doc'
 
 if get_option('gtk3')
-  subdir('gtk3')
-endif
+
+  libvte_gtk3_docs_toml = configure_file(
+    configuration: doc_conf,
+    input: 'vte-gtk3.toml.in',
+    install: true,
+    install_dir: docdir,
+    output: vte_gtk3_api_name + '.toml',
+  )
+
+  libvte_gtk3_docs = custom_target(
+    vte_gtk3_api_name,
+    command: [
+      gidocgen,
+      'generate',
+      '--config', '@INPUT0@',
+      '--content-dir', meson.current_source_dir(),
+      '--fatal-warnings',
+      '--no-namespace-dir',
+      '--output-dir', '@OUTPUT@',
+      '--quiet',
+      '@INPUT1@',
+    ],
+    depend_files: [doc_sources,],
+    input: [
+      libvte_gtk3_docs_toml,
+      libvte_gtk3_gir[0],
+    ],
+    install: true,
+    install_dir: docdir,
+    output: vte_gtk3_api_name,
+  )
+
+endif # gtk3
 
 if get_option('gtk4')
-  subdir('gtk4')
-endif
+
+  libvte_gtk4_docs_toml = configure_file(
+    configuration: doc_conf,
+    input: 'vte-gtk4.toml.in',
+    install: true,
+    install_dir: docdir,
+    output: vte_gtk4_api_name + '.toml',
+  )
+
+  libvte_gtk4_docs = custom_target(
+    vte_gtk4_api_name,
+    command: [
+      gidocgen,
+      'generate',
+      '--config', '@INPUT0@',
+      '--content-dir', meson.current_source_dir(),
+      '--fatal-warnings',
+      '--no-namespace-dir',
+      '--output-dir', '@OUTPUT@',
+      '--quiet',
+      '@INPUT1@',
+    ],
+    depend_files: [doc_sources,],
+    input: [
+      libvte_gtk4_docs_toml,
+      libvte_gtk4_gir[0],
+    ],
+    install: true,
+    install_dir: docdir,
+    output: vte_gtk4_api_name,
+  )
+
+endif # gtk4

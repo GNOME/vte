@@ -633,10 +633,6 @@ subdir('bindings')
 subdir('po')
 
 if get_option('docs')
-  assert(meson.version().version_compare('>= 0.55.0'),
-    'meson >= 0.55 is required to build docs'
-  )
-
   subdir('doc/reference')
 endif
 

@@ -37,10 +37,10 @@ gtk4:
 	$(NINJA) src/app/vte-$(vte_api_version)-gtk4
 
 doc-gtk3:
-	$(NINJA) doc/reference/gtk3/meson.stamp
+	$(NINJA) doc/reference/vte-$(vte_api_version)
 
 doc-gtk4:
-	$(NINJA) doc/reference/gtk4/meson.stamp
+	$(NINJA) doc/reference/vte-$(vte_api_version)-gtk4
 
 check:
 	MESON_TESTTHREADS=$(NTHREADS) $(NINJA) test
