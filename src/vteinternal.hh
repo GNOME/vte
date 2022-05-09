@@ -352,7 +352,9 @@ public:
         /* Array of dirty rectangles in view coordinates; need to
          * add allocation origin and padding when passing to gtk.
          */
+#if VTE_GTK == 3
         GArray *m_update_rects;
+#endif
         bool m_invalidated_all{false};       /* pending refresh of entire terminal */
         /* If non-nullptr, contains the GList element for @this in g_active_terminals
          * and means that this terminal is processing data.

@@ -407,6 +407,7 @@ void
 Terminal::invalidate_rows(vte::grid::row_t row_start,
                           vte::grid::row_t row_end /* inclusive */)
 {
+#if VTE_GTK == 3
 	if (G_UNLIKELY (!widget_realized()))
                 return;
 
@@ -470,6 +471,9 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
 	}
 
 	_vte_debug_print (VTE_DEBUG_WORK, "!");
+#elif VTE_GTK == 4
+        invalidate_all();
+#endif
 }
 
 /* Invalidate the requested rows, extending the region in both directions up to
@@ -595,11 +599,12 @@ Terminal::invalidate_all()
 	_vte_debug_print (VTE_DEBUG_WORK, "*");
 	_vte_debug_print (VTE_DEBUG_UPDATES, "Invalidating all.\n");
 
-	/* replace invalid regions with one covering the whole terminal */
 	reset_update_rects();
 	m_invalidated_all = TRUE;
 
         if (m_active_terminals_link != nullptr) {
+#if VTE_GTK == 3
+                /* replace invalid regions with one covering the whole terminal */
                 auto allocation = get_allocated_rect();
                 cairo_rectangle_int_t rect;
                 rect.x = -m_border.left;
@@ -608,6 +613,8 @@ Terminal::invalidate_all()
                 rect.height = allocation.height;
 
                 g_array_append_val(m_update_rects, rect);
+#endif /* VTE_GTK == 3 */
+
 		/* Wait a bit before doing any invalidation, just in
 		 * case updates are coming in really soon. */
 		add_update_timeout(this);
@@ -7613,10 +7620,12 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* NOTE! We allocated zeroed memory, just fill in non-zero stuff. */
 
         // FIXMEegmont make this store row indices only, maybe convert to a bitmap
+#if VTE_GTK == 3
         m_update_rects = g_array_sized_new(FALSE /* zero terminated */,
                                            FALSE /* clear */,
                                            sizeof(cairo_rectangle_int_t),
                                            32 /* preallocated size */);
+#endif
 
 	/* Set up dummy metrics, value != 0 to avoid division by 0 */
         // FIXMEchpe this is wrong. These values must not be used before
@@ -7966,8 +7975,10 @@ Terminal::~Terminal()
 	_vte_byte_array_free(m_outgoing);
         m_outgoing = nullptr;
 
+#if VTE_GTK == 3
         /* Update rects */
         g_array_free(m_update_rects, TRUE /* free segment */);
+#endif
 }
 
 void
@@ -10189,15 +10200,22 @@ add_update_timeout(vte::terminal::Terminal* that)
 void
 Terminal::reset_update_rects()
 {
+#if VTE_GTK == 3
         g_array_set_size(m_update_rects, 0);
-	m_invalidated_all = FALSE;
+#endif
+	m_invalidated_all = false;
 }
 
 static bool
 remove_from_active_list(vte::terminal::Terminal* that)
 {
 	if (that->m_active_terminals_link == nullptr ||
-            that->m_update_rects->len != 0)
+#if VTE_GTK == 3
+            that->m_update_rects->len != 0
+#elif VTE_GTK == 4
+            that->m_invalidated_all
+#endif
+            )
                 return false;
 
         _vte_debug_print(VTE_DEBUG_TIMEOUT, "Removing terminal from active list\n");
@@ -10508,13 +10526,13 @@ catch (...)
 bool
 Terminal::invalidate_dirty_rects_and_process_updates()
 {
+#if VTE_GTK == 3
         if (G_UNLIKELY(!widget_realized()))
                 return false;
 
 	if (G_UNLIKELY (!m_update_rects->len))
 		return false;
 
-#if VTE_GTK == 3
         auto region = cairo_region_create();
         auto n_rects = m_update_rects->len;
         for (guint i = 0; i < n_rects; i++) {
@@ -10532,8 +10550,10 @@ Terminal::invalidate_dirty_rects_and_process_updates()
 	/* and perform the merge with the window visible area */
         gtk_widget_queue_draw_region(m_widget, region);
 	cairo_region_destroy (region);
+
 #elif VTE_GTK == 4
-        gtk_widget_queue_draw(m_widget); // FIXMEgtk4
+        invalidate_all();
+        gtk_widget_queue_draw(m_widget);
 #endif
 
 	return true;
