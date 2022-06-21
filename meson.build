@@ -24,7 +24,7 @@ project(
     'warning_level=0',
     'b_ndebug=false',
   ],
-  meson_version: '>= 0.50.0',
+  meson_version: '>= 0.51.0',
 )
 
 # Compiler requirements
