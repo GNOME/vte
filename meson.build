@@ -33,6 +33,7 @@ c_req_std                 = 'gnu11'
 cxx_req_std               = 'gnu++20'
 gxx_req_version           = '10.0'
 clangxx_req_version       = '11.0'
+py_req_version            = '3.7'
 
 # Version requirements
 
@@ -110,6 +111,7 @@ enable_debug = get_option('debugg') or get_option('debug') or get_option('buildt
 
 gnome = import('gnome')
 pkg = import('pkgconfig')
+py = import('python')
 
 # Compilers
 
@@ -158,6 +160,15 @@ endif
 if cxx.get_id() == 'clang'
   assert(cxx.version().version_compare('>=' + clangxx_req_version), 'needs clang++ >= ' + clangxx_req_version + ' for ' + cxx_req_std + ' support')
 endif
+
+# Python interpreter
+
+py_req_modules = [
+  'dataclasses',
+]
+
+python = py.find_installation(modules: py_req_modules)
+assert(python.language_version().version_compare('>=' + py_req_version), 'needs python3 >= ' + py_req_version)
 
 # Include directories
 
