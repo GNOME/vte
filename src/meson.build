@@ -61,6 +61,7 @@ modes_sources = files(
 modes_sources += custom_target(
   'modes',
   command: [
+    python,
     files('modes.py'),
     '--destdir', '@OUTDIR@',
   ],
@@ -93,6 +94,7 @@ parser_sources = files(
 parser_sources += custom_target(
   'parser-seq',
   command: [
+    python,
     files('parser-seq.py'),
     '--destdir', '@OUTDIR@',
   ],
