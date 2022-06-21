@@ -214,10 +214,16 @@ endif
 
 # Enable libc features
 
-config_h.set10('_GNU_SOURCE', true)
-config_h.set('_POSIX_C_SOURCE', '200809L')
-config_h.set('_XOPEN_SOURCE', '700')
-config_h.set10('_XOPEN_SOURCE_EXTENDED', true)
+libc_feature_defines = [
+  ['_GNU_SOURCE', '1'],
+  ['_POSIX_C_SOURCE', '200809L'],
+  ['_XOPEN_SOURCE', '700'],
+  ['_XOPEN_SOURCE_EXTENDED', 1],
+]
+
+foreach f: libc_feature_defines
+  config_h.set(f[0], f[1])
+endforeach
 
 # Check headers
 
@@ -396,14 +402,14 @@ foreach func: check_functions
     }
   '''.format(__prot, __name)
 
+  __args = []
+  foreach f: libc_feature_defines
+    __args += '-D@0@=@1@'.format(f[0], f[1])
+  endforeach
+
   __have = cxx.compiles(
     __code,
-    args: [
-      '-D_GNU_SOURCE',
-      '-D_POSIX_C_SOURCE=200809L',
-      '-D_XOPEN_SOURCE=700',
-      '-D_XOPEN_SOURCE_EXTENDED',
-    ],
+    args: __args,
     dependencies: __deps,
     name: __name,
   )
