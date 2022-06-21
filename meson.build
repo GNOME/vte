@@ -201,10 +201,12 @@ if get_option('gtk4')
   gtk4_version_cppflags += '-DGDK_VERSION_MAX_ALLOWED=(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))'
 endif
 
+# Enable libc features
 
-# FIXME AC_USE_SYSTEM_EXTENSIONS also supported non-gnu systems
 config_h.set10('_GNU_SOURCE', true)
 config_h.set('_POSIX_C_SOURCE', '200809L')
+config_h.set('_XOPEN_SOURCE', '700')
+config_h.set10('_XOPEN_SOURCE_EXTENDED', true)
 
 # Check headers
 
@@ -388,6 +390,8 @@ foreach func: check_functions
     args: [
       '-D_GNU_SOURCE',
       '-D_POSIX_C_SOURCE=200809L',
+      '-D_XOPEN_SOURCE=700',
+      '-D_XOPEN_SOURCE_EXTENDED',
     ],
     dependencies: __deps,
     name: __name,
