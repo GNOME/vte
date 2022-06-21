@@ -45,7 +45,7 @@ pastify_string(std::string_view str,
                bool c1)
 {
         auto rv = std::string{};
-        rv.reserve(str.size() + 1 + insert_brackets ? 12 : 0);
+        rv.reserve((str.size() + 1 + insert_brackets) ? 12 : 0);
 
         if (insert_brackets) {
                 if (c1)
