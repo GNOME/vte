@@ -235,7 +235,6 @@ check_headers = [
   'sys/select.h',
   'sys/stream.h',
   'sys/syslimits.h',
-  'sys/termios.h',
   'sys/types.h',
   'sys/wait.h',
   'termios.h',

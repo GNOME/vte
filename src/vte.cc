@@ -25,9 +25,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <fcntl.h>
-#ifdef HAVE_SYS_TERMIOS_H
-#include <sys/termios.h>
-#endif
+#include <termios.h>
+
 #ifdef HAVE_STROPTS_H
 #include <stropts.h>
 #endif

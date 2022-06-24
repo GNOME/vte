@@ -22,9 +22,7 @@
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
-#ifdef HAVE_SYS_TERMIOS_H
-#include <sys/termios.h>
-#endif
+#include <termios.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -32,9 +30,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_TERMIOS_H
-#include <termios.h>
-#endif
 #include <unistd.h>
 #include <glib.h>
 
