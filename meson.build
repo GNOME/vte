@@ -218,8 +218,18 @@ libc_feature_defines = [
   ['_GNU_SOURCE', '1'],
   ['_POSIX_C_SOURCE', '200809L'],
   ['_XOPEN_SOURCE', '700'],
-  ['_XOPEN_SOURCE_EXTENDED', 1],
+  ['_XOPEN_SOURCE_EXTENDED', '1'],
 ]
+
+if host_machine.system() == 'freebsd'
+  # Defining _POSIX_C_SOURCE above makes freebsd not expose some functionality
+  # that's hidden behind __BSD_VISIBLE.  Since there appears to be no other way
+  # to make everything visible, just forcibly define __BSD_VISIBLE.
+
+  libc_feature_defines += [
+    ['__BSD_VISIBLE', '1'],
+  ]
+endif
 
 foreach f: libc_feature_defines
   config_h.set(f[0], f[1])
