@@ -223,12 +223,10 @@ libc_feature_defines = [
 
 if host_machine.system() == 'freebsd'
   # Defining _POSIX_C_SOURCE above makes freebsd not expose some functionality
-  # that's hidden behind __BSD_VISIBLE.  Since there appears to be no other way
-  # to make everything visible, just forcibly define __BSD_VISIBLE.
+  # that's hidden behind __BSD_VISIBLE.  Not defininy any of the above however
+  # makes it expose verything.
 
-  libc_feature_defines += [
-    ['__BSD_VISIBLE', '1'],
-  ]
+  libc_feature_defines = []
 endif
 
 foreach f: libc_feature_defines
