@@ -5577,6 +5577,38 @@ catch (...)
 }
 
 /**
+ * vte_terminal_get_text_selected:
+ * @terminal: a #VteTerminal
+ *
+ * Gets the currently selected text.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string containing the selected text, or %NULL if there is no selection
+ *
+ * Since: 0.70
+ */
+char*
+vte_terminal_get_text_selected(VteTerminal* terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+
+        auto const selection = IMPL(terminal)->m_selection_resolved;
+        return vte_terminal_get_text_range(terminal,
+                                           selection.start_row(),
+                                           selection.start_column(),
+                                           selection.last_row(),
+                                           selection.end_column(),
+                                           nullptr,
+                                           nullptr,
+                                           nullptr);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
  * vte_terminal_get_icon_title:
  * @terminal: a #VteTerminal
  *
