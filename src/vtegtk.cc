@@ -5579,18 +5579,24 @@ catch (...)
 /**
  * vte_terminal_get_text_selected:
  * @terminal: a #VteTerminal
+ * @format: the #VteFormat to use
  *
- * Gets the currently selected text.
+ * Gets the currently selected text in the format specified by @format.
+ * Note that currently, only %VTE_FORMAT_TEXT is supported.
  *
- * Returns: (transfer full) (nullable): a newly allocated string containing the selected text, or %NULL if there is no selection
+ * Returns: (transfer full) (nullable): a newly allocated string containing the selected text, or %NULL if there is no selection or the format is not supported
  *
  * Since: 0.70
  */
 char*
-vte_terminal_get_text_selected(VteTerminal* terminal) noexcept
+vte_terminal_get_text_selected(VteTerminal* terminal,
+                               VteFormat format) noexcept
 try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+
+        if (format != VTE_FORMAT_TEXT)
+                return nullptr;
 
         auto const selection = IMPL(terminal)->m_selection_resolved;
         return vte_terminal_get_text_range(terminal,

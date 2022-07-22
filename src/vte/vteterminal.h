@@ -359,7 +359,8 @@ _VTE_PUBLIC
 gboolean vte_terminal_get_has_selection(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-char* vte_terminal_get_text_selected(VteTerminal* terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+char* vte_terminal_get_text_selected(VteTerminal* terminal,
+                                     VteFormat format) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 /* Set what happens when the user strikes backspace or delete. */
 _VTE_PUBLIC
