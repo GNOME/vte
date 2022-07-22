@@ -6201,8 +6201,6 @@ catch (...)
         return vte::glib::set_error_from_exception(error);
 }
 
-#if VTE_GTK == 3
-
 /**
  * vte_terminal_set_clear_background:
  * @terminal: a #VteTerminal
@@ -6268,8 +6266,6 @@ catch (...)
         vte::log_exception();
         *color = {0., 0., 0., 1.};
 }
-
-#endif /* VTE_GTK == 3 */
 
 /**
  * vte_terminal_set_enable_sixel:
