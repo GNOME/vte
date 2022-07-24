@@ -3140,7 +3140,7 @@ catch (...)
 #elif VTE_GTK == 4
 
 /**
- * vte_terminal_match_check_at:
+ * vte_terminal_check_match_at:
  * @terminal: a #VteTerminal
  * @x:
  * @y:
@@ -3161,7 +3161,7 @@ catch (...)
  * Since: 0.70
  */
 char*
-vte_terminal_match_check_at(VteTerminal* terminal,
+vte_terminal_check_match_at(VteTerminal* terminal,
                             double x,
                             double y,
                             int* tag) noexcept
@@ -3177,7 +3177,7 @@ catch (...)
 }
 
 /**
- * vte_terminal_hyperlink_check_at:
+ * vte_terminal_check_hyperlink_at:
  * @terminal: a #VteTerminal
  * @x:
  * @y:
@@ -3195,7 +3195,7 @@ catch (...)
  * Since: 0.70
  */
 char*
-vte_terminal_hyperlink_check_at(VteTerminal* terminal,
+vte_terminal_check_hyperlink_at(VteTerminal* terminal,
                                 double x,
                                 double y) noexcept
 try
@@ -3210,7 +3210,7 @@ catch (...)
 }
 
 /**
- * vte_terminal_regex_array_check_at: (rename-to vte_terminal_check_regex_simple_at)
+ * vte_terminal_check_regex_array_at: (rename-to vte_terminal_check_regex_simple_at)
  * @terminal: a #VteTerminal
  * @x:
  * @y:
@@ -3232,7 +3232,7 @@ catch (...)
  * Since: 0.70
  */
 char**
-vte_terminal_regex_array_check_at(VteTerminal* terminal,
+vte_terminal_check_regex_array_at(VteTerminal* terminal,
                                   double x,
                                   double y,
                                   VteRegex** regexes,
@@ -3248,7 +3248,7 @@ try
                 return nullptr;
 
         auto matches = vte::glib::take_free_ptr(g_new0(char*, n_regexes));
-        if (!vte_terminal_regex_simple_check_at(terminal,
+        if (!vte_terminal_check_regex_simple_at(terminal,
                                                 x, y,
                                                 regexes,
                                                 n_regexes,
@@ -3265,7 +3265,7 @@ catch (...)
 }
 
 /**
- * vte_terminal_regex_simple_check_at: (skip)
+ * vte_terminal_check_regex_simple_at: (skip)
  * @terminal: a #VteTerminal
  * @x:
  * @y:
@@ -3287,7 +3287,7 @@ catch (...)
  * Since: 0.70
  */
 gboolean
-vte_terminal_regex_simple_check_at(VteTerminal* terminal,
+vte_terminal_check_regex_simple_at(VteTerminal* terminal,
                                    double x,
                                    double y,
                                    VteRegex** regexes,

@@ -428,7 +428,7 @@ char *vte_terminal_hyperlink_check_event(VteTerminal *terminal,
 #elif _VTE_GTK == 4
 
 _VTE_PUBLIC
-char* vte_terminal_hyperlink_check_at(VteTerminal* terminal,
+char* vte_terminal_check_hyperlink_at(VteTerminal* terminal,
                                       double x,
                                       double y) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
@@ -479,13 +479,13 @@ gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
 #elif _VTE_GTK == 4
 
 _VTE_PUBLIC
-char* vte_terminal_match_check_at(VteTerminal* terminal,
+char* vte_terminal_check_match_at(VteTerminal* terminal,
                                   double x,
                                   double y,
                                   int* tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_PUBLIC
-char** vte_terminal_regex_array_check_at(VteTerminal* terminal,
+char** vte_terminal_check_regex_array_at(VteTerminal* terminal,
                                          double x,
                                          double y,
                                          VteRegex** regexes,
@@ -494,7 +494,7 @@ char** vte_terminal_regex_array_check_at(VteTerminal* terminal,
                                          gsize* n_matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_PUBLIC
-gboolean vte_terminal_regex_simple_check_at(VteTerminal* terminal,
+gboolean vte_terminal_check_regex_simple_at(VteTerminal* terminal,
                                             double x,
                                             double y,
                                             VteRegex** regexes,
