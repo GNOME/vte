@@ -3137,6 +3137,189 @@ catch (...)
         return false;
 }
 
+#elif VTE_GTK == 4
+
+/**
+ * vte_terminal_match_check_at:
+ * @terminal: a #VteTerminal
+ * @x:
+ * @y:
+ * @tag: (out) (allow-none): a location to store the tag, or %NULL
+ *
+ * Checks if the text in and around the position (x, y) matches any of the
+ * regular expressions previously set using vte_terminal_match_add().  If a
+ * match exists, the text string is returned and if @tag is not %NULL, the number
+ * associated with the matched regular expression will be stored in @tag.
+ *
+ * If more than one regular expression has been set with
+ * vte_terminal_match_add(), then expressions are checked in the order in
+ * which they were added.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string which matches one of the previously
+ *   set regular expressions, or %NULL if there is no match
+ *
+ * Since: 0.70
+ */
+char*
+vte_terminal_match_check_at(VteTerminal* terminal,
+                            double x,
+                            double y,
+                            int* tag) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        return WIDGET(terminal)->regex_match_check_at(x, y, tag);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_hyperlink_check_at:
+ * @terminal: a #VteTerminal
+ * @x:
+ * @y:
+ *
+ * Returns a nonempty string: the target of the explicit hyperlink (printed using the OSC 8
+ * escape sequence) at the position (x, y), or %NULL.
+ *
+ * Proper use of the escape sequence should result in URI-encoded URIs with a proper scheme
+ * like "http://", "https://", "file://", "mailto:" etc. This is, however, not enforced by VTE.
+ * The caller must tolerate the returned string potentially not being a valid URI.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string containing the target of the hyperlink,
+ *  or %NULL
+ *
+ * Since: 0.70
+ */
+char*
+vte_terminal_hyperlink_check_at(VteTerminal* terminal,
+                                double x,
+                                double y) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        return WIDGET(terminal)->hyperlink_check_at(x, y);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_regex_array_check_at: (rename-to vte_terminal_check_regex_simple_at)
+ * @terminal: a #VteTerminal
+ * @x:
+ * @y:
+ * @regexes: (array length=n_regexes): an array of #VteRegex
+ * @n_regexes: number of items in @regexes
+ * @match_flags: PCRE2 match flags, or 0
+ * @n_matches: (out) (optional): number of items in @matches, which is always equal to @n_regexes
+ *
+ * Like vte_terminal_check_regex_simple_at(), but returns an array of strings,
+ * containing the matching text (or %NULL if no match) corresponding to each of the
+ * regexes in @regexes.
+ *
+ * You must free each string and the array; but note that this is *not* a %NULL-terminated
+ * string array, and so you must *not* use g_strfreev() on it.
+ *
+ * Returns: (nullable) (transfer full) (array length=n_matches): a newly allocated array of strings,
+ *   or %NULL if none of the regexes matched
+ *
+ * Since: 0.70
+ */
+char**
+vte_terminal_regex_array_check_at(VteTerminal* terminal,
+                                  double x,
+                                  double y,
+                                  VteRegex** regexes,
+                                  gsize n_regexes,
+                                  guint32 match_flags,
+                                  gsize* n_matches) noexcept
+try
+{
+        if (n_matches)
+                *n_matches = n_regexes;
+
+        if (n_regexes == 0)
+                return nullptr;
+
+        auto matches = vte::glib::take_free_ptr(g_new0(char*, n_regexes));
+        if (!vte_terminal_regex_simple_check_at(terminal,
+                                                x, y,
+                                                regexes,
+                                                n_regexes,
+                                                match_flags,
+                                                matches.get()))
+            return nullptr;
+
+        return matches.release();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_regex_simple_check_at: (skip)
+ * @terminal: a #VteTerminal
+ * @x:
+ * @y:
+ * @regexes: (array length=n_regexes): an array of #VteRegex
+ * @n_regexes: number of items in @regexes
+ * @match_flags: PCRE2 match flags, or 0
+ * @matches: (out caller-allocates) (array length=n_regexes) (transfer full): a location to store the matches
+ *
+ * Checks each regex in @regexes if the text in and around the position (x, y)
+ * matches the regular expressions.  If a match exists, the matched
+ * text is stored in @matches at the position of the regex in @regexes; otherwise
+ * %NULL is stored there.  Each non-%NULL element of @matches should be freed with
+ * g_free().
+ *
+ * Note that the regexes in @regexes should have been created using the %PCRE2_MULTILINE flag.
+ *
+ * Returns: %TRUE iff any of the regexes produced a match
+ *
+ * Since: 0.70
+ */
+gboolean
+vte_terminal_regex_simple_check_at(VteTerminal* terminal,
+                                   double x,
+                                   double y,
+                                   VteRegex** regexes,
+                                   gsize n_regexes,
+                                   guint32 match_flags,
+                                   char** matches) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+        g_return_val_if_fail(regexes != NULL || n_regexes == 0, FALSE);
+        for (gsize i = 0; i < n_regexes; i++) {
+                g_return_val_if_fail(_vte_regex_has_purpose(regexes[i], vte::base::Regex::Purpose::eMatch), -1);
+                g_warn_if_fail(_vte_regex_has_multiline_compile_flag(regexes[i]));
+        }
+        g_return_val_if_fail(matches != NULL, FALSE);
+
+        return WIDGET(terminal)->regex_match_check_extra_at(x, y,
+                                                            regex_array_from_wrappers(regexes),
+                                                            n_regexes,
+                                                            match_flags,
+                                                            matches);
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
+#endif /* VTE_GTK */
+
+#if VTE_GTK == 3
+
 /**
  * vte_terminal_event_check_gregex_simple:
  * @terminal: a #VteTerminal

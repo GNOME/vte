@@ -469,6 +469,33 @@ public:
                 return terminal()->hyperlink_check(mouse_event_from_gdk(event));
         }
 
+#elif VTE_GTK == 4
+
+        char* regex_match_check_at(double x,
+                                   double y,
+                                   int* tag)
+        {
+                return terminal()->regex_match_check(x, y, tag);
+        }
+
+        bool regex_match_check_extra_at(double x,
+                                        double y,
+                                        vte::base::Regex const** regexes,
+                                        size_t n_regexes,
+                                        uint32_t match_flags,
+                                        char** matches)
+        {
+                return terminal()->regex_match_check_extra_at(x, y,
+                                                              regexes, n_regexes,
+                                                              match_flags, matches);
+        }
+
+        char* hyperlink_check_at(double x,
+                                 double y)
+        {
+                return terminal()->hyperlink_check_at(x, y);
+        }
+
 #endif /* VTE_GTK */
 
         bool should_emit_signal(int id) noexcept;

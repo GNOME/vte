@@ -1866,6 +1866,39 @@ Terminal::regex_match_check(vte::platform::MouseEvent const& event,
         return regex_match_check(col, row - (long)m_screen->scroll_delta, tag);
 }
 
+#if VTE_GTK == 4
+
+char*
+Terminal::regex_match_check_at(double x,
+                               double y,
+                               int *tag)
+{
+        long col, row;
+        if (!rowcol_at(x, y, &col, &row))
+                return nullptr;
+
+        /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
+        // FIXMEchpe fix this scroll_delta substraction!
+        return regex_match_check(col, row - (long)m_screen->scroll_delta, tag);
+}
+
+bool
+Terminal::regex_match_check_extra_at(double x,
+                                     double y,
+                                     vte::base::Regex const** regexes,
+                                     size_t n_regexes,
+                                     uint32_t match_flags,
+                                     char** matches)
+{
+        long col, row;
+        if (!rowcol_at(x, y, &col, &row))
+                return false;
+
+        return regex_match_check_extra(col, row, regexes, n_regexes, match_flags, matches);
+}
+
+#endif /* VTE_GTK == 4 */
+
 bool
 Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                   vte::base::Regex const** regexes,

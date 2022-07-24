@@ -425,6 +425,13 @@ _VTE_PUBLIC
 char *vte_terminal_hyperlink_check_event(VteTerminal *terminal,
                                          GdkEvent *event) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2) G_GNUC_MALLOC;
 
+#elif _VTE_GTK == 4
+
+_VTE_PUBLIC
+char* vte_terminal_hyperlink_check_at(VteTerminal* terminal,
+                                      double x,
+                                      double y) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
 #endif /* _VTE_GTK */
 
 /* Add a matching expression, returning the tag the widget assigns to that
@@ -468,6 +475,32 @@ gboolean vte_terminal_event_check_regex_simple(VteTerminal *terminal,
                                                gsize n_regexes,
                                                guint32 match_flags,
                                                char **matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1, 2);
+
+#elif _VTE_GTK == 4
+
+_VTE_PUBLIC
+char* vte_terminal_match_check_at(VteTerminal* terminal,
+                                  double x,
+                                  double y,
+                                  int* tag) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_PUBLIC
+char** vte_terminal_regex_array_check_at(VteTerminal* terminal,
+                                         double x,
+                                         double y,
+                                         VteRegex** regexes,
+                                         gsize n_regexes,
+                                         guint32 match_flags,
+                                         gsize* n_matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_PUBLIC
+gboolean vte_terminal_regex_simple_check_at(VteTerminal* terminal,
+                                            double x,
+                                            double y,
+                                            VteRegex** regexes,
+                                            gsize n_regexes,
+                                            guint32 match_flags,
+                                            char** matches) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 #endif /* _VTE_GTK */
 

@@ -1244,8 +1244,6 @@ public:
 #endif
 
         char *hyperlink_check(vte::platform::MouseEvent const& event);
-        char *hyperlink_check_at(double x,
-                                 double y);
         char *hyperlink_check(vte::grid::column_t column,
                               vte::grid::row_t row);
 
@@ -1254,12 +1252,6 @@ public:
                                      size_t n_regexes,
                                      uint32_t match_flags,
                                      char** matches);
-        bool regex_match_check_extra_at(double x,
-                                        double y,
-                                        vte::base::Regex const** regexes,
-                                        size_t n_regexes,
-                                        uint32_t match_flags,
-                                        char** matches);
         bool regex_match_check_extra(vte::grid::column_t column,
                                      vte::grid::row_t row,
                                      vte::base::Regex const** regexes,
@@ -1272,9 +1264,21 @@ public:
                                 int *tag);
         char *regex_match_check(vte::platform::MouseEvent const& event,
                                 int *tag);
+
+#if VTE_GTK == 4
+        char *hyperlink_check_at(double x,
+                                 double y);
+        bool regex_match_check_extra_at(double x,
+                                        double y,
+                                        vte::base::Regex const** regexes,
+                                        size_t n_regexes,
+                                        uint32_t match_flags,
+                                        char** matches);
         char *regex_match_check_at(double x,
                                    double y,
                                    int *tag);
+#endif /* VTE_GTK == 4 */
+
         void regex_match_remove(int tag) noexcept;
         void regex_match_remove_all() noexcept;
         void regex_match_set_cursor(int tag,
