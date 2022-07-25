@@ -10558,10 +10558,10 @@ catch (...)
 bool
 Terminal::invalidate_dirty_rects_and_process_updates()
 {
-#if VTE_GTK == 3
         if (G_UNLIKELY(!widget_realized()))
                 return false;
 
+#if VTE_GTK == 3
 	if (G_UNLIKELY (!m_update_rects->len))
 		return false;
 
@@ -10584,6 +10584,9 @@ Terminal::invalidate_dirty_rects_and_process_updates()
 	cairo_region_destroy (region);
 
 #elif VTE_GTK == 4
+        if (G_UNLIKELY(!m_invalidated_all))
+                return false;
+
         invalidate_all();
         gtk_widget_queue_draw(m_widget);
 #endif
