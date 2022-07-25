@@ -79,6 +79,15 @@
 
 #define VTE_TERMINAL_CSS_NAME "vte-terminal"
 
+/* Note that the exact priority used is an implementation detail subject to change
+ * and *not* an API guarantee.
+ * */
+#if VTE_GTK == 3
+#define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION)
+#elif VTE_GTK == 4
+#define VTE_TERMINAL_CSS_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_APPLICATION - 2)
+#endif
+
 template<typename T>
 constexpr bool check_enum_value(T value) noexcept;
 
@@ -844,7 +853,7 @@ try
         context = gtk_widget_get_style_context(&terminal->widget);
         gtk_style_context_add_provider (context,
                                         VTE_TERMINAL_GET_CLASS (terminal)->priv->style_provider,
-                                        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                                        VTE_TERMINAL_CSS_PRIORITY);
 
 #if VTE_GTK == 3
         gtk_widget_set_has_window(&terminal->widget, FALSE);
