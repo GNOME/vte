@@ -4479,7 +4479,7 @@ try
         g_return_if_fail(columns >= 1);
         g_return_if_fail(rows >= 1);
 
-        IMPL(terminal)->set_size(columns, rows);
+        IMPL(terminal)->set_size(columns, rows, false);
 }
 catch (...)
 {

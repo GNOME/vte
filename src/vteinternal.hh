@@ -1351,7 +1351,8 @@ public:
         bool search_set_wrap_around(bool wrap);
 
         void set_size(long columns,
-                      long rows);
+                      long rows,
+                      bool allocating);
 
         std::optional<std::vector<char32_t>> process_word_char_exceptions(std::string_view str) const noexcept;
 

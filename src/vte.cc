@@ -7543,7 +7543,8 @@ Terminal::screen_set_size(VteScreen *screen_,
 
 void
 Terminal::set_size(long columns,
-                             long rows)
+                   long rows,
+                   bool allocating)
 {
 	glong old_columns, old_rows;
 
@@ -7592,11 +7593,14 @@ Terminal::set_size(long columns,
                                                    _vte_ring_next (m_screen->row_data) - 1));
 
 		adjust_adjustments_full();
+		if (!allocating) {
 #if VTE_GTK == 3
-		gtk_widget_queue_resize_no_redraw(m_widget);
+			gtk_widget_queue_resize_no_redraw(m_widget);
 #elif VTE_GTK == 4
-                gtk_widget_queue_resize(m_widget); // FIXMEgtk4?
+			gtk_widget_queue_resize(m_widget); // FIXMEgtk4?
 #endif
+		}
+
 		/* Our visible text changed. */
 		emit_text_modified();
 	}
@@ -7692,7 +7696,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
-        set_size(VTE_COLUMNS, VTE_ROWS);
+        set_size(VTE_COLUMNS, VTE_ROWS, false);
 
         /* Default is 0, forces update in vte_terminal_set_scrollback_lines */
 	set_scrollback_lines(VTE_SCROLLBACK_INIT);
@@ -7874,7 +7878,7 @@ Terminal::widget_size_allocate(
             grid_height != m_row_count ||
             update_scrollback) {
                 /* Set the size of the pseudo-terminal. */
-                set_size(grid_width, grid_height);
+                set_size(grid_width, grid_height, true);
 
 		/* Notify viewers that the contents have changed. */
 		queue_contents_changed();
@@ -10140,7 +10144,7 @@ Terminal::set_pty(vte::base::Pty *new_pty)
         if (!new_pty)
                 return true;
 
-        set_size(m_column_count, m_row_count);
+        set_size(m_column_count, m_row_count, false);
 
         if (!pty()->set_utf8(primary_data_syntax() == DataSyntax::ECMA48_UTF8)) {
                 // nothing we can do here
