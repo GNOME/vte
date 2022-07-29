@@ -32,7 +32,7 @@ if get_option('gtk3')
     configuration: doc_conf,
     input: 'vte-gtk3.toml.in',
     install: true,
-    install_dir: docdir,
+    install_dir: docdir / vte_gtk3_api_name,
     output: vte_gtk3_api_name + '.toml',
   )
 
@@ -67,7 +67,7 @@ if get_option('gtk4')
     configuration: doc_conf,
     input: 'vte-gtk4.toml.in',
     install: true,
-    install_dir: docdir,
+    install_dir: docdir / vte_gtk4_api_name,
     output: vte_gtk4_api_name + '.toml',
   )
 
