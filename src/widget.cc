@@ -1718,7 +1718,10 @@ Widget::root_surface_state_notify()
         m_root_surface_state = new_state;
 
         if (changed_mask & GDK_TOPLEVEL_STATE_FOCUSED) {
-                terminal()->widget_root_focused_changed(root_focused());
+                if (root_focused())
+                        terminal()->widget_focus_in();
+                else
+                        terminal()->widget_focus_out();
         }
 }
 

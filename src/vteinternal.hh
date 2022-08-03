@@ -954,7 +954,6 @@ public:
                                   Alignment yalign,
                                   bool xfill,
                                   bool yfill) noexcept;
-        void widget_root_focused_changed(bool focused) noexcept;
 #endif /* VTE_GTK */
 
         void set_blink_settings(bool blink,

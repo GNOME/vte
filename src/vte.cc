@@ -7010,15 +7010,6 @@ Terminal::widget_focus_out()
 }
 
 void
-Terminal::widget_root_focused_changed(bool focused) noexcept
-{
-        if (!widget_realized())
-                return;
-
-        maybe_feed_focus_event(focused);
-}
-
-void
 Terminal::widget_mouse_enter(vte::platform::MouseEvent const& event)
 {
         auto pos = view_coords_from_event(event);
