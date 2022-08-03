@@ -318,6 +318,11 @@ public:
                      int* natural_baseline) noexcept;
         std::pair<bool, bool> compute_expand();
         void css_changed(GtkCssStyleChange* change);
+        void root_realize();
+        void root_unrealize();
+        void root_surface_state_notify();
+        void root_surface_focused_changed();
+        auto root_focused() const noexcept { return (m_root_surface_state & GDK_TOPLEVEL_STATE_FOCUSED) != 0; }
         void system_setting_changed(GtkSystemSetting setting);
         void snapshot(GtkSnapshot* snapshot) noexcept { terminal()->widget_snapshot(snapshot); }
         bool contains(double x,
@@ -662,6 +667,13 @@ private:
         VteAlign m_yalign{VTE_ALIGN_START};
         bool m_xfill{true};
         bool m_yfill{true};
+
+#if VTE_GTK == 4
+        GdkToplevelState m_root_surface_state{GdkToplevelState(0)};
+        long m_root_realize_id{0};
+        long m_root_unrealize_id{0};
+        long m_root_surface_state_notify_id{0};
+#endif /* VTE_GTK == 4 */
 };
 
 } // namespace platform

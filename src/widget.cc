@@ -395,6 +395,43 @@ catch (...)
         vte::log_exception();
 }
 
+static void
+root_realize_cb(GtkRoot* r,
+                vte::platform::Widget* that) noexcept
+try
+{
+        that->root_realize();
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+root_unrealize_cb(GtkRoot* r,
+                vte::platform::Widget* that) noexcept
+try
+{
+        that->root_unrealize();
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+static void
+root_surface_state_notify_cb(GdkToplevel* toplevel,
+                             GParamSpec* pspec,
+                             Widget* that) noexcept
+try
+{
+        that->root_surface_state_notify();
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
 #endif /* VTE_GTK == 4 */
 
 Widget::Widget(VteTerminal* t)
@@ -765,6 +802,11 @@ Widget::event_focus_in(GdkEventFocus *event)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus In");
 
+#if VTE_GTK == 4
+        if (!root_focused())
+                return;
+#endif
+
         m_terminal->widget_focus_in();
 }
 
@@ -772,6 +814,11 @@ void
 Widget::event_focus_out(GdkEventFocus *event)
 {
 	_vte_debug_print(VTE_DEBUG_EVENTS, "Focus Out");
+
+#if VTE_GTK == 4
+        if (!root_focused())
+                return;
+#endif
 
         m_terminal->widget_focus_out();
 }
@@ -1661,8 +1708,67 @@ Widget::realize() noexcept
 #if VTE_GTK == 4
 
 void
+Widget::root_surface_state_notify()
+{
+        auto const r = gtk_widget_get_root(gtk());
+        auto const toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(r)));
+        auto const new_state = toplevel ? gdk_toplevel_get_state(toplevel) : GdkToplevelState(0);
+        auto const changed_mask = new_state ^ m_root_surface_state;
+
+        m_root_surface_state = new_state;
+
+        if (changed_mask & GDK_TOPLEVEL_STATE_FOCUSED) {
+                terminal()->widget_root_focused_changed(root_focused());
+        }
+}
+
+void
+Widget::root_realize()
+{
+        if (m_root_surface_state_notify_id != 0)
+                return;
+
+        auto const r = gtk_widget_get_root(gtk());
+        auto const toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(r)));
+        m_root_surface_state_notify_id = g_signal_connect(toplevel,
+                                                          "notify::state",
+                                                          G_CALLBACK(root_surface_state_notify_cb),
+                                                          this);
+
+        root_surface_state_notify();
+}
+
+void
+Widget::root_unrealize()
+{
+        root_surface_state_notify();
+        m_root_surface_state = GdkToplevelState(0);
+
+        if (m_root_surface_state_notify_id == 0)
+                return;
+
+        auto const r = gtk_widget_get_root(gtk());
+        auto const toplevel = GDK_TOPLEVEL(gtk_native_get_surface(GTK_NATIVE(r)));
+        g_signal_handler_disconnect(toplevel, m_root_surface_state_notify_id);
+        m_root_surface_state_notify_id = 0;
+}
+
+void
 Widget::root()
 {
+        auto const r = gtk_widget_get_root(gtk());
+        m_root_realize_id = g_signal_connect(r,
+                                             "realize",
+                                             G_CALLBACK(root_realize_cb),
+                                             this);
+        m_root_unrealize_id = g_signal_connect(r,
+                                               "unrealize",
+                                               G_CALLBACK(root_unrealize_cb),
+                                               this);
+
+        /* Already realised? */
+        if (gtk_widget_get_realized(GTK_WIDGET(r)))
+                root_realize();
 }
 
 #endif /* VTE_GTK == 4 */
@@ -2031,6 +2137,13 @@ Widget::unrealize() noexcept
 void
 Widget::unroot()
 {
+        root_unrealize();
+
+        auto const r = gtk_widget_get_root(gtk());
+        g_signal_handler_disconnect(r, m_root_realize_id);
+        m_root_realize_id = 0;
+        g_signal_handler_disconnect(r, m_root_unrealize_id);
+        m_root_unrealize_id = 0;
 }
 
 #endif /* VTE_GTK == 4 */
