@@ -7593,13 +7593,12 @@ Terminal::set_size(long columns,
                                                    _vte_ring_next (m_screen->row_data) - 1));
 
 		adjust_adjustments_full();
-		if (!allocating) {
 #if VTE_GTK == 3
-			gtk_widget_queue_resize_no_redraw(m_widget);
+		gtk_widget_queue_resize_no_redraw(m_widget);
 #elif VTE_GTK == 4
+		if (!allocating)
 			gtk_widget_queue_resize(m_widget); // FIXMEgtk4?
 #endif
-		}
 
 		/* Our visible text changed. */
 		emit_text_modified();
