@@ -2377,7 +2377,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The horizontal alignment of @terminal within its allocation.
          *
-         * Since: 0.70
+         * Since: 0.72
          */
         pspecs[PROP_XALIGN] =
                 g_param_spec_enum("xalign", nullptr, nullptr,
@@ -2390,7 +2390,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The vertical alignment of @terminal within its allocation
          *
-         * Since: 0.70
+         * Since: 0.72
          */
         pspecs[PROP_YALIGN] =
                 g_param_spec_enum("yalign", nullptr, nullptr,
@@ -2403,7 +2403,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The horizontal fillment of @terminal within its allocation.
          *
-         * Since: 0.70
+         * Since: 0.72
          */
         pspecs[PROP_XFILL] =
                 g_param_spec_boolean("xfill", nullptr, nullptr,
@@ -2415,7 +2415,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          *
          * The vertical fillment of @terminal within its allocation
          *
-         * Since: 0.70
+         * Since: 0.72
          */
         pspecs[PROP_YFILL] =
                 g_param_spec_boolean("yfill", nullptr, nullptr,
@@ -4321,7 +4321,7 @@ warn_if_attributes(void* array,
  * logical columns.
  *
  * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
- * 0.70, passing a non-%NULL @array parameter will make this function itself return %NULL.
+ * 0.72, passing a non-%NULL @array parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
@@ -4364,7 +4364,7 @@ catch (...)
  * logical columns.
  *
  * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
- * 0.70, passing a non-%NULL @array parameter will make this function itself return %NULL.
+ * 0.72, passing a non-%NULL @array parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full): a newly allocated text string, or %NULL.
  *
@@ -4402,7 +4402,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * and returned in @attributes are logical columns.
  *
  * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
- * 0.70, passing a non-%NULL @array parameter will make this function itself return %NULL.
+ * 0.72, passing a non-%NULL @array parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
@@ -6534,7 +6534,7 @@ constexpr bool check_enum_value<VteAlign>(VteAlign value) noexcept
  * Note: %VTE_ALIGN_START_FILL is not supported, and will be treated
  *   like %VTE_ALIGN_START.
  *
- * Since: 0.70
+ * Since: 0.72
  */
 void
 vte_terminal_set_xalign(VteTerminal* terminal,
@@ -6558,7 +6558,7 @@ catch (...)
  *
  * Returns: the horizontal alignment of @terminal within its allocation
  *
- * Since: 0.70
+ * Since: 0.72
  */
 VteAlign
 vte_terminal_get_xalign(VteTerminal* terminal) noexcept
@@ -6581,7 +6581,7 @@ catch (...)
  *
  * Sets the vertical alignment of @terminal within its allocation.
  *
- * Since: 0.70
+ * Since: 0.72
  */
 void
 vte_terminal_set_yalign(VteTerminal* terminal,
@@ -6605,7 +6605,7 @@ catch (...)
  *
  * Returns: the vertical alignment of @terminal within its allocation
  *
- * Since: 0.70
+ * Since: 0.72
  */
 VteAlign
 vte_terminal_get_yalign(VteTerminal* terminal) noexcept
@@ -6631,7 +6631,7 @@ catch (...)
  * Note: %VTE_FILL_START_FILL is not supported, and will be treated
  *   like %VTE_FILL_START.
  *
- * Since: 0.70
+ * Since: 0.72
  */
 void
 vte_terminal_set_xfill(VteTerminal* terminal,
@@ -6654,7 +6654,7 @@ catch (...)
  *
  * Returns: the horizontal fillment of @terminal within its allocation
  *
- * Since: 0.70
+ * Since: 0.72
  */
 gboolean
 vte_terminal_get_xfill(VteTerminal* terminal) noexcept
@@ -6677,7 +6677,7 @@ catch (...)
  *
  * Sets the vertical fillment of @terminal within its allocation.
  *
- * Since: 0.70
+ * Since: 0.72
  */
 void
 vte_terminal_set_yfill(VteTerminal* terminal,
@@ -6700,7 +6700,7 @@ catch (...)
  *
  * Returns: the vertical fillment of @terminal within its allocation
  *
- * Since: 0.70
+ * Since: 0.72
  */
 gboolean
 vte_terminal_get_yfill(VteTerminal* terminal) noexcept
