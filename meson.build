@@ -731,8 +731,4 @@ output += '\n'
 output += '  Prefix:       ' + get_option('prefix') + '\n'
 message(output)
 
-if get_option('gtk4')
-  warning('GTK+ 4.0 support is experimental; API and ABI are subject to change without notice\n')
-endif
-
 # Done
