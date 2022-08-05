@@ -37,9 +37,9 @@ py_req_version            = '3.7'
 
 # Version requirements
 
-gtk3_req_version          = '3.20.0'
-gtk3_min_req_version      = '3.18'
-gtk3_max_allowed_version  = '3.20'
+gtk3_req_version          = '3.24.0'
+gtk3_min_req_version      = '3.24'
+gtk3_max_allowed_version  = '3.24'
 
 gtk4_req_version          = '4.0.1'
 gtk4_min_req_version      = '4.0'
