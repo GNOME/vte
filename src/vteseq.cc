@@ -69,11 +69,6 @@ enum {
         VTE_SGR_COLOR_SPEC_LEGACY = 5
 };
 
-inline constexpr int firmware_version() noexcept
-{
-        return (VTE_MAJOR_VERSION * 100 + VTE_MINOR_VERSION) * 100 + VTE_MICRO_VERSION;
-}
-
 void
 vte::parser::Sequence::print() const noexcept
 {
@@ -2440,7 +2435,8 @@ Terminal::DA2(vte::parser::Sequence const& seq)
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        reply(seq, VTE_REPLY_DECDA2R, {65, firmware_version(), 1});
+        int const version = (VTE_MAJOR_VERSION * 100 + VTE_MINOR_VERSION) * 100 + VTE_MICRO_VERSION;
+        reply(seq, VTE_REPLY_DECDA2R, {65, version, 1});
 }
 
 void
@@ -9065,30 +9061,6 @@ Terminal::XTERM_STCAP(vte::parser::Sequence const& seq)
          *
          * Probably not worth implementing.
          */
-}
-
-void
-Terminal::XTERM_VERSION(vte::parser::Sequence const& seq)
-{
-        /*
-         * XTERM_VERSION - xterm request version report
-         *
-         * Returns the xterm name and version as XTERM_DSR.
-         *
-         * Arguments:
-         *   args[0]: select function
-         *     0: report xterm name and version
-         *
-         * Defaults:
-         *   args[0]: no defaults
-         *
-         * References: XTERM
-         */
-
-        if (seq.collect1(0) != 0)
-                return;
-
-        reply(seq, VTE_REPLY_XTERM_DSR, {}, "VTE(%d)", firmware_version());
 }
 
 void
