@@ -982,33 +982,6 @@ Terminal::erase_characters(long count,
         m_text_deleted_flag = TRUE;
 }
 
-void
-Terminal::erase_image_rect(vte::grid::row_t rows,
-                           vte::grid::column_t columns)
-{
-        auto const top = m_screen->cursor.row;
-
-        /* FIXMEchpe: simplify! */
-        for (auto i = 0; i < rows; ++i) {
-                auto const row = top + i;
-
-                erase_characters(columns, true);
-
-                if (row > m_screen->insert_delta - 1 &&
-                    row < m_screen->insert_delta + m_row_count)
-                        set_hard_wrapped(row);
-
-                if (i == rows - 1) {
-                        if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
-                                move_cursor_forward(columns);
-                        else
-                                cursor_down(true);
-                } else {
-                        cursor_down(true);
-                }
-        }
-}
-
 /* Insert a blank character. */
 void
 Terminal::insert_blank_character()
@@ -2403,9 +2376,6 @@ Terminal::DA1(vte::parser::Sequence const& seq)
                 return;
 
         reply(seq, VTE_REPLY_DECDA1R, {65, 1,
-#ifdef WITH_SIXEL
-                                       m_sixel_enabled ? 4 : -2 /* skip */,
-#endif
                                        9});
 }
 
@@ -4135,8 +4105,6 @@ Terminal::DECSCL(vte::parser::Sequence const& seq)
                 break;
         }
 #endif
-
-        reset_graphics_color_registers();
 }
 
 void
@@ -4381,7 +4349,7 @@ Terminal::DECSGR(vte::parser::Sequence const& seq)
         /* TODO: consider implementing sub/superscript? */
 }
 
-bool
+void
 Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 {
         /*
@@ -4409,116 +4377,6 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          * References: VT330
          *             DEC PPLV2 § 5.4
          */
-
-#ifdef WITH_SIXEL
-        auto process_sixel = false;
-        auto mode = vte::sixel::Parser::Mode{};
-        if (m_sixel_enabled) {
-                switch (primary_data_syntax()) {
-                case DataSyntax::ECMA48_UTF8:
-                        process_sixel = true;
-                        mode = vte::sixel::Parser::Mode::UTF8;
-                        break;
-
-#ifdef WITH_ICU
-                case DataSyntax::ECMA48_PCTERM:
-                        /* It's not really clear how DECSIXEL should be processed in PCTERM mode.
-                         * The DEC documentation available isn't very detailed on PCTERM mode,
-                         * and doesn't appear to mention its interaction with DECSIXEL at all.
-                         *
-                         * Since (afaik) a "real" DEC PCTERM mode only (?) translates the graphic
-                         * characters, not the whole data stream, as we do, let's assume that
-                         * DECSIXEL content should be processed as raw bytes, i.e. without any
-                         * translation.
-                         * Also, since C1 controls don't exist in PCTERM mode, let's process
-                         * DECSIXEL in 7-bit mode.
-                         *
-                         * As an added complication, we can only switch data syntaxes if
-                         * the data stream is exact, that is the charset converter has
-                         * not consumed more data than we have currently read output bytes
-                         * from it. So we need to check that the converter has no pending
-                         * characters.
-                         *
-                         * Alternatively, we could just refuse to process DECSIXEL in
-                         * PCTERM mode.
-                         */
-                        process_sixel = !m_converter->decoder().pending();
-                        mode = vte::sixel::Parser::Mode::SEVENBIT;
-                        break;
-#endif /* WITH_ICU */
-
-                default:
-                        __builtin_unreachable();
-                        process_sixel = false;
-                }
-        }
-
-        /* How to interpret args[1] is not entirely clear from the DEC
-         * documentation and other terminal emulators.
-         * We choose to make args[1]==1 mean to use transparent background.
-         * and treat all other values (default, 0, 2) as using the current
-         * SGR background colour. See the discussion in issue #253.
-         *
-         * Also use the current SGR foreground colour to initialise
-         * the special colour register so that SIXEL images which set
-         * no colours get a sensible default.
-         */
-        auto transparent_bg = bool{};
-        switch (seq.collect1(1, 2)) {
-        case -1: /* default */
-        case 0:
-        case 2:
-                transparent_bg = false;
-                break;
-
-        case 1:
-                transparent_bg = true;
-                break;
-
-        case 5: /* OR mode (a nonstandard NetBSD/x68k extension; not supported */
-                process_sixel = false;
-                break;
-
-        default:
-                transparent_bg = false;
-                break;
-        }
-
-        /* Ignore the whole sequence */
-        if (!process_sixel || seq.is_ripe() /* that shouldn't happen */) {
-                m_parser.ignore_until_st();
-                return false;
-        }
-
-        auto fore = unsigned{}, back = unsigned{};
-        auto fg = vte::color::rgb{}, bg = vte::color::rgb{};
-        resolve_normal_colors(&m_defaults, &fore, &back, fg, bg);
-
-        try {
-                if (!m_sixel_context)
-                        m_sixel_context = std::make_unique<vte::sixel::Context>();
-
-                m_sixel_context->prepare(seq.introducer(),
-                                         fg.red >> 8, fg.green >> 8, fg.blue >> 8,
-                                         bg.red >> 8, bg.green >> 8, bg.blue >> 8,
-                                         back == VTE_DEFAULT_BG || transparent_bg,
-                                         m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS());
-
-                m_sixel_context->set_mode(mode);
-
-                /* We need to reset the main parser, so that when it is in the ground state
-                 * when processing returns to the primary data syntax from DECSIXEL
-                 */
-                m_parser.reset();
-                push_data_syntax(DataSyntax::DECSIXEL);
-
-                return true; /* switching data syntax */
-        } catch (...) {
-        }
-#endif /* WITH_SIXEL */
-
-        m_parser.ignore_until_st();
-        return false;
 }
 
 void
@@ -8933,84 +8791,7 @@ Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
          */
 
         auto const attr = seq.collect1(0);
-        auto status = 3, rv0 = -2, rv1 = -2;
-
-        switch (attr) {
-#ifdef WITH_SIXEL
-        case 0: /* Colour registers.
-                 *
-                 * VTE doesn't support changing the number of colour registers, so always
-                 * return the fixed number, and set() returns success iff the passed number
-                 * was less or equal that number.
-                 */
-                switch (seq.collect1(1)) {
-                case 1: /* read */
-                case 2: /* reset */
-                case 4: /* read maximum */
-                        status = 0;
-                        rv0 = VTE_SIXEL_NUM_COLOR_REGISTERS;
-                        break;
-                case 3: /* set */
-                        status = (seq.collect1(2) <= VTE_SIXEL_NUM_COLOR_REGISTERS) ? 0 : 2;
-                        rv0 = VTE_SIXEL_NUM_COLOR_REGISTERS;
-                        break;
-                case -1: /* no default */
-                default:
-                        status = 2;
-                        break;
-                }
-                break;
-
-        case 1: /* SIXEL graphics geometry.
-                 *
-                 * VTE doesn't support variable geometries; always report
-                 * the maximum size of a SIXEL graphic, and set() returns success iff the
-                 * passed numbers are less or equal to that number.
-                 */
-                switch (seq.collect1(1)) {
-                case 1: /* read */
-                case 2: /* reset */
-                case 4: /* read maximum */
-                        status = 0;
-                        rv0 = VTE_SIXEL_MAX_WIDTH;
-                        rv1 = VTE_SIXEL_MAX_HEIGHT;
-                        break;
-
-                case 3: /* set */ {
-                        auto w = int{}, h = int{};
-                        if (seq.collect(2, {&w, &h}) &&
-                            w > 0 &&  w <= VTE_SIXEL_MAX_WIDTH &&
-                            h > 0 && h <= VTE_SIXEL_MAX_HEIGHT) {
-                                rv0 = VTE_SIXEL_MAX_WIDTH;
-                                rv1 = VTE_SIXEL_MAX_HEIGHT;
-                                status = 0;
-                        } else {
-                                status = 3;
-                        }
-
-                        break;
-                }
-
-                case -1: /* no default */
-                default:
-                        status = 2;
-                        break;
-                }
-                break;
-
-#endif /* WITH_SIXEL */
-
-#if 0 /* ifdef WITH_REGIS */
-        case 2:
-                status = 1;
-                break;
-#endif
-
-        case -1: /* no default value */
-        default:
-                status = 1;
-                break;
-        }
+        auto status = 1, rv0 = -2, rv1 = -2;
 
         reply(seq, VTE_REPLY_XTERM_SMGRAPHICS_REPORT, {attr, status, rv0, rv1});
 }
