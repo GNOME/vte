@@ -1717,7 +1717,11 @@ Widget::root_surface_state_notify()
 
         m_root_surface_state = new_state;
 
-        if (changed_mask & GDK_TOPLEVEL_STATE_FOCUSED) {
+        // If the widget is the focus widget in the toplevel, notify
+        // the widget that it now has gained/lost the global focus
+        if ((changed_mask & GDK_TOPLEVEL_STATE_FOCUSED) &&
+            gtk_root_get_focus(r) == gtk()) {
+
                 if (root_focused())
                         terminal()->widget_focus_in();
                 else
