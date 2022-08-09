@@ -6882,7 +6882,10 @@ void
 Terminal::widget_focus_in()
 {
         m_has_focus = true;
+
+#if VTE_GTK == 3
         widget()->grab_focus();
+#endif
 
 	/* We only have an IM context when we're realized, and there's not much
 	 * point to painting the cursor if we don't have a window. */
