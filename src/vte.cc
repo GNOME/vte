@@ -1791,7 +1791,8 @@ Terminal::rowcol_at(double x,
                     long* column,
                     long* row)
 {
-        auto rowcol = grid_coords_from_view_coords(vte::view::coords(x, y));
+        auto const vcoords = vte::view::coords(x - m_border.left, y - m_border.top);
+        auto const rowcol = grid_coords_from_view_coords(vcoords);
         if (!grid_coords_visible(rowcol))
                 return false;
 
