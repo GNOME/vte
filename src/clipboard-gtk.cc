@@ -402,6 +402,13 @@ public:
                 return false;
         }
 
+        void
+        offer() noexcept
+        {
+                gdk_clipboard_set_content(m_offer->clipboard().platform(), m_native);
+        }
+
+
 private:
         VteContentProvider* m_native{nullptr}; /* unowned */
 
@@ -480,7 +487,7 @@ using VteContentProviderClass = GdkContentProviderClass;
 
 static GType vte_content_provider_get_type(void);
 
-G_DEFINE_TYPE_WITH_CODE(VteContentProvider, vte_content_provider, G_TYPE_OBJECT,
+G_DEFINE_TYPE_WITH_CODE(VteContentProvider, vte_content_provider, GDK_TYPE_CONTENT_PROVIDER,
                         {
                                 VteContentProvider_private_offset =
                                         g_type_add_instance_private(g_define_type_id, sizeof(ContentProvider));
@@ -695,7 +702,7 @@ Clipboard::Offer::run(std::unique_ptr<Offer> offer,
         auto const impl = IMPL(provider.get());
         impl->take_offer(std::move(offer));
         impl->set_format(format);
-        gdk_clipboard_set_content(offer->clipboard().platform(), provider.get());
+        impl->offer();
 #endif /* VTE_GTK */
 }
 
@@ -799,9 +806,7 @@ Clipboard::offer_data(ClipboardFormat format,
                       OfferGetCallback get_callback,
                       OfferClearCallback clear_callback) /* throws */
 {
-#if VTE_GTK == 3
         Offer::run(std::make_unique<Offer>(*this, get_callback, clear_callback), format);
-#endif
 }
 
 void
