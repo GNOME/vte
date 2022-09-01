@@ -7944,8 +7944,8 @@ Terminal::widget_unrealize()
                                 // FIXMEchpe we should check m_selection_format[sel]
                                 // and also put text/html on if it's HTML format
                                 widget()->clipboard_set_text(sel_type,
-                                                             {m_selection[sel]->str,
-                                                              m_selection[sel]->len});
+                                                             m_selection[sel]->str,
+                                                             m_selection[sel]->len);
 			}
 			g_string_free(m_selection[sel], TRUE);
                         m_selection[sel] = nullptr;

@@ -31,6 +31,7 @@ VTE_DECLARE_FREEABLE(GtkTargetList, gtk_target_list_unref);
 
 #if VTE_GTK == 4
 VTE_DECLARE_FREEABLE(GdkContentFormats, gdk_content_formats_unref);
+VTE_DECLARE_FREEABLE(GdkContentFormatsBuilder, gdk_content_formats_builder_unref);
 #endif /* VTE_GTK == 4 */
 
 } // namespace vte

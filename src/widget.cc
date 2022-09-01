@@ -628,9 +628,10 @@ Widget::clipboard_request_text(ClipboardType type) noexcept
 
 void
 Widget::clipboard_set_text(ClipboardType type,
-                           std::string_view const& str) noexcept
+                           char const* str,
+                           size_t size) noexcept
 {
-        clipboard_get(type).set_text(str);
+        clipboard_get(type).set_text(str, size);
 }
 
 #if VTE_GTK == 4
