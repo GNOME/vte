@@ -480,7 +480,7 @@ public:
                                    double y,
                                    int* tag)
         {
-                return terminal()->regex_match_check(x, y, tag);
+                return terminal()->regex_match_check_at(x, y, tag);
         }
 
         bool regex_match_check_extra_at(double x,
