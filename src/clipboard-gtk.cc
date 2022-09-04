@@ -388,7 +388,7 @@ public:
         get_value(GValue* value,
                   GError** error)
         {
-                if (g_value_get_gtype(value) == G_TYPE_STRING) {
+                if (G_VALUE_HOLDS(value, G_TYPE_STRING)) {
                         if (auto const delegate = m_offer->clipboard().m_delegate.lock()) {
                                 auto const str = (*delegate.*m_offer->m_get_callback)(m_offer->clipboard(), ClipboardFormat::TEXT);
                                 if (!str)
