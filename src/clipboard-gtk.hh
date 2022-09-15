@@ -31,7 +31,10 @@ namespace vte::platform {
 
 enum class ClipboardFormat {
         TEXT,
-        HTML
+        HTML,
+#if VTE_GTK == 4
+        INVALID = -1
+#endif
 };
 
 enum class ClipboardType {
@@ -39,7 +42,14 @@ enum class ClipboardType {
         PRIMARY   = 1
 };
 
+#if VTE_GTK == 4
+class ContentProvider;
+#endif
+
 class Clipboard : public std::enable_shared_from_this<Clipboard> {
+#if VTE_GTK == 4
+        friend class ContentProvider;
+#endif
 public:
         Clipboard(Widget& delegate,
                   ClipboardType type) /* throws */;
@@ -69,7 +79,8 @@ public:
                         OfferGetCallback get_callback,
                         OfferClearCallback clear_callback) /* throws */;
 
-        void set_text(std::string_view const& text) noexcept;
+        void set_text(char const* text,
+                      size_t size) noexcept;
 
         void request_text(RequestDoneCallback done_callback,
                           RequestFailedCallback failed_callback) /* throws */;
