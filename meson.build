@@ -24,7 +24,7 @@ project(
     'warning_level=0',
     'b_ndebug=false',
   ],
-  meson_version: '>= 0.51.0',
+  meson_version: '>= 0.60.0',
 )
 
 # Compiler requirements
@@ -673,13 +673,9 @@ endif
 
 # Dist
 
-# Meson bug https://github.com/mesonbuild/meson/issues/8440 breaks using vte
-# as subproject; see vte#345.
-if meson.version().version_compare('>= 0.58.0') or not meson.is_subproject()
-  meson.add_dist_script(
-    find_program('meson_changelog.sh'),
-  )
-endif
+meson.add_dist_script(
+  find_program('meson_changelog.sh'),
+)
 
 # Simple compat Makefile
 
