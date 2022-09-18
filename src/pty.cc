@@ -426,6 +426,15 @@ _vte_pty_open_posix(void)
 #ifndef __linux__
         /* Other kernels may not support CLOEXEC or NONBLOCK above, so try to fall back */
         bool need_cloexec = false, need_nonblocking = false;
+
+#ifdef __NetBSD__
+        // NetBSD is a special case: posix_openpt() will not return EINVAL
+        // for unknown/unsupported flags but instead silently ignore these flags
+        // and just return a valid PTY but without the NONBLOCK | CLOEXEC flags set.
+        // So we always need to manually apply these flags there. See issue #2575.
+        need_cloexec = need_nonblocking = true;
+#else
+
         if (!fd && errno == EINVAL) {
                 /* Try without NONBLOCK and apply the flag afterward */
                 need_nonblocking = true;
@@ -436,6 +445,7 @@ _vte_pty_open_posix(void)
                         fd = posix_openpt(O_RDWR | O_NOCTTY);
                 }
         }
+#endif /* __NetBSD__ */
 #endif /* !linux */
 
         if (!fd) {
