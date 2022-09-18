@@ -1,5 +1,5 @@
 # Turkish translation of vte.
-# Copyright (C) 2003 vte's COPYRIGHT HOLDER
+# Copyright (C) 2003-2022 vte's COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
 #
 # Görkem Çetin <gorkem@gelecek.com.tr>, 2003.
@@ -14,7 +14,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2020-04-27 18:50+0000\n"
+"POT-Creation-Date: 2022-07-13 19:14+0000\n"
 "PO-Revision-Date: 2020-04-28 15:36+0300\n"
 "Last-Translator: Emin Tufan Çetin <etcetin@gmail.com>\n"
 "Language-Team: Türkçe <gnome-turk@gnome.org>\n"
@@ -25,115 +25,43 @@ msgstr ""
 "X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: src/vte.cc:7843
+#: src/vte.cc:7688
 msgid "WARNING"
 msgstr "UYARI"
 
-#: src/vte.cc:7845
+#: src/vte.cc:7690
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GnuTLS etkin değil; veriler diske şifrelenmemiş olarak yazılacak!"
 
-#: src/spawn.cc:104
+#: src/spawn.cc:124
 #, c-format
 msgid "Failed to set pipe nonblocking: %s"
 msgstr "Boru nonblocking belirlenemedi. %s"
 
-#: src/spawn.cc:148
+#: src/spawn.cc:169
 #, c-format
 msgid "poll error: %s"
 msgstr "poll hatası: %s"
 
-#: src/spawn.cc:154
+#: src/spawn.cc:176
 msgid "Operation timed out"
 msgstr "İşlem zaman aşımına uğradı"
 
-#: src/spawn.cc:164
+#: src/spawn.cc:186
 msgid "Operation was cancelled"
 msgstr "İşlem iptal edildi"
 
-#: src/spawn.cc:182
+#: src/spawn.cc:204
 #, c-format
 msgid "Failed to read from child pipe (%s)"
 msgstr "Çocuk borudan (%s) okunurken hata"
 
-#: src/spawn.cc:576
+#: src/spawn.cc:639
 #, c-format
 msgid "Failed to change to directory “%s”: %s"
 msgstr "“%s” dizinine değiştirme başarısız: %s"
 
-#: src/spawn.cc:645
+#: src/spawn.cc:708
 #, c-format
 msgid "Failed to execute child process “%s”: "
 msgstr "“%s” çocuk süreci çalıştırılamadı:  "
-
-#~ msgid "Unable to convert characters from %s to %s."
-#~ msgstr "Karakterler %sʼden %sʼe dönüştürülemiyor."
-
-#~ msgid "Error (%s) converting data for child, dropping."
-#~ msgstr "Çocuk süreç için veriyi çevirirken hata (%s), bırakılıyor."
-
-#~ msgid "Copy"
-#~ msgstr "Kopyala"
-
-#~ msgid "Paste"
-#~ msgstr "Yapıştır"
-
-#~ msgid "Reset (use Ctrl to reset and clear)"
-#~ msgstr "Sıfırla (Sıfırlamak ve temizlemek için Ctrl'yi kullanın)"
-
-#~ msgid "Reset"
-#~ msgstr "Sıfırla"
-
-#~ msgid "Toggle input enabled setting"
-#~ msgstr "Girişi aç/kapa"
-
-#~ msgid "Input"
-#~ msgstr "Giriş"
-
-#~ msgid "Could not open console.\n"
-#~ msgstr "Konsol açılamadı.\n"
-
-#~ msgid "Could not parse the geometry spec passed to --geometry"
-#~ msgstr "--geometry'de belirtilen geometri belirtimi ayrıştırılamadı"
-
-#~ msgid "Unable to send data to child, invalid charset convertor"
-#~ msgstr "Alt sürece veri gönderilemedi, geçersiz karakter kümesi çevirici"
-
-#~ msgid "Error reading PTY size, using defaults: %s\n"
-#~ msgstr "PTY boyutu okunurken hata, öntanımlı değerler kullanılıyor: %s\n"
-
-#~ msgid "Attempt to set invalid NRC map '%c'."
-#~ msgstr "Geçersiz NRC haritası '%c' ayarlanmaya çalışıldı."
-
-#~ msgid "Unrecognized identified coding system."
-#~ msgstr "Anımsanmayan tanımlanmış kodlama sistemi."
-
-#~ msgid "Attempt to set invalid wide NRC map '%c'."
-#~ msgstr "Geçersiz geniş NRC haritası '%c' ayarlanmaya çalışıldı."
-
-#~ msgid "Duplicate (%s/%s)!"
-#~ msgstr "Çift (%s/%s)!"
-
-#~ msgid "Error compiling regular expression \"%s\"."
-#~ msgstr "Düzenli ifade derlenirken hata: \"%s\"."
-
-#~ msgid "_vte_conv_open() failed setting word characters"
-#~ msgstr "_vte_iconv_open() kelime karakterlerini ayarlarken başarısız oldu"
-
-#~ msgid "can not run %s"
-#~ msgstr "%s çalıştırılamadı"
-
-#~ msgid "Error creating signal pipe."
-#~ msgstr "Sinyal borusu oluştururken hata."
-
-#~ msgid "No handler for control sequence `%s' defined."
-#~ msgstr "`%s' kontrol serisi için işlemci tanımlanmamış."
-
-#~ msgid "Error setting PTY size: %s."
-#~ msgstr "PTY boyutu ayarlanırken hata: %s."
-
-#~ msgid "Got unexpected (key?) sequence `%s'."
-#~ msgstr "Beklenmeyen (tuş?) serisi `%s' alındı."
-
-#~ msgid "Unknown pixel mode %d.\n"
-#~ msgstr "Bilinmeyen benek kipi %d.\n"
