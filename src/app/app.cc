@@ -160,6 +160,86 @@ public:
                 return m_map_fds;
         }
 
+        auto environment_for_spawn() const noexcept
+        {
+                auto envv = g_get_environ();
+
+                // Merge in extra variables
+                if (environment) {
+                        for (auto i = 0; environment[i]; ++i) {
+                                auto const eq = strchr(environment[i], '=');
+                                if (eq) {
+                                        auto const var = vte::glib::take_string(g_strndup(environment[i], eq - environment[i]));
+                                        envv = g_environ_setenv(envv, var.get(), eq + 1, true);
+                                } else {
+                                        envv = g_environ_unsetenv(envv, environment[i]);
+                                }
+                        }
+                }
+
+                // Cleanup environment
+                // List of variables and prefixes copied from gnome-terminal.
+                for (auto const& var : {"COLORTERM",
+                                        "COLUMNS",
+                                        "DESKTOP_STARTUP_ID",
+                                        "EXIT_CODE",
+                                        "EXIT_STATUS",
+                                        "GIO_LAUNCHED_DESKTOP_FILE",
+                                        "GIO_LAUNCHED_DESKTOP_FILE_PID",
+                                        "GJS_DEBUG_OUTPUT",
+                                        "GJS_DEBUG_TOPICS",
+                                        "GNOME_DESKTOP_ICON",
+                                        "INVOCATION_ID",
+                                        "JOURNAL_STREAM",
+                                        "LINES",
+                                        "LISTEN_FDNAMES",
+                                        "LISTEN_FDS",
+                                        "LISTEN_PID",
+                                        "MAINPID",
+                                        "MANAGERPID",
+                                        "NOTIFY_SOCKET",
+                                        "NOTIFY_SOCKET",
+                                        "PIDFILE",
+                                        "PWD",
+                                        "REMOTE_ADDR",
+                                        "REMOTE_PORT",
+                                        "SERVICE_RESULT",
+                                        "SHLVL",
+                                        "TERM",
+                                        "VTE_VERSION",
+                                        "WATCHDOG_PID",
+                                        "WATCHDOG_USEC",
+                                        "WINDOWID"}) {
+                        envv = g_environ_unsetenv(envv, var);
+                }
+
+                for (auto const& prefix : {"GNOME_TERMINAL_",
+
+                                           // other terminals
+                                           "FOOT_",
+                                           "ITERM2_",
+                                           "MC_",
+                                           "MINTTY_",
+                                           "PUTTY_",
+                                           "RXVT_",
+                                           "TERM_",
+                                           "URXVT_",
+                                           "WEZTERM_",
+                                           "XTERM_"}) {
+                        for (auto i = 0; envv[i]; ++i) {
+                                if (!g_str_has_prefix (envv[i], prefix))
+                                        continue;
+
+                                auto const eq = strchr(envv[i], '=');
+                                g_assert(eq);
+                                auto const var = vte::glib::take_string(g_strndup(envv[i], eq - envv[i]));
+                                envv = g_environ_unsetenv(envv, var.get());
+                        }
+                }
+
+                return vte::glib::take_strv(envv);
+        }
+
 private:
 
         std::vector<vte::libc::FD> m_fds{};
@@ -772,7 +852,7 @@ public:
 
                 return rv;
         }
-};
+}; // class Options
 
 Options options{}; /* global */
 
@@ -1724,6 +1804,7 @@ vteapp_window_launch_argv(VteappWindow* window,
                           GError** error)
 {
         auto const spawn_flags = GSpawnFlags(G_SPAWN_SEARCH_PATH_FROM_ENVP |
+                                             VTE_SPAWN_NO_PARENT_ENVV |
                                              (options.no_systemd_scope ? VTE_SPAWN_NO_SYSTEMD_SCOPE : 0) |
                                              (options.require_systemd_scope ? VTE_SPAWN_REQUIRE_SYSTEMD_SCOPE : 0));
         auto fds = options.fds();
@@ -1732,7 +1813,7 @@ vteapp_window_launch_argv(VteappWindow* window,
                                           VTE_PTY_DEFAULT,
                                           options.working_directory,
                                           argv,
-                                          options.environment,
+                                          options.environment_for_spawn().get(),
                                           fds.data(), fds.size(),
                                           map_fds.data(), map_fds.size(),
                                           spawn_flags,
