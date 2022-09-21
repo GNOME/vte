@@ -2704,6 +2704,15 @@ vteapp_window_dispose(GObject *object)
                 window->search_popover = nullptr;
         }
 
+        // Disconnect all signal handlers from the terminal
+        g_signal_handlers_disconnect_matched(window->terminal,
+                                             GSignalMatchType(G_SIGNAL_MATCH_DATA),
+                                             0, // signal id
+                                             0, // detail quark
+                                             nullptr, // closure
+                                             nullptr, // func
+                                             window);
+
         G_OBJECT_CLASS(vteapp_window_parent_class)->dispose(object);
 }
 
