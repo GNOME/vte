@@ -343,7 +343,18 @@ if get_option('gtk3')
 endif
 
 if get_option('gtk4')
-  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + graphene_glue_sources
+
+  libvte_gtk4_resources_data = files(
+  )
+
+  libvte_gtk4_resources_sources = gnome.compile_resources(
+    'vteresources-gtk4.cc',
+    'vte-gtk4.gresource.xml',
+    c_name: 'vte',
+    dependencies: libvte_gtk4_resources_data,
+  )
+
+  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + libvte_gtk4_resources_sources + graphene_glue_sources
   libvte_gtk4_cppflags = libvte_common_cppflags + gtk4_version_cppflags + ['-DVTE_GTK=4',]
   libvte_gtk4_deps = libvte_common_deps + [gtk4_dep,]
   libvte_gtk4_public_deps = libvte_common_public_deps + [gtk4_dep,]
