@@ -230,6 +230,12 @@ if system == 'freebsd'
 
   libc_feature_defines = []
 
+elif system == 'darwin'
+  # See issue #2592
+  libc_feature_defines += [
+    ['_DARWIN_C_SOURCE', '1'],
+  ]
+
 elif system == 'netbsd'
   libc_feature_defines += [
     ['_NETBSD_SOURCE', '1'],
