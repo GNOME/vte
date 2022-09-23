@@ -232,7 +232,7 @@ if system == 'freebsd'
 
 elif system == 'netbsd'
   libc_feature_defines += [
-    '_NETBSD_SOURCE',
+    ['_NETBSD_SOURCE', '1'],
   ]
 endif
 
