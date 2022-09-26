@@ -23,16 +23,7 @@
 #include "debug.h"
 #include "vtedefines.hh"
 
-/* Have a space between letters to make sure ligatures aren't used when caching the glyphs: bug 793391. */
-#define VTE_DRAW_SINGLE_WIDE_CHARACTERS	\
-					"  ! \" # $ % & ' ( ) * + , - . / " \
-					"0 1 2 3 4 5 6 7 8 9 " \
-					": ; < = > ? @ " \
-					"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z " \
-					"[ \\ ] ^ _ ` " \
-					"a b c d e f g h i j k l m n o p q r s t u v w x y z " \
-					"{ | } ~ " \
-					""
+#include "fontconfig-glue.hh"
 
 static inline bool
 _vte_double_equal(double a,
@@ -167,29 +158,100 @@ FontInfo::cache_ascii()
 #endif
 }
 
+static int
+unichar_width(unsigned c)
+{
+        if (c < 0x80)
+                return 1;
+        if (g_unichar_iszerowidth(c)) [[unlikely]]
+                return 0;
+        if (g_unichar_iswide(c))
+                return 2;
+        if (g_unichar_iswide_cjk(c))
+                return 2;
+        return 1;
+}
+
 void
 FontInfo::measure_font()
 {
-	PangoRectangle logical;
+        auto charset = vte::take_freeable(FcCharSetCreate());
+        // Directly measure U+0020..U+003F which aren't included in the orthographies
+        for (auto c = FcChar32{0x20}; c < FcChar32{0x40}; ++c)
+                FcCharSetAddChar(charset.get(), c);
 
-        /* Measure U+0021..U+007E individually instead of all together and then
-         * averaging. For monospace fonts, the results should be the same, but
-         * if the user (by design, or trough mis-configuration) uses a proportional
-         * font, the latter method will greatly underestimate the required width,
-         * leading to unreadable, overlapping characters.
-         * https://gitlab.gnome.org/GNOME/vte/issues/138
-         */
-        auto max_width = 1;
-        auto max_height = 1;
-        for (char c = 0x21; c < 0x7f; ++c) {
-                pango_layout_set_text(m_layout.get(), &c, 1);
-                pango_layout_get_extents(m_layout.get(), nullptr, &logical);
-                max_width = std::max(max_width, PANGO_PIXELS_CEIL(logical.width));
-                max_height = std::max(max_height, PANGO_PIXELS_CEIL(logical.height));
+        // Create the union of the orthographies of the user languages
+        auto const langs = g_get_language_names();
+        for (auto i = 0; langs[i]; ++i) {
+                auto const nlang = vte::take_freeable(FcLangNormalize(reinterpret_cast<FcChar8 const*>(langs[i])));
+                if (!nlang)
+                        continue;
+
+                auto const lcharset = FcLangGetCharSet(nlang.get());
+                if (!lcharset)
+                        continue;
+
+                if (!FcCharSetMerge(charset.get(), lcharset, nullptr))
+                        continue;
         }
 
-        /* Use the sample text to get the baseline */
-	pango_layout_set_text(m_layout.get(), VTE_DRAW_SINGLE_WIDE_CHARACTERS, -1);
+
+        // Measure the characters individually instead of all together and then
+        // averaging. For monospace fonts, the results should be the same, but
+        // if the user (by design, or trough mis-configuration) uses a proportional
+        // font, the latter method will greatly underestimate the required width,
+        // leading to unreadable, overlapping characters.
+        // https://gitlab.gnome.org/GNOME/vte/issues/138
+
+        auto const n = FcCharSetCount(charset.get());
+        auto str = std::string{};
+        str.reserve(n * (4 + 1) + 1);
+
+        PangoRectangle logical;
+        auto max_width = 1;
+        auto max_height = 1;
+
+        FcChar32 map[FC_CHARSET_MAP_SIZE];
+        auto next = FcChar32{};
+        for (auto base = FcCharSetFirstPage(charset.get(), map, &next);
+             base != FC_CHARSET_DONE;
+             base = FcCharSetNextPage(charset.get(), map, &next)) {
+
+                for (auto i = 0u; i < FC_CHARSET_MAP_SIZE; ++i) {
+                        auto const v = map[i];
+                        if (!v)
+                                continue;
+
+                        auto const ci = base + (i << 5);
+                        for (auto j = 0u, mask = 1u; j < 32; ++j, mask <<= 1) {
+                                if (!(v & mask))
+                                        continue;
+
+                                auto const c = ci + j;
+                                auto const cw = unichar_width(c);
+                                if (c <= 0) [[unlikely]]
+                                        continue;
+
+                                char utf8[7];
+                                auto const len = g_unichar_to_utf8(c, utf8);
+
+                                pango_layout_set_text(m_layout.get(), utf8, len);
+                                pango_layout_get_extents(m_layout.get(), nullptr, &logical);
+
+                                auto const width = PANGO_PIXELS_CEIL(logical.width);
+                                max_width = std::max(max_width, cw > 1 ? (width + 1) / 2 : width);
+                                max_height = std::max(max_height, PANGO_PIXELS_CEIL(logical.height));
+
+                                // g_print("Character U+%04X %s charwidth %d width %d\n", c, utf8, cw, width);
+
+                                str.append(utf8, len);
+                                str.push_back(' ');
+                        }
+                }
+        }
+
+        /* Use the combined orthography text to get the baseline */
+	pango_layout_set_text(m_layout.get(), str.c_str(), str.size());
 	pango_layout_get_extents(m_layout.get(), nullptr, &logical);
 	/* We don't do CEIL for width since we are averaging;
 	 * rounding is more accurate */

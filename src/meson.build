@@ -28,6 +28,10 @@ debug_sources = files(
   'debug.h',
 )
 
+fontconfig_glue_sources = files(
+  'fontconfig-glue.hh',
+)
+
 glib_glue_sources = files(
   'glib-glue.cc',
   'glib-glue.hh',
@@ -167,7 +171,7 @@ vte_glue_sources = files(
   'vte-glue.hh',
 )
 
-libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + vte_glue_sources + files(
+libvte_common_sources = config_sources + debug_sources + fontconfig_glue_sources + glib_glue_sources + gtk_glue_sources + libc_glue_sources + modes_sources + pango_glue_sources + parser_sources + pastify_sources + pcre2_glue_sources + pty_sources + refptr_sources + regex_sources + std_glue_sources + utf8_sources + vte_glue_sources + files(
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
@@ -281,6 +285,7 @@ libvte_common_public_deps = [
 ]
 
 libvte_common_deps = libvte_common_public_deps + [
+  fontconfig_dep,
   fribidi_dep,
   gnutls_dep,
   icu_dep,
