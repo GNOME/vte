@@ -740,4 +740,10 @@ output += '\n'
 output += '  Prefix:       ' + get_option('prefix') + '\n'
 message(output)
 
+# Check stable/unstable status
+
+if (vte_minor_version % 2) != 0
+  warning('This is an unstable development release!\n')
+endif
+
 # Done
