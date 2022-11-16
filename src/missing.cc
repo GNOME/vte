@@ -28,6 +28,11 @@
 #include <sys/syscall.h>  /* for syscall and SYS_getdents64 */
 #endif
 
+#ifdef __APPLE__
+#include <libproc.h>
+#include <sys/proc_info.h>
+#endif
+
 #include "missing.hh"
 
 /* BEGIN copied from glib
@@ -212,6 +217,36 @@ fdwalk(int (*cb)(void *data, int fd),
     errno = ENFILE;
     return -1;
   }
+
+#if defined(__APPLE__)
+  /* proc_pidinfo isn't documented as async-signal-safe but looking at the implementation
+   * in the darwin tree here:
+   *
+   * https://opensource.apple.com/source/Libc/Libc-498/darwin/libproc.c.auto.html
+   *
+   * It's just a thin wrapper around a syscall, so it's probably okay.
+   */
+  {
+    char buffer[open_max * PROC_PIDLISTFD_SIZE];
+    ssize_t buffer_size;
+
+    buffer_size = proc_pidinfo(getpid(), PROC_PIDLISTFDS, 0, buffer, sizeof(buffer));
+
+    if (buffer_size > 0 &&
+        sizeof(buffer) >= (size_t)buffer_size &&
+        (buffer_size % PROC_PIDLISTFD_SIZE) == 0)
+      {
+        const struct proc_fdinfo *fd_info = (const struct proc_fdinfo *)buffer;
+        size_t number_of_fds = (size_t)buffer_size / PROC_PIDLISTFD_SIZE;
+
+        for (size_t i = 0; i < number_of_fds; i++)
+          if ((res = cb(data, fd_info[i].proc_fd)) != 0)
+            break;
+
+        return res;
+      }
+  }
+#endif
 
   for (fd = 0; fd < int(open_max); fd++)
       if ((res = cb (data, fd)) != 0)
