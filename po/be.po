@@ -6,66 +6,53 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte.master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-09-02 17:55+0000\n"
-"PO-Revision-Date: 2018-09-07 14:20+0300\n"
-"Last-Translator: Yuras Shumovich <shumovichy@gmail.com>\n"
+"POT-Creation-Date: 2020-05-27 19:17+0000\n"
+"PO-Revision-Date: 2021-08-19 14:57+0300\n"
+"Last-Translator: Launchpad translators\n"
 "Language-Team: Belarusian <i18n-bel-googlegroups.com>\n"
 "Language: be\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.1.1\n"
+"X-Generator: Poedit 3.0\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3989
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Памылка чытання даных ад нашчадка: %s."
-
-#: ../src/vte.cc:4139
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr "Памылка (%s) пераўтварэння даных ад нашчадка: ігнаруецца."
-
-#: ../src/vte.cc:8131
+#: src/vte.cc:7763
 msgid "WARNING"
-msgstr "АСЦЯРОЖНА"
+msgstr "ПАПЯРЭДЖАННЕ"
 
-#: ../src/vte.cc:8132
+#: src/vte.cc:7765
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GnuTLS не ўключаны; даныя будуць запісаны на дыск незашыфраванымі!"
 
-#: ../src/vtegtk.cc:3664
+#: src/spawn.cc:111
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Не ўдалося пераўтварыць знакі з %s у %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Не ўдалося наладзіць канал без блакіравання: %s"
 
-#~ msgid "Attempt to set invalid NRC map '%c'."
-#~ msgstr "Спроба ўжыць хібную NRC-карту \"%c\"."
+#: src/spawn.cc:155
+#, c-format
+msgid "poll error: %s"
+msgstr "памылка апытання: %s"
 
-#~ msgid "Unrecognized identified coding system."
-#~ msgstr "Неапазнаная ідэнтыфікаваная сістэма кадавання."
+#: src/spawn.cc:161
+msgid "Operation timed out"
+msgstr "Скончыўся тэрмін чакання аперацыі"
 
-#~ msgid "Attempt to set invalid wide NRC map '%c'."
-#~ msgstr "Спроба ўжыць хібную шырокафарматную NRC-карту \"%c\"."
+#: src/spawn.cc:171
+msgid "Operation was cancelled"
+msgstr "Аперацыя скасавана"
 
-#~ msgid "Duplicate (%s/%s)!"
-#~ msgstr "Дублікат (%s/%s)."
+#: src/spawn.cc:189
+#, c-format
+msgid "Failed to read from child pipe (%s)"
+msgstr "Не ўдалося прачытаць даныя з канала нашчадка (%s)"
 
-#~ msgid "Could not open console.\n"
-#~ msgstr "Не ўдалося адкрыць кансоль.\n"
+#: src/spawn.cc:576
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Не ўдалося змяніць на каталог «%s»: %s"
 
-#~ msgid "Could not parse the geometry spec passed to --geometry"
-#~ msgstr "Не ўдалося разабраць спецыфікацыю памераў акна, пададзеных для опцыі --geometry"
-
-#~ msgid "Error compiling regular expression \"%s\"."
-#~ msgstr "Памылка кампіляцыі рэгулярнага выразу \"%s\"."
-
-#~ msgid "Unable to send data to child, invalid charset convertor"
-#~ msgstr "Не ўдалося паслаць даныя нашчадку: хібны модуль пераўтварэння знаказбору"
-
-#~ msgid "Error reading PTY size, using defaults: %s\n"
-#~ msgstr "Памылка чытання памеру PTY: выкарыстоўваецца прадвызначаны: %s\n"
-
-#~ msgid "_vte_conv_open() failed setting word characters"
-#~ msgstr "_vte_conv_open() не здолеў настроіць знакі, якія ўжываюцца ў словах"
+#: src/spawn.cc:645
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Не ўдалося выканаць працэс-нашчадак «%s»: "
