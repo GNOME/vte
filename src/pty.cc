@@ -253,15 +253,6 @@ Pty::child_setup() const noexcept
             peer_fd != STDERR_FILENO) {
                 close(peer_fd);
 	}
-
-        /* Now set the TERM environment variable */
-        /* FIXME: Setting environment here seems to have no effect, the merged envp2 will override on exec.
-         * By the way, we'd need to set the one from there, if any. */
-        g_setenv("TERM", VTE_TERMINFO_NAME, TRUE);
-
-        char version[7];
-        g_snprintf (version, sizeof (version), "%u", VTE_VERSION_NUMERIC);
-        g_setenv ("VTE_VERSION", version, TRUE);
 }
 
 /*
