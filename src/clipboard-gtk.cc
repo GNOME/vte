@@ -118,7 +118,7 @@ private:
                                 if (type == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF8)) {
                                         // This makes yet another copy of the data... :(
                                         gtk_selection_data_set_text(data, str->data(), str->size());
-                                } if (type == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF16)) {
+                                } else if (type == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF16)) {
                                         auto [html, len] = text_to_utf16_mozilla(*str);
 
                                         // This makes yet another copy of the data... :(
