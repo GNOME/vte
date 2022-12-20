@@ -95,6 +95,18 @@ struct _VteTerminalClassPrivate {
         GtkStyleProvider *style_provider;
 };
 
+template<>
+constexpr bool check_enum_value<VteFormat>(VteFormat value) noexcept
+{
+        switch (value) {
+        case VTE_FORMAT_TEXT:
+        case VTE_FORMAT_HTML:
+                return true;
+        default:
+                return false;
+        }
+}
+
 #if VTE_GTK == 4
 
 static void
@@ -2774,7 +2786,7 @@ vte_terminal_copy_clipboard_format(VteTerminal *terminal,
 try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
-        g_return_if_fail(format == VTE_FORMAT_TEXT || format == VTE_FORMAT_HTML);
+        g_return_if_fail(check_enum_value(format));
 
         WIDGET(terminal)->copy(vte::platform::ClipboardType::CLIPBOARD,
                                clipboard_format_from_vte(format));
@@ -4401,8 +4413,9 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * This method is unaware of BiDi. The columns passed in @start_col and @end_row,
  * and returned in @attributes are logical columns.
  *
- * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
- * 0.72, passing a non-%NULL @array parameter will make this function itself return %NULL.
+ * Since 0.68, passing a non-%NULL @array parameter is deprecated.
+ * Since 0.72, passing a non-%NULL @array parameter will make this function
+ *   itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
  */
@@ -4417,17 +4430,78 @@ vte_terminal_get_text_range(VteTerminal *terminal,
 			    GArray *attributes) noexcept
 try
 {
-	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
         warn_if_callback(is_selected);
         warn_if_attributes(attributes);
-        auto text = IMPL(terminal)->get_text(start_row, start_col,
-                                             end_row, end_col,
-                                             false /* block */,
-                                             true /* wrap */,
-                                             attributes);
-        if (text == nullptr)
+        if (is_selected || attributes)
                 return nullptr;
-        return (char*)g_string_free(text, FALSE);
+
+        return vte_terminal_get_text_range_format(terminal,
+                                                  VTE_FORMAT_TEXT,
+                                                  start_row,
+                                                  start_col,
+                                                  end_row,
+                                                  end_col,
+                                                  nullptr);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_get_text_range_format:
+ * @terminal: a #VteTerminal
+ * @format: the #VteFormat to use
+ * @start_row: the first row of the range
+ * @start_col: the first column of the range
+ * @end_row: the last row of the range
+ * @end_col: the last column of the range
+ *
+ * Returns the specified range of text in the specified format.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string, or %NULL.
+ *
+ * Since: 0.72
+ */
+char*
+vte_terminal_get_text_range_format(VteTerminal *terminal,
+                                   VteFormat format,
+                                   long start_row,
+                                   long start_col,
+                                   long end_row,
+                                   long end_col,
+                                   gsize* length) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(check_enum_value(format), nullptr);
+
+        if (length)
+                *length = 0;
+
+        auto attributes = vte::Freeable<GArray>{};
+        if (format == VTE_FORMAT_HTML)
+                attributes = vte::take_freeable(g_array_new(false,
+                                                            true,
+                                                            sizeof(struct _VteCharAttributes)));
+
+        auto const impl = IMPL(terminal);
+        auto text = vte::take_freeable(impl->get_text(start_row,
+                                                      start_col,
+                                                      end_row,
+                                                      end_col,
+                                                      false,
+                                                      true,
+                                                      attributes.get()));
+        if (!text)
+                return nullptr;
+
+        if (format == VTE_FORMAT_HTML)
+                text = vte::take_freeable(impl->attributes_to_html(text.get(),
+                                                                   attributes.get()));
+
+        return vte::glib::release_to_string(std::move(text), length);
 }
 catch (...)
 {
@@ -5774,7 +5848,7 @@ catch (...)
  * @format: the #VteFormat to use
  *
  * Gets the currently selected text in the format specified by @format.
- * Note that currently, only %VTE_FORMAT_TEXT is supported.
+ * Since 0.72, this function also supports %VTE_FORMAT_HTML format.xg
  *
  * Returns: (transfer full) (nullable): a newly allocated string containing the selected text, or %NULL if there is no selection or the format is not supported
  *
@@ -5785,20 +5859,47 @@ vte_terminal_get_text_selected(VteTerminal* terminal,
                                VteFormat format) noexcept
 try
 {
+        return vte_terminal_get_text_selected_full(terminal,
+                                                   format,
+                                                   nullptr);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_get_text_selected_full:
+ * @terminal: a #VteTerminal
+ * @format: the #VteFormat to use
+ * @length: (optional) (default 0) (out): a pointer to a #gsize to store the string length
+ *
+ * Gets the currently selected text in the format specified by @format.
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string containing the selected text, or %NULL if there is no selection or the format is not supported
+ *
+ * Since: 0.72
+ */
+char*
+vte_terminal_get_text_selected_full(VteTerminal* terminal,
+                                    VteFormat format,
+                                    gsize* length) noexcept
+try
+{
+        if (length)
+                *length = 0;
+
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
 
-        if (format != VTE_FORMAT_TEXT)
-                return nullptr;
-
         auto const selection = IMPL(terminal)->m_selection_resolved;
-        return vte_terminal_get_text_range(terminal,
-                                           selection.start_row(),
-                                           selection.start_column(),
-                                           selection.last_row(),
-                                           selection.end_column(),
-                                           nullptr,
-                                           nullptr,
-                                           nullptr);
+        return vte_terminal_get_text_range_format(terminal,
+                                                  format,
+                                                  selection.start_row(),
+                                                  selection.start_column(),
+                                                  selection.last_row(),
+                                                  selection.end_column(),
+                                                  length);
 }
 catch (...)
 {

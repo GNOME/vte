@@ -278,8 +278,24 @@ bool set_error_from_exception(GError** error
 
 namespace vte {
 
+VTE_DECLARE_FREEABLE(GArray, g_array_unref);
 VTE_DECLARE_FREEABLE(GBytes, g_bytes_unref);
 VTE_DECLARE_FREEABLE(GOptionContext, g_option_context_free);
+VTE_DECLARE_FREEABLE(GString, g_autoptr_cleanup_gstring_free);
 VTE_DECLARE_FREEABLE(GVariant, g_variant_unref);
 
 } // namespace vte
+
+namespace vte::glib {
+
+inline char*
+release_to_string(vte::Freeable<GString> str,
+                  gsize* length = nullptr) noexcept
+{
+        if (length)
+                *length = str.get()->len;
+
+        return g_string_free(str.release(), false);
+}
+
+} // namespace vte::glib

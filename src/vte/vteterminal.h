@@ -360,7 +360,12 @@ gboolean vte_terminal_get_has_selection(VteTerminal *terminal) _VTE_CXX_NOEXCEPT
 
 _VTE_PUBLIC
 char* vte_terminal_get_text_selected(VteTerminal* terminal,
-                                     VteFormat format) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+                                     VteFormat format) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_PUBLIC
+char* vte_terminal_get_text_selected_full(VteTerminal* terminal,
+                                          VteFormat format,
+                                          gsize* length) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 /* Set what happens when the user strikes backspace or delete. */
 _VTE_PUBLIC
@@ -414,6 +419,16 @@ char *vte_terminal_get_text_range(VteTerminal *terminal,
 				  VteSelectionFunc is_selected,
 				  gpointer user_data,
 				  GArray *attributes) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_PUBLIC
+char* vte_terminal_get_text_range_format(VteTerminal* terminal,
+                                         VteFormat format,
+                                         long start_row,
+                                         long start_col,
+                                         long end_row,
+                                         long end_col,
+                                         gsize* length) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
 _VTE_PUBLIC
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column,
