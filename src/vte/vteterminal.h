@@ -430,6 +430,11 @@ char* vte_terminal_get_text_range_format(VteTerminal* terminal,
                                          gsize* length) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
 
 _VTE_PUBLIC
+char* vte_terminal_get_text_displayed_format(VteTerminal* terminal,
+                                             VteFormat format,
+                                             gsize* length) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) G_GNUC_MALLOC;
+
+_VTE_PUBLIC
 void vte_terminal_get_cursor_position(VteTerminal *terminal,
 				      glong *column,
                                       glong *row) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);

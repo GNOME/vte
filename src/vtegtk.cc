@@ -4360,6 +4360,54 @@ catch (...)
 }
 
 /**
+ * vte_terminal_get_text_displayed_format:
+ * @terminal: a #VteTerminal
+ * @format: the #VteFormat to use
+ * @length: (optional) (default 0) (out): a pointer to a #gsize to store the string length
+ *
+ * Returns the currently displayed text in the speficied format
+ *
+ * Returns: (transfer full) (nullable): a newly allocated string, or %NULL.
+ *
+ * Since: 0.72
+ */
+char *
+vte_terminal_get_text_displayed_format(VteTerminal* terminal,
+                                       VteFormat format,
+                                       gsize* length) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+        g_return_val_if_fail(check_enum_value(format), nullptr);
+
+        if (length)
+                *length = 0;
+
+        auto attributes = vte::Freeable<GArray>{};
+        if (format == VTE_FORMAT_HTML)
+                attributes = vte::take_freeable(g_array_new(false,
+                                                            true,
+                                                            sizeof(struct _VteCharAttributes)));
+
+        auto const impl = IMPL(terminal);
+        auto text = vte::take_freeable(impl->get_text_displayed(true, // wrap
+                                                                attributes.get()));
+        if (!text)
+                return nullptr;
+
+        if (format == VTE_FORMAT_HTML)
+                text = vte::take_freeable(impl->attributes_to_html(text.get(),
+                                                                   attributes.get()));
+
+        return vte::glib::release_to_string(std::move(text), length);
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
  * vte_terminal_get_text_include_trailing_spaces:
  * @terminal: a #VteTerminal
  * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
