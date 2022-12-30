@@ -5897,7 +5897,7 @@ try
                                                   format,
                                                   selection.start_row(),
                                                   selection.start_column(),
-                                                  selection.last_row(),
+                                                  selection.end_row(),
                                                   selection.end_column(),
                                                   length);
 }
