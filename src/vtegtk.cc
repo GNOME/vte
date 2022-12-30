@@ -5699,7 +5699,7 @@ try
         return vte_terminal_get_text_range(terminal,
                                            selection.start_row(),
                                            selection.start_column(),
-                                           selection.last_row(),
+                                           selection.end_row(),
                                            selection.end_column(),
                                            nullptr,
                                            nullptr,
