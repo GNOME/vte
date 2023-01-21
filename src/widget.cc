@@ -1245,10 +1245,10 @@ Widget::read_modifiers_from_gdk(GdkEvent* event) const noexcept
 unsigned
 Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
 {
-#if VTE_GTK == 3
 	if (event.keyval() < 128)
 		return event.keyval();
 
+#if VTE_GTK == 3
         auto display = gdk_window_get_display(gdk_event_get_window(event.platform_event()));
         auto keymap = gdk_keymap_get_for_display(display);
         auto keyval = unsigned{event.keyval()};
@@ -1270,10 +1270,35 @@ Widget::key_event_translate_ctrlkey(KeyEvent const& event) const noexcept
 	}
 
         return keyval;
+
 #elif VTE_GTK == 4
-        // FIXMEgtk4: find a way to do this on gtk4
+        auto const display = gdk_event_get_display(event.platform_event());
+
+        /* Try groups in order to find one mapping the key to ASCII */
+        for (auto i = unsigned{0}; i < 4; i++) {
+                auto keyval = guint{};
+                auto consumed_modifiers = GdkModifierType{};
+                if (!gdk_display_translate_key(display,
+                                               event.keycode(),
+                                               GdkModifierType(event.modifiers()),
+                                               i,
+                                               &keyval,
+                                               nullptr,
+                                               nullptr,
+                                               &consumed_modifiers))
+                        continue;
+
+                if (keyval >= 128)
+                        continue;
+
+                _vte_debug_print (VTE_DEBUG_EVENTS,
+                                  "ctrl+Key, group=%d de-grouped into keyval=0x%x\n",
+                                  event.group(), keyval);
+                return keyval;
+        }
+
         return event.keyval();
-#endif
+#endif /* VTE_GTK */
 }
 
 KeyEvent
