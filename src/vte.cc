@@ -3115,43 +3115,6 @@ not_inserted:
         m_line_wrapped = line_wrapped;
 }
 
-#ifdef WITH_SIXEL
-
-void
-Terminal::insert_image(ProcessingContext& context,
-                       vte::Freeable<cairo_surface_t> image_surface) /* throws */
-{
-        if (!image_surface)
-                return;
-
-        auto const image_width_px = cairo_image_surface_get_width(image_surface.get());
-        auto const image_height_px = cairo_image_surface_get_height(image_surface.get());
-
-        /* Calculate geometry */
-
-        auto const left = m_screen->cursor.col;
-        auto const top = m_screen->cursor.row;
-        auto const width = (image_width_px + m_cell_width_unscaled - 1) / m_cell_width_unscaled;
-        auto const height = (image_height_px + m_cell_height_unscaled - 1) / m_cell_height_unscaled;
-
-        m_screen->row_data->append_image(std::move(image_surface),
-                                         image_width_px,
-                                         image_height_px,
-                                         left,
-                                         top,
-                                         m_cell_width_unscaled,
-                                         m_cell_height_unscaled);
-
-        /* Erase characters under the image. Since this inserts content, we need
-         * to update the processing context's bbox.
-         */
-        context.pre_GRAPHIC(*this);
-        erase_image_rect(height, width);
-        context.post_GRAPHIC(*this);
-}
-
-#endif /* WITH_SIXEL */
-
 guint8
 Terminal::get_bidi_flags() const noexcept
 {
@@ -3515,12 +3478,6 @@ Terminal::process_incoming()
                         break;
 #endif
 
-#ifdef WITH_SIXEL
-                case DataSyntax::DECSIXEL:
-                        process_incoming_decsixel(context, *chunk);
-                        break;
-#endif
-
                 default:
                         g_assert_not_reached();
                         break;
@@ -3724,7 +3681,10 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 }
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
 switched_data_syntax:
+#pragma GCC diagnostic pop
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -3849,7 +3809,10 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                 return;
         }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-label"
  switched_data_syntax:
+#pragma GCC diagnostic pop
 
         // Update start for data consumed
         chunk.set_begin_reading(ip);
@@ -3862,44 +3825,6 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 }
 
 #endif /* WITH_ICU */
-
-#ifdef WITH_SIXEL
-
-void
-Terminal::process_incoming_decsixel(ProcessingContext& context,
-                                    vte::base::Chunk& chunk)
-{
-        auto const [status, ip] = m_sixel_context->parse(chunk.begin_reading(),
-                                                         chunk.end_reading(),
-                                                         chunk.eos());
-
-        // Update start for data consumed
-        chunk.set_begin_reading(ip);
-
-        switch (status) {
-        case vte::sixel::Parser::ParseStatus::CONTINUE:
-                break;
-
-        case vte::sixel::Parser::ParseStatus::COMPLETE:
-                /* Like the main parser, the sequence only takes effect
-                 * if introducer and terminator match (both C0 or both C1).
-                 */
-                if (m_sixel_context->is_matching_controls()) {
-                        try {
-                                insert_image(context, m_sixel_context->image_cairo());
-                        } catch (...) {
-                        }
-                }
-
-                [[fallthrough]];
-        case vte::sixel::Parser::ParseStatus::ABORT:
-                m_sixel_context->reset();
-                pop_data_syntax();
-                break;
-        }
-}
-
-#endif /* WITH_SIXEL */
 
 bool
 Terminal::pty_io_read(int const fd,
@@ -7688,12 +7613,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	for (auto i = 0; i < VTE_PALETTE_SIZE; i++)
 		m_palette[i].sources[VTE_COLOR_SOURCE_ESCAPE].is_set = FALSE;
 
-        /* Dispatch unripe DCS (for now, just DECSIXEL) sequences,
-         * so we can switch data syntax and parse the contents with
-         * the SIXEL subparser.
-         */
-        m_parser.set_dispatch_unripe(true);
-
 	/* Set up I/O encodings. */
 	m_outgoing = _vte_byte_array_new();
 
@@ -8223,11 +8142,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         else
                 rgb_from_index<4, 5, 4>(deco, dc);
 
-#ifndef WITH_SIXEL
         if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-#else
-        {
-#endif
                 /* Paint the background. */
                 i = 0;
                 while (i < n) {
@@ -8246,25 +8161,11 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                 }
                         }
 
-#ifdef WITH_SIXEL
-                        if (back == VTE_DEFAULT_BG) {
-                                /* Clear cells in order to properly overdraw images */
-                                m_draw.clear(xl,
-                                             y,
-                                             xr - xl, row_height,
-                                             get_color(VTE_DEFAULT_BG), m_background_alpha);
-                        }
-
-                        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-#else
-                        {
-#endif
-                                m_draw.fill_rectangle(
-                                                      xl,
-                                                      y,
-                                                      xr - xl, row_height,
-                                                      &bg, VTE_DRAW_OPAQUE);
-                        }
+                        m_draw.fill_rectangle(
+                                              xl,
+                                              y,
+                                              xr - xl, row_height,
+                                              &bg, VTE_DRAW_OPAQUE);
                 }
         }
 
@@ -8878,14 +8779,12 @@ Terminal::draw_rows(VteScreen *screen_,
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
                                   (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
                         if (cell->c == 0 ||
-#ifndef WITH_SIXEL
                             ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
                              cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
                                                  VTE_ATTR_STRIKETHROUGH_MASK |
                                                  VTE_ATTR_OVERLINE_MASK) &&
                              !nhyperlink &&
                              !nhilite) ||
-#endif
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
                                 /* Skip empty or fragment cell, but erase on ' ' and '\t', since
@@ -9321,9 +9220,6 @@ Terminal::draw(cairo_t* cr,
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
-#ifdef WITH_SIXEL
-        VteRing *ring = m_screen->row_data;
-#endif
         gint64 now = 0;
 
         allocated_width = get_allocated_width();
@@ -9365,33 +9261,6 @@ Terminal::draw(cairo_t* cr,
 #endif
                         allocated_height - m_border.top - m_border.bottom);
         cairo_clip(cr);
-
-#ifdef WITH_SIXEL
-	/* Draw images */
-	if (m_images_enabled) {
-		vte::grid::row_t top_row = first_displayed_row();
-		vte::grid::row_t bottom_row = last_displayed_row();
-                auto const& image_map = ring->image_map();
-                auto const image_map_end = image_map.end();
-                for (auto it = image_map.begin(); it != image_map_end; ++it) {
-                        auto const& image = it->second;
-
-                        if (image->get_bottom() < top_row ||
-                            image->get_top() > bottom_row)
-				continue;
-
-			auto const x = image->get_left () * m_cell_width;
-			auto const y = (image->get_top () - m_screen->scroll_delta) * m_cell_height;
-
-                        /* Clear cell extent; image may be slightly smaller */
-                        m_draw.clear(x, y, image->get_width() * m_cell_width,
-                                     image->get_height() * m_cell_height,
-                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
-
-			image->paint(cr, x, y, m_cell_width, m_cell_height);
-		}
-	}
-#endif /* WITH_SIXEL */
 
         /* Whether blinking text should be visible now */
         m_text_blink_state = true;
@@ -9957,26 +9826,11 @@ Terminal::reset_data_syntax()
                 return;
 
         switch (current_data_syntax()) {
-#ifdef WITH_SIXEL
-        case DataSyntax::DECSIXEL:
-                m_sixel_context->reset();
-                break;
-#endif
-
         default:
                 break;
         }
 
         pop_data_syntax();
-}
-
-void
-Terminal::reset_graphics_color_registers()
-{
-#ifdef WITH_SIXEL
-        if (m_sixel_context)
-                m_sixel_context->reset_colors();
-#endif
 }
 
 /*
@@ -10083,11 +9937,6 @@ Terminal::reset(bool clear_tabstops,
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
-#ifdef WITH_SIXEL
-        if (m_sixel_context)
-                m_sixel_context->reset_colors();
-#endif
-
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
@@ -10098,12 +9947,6 @@ Terminal::reset(bool clear_tabstops,
 
         /* Reset XTerm window controls */
         m_xterm_wm_iconified = false;
-
-        /* When not using private colour registers, we should
-         * clear (assign to black) all SIXEL colour registers.
-         * (DEC PPLV2 § 5.8)
-         */
-        reset_graphics_color_registers();
 }
 
 void
