@@ -741,7 +741,15 @@ message(output)
 # Check stable/unstable status
 
 if (vte_minor_version % 2) != 0
-  warning('This is an unstable development release!\n')
+  if (vte_micro_version >= 99)
+    warning('This is a release candidate release!\n')
+  elif (vte_micro_version > 90)
+    warning('This is a beta release!\n')
+  else
+    warning('This is an unstable development release!\n')
+  endif
+else
+  message('This is a stable release.')
 endif
 
 # Done
