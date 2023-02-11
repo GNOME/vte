@@ -1492,8 +1492,10 @@ Terminal::regex_match_check(vte::grid::column_t column,
                             vte::grid::row_t row,
                             int* tag)
 {
-        /* Need to ensure the ringview is updated. */
-        ringview_update();
+
+        // Caller needs to update the ringview.
+        if (!m_ringview.is_updated())
+                [[unlikely]] return nullptr;
 
 	long delta = m_screen->scroll_delta;
 	_vte_debug_print(VTE_DEBUG_EVENTS | VTE_DEBUG_REGEX,
@@ -1585,8 +1587,10 @@ Terminal::confined_grid_coords_from_event(vte::platform::MouseEvent const& event
 vte::grid::coords
 Terminal::grid_coords_from_view_coords(vte::view::coords const& pos) const
 {
-        /* Our caller had to update the ringview (we can't do because we're const). */
-        g_assert(m_ringview.is_updated());
+        // Callers need to update the ringview. However, don't assert, just
+        // return out-of-view coords. FIXME: may want to throw instead
+        if (!m_ringview.is_updated())
+                [[unlikely]] return {-1, -1};
 
         vte::grid::column_t col;
         if (pos.x >= 0 && pos.x < m_view_usable_extents.width())
@@ -1691,8 +1695,10 @@ Terminal::confine_grid_coords(vte::grid::coords const& rowcol) const
 vte::grid::halfcoords
 Terminal::selection_grid_halfcoords_from_view_coords(vte::view::coords const& pos) const
 {
-        /* Our caller had to update the ringview (we can't do because we're const). */
-        g_assert(m_ringview.is_updated());
+        // Callers need to update the ringview. However, don't assert, just
+        // return out-of-view coords. FIXME: may want to throw instead
+        if (!m_ringview.is_updated())
+                [[unlikely]] return {-1, {-1, 1}};
 
         vte::grid::row_t row = pixel_to_row(pos.y);
         vte::grid::column_t col;
@@ -1736,7 +1742,8 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
                 return;
 
         /* Need to ensure the ringview is updated. */
-        ringview_update();
+        if (!m_ringview.is_updated())
+                ringview_update();
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -1805,6 +1812,10 @@ char*
 Terminal::hyperlink_check_at(double x,
                              double y)
 {
+        /* Need to ensure the ringview is updated. */
+        if (!m_ringview.is_updated())
+                ringview_update();
+
         long col, row;
         if (!rowcol_at(x, y, &col, &row))
                 return nullptr;
@@ -1817,6 +1828,10 @@ Terminal::hyperlink_check_at(double x,
 char*
 Terminal::hyperlink_check(vte::platform::MouseEvent const& event)
 {
+        /* Need to ensure the ringview is updated. */
+        if (!m_ringview.is_updated())
+                ringview_update();
+
         long col, row;
         if (!rowcol_from_event(event, &col, &row))
                 return nullptr;
@@ -1834,8 +1849,9 @@ Terminal::hyperlink_check(vte::grid::column_t col,
         if (!m_allow_hyperlink)
                 return NULL;
 
-        /* Need to ensure the ringview is updated. */
-        ringview_update();
+        // Caller needs to update the ringview.
+        if (!m_ringview.is_updated())
+                [[unlikely]] return nullptr;
 
         _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, false, &hyperlink);
 
@@ -1857,10 +1873,13 @@ char*
 Terminal::regex_match_check(vte::platform::MouseEvent const& event,
                             int *tag)
 {
-        long col, row;
+        /* Need to ensure the ringview is updated. */
+        if (!m_ringview.is_updated())
+                ringview_update();
 
+        long col, row;
         if (!rowcol_from_event(event, &col, &row))
-                return FALSE;
+                return nullptr;
 
         /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
         // FIXMEchpe fix this scroll_delta substraction!
@@ -1874,6 +1893,10 @@ Terminal::regex_match_check_at(double x,
                                double y,
                                int *tag)
 {
+        /* Need to ensure the ringview is updated. */
+        if (!m_ringview.is_updated())
+                ringview_update();
+
         long col, row;
         if (!rowcol_at(x, y, &col, &row))
                 return nullptr;
@@ -1891,6 +1914,10 @@ Terminal::regex_match_check_extra_at(double x,
                                      uint32_t match_flags,
                                      char** matches)
 {
+        /* Need to ensure the ringview is updated. */
+        if (!m_ringview.is_updated())
+                ringview_update();
+
         long col, row;
         if (!rowcol_at(x, y, &col, &row))
                 return false;
@@ -1907,6 +1934,10 @@ Terminal::regex_match_check_extra(vte::platform::MouseEvent const& event,
                                   uint32_t match_flags,
                                   char** matches)
 {
+        /* Need to ensure the ringview is updated. */
+        if (!m_ringview.is_updated())
+                ringview_update();
+
         long col, row;
         if (!rowcol_from_event(event, &col, &row))
                 return false;
@@ -1929,8 +1960,9 @@ Terminal::regex_match_check_extra(vte::grid::column_t col,
         assert(regexes != nullptr || n_regexes == 0);
         assert(matches != nullptr);
 
-        /* Need to ensure the ringview is updated. */
-        ringview_update();
+        // Caller needs to update the ringview.
+        if (!m_ringview.is_updated())
+                [[unlikely]] return false;
 
 	if (m_match_contents == nullptr) {
 		match_contents_refresh();
@@ -5396,8 +5428,10 @@ bool
 Terminal::cell_is_selected_log(vte::grid::column_t lcol,
                                vte::grid::row_t row) const
 {
-        /* Our caller had to update the ringview (we can't do because we're const). */
-        g_assert(m_ringview.is_updated());
+        // Callers need to update the ringview. However, don't assert, just
+        // return out-of-view coords. FIXME: may want to throw instead
+        if (!m_ringview.is_updated())
+                [[unlikely]] return false;
 
         if (m_selection_block_mode) {
                 /* In block mode, make sure CJKs and TABs aren't cut in half. */
@@ -5422,8 +5456,10 @@ bool
 Terminal::cell_is_selected_vis(vte::grid::column_t vcol,
                                vte::grid::row_t row) const
 {
-        /* Our caller had to update the ringview (we can't do because we're const). */
-        g_assert(m_ringview.is_updated());
+        // Callers need to update the ringview. However, don't assert, just
+        // return out-of-view coords. FIXME: may want to throw instead
+        if (!m_ringview.is_updated())
+                [[unlikely]] return false;
 
         /* Convert to logical column. */
         vte::base::BidiRow const* bidirow = m_ringview.get_bidirow(row);
