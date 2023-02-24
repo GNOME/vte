@@ -4362,6 +4362,7 @@ catch (...)
  * @start_col: the first column of the range
  * @end_row: the last row of the range
  * @end_col: the last column of the range
+ * @length: (optional) (default 0) (out): a pointer to a #gsize to store the string length
  *
  * Returns the specified range of text in the specified format.
  *
