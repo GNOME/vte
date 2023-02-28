@@ -23,6 +23,7 @@
 
 namespace vte {
 
+VTE_DECLARE_FREEABLE(cairo_font_options_t, cairo_font_options_destroy);
 VTE_DECLARE_FREEABLE(cairo_rectangle_list_t, cairo_rectangle_list_destroy);
 VTE_DECLARE_FREEABLE(cairo_region_t, cairo_region_destroy);
 VTE_DECLARE_FREEABLE(cairo_surface_t, cairo_surface_destroy);
