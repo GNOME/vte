@@ -313,7 +313,9 @@ public:
                 auto task = vte::glib::take_ref(g_task_new(m_native, cancellable, callback, user_data));
                 g_task_set_priority(task.get(), io_priority);
                 g_task_set_source_tag(task.get(), &task_tag);
+#if GLIB_CHECK_VERSION(2, 60, 0)
                 g_task_set_name(task.get(), "vte-content-provider-write-async");
+#endif
 
                 auto const format = format_from_mime_type(mime_type);
                 if (format == ClipboardFormat::INVALID)
