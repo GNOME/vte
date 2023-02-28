@@ -138,6 +138,7 @@ DrawingContext::clear(int x,
 void
 DrawingContext::set_text_font(GtkWidget* widget,
                               PangoFontDescription const* fontdesc,
+                              cairo_font_options_t const* font_options,
                               double cell_width_scale,
                               double cell_height_scale)
 {
@@ -168,11 +169,11 @@ DrawingContext::set_text_font(GtkWidget* widget,
 	bolditalicdesc = pango_font_description_copy (bolddesc);
 	pango_font_description_set_style (bolditalicdesc, PANGO_STYLE_ITALIC);
 
-	m_fonts[VTE_DRAW_NORMAL]  = FontInfo::create_for_widget(widget, fontdesc);
-	m_fonts[VTE_DRAW_BOLD]    = FontInfo::create_for_widget(widget, bolddesc);
-	m_fonts[VTE_DRAW_ITALIC]  = FontInfo::create_for_widget(widget, italicdesc);
+	m_fonts[VTE_DRAW_NORMAL]  = FontInfo::create_for_widget(widget, fontdesc, font_options);
+	m_fonts[VTE_DRAW_BOLD]    = FontInfo::create_for_widget(widget, bolddesc, font_options);
+	m_fonts[VTE_DRAW_ITALIC]  = FontInfo::create_for_widget(widget, italicdesc, font_options);
 	m_fonts[VTE_DRAW_ITALIC | VTE_DRAW_BOLD] =
-                FontInfo::create_for_widget(widget, bolditalicdesc);
+                FontInfo::create_for_widget(widget, bolditalicdesc, font_options);
 	pango_font_description_free (bolddesc);
 	pango_font_description_free (italicdesc);
 	pango_font_description_free (bolditalicdesc);

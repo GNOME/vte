@@ -45,6 +45,8 @@ gtk4_req_version          = '4.0.1'
 gtk4_min_req_version      = '4.0'
 gtk4_max_allowed_version  = '4.0'
 
+cairo_req_version         = '1.0'
+cairo_gobject_req_version = '1.0'
 fribidi_req_version       = '1.0.0'
 gio_req_version           = '2.52.0'
 glib_req_version          = '2.52.0'
@@ -617,13 +619,15 @@ endforeach
 
 # Dependencies
 
-gio_dep      = dependency('gio-2.0',    version: '>=' + gio_req_version)
-glib_dep     = dependency('glib-2.0',   version: '>=' + glib_req_version)
-gobject_dep  = dependency('gobject-2.0')
-pango_dep    = dependency('pango',      version: '>=' + pango_req_version)
-pcre2_dep    = dependency('libpcre2-8', version: '>=' + pcre2_req_version)
-pthreads_dep = dependency('threads')
-zlib_dep     = dependency('zlib')
+cairo_dep         = dependency('cairo', version: '>=' + cairo_req_version)
+cairo_gobject_dep = dependency('cairo-gobject', version: '>=' + cairo_gobject_req_version)
+gio_dep           = dependency('gio-2.0',    version: '>=' + gio_req_version)
+glib_dep          = dependency('glib-2.0',   version: '>=' + glib_req_version)
+gobject_dep       = dependency('gobject-2.0')
+pango_dep         = dependency('pango',      version: '>=' + pango_req_version)
+pcre2_dep         = dependency('libpcre2-8', version: '>=' + pcre2_req_version)
+pthreads_dep      = dependency('threads')
+zlib_dep          = dependency('zlib')
 
 if get_option('fribidi')
   fribidi_dep = dependency('fribidi', version: '>=' + fribidi_req_version)

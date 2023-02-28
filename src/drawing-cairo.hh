@@ -77,6 +77,7 @@ public:
         void clear_font_cache();
         void set_text_font(GtkWidget* widget,
                            PangoFontDescription const* fontdesc,
+                           cairo_font_options_t const* font_options,
                            double cell_width_scale,
                            double cell_height_scale);
         void get_text_metrics(int* cell_width,

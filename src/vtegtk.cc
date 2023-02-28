@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2001-2004,2009,2010 Red Hat, Inc.
- * Copyright © 2008, 2009, 2010, 2015 Christian Persch
+ * Copyright © 2008, 2009, 2010, 2015, 2022, 2023 Christian Persch
  *
  * This library is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -61,6 +61,8 @@
 #include "vtegtk.hh"
 #include "vteptyinternal.hh"
 #include "vteregexinternal.hh"
+
+#include <cairo-gobject.h>
 
 #ifdef WITH_A11Y
 #if VTE_GTK == 3
@@ -993,6 +995,9 @@ try
                 case PROP_FONT_DESC:
                         g_value_set_boxed (value, vte_terminal_get_font (terminal));
                         break;
+                case PROP_FONT_OPTIONS:
+                        g_value_set_boxed(value, vte_terminal_get_font_options(terminal));
+                        break;
                 case PROP_FONT_SCALE:
                         g_value_set_double (value, vte_terminal_get_font_scale (terminal));
                         break;
@@ -1135,6 +1140,10 @@ try
                         break;
                 case PROP_FONT_DESC:
                         vte_terminal_set_font (terminal, (PangoFontDescription *)g_value_get_boxed (value));
+                        break;
+                case PROP_FONT_OPTIONS:
+                        vte_terminal_set_font_options(terminal,
+                                                      reinterpret_cast<cairo_font_options_t const*>(g_value_get_boxed(value)));
                         break;
                 case PROP_FONT_SCALE:
                         vte_terminal_set_font_scale (terminal, g_value_get_double (value));
@@ -2146,6 +2155,25 @@ vte_terminal_class_init(VteTerminalClass *klass)
 #endif
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
+
+        /**
+         * VteTerminal:font-options:
+         *
+         * The terminal's font options, or %NULL to use the default font options.
+         *
+         * Note that on GTK4, the terminal by default uses font options
+         * with %CAIRO_HINT_METRICS_ON set; to override that, use this
+         * function to set a #cairo_font_options_t that has
+         * %CAIRO_HINT_METRICS_OFF set.
+         *
+         * Since: 0.74
+         */
+        pspecs[PROP_FONT_OPTIONS] =
+                g_param_spec_boxed("font-options", nullptr, nullptr,
+                                   CAIRO_GOBJECT_TYPE_FONT_OPTIONS,
+                                   GParamFlags(G_PARAM_READWRITE |
+                                               G_PARAM_STATIC_STRINGS |
+                                               G_PARAM_EXPLICIT_NOTIFY));
 
         /**
          * VteTerminal:font-scale:
@@ -5577,6 +5605,57 @@ try
 
         if (IMPL(terminal)->set_font_desc(vte::take_freeable(pango_font_description_copy(font_desc))))
                 g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_DESC]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_font_options:
+ * @terminal: a #VteTerminal
+ *
+ * Returns: (nullable): the terminal's font options, or %NULL
+ *
+ * Since: 0.74
+ */
+cairo_font_options_t const*
+vte_terminal_get_font_options(VteTerminal *terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), nullptr);
+
+        return IMPL(terminal)->get_font_options();
+}
+catch (...)
+{
+        vte::log_exception();
+        return nullptr;
+}
+
+/**
+ * vte_terminal_set_font_options:
+ * @terminal: a #VteTerminal
+ * @font_options: (nullable): the font options, or %NULL
+ *
+ * Sets the terminal's font options to @options.
+ *
+ * Note that on GTK4, the terminal by default uses font options
+ * with %CAIRO_HINT_METRICS_ON set; to override that, use this
+ * function to set a #cairo_font_options_t that has
+ * %CAIRO_HINT_METRICS_OFF set.
+ *
+ * Since: 0.74
+ */
+void
+vte_terminal_set_font_options(VteTerminal *terminal,
+                              cairo_font_options_t const* font_options) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_font_options(vte::take_freeable(font_options ? cairo_font_options_copy(font_options) : nullptr)))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FONT_OPTIONS]);
 }
 catch (...)
 {

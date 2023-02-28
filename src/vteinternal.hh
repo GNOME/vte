@@ -617,6 +617,7 @@ public:
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
+        vte::Freeable<cairo_font_options_t> m_font_options{};
         vte::Freeable<PangoFontDescription> m_api_font_desc{};
         vte::Freeable<PangoFontDescription> m_unscaled_font_desc{};
         vte::Freeable<PangoFontDescription> m_fontdesc{};
@@ -1408,6 +1409,8 @@ public:
                           GError** error);
         bool set_font_desc(vte::Freeable<PangoFontDescription> desc);
         bool update_font_desc();
+        bool set_font_options(vte::Freeable<cairo_font_options_t> font_options);
+        cairo_font_options_t const* get_font_options() const noexcept { return m_font_options.get(); }
         bool set_font_scale(double scale);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);

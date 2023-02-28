@@ -23,6 +23,7 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <cairo.h>
 #include <pango/pango.h>
 #include <gtk/gtk.h>
 
@@ -235,6 +236,12 @@ void vte_terminal_set_font_scale(VteTerminal *terminal,
                                  gdouble scale) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 gdouble vte_terminal_get_font_scale(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+void vte_terminal_set_font_options(VteTerminal *terminal,
+                                   cairo_font_options_t const* font_options) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+cairo_font_options_t const* vte_terminal_get_font_options(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
 void vte_terminal_set_cell_width_scale(VteTerminal *terminal,

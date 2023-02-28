@@ -78,6 +78,7 @@ enum {
         PROP_ENABLE_SIXEL,
         PROP_ENCODING,
         PROP_FONT_DESC,
+        PROP_FONT_OPTIONS,
         PROP_FONT_SCALE,
         PROP_HYPERLINK_HOVER_URI,
         PROP_ICON_TITLE,

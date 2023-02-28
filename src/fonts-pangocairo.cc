@@ -346,6 +346,7 @@ FontInfo*
 FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
                              PangoFontDescription const* desc,
                              PangoLanguage* language,
+                             cairo_font_options_t const* font_options,
                              guint fontconfig_timestamp)
 {
 	if (!PANGO_IS_CAIRO_FONT_MAP(pango_context_get_font_map(context.get()))) {
@@ -366,35 +367,50 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
             language != pango_context_get_language(context.get()))
                 pango_context_set_language(context.get(), language);
 
-        // Ensure Pango and cairo are configured to quantize and hint font metrics.
-        // Terminal cells in vte have integer pixel sizes. If Pango is configured to do sub-pixel
-        // glyph advances, a small fractional part might get rounded up to a whole pixel - so the
-        // character spacing will appear too wide. Setting the cairo hint metrics option ensures
-        // that there are integer numbers of pixels both above and below the baseline.
         {
-                auto font_options = vte::take_freeable(cairo_font_options_create());
+                // Make sure our contexts have a font_options set.  We use
+                // this invariant in our context hash and equal functions.
+                auto builtin_font_options = vte::take_freeable(cairo_font_options_create());
+
 #if VTE_GTK == 4
-                cairo_font_options_set_hint_metrics(font_options.get(),
+                // On gtk4, we need to ensure Pango and cairo are configured to quantize
+                // and hint font metrics.  Terminal cells in vte have integer pixel sizes.
+                // If Pango is configured to do sub-pixel glyph advances, a small fractional
+                // part might get rounded up to a whole pixel; so the character spacing will
+                // appear too wide. Setting the cairo hint metrics option ensures that there
+                // are integer numbers of pixels both above and below the baseline.
+                // See issue#2573.
+                cairo_font_options_set_hint_metrics(builtin_font_options.get(),
                                                     CAIRO_HINT_METRICS_ON);
 #endif /* VTE_GTK == 4 */
 
-                if (auto const ctx_font_options =
-                    pango_cairo_context_get_font_options(context.get())) {
+                // Allow using the API to override the built-in hint metrics setting.
+                if (!font_options)
+                        font_options = builtin_font_options.get();
+
+                if (auto const ctx_font_options = pango_cairo_context_get_font_options(context.get())) {
                         auto const merged_font_options =
                                 vte::take_freeable(cairo_font_options_copy(ctx_font_options));
                         cairo_font_options_merge(merged_font_options.get(),
-                                                 font_options.get());
+                                                 font_options);
                         pango_cairo_context_set_font_options(context.get(),
                                                              merged_font_options.get());
                 } else {
-                        // Make sure our contexts have a font_options set.  We use
-                        // this invariant in our context hash and equal functions.
-                        pango_cairo_context_set_font_options(context.get(),
-                                                             font_options.get());
+                        pango_cairo_context_set_font_options(context.get(), font_options);
                 }
 
 #if VTE_GTK == 4
-                pango_context_set_round_glyph_positions (context.get(), true);
+                // If hinting font metrics, also make sure to round glyph positions
+                // to integers.  See issue#2573.
+                if (auto const ctx_font_options = pango_cairo_context_get_font_options(context.get());
+                    ctx_font_options &&
+                    cairo_version() >= CAIRO_VERSION_ENCODE(1, 17, 4)) {
+                        auto const hint_metrics = cairo_font_options_get_hint_metrics(ctx_font_options);
+                        pango_context_set_round_glyph_positions(context.get(),
+                                                                hint_metrics == CAIRO_HINT_METRICS_ON);
+                } else {
+                        pango_context_set_round_glyph_positions(context.get(), false);
+                }
 #endif /* VTE_GTK == 4 */
         }
 
@@ -420,30 +436,32 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
 FontInfo*
 FontInfo::create_for_screen(GdkScreen* screen,
                             PangoFontDescription const* desc,
-                            PangoLanguage* language)
+                            PangoLanguage* language,
+                            cairo_font_options_t const* font_options)
 {
 	auto settings = gtk_settings_get_for_screen(screen);
 	auto fontconfig_timestamp = guint{};
 	g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
 	return create_for_context(vte::glib::take_ref(gdk_pango_context_get_for_screen(screen)),
-                                  desc, language, fontconfig_timestamp);
+                                  desc, language, font_options, fontconfig_timestamp);
 }
 #endif /* VTE_GTK */
 
 FontInfo*
 FontInfo::create_for_widget(GtkWidget* widget,
-                            PangoFontDescription const* desc)
+                            PangoFontDescription const* desc,
+                            cairo_font_options_t const* font_options)
 {
 #if VTE_GTK == 3
 	auto screen = gtk_widget_get_screen(widget);
-	return create_for_screen(screen, desc, nullptr);
+	return create_for_screen(screen, desc, nullptr, font_options);
 #elif VTE_GTK == 4
         auto display = gtk_widget_get_display(widget);
         auto settings = gtk_settings_get_for_display(display);
         auto fontconfig_timestamp = guint{};
         g_object_get (settings, "gtk-fontconfig-timestamp", &fontconfig_timestamp, nullptr);
         return create_for_context(vte::glib::take_ref(gtk_widget_create_pango_context(widget)),
-                                  desc, nullptr, fontconfig_timestamp);
+                                  desc, nullptr, font_options, fontconfig_timestamp);
         // FIXMEgtk4: this uses a per-widget context, while the gtk3 code uses a per-screen
         // one. That means there may be a lot less sharing and a lot more FontInfo's around?
 #endif

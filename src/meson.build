@@ -274,6 +274,7 @@ libvte_common_sources += gnome.genmarshal(
 )
 
 libvte_common_public_deps = [
+  cairo_dep,
   gio_dep,
   glib_dep,
   gobject_dep,
@@ -281,6 +282,7 @@ libvte_common_public_deps = [
 ]
 
 libvte_common_deps = libvte_common_public_deps + [
+  cairo_gobject_dep,
   fribidi_dep,
   gnutls_dep,
   icu_dep,

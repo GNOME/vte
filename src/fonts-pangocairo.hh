@@ -24,6 +24,7 @@
 #include <pango/pangocairo.h>
 #include <gtk/gtk.h>
 
+#include "cairo-glue.hh"
 #include "pango-glue.hh"
 #include "refptr.hh"
 #include "vteunistr.h"
@@ -268,17 +269,20 @@ private:
         static FontInfo* create_for_context(vte::glib::RefPtr<PangoContext> context,
                                             PangoFontDescription const* desc,
                                             PangoLanguage* language,
+                                            cairo_font_options_t const* font_options,
                                             guint fontconfig_timestamp);
 #if VTE_GTK == 3
         static FontInfo *create_for_screen(GdkScreen* screen,
                                            PangoFontDescription const* desc,
-                                           PangoLanguage* language);
+                                           PangoLanguage* language,
+                                           cairo_font_options_t const* font_options);
 #endif
 
 public:
 
         static FontInfo *create_for_widget(GtkWidget* widget,
-                                           PangoFontDescription const* desc);
+                                           PangoFontDescription const* desc,
+                                           cairo_font_options_t const* font_options);
 
 private:
         static inline GHashTable* s_font_info_for_context{nullptr};

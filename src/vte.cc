@@ -7218,6 +7218,7 @@ Terminal::ensure_font()
                                 m_draw.set_text_font(
                                                      m_widget,
                                                      m_unscaled_font_desc.get(),
+                                                     m_font_options.get(),
                                                      m_cell_width_scale,
                                                      m_cell_height_scale);
                                 m_draw.get_text_metrics(
@@ -7228,6 +7229,7 @@ Terminal::ensure_font()
 			m_draw.set_text_font(
                                                  m_widget,
                                                  m_fontdesc.get(),
+                                                 m_font_options.get(),
                                                  m_cell_width_scale,
                                                  m_cell_height_scale);
 			m_draw.get_text_metrics(
@@ -7379,6 +7381,22 @@ Terminal::set_font_scale(gdouble scale)
                 return false;
 
         m_font_scale = scale;
+        update_font();
+
+        return true;
+}
+
+bool
+Terminal::set_font_options(vte::Freeable<cairo_font_options_t> font_options)
+{
+        if ((m_font_options &&
+             font_options &&
+             cairo_font_options_equal(m_font_options.get(), font_options.get())) ||
+            (!m_font_options &&
+             !font_options))
+                return false;
+
+        m_font_options = std::move(font_options);
         update_font();
 
         return true;
