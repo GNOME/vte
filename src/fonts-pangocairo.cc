@@ -414,8 +414,6 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
 #endif /* VTE_GTK == 4 */
         }
 
-        pango_context_changed (context.get());
-
 	if (G_UNLIKELY(s_font_info_for_context == nullptr))
 		s_font_info_for_context = g_hash_table_new((GHashFunc) context_hash, (GEqualFunc) context_equal);
 
