@@ -20,6 +20,7 @@
 
 #include "fonts-pangocairo.hh"
 
+#include "cairo-glue.hh"
 #include "debug.h"
 #include "vtedefines.hh"
 
@@ -365,16 +366,39 @@ FontInfo::create_for_context(vte::glib::RefPtr<PangoContext> context,
             language != pango_context_get_language(context.get()))
                 pango_context_set_language(context.get(), language);
 
-        /* Make sure our contexts have a font_options set.  We use
-          * this invariant in our context hash and equal functions.
-          */
-        if (!pango_cairo_context_get_font_options(context.get())) {
-                cairo_font_options_t *font_options;
+        // Ensure Pango and cairo are configured to quantize and hint font metrics.
+        // Terminal cells in vte have integer pixel sizes. If Pango is configured to do sub-pixel
+        // glyph advances, a small fractional part might get rounded up to a whole pixel - so the
+        // character spacing will appear too wide. Setting the cairo hint metrics option ensures
+        // that there are integer numbers of pixels both above and below the baseline.
+        {
+                auto font_options = vte::take_freeable(cairo_font_options_create());
+#if VTE_GTK == 4
+                cairo_font_options_set_hint_metrics(font_options.get(),
+                                                    CAIRO_HINT_METRICS_ON);
+#endif /* VTE_GTK == 4 */
 
-                font_options = cairo_font_options_create ();
-                pango_cairo_context_set_font_options(context.get(), font_options);
-                cairo_font_options_destroy (font_options);
+                if (auto const ctx_font_options =
+                    pango_cairo_context_get_font_options(context.get())) {
+                        auto const merged_font_options =
+                                vte::take_freeable(cairo_font_options_copy(ctx_font_options));
+                        cairo_font_options_merge(merged_font_options.get(),
+                                                 font_options.get());
+                        pango_cairo_context_set_font_options(context.get(),
+                                                             merged_font_options.get());
+                } else {
+                        // Make sure our contexts have a font_options set.  We use
+                        // this invariant in our context hash and equal functions.
+                        pango_cairo_context_set_font_options(context.get(),
+                                                             font_options.get());
+                }
+
+#if VTE_GTK == 4
+                pango_context_set_round_glyph_positions (context.get(), true);
+#endif /* VTE_GTK == 4 */
         }
+
+        pango_context_changed (context.get());
 
 	if (G_UNLIKELY(s_font_info_for_context == nullptr))
 		s_font_info_for_context = g_hash_table_new((GHashFunc) context_hash, (GEqualFunc) context_equal);
