@@ -37,7 +37,7 @@
 
 #include <pwd.h>
 
-#ifdef HAVE_LOCALE_H
+#if __has_include(<locale.h>)
 #include <locale.h>
 #endif
 

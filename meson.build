@@ -253,27 +253,6 @@ foreach f: libc_feature_defines
   config_h.set(f[0], f[1])
 endforeach
 
-# Check headers
-
-check_headers = [
-  'locale.h',
-  'pty.h',
-  'stropts.h',
-  'sys/resource.h',
-  'sys/select.h',
-  'sys/stream.h',
-  'sys/syslimits.h',
-  'sys/types.h',
-  'sys/wait.h',
-  'termios.h',
-  'util.h',
-  'wchar.h',
-]
-
-foreach header: check_headers
-  config_h.set('HAVE_' + header.underscorify().to_upper(), cxx.has_header(header))
-endforeach
-
 # Check for symbols
 
 check_symbols_required = [

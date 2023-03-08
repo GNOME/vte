@@ -27,7 +27,7 @@
 #include <glib.h>
 #include "caps.hh"
 
-#ifdef HAVE_SYS_SELECT_H
+#if __has_include(<sys/select.h>)
 #include <sys/select.h>
 #endif
 

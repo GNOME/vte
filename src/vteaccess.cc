@@ -27,7 +27,7 @@
 #include "vteinternal.hh"
 #include "widget.hh"
 
-#ifdef HAVE_LOCALE_H
+#if __has_include(<locale.h>)
 #include <locale.h>
 #endif
 #include <glib/gi18n-lib.h>

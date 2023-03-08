@@ -17,8 +17,9 @@
 
 #include "config.h"
 
-#ifdef HAVE_SYS_RESOURCE_H
+#if __has_include(<sys/resource.h>)
 #include <sys/resource.h>
+#define HAVE_SYS_RESOURCE_H
 #endif
 
 #include <glib-unix.h>

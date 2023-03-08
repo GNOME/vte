@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#ifdef HAVE_SYS_SYSLIMITS_H
+#if __has_include(<sys/syslimits.h>)
 #include <sys/syslimits.h>
 #endif
 

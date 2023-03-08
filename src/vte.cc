@@ -27,10 +27,11 @@
 #include <fcntl.h>
 #include <termios.h>
 
-#ifdef HAVE_STROPTS_H
+#if __has_include(<stropts.h>)
 #include <stropts.h>
+#define HAVE_STROPTS_H
 #endif
-#ifdef HAVE_SYS_STREAM_H
+#if __has_include(<sys/stream.h>)
 #include <sys/stream.h>
 #endif
 
@@ -54,14 +55,15 @@
 #include "graphene-glue.hh"
 #endif
 
-#ifdef HAVE_WCHAR_H
+#if __has_include(<wchar.h>)
 #include <wchar.h>
 #endif
-#ifdef HAVE_SYS_SYSLIMITS_H
+#if __has_include(<sys/syslimits.h>)
 #include <sys/syslimits.h>
 #endif
-#ifdef HAVE_SYS_WAIT_H
+#if __has_include(<sys/wait.h>)
 #include <sys/wait.h>
+#define HAVE_SYS_WAIT_H
 #endif
 #include <glib.h>
 #include <glib-object.h>

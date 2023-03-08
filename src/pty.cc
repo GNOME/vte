@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#ifdef HAVE_SYS_SYSLIMITS_H
+#if __has_include(<sys/syslimits.h>)
 #include <sys/syslimits.h>
 #endif
 #include <signal.h>
@@ -51,14 +51,15 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#ifdef HAVE_UTIL_H
+#if __has_include(<util.h>)
 #include <util.h>
 #endif
-#ifdef HAVE_PTY_H
+#if __has_include(<pty.h>)
 #include <pty.h>
 #endif
-#if defined(__sun) && defined(HAVE_STROPTS_H)
+#if defined(__sun) && __has_include(<stropts.h>)
 #include <stropts.h>
+#define HAVE_STROPTS_H
 #endif
 #include <glib.h>
 #include <gio/gio.h>
