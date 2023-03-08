@@ -50,6 +50,8 @@ _vte_double_equal(double a,
 namespace vte {
 namespace view {
 
+static GHashTable* s_font_info_for_context{nullptr};
+
 FontInfo::UnistrInfo*
 FontInfo::find_unistr_info(vteunistr c)
 {

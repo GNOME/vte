@@ -284,9 +284,6 @@ public:
                                            PangoFontDescription const* desc,
                                            cairo_font_options_t const* font_options);
 
-private:
-        static inline GHashTable* s_font_info_for_context{nullptr};
-
 }; // class FontInfo
 
 } // namespace view
