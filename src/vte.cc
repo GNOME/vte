@@ -78,11 +78,9 @@
 #include "cxx-utils.hh"
 #include "gobject-glue.hh"
 
-#ifdef WITH_A11Y
+#if WITH_A11Y
 #if VTE_GTK == 3
 #include "vteaccess.h"
-#else
-#undef WITH_A11Y
 #endif /* VTE_GTK == 3 */
 #endif /* WITH_A11Y */
 
@@ -90,7 +88,7 @@
 
 using namespace std::literals;
 
-#ifndef HAVE_ROUND
+#if !HAVE_ROUND
 static inline double round(double x) {
 	if(x - floor(x) < 0.5) {
 		return floor(x);
@@ -98,7 +96,7 @@ static inline double round(double x) {
 		return ceil(x);
 	}
 }
-#endif
+#endif /* !HAVE_ROUND */
 
 #define WORD_CHAR_EXCEPTIONS_DEFAULT "-#%&+,./=?@\\_~\302\267"sv
 
@@ -274,7 +272,7 @@ vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
 void
 Terminal::unset_widget() noexcept
 {
-#ifdef WITH_A11Y
+#if WITH_A11Y && VTE_GTK == 3
         set_accessible(nullptr);
 #endif
 
@@ -2146,7 +2144,7 @@ Terminal::set_encoding(char const* charset,
         auto const to_utf8 = bool{charset == nullptr || g_ascii_strcasecmp(charset, "UTF-8") == 0};
         auto const primary_is_current = (current_data_syntax() == primary_data_syntax());
 
-#ifdef WITH_ICU
+#if WITH_ICU
         /* Note that if the current data syntax is not a primary one, the change
          * will only be applied when returning to the primrary data syntax.
          */
@@ -3149,7 +3147,7 @@ not_inserted:
         m_line_wrapped = line_wrapped;
 }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
 void
 Terminal::insert_image(ProcessingContext& context,
@@ -3543,13 +3541,13 @@ Terminal::process_incoming()
                         process_incoming_utf8(context, *chunk);
                         break;
 
-#ifdef WITH_ICU
+#if WITH_ICU
                 case DataSyntax::ECMA48_PCTERM:
                         process_incoming_pcterm(context, *chunk);
                         break;
 #endif
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 case DataSyntax::DECSIXEL:
                         process_incoming_decsixel(context, *chunk);
                         break;
@@ -3571,7 +3569,7 @@ Terminal::process_incoming()
                         m_incoming_queue.pop();
         }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         /* Some safety checks: ensure the visible parts of the buffer
          * are all in the buffer. */
         g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
@@ -3672,18 +3670,18 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 case vte::base::UTF8Decoder::ACCEPT: {
                         auto rv = m_parser.feed(m_utf8_decoder.codepoint());
                         if (G_UNLIKELY(rv < 0)) {
-#ifdef DEBUG
+#if VTE_DEBUG
                                 uint32_t c = m_utf8_decoder.codepoint();
                                 char c_buf[7];
                                 g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
                                 char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
                                 _vte_debug_print(VTE_DEBUG_PARSER, "Parser error on U+%04X [%s]!\n",
                                                  c, wp_str);
-#endif
+#endif /* VTE_DEBUG */
                                 break;
                         }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                         if (rv != VTE_SEQ_NONE)
                                 g_assert((bool)seq);
 #endif
@@ -3764,7 +3762,7 @@ switched_data_syntax:
         chunk.set_begin_reading(ip);
 }
 
-#ifdef WITH_ICU
+#if WITH_ICU
 
 /* Note that this is mostly a copy of process_incoming_utf8() above; any non-charset-decoding
  * related changes made here need to be made there, too.
@@ -3789,7 +3787,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                 case vte::base::ICUDecoder::Result::eSomething: {
                         auto rv = m_parser.feed(decoder.codepoint());
                         if (G_UNLIKELY(rv < 0)) {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                                 uint32_t c = decoder.codepoint();
                                 char c_buf[7];
                                 g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
@@ -3800,7 +3798,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
                                 break;
                         }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                         if (rv != VTE_SEQ_NONE)
                                 g_assert((bool)seq);
 #endif
@@ -3897,7 +3895,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 
 #endif /* WITH_ICU */
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
 void
 Terminal::process_incoming_decsixel(ProcessingContext& context,
@@ -4272,7 +4270,7 @@ Terminal::send_child(std::string_view const& data)
                         _vte_byte_array_append(m_outgoing, data.data(), data.size());
                 break;
 
-#ifdef WITH_ICU
+#if WITH_ICU
         case DataSyntax::ECMA48_PCTERM: {
                 auto converted = m_converter->convert(data);
 
@@ -6285,7 +6283,7 @@ Terminal::get_selected_text(GArray *attributes)
                         attributes);
 }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 unsigned int
 Terminal::checksum_area(vte::grid::row_t start_row,
                                   vte::grid::column_t start_col,
@@ -7773,7 +7771,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
         update_view_extents();
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         if (g_test_flags != 0) {
                 feed("\e[1m\e[31mWARNING:\e[39m Test mode enabled. This is insecure!\e[0m\n\e[G"sv, false);
         }
@@ -8302,7 +8300,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                 }
                         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                         if (back == VTE_DEFAULT_BG) {
                                 /* Clear cells in order to properly overdraw images */
                                 m_draw.clear(xl,
@@ -9299,7 +9297,7 @@ Terminal::paint_im_preedit_string()
 void
 Terminal::widget_draw(cairo_t* cr) noexcept
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         _VTE_DEBUG_IF(VTE_DEBUG_LIFECYCLE | VTE_DEBUG_WORK | VTE_DEBUG_UPDATES) do {
                 auto clip_rect = cairo_rectangle_int_t{};
                 if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
@@ -9377,7 +9375,7 @@ Terminal::draw(cairo_t* cr,
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         VteRing *ring = m_screen->row_data;
 #endif
         gint64 now = 0;
@@ -9422,7 +9420,7 @@ Terminal::draw(cairo_t* cr,
                         allocated_height - m_border.top - m_border.bottom);
         cairo_clip(cr);
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 	/* Draw images */
 	if (m_images_enabled) {
 		vte::grid::row_t top_row = first_displayed_row();
@@ -9995,7 +9993,7 @@ Terminal::reset_decoder()
                 m_utf8_decoder.reset();
                 break;
 
-#ifdef WITH_ICU
+#if WITH_ICU
         case DataSyntax::ECMA48_PCTERM:
                 m_converter->decoder().reset();
                 break;
@@ -10013,7 +10011,7 @@ Terminal::reset_data_syntax()
                 return;
 
         switch (current_data_syntax()) {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         case DataSyntax::DECSIXEL:
                 m_sixel_context->reset();
                 break;
@@ -10029,7 +10027,7 @@ Terminal::reset_data_syntax()
 void
 Terminal::reset_graphics_color_registers()
 {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         if (m_sixel_context)
                 m_sixel_context->reset_colors();
 #endif
@@ -10139,7 +10137,7 @@ Terminal::reset(bool clear_tabstops,
 	/* Clear modifiers. */
 	m_modifiers = 0;
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         if (m_sixel_context)
                 m_sixel_context->reset_colors();
 #endif

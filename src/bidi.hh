@@ -98,13 +98,13 @@ public:
 private:
         RingView *m_ringview;
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
         void explicit_line_shape(vte::grid::row_t row);
 #endif
 
         void explicit_line(vte::grid::row_t row, bool rtl, bool do_shaping);
         void explicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, bool rtl, bool do_shaping);
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
         bool implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, bool do_shaping);
 #endif
 };

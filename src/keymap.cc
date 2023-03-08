@@ -29,7 +29,7 @@
 #include "debug.h"
 #include "keymap.h"
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 static void
 _vte_keysym_print(guint keyval,
                   guint modifiers)

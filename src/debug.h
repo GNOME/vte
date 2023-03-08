@@ -87,13 +87,13 @@ _vte_debug_on(guint flags)
 	return (_vte_debug_flags & flags) != 0;
 }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 #define _VTE_DEBUG_IF(flags) if (G_UNLIKELY (_vte_debug_on (flags)))
 #else
 #define _VTE_DEBUG_IF(flags) if (0)
 #endif
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 #if defined(__GNUC__) && G_HAVE_GNUC_VARARGS
 #define _vte_debug_print(flags, fmt, ...) \
 	G_STMT_START { _VTE_DEBUG_IF(flags) g_printerr(fmt, ##__VA_ARGS__); } G_STMT_END

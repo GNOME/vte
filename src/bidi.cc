@@ -42,7 +42,7 @@
 
 #include <config.h>
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
 #include <fribidi.h>
 #endif
 
@@ -51,7 +51,7 @@
 #include "vtedefines.hh"
 #include "vteinternal.hh"
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
 static_assert (sizeof (FriBidiChar) == sizeof (gunichar), "Unexpected FriBidiChar size");
 #endif
 
@@ -178,7 +178,7 @@ BidiRow::vis_get_shaped_char(vte::grid::column_t col, vteunistr s) const
 }
 
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
 static inline bool
 is_arabic(gunichar c)
 {
@@ -349,7 +349,7 @@ BidiRunner::explicit_line(vte::grid::row_t row, bool rtl, bool do_shaping)
                 }
         }
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
         if (do_shaping)
                 explicit_line_shape(row);
 #endif
@@ -374,7 +374,7 @@ BidiRunner::paragraph(vte::grid::row_t start, vte::grid::row_t end,
                 return;
         }
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
         /* Have a consistent limit on the number of rows in a paragraph
          * that can get implicit BiDi treatment, which is independent from
          * the current scroll position. */
@@ -399,7 +399,7 @@ BidiRunner::explicit_paragraph(vte::grid::row_t start, vte::grid::row_t end,
         }
 }
 
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
 /* Figure out the mapping for the implicit paragraph between the given rows.
  * Returns success. */
 bool
@@ -766,7 +766,7 @@ vte_bidi_get_mirror_char (vteunistr unistr, gboolean mirror_box_drawing, vteunis
                 if (G_UNLIKELY (mirror_box_drawing))
                         base_ch_mirrored = 0x2500 + mirrored_2500[base_ch - 0x2500];
         } else {
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
                 /* Prefer the FriBidi variant as that's more likely to be in sync with the rest of our BiDi stuff. */
                 fribidi_get_mirror_char (base_ch, &base_ch_mirrored);
 #else

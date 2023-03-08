@@ -766,7 +766,7 @@ public:
                           "Use a GtkScrolledWindow", nullptr },
                         { "shell", 'S', G_OPTION_FLAG_REVERSE | G_OPTION_FLAG_HIDDEN,
                           G_OPTION_ARG_NONE, &no_shell, nullptr, nullptr },
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                         { "test-mode", 0, 0, G_OPTION_ARG_NONE, &test_mode,
                           "Enable test mode", nullptr },
 #endif
@@ -3159,7 +3159,7 @@ main(int argc,
                gdk_window_set_debug_updates(true);
 #endif /* VTE_GTK == 3 */
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
        if (options.test_mode) {
                vte_set_test_flags(VTE_TEST_FLAGS_ALL);
                options.allow_window_ops = true;

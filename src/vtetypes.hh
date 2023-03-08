@@ -25,7 +25,7 @@
 #include <cstdint>
 #include <memory>
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 #define IFDEF_DEBUG(str) str
 #else
 #define IFDEF_DEBUG(str)

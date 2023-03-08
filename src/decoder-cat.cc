@@ -36,7 +36,7 @@
 #include "libc-glue.hh"
 #include "utf8.hh"
 
-#ifdef WITH_ICU
+#if WITH_ICU
 #include "icu-decoder.hh"
 #include "icu-glue.hh"
 #endif
@@ -214,7 +214,7 @@ public:
 
 }; // class Sink
 
-#ifdef WITH_ICU
+#if WITH_ICU
 
 static std::unique_ptr<vte::base::ICUDecoder>
 make_decoder(Options const& options)
@@ -320,7 +320,7 @@ private:
                 g_free(buf);
         }
 
-#ifdef WITH_ICU
+#if WITH_ICU
         template<class Functor>
         void
         process_file_icu(int fd,
@@ -394,7 +394,7 @@ private:
                      Options const& options,
                      Functor& func)
         {
-#ifdef WITH_ICU
+#if WITH_ICU
                 auto decoder = std::unique_ptr<vte::base::ICUDecoder>{};
                 if (options.charset()) {
                         decoder = make_decoder(options);
@@ -412,7 +412,7 @@ private:
                                 return false;
                         }
 
-#ifdef WITH_ICU
+#if WITH_ICU
                         if (decoder) {
                                 process_file_icu(fd, options, decoder.get(), func);
                         } else
@@ -528,7 +528,7 @@ main(int argc,
         }
 
         if (options.list()) {
-#ifdef WITH_ICU
+#if WITH_ICU
                 auto charsets = vte::base::get_icu_charsets(true);
                 for (auto i = 0; charsets[i]; ++i)
                         g_print("%s\n", charsets[i]);

@@ -157,13 +157,13 @@ FontInfo::cache_ascii()
 		ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
 		ufi->using_cairo_glyph.glyph_index = glyph;
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 		m_coverage_count[0]++;
 		m_coverage_count[(unsigned)uinfo->coverage()]++;
 #endif
 	}
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 			  "vtepangocairo: %p cached %d ASCII letters\n",
 			  (void*)this, m_coverage_count[0]);
@@ -278,7 +278,7 @@ FontInfo::~FontInfo()
 	g_hash_table_remove(s_font_info_for_context,
                             pango_layout_get_context(m_layout.get()));
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	_vte_debug_print (VTE_DEBUG_PANGOCAIRO,
 			  "vtepangocairo: %p freeing font_info.  coverages %d = %d + %d + %d\n",
 			  (void*)this,
@@ -534,7 +534,7 @@ FontInfo::get_unistr_info(vteunistr c)
 	/* release internal layout resources */
 	pango_layout_set_text(m_layout.get(), "", -1);
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	m_coverage_count[0]++;
 	m_coverage_count[uinfo->m_coverage]++;
 #endif

@@ -43,17 +43,17 @@
 #define NSIG (8 * sizeof(sigset_t))
 #endif
 
-#ifndef HAVE_FDWALK
+#if !HAVE_FDWALK
 int fdwalk(int (*cb)(void* data, int fd),
            void* data);
 #endif
 
-#ifndef HAVE_STRCHRNUL
+#if !HAVE_STRCHRNUL
 char* strchrnul(char const* s,
                 int c);
 #endif
 
-#ifndef HAVE_CLOSE_RANGE
+#if !HAVE_CLOSE_RANGE
 int close_range(unsigned int first,
                 unsigned int last,
                 unsigned int flags);

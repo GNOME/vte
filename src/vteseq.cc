@@ -72,7 +72,7 @@ enum {
 void
 vte::parser::Sequence::print() const noexcept
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         auto c = m_seq != nullptr ? terminator() : 0;
         char c_buf[7];
         g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
@@ -2403,7 +2403,7 @@ Terminal::DA1(vte::parser::Sequence const& seq)
                 return;
 
         reply(seq, VTE_REPLY_DECDA1R, {65, 1,
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                                        m_sixel_enabled ? 4 : -2 /* skip */,
 #endif
                                        9});
@@ -3541,7 +3541,7 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
         unsigned int idx = 0;
         int id = seq.collect1(idx);
 
-#ifndef VTE_DEBUG
+#if !VTE_DEBUG
         /* Send a dummy reply */
         return reply(seq, VTE_REPLY_DECCKSR, {id}, "0000");
 #else
@@ -4410,7 +4410,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          *             DEC PPLV2 § 5.4
          */
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         auto process_sixel = false;
         auto mode = vte::sixel::Parser::Mode{};
         if (m_sixel_enabled) {
@@ -4420,7 +4420,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
                         mode = vte::sixel::Parser::Mode::UTF8;
                         break;
 
-#ifdef WITH_ICU
+#if WITH_ICU
                 case DataSyntax::ECMA48_PCTERM:
                         /* It's not really clear how DECSIXEL should be processed in PCTERM mode.
                          * The DEC documentation available isn't very detailed on PCTERM mode,
@@ -8936,7 +8936,7 @@ Terminal::XTERM_SMGRAPHICS(vte::parser::Sequence const& seq)
         auto status = 3, rv0 = -2, rv1 = -2;
 
         switch (attr) {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         case 0: /* Colour registers.
                  *
                  * VTE doesn't support changing the number of colour registers, so always

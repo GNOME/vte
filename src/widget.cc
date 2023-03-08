@@ -758,7 +758,7 @@ Widget::direction_changed(GtkTextDirection old_direction) noexcept
 void
 Widget::dispose() noexcept
 {
-#ifdef WITH_A11Y
+#if WITH_A11Y && VTE_GTK == 3
         m_terminal->set_accessible(nullptr);
 #endif
 

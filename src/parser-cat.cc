@@ -40,7 +40,7 @@
 #include "utf8.hh"
 #include "vtedefines.hh"
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 #include "sixel-parser.hh"
 #endif
 
@@ -58,7 +58,7 @@ enum class DataSyntax {
         ECMA48_UTF8,
         /* ECMA48_PCTERM, */
         /* ECMA48_ECMA35, */
-        #ifdef WITH_SIXEL
+        #if WITH_SIXEL
         DECSIXEL,
         #endif
 };
@@ -154,7 +154,7 @@ private:
         std::string m_str;
         bool m_plain;
         bool m_codepoints;
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         char32_t m_sixel_st;
 #endif
 
@@ -389,7 +389,7 @@ private:
                 }
         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
         void
         print_params(vte::sixel::Sequence const& seq) noexcept
@@ -463,7 +463,7 @@ public:
                         printout();
         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
         void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept
         {
@@ -494,7 +494,7 @@ public:
         void enter_data_syntax(DataSyntax syntax) noexcept
         {
                 switch (syntax) {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 case DataSyntax::DECSIXEL: {
                         GreenAttr green(this);
                         print_literal("<SIXEL[");
@@ -511,7 +511,7 @@ public:
                                bool success) noexcept
         {
                 switch (syntax) {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 case DataSyntax::DECSIXEL:
                         if (success) {
                                 GreenAttr green(this);
@@ -718,7 +718,7 @@ private:
                 }
         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         char32_t m_sixel_st{0};
         bool m_seen_sixel_commands{false};
         bool m_seen_sixel_data{false};
@@ -753,7 +753,7 @@ public:
                         check_sgr(seq);
                         break;
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 case VTE_CMD_DECSIXEL:
                         /* OR mode is a nonstandard NetBSD/x68k extension that is
                          * not supported in VTE.
@@ -776,7 +776,7 @@ public:
                 }
         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
         void SIXEL(uint8_t raw) noexcept
         {
@@ -894,7 +894,7 @@ public:
         void enter_data_syntax(DataSyntax syntax) noexcept
         {
                 switch (syntax) {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 case DataSyntax::DECSIXEL:
                         m_sixel_st = 0;
                         m_seen_sixel_commands = m_seen_sixel_data = false;
@@ -922,7 +922,7 @@ class Sink {
 public:
         void VT(vte::parser::Sequence const& seq) noexcept { }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         void SIXEL(uint8_t raw) noexcept { }
         void SIXEL_CMD(vte::sixel::Sequence const& seq) noexcept { }
         void SIXEL_ST(char32_t st) noexcept { }
@@ -956,7 +956,7 @@ private:
         vte::base::UTF8Decoder m_utf8_decoder{};
         vte::parser::Parser m_parser{};
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         vte::sixel::Parser m_sixel_parser{};
 #endif
 
@@ -971,7 +971,7 @@ private:
                         m_utf8_decoder.reset();
                         break;
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 case DataSyntax::DECSIXEL:
                         m_sixel_parser.reset();
                         break;
@@ -995,7 +995,7 @@ private:
         {
                 m_delegate.VT(seq);
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 if (G_UNLIKELY(!m_no_sixel &&
                                seq.command() == VTE_CMD_DECSIXEL &&
                                seq.is_unripe())) {
@@ -1070,7 +1070,7 @@ private:
                 return bufend;
         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
         uint8_t const*
         process_data_decsixel(uint8_t const* const bufstart,
@@ -1124,7 +1124,7 @@ private:
                                         sptr = process_data_utf8(sptr, bufend, eos);
                                         break;
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                                 case DataSyntax::DECSIXEL:
                                         sptr = process_data_decsixel(sptr, bufend, eos);
                                         break;
@@ -1192,7 +1192,7 @@ public:
                 memset(&m_cmd_stats, 0, sizeof(m_cmd_stats));
                 m_bench_times = g_array_new(false, true, sizeof(int64_t));
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 m_parser.set_dispatch_unripe(!m_no_sixel);
 #endif
         }
@@ -1345,7 +1345,7 @@ public:
                           "Output unicode code points by number", nullptr },
                         { "lint", 'l', 0, G_OPTION_ARG_NONE, &lint,
                           "Check input", nullptr },
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                         { "no-sixel", 0, 0, G_OPTION_ARG_NONE, &no_sixel,
                           "Disable DECSIXEL processing", nullptr },
 #endif

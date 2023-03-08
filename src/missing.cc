@@ -44,7 +44,7 @@
  * Copyright 2000 Red Hat, Inc.
  */
 
-#ifndef HAVE_FDWALK
+#if !HAVE_FDWALK
 
 #ifdef __linux__
 
@@ -140,7 +140,7 @@ getrlimit_NOFILE_max(void)
         return RLIM_INFINITY;
 }
 
-#ifndef HAVE_CLOSE_RANGE
+#if !HAVE_CLOSE_RANGE
 
 int
 close_range(unsigned int first_fd,
@@ -257,7 +257,7 @@ fdwalk(int (*cb)(void *data, int fd),
 }
 #endif /* !HAVE_FDWALK */
 
-#ifndef HAVE_STRCHRNUL
+#if !HAVE_STRCHRNUL
 /* Copied from glib */
 char*
 strchrnul(char const* s,

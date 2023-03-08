@@ -150,7 +150,7 @@ text_changed_insert(AtkObject *obj, gint offset, gint length, gpointer data)
 		p = g_utf8_next_char(p);
 	}
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
 	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
 		g_printerr("Inserted %d chars ('%.*s') at %d,",
@@ -176,7 +176,7 @@ text_changed_delete(AtkObject *obj, gint offset, gint length, gpointer data)
 		}
 		g_array_remove_index(contents, i);
 	}
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	if ((getenv("REFLECT_VERBOSE") != NULL) &&
 	    (atol(getenv("REFLECT_VERBOSE")) != 0)) {
 		g_printerr("Deleted %d chars at %d.\n", length, offset);

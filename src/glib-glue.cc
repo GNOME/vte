@@ -56,7 +56,7 @@ exception_append_to_string(std::exception const& e,
         }
 }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 
 void log_exception(char const* func,
                    char const* filename,
@@ -123,7 +123,7 @@ catch (...)
 namespace glib {
 
 bool set_error_from_exception(GError** error
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                               , char const* func
                               , char const* filename
                               , int const line
@@ -143,7 +143,7 @@ try
                 what = "Unknown exception"sv;
         }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         auto msg = vte::glib::take_string(g_strdup_printf("Caught exception in %s [%s:%d]: %s",
                                                           func, filename, line,
                                                           what.c_str()));
@@ -163,7 +163,7 @@ try
 catch (...)
 {
         vte::log_exception();
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         g_set_error(error,
                     VTE_EXCEPTION_ERROR,
                     VTE_EXCEPTION_GENERIC,

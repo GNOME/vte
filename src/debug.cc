@@ -27,7 +27,7 @@ guint _vte_debug_flags;
 void
 _vte_debug_init(void)
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
   const GDebugKey keys[] = {
     { "misc",         VTE_DEBUG_MISC         },
     { "io",           VTE_DEBUG_IO           },
@@ -73,7 +73,7 @@ const char *
 _vte_debug_sequence_to_string(const char *str,
                               gssize length)
 {
-#if defined(VTE_DEBUG)
+#if VTE_DEBUG
         static const char codes[][6] = {
                 "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL",
                 "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI",
@@ -126,7 +126,7 @@ _vte_debug_sequence_to_string(const char *str,
 #endif /* VTE_DEBUG */
 }
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 static bool
 hexdump_line(GString* str,
              size_t ofs,
@@ -157,7 +157,7 @@ _vte_debug_hexdump(char const* str,
                    uint8_t const* buf,
                    size_t len)
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         GString* s = g_string_new(str);
         g_string_append_printf(s, " len = 0x%x = %u\n", (unsigned int)len, (unsigned int)len);
 

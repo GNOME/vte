@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
 #include "cxx-utils.hh"
 
@@ -54,7 +54,7 @@ using namespace vte::base;
  * VteRing: A buffer ring
  */
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 void
 Ring::validate() const
 {
@@ -204,7 +204,7 @@ Ring::hyperlink_maybe_gc(row_t increment)
                 hyperlink_gc();
 }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
 void
 Ring::image_gc_region() noexcept
@@ -713,7 +713,7 @@ Ring::reset()
         m_start = m_writable = m_end;
         m_cached_row_num = (row_t)-1;
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         m_image_by_top_map.clear();
         m_image_map.clear();
         m_next_image_priority = 0;
@@ -1303,7 +1303,7 @@ Ring::rewrap(column_t columns,
 	gsize paragraph_len;  /* excluding trailing '\n' */
 	gsize attr_offset;
 	gsize old_ring_end;
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 	auto image_it = m_image_by_top_map.begin();
 #endif
 
@@ -1441,7 +1441,7 @@ Ring::rewrap(column_t columns,
 							}
 						}
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 						if (!rewrap_images_in_range(image_it,
                                                                             new_record.text_start_offset,
                                                                             text_offset,
@@ -1498,7 +1498,7 @@ Ring::rewrap(column_t columns,
 			}
 		}
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 		if (!rewrap_images_in_range(image_it,
                                             new_record.text_start_offset,
                                             paragraph_end_text_offset,
@@ -1538,7 +1538,7 @@ Ring::rewrap(column_t columns,
 	g_free(marker_text_offsets);
 	g_free(new_markers);
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         try {
                 rebuild_image_top_map();
         } catch (...) {
@@ -1551,7 +1551,7 @@ Ring::rewrap(column_t columns,
 	return;
 
 err:
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	_vte_debug_print(VTE_DEBUG_RING,
 			"Error while rewrapping\n");
 	g_assert_not_reached();
@@ -1650,7 +1650,7 @@ Ring::write_contents(GOutputStream* stream,
 	return true;
 }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
 /**
  * Ring::append_image:

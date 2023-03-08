@@ -23,7 +23,7 @@
 #include <cmath>
 #include <cstdint>
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 #include "debug.h"
 #include "libc-glue.hh"
 #endif
@@ -473,7 +473,7 @@ Context::image_cairo() noexcept
                                                                               image_height(),
                                                                               stride));
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         _VTE_DEBUG_IF(VTE_DEBUG_IMAGE) {
                 static auto num = 0;
 

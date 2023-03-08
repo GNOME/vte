@@ -27,7 +27,7 @@
 #include "vterowdata.hh"
 #include "vtestream.h"
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 #include "cairo-glue.hh"
 #include "image.hh"
 #include <map>
@@ -108,7 +108,7 @@ public:
 
 private:
 
-        #ifdef VTE_DEBUG
+        #if VTE_DEBUG
         void validate() const;
         #endif
 
@@ -235,7 +235,7 @@ private:
                                                  An idx is allocated on hover even if the cell is scrolled out to the streams. */
         row_t m_hyperlink_maybe_gc_counter{0};  /* Do a GC when it reaches 65536. */
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 
 private:
         size_t m_next_image_priority{0};

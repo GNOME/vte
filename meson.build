@@ -182,12 +182,12 @@ config_h = configuration_data()
 
 config_h.set_quoted('GETTEXT_PACKAGE', vte_gettext_domain)
 config_h.set_quoted('VERSION', vte_version)
-config_h.set('VTE_DEBUG', enable_debug)
-config_h.set('WITH_A11Y', get_option('a11y'))
-config_h.set('WITH_FRIBIDI', get_option('fribidi'))
-config_h.set('WITH_GNUTLS', get_option('gnutls'))
-config_h.set('WITH_ICU', get_option('icu'))
-config_h.set('WITH_SIXEL', get_option('sixel'))
+config_h.set10('VTE_DEBUG', enable_debug)
+config_h.set10('WITH_A11Y', get_option('a11y'))
+config_h.set10('WITH_FRIBIDI', get_option('fribidi'))
+config_h.set10('WITH_GNUTLS', get_option('gnutls'))
+config_h.set10('WITH_ICU', get_option('icu'))
+config_h.set10('WITH_SIXEL', get_option('sixel'))
 
 ver = glib_min_req_version.split('.')
 config_h.set('GLIB_VERSION_MIN_REQUIRED', '(G_ENCODE_VERSION(' + ver[0] + ',' + ver[1] + '))')
@@ -423,7 +423,7 @@ foreach func: check_functions
   if __reqd
     assert(__have, __name + ' not found')
   else
-    config_h.set('HAVE_' + __name.underscorify().to_upper(), __have)
+    config_h.set10('HAVE_' + __name.underscorify().to_upper(), __have)
   endif
 endforeach
 
@@ -644,7 +644,7 @@ else
   systemd_dep = dependency('', required: false)
 endif
 
-config_h.set('WITH_SYSTEMD', systemd_dep.found())
+config_h.set10('WITH_SYSTEMD', systemd_dep.found())
 
 # Write config.h
 

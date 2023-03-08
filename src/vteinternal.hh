@@ -63,19 +63,18 @@
 #include <variant>
 #include <vector>
 
-#ifdef WITH_A11Y
+#if WITH_A11Y
 #if VTE_GTK == 3
 #include "vteaccess.h"
 #else
-#undef WITH_A11Y
 #endif
 #endif
 
-#ifdef WITH_ICU
+#if WITH_ICU
 #include "icu-converter.hh"
 #endif
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
 #include "sixel-context.hh"
 #endif
 
@@ -265,7 +264,7 @@ public:
 
         void unset_widget() noexcept;
 
-#ifdef WITH_A11Y
+#if WITH_A11Y && VTE_GTK == 3
         /* Accessible */
         vte::glib::RefPtr<VteTerminalAccessible> m_accessible{};
 #endif
@@ -314,13 +313,13 @@ public:
         enum class DataSyntax {
                 /* The primary data syntax is always one of the following: */
                 ECMA48_UTF8,
-                #ifdef WITH_ICU
+                #if WITH_ICU
                 ECMA48_PCTERM,
                 #endif
                 /* ECMA48_ECMA35, not supported */
 
                 /* The following can never be primary data syntax: */
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 DECSIXEL,
 #endif
         };
@@ -367,7 +366,7 @@ public:
 	/* Output data queue. */
         VteByteArray *m_outgoing; /* pending input characters */
 
-#ifdef WITH_ICU
+#if WITH_ICU
         /* Legacy charset support */
         std::unique_ptr<vte::base::ICUConverter> m_converter;
 #endif /* WITH_ICU */
@@ -376,14 +375,14 @@ public:
         {
                 switch (primary_data_syntax()) {
                 case DataSyntax::ECMA48_UTF8:   return "UTF-8";
-                #ifdef WITH_ICU
+                #if WITH_ICU
                 case DataSyntax::ECMA48_PCTERM: return m_converter->charset().c_str();
                 #endif
                 default: g_assert_not_reached(); return nullptr;
                 }
         }
 
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         std::unique_ptr<vte::sixel::Context> m_sixel_context{};
 #endif
 
@@ -807,7 +806,7 @@ public:
                          bool insert,
                          bool invalidate_now);
 
-        #ifdef WITH_SIXEL
+        #if WITH_SIXEL
         void insert_image(ProcessingContext& context,
                           vte::Freeable<cairo_surface_t> image_surface) /* throws */;
         #endif
@@ -833,11 +832,11 @@ public:
         void process_incoming();
         void process_incoming_utf8(ProcessingContext& context,
                                    vte::base::Chunk& chunk);
-        #ifdef WITH_ICU
+        #if WITH_ICU
         void process_incoming_pcterm(ProcessingContext& context,
                                      vte::base::Chunk& chunk);
         #endif
-        #ifdef WITH_SIXEL
+        #if WITH_SIXEL
         void process_incoming_decsixel(ProcessingContext& context,
                                        vte::base::Chunk& chunk);
         #endif
@@ -1168,7 +1167,7 @@ public:
         void queue_child_exited();
         void queue_eof();
 
-#ifdef WITH_A11Y
+#if WITH_A11Y && VTE_GTK == 3
 
         void set_accessible(VteTerminalAccessible* accessible) noexcept
         {
@@ -1211,7 +1210,7 @@ public:
         inline constexpr void emit_text_modified() const noexcept { }
         inline constexpr void emit_text_scrolled(long delta) const noexcept { }
 
-#endif /* WITH_A11Y */
+#endif /* WITH_A11Y && VTE_GTK == 3*/
 
         void emit_pending_signals();
         void emit_increase_font_size();

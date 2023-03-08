@@ -39,7 +39,7 @@
 
 #include "glib-glue.hh"
 
-#ifdef WITH_SYSTEMD
+#if WITH_SYSTEMD
 #include "systemd.hh"
 #endif
 
@@ -529,7 +529,7 @@ SpawnOperation::~SpawnOperation()
 bool
 SpawnOperation::prepare(vte::glib::Error& error)
 {
-#ifndef WITH_SYSTEMD
+#if !WITH_SYSTEMD
         if (context().require_systemd_scope()) {
                 error.set_literal(G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
                                   "systemd not available");
@@ -713,7 +713,7 @@ SpawnOperation::run(vte::glib::Error& error) noexcept
 
         /* Spawn succeeded */
 
-#ifdef WITH_SYSTEMD
+#if WITH_SYSTEMD
         if (context().systemd_scope() &&
             !vte::systemd::create_scope_for_pid_sync(m_pid,
                                                      m_timeout, // FIXME: recalc timeout

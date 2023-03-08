@@ -64,15 +64,13 @@
 
 #include <cairo-gobject.h>
 
-#ifdef WITH_A11Y
+#if WITH_A11Y
 #if VTE_GTK == 3
 #include "vteaccess.h"
-#else
-#undef WITH_A11Y
 #endif /* VTE_GTK == 3 */
 #endif /* WITH_A11Y */
 
-#ifdef WITH_ICU
+#if WITH_ICU
 #include "icu-glue.hh"
 #endif
 
@@ -157,7 +155,7 @@ private:
         std::shared_ptr<vte::platform::Widget> m_widget;
 };
 
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 G_DEFINE_TYPE_WITH_CODE(VteTerminal, vte_terminal, GTK_TYPE_WIDGET,
                         {
                                 VteTerminal_private_offset =
@@ -1217,7 +1215,7 @@ catch (...)
 static void
 vte_terminal_class_init(VteTerminalClass *klass)
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
 	{
                 _vte_debug_init();
 		_vte_debug_print(VTE_DEBUG_LIFECYCLE,
@@ -2148,7 +2146,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
          */
         pspecs[PROP_ENABLE_SIXEL] =
                 g_param_spec_boolean ("enable-sixel", nullptr, nullptr,
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                                       VTE_SIXEL_ENABLED_DEFAULT,
 #else
                                       false,
@@ -2506,7 +2504,7 @@ vte_terminal_class_init(VteTerminalClass *klass)
 #endif
 
 #if VTE_GTK == 3
-#ifdef WITH_A11Y
+#if WITH_A11Y
         /* a11y */
         gtk_widget_class_set_accessible_type(widget_class, VTE_TYPE_TERMINAL_ACCESSIBLE);
 #endif
@@ -2528,32 +2526,32 @@ const char *
 vte_get_features (void) noexcept
 {
         return
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
                 "+BIDI"
 #else
                 "-BIDI"
 #endif
                 " "
-#ifdef WITH_GNUTLS
+#if WITH_GNUTLS
                 "+GNUTLS"
 #else
                 "-GNUTLS"
 #endif
                 " "
-#ifdef WITH_ICU
+#if WITH_ICU
                 "+ICU"
 #else
                 "-ICU"
 #endif
                 " "
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                 "+SIXEL"
 #else
                 "-SIXEL"
 #endif
 #ifdef __linux__
                 " "
-#ifdef WITH_SYSTEMD
+#if WITH_SYSTEMD
                 "+SYSTEMD"
 #else
                 "-SYSTEMD"
@@ -2575,17 +2573,17 @@ VteFeatureFlags
 vte_get_feature_flags(void) noexcept
 {
         return VteFeatureFlags(0ULL |
-#ifdef WITH_FRIBIDI
+#if WITH_FRIBIDI
                                VTE_FEATURE_FLAG_BIDI |
 #endif
-#ifdef WITH_ICU
+#if WITH_ICU
                                VTE_FEATURE_FLAG_ICU |
 #endif
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
                                VTE_FEATURE_FLAG_SIXEL |
 #endif
 #ifdef __linux__
-#ifdef WITH_SYSTEMD
+#if WITH_SYSTEMD
                                VTE_FEATURE_FLAG_SYSTEMD |
 #endif
 #endif // __linux__
@@ -2679,7 +2677,7 @@ vte_get_user_shell (void) noexcept
 void
 vte_set_test_flags(guint64 flags) noexcept
 {
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         g_test_flags = flags;
 #endif
 }
@@ -2704,7 +2702,7 @@ char **
 vte_get_encodings(gboolean include_aliases) noexcept
 try
 {
-#ifdef WITH_ICU
+#if WITH_ICU
         return vte::base::get_icu_charsets(include_aliases != FALSE);
 #else
         char *empty[] = { nullptr };
@@ -2741,7 +2739,7 @@ try
 {
         g_return_val_if_fail(encoding != nullptr, false);
 
-#ifdef WITH_ICU
+#if WITH_ICU
         return vte::base::get_icu_charset_supported(encoding);
 #else
         return false;
@@ -4313,7 +4311,7 @@ warn_if_callback(VteSelectionFunc func,
         if (!func)
                 return;
 
-#ifndef VTE_DEBUG
+#if !VTE_DEBUG
         static gboolean warned = FALSE;
         if (warned)
                 return;
@@ -4335,7 +4333,7 @@ warn_if_attributes(void* array,
         if (!array)
                 return;
 
-#ifndef VTE_DEBUG
+#if !VTE_DEBUG
         static gboolean warned = FALSE;
         if (warned)
                 return;
@@ -6654,7 +6652,7 @@ vte_terminal_set_enable_sixel(VteTerminal *terminal,
                               gboolean enabled) noexcept
 try
 {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
         if (WIDGET(terminal)->set_sixel_enabled(enabled != FALSE))
@@ -6678,7 +6676,7 @@ gboolean
 vte_terminal_get_enable_sixel(VteTerminal *terminal) noexcept
 try
 {
-#ifdef WITH_SIXEL
+#if WITH_SIXEL
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
         return WIDGET(terminal)->sixel_enabled();

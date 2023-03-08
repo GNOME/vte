@@ -83,16 +83,18 @@
 #include <unistd.h>
 #include <zlib.h>
 
-#ifdef WITH_GNUTLS
+#include "vteutils.h"
+
+#if WITH_GNUTLS
 # include <gnutls/gnutls.h>
 # include <gnutls/crypto.h>
+#else
+#undef WITH_GNUTLS
 #endif
-
-#include "vteutils.h"
 
 G_BEGIN_DECLS
 
-#ifdef WITH_GNUTLS
+#if WITH_GNUTLS
 /* Currently the code requires that a stream cipher (e.g. GCM) is used
  * which can encrypt any amount of data without need for padding. */
 # define VTE_CIPHER_ALGORITHM    GNUTLS_CIPHER_AES_256_GCM
@@ -126,11 +128,11 @@ typedef guint8 _vte_overwrite_counter_t;
 
 /******************************************************************************************/
 
-#ifndef HAVE_EXPLICIT_BZERO
+#if !HAVE_EXPLICIT_BZERO
 #define explicit_bzero(s, n) memset((s), 0, (n))
 #endif
 
-#ifndef HAVE_PREAD
+#if !HAVE_PREAD
 #define pread _pread
 static inline gsize
 pread (int fd, char *data, gsize len, gsize offset)
@@ -141,7 +143,7 @@ pread (int fd, char *data, gsize len, gsize offset)
 }
 #endif
 
-#ifndef HAVE_PWRITE
+#if !HAVE_PWRITE
 #define pwrite _pwrite
 static inline gsize
 pwrite (int fd, char *data, gsize len, gsize offset)

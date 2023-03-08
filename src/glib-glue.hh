@@ -133,7 +133,7 @@ public:
         Timer(callback_type callback,
               char const* name)
                 : m_callback(callback)
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                 , m_name(name)
 #endif
         {
@@ -208,7 +208,7 @@ public:
 
 private:
         callback_type m_callback{};
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
         char const* m_name{nullptr};
 #endif
         guint m_source_id{0};
@@ -241,7 +241,7 @@ private:
 
         inline void set_source_name() const noexcept
         {
-                #ifdef VTE_DEBUG
+                #if VTE_DEBUG
                 g_source_set_name_by_id(m_source_id, m_name);
                 #endif
         }
@@ -267,7 +267,7 @@ private:
 };
 
 bool set_error_from_exception(GError** error
-#ifdef VTE_DEBUG
+#if VTE_DEBUG
                               , char const* func = __builtin_FUNCTION()
                               , char const* filename = __builtin_FILE()
                               , int const line = __builtin_LINE()
