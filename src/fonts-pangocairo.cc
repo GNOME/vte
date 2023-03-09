@@ -495,11 +495,6 @@ FontInfo::get_unistr_info(vteunistr c)
 		uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_LAYOUT_LINE);
 
 		ufi->using_pango_layout_line.line = pango_layout_line_ref (line);
-		/* we hold a manual reference on layout.  pango currently
-		 * doesn't work if line->layout is NULL.  ugh! */
-		pango_layout_set_text(m_layout.get(), "", -1); /* make layout disassociate from the line */
-		ufi->using_pango_layout_line.line->layout = (PangoLayout *)g_object_ref(m_layout.get());
-
 	} else {
 		PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
 		PangoFont *pango_font = glyph_item->item->analysis.font;
@@ -529,10 +524,10 @@ FontInfo::get_unistr_info(vteunistr c)
 			ufi->using_pango_glyph_string.font = pango_font ? (PangoFont *)g_object_ref (pango_font) : NULL;
 			ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
 		}
-	}
 
-	/* release internal layout resources */
-	pango_layout_set_text(m_layout.get(), "", -1);
+		/* release internal layout resources */
+		pango_layout_set_text(m_layout.get(), "", -1);
+	}
 
 #if VTE_DEBUG
 	m_coverage_count[0]++;
