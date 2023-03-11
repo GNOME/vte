@@ -474,7 +474,21 @@ FontInfo::get_unistr_info(vteunistr c)
 	{
 		uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_LAYOUT_LINE);
 
+                // When using a cairo surface which uses show_text_glyphs,
+                // pango_cairo_show_layout_line() will use the text from
+                // @line->layout and it must be the text that was used when
+                // the PangoLayoutLine was created.  Also, since @line was
+                // obtained from m_layout, when setting m_layout to a new
+                // text later this will change @line->layout to %NULL.
+                // To make this work, we instead adopt the @m_layout instance
+                // into @line->layout, and create a new @m_layout object.
+
+                line->layout = m_layout.release(); // adopted
 		ufi->using_pango_layout_line.line = pango_layout_line_ref (line);
+
+                auto const context = pango_layout_get_context(line->layout);
+                m_layout = vte::glib::take_ref(pango_layout_new(context));
+
 	} else {
 		PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
 		PangoFont *pango_font = glyph_item->item->analysis.font;
@@ -504,10 +518,9 @@ FontInfo::get_unistr_info(vteunistr c)
 			ufi->using_pango_glyph_string.font = pango_font ? (PangoFont *)g_object_ref (pango_font) : NULL;
 			ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
 		}
-
-		/* release internal layout resources */
-		pango_layout_set_text(m_layout.get(), "", -1);
 	}
+
+        // Don't reset m_layout here; it'll get reset anyway when we next use it.
 
 #ifdef VTE_DEBUG
 	m_coverage_count[0]++;
