@@ -1,9 +1,9 @@
 # Bulgarian translation of vte po-file.
 # Copyright (C) 2002, 2007, 2007, 2010, 2014, 2017 Free Software Foundation, Inc.
-# Copyright (C) 2021 Alexander Shopov.
+# Copyright (C) 2021, 2023 Alexander Shopov.
 # This file is distributed under the same license as the vte package.
 # Alexander Shopov <ash@kambanaria.org>, 2002, 2007, 2010, 2014, 2017.
-# Alexander Shopov <ash@kambanaria.org>, 2021.
+# Alexander Shopov <ash@kambanaria.org>, 2021, 2023.
 # Vladimir "Kaladan" Petkov <vpetkov@i-space.org>, 2005.
 # Yavor Doganov <yavor@doganov.org>, 2005.
 #
