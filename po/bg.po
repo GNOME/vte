@@ -50,7 +50,7 @@ msgstr "Действието е отменено"
 #: src/spawn.cc:190
 #, c-format
 msgid "Failed to read from child pipe (%s)"
-msgstr "Грешка при четене от дъщерния процес (%s)"
+msgstr "Неуспешно четене от дъщерен канал (%s)"
 
 #: src/spawn.cc:620
 #, c-format
