@@ -4362,7 +4362,7 @@ catch (...)
  * @start_col: the first column of the range
  * @end_row: the last row of the range
  * @end_col: the last column of the range
- * @length: (optional) (default 0) (out): a pointer to a #gsize to store the string length
+ * @length: (optional) (out): a pointer to a #gsize to store the string length
  *
  * Returns the specified range of text in the specified format.
  *
@@ -5779,7 +5779,7 @@ catch (...)
  * vte_terminal_get_text_selected_full:
  * @terminal: a #VteTerminal
  * @format: the #VteFormat to use
- * @length: (optional) (default 0) (out): a pointer to a #gsize to store the string length
+ * @length: (optional) (out): a pointer to a #gsize to store the string length
  *
  * Gets the currently selected text in the format specified by @format.
  *
