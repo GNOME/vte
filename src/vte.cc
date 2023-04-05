@@ -840,19 +840,20 @@ bool
 Terminal::cursor_blink_timer_callback()
 {
 	m_cursor_blink_state = !m_cursor_blink_state;
-	m_cursor_blink_time += m_cursor_blink_cycle;
+	m_cursor_blink_time_ms += m_cursor_blink_cycle_ms;
 
 	invalidate_cursor_once(true);
 
 	/* only disable the blink if the cursor is currently shown.
 	 * else, wait until next time.
 	 */
-	if (m_cursor_blink_time / 1000 >= m_cursor_blink_timeout &&
+	if (m_cursor_blink_time_ms >= m_cursor_blink_timeout_ms &&
 	    m_cursor_blink_state) {
 		return false;
         }
 
-        m_cursor_blink_timer.schedule(m_cursor_blink_cycle, vte::glib::Timer::Priority::eLOW);
+        m_cursor_blink_timer.schedule(m_cursor_blink_cycle_ms,
+                                      vte::glib::Timer::Priority::eLOW);
         return false;
 }
 
@@ -4546,8 +4547,9 @@ Terminal::add_cursor_timeout()
 	if (m_cursor_blink_timer)
 		return; /* already added */
 
-	m_cursor_blink_time = 0;
-        m_cursor_blink_timer.schedule(m_cursor_blink_cycle, vte::glib::Timer::Priority::eLOW);
+	m_cursor_blink_time_ms = 0;
+        m_cursor_blink_timer.schedule(m_cursor_blink_cycle_ms,
+                                      vte::glib::Timer::Priority::eLOW);
 }
 
 void
@@ -8009,17 +8011,17 @@ Terminal::widget_unrealize()
 
 void
 Terminal::set_blink_settings(bool blink,
-                             int blink_time,
-                             int blink_timeout) noexcept
+                             int blink_time_ms,
+                             int blink_timeout_ms) noexcept
 {
         m_cursor_blinks = m_cursor_blinks_system = blink;
-        m_cursor_blink_cycle = std::max(blink_time / 2, VTE_MIN_CURSOR_BLINK_CYCLE);
-        m_cursor_blink_timeout = std::max(blink_timeout, VTE_MIN_CURSOR_BLINK_TIMEOUT);
+        m_cursor_blink_cycle_ms = std::max(blink_time_ms / 2, VTE_MIN_CURSOR_BLINK_CYCLE);
+        m_cursor_blink_timeout_ms = std::max(blink_timeout_ms, VTE_MIN_CURSOR_BLINK_TIMEOUT);
 
         update_cursor_blinks();
 
         /* Misuse gtk-cursor-blink-time for text blinking as well. This might change in the future. */
-        m_text_blink_cycle = m_cursor_blink_cycle;
+        m_text_blink_cycle_ms = m_cursor_blink_cycle_ms;
         if (m_text_blink_timer) {
                 /* The current phase might have changed, and an already installed
                  * timer to blink might fire too late. So remove the timer and
@@ -9378,7 +9380,7 @@ Terminal::draw(cairo_t* cr,
 #if WITH_SIXEL
         VteRing *ring = m_screen->row_data;
 #endif
-        gint64 now = 0;
+        auto now_ms = int64_t{0};
 
         allocated_width = get_allocated_width();
         allocated_height = get_allocated_height();
@@ -9451,8 +9453,8 @@ Terminal::draw(cairo_t* cr,
         m_text_blink_state = true;
         text_blink_enabled_now = (unsigned)m_text_blink_mode & (unsigned)(m_has_focus ? TextBlinkMode::eFOCUSED : TextBlinkMode::eUNFOCUSED);
         if (text_blink_enabled_now) {
-                now = g_get_monotonic_time() / 1000;
-                if (now % (m_text_blink_cycle * 2) >= m_text_blink_cycle)
+                now_ms = g_get_monotonic_time() / 1000;
+                if (now_ms % (m_text_blink_cycle_ms * 2) >= m_text_blink_cycle_ms)
                         m_text_blink_state = false;
         }
         /* Painting will flip this if it encounters any cell with blink attribute */
@@ -9503,7 +9505,7 @@ Terminal::draw(cairo_t* cr,
          * implicitly by the timer not getting reinstalled anymore (often after a final unnecessary but
          * harmless repaint). */
         if (G_UNLIKELY (m_text_to_blink && text_blink_enabled_now && !m_text_blink_timer))
-                m_text_blink_timer.schedule(m_text_blink_cycle - now % m_text_blink_cycle,
+                m_text_blink_timer.schedule(m_text_blink_cycle_ms - now_ms % m_text_blink_cycle_ms,
                                             vte::glib::Timer::Priority::eLOW);
 
         m_invalidated_all = FALSE;

@@ -1861,15 +1861,15 @@ void
 Widget::settings_changed()
 {
         auto blink = gboolean{};
-        auto blink_time = int{};
-        auto blink_timeout = int{};
+        auto blink_time_ms = int{};
+        auto blink_timeout_s = int{};
 #if VTE_GTK == 4
         auto aspect = double{};
 #endif
         g_object_get(m_settings.get(),
                      "gtk-cursor-blink", &blink,
-                     "gtk-cursor-blink-time", &blink_time,
-                     "gtk-cursor-blink-timeout", &blink_timeout,
+                     "gtk-cursor-blink-time", &blink_time_ms,
+                     "gtk-cursor-blink-timeout", &blink_timeout_s,
 #if VTE_GTK == 4
                      "gtk-cursor-aspect-ratio", &aspect,
 #endif
@@ -1877,9 +1877,9 @@ Widget::settings_changed()
 
         _vte_debug_print(VTE_DEBUG_MISC,
                          "Cursor blinking settings: blink=%d time=%d timeout=%d\n",
-                         blink, blink_time, blink_timeout);
+                         blink, blink_time_ms, blink_timeout_s * 1000);
 
-        m_terminal->set_blink_settings(blink, blink_time, blink_timeout);
+        m_terminal->set_blink_settings(blink, blink_time_ms, blink_timeout_s * 1000);
 
 #if VTE_GTK == 4
         m_terminal->set_cursor_aspect(aspect);
