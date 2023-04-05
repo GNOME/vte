@@ -9577,7 +9577,7 @@ Terminal::widget_mouse_scroll(vte::platform::ScrollEvent const& event)
 			cnt = -cnt;
 		for (i = 0; i < cnt; i++) {
 			/* Encode the parameters and send them to the app. */
-                        feed_mouse_event(grid_coords_from_view_coords(m_mouse_last_position),
+                        feed_mouse_event(confined_grid_coords_from_view_coords(m_mouse_last_position),
                                          button,
                                          false /* not drag */,
                                          false /* not release */);
