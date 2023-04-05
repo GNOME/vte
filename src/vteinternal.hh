@@ -462,9 +462,9 @@ public:
         bool m_cursor_blink_state{false};
         bool m_cursor_blinks{false};        /* whether the cursor is actually blinking */
         bool m_cursor_blinks_system{true};  /* gtk-cursor-blink */
-        gint m_cursor_blink_cycle{1000};    /* gtk-cursor-blink-time / 2 */
-        int m_cursor_blink_timeout{500};    /* gtk-cursor-blink-timeout */
-        gint64 m_cursor_blink_time;         /* how long the cursor has been blinking yet */
+        int m_cursor_blink_cycle_ms{1000};  /* gtk-cursor-blink-time / 2 */
+        int m_cursor_blink_timeout_ms{500}; /* gtk-cursor-blink-timeout */
+        int64_t m_cursor_blink_time_ms;     /* how long the cursor has been blinking yet */
         bool m_has_focus{false};            /* is the widget focused */
 
         /* Contents blinking */
@@ -475,7 +475,7 @@ public:
         bool m_text_blink_state{false};  /* whether blinking text should be visible at this very moment */
         bool m_text_to_blink{false};     /* drawing signals here if it encounters any cell with blink attribute */
         TextBlinkMode m_text_blink_mode{TextBlinkMode::eALWAYS};
-        gint m_text_blink_cycle;  /* gtk-cursor-blink-time / 2 */
+        int m_text_blink_cycle_ms;  /* gtk-cursor-blink-time / 2 */
 
         /* DECSCUSR cursor style (shape and blinking possibly overridden
          * via escape sequence) */
@@ -922,8 +922,8 @@ public:
 #endif /* VTE_GTK */
 
         void set_blink_settings(bool blink,
-                                int blink_time,
-                                int blink_timeout) noexcept;
+                                int blink_time_ms,
+                                int blink_timeout_ms) noexcept;
 
         void draw(cairo_t *cr,
                   cairo_region_t const* region) noexcept;
