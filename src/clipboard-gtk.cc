@@ -113,19 +113,22 @@ private:
                                 break;
 
                         case ClipboardFormat::HTML: {
-                                auto const type = gtk_selection_data_get_data_type(data);
+                                auto const target = gtk_selection_data_get_target(data);
 
-                                if (type == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF8)) {
+                                if (target == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF8)) {
                                         // This makes yet another copy of the data... :(
-                                        gtk_selection_data_set_text(data, str->data(), str->size());
+                                        gtk_selection_data_set(data,
+                                                               target,
+                                                               8,
+                                                               reinterpret_cast<guchar const*>(str->data()),
+                                                               str->size());
                                 } else if (type == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF16)) {
                                         auto [html, len] = text_to_utf16_mozilla(*str);
 
                                         // This makes yet another copy of the data... :(
                                         if (html) {
                                                 gtk_selection_data_set(data,
-                                                                       gtk_selection_data_get_target(data),
-                                                                       // or gdk_atom_intern_static_string("text/html"),
+                                                                       target,
                                                                        16,
                                                                        reinterpret_cast<guchar const*>(html.get()),
                                                                        len);
