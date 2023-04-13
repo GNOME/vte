@@ -122,7 +122,7 @@ private:
                                                                8,
                                                                reinterpret_cast<guchar const*>(str->data()),
                                                                str->size());
-                                } else if (type == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF16)) {
+                                } else if (target == gdk_atom_intern_static_string(MIME_TYPE_TEXT_HTML_UTF16)) {
                                         auto [html, len] = text_to_utf16_mozilla(*str);
 
                                         // This makes yet another copy of the data... :(
