@@ -171,6 +171,7 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'attr.hh',
   'bidi.cc',
   'bidi.hh',
+  'box-drawing.hh',
   'buffer.h',
   'cairo-glue.hh',
   'caps.hh',
@@ -245,18 +246,6 @@ libvte_common_doc_sources = files(
   'vtegtk.cc',
   'vtepty.cc',
   'vteregex.cc',
-)
-
-# FIXMEchpe this should use files('...') (allowed as per docs, afaict), but that crashes meson
-generate_box_drawing = find_program('box_drawing_generate.sh')
-
-libvte_common_sources += custom_target(
-  'box-drawing',
-  input: 'box_drawing.txt',
-  output: 'box_drawing.h',
-  capture: true,
-  command: [generate_box_drawing, '@INPUT@'],
-  install: false,
 )
 
 libvte_common_sources += gnome.compile_resources(

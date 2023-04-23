@@ -139,7 +139,7 @@ pattern(cairo_t* cr,
         cairo_mask(cr, pattern);
 }
 
-#include "box_drawing.h"
+#include "box-drawing.hh"
 
 namespace vte::view {
 
