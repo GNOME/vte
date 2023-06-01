@@ -1467,8 +1467,10 @@ Terminal::reset_color(vte::parser::Sequence const& seq,
 
         while (token != endtoken) {
                 int value;
-                if (!token.number(value))
+                if (!token.number(value)) {
+                        ++token;
                         continue;
+                }
 
                 int index;
                 if (get_osc_color_index(osc, value, index) &&
