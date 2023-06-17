@@ -4303,13 +4303,11 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * @start_col: first column to search for data
  * @end_row: last row to search for data
  * @end_col: last column to search for data
- * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback
+ * @is_selected: (scope call) (allow-none): a #VteSelectionFunc callback. Deprecated: 0.72: Always pass %NULL here
  * @user_data: (closure): user data to be passed to the callback
  * @attributes: (nullable) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
- * Extracts a view of the visible part of the terminal.  If @is_selected is not
- * %NULL, characters will only be read if @is_selected returns %TRUE after being
- * passed the column and row, respectively.  A #VteCharAttributes structure
+ * Extracts a view of the visible part of the terminal. A #VteCharAttributes structure
  * is added to @attributes for each byte added to the returned string detailing
  * the character's position, colors, and other characteristics.  The
  * entire scrollback buffer is scanned, so it is possible to read the entire
@@ -4320,6 +4318,8 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  *
  * Since 0.68, passing a non-%NULL @array parameter is deprecated.
  * Since 0.72, passing a non-%NULL @array parameter will make this function
+ *   itself return %NULL.
+ * Since 0.72, passing a non-%NULL @is_selected function will make this function
  *   itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
