@@ -4345,7 +4345,7 @@ warn_if_attributes(void* array,
 /**
  * vte_terminal_get_text:
  * @terminal: a #VteTerminal
- * @is_selected: (scope call) (nullable) (closure user-data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here.
+ * @is_selected: (scope call) (nullable) (closure user_data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here.
  * @user_data: user data to be passed to the callback
  * @attributes: (nullable) (optional) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
@@ -4385,7 +4385,7 @@ catch (...)
 /**
  * vte_terminal_get_text_include_trailing_spaces:
  * @terminal: a #VteTerminal
- * @is_selected: (scope call) (nullable) (closure user-data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here.
+ * @is_selected: (scope call) (nullable) (closure user_data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here.
  * @user_data: user data to be passed to the callback
  * @attributes: (nullable) (optional) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
@@ -4418,7 +4418,7 @@ vte_terminal_get_text_include_trailing_spaces(VteTerminal *terminal,
  * @start_col: first column to search for data
  * @end_row: last row to search for data
  * @end_col: last column to search for data
- * @is_selected: (scope call) (nullable) (closure user-data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here
+ * @is_selected: (scope call) (nullable) (closure user_data): a #VteSelectionFunc callback. Deprecated: 0.44: Always pass %NULL here
  * @user_data: user data to be passed to the callback
  * @attributes: (nullable) (optional) (out caller-allocates) (transfer full) (array) (element-type Vte.CharAttributes): location for storing text attributes. Deprecated: 0.68: Always pass %NULL here.
  *
