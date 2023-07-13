@@ -2050,6 +2050,7 @@ Terminal::queue_adjustment_value_changed(double v)
         _vte_debug_print(VTE_DEBUG_ADJ,
                          "Scrolling by %f\n", dy);
 
+        m_ringview.invalidate();
         invalidate_all();
         match_contents_clear();
         emit_text_scrolled(dy);
