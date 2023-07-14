@@ -336,6 +336,27 @@ public:
                 return std::max(std::min(v, max_v), min_v);
         }
 
+        /* param_range:
+         * @idx:
+         * @default_v: the value to use for default parameters
+         * @min_v: the minimum value
+         * @max_v: the maximum value
+         *
+         * Returns: the value of the parameter at index @idx, or @default_v if
+         *   the parameter at this index has default value, or the index
+         *   is out of bounds. If the value is outside the range @min_v..@max_v,
+         *   returns @oor_v.
+         */
+        inline constexpr int param_range(unsigned int idx,
+                                         int default_v,
+                                         int min_v,
+                                         int max_v,
+                                         int oor_v) const noexcept
+        {
+                auto v = param(idx, default_v);
+                return (v >= min_v && v <= max_v) ? v : oor_v;
+        }
+
         /* param_nonfinal:
          * @idx:
          *
