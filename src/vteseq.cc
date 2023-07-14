@@ -7261,7 +7261,7 @@ Terminal::SGR(vte::parser::Sequence const& seq)
                         unsigned int v = 1;
                         /* If we have a subparameter, get it */
                         if (seq.param_nonfinal(i)) {
-                                v = seq.param(i + 1, 1, 0, 3);
+                                v = seq.param_range(i + 1, 1, 0, 3, 0 /* no underline */);
                         }
                         m_defaults.attr.set_underline(v);
                         break;
