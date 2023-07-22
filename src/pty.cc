@@ -60,6 +60,10 @@
 #if defined(__sun) && defined(HAVE_STROPTS_H)
 #include <stropts.h>
 #endif
+#ifdef __NetBSD__
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
 #include <glib.h>
 #include <gio/gio.h>
 #include "debug.h"
@@ -415,11 +419,23 @@ _vte_pty_open_posix(void)
         bool need_cloexec = false, need_nonblocking = false;
 
 #ifdef __NetBSD__
-        // NetBSD is a special case: posix_openpt() will not return EINVAL
-        // for unknown/unsupported flags but instead silently ignore these flags
+        // NetBSD is a special case: prior to 9.99.101, posix_openpt() will not return
+        // EINVAL for unknown/unsupported flags but instead silently ignore these flags
         // and just return a valid PTY but without the NONBLOCK | CLOEXEC flags set.
-        // So we always need to manually apply these flags there. See issue #2575.
-        need_cloexec = need_nonblocking = true;
+        // So we need to manually apply these flags there. See issue #2575.
+        int mib[2], osrev;
+        size_t len;
+
+        mib[0] = CTL_KERN;
+        mib[1] = KERN_OSREV;
+        len = sizeof(osrev);
+        sysctl(mib, 2, &osrev, &len, NULL, 0);
+        if (osrev < 999010100) {
+                need_cloexec = need_nonblocking = true;
+                _vte_debug_print(VTE_DEBUG_PTY,
+                                 "NetBSD < 9.99.101, forcing fallback "
+                                 "for NONBLOCK and CLOEXEC.\n");
+        }
 #else
 
         if (!fd && errno == EINVAL) {
