@@ -1113,8 +1113,7 @@ Widget::gesture_click_pressed(GtkGestureClick* gesture,
                                                           x, y);
         if (terminal()->widget_mouse_press(event))
                 gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
-        else
-                gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_DENIED);
+	// Note that we don't deny the sequence here in the |else| case, see issue #2630
 
         // FIXMEgtk4 GtkLabel does
         //        if (press_count >= 3)
