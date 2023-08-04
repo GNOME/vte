@@ -6365,7 +6365,7 @@ Terminal::cellattr_to_html(VteCellAttr const* attr,
 		g_string_prepend(string, "<i>");
 		g_string_append(string, "</i>");
 	}
-        /* <u> should be inside <span style="color:..."> so that it inherits its color by default */
+        /* <u> should be inside <font> so that it inherits its color by default */
         if (attr->underline() != 0) {
                 static const char styles[][7] = {"", "single", "double", "wavy"};
                 char *tag, *colorattr;
@@ -6395,13 +6395,13 @@ Terminal::cellattr_to_html(VteCellAttr const* attr,
                 char *tag;
 
                 rgb_from_index<8, 8, 8>(fore, color);
-		tag = g_strdup_printf("<span style=\"color:#%02X%02X%02X\">",
+		tag = g_strdup_printf("<font color=\"#%02X%02X%02X\">",
                                       color.red >> 8,
                                       color.green >> 8,
                                       color.blue >> 8);
 		g_string_prepend(string, tag);
 		g_free(tag);
-		g_string_append(string, "</span>");
+		g_string_append(string, "</font>");
 	}
 	if (back != VTE_DEFAULT_BG || attr->reverse()) {
 		vte::color::rgb color;
