@@ -1,0 +1,52 @@
+# Copyright 2023 Zander Brown
+#
+# This library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this library.  If not, see <https://www.gnu.org/licenses/>.
+
+image: fedora:latest
+
+doc:
+  variables:
+    MESON_ARGS: >-
+      -Ddocs=true
+      -Dgtk4=true
+      -Dvapi=false
+  before_script:
+    - dnf -y install fribidi-devel g++ git glib2-devel gnutls-devel
+        gobject-introspection-devel gperf gtk3-devel gtk4-devel
+        libicu-devel meson pango-devel pcre2-devel python3-jinja2
+        python3-packaging python3-pygments python3-toml python3-typogrify
+        systemd-devel zlib-devel gi-docgen
+  script:
+    - meson --prefix=/app ${MESON_ARGS} _build
+    - ninja -C _build
+    - mkdir _doc
+    - cp .gitlab-ci/docs.html _doc/index.html
+    - mv _build/doc/reference/vte-2.91/ _doc/gtk3
+    - mv _build/doc/reference/vte-2.91-gtk4/ _doc/gtk4
+  artifacts:
+    expose_as: 'Browse documentation'
+    paths:
+      - _doc/index.html
+      - _doc
+
+pages:
+  needs: ['doc']
+  only:
+    refs:
+    - tags
+  script:
+    - cp -r _doc public
+  artifacts:
+    paths:
+      - public
