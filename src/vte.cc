@@ -985,29 +985,11 @@ void
 Terminal::queue_child_exited()
 {
         _vte_debug_print(VTE_DEBUG_SIGNALS, "Queueing `child-exited'.\n");
-        m_child_exited_after_eos_pending = false;
 
         g_idle_add_full(G_PRIORITY_HIGH,
                         (GSourceFunc)emit_child_exited_idle_cb,
                         g_object_ref(m_terminal),
                         g_object_unref);
-}
-
-bool
-Terminal::child_exited_eos_wait_callback()
-{
-        /* If we get this callback, there has been some time elapsed
-         * after child-exited, but no EOS yet. This happens for example
-         * when the primary child started other processes in the background,
-         * which inherited the PTY, and thus keep it open, see
-         * https://gitlab.gnome.org/GNOME/vte/issues/204
-         *
-         * Force an EOS.
-         */
-        if (pty())
-                pty_io_read(pty()->fd(), G_IO_HUP);
-
-        return false; // don't run again
 }
 
 /* Emit an "increase-font-size" signal. */
@@ -3318,17 +3300,23 @@ Terminal::child_watch_done(pid_t pid,
         /* If we still have a PTY, or data to process, defer emitting the signals
          * until we have EOF on the PTY, so that we can process all pending data.
          */
-        if (pty() || !m_incoming_queue.empty()) {
-                m_child_exit_status = status;
-                m_child_exited_after_eos_pending = true;
+        if (pty()) {
+                /* Read and process about 64k synchronously, up to EOF or EAGAIN
+                 * or other error, to make sure we consume the child's output.
+                 * See https://gitlab.gnome.org/GNOME/vte/-/issues/2627 */
+                pty_io_read(pty()->fd(), G_IO_IN, 65536);
+                if (!m_incoming_queue.empty()) {
+                        process_incoming();
+                }
 
-                m_child_exited_eos_wait_timer.schedule_seconds(2); // FIXME: better value?
-        } else {
-                m_child_exited_after_eos_pending = false;
-
-                if (widget())
-                        widget()->emit_child_exited(status);
+                /* Stop processing data. Optional. Keeping processing data from grandchildren and
+                 * other writers would also be a reasonable choice. It makes a difference if the
+                 * terminal is held open after the child exits. */
+                unset_pty();
         }
+
+        if (widget())
+                widget()->emit_child_exited(status);
 }
 
 static void
@@ -3940,7 +3928,8 @@ Terminal::process_incoming_decsixel(ProcessingContext& context,
 
 bool
 Terminal::pty_io_read(int const fd,
-                      GIOCondition const condition)
+                      GIOCondition const condition,
+                      int amount)
 {
 	_vte_debug_print (VTE_DEBUG_WORK, ".");
         _vte_debug_print(VTE_DEBUG_IO, "::pty_io_read condition %02x\n", condition);
@@ -3966,22 +3955,30 @@ Terminal::pty_io_read(int const fd,
 		int rem, len;
 		guint bytes, max_bytes;
 
-		/* Limit the amount read between updates, so as to
-		 * 1. maintain fairness between multiple terminals;
-		 * 2. prevent reading the entire output of a command in one
-		 *    pass, i.e. we always try to refresh the terminal ~40Hz.
-		 *    See time_process_incoming() where we estimate the
-		 *    maximum number of bytes we can read/process in between
-		 *    updates.
-		 */
-		max_bytes = m_active_terminals_link != nullptr ?
-		            g_list_length(g_active_terminals) - 1 : 0;
-		if (max_bytes) {
-			max_bytes = m_max_input_bytes / max_bytes;
-		} else {
-			max_bytes = m_max_input_bytes;
-		}
 		bytes = m_input_bytes;
+                if (G_LIKELY (amount < 0)) {
+                        /* Limit the amount read between updates, so as to
+                         * 1. maintain fairness between multiple terminals;
+                         * 2. prevent reading the entire output of a command in one
+                         *    pass, i.e. we always try to refresh the terminal ~40Hz.
+                         *    See time_process_incoming() where we estimate the
+                         *    maximum number of bytes we can read/process in between
+                         *    updates.
+                         */
+                        max_bytes = m_active_terminals_link != nullptr ?
+                                    g_list_length(g_active_terminals) - 1 : 0;
+                        if (max_bytes) {
+                                max_bytes = m_max_input_bytes / max_bytes;
+                        } else {
+                                max_bytes = m_max_input_bytes;
+                        }
+                } else {
+                        /* 'amount' explicitly specified. Try to read this much on top
+                         * of what we might already have read and not yet processed,
+                         * but stop at EAGAIN or EOS.
+                         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2627 */
+                        max_bytes = bytes + amount;
+                }
 
                 /* If possible, try adding more data to the chunk at the back of the queue */
                 if (!m_incoming_queue.empty())
@@ -4008,7 +4005,10 @@ Terminal::pty_io_read(int const fd,
                                  */
                                 auto const save = bp[-1];
                                 errno = 0;
-                                auto ret = read(fd, bp - 1, rem + 1);
+                                ssize_t ret;
+                                do {
+                                        ret = read(fd, bp - 1, rem + 1);
+                                } while (ret == -1 && errno == EINTR);
                                 auto const pkt_header = bp[-1];
                                 bp[-1] = save;
 
@@ -4060,7 +4060,9 @@ Terminal::pty_io_read(int const fd,
 				databuf.buf = (caddr_t)bp;
 				databuf.maxlen = rem;
 
-				ret = getmsg(fd, &ctlbuf, &databuf, &flags);
+                                do {
+                                        ret = getmsg(fd, &ctlbuf, &databuf, &flags);
+                                } while (ret == -1 && errno == EINTR);
 				if (ret == -1) {
 					err = errno;
 					goto out;
@@ -4094,7 +4096,10 @@ Terminal::pty_io_read(int const fd,
 					len += databuf.len;
 				}
 #else /* neither TIOCPKT nor STREAMS pty */
-				int ret = read(fd, bp, rem);
+                                ssize_t ret;
+                                do {
+                                        ret = read(fd, bp, rem);
+                                } while (ret == -1 && errno == EINTR);
 				switch (ret) {
 					case -1:
 						err = errno;
@@ -4114,11 +4119,15 @@ out:
 			chunk->add_size(len);
 			bytes += len;
 		} while (bytes < max_bytes &&
-                         // This means that a read into a not-yet-¾-full
+                         // This means that either a read into a not-yet-¾-full
                          // chunk used up all the available capacity, so
                          // let's assume that we can read more and thus
                          // we'll get a new chunk in the loop above and
-                         // continue on. (See commit 49a0cdf11.)
+                         // continue on (see commit 49a0cdf11); or a short read
+                         // occurred in which case we also keep looping, it's
+                         // important in order to consume all the data after the
+                         // child quits, see
+                         // https://gitlab.gnome.org/GNOME/vte/-/issues/2627
                          // Note also that on EOS or error, this condition
                          // is false (since there was capacity, but it wasn't
                          // used up).
@@ -4174,9 +4183,6 @@ out:
 
                 chunk->set_sealed();
                 chunk->set_eos();
-
-                /* Cancel wait timer */
-                m_child_exited_eos_wait_timer.abort();
 
                 /* Need to process the EOS */
 		if (!is_processing()) {
@@ -10187,8 +10193,6 @@ Terminal::unset_pty(bool notify_widget)
         disconnect_pty_read();
         disconnect_pty_write();
 
-        m_child_exited_eos_wait_timer.abort();
-
         /* Clear incoming and outgoing queues */
         m_input_bytes = 0;
         m_incoming_queue = {};
@@ -10484,18 +10488,11 @@ Terminal::emit_pending_signals()
                 m_bell_pending = false;
         }
 
-        auto const eos = m_eos_pending;
         if (m_eos_pending) {
                 queue_eof();
                 m_eos_pending = false;
 
                 unset_pty();
-        }
-
-        if (m_child_exited_after_eos_pending && eos) {
-                /* The signal handler could destroy the terminal, so send the signal on idle */
-                queue_child_exited();
-                m_child_exited_after_eos_pending = false;
         }
 }
 
