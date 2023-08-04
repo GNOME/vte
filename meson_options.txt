@@ -81,7 +81,7 @@ option(
 option(
   'gtk4',
   type: 'boolean',
-  value: false,
+  value: true,
   description: 'Enable GTK+ 4.0 widget',
 )
 
