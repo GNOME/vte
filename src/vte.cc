@@ -6841,16 +6841,6 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 		break;
 	}
 
-#if VTE_GTK == 4
-        if (!handled &&
-            ((event.button() == vte::platform::MouseEvent::Button::eRIGHT) ||
-             !(event.modifiers() & (GDK_BUTTON1_MASK | GDK_BUTTON2_MASK)))) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
-                // FIXMEgtk4 context menu
-                handled = true;
-        }
-#endif /* VTE_GTK == 4 */
-
 	/* Save the pointer state for later use. */
         if (event.button_value() >= 1 && event.button_value() <= 3)
                 m_mouse_pressed_buttons |= (1 << (event.button_value() - 1));
