@@ -4976,15 +4976,6 @@ Terminal::widget_key_press(vte::platform::KeyEvent const& event)
 		return true;
 	}
 
-#if VTE_GTK == 4
-        if (!handled &&
-            event.matches(GDK_KEY_Menu, 0)) {
-                _vte_debug_print(VTE_DEBUG_EVENTS, "Showing context menu\n");
-                // FIXMEgtk4 do context menu
-                handled = true;
-        }
-#endif
-
 	return false;
 }
 
