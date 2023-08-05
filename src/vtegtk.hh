@@ -93,10 +93,6 @@ enum {
         PROP_TEXT_BLINK_MODE,
         PROP_WINDOW_TITLE,
         PROP_WORD_CHAR_EXCEPTIONS,
-        PROP_XALIGN,
-        PROP_YALIGN,
-        PROP_XFILL,
-        PROP_YFILL,
         LAST_PROP,
 
         /* override properties */
