@@ -284,10 +284,6 @@ Pty::set_size(int rows,
 	memset(&size, 0, sizeof(size));
 	size.ws_row = rows > 0 ? rows : 24;
 	size.ws_col = columns > 0 ? columns : 80;
-#if WITH_SIXEL
-        size.ws_ypixel = size.ws_row * cell_height_px;
-        size.ws_xpixel = size.ws_col * cell_width_px;
-#endif
 	_vte_debug_print(VTE_DEBUG_PTY,
 			"Setting size on fd %d to (%d,%d).\n",
 			master, columns, rows);
