@@ -206,7 +206,7 @@ typedef enum /*< skip >*/ {
  * An enumeration type that can be used to specify how the terminal
  * uses extra allocated space.
  *
- * Since: 0.68
+ * Since: 0.76
  */
 typedef enum {
         VTE_ALIGN_START       = 0U,
