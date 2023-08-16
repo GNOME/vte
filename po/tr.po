@@ -1,10 +1,10 @@
 # Turkish translation of vte.
-# Copyright (C) 2003-2022 vte's COPYRIGHT HOLDER
+# Copyright (C) 2003-2023 vte's COPYRIGHT HOLDER
 # This file is distributed under the same license as the vte package.
 #
 # Görkem Çetin <gorkem@gelecek.com.tr>, 2003.
 # Arman Aksoy <armish@linux-sevenler.de>, 2003.
-# Baris Cicek <baris@teamforce.name.tr>, 2004, 2008.
+# Barış Çicek <baris@teamforce.name.tr>, 2004, 2008.
 # Volkan Yalçın <vlyalcin@gmail.com>, 2011.
 # Yaşar Şentürk <yasarix@gmail.com>, 2014.
 # Muhammet Kara <muhammetk@gmail.com>, 2016.
@@ -14,10 +14,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vte master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2023-02-03 20:46+0000\n"
+"POT-Creation-Date: 2023-08-06 13:23+0000\n"
 "PO-Revision-Date: 2023-02-20 22:23+0300\n"
 "Last-Translator: Sabri Ünal <libreajans@gmail.com>\n"
-"Language-Team: Türkçe <gnome-turk@gnome.org>\n"
+"Language-Team: Türkçe <takim@gnome.org.tr>\n"
 "Language: tr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -25,11 +25,11 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 3.1.1\n"
 
-#: src/vte.cc:7728
+#: src/vte.cc:7699
 msgid "WARNING"
 msgstr "UYARI"
 
-#: src/vte.cc:7730
+#: src/vte.cc:7701
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr "GnuTLS etkin değil; veriler diske şifrelenmemiş olarak yazılacak!"
 
