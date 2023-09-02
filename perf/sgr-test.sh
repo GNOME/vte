@@ -21,9 +21,9 @@ words_comment=(normal "green text" "magenta background" "bright red underline")
 words_start=(      ""           32                   45                 58:5:9)
 words_end=(        ""           39                   49                     59)
 
-attr_name=(bold dim italic underline underline "double underline" "double underline" "curly underline" blink reverse hidden strikethrough overline)
-attr_start=(  1   2      3         4       4:1                 21                4:2               4:3     5       7      8             9       53)
-attr_end=(   22  22     23        24       4:0                 24                4:0               4:0    25      27     28            29       55)
+attr_name=(bold dim italic underline underline "double underline" "double underline" "curly underline" "dotted underline" "dashed underline" blink reverse hidden strikethrough overline)
+attr_start=(  1   2      3         4       4:1                 21                4:2               4:3                4:4                4:5     5       7      8             9       53)
+attr_end=(   22  22     23        24       4:0                 24                4:0               4:0                4:0                4:0    25      27     28            29       55)
 
 col_name=("normal")
 col_start=("")
