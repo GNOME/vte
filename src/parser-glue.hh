@@ -341,6 +341,7 @@ public:
          * @default_v: the value to use for default parameters
          * @min_v: the minimum value
          * @max_v: the maximum value
+         * @oor_v: the value to return for out-of-range values
          *
          * Returns: the value of the parameter at index @idx, or @default_v if
          *   the parameter at this index has default value, or the index
