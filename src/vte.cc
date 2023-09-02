@@ -5638,9 +5638,7 @@ Terminal::feed_mouse_event(vte::grid::coords const& rowcol /* confined */,
 
                 /* Send event direct to the child, this is binary not text data */
                 feed_child_binary({buf, len});
-        } else {
-                return false;
-        }
+	}
 
         return true;
 }
@@ -6642,7 +6640,7 @@ Terminal::maybe_end_selection()
 	}
 
         if (m_will_select_after_threshold)
-                return !m_selection_resolved.empty();
+                return true;
 
         return false;
 }
@@ -6845,10 +6843,10 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 				}
 			}
 			if (start_selecting) {
-                                handled = !m_selection_resolved.empty();
 				deselect_all();
                                 m_will_select_after_threshold = true;
                                 m_selection_block_mode = !!(m_modifiers & GDK_CONTROL_MASK);
+				handled = true;
 			}
 			if (extend_selecting) {
 				/* The whole selection code needs to be
@@ -6876,7 +6874,7 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
 			break;
 		}
                 if (event.button_value() >= 1 && event.button_value() <= 3) {
-                        if (handled || start_selecting)
+                        if (handled)
                                 m_mouse_handled_buttons |= (1 << (event.button_value() - 1));
                         else
                                 m_mouse_handled_buttons &= ~(1 << (event.button_value() - 1));
