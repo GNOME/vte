@@ -7400,10 +7400,15 @@ Terminal::SGR(vte::parser::Sequence const& seq)
                         m_defaults.attr.set_italic(true);
                         break;
                 case VTE_SGR_SET_UNDERLINE: {
-                        unsigned int v = 1;
-                        /* If we have a subparameter, get it */
+                        auto v = 1;
+                        // If we have a subparameter, get it
                         if (seq.param_nonfinal(i)) {
-                                v = seq.param_range(i + 1, 1, 0, 3, 0 /* no underline */);
+                                v = seq.param_range(i + 1, 1, 0, 3, -2);
+                                // Skip the subparam sequence if the subparam
+                                // is outside the supported range. See issue
+                                // https://gitlab.gnome.org/GNOME/vte/-/issues/2640
+                                if (v == -2)
+                                        break;
                         }
                         m_defaults.attr.set_underline(v);
                         break;
