@@ -647,7 +647,7 @@ public:
                         { "extra-margin", 0, 0, G_OPTION_ARG_INT, &extra_margin,
                           "Add extra margin around the terminal widget", "MARGIN" },
                         { "fd", 0, 0, G_OPTION_ARG_CALLBACK, (void*)parse_fd,
-                          "Pass file descriptor N (as M) to the child process", "N[:M]|N[=]M]" },
+                          "Pass file descriptor N (as M) to the child process", "N[:M]|N[=M]" },
                         { "feed-stdin", 'B', 0, G_OPTION_ARG_NONE, &feed_stdin,
                           "Feed input to the terminal", nullptr },
                         { "font", 'f', 0, G_OPTION_ARG_STRING, &font_string,
