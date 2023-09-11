@@ -493,6 +493,44 @@ _vte_terminal_accessible_text_modified(VteTerminalAccessible* accessible)
         g_array_free(old_characters, TRUE);
 }
 
+/* Compute a simple diff between the `before` string (before_len bytes) and the
+   `after` string (after_len bytes). We here only check for common head and
+   tail.
+
+   If the strings are equal, this returns FALSE.
+
+   If the strings differ, this returns TRUE, and *head_len is set to the number
+   of bytes that are identical at the beginning of `before` and `after`, and
+   *tail_len is set to the number of bytes that are identical at the end of
+   `before` and `after`. */
+static gboolean
+check_diff(const gchar *before, guint before_len,
+	   const gchar *after, guint after_len,
+	   guint *head_len, guint *tail_len)
+{
+	guint i;
+
+	for (i = 0; i < before_len && i < after_len; i++)
+		if (before[i] != after[i])
+			break;
+
+	if (i == before_len && i == after_len)
+		/* They are identical. */
+		return FALSE;
+
+	/* They started diverging at i. */
+	*head_len = i;
+
+	for (i = 1; i <= before_len - *head_len && i <= after_len - *head_len; i++)
+		if (before[before_len - i] != after[after_len - i])
+			break;
+
+	/* They finished diverging here. */
+	*tail_len = i - 1;
+
+	return TRUE;
+}
+
 void
 _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
                                        long howmuch)
@@ -550,7 +588,6 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 	/* We scrolled up, so text was added at the top and removed
 	 * from the bottom. */
 	if ((howmuch < 0) && (howmuch > -row_count)) {
-		gboolean inserted = FALSE;
 		howmuch = -howmuch;
 		if (priv->snapshot_attributes != NULL &&
 				priv->snapshot_text != NULL) {
@@ -566,59 +603,62 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 				}
 			}
 			if (left < priv->snapshot_attributes->len) {
+				drop = priv->snapshot_attributes->len - left;
+
 				GString *old_text;
 				GArray *old_characters;
 
-				drop = priv->snapshot_attributes->len - left;
-
-				priv->snapshot_contents_invalid = TRUE;
-
 				/* Refresh. */
+				priv->snapshot_contents_invalid = TRUE;
 				vte_terminal_accessible_update_private_data_if_needed(accessible,
 										      &old_text,
 										      &old_characters);
 
-				GString *saved_text = priv->snapshot_text;
-				GArray *saved_characters = priv->snapshot_characters;
+				GString *new_text = priv->snapshot_text;
+				GArray *new_characters = priv->snapshot_characters;
+				guint head_len, tail_len;
+				gboolean diff;
+
+				diff = check_diff(old_text->str, left,
+						  new_text->str + drop, left,
+						  &head_len, &tail_len);
 
 				priv->snapshot_text = old_text;
 				priv->snapshot_characters = old_characters;
 
-				if (memcmp(old_text->str,
-					   priv->snapshot_text->str +
-					   priv->snapshot_attributes->len - left,
-					   left))
-				{
-					/* Not only did we scroll, but we
-					 * also modified some bits, don't try to
-					 * optimize. */
-					emit_text_changed_delete(G_OBJECT(accessible),
-								 old_text->str,
-								 0,
-								 old_text->len);
-					priv->snapshot_text = saved_text;
-					priv->snapshot_characters = saved_characters;
-					g_string_free(old_text, TRUE);
-					g_array_free(old_characters, TRUE);
-					emit_text_changed_insert(G_OBJECT(accessible),
-								 priv->snapshot_text->str,
-								 0,
-								 priv->snapshot_text->len);
-					vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
-					return;
-				}
-
-				/* We only scrolled, just delete bottom and will insert top */
+				/* Delete bottom and will insert top */
 				emit_text_changed_delete(G_OBJECT(accessible),
-						priv->snapshot_text->str,
+						old_text->str,
 						left,
 						drop);
-				priv->snapshot_text = saved_text;
-				priv->snapshot_characters = saved_characters;
+
+				if (diff)
+					/* Not only did we scroll, but we also modified some bits,
+					   emit the modifications first. */
+					emit_text_changed_delete(G_OBJECT(accessible),
+								 old_text->str,
+								 head_len,
+								 left - tail_len - head_len);
+				priv->snapshot_text = new_text;
+				priv->snapshot_characters = new_characters;
+
 				g_string_free(old_text, TRUE);
 				g_array_free(old_characters, TRUE);
+
+				/* If we now have more text than before, the initial portion
+				 * was added. */
+				len = priv->snapshot_text->len;
+				emit_text_changed_insert(G_OBJECT(accessible),
+							 priv->snapshot_text->str,
+							 0,
+							 len - left);
+
+				if (diff)
+					emit_text_changed_insert(G_OBJECT(accessible),
+								 new_text->str,
+								 len - left + head_len,
+								 left - tail_len - head_len);
 			}
-			inserted = TRUE;
 		} else {
 			/* Just refresh. */
 			priv->snapshot_contents_invalid = TRUE;
@@ -627,25 +667,12 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 									      NULL);
 		}
 
-		/* If we now have more text than before, the initial portion
-		 * was added. */
-		if (inserted) {
-			len = priv->snapshot_text->len;
-			if (len > left) {
-				emit_text_changed_insert(G_OBJECT(accessible),
-							 priv->snapshot_text->str,
-							 0,
-							 len - left);
-			}
-
-		}
                 vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
 	/* We scrolled down, so text was added at the bottom and removed
 	 * from the top. */
 	if ((howmuch > 0) && (howmuch < row_count)) {
-		gboolean inserted = FALSE;
 		if (priv->snapshot_attributes != NULL &&
 				priv->snapshot_text != NULL) {
 			/* Find the first byte that wasn't scrolled off the top. */
@@ -660,56 +687,73 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 				}
 			}
 
-			GString *old_text;
-			GArray *old_characters;
+			/* Leave trailing '\n' untouched, so that the exposed text always contains a trailing '\n',
+			   insertion happens in front of it: bug 657960 */
+			len = priv->snapshot_text->len - 1;
 
 			/* Figure out how much text was left, and refresh. */
-			left = priv->snapshot_attributes->len - drop;
+			left = len - drop;
+
+			GString *old_text;
+			GArray *old_characters;
 
 			priv->snapshot_contents_invalid = TRUE;
 			vte_terminal_accessible_update_private_data_if_needed(accessible,
 									      &old_text,
 									      &old_characters);
 
-			GString *saved_text = priv->snapshot_text;
-			GArray *saved_characters = priv->snapshot_characters;
+			GString *new_text = priv->snapshot_text;
+			GArray *new_characters = priv->snapshot_characters;
+			guint head_len, tail_len;
+			guint extra_add = 0;
+			gboolean diff;
+
+			diff = check_diff(old_text->str + drop, left,
+				       new_text->str, left,
+				       &head_len, &tail_len);
 
 			priv->snapshot_text = old_text;
 			priv->snapshot_characters = old_characters;
 
-			if (memcmp(old_text->str + drop,
-			    priv->snapshot_text->str, left))
-			{
-				/* Not only did we scroll, but we
-				 * also modified some bits, don't try to
-				 * optimize. */
+			if (diff)
+				/* Not only did we scroll, but we also modified some bits,
+				   emit the modifications first. */
 				emit_text_changed_delete(G_OBJECT(accessible),
 							 old_text->str,
-							 0,
-							 old_text->len);
-				priv->snapshot_text = saved_text;
-				priv->snapshot_characters = saved_characters;
-				g_string_free(old_text, TRUE);
-				g_array_free(old_characters, TRUE);
-				emit_text_changed_insert(G_OBJECT(accessible),
-							 priv->snapshot_text->str,
-							 0,
-							 priv->snapshot_text->len);
-				vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
-				return;
-			}
+							 drop + head_len,
+							 left - tail_len - head_len);
 
-			/* We only scrolled, just delete top and will insert bottom */
+			/* Delete top and will insert bottom */
 			emit_text_changed_delete(G_OBJECT(accessible),
-					priv->snapshot_text->str,
+					old_text->str,
 					0,
                                         drop);
-			priv->snapshot_text = saved_text;
-			priv->snapshot_characters = saved_characters;
+			priv->snapshot_text = new_text;
+			priv->snapshot_characters = new_characters;
+
 			g_string_free(old_text, TRUE);
 			g_array_free(old_characters, TRUE);
 
-			inserted = TRUE;
+			if (diff)
+			{
+				if (tail_len)
+					emit_text_changed_insert(G_OBJECT(accessible),
+								 new_text->str,
+								 head_len,
+								 left - head_len - tail_len);
+				else
+					/* Modified at bottom, merge with addition below */
+					extra_add = left - head_len - tail_len;
+			}
+
+			/* Any newly-added string data is new, so note that it was
+			 * inserted. */
+			len = priv->snapshot_text->len - 1;
+			if (len > left - extra_add)
+				emit_text_changed_insert(G_OBJECT(accessible),
+							 priv->snapshot_text->str,
+							 left - extra_add,
+							 len - (left - extra_add));
 		} else {
 			/* Just refresh. */
 			priv->snapshot_contents_invalid = TRUE;
@@ -718,22 +762,6 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 									      NULL);
 		}
 
-		/* Any newly-added string data is new, so note that it was
-		 * inserted. */
-		if (inserted) {
-			len = priv->snapshot_text->len;
-			if (len > left) {
-				/* snapshot_text always contains a trailing '\n',
-				 * insertion happens in front of it: bug 657960 */
-				// g_assert(left >= 1);
-                            if (left > 0)
-				emit_text_changed_insert(G_OBJECT(accessible),
-							 priv->snapshot_text->str,
-							 left - 1,
-							 len - left);
-			}
-
-		}
                 vte_terminal_accessible_maybe_emit_text_caret_moved(accessible);
 		return;
 	}
