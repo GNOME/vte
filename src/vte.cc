@@ -7792,7 +7792,7 @@ Terminal::Terminal(vte::platform::Widget* w,
         }
 #endif
 
-#ifndef WITH_GNUTLS
+#if !WITH_GNUTLS
         std::string str{"\e[1m\e[31m"};
         str.append(_("WARNING"));
         str.append(":\e[39m ");
