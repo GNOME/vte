@@ -8292,7 +8292,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         else
                 rgb_from_index<4, 5, 4>(deco, dc);
 
-#ifndef WITH_SIXEL
+#if !WITH_SIXEL
         if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
 #else
         {
@@ -8947,7 +8947,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
                                   (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
                         if (cell->c == 0 ||
-#ifndef WITH_SIXEL
+#if !WITH_SIXEL
                             ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
                              cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
                                                  VTE_ATTR_STRIKETHROUGH_MASK |
