@@ -3929,7 +3929,7 @@ spawn_async_cb(GObject *source,
  * VteTerminalSpawnAsyncCallback:
  * @terminal: the #VteTerminal
  * @pid: a #GPid
- * @error: a #GError, or %NULL
+ * @error: (nullable): a #GError, or %NULL
  * @user_data: user data that was passed to vte_terminal_spawn_async
  *
  * Callback for vte_terminal_spawn_async().
