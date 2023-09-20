@@ -16,6 +16,9 @@
 image: fedora:latest
 
 doc:
+  only:
+    refs:
+      - tags
   variables:
     MESON_ARGS: >-
       -Ddocs=true
