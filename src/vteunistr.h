@@ -23,6 +23,8 @@
 
 #include <glib.h>
 
+#include "bidiarrays.hh"
+
 G_BEGIN_DECLS
 
 /**
@@ -99,12 +101,12 @@ _vte_unistr_append_to_string (vteunistr s, GString *gs);
 /**
  * _vte_unistr_append_to_gunichars:
  * @s: a #vteunistr
- * @a: a #GArray of #gunichar items to append @s to
+ * @a: a #VteBidiChars of #gunichar items to append @s to
  *
  * Appends @s to @a.
  **/
 void
-_vte_unistr_append_to_gunichars (vteunistr s, GArray *a);
+_vte_unistr_append_to_gunichars (vteunistr s, VteBidiChars *a);
 
 /**
  * _vte_unistr_strlen:

@@ -162,7 +162,7 @@ _vte_unistr_get_base (vteunistr s)
 }
 
 void
-_vte_unistr_append_to_gunichars (vteunistr s, GArray *a)
+_vte_unistr_append_to_gunichars (vteunistr s, VteBidiChars *a)
 {
         if (G_UNLIKELY (s >= VTE_UNISTR_START)) {
                 struct VteUnistrDecomp *decomp;
@@ -171,7 +171,7 @@ _vte_unistr_append_to_gunichars (vteunistr s, GArray *a)
                 s = decomp->suffix;
         }
         gunichar val = (gunichar) s;
-        g_array_append_val (a, val);
+        vte_bidi_chars_append(a, &val);
 }
 
 vteunistr
@@ -182,15 +182,17 @@ _vte_unistr_replace_base (vteunistr s, gunichar c)
         if (G_LIKELY (_vte_unistr_get_base(s) == c))
                 return s;
 
-        GArray *a = g_array_new (FALSE, FALSE, sizeof (gunichar));
-        _vte_unistr_append_to_gunichars (s, a);
-        g_assert_cmpint(a->len, >=, 1);
+        VteBidiChars a;
+        vte_bidi_chars_init(&a);
+        _vte_unistr_append_to_gunichars (s, &a);
+        g_assert_cmpint(vte_bidi_chars_get_size(&a), >=, 1);
 
         s = c;
-        for (glong i = 1; i < a->len; i++)
-                s = _vte_unistr_append_unichar (s, g_array_index (a, gunichar, i));
+        for (gsize i = 1; i < vte_bidi_chars_get_size(&a); i++)
+                s = _vte_unistr_append_unichar (s, *vte_bidi_chars_get (&a, i));
 
-        g_array_free (a, TRUE);
+        vte_bidi_chars_clear (&a);
+
         return s;
 }
 
