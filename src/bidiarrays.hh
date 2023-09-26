@@ -22,4 +22,13 @@
 #define GDK_ARRAY_ELEMENT_TYPE gunichar
 #define GDK_ARRAY_BY_VALUE 1
 #define GDK_ARRAY_PREALLOC 8
+#define GDK_ARRAY_NO_MEMSET
+#include "gdkarrayimpl.c"
+
+#define GDK_ARRAY_NAME vte_bidi_indexes
+#define GDK_ARRAY_TYPE_NAME VteBidiIndexes
+#define GDK_ARRAY_ELEMENT_TYPE int
+#define GDK_ARRAY_BY_VALUE 1
+#define GDK_ARRAY_PREALLOC 8
+#define GDK_ARRAY_NO_MEMSET
 #include "gdkarrayimpl.c"
