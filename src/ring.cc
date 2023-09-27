@@ -426,7 +426,7 @@ Ring::freeze_row(row_t position,
 	record.attr_start_offset = _vte_stream_head(m_attr_stream);
 	record.is_ascii = 1;
 
-	g_string_set_size (buffer, 0);
+	g_string_truncate (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
 		VteCellAttr attr;
 		int num_chars;
@@ -1556,7 +1556,7 @@ Ring::write_row(GOutputStream* stream,
 
 	/* Simple version of the loop in freeze_row().
 	 * TODO Should unify one day */
-	g_string_set_size (buffer, 0);
+	g_string_truncate (buffer, 0);
 	for (i = 0, cell = row->cells; i < row->len; i++, cell++) {
 		if (G_LIKELY (!cell->attr.fragment()))
 			_vte_unistr_append_to_string (cell->c, buffer);

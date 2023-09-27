@@ -479,7 +479,7 @@ FontInfo::get_unistr_info(vteunistr c)
 
 	auto ufi = &uinfo->m_ufi;
 
-	g_string_set_size(m_string, 0);
+	g_string_truncate(m_string, 0);
 	_vte_unistr_append_to_string(c, m_string);
 	pango_layout_set_text(m_layout.get(), m_string->str, m_string->len);
 	pango_layout_get_extents(m_layout.get(), NULL, &logical);
