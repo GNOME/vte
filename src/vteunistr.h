@@ -77,7 +77,7 @@ gunichar
 _vte_unistr_get_base (vteunistr s);
 
 /**
- * _vte_unistr_append_to_string:
+ * _vte_unistr_replace_base:
  * @s: a #vteunistr
  * @c: Unicode character to replace the base character of @s.
  *
