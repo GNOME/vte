@@ -208,11 +208,11 @@ void
 }
 
 int
-_vte_unistr_strlen (vteunistr s)
+(_vte_unistr_strlen) (vteunistr s)
 {
 	int len = 1;
 	g_return_val_if_fail (s < unistr_next, len);
-	while (G_UNLIKELY (s >= VTE_UNISTR_START)) {
+	while (s >= VTE_UNISTR_START) {
 		s = DECOMP_FROM_UNISTR (s).prefix;
 		len++;
 	}

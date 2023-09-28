@@ -127,6 +127,8 @@ _vte_unistr_append_to_gunichars (vteunistr s, VteBidiChars *a);
  **/
 int
 _vte_unistr_strlen (vteunistr s);
+#define _vte_unistr_strlen(s) \
+        ((s) < VTE_UNISTR_START ? 1 : (_vte_unistr_strlen)(s))
 
 G_END_DECLS
 
