@@ -89,6 +89,47 @@ _vte_unistr_get_base (vteunistr s);
 vteunistr
 _vte_unistr_replace_base (vteunistr s, gunichar c);
 
+static inline int
+_vte_g_string_append_unichar (GString *s, gunichar c)
+{
+        char outbuf[8];
+        guint len = 0;
+        int first;
+        int i;
+
+        if (c < 0x80) {
+                first = 0;
+                len = 1;
+        }
+        else if (c < 0x800) {
+                first = 0xc0;
+                len = 2;
+        }
+        else if (c < 0x10000) {
+                first = 0xe0;
+                len = 3;
+        }
+        else if (c < 0x200000) {
+                first = 0xf0;
+                len = 4;
+        }
+        else {
+                g_assert_not_reached ();
+        }
+
+        for (i = len - 1; i > 0; --i) {
+                outbuf[i] = (c & 0x3f) | 0x80;
+                c >>= 6;
+        }
+
+        outbuf[0] = c | first;
+
+        // GLib can do an inlined append()
+        g_string_append_len (s, outbuf, len);
+
+        return len;
+}
+
 /**
  * _vte_unistr_append_to_string:
  * @s: a #vteunistr
@@ -99,12 +140,12 @@ _vte_unistr_replace_base (vteunistr s, gunichar c);
  **/
 void
 _vte_unistr_append_to_string (vteunistr s, GString *gs);
-#define _vte_unistr_append_to_string(s,gs)                        \
-        G_STMT_START {                                            \
-                if G_LIKELY (s < VTE_UNISTR_START)                \
-                        g_string_append_unichar(gs, (gunichar)s); \
-                else                                              \
-                        (_vte_unistr_append_to_string) (s, gs);   \
+#define _vte_unistr_append_to_string(s,gs)                              \
+        G_STMT_START {                                                  \
+                if G_LIKELY (s < VTE_UNISTR_START)                      \
+                        _vte_g_string_append_unichar (gs, (gunichar)s); \
+                else                                                    \
+                        (_vte_unistr_append_to_string) (s, gs);         \
         } G_STMT_END
 
 /**
