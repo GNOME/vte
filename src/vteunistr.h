@@ -27,6 +27,8 @@
 
 G_BEGIN_DECLS
 
+#define VTE_UNISTR_START 0x80000000
+
 /**
  * vteunistr:
  *
@@ -97,6 +99,13 @@ _vte_unistr_replace_base (vteunistr s, gunichar c);
  **/
 void
 _vte_unistr_append_to_string (vteunistr s, GString *gs);
+#define _vte_unistr_append_to_string(s,gs)                        \
+        G_STMT_START {                                            \
+                if G_LIKELY (s < VTE_UNISTR_START)                \
+                        g_string_append_unichar(gs, (gunichar)s); \
+                else                                              \
+                        (_vte_unistr_append_to_string) (s, gs);   \
+        } G_STMT_END
 
 /**
  * _vte_unistr_append_to_gunichars:

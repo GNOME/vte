@@ -75,8 +75,6 @@
  * encoded vteunistr value.
  */
 
-#define VTE_UNISTR_START 0x80000000
-
 static vteunistr unistr_next = VTE_UNISTR_START + 1;
 
 struct VteUnistrDecomp {
@@ -197,10 +195,10 @@ _vte_unistr_replace_base (vteunistr s, gunichar c)
 }
 
 void
-_vte_unistr_append_to_string (vteunistr s, GString *gs)
+(_vte_unistr_append_to_string) (vteunistr s, GString *gs)
 {
 	g_return_if_fail (s < unistr_next);
-	if (G_UNLIKELY (s >= VTE_UNISTR_START)) {
+	if (s >= VTE_UNISTR_START) {
 		struct VteUnistrDecomp *decomp;
 		decomp = &DECOMP_FROM_UNISTR (s);
 		_vte_unistr_append_to_string (decomp->prefix, gs);
