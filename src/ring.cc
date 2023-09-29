@@ -818,13 +818,6 @@ Ring::get_hyperlink_at_position(row_t position,
         return idx;
 }
 
-VteRowData*
-Ring::index_writable(row_t position)
-{
-	ensure_writable(position);
-	return get_writable_index(position);
-}
-
 void
 Ring::freeze_one_row()
 {

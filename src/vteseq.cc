@@ -273,7 +273,7 @@ Terminal::clear_current_line()
 	 * which corresponds to the cursor. */
         if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
 		/* Get the data for the row which the cursor points to. */
-                rowdata = _vte_ring_index_writable(m_screen->row_data, m_screen->cursor.row);
+                rowdata = m_screen->row_data->index_writable(m_screen->cursor.row);
 		g_assert(rowdata != NULL);
 		/* Remove it. */
 		_vte_row_data_shrink (rowdata, 0);
@@ -301,7 +301,7 @@ Terminal::clear_above_current()
         for (auto i = m_screen->insert_delta; i < m_screen->cursor.row; i++) {
                 if (_vte_ring_next(m_screen->row_data) > i) {
 			/* Get the data for the row we're erasing. */
-                        auto rowdata = _vte_ring_index_writable(m_screen->row_data, i);
+                        auto rowdata = m_screen->row_data->index_writable(i);
 			g_assert(rowdata != NULL);
 			/* Remove it. */
 			_vte_row_data_shrink (rowdata, 0);
@@ -699,7 +699,7 @@ Terminal::clear_below_current()
         auto i = m_screen->cursor.row;
 	if (i < _vte_ring_next(m_screen->row_data)) {
 		/* Get the data for the row we're clipping. */
-                rowdata = _vte_ring_index_writable(m_screen->row_data, i);
+                rowdata = m_screen->row_data->index_writable(i);
                 /* Clean up Tab/CJK fragments. */
                 if ((glong) _vte_row_data_length(rowdata) > m_screen->cursor.col)
                         cleanup_fragments(m_screen->cursor.col, _vte_row_data_length(rowdata));
@@ -712,7 +712,7 @@ Terminal::clear_below_current()
 	     i < _vte_ring_next(m_screen->row_data);
 	     i++) {
 		/* Get the data for the row we're removing. */
-		rowdata = _vte_ring_index_writable(m_screen->row_data, i);
+		rowdata = m_screen->row_data->index_writable(i);
 		/* Remove it. */
 		if (rowdata)
 			_vte_row_data_shrink (rowdata, 0);
@@ -725,7 +725,7 @@ Terminal::clear_below_current()
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
 		if (_vte_ring_contains(m_screen->row_data, i)) {
-			rowdata = _vte_ring_index_writable (m_screen->row_data, i);
+			rowdata = m_screen->row_data->index_writable(i);
 			g_assert(rowdata != NULL);
 		} else {
 			rowdata = ring_append(false);
@@ -892,7 +892,7 @@ Terminal::delete_character()
         if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
 		long len;
 		/* Get the data for the row which the cursor points to. */
-                rowdata = _vte_ring_index_writable(m_screen->row_data, m_screen->cursor.row);
+                rowdata = m_screen->row_data->index_writable(m_screen->cursor.row);
 		g_assert(rowdata != NULL);
                 col = m_screen->cursor.col;
 		len = _vte_row_data_length (rowdata);
@@ -2603,7 +2603,7 @@ Terminal::DECALN(vte::parser::Sequence const& seq)
                 while (_vte_ring_next(m_screen->row_data) <= row)
                         ring_append(false);
                 adjust_adjustments();
-                auto rowdata = _vte_ring_index_writable (m_screen->row_data, row);
+                auto rowdata = m_screen->row_data->index_writable(row);
 		g_assert(rowdata != NULL);
 		/* Clear this row. */
 		_vte_row_data_shrink (rowdata, 0);

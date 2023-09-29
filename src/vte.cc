@@ -653,7 +653,7 @@ Terminal::find_row_data_writable(vte::grid::row_t row) const
 	VteRowData *rowdata = nullptr;
 
 	if (G_LIKELY (_vte_ring_contains(m_screen->row_data, row))) {
-		rowdata = _vte_ring_index_writable(m_screen->row_data, row);
+		rowdata = m_screen->row_data->index_writable(row);
 	}
 	return rowdata;
 }
@@ -2236,7 +2236,7 @@ Terminal::ensure_row()
 		adjust_adjustments();
 	} else {
 		/* Find the row the cursor is in. */
-		row = _vte_ring_index_writable(m_screen->row_data, m_screen->cursor.row);
+		row = m_screen->row_data->index_writable(m_screen->cursor.row);
 	}
 	g_assert(row != NULL);
 
@@ -3200,7 +3200,7 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Applying BiDi parameters from row %ld.\n", row);
 
-        rowdata = _vte_ring_index_writable (m_screen->row_data, row);
+        rowdata = m_screen->row_data->index_writable(row);
         if (rowdata == nullptr || (rowdata->attr.bidi_flags & bidi_flags_mask) == bidi_flags) {
                 _vte_debug_print(VTE_DEBUG_BIDI,
                                  "BiDi parameters didn't change for this paragraph.\n");
@@ -3214,7 +3214,7 @@ Terminal::apply_bidi_attributes(vte::grid::row_t start, guint8 bidi_flags, guint
                 if (!rowdata->attr.soft_wrapped)
                         break;
 
-                rowdata = _vte_ring_index_writable (m_screen->row_data, row + 1);
+                rowdata = m_screen->row_data->index_writable(row + 1);
                 if (rowdata == nullptr)
                         break;
                 row++;

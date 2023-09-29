@@ -81,7 +81,6 @@ public:
         //FIXMEchpe rename this to at()
         //FIXMEchpe use references not pointers
         VteRowData const* index(row_t position); /* const? */
-        VteRowData* index_writable(row_t position);
         bool is_soft_wrapped(row_t position);
 
         void hyperlink_maybe_gc(row_t increment);
@@ -105,6 +104,11 @@ public:
                             VteWriteFlags flags,
                             GCancellable* cancellable,
                             GError** error);
+
+        inline VteRowData* index_writable(row_t position) {
+                ensure_writable(position);
+                return get_writable_index(position);
+        }
 
 private:
 
@@ -278,6 +282,7 @@ public:
                           long cell_width,
                           long cell_height) /* throws */;
 
+
 #endif /* WITH_SIXEL */
 };
 
@@ -296,7 +301,6 @@ static inline glong _vte_ring_delta(VteRing *ring) { return ring->delta(); }
 static inline glong _vte_ring_length(VteRing *ring) { return ring->length(); }
 static inline glong _vte_ring_next(VteRing *ring) { return ring->next(); }
 static inline const VteRowData *_vte_ring_index (VteRing *ring, gulong position) { return ring->index(position); }
-static inline VteRowData *_vte_ring_index_writable (VteRing *ring, gulong position) { return ring->index_writable(position); }
 static inline void _vte_ring_hyperlink_maybe_gc (VteRing *ring, gulong increment) { ring->hyperlink_maybe_gc(increment); }
 static inline auto _vte_ring_get_hyperlink_idx (VteRing *ring, const char *hyperlink) { return ring->get_hyperlink_idx(hyperlink); }
 static inline auto _vte_ring_get_hyperlink_at_position (VteRing *ring, gulong position, int col, bool update_hover_idx, const char **hyperlink) { return ring->get_hyperlink_at_position(position, col, update_hover_idx, hyperlink); }
