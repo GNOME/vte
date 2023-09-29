@@ -173,8 +173,15 @@ private:
                        GCancellable* cancellable,
                        GError** error);
 
-        void ensure_writable(row_t position);
         void ensure_writable_room();
+
+        inline void ensure_writable(row_t position) {
+                if G_UNLIKELY (position < m_writable) {
+                        //FIXMEchpe surely this can be optimised
+                        while (position < m_writable)
+                                thaw_one_row();
+                }
+        }
 
         void freeze_one_row();
         void maybe_freeze_one_row();

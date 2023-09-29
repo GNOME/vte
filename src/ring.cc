@@ -929,19 +929,6 @@ Ring::ensure_writable_room()
 	g_free (old_array);
 }
 
-void
-Ring::ensure_writable(row_t position)
-{
-	if (G_LIKELY(position >= m_writable))
-		return;
-
-	_vte_debug_print(VTE_DEBUG_RING, "Ensure writable %lu.\n", position);
-
-        //FIXMEchpe surely this can be optimised
-	while (position < m_writable)
-		thaw_one_row();
-}
-
 /**
  * Ring::resize:
  * @max_rows: new maximum numbers of rows in the ring
