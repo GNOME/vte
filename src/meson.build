@@ -277,9 +277,9 @@ libvte_common_deps = libvte_common_public_deps + [
   icu_dep,
   pcre2_dep,
   libm_dep,
+  liblz4_dep,
   pthreads_dep,
   systemd_dep,
-  zlib_dep,
 ]
 
 incs = [
@@ -631,7 +631,7 @@ test_stream_sources = config_sources + files(
 test_stream = executable(
   'test-stream',
   sources: test_stream_sources,
-  dependencies: [gio_dep, gnutls_dep, zlib_dep],
+  dependencies: [gio_dep, gnutls_dep, liblz4_dep],
   cpp_args: ['-DVTESTREAM_MAIN'],
   include_directories: top_inc,
   install: false,

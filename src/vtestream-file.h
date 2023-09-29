@@ -81,7 +81,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <zlib.h>
+#include <lz4.h>
 
 #include "vteutils.h"
 
@@ -739,7 +739,7 @@ static int
 _vte_boa_compressBound (unsigned int len)
 {
 #ifndef VTESTREAM_MAIN
-        return compressBound(len);
+        return LZ4_compressBound(len);
 #else
         return 2 * len;
 #endif
@@ -750,12 +750,9 @@ static unsigned int
 _vte_boa_compress (char *dst, unsigned int dstlen, const char *src, unsigned int srclen)
 {
 #ifndef VTESTREAM_MAIN
-        uLongf dstlen_ulongf = dstlen;
-        unsigned int z_ret;
-
-        z_ret = compress2 ((Bytef *) dst, &dstlen_ulongf, (const Bytef *) src, srclen, 1);
-        g_assert_cmpuint (z_ret, ==, Z_OK);
-        return dstlen_ulongf;
+        int len = LZ4_compress_default (src, dst, srclen, dstlen);
+        g_assert_cmpuint (len, >=, 0);
+        return len;
 #else
         /* Fake compression for unit testing:
          * Each char gets prefixed by a repetition count. This prefix is omitted if it would be the
@@ -788,12 +785,9 @@ static unsigned int
 _vte_boa_uncompress (char *dst, unsigned int dstlen, const char *src, unsigned int srclen)
 {
 #ifndef VTESTREAM_MAIN
-        uLongf dstlen_ulongf = dstlen;
-        unsigned int z_ret;
-
-        z_ret = uncompress ((Bytef *) dst, &dstlen_ulongf, (const Bytef *) src, srclen);
-        g_assert_cmpuint (z_ret, ==, Z_OK);
-        return dstlen_ulongf;
+        int len = LZ4_decompress_safe (src, dst, srclen, dstlen);
+        g_assert_cmpint (len, >=, 0);
+        return len;
 #else
         /* Fake decompression for unit testing; see above. */
         unsigned int len = 0, repeat = 0;

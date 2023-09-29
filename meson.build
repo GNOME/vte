@@ -58,6 +58,8 @@ pango_req_version         = '1.22.0'
 pcre2_req_version         = '10.21'
 systemd_req_version       = '220'
 
+liblz4_req_version        = '1.9'
+
 # API
 
 vte_api_major_version = 2
@@ -606,7 +608,7 @@ gobject_dep       = dependency('gobject-2.0')
 pango_dep         = dependency('pango',      version: '>=' + pango_req_version)
 pcre2_dep         = dependency('libpcre2-8', version: '>=' + pcre2_req_version)
 pthreads_dep      = dependency('threads')
-zlib_dep          = dependency('zlib')
+liblz4_dep        = dependency('liblz4', version: '>=' + liblz4_req_version)
 
 if get_option('fribidi')
   fribidi_dep = dependency('fribidi', version: '>=' + fribidi_req_version)
