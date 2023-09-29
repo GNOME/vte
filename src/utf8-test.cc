@@ -294,6 +294,18 @@ test_utf8_decoder_replacement(void)
         // Highest four-byte with last byte replaced with 0xFF
         assert_decode("a\xF4\x8F\xBF\xFF", -1, U"a\uFFFD\uFFFD"s);
         assert_decode("a\xF4\x8F\xBF\xFFZ", -1, U"a\uFFFD\uFFFDZ"s);
+
+        // Test old-style-UTF-8 sequences
+        // Five-byte (lowest and highest)
+        assert_decode("\xF8\x80\x80\x80\x80", -1, U"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"s);
+        assert_decode("\xF8\xBF\xBF\xBF\xBF", -1, U"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"s);
+        // Six-byte (lowest and highest)
+        assert_decode("\xFC\x80\x80\x80\x80\x80", -1, U"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"s);
+        assert_decode("\xFD\xBF\xBF\xBF\xBF\xBF", -1, U"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"s);
+
+        // 0xFE "start byte"
+        assert_decode("\xFE\x80\x80\x80\x80\x80\x80", -1, U"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"s);
+        assert_decode("\xFE\xBF\xBF\xBF\xBF\xBF\xBF", -1, U"\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD"s);
 }
 
 int
