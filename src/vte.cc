@@ -157,7 +157,7 @@ public:
                 auto screen = m_saved_screen = terminal.m_screen;
 
                 // FIXMEchpe make this a method on VteScreen
-                m_bottom = screen->insert_delta == (long)screen->scroll_delta;
+                m_bottom = screen->insert_delta == long(screen->scroll_delta);
 
                 /* Save the current cursor position. */
                 m_saved_cursor = screen->cursor;
@@ -289,40 +289,6 @@ Terminal::unset_widget() noexcept
         m_widget = nullptr;
 }
 
-// FIXMEchpe replace this with a method on VteRing
-VteRowData*
-Terminal::ring_insert(vte::grid::row_t position,
-                                bool fill)
-{
-	VteRowData *row;
-	VteRing *ring = m_screen->row_data;
-        bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
-
-	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
-                row = _vte_ring_append (ring, get_bidi_flags());
-                if (not_default_bg)
-                        _vte_row_data_fill (row, &m_color_defaults, m_column_count);
-	}
-        row = _vte_ring_insert (ring, position, get_bidi_flags());
-        if (fill && not_default_bg)
-                _vte_row_data_fill (row, &m_color_defaults, m_column_count);
-	return row;
-}
-
-// FIXMEchpe replace this with a method on VteRing
-VteRowData*
-Terminal::ring_append(bool fill)
-{
-	return ring_insert(_vte_ring_next(m_screen->row_data), fill);
-}
-
-// FIXMEchpe replace this with a method on VteRing
-void
-Terminal::ring_remove(vte::grid::row_t position)
-{
-	_vte_ring_remove(m_screen->row_data, position);
-}
-
 /* Reset defaults for character insertion. */
 void
 Terminal::reset_default_attributes(bool reset_hyperlink)
@@ -363,7 +329,7 @@ inline vte::view::coord_t
 Terminal::row_to_pixel(vte::grid::row_t row) const
 {
         // FIXMEchpe this is bad!
-        return row * m_cell_height - (glong)round(m_screen->scroll_delta * m_cell_height);
+        return row * m_cell_height - (long)round(m_screen->scroll_delta * m_cell_height);
 }
 
 inline vte::grid::row_t
@@ -639,8 +605,8 @@ Terminal::find_row_data(vte::grid::row_t row) const
 {
 	VteRowData const* rowdata = nullptr;
 
-	if (G_LIKELY(_vte_ring_contains(m_screen->row_data, row))) {
-		rowdata = _vte_ring_index(m_screen->row_data, row);
+	if (G_LIKELY(m_screen->row_data->contains(row))) {
+		rowdata = m_screen->row_data->index(row);
 	}
 	return rowdata;
 }
@@ -652,7 +618,7 @@ Terminal::find_row_data_writable(vte::grid::row_t row) const
 {
 	VteRowData *rowdata = nullptr;
 
-	if (G_LIKELY (_vte_ring_contains(m_screen->row_data, row))) {
+	if (G_LIKELY (m_screen->row_data->contains(row))) {
 		rowdata = m_screen->row_data->index_writable(row);
 	}
 	return rowdata;
@@ -669,8 +635,8 @@ Terminal::find_charcell(vte::grid::column_t col,
 	VteRowData const* rowdata;
 	VteCell const* ret = nullptr;
 
-	if (_vte_ring_contains(m_screen->row_data, row)) {
-		rowdata = _vte_ring_index(m_screen->row_data, row);
+	if (m_screen->row_data->contains(row)) {
+		rowdata = m_screen->row_data->index(row);
 		ret = _vte_row_data_get (rowdata, col);
 	}
 	return ret;
@@ -1844,7 +1810,7 @@ Terminal::hyperlink_check(vte::grid::column_t col,
         if (!m_ringview.is_updated())
                 [[unlikely]] return nullptr;
 
-        _vte_ring_get_hyperlink_at_position(m_screen->row_data, row, col, false, &hyperlink);
+        m_screen->row_data->get_hyperlink_at_position(row, col, false, &hyperlink);
 
         if (hyperlink != NULL) {
                 /* URI is after the first semicolon */
@@ -1874,7 +1840,7 @@ Terminal::regex_match_check(vte::platform::MouseEvent const& event,
 
         /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
         // FIXMEchpe fix this scroll_delta substraction!
-        return regex_match_check(col, row - (long)m_screen->scroll_delta, tag);
+        return regex_match_check(col, row - long(m_screen->scroll_delta), tag);
 }
 
 #if VTE_GTK == 4
@@ -1894,7 +1860,7 @@ Terminal::regex_match_check_at(double x,
 
         /* FIXME Shouldn't rely on a deprecated, not sub-row aware method. */
         // FIXMEchpe fix this scroll_delta substraction!
-        return regex_match_check(col, row - (long)m_screen->scroll_delta, tag);
+        return regex_match_check(col, row - long(m_screen->scroll_delta), tag);
 }
 
 bool
@@ -2050,12 +2016,12 @@ Terminal::queue_adjustment_value_changed(double v)
 void
 Terminal::queue_adjustment_value_changed_clamped(double v)
 {
-        auto const lower = _vte_ring_delta (m_screen->row_data);
+        auto const lower = m_screen->row_data->delta();
         auto const upper_minus_row_count = m_screen->insert_delta;
 
         v = std::clamp(v,
                        double(lower),
-                       double(std::max(lower, upper_minus_row_count)));
+                       double(std::max(long(lower), upper_minus_row_count)));
 	queue_adjustment_value_changed(v);
 }
 
@@ -2065,7 +2031,7 @@ Terminal::adjust_adjustments()
 	queue_adjustment_changed();
 
 	/* The lower value should be the first row in the buffer. */
-	long delta = _vte_ring_delta(m_screen->row_data);
+	long delta = m_screen->row_data->delta();
 	/* Snap the insert delta and the cursor position to be in the visible
 	 * area.  Leave the scrolling delta alone because it will be updated
 	 * when the adjustment changes. */
@@ -2109,7 +2075,7 @@ Terminal::scroll_lines(long lines)
 void
 Terminal::maybe_scroll_to_top()
 {
-	queue_adjustment_value_changed(_vte_ring_delta(m_screen->row_data));
+	queue_adjustment_value_changed(m_screen->row_data->delta());
 }
 
 void
@@ -2211,38 +2177,6 @@ Terminal::set_cjk_ambiguous_width(int width)
         return true;
 }
 
-// FIXMEchpe replace this with a method on VteRing
-VteRowData *
-Terminal::insert_rows (guint cnt)
-{
-	VteRowData *row;
-	do {
-		row = ring_append(false);
-	} while(--cnt);
-	return row;
-}
-
-/* Make sure we have enough rows and columns to hold data at the current
- * cursor position. */
-VteRowData *
-Terminal::ensure_row()
-{
-	VteRowData *row;
-
-	/* Figure out how many rows we need to add. */
-	auto const delta = m_screen->cursor.row - _vte_ring_next(m_screen->row_data) + 1;
-	if (delta > 0) {
-		row = insert_rows(delta);
-		adjust_adjustments();
-	} else {
-		/* Find the row the cursor is in. */
-		row = m_screen->row_data->index_writable(m_screen->cursor.row);
-	}
-	g_assert(row != NULL);
-
-	return row;
-}
-
 VteRowData *
 Terminal::ensure_cursor()
 {
@@ -2259,21 +2193,21 @@ Terminal::update_insert_delta()
 {
 	/* The total number of lines.  Add one to the cursor offset
 	 * because it's zero-based. */
-	auto rows = _vte_ring_next(m_screen->row_data);
+	auto rows = long(m_screen->row_data->next());
         auto delta = m_screen->cursor.row - rows + 1;
 	if (G_UNLIKELY (delta > 0)) {
 		insert_rows(delta);
-		rows = _vte_ring_next(m_screen->row_data);
+		rows = m_screen->row_data->next();
 	}
 
 	/* Make sure that the bottom row is visible, and that it's in
 	 * the buffer (even if it's empty).  This usually causes the
 	 * top row to become a history-only row. */
 	delta = m_screen->insert_delta;
-	delta = MIN(delta, rows - m_row_count);
-	delta = MAX(delta,
-                    m_screen->cursor.row - (m_row_count - 1));
-	delta = MAX(delta, _vte_ring_delta(m_screen->row_data));
+	delta = MIN (delta, rows - m_row_count);
+	delta = MAX (long(delta),
+                     m_screen->cursor.row - (m_row_count - 1));
+	delta = MAX (delta, long(m_screen->row_data->delta()));
 
 	/* Adjust the insert delta and scroll if needed. */
 	if (delta != m_screen->insert_delta) {
@@ -2884,8 +2818,7 @@ void
 Terminal::drop_scrollback()
 {
         /* Only for normal screen; alternate screen doesn't have a scrollback. */
-        _vte_ring_drop_scrollback (m_normal_screen.row_data,
-                                   m_normal_screen.insert_delta);
+        m_normal_screen.row_data->drop_scrollback(m_normal_screen.insert_delta);
 
         if (m_screen == &m_normal_screen) {
                 queue_adjustment_value_changed(m_normal_screen.insert_delta);
@@ -3243,8 +3176,8 @@ Terminal::maybe_apply_bidi_attributes(guint8 bidi_flags_mask)
 
         auto row = m_screen->cursor.row;
 
-        if (row > _vte_ring_delta (m_screen->row_data)) {
-                const VteRowData *rowdata = _vte_ring_index (m_screen->row_data, row - 1);
+        if (row > (long)m_screen->row_data->delta()) {
+                const VteRowData *rowdata = m_screen->row_data->index(row - 1);
                 if (rowdata != nullptr && rowdata->attr.soft_wrapped) {
                         _vte_debug_print(VTE_DEBUG_BIDI,
                                          "No, we're not after a hard wrap.\n");
@@ -3573,7 +3506,7 @@ Terminal::process_incoming()
 #if VTE_DEBUG
         /* Some safety checks: ensure the visible parts of the buffer
          * are all in the buffer. */
-        g_assert_cmpint(m_screen->insert_delta, >=, _vte_ring_delta(m_screen->row_data));
+        g_assert_cmpint(m_screen->insert_delta, >=, m_screen->row_data->delta());
 
         /* The cursor shouldn't be above or below the addressable
          * part of the display buffer. */
@@ -3633,7 +3566,7 @@ Terminal::process_incoming()
         im_update_cursor();
 
         /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
-        _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
+        m_screen->row_data->hyperlink_maybe_gc(bytes_processed * 8);
 
         _vte_debug_print (VTE_DEBUG_WORK, ")");
         _vte_debug_print (VTE_DEBUG_IO,
@@ -5421,13 +5354,13 @@ Terminal::resolve_selection_endpoint(vte::grid::halfcoords const& rowcolhalf, bo
                         if (!after) {
                                 /* Back up as far as we can go. */
                                 while (row > 0 &&
-                                       _vte_ring_contains (m_screen->row_data, row - 1) &&
+                                       m_screen->row_data->contains(row - 1) &&
                                        m_screen->row_data->is_soft_wrapped(row - 1)) {
                                         row--;
                                 }
                         } else {
                                 /* Move forward as far as we can go. */
-                                while (_vte_ring_contains (m_screen->row_data, row) &&
+                                while (m_screen->row_data->contains(row) &&
                                        m_screen->row_data->is_soft_wrapped(row)) {
                                         row++;
                                 }
@@ -5790,7 +5723,7 @@ Terminal::hyperlink_invalidate_and_get_bbox(vte::base::Ring::hyperlink_idx_t idx
         g_assert (idx != 0);
 
         for (row = first_row; row < end_row; row++) {
-                rowdata = _vte_ring_index(m_screen->row_data, row);
+                rowdata = m_screen->row_data->index(row);
                 if (rowdata != NULL) {
                         bool do_invalidate_row = false;
                         for (col = 0; col < rowdata->len; col++) {
@@ -5880,7 +5813,7 @@ Terminal::hyperlink_hilite_update()
          * the pseudo idx VTE_HYPERLINK_IDX_TARGET_IN_STREAM and now a real idx is allocated.
          * Plus, the ring's internal belief of the hovered hyperlink is also updated. */
         if (do_check_hilite) {
-                m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, rowcol.row(), rowcol.column(), true, &m_hyperlink_hover_uri);
+                m_hyperlink_hover_idx = m_screen->row_data->get_hyperlink_at_position(rowcol.row(), rowcol.column(), true, &m_hyperlink_hover_uri);
         } else {
                 m_hyperlink_hover_idx = 0;
                 m_hyperlink_hover_uri = nullptr;
@@ -6669,7 +6602,7 @@ Terminal::select_all()
 	m_selecting_had_delta = TRUE;
 
         m_selection_resolved.set({m_screen->insert_delta, 0},
-                                 {_vte_ring_next(m_screen->row_data), 0});
+                                 {(long)m_screen->row_data->next(), 0});
 
 	_vte_debug_print(VTE_DEBUG_SELECTION, "Selecting *all* text.\n");
 
@@ -7486,13 +7419,13 @@ Terminal::screen_set_size(VteScreen *screen_,
                                     long old_rows,
                                     bool do_rewrap)
 {
-	VteRing *ring = screen_->row_data;
+	auto ring = screen_->row_data;
 	VteVisualPosition cursor_saved_absolute;
 	VteVisualPosition below_viewport;
 	VteVisualPosition below_current_paragraph;
         VteVisualPosition selection_start, selection_end;
 	VteVisualPosition *markers[7];
-        gboolean was_scrolled_to_top = ((long) ceil(screen_->scroll_delta) == _vte_ring_delta(ring));
+        gboolean was_scrolled_to_top = (long(ceil(screen_->scroll_delta)) == long(ring->delta()));
         gboolean was_scrolled_to_bottom = ((long) screen_->scroll_delta == screen_->insert_delta);
 	glong old_top_lines;
 	double new_scroll_delta;
@@ -7515,8 +7448,8 @@ Terminal::screen_set_size(VteScreen *screen_,
 	below_viewport.row = screen_->scroll_delta + old_rows;
 	below_viewport.col = 0;
         below_current_paragraph.row = screen_->cursor.row + 1;
-	while (below_current_paragraph.row < _vte_ring_next(ring)
-	    && _vte_ring_index(ring, below_current_paragraph.row - 1)->attr.soft_wrapped) {
+	while (below_current_paragraph.row < long(ring->next())
+	    && ring->index(below_current_paragraph.row - 1)->attr.soft_wrapped) {
 		below_current_paragraph.row++;
 	}
 	below_current_paragraph.col = 0;
@@ -7537,17 +7470,17 @@ Terminal::screen_set_size(VteScreen *screen_,
 	old_top_lines = below_current_paragraph.row - screen_->insert_delta;
 
 	if (do_rewrap && old_columns != m_column_count)
-		_vte_ring_rewrap(ring, m_column_count, markers);
+		ring->rewrap(m_column_count, markers);
 
-	if (_vte_ring_length(ring) > m_row_count) {
+	if (long(ring->length()) > m_row_count) {
 		/* The content won't fit without scrollbars. Before figuring out the position, we might need to
 		   drop some lines from the ring if the cursor is not at the bottom, as XTerm does. See bug 708213.
 		   This code is really tricky, see ../doc/rewrap.txt for details! */
 		glong new_top_lines, drop1, drop2, drop3, drop;
-		screen_->insert_delta = _vte_ring_next(ring) - m_row_count;
+		screen_->insert_delta = ring->next() - m_row_count;
 		new_top_lines = below_current_paragraph.row - screen_->insert_delta;
-		drop1 = _vte_ring_length(ring) - m_row_count;
-		drop2 = _vte_ring_next(ring) - below_current_paragraph.row;
+		drop1 = ring->length() - m_row_count;
+		drop2 = ring->next() - below_current_paragraph.row;
 		drop3 = old_top_lines - new_top_lines;
 		drop = MIN(MIN(drop1, drop2), drop3);
 		if (drop > 0) {
@@ -7555,7 +7488,7 @@ Terminal::screen_set_size(VteScreen *screen_,
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Dropping %ld [== MIN(%ld, %ld, %ld)] rows at the bottom\n",
 					drop, drop1, drop2, drop3);
-			_vte_ring_shrink(ring, new_ring_next - _vte_ring_delta(ring));
+			ring->shrink(new_ring_next - ring->delta());
 		}
 	}
 
@@ -7565,15 +7498,15 @@ Terminal::screen_set_size(VteScreen *screen_,
 	}
 
 	/* Figure out new insert and scroll deltas */
-	if (_vte_ring_length(ring) <= m_row_count) {
+	if (long(ring->length()) <= m_row_count) {
 		/* Everything fits without scrollbars. Align at top. */
-		screen_->insert_delta = _vte_ring_delta(ring);
+		screen_->insert_delta = ring->delta();
 		new_scroll_delta = screen_->insert_delta;
 		_vte_debug_print(VTE_DEBUG_RESIZE,
 				"Everything fits without scrollbars\n");
 	} else {
 		/* Scrollbar required. Can't afford unused lines at bottom. */
-		screen_->insert_delta = _vte_ring_next(ring) - m_row_count;
+		screen_->insert_delta = ring->next() - m_row_count;
 		if (was_scrolled_to_bottom) {
 			/* Was scrolled to bottom, keep this way. */
 			new_scroll_delta = screen_->insert_delta;
@@ -7581,7 +7514,7 @@ Terminal::screen_set_size(VteScreen *screen_,
 					"Scroll to bottom\n");
 		} else if (was_scrolled_to_top) {
 			/* Was scrolled to top, keep this way. Not sure if this special case is worth it. */
-			new_scroll_delta = _vte_ring_delta(ring);
+			new_scroll_delta = ring->delta();
 			_vte_debug_print(VTE_DEBUG_RESIZE,
 					"Scroll to top\n");
 		} else {
@@ -7652,8 +7585,8 @@ Terminal::set_size(long columns,
 	if (old_rows != m_row_count || old_columns != m_column_count) {
                 m_scrolling_restricted = FALSE;
 
-                _vte_ring_set_visible_rows(m_normal_screen.row_data, m_row_count);
-                _vte_ring_set_visible_rows(m_alternate_screen.row_data, m_row_count);
+                m_normal_screen.row_data->set_visible_rows(m_row_count);
+                m_alternate_screen.row_data->set_visible_rows(m_row_count);
 
 		/* Resize the normal screen and (if rewrapping is enabled) rewrap it even if the alternate screen is visible: bug 415277 */
 		screen_set_size(&m_normal_screen, old_columns, old_rows, m_rewrap_on_resize);
@@ -7665,10 +7598,10 @@ Terminal::set_size(long columns,
                 set_scrollback_lines(m_scrollback_lines);
 
                 /* Ensure the cursor is valid */
-                m_screen->cursor.row = CLAMP (m_screen->cursor.row,
-                                              _vte_ring_delta (m_screen->row_data),
-                                              MAX (_vte_ring_delta (m_screen->row_data),
-                                                   _vte_ring_next (m_screen->row_data) - 1));
+                m_screen->cursor.row = std::clamp(m_screen->cursor.row,
+                                                  long(m_screen->row_data->delta()),
+                                                  std::max(long(m_screen->row_data->delta()),
+                                                           long(m_screen->row_data->next()) - 1));
 
 		adjust_adjustments_full();
 #if VTE_GTK == 3
@@ -7689,12 +7622,12 @@ Terminal::set_size(long columns,
 void
 Terminal::set_scroll_value(double value)
 {
-        auto const lower = _vte_ring_delta(m_screen->row_data);
+        auto const lower = m_screen->row_data->delta();
         auto const upper_minus_row_count = m_screen->insert_delta;
 
         value = std::clamp(value,
                            double(lower),
-                           double(std::max(lower, upper_minus_row_count)));
+                           double(std::max(long(lower), upper_minus_row_count)));
 
         /* Save the difference. */
         auto const dy = value - m_screen->scroll_delta;
@@ -9743,11 +9676,11 @@ Terminal::set_allow_hyperlink(bool setting)
                 return false;
 
         if (setting == false) {
-                m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, -1, -1, true, NULL);
+                m_hyperlink_hover_idx = m_screen->row_data->get_hyperlink_at_position(-1, -1, true, NULL);
                 g_assert (m_hyperlink_hover_idx == 0);
                 m_hyperlink_hover_uri = NULL;
                 emit_hyperlink_hover_uri_changed(NULL);  /* FIXME only emit if really changed */
-                m_defaults.attr.hyperlink_idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, NULL);
+                m_defaults.attr.hyperlink_idx = m_screen->row_data->get_hyperlink_idx(NULL);
                 g_assert (m_defaults.attr.hyperlink_idx == 0);
         }
 
@@ -9939,26 +9872,26 @@ Terminal::set_scrollback_lines(long lines)
 
         /* The main screen gets the full scrollback buffer. */
         scrn = &m_normal_screen;
-        lines = MAX (lines, m_row_count);
-        next = MAX (m_screen->cursor.row + 1,
-                    _vte_ring_next (scrn->row_data));
-        _vte_ring_resize (scrn->row_data, lines);
-        low = _vte_ring_delta (scrn->row_data);
+        lines = std::max (lines, m_row_count);
+        next = std::max (m_screen->cursor.row + 1,
+                         long(scrn->row_data->next()));
+        scrn->row_data->resize(lines);
+        low = scrn->row_data->delta();
         high = lines + MIN (G_MAXLONG - lines, low - m_row_count + 1);
         scrn->insert_delta = CLAMP (scrn->insert_delta, low, high);
         scrn->scroll_delta = CLAMP (scrn->scroll_delta, low, scrn->insert_delta);
         next = MIN (next, scrn->insert_delta + m_row_count);
-        if (_vte_ring_next (scrn->row_data) > next){
-                _vte_ring_shrink (scrn->row_data, next - low);
+        if (long(scrn->row_data->next()) > next){
+                scrn->row_data->shrink(next - low);
         }
 
         /* The alternate scrn isn't allowed to scroll at all. */
         scrn = &m_alternate_screen;
-        _vte_ring_resize (scrn->row_data, m_row_count);
-        scrn->scroll_delta = _vte_ring_delta (scrn->row_data);
-        scrn->insert_delta = _vte_ring_delta (scrn->row_data);
-        if (_vte_ring_next (scrn->row_data) > scrn->insert_delta + m_row_count){
-                _vte_ring_shrink (scrn->row_data, m_row_count);
+        scrn->row_data->resize(m_row_count);
+        scrn->scroll_delta = scrn->row_data->delta();
+        scrn->insert_delta = scrn->row_data->delta();
+        if (long(scrn->row_data->next()) > scrn->insert_delta + m_row_count){
+                scrn->row_data->shrink(m_row_count);
         }
 
 	/* Adjust the scrollbar to the new location. */
@@ -10127,11 +10060,11 @@ Terminal::reset(bool clear_tabstops,
 	if (clear_history) {
                 m_screen = &m_normal_screen;
                 m_normal_screen.scroll_delta = m_normal_screen.insert_delta =
-                        _vte_ring_reset(m_normal_screen.row_data);
+                        m_normal_screen.row_data->reset();
                 m_normal_screen.cursor.row = m_normal_screen.insert_delta;
                 m_normal_screen.cursor.col = 0;
                 m_alternate_screen.scroll_delta = m_alternate_screen.insert_delta =
-                        _vte_ring_reset(m_alternate_screen.row_data);
+                        m_alternate_screen.row_data->reset();
                 m_alternate_screen.cursor.row = m_alternate_screen.insert_delta;
                 m_alternate_screen.cursor.col = 0;
                 /* Adjust the scrollbar to the new location. */
@@ -10793,13 +10726,11 @@ catch (...)
 
 bool
 Terminal::write_contents_sync (GOutputStream *stream,
-                                         VteWriteFlags flags,
-                                         GCancellable *cancellable,
-                                         GError **error)
+                               VteWriteFlags flags,
+                               GCancellable *cancellable,
+                               GError **error)
 {
-	return _vte_ring_write_contents (m_screen->row_data,
-					 stream, flags,
-					 cancellable, error);
+        return m_screen->row_data->write_contents(stream, flags, cancellable, error);
 }
 
 /*
@@ -10996,8 +10927,8 @@ Terminal::search_find (bool backward)
         auto match_data = vte::take_freeable(pcre2_match_data_create_8(256 /* should be plenty */,
                                                                        nullptr /* general context */));
 
-	buffer_start_row = _vte_ring_delta (m_screen->row_data);
-	buffer_end_row = _vte_ring_next (m_screen->row_data);
+	buffer_start_row = m_screen->row_data->delta();
+	buffer_end_row = m_screen->row_data->next();
 
         if (!m_selection_resolved.empty()) {
                 last_start_row = m_selection_resolved.start_row();

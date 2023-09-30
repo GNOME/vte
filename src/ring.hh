@@ -289,34 +289,3 @@ public:
 }; /* namespace base */
 
 }; /* namespace vte */
-
-G_BEGIN_DECLS
-
-/* temp compat API */
-
-typedef vte::base::Ring VteRing;
-
-static inline bool _vte_ring_contains(VteRing *ring, gulong position) { return ring->contains(position); }
-static inline glong _vte_ring_delta(VteRing *ring) { return ring->delta(); }
-static inline glong _vte_ring_length(VteRing *ring) { return ring->length(); }
-static inline glong _vte_ring_next(VteRing *ring) { return ring->next(); }
-static inline const VteRowData *_vte_ring_index (VteRing *ring, gulong position) { return ring->index(position); }
-static inline void _vte_ring_hyperlink_maybe_gc (VteRing *ring, gulong increment) { ring->hyperlink_maybe_gc(increment); }
-static inline auto _vte_ring_get_hyperlink_idx (VteRing *ring, const char *hyperlink) { return ring->get_hyperlink_idx(hyperlink); }
-static inline auto _vte_ring_get_hyperlink_at_position (VteRing *ring, gulong position, int col, bool update_hover_idx, const char **hyperlink) { return ring->get_hyperlink_at_position(position, col, update_hover_idx, hyperlink); }
-static inline long _vte_ring_reset (VteRing *ring) { return ring->reset(); }
-static inline void _vte_ring_resize (VteRing *ring, gulong max_rows) { ring->resize(max_rows); }
-static inline void _vte_ring_shrink (VteRing *ring, gulong max_len) { ring->shrink(max_len); }
-static inline VteRowData *_vte_ring_insert (VteRing *ring, gulong position, guint8 bidi_flags) { return ring->insert(position, bidi_flags); }
-static inline VteRowData *_vte_ring_append (VteRing *ring, guint8 bidi_flags) { return ring->append(bidi_flags); }
-static inline void _vte_ring_remove (VteRing *ring, gulong position) { ring->remove(position); }
-static inline void _vte_ring_drop_scrollback (VteRing *ring, gulong position) { ring->drop_scrollback(position); }
-static inline void _vte_ring_set_visible_rows (VteRing *ring, gulong rows) { ring->set_visible_rows(rows); }
-static inline void _vte_ring_rewrap (VteRing *ring, glong columns, VteVisualPosition **markers) { ring->rewrap(columns, markers); }
-static inline gboolean _vte_ring_write_contents (VteRing *ring,
-                                                 GOutputStream *stream,
-                                                 VteWriteFlags flags,
-                                                 GCancellable *cancellable,
-                                                 GError **error) { return ring->write_contents(stream, flags, cancellable, error); }
-
-G_END_DECLS

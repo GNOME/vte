@@ -239,7 +239,7 @@ RingView::update()
                         }
                 }
 
-                row_data = _vte_ring_contains(m_ring, row) ? m_ring->index(row) : nullptr;
+                row_data = m_ring->contains(row) ? m_ring->index(row) : nullptr;
                 if (G_LIKELY (row_data != nullptr)) {
                         _vte_row_data_copy (row_data, m_rows[m_rows_len]);
                         /* Make sure that the extracted data is not wider than the screen,

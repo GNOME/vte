@@ -248,7 +248,7 @@ void
 Terminal::clear_screen()
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
-        auto initial = _vte_ring_next(m_screen->row_data);
+        auto initial = m_screen->row_data->next();
 	/* Add a new screen's worth of rows. */
         for (auto i = 0; i < m_row_count; i++)
                 ring_append(true);
@@ -271,7 +271,7 @@ Terminal::clear_current_line()
 
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
-        if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
+        if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
 		/* Get the data for the row which the cursor points to. */
                 rowdata = m_screen->row_data->index_writable(m_screen->cursor.row);
 		g_assert(rowdata != NULL);
@@ -294,12 +294,12 @@ void
 Terminal::clear_above_current()
 {
         /* Make the line just above the writable area hard wrapped. */
-        if (m_screen->insert_delta > _vte_ring_delta(m_screen->row_data)) {
+        if (m_screen->insert_delta > long(m_screen->row_data->delta())) {
                 set_hard_wrapped(m_screen->insert_delta - 1);
         }
         /* Clear data in all the writable rows above (excluding) the cursor's. */
         for (auto i = m_screen->insert_delta; i < m_screen->cursor.row; i++) {
-                if (_vte_ring_next(m_screen->row_data) > i) {
+                if (long(m_screen->row_data->next()) > i) {
 			/* Get the data for the row we're erasing. */
                         auto rowdata = m_screen->row_data->index_writable(i);
 			g_assert(rowdata != NULL);
@@ -331,7 +331,7 @@ Terminal::scroll_text(vte::grid::row_t scroll_amount)
                 end = start + m_row_count - 1;
 	}
 
-        while (_vte_ring_next(m_screen->row_data) <= end)
+        while (long(m_screen->row_data->next()) <= end)
                 ring_append(false);
 
 	if (scroll_amount > 0) {
@@ -397,11 +397,11 @@ Terminal::switch_screen(VteScreen *new_screen)
          * wouldn't make sense and could lead to crashes.
          * Ideally we'd carry the target URI itself, but I'm just lazy.
          * Also, run a GC before we switch away from that screen. */
-        m_hyperlink_hover_idx = _vte_ring_get_hyperlink_at_position(m_screen->row_data, -1, -1, true, NULL);
+        m_hyperlink_hover_idx = m_screen->row_data->get_hyperlink_at_position(-1, -1, true, NULL);
         g_assert (m_hyperlink_hover_idx == 0);
         m_hyperlink_hover_uri = NULL;
         emit_hyperlink_hover_uri_changed(NULL);  /* FIXME only emit if really changed */
-        m_defaults.attr.hyperlink_idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, NULL);
+        m_defaults.attr.hyperlink_idx = m_screen->row_data->get_hyperlink_idx(NULL);
         g_assert (m_defaults.attr.hyperlink_idx == 0);
 
         /* cursor.row includes insert_delta, adjust accordingly */
@@ -697,7 +697,7 @@ Terminal::clear_below_current()
 	 * row the cursor is on and all of the rows below the cursor. */
         VteRowData *rowdata;
         auto i = m_screen->cursor.row;
-	if (i < _vte_ring_next(m_screen->row_data)) {
+	if (i < long(m_screen->row_data->next())) {
 		/* Get the data for the row we're clipping. */
                 rowdata = m_screen->row_data->index_writable(i);
                 /* Clean up Tab/CJK fragments. */
@@ -709,7 +709,7 @@ Terminal::clear_below_current()
 	}
 	/* Now for the rest of the lines. */
         for (i = m_screen->cursor.row + 1;
-	     i < _vte_ring_next(m_screen->row_data);
+	     i < long(m_screen->row_data->next());
 	     i++) {
 		/* Get the data for the row we're removing. */
 		rowdata = m_screen->row_data->index_writable(i);
@@ -724,7 +724,7 @@ Terminal::clear_below_current()
 	     i < m_screen->insert_delta + m_row_count;
 	     i++) {
 		/* Retrieve the row's data, creating it if necessary. */
-		if (_vte_ring_contains(m_screen->row_data, i)) {
+		if (m_screen->row_data->contains(i)) {
 			rowdata = m_screen->row_data->index_writable(i);
 			g_assert(rowdata != NULL);
 		} else {
@@ -889,7 +889,7 @@ Terminal::delete_character()
 
         ensure_cursor_is_onscreen();
 
-        if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
+        if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
 		long len;
 		/* Get the data for the row which the cursor points to. */
                 rowdata = m_screen->row_data->index_writable(m_screen->cursor.row);
@@ -953,7 +953,7 @@ Terminal::erase_characters(long count,
 
 	/* Clear out the given number of characters. */
 	auto rowdata = ensure_row();
-        if (_vte_ring_next(m_screen->row_data) > m_screen->cursor.row) {
+        if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
 		g_assert(rowdata != NULL);
                 /* Clean up Tab/CJK fragments. */
                 cleanup_fragments(m_screen->cursor.col, m_screen->cursor.col + count);
@@ -1657,13 +1657,13 @@ Terminal::set_current_hyperlink(vte::parser::Sequence const& seq,
 
                 _vte_debug_print (VTE_DEBUG_HYPERLINK, "OSC 8: id;uri=\"%s\"\n", hyperlink.data());
 
-                idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, hyperlink.data());
+                idx = m_screen->row_data->get_hyperlink_idx(hyperlink.data());
         } else {
                 if (G_UNLIKELY(len > VTE_HYPERLINK_URI_LENGTH_MAX))
                         _vte_debug_print (VTE_DEBUG_HYPERLINK, "Overlong URI ignored (len %" G_GSIZE_FORMAT ")\n", len);
 
                 /* idx = 0; also remove the previous current_idx so that it can be GC'd now. */
-                idx = _vte_ring_get_hyperlink_idx(m_screen->row_data, nullptr);
+                idx = m_screen->row_data->get_hyperlink_idx(nullptr);
         }
 
         m_defaults.attr.hyperlink_idx = idx;
@@ -2600,7 +2600,7 @@ Terminal::DECALN(vte::parser::Sequence const& seq)
 	     row < m_screen->insert_delta + m_row_count;
 	     row++) {
 		/* Find this row. */
-                while (_vte_ring_next(m_screen->row_data) <= row)
+                while (long(m_screen->row_data->next()) <= row)
                         ring_append(false);
                 adjust_adjustments();
                 auto rowdata = m_screen->row_data->index_writable(row);
@@ -4980,8 +4980,8 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
                 m_scrolling_restricted = FALSE;
 	} else {
 		/* Maybe extend the ring -- bug 710483 */
-                while (_vte_ring_next(m_screen->row_data) < m_screen->insert_delta + m_row_count)
-                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data), get_bidi_flags());
+                while (long(m_screen->row_data->next()) < m_screen->insert_delta + m_row_count)
+                        m_screen->row_data->insert(m_screen->row_data->next(), get_bidi_flags());
 	}
 
         home_cursor();

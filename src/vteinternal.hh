@@ -131,7 +131,7 @@ public:
         }
 
         vte::base::Ring m_ring; /* buffer contents */
-        VteRing* row_data;
+        vte::base::Ring *row_data;
         VteVisualPosition cursor;  /* absolute value, from the beginning of the terminal history */
         double scroll_delta{0.0}; /* scroll offset */
         long insert_delta{0}; /* insertion offset */
@@ -437,7 +437,7 @@ public:
 
         inline auto scroll_limit_lower() const noexcept
         {
-                return _vte_ring_delta (m_screen->row_data);
+                return m_screen->row_data->delta();
         }
 
         inline constexpr auto scroll_limit_upper() const noexcept
@@ -759,11 +759,6 @@ public:
 
 public:
 
-        // FIXMEchpe inline!
-        /* inline */ VteRowData* ring_insert(vte::grid::row_t position,
-                                       bool fill);
-        /* inline */ VteRowData* ring_append(bool fill);
-        /* inline */ void ring_remove(vte::grid::row_t position);
         inline VteRowData const* find_row_data(vte::grid::row_t row) const;
         inline VteRowData* find_row_data_writable(vte::grid::row_t row) const;
         inline VteCell const* find_charcell(vte::grid::column_t col,
@@ -780,10 +775,63 @@ public:
         inline vte::grid::row_t last_displayed_row() const;
         inline bool cursor_is_onscreen() const noexcept;
 
-        inline VteRowData *insert_rows (guint cnt);
-        VteRowData *ensure_row();
         VteRowData *ensure_cursor();
         void update_insert_delta();
+
+        // FIXMEchpe replace this with a method on VteRing
+        inline VteRowData* ring_insert(vte::grid::row_t position, bool fill) {
+                VteRowData *row;
+                auto ring = m_screen->row_data;
+                bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
+
+                while G_UNLIKELY (long(ring->next()) < position) {
+                        row = ring->append(get_bidi_flags());
+                        if (not_default_bg)
+                                _vte_row_data_fill (row, &m_color_defaults, m_column_count);
+                }
+                row = ring->insert(position, get_bidi_flags());
+                if (fill && not_default_bg)
+                        _vte_row_data_fill (row, &m_color_defaults, m_column_count);
+                return row;
+        }
+
+        inline VteRowData* ring_append(bool fill) {
+                return ring_insert(m_screen->row_data->next(), fill);
+        }
+
+        // FIXMEchpe replace this with a method on Ring
+        inline void ring_remove(vte::grid::row_t position) {
+                m_screen->row_data->remove(position);
+        }
+
+        // FIXMEchpe replace this with a method on Ring
+        inline VteRowData* insert_rows (guint cnt) {
+                VteRowData* row;
+                do {
+                        row = ring_append(false);
+                } while(--cnt);
+                return row;
+        }
+
+        // Make sure we have enough rows and columns to hold data at the current
+        // cursor position.
+        inline VteRowData *ensure_row() {
+                VteRowData *row;
+
+                // Figure out how many rows we need to add.
+                auto const delta = m_screen->cursor.row - long(m_screen->row_data->next()) + 1;
+                if G_UNLIKELY (delta > 0) {
+                        row = insert_rows(delta);
+                        adjust_adjustments();
+                } else {
+                        // Find the row the cursor is in.
+                        row = m_screen->row_data->index_writable(m_screen->cursor.row);
+                }
+                g_assert(row != NULL);
+
+                return row;
+        }
+
 
         void set_hard_wrapped(vte::grid::row_t row);
         void set_soft_wrapped(vte::grid::row_t row);
