@@ -119,6 +119,20 @@ _vte_debug_tf(bool v) noexcept
         return v ? "true" : "false";
 }
 
+#ifdef G_DISABLE_ASSERT
+# define vte_assert_cmpint(a,op,b) G_STMT_START {} G_STMT_END
+# define vte_assert_cmpuint(a,op,b) G_STMT_START {} G_STMT_END
+# define vte_assert_cmphex(a,op,b) G_STMT_START {} G_STMT_END
+# define vte_assert_true(v) G_STMT_START {} G_STMT_END
+# define vte_assert_false(v) G_STMT_START {} G_STMT_END
+#else
+# define vte_assert_cmpint(a,op,b) g_assert_cmpint(a,op,b)
+# define vte_assert_cmpuint(a,op,b) g_assert_cmpuint(a,op,b)
+# define vte_assert_cmphex(a,op,b) g_assert_cmphex(a,op,b)
+# define vte_assert_true(v) g_assert_true(v)
+# define vte_assert_false(v) g_assert_false(v)
+#endif
+
 G_END_DECLS
 
 #endif

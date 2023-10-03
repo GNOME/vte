@@ -72,7 +72,7 @@ BidiRow::~BidiRow()
 void
 BidiRow::set_width(vte::grid::column_t width)
 {
-        g_assert_cmpint(width, >=, 0);
+        vte_assert_cmpint(width, >=, 0);
         if (G_UNLIKELY (width > G_MAXUSHORT)) {
                 width = G_MAXUSHORT;
         }
@@ -170,7 +170,7 @@ BidiRow::log_is_rtl(vte::grid::column_t col) const
 vteunistr
 BidiRow::vis_get_shaped_char(vte::grid::column_t col, vteunistr s) const
 {
-        g_assert_cmpint (col, >=, 0);
+        vte_assert_cmpint (col, >=, 0);
 
         if (col >= m_width || m_vis_shaped_base_char[col] == 0)
                 return s;
@@ -240,9 +240,9 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 vte_bidi_chars_set_size(&fribidi_chars_array, 0);
                 j = i;
                 do {
-                        auto prev_len = vte_bidi_chars_get_size (&fribidi_chars_array);
+                        G_GNUC_UNUSED auto prev_len = vte_bidi_chars_get_size (&fribidi_chars_array);
                         _vte_unistr_append_to_gunichars (cell->c, &fribidi_chars_array);
-                        g_assert_cmpint (vte_bidi_chars_get_size (&fribidi_chars_array), >, prev_len);
+                        vte_assert_cmpint (vte_bidi_chars_get_size (&fribidi_chars_array), >, prev_len);
 
                         j--;
                         if (j >= 0) {
@@ -295,7 +295,7 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 /* Walk through the Arabic word again. */
                 j = i;
                 while (count > 0) {
-                        g_assert_cmpint (j, >=, 0);
+                        vte_assert_cmpint (j, >=, 0);
                         cell = _vte_row_data_get(row_data, bidirow->vis2log(j));
                         c = cell->c;
                         base = _vte_unistr_get_base(c);
@@ -546,7 +546,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                          * Note: see the static assert at the top of this file. */
                         _vte_unistr_append_to_gunichars (cell->c ? cell->c : ' ', &fribidi_chars_array);
                         /* Make sure at least one character was produced. */
-                        g_assert_cmpint (vte_bidi_chars_get_size(&fribidi_chars_array), >, prev_len);
+                        vte_assert_cmpint (vte_bidi_chars_get_size(&fribidi_chars_array), >, prev_len);
 
                         /* Track the base character, assign to it its current index in fribidi_chars.
                          * Don't track combining accents, assign -1's to them. */
@@ -600,7 +600,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         }
 
         /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
-        g_assert_cmpint (pbase_dir, !=, FRIBIDI_PAR_ON);
+        vte_assert_cmpint (pbase_dir, !=, FRIBIDI_PAR_ON);
         rtl = (pbase_dir == FRIBIDI_PAR_RTL || pbase_dir == FRIBIDI_PAR_WRTL);
 
         if (!rtl && level == 0) {
@@ -713,14 +713,14 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                 }
                 if (!rtl) {
                         /* Unused cells on the right for LTR paragraphs */
-                        g_assert_cmpint (tv, ==, row_data->len);
+                        vte_assert_cmpint (tv, ==, row_data->len);
                         for (; tv < width; tv++) {
                                 bidirow->m_vis2log[tv] = tv;
                                 bidirow->m_vis_rtl[tv] = false;
                                 bidirow->m_vis_shaped_base_char[tv] = 0;
                         }
                 }
-                g_assert_cmpint (tv, ==, width);
+                vte_assert_cmpint (tv, ==, width);
 
                 /* From vis2log create the log2vis mapping too.
                  * In debug mode assert that we have a bijective mapping. */
@@ -736,7 +736,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
 
                 if (_vte_debug_on (VTE_DEBUG_BIDI)) {
                         for (tl = 0; tl < width; tl++) {
-                                g_assert_cmpint (bidirow->m_log2vis[tl], !=, -1);
+                                vte_assert_cmpint (bidirow->m_log2vis[tl], !=, -1);
                         }
                 }
         }

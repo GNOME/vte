@@ -19,6 +19,8 @@
 
 #include <cstdint>
 
+#include "debug.h"
+
 #define VTE_ATTR_VALUE_MASK(bits)      ((1U << (bits)) - 1U)
 #define VTE_ATTR_MASK(shift,bits)      (VTE_ATTR_VALUE_MASK(bits) << (shift))
 
@@ -119,7 +121,7 @@ static inline void vte_attr_set_value(uint32_t* attr,
                                       unsigned int shift,
                                       uint32_t value)
 {
-        g_assert_cmpuint(value << shift, <=, mask); /* assurance */
+        vte_assert_cmpuint(value << shift, <=, mask); /* assurance */
         *attr = (*attr & ~mask) | ((value << shift) & mask /* assurance */);
 }
 
