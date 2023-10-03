@@ -3587,7 +3587,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
         auto const iend = chunk.end_reading();
         auto ip = chunk.begin_reading();
 
-        while (ip < iend) {
+        while (ip < iend) [[likely]] {
 
                 switch (m_utf8_decoder.decode(*(ip++))) {
                 case vte::base::UTF8Decoder::REJECT_REWIND:
@@ -3602,6 +3602,8 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                         /* Fall through to insert the U+FFFD replacement character. */
                         [[fallthrough]];
                 case vte::base::UTF8Decoder::ACCEPT: {
+                        [[likely]];
+
                         auto rv = m_parser.feed(m_utf8_decoder.codepoint());
                         if (G_UNLIKELY(rv < 0)) {
 #if VTE_DEBUG
@@ -3631,7 +3633,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                         // also do, and invalidate directly for now)...
 
                         switch (rv) {
-                        case VTE_SEQ_GRAPHIC: {
+                        case VTE_SEQ_GRAPHIC: [[likely]] {
 
                                 context.pre_GRAPHIC(*this);
 
@@ -3641,6 +3643,15 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                                  "Last graphic is now U+%04X %lc\n",
                                                  m_last_graphic_character,
                                                  g_unichar_isprint(m_last_graphic_character) ? m_last_graphic_character : 0xfffd);
+
+                                // It's very common to get batches of printable ascii
+                                // characters. So plan for that and avoid round-tripping
+                                // through the UTF-8 decoder as well as the Parser. It
+                                // also allows for a single pre_GRAPHIC()/post_GRAPHIC().
+                                while (ip < iend && *ip >= 0x20 && *ip < 0x7f) [[likely]] {
+                                        insert_char(*ip, false, false);
+                                        ip++;
+                                }
 
                                 context.post_GRAPHIC(*this);
                                 break;
