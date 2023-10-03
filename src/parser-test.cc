@@ -31,6 +31,7 @@ using namespace std::literals;
 
 #include "parser.hh"
 #include "parser-glue.hh"
+
 #include "parser-charset-tables.hh"
 
 #ifdef PARSER_INCLUDE_NOP

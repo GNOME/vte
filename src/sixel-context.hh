@@ -28,7 +28,6 @@
 #endif
 
 #include "glib-glue.hh"
-//#include "parser-glue.hh"
 #include "sixel-parser.hh"
 #include "vtedefines.hh"
 
