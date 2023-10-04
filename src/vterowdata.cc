@@ -24,6 +24,8 @@
 
 #include <string.h>
 
+#include <algorithm>
+#include <iterator>
 #include <type_traits>
 
 /* This will be true now that VteCell is POD, but make sure it'll be true
@@ -153,14 +155,10 @@ void _vte_row_data_remove (VteRowData *row, gulong col)
 void _vte_row_data_fill (VteRowData *row, const VteCell *cell, gulong len)
 {
 	if (row->len < len) {
-		gulong i;
-
 		if (G_UNLIKELY (!_vte_row_data_ensure (row, len)))
 			return;
 
-		for (i = row->len; i < len; i++)
-			row->cells[i] = *cell;
-
+		std::fill_n(&row->cells[row->len], len - row->len, *cell);
 		row->len = len;
 	}
 }
