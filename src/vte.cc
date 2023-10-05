@@ -9332,7 +9332,7 @@ Terminal::draw(cairo_t* cr,
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
 #if WITH_SIXEL
-        VteRing *ring = m_screen->row_data;
+        auto const ring = m_screen->row_data;
 #endif
         auto now_ms = int64_t{0};
 
