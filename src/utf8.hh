@@ -38,8 +38,8 @@ namespace base {
 class UTF8Decoder {
 public:
         enum {
-                ACCEPT = 0,
-                REJECT = 12,
+                REJECT = 0,
+                ACCEPT = 12,
                 REJECT_REWIND = 108
         };
 

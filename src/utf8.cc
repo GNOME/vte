@@ -101,8 +101,8 @@ constinit uint8_t const vte::base::UTF8Decoder::kTable[] = {
         /*
          0   1   2   3   4   5   6   7   8   9  10  11 // character class
         */
-        OK, RJ, RJ, RJ, 24, 36, 60, 84, 96, RJ, 48, 72, // state 0 (accept)
-        RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 12 (reject)
+        RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 0 (reject)
+        OK, RJ, RJ, RJ, 24, 36, 60, 84, 96, RJ, 48, 72, // state 12 (accept)
         RW, OK, OK, OK, RW, RW, RW, RW, RW, RW, RW, RW, // state 24
         RW, 24, 24, 24, RW, RW, RW, RW, RW, RW, RW, RW, // state 36
         RW, RW, RW, 24, RW, RW, RW, RW, RW, RW, RW, RW, // state 48
