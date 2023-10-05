@@ -25,43 +25,44 @@
 
 #include "utf8.hh"
 
+#define OK vte::base::UTF8Decoder::ACCEPT
 #define RJ vte::base::UTF8Decoder::REJECT
 #define RW vte::base::UTF8Decoder::REJECT_REWIND
 
-uint8_t const vte::base::UTF8Decoder::kTable[] = {
+constinit uint8_t const vte::base::UTF8Decoder::kTable[] = {
         // The first part of the table maps bytes to character classes that
         // to reduce the size of the transition table and create bitmasks.
         // The classes are as follows:
         // 0x00..0x7f: 0
         // 0x80..0x8f: 1
-        // 0x90..0x9f: 9
-        // 0xa0..0xbf: 7
-        // 0xc0..0xc1: 8
-        // 0xc2..0xdf: 2
+        // 0x90..0x9f: 2
+        // 0xa0..0xbf: 3
+        // 0xc0..0xc1: 9
+        // 0xc2..0xdf: 4
         // 0xe0:       10
-        // 0xe1..0xec: 3
-        // 0xed:       4
-        // 0xee..0xef: 3
+        // 0xe1..0xec: 5
+        // 0xed:       6
+        // 0xee..0xef: 5
         // 0xf0:       11
-        // 0xf1..0xf3: 6
-        // 0xf4:       5
-        // 0xf5..0xff: 8
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x00..0x0f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x10..0x1f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x20..0x2f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x30..0x3f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x40..0x4f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x50..0x5f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x60..0x6f
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x70..0x7f
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x80..0x8f
-        9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, // 0x90..0x9f
-        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, // 0xa0..0xaf
-        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, // 0xb0..0xbf
-        8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 0xc0..0xcf
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 0xd0..0xdf
-        10, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, // 0xe0..0xef
-        11, 6, 6, 6, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, // 0xf0..0xff
+        // 0xf1..0xf3: 7
+        // 0xf4:       8
+        // 0xf5..0xff: 9
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x00..0x0f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x10..0x1f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x20..0x2f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x30..0x3f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x40..0x4f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x50..0x5f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x60..0x6f
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x70..0x7f
+         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x80..0x8f
+         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 0x90..0x9f
+         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // 0xa0..0xaf
+         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // 0xb0..0xbf
+         9, 9, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // 0xc0..0xcf
+         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // 0xd0..0xdf
+        10, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 5, 5, // 0xe0..0xef
+        11, 7, 7, 7, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, // 0xf0..0xff
 
         // To understand this DFA, see transitions graph on the website
         // linked above.
@@ -100,14 +101,14 @@ uint8_t const vte::base::UTF8Decoder::kTable[] = {
         /*
          0   1   2   3   4   5   6   7   8   9  10  11 // character class
         */
-         0, RJ, 24, 36, 60, 96, 84, RJ, RJ, RJ, 48, 72, // state 0 (accept)
+        OK, RJ, RJ, RJ, 24, 36, 60, 84, 96, RJ, 48, 72, // state 0 (accept)
         RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 12 (reject)
-        RW,  0, RW, RW, RW, RW, RW,  0, RW,  0, RW, RW, // state 24
-        RW, 24, RW, RW, RW, RW, RW, 24, RW, 24, RW, RW, // state 36
-        RW, RW, RW, RW, RW, RW, RW, 24, RW, RW, RW, RW, // state 48
-        RW, 24, RW, RW, RW, RW, RW, RW, RW, 24, RW, RW, // state 60
-        RW, RW, RW, RW, RW, RW, RW, 36, RW, 36, RW, RW, // state 72
-        RW, 36, RW, RW, RW, RW, RW, 36, RW, 36, RW, RW, // state 84
+        RW, OK, OK, OK, RW, RW, RW, RW, RW, RW, RW, RW, // state 24
+        RW, 24, 24, 24, RW, RW, RW, RW, RW, RW, RW, RW, // state 36
+        RW, RW, RW, 24, RW, RW, RW, RW, RW, RW, RW, RW, // state 48
+        RW, 24, 24, RW, RW, RW, RW, RW, RW, RW, RW, RW, // state 60
+        RW, RW, 36, 36, RW, RW, RW, RW, RW, RW, RW, RW, // state 72
+        RW, 36, 36, 36, RW, RW, RW, RW, RW, RW, RW, RW, // state 84
         RW, 36, RW, RW, RW, RW, RW, RW, RW, RW, RW, RW, // state 96
         RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, RJ, // state 108 (reject-rewind)
 };

@@ -968,7 +968,7 @@ private:
                 switch (m_current_data_syntax) {
                 case DataSyntax::ECMA48_UTF8:
                         m_parser.reset();
-                        m_utf8_decoder.reset();
+                        m_utf8_decoder.reset_clear();
                         break;
 
 #if WITH_SIXEL
@@ -1028,12 +1028,12 @@ private:
                                 --sptr;
                                 [[fallthrough]];
                         case vte::base::UTF8Decoder::REJECT:
-                                m_utf8_decoder.reset();
+                                m_utf8_decoder.reset_fallback();
                                 /* Fall through to insert the U+FFFD replacement character. */
                                 [[fallthrough]];
-                        case vte::base::UTF8Decoder::ACCEPT: {
-                                auto ret = m_parser.feed(m_utf8_decoder.codepoint());
-                                if (G_UNLIKELY(ret < 0)) {
+                        case vte::base::UTF8Decoder::ACCEPT: [[likely]] {
+                                auto const ret = m_parser.feed(m_utf8_decoder.codepoint());
+                                if (ret < 0) [[unlikely]] {
                                         g_printerr("Parser error!\n");
                                         return bufend;
                                 }

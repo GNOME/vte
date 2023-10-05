@@ -32,10 +32,10 @@ UTF8Decoder decoder{};
 static void
 test_utf8_decoder_decode(void)
 {
-        decoder.reset();
+        decoder.reset_clear();
 
         uint8_t buf[7];
-        uint32_t state = UTF8Decoder::ACCEPT;
+        uint8_t state = UTF8Decoder::ACCEPT;
         for (uint32_t cp = 0; cp < 0x110000u; ++cp) {
                 if ((cp & 0xfffff800) == 0xd800u)
                         continue; // surrogate
@@ -53,7 +53,7 @@ decode(uint8_t const* in,
        size_t len,
        std::u32string& out)
 {
-        decoder.reset();
+        decoder.reset_clear();
 
         auto const iend = in + len;
         for (auto iptr = in; iptr < iend; ++iptr) {
@@ -65,7 +65,7 @@ decode(uint8_t const* in,
                         --iptr;
                         [[fallthrough]];
                 case vte::base::UTF8Decoder::REJECT:
-                        decoder.reset();
+                        decoder.reset_fallback();
                         /* Fall through to insert the U+FFFD replacement character. */
                         [[fallthrough]];
                 case vte::base::UTF8Decoder::ACCEPT:

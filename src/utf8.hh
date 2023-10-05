@@ -26,6 +26,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 
 namespace vte {
 
@@ -42,41 +43,74 @@ public:
                 REJECT_REWIND = 108
         };
 
-        UTF8Decoder() noexcept = default;
-        UTF8Decoder(UTF8Decoder const&) noexcept = default;
-        UTF8Decoder(UTF8Decoder&&) noexcept = default;
-        ~UTF8Decoder() noexcept = default;
+        constexpr UTF8Decoder() noexcept = default;
+        constexpr ~UTF8Decoder() noexcept = default;
 
+        UTF8Decoder(UTF8Decoder const&) noexcept = delete;
+        UTF8Decoder(UTF8Decoder&&) noexcept = delete;
         UTF8Decoder& operator= (UTF8Decoder const&) = delete;
         UTF8Decoder& operator= (UTF8Decoder&&) = delete;
 
-        inline constexpr uint32_t codepoint() const noexcept { return m_codepoint; }
-
-        inline uint32_t decode(uint32_t byte) noexcept {
-                uint32_t type = kTable[byte];
-                m_codepoint = (m_state != ACCEPT) ?
-                        (byte & 0x3fu) | (m_codepoint << 6) :
-                        (0xff >> type) & (byte);
-
-                m_state = kTable[256 + m_state + type];
-                return m_state;
+        // Returns: the UTF-32 codepoint.  This function may only be
+        // called when the decoder is in ACCEPT state.  This will
+        // reset the decoder's codepoint to 0, so may only be called
+        // once before pushing more input data into the decoder.
+        inline constexpr uint32_t codepoint() noexcept
+        {
+                return std::exchange(m_codepoint, 0U);
         }
 
-        inline void reset() noexcept {
-                m_state = ACCEPT;
+        // Push input data into the decoder.
+        // If returning ACCEPT, a UTF-32 codepoint is available
+        // in .codepoint().
+        // If returning REJECT, .reset_fallback() must be called,
+        // and then .codepoint(), and the input stream must be advanced.
+        // If returning REJECT_REWIND, .reset_fallback() must be
+        // called, and then .codepoint(), and the input stream must
+        // *NOT* be advanced, since the input byte was NOT consumed.
+        // For all other return values, the input stream must be
+        // advanced; but no codepoint has been completely decoded, and
+        // so .codepoint() must not be called.
+        inline uint8_t decode(uint32_t byte) noexcept {
+                auto const type = kTable[byte];
+                m_codepoint = (m_codepoint << 6) | ((0x7fU >> (type >> 1)) & byte);
+                return m_state = kTable[256 + m_state + type];
+        }
+
+        // Resets the decoder; a replacement character (U+FFFD)
+        // will be available in .codepoint() which must be called
+        // before more input data is pushed into the decoder.
+        inline constexpr void reset_fallback() noexcept {
                 m_codepoint = 0xfffdU;
+                m_state = ACCEPT;
         }
 
-        inline bool flush() noexcept {
-                auto state = m_state;
+        // Resets the decoder.
+        // .codepoint() must *not* be called before more
+        // input data was pushed into the decoder.
+        inline constexpr void reset_clear() noexcept {
+                m_codepoint = 0;
+                m_state = ACCEPT;
+        }
+
+        // Flushes pending output of the decoder, and resets it.
+        // If returning true, a replacement character U+FFFD is
+        // available in codepoint() which must be called before
+        // more input data is pushed into the decoder; if returning
+        // false, .codepoint() must not be called before more
+        // input data was pushed into the decoder.
+        inline constexpr bool flush() noexcept {
+                auto const state = m_state;
                 if (m_state != ACCEPT)
-                        reset();
+                        reset_fallback();
+                else
+                        reset_clear();
                 return state != m_state;
         }
 
 private:
-        uint32_t m_state{ACCEPT};
         uint32_t m_codepoint{0};
+        uint8_t m_state{ACCEPT};
 
         static uint8_t const kTable[];
 

@@ -295,10 +295,10 @@ private:
                                         --sptr;
                                         [[fallthrough]];
                                 case vte::base::UTF8Decoder::REJECT:
-                                        decoder.reset();
+                                        decoder.reset_fallback();
                                         /* Fall through to insert the U+FFFD replacement character. */
                                         [[fallthrough]];
-                                case vte::base::UTF8Decoder::ACCEPT:
+                                case vte::base::UTF8Decoder::ACCEPT: [[likely]]
                                         func(decoder.codepoint());
                                         m_output_chars++;
 

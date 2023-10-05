@@ -3598,14 +3598,18 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                         --ip;
                         [[fallthrough]];
                 case vte::base::UTF8Decoder::REJECT:
-                        m_utf8_decoder.reset();
+                        m_utf8_decoder.reset_fallback();
                         /* Fall through to insert the U+FFFD replacement character. */
                         [[fallthrough]];
-                case vte::base::UTF8Decoder::ACCEPT: {
-                        auto rv = m_parser.feed(m_utf8_decoder.codepoint());
-                        if (G_UNLIKELY(rv < 0)) {
+                case vte::base::UTF8Decoder::ACCEPT: [[likely]] {
 #if VTE_DEBUG
-                                uint32_t c = m_utf8_decoder.codepoint();
+                        auto const c = m_utf8_decoder.codepoint();
+                        auto rv = m_parser.feed(c);
+#else
+                        auto rv = m_parser.feed(m_utf8_decoder.codepoint());
+#endif // VTE_DEBUG
+                        if (rv < 0) [[unlikely]] {
+#if VTE_DEBUG
                                 char c_buf[7];
                                 g_snprintf(c_buf, sizeof(c_buf), "%lc", c);
                                 char const* wp_str = g_unichar_isprint(c) ? c_buf : _vte_debug_sequence_to_string(c_buf, -1);
@@ -9950,7 +9954,7 @@ Terminal::reset_decoder()
 {
         switch (primary_data_syntax()) {
         case DataSyntax::ECMA48_UTF8:
-                m_utf8_decoder.reset();
+                m_utf8_decoder.reset_clear();
                 break;
 
 #if WITH_ICU
