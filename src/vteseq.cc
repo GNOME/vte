@@ -469,6 +469,12 @@ Terminal::set_mode_private(int mode,
                  */
                 break;
 
+        case vte::terminal::modes::Private::eDECLRMM:
+                if (!set) {
+                        m_scrolling_region.reset_horizontal();
+                }
+                break;
+
         case vte::terminal::modes::Private::eXTERM_ALTBUF:
                 [[fallthrough]];
         case vte::terminal::modes::Private::eXTERM_OPT_ALTBUF:
@@ -3419,9 +3425,11 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
 
         if (m_modes_private.DEC_ORIGIN()) {
                 top += m_scrolling_region.top();
-
                 bottom += m_scrolling_region.top();
                 bottom = std::min(bottom, m_scrolling_region.bottom());
+                left += m_scrolling_region.left();
+                right += m_scrolling_region.left();
+                right = std::min(right, m_scrolling_region.right());
         }
 
         unsigned int checksum;
@@ -3656,6 +3664,12 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
                              {VTE_REPLY_DECSTBM, {m_scrolling_region.top() + 1,
                                                   m_scrolling_region.bottom() + 1}});
 
+        case VTE_CMD_DECSLRM:
+        case VTE_CMD_DECSLRM_OR_SCOSC:
+                return reply(seq, VTE_REPLY_DECRPSS, {1},
+                             {VTE_REPLY_DECSLRM, {m_scrolling_region.left() + 1,
+                                                  m_scrolling_region.right() + 1}});
+
         case VTE_CMD_DECAC:
         case VTE_CMD_DECARR:
         case VTE_CMD_DECATC:
@@ -3675,7 +3689,6 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
         case VTE_CMD_DECSKCV:
         case VTE_CMD_DECSLCK:
         case VTE_CMD_DECSLPP:
-        case VTE_CMD_DECSLRM:
         case VTE_CMD_DECSMBV:
         case VTE_CMD_DECSNLS:
         case VTE_CMD_DECSPMA:
@@ -4488,9 +4501,24 @@ Terminal::DECSLRM(vte::parser::Sequence const& seq)
          * Homes to cursor to (1,1) of the page (scrolling region?).
          *
          * References: VT525
-         *
-         * FIXMEchpe: Consider implementing this.
          */
+
+        auto const left = seq.collect1(0, 1, 1, m_column_count);
+        auto const right = seq.collect1(seq.next(0), m_column_count, 1, m_column_count);
+
+        /* Ignore if not at least 2 columns */
+        if (right <= left)
+                return;
+
+        /* Set the right values. */
+        m_scrolling_region.set_horizontal(left - 1, right - 1);
+        if (m_scrolling_region.is_restricted()) {
+                /* Maybe extend the ring: https://gitlab.gnome.org/GNOME/vte/-/issues/2036 */
+                while (long(m_screen->row_data->next()) < m_screen->insert_delta + m_row_count)
+                        m_screen->row_data->insert(m_screen->row_data->next(), get_bidi_flags());
+        }
+
+        home_cursor();
 }
 
 void
@@ -4513,11 +4541,9 @@ Terminal::DECSLRM_OR_SCOSC(vte::parser::Sequence const& seq)
          * See issue #48.
          */
 
-#ifdef PARSER_INCLUDE_NOP
         if (m_modes_private.DECLRMM())
                 DECSLRM(seq);
         else
-#endif
                 SCOSC(seq);
 }
 
@@ -4808,7 +4834,7 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
 	/* Set the right values. */
         m_scrolling_region.set_vertical(top - 1, bottom - 1);
         if (m_scrolling_region.is_restricted()) {
-		/* Maybe extend the ring -- bug 710483 */
+                /* Maybe extend the ring: https://gitlab.gnome.org/GNOME/vte/-/issues/2036 */
                 while (long(m_screen->row_data->next()) < m_screen->insert_delta + m_row_count)
                         m_screen->row_data->insert(m_screen->row_data->next(), get_bidi_flags());
 	}
