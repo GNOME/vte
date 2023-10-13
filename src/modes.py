@@ -694,7 +694,7 @@ modes = [
     #
     # aka DECVSSM
     #
-    mode_WHAT('DECLRMM', 69, default=False),
+    mode_WHAT('DECLRMM', 69, default=False, flags=Flags.WRITABLE),
 
     # DECXRLM - transmit rate limit
     # If set, limits the transmit rate; if reset, the rate is

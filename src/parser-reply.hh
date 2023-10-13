@@ -39,7 +39,8 @@ _VTE_REPLY(DSR,                                       CSI, 'n', NONE, NONE,  ) /
 _VTE_REPLY(DECDSR,                                    CSI, 'n', WHAT, NONE,  ) /* device status report */
 _VTE_REPLY(DECSCUSR,                                  CSI, 'q', NONE, SPACE, ) /* set-cursor-style */
 _VTE_REPLY(DECSRC,                                    CSI, 'q', NONE, MULT,  ) /* secure reset confirmation */
-_VTE_REPLY(DECSTBM,                                   CSI, 'r', NONE, NONE,  ) /* set-top-and-bottom-margins */
+_VTE_REPLY(DECSTBM,                                   CSI, 'r', NONE, NONE,  ) /* set top and bottom margins */
+_VTE_REPLY(DECSLRM,                                   CSI, 's', NONE, NONE,  ) /* set left and right margins */
 _VTE_REPLY(XTERM_WM,                                  CSI, 't', NONE, NONE,  ) /* XTERM WM report */
 _VTE_REPLY(DECRPDE,                                   CSI, 'w', NONE, DQUOTE,) /* report displayed extent */
 _VTE_REPLY(DECRPKT,                                   CSI, 'v', NONE, COMMA, ) /* report key type */
