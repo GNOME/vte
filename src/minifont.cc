@@ -148,7 +148,6 @@ namespace vte::view {
 void
 Minifont::draw_graphic(DrawingContext const& context,
                        vteunistr c,
-                       uint32_t const attr,
                        vte::color::rgb const* fg,
                        int x,
                        int y,

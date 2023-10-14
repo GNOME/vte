@@ -304,7 +304,6 @@ DrawingContext::draw_text_internal(TextRequest* requests,
                 if (m_minifont.unistr_is_local_graphic(c)) {
                         m_minifont.draw_graphic(*this,
                                                 c,
-                                                        attr,
                                                         color,
                                                         requests[i].x, requests[i].y,
                                      font->width(), requests[i].columns, font->height());

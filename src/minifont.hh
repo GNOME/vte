@@ -47,7 +47,6 @@ public:
          */
         void draw_graphic(DrawingContext const& context,
                           vteunistr c,
-                          uint32_t const attr,
                           vte::color::rgb const* fg,
                           int x,
                           int y,
