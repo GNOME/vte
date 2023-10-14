@@ -1235,11 +1235,11 @@ vteapp_terminal_unrealize(GtkWidget* widget)
         GTK_WIDGET_CLASS(vteapp_terminal_parent_class)->unrealize(widget);
 }
 
+#if VTE_GTK == 3
 static void
 vteapp_terminal_draw_background(GtkWidget* widget,
                                 cairo_t* cr)
 {
-#if VTE_GTK == 3
         auto terminal = VTEAPP_TERMINAL(widget);
 
         if (terminal->background_pattern != nullptr) {
@@ -1264,24 +1264,18 @@ vteapp_terminal_draw_background(GtkWidget* widget,
                 cairo_paint_with_alpha(cr, options.get_alpha_bg_for_draw());
 
         }
-#endif /* VTE_GTK == 3 */
 }
+#endif /* VTE_GTK == 3 */
 
 #if VTE_GTK == 4
-
 static void
 vteapp_terminal_draw_background(GtkWidget* widget,
                                 GtkSnapshot* snapshot)
 {
-        auto grect = GRAPHENE_RECT_INIT(float(0), float(0),
-                                        float(gtk_widget_get_allocated_width(widget)),
-                                        float(gtk_widget_get_allocated_height(widget)));
-        auto cr = vte::take_freeable(gtk_snapshot_append_cairo(snapshot, &grect));
-        vteapp_terminal_draw_background(widget, cr.get());
 }
-
 #endif /* VTE_GTK  == 4 */
 
+#if VTE_GTK == 3
 static void
 vteapp_terminal_draw_backdrop(GtkWidget* widget,
                               cairo_t* cr)
@@ -1297,21 +1291,23 @@ vteapp_terminal_draw_backdrop(GtkWidget* widget,
                 cairo_paint(cr);
         }
 }
-
-#if VTE_GTK == 4
-
+#elif VTE_GTK == 4
 static void
 vteapp_terminal_draw_backdrop(GtkWidget* widget,
                               GtkSnapshot* snapshot)
 {
-        auto grect = GRAPHENE_RECT_INIT(float(0), float(0),
-                                        float(gtk_widget_get_allocated_width(widget)),
-                                        float(gtk_widget_get_allocated_height(widget)));
-        auto cr = vte::take_freeable(gtk_snapshot_append_cairo(snapshot, &grect));
-        vteapp_terminal_draw_backdrop(widget, cr.get());
-}
+        static const GdkRGBA rgba = {0, 0, 0, BACKDROP_ALPHA};
+        auto terminal = VTEAPP_TERMINAL(widget);
 
-#endif /* VTE_GTK  == 4 */
+        if (terminal->use_backdrop && terminal->has_backdrop) {
+                auto const rect = GRAPHENE_RECT_INIT(.0f,
+                                                     .0f,
+                                                     float(gtk_widget_get_allocated_width(widget)),
+                                                     float(gtk_widget_get_allocated_height(widget)));
+                gtk_snapshot_append_color(snapshot, &rgba, &rect);
+        }
+}
+#endif
 
 #if VTE_GTK == 3
 
