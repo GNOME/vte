@@ -160,8 +160,35 @@ public:
         } saved;
 };
 
+/* Tracks the DECSTBM / DECSLRM scrolling region, a.k.a. margins.
+ * For effective operation, it stores in a single boolean if at its default state. */
 struct vte_scrolling_region {
-        int top, bottom;
+private:
+        int m_width{1}, m_height{1};
+        int m_top{0}, m_bottom{0}, m_left{0}, m_right{0};  /* 0-based, inclusive */
+        bool m_is_restricted{false};
+
+        void update_is_restricted() {
+                m_is_restricted = (m_top != 0) || (m_bottom != m_height - 1) ||
+                                  (m_left != 0) || (m_right != m_width - 1);
+        }
+
+public:
+        inline constexpr auto top() const noexcept { return m_top; }
+        inline constexpr auto bottom() const noexcept { return m_bottom; }
+        inline constexpr auto left() const noexcept { return m_left; }
+        inline constexpr auto right() const noexcept { return m_right; }
+        inline constexpr auto is_restricted() const noexcept { return m_is_restricted; }
+        inline bool contains_row_col(int row, int col) const noexcept {
+                return row >= m_top && row <= m_bottom && col >= m_left && col <= m_right;
+        }
+
+        void set_vertical(int t, int b) noexcept { m_top = t; m_bottom = b; update_is_restricted(); }
+        void reset_vertical() noexcept { set_vertical(0, m_height - 1); }
+        void set_horizontal(int l, int r) noexcept { m_left = l; m_right = r; update_is_restricted(); }
+        void reset_horizontal() noexcept { set_horizontal(0, m_width - 1); }
+        void reset() noexcept { reset_vertical(); reset_horizontal(); }
+        void reset_with_size(int w, int h) noexcept { m_width = w; m_height = h; reset(); }
 };
 
 namespace vte {
@@ -461,7 +488,7 @@ public:
 
         /* Restricted scrolling */
         struct vte_scrolling_region m_scrolling_region;     /* the region we scroll in */
-        gboolean m_scrolling_restricted;
+        inline void reset_scrolling_region() { m_scrolling_region.reset_with_size(m_column_count, m_row_count); }
 
 	/* Cursor shape, as set via API */
         CursorShape m_cursor_shape{CursorShape::eBLOCK};
