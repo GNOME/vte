@@ -161,7 +161,7 @@ public:
 };
 
 struct vte_scrolling_region {
-        int start, end;
+        int top, bottom;
 };
 
 namespace vte {

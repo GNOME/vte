@@ -322,43 +322,43 @@ Terminal::clear_above_current()
 void
 Terminal::scroll_text(vte::grid::row_t scroll_amount)
 {
-        vte::grid::row_t start, end;
+        vte::grid::row_t top, bottom;
         if (m_scrolling_restricted) {
-                start = m_screen->insert_delta + m_scrolling_region.start;
-                end = m_screen->insert_delta + m_scrolling_region.end;
+                top = m_screen->insert_delta + m_scrolling_region.top;
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
 	} else {
-                start = m_screen->insert_delta;
-                end = start + m_row_count - 1;
+                top = m_screen->insert_delta;
+                bottom = top + m_row_count - 1;
 	}
 
-        while (long(m_screen->row_data->next()) <= end)
+        while (long(m_screen->row_data->next()) <= bottom)
                 ring_append(false);
 
 	if (scroll_amount > 0) {
                 /* Scroll down. */
 		for (auto i = 0; i < scroll_amount; i++) {
-                        ring_remove(end);
-                        ring_insert(start, true);
+                        ring_remove(bottom);
+                        ring_insert(top, true);
 		}
                 /* Set the boundaries to hard wrapped where we tore apart the contents.
-                 * Need to do it after scrolling down, for the end row to be the desired one. */
-                set_hard_wrapped(start - 1);
-                set_hard_wrapped(end);
+                 * Need to do it after scrolling down, for the bottom row to be the desired one. */
+                set_hard_wrapped(top - 1);
+                set_hard_wrapped(bottom);
 	} else {
                 /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
-                 * Need to do it before scrolling up, for the end row to be the desired one. */
-                set_hard_wrapped(start - 1);
-                set_hard_wrapped(end);
+                 * Need to do it before scrolling up, for the bottom row to be the desired one. */
+                set_hard_wrapped(top - 1);
+                set_hard_wrapped(bottom);
                 /* Scroll up. */
 		for (auto i = 0; i < -scroll_amount; i++) {
-                        ring_remove(start);
-                        ring_insert(end, true);
+                        ring_remove(top);
+                        ring_insert(bottom, true);
 		}
 	}
 
         /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
          * invalidating the context lines if necessary. */
-        invalidate_rows(start, end);
+        invalidate_rows(top, bottom);
 
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
@@ -810,17 +810,17 @@ Terminal::set_cursor_column1(vte::grid::column_t col)
 void
 Terminal::set_cursor_row(vte::grid::row_t row)
 {
-        vte::grid::row_t start_row, end_row;
+        vte::grid::row_t top_row, bottom_row;
         if (m_modes_private.DEC_ORIGIN() &&
             m_scrolling_restricted) {
-                start_row = m_scrolling_region.start;
-                end_row = m_scrolling_region.end;
+                top_row = m_scrolling_region.top;
+                bottom_row = m_scrolling_region.bottom;
         } else {
-                start_row = 0;
-                end_row = m_row_count - 1;
+                top_row = 0;
+                bottom_row = m_row_count - 1;
         }
-        row += start_row;
-        row = CLAMP(row, start_row, end_row);
+        row += top_row;
+        row = CLAMP(row, top_row, bottom_row);
 
         m_screen->cursor.row = row + m_screen->insert_delta;
 }
@@ -843,7 +843,7 @@ Terminal::get_cursor_row_unclamped() const
         auto row = m_screen->cursor.row - m_screen->insert_delta;
         /* Note that we do NOT check DEC_ORIGIN mode here! */
         if (m_scrolling_restricted) {
-                row -= m_scrolling_region.start;
+                row -= m_scrolling_region.top;
         }
         return row;
 }
@@ -931,15 +931,15 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
         // FIXMEchpe why not do this afterwards?
         ensure_cursor_is_onscreen();
 
-        vte::grid::row_t end;
+        vte::grid::row_t bottom;
         // FIXMEchpe why not check DEC_ORIGIN here?
-        if (m_scrolling_restricted && m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.end) {
-                end = m_screen->insert_delta + m_scrolling_region.end;
+        if (m_scrolling_restricted && m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.bottom) {
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
 	} else {
-                end = m_screen->insert_delta + m_row_count - 1;
+                bottom = m_screen->insert_delta + m_row_count - 1;
 	}
 
-        m_screen->cursor.row = MIN(m_screen->cursor.row + rows, end);
+        m_screen->cursor.row = MIN(m_screen->cursor.row + rows, bottom);
 }
 
 void
@@ -1131,15 +1131,15 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
         //FIXMEchpe why not do this afterward?
         ensure_cursor_is_onscreen();
 
-        vte::grid::row_t start;
+        vte::grid::row_t top;
         //FIXMEchpe why not check DEC_ORIGIN mode here?
-        if (m_scrolling_restricted && m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.start) {
-                start = m_screen->insert_delta + m_scrolling_region.start;
+        if (m_scrolling_restricted && m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.top) {
+                top = m_screen->insert_delta + m_scrolling_region.top;
 	} else {
-		start = m_screen->insert_delta;
+		top = m_screen->insert_delta;
 	}
 
-        m_screen->cursor.row = MAX(m_screen->cursor.row - rows, start);
+        m_screen->cursor.row = MAX(m_screen->cursor.row - rows, top);
 }
 
 /*
@@ -1310,45 +1310,45 @@ Terminal::erase_in_line(vte::parser::Sequence const& seq)
 void
 Terminal::insert_lines(vte::grid::row_t param)
 {
-        vte::grid::row_t start, end, i;
+        vte::grid::row_t top, bottom, i;
 
 	/* Find the region we're messing with. */
         auto row = m_screen->cursor.row;
         if (m_scrolling_restricted) {
-                start = m_screen->insert_delta + m_scrolling_region.start;
-                end = m_screen->insert_delta + m_scrolling_region.end;
+                top = m_screen->insert_delta + m_scrolling_region.top;
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
 	} else {
-                start = m_screen->insert_delta;
-                end = m_screen->insert_delta + m_row_count - 1;
+                top = m_screen->insert_delta;
+                bottom = m_screen->insert_delta + m_row_count - 1;
 	}
 
         /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
-        if (m_screen->cursor.row < start || m_screen->cursor.row > end)
+        if (m_screen->cursor.row < top || m_screen->cursor.row > bottom)
                 return;
 
 	/* Only allow to insert as many lines as there are between this row
-         * and the end of the scrolling region. See bug #676090.
+         * and the bottom of the scrolling region. See bug #676090.
          */
-        auto limit = end - row + 1;
+        auto limit = bottom - row + 1;
         param = MIN (param, limit);
 
 	for (i = 0; i < param; i++) {
-		/* Clear a line off the end of the region and add one to the
+		/* Clear a line off the bottom of the region and add one to the
 		 * top of the region. */
-                ring_remove(end);
+                ring_remove(bottom);
                 ring_insert(row, true);
 	}
 
         /* Set the boundaries to hard wrapped where we tore apart the contents.
-         * Need to do it after scrolling down, for the end row to be the desired one. */
+         * Need to do it after scrolling down, for the bottom row to be the desired one. */
         set_hard_wrapped(row - 1);
-        set_hard_wrapped(end);
+        set_hard_wrapped(bottom);
 
         m_screen->cursor.col = 0;
 
         /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
          * invalidating the context lines if necessary. */
-        invalidate_rows(row, end);
+        invalidate_rows(row, bottom);
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -1358,45 +1358,45 @@ Terminal::insert_lines(vte::grid::row_t param)
 void
 Terminal::delete_lines(vte::grid::row_t param)
 {
-        vte::grid::row_t start, end, i;
+        vte::grid::row_t top, bottom, i;
 
 	/* Find the region we're messing with. */
         auto row = m_screen->cursor.row;
         if (m_scrolling_restricted) {
-                start = m_screen->insert_delta + m_scrolling_region.start;
-                end = m_screen->insert_delta + m_scrolling_region.end;
+                top = m_screen->insert_delta + m_scrolling_region.top;
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
 	} else {
-                start = m_screen->insert_delta;
-                end = m_screen->insert_delta + m_row_count - 1;
+                top = m_screen->insert_delta;
+                bottom = m_screen->insert_delta + m_row_count - 1;
 	}
 
         /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
-        if (m_screen->cursor.row < start || m_screen->cursor.row > end)
+        if (m_screen->cursor.row < top || m_screen->cursor.row > bottom)
                 return;
 
         /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
-         * Need to do it before scrolling up, for the end row to be the desired one. */
+         * Need to do it before scrolling up, for the bottom row to be the desired one. */
         set_hard_wrapped(row - 1);
-        set_hard_wrapped(end);
+        set_hard_wrapped(bottom);
 
         /* Only allow to delete as many lines as there are between this row
-         * and the end of the scrolling region. See bug #676090.
+         * and the bottom of the scrolling region. See bug #676090.
          */
-        auto limit = end - row + 1;
+        auto limit = bottom - row + 1;
         param = MIN (param, limit);
 
 	/* Clear them from below the current cursor. */
 	for (i = 0; i < param; i++) {
-		/* Insert a line at the end of the region and remove one from
+		/* Insert a line at the bottom of the region and remove one from
 		 * the top of the region. */
                 ring_remove(row);
-                ring_insert(end, true);
+                ring_insert(bottom, true);
 	}
         m_screen->cursor.col = 0;
 
         /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
          * invalidating the context lines if necessary. */
-        invalidate_rows(row, end);
+        invalidate_rows(row, bottom);
 	/* Adjust the scrollbars if necessary. */
         adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
@@ -3568,10 +3568,10 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
 
         if (m_modes_private.DEC_ORIGIN() &&
             m_scrolling_restricted) {
-                top += m_scrolling_region.start;
+                top += m_scrolling_region.top;
 
-                bottom += m_scrolling_region.start;
-                bottom = std::min(bottom, m_scrolling_region.end);
+                bottom += m_scrolling_region.top;
+                bottom = std::min(bottom, m_scrolling_region.bottom);
 
         }
 
@@ -3806,8 +3806,8 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
                 if (m_scrolling_restricted)
                         return reply(seq, VTE_REPLY_DECRPSS, {1},
                                      {VTE_REPLY_DECSTBM,
-                                                     {m_scrolling_region.start + 1,
-                                                                     m_scrolling_region.end + 1}});
+                                                     {m_scrolling_region.top + 1,
+                                                                     m_scrolling_region.bottom + 1}});
                 else
                         return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSTBM, {}});
 
@@ -4951,31 +4951,31 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, 0, 0);
 #endif
 
-        int start, end;
-        seq.collect(0, {&start, &end});
+        int top, bottom;
+        seq.collect(0, {&top, &bottom});
 
         /* Defaults */
-        if (start <= 0)
-                start = 1;
-        if (end == -1)
-                end = m_row_count;
+        if (top <= 0)
+                top = 1;
+        if (bottom == -1)
+                bottom = m_row_count;
 
-        if (start > m_row_count ||
-            end <= start) {
+        if (top > m_row_count ||
+            bottom <= top) {
                 m_scrolling_restricted = FALSE;
                 home_cursor();
                 return;
         }
 
-        if (end > m_row_count)
-                end = m_row_count;
+        if (bottom > m_row_count)
+                bottom = m_row_count;
 
 	/* Set the right values. */
-        m_scrolling_region.start = start - 1;
-        m_scrolling_region.end = end - 1;
+        m_scrolling_region.top = top - 1;
+        m_scrolling_region.bottom = bottom - 1;
         m_scrolling_restricted = TRUE;
-        if (m_scrolling_region.start == 0 &&
-            m_scrolling_region.end == m_row_count - 1) {
+        if (m_scrolling_region.top == 0 &&
+            m_scrolling_region.bottom == m_row_count - 1) {
 		/* Special case -- run wild, run free. */
                 m_scrolling_restricted = FALSE;
 	} else {
@@ -5313,8 +5313,8 @@ Terminal::DSR_ECMA(vte::parser::Sequence const& seq)
                 vte::grid::row_t rowval, origin, rowmax;
                 if (m_modes_private.DEC_ORIGIN() &&
                     m_scrolling_restricted) {
-                        origin = m_scrolling_region.start;
-                        rowmax = m_scrolling_region.end;
+                        origin = m_scrolling_region.top;
+                        rowmax = m_scrolling_region.bottom;
                 } else {
                         origin = 0;
                         rowmax = m_row_count - 1;
@@ -5360,8 +5360,8 @@ Terminal::DSR_DEC(vte::parser::Sequence const& seq)
                 vte::grid::row_t rowval, origin, rowmax;
                 if (m_modes_private.DEC_ORIGIN() &&
                     m_scrolling_restricted) {
-                        origin = m_scrolling_region.start;
-                        rowmax = m_scrolling_region.end;
+                        origin = m_scrolling_region.top;
+                        rowmax = m_scrolling_region.bottom;
                 } else {
                         origin = 0;
                         rowmax = m_row_count - 1;
@@ -6970,29 +6970,29 @@ Terminal::RI(vte::parser::Sequence const& seq)
 
         ensure_cursor_is_onscreen();
 
-        vte::grid::row_t start, end;
+        vte::grid::row_t top, bottom;
         if (m_scrolling_restricted) {
-                start = m_scrolling_region.start + m_screen->insert_delta;
-                end = m_scrolling_region.end + m_screen->insert_delta;
+                top = m_scrolling_region.top + m_screen->insert_delta;
+                bottom = m_scrolling_region.bottom + m_screen->insert_delta;
 	} else {
-                start = m_screen->insert_delta;
-                end = start + m_row_count - 1;
+                top = m_screen->insert_delta;
+                bottom = top + m_row_count - 1;
 	}
 
-        if (m_screen->cursor.row == start) {
+        if (m_screen->cursor.row == top) {
 		/* If we're at the top of the scrolling region, add a
 		 * line at the top to scroll the bottom off. */
-		ring_remove(end);
-		ring_insert(start, true);
+		ring_remove(bottom);
+		ring_insert(top, true);
 
                 /* Set the boundaries to hard wrapped where we tore apart the contents.
-                 * Need to do it after scrolling down, for the end row to be the desired one. */
-                set_hard_wrapped(start - 1);
-                set_hard_wrapped(end);
+                 * Need to do it after scrolling down, for the bottom row to be the desired one. */
+                set_hard_wrapped(top - 1);
+                set_hard_wrapped(bottom);
 
                 /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
                  * invalidating the context lines if necessary. */
-                invalidate_rows(start, end);
+                invalidate_rows(top, bottom);
 	} else {
 		/* Otherwise, just move the cursor up. */
                 m_screen->cursor.row--;
