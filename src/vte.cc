@@ -155,9 +155,9 @@ public:
                 m_saved_cursor_visible = terminal.m_modes_private.DEC_TEXT_CURSOR();
                 m_saved_cursor_style = terminal.m_cursor_style;
 
-                m_in_scroll_region = terminal.m_scrolling_restricted
-                        && (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top))
-                        && (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom));
+                m_in_scroll_region = terminal.m_scrolling_region.is_restricted()
+                        && (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top()))
+                        && (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom()));
 
                 //context.modified = false;
                 //context.invalidated_text = false;
@@ -216,9 +216,9 @@ public:
                 // FIXME terminal.m_screen may be != m_saved_screen, check for that!
 
                 auto const* screen = terminal.m_screen;
-                auto const new_in_scroll_region = terminal.m_scrolling_restricted &&
-                        (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top)) &&
-                        (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom));
+                auto const new_in_scroll_region = terminal.m_scrolling_region.is_restricted() &&
+                        (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top())) &&
+                        (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom()));
 
                 /* if we have moved greatly during the sequence handler, or moved
                  * into a scroll_region from outside it, restart the bbox.
@@ -2721,17 +2721,11 @@ Terminal::cleanup_fragments(long start,
 void
 Terminal::cursor_down(bool explicit_sequence)
 {
-	long top, bottom;
+        long top = m_screen->insert_delta + m_scrolling_region.top();
+        long bottom = m_screen->insert_delta + m_scrolling_region.bottom();
 
-        if (m_scrolling_restricted) {
-                top = m_screen->insert_delta + m_scrolling_region.top;
-                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
-	} else {
-		top = m_screen->insert_delta;
-		bottom = top + m_row_count - 1;
-	}
         if (m_screen->cursor.row == bottom) {
-                if (m_scrolling_restricted) {
+                if (m_scrolling_region.is_restricted()) {
 			if (top == m_screen->insert_delta) {
                                 /* Set the boundary to hard wrapped where
                                  * we're about to tear apart the contents. */
@@ -7582,7 +7576,7 @@ Terminal::set_size(long columns,
                 m_tabstops.resize(columns);
 	}
 	if (old_rows != m_row_count || old_columns != m_column_count) {
-                m_scrolling_restricted = FALSE;
+                reset_scrolling_region();
 
                 m_normal_screen.row_data->set_visible_rows(m_row_count);
                 m_alternate_screen.row_data->set_visible_rows(m_row_count);
@@ -7714,6 +7708,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 	/* Setting the terminal type and size requires the PTY master to
 	 * be set up properly first. */
         set_size(VTE_COLUMNS, VTE_ROWS, false);
+        reset_scrolling_region();
 
         /* Default is 0, forces update in vte_terminal_set_scrollback_lines */
 	set_scrollback_lines(VTE_SCROLLBACK_INIT);
@@ -10058,7 +10053,7 @@ Terminal::reset(bool clear_tabstops,
         set_cursor_style(CursorStyle::eTERMINAL_DEFAULT);
 	/* Reset restricted scrolling regions, leave insert mode, make
 	 * the cursor visible again. */
-        m_scrolling_restricted = FALSE;
+        reset_scrolling_region();
         /* Reset the visual bits of selection on hard reset, see bug 789954. */
         if (clear_history) {
                 deselect_all();

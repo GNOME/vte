@@ -322,14 +322,8 @@ Terminal::clear_above_current()
 void
 Terminal::scroll_text(vte::grid::row_t scroll_amount)
 {
-        vte::grid::row_t top, bottom;
-        if (m_scrolling_restricted) {
-                top = m_screen->insert_delta + m_scrolling_region.top;
-                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
-	} else {
-                top = m_screen->insert_delta;
-                bottom = top + m_row_count - 1;
-	}
+        vte::grid::row_t top = m_screen->insert_delta + m_scrolling_region.top();
+        vte::grid::row_t bottom = m_screen->insert_delta + m_scrolling_region.bottom();
 
         while (long(m_screen->row_data->next()) <= bottom)
                 ring_append(false);
@@ -811,10 +805,9 @@ void
 Terminal::set_cursor_row(vte::grid::row_t row)
 {
         vte::grid::row_t top_row, bottom_row;
-        if (m_modes_private.DEC_ORIGIN() &&
-            m_scrolling_restricted) {
-                top_row = m_scrolling_region.top;
-                bottom_row = m_scrolling_region.bottom;
+        if (m_modes_private.DEC_ORIGIN()) {
+                top_row = m_scrolling_region.top();
+                bottom_row = m_scrolling_region.bottom();
         } else {
                 top_row = 0;
                 bottom_row = m_row_count - 1;
@@ -842,9 +835,7 @@ Terminal::get_cursor_row_unclamped() const
 {
         auto row = m_screen->cursor.row - m_screen->insert_delta;
         /* Note that we do NOT check DEC_ORIGIN mode here! */
-        if (m_scrolling_restricted) {
-                row -= m_scrolling_region.top;
-        }
+        row -= m_scrolling_region.top();
         return row;
 }
 
@@ -933,8 +924,8 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
 
         vte::grid::row_t bottom;
         // FIXMEchpe why not check DEC_ORIGIN here?
-        if (m_scrolling_restricted && m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.bottom) {
-                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
+        if (m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.bottom()) {
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom();
 	} else {
                 bottom = m_screen->insert_delta + m_row_count - 1;
 	}
@@ -1133,8 +1124,8 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
 
         vte::grid::row_t top;
         //FIXMEchpe why not check DEC_ORIGIN mode here?
-        if (m_scrolling_restricted && m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.top) {
-                top = m_screen->insert_delta + m_scrolling_region.top;
+        if (m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.top()) {
+                top = m_screen->insert_delta + m_scrolling_region.top();
 	} else {
 		top = m_screen->insert_delta;
 	}
@@ -1310,17 +1301,10 @@ Terminal::erase_in_line(vte::parser::Sequence const& seq)
 void
 Terminal::insert_lines(vte::grid::row_t param)
 {
-        vte::grid::row_t top, bottom, i;
-
 	/* Find the region we're messing with. */
         auto row = m_screen->cursor.row;
-        if (m_scrolling_restricted) {
-                top = m_screen->insert_delta + m_scrolling_region.top;
-                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
-	} else {
-                top = m_screen->insert_delta;
-                bottom = m_screen->insert_delta + m_row_count - 1;
-	}
+        vte::grid::row_t top = m_screen->insert_delta + m_scrolling_region.top();
+        vte::grid::row_t bottom = m_screen->insert_delta + m_scrolling_region.bottom();
 
         /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
         if (m_screen->cursor.row < top || m_screen->cursor.row > bottom)
@@ -1332,7 +1316,7 @@ Terminal::insert_lines(vte::grid::row_t param)
         auto limit = bottom - row + 1;
         param = MIN (param, limit);
 
-	for (i = 0; i < param; i++) {
+        for (vte::grid::row_t i = 0; i < param; i++) {
 		/* Clear a line off the bottom of the region and add one to the
 		 * top of the region. */
                 ring_remove(bottom);
@@ -1358,17 +1342,10 @@ Terminal::insert_lines(vte::grid::row_t param)
 void
 Terminal::delete_lines(vte::grid::row_t param)
 {
-        vte::grid::row_t top, bottom, i;
-
 	/* Find the region we're messing with. */
         auto row = m_screen->cursor.row;
-        if (m_scrolling_restricted) {
-                top = m_screen->insert_delta + m_scrolling_region.top;
-                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
-	} else {
-                top = m_screen->insert_delta;
-                bottom = m_screen->insert_delta + m_row_count - 1;
-	}
+        vte::grid::row_t top = m_screen->insert_delta + m_scrolling_region.top();
+        vte::grid::row_t bottom = m_screen->insert_delta + m_scrolling_region.bottom();
 
         /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
         if (m_screen->cursor.row < top || m_screen->cursor.row > bottom)
@@ -1386,7 +1363,7 @@ Terminal::delete_lines(vte::grid::row_t param)
         param = MIN (param, limit);
 
 	/* Clear them from below the current cursor. */
-	for (i = 0; i < param; i++) {
+        for (vte::grid::row_t i = 0; i < param; i++) {
 		/* Insert a line at the bottom of the region and remove one from
 		 * the top of the region. */
                 ring_remove(row);
@@ -3566,13 +3543,11 @@ Terminal::DECRQCRA(vte::parser::Sequence const& seq)
         idx = seq.next(idx);
         int right = seq.collect1(idx, m_column_count, 1, m_column_count);
 
-        if (m_modes_private.DEC_ORIGIN() &&
-            m_scrolling_restricted) {
-                top += m_scrolling_region.top;
+        if (m_modes_private.DEC_ORIGIN()) {
+                top += m_scrolling_region.top();
 
-                bottom += m_scrolling_region.top;
-                bottom = std::min(bottom, m_scrolling_region.bottom);
-
+                bottom += m_scrolling_region.top();
+                bottom = std::min(bottom, m_scrolling_region.bottom());
         }
 
         unsigned int checksum;
@@ -3803,13 +3778,9 @@ Terminal::DECRQSS(vte::parser::Sequence const& seq)
                 return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSCUSR, {int(m_cursor_style)}});
 
         case VTE_CMD_DECSTBM:
-                if (m_scrolling_restricted)
-                        return reply(seq, VTE_REPLY_DECRPSS, {1},
-                                     {VTE_REPLY_DECSTBM,
-                                                     {m_scrolling_region.top + 1,
-                                                                     m_scrolling_region.bottom + 1}});
-                else
-                        return reply(seq, VTE_REPLY_DECRPSS, {1}, {VTE_REPLY_DECSTBM, {}});
+                return reply(seq, VTE_REPLY_DECRPSS, {1},
+                             {VTE_REPLY_DECSTBM, {m_scrolling_region.top() + 1,
+                                                  m_scrolling_region.bottom() + 1}});
 
         case VTE_CMD_DECAC:
         case VTE_CMD_DECARR:
@@ -4962,7 +4933,7 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
 
         if (top > m_row_count ||
             bottom <= top) {
-                m_scrolling_restricted = FALSE;
+                m_scrolling_region.reset_vertical();
                 home_cursor();
                 return;
         }
@@ -4971,14 +4942,8 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
                 bottom = m_row_count;
 
 	/* Set the right values. */
-        m_scrolling_region.top = top - 1;
-        m_scrolling_region.bottom = bottom - 1;
-        m_scrolling_restricted = TRUE;
-        if (m_scrolling_region.top == 0 &&
-            m_scrolling_region.bottom == m_row_count - 1) {
-		/* Special case -- run wild, run free. */
-                m_scrolling_restricted = FALSE;
-	} else {
+        m_scrolling_region.set_vertical(top - 1, bottom - 1);
+        if (m_scrolling_region.is_restricted()) {
 		/* Maybe extend the ring -- bug 710483 */
                 while (long(m_screen->row_data->next()) < m_screen->insert_delta + m_row_count)
                         m_screen->row_data->insert(m_screen->row_data->next(), get_bidi_flags());
@@ -5311,10 +5276,9 @@ Terminal::DSR_ECMA(vte::parser::Sequence const& seq)
                  *   @arg[1]: column
                  */
                 vte::grid::row_t rowval, origin, rowmax;
-                if (m_modes_private.DEC_ORIGIN() &&
-                    m_scrolling_restricted) {
-                        origin = m_scrolling_region.top;
-                        rowmax = m_scrolling_region.bottom;
+                if (m_modes_private.DEC_ORIGIN()) {
+                        origin = m_scrolling_region.top();
+                        rowmax = m_scrolling_region.bottom();
                 } else {
                         origin = 0;
                         rowmax = m_row_count - 1;
@@ -5358,10 +5322,9 @@ Terminal::DSR_DEC(vte::parser::Sequence const& seq)
                  *     Always report page 1 here (per XTERM source code).
                  */
                 vte::grid::row_t rowval, origin, rowmax;
-                if (m_modes_private.DEC_ORIGIN() &&
-                    m_scrolling_restricted) {
-                        origin = m_scrolling_region.top;
-                        rowmax = m_scrolling_region.bottom;
+                if (m_modes_private.DEC_ORIGIN()) {
+                        origin = m_scrolling_region.top();
+                        rowmax = m_scrolling_region.bottom();
                 } else {
                         origin = 0;
                         rowmax = m_row_count - 1;
@@ -6970,14 +6933,8 @@ Terminal::RI(vte::parser::Sequence const& seq)
 
         ensure_cursor_is_onscreen();
 
-        vte::grid::row_t top, bottom;
-        if (m_scrolling_restricted) {
-                top = m_scrolling_region.top + m_screen->insert_delta;
-                bottom = m_scrolling_region.bottom + m_screen->insert_delta;
-	} else {
-                top = m_screen->insert_delta;
-                bottom = top + m_row_count - 1;
-	}
+        vte::grid::row_t top = m_scrolling_region.top() + m_screen->insert_delta;
+        vte::grid::row_t bottom = m_scrolling_region.bottom() + m_screen->insert_delta;
 
         if (m_screen->cursor.row == top) {
 		/* If we're at the top of the scrolling region, add a
