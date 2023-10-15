@@ -156,8 +156,8 @@ public:
                 m_saved_cursor_style = terminal.m_cursor_style;
 
                 m_in_scroll_region = terminal.m_scrolling_restricted
-                        && (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.start))
-                        && (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.end));
+                        && (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top))
+                        && (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom));
 
                 //context.modified = false;
                 //context.invalidated_text = false;
@@ -217,8 +217,8 @@ public:
 
                 auto const* screen = terminal.m_screen;
                 auto const new_in_scroll_region = terminal.m_scrolling_restricted &&
-                        (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.start)) &&
-                        (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.end));
+                        (screen->cursor.row >= (screen->insert_delta + terminal.m_scrolling_region.top)) &&
+                        (screen->cursor.row <= (screen->insert_delta + terminal.m_scrolling_region.bottom));
 
                 /* if we have moved greatly during the sequence handler, or moved
                  * into a scroll_region from outside it, restart the bbox.
@@ -2721,18 +2721,18 @@ Terminal::cleanup_fragments(long start,
 void
 Terminal::cursor_down(bool explicit_sequence)
 {
-	long start, end;
+	long top, bottom;
 
         if (m_scrolling_restricted) {
-                start = m_screen->insert_delta + m_scrolling_region.start;
-                end = m_screen->insert_delta + m_scrolling_region.end;
+                top = m_screen->insert_delta + m_scrolling_region.top;
+                bottom = m_screen->insert_delta + m_scrolling_region.bottom;
 	} else {
-		start = m_screen->insert_delta;
-		end = start + m_row_count - 1;
+		top = m_screen->insert_delta;
+		bottom = top + m_row_count - 1;
 	}
-        if (m_screen->cursor.row == end) {
+        if (m_screen->cursor.row == bottom) {
                 if (m_scrolling_restricted) {
-			if (start == m_screen->insert_delta) {
+			if (top == m_screen->insert_delta) {
                                 /* Set the boundary to hard wrapped where
                                  * we're about to tear apart the contents. */
                                 set_hard_wrapped(m_screen->cursor.row);
@@ -2741,9 +2741,9 @@ Terminal::cursor_down(bool explicit_sequence)
 				 * line and scrolling the area up. */
 				m_screen->insert_delta++;
                                 m_screen->cursor.row++;
-                                /* Update start and end, too. */
-				start++;
-				end++;
+                                /* Update top and bottom, too. */
+				top++;
+				bottom++;
                                 ring_insert(m_screen->cursor.row, false);
                                 /* Repaint the affected lines, which is _below_
                                  * the region (bug 131). No need to extend,
@@ -2756,15 +2756,15 @@ Terminal::cursor_down(bool explicit_sequence)
 			} else {
                                 /* Set the boundaries to hard wrapped where
                                  * we're about to tear apart the contents. */
-                                set_hard_wrapped(start - 1);
-                                set_hard_wrapped(end);
+                                set_hard_wrapped(top - 1);
+                                set_hard_wrapped(bottom);
                                 /* Scroll by removing a line and inserting a new one. */
-				ring_remove(start);
-				ring_insert(end, true);
+				ring_remove(top);
+				ring_insert(bottom, true);
                                 /* Repaint the affected lines. No need to extend,
                                  * set_hard_wrapped() took care of invalidating
                                  * the context lines if necessary. */
-                                invalidate_rows(start, end);
+                                invalidate_rows(top, bottom);
 			}
 		} else {
 			/* Scroll up with history. */
