@@ -161,7 +161,7 @@ DrawingCairo::draw_text_internal(TextRequest* requests,
                 get_char_edges(c, requests[i].columns, attr, x, ye /* unused */);
                 x += requests[i].x;
                 /* Bold/italic versions might have different ascents. In order to align their
-                 * baselines, we offset by the normal font's ascent here. (Bug 137.) */
+                 * baselines, we offset by the normal font's ascent here. (Issue #137.) */
                 y = requests[i].y + m_char_spacing.top + m_fonts[VTE_DRAW_NORMAL]->ascent();
 
                 switch (uinfo->coverage()) {
