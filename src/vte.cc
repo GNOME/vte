@@ -2619,10 +2619,11 @@ Terminal::reset_color_highlight_foreground()
 
 /*
  * Terminal::cleanup_fragments:
+ * @rownum: the row to operate on
  * @start: the starting column, inclusive
  * @end: the end column, exclusive
  *
- * Needs to be called before modifying the contents in the cursor's row,
+ * Needs to be called before modifying the contents in the given row,
  * between the two given columns.  Cleans up TAB and CJK fragments to the
  * left of @start and to the right of @end.  If a CJK is split in half,
  * the remaining half is replaced by a space.  If a TAB at @start is split,
@@ -2636,12 +2637,17 @@ Terminal::reset_color_highlight_foreground()
  *
  * Invalidates the cells that visually change outside of the range,
  * because the caller can't reasonably be expected to take care of this.
+ * FIXME This is obviously a leftover from the days when we invalidated
+ * arbitrary rectangles rather than entire rows; we should revise this.
  */
 void
-Terminal::cleanup_fragments(long start,
-                                      long end)
+Terminal::cleanup_fragments(long rownum,
+                            long start,
+                            long end)
 {
-        VteRowData *row = ensure_row();
+        VteRowData *row = m_screen->row_data->index_writable(rownum);
+        g_assert(row);
+
         const VteCell *cell_start;
         VteCell *cell_end, *cell_col;
         gboolean cell_start_is_fragment;
@@ -2682,7 +2688,7 @@ Terminal::cleanup_fragments(long start,
                         cell_end->c = ' ';
                         cell_end->attr.set_fragment(false);
                         cell_end->attr.set_columns(1);
-                        invalidate_row_and_context(m_screen->cursor.row);  /* FIXME can we do cheaper? */
+                        invalidate_row_and_context(rownum);  /* FIXME can we do cheaper? */
                 }
         }
 
@@ -2706,7 +2712,7 @@ Terminal::cleanup_fragments(long start,
                                                          "Cleaning CJK left half at %ld\n",
                                                          col);
                                         g_assert(start - col == 1);
-                                        invalidate_row_and_context(m_screen->cursor.row);  /* FIXME can we do cheaper? */
+                                        invalidate_row_and_context(rownum);  /* FIXME can we do cheaper? */
                                 }
                                 keep_going = FALSE;
                         }
@@ -2720,10 +2726,11 @@ Terminal::cleanup_fragments(long start,
 /* Terminal::scroll_text_up:
  *
  * Scrolls the text upwards by the given amount, within the given custom scrolling region.
- * The DECSTBM scrolling region (or lack thereof) is irrelevant (unless, of course,
+ * The DECSTBM / DECSLRM scrolling region (or lack thereof) is irrelevant (unless, of course,
  * it is the one passed to this method).
  *
- * If the region's top is at the screen's top then the scrolled out lines go to the scrollback buffer.
+ * If the entire topmost row is part of the scrolling region then the scrolled out lines go
+ * to the scrollback buffer.
  *
  * "fill" tells whether to fill the new lines with the background color.
  *
@@ -2735,6 +2742,8 @@ Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
 {
         auto const top = m_screen->insert_delta + scrolling_region.top();
         auto const bottom = m_screen->insert_delta + scrolling_region.bottom();
+        auto const left = scrolling_region.left();
+        auto const right = scrolling_region.right();
 
         amount = CLAMP(amount, 1, bottom - top + 1);
 
@@ -2743,7 +2752,8 @@ Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
                 ring_append(false /* no fill */);
 
         if (!scrolling_region.is_restricted()) [[likely]] {
-                /* Scroll up the entire screen, with history. */
+                /* Scroll up the entire screen, with history. This is functionally equivalent to the
+                 * next branch, but is a bit faster, and speed does matter in this very common case. */
                 m_screen->insert_delta += amount;
                 m_screen->cursor.row += amount;
                 while (amount--) {
@@ -2751,8 +2761,8 @@ Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
                 }
                 /* Force scroll. */
                 adjust_adjustments();
-        } else if (scrolling_region.top() == 0) {
-                /* Scroll up partial screen at the top, with history. */
+        } else if (scrolling_region.top() == 0 && left == 0 && right == m_column_count - 1) {
+                /* Scroll up whole rows at the top (but not the entire screen), with history. */
 
                 /* Set the boundary to hard wrapped where we'll tear apart the contents. */
                 set_hard_wrapped(bottom);
@@ -2769,14 +2779,17 @@ Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
                 invalidate_rows(bottom + 1, m_screen->insert_delta + m_row_count - 1);
                 /* Force scroll. */
                 adjust_adjustments();
-        } else {
-                /* Scroll up partial screen not at the top, don't add to history. */
+        } else if (left == 0 && right == m_column_count - 1) {
+                /* Scroll up whole rows (but not at the top), along with their hard/soft line ending, and BiDi flags.
+                 * Don't add to history. */
 
-                /* Set the boundaries to hard wrapped where we'll tear apart the contents.
+                /* Set the boundaries to hard wrapped where we'll tear apart or glue together the contents.
                  * Do it before scrolling up, for the bottom row to be the desired one. */
                 set_hard_wrapped(top - 1);
                 set_hard_wrapped(bottom);
-                /* Scroll by removing a line and inserting a new one. */
+                /* Scroll up by removing a line at the top and inserting a new one at the bottom. */
+                // FIXME The runtime is quadratical to the number of lines scrolled,
+                // modify ring_remove() and ring_insert() to take an "amount" parameter.
                 while (amount--) {
                         ring_remove(top);
                         ring_insert(bottom, fill);
@@ -2786,13 +2799,42 @@ Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
                 invalidate_rows(top, bottom);
                 /* We've modified the display. Make a note of it. */
                 m_text_deleted_flag = TRUE;
+        } else {
+                /* Scroll up partial rows. The line endings and the BiDi flags don't scroll. */
+
+                /* Make sure the area we're about to scroll is present in memory. */
+                long row = top;
+                for (row = top; row <= bottom; row++) {
+                        _vte_row_data_fill(m_screen->row_data->index_writable(row), &basic_cell, right + 1);
+                }
+                /* Handle TABs, CJKs, emojis that will be cut in half. */
+                for (row = top; row <= bottom; row++) {
+                        cleanup_fragments(row, left, left);
+                        cleanup_fragments(row, right + 1, right + 1);
+                }
+                /* Scroll up by copying the cell data. */
+                for (row = top; row <= bottom - amount; row++) {
+                        VteRowData *dst = m_screen->row_data->index_writable(row);
+                        VteRowData *src = m_screen->row_data->index_writable(row + amount);
+                        memcpy(dst->cells + left, src->cells + left, (right - left + 1) * sizeof(VteCell));
+                }
+                /* Erase the cells we scrolled away from. */
+                const VteCell *cell = fill ? &m_color_defaults : &basic_cell;
+                for (; row <= bottom; row++) {
+                        VteRowData *empty = m_screen->row_data->index_writable(row);
+                        std::fill_n(&empty->cells[left], right - left + 1, *cell);
+                }
+                /* Repaint the affected lines, with context if necessary. */
+                invalidate_rows_and_context(top, bottom);
+                /* We've modified the display. Make a note of it. */
+                m_text_deleted_flag = TRUE;
         }
 }
 
 /* Terminal::scroll_text_down:
  *
  * Scrolls the text downwards by the given amount, within the given custom scrolling region.
- * The DECSTBM scrolling region (or lack thereof) is irrelevant (unless, of course,
+ * The DECSTBM / DECSLRM scrolling region (or lack thereof) is irrelevant (unless, of course,
  * it is the one passed to this method).
  *
  * "fill" tells whether to fill the new lines with the background color.
@@ -2805,6 +2847,8 @@ Terminal::scroll_text_down(const struct vte_scrolling_region& scrolling_region,
 {
         auto const top = m_screen->insert_delta + scrolling_region.top();
         auto const bottom = m_screen->insert_delta + scrolling_region.bottom();
+        auto const left = scrolling_region.left();
+        auto const right = scrolling_region.right();
 
         amount = CLAMP(amount, 1, bottom - top + 1);
 
@@ -2812,39 +2856,88 @@ Terminal::scroll_text_down(const struct vte_scrolling_region& scrolling_region,
         while (long(m_screen->row_data->next()) <= bottom) [[unlikely]]
                 ring_append(false /* no fill */);
 
-        /* Scroll down. This code is the counterpart of the
-         * "don't add to history" branch in scroll_text_up(). */
+        /* Scroll down. This code is the counterpart of the branches in scroll_text_up() that don't
+         * add to the history. */
 
-        /* Scroll by removing a line and inserting a new one. */
-        while (amount--) {
-                ring_remove(bottom);
-                ring_insert(top, fill);
+        if (left == 0 && right == m_column_count - 1) {
+                /* Scroll down whole rows, along with their hard/soft line ending, and BiDi flags. */
+
+                /* Scroll down by removing a line at the bottom and inserting a new one at the top. */
+                // FIXME The runtime is quadratical to the number of lines scrolled,
+                // modify ring_remove() and ring_insert() to take an "amount" parameter.
+                while (amount--) {
+                        ring_remove(bottom);
+                        ring_insert(top, fill);
+                }
+                /* Set the boundaries to hard wrapped where we tore apart or glued together the contents.
+                 * Do it after scrolling down, for the bottom row to be the desired one. */
+                set_hard_wrapped(top - 1);
+                set_hard_wrapped(bottom);
+                /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+                 * invalidating the context lines if necessary. */
+                invalidate_rows(top, bottom);
+                /* We've modified the display. Make a note of it. */
+                m_text_deleted_flag = TRUE;
+        } else {
+                /* Scroll down partial rows. The line endings and the BiDi flags don't scroll. */
+
+                /* Make sure the area we're about to scroll is present in memory. */
+                long row = top;
+                for (row = top; row <= bottom; row++) {
+                        _vte_row_data_fill(m_screen->row_data->index_writable(row), &basic_cell, right + 1);
+                }
+                /* Handle TABs, CJKs, emojis that will be cut in half. */
+                for (row = top; row <= bottom; row++) {
+                        cleanup_fragments(row, left, left);
+                        cleanup_fragments(row, right + 1, right + 1);
+                }
+                /* Scroll down by copying the cell data. */
+                for (row = bottom; row >= top + amount; row--) {
+                        VteRowData *dst = m_screen->row_data->index_writable(row);
+                        VteRowData *src = m_screen->row_data->index_writable(row - amount);
+                        memcpy(dst->cells + left, src->cells + left, (right - left + 1) * sizeof(VteCell));
+                }
+                /* Erase the cells we scrolled away from. */
+                const VteCell *cell = fill ? &m_color_defaults : &basic_cell;
+                for (; row >= top; row--) {
+                        VteRowData *empty = m_screen->row_data->index_writable(row);
+                        std::fill_n(&empty->cells[left], right - left + 1, *cell);
+                }
+                /* Repaint the affected lines, with context if necessary. */
+                invalidate_rows_and_context(top, bottom);
+                /* We've modified the display. Make a note of it. */
+                m_text_deleted_flag = TRUE;
         }
-        /* Set the boundaries to hard wrapped where we tore apart the contents.
-         * Do it after scrolling down, for the bottom row to be the desired one. */
-        set_hard_wrapped(top - 1);
-        set_hard_wrapped(bottom);
-        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-         * invalidating the context lines if necessary. */
-        invalidate_rows(top, bottom);
-        /* We've modified the display. Make a note of it. */
-        m_text_deleted_flag = TRUE;
 }
 
 /* Terminal::cursor_down_with_scrolling:
- * Cursor down by one line, with scrolling if needed (respecting the DECSTBM scrolling region).
+ * Cursor down by one line, with scrolling if needed (respecting the DECSTBM / DECSLRM scrolling region).
  *
- * If the region's top is at the screen's top then the scrolled out line goes to the scrollback buffer.
+ * See the "RI, IND/LF, DECFI, DECBI" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to do anything if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ *
+ * If the region's top, left and right edges are at the screen's top, left and right then
+ * the scrolled out line goes to the scrollback buffer.
  *
  * "fill" tells whether to fill the new line with the background color.
  */
 void
 Terminal::cursor_down_with_scrolling(bool fill)
 {
-        if (m_screen->cursor.row == m_screen->insert_delta + m_scrolling_region.bottom()) {
-                /* Hit the bottom of the scrolling region, scroll the text. */
-                scroll_text_up(m_scrolling_region, 1, fill);
-        } else if (m_screen->cursor.row == m_screen->insert_delta + m_row_count - 1) {
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        if (cursor_row == m_scrolling_region.bottom()) {
+                /* Hit the bottom row of the scrolling region. */
+                if (cursor_col >= m_scrolling_region.left() && cursor_col <= m_scrolling_region.right()) {
+                        /* Inside the horizontal margins, scroll the text in the scrolling region. */
+                        scroll_text_up(m_scrolling_region, 1, fill);
+                } else {
+                        /* Outside of the horizontal margins, do nothing. */
+                }
+        } else if (cursor_row == m_row_count - 1) {
                 /* Hit the bottom of the screen outside of the scrolling region, do nothing. */
         } else {
                 /* No boundary hit, move the cursor down. process_incoming() takes care of invalidating both rows. */
@@ -2853,17 +2946,30 @@ Terminal::cursor_down_with_scrolling(bool fill)
 }
 
 /* Terminal::cursor_up_with_scrolling:
- * Cursor up by one line, with scrolling if needed (respecting the DECSTBM scrolling region).
+ * Cursor up by one line, with scrolling if needed (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "RI, IND/LF, DECFI, DECBI" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to do anything if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
  *
  * "fill" tells whether to fill the new line with the background color.
  */
 void
 Terminal::cursor_up_with_scrolling(bool fill)
 {
-        if (m_screen->cursor.row == m_screen->insert_delta + m_scrolling_region.top()) {
-                /* Hit the top of the scrolling region, scroll the text. */
-                scroll_text_down(m_scrolling_region, 1, fill);
-        } else if (m_screen->cursor.row == m_screen->insert_delta) {
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        if (cursor_row == m_scrolling_region.top()) {
+                /* Hit the top row of the scrolling region. */
+                if (cursor_col >= m_scrolling_region.left() && cursor_col <= m_scrolling_region.right()) {
+                        /* Inside the horizontal margins, scroll the text in the scrolling region. */
+                        scroll_text_down(m_scrolling_region, 1, fill);
+                } else {
+                        /* Outside of the horizontal margins, do nothing. */
+                }
+        } else if (cursor_row == 0) {
                 /* Hit the top of the screen outside of the scrolling region, do nothing. */
         } else {
                 /* No boundary hit, move the cursor up. process_incoming() takes care of invalidating both rows. */
