@@ -152,10 +152,21 @@ FontInfo::cache_ascii()
 		uinfo->width = PANGO_PIXELS_CEIL (geometry->width);
 		uinfo->has_unknown_chars = false;
 
+#if VTE_GTK == 3
 		uinfo->set_coverage(UnistrInfo::Coverage::USE_CAIRO_GLYPH);
 
 		ufi->using_cairo_glyph.scaled_font = cairo_scaled_font_reference (scaled_font);
 		ufi->using_cairo_glyph.glyph_index = glyph;
+#elif VTE_GTK == 4
+		uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING);
+
+		ufi->using_pango_glyph_string.font = (PangoFont *)g_object_ref (pango_font);
+		ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_new ();
+		pango_glyph_string_set_size (ufi->using_pango_glyph_string.glyph_string, 1);
+		ufi->using_pango_glyph_string.glyph_string->num_glyphs = 1;
+		ufi->using_pango_glyph_string.glyph_string->glyphs[0] = glyph_string->glyphs[iter.start_glyph];
+		ufi->using_pango_glyph_string.glyph_string->log_clusters[0] = 0;
+#endif
 
 #if VTE_DEBUG
 		m_coverage_count[0]++;
@@ -489,6 +500,8 @@ FontInfo::get_unistr_info(vteunistr c)
 	line = pango_layout_get_line_readonly(m_layout.get(), 0);
 
 	uinfo->has_unknown_chars = pango_layout_get_unknown_glyphs_count(m_layout.get()) != 0;
+
+#if VTE_GTK == 3
 	/* we use PangoLayoutRun rendering unless there is exactly one run in the line. */
 	if (G_UNLIKELY (!line || !line->runs || line->runs->next))
 	{
@@ -539,6 +552,15 @@ FontInfo::get_unistr_info(vteunistr c)
 			ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
 		}
 	}
+#elif VTE_GTK == 4
+        PangoGlyphItem *glyph_item = (PangoGlyphItem *)line->runs->data;
+        PangoGlyphString *glyph_string = glyph_item->glyphs;
+
+        uinfo->set_coverage(UnistrInfo::Coverage::USE_PANGO_GLYPH_STRING);
+
+        ufi->using_pango_glyph_string.font = glyph_item->item->analysis.font;
+        ufi->using_pango_glyph_string.glyph_string = pango_glyph_string_copy (glyph_string);
+#endif
 
         // Don't reset m_layout here; it'll get reset anyway when we next use it.
 

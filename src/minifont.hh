@@ -52,8 +52,40 @@ public:
                           int y,
                           int font_width,
                           int columns,
-                          int font_height);
+                          int font_height,
+                          int scale_factor);
 
+private:
+        cairo_t* begin_cairo(cairo_surface_t *surface,
+                             int x,
+                             int y);
+        void rectangle(cairo_t *cr,
+                       double x,
+                       double y,
+                       double w,
+                       double h,
+                       int xdenom,
+                       int ydenom,
+                       int xb1,
+                       int yb1,
+                       int xb2,
+                       int yb2) const;
+        void rectangle(DrawingContext const& context,
+                       vte::color::rgb const* fg,
+                       double alpha,
+                       double x,
+                       double y,
+                       double w,
+                       double h,
+                       int xdenom,
+                       int ydenom,
+                       int xb1,
+                       int yb1,
+                       int xb2,
+                       int yb2) const;
+#if VTE_GTK == 4
+        GdkTexture *finalize_surface(cairo_surface_t *surface) const;
+#endif
 }; // class Minifont
 
 } // namespace view

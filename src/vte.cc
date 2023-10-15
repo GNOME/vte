@@ -8268,6 +8268,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                         }
 
 #if WITH_SIXEL
+#if VTE_GTK == 3
                         if (back == VTE_DEFAULT_BG) {
                                 /* Clear cells in order to properly overdraw images */
                                 m_draw.clear(xl,
@@ -8275,11 +8276,10 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                              xr - xl, row_height,
                                              get_color(VTE_DEFAULT_BG), m_background_alpha);
                         }
-
-                        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-#else
-                        {
+                        else
 #endif
+#endif
+                        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
                                 m_draw.fill_rectangle(
                                                       xl,
                                                       y,
@@ -8364,6 +8364,7 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
                                                          y + m_undercurl_position,
                                                          m_undercurl_thickness,
                                                          columns,
+                                                         widget()->scale_factor(),
                                                          &dc, VTE_DRAW_OPAQUE);
                                 break;
 			}
@@ -8744,13 +8745,15 @@ Terminal::draw_rows(VteScreen *screen_,
 #endif
 
         /* The rect contains the area of the row, and is moved row-wise in the loop. */
-        auto rect = cairo_rectangle_int_t{-m_border.left, start_y, rect_width, row_height};
+        auto rect = vte::view::Rectangle{-m_border.left, start_y, rect_width, row_height};
         for (row = start_row, y = start_y;
              row < end_row;
-             row++, y += row_height, rect.y = y /* same as rect.y += row_height */) {
+             row++, y += row_height, rect.move_y(y) /* same as rect.y += row_height */) {
+#if VTE_GTK == 3
                 /* Check whether we need to draw this row at all */
-                if (cairo_region_contains_rectangle(region, &rect) == CAIRO_REGION_OVERLAP_OUT)
+                if (cairo_region_contains_rectangle(region, rect.cairo()) == CAIRO_REGION_OVERLAP_OUT)
                         continue;
+#endif
 
 		row_data = find_row_data(row);
                 bidirow = m_ringview.get_bidirow(row);
@@ -8863,17 +8866,19 @@ Terminal::draw_rows(VteScreen *screen_,
          * The rect contains the area of the row (enlarged a bit at the top and bottom
          * to allow the text to overdraw a bit), and is moved row-wise in the loop.
          */
-        rect = cairo_rectangle_int_t{-m_border.left,
-                                     start_y - cell_overflow_top(),
-                                     rect_width,
-                                     row_height + cell_overflow_top() + cell_overflow_bottom()};
+        rect = vte::view::Rectangle{-m_border.left,
+                                    start_y - cell_overflow_top(),
+                                    rect_width,
+                                    row_height + cell_overflow_top() + cell_overflow_bottom()};
 
         for (row = start_row, y = start_y;
              row < end_row;
-             row++, y += row_height, rect.y += row_height) {
+             row++, y += row_height, rect.advance_y(row_height)) {
+#if VTE_GTK == 3
                 /* Check whether we need to draw this row at all */
-                if (cairo_region_contains_rectangle(region, &rect) == CAIRO_REGION_OVERLAP_OUT)
+                if (cairo_region_contains_rectangle(region, rect.cairo()) == CAIRO_REGION_OVERLAP_OUT)
                         continue;
+#endif
 
                 row_data = find_row_data(row);
                 if (row_data == NULL)
@@ -9278,20 +9283,20 @@ Terminal::widget_draw(cairo_t* cr) noexcept
         } while (0);
 #endif /* VTE_DEBUG */
 
-        /* Transform to view coordinates */
-        cairo_translate(cr, m_border.left, m_border.top);
-
-        auto region = vte_cairo_get_clip_region(cr);
-        if (!region)
-                return;
+        m_draw.set_cairo(cr);
+        m_draw.translate(m_border.left, m_border.top);
+        m_draw.set_scale_factor(widget()->scale_factor());
 
         /* Both cr and region should be in view coordinates now.
          * No need to further translation.
          */
 
-        //        cairo_region_translate(region.get(), -m_border.left, -m_border.top);
+        auto region = vte_cairo_get_clip_region(cr);
+        if (region != nullptr)
+                draw(region.get());
 
-        return draw(cr, region.get());
+        m_draw.untranslate();
+        m_draw.set_cairo(nullptr);
 }
 
 #endif /* VTE_GTK == 3 */
@@ -9303,41 +9308,20 @@ Terminal::widget_snapshot(GtkSnapshot* snapshot_object) noexcept
 {
         _vte_debug_print(VTE_DEBUG_DRAW, "Widget snapshot\n");
 
-        auto const rect = allocated_rect();
+        m_draw.set_snapshot(snapshot_object);
+        m_draw.translate(m_border.left, m_border.top);
+        m_draw.set_scale_factor(widget()->scale_factor());
 
-        /* We need to draw the border too, so make the rect wider than the widget's
-         * allocated area.
-         */
-        auto grect = vte::graphene::make_rect(-m_style_border.left,
-                                              -m_style_border.top,
-                                              rect->width + m_style_border.left + m_style_border.right,
-                                              rect->height + m_style_border.top + m_style_border.bottom);
-        auto cr = vte::take_freeable(gtk_snapshot_append_cairo(snapshot_object, &grect));
+        draw(nullptr);
 
-        cairo_translate(cr.get(),
-                        m_border.left,
-                        m_border.top);
-
-        auto const clip_rect = cairo_rectangle_int_t{
-                -m_style_border.left - m_border.left,
-                -m_style_border.top - m_border.top,
-                rect->width + m_style_border.left + m_style_border.right,
-                rect->height + m_style_border.top + m_style_border.bottom};
-
-        auto const region = vte::take_freeable(cairo_region_create_rectangle(&clip_rect));
-
-        /* Both cr and region should be in view coordinates, relative to
-         * (rect.x, rect.y) here. No need to further translation.
-         */
-
-        return draw(cr.get(), region.get());
+        m_draw.untranslate();
+        m_draw.set_snapshot(nullptr);
 }
 
 #endif /* VTE_GTK == 4 */
 
 void
-Terminal::draw(cairo_t* cr,
-               cairo_region_t const* region) noexcept
+Terminal::draw(cairo_region_t const* region) noexcept
 {
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
@@ -9353,9 +9337,6 @@ Terminal::draw(cairo_t* cr,
         /* Note: @cr's origin is at the top left of the view area; the left/top border
          * is entirely to the left/top of this point.
          */
-
-	/* Designate the start of the drawing operation and clear the area. */
-	m_draw.set_cairo(cr);
 
         if (G_LIKELY(m_clear_background)) {
                 m_draw.clear(
@@ -9375,17 +9356,14 @@ Terminal::draw(cairo_t* cr,
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
-        cairo_save(cr);
-        cairo_rectangle(cr,
-                        -m_border.left,
-                        0,
+        auto const vert_clip = vte::view::Rectangle{-m_border.left, 0,
 #if VTE_GTK == 3
-                        allocated_width,
+                                                    allocated_width,
 #elif VTE_GTK == 4
-                        allocated_width + m_style_border.left + m_style_border.right,
+                                                    allocated_width + m_style_border.left + m_style_border.right,
 #endif
-                        allocated_height - m_border.top - m_border.bottom);
-        cairo_clip(cr);
+                                                    allocated_height - m_border.top - m_border.bottom};
+        m_draw.clip_border(&vert_clip);
 
 #if WITH_SIXEL
 	/* Draw images */
@@ -9404,10 +9382,16 @@ Terminal::draw(cairo_t* cr,
 			auto const x = image->get_left () * m_cell_width;
 			auto const y = (image->get_top () - m_screen->scroll_delta) * m_cell_height;
 
+#if VTE_GTK == 3
                         /* Clear cell extent; image may be slightly smaller */
                         m_draw.clear(x, y, image->get_width() * m_cell_width,
                                      image->get_height() * m_cell_height,
                                      get_color(VTE_DEFAULT_BG), m_background_alpha);
+#elif VTE_GTK == 4
+                        /* Nothing has been drawn yet in this snapshot, so no need
+                         * to clear over any existing data like you do in GTK 3.
+                         */
+#endif
 
 			image->paint(cr, x, y, m_cell_width, m_cell_height);
 		}
@@ -9437,31 +9421,24 @@ Terminal::draw(cairo_t* cr,
 
 	paint_im_preedit_string();
 
-        cairo_restore(cr);
+        m_draw.unclip_border();
 
         /* Re-clip, allowing VTE_LINE_WIDTH more pixel rows for the outline cursor. */
         /* TODOegmont: It's really ugly to do it here. */
-        cairo_save(cr);
         extra_area_for_cursor = (decscusr_cursor_shape() == CursorShape::eBLOCK && !m_has_focus) ? VTE_LINE_WIDTH : 0;
 
-        cairo_rectangle(cr,
-                        -m_border.left,
-                        -extra_area_for_cursor,
+        auto const reclip = vte::view::Rectangle{-m_border.left,
+                                                 -extra_area_for_cursor,
 #if VTE_GTK == 3
-                        allocated_width,
+                                                 allocated_width,
 #elif VTE_GTK == 4
-                        allocated_width + m_style_border.left + m_style_border.right,
+                                                 allocated_width + m_style_border.left + m_style_border.right,
 #endif
-                        allocated_height - m_border.top - m_border.bottom + 2 * extra_area_for_cursor);
+                                                 allocated_height - m_border.top - m_border.bottom + 2 * extra_area_for_cursor};
 
-        cairo_clip(cr);
-
+        m_draw.clip_border(&reclip);
 	paint_cursor();
-
-	cairo_restore(cr);
-
-	/* Done with various structures. */
-	m_draw.set_cairo(nullptr);
+        m_draw.unclip_border();
 
         /* If painting encountered any cell with blink attribute, we might need to set up a timer.
          * Blinking is implemented using a one-shot (not repeating) timer that keeps getting reinstalled

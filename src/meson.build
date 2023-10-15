@@ -182,8 +182,8 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'clipboard-gtk.hh',
   'color-triple.hh',
   'cxx-utils.hh',
-  'drawing-cairo.cc',
-  'drawing-cairo.hh',
+  'drawing-context.cc',
+  'drawing-context.hh',
   'fonts-pangocairo.cc',
   'fonts-pangocairo.hh',
   'gobject-glue.hh',
@@ -227,6 +227,16 @@ libvte_common_sources = config_sources + debug_sources + glib_glue_sources + gtk
   'vteutils.h',
   'widget.cc',
   'widget.hh',
+)
+
+libvte_gtk3_drawing_sources = files(
+  'drawing-cairo.cc',
+  'drawing-cairo.hh',
+)
+
+libvte_gtk4_drawing_sources = files(
+  'drawing-gsk.cc',
+  'drawing-gsk.hh',
 )
 
 if get_option('icu')
@@ -295,7 +305,7 @@ libvte_common_cppflags = [
 ]
 
 if get_option('gtk3')
-  libvte_gtk3_sources = libvte_common_sources + libvte_gtk3_public_headers + libvte_gtk3_enum_sources
+  libvte_gtk3_sources = libvte_common_sources + libvte_gtk3_public_headers + libvte_gtk3_enum_sources + libvte_gtk3_drawing_sources
   libvte_gtk3_cppflags = libvte_common_cppflags + gtk3_version_cppflags + ['-DVTE_GTK=3',] + release_args
   libvte_gtk3_deps = libvte_common_deps + [gtk3_dep,]
   libvte_gtk3_public_deps = libvte_common_public_deps + [gtk3_dep,]
@@ -345,7 +355,7 @@ if get_option('gtk4')
     dependencies: libvte_gtk4_resources_data,
   )
 
-  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + libvte_gtk4_resources_sources + graphene_glue_sources
+  libvte_gtk4_sources = libvte_common_sources + libvte_gtk4_public_headers + libvte_gtk4_enum_sources + libvte_gtk4_resources_sources + graphene_glue_sources + libvte_gtk4_drawing_sources
   libvte_gtk4_cppflags = libvte_common_cppflags + gtk4_version_cppflags + ['-DVTE_GTK=4',] + release_args
   libvte_gtk4_deps = libvte_common_deps + [gtk4_dep,]
   libvte_gtk4_public_deps = libvte_common_public_deps + [gtk4_dep,]

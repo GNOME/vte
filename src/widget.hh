@@ -264,6 +264,8 @@ public:
 
         inline constexpr vte::terminal::Terminal* terminal() const noexcept { return m_terminal; }
 
+        inline int scale_factor() const noexcept { return gtk_widget_get_scale_factor(gtk()); }
+
         void constructed() noexcept;
         void dispose() noexcept;
         void realize() noexcept;
