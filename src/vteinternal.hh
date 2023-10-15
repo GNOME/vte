@@ -883,7 +883,13 @@ public:
         void set_hard_wrapped(vte::grid::row_t row);
         void set_soft_wrapped(vte::grid::row_t row);
 
-        void cleanup_fragments(long start,
+        inline void cleanup_fragments(long start,
+                                      long end) {
+                ensure_row();
+                cleanup_fragments(m_screen->cursor.row, start, end);
+        }
+        void cleanup_fragments(long rownum,
+                               long start,
                                long end);
 
         void scroll_text_up(const struct vte_scrolling_region& scrolling_region,

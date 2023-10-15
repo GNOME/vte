@@ -5094,18 +5094,21 @@ Terminal::DL(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        auto const start = m_screen->cursor.row - m_screen->insert_delta;
-        /* If the cursor is outside of the DECSTBM scrolling region then do nothing. */
-        if (start < m_scrolling_region.top() || start > m_scrolling_region.bottom()) {
+        auto const cursor_row = get_xterm_cursor_row();
+        auto const cursor_col = get_xterm_cursor_column();
+
+        /* If the cursor (xterm-like interpretation when about to wrap) is outside
+         * the DECSTBM / DECSLRM scrolling region then do nothing. */
+        if (!m_scrolling_region.contains_row_col(cursor_row, cursor_col)) {
                 return;
         }
 
         set_cursor_column(0);
 
         auto const count = seq.collect1(0, 1);
-        /* Scroll up in a custom region: the top is at the cursor, the bottom is according to DECSTBM. */
+        /* Scroll up in a custom region: the top is at the cursor, the rest is according to DECSTBM / DECSLRM. */
         struct vte_scrolling_region scrolling_region(m_scrolling_region);
-        scrolling_region.set_vertical(start, scrolling_region.bottom());
+        scrolling_region.set_vertical(cursor_row, scrolling_region.bottom());
         scroll_text_up(scrolling_region, count, true /* fill */);
 }
 
@@ -6120,18 +6123,21 @@ Terminal::IL(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        auto const start = m_screen->cursor.row - m_screen->insert_delta;
-        /* If the cursor is outside of the DECSTBM scrolling region then do nothing. */
-        if (start < m_scrolling_region.top() || start > m_scrolling_region.bottom()) {
+        auto const cursor_row = get_xterm_cursor_row();
+        auto const cursor_col = get_xterm_cursor_column();
+
+        /* If the cursor (xterm-like interpretation when about to wrap) is outside
+         * the DECSTBM / DECSLRM scrolling region then do nothing. */
+        if (!m_scrolling_region.contains_row_col(cursor_row, cursor_col)) {
                 return;
         }
 
         set_cursor_column(0);
 
         auto const count = seq.collect1(0, 1);
-        /* Scroll down in a custom region: the top is at the cursor, the bottom is according to DECSTBM. */
+        /* Scroll down in a custom region: the top is at the cursor, the rest is according to DECSTBM / DECSLRM. */
         struct vte_scrolling_region scrolling_region(m_scrolling_region);
-        scrolling_region.set_vertical(start, scrolling_region.bottom());
+        scrolling_region.set_vertical(cursor_row, scrolling_region.bottom());
         scroll_text_down(scrolling_region, count, true /* fill */);
 }
 
