@@ -284,7 +284,8 @@ DrawingContext::draw_undercurl(int x,
         /* Give extra space vertically to include the bounding box for antialiasing
          * and the y_bottom+1 below.
          */
-        auto cr = begin_cairo(x, y-1, count * m_cell_width, undercurl_height+2+1);
+        constexpr auto const extra_space = 1;
+        auto cr = begin_cairo(x, y - extra_space, count * m_cell_width, undercurl_height + 2 * extra_space + 1);
 
         cairo_save (cr);
 
