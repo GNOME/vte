@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: el\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/vte/issues\n"
-"POT-Creation-Date: 2018-06-20 20:20+0000\n"
+"POT-Creation-Date: 2023-08-06 13:23+0000\n"
 "PO-Revision-Date: 2018-08-15 14:13+0300\n"
 "Last-Translator: Efstathios Iosifidis <iosifidis@opensuse.org>\n"
 "Language-Team: team@gnome.gr\n"
@@ -23,32 +23,57 @@ msgstr ""
 "X-Generator: Poedit 2.0.9\n"
 "X-Project-Style: gnome\n"
 
-#. Translators: %s is replaced with error message returned by strerror().
-#: ../src/vte.cc:3966
-#, c-format
-msgid "Error reading from child: %s."
-msgstr "Σφάλμα ανάγνωσης από θυγατρική διεργασία: %s."
-
-#: ../src/vte.cc:4122
-#, c-format
-msgid "Error (%s) converting data for child, dropping."
-msgstr ""
-"Σφάλμα (%s) μετατροπής δεδομένων από θυγατρική διεργασία, απορρίπτεται."
-
-#: ../src/vte.cc:8179
+#: src/vte.cc:7699
 msgid "WARNING"
 msgstr "ΠΡΟΕΙΔΟΠΟΙΗΣΗ"
 
-#: ../src/vte.cc:8180
+#: src/vte.cc:7701
 msgid "GnuTLS not enabled; data will be written to disk unencrypted!"
 msgstr ""
-"Δεν είναι ενεργοποιημένο το GNUTLS, τα δεδομένα που θα εγγραφούν στο "
-"δίσκο δεν θα είναι κρυπτογραφημένα!"
+"Δεν είναι ενεργοποιημένο το GNUTLS, τα δεδομένα που θα εγγραφούν στο δίσκο "
+"δεν θα είναι κρυπτογραφημένα!"
 
-#: ../src/vtegtk.cc:3618
+#: src/spawn.cc:124
 #, c-format
-msgid "Unable to convert characters from %s to %s."
-msgstr "Αδύνατη η μετατροπή χαρακτήρων από %s σε %s."
+msgid "Failed to set pipe nonblocking: %s"
+msgstr "Αποτυχία ορισμού μη αποκλειστικού αγωγού: %s"
+
+#: src/spawn.cc:169
+#, c-format
+msgid "poll error: %s"
+msgstr "Σφάλμα poll: %s"
+
+#: src/spawn.cc:176
+msgid "Operation timed out"
+msgstr "Η λειτουργία έληξε λόγω χρονικού ορίου"
+
+#: src/spawn.cc:186
+msgid "Operation was cancelled"
+msgstr "Η λειτουργία ακυρώθηκε"
+
+#: src/spawn.cc:204
+#| msgid "Error reading from child: %s."
+msgid "Failed to read from child pipe (%s)"
+msgstr "Αποτυχία ανάγνωσης από από θυγατρική διεργασία (%s)"
+
+#: src/spawn.cc:639
+#, c-format
+msgid "Failed to change to directory “%s”: %s"
+msgstr "Αποτυχία αλλαγής καταλόγου σε “%s”: %s"
+
+#: src/spawn.cc:708
+#, c-format
+msgid "Failed to execute child process “%s”: "
+msgstr "Αποτυχία εκτέλεσης θυγατρικής διεργασίας «%s»: "
+
+#, c-format
+#~ msgid "Error (%s) converting data for child, dropping."
+#~ msgstr ""
+#~ "Σφάλμα (%s) μετατροπής δεδομένων από θυγατρική διεργασία, απορρίπτεται."
+
+#, c-format
+#~ msgid "Unable to convert characters from %s to %s."
+#~ msgstr "Αδύνατη η μετατροπή χαρακτήρων από %s σε %s."
 
 #~ msgid "Copy"
 #~ msgstr "Αντιγραφή"
