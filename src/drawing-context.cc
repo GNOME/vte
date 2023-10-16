@@ -23,7 +23,7 @@
 
 #include "bidi.hh"
 #include "debug.h"
-#include "drawing-cairo.hh"
+#include "drawing-context.hh"
 #include "fonts-pangocairo.hh"
 
 namespace vte {
