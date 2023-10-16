@@ -2754,7 +2754,7 @@ Terminal::cursor_down(bool explicit_sequence)
                                 set_hard_wrapped(bottom);
                                 /* Scroll by removing a line and inserting a new one. */
 				ring_remove(top);
-				ring_insert(bottom, true);
+				ring_insert(bottom, false);
                                 /* Repaint the affected lines. No need to extend,
                                  * set_hard_wrapped() took care of invalidating
                                  * the context lines if necessary. */
