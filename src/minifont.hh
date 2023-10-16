@@ -24,6 +24,8 @@
 #include "vtetypes.hh"
 #include "vteunistr.h"
 
+#include "cairo-glue.hh"
+
 namespace vte {
 namespace view {
 
@@ -56,9 +58,13 @@ public:
                           int scale_factor);
 
 private:
-        cairo_t* begin_cairo(cairo_surface_t *surface,
-                             int x,
-                             int y);
+        cairo_t* begin_cairo(int x,
+                             int y,
+                             int width,
+                             int height,
+                             int xpad,
+                             int ypad,
+                             int scale_factor);
         void rectangle(cairo_t *cr,
                        double x,
                        double y,
@@ -84,7 +90,7 @@ private:
                        int xb2,
                        int yb2) const;
 #if VTE_GTK == 4
-        GdkTexture *finalize_surface(cairo_surface_t *surface) const;
+        GdkTexture *surface_to_texture(cairo_surface_t *surface) const;
 #endif
 }; // class Minifont
 

@@ -43,6 +43,9 @@ typedef struct _CachedMinifont
         guint y_off : 2;         // y_offset for patterns (0..3)
                                  // 8-byte boundary for cached_minifont_equal()
 
+        unsigned xpad : 12;
+        unsigned ypad : 13;
+
         GList link;
 
         /* An 8-bit alpha only surface */
@@ -156,10 +159,10 @@ cached_minifont_draw(const CachedMinifont *mf,
                      int height,
                      vte::color::rgb const* fg)
 {
-        x -= MINIFONT_XPAD;
-        y -= MINIFONT_YPAD;
-        width += 2 * MINIFONT_XPAD;
-        height += 2 * MINIFONT_YPAD;
+        x -= mf->xpad;
+        y -= mf->ypad;
+        width += 2 * mf->xpad;
+        height += 2 * mf->ypad;
 
         // Our surface includes padding on all sides to help with situations
         // where glyphs should appear to overlap adjacent cells.
@@ -173,12 +176,14 @@ cached_minifont_draw(const CachedMinifont *mf,
 static cairo_surface_t *
 create_surface(int width,
                int height,
+               int xpad,
+               int ypad,
                int scale_factor)
 {
-        width += MINIFONT_XPAD * 2;
+        width += xpad * 2;
         width *= scale_factor;
 
-        height += MINIFONT_YPAD * 2;
+        height += ypad * 2;
         height *= scale_factor;
 
         auto surface = cairo_image_surface_create(CAIRO_FORMAT_A8, width, height);
@@ -337,21 +342,26 @@ Minifont::rectangle(DrawingContext const& context,
 }
 
 cairo_t*
-Minifont::begin_cairo(cairo_surface_t *surface,
-                      int x,
-                      int y)
+Minifont::begin_cairo(int x,
+                      int y,
+                      int width,
+                      int height,
+                      int xpad,
+                      int ypad,
+                      int scale_factor)
 {
-        auto cr = cairo_create(surface);
+        auto surface = vte::take_freeable(create_surface(width, height, xpad, ypad, scale_factor));
+        auto cr = cairo_create(surface.get());
         cairo_set_source_rgba(cr, 1, 1, 1, 1);
         // We keep an extra pixel of padding to help to ensure that
         // lines which should seem contiguous across rows are.
-        cairo_translate(cr, -x + MINIFONT_XPAD, -y + MINIFONT_YPAD);
+        cairo_translate(cr, -x + xpad, -y + ypad);
         return cr;
 }
 
 #if VTE_GTK == 4
 GdkTexture *
-Minifont::finalize_surface(cairo_surface_t *surface) const
+Minifont::surface_to_texture(cairo_surface_t *surface) const
 {
         cairo_surface_flush(surface);
 
@@ -363,7 +373,6 @@ Minifont::finalize_surface(cairo_surface_t *surface) const
 
         auto texture = gdk_memory_texture_new(width, height, GDK_MEMORY_A8, bytes, stride);
 
-        cairo_surface_destroy(surface);
         g_bytes_unref(bytes);
 
         return texture;
@@ -679,8 +688,9 @@ Minifont::draw_graphic(DrawingContext const& context,
         xright = x + width;
         ybottom = y + height;
 
-        auto surface = create_surface (width, height, scale_factor);
-        auto cr = begin_cairo(surface, x, y);
+        auto xpad = MINIFONT_XPAD;
+        auto ypad = MINIFONT_YPAD;
+        auto cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
 
         switch (c) {
 
@@ -940,7 +950,13 @@ Minifont::draw_graphic(DrawingContext const& context,
         case 0x2572: /* box drawings light diagonal upper left to lower right */
         case 0x2573: /* box drawings light diagonal cross */
         {
+                // These characters draw outside their cell, so we need to
+                // enlarge the drawing surface.
                 auto const dx = (light_line_width + 1) / 2;
+                xpad = dx;
+                ypad = MINIFONT_YPAD;
+                cairo_destroy(cr);
+                cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
                 cairo_rectangle(cr, x - dx, y, width + 2 * dx, height);
                 cairo_clip(cr);
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
@@ -1325,8 +1341,6 @@ Minifont::draw_graphic(DrawingContext const& context,
                 g_assert_not_reached();
         }
 
-        cairo_destroy(cr);
-
         auto mf = g_new0 (CachedMinifont, 1);
         mf->link.data = mf;
         mf->c = real_c;
@@ -1335,12 +1349,16 @@ Minifont::draw_graphic(DrawingContext const& context,
         mf->scale_factor = scale_factor;
         mf->x_off = x_off;
         mf->y_off = y_off;
+        mf->xpad = xpad;
+        mf->ypad = ypad;
 #if VTE_GTK == 3
-        mf->surface = surface;
+        mf->surface = cairo_surface_reference(cairo_get_target(cr));
 #elif VTE_GTK == 4
-        mf->texture = finalize_surface(surface);
+        mf->texture = surface_to_texture(cairo_get_target(cr));
 #endif
         cached_minifont_add(mf);
+
+        cairo_destroy(cr);
 
         cached_minifont_draw(mf, context, x, y, width, height, fg);
 }
