@@ -157,7 +157,10 @@ public:
         DrawingContext& operator=(DrawingContext const&) = delete;
         DrawingContext& operator=(DrawingContext&&) = delete;
 
-        virtual cairo_t* begin_cairo(int x, int y, int width, int height) const = 0;
+        virtual cairo_t* begin_cairo(int x,
+                                     int y,
+                                     int width,
+                                     int height) const = 0;
         virtual void end_cairo(cairo_t *cr) const = 0;
 
         virtual void clip(Rectangle const* rect) const = 0;
@@ -168,7 +171,8 @@ public:
         virtual void clip_border(Rectangle const* rect) const { clip(rect); }
         virtual void unclip_border() const { unclip(); }
 
-        virtual void translate(double x, double y) const = 0;
+        virtual void translate(double x,
+                               double y) const = 0;
         virtual void untranslate() const = 0;
 
         virtual void clear(int x,
