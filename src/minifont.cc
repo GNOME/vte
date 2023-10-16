@@ -187,6 +187,14 @@ create_surface(int width,
 }
 
 /* pixman data must have stride 0 mod 4 */
+
+// Note that the LR and RL patterns are not mirrors of each other,
+// but instead the RL pattern is the mirrored pattern that then is
+// additionally shifted 1 row upwards. This makes the pattern tile
+// seamlessly when they are used to fill a rectangle of any given
+// (fixed) width and height that are then put next to each other
+// horizontally or vertically.
+// See issue#2672.
 static unsigned char const hatching_pattern_lr_data[16] = {
         0xff, 0x00, 0x00, 0x00,
         0x00, 0xff, 0x00, 0x00,
@@ -199,6 +207,7 @@ static unsigned char const hatching_pattern_rl_data[16] = {
         0xff, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0xff,
 };
+
 static unsigned char const checkerboard_pattern_data[16] = {
         0xff, 0xff, 0x00, 0x00,
         0xff, 0xff, 0x00, 0x00,
