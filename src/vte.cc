@@ -2717,70 +2717,158 @@ Terminal::cleanup_fragments(long start,
         }
 }
 
-/* Cursor down, with scrolling. */
+/* Terminal::scroll_text_up:
+ *
+ * Scrolls the text upwards by the given amount, within the given custom scrolling region.
+ * The DECSTBM scrolling region (or lack thereof) is irrelevant (unless, of course,
+ * it is the one passed to this method).
+ *
+ * If the region's top is at the screen's top then the scrolled out lines go to the scrollback buffer.
+ *
+ * "fill" tells whether to fill the new lines with the background color.
+ *
+ * The cursor's position is irrelevant, and it stays where it was (relative to insert_delta).
+ */
 void
-Terminal::cursor_down(bool explicit_sequence)
+Terminal::scroll_text_up(const struct vte_scrolling_region& scrolling_region,
+                         vte::grid::row_t amount, bool fill)
 {
-        long top = m_screen->insert_delta + m_scrolling_region.top();
-        long bottom = m_screen->insert_delta + m_scrolling_region.bottom();
+        auto const top = m_screen->insert_delta + scrolling_region.top();
+        auto const bottom = m_screen->insert_delta + scrolling_region.bottom();
 
-        if (m_screen->cursor.row == bottom) {
-                if (m_scrolling_region.is_restricted()) {
-			if (top == m_screen->insert_delta) {
-                                /* Set the boundary to hard wrapped where
-                                 * we're about to tear apart the contents. */
-                                set_hard_wrapped(m_screen->cursor.row);
-				/* Scroll this line into the scrollback
-				 * buffer by inserting a line at the next
-				 * line and scrolling the area up. */
-				m_screen->insert_delta++;
-                                m_screen->cursor.row++;
-                                /* Update top and bottom, too. */
-				top++;
-				bottom++;
-                                ring_insert(m_screen->cursor.row, false);
-                                /* Repaint the affected lines, which is _below_
-                                 * the region (bug 131). No need to extend,
-                                 * set_hard_wrapped() took care of invalidating
-                                 * the context lines if necessary. */
-                                invalidate_rows(m_screen->cursor.row,
-                                                m_screen->insert_delta + m_row_count - 1);
-				/* Force scroll. */
-				adjust_adjustments();
-			} else {
-                                /* Set the boundaries to hard wrapped where
-                                 * we're about to tear apart the contents. */
-                                set_hard_wrapped(top - 1);
-                                set_hard_wrapped(bottom);
-                                /* Scroll by removing a line and inserting a new one. */
-				ring_remove(top);
-				ring_insert(bottom, false);
-                                /* Repaint the affected lines. No need to extend,
-                                 * set_hard_wrapped() took care of invalidating
-                                 * the context lines if necessary. */
-                                invalidate_rows(top, bottom);
-			}
-		} else {
-			/* Scroll up with history. */
-                        m_screen->cursor.row++;
-			update_insert_delta();
-		}
+        amount = CLAMP(amount, 1, bottom - top + 1);
 
-                /* Handle bce (background color erase), however, diverge from xterm:
-                 * only fill the new row with the background color if scrolling
-                 * happens due to an explicit escape sequence, not due to autowrapping.
-                 * See bug 754596 for details. */
-                bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
+        /* Make sure the ring covers the area we'll operate on. */
+        while (long(m_screen->row_data->next()) <= bottom) [[unlikely]]
+                ring_append(false /* no fill */);
 
-                if (explicit_sequence && not_default_bg) {
-			VteRowData *rowdata = ensure_row();
-                        _vte_row_data_fill (rowdata, &m_color_defaults, m_column_count);
-		}
-        } else if (m_screen->cursor.row < m_screen->insert_delta + m_row_count - 1) {
-                /* Otherwise, just move the cursor down; unless it's already in the last
-                 * physical row (which is possible with scrolling region, see #176). */
+        if (!scrolling_region.is_restricted()) [[likely]] {
+                /* Scroll up the entire screen, with history. */
+                m_screen->insert_delta += amount;
+                m_screen->cursor.row += amount;
+                while (amount--) {
+                        ring_append(fill);
+                }
+                /* Force scroll. */
+                adjust_adjustments();
+        } else if (scrolling_region.top() == 0) {
+                /* Scroll up partial screen at the top, with history. */
+
+                /* Set the boundary to hard wrapped where we'll tear apart the contents. */
+                set_hard_wrapped(bottom);
+                /* Scroll (and add to history) by inserting new lines. */
+                m_screen->insert_delta += amount;
+                m_screen->cursor.row += amount;
+                for (auto insert_at = bottom + 1; insert_at <= bottom + amount; insert_at++) {
+                        ring_insert(insert_at, fill);
+                }
+                /* Repaint the affected lines, which is _below_ the region, see
+                 * https://gitlab.gnome.org/GNOME/vte/-/issues/131.
+                 * No need to extend, set_hard_wrapped() took care of invalidating
+                 * the context lines if necessary. */
+                invalidate_rows(bottom + 1, m_screen->insert_delta + m_row_count - 1);
+                /* Force scroll. */
+                adjust_adjustments();
+        } else {
+                /* Scroll up partial screen not at the top, don't add to history. */
+
+                /* Set the boundaries to hard wrapped where we'll tear apart the contents.
+                 * Do it before scrolling up, for the bottom row to be the desired one. */
+                set_hard_wrapped(top - 1);
+                set_hard_wrapped(bottom);
+                /* Scroll by removing a line and inserting a new one. */
+                while (amount--) {
+                        ring_remove(top);
+                        ring_insert(bottom, fill);
+                }
+                /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+                 * invalidating the context lines if necessary. */
+                invalidate_rows(top, bottom);
+                /* We've modified the display. Make a note of it. */
+                m_text_deleted_flag = TRUE;
+        }
+}
+
+/* Terminal::scroll_text_down:
+ *
+ * Scrolls the text downwards by the given amount, within the given custom scrolling region.
+ * The DECSTBM scrolling region (or lack thereof) is irrelevant (unless, of course,
+ * it is the one passed to this method).
+ *
+ * "fill" tells whether to fill the new lines with the background color.
+ *
+ * The cursor's position is irrelevant, and it stays where it was.
+ */
+void
+Terminal::scroll_text_down(const struct vte_scrolling_region& scrolling_region,
+                           vte::grid::row_t amount, bool fill)
+{
+        auto const top = m_screen->insert_delta + scrolling_region.top();
+        auto const bottom = m_screen->insert_delta + scrolling_region.bottom();
+
+        amount = CLAMP(amount, 1, bottom - top + 1);
+
+        /* Make sure the ring covers the area we'll operate on. */
+        while (long(m_screen->row_data->next()) <= bottom) [[unlikely]]
+                ring_append(false /* no fill */);
+
+        /* Scroll down. This code is the counterpart of the
+         * "don't add to history" branch in scroll_text_up(). */
+
+        /* Scroll by removing a line and inserting a new one. */
+        while (amount--) {
+                ring_remove(bottom);
+                ring_insert(top, fill);
+        }
+        /* Set the boundaries to hard wrapped where we tore apart the contents.
+         * Do it after scrolling down, for the bottom row to be the desired one. */
+        set_hard_wrapped(top - 1);
+        set_hard_wrapped(bottom);
+        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
+         * invalidating the context lines if necessary. */
+        invalidate_rows(top, bottom);
+        /* We've modified the display. Make a note of it. */
+        m_text_deleted_flag = TRUE;
+}
+
+/* Terminal::cursor_down_with_scrolling:
+ * Cursor down by one line, with scrolling if needed (respecting the DECSTBM scrolling region).
+ *
+ * If the region's top is at the screen's top then the scrolled out line goes to the scrollback buffer.
+ *
+ * "fill" tells whether to fill the new line with the background color.
+ */
+void
+Terminal::cursor_down_with_scrolling(bool fill)
+{
+        if (m_screen->cursor.row == m_screen->insert_delta + m_scrolling_region.bottom()) {
+                /* Hit the bottom of the scrolling region, scroll the text. */
+                scroll_text_up(m_scrolling_region, 1, fill);
+        } else if (m_screen->cursor.row == m_screen->insert_delta + m_row_count - 1) {
+                /* Hit the bottom of the screen outside of the scrolling region, do nothing. */
+        } else {
+                /* No boundary hit, move the cursor down. process_incoming() takes care of invalidating both rows. */
                 m_screen->cursor.row++;
-	}
+        }
+}
+
+/* Terminal::cursor_up_with_scrolling:
+ * Cursor up by one line, with scrolling if needed (respecting the DECSTBM scrolling region).
+ *
+ * "fill" tells whether to fill the new line with the background color.
+ */
+void
+Terminal::cursor_up_with_scrolling(bool fill)
+{
+        if (m_screen->cursor.row == m_screen->insert_delta + m_scrolling_region.top()) {
+                /* Hit the top of the scrolling region, scroll the text. */
+                scroll_text_down(m_scrolling_region, 1, fill);
+        } else if (m_screen->cursor.row == m_screen->insert_delta) {
+                /* Hit the top of the screen outside of the scrolling region, do nothing. */
+        } else {
+                /* No boundary hit, move the cursor up. process_incoming() takes care of invalidating both rows. */
+                m_screen->cursor.row--;
+        }
 }
 
 /* Drop the scrollback. */
@@ -2907,7 +2995,11 @@ Terminal::insert_char(gunichar c,
 			/* Mark this line as soft-wrapped. */
 			row = ensure_row();
                         set_soft_wrapped(m_screen->cursor.row);
-                        cursor_down(false);
+                        /* Handle bce (background color erase) differently from xterm:
+                         * only fill the new row with the background color if scrolling happens due
+                         * to an explicit escape sequence, not due to autowrapping (i.e. not here).
+                         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2219 for details. */
+                        cursor_down_with_scrolling(false);
                         ensure_row();
                         apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_FLAG_ALL);
 		} else {
