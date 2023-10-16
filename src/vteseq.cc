@@ -318,50 +318,6 @@ Terminal::clear_above_current()
         m_text_deleted_flag = TRUE;
 }
 
-/* Scroll the text, but don't move the cursor.  Negative = up, positive = down. */
-void
-Terminal::scroll_text(vte::grid::row_t scroll_amount)
-{
-        vte::grid::row_t top = m_screen->insert_delta + m_scrolling_region.top();
-        vte::grid::row_t bottom = m_screen->insert_delta + m_scrolling_region.bottom();
-
-        while (long(m_screen->row_data->next()) <= bottom)
-                ring_append(false);
-
-	if (scroll_amount > 0) {
-                /* Scroll down. */
-		for (auto i = 0; i < scroll_amount; i++) {
-                        ring_remove(bottom);
-                        ring_insert(top, true);
-		}
-                /* Set the boundaries to hard wrapped where we tore apart the contents.
-                 * Need to do it after scrolling down, for the bottom row to be the desired one. */
-                set_hard_wrapped(top - 1);
-                set_hard_wrapped(bottom);
-	} else {
-                /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
-                 * Need to do it before scrolling up, for the bottom row to be the desired one. */
-                set_hard_wrapped(top - 1);
-                set_hard_wrapped(bottom);
-                /* Scroll up. */
-		for (auto i = 0; i < -scroll_amount; i++) {
-                        ring_remove(top);
-                        ring_insert(bottom, true);
-		}
-	}
-
-        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-         * invalidating the context lines if necessary. */
-        invalidate_rows(top, bottom);
-
-	/* Adjust the scrollbars if necessary. */
-        adjust_adjustments();
-
-	/* We've modified the display.  Make a note of it. */
-        m_text_inserted_flag = TRUE;
-        m_text_deleted_flag = TRUE;
-}
-
 void
 Terminal::restore_cursor()
 {
@@ -993,9 +949,9 @@ Terminal::erase_image_rect(vte::grid::row_t rows,
                         if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
                                 move_cursor_forward(columns);
                         else
-                                cursor_down(true);
+                                cursor_down_with_scrolling(true);
                 } else {
-                        cursor_down(true);
+                        cursor_down_with_scrolling(true);
                 }
         }
 }
@@ -1040,7 +996,7 @@ void
 Terminal::line_feed()
 {
         ensure_cursor_is_onscreen();
-        cursor_down(true);
+        cursor_down_with_scrolling(true);
         maybe_apply_bidi_attributes(VTE_BIDI_FLAG_ALL);
 }
 
@@ -1294,88 +1250,6 @@ Terminal::erase_in_line(vte::parser::Sequence const& seq)
 	default:
 		break;
 	}
-	/* We've modified the display.  Make a note of it. */
-        m_text_deleted_flag = TRUE;
-}
-
-void
-Terminal::insert_lines(vte::grid::row_t param)
-{
-	/* Find the region we're messing with. */
-        auto row = m_screen->cursor.row;
-        vte::grid::row_t top = m_screen->insert_delta + m_scrolling_region.top();
-        vte::grid::row_t bottom = m_screen->insert_delta + m_scrolling_region.bottom();
-
-        /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
-        if (m_screen->cursor.row < top || m_screen->cursor.row > bottom)
-                return;
-
-	/* Only allow to insert as many lines as there are between this row
-         * and the bottom of the scrolling region. See bug #676090.
-         */
-        auto limit = bottom - row + 1;
-        param = MIN (param, limit);
-
-        for (vte::grid::row_t i = 0; i < param; i++) {
-		/* Clear a line off the bottom of the region and add one to the
-		 * top of the region. */
-                ring_remove(bottom);
-                ring_insert(row, true);
-	}
-
-        /* Set the boundaries to hard wrapped where we tore apart the contents.
-         * Need to do it after scrolling down, for the bottom row to be the desired one. */
-        set_hard_wrapped(row - 1);
-        set_hard_wrapped(bottom);
-
-        m_screen->cursor.col = 0;
-
-        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-         * invalidating the context lines if necessary. */
-        invalidate_rows(row, bottom);
-	/* Adjust the scrollbars if necessary. */
-        adjust_adjustments();
-	/* We've modified the display.  Make a note of it. */
-        m_text_inserted_flag = TRUE;
-}
-
-void
-Terminal::delete_lines(vte::grid::row_t param)
-{
-	/* Find the region we're messing with. */
-        auto row = m_screen->cursor.row;
-        vte::grid::row_t top = m_screen->insert_delta + m_scrolling_region.top();
-        vte::grid::row_t bottom = m_screen->insert_delta + m_scrolling_region.bottom();
-
-        /* Don't do anything if the cursor is outside of the scrolling region: DEC STD 070 & bug #199. */
-        if (m_screen->cursor.row < top || m_screen->cursor.row > bottom)
-                return;
-
-        /* Set the boundaries to hard wrapped where we're about to tear apart the contents.
-         * Need to do it before scrolling up, for the bottom row to be the desired one. */
-        set_hard_wrapped(row - 1);
-        set_hard_wrapped(bottom);
-
-        /* Only allow to delete as many lines as there are between this row
-         * and the bottom of the scrolling region. See bug #676090.
-         */
-        auto limit = bottom - row + 1;
-        param = MIN (param, limit);
-
-	/* Clear them from below the current cursor. */
-        for (vte::grid::row_t i = 0; i < param; i++) {
-		/* Insert a line at the bottom of the region and remove one from
-		 * the top of the region. */
-                ring_remove(row);
-                ring_insert(bottom, true);
-	}
-        m_screen->cursor.col = 0;
-
-        /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-         * invalidating the context lines if necessary. */
-        invalidate_rows(row, bottom);
-	/* Adjust the scrollbars if necessary. */
-        adjust_adjustments();
 	/* We've modified the display.  Make a note of it. */
         m_text_deleted_flag = TRUE;
 }
@@ -5188,8 +5062,19 @@ Terminal::DL(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
+        auto const start = m_screen->cursor.row - m_screen->insert_delta;
+        /* If the cursor is outside of the DECSTBM scrolling region then do nothing. */
+        if (start < m_scrolling_region.top() || start > m_scrolling_region.bottom()) {
+                return;
+        }
+
+        set_cursor_column(0);
+
         auto const count = seq.collect1(0, 1);
-        delete_lines(count);
+        /* Scroll up in a custom region: the top is at the cursor, the bottom is according to DECSTBM. */
+        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        scrolling_region.set_vertical(start, scrolling_region.bottom());
+        scroll_text_up(scrolling_region, count, true /* fill */);
 }
 
 void
@@ -6203,8 +6088,19 @@ Terminal::IL(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
+        auto const start = m_screen->cursor.row - m_screen->insert_delta;
+        /* If the cursor is outside of the DECSTBM scrolling region then do nothing. */
+        if (start < m_scrolling_region.top() || start > m_scrolling_region.bottom()) {
+                return;
+        }
+
+        set_cursor_column(0);
+
         auto const count = seq.collect1(0, 1);
-        insert_lines(count);
+        /* Scroll down in a custom region: the top is at the cursor, the bottom is according to DECSTBM. */
+        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        scrolling_region.set_vertical(start, scrolling_region.bottom());
+        scroll_text_down(scrolling_region, count, true /* fill */);
 }
 
 void
@@ -6511,7 +6407,7 @@ Terminal::NEL(vte::parser::Sequence const& seq)
 #endif
 
         set_cursor_column(0);
-        cursor_down(true);
+        cursor_down_with_scrolling(true);
 }
 
 void
@@ -6932,32 +6828,7 @@ Terminal::RI(vte::parser::Sequence const& seq)
 #endif
 
         ensure_cursor_is_onscreen();
-
-        vte::grid::row_t top = m_scrolling_region.top() + m_screen->insert_delta;
-        vte::grid::row_t bottom = m_scrolling_region.bottom() + m_screen->insert_delta;
-
-        if (m_screen->cursor.row == top) {
-		/* If we're at the top of the scrolling region, add a
-		 * line at the top to scroll the bottom off. */
-		ring_remove(bottom);
-		ring_insert(top, true);
-
-                /* Set the boundaries to hard wrapped where we tore apart the contents.
-                 * Need to do it after scrolling down, for the bottom row to be the desired one. */
-                set_hard_wrapped(top - 1);
-                set_hard_wrapped(bottom);
-
-                /* Repaint the affected lines. No need to extend, set_hard_wrapped() took care of
-                 * invalidating the context lines if necessary. */
-                invalidate_rows(top, bottom);
-	} else {
-		/* Otherwise, just move the cursor up. */
-                m_screen->cursor.row--;
-	}
-	/* Adjust the scrollbars if necessary. */
-        adjust_adjustments();
-	/* We modified the display, so make a note of it. */
-        m_text_modified_flag = TRUE;
+        cursor_up_with_scrolling(true);
 }
 
 void
@@ -7233,9 +7104,9 @@ Terminal::SD(vte::parser::Sequence const& seq)
                                 NULL);
 #endif
 
-        /* Scroll the text down N lines, but don't move the cursor. */
+        /* Scroll the text down N lines in the scrolling region, but don't move the cursor. */
         auto value = std::max(seq.collect1(0, 1), int(1));
-        scroll_text(value);
+        scroll_text_down(m_scrolling_region, value, true /* fill */);
 }
 
 void
@@ -7999,8 +7870,9 @@ Terminal::SU(vte::parser::Sequence const& seq)
                               screen->history);
 #endif
 
+        /* Scroll the text up N lines in the scrolling region, but don't move the cursor. */
         auto value = std::max(seq.collect1(0, 1), int(1));
-        scroll_text(-value);
+        scroll_text_up(m_scrolling_region, value, true /* fill */);
 }
 
 void

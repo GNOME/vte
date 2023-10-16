@@ -882,7 +882,13 @@ public:
         void cleanup_fragments(long start,
                                long end);
 
-        void cursor_down(bool explicit_sequence);
+        void scroll_text_up(const struct vte_scrolling_region& scrolling_region,
+                            vte::grid::row_t amount, bool fill);
+        void scroll_text_down(const struct vte_scrolling_region& scrolling_region,
+                              vte::grid::row_t amount, bool fill);
+        void cursor_down_with_scrolling(bool fill);
+        void cursor_up_with_scrolling(bool fill);
+
         void drop_scrollback();
 
         void restore_cursor(VteScreen *screen__);
@@ -1579,8 +1585,6 @@ public:
         inline void line_feed();
         inline void erase_in_display(vte::parser::Sequence const& seq);
         inline void erase_in_line(vte::parser::Sequence const& seq);
-        inline void insert_lines(vte::grid::row_t param);
-        inline void delete_lines(vte::grid::row_t param);
 
         unsigned int checksum_area(vte::grid::row_t start_row,
                                    vte::grid::column_t start_col,
