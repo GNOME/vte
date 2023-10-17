@@ -1034,11 +1034,9 @@ void
 Terminal::match_contents_clear()
 {
 	match_hilite_clear();
-	if (m_match_contents != nullptr) {
-		g_free(m_match_contents);
-		m_match_contents = nullptr;
-	}
-        vte_char_attr_list_clear(&m_match_attributes);
+
+        g_string_truncate(m_match_contents, 0);
+        vte_char_attr_list_set_size(&m_match_attributes, 0);
 }
 
 void
@@ -1047,9 +1045,11 @@ Terminal::match_contents_refresh()
 {
 	match_contents_clear();
 
-        vte_char_attr_list_set_size(&m_match_attributes, 0);
-        auto match_contents = get_text_displayed(true /* wrap */, &m_match_attributes);
-        m_match_contents = g_string_free(match_contents, FALSE);
+        g_assert (m_match_contents != nullptr);
+        g_assert (m_match_contents->len == 0);
+        g_assert (vte_char_attr_list_get_size(&m_match_attributes) == 0);
+
+        get_text_displayed(true /* wrap */, m_match_contents, &m_match_attributes);
 }
 
 void
@@ -1087,14 +1087,19 @@ Terminal::regex_match_remove(int tag) noexcept
  */
 bool
 Terminal::match_rowcol_to_offset(vte::grid::column_t column,
-                                           vte::grid::row_t row,
-                                           gsize *offset_ptr,
-                                           gsize *sattr_ptr,
-                                           gsize *eattr_ptr)
+                                 vte::grid::row_t row,
+                                 gsize *offset_ptr,
+                                 gsize *sattr_ptr,
+                                 gsize *eattr_ptr)
 {
         /* FIXME: use gsize, after making sure the code below doesn't underflow offset */
         gssize offset, sattr, eattr;
         struct _VteCharAttributes *attr = NULL;
+
+        if (m_match_contents->len == 0)
+                return false;
+
+        auto const match_contents = m_match_contents->str;
 
 	/* Map the pointer position to a portion of the string. */
         // FIXME do a bsearch here?
@@ -1116,7 +1121,7 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 		else {
                         gunichar c;
                         char utf[7];
-                        c = g_utf8_get_char (m_match_contents + offset);
+                        c = g_utf8_get_char (match_contents + offset);
                         utf[g_unichar_to_utf8(g_unichar_isprint(c) ? c : 0xFFFD, utf)] = 0;
 
 			g_printerr("Cursor is on character U+%04X '%s' at %" G_GSSIZE_FORMAT ".\n",
@@ -1130,20 +1135,20 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 	}
 
 	/* If the pointer is on a newline, bug out. */
-	if (m_match_contents[offset] == '\0') {
+	if (match_contents[offset] == '\0') {
 		_vte_debug_print(VTE_DEBUG_EVENTS,
                                  "Cursor is on newline.\n");
 		return false;
 	}
 
 	/* Snip off any final newlines. */
-	while (m_match_contents[eattr] == '\n' ||
-               m_match_contents[eattr] == '\0') {
+	while (match_contents[eattr] == '\n' ||
+               match_contents[eattr] == '\0') {
 		eattr--;
 	}
 	/* and scan forwards to find the end of this line */
-	while (!(m_match_contents[eattr] == '\n' ||
-                 m_match_contents[eattr] == '\0')) {
+	while (!(match_contents[eattr] == '\n' ||
+                 match_contents[eattr] == '\0')) {
 		eattr++;
 	}
 
@@ -1160,13 +1165,13 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 	}
 	/* Scan backwards to find the start of this line */
 	while (sattr > 0 &&
-		! (m_match_contents[sattr] == '\n' ||
-                   m_match_contents[sattr] == '\0')) {
+		! (match_contents[sattr] == '\n' ||
+                   match_contents[sattr] == '\0')) {
 		sattr--;
 	}
 	/* and skip any initial newlines. */
-	while (m_match_contents[sattr] == '\n' ||
-               m_match_contents[sattr] == '\0') {
+	while (match_contents[sattr] == '\n' ||
+               match_contents[sattr] == '\0') {
 		sattr++;
 	}
 	if (eattr <= sattr) { /* blank line */
@@ -1231,7 +1236,7 @@ Terminal::match_check_pcre(pcre2_match_data_8 *match_data,
         else
                 match_fn = pcre2_match_8;
 
-        line = m_match_contents;
+        line = m_match_contents->str;
         /* FIXME: what we really want is to pass the whole data to pcre2_match, but
          * limit matching to between sattr and eattr, so that the extra data can
          * satisfy lookahead assertions. This needs new pcre2 API though.
@@ -1411,9 +1416,8 @@ Terminal::match_check_internal(vte::grid::column_t column,
                                size_t* start,
                                size_t* end)
 {
-	if (m_match_contents == nullptr) {
-		match_contents_refresh();
-	}
+        if (m_match_contents->len == 0)
+                match_contents_refresh();
 
         assert(match != nullptr);
         assert(start != nullptr);
@@ -1903,9 +1907,8 @@ Terminal::regex_match_check_extra(vte::grid::column_t col,
         if (!m_ringview.is_updated())
                 [[unlikely]] return false;
 
-	if (m_match_contents == nullptr) {
+	if (m_match_contents->len == 0)
 		match_contents_refresh();
-	}
 
         if (!match_rowcol_to_offset(col, row,
                                     &offset, &sattr, &eattr))
@@ -3506,14 +3509,14 @@ Terminal::process_incoming()
                  * by this insertion. */
                 if (!m_selection_resolved.empty()) {
                         //FIXMEchpe: this is atrocious
-                        auto selection = get_selected_text();
+                        auto selection = g_string_new(nullptr);
+                        get_selected_text(selection);
                         if ((selection == nullptr) ||
                             (m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)] == nullptr) ||
                             (strcmp(selection->str, m_selection[vte::to_integral(vte::platform::ClipboardType::PRIMARY)]->str) != 0)) {
                                 deselect_all();
                         }
-                        if (selection)
-                                g_string_free(selection, TRUE);
+                        g_string_free(selection, TRUE);
                 }
         }
 
@@ -6016,17 +6019,17 @@ Terminal::rgb_from_index(guint index,
 	}
 }
 
-GString*
+void
 Terminal::get_text(vte::grid::row_t start_row,
                    vte::grid::column_t start_col,
                    vte::grid::row_t end_row,
                    vte::grid::column_t end_col,
                    bool block,
                    bool wrap,
+                   GString *string,
                    VteCharAttrList *attributes)
 {
 	const VteCell *pcell = NULL;
-	GString *string;
 	struct _VteCharAttributes attr;
 	vte::color::rgb fore, back;
         std::unique_ptr<vte::base::RingView> ringview;
@@ -6034,9 +6037,11 @@ Terminal::get_text(vte::grid::row_t start_row,
         vte::grid::column_t vcol;
 
 	if (attributes)
-    vte_char_attr_list_set_size (attributes, 0);
+                vte_char_attr_list_set_size (attributes, 0);
 
-	string = g_string_new(NULL);
+        if (string->len > 0)
+                g_string_truncate(string, 0);
+
 	memset(&attr, 0, sizeof(attr));
 
         if (start_col < 0)
@@ -6164,7 +6169,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 
 		/* Add a newline in block mode. */
 		if (block) {
-			string = g_string_append_c(string, '\n');
+			g_string_append_c(string, '\n');
 		}
 		/* Else, if the last visible column on this line was in range and
 		 * not soft-wrapped, append a newline. */
@@ -6172,7 +6177,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 			/* If we didn't softwrap, add a newline. */
 			/* XXX need to clear row->soft_wrap on deletion! */
                         if (!m_screen->row_data->is_soft_wrapped(row)) {
-				string = g_string_append_c(string, '\n');
+				g_string_append_c(string, '\n');
 			}
 		}
 
@@ -6185,35 +6190,38 @@ Terminal::get_text(vte::grid::row_t start_row,
 	/* Sanity check. */
         if (attributes != nullptr)
                 g_assert_cmpuint(string->len, ==, vte_char_attr_list_get_size(attributes));
-
-        return string;
 }
 
-GString*
+void
 Terminal::get_text_displayed(bool wrap,
+                             GString *string,
                              VteCharAttrList* attributes)
 {
-        return get_text(first_displayed_row(), 0,
-                        last_displayed_row() + 1, 0,
-                        false /* block */, wrap,
-                        attributes);
+        get_text(first_displayed_row(), 0,
+                 last_displayed_row() + 1, 0,
+                 false /* block */, wrap,
+                 string,
+                 attributes);
 }
 
 /* This is distinct from just using first/last_displayed_row since a11y
  * doesn't know about sub-row displays.
  */
-GString*
+void
 Terminal::get_text_displayed_a11y(bool wrap,
+                                  GString *string,
                                   VteCharAttrList* attributes)
 {
         return get_text(m_screen->scroll_delta, 0,
                         m_screen->scroll_delta + m_row_count - 1 + 1, 0,
                         false /* block */, wrap,
+                        string,
                         attributes);
 }
 
-GString*
-Terminal::get_selected_text(VteCharAttrList* attributes)
+void
+Terminal::get_selected_text(GString *string,
+                            VteCharAttrList* attributes)
 {
         return get_text(m_selection_resolved.start_row(),
                         m_selection_resolved.start_column(),
@@ -6221,6 +6229,7 @@ Terminal::get_selected_text(VteCharAttrList* attributes)
                         m_selection_resolved.end_column(),
                         m_selection_block_mode,
                         true /* wrap */,
+                        string,
                         attributes);
 }
 
@@ -6447,7 +6456,8 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
 	/* Chuck old selected text and retrieve the newly-selected text. */
         VteCharAttrList attributes;
         vte_char_attr_list_init(&attributes);
-        auto selection = get_selected_text(&attributes);
+        GString *selection = g_string_new(nullptr);
+        get_selected_text(selection, &attributes);
 
         auto const sel = vte::to_integral(type);
         if (m_selection[sel]) {
@@ -7681,6 +7691,8 @@ Terminal::Terminal(vte::platform::Widget* w,
         vte_char_attr_list_init(&m_search_attrs);
         vte_char_attr_list_init(&m_match_attributes);
 
+        m_match_contents = g_string_new(nullptr);
+
         reset_default_attributes(true);
 
 	/* Set up the desired palette. */
@@ -7989,7 +8001,7 @@ Terminal::~Terminal()
 
 	/* Free matching data. */
         vte_char_attr_list_clear(&m_match_attributes);
-	g_free(m_match_contents);
+        g_string_free(m_match_contents, TRUE);
 
         vte_char_attr_list_clear(&m_search_attrs);
 
@@ -10751,11 +10763,13 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	VteCharAttributes *ca;
         VteCharAttrList *attrs;
 
-	auto row_text = get_text(start_row, 0,
-                                 end_row, 0,
-                                 false /* block */,
-                                 true /* wrap */,
-                                 nullptr);
+        auto row_text = g_string_new(nullptr);
+        get_text(start_row, 0,
+                 end_row, 0,
+                 false /* block */,
+                 true /* wrap */,
+                 row_text,
+                 nullptr);
 
         int (* match_fn) (const pcre2_code_8 *,
                           PCRE2_SPTR8, PCRE2_SIZE, PCRE2_SIZE, uint32_t,
@@ -10798,13 +10812,14 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
         end = eo;
 
 	/* Fetch text again, with attributes */
-	g_string_free(row_text, TRUE);
+        g_string_truncate(row_text, 0);
 	attrs = &m_search_attrs;
-	row_text = get_text(start_row, 0,
-                            end_row, 0,
-                            false /* block */,
-                            true /* wrap */,
-                            attrs);
+	get_text(start_row, 0,
+                 end_row, 0,
+                 false /* block */,
+                 true /* wrap */,
+                 row_text,
+                 attrs);
 
 	ca = vte_char_attr_list_get(attrs, start);
 	start_row = ca->row;

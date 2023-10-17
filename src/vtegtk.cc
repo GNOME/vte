@@ -4370,9 +4370,8 @@ try
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
 	g_return_val_if_fail(attributes == nullptr, nullptr);
         warn_if_callback(is_selected);
-        auto text = IMPL(terminal)->get_text_displayed(true /* wrap */, nullptr);
-        if (text == nullptr)
-                return nullptr;
+        auto text = g_string_new(nullptr);
+        IMPL(terminal)->get_text_displayed(true /* wrap */, text, nullptr);
         return (char*)g_string_free(text, FALSE);
 }
 catch (...)
@@ -4502,17 +4501,15 @@ try
         vte_char_attr_list_init(&attributes);
 
         auto const impl = IMPL(terminal);
-        auto text = vte::take_freeable(impl->get_text(start_row,
-                                                      start_col,
-                                                      end_row,
-                                                      end_col,
-                                                      false,
-                                                      true,
-                                                      format == VTE_FORMAT_HTML ? &attributes : nullptr));
-        if (!text) {
-                vte_char_attr_list_clear(&attributes);
-                return nullptr;
-        }
+        auto text = vte::take_freeable(g_string_new(nullptr));
+        impl->get_text(start_row,
+                       start_col,
+                       end_row,
+                       end_col,
+                       false,
+                       true,
+                       text.get(),
+                       format == VTE_FORMAT_HTML ? &attributes : nullptr);
 
         if (format == VTE_FORMAT_HTML)
                 text = vte::take_freeable(impl->attributes_to_html(text.get(), &attributes));

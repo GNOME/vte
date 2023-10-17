@@ -605,7 +605,7 @@ public:
                 return match_regexes_writable().emplace_back(std::forward<Args>(args)...);
         }
 
-        char* m_match_contents;
+        GString* m_match_contents;
         VteCharAttrList m_match_attributes;
         char* m_match;
         /* If m_match non-null, then m_match_span contains the region of the match.
@@ -1115,21 +1115,25 @@ public:
                            vte::grid::column_t bcol,
                            vte::grid::row_t brow) const;
 
-        GString* get_text(vte::grid::row_t start_row,
-                          vte::grid::column_t start_col,
-                          vte::grid::row_t end_row,
-                          vte::grid::column_t end_col,
-                          bool block,
-                          bool wrap,
-                          VteCharAttrList* attributes = nullptr);
+        void get_text(vte::grid::row_t start_row,
+                      vte::grid::column_t start_col,
+                      vte::grid::row_t end_row,
+                      vte::grid::column_t end_col,
+                      bool block,
+                      bool wrap,
+                      GString* string,
+                      VteCharAttrList* attributes = nullptr);
 
-        GString* get_text_displayed(bool wrap,
-                                    VteCharAttrList* attributes = nullptr);
+        void get_text_displayed(bool wrap,
+                                GString* string,
+                                VteCharAttrList* attributes = nullptr);
 
-        GString* get_text_displayed_a11y(bool wrap,
-                                         VteCharAttrList* attributes = nullptr);
+        void get_text_displayed_a11y(bool wrap,
+                                     GString* string,
+                                     VteCharAttrList* attributes = nullptr);
 
-        GString* get_selected_text(VteCharAttrList* attributes = nullptr);
+        void get_selected_text(GString *string,
+                               VteCharAttrList* attributes = nullptr);
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
         inline void rgb_from_index(guint index,

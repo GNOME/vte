@@ -271,12 +271,15 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		priv->snapshot_linebreaks = g_array_new(FALSE, FALSE, sizeof(int));
 
 		/* Get a new view of the uber-label. */
+                auto text = g_string_new(nullptr);
                 try {
-                        priv->snapshot_text = impl->get_text_displayed_a11y(true /* wrap */,
-                                                                            &priv->snapshot_attributes);
+                        impl->get_text_displayed_a11y(true /* wrap */,
+                                                      text,
+                                                      &priv->snapshot_attributes);
                 } catch (...) {
-                        priv->snapshot_text = g_string_new("");
+                        g_string_truncate(text, 0);
                 }
+                priv->snapshot_text = text;
 		/* Get the offsets to the beginnings of each character. */
 		i = 0;
 		next = priv->snapshot_text->str;
