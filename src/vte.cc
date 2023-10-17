@@ -266,15 +266,17 @@ static int
 }
 
 static void
-vte_g_array_fill(GArray *array, gconstpointer item, guint final_size)
+vte_char_attr_list_fill (VteCharAttrList *array,
+                         const struct _VteCharAttributes *item,
+                         guint final_size)
 {
-	if (array->len >= final_size)
-		return;
+        guint old_len = vte_char_attr_list_get_size(array);
 
-	final_size -= array->len;
-	do {
-		g_array_append_vals(array, item, 1);
-	} while (--final_size);
+        if (old_len >= final_size)
+                return;
+
+        vte_char_attr_list_set_size(array, final_size);
+        std::fill_n(vte_char_attr_list_get(array, old_len), final_size - old_len, *item);
 }
 
 void
@@ -1036,10 +1038,7 @@ Terminal::match_contents_clear()
 		g_free(m_match_contents);
 		m_match_contents = nullptr;
 	}
-	if (m_match_attributes != nullptr) {
-		g_array_free(m_match_attributes, TRUE);
-		m_match_attributes = nullptr;
-	}
+        vte_char_attr_list_clear(&m_match_attributes);
 }
 
 void
@@ -1047,11 +1046,10 @@ Terminal::match_contents_refresh()
 
 {
 	match_contents_clear();
-	GArray *array = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-        auto match_contents = get_text_displayed(true /* wrap */,
-                                                 array);
+
+        vte_char_attr_list_set_size(&m_match_attributes, 0);
+        auto match_contents = get_text_displayed(true /* wrap */, &m_match_attributes);
         m_match_contents = g_string_free(match_contents, FALSE);
-	m_match_attributes = array;
 }
 
 void
@@ -1100,11 +1098,9 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 
 	/* Map the pointer position to a portion of the string. */
         // FIXME do a bsearch here?
-	eattr = m_match_attributes->len;
+	eattr = vte_char_attr_list_get_size(&m_match_attributes);
 	for (offset = eattr; offset--; ) {
-		attr = &g_array_index(m_match_attributes,
-				      struct _VteCharAttributes,
-				      offset);
+                attr = vte_char_attr_list_get(&m_match_attributes, offset);
 		if (row < attr->row) {
 			eattr = offset;
 		}
@@ -1156,9 +1152,7 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 		sattr = 0;
 	} else {
 		for (sattr = offset; sattr > 0; sattr--) {
-			attr = &g_array_index(m_match_attributes,
-					      struct _VteCharAttributes,
-					      sattr);
+                        attr = vte_char_attr_list_get(&m_match_attributes, sattr);
 			if (row > attr->row) {
 				break;
 			}
@@ -1189,12 +1183,8 @@ Terminal::match_rowcol_to_offset(vte::grid::column_t column,
 
         _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                 struct _VteCharAttributes *_sattr, *_eattr;
-                _sattr = &g_array_index(m_match_attributes,
-                                        struct _VteCharAttributes,
-                                        sattr);
-                _eattr = &g_array_index(m_match_attributes,
-                                        struct _VteCharAttributes,
-                                        eattr - 1);
+                _sattr = vte_char_attr_list_get(&m_match_attributes, sattr);
+                _eattr = vte_char_attr_list_get(&m_match_attributes, eattr - 1);
                 g_printerr("Cursor is in line from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
                            sattr, _sattr->column, _sattr->row,
                            eattr - 1, _eattr->column, _eattr->row);
@@ -1282,12 +1272,8 @@ Terminal::match_check_pcre(pcre2_match_data_8 *match_data,
                         gchar *result;
                         struct _VteCharAttributes *_sattr, *_eattr;
                         result = g_strndup(line + rm_so, rm_eo - rm_so);
-                        _sattr = &g_array_index(m_match_attributes,
-                                                struct _VteCharAttributes,
-                                                rm_so);
-                        _eattr = &g_array_index(m_match_attributes,
-                                                struct _VteCharAttributes,
-                                                rm_eo - 1);
+                        _sattr = vte_char_attr_list_get(&m_match_attributes, rm_so);
+                        _eattr = vte_char_attr_list_get(&m_match_attributes, rm_eo - 1);
                         g_printerr("%s match `%s' from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld) (%" G_GSSIZE_FORMAT ").\n",
                                    r == PCRE2_ERROR_PARTIAL ? "Partial":"Full",
                                    result,
@@ -1390,12 +1376,8 @@ Terminal::match_check_internal_pcre(vte::grid::column_t column,
 
                 _VTE_DEBUG_IF(VTE_DEBUG_REGEX) {
                         struct _VteCharAttributes *_sattr, *_eattr;
-                        _sattr = &g_array_index(m_match_attributes,
-                                                struct _VteCharAttributes,
-                                                start_blank);
-                        _eattr = &g_array_index(m_match_attributes,
-                                                struct _VteCharAttributes,
-                                                end_blank - 1);
+                        _sattr = vte_char_attr_list_get(&m_match_attributes, start_blank);
+                        _eattr = vte_char_attr_list_get(&m_match_attributes, end_blank - 1);
                         g_printerr("No-match region from %" G_GSIZE_FORMAT "(%ld,%ld) to %" G_GSIZE_FORMAT "(%ld,%ld)\n",
                                    start_blank, _sattr->column, _sattr->row,
                                    end_blank - 1, _eattr->column, _eattr->row);
@@ -5935,15 +5917,11 @@ Terminal::match_hilite_update()
                                               &end);
 
 	/* Read the new locations. */
-	if (start < m_match_attributes->len &&
-            end < m_match_attributes->len) {
+	if (start < vte_char_attr_list_get_size(&m_match_attributes) &&
+            end < vte_char_attr_list_get_size(&m_match_attributes)) {
                 struct _VteCharAttributes const *sa, *ea;
-		sa = &g_array_index(m_match_attributes,
-                                   struct _VteCharAttributes,
-                                   start);
-                ea = &g_array_index(m_match_attributes,
-                                    struct _VteCharAttributes,
-                                    end);
+		sa = vte_char_attr_list_get(&m_match_attributes, start);
+                ea = vte_char_attr_list_get(&m_match_attributes, end);
 
                 /* convert from inclusive to exclusive (a.k.a. boundary) ending, taking a possible last CJK character into account */
                 m_match_span = vte::grid::span(sa->row, sa->column, ea->row, ea->column + ea->columns);
@@ -6040,12 +6018,12 @@ Terminal::rgb_from_index(guint index,
 
 GString*
 Terminal::get_text(vte::grid::row_t start_row,
-                             vte::grid::column_t start_col,
-                             vte::grid::row_t end_row,
-                             vte::grid::column_t end_col,
-                             bool block,
-                             bool wrap,
-                             GArray *attributes)
+                   vte::grid::column_t start_col,
+                   vte::grid::row_t end_row,
+                   vte::grid::column_t end_col,
+                   bool block,
+                   bool wrap,
+                   VteCharAttrList *attributes)
 {
 	const VteCell *pcell = NULL;
 	GString *string;
@@ -6056,7 +6034,7 @@ Terminal::get_text(vte::grid::row_t start_row,
         vte::grid::column_t vcol;
 
 	if (attributes)
-		g_array_set_size (attributes, 0);
+    vte_char_attr_list_set_size (attributes, 0);
 
 	string = g_string_new(NULL);
 	memset(&attr, 0, sizeof(attr));
@@ -6145,8 +6123,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 					/* If we added text to the string, record its
 					 * attributes, one per byte. */
 					if (attributes) {
-						vte_g_array_fill(attributes,
-								&attr, string->len);
+                                                vte_char_attr_list_fill(attributes, &attr, string->len);
 					}
 				}
 
@@ -6176,7 +6153,7 @@ Terminal::get_text(vte::grid::row_t start_row,
                         if (pcell == NULL) {
                                 g_string_truncate(string, last_nonempty);
                                 if (attributes)
-                                        g_array_set_size(attributes, string->len);
+                                        vte_char_attr_list_set_size(attributes, string->len);
                                 attr.column = last_nonemptycol;
                         }
                 }
@@ -6201,20 +6178,20 @@ Terminal::get_text(vte::grid::row_t start_row,
 
 		/* Make sure that the attributes array is as long as the string. */
 		if (attributes) {
-			vte_g_array_fill (attributes, &attr, string->len);
+                        vte_char_attr_list_fill(attributes, &attr, string->len);
 		}
 	}
 
 	/* Sanity check. */
         if (attributes != nullptr)
-                g_assert_cmpuint(string->len, ==, attributes->len);
+                g_assert_cmpuint(string->len, ==, vte_char_attr_list_get_size(attributes));
 
         return string;
 }
 
 GString*
 Terminal::get_text_displayed(bool wrap,
-                                       GArray *attributes)
+                             VteCharAttrList* attributes)
 {
         return get_text(first_displayed_row(), 0,
                         last_displayed_row() + 1, 0,
@@ -6227,7 +6204,7 @@ Terminal::get_text_displayed(bool wrap,
  */
 GString*
 Terminal::get_text_displayed_a11y(bool wrap,
-                                            GArray *attributes)
+                                  VteCharAttrList* attributes)
 {
         return get_text(m_screen->scroll_delta, 0,
                         m_screen->scroll_delta + m_row_count - 1 + 1, 0,
@@ -6236,7 +6213,7 @@ Terminal::get_text_displayed_a11y(bool wrap,
 }
 
 GString*
-Terminal::get_selected_text(GArray *attributes)
+Terminal::get_selected_text(VteCharAttrList* attributes)
 {
         return get_text(m_selection_resolved.start_row(),
                         m_selection_resolved.start_column(),
@@ -6410,7 +6387,7 @@ Terminal::char_to_cell_attr(VteCharAttributes const* attr) const
  */
 GString*
 Terminal::attributes_to_html(GString* text_string,
-                                       GArray* attrs)
+                             VteCharAttrList* attrs)
 {
 	GString *string;
 	guint from,to;
@@ -6419,7 +6396,7 @@ Terminal::attributes_to_html(GString* text_string,
 
         char const* text = text_string->str;
         auto len = text_string->len;
-        g_assert_cmpuint(len, ==, attrs->len);
+        g_assert_cmpuint(len, ==, vte_char_attr_list_get_size(attrs));
 
 	/* Initial size fits perfectly if the text has no attributes and no
 	 * characters that need to be escaped
@@ -6437,12 +6414,10 @@ Terminal::attributes_to_html(GString* text_string,
 			g_string_append_c(string, '\n');
 			from = ++to;
 		} else {
-			attr = char_to_cell_attr(
-				&g_array_index(attrs, VteCharAttributes, from));
+			attr = char_to_cell_attr(vte_char_attr_list_get(attrs, from));
 			while (text[to] != '\0' && text[to] != '\n' &&
 			       vte_terminal_cellattr_equal(attr,
-                                                           char_to_cell_attr(
-						&g_array_index(attrs, VteCharAttributes, to))))
+                                                           char_to_cell_attr(vte_char_attr_list_get(attrs, to))))
 			{
 				to++;
 			}
@@ -6470,8 +6445,9 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
                format == vte::platform::ClipboardFormat::TEXT);
 
 	/* Chuck old selected text and retrieve the newly-selected text. */
-        GArray *attributes = g_array_new(FALSE, TRUE, sizeof(struct _VteCharAttributes));
-        auto selection = get_selected_text(attributes);
+        VteCharAttrList attributes;
+        vte_char_attr_list_init(&attributes);
+        auto selection = get_selected_text(&attributes);
 
         auto const sel = vte::to_integral(type);
         if (m_selection[sel]) {
@@ -6480,19 +6456,19 @@ Terminal::widget_copy(vte::platform::ClipboardType type,
         }
 
         if (selection == nullptr) {
-                g_array_free(attributes, TRUE);
+                vte_char_attr_list_clear(&attributes);
                 m_selection_owned[sel] = false;
                 return;
         }
 
         if (format == vte::platform::ClipboardFormat::HTML) {
-                m_selection[sel] = attributes_to_html(selection, attributes);
+                m_selection[sel] = attributes_to_html(selection, &attributes);
                 g_string_free(selection, TRUE);
         } else {
                 m_selection[sel] = selection;
         }
 
-	g_array_free (attributes, TRUE);
+        vte_char_attr_list_clear(&attributes);
 
 	/* Place the text on the clipboard. */
         _vte_debug_print(VTE_DEBUG_SELECTION,
@@ -7702,6 +7678,9 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_overline_position = 1;
         m_regex_underline_position = 1;
 
+        vte_char_attr_list_init(&m_search_attrs);
+        vte_char_attr_list_init(&m_match_attributes);
+
         reset_default_attributes(true);
 
 	/* Set up the desired palette. */
@@ -8009,13 +7988,10 @@ Terminal::~Terminal()
         stop_processing(this);
 
 	/* Free matching data. */
-	if (m_match_attributes != NULL) {
-		g_array_free(m_match_attributes, TRUE);
-	}
+        vte_char_attr_list_clear(&m_match_attributes);
 	g_free(m_match_contents);
 
-	if (m_search_attrs)
-		g_array_free (m_search_attrs, TRUE);
+        vte_char_attr_list_clear(&m_search_attrs);
 
 	/* Disconnect from autoscroll requests. */
 	stop_autoscroll();
@@ -10773,7 +10749,7 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	int start, end;
 	long start_col, end_col;
 	VteCharAttributes *ca;
-	GArray *attrs;
+        VteCharAttrList *attrs;
 
 	auto row_text = get_text(start_row, 0,
                                  end_row, 0,
@@ -10823,19 +10799,17 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 
 	/* Fetch text again, with attributes */
 	g_string_free(row_text, TRUE);
-	if (!m_search_attrs)
-		m_search_attrs = g_array_new (FALSE, TRUE, sizeof (VteCharAttributes));
-	attrs = m_search_attrs;
+	attrs = &m_search_attrs;
 	row_text = get_text(start_row, 0,
                             end_row, 0,
                             false /* block */,
                             true /* wrap */,
                             attrs);
 
-	ca = &g_array_index (attrs, VteCharAttributes, start);
+	ca = vte_char_attr_list_get(attrs, start);
 	start_row = ca->row;
 	start_col = ca->column;
-	ca = &g_array_index (attrs, VteCharAttributes, end - 1);
+	ca = vte_char_attr_list_get(attrs, end - 1);
 	end_row = ca->row;
         end_col = ca->column + ca->columns;
 

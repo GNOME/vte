@@ -4354,8 +4354,8 @@ warn_if_attributes(void* array,
  * This method is unaware of BiDi. The columns returned in @attributes are
  * logical columns.
  *
- * Note: since 0.68, passing a non-%NULL @array parameter is deprecated. Starting with
- * 0.72, passing a non-%NULL @array parameter will make this function itself return %NULL.
+ * Note: since 0.68, passing a non-%NULL @attributes parameter is deprecated. Starting with
+ * 0.72, passing a non-%NULL @attributes parameter will make this function itself return %NULL.
  * Since 0.72, passing a non-%NULL @is_selected parameter will make this function itself return %NULL.
  *
  * Returns: (transfer full) (nullable): a newly allocated text string, or %NULL.
@@ -4368,10 +4368,9 @@ vte_terminal_get_text(VteTerminal *terminal,
 try
 {
 	g_return_val_if_fail(VTE_IS_TERMINAL(terminal), NULL);
+	g_return_val_if_fail(attributes == nullptr, nullptr);
         warn_if_callback(is_selected);
-        warn_if_attributes(attributes);
-        auto text = IMPL(terminal)->get_text_displayed(true /* wrap */,
-                                                       attributes);
+        auto text = IMPL(terminal)->get_text_displayed(true /* wrap */, nullptr);
         if (text == nullptr)
                 return nullptr;
         return (char*)g_string_free(text, FALSE);
@@ -4499,11 +4498,8 @@ try
         if (length)
                 *length = 0;
 
-        auto attributes = vte::Freeable<GArray>{};
-        if (format == VTE_FORMAT_HTML)
-                attributes = vte::take_freeable(g_array_new(false,
-                                                            true,
-                                                            sizeof(struct _VteCharAttributes)));
+        VteCharAttrList attributes;
+        vte_char_attr_list_init(&attributes);
 
         auto const impl = IMPL(terminal);
         auto text = vte::take_freeable(impl->get_text(start_row,
@@ -4512,13 +4508,16 @@ try
                                                       end_col,
                                                       false,
                                                       true,
-                                                      attributes.get()));
-        if (!text)
+                                                      format == VTE_FORMAT_HTML ? &attributes : nullptr));
+        if (!text) {
+                vte_char_attr_list_clear(&attributes);
                 return nullptr;
+        }
 
         if (format == VTE_FORMAT_HTML)
-                text = vte::take_freeable(impl->attributes_to_html(text.get(),
-                                                                   attributes.get()));
+                text = vte::take_freeable(impl->attributes_to_html(text.get(), &attributes));
+
+        vte_char_attr_list_clear(&attributes);
 
         return vte::glib::release_to_string(std::move(text), length);
 }

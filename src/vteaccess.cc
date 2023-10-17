@@ -48,7 +48,7 @@ typedef struct _VteTerminalAccessiblePrivate {
 	gboolean snapshot_caret_invalid;	/* This data is stale. */
 	GString *snapshot_text;		/* Pointer to UTF-8 text. */
 	GArray *snapshot_characters;	/* Offsets to character begin points. */
-	GArray *snapshot_attributes;	/* Attributes, per byte. */
+        VteCharAttrList snapshot_attributes; /* Attributes, per byte. */
 	GArray *snapshot_linebreaks;	/* Offsets to line breaks. */
 	gint snapshot_caret;       /* Location of the cursor (in characters). */
         gboolean text_caret_moved_pending;
@@ -261,11 +261,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 
 		/* Free the attribute lists and allocate a new array to hold
 		 * them. */
-		if (priv->snapshot_attributes != NULL) {
-			g_array_free(priv->snapshot_attributes, TRUE);
-		}
-		priv->snapshot_attributes = g_array_new(FALSE, FALSE,
-							sizeof(struct _VteCharAttributes));
+                vte_char_attr_list_set_size(&priv->snapshot_attributes, 0);
 
 		/* Free the linebreak offsets and allocate a new array to hold
 		 * them. */
@@ -277,14 +273,14 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		/* Get a new view of the uber-label. */
                 try {
                         priv->snapshot_text = impl->get_text_displayed_a11y(true /* wrap */,
-                                                                            priv->snapshot_attributes);
+                                                                            &priv->snapshot_attributes);
                 } catch (...) {
                         priv->snapshot_text = g_string_new("");
                 }
 		/* Get the offsets to the beginnings of each character. */
 		i = 0;
 		next = priv->snapshot_text->str;
-		while (i < priv->snapshot_attributes->len) {
+		while (i < vte_char_attr_list_get_size(&priv->snapshot_attributes)) {
 			g_array_append_val(priv->snapshot_characters, i);
 			next = g_utf8_next_char(next);
 			if (next == NULL) {
@@ -298,9 +294,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 			/* Get the attributes for the current cell. */
 			offset = g_array_index(priv->snapshot_characters,
 					       int, i);
-			attrs = g_array_index(priv->snapshot_attributes,
-					      struct _VteCharAttributes,
-					      offset);
+                        attrs = *vte_char_attr_list_get(&priv->snapshot_attributes, offset);
 			/* If this character is on a row different from the row
 			 * the character we looked at previously was on, then
 			 * it's a new line and we need to keep track of where
@@ -331,9 +325,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		/* Get the attributes for the current cell. */
 		offset = g_array_index(priv->snapshot_characters,
 				       int, i);
-		attrs = g_array_index(priv->snapshot_attributes,
-				      struct _VteCharAttributes,
-				      offset);
+                attrs = *vte_char_attr_list_get(&priv->snapshot_attributes, offset);
 		/* If this cell is "before" the cursor, move the
 		 * caret to be "here". */
 		if ((attrs.row < crow) ||
@@ -355,7 +347,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 	_vte_debug_print(VTE_DEBUG_ALLY,
 			"Refreshed accessibility snapshot, "
 			"%ld cells, %ld characters.\n",
-			(long)priv->snapshot_attributes->len,
+			(long)vte_char_attr_list_get_size(&priv->snapshot_attributes),
 			(long)priv->snapshot_characters->len);
 }
 
@@ -539,36 +531,29 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 	}
 	/* Find the start point. */
 	delta = 0;
-	if (priv->snapshot_attributes != NULL) {
-		if (priv->snapshot_attributes->len > 0) {
-			attr = g_array_index(priv->snapshot_attributes,
-					     struct _VteCharAttributes,
-					     0);
-			delta = attr.row;
-		}
-	}
+        if (vte_char_attr_list_get_size(&priv->snapshot_attributes) > 0) {
+                attr = *vte_char_attr_list_get(&priv->snapshot_attributes, 0);
+                delta = attr.row;
+        }
 	/* We scrolled up, so text was added at the top and removed
 	 * from the bottom. */
 	if ((howmuch < 0) && (howmuch > -row_count)) {
 		gboolean inserted = FALSE;
 		howmuch = -howmuch;
-		if (priv->snapshot_attributes != NULL &&
-				priv->snapshot_text != NULL) {
+		if (priv->snapshot_text != NULL) {
 			/* Find the first byte that scrolled off. */
-			for (i = 0; i < priv->snapshot_attributes->len; i++) {
-				attr = g_array_index(priv->snapshot_attributes,
-						struct _VteCharAttributes,
-						i);
+			for (i = 0; i < vte_char_attr_list_get_size(&priv->snapshot_attributes); i++) {
+                                attr = *vte_char_attr_list_get(&priv->snapshot_attributes, i);
 				if (attr.row >= delta + row_count - howmuch) {
 					break;
 				}
 			}
-			if (i < priv->snapshot_attributes->len) {
+			if (i < vte_char_attr_list_get_size(&priv->snapshot_attributes)) {
 				/* The rest of the string was deleted -- make a note. */
 				emit_text_changed_delete(G_OBJECT(accessible),
 						priv->snapshot_text->str,
 						i,
-						priv->snapshot_attributes->len - i);
+						vte_char_attr_list_get_size(&priv->snapshot_attributes) - i);
 			}
 			inserted = TRUE;
 		}
@@ -596,13 +581,10 @@ _vte_terminal_accessible_text_scrolled(VteTerminalAccessible* accessible,
 	 * from the top. */
 	if ((howmuch > 0) && (howmuch < row_count)) {
 		gboolean inserted = FALSE;
-		if (priv->snapshot_attributes != NULL &&
-				priv->snapshot_text != NULL) {
+		if (priv->snapshot_text != NULL) {
 			/* Find the first byte that wasn't scrolled off the top. */
-			for (i = 0; i < priv->snapshot_attributes->len; i++) {
-				attr = g_array_index(priv->snapshot_attributes,
-						struct _VteCharAttributes,
-						i);
+			for (i = 0; i < vte_char_attr_list_get_size(&priv->snapshot_attributes); i++) {
+                                attr = *vte_char_attr_list_get(&priv->snapshot_attributes, i);
 				if (attr.row >= delta + howmuch) {
 					break;
 				}
@@ -759,12 +741,13 @@ _vte_terminal_accessible_init (VteTerminalAccessible *accessible)
 
 	priv->snapshot_text = NULL;
 	priv->snapshot_characters = NULL;
-	priv->snapshot_attributes = NULL;
 	priv->snapshot_linebreaks = NULL;
 	priv->snapshot_caret = -1;
 	priv->snapshot_contents_invalid = TRUE;
 	priv->snapshot_caret_invalid = TRUE;
         priv->text_caret_moved_pending = FALSE;
+
+	vte_char_attr_list_init(&priv->snapshot_attributes);
 }
 
 static void
@@ -810,9 +793,7 @@ vte_terminal_accessible_finalize(GObject *object)
 	if (priv->snapshot_characters != NULL) {
 		g_array_free(priv->snapshot_characters, TRUE);
 	}
-	if (priv->snapshot_attributes != NULL) {
-		g_array_free(priv->snapshot_attributes, TRUE);
-	}
+        vte_char_attr_list_clear(&priv->snapshot_attributes);
 	if (priv->snapshot_linebreaks != NULL) {
 		g_array_free(priv->snapshot_linebreaks, TRUE);
 	}
@@ -911,7 +892,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			((boundary_type == ATK_TEXT_BOUNDARY_WORD_END) ? "word (end)" :
 			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_START) ? "sentence (start)" :
 			((boundary_type == ATK_TEXT_BOUNDARY_SENTENCE_END) ? "sentence (end)" : "unknown")))))),
-			offset, priv->snapshot_attributes->len);
+			offset, vte_char_attr_list_get_size(&priv->snapshot_attributes));
 	g_assert(priv->snapshot_text != NULL);
 	g_assert(priv->snapshot_characters != NULL);
 	if (offset >= (int) priv->snapshot_characters->len) {
@@ -926,7 +907,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
 			 * position, the one before it, or the one after it. */
 			offset += direction;
 			start = MAX(offset, 0);
-			end = MIN(offset + 1, (int) priv->snapshot_attributes->len);
+			end = MIN(offset + 1, (int) vte_char_attr_list_get_size(&priv->snapshot_attributes));
 			break;
 		case ATK_TEXT_BOUNDARY_WORD_START:
 			/* Back up to the previous non-word-word transition. */
@@ -1273,14 +1254,10 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
 
-	attr = g_array_index (priv->snapshot_attributes,
-			      struct _VteCharAttributes,
-			      offset);
+        attr = *vte_char_attr_list_get(&priv->snapshot_attributes, offset);
 	*start_offset = 0;
 	for (i = offset; i--;) {
-		cur_attr = g_array_index (priv->snapshot_attributes,
-				      struct _VteCharAttributes,
-				      i);
+                cur_attr = *vte_char_attr_list_get(&priv->snapshot_attributes, i);
 		if (!_pango_color_equal (&cur_attr.fore, &attr.fore) ||
 		    !_pango_color_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
@@ -1289,11 +1266,9 @@ vte_terminal_accessible_get_run_attributes(AtkText *text, gint offset,
 			break;
 		}
 	}
-	*end_offset = priv->snapshot_attributes->len - 1;
-	for (i = offset + 1; i < priv->snapshot_attributes->len; i++) {
-		cur_attr = g_array_index (priv->snapshot_attributes,
-				      struct _VteCharAttributes,
-				      i);
+	*end_offset = vte_char_attr_list_get_size(&priv->snapshot_attributes) - 1;
+	for (i = offset + 1; i < vte_char_attr_list_get_size(&priv->snapshot_attributes); i++) {
+                cur_attr = *vte_char_attr_list_get(&priv->snapshot_attributes, i);
 		if (!_pango_color_equal (&cur_attr.fore, &attr.fore) ||
 		    !_pango_color_equal (&cur_attr.back, &attr.back) ||
 		    cur_attr.underline != attr.underline ||
@@ -1349,7 +1324,7 @@ vte_terminal_accessible_get_character_count(AtkText *text)
 	vte_terminal_accessible_update_private_data_if_needed(accessible,
 							      NULL, NULL);
 
-	return priv->snapshot_attributes->len;
+	return vte_char_attr_list_get_size(&priv->snapshot_attributes);
 }
 
 static gint

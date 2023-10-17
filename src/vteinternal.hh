@@ -67,6 +67,14 @@
 #include <variant>
 #include <vector>
 
+#define GDK_ARRAY_NAME vte_char_attr_list
+#define GDK_ARRAY_TYPE_NAME VteCharAttrList
+#define GDK_ARRAY_ELEMENT_TYPE VteCharAttributes
+#define GDK_ARRAY_BY_VALUE 1
+#define GDK_ARRAY_PREALLOC 32
+#define GDK_ARRAY_NO_MEMSET
+#include "gdkarrayimpl.c"
+
 #if WITH_A11Y
 #if VTE_GTK == 3
 #include "vteaccess.h"
@@ -598,7 +606,7 @@ public:
         }
 
         char* m_match_contents;
-        GArray* m_match_attributes;
+        VteCharAttrList m_match_attributes;
         char* m_match;
         /* If m_match non-null, then m_match_span contains the region of the match.
          * If m_match is null, and m_match_span is not .empty(), then it contains
@@ -611,7 +619,7 @@ public:
         vte::base::RefPtr<vte::base::Regex> m_search_regex{};
         uint32_t m_search_regex_match_flags{0};
         gboolean m_search_wrap_around;
-        GArray* m_search_attrs; /* Cache attrs */
+        VteCharAttrList m_search_attrs; /* Cache attrs */
 
 	/* Data used when rendering the text which does not require server
 	 * resources and which can be kept after unrealizing. */
@@ -1113,15 +1121,15 @@ public:
                           vte::grid::column_t end_col,
                           bool block,
                           bool wrap,
-                          GArray* attributes = nullptr);
+                          VteCharAttrList* attributes = nullptr);
 
         GString* get_text_displayed(bool wrap,
-                                    GArray* attributes = nullptr);
+                                    VteCharAttrList* attributes = nullptr);
 
         GString* get_text_displayed_a11y(bool wrap,
-                                         GArray* attributes = nullptr);
+                                         VteCharAttrList* attributes = nullptr);
 
-        GString* get_selected_text(GArray* attributes = nullptr);
+        GString* get_selected_text(VteCharAttrList* attributes = nullptr);
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
         inline void rgb_from_index(guint index,
@@ -1154,7 +1162,7 @@ public:
         VteCellAttr const* char_to_cell_attr(VteCharAttributes const* attr) const;
 
         GString* attributes_to_html(GString* text_string,
-                                    GArray* attrs);
+                                    VteCharAttrList* attrs);
 
         void start_selection(vte::view::coords const& pos,
                              SelectionType type);
