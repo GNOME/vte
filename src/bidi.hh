@@ -19,6 +19,7 @@
 
 #include <glib.h>
 
+#include "bidiarrays.hh"
 #include "ring.hh"
 #include "ringview.hh"
 #include "vterowdata.hh"
@@ -81,8 +82,20 @@ private:
 /* BidiRunner is not a "real" class, rather the collection of methods that run the BiDi algorithm. */
 class BidiRunner {
 public:
-        constexpr BidiRunner(RingView *ringview) : m_ringview{ringview} { }
-        ~BidiRunner() { }
+        BidiRunner(RingView *ringview) : m_ringview{ringview} {
+#if WITH_FRIBIDI
+                vte_bidi_chars_init(&m_fribidi_chars_array);
+                vte_bidi_indexes_init(&m_fribidi_map_array);
+                vte_bidi_indexes_init(&m_fribidi_to_term_array);
+#endif
+        }
+        ~BidiRunner() {
+#if WITH_FRIBIDI
+                vte_bidi_chars_clear(&m_fribidi_chars_array);
+                vte_bidi_indexes_clear(&m_fribidi_map_array);
+                vte_bidi_indexes_clear(&m_fribidi_to_term_array);
+#endif
+        }
 
         // prevent accidents
         BidiRunner(BidiRunner& o) = delete;
@@ -98,13 +111,16 @@ public:
 private:
         RingView *m_ringview;
 
-#if WITH_FRIBIDI
-        void explicit_line_shape(vte::grid::row_t row);
-#endif
-
         void explicit_line(vte::grid::row_t row, bool rtl, bool do_shaping);
         void explicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, bool rtl, bool do_shaping);
+
 #if WITH_FRIBIDI
+        VteBidiChars m_fribidi_chars_array;
+        VteBidiIndexes m_fribidi_map_array;
+        VteBidiIndexes m_fribidi_to_term_array;
+
+        void explicit_line_shape(vte::grid::row_t row);
+
         bool implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, bool do_shaping);
 #endif
 };

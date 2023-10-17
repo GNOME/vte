@@ -221,9 +221,9 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
         gunichar base;
         int i, j;  /* visual columns */
 
-        VteBidiChars fribidi_chars_array;
-        vte_bidi_chars_init(&fribidi_chars_array);
-        vte_bidi_chars_reserve(&fribidi_chars_array, width);
+        VteBidiChars *fribidi_chars_array = &m_fribidi_chars_array;
+        vte_bidi_chars_set_size(fribidi_chars_array, 0);
+        vte_bidi_chars_reserve(fribidi_chars_array, width);
 
         /* Walk in visual order from right to left. */
         i = width - 1;
@@ -237,12 +237,12 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 }
 
                 /* Found an Arabic character. Keep walking to the left, extracting the word. */
-                vte_bidi_chars_set_size(&fribidi_chars_array, 0);
+                vte_bidi_chars_set_size(fribidi_chars_array, 0);
                 j = i;
                 do {
-                        G_GNUC_UNUSED auto prev_len = vte_bidi_chars_get_size (&fribidi_chars_array);
-                        _vte_unistr_append_to_gunichars (cell->c, &fribidi_chars_array);
-                        vte_assert_cmpint (vte_bidi_chars_get_size (&fribidi_chars_array), >, prev_len);
+                        G_GNUC_UNUSED auto prev_len = vte_bidi_chars_get_size (fribidi_chars_array);
+                        _vte_unistr_append_to_gunichars (cell->c, fribidi_chars_array);
+                        vte_assert_cmpint (vte_bidi_chars_get_size (fribidi_chars_array), >, prev_len);
 
                         j--;
                         if (j >= 0) {
@@ -258,8 +258,8 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 /* Extracted the Arabic run. Do the BiDi. */
 
                 /* Convenience stuff, we no longer need the auto-growing wrapper. */
-                count = vte_bidi_chars_get_size (&fribidi_chars_array);
-                fribidi_chars = vte_bidi_chars_get_data (&fribidi_chars_array);
+                count = vte_bidi_chars_get_size (fribidi_chars_array);
+                fribidi_chars = vte_bidi_chars_get_data (fribidi_chars_array);
 
                 /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
                 fribidi_chartypes = g_newa (FriBidiCharType, count);
@@ -313,7 +313,7 @@ BidiRunner::explicit_line_shape(vte::grid::row_t row)
                 i = j - 1;
         }
 
-        vte_bidi_chars_clear (&fribidi_chars_array);
+        vte_bidi_chars_set_size (fribidi_chars_array, 0);
 }
 #endif /* WITH_FRIBIDI */
 
@@ -422,9 +422,9 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         FriBidiStrIndex *fribidi_map;
         FriBidiStrIndex *fribidi_to_term;
         BidiRow *bidirow;
-        VteBidiChars fribidi_chars_array;
-        VteBidiIndexes fribidi_map_array;
-        VteBidiIndexes fribidi_to_term_array;
+        VteBidiChars *fribidi_chars_array;
+        VteBidiIndexes *fribidi_map_array;
+        VteBidiIndexes *fribidi_to_term_array;
 
         auto width = m_ringview->get_width();
 
@@ -440,14 +440,17 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
         int fl, fv;     /* fribidi logical and visual */
         unsigned int col;
 
-        vte_bidi_chars_init (&fribidi_chars_array);
-        vte_bidi_chars_reserve (&fribidi_chars_array, (end - start) * width);
+        fribidi_chars_array = &m_fribidi_chars_array;
+        vte_bidi_chars_set_size (fribidi_chars_array, 0);
+        vte_bidi_chars_reserve (fribidi_chars_array, (end - start) * width);
 
-        vte_bidi_indexes_init (&fribidi_map_array);
-        vte_bidi_indexes_reserve (&fribidi_map_array, (end - start) * width);
+        fribidi_map_array = &m_fribidi_map_array;
+        vte_bidi_indexes_set_size (fribidi_map_array, 0);
+        vte_bidi_indexes_reserve (fribidi_map_array, (end - start) * width);
 
-        vte_bidi_indexes_init (&fribidi_to_term_array);
-        vte_bidi_indexes_reserve (&fribidi_to_term_array, (end - start) * width);
+        fribidi_to_term_array = &m_fribidi_to_term_array;
+        vte_bidi_indexes_set_size (fribidi_to_term_array, 0);
+        vte_bidi_indexes_reserve (fribidi_to_term_array, (end - start) * width);
 
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
 
@@ -534,7 +537,7 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                 row_data = m_ringview->get_row(row);
 
                 for (tl = 0; tl < row_data->len; tl++) {
-                        auto prev_len = vte_bidi_chars_get_size(&fribidi_chars_array);
+                        auto prev_len = vte_bidi_chars_get_size(fribidi_chars_array);
                         FriBidiStrIndex val;
 
                         cell = _vte_row_data_get (row_data, tl);
@@ -544,32 +547,32 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                         /* Extract the base character and combining accents.
                          * Convert mid-line erased cells to spaces.
                          * Note: see the static assert at the top of this file. */
-                        _vte_unistr_append_to_gunichars (cell->c ? cell->c : ' ', &fribidi_chars_array);
+                        _vte_unistr_append_to_gunichars (cell->c ? cell->c : ' ', fribidi_chars_array);
                         /* Make sure at least one character was produced. */
-                        vte_assert_cmpint (vte_bidi_chars_get_size(&fribidi_chars_array), >, prev_len);
+                        vte_assert_cmpint (vte_bidi_chars_get_size(fribidi_chars_array), >, prev_len);
 
                         /* Track the base character, assign to it its current index in fribidi_chars.
                          * Don't track combining accents, assign -1's to them. */
                         val = prev_len;
-                        vte_bidi_indexes_append (&fribidi_map_array, &val);
+                        vte_bidi_indexes_append (fribidi_map_array, &val);
                         val = tl;
-                        vte_bidi_indexes_append (&fribidi_to_term_array, &val);
+                        vte_bidi_indexes_append (fribidi_to_term_array, &val);
                         prev_len++;
                         val = -1;
-                        while (prev_len++ < vte_bidi_chars_get_size(&fribidi_chars_array)) {
-                                vte_bidi_indexes_append (&fribidi_map_array, &val);
-                                vte_bidi_indexes_append (&fribidi_to_term_array, &val);
+                        while (prev_len++ < vte_bidi_chars_get_size(fribidi_chars_array)) {
+                                vte_bidi_indexes_append (fribidi_map_array, &val);
+                                vte_bidi_indexes_append (fribidi_to_term_array, &val);
                         }
                 }
 
-                lines[++line] = vte_bidi_chars_get_size(&fribidi_chars_array);
+                lines[++line] = vte_bidi_chars_get_size(fribidi_chars_array);
         }
 
         /* Convenience stuff, we no longer need the auto-growing wrapper. */
-        count = vte_bidi_chars_get_size(&fribidi_chars_array);
-        fribidi_chars = vte_bidi_chars_get_data(&fribidi_chars_array);
-        fribidi_map = vte_bidi_indexes_get_data(&fribidi_map_array);
-        fribidi_to_term = vte_bidi_indexes_get_data(&fribidi_to_term_array);
+        count = vte_bidi_chars_get_size(fribidi_chars_array);
+        fribidi_chars = vte_bidi_chars_get_data(fribidi_chars_array);
+        fribidi_map = vte_bidi_indexes_get_data(fribidi_map_array);
+        fribidi_to_term = vte_bidi_indexes_get_data(fribidi_to_term_array);
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
         fribidi_chartypes = g_newa (FriBidiCharType, count);
@@ -587,9 +590,9 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
 
         if (level == (FriBidiLevel)(-1)) {
                 /* error */
-                vte_bidi_chars_clear (&fribidi_chars_array);
-                vte_bidi_indexes_clear (&fribidi_map_array);
-                vte_bidi_indexes_clear (&fribidi_to_term_array);
+                vte_bidi_chars_set_size (fribidi_chars_array, 0);
+                vte_bidi_indexes_set_size (fribidi_map_array, 0);
+                vte_bidi_indexes_set_size (fribidi_to_term_array, 0);
                 return false;
         }
 
@@ -605,9 +608,9 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
 
         if (!rtl && level == 0) {
                 /* Fast and memory saving shortcut for LTR-only paragraphs. */
-                vte_bidi_chars_clear (&fribidi_chars_array);
-                vte_bidi_indexes_clear (&fribidi_map_array);
-                vte_bidi_indexes_clear (&fribidi_to_term_array);
+                vte_bidi_chars_set_size (fribidi_chars_array, 0);
+                vte_bidi_indexes_set_size (fribidi_map_array, 0);
+                vte_bidi_indexes_set_size (fribidi_to_term_array, 0);
                 explicit_paragraph (start, end, false, false);
                 return true;
         }
@@ -741,9 +744,9 @@ BidiRunner::implicit_paragraph(vte::grid::row_t start, vte::grid::row_t end, boo
                 }
         }
 
-        vte_bidi_chars_clear (&fribidi_chars_array);
-        vte_bidi_indexes_clear (&fribidi_map_array);
-        vte_bidi_indexes_clear (&fribidi_to_term_array);
+        vte_bidi_chars_set_size (fribidi_chars_array, 0);
+        vte_bidi_indexes_set_size (fribidi_map_array, 0);
+        vte_bidi_indexes_set_size (fribidi_to_term_array, 0);
         return true;
 }
 #endif /* WITH_FRIBIDI */
