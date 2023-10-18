@@ -2590,9 +2590,10 @@ Terminal::DECBI(vte::parser::Sequence const& seq)
          * DECBI adds a new column at the left margin with no visual attributes.
          * DECBI does not affect the margins. If the cursor is beyond the
          * left-margin at the left border, then the terminal ignores DECBI.
-         *
-         * Probably not worth implementing.
          */
+
+        maybe_retreat_cursor();
+        cursor_left_with_scrolling(true);
 }
 
 void
@@ -2932,9 +2933,16 @@ Terminal::DECFI(vte::parser::Sequence const& seq)
          * receives DECFI, then the terminal ignores DECFI.
          *
          * References: VT525
-         *
-         * Probably not worth implementing.
          */
+
+        /* Unlike the DECBI, IND, RI counterparts, this one usually doesn't clear the
+         * "about to wrap" state in xterm. However, it clears it if the cursor is at
+         * the right edge of the terminal, beyond the right margin. */
+        if (m_screen->cursor.col == m_column_count &&
+            m_scrolling_region.right() < m_column_count - 1) {
+                maybe_retreat_cursor();
+        }
+        cursor_right_with_scrolling(true);
 }
 
 void
