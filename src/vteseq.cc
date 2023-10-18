@@ -750,14 +750,28 @@ Terminal::clear_to_eol()
  * Terminal::set_cursor_column:
  * @col: the column. 0-based from 0 to m_column_count - 1
  *
- * Sets the cursor column to @col, clamped to the range 0..m_column_count-1.
+ * Sets the cursor column to @col.
+ *
+ * @col is relative relative to the DECSLRM scrolling region iff origin mode (DECOM) is enabled.
  */
 void
 Terminal::set_cursor_column(vte::grid::column_t col)
 {
 	_vte_debug_print(VTE_DEBUG_PARSER,
                          "Moving cursor to column %ld.\n", col);
-        m_screen->cursor.col = CLAMP(col, 0, m_column_count - 1);
+
+        vte::grid::column_t left_col, right_col;
+        if (m_modes_private.DEC_ORIGIN()) {
+                left_col = m_scrolling_region.left();
+                right_col = m_scrolling_region.right();
+        } else {
+                left_col = 0;
+                right_col = m_column_count - 1;
+        }
+        col += left_col;
+        col = CLAMP(col, left_col, right_col);
+
+        m_screen->cursor.col = col;
         m_screen->cursor_advanced_by_graphic_character = false;
 }
 
@@ -769,14 +783,18 @@ Terminal::set_cursor_column1(vte::grid::column_t col)
 
 /*
  * Terminal::set_cursor_row:
- * @row: the row. 0-based and relative to the scrolling region
+ * @row: the row. 0-based
  *
- * Sets the cursor row to @row. @row is relative to the scrolling region
- * (0 if restricted scrolling is off).
+ * Sets the cursor row to @row.
+ *
+ * @row is relative to the scrolling DECSTBM scrolling region iff origin mode (DECOM) is enabled.
  */
 void
 Terminal::set_cursor_row(vte::grid::row_t row)
 {
+        _vte_debug_print(VTE_DEBUG_PARSER,
+                         "Moving cursor to row %ld.\n", row);
+
         vte::grid::row_t top_row, bottom_row;
         if (m_modes_private.DEC_ORIGIN()) {
                 top_row = m_scrolling_region.top();
@@ -799,35 +817,16 @@ Terminal::set_cursor_row1(vte::grid::row_t row)
 }
 
 /*
- * Terminal::get_cursor_row:
- *
- * Returns: the relative cursor row, 0-based and relative to the scrolling region
- * if set (regardless of origin mode).
- */
-vte::grid::row_t
-Terminal::get_cursor_row_unclamped() const
-{
-        auto row = m_screen->cursor.row - m_screen->insert_delta;
-        /* Note that we do NOT check DEC_ORIGIN mode here! */
-        row -= m_scrolling_region.top();
-        return row;
-}
-
-vte::grid::column_t
-Terminal::get_cursor_column_unclamped() const
-{
-        return m_screen->cursor.col;
-}
-
-/*
  * Terminal::set_cursor_coords:
- * @row: the row. 0-based and relative to the scrolling region
+ * @row: the row. 0-based
  * @col: the column. 0-based from 0 to m_column_count - 1
  *
- * Sets the cursor row to @row. @row is relative to the scrolling region
- * (0 if restricted scrolling is off).
+ * Sets the cursor row to @row.
  *
  * Sets the cursor column to @col, clamped to the range 0..m_column_count-1.
+ *
+ * @row and @col are relative to the scrolling DECSTBM / DECSLRM scrolling region
+ * iff origin mode (DECOM) is enabled.
  */
 void
 Terminal::set_cursor_coords(vte::grid::row_t row,
@@ -967,6 +966,14 @@ Terminal::insert_blank_character()
         m_screen->cursor = save;
 }
 
+/* Terminal::move_cursor_up:
+ * Cursor up by n rows (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "CUU, CUD, CUB, CUF" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to move further if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ */
 void
 Terminal::move_cursor_up(vte::grid::row_t rows)
 {
@@ -977,7 +984,6 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
         maybe_retreat_cursor();
 
         vte::grid::row_t top;
-        //FIXMEchpe why not check DEC_ORIGIN mode here?
         if (m_screen->cursor.row >= m_screen->insert_delta + m_scrolling_region.top()) {
                 top = m_screen->insert_delta + m_scrolling_region.top();
 	} else {
@@ -988,6 +994,14 @@ Terminal::move_cursor_up(vte::grid::row_t rows)
         m_screen->cursor_advanced_by_graphic_character = false;
 }
 
+/* Terminal::move_cursor_down:
+ * Cursor down by n rows (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "CUU, CUD, CUB, CUF" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to move further if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ */
 void
 Terminal::move_cursor_down(vte::grid::row_t rows)
 {
@@ -997,7 +1011,6 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
         maybe_retreat_cursor();
 
         vte::grid::row_t bottom;
-        // FIXMEchpe why not check DEC_ORIGIN here?
         if (m_screen->cursor.row <= m_screen->insert_delta + m_scrolling_region.bottom()) {
                 bottom = m_screen->insert_delta + m_scrolling_region.bottom();
 	} else {
@@ -1008,16 +1021,40 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
         m_screen->cursor_advanced_by_graphic_character = false;
 }
 
+/* Terminal::move_cursor_backward:
+ * Cursor left by n columns (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "CUU, CUD, CUB, CUF" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to move further if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ */
 void
 Terminal::move_cursor_backward(vte::grid::column_t columns)
 {
+        columns = CLAMP(columns, 1, m_column_count);
+
         maybe_retreat_cursor();
 
-        auto col = get_cursor_column_unclamped();
-        columns = CLAMP(columns, 1, col);
-        set_cursor_column(col - columns);
+        vte::grid::column_t left;
+        if (m_screen->cursor.col >= m_scrolling_region.left()) {
+                left = m_scrolling_region.left();
+        } else {
+                left = 0;
+        }
+
+        m_screen->cursor.col = MAX(m_screen->cursor.col - columns, left);
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
+/* Terminal::move_cursor_forward:
+ * Cursor right by n columns (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "CUU, CUD, CUB, CUF" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to move further if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ */
 void
 Terminal::move_cursor_forward(vte::grid::column_t columns)
 {
@@ -1025,12 +1062,15 @@ Terminal::move_cursor_forward(vte::grid::column_t columns)
 
         maybe_retreat_cursor();
 
-        /* The cursor can be further to the right, don't move in that case. */
-        auto col = get_cursor_column_unclamped();
-        if (col < m_column_count) {
-		/* There's room to move right. */
-                set_cursor_column(col + columns);
-	}
+        vte::grid::column_t right;
+        if (m_screen->cursor.col <= m_scrolling_region.right()) {
+                right = m_scrolling_region.right();
+        } else {
+                right = m_column_count - 1;
+        }
+
+        m_screen->cursor.col = MIN(m_screen->cursor.col + columns, right);
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -1039,8 +1079,16 @@ Terminal::move_cursor_tab_backward(int count)
         if (count == 0)
                 return;
 
-        auto const newcol = m_tabstops.get_previous(get_xterm_cursor_column(), count, 0);
-        set_cursor_column(newcol);
+        auto const col = get_xterm_cursor_column();
+
+        /* Find the count'th previous tabstop, but don't cross the left margin.
+         * The exact desired behavior is debated, though.
+         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2526#note_1879956 */
+        auto const stop = col >= m_scrolling_region.left() ? m_scrolling_region.left() : 0;
+        auto const newcol = m_tabstops.get_previous(col, count, stop);
+
+        m_screen->cursor.col = newcol;
+        m_screen->cursor_advanced_by_graphic_character = false;
 }
 
 void
@@ -1051,12 +1099,21 @@ Terminal::move_cursor_tab_forward(int count)
 
         auto const col = get_xterm_cursor_column();
 
-	/* Find the next tabstop, but don't go beyond the end of the line */
-        int const newcol = m_tabstops.get_next(col, count, m_column_count - 1);
+        /* If a printable character would wrap then a TAB does nothing;
+         * most importantly, does not snap back the cursor.
+         * https://gitlab.gnome.org/GNOME/gnome-terminal/-/issues/3461 */
+        if (col < m_screen->cursor.col)
+                return;
 
-	/* Make sure we don't move cursor back (see bug #340631) */
-        // FIXMEchpe how could this happen!?
-	if (col >= newcol)
+        /* Find the count'th next tabstop, but don't cross the right margin.
+         * The exact desired behavior is debated, though.
+         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2526#note_1879956 */
+        auto const stop = col <= m_scrolling_region.right() ? m_scrolling_region.right() : m_column_count - 1;
+        auto const newcol = m_tabstops.get_next(col, count, stop);
+
+        /* If the cursor didn't advance then nothing left to do. */
+        vte_assert_cmpint((int)newcol, >=, col);
+        if ((int)newcol == col)
                 return;
 
         /* Smart tab handling: bug 353610
@@ -1100,6 +1157,23 @@ Terminal::move_cursor_tab_forward(int count)
         /* Repaint the cursor. */
         invalidate_row(m_screen->cursor.row);
         m_screen->cursor.col = newcol;
+        m_screen->cursor_advanced_by_graphic_character = false;
+}
+
+void
+Terminal::carriage_return()
+{
+        /* Xterm and DEC STD 070 p5-58 agree that if the cursor is to the left
+         * of the left margin then move it to the first column.
+         * They disagree whether to stop at the left margin if the cursor is to
+         * the right of the left margin, but outside of the top/bottom margins.
+         * Follow Xterm's behavior for now, subject to change if needed, as per
+         * the discussions at https://gitlab.gnome.org/GNOME/vte/-/issues/2526 */
+        if (m_screen->cursor.col >= m_scrolling_region.left()) {
+                m_screen->cursor.col = m_scrolling_region.left();
+        } else {
+                m_screen->cursor.col = 0;
+        }
         m_screen->cursor_advanced_by_graphic_character = false;
 }
 
@@ -1749,12 +1823,7 @@ Terminal::BS(vte::parser::Sequence const& seq)
         screen_cursor_left(screen, 1);
 #endif
 
-        maybe_retreat_cursor();
-
-        if (m_screen->cursor.col > 0) {
-		/* There's room to move left, so do so. */
-                m_screen->cursor.col--;
-	}
+        move_cursor_backward(1);
 }
 
 void
@@ -1764,8 +1833,8 @@ Terminal::CBT(vte::parser::Sequence const& seq)
          * CBT - cursor-backward-tabulation
          * Move the cursor @args[0] tabs backwards (to the left). The
          * current cursor cell, in case it's a tab, is not counted.
-         * Furthermore, the cursor cannot be moved beyond position 0 and
-         * it will stop there.
+         * Furthermore, the cursor cannot be moved beyond the left margin
+         * and it will stop there.
          *
          * Defaults:
          *   args[0]: 1
@@ -1835,7 +1904,7 @@ Terminal::CHT(vte::parser::Sequence const& seq)
          * CHT - cursor-horizontal-forward-tabulation
          * Move the cursor @args[0] tabs forward (to the right) (presentation).
          * The current cursor cell, in case it's a tab, is not counted.
-         * Furthermore, the cursor cannot be moved beyond the rightmost cell
+         * Furthermore, the cursor cannot be moved beyond the right margin
          * and will stop there.
          *
          * Arguments:
@@ -1871,9 +1940,8 @@ Terminal::CNL(vte::parser::Sequence const& seq)
 {
         /*
          * CNL - cursor-next-line
-         * Move the cursor @args[0] lines down.
-         *
-         * TODO: Does this stop at the bottom or cause a scroll-up?
+         * Move the cursor @args[0] lines down, without scrolling, stopping at the bottom margin.
+         * Also moves the cursor all the way to the left, stopping at the left margin.
          *
          * Arguments:
          *   args[0]: number of lines
@@ -1893,7 +1961,7 @@ Terminal::CNL(vte::parser::Sequence const& seq)
         screen_cursor_down(screen, num, false);
 #endif
 
-        set_cursor_column1(1);
+        carriage_return();
 
         auto value = seq.collect1(0, 1);
         move_cursor_down(value);
@@ -1904,7 +1972,8 @@ Terminal::CPL(vte::parser::Sequence const& seq)
 {
         /*
          * CPL - cursor-preceding-line
-         * Move the cursor @args[0] lines up, without scrolling.
+         * Move the cursor @args[0] lines up, without scrolling, stoppng at the top margin.
+         * Also moves the cursor all the way to the left, stopping at the left margin.
          *
          * Arguments:
          *   args[0]: number of lines
@@ -1924,7 +1993,7 @@ Terminal::CPL(vte::parser::Sequence const& seq)
         screen_cursor_up(screen, num, false);
 #endif
 
-        set_cursor_column(0);
+        carriage_return();
 
         auto const value = seq.collect1(0, 1);
         move_cursor_up(value);
@@ -1935,7 +2004,7 @@ Terminal::CR(vte::parser::Sequence const& seq)
 {
         /*
          * CR - carriage-return
-         * Move the cursor to the left margin on the current line.
+         * Move the cursor to the left margin or to the left edge on the current line.
          *
          * References: ECMA-48 § 8.3.15
          */
@@ -1944,7 +2013,7 @@ Terminal::CR(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, 0, screen->state.cursor_y);
 #endif
 
-        set_cursor_column(0);
+        carriage_return();
 }
 
 void
@@ -5103,7 +5172,7 @@ Terminal::DL(vte::parser::Sequence const& seq)
                 return;
         }
 
-        set_cursor_column(0);
+        carriage_return();
 
         auto const count = seq.collect1(0, 1);
         /* Scroll up in a custom region: the top is at the cursor, the rest is according to DECSTBM / DECSLRM. */
@@ -6132,7 +6201,7 @@ Terminal::IL(vte::parser::Sequence const& seq)
                 return;
         }
 
-        set_cursor_column(0);
+        carriage_return();
 
         auto const count = seq.collect1(0, 1);
         /* Scroll down in a custom region: the top is at the cursor, the rest is according to DECSTBM / DECSLRM. */
@@ -6444,8 +6513,13 @@ Terminal::NEL(vte::parser::Sequence const& seq)
         screen_cursor_set(screen, 0, screen->state.cursor_y);
 #endif
 
-        set_cursor_column(0);
+        /* If the cursor is on the bottom margin but to the right of the right margin then
+         * Xterm doesn't scroll. esctest also checks for this behavior. In order to achieve
+         * this, move the cursor down (with scrolling) first, and then return the carriage.
+         * DEC STD 070 p5-64 disagrees, it says we should return the carriage first.
+         * See https://gitlab.gnome.org/GNOME/vte/-/issues/2526#note_1910803 */
         cursor_down_with_scrolling(true);
+        carriage_return();
 }
 
 void

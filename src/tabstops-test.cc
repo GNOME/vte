@@ -26,6 +26,9 @@
 
 using namespace vte::terminal;
 
+using position_t = unsigned int;
+static inline constexpr position_t const npos = -1;
+
 static void
 tabstops_set(Tabstops& t,
              std::initializer_list<Tabstops::position_t> l)
@@ -87,20 +90,22 @@ assert_tabstops(Tabstops const& t,
 static void
 assert_tabstops_previous(Tabstops const& t,
                          std::initializer_list<std::pair<Tabstops::position_t, Tabstops::position_t>> l,
-                         int count = 1)
+                         int count = 1,
+                         position_t endpos = npos)
 {
         for (auto p : l) {
-                g_assert_cmpuint(t.get_previous(p.first, count), ==, p.second);
+                g_assert_cmpuint(t.get_previous(p.first, count, endpos), ==, p.second);
         }
 }
 
 static void
 assert_tabstops_next(Tabstops const& t,
                      std::initializer_list<std::pair<Tabstops::position_t, Tabstops::position_t>> l,
-                     int count = 1)
+                     int count = 1,
+                     position_t endpos = npos)
 {
         for (auto p : l) {
-                g_assert_cmpuint(t.get_next(p.first, count), ==, p.second);
+                g_assert_cmpuint(t.get_next(p.first, count, endpos), ==, p.second);
         }
 }
 
@@ -177,13 +182,14 @@ test_tabstops_previous(void)
         Tabstops t{512, false};
         tabstops_set(t, {0, 31, 32, 63, 64, 255, 256});
         assert_tabstops_previous(t, {{511, 256}, {256, 255}, {255, 64}, {64, 63}, {63, 32}, {32, 31}, {31, 0}});
-
         assert_tabstops_previous(t, {{511, 255}, {257, 255}, {254, 63}, {64, 32}, {33, 31}, {32, 0}, {31, t.npos}, {0, t.npos}}, 2);
 
         t.clear();
         tabstops_set(t, {127, 256});
         assert_tabstops_previous(t, {{511, 256}, {256, 127}, {127, t.npos}});
         assert_tabstops_previous(t, {{384, 256}, {192, 127}, {92, t.npos}});
+
+        assert_tabstops_previous(t, {{384, 256}, {256, 192}, {192, 192}, {191, 192}}, 1, 192);
 
         unsigned int const tab_width = 3;
         t.reset(tab_width);
@@ -206,6 +212,8 @@ test_tabstops_next(void)
         tabstops_set(t, {127, 256});
         assert_tabstops_next(t, {{0, 127}, {127, 256}, {256, t.npos}});
         assert_tabstops_next(t, {{1, 127}, {192, 256}, {384, t.npos}});
+
+        assert_tabstops_next(t, {{64, 127}, {127, 192}, {192, 192}, {193, 192}}, 1, 192);
 
         unsigned int const tab_width = 3;
         t.reset(tab_width);
