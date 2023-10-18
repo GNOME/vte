@@ -20,6 +20,8 @@
 
 #include <config.h>
 
+#include "debug.h"
+
 #include "vteunistr.h"
 
 #include <string.h>
@@ -183,7 +185,7 @@ _vte_unistr_replace_base (vteunistr s, gunichar c)
         VteBidiChars a;
         vte_bidi_chars_init(&a);
         _vte_unistr_append_to_gunichars (s, &a);
-        g_assert_cmpint(vte_bidi_chars_get_size(&a), >=, 1);
+        vte_assert_cmpint(vte_bidi_chars_get_size(&a), >=, 1);
 
         s = c;
         for (gsize i = 1; i < vte_bidi_chars_get_size(&a); i++)

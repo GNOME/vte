@@ -873,7 +873,7 @@ protected:
 #ifdef PARSER_EXTRA_CLEAN
                 /* Assert that the assumed-clean params are actually clean. */
                 for (unsigned int n = n_args; n < VTE_PARSER_ARG_MAX; ++n)
-                        g_assert_cmpuint(m_seq.args[n], ==, VTE_SEQ_ARG_INIT_DEFAULT);
+                        vte_assert_cmpuint(m_seq.args[n], ==, VTE_SEQ_ARG_INIT_DEFAULT);
 #endif
 
                 m_seq.n_args = 0;

@@ -21,6 +21,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include "debug.h"
+
 #include "vtedefines.hh"
 
 namespace vte {
@@ -139,8 +141,8 @@ public:
         {
                 /* We want an even number of blocks */
                 auto const new_capacity = ((size + 8 * sizeof(storage_t) - 1) / (8 * sizeof(storage_t)) + 1) & ~1;
-                g_assert_cmpuint(new_capacity % 2, ==, 0);
-                g_assert_cmpuint(new_capacity * 8 * sizeof(storage_t), >=, size);
+                vte_assert_cmpuint(new_capacity % 2, ==, 0);
+                vte_assert_cmpuint(new_capacity * 8 * sizeof(storage_t), >=, size);
 
                 if (new_capacity > m_capacity) {
                         auto const new_capacity_bytes = new_capacity * sizeof(storage_t);

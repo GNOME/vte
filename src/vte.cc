@@ -689,8 +689,8 @@ void
 Terminal::set_hard_wrapped(vte::grid::row_t row)
 {
         /* We can set the row just above insert_delta to hard wrapped. */
-        g_assert_cmpint(row, >=, m_screen->insert_delta - 1);
-        g_assert_cmpint(row, <, m_screen->insert_delta + m_row_count);
+        vte_assert_cmpint(row, >=, m_screen->insert_delta - 1);
+        vte_assert_cmpint(row, <, m_screen->insert_delta + m_row_count);
 
         VteRowData *row_data = find_row_data_writable(row);
 
@@ -710,8 +710,8 @@ Terminal::set_hard_wrapped(vte::grid::row_t row)
 void
 Terminal::set_soft_wrapped(vte::grid::row_t row)
 {
-        g_assert_cmpint(row, >=, m_screen->insert_delta);
-        g_assert_cmpint(row, <, m_screen->insert_delta + m_row_count);
+        vte_assert_cmpint(row, >=, m_screen->insert_delta);
+        vte_assert_cmpint(row, <, m_screen->insert_delta + m_row_count);
 
         VteRowData *row_data = find_row_data_writable(row);
         g_assert(row_data != nullptr);
@@ -3491,11 +3491,11 @@ Terminal::process_incoming()
 #if VTE_DEBUG
         /* Some safety checks: ensure the visible parts of the buffer
          * are all in the buffer. */
-        g_assert_cmpint(m_screen->insert_delta, >=, m_screen->row_data->delta());
+        vte_assert_cmpint(m_screen->insert_delta, >=, m_screen->row_data->delta());
 
         /* The cursor shouldn't be above or below the addressable
          * part of the display buffer. */
-        g_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
+        vte_assert_cmpint(m_screen->cursor.row, >=, m_screen->insert_delta);
 #endif
 
         if (context.m_modified) {
@@ -4372,7 +4372,7 @@ Terminal::reply(vte::parser::Sequence const& seq,
         va_start(vargs, format);
         auto len = g_vsnprintf(buf, sizeof(buf), format, vargs);
         va_end(vargs);
-        g_assert_cmpint(len, <, sizeof(buf));
+        vte_assert_cmpint(len, <, sizeof(buf));
 
         vte::parser::ReplyBuilder builder{type, params};
         builder.set_string(std::string{buf});
@@ -6189,7 +6189,7 @@ Terminal::get_text(vte::grid::row_t start_row,
 
 	/* Sanity check. */
         if (attributes != nullptr)
-                g_assert_cmpuint(string->len, ==, vte_char_attr_list_get_size(attributes));
+                vte_assert_cmpuint(string->len, ==, vte_char_attr_list_get_size(attributes));
 }
 
 void
@@ -6405,7 +6405,7 @@ Terminal::attributes_to_html(GString* text_string,
 
         char const* text = text_string->str;
         auto len = text_string->len;
-        g_assert_cmpuint(len, ==, vte_char_attr_list_get_size(attrs));
+        vte_assert_cmpuint(len, ==, vte_char_attr_list_get_size(attrs));
 
 	/* Initial size fits perfectly if the text has no attributes and no
 	 * characters that need to be escaped
@@ -8966,7 +8966,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         hyperlink = nhyperlink;
                         hilite = nhilite;
 
-                        g_assert_cmpint (item_count, <, column_count);
+                        vte_assert_cmpint (item_count, <, column_count);
                         items[item_count].c = bidirow->vis_get_shaped_char(vcol, c);
                         items[item_count].columns = j - lcol;
                         items[item_count].x = (vcol - (bidirow->vis_is_rtl(vcol) ? items[item_count].columns - 1 : 0)) * column_width;
@@ -8975,7 +8975,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         items[item_count].box_mirror = !!(row_data->attr.bidi_flags & VTE_BIDI_FLAG_BOX_MIRROR);
                         item_count++;
 
-                        g_assert_cmpint (j, >, lcol);
+                        vte_assert_cmpint (j, >, lcol);
                         lcol = j;
                 }
 

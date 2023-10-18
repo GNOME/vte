@@ -369,8 +369,8 @@ public:
 
         void assert_equal(Sequence const& seq) const noexcept
         {
-                g_assert_cmpuint(seq.type(), ==, m_seq.type);
-                g_assert_cmphex(seq.terminator(), ==, m_seq.terminator);
+                vte_assert_cmpuint(seq.type(), ==, m_seq.type);
+                vte_assert_cmphex(seq.terminator(), ==, m_seq.terminator);
         }
 
         void assert_equal_full(Sequence const& seq) const noexcept
@@ -382,11 +382,11 @@ public:
                     type == VTE_SEQ_DCS) {
                         /* We may get one arg less back, if it's at default */
                         if (m_seq.n_args != seq.size()) {
-                                g_assert_cmpuint(m_seq.n_args, ==, seq.size() + 1);
-                                g_assert_true(vte_seq_arg_default(m_seq.args[m_seq.n_args - 1]));
+                                vte_assert_cmpuint(m_seq.n_args, ==, seq.size() + 1);
+                                vte_assert_true(vte_seq_arg_default(m_seq.args[m_seq.n_args - 1]));
                         }
                         for (unsigned int n = 0; n < seq.size(); n++)
-                                g_assert_cmpint(vte_seq_arg_value(m_seq.args[n]), ==, seq.param(n));
+                                vte_assert_cmpint(vte_seq_arg_value(m_seq.args[n]), ==, seq.param(n));
                 }
         }
 }; // class SequenceBuilder

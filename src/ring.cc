@@ -63,11 +63,11 @@ Ring::validate() const
 			m_start, m_end - m_start, m_end,
 			m_max, m_end - m_writable);
 
-	g_assert_cmpuint(m_start, <=, m_writable);
-	g_assert_cmpuint(m_writable, <=, m_end);
+	vte_assert_cmpuint(m_start, <=, m_writable);
+	vte_assert_cmpuint(m_writable, <=, m_end);
 
-	g_assert_cmpuint(m_end - m_start, <=, m_max);
-	g_assert_cmpuint(m_end - m_writable, <=, m_mask);
+	vte_assert_cmpuint(m_end - m_start, <=, m_max);
+	vte_assert_cmpuint(m_end - m_writable, <=, m_mask);
 }
 #else
 #define validate(...) do { } while(0)
@@ -362,7 +362,7 @@ Ring::get_hyperlink_idx_no_update_current(char const* hyperlink)
         }
 
         /* All allocated slots are in use. Gotta allocate a new one */
-        g_assert_cmpuint(m_hyperlink_highest_used_idx + 1, ==, m_hyperlinks->len);
+        vte_assert_cmpuint(m_hyperlink_highest_used_idx + 1, ==, m_hyperlinks->len);
 
         /* VTE_HYPERLINK_COUNT_MAX should be big enough for this not to happen under
            normal circumstances. Anyway, it's cheap to protect against extreme ones. */
@@ -380,7 +380,7 @@ Ring::get_hyperlink_idx_no_update_current(char const* hyperlink)
         str = g_string_new_len (hyperlink, len);
         g_ptr_array_add(m_hyperlinks, str);
 
-        g_assert_cmpuint(m_hyperlink_highest_used_idx + 1, ==, m_hyperlinks->len);
+        vte_assert_cmpuint(m_hyperlink_highest_used_idx + 1, ==, m_hyperlinks->len);
 
         return idx;
 }
@@ -571,7 +571,7 @@ Ring::thaw_row(row_t position,
 				if (!_vte_stream_read (m_attr_stream, record.attr_start_offset, (char *) &attr_change, sizeof (attr_change)))
 					return;
 				record.attr_start_offset += sizeof (attr_change);
-                                g_assert_cmpuint (attr_change.attr.hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
+                                vte_assert_cmpuint (attr_change.attr.hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
                                 if (attr_change.attr.hyperlink_length && !_vte_stream_read (m_attr_stream, record.attr_start_offset, hyperlink_readbuf, attr_change.attr.hyperlink_length))
                                         return;
                                 hyperlink_readbuf[attr_change.attr.hyperlink_length] = '\0';
@@ -651,7 +651,7 @@ Ring::thaw_row(row_t position,
 			/* Check the previous attr record. If its text ends where truncating, this attr record also needs to be removed. */
                         guint16 hyperlink_length;
                         if (_vte_stream_read (m_attr_stream, attr_stream_truncate_at - 2, (char *) &hyperlink_length, 2)) {
-                                g_assert_cmpuint (hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
+                                vte_assert_cmpuint (hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
                                 if (_vte_stream_read (m_attr_stream, attr_stream_truncate_at - 2 - hyperlink_length - sizeof (attr_change), (char *) &attr_change, sizeof (attr_change))) {
                                         if (records[0].text_start_offset == attr_change.text_end_offset) {
                                                 _vte_debug_print (VTE_DEBUG_RING, "... at attribute change\n");
@@ -669,7 +669,7 @@ Ring::thaw_row(row_t position,
                                         m_last_attr.hyperlink_idx = get_hyperlink_idx(hyperlink_readbuf);
                                 }
                                 if (_vte_stream_read (m_attr_stream, attr_stream_truncate_at - 2, (char *) &hyperlink_length, 2)) {
-                                        g_assert_cmpuint (hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
+                                        vte_assert_cmpuint (hyperlink_length, <=, VTE_HYPERLINK_TOTAL_LENGTH_MAX);
                                         if (_vte_stream_read (m_attr_stream, attr_stream_truncate_at - 2 - hyperlink_length - sizeof (attr_change), (char *) &attr_change, sizeof (attr_change))) {
                                                 m_last_attr_text_start_offset = attr_change.text_end_offset;
                                         } else {
@@ -837,7 +837,7 @@ Ring::thaw_one_row()
 {
 	VteRowData* row;
 
-	g_assert_cmpuint(m_start, <, m_writable);
+	vte_assert_cmpuint(m_start, <, m_writable);
 
 	ensure_writable_room();
 
@@ -993,8 +993,8 @@ Ring::insert(row_t position, guint8 bidi_flags)
 	ensure_writable(position);
 	ensure_writable_room();
 
-	g_assert_cmpuint (position, >=, m_writable);
-	g_assert_cmpuint (position, <=, m_end);
+	vte_assert_cmpuint (position, >=, m_writable);
+	vte_assert_cmpuint (position, <=, m_end);
 
         //FIXMEchpe WTF use better data structures!
 	tmp = *get_writable_index(m_end);
@@ -1121,7 +1121,7 @@ Ring::frozen_row_column_to_text_offset(row_t position,
 		/* go on */
 	}
 
-	g_assert_cmpuint(position, <, m_writable);
+	vte_assert_cmpuint(position, <, m_writable);
 	if (!read_row_record(&records[0], position))
 		return false;
 	if ((position + 1) * sizeof (records[0]) < _vte_stream_head(m_row_stream)) {
@@ -1203,7 +1203,7 @@ Ring::frozen_row_text_offset_to_column(row_t position,
 		return true;
 	}
 
-	g_assert_cmpuint(position, <, m_writable);
+	vte_assert_cmpuint(position, <, m_writable);
 	if (!read_row_record(&records[0], position))
 		return false;
 	if ((position + 1) * sizeof (records[0]) < _vte_stream_head(m_row_stream)) {
@@ -1223,8 +1223,8 @@ Ring::frozen_row_text_offset_to_column(row_t position,
          * if the ring ends in a soft wrapped line; see bug 181), the position we're about to
          * locate can be anywhere in the string, including just after its last character,
          * but not beyond that. */
-        g_assert_cmpuint(offset->text_offset, >=, records[0].text_start_offset);
-        g_assert_cmpuint(offset->text_offset, <=, records[0].text_start_offset + buffer->len);
+        vte_assert_cmpuint(offset->text_offset, >=, records[0].text_start_offset);
+        vte_assert_cmpuint(offset->text_offset, <=, records[0].text_start_offset + buffer->len);
 
 	row = index(position);
 

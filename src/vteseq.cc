@@ -9253,7 +9253,7 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                                 m_window_title_stack.emplace(m_window_title_stack.cend(),
                                                              m_window_title);
 
-                        g_assert_cmpuint(m_window_title_stack.size(), <=, VTE_WINDOW_TITLE_STACK_MAX_DEPTH);
+                        vte_assert_cmpuint(m_window_title_stack.size(), <=, VTE_WINDOW_TITLE_STACK_MAX_DEPTH);
                         break;
 
                 case VTE_OSC_XTERM_SET_ICON_TITLE:

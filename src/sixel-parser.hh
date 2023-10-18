@@ -241,7 +241,7 @@ private:
 #ifdef PARSER_EXTRA_CLEAN
                 /* Assert that the assumed-clean params are actually clean. */
                 for (auto n = n_args; n < VTE_SIXEL_PARSER_ARG_MAX; ++n)
-                        g_assert_cmpuint(m_seq.m_args[n], ==, VTE_SEQ_ARG_INIT_DEFAULT);
+                        vte_assert_cmpuint(m_seq.m_args[n], ==, VTE_SEQ_ARG_INIT_DEFAULT);
 #endif
 
                 m_seq.m_n_args = 0;
