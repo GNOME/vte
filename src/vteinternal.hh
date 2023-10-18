@@ -1566,7 +1566,6 @@ public:
         inline void clear_to_bol();
         inline void clear_below_current();
         inline void clear_to_eol();
-        inline void delete_character();
         inline void set_cursor_column(vte::grid::column_t col);
         inline void set_cursor_column1(vte::grid::column_t col); /* 1-based */
         /* Return the xterm-like cursor column, 0-based, decremented by 1 if about to wrap.
@@ -1592,7 +1591,6 @@ public:
                                      bool use_basic = false);
         void erase_image_rect(vte::grid::row_t rows,
                               vte::grid::column_t columns);
-        inline void insert_blank_character();
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
         inline bool seq_parse_sgr_color(vte::parser::Sequence const& seq,
