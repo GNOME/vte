@@ -26,7 +26,7 @@
 # include <gdk/gdk.h>
 #endif
 
-#include "drawing-cairo.hh"
+#include "drawing-context.hh"
 #include "minifont.hh"
 
 #define MINIFONT_CACHE_MAX_SIZE 128
