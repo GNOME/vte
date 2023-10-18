@@ -22,8 +22,169 @@
 
 #include <cairo.h>
 
+#if VTE_GTK == 4
+# include <gdk/gdk.h>
+#endif
+
 #include "drawing-cairo.hh"
 #include "minifont.hh"
+
+#define MINIFONT_CACHE_MAX_SIZE 128
+#define MINIFONT_XPAD 2
+#define MINIFONT_YPAD 2
+
+typedef struct _CachedMinifont
+{
+        gunichar c;              // the actual unichar to draw
+        guint width : 12;        // the width of the cell
+        guint height : 13;       // the height of the cell
+        guint scale_factor : 3;  // the scale factor (1..7)
+        guint x_off : 2;         // x_offset for patterns (0..3)
+        guint y_off : 2;         // y_offset for patterns (0..3)
+                                 // 8-byte boundary for cached_minifont_equal()
+
+        GList link;
+
+        /* An 8-bit alpha only surface */
+#if VTE_GTK == 3
+        cairo_surface_t *surface;
+#elif VTE_GTK == 4
+        GdkTexture *texture;
+#endif
+} CachedMinifont;
+
+static GHashTable *minifont_cache;
+static GQueue minifonts;
+static guint minifont_gc_source;
+
+static inline guint
+cached_minifont_hash(gconstpointer data)
+{
+        const CachedMinifont *mf = (const CachedMinifont *)data;
+
+        return (mf->c & 0xFFFF) ^
+               (((mf->scale_factor-1) & 0x3) << 30) ^
+               ((mf->width & 0x1F) << 25) ^
+               ((mf->height & 0x1F) << 20) ^
+               (mf->x_off << 18) ^
+               (mf->y_off << 16);
+}
+
+static inline gboolean
+cached_minifont_equal(gconstpointer data1,
+                      gconstpointer data2)
+{
+        return memcmp (data1, data2, 8) == 0;
+}
+
+static void
+cached_minifont_free (gpointer data)
+{
+        CachedMinifont *mf = (CachedMinifont *)data;
+
+        g_queue_unlink (&minifonts, &mf->link);
+#if VTE_GTK == 3
+        cairo_surface_destroy (mf->surface);
+#elif VTE_GTK == 4
+        g_object_unref (mf->texture);
+#endif
+        g_free (mf);
+}
+
+static const CachedMinifont *
+cached_minifont_lookup(vteunistr c,
+                       int width,
+                       int height,
+                       int scale_factor,
+                       int x_off,
+                       int y_off)
+{
+        CachedMinifont key;
+
+        if G_UNLIKELY (minifont_cache == nullptr)
+                return nullptr;
+
+        key.c = c;
+        key.width = width;
+        key.height = height;
+        key.scale_factor = scale_factor;
+        key.x_off = x_off;
+        key.y_off = y_off;
+
+        // We could use an MRU here to track the minifont surface/textures
+        // but they are fast enough to create on demand if we even reach our
+        // threshold that it's cheaper than MRU tracking on lookups.
+
+        return (const CachedMinifont *)g_hash_table_lookup (minifont_cache, (gpointer)&key);
+}
+
+static gboolean
+cached_minifont_gc_worker(gpointer data)
+{
+        minifont_gc_source = 0;
+
+        while (minifonts.length > MINIFONT_CACHE_MAX_SIZE) {
+                CachedMinifont *mf = (CachedMinifont *)g_queue_peek_tail (&minifonts);
+                g_hash_table_remove (minifont_cache, (gpointer)mf);
+        }
+
+        return G_SOURCE_REMOVE;
+}
+
+static inline void
+cached_minifont_add(CachedMinifont *mf)
+{
+        if G_UNLIKELY (minifont_cache == NULL)
+                minifont_cache = g_hash_table_new_full (cached_minifont_hash,
+                                                        cached_minifont_equal,
+                                                        cached_minifont_free,
+                                                        nullptr);
+
+        g_queue_push_head_link (&minifonts, &mf->link);
+        g_hash_table_add (minifont_cache, mf);
+
+        if G_UNLIKELY (minifont_gc_source == 0 && minifonts.length > MINIFONT_CACHE_MAX_SIZE)
+                minifont_gc_source = g_idle_add (cached_minifont_gc_worker, nullptr);
+}
+
+static inline void
+cached_minifont_draw(const CachedMinifont *mf,
+                     vte::view::DrawingContext const& context,
+                     int x,
+                     int y,
+                     int width,
+                     int height,
+                     vte::color::rgb const* fg)
+{
+        x -= MINIFONT_XPAD;
+        y -= MINIFONT_YPAD;
+        width += 2 * MINIFONT_XPAD;
+        height += 2 * MINIFONT_YPAD;
+
+        // Our surface includes padding on all sides to help with situations
+        // where glyphs should appear to overlap adjacent cells.
+#if VTE_GTK == 3
+        context.draw_surface_with_color_mask(mf->surface, x, y, width, height, fg);
+#elif VTE_GTK == 4
+        context.draw_surface_with_color_mask(mf->texture, x, y, width, height, fg);
+#endif
+}
+
+static cairo_surface_t *
+create_surface(int width,
+               int height,
+               int scale_factor)
+{
+        width += MINIFONT_XPAD * 2;
+        width *= scale_factor;
+
+        height += MINIFONT_YPAD * 2;
+        height *= scale_factor;
+
+        auto surface = cairo_image_surface_create(CAIRO_FORMAT_A8, width, height);
+        cairo_surface_set_device_scale(surface, scale_factor, scale_factor);
+        return surface;
+}
 
 /* pixman data must have stride 0 mod 4 */
 
@@ -90,27 +251,6 @@ DEFINE_STATIC_PATTERN_FUNC(create_checkerboard_reverse_pattern, checkerboard_rev
 #undef DEFINE_STATIC_PATTERN_FUNC
 
 static void
-rectangle(cairo_t* cr,
-          double x,
-          double y,
-          double w,
-          double h,
-          int xdenom,
-          int ydenom,
-          int xb1,
-          int yb1,
-          int xb2,
-          int yb2)
-{
-        int const x1 = (w) * (xb1) / (xdenom);
-        int const y1 = (h) * (yb1) / (ydenom);
-        int const x2 = (w) * (xb2) / (xdenom);
-        int const y2 = (h) * (yb2) / (ydenom);
-        cairo_rectangle ((cr), (x) + x1, (y) + y1, MAX(x2 - x1, 1), MAX(y2 - y1, 1));
-        cairo_fill (cr);
-}
-
-static void
 polygon(cairo_t* cr,
         double x,
         double y,
@@ -152,6 +292,85 @@ pattern(cairo_t* cr,
 
 namespace vte::view {
 
+void
+Minifont::rectangle(cairo_t* cr,
+                    double x,
+                    double y,
+                    double w,
+                    double h,
+                    int xdenom,
+                    int ydenom,
+                    int xb1,
+                    int yb1,
+                    int xb2,
+                    int yb2) const
+{
+        int const x1 = (w) * (xb1) / (xdenom);
+        int const y1 = (h) * (yb1) / (ydenom);
+        int const x2 = (w) * (xb2) / (xdenom);
+        int const y2 = (h) * (yb2) / (ydenom);
+        cairo_rectangle ((cr), (x) + x1, (y) + y1, MAX(x2 - x1, 1), MAX(y2 - y1, 1));
+        cairo_fill (cr);
+}
+
+void
+Minifont::rectangle(DrawingContext const& context,
+                    vte::color::rgb const* fg,
+                    double alpha,
+                    double x,
+                    double y,
+                    double w,
+                    double h,
+                    int xdenom,
+                    int ydenom,
+                    int xb1,
+                    int yb1,
+                    int xb2,
+                    int yb2) const
+{
+        int const x1 = (w) * (xb1) / (xdenom);
+        int const y1 = (h) * (yb1) / (ydenom);
+        int const x2 = (w) * (xb2) / (xdenom);
+        int const y2 = (h) * (yb2) / (ydenom);
+
+        context.fill_rectangle((x) + x1, (y) + y1, MAX(x2 - x1, 1), MAX(y2 - y1, 1), fg, alpha);
+}
+
+cairo_t*
+Minifont::begin_cairo(cairo_surface_t *surface,
+                      int x,
+                      int y)
+{
+        auto cr = cairo_create(surface);
+        cairo_set_source_rgba(cr, 1, 1, 1, 1);
+        // We keep an extra pixel of padding to help to ensure that
+        // lines which should seem contiguous across rows are.
+        cairo_translate(cr, -x + MINIFONT_XPAD, -y + MINIFONT_YPAD);
+        return cr;
+}
+
+#if VTE_GTK == 4
+GdkTexture *
+Minifont::finalize_surface(cairo_surface_t *surface) const
+{
+        cairo_surface_flush(surface);
+
+        const guchar *data = cairo_image_surface_get_data(surface);
+        int width = cairo_image_surface_get_width(surface);
+        int height = cairo_image_surface_get_height(surface);
+        int stride = cairo_image_surface_get_stride(surface);
+        GBytes *bytes = g_bytes_new(data, height * stride);
+
+        auto texture = gdk_memory_texture_new(width, height, GDK_MEMORY_A8, bytes, stride);
+
+        cairo_surface_destroy(surface);
+        g_bytes_unref(bytes);
+
+        return texture;
+
+}
+#endif
+
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 void
@@ -162,18 +381,286 @@ Minifont::draw_graphic(DrawingContext const& context,
                        int y,
                        int font_width,
                        int columns,
-                       int font_height)
+                       int font_height,
+                       int scale_factor)
 {
-        gint width, height, xcenter, xright, ycenter, ybottom;
-        int upper_half, left_half;
-        int light_line_width, heavy_line_width;
-        double adjust;
-        auto cr = context.cairo();
+        int width, height, x_off, y_off;
 
-        cairo_save (cr);
+
+        // The glyphs we can draw can be separated into two classes.
+        //
+        // The first class (our fast path), are a simple rectangle
+        // or small series of rectangles which can be drawn using
+        // GskColorNode on GTK 4.
+        //
+        // The second class are more complex in that they require
+        // drawing arcs or some form of bit pattern that would not
+        // be suited well to a GskColorNode per glyph.
+        //
+        // To avoid overhead for the fast path, we check for those
+        // up front before every trying to lookup a CachedMinifont.
+        // While GHashTable is fast, it's much slower than doing the
+        // least amount of work up-front for the fast path.
 
         width = context.cell_width() * columns;
         height = context.cell_height();
+        x_off = 0;
+        y_off = 0;
+
+        switch (c) {
+
+        /* Block Elements */
+        case 0x2580: /* upper half block */
+                rectangle(context, fg, 1, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                return;
+
+        case 0x2581: /* lower one eighth block */
+        case 0x2582: /* lower one quarter block */
+        case 0x2583: /* lower three eighths block */
+        case 0x2584: /* lower half block */
+        case 0x2585: /* lower five eighths block */
+        case 0x2586: /* lower three quarters block */
+        case 0x2587: /* lower seven eighths block */
+        {
+                const guint v = 0x2588 - c;
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, v,  1, 8);
+                return;
+        }
+
+        case 0x2588: /* full block */
+        case 0x2589: /* left seven eighths block */
+        case 0x258a: /* left three quarters block */
+        case 0x258b: /* left five eighths block */
+        case 0x258c: /* left half block */
+        case 0x258d: /* left three eighths block */
+        case 0x258e: /* left one quarter block */
+        case 0x258f: /* left one eighth block */
+        {
+                const guint v = 0x2590 - c;
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  0, 0,  v, 1);
+                return;
+        }
+
+        case 0x2590: /* right half block */
+                rectangle(context, fg, 1, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                return;
+
+        case 0x2591: /* light shade */
+        case 0x2592: /* medium shade */
+        case 0x2593: /* dark shade */
+                context.fill_rectangle(x, y, width, height, fg, (c - 0x2590) / 4.);
+                return;
+
+        case 0x2594: /* upper one eighth block */
+        {
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                return;
+        }
+
+        case 0x2595: /* right one eighth block */
+        {
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                return;
+        }
+
+        case 0x2596: /* quadrant lower left */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 1,  1, 2);
+                return;
+
+        case 0x2597: /* quadrant lower right */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  1, 1,  2, 2);
+                return;
+
+        case 0x2598: /* quadrant upper left */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                return;
+
+        case 0x2599: /* quadrant upper left and lower left and lower right */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 1,  2, 2);
+                return;
+
+        case 0x259a: /* quadrant upper left and lower right */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 0,  1, 1);
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  1, 1,  2, 2);
+                return;
+
+        case 0x259b: /* quadrant upper left and upper right and lower left */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 0,  2, 1);
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 1,  1, 2);
+                return;
+
+        case 0x259c: /* quadrant upper left and upper right and lower right */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 0,  2, 1);
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  1, 1,  2, 2);
+                return;
+
+        case 0x259d: /* quadrant upper right */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                return;
+
+        case 0x259e: /* quadrant upper right and lower left */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 1,  1, 2);
+                return;
+
+        case 0x259f: /* quadrant upper right and lower left and lower right */
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  1, 0,  2, 1);
+                rectangle(context, fg, 1, x, y, width, height, 2, 2,  0, 1,  2, 2);
+                return;
+
+        case 0x1fb70:
+        case 0x1fb71:
+        case 0x1fb72:
+        case 0x1fb73:
+        case 0x1fb74:
+        case 0x1fb75:
+        {
+                auto const v = c - 0x1fb70 + 1;
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  v, 0,  v + 1, 1);
+                return;
+        }
+
+        case 0x1fb76:
+        case 0x1fb77:
+        case 0x1fb78:
+        case 0x1fb79:
+        case 0x1fb7a:
+        case 0x1fb7b:
+        {
+                auto const v = c - 0x1fb76 + 1;
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, v,  1, v + 1);
+                return;
+        }
+
+        case 0x1fb7c:
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb7d:
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb7e:
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                return;
+
+        case 0x1fb7f:
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  7, 0,  8, 1);
+                return;
+
+        case 0x1fb80:
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                return;
+
+        case 0x1fb81:
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 0,  1, 1);
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 2,  1, 3);
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 4,  1, 5);
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 7,  1, 8);
+                return;
+
+        case 0x1fb82:
+        case 0x1fb83:
+        case 0x1fb84:
+        case 0x1fb85:
+        case 0x1fb86:
+        {
+                auto v = c - 0x1fb82 + 2;
+                if (v >= 4) v++;
+                rectangle(context, fg, 1, x, y, width, height, 1, 8,  0, 0,  1, v);
+                return;
+        }
+
+        case 0x1fb87:
+        case 0x1fb88:
+        case 0x1fb89:
+        case 0x1fb8a:
+        case 0x1fb8b:
+        {
+                auto v = c - 0x1fb87 + 2;
+                if (v >= 4) v++;
+                rectangle(context, fg, 1, x, y, width, height, 8, 1,  8 - v, 0,  8, 1);
+                return;
+        }
+
+        case 0x1fb8c:
+                rectangle(context, fg, .5, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb8d:
+                rectangle(context, fg, .5, x, y, width, height, 2, 1,  1, 0,  2, 1);
+                return;
+
+        case 0x1fb8e:
+                rectangle(context, fg, .5, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb8f:
+                rectangle(context, fg, .5, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                return;
+
+        case 0x1fb90:
+                rectangle(context, fg, .5, x, y, width, height, 1, 1,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb91:
+                rectangle(context, fg, 1., x, y, width, height, 1, 2,  0, 0,  1, 1);
+                rectangle(context, fg, .5, x, y, width, height, 1, 2,  0, 1,  1, 2);
+                return;
+
+        case 0x1fb92:
+                rectangle(context, fg, 1., x, y, width, height, 1, 2,  0, 1,  1, 2);
+                rectangle(context, fg, .5, x, y, width, height, 1, 2,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb93:
+#if 0
+                /* codepoint not assigned */
+                rectangle(context, fg, 1., x, y, width, height, 2, 1,  0, 0,  1, 1);
+                rectangle(context, fg, .5, x, y, width, height, 2, 1,  1, 0,  2, 1);
+#endif
+                return;
+
+        case 0x1fb94:
+                rectangle(context, fg, 1., x, y, width, height, 2, 1,  1, 0,  2, 1);
+                rectangle(context, fg, .5, x, y, width, height, 2, 1,  0, 0,  1, 1);
+                return;
+
+        case 0x1fb97:
+                rectangle(context, fg, 1, x, y, width, height, 1, 4,  0, 1,  1, 2);
+                rectangle(context, fg, 1, x, y, width, height, 1, 4,  0, 3,  1, 4);
+                return;
+
+        case 0x1fb95:
+        case 0x1fb96:
+        case 0x1fb98:
+        case 0x1fb99:
+                x_off = x & 0x3;
+                y_off = y & 0x3;
+                [[fallthrough]];
+        default:
+        {
+                const CachedMinifont *cached = cached_minifont_lookup(c, width, height, scale_factor, x_off, y_off);
+
+                if G_LIKELY (cached != nullptr) {
+                        cached_minifont_draw(cached, context, x, y, width, height, fg);
+                        return;
+                }
+        }
+        }
+
+        int xcenter, xright, ycenter, ybottom;
+        int upper_half, left_half;
+        int light_line_width, heavy_line_width;
+        const vteunistr real_c = c;
+        double adjust;
+
         upper_half = height / 2;
         left_half = width / 2;
 
@@ -191,6 +678,9 @@ Minifont::draw_graphic(DrawingContext const& context,
         ycenter = y + upper_half;
         xright = x + width;
         ybottom = y + height;
+
+        auto surface = create_surface (width, height, scale_factor);
+        auto cr = begin_cairo(surface, x, y);
 
         switch (c) {
 
@@ -324,7 +814,6 @@ Minifont::draw_graphic(DrawingContext const& context,
                                        upper_half - heavy_line_width / 2 + heavy_line_width,
                                        height};
                 int xi, yi;
-                cairo_set_line_width(cr, 0);
                 for (yi = 4; yi >= 0; yi--) {
                         for (xi = 4; xi >= 0; xi--) {
                                 if (bitmap & 1) {
@@ -469,112 +958,6 @@ Minifont::draw_graphic(DrawingContext const& context,
                 break;
         }
 
-        /* Block Elements */
-        case 0x2580: /* upper half block */
-                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
-                break;
-
-        case 0x2581: /* lower one eighth block */
-        case 0x2582: /* lower one quarter block */
-        case 0x2583: /* lower three eighths block */
-        case 0x2584: /* lower half block */
-        case 0x2585: /* lower five eighths block */
-        case 0x2586: /* lower three quarters block */
-        case 0x2587: /* lower seven eighths block */
-        {
-                const guint v = 0x2588 - c;
-                rectangle(cr, x, y, width, height, 1, 8,  0, v,  1, 8);
-                break;
-        }
-
-        case 0x2588: /* full block */
-        case 0x2589: /* left seven eighths block */
-        case 0x258a: /* left three quarters block */
-        case 0x258b: /* left five eighths block */
-        case 0x258c: /* left half block */
-        case 0x258d: /* left three eighths block */
-        case 0x258e: /* left one quarter block */
-        case 0x258f: /* left one eighth block */
-        {
-                const guint v = 0x2590 - c;
-                rectangle(cr, x, y, width, height, 8, 1,  0, 0,  v, 1);
-                break;
-        }
-
-        case 0x2590: /* right half block */
-                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
-                break;
-
-        case 0x2591: /* light shade */
-        case 0x2592: /* medium shade */
-        case 0x2593: /* dark shade */
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       (c - 0x2590) / 4.);
-                cairo_rectangle(cr, x, y, width, height);
-                cairo_fill (cr);
-                break;
-
-        case 0x2594: /* upper one eighth block */
-        {
-                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                break;
-        }
-
-        case 0x2595: /* right one eighth block */
-        {
-                rectangle(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
-                break;
-        }
-
-        case 0x2596: /* quadrant lower left */
-                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
-                break;
-
-        case 0x2597: /* quadrant lower right */
-                rectangle(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
-                break;
-
-        case 0x2598: /* quadrant upper left */
-                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
-                break;
-
-        case 0x2599: /* quadrant upper left and lower left and lower right */
-                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
-                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
-                break;
-
-        case 0x259a: /* quadrant upper left and lower right */
-                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  1, 1);
-                rectangle(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
-                break;
-
-        case 0x259b: /* quadrant upper left and upper right and lower left */
-                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
-                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
-                break;
-
-        case 0x259c: /* quadrant upper left and upper right and lower right */
-                rectangle(cr, x, y, width, height, 2, 2,  0, 0,  2, 1);
-                rectangle(cr, x, y, width, height, 2, 2,  1, 1,  2, 2);
-                break;
-
-        case 0x259d: /* quadrant upper right */
-                rectangle(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
-                break;
-
-        case 0x259e: /* quadrant upper right and lower left */
-                rectangle(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
-                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  1, 2);
-                break;
-
-        case 0x259f: /* quadrant upper right and lower left and lower right */
-                rectangle(cr, x, y, width, height, 2, 2,  1, 0,  2, 1);
-                rectangle(cr, x, y, width, height, 2, 2,  0, 1,  2, 2);
-                break;
-
         case 0x25e2: /* black lower right triangle */
         {
                 static int8_t const coords[] = { 0, 1,  1, 0,  1, 1,  -1 };
@@ -668,7 +1051,6 @@ Minifont::draw_graphic(DrawingContext const& context,
                 if (bitmap >= 0x15) bitmap++;
                 if (bitmap >= 0x2a) bitmap++;
                 int xi, yi;
-                cairo_set_line_width(cr, 0);
                 for (yi = 0; yi <= 2; yi++) {
                         for (xi = 0; xi <= 1; xi++) {
                                 if (bitmap & 1) {
@@ -800,174 +1182,6 @@ Minifont::draw_graphic(DrawingContext const& context,
                 break;
         }
 
-        case 0x1fb70:
-        case 0x1fb71:
-        case 0x1fb72:
-        case 0x1fb73:
-        case 0x1fb74:
-        case 0x1fb75:
-        {
-                auto const v = c - 0x1fb70 + 1;
-                rectangle(cr, x, y, width, height, 8, 1,  v, 0,  v + 1, 1);
-                break;
-        }
-
-        case 0x1fb76:
-        case 0x1fb77:
-        case 0x1fb78:
-        case 0x1fb79:
-        case 0x1fb7a:
-        case 0x1fb7b:
-        {
-                auto const v = c - 0x1fb76 + 1;
-                rectangle(cr, x, y, width, height, 1, 8,  0, v,  1, v + 1);
-                break;
-        }
-
-        case 0x1fb7c:
-                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
-                rectangle(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
-                break;
-
-        case 0x1fb7d:
-                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                rectangle(cr, x, y, width, height, 8, 1,  0, 0,  1, 1);
-                break;
-
-        case 0x1fb7e:
-                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                rectangle(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
-                break;
-
-        case 0x1fb7f:
-                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
-                rectangle(cr, x, y, width, height, 8, 1,  7, 0,  8, 1);
-                break;
-
-        case 0x1fb80:
-                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
-                break;
-
-        case 0x1fb81:
-                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, 1);
-                rectangle(cr, x, y, width, height, 1, 8,  0, 2,  1, 3);
-                rectangle(cr, x, y, width, height, 1, 8,  0, 4,  1, 5);
-                rectangle(cr, x, y, width, height, 1, 8,  0, 7,  1, 8);
-                break;
-
-        case 0x1fb82:
-        case 0x1fb83:
-        case 0x1fb84:
-        case 0x1fb85:
-        case 0x1fb86:
-        {
-                auto v = c - 0x1fb82 + 2;
-                if (v >= 4) v++;
-                rectangle(cr, x, y, width, height, 1, 8,  0, 0,  1, v);
-                break;
-        }
-
-        case 0x1fb87:
-        case 0x1fb88:
-        case 0x1fb89:
-        case 0x1fb8a:
-        case 0x1fb8b:
-        {
-                auto v = c - 0x1fb87 + 2;
-                if (v >= 4) v++;
-                rectangle(cr, x, y, width, height, 8, 1,  8 - v, 0,  8, 1);
-                break;
-        }
-
-        case 0x1fb8c:
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
-                break;
-
-        case 0x1fb8d:
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
-                break;
-
-        case 0x1fb8e:
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
-                break;
-
-        case 0x1fb8f:
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
-                break;
-
-        case 0x1fb90:
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 1, 1,  0, 0,  1, 1);
-                break;
-
-        case 0x1fb91:
-                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
-                break;
-
-        case 0x1fb92:
-                rectangle(cr, x, y, width, height, 1, 2,  0, 1,  1, 2);
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 1, 2,  0, 0,  1, 1);
-                break;
-
-        case 0x1fb93:
-#if 0
-                /* codepoint not assigned */
-                rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
-#endif
-                break;
-
-        case 0x1fb94:
-                rectangle(cr, x, y, width, height, 2, 1,  1, 0,  2, 1);
-                cairo_set_source_rgba (cr,
-                                       fg->red / 65535.,
-                                       fg->green / 65535.,
-                                       fg->blue / 65535.,
-                                       0.5);
-                rectangle(cr, x, y, width, height, 2, 1,  0, 0,  1, 1);
-                break;
-
         case 0x1fb95:
                 pattern(cr, create_checkerboard_pattern(), x, y, width, height);
                 break;
@@ -976,10 +1190,6 @@ Minifont::draw_graphic(DrawingContext const& context,
                 pattern(cr, create_checkerboard_reverse_pattern(), x, y, width, height);
                 break;
 
-        case 0x1fb97:
-                rectangle(cr, x, y, width, height, 1, 4,  0, 1,  1, 2);
-                rectangle(cr, x, y, width, height, 1, 4,  0, 3,  1, 4);
-                break;
 
         case 0x1fb98:
                 pattern(cr, create_hatching_pattern_lr(), x, y, width, height);
@@ -1115,7 +1325,24 @@ Minifont::draw_graphic(DrawingContext const& context,
                 g_assert_not_reached();
         }
 
-        cairo_restore(cr);
+        cairo_destroy(cr);
+
+        auto mf = g_new0 (CachedMinifont, 1);
+        mf->link.data = mf;
+        mf->c = real_c;
+        mf->width = width;
+        mf->height = height;
+        mf->scale_factor = scale_factor;
+        mf->x_off = x_off;
+        mf->y_off = y_off;
+#if VTE_GTK == 3
+        mf->surface = surface;
+#elif VTE_GTK == 4
+        mf->texture = finalize_surface(surface);
+#endif
+        cached_minifont_add(mf);
+
+        cached_minifont_draw(mf, context, x, y, width, height, fg);
 }
 
 } // namespace vte::view

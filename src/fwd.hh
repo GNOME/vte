@@ -48,6 +48,7 @@ namespace view {
 
 class FontInfo;
 class DrawingContext;
+struct Rectangle;
 
 } // namespace view
 

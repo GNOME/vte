@@ -35,7 +35,11 @@
 
 #include "debug.h"
 #include "clipboard-gtk.hh"
-#include "drawing-cairo.hh"
+#if VTE_GTK == 3
+# include "drawing-cairo.hh"
+#elif VTE_GTK == 4
+# include "drawing-gsk.hh"
+#endif
 #include "vtedefines.hh"
 #include "vtetypes.hh"
 #include "reaper.hh"
@@ -661,7 +665,11 @@ public:
         }
 
 	/* Data used when rendering */
-        vte::view::DrawingContext m_draw{};
+#if VTE_GTK == 3
+        vte::view::DrawingCairo m_draw{};
+#elif VTE_GTK == 4
+        vte::view::DrawingGsk m_draw{};
+#endif
         bool m_clear_background{true};
 
         VtePaletteColor m_palette[VTE_PALETTE_SIZE];
@@ -1003,8 +1011,7 @@ public:
                                 int blink_time_ms,
                                 int blink_timeout_ms) noexcept;
 
-        void draw(cairo_t *cr,
-                  cairo_region_t const* region) noexcept;
+        void draw(cairo_region_t const* region) noexcept;
         void paint_cursor();
         void paint_im_preedit_string();
         void draw_cells(vte::view::DrawingContext::TextRequest* items,
