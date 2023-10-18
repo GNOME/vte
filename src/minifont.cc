@@ -30,8 +30,6 @@
 #include "minifont.hh"
 
 #define MINIFONT_CACHE_MAX_SIZE 128
-#define MINIFONT_XPAD 2
-#define MINIFONT_YPAD 2
 
 typedef struct _CachedMinifont
 {
@@ -688,8 +686,7 @@ Minifont::draw_graphic(DrawingContext const& context,
         xright = x + width;
         ybottom = y + height;
 
-        auto xpad = MINIFONT_XPAD;
-        auto ypad = MINIFONT_YPAD;
+        auto xpad = 0, ypad = 0;
         auto cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
 
         switch (c) {
@@ -954,7 +951,7 @@ Minifont::draw_graphic(DrawingContext const& context,
                 // enlarge the drawing surface.
                 auto const dx = (light_line_width + 1) / 2;
                 xpad = dx;
-                ypad = MINIFONT_YPAD;
+                ypad = 0;
                 cairo_destroy(cr);
                 cr = begin_cairo(x, y, width, height, xpad, ypad, scale_factor);
                 cairo_rectangle(cr, x - dx, y, width + 2 * dx, height);
