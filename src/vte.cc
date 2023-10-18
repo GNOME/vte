@@ -3103,7 +3103,7 @@ Terminal::insert_char(gunichar c,
 					"Autowrapping before character\n");
 			/* Wrap. */
 			/* XXX clear to the end of line */
-                        col = m_screen->cursor.col = 0;
+                        col = m_screen->cursor.col = m_scrolling_region.left();
 			/* Mark this line as soft-wrapped. */
 			row = ensure_row();
                         set_soft_wrapped(m_screen->cursor.row);

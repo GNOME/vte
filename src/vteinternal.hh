@@ -1582,8 +1582,6 @@ public:
                                       vte::grid::column_t column);
         inline void set_cursor_coords1(vte::grid::row_t row /* relative to scrolling region */,
                                        vte::grid::column_t column); /* 1-based */
-        inline vte::grid::row_t get_cursor_row_unclamped() const;
-        inline vte::grid::column_t get_cursor_column_unclamped() const;
         inline void erase_characters(long count,
                                      bool use_basic = false);
         void erase_image_rect(vte::grid::row_t rows,
@@ -1602,6 +1600,7 @@ public:
         inline void move_cursor_tab_backward(int count = 1);
         inline void move_cursor_tab_forward(int count = 1);
 
+        inline void carriage_return();
         inline void line_feed();
 
         inline void erase_in_display(vte::parser::Sequence const& seq);

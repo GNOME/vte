@@ -202,18 +202,18 @@ public:
                                    int count = 1,
                                    position_t endpos = npos) const noexcept
         {
-                while (count-- && position < m_size)
+                while (count-- && position < m_size && position < endpos)
                         position = next_position(position);
-                return position < m_size ? position : endpos;
+                return position < endpos ? position : endpos;
         }
 
         inline position_t get_previous(position_t position,
                                        int count = 1,
                                        position_t endpos = npos) const noexcept
         {
-                while (count-- && position != npos)
+                while (count-- && position != npos && (endpos == npos || position > endpos))
                         position = previous_position(position);
-                return position != npos ? position : endpos;
+                return (position != npos && (endpos == npos || position > endpos)) ? position : endpos;
         }
 };
 
