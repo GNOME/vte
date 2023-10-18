@@ -896,8 +896,14 @@ public:
                             vte::grid::row_t amount, bool fill);
         void scroll_text_down(const struct vte_scrolling_region& scrolling_region,
                               vte::grid::row_t amount, bool fill);
+        void scroll_text_left(const struct vte_scrolling_region& scrolling_region,
+                              vte::grid::row_t amount, bool fill);
+        void scroll_text_right(const struct vte_scrolling_region& scrolling_region,
+                               vte::grid::row_t amount, bool fill);
         void cursor_down_with_scrolling(bool fill);
         void cursor_up_with_scrolling(bool fill);
+        void cursor_right_with_scrolling(bool fill);
+        void cursor_left_with_scrolling(bool fill);
 
         void drop_scrollback();
 

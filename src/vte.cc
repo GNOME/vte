@@ -2910,6 +2910,102 @@ Terminal::scroll_text_down(const struct vte_scrolling_region& scrolling_region,
         }
 }
 
+/* Terminal::scroll_text_left:
+ *
+ * Scrolls the text to the left by the given amount, within the given custom scrolling region.
+ * The DECSTBM / DECSLRM scrolling region (or lack thereof) is irrelevant (unless, of course,
+ * it is the one passed to this method).
+ *
+ * "fill" tells whether to fill the new lines with the background color.
+ *
+ * The cursor's position is irrelevant, and it stays where it was.
+ */
+void
+Terminal::scroll_text_left(const struct vte_scrolling_region& scrolling_region,
+                           vte::grid::row_t amount, bool fill)
+{
+        auto const top = m_screen->insert_delta + scrolling_region.top();
+        auto const bottom = m_screen->insert_delta + scrolling_region.bottom();
+        auto const left = scrolling_region.left();
+        auto const right = scrolling_region.right();
+
+        amount = CLAMP(amount, 1, right - left + 1);
+
+        /* Make sure the ring covers the area we'll operate on. */
+        while (long(m_screen->row_data->next()) <= bottom) [[unlikely]]
+                ring_append(false /* no fill */);
+
+        const VteCell *cell = fill ? &m_color_defaults : &basic_cell;
+
+        /* Scroll left in each row separately. */
+        for (auto row = top; row <= bottom; row++) {
+                /* Make sure the area we're about to scroll is present in memory. */
+                _vte_row_data_fill(m_screen->row_data->index_writable(row), &basic_cell, right + 1);
+                /* Handle TABs, CJKs, emojis that will be cut in half. */
+                cleanup_fragments(row, left, left + amount);
+                cleanup_fragments(row, right + 1, right + 1);
+                /* Scroll left by copying the cell data. */
+                VteRowData *rowdata = m_screen->row_data->index_writable(row);
+                memmove(rowdata->cells + left, rowdata->cells + left + amount, (right - left + 1 - amount) * sizeof(VteCell));
+                /* Erase the cells we scrolled away from. */
+                std::fill_n(&rowdata->cells[right + 1 - amount], amount, *cell);
+                /* To match xterm, we modify the line endings of the scrolled lines to hard newline.
+                 * This differs from scroll_text_right(). */
+                set_hard_wrapped(row);
+        }
+        /* Repaint the affected lines, with context if necessary. */
+        invalidate_rows_and_context(top, bottom);
+        /* We've modified the display. Make a note of it. */
+        m_text_deleted_flag = TRUE;
+}
+
+/* Terminal::scroll_text_right:
+ *
+ * Scrolls the text to the right by the given amount, within the given custom scrolling region.
+ * The DECSTBM / DECSLRM scrolling region (or lack thereof) is irrelevant (unless, of course,
+ * it is the one passed to this method).
+ *
+ * "fill" tells whether to fill the new lines with the background color.
+ *
+ * The cursor's position is irrelevant, and it stays where it was.
+ */
+void
+Terminal::scroll_text_right(const struct vte_scrolling_region& scrolling_region,
+                            vte::grid::row_t amount, bool fill)
+{
+        auto const top = m_screen->insert_delta + scrolling_region.top();
+        auto const bottom = m_screen->insert_delta + scrolling_region.bottom();
+        auto const left = scrolling_region.left();
+        auto const right = scrolling_region.right();
+
+        amount = CLAMP(amount, 1, right - left + 1);
+
+        /* Make sure the ring covers the area we'll operate on. */
+        while (long(m_screen->row_data->next()) <= bottom) [[unlikely]]
+                ring_append(false /* no fill */);
+
+        const VteCell *cell = fill ? &m_color_defaults : &basic_cell;
+
+        /* Scroll right in each row separately. */
+        for (auto row = top; row <= bottom; row++) {
+                /* Make sure the area we're about to scroll is present in memory. */
+                _vte_row_data_fill(m_screen->row_data->index_writable(row), &basic_cell, right + 1);
+                /* Handle TABs, CJKs, emojis that will be cut in half. */
+                cleanup_fragments(row, left, left);
+                cleanup_fragments(row, right + 1 - amount, right + 1);
+                /* Scroll right by copying the cell data. */
+                VteRowData *rowdata = m_screen->row_data->index_writable(row);
+                memmove(rowdata->cells + left + amount, rowdata->cells + left, (right - left + 1 - amount) * sizeof(VteCell));
+                /* Erase the cells we scrolled away from. */
+                std::fill_n(&rowdata->cells[left], amount, *cell);
+                /* To match xterm, we don't modify the line endings. This differs from scroll_text_left(). */
+        }
+        /* Repaint the affected lines, with context if necessary. */
+        invalidate_rows_and_context(top, bottom);
+        /* We've modified the display. Make a note of it. */
+        m_text_deleted_flag = TRUE;
+}
+
 /* Terminal::cursor_down_with_scrolling:
  * Cursor down by one line, with scrolling if needed (respecting the DECSTBM / DECSLRM scrolling region).
  *
@@ -2974,6 +3070,70 @@ Terminal::cursor_up_with_scrolling(bool fill)
         } else {
                 /* No boundary hit, move the cursor up. process_incoming() takes care of invalidating both rows. */
                 m_screen->cursor.row--;
+        }
+}
+
+/* Terminal::cursor_right_with_scrolling:
+ * Cursor right by one column, with scrolling if needed (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "RI, IND/LF, DECFI, DECBI" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to do anything if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ *
+ * "fill" tells whether to fill the new line with the background color.
+ */
+void
+Terminal::cursor_right_with_scrolling(bool fill)
+{
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        if (cursor_col == m_scrolling_region.right()) {
+                /* Hit the right column of the scrolling region. */
+                if (cursor_row >= m_scrolling_region.top() && cursor_row <= m_scrolling_region.bottom()) {
+                        /* Inside the vertical margins, scroll the text in the scrolling region. */
+                        scroll_text_left(m_scrolling_region, 1, fill);
+                } else {
+                        /* Outside of the vertical margins, do nothing. */
+                }
+        } else if (cursor_col == m_column_count - 1) {
+                /* Hit the right edge of the screen outside of the scrolling region, do nothing. */
+        } else {
+                /* No boundary hit, move the cursor right. process_incoming() takes care of invalidating its row. */
+                m_screen->cursor.col++;
+        }
+}
+
+/* Terminal::cursor_left_with_scrolling:
+ * Cursor left by one column, with scrolling if needed (respecting the DECSTBM / DECSLRM scrolling region).
+ *
+ * See the "RI, IND/LF, DECFI, DECBI" picture in ../doc/scrolling-region.txt.
+ *
+ * DEC STD 070 says not to do anything if the cursor hits the margin outside of the scrolling area.
+ * Xterm follows this, and so do we. Reportedly (#2526) DEC terminals move the cursor despite their doc.
+ *
+ * "fill" tells whether to fill the new line with the background color.
+ */
+void
+Terminal::cursor_left_with_scrolling(bool fill)
+{
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        if (cursor_col == m_scrolling_region.left()) {
+                /* Hit the left column of the scrolling region. */
+                if (cursor_row >= m_scrolling_region.top() && cursor_row <= m_scrolling_region.bottom()) {
+                        /* Inside the vertical margins, scroll the text in the scrolling region. */
+                        scroll_text_right(m_scrolling_region, 1, fill);
+                } else {
+                        /* Outside of the vertical margins, do nothing. */
+                }
+        } else if (cursor_col == 0) {
+                /* Hit the left edge of the screen outside of the scrolling region, do nothing. */
+        } else {
+                /* No boundary hit, move the cursor left. process_incoming() takes care of invalidating its row. */
+                m_screen->cursor.col--;
         }
 }
 

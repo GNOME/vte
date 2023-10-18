@@ -489,11 +489,11 @@ sequences = [
     # CSI sequences
     seq_CSI('ICH', '@',
             comment='insert character'),
-    seq_CSI('SL', '@', intermediates=(Intermediate.SPACE,), flags=Flags.NOP,
+    seq_CSI('SL', '@', intermediates=(Intermediate.SPACE,),
             comment='scroll left'),
     seq_CSI('CUU', 'A',
             comment='cursor up'),
-    seq_CSI('SR', 'A', intermediates=(Intermediate.SPACE,), flags=Flags.NOP,
+    seq_CSI('SR', 'A', intermediates=(Intermediate.SPACE,),
             comment='scroll right'),
     seq_CSI('CUD', 'B',
             comment='cursor down'),

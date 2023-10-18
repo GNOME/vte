@@ -7490,9 +7490,22 @@ Terminal::SL(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.121
-         *
-         * Probably not worth implementing.
          */
+
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        /* If the cursor (xterm-like interpretation when about to wrap) is outside
+         * the DECSTBM / DECSLRM scrolling region then do nothing. */
+        if (!m_scrolling_region.contains_row_col(cursor_row, cursor_col)) {
+                return;
+        }
+
+        /* As per xterm, do not clear the "about to wrap" state, so no maybe_retreat_cursor() here. */
+
+        /* Scroll the text to the left by N lines in the scrolling region, but don't move the cursor. */
+        auto value = std::max(seq.collect1(0, 1), int(1));
+        scroll_text_left(m_scrolling_region, value, true /* fill */);
 }
 
 void
@@ -7770,9 +7783,22 @@ Terminal::SR(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: ECMA-48 § 8.3.135
-         *
-         * Probably not worth implementing.
          */
+
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        /* If the cursor (xterm-like interpretation when about to wrap) is outside
+         * the DECSTBM / DECSLRM scrolling region then do nothing. */
+        if (!m_scrolling_region.contains_row_col(cursor_row, cursor_col)) {
+                return;
+        }
+
+        /* As per xterm, do not clear the "about to wrap" state, so no maybe_retreat_cursor() here. */
+
+        /* Scroll the text to the right by N lines in the scrolling region, but don't move the cursor. */
+        auto value = std::max(seq.collect1(0, 1), int(1));
+        scroll_text_right(m_scrolling_region, value, true /* fill */);
 }
 
 void
