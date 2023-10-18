@@ -2709,10 +2709,28 @@ Terminal::DECDC(vte::parser::Sequence const& seq)
         /*
          * DECDC - delete-column
          *
-         * References: VT525
+         * Defaults:
+         *   args[0]: 1
          *
-         * Probably not worth implementing.
+         * References: VT525
          */
+
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        /* If the cursor (xterm-like interpretation when about to wrap) is outside
+         * the DECSTBM / DECSLRM scrolling region then do nothing. */
+        if (!m_scrolling_region.contains_row_col(cursor_row, cursor_col)) {
+                return;
+        }
+
+        /* As per xterm, do not clear the "about to wrap" state, so no maybe_retreat_cursor() here. */
+
+        auto const count = seq.collect1(0, 1);
+        /* Scroll left in a custom region: the left is at the cursor, the rest is according to DECSTBM / DECSLRM. */
+        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
+        scroll_text_left(scrolling_region, count, true /* fill */);
 }
 
 void
@@ -2984,9 +3002,24 @@ Terminal::DECIC(vte::parser::Sequence const& seq)
          *   args[0]: 1
          *
          * References: VT525
-         *
-         * Probably not worth implementing.
          */
+
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
+
+        /* If the cursor (xterm-like interpretation when about to wrap) is outside
+         * the DECSTBM / DECSLRM scrolling region then do nothing. */
+        if (!m_scrolling_region.contains_row_col(cursor_row, cursor_col)) {
+                return;
+        }
+
+        /* As per xterm, do not clear the "about to wrap" state, so no maybe_retreat_cursor() here. */
+
+        auto const count = seq.collect1(0, 1);
+        /* Scroll right in a custom region: the left is at the cursor, the rest is according to DECSTBM / DECSLRM. */
+        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
+        scroll_text_right(scrolling_region, count, true /* fill */);
 }
 
 void
