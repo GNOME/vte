@@ -844,49 +844,6 @@ Terminal::set_cursor_coords1(vte::grid::row_t row,
         set_cursor_row1(row);
 }
 
-/* Delete a character at the current cursor position. */
-void
-Terminal::delete_character()
-{
-	VteRowData *rowdata;
-	long col;
-
-        maybe_retreat_cursor();
-
-        if (long(m_screen->row_data->next()) > m_screen->cursor.row) {
-		long len;
-		/* Get the data for the row which the cursor points to. */
-                rowdata = m_screen->row_data->index_writable(m_screen->cursor.row);
-		g_assert(rowdata != NULL);
-                col = m_screen->cursor.col;
-		len = _vte_row_data_length (rowdata);
-
-                bool const not_default_bg = (m_color_defaults.attr.back() != VTE_DEFAULT_BG);
-                if (not_default_bg) {
-                        _vte_row_data_fill(rowdata, &basic_cell, m_column_count);
-                        len = m_column_count;
-                }
-
-		/* Remove the column. */
-		if (col < len) {
-                        /* Clean up Tab/CJK fragments. */
-                        cleanup_fragments(col, col + 1);
-			_vte_row_data_remove (rowdata, col);
-
-                        if (not_default_bg) {
-                                _vte_row_data_fill(rowdata, &m_color_defaults, m_column_count);
-                                len = m_column_count;
-			}
-                        set_hard_wrapped(m_screen->cursor.row);
-                        /* Repaint this row's paragraph. */
-                        invalidate_row_and_context(m_screen->cursor.row);
-		}
-	}
-
-	/* We've modified the display.  Make a note of it. */
-        m_text_deleted_flag = TRUE;
-}
-
 void
 Terminal::erase_characters(long count,
                            bool use_basic)
@@ -953,17 +910,6 @@ Terminal::erase_image_rect(vte::grid::row_t rows,
                 }
         }
         m_screen->cursor_advanced_by_graphic_character = false;
-}
-
-/* Insert a blank character. */
-void
-Terminal::insert_blank_character()
-{
-        maybe_retreat_cursor();
-
-        auto save = m_screen->cursor;
-        insert_char(' ', true, true);
-        m_screen->cursor = save;
 }
 
 /* Terminal::move_cursor_up:
@@ -2495,12 +2441,23 @@ Terminal::DCH(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        auto const value = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
 
-        // FIXMEchpe pass count to delete_character() and simplify
-        // to only cleanup fragments once
-        for (auto i = 0; i < value; i++)
-                delete_character();
+        /* If the cursor (xterm-like interpretation when about to wrap) is horizontally outside
+         * the DECSLRM margins then do nothing. */
+        if (cursor_col < m_scrolling_region.left() || cursor_col > m_scrolling_region.right()) {
+                return;
+        }
+
+        maybe_retreat_cursor();
+
+        auto const count = seq.collect1(0, 1);
+        /* Scroll left in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
+        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        scrolling_region.set_vertical(cursor_row, cursor_row);
+        scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
+        scroll_text_left(scrolling_region, count, true /* fill */);
 }
 
 void
@@ -6105,11 +6062,23 @@ Terminal::ICH(vte::parser::Sequence const& seq)
                                  screen->age);
 #endif
 
-        auto const count = seq.collect1(0, 1, 1, int(m_column_count - m_screen->cursor.col));
+        auto cursor_row = get_xterm_cursor_row();
+        auto cursor_col = get_xterm_cursor_column();
 
-        /* TODOegmont: Insert them in a single run, so that we call cleanup_fragments only once. */
-        for (auto i = 0; i < count; i++)
-                insert_blank_character();
+        /* If the cursor (xterm-like interpretation when about to wrap) is horizontally outside
+         * the DECSLRM margins then do nothing. */
+        if (cursor_col < m_scrolling_region.left() || cursor_col > m_scrolling_region.right()) {
+                return;
+        }
+
+        maybe_retreat_cursor();
+
+        auto const count = seq.collect1(0, 1);
+        /* Scroll right in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
+        struct vte_scrolling_region scrolling_region(m_scrolling_region);
+        scrolling_region.set_vertical(cursor_row, cursor_row);
+        scrolling_region.set_horizontal(cursor_col, scrolling_region.right());
+        scroll_text_right(scrolling_region, count, true /* fill */);
 }
 
 void
