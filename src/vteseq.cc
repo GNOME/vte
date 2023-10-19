@@ -5259,20 +5259,24 @@ Terminal::DSR_ECMA(vte::parser::Sequence const& seq)
                  *   @arg[0]: line
                  *   @arg[1]: column
                  */
-                vte::grid::row_t rowval, origin, rowmax;
-                if (m_modes_private.DEC_ORIGIN()) {
-                        origin = m_scrolling_region.top();
-                        rowmax = m_scrolling_region.bottom();
-                } else {
-                        origin = 0;
-                        rowmax = m_row_count - 1;
-                }
-                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
-                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
-                rowval = CLAMP(rowval, 0, rowmax);
+                vte::grid::row_t top, bottom, rowval;
+                vte::grid::column_t left, right, colval;
 
-                reply(seq, VTE_REPLY_CPR,
-                      {int(rowval + 1), int(CLAMP(m_screen->cursor.col + 1, 1, m_column_count))});
+                if (m_modes_private.DEC_ORIGIN()) {
+                        top = m_scrolling_region.top();
+                        bottom = m_scrolling_region.bottom();
+                        left = m_scrolling_region.left();
+                        right = m_scrolling_region.right();
+                } else {
+                        top = 0;
+                        bottom = m_row_count - 1;
+                        left = 0;
+                        right = m_column_count - 1;
+                }
+                rowval = CLAMP(get_xterm_cursor_row(), top, bottom) - top;
+                colval = CLAMP(get_xterm_cursor_column(), left, right) - left;
+
+                reply(seq, VTE_REPLY_CPR, {int(rowval + 1), int(colval + 1)});
                 break;
 
         default:
@@ -5305,20 +5309,24 @@ Terminal::DSR_DEC(vte::parser::Sequence const& seq)
                  *   @arg[2]: page
                  *     Always report page 1 here (per XTERM source code).
                  */
-                vte::grid::row_t rowval, origin, rowmax;
-                if (m_modes_private.DEC_ORIGIN()) {
-                        origin = m_scrolling_region.top();
-                        rowmax = m_scrolling_region.bottom();
-                } else {
-                        origin = 0;
-                        rowmax = m_row_count - 1;
-                }
-                // FIXMEchpe this looks wrong. shouldn't this first clamp to origin,rowmax and *then* subtract origin?
-                rowval = m_screen->cursor.row - m_screen->insert_delta - origin;
-                rowval = CLAMP(rowval, 0, rowmax);
+                vte::grid::row_t top, bottom, rowval;
+                vte::grid::column_t left, right, colval;
 
-                reply(seq, VTE_REPLY_DECXCPR,
-                      {int(rowval + 1), int(CLAMP(m_screen->cursor.col + 1, 1, m_column_count)), 1});
+                if (m_modes_private.DEC_ORIGIN()) {
+                        top = m_scrolling_region.top();
+                        bottom = m_scrolling_region.bottom();
+                        left = m_scrolling_region.left();
+                        right = m_scrolling_region.right();
+                } else {
+                        top = 0;
+                        bottom = m_row_count - 1;
+                        left = 0;
+                        right = m_column_count - 1;
+                }
+                rowval = CLAMP(get_xterm_cursor_row(), top, bottom) - top;
+                colval = CLAMP(get_xterm_cursor_column(), left, right) - left;
+
+                reply(seq, VTE_REPLY_DECXCPR, {int(rowval + 1), int(colval + 1), 1});
                 break;
 
         case 15:
