@@ -6242,8 +6242,10 @@ Terminal::checksum_area(vte::grid::row_t start_row,
 {
         unsigned int checksum = 0;
 
-        auto text = get_text(start_row, start_col, end_row, end_col,
+        auto text = g_string_new(nullptr);
+        get_text(start_row, start_col, end_row, end_col,
                              true /* block */, false /* wrap */,
+                             text,
                              nullptr /* not interested in attributes */);
         if (text == nullptr)
                 return checksum;

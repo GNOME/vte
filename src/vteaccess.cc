@@ -885,7 +885,7 @@ vte_terminal_accessible_get_text_somewhere(AtkText *text,
         auto impl = IMPL_FROM_ACCESSIBLE(text);
 
 	_vte_debug_print(VTE_DEBUG_ALLY,
-			"Getting %s %s at %d of %d.\n",
+			"Getting %s %s at %d of %" G_GSIZE_FORMAT " .\n",
 			(direction == direction_current) ? "this" :
 			((direction == direction_next) ? "next" : "previous"),
 			(boundary_type == ATK_TEXT_BOUNDARY_CHAR) ? "char" :
