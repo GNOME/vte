@@ -1120,16 +1120,13 @@ public:
                       vte::grid::row_t end_row,
                       vte::grid::column_t end_col,
                       bool block,
-                      bool wrap,
                       GString* string,
                       VteCharAttrList* attributes = nullptr);
 
-        void get_text_displayed(bool wrap,
-                                GString* string,
+        void get_text_displayed(GString* string,
                                 VteCharAttrList* attributes = nullptr);
 
-        void get_text_displayed_a11y(bool wrap,
-                                     GString* string,
+        void get_text_displayed_a11y(GString* string,
                                      VteCharAttrList* attributes = nullptr);
 
         void get_selected_text(GString *string,
