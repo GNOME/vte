@@ -911,7 +911,6 @@ public:
         void save_cursor(VteScreen *screen__);
 
         void insert_char(gunichar c,
-                         bool insert,
                          bool invalidate_now);
 
         #if WITH_SIXEL
