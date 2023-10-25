@@ -7953,6 +7953,7 @@ Terminal::set_size(long columns,
 	}
 	if (old_rows != m_row_count || old_columns != m_column_count) {
                 reset_scrolling_region();
+                m_modes_private.set_DEC_ORIGIN(false);
 
                 m_normal_screen.row_data->set_visible_rows(m_row_count);
                 m_alternate_screen.row_data->set_visible_rows(m_row_count);
