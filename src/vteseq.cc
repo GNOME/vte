@@ -459,6 +459,7 @@ Terminal::set_mode_private(int mode,
                  */
                 if (m_modes_private.XTERM_DECCOLM()) {
                         emit_resize_window(set ? 132 : 80, m_row_count);
+                        m_scrolling_region.reset();
                         clear_screen();
                         home_cursor();
                 }
@@ -2490,7 +2491,9 @@ Terminal::DECALN(vte::parser::Sequence const& seq)
          * References: VT525
          */
 
-        // FIXMEchpe! reset margins and home cursor
+        m_scrolling_region.reset();
+        m_modes_private.set_DEC_ORIGIN(false);
+        home_cursor();
 
 	for (auto row = m_screen->insert_delta;
 	     row < m_screen->insert_delta + m_row_count;
