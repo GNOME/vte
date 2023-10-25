@@ -1040,7 +1040,7 @@ Terminal::match_contents_refresh()
         g_assert (m_match_contents->len == 0);
         g_assert (vte_char_attr_list_get_size(&m_match_attributes) == 0);
 
-        get_text_displayed(true /* wrap */, m_match_contents, &m_match_attributes);
+        get_text_displayed(m_match_contents, &m_match_attributes);
 }
 
 void
@@ -6003,7 +6003,6 @@ Terminal::get_text(vte::grid::row_t start_row,
                    vte::grid::row_t end_row,
                    vte::grid::column_t end_col,
                    bool block,
-                   bool wrap,
                    GString *string,
                    VteCharAttrList *attributes)
 {
@@ -6171,13 +6170,12 @@ Terminal::get_text(vte::grid::row_t start_row,
 }
 
 void
-Terminal::get_text_displayed(bool wrap,
-                             GString *string,
+Terminal::get_text_displayed(GString *string,
                              VteCharAttrList* attributes)
 {
         get_text(first_displayed_row(), 0,
                  last_displayed_row() + 1, 0,
-                 false /* block */, wrap,
+                 false /* block */,
                  string,
                  attributes);
 }
@@ -6186,13 +6184,12 @@ Terminal::get_text_displayed(bool wrap,
  * doesn't know about sub-row displays.
  */
 void
-Terminal::get_text_displayed_a11y(bool wrap,
-                                  GString *string,
+Terminal::get_text_displayed_a11y(GString *string,
                                   VteCharAttrList* attributes)
 {
         return get_text(m_screen->scroll_delta, 0,
                         m_screen->scroll_delta + m_row_count - 1 + 1, 0,
-                        false /* block */, wrap,
+                        false /* block */,
                         string,
                         attributes);
 }
@@ -6206,7 +6203,6 @@ Terminal::get_selected_text(GString *string,
                         m_selection_resolved.end_row(),
                         m_selection_resolved.end_column(),
                         m_selection_block_mode,
-                        true /* wrap */,
                         string,
                         attributes);
 }
@@ -6225,7 +6221,7 @@ Terminal::checksum_area(vte::grid::row_t start_row,
         vte_char_attr_list_init(&attributes);
         auto text = g_string_new(nullptr);
         get_text(start_row, start_col, end_row, end_col,
-                             true /* block */, false /* wrap */,
+                             true /* block */,
                              text,
                              &attributes);
         if (text == nullptr) {
@@ -10506,7 +10502,6 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
         get_text(start_row, 0,
                  end_row, 0,
                  false /* block */,
-                 true /* wrap */,
                  row_text,
                  nullptr);
 
@@ -10556,7 +10551,6 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	get_text(start_row, 0,
                  end_row, 0,
                  false /* block */,
-                 true /* wrap */,
                  row_text,
                  attrs);
 

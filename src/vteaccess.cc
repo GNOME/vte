@@ -273,8 +273,7 @@ vte_terminal_accessible_update_private_data_if_needed(VteTerminalAccessible *acc
 		/* Get a new view of the uber-label. */
                 auto text = g_string_new(nullptr);
                 try {
-                        impl->get_text_displayed_a11y(true /* wrap */,
-                                                      text,
+                        impl->get_text_displayed_a11y(text,
                                                       &priv->snapshot_attributes);
                 } catch (...) {
                         g_string_truncate(text, 0);

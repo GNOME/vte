@@ -4371,7 +4371,7 @@ try
 	g_return_val_if_fail(attributes == nullptr, nullptr);
         warn_if_callback(is_selected);
         auto text = g_string_new(nullptr);
-        IMPL(terminal)->get_text_displayed(true /* wrap */, text, nullptr);
+        IMPL(terminal)->get_text_displayed(text, nullptr);
         return (char*)g_string_free(text, FALSE);
 }
 catch (...)
@@ -4507,7 +4507,6 @@ try
                        end_row,
                        end_col,
                        false,
-                       true,
                        text.get(),
                        format == VTE_FORMAT_HTML ? &attributes : nullptr);
 
