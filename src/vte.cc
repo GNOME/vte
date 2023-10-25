@@ -6003,6 +6003,7 @@ Terminal::get_text(vte::grid::row_t start_row,
                    vte::grid::row_t end_row,
                    vte::grid::column_t end_col,
                    bool block,
+                   bool preserve_empty,
                    GString *string,
                    VteCharAttrList *attributes)
 {
@@ -6091,9 +6092,10 @@ Terminal::get_text(vte::grid::row_t start_row,
 					/* Store the cell string */
 					if (pcell->c == 0) {
                                                 /* Empty cells of nondefault background color are
-                                                 * stored as NUL characters. Treat them as spaces,
+                                                 * stored as NUL characters. Treat them as spaces
+                                                 * unless 'preserve_empty' is set,
                                                  * but make a note of the last occurrence. */
-						g_string_append_c (string, ' ');
+                                                g_string_append_c (string, preserve_empty ? 0 : ' ');
                                                 last_empty = string->len;
                                                 last_emptycol = lcol;
 					} else {
@@ -6176,6 +6178,7 @@ Terminal::get_text_displayed(GString *string,
         get_text(first_displayed_row(), 0,
                  last_displayed_row() + 1, 0,
                  false /* block */,
+                 false /* preserve_empty */,
                  string,
                  attributes);
 }
@@ -6190,6 +6193,7 @@ Terminal::get_text_displayed_a11y(GString *string,
         return get_text(m_screen->scroll_delta, 0,
                         m_screen->scroll_delta + m_row_count - 1 + 1, 0,
                         false /* block */,
+                        false /* preserve_empty */,
                         string,
                         attributes);
 }
@@ -6203,6 +6207,7 @@ Terminal::get_selected_text(GString *string,
                         m_selection_resolved.end_row(),
                         m_selection_resolved.end_column(),
                         m_selection_block_mode,
+                        false /* preserve_empty */,
                         string,
                         attributes);
 }
@@ -6222,6 +6227,7 @@ Terminal::checksum_area(vte::grid::row_t start_row,
         auto text = g_string_new(nullptr);
         get_text(start_row, start_col, end_row, end_col,
                              true /* block */,
+                             true /* preserve_empty */,
                              text,
                              &attributes);
         if (text == nullptr) {
@@ -10502,6 +10508,7 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
         get_text(start_row, 0,
                  end_row, 0,
                  false /* block */,
+                 false /* preserve_empty */,
                  row_text,
                  nullptr);
 
@@ -10551,6 +10558,7 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 	get_text(start_row, 0,
                  end_row, 0,
                  false /* block */,
+                 false /* preserve_empty */,
                  row_text,
                  attrs);
 

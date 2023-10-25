@@ -1120,6 +1120,7 @@ public:
                       vte::grid::row_t end_row,
                       vte::grid::column_t end_col,
                       bool block,
+                      bool preserve_empty,
                       GString* string,
                       VteCharAttrList* attributes = nullptr);
 

@@ -4506,7 +4506,8 @@ try
                        start_col,
                        end_row,
                        end_col,
-                       false,
+                       false /* block */,
+                       false /* preserve_empty */,
                        text.get(),
                        format == VTE_FORMAT_HTML ? &attributes : nullptr);
 
