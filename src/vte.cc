@@ -3191,8 +3191,7 @@ Terminal::save_cursor(VteScreen *screen__)
 /* Insert a single character into the stored data array. */
 void
 Terminal::insert_char(gunichar c,
-                                bool insert,
-                                bool invalidate_now)
+                      bool invalidate_now)
 {
 	VteCellAttr attr;
 	VteRowData *row;
@@ -3236,8 +3235,6 @@ Terminal::insert_char(gunichar c,
                 0x00a3,  /* } => pound currency sign */
                 0x00b7,  /* ~ => bullet */
         };
-
-        insert |= m_modes_ecma.IRM();
 
 	/* If we've enabled the special drawing set, map the characters to
 	 * Unicode. */
@@ -3368,10 +3365,14 @@ Terminal::insert_char(gunichar c,
 	row = ensure_cursor();
 	g_assert(row != NULL);
 
-	if (insert) {
-                cleanup_fragments(col, col);
-		for (i = 0; i < columns; i++)
-                        _vte_row_data_insert (row, col + i, &basic_cell);
+        if (m_modes_ecma.IRM() &&
+            m_screen->cursor.col >= m_scrolling_region.left() &&
+            m_screen->cursor.col <= m_scrolling_region.right()) {
+                /* Like ICH's handler: Scroll right in a custom region: only the cursor's row, from the cursor to the DECSLRM right margin. */
+                struct vte_scrolling_region scrolling_region(m_scrolling_region);
+                scrolling_region.set_vertical(get_xterm_cursor_row(), get_xterm_cursor_row());
+                scrolling_region.set_horizontal(m_screen->cursor.col, scrolling_region.right());
+                scroll_text_right(scrolling_region, columns, false /* no fill */);
 	} else {
                 cleanup_fragments(col, col + columns);
 		_vte_row_data_fill (row, &basic_cell, col + columns);
@@ -3982,7 +3983,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
 
                                 context.pre_GRAPHIC(*this);
 
-                                // does insert_char(c, false, false)
+                                // does insert_char(c, false)
                                 GRAPHIC(seq);
                                 _vte_debug_print(VTE_DEBUG_PARSER,
                                                  "Last graphic is now U+%04X %lc\n",
@@ -3994,7 +3995,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                                 // through the UTF-8 decoder as well as the Parser. It
                                 // also allows for a single pre_GRAPHIC()/post_GRAPHIC().
                                 while (ip < iend && *ip >= 0x20 && *ip < 0x7f) [[likely]] {
-                                        insert_char(*ip, false, false);
+                                        insert_char(*ip, false);
                                         ip++;
                                 }
 
@@ -4042,7 +4043,7 @@ Terminal::process_incoming_utf8(ProcessingContext& context,
                 m_eos_pending = true;
                 /* If there's an unfinished character in the queue, insert a replacement character */
                 if (m_utf8_decoder.flush()) {
-                        insert_char(m_utf8_decoder.codepoint(), false, true);
+                        insert_char(m_utf8_decoder.codepoint(), true);
                 }
         }
 
@@ -4108,7 +4109,7 @@ Terminal::process_incoming_pcterm(ProcessingContext& context,
 
                                 context.pre_GRAPHIC(*this);
 
-                                // does insert_char(c, false, false)
+                                // does insert_char(c, false)
                                 GRAPHIC(seq);
                                 _vte_debug_print(VTE_DEBUG_PARSER,
                                                  "Last graphic is now U+%04X %lc\n",

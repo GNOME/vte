@@ -1606,7 +1606,7 @@ Terminal::GRAPHIC(vte::parser::Sequence const& seq)
         return 0;
 #endif
 
-        insert_char(seq.terminator(), false, false);
+        insert_char(seq.terminator(), false);
 }
 
 void
@@ -6888,7 +6888,7 @@ Terminal::REP(vte::parser::Sequence const& seq)
 
         // FIXMEchpe insert in one run so we only clean up fragments once
         for (auto i = 0; i < count; i++)
-                insert_char(m_last_graphic_character, false, true);
+                insert_char(m_last_graphic_character, true);
 }
 
 void
@@ -7988,7 +7988,7 @@ Terminal::SUB(vte::parser::Sequence const& seq)
          * References: ECMA-48 § 8.3.148
          */
 
-        insert_char(0xfffdu, false, true);
+        insert_char(0xfffdu, true);
 }
 
 void
