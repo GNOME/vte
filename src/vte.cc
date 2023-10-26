@@ -2985,7 +2985,13 @@ Terminal::insert_char(gunichar c,
 
 	/* If we're autowrapping here, do it. */
         col = m_screen->cursor.col;
-	if (G_UNLIKELY (columns && col + columns > m_column_count)) {
+        if (G_UNLIKELY (columns && (
+                        /* no room at the terminal's right edge */
+                        (col + columns > m_column_count) ||
+                        /* cursor is just beyond the DECSLRM right margin, moved there by printing a letter */
+                        (col == m_scrolling_region.right() + 1 && m_screen->cursor_advanced_by_graphic_character) ||
+                        /* wide character is printed, cursor would cross the DECSLRM right margin */
+                        (col <= m_scrolling_region.right() && col + columns > m_scrolling_region.right() + 1)))) {
 		if (m_modes_private.DEC_AUTOWRAP()) {
 			_vte_debug_print(VTE_DEBUG_ADJ,
 					"Autowrapping before character\n");
@@ -3003,9 +3009,18 @@ Terminal::insert_char(gunichar c,
                         ensure_row();
                         apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_FLAG_ALL);
 		} else {
-			/* Don't wrap, stay at the rightmost column. */
-                        col = m_screen->cursor.col =
-				m_column_count - columns;
+                        /* Don't wrap, stay at the rightmost column or at the right margin.
+                         * Note that we slighly differ from xterm. Xterm swallows wide characters
+                         * that do not fit, we retreat the cursor to fit them.
+                         */
+                        if (/* cursor is just beyond the DECSLRM right margin, moved there by printing a letter */
+                            (col == m_scrolling_region.right() + 1 && m_screen->cursor_advanced_by_graphic_character) ||
+                            /* wide character is printed, cursor would cross the DECSLRM right margin */
+                            (col <= m_scrolling_region.right() && col + columns > m_scrolling_region.right() + 1)) {
+                                col = m_screen->cursor.col = m_scrolling_region.right() + 1 - columns;
+                        } else {
+                                col = m_screen->cursor.col = m_column_count - columns;
+                        }
 		}
 		line_wrapped = true;
 	}
@@ -3125,6 +3140,8 @@ done:
         if (G_UNLIKELY (invalidate_now)) {
                 invalidate_row_and_context(m_screen->cursor.row);
         }
+
+        m_screen->cursor_advanced_by_graphic_character = true;
 
 	/* We added text, so make a note of it. */
 	m_text_inserted_flag = TRUE;
@@ -10130,10 +10147,12 @@ Terminal::reset(bool clear_tabstops,
                         m_normal_screen.row_data->reset();
                 m_normal_screen.cursor.row = m_normal_screen.insert_delta;
                 m_normal_screen.cursor.col = 0;
+                m_normal_screen.cursor_advanced_by_graphic_character = false;
                 m_alternate_screen.scroll_delta = m_alternate_screen.insert_delta =
                         m_alternate_screen.row_data->reset();
                 m_alternate_screen.cursor.row = m_alternate_screen.insert_delta;
                 m_alternate_screen.cursor.col = 0;
+                m_alternate_screen.cursor_advanced_by_graphic_character = false;
                 /* Adjust the scrollbar to the new location. */
                 /* Hack: force a change in scroll_delta even if the value remains, so that
                    vte_term_q_adj_val_changed() doesn't shortcut to no-op, see bug 730599. */
